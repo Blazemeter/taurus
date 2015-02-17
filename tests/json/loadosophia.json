@@ -1,0 +1,19 @@
+{
+  "reporting": [
+    {
+      "module": "loadosophia",
+      "color": "gray",
+      "name": "Unit Test"
+    }
+  ],
+  "modules": {
+    "jmeter": {
+      "path": "build/jmeter/bin/jmeter"
+    },
+    "loadosophia": {
+      "class": "bzt.modules.loadosophia.Loadosophia",
+      "address": "http://localhost/",
+      "token": "LS0tLS1CRUdJTiBSU0EgUFJJVkFBLRVktLS0tLQ0KTUdJQ0FRQUNFUUN2L0llOE5IiL1l6djlEKzhBNXJBZ01CQUFFQ0VEQ1cwaWtwK3NidFJLV1o0MGlXZmswQw0KQ1FDOEYzQVBuclVCandJSkFPK0dROWdzOS85bEFnZ1IvM0Fpbm40VmN3SUpBT1FtbHc4ZDNtZkZBZ2d4RkZlVA0KWkgyQ3l3PT0NCi0tLS0tRU5EIFJTQSBQUklW"
+    }
+  }
+}

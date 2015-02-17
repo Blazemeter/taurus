@@ -1,0 +1,11 @@
+---
+execution:
+    - scenario:
+        requests:
+            - http://localhost/
+    - scenario:
+        requests:
+            - http://localhost/
+    - scenario:
+        requests:
+            - http://localhost/

@@ -1,0 +1,19 @@
+{
+    "execution": {
+        "scenario": {
+            "script": "tests/jmx/dummy.jmx"
+        },
+        "concurrency": 100,
+        "ramp-up": 60,
+        "locations": [
+            "aws-eu",
+            "aws-us-west",
+            {
+                "location": "aws-us-west",
+                "weight": 5,
+                "concurrency": 50,
+                "machines": 10
+            }
+        ]
+    }
+}

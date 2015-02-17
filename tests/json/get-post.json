@@ -1,0 +1,103 @@
+{
+  "execution": {
+    "concurrency": 5,
+    "ramp-up": 15,
+    "hold": 30,
+    "iterations": 10,
+    "scenario": {
+      "requests": [
+        "http://demo.blazemeter.com/",
+        {
+          "method": "GET",
+          "url": "http://demo.blazemeter.com/api/user",
+          "label": "All Puts",
+          "timeout": 5,
+          "think-time": 1.2,
+          "headers": {
+            "Accept-Lang": "en",
+            "Connection": "close"
+          },
+          "extract-regexp": {
+            "somename": "someregexp",
+            "varname2": {
+              "regexp": "regexp",
+              "template": 1,
+              "match-no": 0
+            }
+          },
+          "extract-jsonpath": {
+            "json1": "$.results",
+            "json2": {
+              "jsonpath": "$.results[*].type",
+              "default": "NO-JSON"
+            }
+          },
+          "assert": [
+            "contains_this_regexp",
+            {
+              "subject": "http-code",
+              "not": true,
+              "contains": [
+                "301",
+                "302"
+              ],
+              "regexp": false
+            }
+          ]
+        },
+        "http://demo.blazemeter.com/?${somename}=${varname2}",
+        {
+          "url": "dummy",
+          "label": "Disable.Me"
+        },
+        {
+          "method": "POST",
+          "url": "http://demo.blazemeter.com/api/user",
+          "label": "With body",
+          "body": "test"
+        },
+        {
+          "method": "PUT",
+          "url": "http://demo.blazemeter.com/api/user",
+          "label": "With body from file",
+          "body-file": "tests/jmx/http.jmx"
+        }
+      ],
+      "properties": {
+        "log_level.jmeter": "WARN"
+      },
+      "headers": {
+        "Host": "blazemeter.com",
+        "Connection": "keep-alive"
+      },
+      "store-cache": true,
+      "store-cookie": true,
+      "timeout": 1,
+      "think-time": 0.5,
+      "disable-listeners": true,
+      "data-sources": [
+        "tests/data/test1.csv",
+        {
+          "type": "csv",
+          "path": "tests/data/test1.csv",
+          "delimiter": ",",
+          "quoted": false,
+          "loop": true
+        }
+      ],
+      "modifications": {
+        "disable": ["Disable.Me"],
+        "enable": "Disable.Me",
+        "set-prop": {
+          "Disable.Me>HTTPSampler.connect_timeout": "0",
+          "Disable.Me>HTTPSampler.protocol": "https"
+        }
+      }
+    }
+  },
+  "modules": {
+    "jmeter": {
+      "path": "build/jmeter/bin/jmeter"
+    }
+  }
+}

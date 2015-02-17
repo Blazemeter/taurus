@@ -1,0 +1,28 @@
+{
+  "provisioning": "local",
+  "modules": {
+    "jmeter": {
+      "path": "build/jmeter/bin/jmeter",
+      "^properties": ""
+    },
+    "remote": {
+      "dict-over": "string"
+    }
+  },
+  "list-append": [
+    4,
+    5,
+    6
+  ],
+  "~list-replace": [
+    4,
+    5
+  ],
+  "~list-replace-notexistent": [
+    6,
+    7
+  ],
+  "list-complex": [
+    [{"dict2": false}]
+  ]
+}

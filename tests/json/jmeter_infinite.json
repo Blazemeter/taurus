@@ -1,0 +1,7 @@
+{
+    "execution": {
+        "scenario": {
+            "script": "tests/jmx/infinite.jmx"
+        }
+    }
+}

@@ -1,0 +1,14 @@
+{
+  "reporting": [
+    "mock",
+    {
+      "module": "mock"
+    }
+  ],
+  "modules": {
+    "mock": "tests.mocks.ModuleMock",
+    "console": {
+      "disable": false
+    }
+  }
+}

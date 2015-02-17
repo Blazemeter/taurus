@@ -1,0 +1,28 @@
+{
+  "provisioning": "local",
+  "modules": {
+    "local": "bzt.modules.provisioning.Local",
+    "remote": "bzt.modules.provisioning.Remote",
+    "jmeter": {
+      "class": "bzt.modules.jmeter.JMeterExecutor",
+      "path": "build/jmeter/bin/jmeter",
+      "properties": {
+        "log_level.jmeter": "DEBUG"
+      }
+    }
+  },
+  "list-append": [
+    1,
+    2,
+    3
+  ],
+  "list-replace": [
+    1,
+    2,
+    3
+  ],
+  "list-complex": [
+    ["simple"],
+    [{"token": "test"}]
+  ]
+}

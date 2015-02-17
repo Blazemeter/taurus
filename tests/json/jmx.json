@@ -1,0 +1,32 @@
+{
+  "execution": {
+    "scenario": {
+      "name": "JMX Scenario",
+      "executor": "jmeter",
+      "sla": [],
+      "script": {
+        "path": "tests/jmx/dummy.jmx",
+        "modifications": [
+          {
+            "element": "Dummy Sampler",
+            "enabled": "false"
+          },
+          {
+            "element": "Thread Group",
+            "properties": {
+              "ThreadGroup.main_controller": {
+                "LoopController.loops": 10
+              }
+            }
+          }
+        ]
+      },
+      "files": []
+    }
+  },
+  "modules": {
+    "jmeter": {
+      "path": "build/jmeter/bin/jmeter"
+    }
+  }
+}

@@ -1,0 +1,5 @@
+{
+    "scenarios": [
+        "@scenario-for-inclusion.json"
+    ]
+}

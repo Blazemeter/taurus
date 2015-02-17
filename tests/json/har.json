@@ -1,0 +1,10 @@
+{
+  "execution": {
+    "scenario": {
+      "name": "HAR Scenario",
+      "har": "tests/har/demo.har"
+      // only top level
+      // include/exclude
+    }
+  }
+}
