@@ -1,6 +1,8 @@
 """
 Main BZT classes: Engine, Configuration, EngineModule
 """
+version = "1.0"
+
 import ConfigParser
 import json
 import logging
@@ -583,3 +585,5 @@ class ManualShutdown(KeyboardInterrupt):
 
 class AutomatedShutdown(KeyboardInterrupt):
     pass
+
+

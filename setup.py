@@ -4,6 +4,7 @@ import sys
 
 from setuptools import setup
 from setuptools.command.install import install
+import bzt
 
 
 class InstallWithHook(install, object):
@@ -31,7 +32,7 @@ class InstallWithHook(install, object):
 
 setup(
     name="bzt",
-    version="0.0",
+    version=bzt.version,
     install_requires=[
         'pyyaml', 'psutil', 'colorlog', 'lxml', 'cssselect', 'urwid'
     ],

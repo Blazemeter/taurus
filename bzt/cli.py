@@ -12,7 +12,7 @@ import traceback
 
 from colorlog import ColoredFormatter
 
-from bzt import Engine, ManualShutdown, NormalShutdown
+from bzt import Engine, ManualShutdown, NormalShutdown, version
 from bzt.utils import run_once
 
 
@@ -28,6 +28,7 @@ class CLI(object):
         self.options = options
         self.setup_logging(options)
         self.log = logging.getLogger('')
+        self.log.info("Taurus CLI Tool v%s", version)
         logging.debug("Command-line options: %s", self.options)
         self.engine = Engine(self.log)
         self.engine.artifacts_base_dir = self.options.datadir
