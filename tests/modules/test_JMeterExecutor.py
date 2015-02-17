@@ -125,8 +125,10 @@ class TestJMeterExecutor(BZTestCase):
     def test_install_jmeter(self):
         path = __dir__() + "/../../build/tmp/jmeter/bin/jmeter"
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
+        jmeter_link = JMeterExecutor.JMETER_DOWNLOAD_LINK
+        plugins_link = JMeterExecutor.PLUGINS_DOWNLOAD_TPL
         JMeterExecutor.JMETER_DOWNLOAD_LINK = "file://" + __dir__() + "/../data/jmeter-dist.zip"
-        JMeterExecutor.PLUGINS_DOWNLOAD_TPL= "file://" + __dir__() + "/../data/jmeter-plugins-%s.zip"
+        JMeterExecutor.PLUGINS_DOWNLOAD_TPL = "file://" + __dir__() + "/../data/jmeter-plugins-%s.zip"
         self.assertFalse(os.path.exists(path))
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
@@ -135,6 +137,10 @@ class TestJMeterExecutor(BZTestCase):
         obj.execution = {"scenario": {"requests": []}}
 
         obj.prepare()
+
         self.assertTrue(os.path.exists(path))
 
         obj.prepare()
+
+        JMeterExecutor.JMETER_DOWNLOAD_LINK = jmeter_link
+        JMeterExecutor.PLUGINS_DOWNLOAD_TPL = plugins_link
