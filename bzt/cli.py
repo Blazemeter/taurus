@@ -97,6 +97,8 @@ class CLI(object):
         if os.path.isfile(user_file):
             self.log.debug("Adding personal config: %s", user_file)
             configs.insert(0, user_file)
+        else:
+            self.log.info("No personal config: %s", user_file)
 
         overrides = []
         try:
