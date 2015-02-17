@@ -1,0 +1,77 @@
+{
+  "provisioning": "local",
+  "aggregator": "consolidator",
+  "reporting": [
+    "final_stats",
+    "console"
+  ],
+  "modules": {
+    "local": {
+      "class": "bzt.modules.provisioning.Local"
+    },
+    "remote": {
+      "class": "bzt.modules.provisioning.Remote",
+      "retries-limit": 10
+    },
+    "jmeter": {
+      "class": "bzt.modules.jmeter.JMeterExecutor",
+      "properties": {
+        "jmeter.save.saveservice.autoflush": "true",
+        "jmeterengine.force.system.exit": "true",
+        "jmeter.save.saveservice.connect_time": "true",
+        "summariser.name": ""
+      },
+      "path": "jmeter"
+    },
+    "grinder": {
+      "class": "bzt.modules.grinder.GrinderExecutor",
+      "properties": {
+        "grinder.useConsole": false
+      },
+      "path": "grinder"
+    },
+    "gatling": {
+      "class": "bzt.modules.gatling.GatlingExecutor",
+      "path": "gatling"
+    },
+    "consolidator": {
+      "class": "bzt.modules.aggregator.ConsolidatingAggregator",
+      "percentiles": [
+        0,
+        50,
+        90,
+        95,
+        99,
+        99.9,
+        100
+      ]
+    },
+    "console": {
+      "class": "bzt.modules.console.ConsoleStatusReporter",
+      "disable": false
+    },
+    "loadosophia": {
+      "class": "bzt.modules.loadosophia.Loadosophia"
+    },
+    "blazemeter": {
+      "class": "bzt.modules.blazemeter.BlazeMeterUploader"
+    },
+    "final_stats": {
+      "class": "bzt.modules.reporting.FinalStatus"
+    },
+    "fail-criteria": {
+      "class": "bzt.modules.passfail.PassFailStatus",
+      "criterias": {
+        "rc": "",
+        "errors": "",
+        "avg-time": "",
+        "percentile": "",
+        "resource": "",
+        "duration": ""
+      }
+    }
+  },
+  "settings": {
+    "default_executor": "jmeter"
+  }
+}
