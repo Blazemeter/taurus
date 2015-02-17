@@ -9,10 +9,6 @@
     "local": {
       "class": "bzt.modules.provisioning.Local"
     },
-    "remote": {
-      "class": "bzt.modules.provisioning.Remote",
-      "retries-limit": 10
-    },
     "jmeter": {
       "class": "bzt.modules.jmeter.JMeterExecutor",
       "properties": {

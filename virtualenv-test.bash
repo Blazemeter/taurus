@@ -3,15 +3,8 @@ virtualenv --clear --system-site-packages build
 source build/bin/activate
 
 pip install colorlog pyyaml psutil lxml cssselect
-python -m nose tests \
-    --with-xunit --xunit-file=build/xunit.xml \
-    --with-coverage --cover-package=bzt \
-    --cover-xml --cover-xml-file=build/coverage/coverage.xml \
-    --cover-html --cover-html-dir=build/coverage --cover-branches \
-    -v --nocapture || echo Tests failed
 
-# install it under virtualenv and try
-python setup.py sdist
+./run-test.sh
 
 pip -v install dist/bzt-*.tar.gz
 

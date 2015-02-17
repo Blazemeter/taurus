@@ -1,16 +1,12 @@
 """ test """
 import logging
-from rfc822 import Message
 import os
 import tempfile
 import sys
-import urllib
-import StringIO
 import random
 
 from bzt import Engine, Configuration
 from bzt.utils import load_class
-from bzt.api import Client, API
 from bzt.modules import Provisioning, ScenarioExecutor, Reporter, \
     AggregatorListener
 from bzt.modules.provisioning import FileLister
