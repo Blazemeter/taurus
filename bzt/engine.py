@@ -1,3 +1,4 @@
+""" Main BZT classes """
 import ConfigParser
 from collections import namedtuple
 import copy
@@ -129,7 +130,7 @@ class Engine(object):
         self.log.info("Post-processing...")
         exception = None
         try:
-            for module in [self.provisioning] + [self.aggregator] + self.reporters:
+            for module in [self.provisioning, self.aggregator] + self.reporters:
                 module.post_process()
         except KeyboardInterrupt, exc:
             self.log.error("Shutdown: %s", exc)

@@ -1,5 +1,5 @@
 """
-Main BZT classes: Engine, Configuration, EngineModule
+Some meta-info and simple classes
 """
 
 version = "1.2.1"
