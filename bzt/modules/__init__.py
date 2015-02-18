@@ -11,7 +11,7 @@ class EngineModule(object):
     """
     Base class for any BZT engine module
 
-    :type engine: bzt.Engine
+    :type engine: engine.Engine
     :type settings: BetterDict
     """
 

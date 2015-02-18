@@ -5,11 +5,11 @@ import time
 import os
 import shutil
 
-from bzt import BetterDict
 from bzt.modules import Provisioning
 from bzt.modules.jmeter import JMeterExecutor, JMX
 from tests import setup_test_logging, BZTestCase, __dir__
 from tests.mocks import EngineEmul
+from utils import BetterDict
 
 
 setup_test_logging()

@@ -24,8 +24,7 @@ from urwid.listbox import SimpleListWalker
 from urwid.widget import Divider
 
 from bzt.modules.provisioning import Local
-from bzt import Reporter
-from bzt.modules import AggregatorListener
+from bzt.modules import AggregatorListener, Reporter
 from bzt.modules.aggregator import DataPoint, KPISet
 
 
