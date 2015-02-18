@@ -6,6 +6,7 @@ import csv
 import json
 import logging
 import os
+import platform
 from psutil import Popen
 import re
 import shlex
@@ -187,8 +188,11 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE):
     if isinstance(args, basestring):
         args = shlex.split(args)
     logging.getLogger(__name__).debug("Executing shell: %s", args)
-    return Popen(args, stdout=stdout, stderr=stderr, stdin=stdin, bufsize=0,
-                 preexec_fn=os.setsid, close_fds=True, cwd=cwd)
+    if platform.system() == 'Windows':
+        return Popen(args, stdout=stdout, stderr=stderr, stdin=stdin, bufsize=0, cwd=cwd)
+    else:
+        return Popen(args, stdout=stdout, stderr=stderr, stdin=stdin, bufsize=0,
+                     preexec_fn=os.setpgrp, close_fds=True, cwd=cwd)
 
 
 def ensure_is_dict(container, key, default_key=None):
@@ -304,8 +308,6 @@ class MultiPartForm(object):
         # line is separated by '\r\n'.
         parts = []
         part_boundary = '--' + self.boundary
-
-        # FIXME: unable to send jar file, encoding error
 
         # Add the form fields
         parts.extend(

@@ -2,7 +2,7 @@
 Main BZT classes: Engine, Configuration, EngineModule
 """
 
-version = "1.1"
+version = "1.2.1"
 
 import signal
 

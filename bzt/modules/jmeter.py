@@ -137,8 +137,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 raise RuntimeError("JMeter exited with non-zero code")
 
             if self.kpi_jtl:
-                if not os.path.exists(self.kpi_jtl) \
-                        or not os.path.getsize(self.kpi_jtl):
+                if not os.path.exists(self.kpi_jtl) or not os.path.getsize(self.kpi_jtl):
                     msg = "Empty results JTL, most likely JMeter failed: %s"
                     raise RuntimeWarning(msg % self.kpi_jtl)
             return True
@@ -154,14 +153,16 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.log.info("Terminating jmeter PID: %s", self.process.pid)
             time.sleep(1)
             try:
-                os.killpg(self.process.pid, signal.SIGTERM) # FIXME: no killpg on windows
+                if platform.system() == 'Windows':
+                    os.kill(self.process.pid, signal.SIGTERM)
+                else:
+                    os.killpg(self.process.pid, signal.SIGTERM)
             except OSError, exc:
                 self.log.debug("Failed to terminate jmeter: %s", exc)
 
         if self.start_time:
             self.end_time = time.time()
-            self.log.debug("JMeter worked for %s seconds",
-                           self.end_time - self.start_time)
+            self.log.debug("JMeter worked for %s seconds", self.end_time - self.start_time)
 
     def __apply_ramp_up(self, jmx, ramp_up):
         rampup_sel = "stringProp[name='ThreadGroup.ramp_time']"
