@@ -2,7 +2,7 @@ import os
 import sys
 import tempfile
 
-from engine import Configuration
+from bzt.engine import Configuration
 
 
 fp, filename = tempfile.mkstemp()

@@ -14,7 +14,7 @@ import traceback
 from colorlog import ColoredFormatter
 
 from bzt import ManualShutdown, NormalShutdown, version
-from engine import Engine
+from bzt.engine import Engine
 from bzt.utils import run_once
 
 

@@ -1,7 +1,7 @@
 import logging
 import tempfile
 
-from engine import Configuration
+from bzt.engine import Configuration
 from bzt.utils import BetterDict
 from tests import BZTestCase, __dir__
 
