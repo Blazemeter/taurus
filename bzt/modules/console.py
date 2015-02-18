@@ -12,8 +12,13 @@ import traceback
 import math
 from datetime import datetime
 import copy
+import platform
 
-from urwid.curses_display import Screen
+if platform.system() == 'Windows':
+    from urwid.raw_display import Screen  # curses unavailable on windows
+else:
+    from urwid.curses_display import Screen  # curses unavailable on windows
+
 from urwid.decoration import Padding
 from urwid.display_common import BaseScreen
 from urwid import Text, Pile, WEIGHT, Filler, Columns, Widget, \
@@ -53,7 +58,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         if self.disabled:
             return
 
-        if sys.stdout.isatty():
+        if sys.stdout.isatty() and platform.system() != 'Windows':
             self.screen = Screen()
             self.__detect_console_logger()
         else:

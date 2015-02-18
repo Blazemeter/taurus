@@ -6,6 +6,7 @@ from logging import Formatter
 from optparse import OptionParser
 import logging
 import os
+import platform
 import sys
 import tempfile
 import traceback
@@ -19,7 +20,7 @@ from bzt.utils import run_once
 
 class CLI(object):
     """
-    'cli' means 'tool' in hebrew, did you know?
+    'cli' means 'tool' in hebrew, did you know that?
 
     :param options: OptionParser parsed parameters
     """
@@ -49,18 +50,14 @@ class CLI(object):
             'CRITICAL': 'bold_red',
         }
         fmt_file = Formatter("[%(asctime)s %(levelname)s %(name)s] %(message)s")
-        if sys.stdout.isatty():
-            fmt_verbose = ColoredFormatter(
-                "%(log_color)s[%(asctime)s %(levelname)s %(name)s] %(message)s",
-                log_colors=colors)
-            fmt_regular = ColoredFormatter(
-                "%(log_color)s%(asctime)s %(levelname)s: %(message)s",
-                "%H:%M:%S", log_colors=colors)
+        if sys.stdout.isatty() and platform.system() != 'Windows':  # extra trailing chars on windows
+            fmt_verbose = ColoredFormatter("%(log_color)s[%(asctime)s %(levelname)s %(name)s] %(message)s",
+                                           log_colors=colors)
+            fmt_regular = ColoredFormatter("%(log_color)s%(asctime)s %(levelname)s: %(message)s",
+                                           "%H:%M:%S", log_colors=colors)
         else:
-            fmt_verbose = Formatter(
-                "[%(asctime)s %(levelname)s %(name)s] %(message)s")
-            fmt_regular = Formatter(
-                "%(asctime)s %(levelname)s: %(message)s", "%H:%M:%S")
+            fmt_verbose = Formatter("[%(asctime)s %(levelname)s %(name)s] %(message)s")
+            fmt_regular = Formatter("%(asctime)s %(levelname)s: %(message)s", "%H:%M:%S")
 
         logger = logging.getLogger('')
         logger.setLevel(logging.DEBUG)

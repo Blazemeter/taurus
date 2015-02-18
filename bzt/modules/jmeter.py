@@ -4,6 +4,7 @@ Module holds all stuff regarding JMeter tool usage
 from collections import Counter
 from lxml import etree
 import os
+import platform
 import subprocess
 import time
 import signal
@@ -21,6 +22,12 @@ from bzt.modules.console import WidgetProvider
 from bzt.modules.provisioning import FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.utils import shell_exec, ensure_is_dict, humanize_time, dehumanize_time, BetterDict, guess_csv_delimiter, unzip
+
+
+if platform.system() == 'Windows':
+    exe_suffix = '.bat'
+else:
+    exe_suffix = ''
 
 
 class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
@@ -94,15 +101,15 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         Should start JMeter as fast as possible.
         """
-        cmdline = self.settings.get("path")  # default is set when prepared
+        cmdline = [self.settings.get("path")]  # default is set when prepared
         if not self.settings.get("gui-mode"):
-            cmdline += " -n"
-        cmdline += " -t " + self.modified_jmx
+            cmdline += ["-n"]
+        cmdline += ["-t", self.modified_jmx]
         if self.jmeter_log:
-            cmdline += " -j " + self.jmeter_log
+            cmdline += ["-j", self.jmeter_log]
 
         if self.properties_file:
-            cmdline += " -p " + self.properties_file
+            cmdline += ["-p", self.properties_file]
 
         self.start_time = time.time()
         try:
@@ -147,7 +154,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.log.info("Terminating jmeter PID: %s", self.process.pid)
             time.sleep(1)
             try:
-                os.killpg(self.process.pid, signal.SIGTERM)
+                os.killpg(self.process.pid, signal.SIGTERM) # FIXME: no killpg on windows
             except OSError, exc:
                 self.log.debug("Failed to terminate jmeter: %s", exc)
 
@@ -358,12 +365,11 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def __check_jmeter(self):
         # test JMeter is operable
-        jmeter = self.settings.get("path", "jmeter")
+        jmeter = self.settings.get("path", "jmeter" + exe_suffix)
         try:
             self.__jmeter(jmeter)
             return
         except (OSError, CalledProcessError), exc:
-            self.log.warn("JMeter at path '%s' is not operable: %s", jmeter, exc)
             self.log.debug("Failed to run JMeter: %s", traceback.format_exc(exc))
 
             try:
@@ -382,7 +388,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if not dest:
             dest = "jmeter-taurus"
         dest = os.path.abspath(dest)
-        jmeter = dest + os.path.sep + "bin" + os.path.sep + "jmeter"
+        jmeter = dest + os.path.sep + "bin" + os.path.sep + "jmeter" + exe_suffix
 
         try:
             self.__jmeter(jmeter)
