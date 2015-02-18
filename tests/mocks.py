@@ -5,10 +5,9 @@ import tempfile
 import sys
 import random
 
-from engine import Engine, Configuration
+from bzt.engine import Engine, Configuration
 from bzt.utils import load_class
-from bzt.modules import Provisioning, ScenarioExecutor, Reporter, \
-    AggregatorListener
+from bzt.modules import Provisioning, ScenarioExecutor, Reporter, AggregatorListener
 from bzt.modules.provisioning import FileLister
 from bzt.modules.aggregator import ResultsReader
 from tests import random_sample
