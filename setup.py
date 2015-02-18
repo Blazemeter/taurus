@@ -1,9 +1,9 @@
 import os
 import shutil
 import sys
-
 from setuptools import setup
 from setuptools.command.install import install
+
 import bzt
 
 
@@ -33,6 +33,11 @@ class InstallWithHook(install, object):
 setup(
     name="bzt",
     version=bzt.version,
+    description='Taurus Tool for Continuous Testing',
+    author='Andrey Pokhilko',
+    author_email='andrey@blazemeter.com',
+    url='https://github.com/Blazemeter/taurus/',
+
     install_requires=[
         'pyyaml', 'psutil', 'colorlog', 'lxml', 'cssselect', 'urwid'
     ],
