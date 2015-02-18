@@ -7,7 +7,7 @@ Hide the complexity of load testing tools under automation-friendly convenience 
 
 ## Installation or Upgrade
 
-In the future we'll publish this at PyPi and it will be available as:
+Just install it using PyPi:
 ```
 sudo pip install --upgrade bzt
 ```
