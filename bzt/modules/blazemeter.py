@@ -165,6 +165,7 @@ class BlazeMeterClient(object):
     """ Service client class """
 
     def __init__(self, parent_logger):
+        self.logger_limit = 512  # TODO: provide control over it
         self.user_id = None
         self.test_id = None
         self.log = parent_logger.getChild(self.__class__.__name__)
@@ -181,7 +182,7 @@ class BlazeMeterClient(object):
         if not headers:
             headers = {}
         headers["X-API-Key"] = self.token
-        self.log.debug("Request %s: %s", url, data)
+        self.log.debug("Request %s: %s", url, data[:self.logger_limit] if data else None)
         request = urllib2.Request(url, data, headers)
 
         response = urllib2.urlopen(request, timeout=self.timeout)
@@ -190,7 +191,7 @@ class BlazeMeterClient(object):
             checker(response)
 
         resp = response.read()
-        self.log.debug("Response: %s", resp)
+        self.log.debug("Response: %s", resp[:self.logger_limit] if resp else None)
         return json.loads(resp) if len(resp) else {}
 
     def start_online(self, test_id):
@@ -412,12 +413,18 @@ class BlazeMeterClient(object):
         self._request(self.address + '/api/latest/user')
 
     def upload_file(self, filename, contents=None):
+        """
+        Upload single artifact
+
+        :type filename: str
+        :type contents: str
+        :raise IOError:
+        """
         body = MultiPartForm()
 
         if contents is None:
             body.add_file('file', filename)
         else:
-            self.log.debug("%s", type(contents))
             body.add_file_as_string('file', filename, contents)
 
         url = self.address + "/api/latest/image/%s/files?signature=%s"
