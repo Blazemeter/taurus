@@ -2,7 +2,7 @@
 Some meta-info and simple classes
 """
 
-version = "1.2.1"
+version = "0.1"
 
 import signal
 
