@@ -6,6 +6,7 @@ from lxml import etree
 import os
 import platform
 import subprocess
+import tempfile
 import time
 import signal
 import traceback
@@ -399,11 +400,13 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         # install jmeter
         downloader = urllib.URLopener()
-        jmeter_dist = self.engine.create_artifact("jmeter-dist", ".zip")
+        fds, jmeter_dist = tempfile.mkstemp(".zip", "jmeter-dist")
+        os.close(fds)
         self.log.info("Downloading %s", self.JMETER_DOWNLOAD_LINK)
         downloader.retrieve(self.JMETER_DOWNLOAD_LINK, jmeter_dist)
         self.log.info("Unzipping %s", jmeter_dist)
         unzip(jmeter_dist, dest, 'apache-jmeter-2.12')
+        os.remove(jmeter_dist)
 
         # set exec permissions
         os.chmod(jmeter, 0755)
@@ -411,11 +414,13 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         # install plugins
         for set_name in ("Standard", "Extras", "ExtrasLibs", "WebDriver"):
-            plugin_dist = self.engine.create_artifact("jmeter-plugins-" + set_name, ".zip")
+            fds, plugin_dist = tempfile.mkstemp(".zip", "jmeter-plugins-" + set_name)
+            os.close(fds)
             self.log.info("Downloading %s", self.PLUGINS_DOWNLOAD_TPL % set_name)
             downloader.retrieve(self.PLUGINS_DOWNLOAD_TPL % set_name, plugin_dist)
             self.log.info("Unzipping %s", plugin_dist)
             unzip(plugin_dist, dest)
+            os.remove(plugin_dist)
 
         self.log.info("Installed JMeter and Plugins successfully")
         return jmeter
