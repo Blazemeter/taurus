@@ -90,8 +90,9 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
 
         for executor in self.engine.provisioning.executors:
             if isinstance(executor, JMeterExecutor):
-                self.log.info("Uploading %s", executor.jmeter_log)
-                self.client.upload_file(executor.jmeter_log)
+                if executor.jmeter_log:
+                    self.log.info("Uploading %s", executor.jmeter_log)
+                    self.client.upload_file(executor.jmeter_log)
 
     def post_process(self):
         """
@@ -294,12 +295,15 @@ class BlazeMeterClient(object):
                 cumul = sec[DataPoint.CUMULATIVE][lbl]
                 json_item['n'] = cumul[KPISet.SAMPLE_COUNT]
                 json_item["summary"] = self.__summary_json(cumul)
+
+                """
                 for err, cnt in item[KPISet.ERRORS].iteritems():
                     json_item['errors'].append({
                         "m": err[1],
                         "rc": err[0],
                         "count": cnt,
                     })
+                """
 
         data = {"labels": data}
 
@@ -324,26 +328,16 @@ class BlazeMeterClient(object):
             "n": None,
             "name": name,
             "interval": 1,
-            "intervals": [
-            ],
+            "intervals": [],
             "samplesNotCounted": 0,
             "assertionsNotCounted": 0,
-            "failedEmbeddedResources": [
-
-            ],
+            "failedEmbeddedResources": [],
             "failedEmbeddedResourcesSpilloverCount": 0,
             "otherErrorsCount": 0,
-            "errors": [
-
-            ],
-            "percentileHistogram": [
-
-            ],
-            "percentileHistogramLatency": [
-
-            ],
-            "percentileHistogramBytes": [
-            ],
+            "errors": [],
+            "percentileHistogram": [],
+            "percentileHistogramLatency": [],
+            "percentileHistogramBytes": [],
             "empty": False,
         }
 
@@ -455,22 +449,22 @@ class BlazeMeterClient(object):
                 label = 'ALL'
 
             error_item = self.__error_item_skel(label)
-            for err, cnt in label_data[KPISet.ERRORS].iteritems():
-                if err[2] == KPISet.ERRTYPE_ASSERT:
-                    error_item['assertionsCount'] += cnt
+            for err_item in label_data[KPISet.ERRORS]:
+                if err_item["type"] == KPISet.ERRTYPE_ASSERT:
+                    error_item['assertionsCount'] += err_item['cnt']
                     error_item['assertions'].append({
                         "name": "All Assertions",
-                        "failureMessage": err[1],
+                        "failureMessage": err_item['msg'],
                         "failure": True,
                         "error": False,
-                        "count": cnt
+                        "count": err_item['cnt']
                     })
                 else:
-                    error_item['count'] += cnt
+                    error_item['count'] += err_item['cnt']
                     error_item['responseInfo'].append({
-                        "description": err[1],
-                        "code": err[0],
-                        "count": cnt,
+                        "description": err_item['msg'],
+                        "code": err_item['rc'],
+                        "count": err_item['cnt'],
                     })
             errors['summery']['labels'].append(error_item)
 

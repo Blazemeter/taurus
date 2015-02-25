@@ -394,7 +394,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         try:
             self.__jmeter(jmeter)
             return jmeter
-        except:
+        except OSError:
             self.log.info("Will try to install JMeter into %s", dest)
 
         # install jmeter
@@ -1088,8 +1088,14 @@ class JTLReader(ResultsReader):
 
 
 class JTLErrorsReader(object):
+    """
+    Reader for errors.jtl, which is in XML max-verbose format
+
+    :type filename: str
+    :type parent_logger: logging.Logger
+    """
     assertionMessage = GenericTranslator().css_to_xpath("assertionResult>failureMessage")
-    url_xpath = GenericTranslator().css_to_xpath("java.net.URL")
+    url_xpath = GenericTranslator().css_to_xpath("java\\.net\\.URL")
 
     def __init__(self, filename, parent_logger):
         # http://stackoverflow.com/questions/9809469/python-sax-to-lxml-for-80gb-xml/9814580#9814580
@@ -1108,6 +1114,12 @@ class JTLErrorsReader(object):
             self.fds.close()
 
     def read_file(self, final_pass=False):
+        """
+        Read the next part of the file
+
+        :type final_pass: bool
+        :return:
+        """
         if not self.fds:
             if os.path.exists(self.filename):
                 self.log.debug("Opening %s", self.filename)
@@ -1128,32 +1140,44 @@ class JTLErrorsReader(object):
             label = elem.get("lb")
             message = elem.get("rm")
             rc = elem.get("rc")
-            # url = elem.xpath(self.url_xpath)[0].text
-            errtype = KPISet.ERRTYPE_ERROR
+            urls = elem.xpath(self.url_xpath)
+            if urls:
+                url = Counter({urls[0].text: 1})
+            else:
+                url = Counter()
 
+            errtype = KPISet.ERRTYPE_ERROR
             massert = elem.xpath(self.assertionMessage)
             if len(massert):
                 errtype = KPISet.ERRTYPE_ASSERT
                 message = massert[0].text
-            self.buffer.get(ts).get(label, Counter())[(rc, message, errtype)] += 1
-            self.buffer.get(ts).get('', Counter())[(rc, message, errtype)] += 1  # OVERALL
 
-            # cleanup
-            # first empty children from current element
-            # This is not absolutely necessary if you are also deleting siblings,
-            # but it will allow you to free memory earlier.
+            err_item = KPISet.error_item_skel(message, rc, 1, errtype, url)
+            KPISet.inc_list(self.buffer.get(ts).get(label, []), ("msg", message), err_item)
+            KPISet.inc_list(self.buffer.get(ts).get('', []), ("msg", message), err_item)
+
+            # cleanup processed from the memory
             elem.clear()
-            # second, delete previous siblings (records)
             while elem.getprevious() is not None:
                 del elem.getparent()[0]
-                # make sure you have no references to Element objects outside the loop
 
-    def get_data(self, param):
+    def get_data(self, max_ts):
+        """
+        Get accumulated errors data up to specified timestamp
+
+        :param max_ts:
+        :return:
+        """
         result = BetterDict()
         for ts in sorted(self.buffer.keys()):
-            if ts > param:
+            if ts > max_ts:
                 break
-            result.merge(self.buffer.pop(ts))
+            labels = self.buffer.pop(ts)
+            for label, label_data in labels.iteritems():
+                res = result.get(label, [])
+                for err_item in label_data:
+                    KPISet.inc_list(res, ('msg', err_item['msg']), err_item)
+
         return result
 
 
@@ -1175,10 +1199,7 @@ class JMeterWidget(urwid.Pile):
         self.elapsed = urwid.Text("Elapsed: N/A")
         self.eta = urwid.Text("ETA: N/A", align=urwid.RIGHT)
 
-        super(JMeterWidget, self).__init__([
-            self.progress,
-            urwid.Columns([self.elapsed, self.eta])
-        ])
+        super(JMeterWidget, self).__init__([self.progress, urwid.Columns([self.elapsed, self.eta])])
 
     def update(self):
         """
@@ -1373,5 +1394,3 @@ class JMeterScenarioBuilder(JMX):
         with open(path) as fhd:
             header = fhd.read(4096)  # 4KB is enough for header
             return guess_csv_delimiter(header)
-
-

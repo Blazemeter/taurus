@@ -373,7 +373,7 @@ class LoadosophiaClient(object):
                 "avg_rt": int(round(1000 * item[KPISet.AVG_RESP_TIME])),
                 "quantiles": perc,
                 "rc": item[KPISet.RESP_CODES],
-                "net": item[KPISet.ERRORS]
+                "net": {x["msg"]: x['cnt'] for x in item[KPISet.ERRORS]}
             }
             data.append(json_item)
 

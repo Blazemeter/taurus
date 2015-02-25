@@ -3,7 +3,6 @@ from collections import Counter
 import copy
 import logging
 import math
-import traceback
 
 from bzt.utils import BetterDict
 from bzt.modules import EngineModule
@@ -45,7 +44,7 @@ class KPISet(BetterDict):
         self.get(self.AVG_LATENCY, 0)
         self.get(self.AVG_CONN_TIME, 0)
         # vectors
-        self.get(self.ERRORS, Counter())
+        self.get(self.ERRORS, [])
         self.get(self.RESP_TIMES, Counter())
         self.get(self.RESP_CODES, Counter())
         self.get(self.PERCENTILES)
@@ -60,13 +59,32 @@ class KPISet(BetterDict):
             mycopy[key] = copy.deepcopy(val, memo)
         return mycopy
 
+    @staticmethod
+    def error_item_skel(error, rc, cnt, errtype, urls):
+        """
+
+        :type error: str
+        :type rc: str
+        :type cnt: int
+        :type errtype: int
+        :type urls: Counter
+        :rtype: dict
+        """
+        return {
+            "cnt": cnt,
+            "msg": error,
+            "rc": rc,
+            "type": errtype,
+            "urls": urls
+        }
+
     def add_sample(self, sample):
         """
         Add sample, consisting of: cnc, rt, cn, lt, rc, error
 
         :type sample: tuple
         """
-        # NOTE: introduce a flag to not count failed in resp times? or offer it always?
+        # TODO: introduce a flag to not count failed in resp times? or offer it always?
         cnc, rt, cn, lt, rc, error = sample
         if cn:
             self.sum_cn += cn
@@ -79,13 +97,38 @@ class KPISet(BetterDict):
         resp_codes[rc] = resp_codes.get(rc, 0) + 1
         if error is not None:
             self[self.FAILURES] = self.get(self.FAILURES, 0) + 1
-            self.get(self.ERRORS)[(error, error, KPISet.ERRTYPE_ERROR)] += 1
+
+            item = self.error_item_skel(error, rc, 1, KPISet.ERRTYPE_ERROR, Counter())
+            self.inc_list(self.get(self.ERRORS), ("msg", error), item)
         else:
             self[self.SUCCESSES] = self.get(self.SUCCESSES, 0) + 1
 
         self.get(self.RESP_TIMES)[rt] += 1
         # TODO: max/min rt? there is percentiles...
         # TODO: throughput if interval is not 1s
+
+    @staticmethod
+    def inc_list(values, selector, value):
+        """
+        Increment list item, based on selector criteria
+
+        :param values: list to update
+        :type values: list
+        :param selector: tuple of 2 values, field name and value to match
+        :type selector: tuple
+        :param value: dict to put into list
+        :type value: dict
+        """
+        found = False
+        for item in values:
+            if item[selector[0]] == selector[1]:
+                item['cnt'] += value['cnt']
+                item['urls'] += value['urls']
+                found = True
+                break
+
+        if not found:
+            values.append(value)
 
     def recalculate(self):
         """
@@ -129,7 +172,9 @@ class KPISet(BetterDict):
 
         self[self.RESP_TIMES].update(src[self.RESP_TIMES])
         self[self.RESP_CODES].update(src[self.RESP_CODES])
-        self[self.ERRORS].update(src[self.ERRORS])
+
+        for src_item in src[self.ERRORS]:
+            self.inc_list(self[self.ERRORS], ('msg', src_item['msg']), src_item)
 
     @staticmethod
     def from_dict(obj):
@@ -441,16 +486,7 @@ class ConsolidatingAggregator(EngineModule, ResultsProvider):
 
     def _process_underlings(self, final_pass):
         for underling in self.underlings:
-            seconds = []
-
-            try:
-                seconds = [x for x in underling.datapoints(final_pass)]
-            except KeyboardInterrupt:
-                raise
-            except BaseException, exc:
-                self.log.warn("Error asking for aggregates from %s: %s", underling, traceback.format_exc(exc))
-
-            for data in seconds:
+            for data in [x for x in underling.datapoints(final_pass)]:
                 tstamp = data[DataPoint.TIMESTAMP]
                 if self.buffer:
                     mints = min(self.buffer.keys())
