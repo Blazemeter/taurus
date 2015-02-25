@@ -228,8 +228,7 @@ class ScenarioExecutor(EngineModule):
             iterations = 0  # which means infinite
 
         res = namedtuple("LoadSpec",
-                         ('concurrency', "throughput", 'ramp_up', 'hold',
-                          'iterations', 'duration'))
+                         ('concurrency', "throughput", 'ramp_up', 'hold', 'iterations', 'duration'))
         return res(concurrency=concurrency, ramp_up=ramp_up,
                    throughput=throughput, hold=hold, iterations=iterations,
                    duration=duration)

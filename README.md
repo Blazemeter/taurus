@@ -24,7 +24,8 @@ execution:
       - http://blazedemo.com/
       - http://blazedemo.com/vacation.html
 
-  hold: 1m
+  ramp-up: 1m
+  hold: 1m30s
 ```
 
 Then run `bzt test.yml`. After the tool finishes,
@@ -34,3 +35,5 @@ will be placed in the directory mentioned in console log.
 ## Further Reading
 
 [Taurus Documentation Wiki](https://github.com/Blazemeter/taurus/wiki)
+
+[Support Forum](https://groups.google.com/forum/#!forum/codename-taurus)

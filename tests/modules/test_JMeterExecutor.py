@@ -76,8 +76,8 @@ class TestJMeterExecutor(BZTestCase):
     def test_requests(self):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
-        jstr = open("tests/json/get-post.json").read()
-        obj.execution = json.loads(jstr)['execution']
+        obj.engine.config = json.loads(open("tests/json/get-post.json").read())
+        obj.execution = obj.engine.config['execution']
         obj.prepare()
         obj.log.debug("%s: %s", obj.modified_jmx, open(obj.modified_jmx).read())
         obj.log.debug("%s", json.dumps(obj.execution, indent=True))
