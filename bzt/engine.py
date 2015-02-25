@@ -60,7 +60,7 @@ class Engine(object):
         """
         self.log.info("Preparing...")
         self._create_artifacts_dir()
-        dump = self.create_artifact("effective_config", "")
+        dump = self.create_artifact("effective", ".config")
         self.config.set_dump_file(dump, Configuration.YAML)
 
         self.check_interval = self.config.get("settings").get("check_interval",
@@ -299,6 +299,8 @@ class Engine(object):
         configs.extend(user_configs)
         dump_type = self.config.load(configs)
         self.config.dump_format = dump_type
+        # TODO: load separately, dump, then merge with system and personal
+        self.config.dump(self.create_artifact("merged", ".config"), dump_type)
 
     def __prepare_provisioning(self):
         cls = self.config.get(Provisioning.PROV, "")
