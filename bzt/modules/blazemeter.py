@@ -108,13 +108,13 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
             self.__upload_artifacts()
         except IOError, exc:
             self.log.warn("Failed artifact upload: %s", traceback.format_exc(exc))
-
-        try:
-            self.client.end_online()
-        except KeyboardInterrupt:
-            raise
-        except BaseException, exc:
-            self.log.warn("Failed to finish online: %s", exc)
+        finally:
+            try:
+                self.client.end_online()
+            except KeyboardInterrupt:
+                raise
+            except BaseException, exc:
+                self.log.warn("Failed to finish online: %s", exc)
 
         if self.client.results_url:
             self.log.info("Online report link: %s", self.client.results_url)
