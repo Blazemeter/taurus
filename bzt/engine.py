@@ -283,6 +283,7 @@ class Engine(object):
         for fname in user_configs:
             self.existing_artifact(fname)
 
+        # prepare base configs
         configs = []
         machine_dir = os.getenv("VIRTUAL_ENV", "")  # respect virtualenv
         machine_dir += os.path.sep + "etc" + os.path.sep + "bzt.d"
@@ -294,11 +295,16 @@ class Engine(object):
                     configs.append(fname)
         else:
             self.log.info("No machine configs dir: %s", machine_dir)
-        configs.extend(user_configs)
-        dump_type = self.config.load(configs)
+
+        # load user configs
+        user_config = Configuration()
+        dump_type = user_config.load(user_configs)
+        user_config.dump(self.create_artifact("merged", ".config"), dump_type)
+
+        # load base and merge user into it
+        self.config.load(configs)
+        self.config.merge(user_config)
         self.config.dump_format = dump_type
-        # TODO: load separately, dump, then merge with system and personal
-        self.config.dump(self.create_artifact("merged", ".config"), dump_type)
 
     def __prepare_provisioning(self):
         cls = self.config.get(Provisioning.PROV, "")
