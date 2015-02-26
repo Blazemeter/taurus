@@ -19,6 +19,7 @@ from bzt import ManualShutdown, NormalShutdown
 from bzt.modules import Provisioning, EngineModule, Reporter, AggregatorListener
 from bzt.modules.aggregator import NoneAggregator
 from bzt.utils import ensure_is_dict, load_class, BetterDict, to_json
+from utils import dehumanize_time
 
 
 class Engine(object):
@@ -63,12 +64,12 @@ class Engine(object):
         dump = self.create_artifact("effective", ".config")
         self.config.set_dump_file(dump, Configuration.YAML)
 
-        self.check_interval = self.config.get("settings").get("check_interval",
-                                                              1)
         self.__load_configs(user_configs)
         self.__load_modules()
         self.__prepare_provisioning()
         self.__prepare_reporters()
+
+        self.check_interval = dehumanize_time(self.config.get("settings").get("check-interval", self.check_interval))
 
         self.config.dump()
 
@@ -331,7 +332,7 @@ class Engine(object):
             module.prepare()
 
     def __prepare_aggregator(self):
-        cls = self.config.get("aggregator", "")
+        cls = self.config.get("settings").get("aggregator", "")
         if not cls:
             self.log.warn("Proceeding without aggregator, no results analysis")
             self.aggregator = NoneAggregator()

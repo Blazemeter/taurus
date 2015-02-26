@@ -1,6 +1,5 @@
 {
   "provisioning": "local",
-  "aggregator": "consolidator",
   "reporting": [
     "final_stats",
     "console"
@@ -60,6 +59,7 @@
     }
   },
   "settings": {
-    "default_executor": "jmeter"
+    "default_executor": "jmeter",
+    "aggregator": "consolidator"
   }
 }
