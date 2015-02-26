@@ -7,10 +7,18 @@ Hide the complexity of load testing tools under automation-friendly convenience 
 
 ## Installation or Upgrade
 
-Just install it using PyPi:
+Just install it using PyPi (more detailed instructions for Linux, Mac OS and Windows are [here](https://github.com/Blazemeter/taurus/wiki/Installation)):
+
+```bash
+pip install bzt
 ```
-sudo pip install --upgrade bzt
+
+To quickly upgrade existing installation, do:
+
+```bash
+pip install --upgrade --no-deps bzt
 ```
+
 
 ## Getting Started
 
@@ -29,7 +37,7 @@ execution:
 ```
 
 Then run `bzt test.yml`. After the tool finishes,
-observe resulting summary stats in console log. All artifact files from run
+observe resulting summary stats in console log. All artifact files from the run
 will be placed in the directory mentioned in console log.
 
 ## Further Reading
