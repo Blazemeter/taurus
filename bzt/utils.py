@@ -47,6 +47,7 @@ def dehumanize_time(str_time):
     :return: float value in seconds
     :raise ValueError: in case of unsupported unit
     """
+    str_time = str_time.replace(' ', '')
     parser = re.compile('(\d+)([a-zA-Z]*)')
     parts = parser.findall(str(str_time))
     result = 0.0
