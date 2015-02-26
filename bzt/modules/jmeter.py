@@ -103,7 +103,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         Should start JMeter as fast as possible.
         """
         cmdline = [self.settings.get("path")]  # default is set when prepared
-        if not self.settings.get("gui-mode"):
+        if not self.settings.get("gui", False):
             cmdline += ["-n"]
         cmdline += ["-t", self.modified_jmx]
         if self.jmeter_log:
