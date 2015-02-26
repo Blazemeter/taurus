@@ -3,11 +3,11 @@
 <i><b>T</b>est <b>au</b>tomation <b>ru</b>nning <b>s</b>moothly
 
 ## Purpose
-Hide the complexity of load testing tools under automation-friendly convenience wrapper.
+A tool to hide the complexity of tests under automation-friendly convenience wrapper. More info about its features available [here](https://github.com/Blazemeter/taurus/wiki/Features).
 
 ## Installation or Upgrade
 
-Just install it using PyPi (more detailed instructions for Linux, Mac OS and Windows are [here](https://github.com/Blazemeter/taurus/wiki/Installation)):
+Just install it using PyPi:
 
 ```bash
 pip install bzt
@@ -16,9 +16,10 @@ pip install bzt
 To quickly upgrade existing installation, do:
 
 ```bash
-pip install --upgrade --no-deps bzt
+pip install --upgrade bzt
 ```
 
+More detailed instructions for Linux, Mac OS and Windows available [here](https://github.com/Blazemeter/taurus/wiki/Installation).
 
 ## Getting Started
 
@@ -38,7 +39,9 @@ execution:
 
 Then run `bzt test.yml`. After the tool finishes,
 observe resulting summary stats in console log. All artifact files from the run
-will be placed in the directory mentioned in console log.
+will be placed in the directory mentioned in console log. Read more on command-line tool usage [here](https://github.com/Blazemeter/taurus/wiki/CommandLine).
+
+
 
 ## Further Reading
 
