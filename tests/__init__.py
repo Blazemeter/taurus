@@ -1,7 +1,9 @@
 """ unit test """
 import inspect
+import json
 import logging
 import os
+import tempfile
 from unittest.case import TestCase
 from random import random
 
@@ -82,3 +84,26 @@ def random_datapoint(n):
 
 class BZTestCase(TestCase):
     pass
+
+
+def local_paths_config():
+    """ to fix relative paths """
+    dirname = os.path.dirname(__file__)
+    fds, fname = tempfile.mkstemp()
+    os.write(fds, json.dumps({
+        "modules": {
+            "jmeter": {
+                "path": dirname + "/../build/jmeter/bin/jmeter",
+            },
+            "grinder": {
+                "path": dirname + "/../build/grinder",
+            },
+            "gatling": {
+                "path": dirname + "/../build/gatling/bin/gatling.sh",
+            }
+        }
+    }))
+    os.close(fds)
+    return fname
+
+

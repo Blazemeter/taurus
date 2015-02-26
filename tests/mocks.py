@@ -7,7 +7,7 @@ import random
 
 from bzt.engine import Engine, Configuration
 from bzt.utils import load_class
-from bzt.modules import Provisioning, ScenarioExecutor, Reporter, AggregatorListener
+from bzt.engine import Provisioning, ScenarioExecutor, Reporter, AggregatorListener
 from bzt.modules.provisioning import FileLister
 from bzt.modules.aggregator import ResultsReader
 from tests import random_sample
@@ -32,23 +32,6 @@ class EngineEmul(Engine):
         self.config.dump(fname, Configuration.JSON)
         with open(fname) as fh:
             logging.debug("JSON:\n%s", fh.read())
-
-    def merge_local_jmeter_path(self):
-        """ to fix relative paths """
-        dirname = os.path.dirname(__file__)
-        self.config.merge({
-            "modules": {
-                "jmeter": {
-                    "path": dirname + "/../build/jmeter/bin/jmeter",
-                },
-                "grinder": {
-                    "path": dirname + "/../build/grinder",
-                },
-                "gatling": {
-                    "path": dirname + "/../build/gatling/bin/gatling.sh",
-                }
-            }
-        })
 
 
 class ModuleMock(ScenarioExecutor, Provisioning, Reporter, FileLister):

@@ -1,6 +1,6 @@
 import time
 
-from bzt.modules import Provisioning
+from engine import Provisioning
 from bzt.modules.jmeter import JMeterExecutor
 from bzt.modules.provisioning import Local
 from bzt.modules.console import ConsoleStatusReporter

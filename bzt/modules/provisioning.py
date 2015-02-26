@@ -3,7 +3,7 @@ Implementations for `Provisioning` classes
 """
 # TODO: allow sequential executions?
 
-from bzt.modules import Provisioning
+from bzt.engine import Provisioning
 
 
 class Local(Provisioning):

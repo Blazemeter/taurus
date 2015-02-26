@@ -18,7 +18,7 @@ from cssselect import GenericTranslator
 from lxml.etree import XMLSyntaxError, Element, ElementTree
 import urwid
 
-from bzt.modules import ScenarioExecutor, Scenario
+from bzt.engine import ScenarioExecutor, Scenario
 from bzt.modules.console import WidgetProvider
 from bzt.modules.provisioning import FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet

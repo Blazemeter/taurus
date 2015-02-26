@@ -6,7 +6,7 @@ import re
 import time
 import signal
 
-from bzt.modules import ScenarioExecutor, Scenario
+from bzt.engine import ScenarioExecutor, Scenario
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.utils import shell_exec
 

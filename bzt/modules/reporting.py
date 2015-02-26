@@ -2,7 +2,7 @@
 
 from bzt.modules.aggregator import DataPoint, KPISet
 
-from bzt.modules import Reporter, AggregatorListener
+from bzt.engine import Reporter, AggregatorListener
 
 
 class FinalStatus(Reporter, AggregatorListener):

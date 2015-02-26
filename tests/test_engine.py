@@ -1,7 +1,7 @@
 """ unit test """
 import tempfile
 
-from tests import BZTestCase, __dir__
+from tests import BZTestCase, __dir__, local_paths_config
 from tests.mocks import EngineEmul
 
 
@@ -10,13 +10,14 @@ class TestEngine(BZTestCase):
         super(TestEngine, self).setUp()
         self.obj = EngineEmul()
         self.obj.artifacts_base_dir = tempfile.gettempdir() + "/bzt"
+        self.paths = local_paths_config()
 
     def test_jmx(self):
         configs = [
             __dir__() + "/../bzt/10-base.json",
             __dir__() + "/json/jmx.json",
+            self.paths
         ]
-        # self.obj.merge_local_jmeter_path()
         self.obj.prepare(configs)
         self.obj.run()
         self.obj.post_process()
@@ -26,8 +27,8 @@ class TestEngine(BZTestCase):
             __dir__() + "/../bzt/10-base.json",
             __dir__() + "/json/get-post.json",
             __dir__() + "/json/reporting.json",
+            self.paths
         ]
-        # self.obj.merge_local_jmeter_path()
         self.obj.prepare(configs)
         self.obj.run()
         self.obj.post_process()
@@ -37,8 +38,8 @@ class TestEngine(BZTestCase):
             __dir__() + "/../bzt/10-base.json",
             __dir__() + "/yaml/triple.yml",
             __dir__() + "/json/reporting.json",
+            self.paths
         ]
-        # self.obj.merge_local_jmeter_path()
         self.obj.prepare(configs)
         self.obj.run()
         self.obj.post_process()
@@ -48,8 +49,8 @@ class TestEngine(BZTestCase):
             __dir__() + "/../bzt/10-base.json",
             __dir__() + "/json/get-post.json",
             __dir__() + "/json/loadosophia.json",
+            self.paths
         ]
-        # self.obj.merge_local_jmeter_path()
         self.obj.prepare(configs)
         self.obj.run()
         try:
@@ -61,9 +62,9 @@ class TestEngine(BZTestCase):
         configs = [
             __dir__() + "/../bzt/10-base.json",
             __dir__() + "/json/grinder.json",
+            self.paths
         ]
         self.obj.prepare(configs)
-        self.obj.merge_local_jmeter_path()
         self.obj.run()
         self.obj.post_process()
 
@@ -71,8 +72,8 @@ class TestEngine(BZTestCase):
         configs = [
             __dir__() + "/../bzt/10-base.json",
             __dir__() + "/json/gatling.json",
+            self.paths
         ]
         self.obj.prepare(configs)
-        self.obj.merge_local_jmeter_path()
         self.obj.run()
         self.obj.post_process()

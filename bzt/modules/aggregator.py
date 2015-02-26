@@ -5,7 +5,7 @@ import logging
 import math
 
 from bzt.utils import BetterDict
-from bzt.modules import EngineModule
+from bzt.engine import EngineModule
 
 
 class KPISet(BetterDict):

@@ -11,7 +11,7 @@ import StringIO
 import time
 import datetime
 
-from bzt.modules import Reporter, AggregatorListener
+from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.jmeter import JMeterExecutor
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.utils import MultiPartForm

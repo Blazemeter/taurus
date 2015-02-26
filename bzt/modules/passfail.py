@@ -6,7 +6,7 @@ import logging
 import re
 
 from bzt import AutomatedShutdown
-from bzt.modules import Reporter, AggregatorListener
+from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.aggregator import KPISet, DataPoint
 from bzt.utils import load_class, dehumanize_time
 

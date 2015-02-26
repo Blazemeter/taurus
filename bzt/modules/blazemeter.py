@@ -13,7 +13,7 @@ import StringIO
 import zipfile
 
 from bzt import ManualShutdown
-from bzt.modules import Reporter, AggregatorListener
+from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.jmeter import JMeterExecutor
 from bzt.utils import to_json, dehumanize_time, MultiPartForm
