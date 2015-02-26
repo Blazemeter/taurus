@@ -273,10 +273,8 @@ class Engine(object):
         if os.path.isfile(filename):
             return filename
         elif self.file_search_path:
-            location = self.file_search_path + os.path.sep + os.path.basename(
-                filename)
-            self.log.warn("Guessed location for file %s: %s", filename,
-                          location)
+            location = self.file_search_path + os.path.sep + os.path.basename(filename)
+            self.log.warn("Guessed location for file %s: %s", filename, location)
             return location
         else:
             raise IOError("File not found: %s" % filename)

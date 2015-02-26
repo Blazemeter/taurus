@@ -39,7 +39,7 @@ setup(
     url='https://github.com/Blazemeter/taurus/',
 
     install_requires=[
-        'pyyaml', 'psutil', 'colorlog', 'lxml', 'cssselect', 'urwid'
+        'pyyaml', 'psutil', 'colorlog', 'colorama', 'lxml', 'cssselect', 'urwid'
     ],
     packages=['bzt', 'bzt.modules'],
     entry_points={

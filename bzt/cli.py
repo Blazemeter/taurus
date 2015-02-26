@@ -2,7 +2,7 @@
 """
 CLI tool wrapper to run Engine using command-line interface
 """
-from logging import Formatter
+from logging import Formatter, FileHandler
 from optparse import OptionParser
 import logging
 import os
@@ -50,7 +50,7 @@ class CLI(object):
             'CRITICAL': 'bold_red',
         }
         fmt_file = Formatter("[%(asctime)s %(levelname)s %(name)s] %(message)s")
-        if sys.stdout.isatty() and platform.system() != 'Windows':  # extra trailing chars on windows
+        if sys.stdout.isatty():
             fmt_verbose = ColoredFormatter("%(log_color)s[%(asctime)s %(levelname)s %(name)s] %(message)s",
                                            log_colors=colors)
             fmt_regular = ColoredFormatter("%(log_color)s%(asctime)s %(levelname)s: %(message)s",
@@ -129,7 +129,16 @@ class CLI(object):
         self.log.info("Artifacts dir: %s", self.engine.artifacts_dir)
         self.log.info("Done performing with code: %s", exit_code)
         if self.options.log:
-            self.engine.existing_artifact(self.options.log, True)
+            if platform.system() == 'Windows':
+                # need to finalize the logger before moving file
+                for handler in self.log.handlers:
+                    if isinstance(handler, FileHandler):
+                        self.log.debug("Closing log handler: %s", handler.baseFilename)
+                        handler.close()
+                self.engine.existing_artifact(self.options.log)
+                # os.remove(self.options.log) does not work - says that file is busy
+            else:
+                self.engine.existing_artifact(self.options.log, True)
         return exit_code
 
     def __get_config_overrides(self):
