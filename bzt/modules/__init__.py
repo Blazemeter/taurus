@@ -100,7 +100,7 @@ class Provisioning(EngineModule):
         """
         super(Provisioning, self).prepare()
         esettings = self.engine.config.get("settings")
-        default_executor = esettings.get("default_executor", None)
+        default_executor = esettings.get("default-executor", None)
 
         if ScenarioExecutor.EXEC not in self.engine.config:
             raise ValueError("No execution is configured")

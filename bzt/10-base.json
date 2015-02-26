@@ -59,7 +59,7 @@
     }
   },
   "settings": {
-    "default_executor": "jmeter",
+    "default-executor": "jmeter",
     "aggregator": "consolidator"
   }
 }

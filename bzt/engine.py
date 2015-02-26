@@ -65,7 +65,6 @@ class Engine(object):
         self.config.set_dump_file(dump, Configuration.YAML)
 
         self.__load_configs(user_configs)
-        self.__load_modules()
         self.__prepare_provisioning()
         self.__prepare_reporters()
 
@@ -222,44 +221,45 @@ class Engine(object):
         if not os.path.isdir(self.artifacts_dir):
             os.makedirs(self.artifacts_dir)
 
-    def __load_modules(self):
-        mod_conf = self.config.get('modules')
-        self.log.debug("Modules config: %s", mod_conf)
-        for mod_key in mod_conf.keys():
-            settings = ensure_is_dict(mod_conf, mod_key, "class")
-            self.log.debug("Module config: %s %s", mod_key, settings)
-            default = EngineModule.__module__
-            default += "." + EngineModule.__name__
-            self.log.debug("Default: %s", default)
-            clsname = settings.get('class', default)
-            try:
-                self.modules[mod_key] = load_class(clsname)
-                if not issubclass(self.modules[mod_key], EngineModule):
-                    msg = "Module class does not inherit from EngineModule: %s"
-                    raise TypeError(msg % clsname)
-            except BaseException, exc:
-                self.log.debug("Failed to load class %s: %s", clsname,
-                               traceback.format_exc(exc))
-                raise RuntimeError("Cannot load module: %s" % clsname)
-        self.log.debug("Modules: %s", self.modules)
+    def __load_module(self, alias):
+        if alias in self.modules:
+            return self.modules[alias]
 
-    def instantiate_module(self, cls):
+        mod_conf = self.config.get('modules')
+        if alias not in mod_conf:
+            raise ValueError("Module alias '%s' not found in module settings" % alias)
+
+        settings = ensure_is_dict(mod_conf, alias, "class")
+        self.log.debug("Module config: %s %s", alias, settings)
+        default = EngineModule.__module__
+        default += "." + EngineModule.__name__
+        self.log.debug("Default: %s", default)
+        clsname = settings.get('class', default)
+        try:
+            self.modules[alias] = load_class(clsname)
+            if not issubclass(self.modules[alias], EngineModule):
+                raise TypeError("Module class does not inherit from EngineModule: %s" % clsname)
+        except BaseException, exc:
+            self.log.debug("Failed to load class %s: %s", clsname, traceback.format_exc(exc))
+            raise RuntimeError("Cannot load module: %s" % clsname)
+
+        return self.modules[alias]
+
+    def instantiate_module(self, alias):
         """
         Create new instance for module using its alias from module settings
         section of config. Thus, to instantiate module it should be mentioned
         in settings.
 
-        :type cls: str
+        :type alias: str
         :rtype: EngineModule
         """
-        if cls not in self.modules:
-            raise ValueError("Module '%s' not found in module settings" % cls)
-        classobj = self.modules[cls]
+        classobj = self.__load_module(alias)
         instance = classobj()
         instance.log = self.log.getChild(classobj.__name__)
         instance.engine = self
         settings = self.config.get("modules")
-        instance.settings = settings.get(cls)
+        instance.settings = settings.get(alias)
 
         return instance
 
