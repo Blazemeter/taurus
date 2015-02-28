@@ -5,7 +5,7 @@ import time
 import os
 import shutil
 
-from engine import Provisioning
+from bzt.engine import Provisioning
 from bzt.modules.jmeter import JMeterExecutor, JMX
 from tests import setup_test_logging, BZTestCase, __dir__
 from tests.mocks import EngineEmul
