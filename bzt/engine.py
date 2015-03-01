@@ -227,7 +227,7 @@ class Engine(object):
             raise ValueError("Module alias '%s' not found in module settings" % alias)
 
         settings = ensure_is_dict(mod_conf, alias, "class")
-        self.log.debug("Module config: %s %s", alias, settings)
+        self.log.debug("Module config: %s %s", alias, settings)  # FIXME: it exposes API tokens through log
         default = EngineModule.__module__
         default += "." + EngineModule.__name__
         self.log.debug("Default: %s", default)

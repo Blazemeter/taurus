@@ -5,6 +5,9 @@
 ## Purpose
 A tool to hide the complexity of tests under automation-friendly convenience wrapper. More info about its features available [here](https://github.com/Blazemeter/taurus/wiki/Features).
 
+![CLI dashboard and BlazeMeter Report](https://github.com/Blazemeter/taurus/wiki/cli-bza.png)
+
+
 ## Installation or Upgrade
 
 Just install it using PyPi:

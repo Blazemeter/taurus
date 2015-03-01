@@ -32,13 +32,13 @@
     "consolidator": {
       "class": "bzt.modules.aggregator.ConsolidatingAggregator",
       "percentiles": [
-        0,
-        50,
-        90,
-        95,
-        99,
+        0.0,
+        50.0,
+        90.0,
+        95.0,
+        99.0,
         99.9,
-        100
+        100.0
       ]
     },
     "console": {
