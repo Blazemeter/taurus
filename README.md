@@ -31,13 +31,15 @@ Create a file named `test.yml` with following contents:
 ```yaml
 ---
 execution:
+  concurrency: 10
+  ramp-up: 1m
+  hold: 1m30s
+
   scenario:
+    think-time: 0.75
     requests:
       - http://blazedemo.com/
       - http://blazedemo.com/vacation.html
-
-  ramp-up: 1m
-  hold: 1m30s
 ```
 
 Then run `bzt test.yml`. After the tool finishes,
