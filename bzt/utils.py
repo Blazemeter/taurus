@@ -473,5 +473,5 @@ def unzip(source_filename, dest_dir, rel_path=None):
 
             # Path traversal defense copied from
             # http://hg.python.org/cpython/file/tip/Lib/http/server.py#l789
-            logging.debug("Writing %s%s", dest_dir, member.filename)
+            logging.debug("Writing %s%s%s", dest_dir, os.path.sep, member.filename)
             zf.extract(member, dest_dir)

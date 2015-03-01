@@ -321,7 +321,7 @@ class Engine(object):
             instance = self.instantiate_module(cls)
             instance.parameters = reporter
             if isinstance(instance, AggregatorListener):
-                self.aggregator.add_listener(instance)
+                self.aggregator.add_listener(instance)  # NOTE: bad design, add_listener method is unknown
             self.reporters.append(instance)
 
         # then prepare them in case they would like to interact

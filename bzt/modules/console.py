@@ -79,7 +79,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         """
         Repaint the screen
         """
-        if self.disabled:
+        if self.disabled or not self.data_started:
             self.log.info("Test is running...")
             return False
 
@@ -126,6 +126,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
             return
 
         self.console.add_data(data)
+
         self.data_started = True
 
     def __dump_saved_log(self):
