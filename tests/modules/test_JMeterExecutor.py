@@ -4,6 +4,7 @@ import json
 import time
 import os
 import shutil
+import yaml
 
 from bzt.engine import Provisioning
 from bzt.modules.jmeter import JMeterExecutor, JMX
@@ -144,3 +145,13 @@ class TestJMeterExecutor(BZTestCase):
 
         JMeterExecutor.JMETER_DOWNLOAD_LINK = jmeter_link
         JMeterExecutor.PLUGINS_DOWNLOAD_TPL = plugins_link
+
+
+    def test_think_time_bug(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = yaml.load(open("tests/yaml/think-time-bug.yml").read())
+        obj.execution = obj.engine.config['execution']
+        obj.prepare()
+        result = open(obj.modified_jmx).read()
+        self.assertIn('<stringProp name="ConstantTimer.delay">750</stringProp>', result)

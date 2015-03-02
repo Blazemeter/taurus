@@ -47,11 +47,11 @@ def dehumanize_time(str_time):
     :return: float value in seconds
     :raise ValueError: in case of unsupported unit
     """
-    parser = re.compile('(\d+)([a-zA-Z]*)')
+    parser = re.compile('([\d\.]+)([a-zA-Z]*)')
     parts = parser.findall(str(str_time).replace(' ', ''))
     result = 0.0
     for value, unit in parts:
-        value = int(value)
+        value = float(value)
         unit = unit.lower()
         if unit == 'ms':
             result += value / 1000.0
