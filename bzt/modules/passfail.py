@@ -249,7 +249,7 @@ class FailCriteria(object):
         else:
             action_str = ""
 
-        crit_pat = re.compile("([\w\?-]+)(\s*of\s*(\S+))?([<>=]+)(\S+)(\s+for\s+(\S+))?")
+        crit_pat = re.compile("([\w\?-]+)(\s*of\s*([\S ]+))?([<>=]+)(\S+)(\s+for\s+(\S+))?")
         crit_match = crit_pat.match(crit_str.strip())
         if not crit_match:
             raise ValueError("Criteria string is mailformed in its condition part: %s" % crit_str)
