@@ -1283,13 +1283,9 @@ class JMeterScenarioBuilder(JMX):
         for varname in extractors:
             ensure_is_dict(extractors, varname, "regexp")
             cfg = extractors[varname]
-            children.append(JMX._get_extractor(
-                varname,
-                cfg['regexp'],
-                '$%s$' % cfg.get('template', 1),
-                cfg.get('match-no', 1),
-                cfg.get('default', 'NOT_FOUND'))
-            )
+            extractor = JMX._get_extractor(varname, cfg['regexp'], '$%s$' % cfg.get('template', 1),
+                                           cfg.get('match-no', 1), cfg.get('default', 'NOT_FOUND'))
+            children.append(extractor)
             children.append(Element("hashTree"))
 
         jextractors = request.config.get("extract-jsonpath", BetterDict())

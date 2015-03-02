@@ -91,6 +91,7 @@ class CLI(object):
         :type configs: list
         :return: integer exit code
         """
+        # FIXME: it should not be collected as artifact!
         user_file = os.path.expanduser('~') + os.path.sep + ".bzt-rc"
         if os.path.isfile(user_file):
             self.log.debug("Adding personal config: %s", user_file)
