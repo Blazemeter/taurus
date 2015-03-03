@@ -16,12 +16,6 @@ Just install it using PyPi:
 pip install bzt
 ```
 
-To quickly upgrade existing installation, do:
-
-```bash
-pip install --upgrade bzt
-```
-
 More detailed instructions for Linux, Mac OS and Windows available [here](https://github.com/Blazemeter/taurus/wiki/Installation).
 
 ## Getting Started
