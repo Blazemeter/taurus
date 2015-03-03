@@ -191,6 +191,8 @@ class KPISet(BetterDict):
         inst.sum_rt = obj[inst.AVG_RESP_TIME] * obj[inst.SAMPLE_COUNT]
         inst.perc_levels = [float(x) for x in inst[inst.PERCENTILES].keys()]
         inst[inst.RESP_TIMES] = {float(level): inst[inst.RESP_TIMES][level] for level in inst[inst.RESP_TIMES].keys()}
+        for error in inst[KPISet.ERRORS]:
+            error['urls'] = Counter(error['urls'])
         return inst
 
     @staticmethod
