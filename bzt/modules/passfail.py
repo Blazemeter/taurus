@@ -150,6 +150,11 @@ class FailCriteria(object):
         logging.debug("%s %s: %s", data[DataPoint.TIMESTAMP], self, state)
 
     def check(self):
+        """
+        Interrupt the execution if desired condition occured
+
+        :return: :raise AutomatedShutdown:
+        """
         if self.stop and self.is_triggered:
             if self.fail:
                 logging.info("Pass/Fail criteria triggered shutdown: %s", self)
@@ -158,7 +163,7 @@ class FailCriteria(object):
                 return True
         return False
 
-    # TODO: support aggregative algo
+    # TODO: support aggregative algo, maybe like 'within' instead of 'for'
 
     def __get_field_functor(self, subject, percentage):
         if subject == 'avg-rt':

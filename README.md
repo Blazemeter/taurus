@@ -43,7 +43,7 @@ execution:
 ```
 
 Then run `bzt test.yml`. After the tool finishes,
-observe resulting summary stats in console log. All artifact files from the run
+observe resulting summary stats in console log (more reporting options [here](https://github.com/Blazemeter/taurus/wiki/Reporting)). All artifact files from the run
 will be placed in the directory mentioned in console log. Read more on command-line tool usage [here](https://github.com/Blazemeter/taurus/wiki/CommandLine).
 
 
