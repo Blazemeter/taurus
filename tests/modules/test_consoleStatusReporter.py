@@ -37,7 +37,7 @@ class TestConsoleStatusReporter(BZTestCase):
         jmeter = JMeterExecutor()
         jmeter.engine = obj.engine
         jmeter.start_time = time.time()
-        jmeter.execution['hold'] = 10
+        jmeter.execution['hold-for'] = 10
         obj.engine.provisioning.executors = [jmeter]
         obj.settings["disable"] = False
         obj.settings['dummy_cols'] = 160

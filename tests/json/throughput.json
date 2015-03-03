@@ -3,6 +3,6 @@
         "scenario": "JMX Scenario",
         "throughput": 500,
         "ramp-up": 120,
-        "hold": 300
+        "hold-for": 300
     }
 }

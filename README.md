@@ -27,7 +27,7 @@ Create a file named `test.yml` with following contents:
 execution:
   concurrency: 10
   ramp-up: 1m
-  hold: 1m30s
+  hold-for: 1m30s
 
   scenario:
     think-time: 0.75

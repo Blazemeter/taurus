@@ -724,7 +724,7 @@ class ScenarioExecutor(EngineModule):
         iterations = self.execution.get("iterations", None)
 
         ramp_up = self.execution.get("ramp-up", None)
-        hold = dehumanize_time(self.execution.get("hold", 0))
+        hold = dehumanize_time(self.execution.get("hold-for", 0))
         if ramp_up is None:
             ramp_up = None
             duration = hold

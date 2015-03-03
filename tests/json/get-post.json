@@ -95,7 +95,7 @@
   "execution": {
     "concurrency": 5,
     "ramp-up": 15,
-    "hold": 30,
+    "hold-for": 30,
     "iterations": 10,
     "scenario": "get-post"
   },
