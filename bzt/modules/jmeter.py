@@ -362,6 +362,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 raise ValueError("Unsupported JMX modification action: %s" % action)
 
     def __jmeter(self, jmeter):
+        self.log.debug("Trying jmeter: %s > %s", jmeter, self.jmeter_log)
         jmout = subprocess.check_output([jmeter, '-j', self.jmeter_log, '--version'], stderr=subprocess.STDOUT)
         self.log.debug("JMeter check: %s", jmout)
 
