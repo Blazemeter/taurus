@@ -1,6 +1,8 @@
 """ Main BZT classes """
 import ConfigParser
+from UserDict import DictMixin
 from collections import namedtuple
+from collections import defaultdict
 import copy
 import datetime
 import json
@@ -492,12 +494,12 @@ class Configuration(BetterDict):
         if not filename:
             filename = self.dump_filename
 
-        if not fmt:
-            self.dump(filename + ".yml", self.YAML)
-            self.dump(filename + ".json", self.JSON)
-            return
-
         if filename:
+            if not fmt:
+                self.dump(filename + ".yml", self.YAML)
+                self.dump(filename + ".json", self.JSON)
+                return
+
             acopy = copy.deepcopy(self)
             BetterDict.traverse(acopy, self.__masq_sensitive)
             with open(filename, "w") as fhd:
@@ -697,8 +699,7 @@ class ScenarioExecutor(EngineModule):
                 if scenario not in scenarios:
                     raise ValueError("Scenario not found in scenarios: %s" % scenario)
                 scenario = scenarios.get(scenario)
-            self.__scenario = Scenario()
-            self.__scenario.merge(scenario)
+            self.__scenario = Scenario(scenario)
         return self.__scenario
 
     def get_load(self):
@@ -749,11 +750,27 @@ class Reporter(EngineModule):
         self.parameters = BetterDict()
 
 
-class Scenario(BetterDict):
+class Scenario(object, DictMixin):
     """
     Test scenario entity
     """
     SCRIPT = "script"
+
+    def __init__(self, scenario=None):
+        super(Scenario, self).__init__()
+        self.data = scenario
+
+    def get(self, key, default=defaultdict):
+        """
+
+        :param key:
+        :type default: object
+        :return:
+        """
+        return self.data.get(key, default)
+
+    def __getitem__(self, item):
+        return self.data[item]
 
     # TODO: add HAR file support
     def get_headers(self):
