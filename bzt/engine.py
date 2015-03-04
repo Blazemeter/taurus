@@ -772,6 +772,9 @@ class Scenario(object, DictMixin):
     def __getitem__(self, item):
         return self.data[item]
 
+    def __setitem__(self, key, value):
+        self.data[key] = value
+
     # TODO: add HAR file support
     def get_headers(self):
         """

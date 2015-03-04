@@ -56,7 +56,8 @@ class TestJMeterExecutor(BZTestCase):
     def test_broken_xml(self):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
-        obj.execution = {"scenario": {"script": "tests/jmx/broken.jmx"}}
+        obj.execution = BetterDict()
+        obj.execution.merge({"scenario": {"script": "tests/jmx/broken.jmx"}})
         try:
             obj.prepare()
             self.fail()
@@ -135,7 +136,8 @@ class TestJMeterExecutor(BZTestCase):
         obj.engine = EngineEmul()
         obj.settings.merge({"path": path})
 
-        obj.execution = {"scenario": {"requests": []}}
+        obj.execution = BetterDict()
+        obj.execution.merge({"scenario": {"requests": []}})
 
         obj.prepare()
 
@@ -146,11 +148,11 @@ class TestJMeterExecutor(BZTestCase):
         JMeterExecutor.JMETER_DOWNLOAD_LINK = jmeter_link
         JMeterExecutor.PLUGINS_DOWNLOAD_TPL = plugins_link
 
-
     def test_think_time_bug(self):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
-        obj.engine.config = yaml.load(open("tests/yaml/think-time-bug.yml").read())
+        obj.engine.config = BetterDict()
+        obj.engine.config.merge(yaml.load(open("tests/yaml/think-time-bug.yml").read()))
         obj.execution = obj.engine.config['execution']
         obj.prepare()
         result = open(obj.modified_jmx).read()

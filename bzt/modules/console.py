@@ -62,8 +62,8 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
             self.screen = Screen()
             self.__detect_console_logger()
         else:
-            cols = self.settings.get('dummy_cols', self.screen_size[0])
-            rows = self.settings.get('dummy_rows', self.screen_size[1])
+            cols = self.settings.get('dummy-cols', self.screen_size[0])
+            rows = self.settings.get('dummy-rows', self.screen_size[1])
             self.screen = DummyScreen(cols, rows)
 
         widgets = []
