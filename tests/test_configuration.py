@@ -57,7 +57,7 @@ class TestConfiguration(BZTestCase):
         self.assertFalse("properties" in jmeter)
 
         fname = tempfile.mkstemp()[1]
-        obj.dump(fname)
+        obj.dump(fname, Configuration.JSON)
         checker = Configuration()
         checker.load([fname])
         token = checker["list-complex"][1][0]['token']
