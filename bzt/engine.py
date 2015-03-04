@@ -58,8 +58,8 @@ class Engine(object):
         """
         self.log.info("Preparing...")
         self._create_artifacts_dir()
-        dump = self.create_artifact("effective", ".config")
-        self.config.set_dump_file(dump, Configuration.YAML)
+        dump = self.create_artifact("effective", "")  # FIXME: not good since this file not exists
+        self.config.set_dump_file(dump)
 
         self.__load_configs(user_configs)
         self.__prepare_provisioning()
@@ -296,13 +296,13 @@ class Engine(object):
 
         # load user configs
         user_config = Configuration()
-        dump_type = user_config.load(user_configs)
-        user_config.dump(self.create_artifact("merged", ".config"), dump_type)
+        user_config.load(user_configs)
+        user_config.dump(self.create_artifact("merged", ".yml"), Configuration.YAML)
+        user_config.dump(self.create_artifact("merged", ".json"), Configuration.JSON)
 
         # load base and merge user into it
         self.config.load(configs)
         self.config.merge(user_config)
-        self.config.dump_format = dump_type
 
     def __prepare_provisioning(self):
         cls = self.config.get(Provisioning.PROV, "")
@@ -381,7 +381,7 @@ class Engine(object):
 class Configuration(BetterDict):
     """
     loading both JSONs and YAMLs and .properties-like override
-    dump effective config into file
+    dump effective config into files
     first config should not contain action prefixes
     """
     JSON = "JSON"
@@ -392,7 +392,6 @@ class Configuration(BetterDict):
         super(Configuration, self).__init__()
         self.log = logging.getLogger('')
         self.dump_filename = None
-        self.dump_format = self.JSON
 
     def load(self, configs):
         """
@@ -401,18 +400,13 @@ class Configuration(BetterDict):
         :type configs: list[str]
         """
         self.log.debug("Configs: %s", configs)
-        dump_type = self.YAML
         for config_file in configs:
             config, ctype = self.__read_file(config_file)
-
-            if ctype != self.INI:
-                dump_type = ctype
 
             if isinstance(config, list):
                 self.__apply_overrides(config)
             else:
                 self.merge(config)
-        return dump_type
 
     def __read_file(self, filename):
         with open(filename) as fh:
@@ -436,15 +430,13 @@ class Configuration(BetterDict):
             else:
                 raise ValueError("Cannot detect file format for %s" % filename)
 
-    def set_dump_file(self, filename, fmt):
+    def set_dump_file(self, filename):
         """
         Set default file and format to be used by `dump` method
 
         :type filename: str
-        :type fmt: str
         """
         self.dump_filename = filename
-        self.dump_format = fmt
 
     def write(self, fds, fmt):
         """
@@ -501,7 +493,9 @@ class Configuration(BetterDict):
             filename = self.dump_filename
 
         if not fmt:
-            fmt = self.dump_format
+            self.dump(filename + ".yml", self.YAML)
+            self.dump(filename + ".json", self.JSON)
+            return
 
         if filename:
             acopy = copy.deepcopy(self)
