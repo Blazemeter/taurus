@@ -783,7 +783,7 @@ class Scenario(object, DictMixin):
         :rtype: dict[str,str]
         """
         scenario = self
-        headers = scenario.get("headers", [])
+        headers = scenario.get("headers")
         return headers
 
     def get_requests(self):

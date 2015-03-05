@@ -1388,7 +1388,8 @@ class JMeterScenarioBuilder(JMX):
             delimiter = source.get("delimiter", self.__guess_delimiter(source['path']))
 
             self.append(self.TEST_PLAN_SEL, JMX._get_csv_config(
-                os.path.abspath(source['path']), delimiter, source.get("quoted", False), source.get("loop", True)
+                os.path.abspath(source['path']), delimiter,
+                source.get("quoted", False), source.get("loop", True)
             ))
             self.append(self.TEST_PLAN_SEL, Element("hashTree"))
 
