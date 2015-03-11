@@ -161,7 +161,9 @@ def main():
     """
     This function is used as entrypoint by setuptools
     """
-    parser = OptionParser()
+    usage = "Usage: bzt [options] [files]"
+    dsc = "BlazeMeter Taurus Tool v%s, the configuration-driven test running engine" % version
+    parser = OptionParser(usage=usage, description=dsc)
     parser.add_option('-d', '--datadir', action='store', default=".",
                       help="Artifacts base dir")
     parser.add_option('-l', '--log', action='store', default="bzt.log",
