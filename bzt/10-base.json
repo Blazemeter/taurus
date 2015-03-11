@@ -61,5 +61,12 @@
   "settings": {
     "default-executor": "jmeter",
     "aggregator": "consolidator"
+  },
+  "aliases": {
+    "report": {
+      "reporting": [
+        "blazemeter"
+      ]
+    }
   }
 }

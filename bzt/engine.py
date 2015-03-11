@@ -51,7 +51,7 @@ class Engine(object):
 
         self.__counters_ts = None
 
-    def prepare(self, user_configs):
+    def prepare(self, user_configs, aliases):
         """
         Prepare engine for work, will call preparing of Provisioning and add
         downstream EngineModule instances
@@ -63,7 +63,7 @@ class Engine(object):
         dump = self.create_artifact("effective", "")  # FIXME: not good since this file not exists
         self.config.set_dump_file(dump)
 
-        self.__load_configs(user_configs)
+        self.__load_configs(user_configs, aliases)
         self.__prepare_provisioning()
         self.__prepare_reporters()
 
@@ -279,12 +279,12 @@ class Engine(object):
         else:
             raise IOError("File not found: %s" % filename)
 
-    def __load_configs(self, user_configs):
+    def __load_configs(self, user_configs, aliases):
         for fname in user_configs:
             self.existing_artifact(fname)
 
         # prepare base configs
-        configs = []
+        base_configs = []
         machine_dir = os.getenv("VIRTUAL_ENV", "")  # respect virtualenv
         machine_dir += os.path.sep + "etc" + os.path.sep + "bzt.d"
         if os.path.isdir(machine_dir):
@@ -292,7 +292,7 @@ class Engine(object):
             for cfile in os.listdir(machine_dir):
                 fname = machine_dir + os.path.sep + cfile
                 if os.path.isfile(fname):
-                    configs.append(fname)
+                    base_configs.append(fname)
         else:
             self.log.info("No machine configs dir: %s", machine_dir)
 
@@ -303,8 +303,13 @@ class Engine(object):
         user_config.dump(self.create_artifact("merged", ".json"), Configuration.JSON)
 
         # load base and merge user into it
-        self.config.load(configs)
+        self.config.load(base_configs)
         self.config.merge(user_config)
+
+        # apply aliases
+        for alias in aliases:
+            al_config = self.config.get("aliases").get(alias)
+            self.config.merge(al_config)
 
     def __prepare_provisioning(self):
         cls = self.config.get(Provisioning.PROV, "")
@@ -416,7 +421,7 @@ class Configuration(BetterDict):
             while first_line.startswith("#"):
                 first_line = fh.readline().strip()
             fh.seek(0)
-            
+
             if first_line.startswith('---'):
                 self.log.debug("Reading %s as YAML", filename)
                 return yaml.load(fh), self.YAML

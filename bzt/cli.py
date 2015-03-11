@@ -3,7 +3,7 @@
 CLI tool wrapper to run Engine using command-line interface
 """
 from logging import Formatter, FileHandler
-from optparse import OptionParser
+from optparse import OptionParser, BadOptionError, Option
 import logging
 import os
 import platform
@@ -104,7 +104,7 @@ class CLI(object):
             overrides = self.__get_config_overrides()
             configs.extend(overrides)
             logging.info("Starting with configs: %s", configs)
-            self.engine.prepare(configs)
+            self.engine.prepare(configs, self.options.aliases)
             self.engine.run()
             exit_code = 0
         except BaseException, exc:
@@ -157,13 +157,55 @@ class CLI(object):
             return []
 
 
+class OptionParserWithAliases(OptionParser, object):
+    """
+    Decorator that processes short opts as aliases
+    """
+
+    def __init__(self,
+                 usage=None,
+                 option_list=None,
+                 option_class=Option,
+                 version=None,
+                 conflict_handler="error",
+                 description=None,
+                 formatter=None,
+                 add_help_option=True,
+                 prog=None,
+                 epilog=None):
+        super(OptionParserWithAliases, self).__init__(usage=None, option_list=None, option_class=Option, version=None,
+                                                      conflict_handler="error", description=None, formatter=None,
+                                                      add_help_option=True, prog=None, epilog=None)
+        self.aliases = []
+
+    def _process_short_opts(self, rargs, values):
+        if rargs:
+            candidate = rargs[0]
+        else:
+            candidate = None
+        # sys.stderr.write("Rargs: %s\n" % rargs)
+        try:
+            return OptionParser._process_short_opts(self, rargs, values)
+        except BadOptionError, exc:
+            if candidate.startswith(exc.opt_str):
+                self.aliases.append(candidate[1:])
+            else:
+                raise
+            pass
+
+    def parse_args(self, args=None, values=None):
+        res = OptionParser.parse_args(self, args, values)
+        res[0].aliases = self.aliases
+        return res
+
+
 def main():
     """
     This function is used as entrypoint by setuptools
     """
     usage = "Usage: bzt [options] [files]"
     dsc = "BlazeMeter Taurus Tool v%s, the configuration-driven test running engine" % version
-    parser = OptionParser(usage=usage, description=dsc)
+    parser = OptionParserWithAliases(usage=usage, description=dsc, prog="bzt")
     parser.add_option('-d', '--datadir', action='store', default=".",
                       help="Artifacts base dir")
     parser.add_option('-l', '--log', action='store', default="bzt.log",
