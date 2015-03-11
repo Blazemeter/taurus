@@ -412,8 +412,11 @@ class Configuration(BetterDict):
 
     def __read_file(self, filename):
         with open(filename) as fh:
-            first_line = fh.readline().strip()
+            first_line = "#"
+            while first_line.startswith("#"):
+                first_line = fh.readline().strip()
             fh.seek(0)
+            
             if first_line.startswith('---'):
                 self.log.debug("Reading %s as YAML", filename)
                 return yaml.load(fh), self.YAML
