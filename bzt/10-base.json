@@ -16,7 +16,7 @@
         "jmeter.save.saveservice.connect_time": "true",
         "summariser.name": ""
       },
-      "path": "jmeter-taurus/bin/jmeter"
+      "path": "~/jmeter-taurus/bin/jmeter"
     },
     "grinder": {
       "class": "bzt.modules.grinder.GrinderExecutor",

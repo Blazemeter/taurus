@@ -36,7 +36,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     JMeter executor module
     """
     JMETER_DOWNLOAD_LINK = "http://apache.claz.org/jmeter/binaries/apache-jmeter-2.12.zip"
-    PLUGINS_DOWNLOAD_TPL = "http://jmeter-plugins.org/files/JMeterPlugins-%s-1.2.0.zip"
+    PLUGINS_DOWNLOAD_TPL = "http://jmeter-plugins.org/files/JMeterPlugins-%s-1.2.1.zip"
 
     def __init__(self):
         super(JMeterExecutor, self).__init__()
@@ -387,7 +387,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def __install_jmeter(self, path):
         # normalize path
-        dest = os.path.dirname(os.path.dirname(path))
+        dest = os.path.dirname(os.path.dirname(os.path.expanduser(path)))
         if not dest:
             dest = "jmeter-taurus"
         dest = os.path.abspath(dest)
