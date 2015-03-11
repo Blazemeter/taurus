@@ -14,6 +14,7 @@ class TestCLI(BZTestCase):
         self.option = ["test.subkey2.0.sskey=value", "test.subkey.0=value"]
         self.datadir = os.path.dirname(__file__) + "/../build/acli"
         self.obj = CLI(self)
+        self.aliases = []
         self.obj.engine = EngineEmul()
 
     def test_perform_normal(self):
