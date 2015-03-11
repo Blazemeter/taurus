@@ -385,8 +385,7 @@ class ThreeGraphs(Pile):
             [' ', ("graph vu", '1'), " %s users, ",
              ("graph vc", '2'), " ~%s active "],
             ("graph bg", "graph vu", "graph vc"))
-        # FIXME: succ/fail are known to be wrong when 100% failures
-        self.rps = BoxedGraph([" Hits: ", ("graph rps", '1'), " %d succ, ",
+        self.rps = BoxedGraph([("graph rps", '1'), " %d hits, ",
                                ("graph fail", '2'), " %d fail "],
                               ("graph bg", "graph rps", "graph fail"))
         self.rt = BoxedGraph([" ", ("graph rt", '1'), " %.3f avg time (",
