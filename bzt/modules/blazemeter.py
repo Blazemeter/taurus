@@ -53,7 +53,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
             msg += "please set address option to enable it"
             self.log.warning(msg)
 
-        self.test = self.parameters.get("test", "")
+        self.test = self.parameters.get("test", "")  # TODO: provide a way to put datetime into test name
         try:
             self.client.ping()  # to check connectivity and auth
         except:
@@ -78,7 +78,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
     def __upload_artifacts(self):
         self.log.info("Uploading all artifacts as jtls_and_more.zip ...")
         mf = StringIO.StringIO()
-        with zipfile.ZipFile(mf, mode='w', compression=zipfile.ZIP_DEFLATED) as zfh:
+        with zipfile.ZipFile(mf, mode='w', compression=zipfile.ZIP_DEFLATED, allowZip64=True) as zfh:
             for handler in self.engine.log.parent.handlers:
                 if isinstance(handler, logging.FileHandler):
                     zfh.write(handler.baseFilename, os.path.basename(handler.baseFilename))
