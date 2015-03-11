@@ -308,7 +308,9 @@ class Engine(object):
 
         # apply aliases
         for alias in aliases:
-            al_config = self.config.get("aliases").get(alias)
+            al_config = self.config.get("aliases").get(alias, None)
+            if al_config is None:
+                raise RuntimeError("Alias '%s' is not found within configuration" % alias)
             self.config.merge(al_config)
 
     def __prepare_provisioning(self):

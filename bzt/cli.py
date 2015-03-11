@@ -173,9 +173,11 @@ class OptionParserWithAliases(OptionParser, object):
                  add_help_option=True,
                  prog=None,
                  epilog=None):
-        super(OptionParserWithAliases, self).__init__(usage=None, option_list=None, option_class=Option, version=None,
-                                                      conflict_handler="error", description=None, formatter=None,
-                                                      add_help_option=True, prog=None, epilog=None)
+        super(OptionParserWithAliases, self).__init__(
+            usage=usage, option_list=option_list,
+            option_class=option_class, version=version,
+            conflict_handler=conflict_handler, description=description, formatter=formatter,
+            add_help_option=add_help_option, prog=prog, epilog=epilog)
         self.aliases = []
 
     def _process_short_opts(self, rargs, values):
@@ -187,7 +189,7 @@ class OptionParserWithAliases(OptionParser, object):
         try:
             return OptionParser._process_short_opts(self, rargs, values)
         except BadOptionError, exc:
-            if candidate.startswith(exc.opt_str):
+            if candidate.startswith(exc.opt_str) and len(candidate) > 2:
                 self.aliases.append(candidate[1:])
             else:
                 raise
@@ -203,7 +205,7 @@ def main():
     """
     This function is used as entrypoint by setuptools
     """
-    usage = "Usage: bzt [options] [files]"
+    usage = "Usage: bzt [options] [configs] [-aliases]"
     dsc = "BlazeMeter Taurus Tool v%s, the configuration-driven test running engine" % version
     parser = OptionParserWithAliases(usage=usage, description=dsc, prog="bzt")
     parser.add_option('-d', '--datadir', action='store', default=".",
