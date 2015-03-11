@@ -338,13 +338,12 @@ class DummyScreen(BaseScreen):
         :param size:
         :type canvas: urwid.Canvas
         """
-        data = " %s \n" % ("~" * size[0])
+        data = ""
         for char in canvas.content():
             line = ""
             for part in char:
                 line += part[2]
-            data += "|%s|\n" % line
-        data += " %s " % ("~" * size[0])
+            data += "%s│\n" % line
         data = self.ansi_escape.sub('', data)
         logging.info("Screen %sx%s chars:\n%s", size[0], size[1], data)
 
