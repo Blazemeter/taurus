@@ -5,7 +5,7 @@
 ## Purpose
 A tool to hide the complexity of tests under automation-friendly convenience wrapper. More info about its features available [here](docs/Features.md).
 
-![CLI dashboard and BlazeMeter Report](https://raw.githubusercontent.com/Blazemeter/taurus/master/docs/cli-bza.png?token=AB7r5dbvUChRenOZnOlgsmSjkKFOKwtHks5VCpWpwA%3D%3D)
+![CLI dashboard and BlazeMeter Report](cli-bza.png)
 
 
 ## Installation or Upgrade
