@@ -10,6 +10,7 @@ import sys
 import traceback
 import time
 import StringIO
+import webbrowser
 import zipfile
 
 from bzt import ManualShutdown
@@ -69,6 +70,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
             test_id = self.client.test_by_name(self.test)
             url = self.client.start_online(test_id)
             self.log.info("Started data feeding: %s", url)
+            webbrowser.open(url)  # TODO: parameterize it, allow: none, start, end, both
         except KeyboardInterrupt:
             raise
         except BaseException, exc:
