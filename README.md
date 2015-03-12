@@ -1,11 +1,11 @@
 # Codename: Taurus
-[test](local_link)
+
 <i><b>T</b>est <b>au</b>tomation <b>ru</b>nning <b>s</b>moothly
 
 ## Purpose
-A tool to hide the complexity of tests under automation-friendly convenience wrapper. More info about its features available [here](https://github.com/Blazemeter/taurus/wiki/Features).
+A tool to hide the complexity of tests under automation-friendly convenience wrapper. More info about its features available [here](docs/Features.md).
 
-![CLI dashboard and BlazeMeter Report](https://github.com/Blazemeter/taurus/wiki/cli-bza.png)
+![CLI dashboard and BlazeMeter Report](https://raw.githubusercontent.com/Blazemeter/taurus/master/docs/cli-bza.png?token=AB7r5dbvUChRenOZnOlgsmSjkKFOKwtHks5VCpWpwA%3D%3D)
 
 
 ## Installation or Upgrade
@@ -16,7 +16,7 @@ Just install it using PyPi:
 pip install bzt
 ```
 
-More detailed instructions for Linux, Mac OS and Windows available [here](https://github.com/Blazemeter/taurus/wiki/Installation).
+More detailed instructions for Linux, Mac OS and Windows available [here](docs/Installation.md).
 
 ## Getting Started
 
@@ -37,13 +37,13 @@ execution:
 ```
 
 Then run `bzt test.yml`. After the tool finishes,
-observe resulting summary stats in console log (more reporting options [here](https://github.com/Blazemeter/taurus/wiki/Reporting)). All artifact files from the run
-will be placed in the directory mentioned in console log. Read more on command-line tool usage [here](https://github.com/Blazemeter/taurus/wiki/CommandLine).
+observe resulting summary stats in console log (more reporting options [here](docs/Reporting.md)). All artifact files from the run
+will be placed in the directory mentioned in console log. Read more on command-line tool usage [here](docs/CommandLine.md).
 
 
 
 ## Further Reading
 
-[Taurus Documentation Wiki](https://github.com/Blazemeter/taurus/wiki)
+[Taurus Documentation](docs/Home.md)
 
 [Support Forum](https://groups.google.com/forum/#!forum/codename-taurus)
