@@ -36,7 +36,7 @@ execution:
     script: tests/jmx/dummy.jmx
 ```
 
-Read the [execution settings](ExecutionSettings) section for you tool to learn additional options available with existing scripts.
+Read the [execution settings](ExecutionSettings.md) section for you tool to learn additional options available with existing scripts.
 
 ## Requests Scenario
 

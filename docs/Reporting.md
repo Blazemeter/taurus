@@ -1,6 +1,6 @@
 # Reporting & Results Processing
 
-Reporting functionality in Taurus is delegated to special modules category. There is special [internal facility](Reporting#results-reading-and-aggregating-facility) that reads results from [executors](ExecutionSettings), aggregates them and feeds to configured reporters. Reporters are specified as list under top-level config key `reporting`, by default it is configured with two reporters:
+Reporting functionality in Taurus is delegated to special modules category. There is special [internal facility](#results-reading-and-aggregating-facility) that reads results from [executors](ExecutionSettings.md), aggregates them and feeds to configured reporters. Reporters are specified as list under top-level config key `reporting`, by default it is configured with two reporters:
 
 ```yaml
 ---
@@ -57,7 +57,7 @@ reporting:
     - console
 ```
 
-There is module settings for Console Screen, containing option `disable`. It allows easy disabling fullscreen display by using [command-line](CommandLine) switch `-o`:
+There is module settings for Console Screen, containing option `disable`. It allows easy disabling fullscreen display by using [command-line](CommandLine.md) switch `-o`:
 
 ```bash
 bzt config.yml -o modules.consoled.disable=true
@@ -142,7 +142,7 @@ modules:
     token: 9e107d9d372bb6826bd81d3542a419d6
 ```
 
-It is highly recommended to place the token setting in your personal [per-user config](CommandLine#configuration-files-processing) `~/.bzt-rc` to prevent it from being logged and collected in artifacts.
+It is highly recommended to place the token setting in your personal [per-user config](CommandLine.md#configuration-files-processing) `~/.bzt-rc` to prevent it from being logged and collected in artifacts.
 
 Advanced settings:
 ```yaml

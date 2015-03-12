@@ -18,14 +18,14 @@ execution:
       script: my-existing.jmx
 ```
 
-However, users are encouraged to use array notation always to leverage the arrays auto-join capability when combining multiple config files into one. See [config merge rules](CommandLine#configuration-files-processing) for more details on this.
+However, users are encouraged to use array notation always to leverage the arrays auto-join capability when combining multiple config files into one. See [config merge rules](CommandLine.md#configuration-files-processing) for more details on this.
 
 There are load profile and scenario settings that are common for all execution types, and each executor type can also have its own settings.
 
 ## Scenario
 
 Scenario is a sequence of steps that is used to build script for underlying tool (e.g. generage JMX file for JMeter). Scenarios can be specified directly inside execution section. However, it is recommended to use special `scenarios` top-level config element to declare
-scenarios and access them through aliases. Read more on building scenarios [here](ScenarioBuilding). Some examples:
+scenarios and access them through aliases. Read more on building scenarios [here](ScenarioBuilding.md). Some examples:
 
 ```yaml
 ---

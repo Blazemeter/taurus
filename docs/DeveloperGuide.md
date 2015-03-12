@@ -10,4 +10,5 @@
  - Create git tag
  - git push, including tag
  - Upload tp PyPi: `setup.py clean sdist upload`
+ - generate and upload docs (TODO)
  

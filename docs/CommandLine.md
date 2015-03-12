@@ -10,13 +10,13 @@ Command-line tool is named `bzt` and invoked like `bzt <options> [configs]`. Pos
   - `-o OPTION, --option=OPTION` override some of config settings from command line, may be used multiple times
 
 ## Configuration Files Processing
-Taurus tool consumes configuration files as input format (start learning its syntax [here](ConfigSyntax)), it automatically detects YAML and JSON formats. Internally, all configuration files are merged into single configuration object (see merged.config artifact), and each following config overrides/appends previous. There are some special config locations that allows having per-machine and per-user configs, that will be loaded for every tool run. In general, configs load sequence is:
+Taurus tool consumes configuration files as input format (start learning its syntax [here](ConfigSyntax.md)), it automatically detects YAML and JSON formats. Internally, all configuration files are merged into single configuration object (see merged.config artifact), and each following config overrides/appends previous. There are some special config locations that allows having per-machine and per-user configs, that will be loaded for every tool run. In general, configs load sequence is:
 
   1. `/etc/bzt.d` directory, contains per-machine configs, its contents are first in the configs list
   2. `~/.bzt-rc` file, contained in user's home directory (holds per-user preferences) is added to list after per-machine configs
   3. all command-line passed configs (like `bzt config-1.yml config-2.json`) are added to list after per-user config
   4. all command-line option overrides (like `bzt -o execution.0.scenario=my-test`) are placed into temporary file and added to the end of the list
-  5. files list is loaded according to the [merge rules](ConfigSyntax#multiple-files-merging-rules)
+  5. files list is loaded according to the [merge rules](ConfigSyntax.md#multiple-files-merging-rules)
   6. aliases applied 
 
 Note that per-user config will not be copied into artifact directories, so those files are recommended to put API keys and tokens to improve security. Also it is convenient place to set paths to tools and your favorite preferences.

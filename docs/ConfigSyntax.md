@@ -2,13 +2,13 @@
 
 Configuration dictionary has several top-level keys:
 
- - [`execution`](ExecutionSettings) - main section, declares tools to be executed during run, scenarios to use, etc
- - [`reporting`](Reporting) - analysis and reporting settings, list of reporting modules to process results 
- - [`scenarios`](ScenarioBuilding) - dictionary of scenario specifications with aliases, used referred from executions
+ - [`execution`](ExecutionSettings.md) - main section, declares tools to be executed during run, scenarios to use, etc
+ - [`reporting`](Reporting.md) - analysis and reporting settings, list of reporting modules to process results 
+ - [`scenarios`](ScenarioBuilding.md) - dictionary of scenario specifications with aliases, used referred from executions
  - [`modules`](#modules-settings) - list of classes to load and their respective settings
  - [`settings`](#top-level-settings) - some top-level settings for the tool
  - `provisioning` - advanced option, allows using resources other than local to have distributed high-load test, available if you have corresponding provider installed and configured
- - `aliases`
+ - `aliases` - TODO
  
  
 Example for config that touches all sections:
@@ -85,7 +85,7 @@ modules
 Available settings are:
 
  - `check-interval` - polling interval that used by engine after startup and until shutdown to determine if test is need to be stopped 
- - `aggregator` - module alias for top-level [results aggregator](Reporting#results-reading-and-aggregating-facility) to be used for collecting results and passing it to reporters
+ - `aggregator` - module alias for top-level [results aggregator](Reporting.md#results-reading-and-aggregating-facility) to be used for collecting results and passing it to reporters
  - `default-executor` - module alias for executor that will be used by default for [executions](ExecutionSettings)
  
 See default settings below:
