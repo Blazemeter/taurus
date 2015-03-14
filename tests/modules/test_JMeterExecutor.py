@@ -128,9 +128,11 @@ class TestJMeterExecutor(BZTestCase):
         path = __dir__() + "/../../build/tmp/jmeter/bin/jmeter"
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
         jmeter_link = JMeterExecutor.JMETER_DOWNLOAD_LINK
+        jmeter_ver = JMeterExecutor.JMETER_VER
         plugins_link = JMeterExecutor.PLUGINS_DOWNLOAD_TPL
         JMeterExecutor.JMETER_DOWNLOAD_LINK = "file://" + __dir__() + "/../data/jmeter-dist.zip"
         JMeterExecutor.PLUGINS_DOWNLOAD_TPL = "file://" + __dir__() + "/../data/jmeter-plugins-%s.zip"
+        JMeterExecutor.JMETER_VER = ''
         self.assertFalse(os.path.exists(path))
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
@@ -147,6 +149,7 @@ class TestJMeterExecutor(BZTestCase):
 
         JMeterExecutor.JMETER_DOWNLOAD_LINK = jmeter_link
         JMeterExecutor.PLUGINS_DOWNLOAD_TPL = plugins_link
+        JMeterExecutor.JMETER_VER = jmeter_ver
 
     def test_think_time_bug(self):
         obj = JMeterExecutor()

@@ -35,7 +35,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     """
     JMeter executor module
     """
-    JMETER_DOWNLOAD_LINK = "http://apache.claz.org/jmeter/binaries/apache-jmeter-2.12.zip"
+    JMETER_DOWNLOAD_LINK = "http://apache.claz.org/jmeter/binaries/apache-jmeter-%s.zip"
+    JMETER_VER = "2.13"
     PLUGINS_DOWNLOAD_TPL = "http://jmeter-plugins.org/files/JMeterPlugins-%s-1.2.1.zip"
 
     def __init__(self):
@@ -403,10 +404,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         downloader = urllib.URLopener()
         fds, jmeter_dist = tempfile.mkstemp(".zip", "jmeter-dist")
         os.close(fds)
-        self.log.info("Downloading %s", self.JMETER_DOWNLOAD_LINK)
-        downloader.retrieve(self.JMETER_DOWNLOAD_LINK, jmeter_dist)
+        self.log.info("Downloading %s", self.JMETER_DOWNLOAD_LINK % self.JMETER_VER)
+        downloader.retrieve(self.JMETER_DOWNLOAD_LINK % self.JMETER_VER, jmeter_dist)
         self.log.info("Unzipping %s", jmeter_dist)
-        unzip(jmeter_dist, dest, 'apache-jmeter-2.12')
+        unzip(jmeter_dist, dest, 'apache-jmeter-' + self.JMETER_VER)
         os.remove(jmeter_dist)
 
         # set exec permissions
