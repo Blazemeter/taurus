@@ -410,6 +410,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         unzip(jmeter_dist, dest, 'apache-jmeter-' + self.JMETER_VER)
         os.remove(jmeter_dist)
 
+        # TODO: remove old versions for httpclient JARs
+
         # set exec permissions
         os.chmod(jmeter, 0755)
         # NOTE: other files like shutdown.sh might also be needed later
