@@ -147,7 +147,7 @@ class GatlingExecutor(ScenarioExecutor):
         self.log.debug("Trying gatling: %s > %s", gatling_full_path, self.gatling_log)
         gatling_out = subprocess.check_output([gatling_full_path, '-j', self.gatling_log, '--version'], stderr=subprocess.STDOUT)
         self.settings.get()
-        
+        #blah
         
     def __check_gatling(self):
         '''Gatling'''
