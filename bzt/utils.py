@@ -16,7 +16,8 @@ import mimetypes
 import itertools
 from types import NoneType
 import zipfile
-
+import subprocess
+import traceback
 
 def run_once(f):
     """
@@ -475,3 +476,47 @@ def unzip(source_filename, dest_dir, rel_path=None):
             # http://hg.python.org/cpython/file/tip/Lib/http/server.py#l789
             logging.debug("Writing %s%s%s", dest_dir, os.path.sep, member.filename)
             zf.extract(member, dest_dir)
+            
+            
+            
+class AbstractVerifier(object):
+    '''
+    Abstract verifier.
+    '''
+    def __init__(self):
+        #we do not need the .ctor
+        pass
+    
+    def verify(self, executor_obj):
+        '''
+        verify if tool exists, try to install if not.
+        '''
+    #override in subclasses
+        raise NotImplementedError
+    
+    def __check_jvm(self, log_obj, target_jvm_version=None, lt_gt_eq=None):
+        '''
+        checks if jvm installed
+        '''
+        # TODO: implement java version check
+        try:
+            jout = subprocess.check_output(["java", '-version'], stderr=subprocess.STDOUT)
+            self.log.debug("Java check: %s", jout)
+        except BaseException, exc:
+            self.log.warn("Failed to run java: %s", traceback.format_exc(exc))
+            raise RuntimeError("The 'java' is not operable or not available. Consider installing it")
+
+class JmeterVerifier(AbstractVerifier):
+    '''
+    Jmeter Verifier, should check jvm and 
+    '''
+    def __init__(self, jmeter_executor_obj):
+        self.jmeter_executor_obj = jmeter_executor_obj
+        self.JMETER_DOWNLOAD_LINK = "http://apache.claz.org/jmeter/binaries/apache-jmeter-%s.zip"
+        self.JMETER_VER = "2.13"
+        self.PLUGINS_DOWNLOAD_TPL = "http://jmeter-plugins.org/files/JMeterPlugins-%s-1.2.1.zip"
+    
+    def verify(self):
+        
+        #self.settings['path'] = self.__install_jmeter(jmeter)
+        #self.__jmeter(self.settings['path'])

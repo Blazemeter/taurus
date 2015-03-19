@@ -22,7 +22,7 @@ from bzt.engine import ScenarioExecutor, Scenario
 from bzt.modules.console import WidgetProvider
 from bzt.modules.provisioning import FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
-from bzt.utils import shell_exec, ensure_is_dict, humanize_time, dehumanize_time, BetterDict, guess_csv_delimiter, unzip
+from bzt.utils import shell_exec, ensure_is_dict, humanize_time, dehumanize_time, BetterDict, guess_csv_delimiter, unzip, JmeterVerifier
 
 
 if platform.system() == 'Windows':
@@ -35,9 +35,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     """
     JMeter executor module
     """
-    JMETER_DOWNLOAD_LINK = "http://apache.claz.org/jmeter/binaries/apache-jmeter-%s.zip"
-    JMETER_VER = "2.13"
-    PLUGINS_DOWNLOAD_TPL = "http://jmeter-plugins.org/files/JMeterPlugins-%s-1.2.1.zip"
 
     def __init__(self):
         super(JMeterExecutor, self).__init__()
@@ -53,6 +50,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.retcode = None
         self.reader = None
         self.widget = None
+        self.verifier = JmeterVerifier(self)
 
     def prepare(self):
         """
@@ -66,8 +64,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         # TODO: global variables
         # TODO: move all files to artifacts
         self.jmeter_log = self.engine.create_artifact("jmeter", ".log")
-
+        
+        # TODO: switch to verifier.verify()
         self.__check_jmeter()
+        #self.verifier.verify()
 
         scenario = self.get_scenario()
 

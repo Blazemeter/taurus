@@ -9,7 +9,8 @@ import signal
 from bzt.engine import ScenarioExecutor, Scenario
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.utils import shell_exec
-
+import logging
+import subprocess
 
 class GatlingExecutor(ScenarioExecutor):
     """
@@ -19,7 +20,6 @@ class GatlingExecutor(ScenarioExecutor):
     def __init__(self):
         super(GatlingExecutor, self).__init__()
         self.script = None
-
         self.process = None
         self.start_time = None
         self.end_time = None
@@ -27,6 +27,13 @@ class GatlingExecutor(ScenarioExecutor):
         self.reader = None
         self.stdout_file = None
         self.stderr_file = None
+        
+        self.gatling_log = None
+        
+        #will be moved to utils.GatlingVerifier
+        self.DOWNLOAD_LINK = "http://goo.gl/o14jQg"
+        self.VERSION = "2.1.4"
+        
 
     def prepare(self):
         """
@@ -34,8 +41,17 @@ class GatlingExecutor(ScenarioExecutor):
         :return:
         """
         scenario = self.get_scenario()
+        
         # TODO: install the tool if missing, just like JMeter
-
+        
+        #create new artifact in artifacts dir with given prefix and suffix
+        #returns str
+        self.gatling_log = self.engine.create_artifact("gatling", ".log")
+        
+        #vill be moved to GutlingVerifier
+        self.__check_gutling()
+        
+        
         if Scenario.SCRIPT in scenario:
             self.script = self.engine.find_file(scenario[Scenario.SCRIPT])
             self.engine.existing_artifact(self.script)
@@ -126,6 +142,15 @@ class GatlingExecutor(ScenarioExecutor):
             self.log.debug("Gatling worked for %s seconds",
                            self.end_time - self.start_time)
 
+    def __gatling(self, gatling_full_path):
+        """Check if gatling installed"""
+        self.log.debug("Trying gatling: %s > %s", gatling_full_path, self.gatling_log)
+        gatling_out = subprocess.check_output([gatling_full_path, '-j', self.gatling_log, '--version'], stderr=subprocess.STDOUT)
+        self.settings.get()
+        
+        
+    def __check_gatling(self):
+        '''Gatling'''
 
 class DataLogReader(ResultsReader):
     """ Class to read KPI from data log """
