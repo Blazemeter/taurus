@@ -8,7 +8,9 @@ import signal
 from bzt.engine import ScenarioExecutor, Scenario
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.utils import shell_exec
-
+import subprocess
+from subprocess import CalledProcessError
+import traceback
 
 class GrinderExecutor(ScenarioExecutor):
     """
@@ -28,6 +30,10 @@ class GrinderExecutor(ScenarioExecutor):
         self.reader = None
         self.stdout_file = None
         self.stderr_file = None
+        #will be moved to utils.GatlingVerifier
+        self.DOWNLOAD_LINK = "http://sourceforge.net/projects/grinder/files/latest/download"
+        #or here http://sourceforge.net/projects/grinder/files/The%20Grinder%203/3.11/grinder-3.11-binary.zip/download
+        self.VERSION = "3.11"
 
     def __write_base_props(self, fds):
         # base props file
@@ -92,6 +98,9 @@ class GrinderExecutor(ScenarioExecutor):
         """
         scenario = self.get_scenario()
         # TODO: install the tool if missing, just like JMeter
+        
+        self.grinder_log = self.engine.create_artifact("grinder", ".log")
+        self.__check_grinder()
 
         if Scenario.SCRIPT in scenario:
             self.script = self.engine.find_file(scenario[Scenario.SCRIPT])
@@ -195,6 +204,50 @@ class GrinderExecutor(ScenarioExecutor):
                 line = '\t\trequest.%s("%s")\n' % (request.method, request.url)
                 fds.write(line)
         return script
+
+    def __grinder(self, grinder_full_path):
+        """Check if grinder installed"""
+        #java -classpath /home/user/Downloads/grinder-3.11/lib/grinder.jar net.grinder.Grinder --help
+        self.log.debug("Trying grinder: %s > %s", grinder_full_path, self.gatling_log)
+        grinder_output = subprocess.check_output([grinder_full_path, '--help'], stderr=subprocess.STDOUT)
+        self.log.debug("grinder check: %s", grinder_output)
+
+    def __check_grinder(self):
+        
+        print self.settings
+        grinder_path = self.settings.get("path", "grinder.jar")
+        try:
+            self.__grinder(grinder_path)
+            return
+        except (OSError, CalledProcessError), exc:
+            self.log.debug("Failed to run gatling: %s", traceback.format_exc(exc))
+            
+            try:
+                jout = subprocess.check_output(["java", '-version'], stderr=subprocess.STDOUT)
+                self.log.debug("Java check: %s", jout)
+            except BaseException, exc:
+                self.log.warn("Failed to run java: %s", traceback.format_exc(exc))
+                raise RuntimeError("The 'java' is not operable or not available. Consider installing it")
+        
+            self.settings['path'] = self.__install_grinder(grinder_path)
+            self.__grinder(self.settings['path'])
+            
+    def __install_grinder(self, gatling_path):
+        #installs gatling, by default in ~/gatling-taurus/
+        dest = os.path.dirname(os.path.dirname(os.path.expanduser(gatling_path)))
+        if not dest:
+            dest = os.path.expanduser("~/gatling-taurus")
+        dest = os.path.abspath(dest)
+        #dest - /home/username/gatling-taurus
+        gatling_full_path = dest + os.path.sep + "bin" + os.path.sep + "gatling.sh" # FIXME: + exe_suffix?
+        #gatling_full_path - /home/username/gatling-taurus/bin/gatling.sh
+        
+        try:
+            self.__gatling(gatling_full_path)
+            return gatling_full_path
+        except OSError:
+            self.log.info("Will try to install gatling into %s", dest)
+    
 
 
 class DataLogReader(ResultsReader):
