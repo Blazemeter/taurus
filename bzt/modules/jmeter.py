@@ -51,6 +51,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.reader = None
         self.widget = None
         self.verifier = JmeterVerifier(self)
+        
+        self.JMETER_DOWNLOAD_LINK = "http://apache.claz.org/jmeter/binaries/apache-jmeter-%s.zip"
+        self.JMETER_VER = "2.13"
+        self.PLUGINS_DOWNLOAD_TPL = "http://jmeter-plugins.org/files/JMeterPlugins-%s-1.2.1.zip"
 
     def prepare(self):
         """
@@ -370,6 +374,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     def __check_jmeter(self):
         # test JMeter is operable
         jmeter = self.settings.get("path", "jmeter" + exe_suffix)
+        print "FROM SETTINGS:", jmeter
         try:
             self.__jmeter(jmeter)
             return
@@ -393,6 +398,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             dest = "jmeter-taurus"
         dest = os.path.abspath(dest)
         jmeter = dest + os.path.sep + "bin" + os.path.sep + "jmeter" + exe_suffix
+        print "DEST", jmeter, dest
 
         try:
             self.__jmeter(jmeter)

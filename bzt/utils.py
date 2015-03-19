@@ -517,6 +517,7 @@ class JmeterVerifier(AbstractVerifier):
         self.PLUGINS_DOWNLOAD_TPL = "http://jmeter-plugins.org/files/JMeterPlugins-%s-1.2.1.zip"
     
     def verify(self):
+        pass
         
         #self.settings['path'] = self.__install_jmeter(jmeter)
         #self.__jmeter(self.settings['path'])

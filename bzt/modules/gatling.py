@@ -11,6 +11,18 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.utils import shell_exec
 import logging
 import subprocess
+from subprocess import CalledProcessError
+import traceback
+import urllib
+import tempfile
+from bzt.utils import unzip
+import platform
+
+if platform.system() == 'Windows':
+    exe_suffix = '.bat'
+else:
+    exe_suffix = '' #sh?
+
 
 class GatlingExecutor(ScenarioExecutor):
     """
@@ -48,8 +60,8 @@ class GatlingExecutor(ScenarioExecutor):
         #returns str
         self.gatling_log = self.engine.create_artifact("gatling", ".log")
         
-        #vill be moved to GutlingVerifier
-        self.__check_gutling()
+        # TODO: will be moved to GatlingVerifier in utils
+        self.__check_gatling()
         
         
         if Scenario.SCRIPT in scenario:
@@ -145,12 +157,59 @@ class GatlingExecutor(ScenarioExecutor):
     def __gatling(self, gatling_full_path):
         """Check if gatling installed"""
         self.log.debug("Trying gatling: %s > %s", gatling_full_path, self.gatling_log)
-        gatling_out = subprocess.check_output([gatling_full_path, '-j', self.gatling_log, '--version'], stderr=subprocess.STDOUT)
-        self.settings.get()
-        #blah
+        gatling_output = subprocess.check_output([gatling_full_path, '--help'], stderr=subprocess.STDOUT)
+        self.log.debug("gatling check: %s", gatling_output)
         
     def __check_gatling(self):
-        '''Gatling'''
+        #test if gatling operable
+        # FIXME: .sh and .cmd
+        gatling_path = self.settings.get("path", "gatling.sh")
+        try:
+            self.__gatling(gatling_path)
+            return
+        except (OSError, CalledProcessError), exc:
+            self.log.debug("Failed to run gatling: %s", traceback.format_exc(exc))
+            
+            try:
+                jout = subprocess.check_output(["java", '-version'], stderr=subprocess.STDOUT)
+                self.log.debug("Java check: %s", jout)
+            except BaseException, exc:
+                self.log.warn("Failed to run java: %s", traceback.format_exc(exc))
+                raise RuntimeError("The 'java' is not operable or not available. Consider installing it")
+        
+            self.settings['path'] = self.__install_gatling(gatling_path)
+            self.__gatling(self.settings['path'])
+        
+    def __install_gatling(self, gatling_path):
+        #installs gatling, by default in ~/gatling-taurus/
+        dest = os.path.dirname(os.path.dirname(os.path.expanduser(gatling_path)))
+        if not dest:
+            dest = os.path.expanduser("~/gatling-taurus")
+        dest = os.path.abspath(dest)
+        #dest - /home/username/gatling-taurus
+        gatling_full_path = dest + os.path.sep + "bin" + os.path.sep + "gatling.sh" # FIXME: + exe_suffix?
+        #gatling_full_path - /home/username/gatling-taurus/bin/gatling.sh
+        
+        try:
+            self.__gatling(gatling_full_path)
+            return gatling_full_path
+        except OSError:
+            self.log.info("Will try to install gatling into %s", dest)
+            
+        #download gatling
+        downloader = urllib.FancyURLopener()
+        fds, gatling_zip_path = tempfile.mkstemp(".zip", "gatling-dist")
+        os.close(fds)
+        self.log.info("Downloading %s", self.DOWNLOAD_LINK)
+        # NOTE: - download progress should be visible
+        downloader.retrieve(self.DOWNLOAD_LINK, gatling_zip_path)
+        self.log.info("Unzipping %s", gatling_zip_path)
+        unzip(gatling_zip_path, dest, 'gatling-charts-highcharts-bundle-' + self.VERSION)
+        os.remove(gatling_zip_path)
+        
+        self.log.info("Installed gatling successfully")
+        os.chmod(gatling_full_path, 0755)
+        return gatling_full_path
 
 class DataLogReader(ResultsReader):
     """ Class to read KPI from data log """
