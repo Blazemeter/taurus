@@ -186,6 +186,7 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE):
     :type args: basestring or list
     :return:
     """
+    
     if isinstance(args, basestring):
         args = shlex.split(args)
     logging.getLogger(__name__).debug("Executing shell: %s", args)

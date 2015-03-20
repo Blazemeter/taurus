@@ -35,7 +35,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     """
     JMeter executor module
     """
-
+    JMETER_DOWNLOAD_LINK = "http://apache.claz.org/jmeter/binaries/apache-jmeter-%s.zip"
+    JMETER_VER = "2.13"
+    PLUGINS_DOWNLOAD_TPL = "http://jmeter-plugins.org/files/JMeterPlugins-%s-1.2.1.zip"
+        
     def __init__(self):
         super(JMeterExecutor, self).__init__()
         self.original_jmx = None
@@ -52,9 +55,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.widget = None
         self.verifier = JmeterVerifier(self)
         
-        self.JMETER_DOWNLOAD_LINK = "http://apache.claz.org/jmeter/binaries/apache-jmeter-%s.zip"
-        self.JMETER_VER = "2.13"
-        self.PLUGINS_DOWNLOAD_TPL = "http://jmeter-plugins.org/files/JMeterPlugins-%s-1.2.1.zip"
+
 
     def prepare(self):
         """
@@ -374,7 +375,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     def __check_jmeter(self):
         # test JMeter is operable
         jmeter = self.settings.get("path", "jmeter" + exe_suffix)
-        print "FROM SETTINGS:", jmeter
         try:
             self.__jmeter(jmeter)
             return
@@ -398,7 +398,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             dest = "jmeter-taurus"
         dest = os.path.abspath(dest)
         jmeter = dest + os.path.sep + "bin" + os.path.sep + "jmeter" + exe_suffix
-        print "DEST", jmeter, dest
 
         try:
             self.__jmeter(jmeter)
@@ -410,10 +409,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         downloader = urllib.URLopener()
         fds, jmeter_dist = tempfile.mkstemp(".zip", "jmeter-dist")
         os.close(fds)
-        self.log.info("Downloading %s", self.JMETER_DOWNLOAD_LINK % self.JMETER_VER)
-        downloader.retrieve(self.JMETER_DOWNLOAD_LINK % self.JMETER_VER, jmeter_dist)
+        self.log.info("Downloading %s", JMeterExecutor.JMETER_DOWNLOAD_LINK % JMeterExecutor.JMETER_VER)
+        downloader.retrieve(JMeterExecutor.JMETER_DOWNLOAD_LINK % JMeterExecutor.JMETER_VER, jmeter_dist)
         self.log.info("Unzipping %s", jmeter_dist)
-        unzip(jmeter_dist, dest, 'apache-jmeter-' + self.JMETER_VER)
+        unzip(jmeter_dist, dest, 'apache-jmeter-' + JMeterExecutor.JMETER_VER)
         os.remove(jmeter_dist)
 
         # TODO: remove old versions for httpclient JARs
@@ -426,8 +425,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         for set_name in ("Standard", "Extras", "ExtrasLibs", "WebDriver"):
             fds, plugin_dist = tempfile.mkstemp(".zip", "jmeter-plugins-" + set_name)
             os.close(fds)
-            self.log.info("Downloading %s", self.PLUGINS_DOWNLOAD_TPL % set_name)
-            downloader.retrieve(self.PLUGINS_DOWNLOAD_TPL % set_name, plugin_dist)
+            self.log.info("Downloading %s", JMeterExecutor.PLUGINS_DOWNLOAD_TPL % set_name)
+            downloader.retrieve(JMeterExecutor.PLUGINS_DOWNLOAD_TPL % set_name, plugin_dist)
             self.log.info("Unzipping %s", plugin_dist)
             unzip(plugin_dist, dest)
             os.remove(plugin_dist)

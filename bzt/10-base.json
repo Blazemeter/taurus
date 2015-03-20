@@ -16,18 +16,23 @@
         "jmeter.save.saveservice.connect_time": "true",
         "summariser.name": ""
       },
-      "path": "~/jmeter-taurus/bin/jmeter"
+      "path": "~/jmeter-taurus/bin/jmeter",
+      "download_link": "http://apache.claz.org/jmeter/binaries/apache-jmeter-%s.zip",
+      "plugins_download_link": "http://jmeter-plugins.org/files/JMeterPlugins-%s-1.2.1.zip",
+      "version": "2.13"
     },
     "grinder": {
       "class": "bzt.modules.grinder.GrinderExecutor",
       "properties": {
         "grinder.useConsole": false
       },
-      "path": "grinder"
+      "path": "~/grinder-taurus"
     },
     "gatling": {
       "class": "bzt.modules.gatling.GatlingExecutor",
-      "path": "gatling"
+      "path": "~/gatling-taurus/bin/gatling",
+      "download_link": "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle/2.1.4/gatling-charts-highcharts-bundle-2.1.4-bundle.zip",
+      "version": "2.1.4"
     },
     "consolidator": {
       "class": "bzt.modules.aggregator.ConsolidatingAggregator",
