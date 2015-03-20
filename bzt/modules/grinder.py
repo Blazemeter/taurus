@@ -11,6 +11,9 @@ from bzt.utils import shell_exec
 import subprocess
 from subprocess import CalledProcessError
 import traceback
+import urllib
+from bzt.utils import unzip
+import tempfile
 
 class GrinderExecutor(ScenarioExecutor):
     """
@@ -30,7 +33,7 @@ class GrinderExecutor(ScenarioExecutor):
         self.reader = None
         self.stdout_file = None
         self.stderr_file = None
-        #will be moved to utils.GatlingVerifier
+        #will be moved to utils.GrinderVerifier
         self.DOWNLOAD_LINK = "http://sourceforge.net/projects/grinder/files/latest/download"
         #or here http://sourceforge.net/projects/grinder/files/The%20Grinder%203/3.11/grinder-3.11-binary.zip/download
         self.VERSION = "3.11"
@@ -128,11 +131,14 @@ class GrinderExecutor(ScenarioExecutor):
         """
         Should start the tool as fast as possible.
         """
-        cmdline = "java -classpath " + os.path.dirname(__file__)
-        cmdline += os.path.pathsep + os.path.realpath(self.settings.get("path"))
-        cmdline += os.path.sep + "lib" + os.path.sep + "grinder.jar"
+        #cmdline = "java -classpath " + os.path.dirname(__file__)
+        #cmdline += os.path.pathsep + os.path.realpath(self.settings.get("path"))
+        #cmdline += os.path.sep + "lib" + os.path.sep + "grinder.jar"
+        #cmdline += " net.grinder.Grinder " + self.properties_file
+        
+        cmdline = "java -classpath " + self.settings.get("path")
         cmdline += " net.grinder.Grinder " + self.properties_file
-
+        
         self.start_time = time.time()
         out = self.engine.create_artifact("grinder-stdout", ".log")
         err = self.engine.create_artifact("grinder-stderr", ".log")
@@ -208,19 +214,27 @@ class GrinderExecutor(ScenarioExecutor):
     def __grinder(self, grinder_full_path):
         """Check if grinder installed"""
         #java -classpath /home/user/Downloads/grinder-3.11/lib/grinder.jar net.grinder.Grinder --help
-        self.log.debug("Trying grinder: %s > %s", grinder_full_path, self.gatling_log)
-        grinder_output = subprocess.check_output([grinder_full_path, '--help'], stderr=subprocess.STDOUT)
-        self.log.debug("grinder check: %s", grinder_output)
+        #CHECK ERRORLEVEL TO BE SURE
+        self.log.debug("Trying grinder: %s > %s", grinder_full_path, self.grinder_log)
+        grinder_launch_command = ["java", "-classpath", grinder_full_path, "net.grinder.Grinder"]
+        #print "grinder_launch command:", grinder_launch_command
+        grinder_subprocess = subprocess.Popen(grinder_launch_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        _process_output = grinder_subprocess.communicate()[0]
+        
+        if grinder_subprocess.returncode !=0:
+            raise CalledProcessError(grinder_subprocess.returncode, " ".join(grinder_launch_command))
+        #grinder_subprocess = subprocess.check_output(["java -classpath " + grinder_full_path + "grinder.jar net.grinder.Grinder", '--help'], stderr=subprocess.STDOUT)
+        self.log.debug("grinder check: %s", _process_output)
 
     def __check_grinder(self):
         
-        print self.settings
+        #print self.settings
         grinder_path = self.settings.get("path", "grinder.jar")
         try:
             self.__grinder(grinder_path)
             return
         except (OSError, CalledProcessError), exc:
-            self.log.debug("Failed to run gatling: %s", traceback.format_exc(exc))
+            self.log.debug("Failed to run grinder: %s", traceback.format_exc(exc))
             
             try:
                 jout = subprocess.check_output(["java", '-version'], stderr=subprocess.STDOUT)
@@ -228,26 +242,42 @@ class GrinderExecutor(ScenarioExecutor):
             except BaseException, exc:
                 self.log.warn("Failed to run java: %s", traceback.format_exc(exc))
                 raise RuntimeError("The 'java' is not operable or not available. Consider installing it")
-        
+            
+            #print self.settings
             self.settings['path'] = self.__install_grinder(grinder_path)
             self.__grinder(self.settings['path'])
+            #print "GRINDER_PATH", self.settings
+            #print "settings after installation",self.settings
             
-    def __install_grinder(self, gatling_path):
-        #installs gatling, by default in ~/gatling-taurus/
-        dest = os.path.dirname(os.path.dirname(os.path.expanduser(gatling_path)))
+    def __install_grinder(self, grinder_path):
+        #installs grinder, by default in ~/grinder-taurus/
+        dest = os.path.dirname(os.path.dirname(os.path.expanduser(grinder_path)))
         if not dest:
-            dest = os.path.expanduser("~/gatling-taurus")
+            dest = os.path.expanduser("~/grinder-taurus")
         dest = os.path.abspath(dest)
-        #dest - /home/username/gatling-taurus
-        gatling_full_path = dest + os.path.sep + "bin" + os.path.sep + "gatling.sh" # FIXME: + exe_suffix?
-        #gatling_full_path - /home/username/gatling-taurus/bin/gatling.sh
+        #print "installation destination", dest
+        #dest - /home/username/grinder-taurus
+        grinder_full_path = dest + os.path.sep + "lib" + os.path.sep + "grinder.jar"
+        #grinder_full_path - /home/username/grinder-taurus/grinder-3.11/lib/grinder.jar
         
         try:
-            self.__gatling(gatling_full_path)
-            return gatling_full_path
-        except OSError:
-            self.log.info("Will try to install gatling into %s", dest)
-    
+            self.__grinder(grinder_full_path)
+            return grinder_full_path
+        except CalledProcessError:
+            self.log.info("Will try to install grinder into %s", dest)
+        
+        downloader = urllib.FancyURLopener()
+        fds, grinder_zip_path = tempfile.mkstemp(".zip", "grinder-dist")
+        os.close(fds)
+        self.log.info("Downloading %s", self.DOWNLOAD_LINK)
+        # NOTE: - download progress should be visible
+        downloader.retrieve(self.DOWNLOAD_LINK, grinder_zip_path)
+        self.log.info("Unzipping %s", grinder_zip_path)
+        unzip(grinder_zip_path, dest, 'grinder-' + self.VERSION)
+        os.remove(grinder_zip_path)
+        
+        self.log.info("Installed grinder successfully")
+        return grinder_full_path
 
 
 class DataLogReader(ResultsReader):

@@ -9,7 +9,6 @@ import signal
 from bzt.engine import ScenarioExecutor, Scenario
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.utils import shell_exec
-import logging
 import subprocess
 from subprocess import CalledProcessError
 import traceback
@@ -164,6 +163,7 @@ class GatlingExecutor(ScenarioExecutor):
         #test if gatling operable
         # FIXME: .sh and .cmd
         gatling_path = self.settings.get("path", "gatling.sh")
+        #print "GATLING_PATH", self.settings
         try:
             self.__gatling(gatling_path)
             return
@@ -179,6 +179,7 @@ class GatlingExecutor(ScenarioExecutor):
         
             self.settings['path'] = self.__install_gatling(gatling_path)
             self.__gatling(self.settings['path'])
+            #print "GATLING_PATH", self.settings
         
     def __install_gatling(self, gatling_path):
         #installs gatling, by default in ~/gatling-taurus/
