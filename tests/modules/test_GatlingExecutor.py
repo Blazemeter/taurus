@@ -19,6 +19,12 @@ class TestGatlingExecutor(BZTestCase):
         """
         Test Gatling installation
         """
+        
+        #=======================================================================
+        # _progress_hook = download_progress_hook
+        # download_progress_hook = download_progress_mock
+        #=======================================================================
+        
         path = os.path.abspath(__dir__() + "/../../build/tmp/gatling-taurus/bin/gatling.sh")
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
         

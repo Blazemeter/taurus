@@ -403,11 +403,13 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 # or just skip downloaded output
                 s = "\r%5.1f%% %*d of %d" % (
                     percent, len(str(totalsize)), readsofar, totalsize)
-                sys.stderr.write(s)
+                #sys.stderr.write(s)
                 if readsofar >= totalsize: # near the end
-                    sys.stderr.write("\n")
+                    pass
+                #    sys.stderr.write("\n")
             else:
-                sys.stderr.write("read %d\n" % (readsofar,))
+                pass
+                #sys.stderr.write("read %d\n" % (readsofar,))
         
         # normalize path
         dest = os.path.dirname(os.path.dirname(os.path.expanduser(path)))

@@ -15,11 +15,15 @@ import urllib
 from bzt.utils import unzip
 import tempfile
 
+import sys
+
 class GrinderExecutor(ScenarioExecutor):
     """
     Grinder executor module
     """
-
+    DOWNLOAD_LINK = "http://switch.dl.sourceforge.net/project/grinder/The%20Grinder%203/%s/grinder-%s-binary.zip"
+    VERSION = "3.11"
+    
     def __init__(self):
         super(GrinderExecutor, self).__init__()
         self.script = None
@@ -33,10 +37,6 @@ class GrinderExecutor(ScenarioExecutor):
         self.reader = None
         self.stdout_file = None
         self.stderr_file = None
-        #will be moved to utils.GrinderVerifier
-        self.DOWNLOAD_LINK = "http://sourceforge.net/projects/grinder/files/latest/download"
-        #or here http://sourceforge.net/projects/grinder/files/The%20Grinder%203/3.11/grinder-3.11-binary.zip/download
-        self.VERSION = "3.11"
 
     def __write_base_props(self, fds):
         # base props file
@@ -102,7 +102,7 @@ class GrinderExecutor(ScenarioExecutor):
         scenario = self.get_scenario()
         # TODO: install the tool if missing, just like JMeter
         
-        self.grinder_log = self.engine.create_artifact("grinder", ".log")
+        
         self.__check_grinder()
 
         if Scenario.SCRIPT in scenario:
@@ -215,7 +215,7 @@ class GrinderExecutor(ScenarioExecutor):
         """Check if grinder installed"""
         #java -classpath /home/user/Downloads/grinder-3.11/lib/grinder.jar net.grinder.Grinder --help
         #CHECK ERRORLEVEL TO BE SURE
-        self.log.debug("Trying grinder: %s > %s", grinder_full_path, self.grinder_log)
+        self.log.debug("Trying grinder: %s", grinder_full_path)
         grinder_launch_command = ["java", "-classpath", grinder_full_path, "net.grinder.Grinder"]
         #print "grinder_launch command:", grinder_launch_command
         grinder_subprocess = subprocess.Popen(grinder_launch_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -229,7 +229,9 @@ class GrinderExecutor(ScenarioExecutor):
     def __check_grinder(self):
         
         #print self.settings
-        grinder_path = self.settings.get("path", "grinder.jar")
+        grinder_path = self.settings.get("path", "~/grinder-taurus/lib/grinder.jar")
+        grinder_path = os.path.abspath(os.path.expanduser(grinder_path))
+        
         try:
             self.__grinder(grinder_path)
             return
@@ -251,11 +253,12 @@ class GrinderExecutor(ScenarioExecutor):
             
     def __install_grinder(self, grinder_path):
         #installs grinder, by default in ~/grinder-taurus/
+       
         dest = os.path.dirname(os.path.dirname(os.path.expanduser(grinder_path)))
         if not dest:
             dest = os.path.expanduser("~/grinder-taurus")
         dest = os.path.abspath(dest)
-        #print "installation destination", dest
+        
         #dest - /home/username/grinder-taurus
         grinder_full_path = dest + os.path.sep + "lib" + os.path.sep + "grinder.jar"
         #grinder_full_path - /home/username/grinder-taurus/grinder-3.11/lib/grinder.jar
@@ -269,9 +272,13 @@ class GrinderExecutor(ScenarioExecutor):
         downloader = urllib.FancyURLopener()
         fds, grinder_zip_path = tempfile.mkstemp(".zip", "grinder-dist")
         os.close(fds)
-        self.log.info("Downloading %s", self.DOWNLOAD_LINK)
+        
+        download_link = urllib.unquote(GrinderExecutor.DOWNLOAD_LINK) % \
+                        (GrinderExecutor.VERSION ,GrinderExecutor.VERSION)
+        
+        self.log.info("Downloading %s", download_link)
         # NOTE: - download progress should be visible
-        downloader.retrieve(self.DOWNLOAD_LINK, grinder_zip_path)
+        downloader.retrieve(download_link , grinder_zip_path)
         self.log.info("Unzipping %s", grinder_zip_path)
         unzip(grinder_zip_path, dest, 'grinder-' + self.VERSION)
         os.remove(grinder_zip_path)

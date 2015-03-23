@@ -144,7 +144,8 @@ class TestJMeterExecutor(BZTestCase):
         
         obj.execution = BetterDict()
         obj.execution.merge({"scenario": {"requests": []}})
-
+        
+        
         obj.prepare()
 
         self.assertTrue(os.path.exists(path))
