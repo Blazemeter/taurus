@@ -96,7 +96,7 @@ def local_paths_config():
                 "path": dirname + "/../build/jmeter/bin/jmeter",
             },
             "grinder": {
-                "path": dirname + "/../build/grinder",
+                "path": dirname + "/../build/grinder/lib/grinder.jar",
             },
             "gatling": {
                 "path": dirname + "/../build/gatling/bin/gatling.sh",
