@@ -84,8 +84,6 @@ class GatlingExecutor(ScenarioExecutor):
         cmdline = self.settings["path"]
         cmdline += " -sf " + datadir
         cmdline += " -df " + datadir
-        cmdline += " -rbf " + datadir
-        cmdline += " -bf " + datadir
         cmdline += " -rf " + datadir
         cmdline += " -on gatling-bzt -m"
         cmdline += " -s " + simulation
