@@ -32,9 +32,7 @@
     },
     "gatling": {
       "class": "bzt.modules.gatling.GatlingExecutor",
-      "path": "~/gatling-taurus/bin/gatling.sh",
-      "download_link": "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle/%s/gatling-charts-highcharts-bundle-%s-bundle.zip",
-      "version": "2.1.4"
+      "path": "~/gatling-taurus/bin/gatling.sh"
     },
     "consolidator": {
       "class": "bzt.modules.aggregator.ConsolidatingAggregator",

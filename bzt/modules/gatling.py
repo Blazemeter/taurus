@@ -5,21 +5,20 @@ import os
 import re
 import time
 import signal
-
-from bzt.engine import ScenarioExecutor, Scenario
-from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
-from bzt.utils import shell_exec
 import subprocess
 from subprocess import CalledProcessError
 import traceback
 import urllib
 import tempfile
-from bzt.utils import unzip
 import platform
 
+from bzt.engine import ScenarioExecutor, Scenario
+from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
+from bzt.utils import shell_exec
+from bzt.utils import unzip
 
-# NOTE: Should be moved to GatlingVerifier, that is not implemented yet.
-if platform.system() == 'Windows':
+
+if platform.system() == 'Windows':  # NOTE: Should be moved to GatlingVerifier, that is not implemented yet.
     exe_suffix = '.bat'
 else:
     exe_suffix = '.sh'
@@ -33,7 +32,7 @@ class GatlingExecutor(ScenarioExecutor):
     # NOTE: will be moved to GatlingVerifier
     DOWNLOAD_LINK = "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle/%s/gatling-charts-highcharts-bundle-%s-bundle.zip"
     VERSION = "2.1.4"
-    
+
     def __init__(self):
         super(GatlingExecutor, self).__init__()
         self.script = None
@@ -44,18 +43,17 @@ class GatlingExecutor(ScenarioExecutor):
         self.reader = None
         self.stdout_file = None
         self.stderr_file = None
-        
-        
+
     def prepare(self):
         """
 
         :return:
         """
         scenario = self.get_scenario()
-        
+
         # TODO: will be moved to GatlingVerifier
         self.__check_gatling()
-        
+
         if Scenario.SCRIPT in scenario:
             self.script = self.engine.find_file(scenario[Scenario.SCRIPT])
             self.engine.existing_artifact(self.script)
@@ -79,24 +77,19 @@ class GatlingExecutor(ScenarioExecutor):
             raise NotImplementedError()
 
         datadir = os.path.realpath(self.engine.artifacts_dir)
-        
+
         # NOTE: exe_suffix already in "path"
         cmdline = self.settings["path"]
-        cmdline += " -sf " + datadir
-        cmdline += " -df " + datadir
-        cmdline += " -rf " + datadir
-        cmdline += " -on gatling-bzt -m"
-        cmdline += " -s " + simulation
-        
+        cmdline += " -sf " + datadir + " -df " + datadir + " -rf " + datadir
+        cmdline += " -on gatling-bzt -m  -s " + simulation
+
         self.start_time = time.time()
         out = self.engine.create_artifact("gatling-stdout", ".log")
         err = self.engine.create_artifact("gatling-stderr", ".log")
         self.stdout_file = open(out, "w")
         self.stderr_file = open(err, "w")
-        
-        
-        self.process = shell_exec(cmdline, cwd=self.engine.artifacts_dir,
-                                  stdout=self.stdout_file,
+
+        self.process = shell_exec(cmdline, cwd=self.engine.artifacts_dir, stdout=self.stdout_file,
                                   stderr=self.stderr_file)
 
     def post_process(self):
@@ -145,16 +138,15 @@ class GatlingExecutor(ScenarioExecutor):
 
         if self.start_time:
             self.end_time = time.time()
-            self.log.debug("Gatling worked for %s seconds",
-                           self.end_time - self.start_time)
+            self.log.debug("Gatling worked for %s seconds", self.end_time - self.start_time)
 
     def __gatling(self, gatling_full_path):
         """Check if Gatling installed"""
-        
+
         self.log.debug("Trying Gatling: %s", gatling_full_path)
         gatling_output = subprocess.check_output([gatling_full_path, '--help'], stderr=subprocess.STDOUT)
         self.log.debug("Gatling check: %s", gatling_output)
-        
+
     def __check_gatling(self):
         """
         
@@ -163,71 +155,76 @@ class GatlingExecutor(ScenarioExecutor):
         gatling_path = self.settings.get("path", "~/gatling-taurus/bin/gatling" + exe_suffix)
         gatling_path = os.path.abspath(os.path.expanduser(gatling_path))
         self.settings["path"] = gatling_path
-        
+
         try:
             self.__gatling(gatling_path)
             return
         except (OSError, CalledProcessError), exc:
             self.log.debug("Failed to run Gatling: %s", traceback.format_exc(exc))
-            
+
             try:
                 jout = subprocess.check_output(["java", '-version'], stderr=subprocess.STDOUT)
                 self.log.debug("Java check: %s", jout)
             except BaseException, exc:
                 self.log.warn("Failed to run java: %s", traceback.format_exc(exc))
                 raise RuntimeError("The 'java' is not operable or not available. Consider installing it")
-            
+
             self.__install_gatling(gatling_path)
             self.__gatling(self.settings['path'])
-        
+
     def __install_gatling(self, gatling_path):
-        #=======================================================================
+        # =======================================================================
         # Installer logic:
         # 1) check executor config for "path" variable, if exists, try to execute Gatling
-        #     1-a) if success - run tests
-        #     1-b) if fail - try to install tool in "path"
-        #=======================================================================
-        
-        #enclosed function, hooker for FancyDownloader to display progress of download
-        #http://stackoverflow.com/questions/13881092/download-progressbar-for-python-3
+        # 1-a) if success - run tests
+        # 1-b) if fail - try to install tool in "path"
+        # =======================================================================
+
+        # enclosed function, hooker for FancyDownloader to display progress of download
+        # http://stackoverflow.com/questions/13881092/download-progressbar-for-python-3
         def download_progress_hook(blocknum, blocksize, totalsize):
-            #output in stderr
+            """
+            output in stderr
+
+            :param blocknum:
+            :param blocksize:
+            :param totalsize:
+            """
             readsofar = blocknum * blocksize
             if totalsize > 0:
                 percent = readsofar * 1e2 / totalsize
                 # TODO: fix bug when downloaded size < totalsize at 100%.
                 # or just skip downloaded output
-                s = "\r%5.1f%% %*d of %d" % (
-                    percent, len(str(totalsize)), readsofar, totalsize)
+                s = "\r%5.1f%% %*d of %d" % (percent, len(str(totalsize)), readsofar, totalsize)
                 sys.stderr.write(s)
-                if readsofar >= totalsize: # near the end
+                if readsofar >= totalsize:  # near the end
                     sys.stderr.write("\n")
             else:
                 sys.stderr.write("read %d\n" % (readsofar,))
-        
-        dest = os.path.dirname(os.path.dirname(os.path.expanduser(gatling_path))) #../..
+
+        dest = os.path.dirname(os.path.dirname(os.path.expanduser(gatling_path)))  # ../..
         # NOTE: check it in windows env
         dest = os.path.abspath(dest)
-       
+
         try:
             self.__gatling(gatling_path)
             return gatling_path
         except OSError:
             self.log.info("Will try to install Gatling into %s", dest)
-            
-        #download gatling
+
+        # download gatling
         downloader = urllib.FancyURLopener()
         fds, gatling_zip_path = tempfile.mkstemp(".zip", "gatling-dist")
         os.close(fds)
-        
-        download_link = self.settings.get("download_link", GatlingExecutor.DOWNLOAD_LINK)
-        download_link = download_link % (GatlingExecutor.VERSION, GatlingExecutor.VERSION)
-        
+
         version = self.settings.get("version", GatlingExecutor.VERSION)
-        
+
+        download_link = self.settings.get("download-link", GatlingExecutor.DOWNLOAD_LINK)
+        download_link = download_link % (version, version)
+
         self.log.info("Downloading %s", download_link)
         # TODO: check archive checksum/hash before unzip and run
-        
+
         try:
             downloader.retrieve(download_link, gatling_zip_path, download_progress_hook)
         except BaseException:
@@ -235,15 +232,15 @@ class GatlingExecutor(ScenarioExecutor):
             # TODO: shutdown it gracefully
             raise RuntimeError
         self.log.info("Unzipping %s", gatling_zip_path)
-        
+
         unzip(gatling_zip_path, dest, 'gatling-charts-highcharts-bundle-' + version)
         os.remove(gatling_zip_path)
-        
+
         if platform.system() != 'Windows':
             os.chmod(os.path.expanduser(gatling_path), 0755)
-        
+
         self.log.info("Installed Gatling successfully")
-        
+
 
 class DataLogReader(ResultsReader):
     """ Class to read KPI from data log """
