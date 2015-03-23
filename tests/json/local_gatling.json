@@ -1,0 +1,9 @@
+{
+  "execution": {
+    "executor": "gatling",
+    "scenario": {
+      "script": "tests/gatling/LocalBasicSimulation.scala",
+      "simulation": "mytest.LocalBasicSimulation"
+    }
+  }
+}

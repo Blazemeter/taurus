@@ -24,6 +24,7 @@ from bzt.modules.provisioning import FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.utils import shell_exec, ensure_is_dict, humanize_time, dehumanize_time, BetterDict, guess_csv_delimiter, unzip, JmeterVerifier
 
+import sys
 
 if platform.system() == 'Windows':
     exe_suffix = '.bat'
@@ -392,33 +393,53 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.__jmeter(self.settings['path'])
 
     def __install_jmeter(self, path):
+        
+        def download_progress_hook(blocknum, blocksize, totalsize):
+            #output in stderr
+            readsofar = blocknum * blocksize
+            if totalsize > 0:
+                percent = readsofar * 1e2 / totalsize
+                # TODO: fix bug when downloaded size < totalsize at 100%.
+                # or just skip downloaded output
+                s = "\r%5.1f%% %*d of %d" % (
+                    percent, len(str(totalsize)), readsofar, totalsize)
+                sys.stderr.write(s)
+                if readsofar >= totalsize: # near the end
+                    sys.stderr.write("\n")
+            else:
+                sys.stderr.write("read %d\n" % (readsofar,))
+        
         # normalize path
         dest = os.path.dirname(os.path.dirname(os.path.expanduser(path)))
+        
         if not dest:
             dest = "jmeter-taurus"
         dest = os.path.abspath(dest)
         jmeter = dest + os.path.sep + "bin" + os.path.sep + "jmeter" + exe_suffix
-
         try:
             self.__jmeter(jmeter)
             return jmeter
         except OSError:
             self.log.info("Will try to install JMeter into %s", dest)
-
+        
         # install jmeter
         downloader = urllib.URLopener()
+        
         fds, jmeter_dist = tempfile.mkstemp(".zip", "jmeter-dist")
         os.close(fds)
+        
         self.log.info("Downloading %s", JMeterExecutor.JMETER_DOWNLOAD_LINK % JMeterExecutor.JMETER_VER)
-        downloader.retrieve(JMeterExecutor.JMETER_DOWNLOAD_LINK % JMeterExecutor.JMETER_VER, jmeter_dist)
-        self.log.info("Unzipping %s", jmeter_dist)
+        downloader.retrieve(JMeterExecutor.JMETER_DOWNLOAD_LINK % JMeterExecutor.JMETER_VER, jmeter_dist, download_progress_hook)
+        
+        self.log.info("Unzipping %s to %s", jmeter_dist, dest)
         unzip(jmeter_dist, dest, 'apache-jmeter-' + JMeterExecutor.JMETER_VER)
         os.remove(jmeter_dist)
-
+        
         # TODO: remove old versions for httpclient JARs
-
+        
         # set exec permissions
-        os.chmod(jmeter, 0755)
+        if platform.system() != 'Windows':
+            os.chmod(jmeter, 0755)
         # NOTE: other files like shutdown.sh might also be needed later
 
         # install plugins
@@ -426,7 +447,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             fds, plugin_dist = tempfile.mkstemp(".zip", "jmeter-plugins-" + set_name)
             os.close(fds)
             self.log.info("Downloading %s", JMeterExecutor.PLUGINS_DOWNLOAD_TPL % set_name)
-            downloader.retrieve(JMeterExecutor.PLUGINS_DOWNLOAD_TPL % set_name, plugin_dist)
+            downloader.retrieve(JMeterExecutor.PLUGINS_DOWNLOAD_TPL % set_name, plugin_dist, download_progress_hook)
             self.log.info("Unzipping %s", plugin_dist)
             unzip(plugin_dist, dest)
             os.remove(plugin_dist)

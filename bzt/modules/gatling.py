@@ -31,7 +31,7 @@ class GatlingExecutor(ScenarioExecutor):
     Gatling executor module
     """
     # NOTE: will be moved to GatlingVerifier
-    DOWNLOAD_LINK = "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle/2.1.4/gatling-charts-highcharts-bundle-2.1.4-bundle.zip"
+    DOWNLOAD_LINK = "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle/%s/gatling-charts-highcharts-bundle-%s-bundle.zip"
     VERSION = "2.1.4"
     
     def __init__(self):
@@ -45,11 +45,7 @@ class GatlingExecutor(ScenarioExecutor):
         self.stdout_file = None
         self.stderr_file = None
         
-        #self.gatling_log = None
         
-
-        
-
     def prepare(self):
         """
 
@@ -57,9 +53,8 @@ class GatlingExecutor(ScenarioExecutor):
         """
         scenario = self.get_scenario()
         
-        # TODO: will be moved to GatlingVerifier in utils
+        # TODO: will be moved to GatlingVerifier
         self.__check_gatling()
-        
         
         if Scenario.SCRIPT in scenario:
             self.script = self.engine.find_file(scenario[Scenario.SCRIPT])
@@ -157,15 +152,18 @@ class GatlingExecutor(ScenarioExecutor):
 
     def __gatling(self, gatling_full_path):
         """Check if Gatling installed"""
-        self.log.debug("Trying Gatling: %s", gatling_full_path) #, self.gatling_log)
+        
+        self.log.debug("Trying Gatling: %s", gatling_full_path)
         gatling_output = subprocess.check_output([gatling_full_path, '--help'], stderr=subprocess.STDOUT)
         self.log.debug("Gatling check: %s", gatling_output)
         
     def __check_gatling(self):
-        #test if Gatling tool is operable
+        """
+        
+        """
         # NOTE: file extension should be in config
-        gatling_path = self.settings.get("path", "~/gatling-taurus/bin/gatling")
-        gatling_path = os.path.abspath(os.path.expanduser(gatling_path + exe_suffix))
+        gatling_path = self.settings.get("path", "~/gatling-taurus/bin/gatling" + exe_suffix)
+        gatling_path = os.path.abspath(os.path.expanduser(gatling_path))
         self.settings["path"] = gatling_path
         
         try:
@@ -180,7 +178,6 @@ class GatlingExecutor(ScenarioExecutor):
             except BaseException, exc:
                 self.log.warn("Failed to run java: %s", traceback.format_exc(exc))
                 raise RuntimeError("The 'java' is not operable or not available. Consider installing it")
-        
             
             self.__install_gatling(gatling_path)
             self.__gatling(self.settings['path'])
@@ -191,8 +188,6 @@ class GatlingExecutor(ScenarioExecutor):
         # 1) check executor config for "path" variable, if exists, try to execute Gatling
         #     1-a) if success - run tests
         #     1-b) if fail - try to install tool in "path"
-        #        - if fail to write into directory:
-        #            try to install in user home
         #=======================================================================
         
         #enclosed function, hooker for FancyDownloader to display progress of download
@@ -228,6 +223,8 @@ class GatlingExecutor(ScenarioExecutor):
         os.close(fds)
         
         download_link = self.settings.get("download_link", GatlingExecutor.DOWNLOAD_LINK)
+        download_link = download_link % (GatlingExecutor.VERSION, GatlingExecutor.VERSION)
+        
         version = self.settings.get("version", GatlingExecutor.VERSION)
         
         self.log.info("Downloading %s", download_link)
@@ -237,13 +234,16 @@ class GatlingExecutor(ScenarioExecutor):
             downloader.retrieve(download_link, gatling_zip_path, download_progress_hook)
         except BaseException:
             self.log.error("Cannot download Gatlink from %s", download_link)
-            # TODO: shutdown it gracefully (sys.exit(1)?)
+            # TODO: shutdown it gracefully
             raise RuntimeError
         self.log.info("Unzipping %s", gatling_zip_path)
+        
         unzip(gatling_zip_path, dest, 'gatling-charts-highcharts-bundle-' + version)
         os.remove(gatling_zip_path)
         
-        os.chmod(os.path.expanduser(gatling_path), 0755)
+        if platform.system() != 'Windows':
+            os.chmod(os.path.expanduser(gatling_path), 0755)
+        
         self.log.info("Installed Gatling successfully")
         
 

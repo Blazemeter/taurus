@@ -1,0 +1,17 @@
+---
+execution:
+  concurrency: 5
+  hold-for: 1m
+  scenario:
+    requests:
+    - http://192.168.25.8/1.html
+
+modules:
+  console:
+    disable: false
+    
+settings:
+  check_interval: 5s
+  default_executor: gatling
+  
+provisioning: local

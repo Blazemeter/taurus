@@ -19,6 +19,7 @@ import zipfile
 import subprocess
 import traceback
 
+
 def run_once(f):
     """
     A decorator to run function only once
@@ -462,6 +463,7 @@ def unzip(source_filename, dest_dir, rel_path=None):
     :return:
     """
     logging.debug("Extracting %s to %s", source_filename, dest_dir)
+
     with zipfile.ZipFile(source_filename) as zf:
         for member in zf.infolist():
             if rel_path:
@@ -476,9 +478,8 @@ def unzip(source_filename, dest_dir, rel_path=None):
             # Path traversal defense copied from
             # http://hg.python.org/cpython/file/tip/Lib/http/server.py#l789
             logging.debug("Writing %s%s%s", dest_dir, os.path.sep, member.filename)
+            
             zf.extract(member, dest_dir)
-            
-            
             
 class AbstractVerifier(object):
     '''

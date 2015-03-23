@@ -12,7 +12,6 @@ from tests import setup_test_logging, BZTestCase, __dir__
 from tests.mocks import EngineEmul
 from bzt.utils import BetterDict
 
-
 setup_test_logging()
 
 
@@ -125,19 +124,24 @@ class TestJMeterExecutor(BZTestCase):
         open("har/demo1.har", 'w').write(json.dumps(obj, indent=True))
 
     def test_install_jmeter(self):
-        path = __dir__() + "/../../build/tmp/jmeter/bin/jmeter"
+        path = os.path.abspath(__dir__() + "/../../build/tmp/jmeter-taurus/bin/jmeter")
+        
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
+        
         jmeter_link = JMeterExecutor.JMETER_DOWNLOAD_LINK
         jmeter_ver = JMeterExecutor.JMETER_VER
         plugins_link = JMeterExecutor.PLUGINS_DOWNLOAD_TPL
-        JMeterExecutor.JMETER_DOWNLOAD_LINK = "file://" + __dir__() + "/../data/jmeter-dist.zip"
+        
+        JMeterExecutor.JMETER_DOWNLOAD_LINK = "file://" + __dir__() + "/../data/jmeter-dist-%s.zip"
         JMeterExecutor.PLUGINS_DOWNLOAD_TPL = "file://" + __dir__() + "/../data/jmeter-plugins-%s.zip"
-        JMeterExecutor.JMETER_VER = ''
+        JMeterExecutor.JMETER_VER = '2.13'
+        
         self.assertFalse(os.path.exists(path))
+        
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
         obj.settings.merge({"path": path})
-
+        
         obj.execution = BetterDict()
         obj.execution.merge({"scenario": {"requests": []}})
 
