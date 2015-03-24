@@ -36,7 +36,6 @@ class TestGrinderExecutor(BZTestCase):
                                          "script": "tests/grinder/local_helloworld.py",
                                          "properties_file": "tests/grinder/grinder.properties",
                                          "properties": {"grinder.useConsole": "false"}}})
-        
         obj.prepare()
         
         self.assertTrue(os.path.exists(path))
@@ -45,3 +44,4 @@ class TestGrinderExecutor(BZTestCase):
         GrinderExecutor.DOWNLOAD_LINK = grinder_link
         GrinderExecutor.VERSION = grinder_version
         bzt.utils.TEST_RUNNING = False
+        

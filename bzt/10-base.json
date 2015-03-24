@@ -16,14 +16,14 @@
         "jmeter.save.saveservice.connect_time": "true",
         "summariser.name": ""
       },
-      "path": "~/jmeter-taurus/bin/jmeter",
+      "path": "~/jmeter-taurus/bin/jmeter"
     },
     "grinder": {
       "class": "bzt.modules.grinder.GrinderExecutor",
       "properties": {
         "grinder.useConsole": false
       },
-      "path": "~/grinder-taurus/lib/grinder.jar",
+      "path": "~/grinder-taurus/lib/grinder.jar"
     },
     "gatling": {
       "class": "bzt.modules.gatling.GatlingExecutor",

@@ -15,9 +15,7 @@ from bzt.utils import BetterDict
 setup_test_logging()
 
 class TestGatlingExecutor(BZTestCase):
-    
     def test_install_Gatling(self):
-        
         bzt.utils.TEST_RUNNING = True
         
         path = os.path.abspath(__dir__() + "/../../build/tmp/gatling-taurus/bin/gatling.sh")
@@ -38,7 +36,6 @@ class TestGatlingExecutor(BZTestCase):
         obj.execution = BetterDict()
         obj.execution.merge({"scenario": {"script": "tests/gatling/LocalBasicSimulation.scala",\
                                           "simulation": "mytest.LocalBasicSimulation"}})
-        
         obj.prepare()
         self.assertTrue(os.path.exists(path))
         obj.prepare()
@@ -46,3 +43,4 @@ class TestGatlingExecutor(BZTestCase):
         GatlingExecutor.VERSION = gatling_ver
         
         bzt.utils.TEST_RUNNING = False
+        

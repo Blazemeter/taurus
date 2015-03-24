@@ -218,7 +218,7 @@ class GrinderExecutor(ScenarioExecutor):
         grinder_subprocess = subprocess.Popen(grinder_launch_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         _process_output = grinder_subprocess.communicate()[0]
         
-        if grinder_subprocess.returncode !=0:
+        if grinder_subprocess.returncode != 0:
             raise CalledProcessError(grinder_subprocess.returncode, " ".join(grinder_launch_command))
         #grinder_subprocess = subprocess.check_output(["java -classpath " + grinder_full_path + "grinder.jar net.grinder.Grinder", '--help'], stderr=subprocess.STDOUT)
         self.log.debug("grinder check: %s", _process_output)
@@ -274,7 +274,7 @@ class GrinderExecutor(ScenarioExecutor):
         self.log.info("Downloading %s", download_link)
         
         try:
-            downloader.retrieve(download_link , grinder_zip_path, download_progress_hook)
+            downloader.retrieve(download_link, grinder_zip_path, download_progress_hook)
         except BaseException as e:
             self.log.error("Error while downloading %s", download_link)
             raise e
