@@ -1,0 +1,32 @@
+{
+  "execution": [
+    {
+      "executor": "grinder",
+      "concurrency": 3,
+      "ramp-up": 10,
+      "iterations": 20,
+      "scenario": {
+        "script": "tests/grinder/local_helloworld.py",
+        "properties_file": "tests/grinder/grinder.properties",
+        "properties": {
+          "grinder.useConsole": false
+        }
+      }
+    },
+    {
+      "executor": "grinder",
+      "concurrency": 2,
+      "ramp-up": 5,
+      "iterations": 10,
+      "scenario": "grinder-gets"
+    }
+  ],
+  "scenarios": {
+    "grinder-gets": {
+      "requests": [
+        "http://192.168.25.8/",
+        "http://192.168.25.8/1.html"
+      ]
+    }
+  }
+}

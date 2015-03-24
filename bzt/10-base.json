@@ -23,11 +23,11 @@
       "properties": {
         "grinder.useConsole": false
       },
-      "path": "grinder"
+      "path": "~/grinder-taurus/lib/grinder.jar"
     },
     "gatling": {
       "class": "bzt.modules.gatling.GatlingExecutor",
-      "path": "gatling"
+      "path": "~/gatling-taurus/bin/gatling.sh"
     },
     "consolidator": {
       "class": "bzt.modules.aggregator.ConsolidatingAggregator",

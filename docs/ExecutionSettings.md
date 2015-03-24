@@ -83,6 +83,24 @@ settings:
 
 ### JMeter Executor
 
+configuration options:
+
+ - "path": "/somepath/folder/bin/jmeter_executable"
+    Path to JMeter.
+    If no JMeter executable found, it will be automatically downloaded and installed with plugins in "path".
+    By default: "~/jmeter-taurus/bin/jmeter"
+    
+ - "download-link":"http://somehost/jmeter-{version}-archieve.zip"
+    Link to download JMeter.
+    By default: "http://apache.claz.org/jmeter/binaries/apache-jmeter-{version}.zip"
+    
+ -  "version": "1.2.3"
+    JMeter version, by default "2.13"
+    
+ -  "plugins-download-link":"http://somehost/jmeterplugin-{plugin}-archieve.zip"
+    Link to download JMeter plugins ("Standard", "Extras", "ExtrasLibs", "WebDriver")
+    By default: "http://jmeter-plugins.org/files/JMeterPlugins-{plugin}-1.2.1.zip"
+
 #### Specify JMeter Properties
 ```javascript
 {
@@ -138,6 +156,19 @@ Default command to run JMeter is ```jmeter```
 
 ### Gatling Executor
 
+configuration options:
+
+ - "path": "/somepath/folder/bin/gatling_executable"
+    Path to Gatling executable.
+    If no Gatling executable found, it will be automatically downloaded and installed in "path".
+    By default "~/gatling-taurus/bin/gatling.sh".
+    
+ - "download-link":"http://somehost/gatling-charts-highcharts-bundle-{version}-bundle.zip"
+    Link to download Gatling.
+    By default: "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip"
+    
+ -  "version": "2.1.4"
+    Gatling version, by default "2.1.4"
 
 #### Run Gatling Tool
 
@@ -155,7 +186,19 @@ Default command to run JMeter is ```jmeter```
 
 ### Grinder Executor
 
+configuration options:
 
+ - "path": "/somepath/folder/"
+    Path to Grinder.
+    If no grinder.jar found in folder/lib/, Grinder tool will be automatically downloaded and installed in "path".
+    By default "~/grinder-taurus/".
+    
+ - "download-link":"http://somehost/grinder-{version}-binary.zip"
+    Link to download Grinder.
+    By default "http://switch.dl.sourceforge.net/project/grinder/The%20Grinder%203/{version}/grinder-{version}-binary.zip"
+    
+ -  "version": "3.11"
+    Grinder version, by default "3.11"
 
 #### Run Grinder Tool
 ```javascript

@@ -172,3 +172,6 @@ class MockReader(ResultsReader, AggregatorListener):
                 raise AssertionError("TS sequence wrong: %s>=%s" % (self.results[-1]["ts"], data["ts"]))
         logging.info("Data: %s", data)
         self.results.append(data)
+
+def download_progress_mock(blocknum, blocksize, totalsize):
+    pass
