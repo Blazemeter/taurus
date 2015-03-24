@@ -9,6 +9,7 @@ from bzt.modules.gatling import GatlingExecutor
 import shutil
 import os
 from tests.mocks import EngineEmul
+import bzt.utils
 from bzt.utils import BetterDict
 
 setup_test_logging()
@@ -16,14 +17,8 @@ setup_test_logging()
 class TestGatlingExecutor(BZTestCase):
     
     def test_install_Gatling(self):
-        """
-        Test Gatling installation
-        """
         
-        #=======================================================================
-        # _progress_hook = download_progress_hook
-        # download_progress_hook = download_progress_mock
-        #=======================================================================
+        bzt.utils.TEST_RUNNING = True
         
         path = os.path.abspath(__dir__() + "/../../build/tmp/gatling-taurus/bin/gatling.sh")
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
@@ -32,12 +27,10 @@ class TestGatlingExecutor(BZTestCase):
         gatling_link = GatlingExecutor.DOWNLOAD_LINK
         gatling_ver = GatlingExecutor.VERSION
         
-        # NOTE: Gatling download link format: %s/blah/%s
-        GatlingExecutor.DOWNLOAD_LINK = "file://" + __dir__() + "/../data/gatling-dist-%s_%s.zip"
+        GatlingExecutor.DOWNLOAD_LINK = "file://" + __dir__() + "/../data/gatling-dist-{version}_{version}.zip"
         GatlingExecutor.VERSION = '2.1.4'
         
         self.assertFalse(os.path.exists(path))
-        
         obj = GatlingExecutor()
         obj.engine = EngineEmul()
         obj.settings.merge({"path": path})
@@ -47,10 +40,9 @@ class TestGatlingExecutor(BZTestCase):
                                           "simulation": "mytest.LocalBasicSimulation"}})
         
         obj.prepare()
-        
         self.assertTrue(os.path.exists(path))
-        
         obj.prepare()
-
         GatlingExecutor.DOWNLOAD_LINK = gatling_link
         GatlingExecutor.VERSION = gatling_ver
+        
+        bzt.utils.TEST_RUNNING = False

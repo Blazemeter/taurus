@@ -21,6 +21,8 @@ import traceback
 
 import sys
 
+TEST_RUNNING = False
+
 def run_once(f):
     """
     A decorator to run function only once
@@ -491,15 +493,18 @@ def download_progress_hook(blocknum, blocksize, totalsize):
     
     """
     # FIXME: should check treminal type, output in stderr only in tty
-    readsofar = blocknum * blocksize
-    if totalsize > 0:
-        percent = readsofar * 1e2 / totalsize
-        # TODO: fix bug when downloaded size < totalsize at 100%.
-        # or just skip downloaded output
-        s = "\r%5.1f%% %*d of %d" % (
-            percent, len(str(totalsize)), readsofar, totalsize)
-        sys.stderr.write(s)
-        if readsofar >= totalsize: # near the end
-            sys.stderr.write("\n")
+    if not TEST_RUNNING:
+        readsofar = blocknum * blocksize
+        if totalsize > 0:
+            percent = readsofar * 1e2 / totalsize
+            # TODO: fix bug when downloaded size < totalsize at 100%.
+            # or just skip downloaded output
+            s = "\r%5.1f%% %*d of %d" % (
+                percent, len(str(totalsize)), readsofar, totalsize)
+            sys.stderr.write(s)
+            if readsofar >= totalsize: # near the end
+                sys.stderr.write("\n")
+        else:
+            sys.stderr.write("read %d\n" % (readsofar,))
     else:
-        sys.stderr.write("read %d\n" % (readsofar,))
+        pass

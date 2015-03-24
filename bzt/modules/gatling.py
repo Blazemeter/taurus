@@ -9,7 +9,6 @@ import subprocess
 from subprocess import CalledProcessError
 import traceback
 import urllib
-import tempfile
 import platform
 
 from bzt.engine import ScenarioExecutor, Scenario
@@ -144,7 +143,7 @@ class GatlingExecutor(ScenarioExecutor):
 
     def __check_gatling(self):
         """
-        
+        Checks if Gatling is available, otherwise download and install it.
         """
         # NOTE: file extension should be in config
         gatling_path = self.settings.get("path", "~/gatling-taurus/bin/gatling" + exe_suffix)
@@ -156,7 +155,6 @@ class GatlingExecutor(ScenarioExecutor):
             return
         except (OSError, CalledProcessError), exc:
             self.log.debug("Failed to run Gatling: %s", traceback.format_exc(exc))
-
             try:
                 jout = subprocess.check_output(["java", '-version'], stderr=subprocess.STDOUT)
                 self.log.debug("Java check: %s", jout)
@@ -168,18 +166,13 @@ class GatlingExecutor(ScenarioExecutor):
             self.__gatling(self.settings['path'])
 
     def __install_gatling(self, gatling_path):
-        # =======================================================================
-        # Installer logic:
-        # 1) check executor config for "path" variable, if exists, try to execute Gatling
-        # 1-a) if success - run tests
-        # 1-b) if fail - try to install tool in "path"
-        # =======================================================================
-
-        # enclosed function, hooker for FancyDownloader to display progress of download
-        # http://stackoverflow.com/questions/13881092/download-progressbar-for-python-3
-
+        """
+        Installs Gatling.
+        Gatling version and download link may be set in config:
+        "download-link":"http://blah-{version}.zip"
+        "version":"1.2.3"
+        """
         dest = os.path.dirname(os.path.dirname(os.path.expanduser(gatling_path)))  # ../..
-        # NOTE: check it in windows env
         dest = os.path.abspath(dest)
 
         try:
@@ -190,31 +183,23 @@ class GatlingExecutor(ScenarioExecutor):
 
         # download gatling
         downloader = urllib.FancyURLopener()
-        fds, gatling_zip_path = tempfile.mkstemp(".zip", "gatling-dist")
-        os.close(fds)
-
+        gatling_zip_path = self.engine.create_artifact("gatling-dist", ".zip")
         version = self.settings.get("version", GatlingExecutor.VERSION)
-
         download_link = self.settings.get("download-link", GatlingExecutor.DOWNLOAD_LINK)
-        download_link = download_link % (version, version)
-
+        download_link = download_link.format(version=version)
         self.log.info("Downloading %s", download_link)
         # TODO: check archive checksum/hash before unzip and run
 
         try:
             downloader.retrieve(download_link, gatling_zip_path, download_progress_hook)
-        except BaseException:
-            self.log.error("Cannot download Gatlink from %s", download_link)
-            # TODO: shutdown it gracefully
-            raise RuntimeError
+        except BaseException as e:
+            self.log.error("Error while downloading %s", download_link)
+            raise e
+        
         self.log.info("Unzipping %s", gatling_zip_path)
-
         unzip(gatling_zip_path, dest, 'gatling-charts-highcharts-bundle-' + version)
         os.remove(gatling_zip_path)
-
-        if platform.system() != 'Windows':
-            os.chmod(os.path.expanduser(gatling_path), 0755)
-
+        os.chmod(os.path.expanduser(gatling_path), 0755)
         self.log.info("Installed Gatling successfully")
 
 

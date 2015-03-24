@@ -12,16 +12,13 @@ import subprocess
 from subprocess import CalledProcessError
 import traceback
 import urllib
-from bzt.utils import unzip
-import tempfile
-
-import sys
+from bzt.utils import unzip, download_progress_hook
 
 class GrinderExecutor(ScenarioExecutor):
     """
     Grinder executor module
     """
-    DOWNLOAD_LINK = "http://switch.dl.sourceforge.net/project/grinder/The%20Grinder%203/%s/grinder-%s-binary.zip"
+    DOWNLOAD_LINK = "http://switch.dl.sourceforge.net/project/grinder/The%20Grinder%203/{version}/grinder-{version}-binary.zip"
     VERSION = "3.11"
     
     def __init__(self):
@@ -227,8 +224,9 @@ class GrinderExecutor(ScenarioExecutor):
         self.log.debug("grinder check: %s", _process_output)
 
     def __check_grinder(self):
-        
-        #print self.settings
+        """
+        Checks if Grinder is available, otherwise download and install it.
+        """
         grinder_path = self.settings.get("path", "~/grinder-taurus/lib/grinder.jar")
         grinder_path = os.path.abspath(os.path.expanduser(grinder_path))
         
@@ -245,24 +243,23 @@ class GrinderExecutor(ScenarioExecutor):
                 self.log.warn("Failed to run java: %s", traceback.format_exc(exc))
                 raise RuntimeError("The 'java' is not operable or not available. Consider installing it")
             
-            #print self.settings
             self.settings['path'] = self.__install_grinder(grinder_path)
             self.__grinder(self.settings['path'])
-            #print "GRINDER_PATH", self.settings
-            #print "settings after installation",self.settings
             
     def __install_grinder(self, grinder_path):
-        #installs grinder, by default in ~/grinder-taurus/
+        """
+        Installs Grinder.
+        Grinder version and download link may be set in config:
+        "download-link":"http://blah-{version}.zip"
+        "version":"1.2.3"
+        """
        
         dest = os.path.dirname(os.path.dirname(os.path.expanduser(grinder_path)))
         if not dest:
             dest = os.path.expanduser("~/grinder-taurus")
         dest = os.path.abspath(dest)
-        
-        #dest - /home/username/grinder-taurus
         grinder_full_path = dest + os.path.sep + "lib" + os.path.sep + "grinder.jar"
         #grinder_full_path - /home/username/grinder-taurus/grinder-3.11/lib/grinder.jar
-        
         try:
             self.__grinder(grinder_full_path)
             return grinder_full_path
@@ -270,19 +267,21 @@ class GrinderExecutor(ScenarioExecutor):
             self.log.info("Will try to install grinder into %s", dest)
         
         downloader = urllib.FancyURLopener()
-        fds, grinder_zip_path = tempfile.mkstemp(".zip", "grinder-dist")
-        os.close(fds)
-        
-        download_link = urllib.unquote(GrinderExecutor.DOWNLOAD_LINK) % \
-                        (GrinderExecutor.VERSION ,GrinderExecutor.VERSION)
-        
+        grinder_zip_path = self.engine.create_artifact("grinder-dist", ".zip")
+        version = self.settings.get("version", GrinderExecutor.VERSION)
+        download_link = self.settings.get("download-link", GrinderExecutor.DOWNLOAD_LINK)
+        download_link = download_link.format(version=version)
         self.log.info("Downloading %s", download_link)
-        # NOTE: - download progress should be visible
-        downloader.retrieve(download_link , grinder_zip_path)
-        self.log.info("Unzipping %s", grinder_zip_path)
-        unzip(grinder_zip_path, dest, 'grinder-' + self.VERSION)
-        os.remove(grinder_zip_path)
         
+        try:
+            downloader.retrieve(download_link , grinder_zip_path, download_progress_hook)
+        except BaseException as e:
+            self.log.error("Error while downloading %s", download_link)
+            raise e
+        
+        self.log.info("Unzipping %s", grinder_zip_path)
+        unzip(grinder_zip_path, dest, 'grinder-' + version)
+        os.remove(grinder_zip_path)
         self.log.info("Installed grinder successfully")
         return grinder_full_path
 

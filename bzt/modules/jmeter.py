@@ -6,7 +6,6 @@ from lxml import etree
 import os
 import platform
 import subprocess
-import tempfile
 import time
 import signal
 import traceback
@@ -24,8 +23,6 @@ from bzt.modules.provisioning import FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.utils import shell_exec, ensure_is_dict, humanize_time, dehumanize_time, BetterDict,\
 guess_csv_delimiter, unzip, download_progress_hook
-
-import sys
 
 exe_suffix = ".bat" if platform.system() == 'Windows' else ""
 
@@ -374,7 +371,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def __check_jmeter(self):
         """
-        Check if JMeter is available, otherwise download and install it.
+        Checks if JMeter is available, otherwise download and install it.
         """
         jmeter = self.settings.get("path", "jmeter" + exe_suffix)
         
@@ -415,7 +412,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         
         downloader = urllib.URLopener()
         jmeter_dist = self.engine.create_artifact("jmeter-dist", ".zip")
-        jmeter_download_link = self.settings.get("download-link",JMeterExecutor.JMETER_DOWNLOAD_LINK.format(version=JMeterExecutor.JMETER_VER))
+        jmeter_download_link = self.settings.get("download-link",JMeterExecutor.JMETER_DOWNLOAD_LINK)
+        jmeter_version = self.settings.get("version", JMeterExecutor.JMETER_VER)
+        jmeter_download_link=jmeter_download_link.format(version=jmeter_version)
         self.log.info("Downloading %s", jmeter_download_link)
         
         try:
@@ -425,7 +424,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             raise e
             
         self.log.info("Unzipping %s to %s", jmeter_dist, dest)
-        jmeter_version = self.settings.get("version", JMeterExecutor.JMETER_VER)
         unzip(jmeter_dist, dest, 'apache-jmeter-' + jmeter_version)
         #NOTE: should we remove this file in test environment? or not?
         os.remove(jmeter_dist)
@@ -435,11 +433,11 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         # set exec permissions
         os.chmod(jmeter, 0755)
         # NOTE: other files like shutdown.sh might also be needed later
-
         # install plugins
         for set_name in ("Standard", "Extras", "ExtrasLibs", "WebDriver"):
             plugin_dist = self.engine.create_artifact("jmeter-plugin-%s" % set_name, ".zip")
-            plugin_download_link = self.settings.get("plugins-download-link", JMeterExecutor.PLUGINS_DOWNLOAD_TPL.format(plugin=set_name))
+            plugin_download_link = self.settings.get("plugins-download-link", JMeterExecutor.PLUGINS_DOWNLOAD_TPL)
+            plugin_download_link=plugin_download_link.format(plugin=set_name)
             self.log.info("Downloading %s", plugin_download_link)
             # TODO: fix socket timeout timer (tcp connection timeout too long)
             try:
