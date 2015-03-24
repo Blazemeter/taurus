@@ -373,7 +373,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         Checks if JMeter is available, otherwise download and install it.
         """
-        jmeter = self.settings.get("path", "jmeter" + exe_suffix)
+        jmeter = self.settings.get("path", "~/jmeter-taurus/bin/jmeter" + exe_suffix)
         
         try:
             self.__jmeter(jmeter)

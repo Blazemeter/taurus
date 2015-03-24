@@ -189,7 +189,7 @@ class GatlingExecutor(ScenarioExecutor):
         download_link = download_link.format(version=version)
         self.log.info("Downloading %s", download_link)
         # TODO: check archive checksum/hash before unzip and run
-
+        
         try:
             downloader.retrieve(download_link, gatling_zip_path, download_progress_hook)
         except BaseException as e:

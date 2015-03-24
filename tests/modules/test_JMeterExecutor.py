@@ -22,7 +22,7 @@ class TestJMeterExecutor(BZTestCase):
         obj.engine = EngineEmul()
         obj.execution = BetterDict()
         obj.execution.merge({"scenario": {"script": "tests/jmx/dummy.jmx"}})
-        obj.settings["path"] = __dir__() + "/../../build/tmp/installs/jmeter/bin/jmeter"
+        #obj.settings["path"] = __dir__() + "/../../build/tmp/installs/jmeter/bin/jmeter"
         obj.prepare()
 
     def test_jmx_2tg(self):
@@ -36,7 +36,7 @@ class TestJMeterExecutor(BZTestCase):
             "iterations": 100,
             "scenario": {"script": __dir__() + "/../jmx/two_tg.jmx"}
         })
-        obj.settings["path"] = __dir__() + "/../../build/tmp/installs/jmeter/bin/jmeter"
+        #obj.settings["path"] = __dir__() + "/../../build/tmp/installs/jmeter/bin/jmeter"
         obj.prepare()
         jmx = JMX(obj.modified_jmx)
         selector = 'jmeterTestPlan>hashTree>hashTree>ThreadGroup'
@@ -50,7 +50,7 @@ class TestJMeterExecutor(BZTestCase):
         obj.engine = EngineEmul()
         obj.execution = {"scenario": {"script": __file__}}
         try:
-            obj.settings["path"] = __dir__() + "/../../build/tmp/installs/jmeter/bin/jmeter"
+            #obj.settings["path"] = __dir__() + "/../../build/tmp/installs/jmeter/bin/jmeter"
             obj.prepare()
             self.fail()
         except RuntimeError:
@@ -71,7 +71,7 @@ class TestJMeterExecutor(BZTestCase):
         obj.engine = EngineEmul()
         obj.execution = BetterDict()
         #set install dir
-        obj.settings["path"] = __dir__() + "/../../build/tmp/installs/jmeter/bin/jmeter"
+        #obj.settings["path"] = __dir__() + "/../../build/tmp/installs/jmeter/bin/jmeter"
         
         obj.execution.merge({"scenario": {"script": "tests/jmx/broken.jmx"}})
         try:
@@ -92,7 +92,7 @@ class TestJMeterExecutor(BZTestCase):
         obj.execution = BetterDict()
         obj.execution.merge({"scenario": {"script": "tests/jmx/not-jmx.xml"}})
         try:
-            obj.settings["path"] = __dir__() + "/../../build/tmp/installs/jmeter/bin/jmeter"
+            #obj.settings["path"] = __dir__() + "/../../build/tmp/installs/jmeter/bin/jmeter"
             obj.prepare()
             self.fail()
         except RuntimeError:
@@ -103,7 +103,7 @@ class TestJMeterExecutor(BZTestCase):
         obj.engine = EngineEmul()
         obj.engine.config = json.loads(open("tests/json/get-post.json").read())
         obj.execution = obj.engine.config['execution']
-        obj.settings["path"] = __dir__() + "/../../build/tmp/installs/jmeter/bin/jmeter"
+        #obj.settings["path"] = __dir__() + "/../../build/tmp/installs/jmeter/bin/jmeter"
         obj.prepare()
         obj.log.debug("%s: %s", obj.modified_jmx, open(obj.modified_jmx).read())
         obj.log.debug("%s", json.dumps(obj.execution, indent=True))
@@ -131,7 +131,7 @@ class TestJMeterExecutor(BZTestCase):
                 "script": __dir__() + "/../jmx/issue_no_iterations.jmx"
             }
         })
-        obj.settings["path"] = __dir__() + "/../../build/tmp/installs/jmeter/bin/jmeter"
+        #obj.settings["path"] = __dir__() + "/../../build/tmp/installs/jmeter/bin/jmeter"
         obj.prepare()
 
     def clean_har(self):
@@ -193,7 +193,7 @@ class TestJMeterExecutor(BZTestCase):
         obj.engine.config = BetterDict()
         obj.engine.config.merge(yaml.load(open("tests/yaml/think-time-bug.yml").read()))
         obj.execution = obj.engine.config['execution']
-        obj.settings["path"] = __dir__() + "/../../build/tmp/installs/jmeter/bin/jmeter"
+        #obj.settings["path"] = __dir__() + "/../../build/tmp/installs/jmeter/bin/jmeter"
         obj.prepare()
         result = open(obj.modified_jmx).read()
         self.assertIn('<stringProp name="ConstantTimer.delay">750</stringProp>', result)
