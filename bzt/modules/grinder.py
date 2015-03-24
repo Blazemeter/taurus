@@ -117,6 +117,7 @@ class GrinderExecutor(ScenarioExecutor):
             self.__write_scenario_props(fds, scenario)
             self.__write_bzt_props(fds)
 
+        # FIXME: multi-grinder executions have different names
         self.kpi_file = self.engine.artifacts_dir + os.path.sep
         self.kpi_file += "grinder-bzt-kpi.log"
 
@@ -159,11 +160,14 @@ class GrinderExecutor(ScenarioExecutor):
                 self.log.info("Grinder exit code: %s", self.retcode)
                 raise RuntimeError("Grinder exited with non-zero code")
 
+            # FIXME: restore this check
+            """
             if self.kpi_file:
                 if not os.path.exists(self.kpi_file) \
                         or not os.path.getsize(self.kpi_file):
                     msg = "Empty results log, most likely the tool failed: %s"
                     raise RuntimeWarning(msg % self.kpi_file)
+            """
             return True
         return False
 
