@@ -490,7 +490,7 @@ def download_progress_hook(blocknum, blocksize, totalsize):
     :return:
     
     """
-    if os.isatty(sys.stdout):
+    if os.isatty(sys.stdout.fileno()):
         readsofar = blocknum * blocksize
         if totalsize > 0:
             percent = readsofar * 100 / totalsize
