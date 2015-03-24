@@ -17,9 +17,6 @@
         "summariser.name": ""
       },
       "path": "~/jmeter-taurus/bin/jmeter",
-      "download_link": "http://apache.claz.org/jmeter/binaries/apache-jmeter-%s.zip",
-      "plugins_download_link": "http://jmeter-plugins.org/files/JMeterPlugins-%s-1.2.1.zip",
-      "version": "2.13"
     },
     "grinder": {
       "class": "bzt.modules.grinder.GrinderExecutor",
@@ -27,8 +24,7 @@
         "grinder.useConsole": false
       },
       "path": "~/grinder-taurus/lib/grinder.jar",
-      "download_link": "http://switch.dl.sourceforge.net/project/grinder/The%20Grinder%203/%s/grinder-%s-binary.zip",
-      "version": "3.11"
+      "download-link": "http://switch.dl.sourceforge.net/project/grinder/The%20Grinder%203/%s/grinder-%s-binary.zip",
     },
     "gatling": {
       "class": "bzt.modules.gatling.GatlingExecutor",

@@ -15,14 +15,9 @@ import platform
 from bzt.engine import ScenarioExecutor, Scenario
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.utils import shell_exec
-from bzt.utils import unzip
+from bzt.utils import unzip, download_progress_hook
 
-
-if platform.system() == 'Windows':  # NOTE: Should be moved to GatlingVerifier, that is not implemented yet.
-    exe_suffix = '.bat'
-else:
-    exe_suffix = '.sh'
-import sys
+exe_suffix = ".bat" if platform.system() == 'Windows' else ".sh"
 
 
 class GatlingExecutor(ScenarioExecutor):
@@ -30,7 +25,7 @@ class GatlingExecutor(ScenarioExecutor):
     Gatling executor module
     """
     # NOTE: will be moved to GatlingVerifier
-    DOWNLOAD_LINK = "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle/%s/gatling-charts-highcharts-bundle-%s-bundle.zip"
+    DOWNLOAD_LINK = "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip"
     VERSION = "2.1.4"
 
     def __init__(self):
@@ -182,25 +177,6 @@ class GatlingExecutor(ScenarioExecutor):
 
         # enclosed function, hooker for FancyDownloader to display progress of download
         # http://stackoverflow.com/questions/13881092/download-progressbar-for-python-3
-        def download_progress_hook(blocknum, blocksize, totalsize):
-            """
-            output in stderr
-
-            :param blocknum:
-            :param blocksize:
-            :param totalsize:
-            """
-            readsofar = blocknum * blocksize
-            if totalsize > 0:
-                percent = readsofar * 1e2 / totalsize
-                # TODO: fix bug when downloaded size < totalsize at 100%.
-                # or just skip downloaded output
-                s = "\r%5.1f%% %*d of %d" % (percent, len(str(totalsize)), readsofar, totalsize)
-                sys.stderr.write(s)
-                if readsofar >= totalsize:  # near the end
-                    sys.stderr.write("\n")
-            else:
-                sys.stderr.write("read %d\n" % (readsofar,))
 
         dest = os.path.dirname(os.path.dirname(os.path.expanduser(gatling_path)))  # ../..
         # NOTE: check it in windows env

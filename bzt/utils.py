@@ -490,7 +490,7 @@ def download_progress_hook(blocknum, blocksize, totalsize):
     :return:
     
     """
-    #output in stderr
+    # FIXME: should check treminal type, output in stderr only in tty
     readsofar = blocknum * blocksize
     if totalsize > 0:
         percent = readsofar * 1e2 / totalsize
@@ -503,48 +503,3 @@ def download_progress_hook(blocknum, blocksize, totalsize):
             sys.stderr.write("\n")
     else:
         sys.stderr.write("read %d\n" % (readsofar,))
-
-
-
-class AbstractVerifier(object):
-    '''
-    Abstract verifier.
-    '''
-    def __init__(self):
-        #we do not need the .ctor
-        pass
-    
-    def verify(self, executor_obj):
-        '''
-        verify if tool exists, try to install if not.
-        '''
-    #override in subclasses
-        raise NotImplementedError
-    
-    def __check_jvm(self, log_obj, target_jvm_version=None, lt_gt_eq=None):
-        '''
-        checks if jvm installed
-        '''
-        # TODO: implement java version check
-        try:
-            jout = subprocess.check_output(["java", '-version'], stderr=subprocess.STDOUT)
-            self.log.debug("Java check: %s", jout)
-        except BaseException, exc:
-            self.log.warn("Failed to run java: %s", traceback.format_exc(exc))
-            raise RuntimeError("The 'java' is not operable or not available. Consider installing it")
-
-class JmeterVerifier(AbstractVerifier):
-    '''
-    Jmeter Verifier, should check jvm and 
-    '''
-    def __init__(self, jmeter_executor_obj):
-        self.jmeter_executor_obj = jmeter_executor_obj
-        self.JMETER_DOWNLOAD_LINK = "http://apache.claz.org/jmeter/binaries/apache-jmeter-%s.zip"
-        self.JMETER_VER = "2.13"
-        self.PLUGINS_DOWNLOAD_TPL = "http://jmeter-plugins.org/files/JMeterPlugins-%s-1.2.1.zip"
-    
-    def verify(self):
-        pass
-        
-        #self.settings['path'] = self.__install_jmeter(jmeter)
-        #self.__jmeter(self.settings['path'])
