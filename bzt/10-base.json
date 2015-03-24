@@ -24,7 +24,6 @@
         "grinder.useConsole": false
       },
       "path": "~/grinder-taurus/lib/grinder.jar",
-      "download-link": "http://switch.dl.sourceforge.net/project/grinder/The%20Grinder%203/%s/grinder-%s-binary.zip",
     },
     "gatling": {
       "class": "bzt.modules.gatling.GatlingExecutor",
