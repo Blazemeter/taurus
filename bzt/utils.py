@@ -16,12 +16,9 @@ import mimetypes
 import itertools
 from types import NoneType
 import zipfile
-import subprocess
-import traceback
 
 import sys
 
-TEST_RUNNING = False
 
 def run_once(f):
     """
@@ -190,7 +187,7 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE):
     :type args: basestring or list
     :return:
     """
-    
+
     if isinstance(args, basestring):
         args = shlex.split(args)
     logging.getLogger(__name__).debug("Executing shell: %s", args)
@@ -481,8 +478,9 @@ def unzip(source_filename, dest_dir, rel_path=None):
             # Path traversal defense copied from
             # http://hg.python.org/cpython/file/tip/Lib/http/server.py#l789
             logging.debug("Writing %s%s%s", dest_dir, os.path.sep, member.filename)
-            
+
             zf.extract(member, dest_dir)
+
 
 def download_progress_hook(blocknum, blocksize, totalsize):
     """
@@ -492,19 +490,16 @@ def download_progress_hook(blocknum, blocksize, totalsize):
     :return:
     
     """
-    # FIXME: should check treminal type, output in stderr only in tty
-    if not TEST_RUNNING:
+    if sys.stdout.isatty():
         readsofar = blocknum * blocksize
         if totalsize > 0:
-            percent = readsofar * 1e2 / totalsize
+            percent = readsofar * 100 / totalsize
             # TODO: fix bug when downloaded size < totalsize at 100%.
             # or just skip downloaded output
             s = "\r%5.1f%% %*d of %d" % (
                 percent, len(str(totalsize)), readsofar, totalsize)
-            sys.stderr.write(s)
-            if readsofar >= totalsize: # near the end
+            sys.stdout.write(s)
+            if readsofar >= totalsize:  # near the end
                 sys.stderr.write("\n")
         else:
-            sys.stderr.write("read %d\n" % (readsofar,))
-    else:
-        pass
+            sys.stdout.write("read %d\n" % (readsofar,))
