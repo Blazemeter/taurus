@@ -490,16 +490,21 @@ def download_progress_hook(blocknum, blocksize, totalsize):
     :return:
     
     """
-    if os.isatty(sys.stdout.fileno()):
-        readsofar = blocknum * blocksize
-        if totalsize > 0:
-            percent = readsofar * 100 / totalsize
-            # TODO: fix bug when downloaded size < totalsize at 100%.
-            # or just skip downloaded output
-            s = "\r%5.1f%% %*d of %d" % (
-                percent, len(str(totalsize)), readsofar, totalsize)
-            sys.stdout.write(s)
-            if readsofar >= totalsize:  # near the end
-                sys.stderr.write("\n")
-        else:
-            sys.stdout.write("read %d\n" % (readsofar,))
+    if not callable(getattr(sys.stdout, 'isatty')):
+        return
+
+    if not sys.stdout.isatty():
+        return
+
+    readsofar = blocknum * blocksize
+    if totalsize > 0:
+        percent = readsofar * 100 / totalsize
+        # TODO: fix bug when downloaded size < totalsize at 100%.
+        # or just skip downloaded output
+        s = "\r%5.1f%% %*d of %d" % (
+            percent, len(str(totalsize)), readsofar, totalsize)
+        sys.stdout.write(s)
+        if readsofar >= totalsize:  # near the end
+            sys.stderr.write("\n")
+    else:
+        sys.stdout.write("read %d\n" % (readsofar,))
