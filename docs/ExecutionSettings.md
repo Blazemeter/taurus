@@ -83,25 +83,42 @@ settings:
 
 ### JMeter Executor
 
-configuration options:
+This executor type is used by default, it uses [Apache JMeter](http://jmeter.apache.org/) as underlying tool.
 
- - "path": "/somepath/folder/bin/jmeter_executable"
-    Path to JMeter.
-    If no JMeter executable found, it will be automatically downloaded and installed with plugins in "path".
-    By default: "~/jmeter-taurus/bin/jmeter"
-    
- - "download-link":"http://somehost/jmeter-{version}-archieve.zip"
-    Link to download JMeter.
-    By default: "http://apache.claz.org/jmeter/binaries/apache-jmeter-{version}.zip"
-    
- -  "version": "1.2.3"
-    JMeter version, by default "2.13"
-    
- -  "plugins-download-link":"http://somehost/jmeterplugin-{plugin}-archieve.zip"
-    Link to download JMeter plugins ("Standard", "Extras", "ExtrasLibs", "WebDriver")
-    By default: "http://jmeter-plugins.org/files/JMeterPlugins-{plugin}-1.2.1.zip"
+#### JMeter Location & Auto-Installation
 
-#### Specify JMeter Properties
+If there is no JMeter installed at the configured `path`, Taurus will attempt to install latest JMeter and Plugins into
+this location, by default `~/jmeter-taurus/bin/jmeter`. You can change this setting to your preferred JMeter location (consider putting it into `~/.bzt-rc` file). All module settings that relates to JMeter path and auto-installing are listed below:
+ 
+```yaml
+modules:
+  jmeter:
+    path: ~/jmeter-taurus/bin/jmeter
+    download-link: http://apache.claz.org/jmeter/binaries/apache-jmeter-{version}.zip
+    version: 2.13
+    plugins-download-link: http://jmeter-plugins.org/files/JMeterPlugins-{plugin}-1.2.1.zip
+```
+
+#### Run Existing JMX File
+```javascript
+{
+  "execution": {
+    "scenario": {
+      "script": "tests/jmx/dummy.jmx"
+    }
+  }
+}
+```
+
+#### JMeter Properties 
+```yaml
+modules:
+  jmeter:
+    properties:
+      log_level.jmeter: WARN
+      log_level.jmeter.threads: DEBUG
+```
+
 ```javascript
 {
   "execution": {
@@ -123,33 +140,17 @@ configuration options:
   }
 }
 ```
-#### Run Existing JMX File
-```javascript
-{
-  "execution": {
-    "scenario": {
-      "script": "tests/jmx/dummy.jmx"
-    }
-  }
-}
-```
 
-#### Use Different JMeter Location
-Default command to run JMeter is ```jmeter```
-
-```javascript
-{
-  "modules": {
-    "jmeter": {
-      "path": "apache-jmeter-2.12/bin/jmeter"
-    }
-  }
-}
+#### Open JMeter GUI 
+```yaml
+modules:
+  jmeter:
+    gui: false  # set it to true to open JMeter GUI instead of running non-GUI test
 ```
 
 
 
-### Modifications for Existing Scripts
+#### Modifications for Existing Scripts
 
 
 
