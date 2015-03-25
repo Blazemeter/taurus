@@ -351,6 +351,7 @@ class ResultsReader(ResultsProvider):
 
     def __init__(self, perc_levels=()):
         super(ResultsReader, self).__init__()
+        self.ignored_labels = []
         self.log = logging.getLogger(self.__class__.__name__)
         self.buffer = {}
         self.buffer_len = 2
@@ -364,7 +365,7 @@ class ResultsReader(ResultsProvider):
                 break
             elif isinstance(result, list) or isinstance(result, tuple):
                 ts, label, conc, rt, cn, lt, rc, error = result
-                if label == "ignore":
+                if label in self.ignored_labels:
                     continue
                 if ts < self.min_timestamp:
                     self.log.debug("Putting %s into %s", ts,
@@ -446,6 +447,7 @@ class ConsolidatingAggregator(EngineModule, ResultsProvider):
     def __init__(self):
         EngineModule.__init__(self)
         ResultsProvider.__init__(self)
+        self.ignored_labels = []
         self.underlings = []
         self.buffer = BetterDict()
         self.buffer_len = 2
@@ -457,6 +459,7 @@ class ConsolidatingAggregator(EngineModule, ResultsProvider):
         super(ConsolidatingAggregator, self).prepare()
         self.track_percentiles = self.settings.get("percentiles", self.track_percentiles)
         self.buffer_len = self.settings.get("buffer-seconds", self.buffer_len)
+        self.ignored_labels = self.settings.get("ignore-labels", ["ignore"])
 
     def add_underling(self, underling):
         """
@@ -465,6 +468,8 @@ class ConsolidatingAggregator(EngineModule, ResultsProvider):
         :type underling: ResultsProvider
         """
         underling.track_percentiles = self.track_percentiles
+        if isinstance(underling, ResultsReader):
+            underling.ignored_labels = self.ignored_labels
         # TODO: how to pass buffer len to underling?
         self.underlings.append(underling)
 

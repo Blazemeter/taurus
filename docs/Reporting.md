@@ -190,6 +190,8 @@ The `consolidator` has several settings:
 ---
 modules:
   consolidator:
+    ignore-labels: # sample labels from this list will be ignored by results reader
+      - ignore
     buffer-seconds: 2  # this buffer is used to wait for complete data within a second
     percentiles:  # percentile levels to track, 0 also means min, 100 also means max 
     - 0.0
