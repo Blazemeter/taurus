@@ -251,8 +251,13 @@ class BlazeMeterClient(object):
             self.log.debug("Feeding not started, so not stopping")
         else:
             self.log.info("Ending data feeding...")
-            url = self.address + "/api/latest/sessions/%s/terminate"
-            self._request(url % self.active_session_id)
+            if self.token:
+                url = self.address + "/api/latest/sessions/%s/terminate"
+                self._request(url % self.active_session_id)
+            else:
+                url = self.address + "/api/latest/sessions/%s/terminateExternal"
+                data = {"signature": self.data_signature, "testId": self.test_id, "sessionId": self.active_session_id}
+                self._request(url % self.active_session_id, json.dumps(data))
 
     def test_by_name(self, name):
         """
