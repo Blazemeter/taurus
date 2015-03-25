@@ -1,18 +1,33 @@
 """
 Module holds all stuff regarding Grinder tool usage
+
+Copyright 2015 BlazeMeter Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 """
 import os
 import time
 import signal
-
-from bzt.engine import ScenarioExecutor, Scenario
-from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
-from bzt.utils import shell_exec
 import subprocess
 from subprocess import CalledProcessError
 import traceback
 import urllib
+
+from bzt.engine import ScenarioExecutor, Scenario
+from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
+from bzt.utils import shell_exec
 from bzt.utils import unzip, download_progress_hook
+
 
 class GrinderExecutor(ScenarioExecutor):
     """
@@ -20,7 +35,7 @@ class GrinderExecutor(ScenarioExecutor):
     """
     DOWNLOAD_LINK = "http://switch.dl.sourceforge.net/project/grinder/The%20Grinder%203/{version}/grinder-{version}-binary.zip"
     VERSION = "3.11"
-    
+
     def __init__(self):
         super(GrinderExecutor, self).__init__()
         self.script = None
@@ -98,8 +113,8 @@ class GrinderExecutor(ScenarioExecutor):
         """
         scenario = self.get_scenario()
         # TODO: install the tool if missing, just like JMeter
-        
-        
+
+
         self.__check_grinder()
 
         if Scenario.SCRIPT in scenario:
@@ -129,14 +144,14 @@ class GrinderExecutor(ScenarioExecutor):
         """
         Should start the tool as fast as possible.
         """
-        #cmdline = "java -classpath " + os.path.dirname(__file__)
-        #cmdline += os.path.pathsep + os.path.realpath(self.settings.get("path"))
-        #cmdline += os.path.sep + "lib" + os.path.sep + "grinder.jar"
-        #cmdline += " net.grinder.Grinder " + self.properties_file
-        
+        # cmdline = "java -classpath " + os.path.dirname(__file__)
+        # cmdline += os.path.pathsep + os.path.realpath(self.settings.get("path"))
+        # cmdline += os.path.sep + "lib" + os.path.sep + "grinder.jar"
+        # cmdline += " net.grinder.Grinder " + self.properties_file
+
         cmdline = "java -classpath " + self.settings.get("path")
         cmdline += " net.grinder.Grinder " + self.properties_file
-        
+
         self.start_time = time.time()
         out = self.engine.create_artifact("grinder-stdout", ".log")
         err = self.engine.create_artifact("grinder-stderr", ".log")
@@ -214,17 +229,17 @@ class GrinderExecutor(ScenarioExecutor):
 
     def __grinder(self, grinder_full_path):
         """Check if grinder installed"""
-        #java -classpath /home/user/Downloads/grinder-3.11/lib/grinder.jar net.grinder.Grinder --help
-        #CHECK ERRORLEVEL TO BE SURE
+        # java -classpath /home/user/Downloads/grinder-3.11/lib/grinder.jar net.grinder.Grinder --help
+        # CHECK ERRORLEVEL TO BE SURE
         self.log.debug("Trying grinder: %s", grinder_full_path)
         grinder_launch_command = ["java", "-classpath", grinder_full_path, "net.grinder.Grinder"]
-        #print "grinder_launch command:", grinder_launch_command
+        # print "grinder_launch command:", grinder_launch_command
         grinder_subprocess = subprocess.Popen(grinder_launch_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         _process_output = grinder_subprocess.communicate()[0]
-        
+
         if grinder_subprocess.returncode != 0:
             raise CalledProcessError(grinder_subprocess.returncode, " ".join(grinder_launch_command))
-        #grinder_subprocess = subprocess.check_output(["java -classpath " + grinder_full_path + "grinder.jar net.grinder.Grinder", '--help'], stderr=subprocess.STDOUT)
+        # grinder_subprocess = subprocess.check_output(["java -classpath " + grinder_full_path + "grinder.jar net.grinder.Grinder", '--help'], stderr=subprocess.STDOUT)
         self.log.debug("grinder check: %s", _process_output)
 
     def __check_grinder(self):
@@ -233,23 +248,23 @@ class GrinderExecutor(ScenarioExecutor):
         """
         grinder_path = self.settings.get("path", "~/grinder-taurus/lib/grinder.jar")
         grinder_path = os.path.abspath(os.path.expanduser(grinder_path))
-        
+
         try:
             self.__grinder(grinder_path)
             return
         except (OSError, CalledProcessError), exc:
             self.log.debug("Failed to run grinder: %s", traceback.format_exc(exc))
-            
+
             try:
                 jout = subprocess.check_output(["java", '-version'], stderr=subprocess.STDOUT)
                 self.log.debug("Java check: %s", jout)
             except BaseException, exc:
                 self.log.warn("Failed to run java: %s", traceback.format_exc(exc))
                 raise RuntimeError("The 'java' is not operable or not available. Consider installing it")
-            
+
             self.settings['path'] = self.__install_grinder(grinder_path)
             self.__grinder(self.settings['path'])
-            
+
     def __install_grinder(self, grinder_path):
         """
         Installs Grinder.
@@ -257,32 +272,32 @@ class GrinderExecutor(ScenarioExecutor):
         "download-link":"http://blah-{version}.zip"
         "version":"1.2.3"
         """
-       
+
         dest = os.path.dirname(os.path.dirname(os.path.expanduser(grinder_path)))
         if not dest:
             dest = os.path.expanduser("~/grinder-taurus")
         dest = os.path.abspath(dest)
         grinder_full_path = dest + os.path.sep + "lib" + os.path.sep + "grinder.jar"
-        #grinder_full_path - /home/username/grinder-taurus/grinder-3.11/lib/grinder.jar
+        # grinder_full_path - /home/username/grinder-taurus/grinder-3.11/lib/grinder.jar
         try:
             self.__grinder(grinder_full_path)
             return grinder_full_path
         except CalledProcessError:
             self.log.info("Will try to install grinder into %s", dest)
-        
+
         downloader = urllib.FancyURLopener()
         grinder_zip_path = self.engine.create_artifact("grinder-dist", ".zip")
         version = self.settings.get("version", GrinderExecutor.VERSION)
         download_link = self.settings.get("download-link", GrinderExecutor.DOWNLOAD_LINK)
         download_link = download_link.format(version=version)
         self.log.info("Downloading %s", download_link)
-        
+
         try:
             downloader.retrieve(download_link, grinder_zip_path, download_progress_hook)
         except BaseException as e:
             self.log.error("Error while downloading %s", download_link)
             raise e
-        
+
         self.log.info("Unzipping %s", grinder_zip_path)
         unzip(grinder_zip_path, dest, 'grinder-' + version)
         os.remove(grinder_zip_path)

@@ -1,1 +1,3 @@
 include bzt/10-base.json
+include LICENSE
+include NOTICE
