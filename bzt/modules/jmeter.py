@@ -289,9 +289,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if load.throughput:
             self.__add_shaper(jmx, load)
 
-        conn_support = self.settings.get("connect-time-supported", False)
         self.kpi_jtl = self.engine.create_artifact("kpi", ".jtl")
-        kpil = jmx.new_kpi_listener(self.kpi_jtl, conn_support)
+        kpil = jmx.new_kpi_listener(self.kpi_jtl)
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, kpil)
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, Element("hashTree"))
 
@@ -613,11 +612,10 @@ class JMX(object):
         return kpi_listener
 
     @staticmethod
-    def new_kpi_listener(filename, connect_time_supported=False):
+    def new_kpi_listener(filename):
         """
         Generates listener for writing basic KPI data in CSV format
 
-        :param connect_time_supported:
         :param filename:
         :return:
         """
@@ -646,8 +644,6 @@ class JMX(object):
             "threadCounts": True,
             "url": False
         }
-        if connect_time_supported:
-            flags["connectTime"] = True
 
         return JMX.__jtl_writer(filename, "KPI Writer", flags)
 
