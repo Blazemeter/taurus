@@ -90,8 +90,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
             self.log.debug("Exception: %s", traceback.format_exc(exc))
             self.log.warn("Failed to start feeding: %s", exc)
 
-    def __upload_artifacts(self):
-        self.log.info("Uploading all artifacts as jtls_and_more.zip ...")
+    def __get_jtls_and_more(self):
         mf = StringIO.StringIO()
         with zipfile.ZipFile(mf, mode='w', compression=zipfile.ZIP_DEFLATED, allowZip64=True) as zfh:
             for handler in self.engine.log.parent.handlers:
@@ -101,7 +100,13 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
             for root, dirs, files in os.walk(self.engine.artifacts_dir):
                 for filename in files:
                     zfh.write(os.path.join(root, filename), filename)
-        self.client.upload_file("jtls_and_more.zip", mf.getvalue())
+        return mf
+
+    def __upload_artifacts(self):
+        if self.client.token:
+            self.log.info("Uploading all artifacts as jtls_and_more.zip ...")
+            mf = self.__get_jtls_and_more()
+            self.client.upload_file("jtls_and_more.zip", mf.getvalue())
 
         for executor in self.engine.provisioning.executors:
             if isinstance(executor, JMeterExecutor):
