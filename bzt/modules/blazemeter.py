@@ -44,6 +44,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
 
     def __init__(self):
         super(BlazeMeterUploader, self).__init__()
+        self.browser_open = 'start'
         self.client = BlazeMeterClient(self.log)
         self.test = "Taurus Test"
         self.test_id = None
@@ -58,6 +59,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         self.client.address = self.settings.get("address", "https://a.blazemeter.com")
         self.client.timeout = dehumanize_time(self.settings.get("timeout", self.client.timeout))
         self.bulk_size = self.settings.get("bulk-size", self.bulk_size)
+        self.browser_open = self.settings.get("browser-open", self.browser_open)
         token = self.settings.get("token", "")
         if not token:
             self.log.warning("No BlazeMeter API key provided, will upload anonymously")
@@ -80,7 +82,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         try:
             url = self.client.start_online(self.test_id)
             self.log.info("Started data feeding: %s", url)
-            webbrowser.open(url)  # TODO: parameterize it, allow: none, start, end, both
+            if self.browser_open in ('start', 'both'):
+                webbrowser.open(url)
         except KeyboardInterrupt:
             raise
         except BaseException, exc:
@@ -133,6 +136,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
                 self.log.warn("Failed to finish online: %s", exc)
 
         if self.client.results_url:
+            if self.browser_open in ('end', 'both'):
+                webbrowser.open(self.client.results_url)
             self.log.info("Online report link: %s", self.client.results_url)
 
     def check(self):

@@ -152,6 +152,7 @@ modules:
     address: https://a.blazemeter.com  # reporting service address
     bulk-size: 5  # send data each n-th second
     timeout: 5  # connect and request timeout for BlazeMeter API
+    browser-open: start  # auto-open the report in browser, possible values are "start", "end", "both"
 ```
 
 
