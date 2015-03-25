@@ -10,6 +10,7 @@ import sys
 import traceback
 import time
 import StringIO
+from urllib2 import HTTPError
 import webbrowser
 import zipfile
 
@@ -30,7 +31,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
     def __init__(self):
         super(BlazeMeterUploader, self).__init__()
         self.client = BlazeMeterClient(self.log)
-        self.test = "Taurus"
+        self.test = "Taurus Test"
+        self.test_id = None
         self.kpi_buffer = []
         self.bulk_size = 5
 
@@ -44,20 +46,15 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         self.bulk_size = self.settings.get("bulk-size", self.bulk_size)
         token = self.settings.get("token", "")
         if not token:
-            msg = "BlazeMeter.com uploading disabled, "
-            msg += "please set token option to enable it"
-            self.log.warning(msg)
+            self.log.warning("No BlazeMeter API key provided, will upload anonymously")
         self.client.token = token
 
-        if not self.client.address:
-            msg = "BlazeMeter.com uploading disabled, "
-            msg += "please set address option to enable it"
-            self.log.warning(msg)
-
-        self.test = self.parameters.get("test", "")  # TODO: provide a way to put datetime into test name
+        self.test = self.parameters.get("test", self.test)  # TODO: provide a way to put datetime into test name
         try:
             self.client.ping()  # to check connectivity and auth
-        except:
+            if token:
+                self.test_id = self.client.test_by_name(self.test)
+        except HTTPError:
             self.log.error("Cannot reach online results storage, maybe the address/token is wrong")
             raise
 
@@ -67,8 +64,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         """
         super(BlazeMeterUploader, self).startup()
         try:
-            test_id = self.client.test_by_name(self.test)
-            url = self.client.start_online(test_id)
+            url = self.client.start_online(self.test_id)
             self.log.info("Started data feeding: %s", url)
             webbrowser.open(url)  # TODO: parameterize it, allow: none, start, end, both
         except KeyboardInterrupt:
@@ -101,6 +97,10 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         Upload results if possible
         """
         super(BlazeMeterUploader, self).post_process()
+
+        if not self.client.active_session_id:
+            self.log.debug("No feeding session obtained, not uploading artifacts")
+            return
 
         if len(self.kpi_buffer):
             self.__send_data(self.kpi_buffer, False)
@@ -206,7 +206,10 @@ class BlazeMeterClient(object):
         self.log.info("Initiating data feeding...")
         data = urllib.urlencode({})
 
-        url = self.address + "/api/latest/tests/%s/start-external" % test_id
+        if self.token:
+            url = self.address + "/api/latest/tests/%s/start-external" % test_id
+        else:
+            url = self.address + "/api/latest/sessions"
 
         resp = self._request(url, data)
 
@@ -214,7 +217,11 @@ class BlazeMeterClient(object):
         self.data_signature = str(resp['result']['signature'])
         self.test_id = test_id
         self.user_id = str(resp['result']['session']['userId'])
-        self.results_url = self.address + '/app/#reports/%s' % self.active_session_id
+        if self.token:
+            self.results_url = self.address + '/app/#reports/%s' % self.active_session_id
+        else:
+            self.test_id=resp['result']['session']['testId']
+            self.results_url = resp['result']['publicTokenUrl']
         return self.results_url
 
     def end_online(self):
@@ -242,8 +249,8 @@ class BlazeMeterClient(object):
                 test_id = test['id']
 
         if not test_id:
-            data = {"name": name, "configuration": {"type": "external"}}
             url = self.address + '/api/latest/tests'
+            data = {"name": name, "configuration": {"type": "external"}}
             hdr = {"Content-Type": " application/json"}
             resp = self._request(url, json.dumps(data), headers=hdr)
             test_id = resp['result']['id']
@@ -412,7 +419,7 @@ class BlazeMeterClient(object):
         """
         Quick check if we can access the service
         """
-        self._request(self.address + '/api/latest/user')
+        self._request(self.address + '/api/latest/explorer/resources.json')
 
     def upload_file(self, filename, contents=None):
         """
