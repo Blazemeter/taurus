@@ -110,7 +110,10 @@ modules:
 }
 ```
 
-#### JMeter Properties 
+#### JMeter Properties
+There are two places to specify JMeter properties: global at module-level and local at scenario-level. Scenario properties are merged into global properties and resulting set comes as input for JMeter, see corresponding `.properties` file in artifacts.
+
+Global properties are set like this:
 ```yaml
 modules:
   jmeter:
@@ -119,35 +122,24 @@ modules:
       log_level.jmeter.threads: DEBUG
 ```
 
-```javascript
-{
-  "execution": {
-    "scenario": {
-      "properties": {
-        "this_is": "scenario-specific properties",
-        "log_level.jmeter": "WARN"
-      }
-    }
-  },
-  "modules": {
-    "jmeter": {
-      "properties": {
-        "this_is": "global properties",
-        "log_level.jmeter": "DEBUG",
-        "jmeter.save.saveservice.autoflush": "true"
-      }
-    }
-  }
-}
+Scenario-level properties are set like this:
+```yaml
+execution:
+  scenario: 
+    properties:
+        this_is: scenario-specific properties
+        log_level.jmeter: DEBUG
 ```
 
-#### Open JMeter GUI 
+#### Open JMeter GUI
+When you want to verify or debug the JMX file that were generated from your requests scenario, you don't need to search for the file on disk, just enable GUI mode for JMeter module:
 ```yaml
 modules:
   jmeter:
     gui: false  # set it to true to open JMeter GUI instead of running non-GUI test
 ```
 
+For the command-line, use `-o modules.jmeter.gui=true`, without the need to edit configuration file.
 
 
 #### Modifications for Existing Scripts
