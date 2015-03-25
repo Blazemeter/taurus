@@ -21,10 +21,12 @@ from bzt.engine import ScenarioExecutor, Scenario
 from bzt.modules.console import WidgetProvider
 from bzt.modules.provisioning import FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
-from bzt.utils import shell_exec, ensure_is_dict, humanize_time, dehumanize_time, BetterDict,\
-guess_csv_delimiter, unzip, download_progress_hook
+from bzt.utils import shell_exec, ensure_is_dict, humanize_time, dehumanize_time, BetterDict, \
+    guess_csv_delimiter, unzip, download_progress_hook
+
 
 exe_suffix = ".bat" if platform.system() == 'Windows' else ""
+
 
 class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     """
@@ -33,7 +35,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     JMETER_DOWNLOAD_LINK = "http://apache.claz.org/jmeter/binaries/apache-jmeter-{version}.zip"
     JMETER_VER = "2.13"
     PLUGINS_DOWNLOAD_TPL = "http://jmeter-plugins.org/files/JMeterPlugins-{plugin}-1.2.1.zip"
-        
+
     def __init__(self):
         super(JMeterExecutor, self).__init__()
         self.original_jmx = None
@@ -48,7 +50,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.retcode = None
         self.reader = None
         self.widget = None
-        
 
 
     def prepare(self):
@@ -63,7 +64,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         # TODO: global variables
         # TODO: move all files to artifacts
         self.jmeter_log = self.engine.create_artifact("jmeter", ".log")
-        
+
         # TODO: switch to verifier.verify()
         self.__check_jmeter()
         # self.verifier.verify()
@@ -374,7 +375,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         Checks if JMeter is available, otherwise download and install it.
         """
         jmeter = self.settings.get("path", "~/jmeter-taurus/bin/jmeter" + exe_suffix)
-        
+        jmeter = os.path.abspath(os.path.expanduser(jmeter))
+        self.settings['path'] = jmeter  # set back after expanding ~
+
         try:
             self.__jmeter(jmeter)
             return
@@ -399,7 +402,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         # normalize path
         dest = os.path.dirname(os.path.dirname(os.path.expanduser(path)))
-        
+
         if not dest:
             dest = "jmeter-taurus"
         dest = os.path.abspath(dest)
@@ -409,27 +412,27 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             return jmeter
         except OSError:
             self.log.info("Will try to install JMeter into %s", dest)
-        
+
         downloader = urllib.URLopener()
         jmeter_dist = self.engine.create_artifact("jmeter-dist", ".zip")
-        jmeter_download_link = self.settings.get("download-link",JMeterExecutor.JMETER_DOWNLOAD_LINK)
+        jmeter_download_link = self.settings.get("download-link", JMeterExecutor.JMETER_DOWNLOAD_LINK)
         jmeter_version = self.settings.get("version", JMeterExecutor.JMETER_VER)
-        jmeter_download_link=jmeter_download_link.format(version=jmeter_version)
+        jmeter_download_link = jmeter_download_link.format(version=jmeter_version)
         self.log.info("Downloading %s", jmeter_download_link)
-        
+
         try:
             downloader.retrieve(jmeter_download_link, jmeter_dist, download_progress_hook)
         except BaseException as e:
             self.log.error("Error while downloading %s", jmeter_download_link)
             raise e
-            
+
         self.log.info("Unzipping %s to %s", jmeter_dist, dest)
         unzip(jmeter_dist, dest, 'apache-jmeter-' + jmeter_version)
-        #NOTE: should we remove this file in test environment? or not?
+        # NOTE: should we remove this file in test environment? or not?
         os.remove(jmeter_dist)
-        
+
         # TODO: remove old versions for httpclient JARs
-        
+
         # set exec permissions
         os.chmod(jmeter, 0755)
         # NOTE: other files like shutdown.sh might also be needed later
@@ -437,7 +440,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         for set_name in ("Standard", "Extras", "ExtrasLibs", "WebDriver"):
             plugin_dist = self.engine.create_artifact("jmeter-plugin-%s" % set_name, ".zip")
             plugin_download_link = self.settings.get("plugins-download-link", JMeterExecutor.PLUGINS_DOWNLOAD_TPL)
-            plugin_download_link=plugin_download_link.format(plugin=set_name)
+            plugin_download_link = plugin_download_link.format(plugin=set_name)
             self.log.info("Downloading %s", plugin_download_link)
             # TODO: fix socket timeout timer (tcp connection timeout too long)
             try:
@@ -445,11 +448,11 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             except BaseException as e:
                 self.log.error("Error while downloading %s", plugin_download_link)
                 raise e
-            
+
             self.log.info("Unzipping %s", plugin_dist)
             unzip(plugin_dist, dest)
             os.remove(plugin_dist)
-        
+
         self.log.info("Installed JMeter and Plugins successfully")
         return jmeter
 
