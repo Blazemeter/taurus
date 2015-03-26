@@ -133,13 +133,13 @@ reporting:
     test: Taurus Demo
 ```
 
-Also you need to get API token from BlazeMeter.com (find it under your Settings) and put it into `token` option:
+Also you need to get API token from BlazeMeter.com (find it under your [Settings => API Key](https://a.blazemeter.com/app/#settings/api-key)) and put it into `token` option:
 
 ```yaml
 ---
 modules:
   blazemeter:
-    token: 9e107d9d372bb6826bd81d3542a419d6
+    token: TDknBxu0hmVnJ7NqtG2F
 ```
 
 It is highly recommended to place the token setting in your personal [per-user config](CommandLine.md#configuration-files-processing) `~/.bzt-rc` to prevent it from being logged and collected in artifacts.
