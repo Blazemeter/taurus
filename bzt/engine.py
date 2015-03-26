@@ -702,6 +702,8 @@ class ScenarioExecutor(EngineModule):
     :type execution: BetterDict
     """
 
+    RAMP_UP = "ramp-up"
+    HOLD_FOR = "hold-for"
     CONCURR = "concurrency"
     THRPT = "throughput"
     EXEC = "execution"
@@ -744,8 +746,8 @@ class ScenarioExecutor(EngineModule):
 
         iterations = self.execution.get("iterations", None)
 
-        ramp_up = self.execution.get("ramp-up", None)
-        hold = dehumanize_time(self.execution.get("hold-for", 0))
+        ramp_up = self.execution.get(ScenarioExecutor.RAMP_UP, None)
+        hold = dehumanize_time(self.execution.get(ScenarioExecutor.HOLD_FOR, 0))
         if ramp_up is None:
             ramp_up = None
             duration = hold

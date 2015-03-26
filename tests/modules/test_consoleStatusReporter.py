@@ -1,6 +1,6 @@
 import time
 
-from bzt.engine import Provisioning
+from bzt.engine import Provisioning, ScenarioExecutor
 from bzt.modules.jmeter import JMeterExecutor
 from bzt.modules.provisioning import Local
 from bzt.modules.console import ConsoleStatusReporter
@@ -37,7 +37,7 @@ class TestConsoleStatusReporter(BZTestCase):
         jmeter = JMeterExecutor()
         jmeter.engine = obj.engine
         jmeter.start_time = time.time()
-        jmeter.execution['hold-for'] = 10
+        jmeter.execution[ScenarioExecutor.HOLD_FOR] = 10
         obj.engine.provisioning.executors = [jmeter]
         obj.settings["disable"] = False
         obj.settings['dummy_cols'] = 160
