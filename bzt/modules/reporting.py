@@ -5,7 +5,7 @@ from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.engine import Reporter, AggregatorListener
 from lxml import etree
 import os.path
-from passfail import FailCriteria
+from passfail import FailCriteria, PassFailStatus
 
 import urlparse
 
@@ -191,9 +191,27 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
 
         else:
         #data source = passfail
-            fail_criterias = filter(lambda x: isinstance(x, FailCriteria), self.engine.reporters)
-            self.log.debug(fail_criterias)
+            pass_fail_objects = filter(lambda x: isinstance(x, PassFailStatus), self.engine.reporters)
+            fail_criterias = []
+            for pf_obj in pass_fail_objects:
+                if pf_obj.criterias:
+                    for fc in pf_obj.criterias:
+                        fail_criterias.append(fc)
 
+            total_failed = str(len(filter(lambda x: x.is_triggered, fail_criterias)))
+            total_len = str(len(fail_criterias))
+            root_xml_element = etree.Element("testsuite", name="taurus junitxml",tests=total_len, failures=total_failed, skip="0")
+            for fc_obj in fail_criterias:
+                classname = str(fc_obj)
+                fc_xml_element = etree.SubElement(root_xml_element, "testcase", classname=classname, name="")
+                if fc_obj.is_triggered:
+                    err_element=etree.SubElement(fc_xml_element, "error", type="criteria failed", message="")#.text=..
+
+
+            self.log.info("writing xml...")
+            with open(self.report_file_path, 'a') as fds:
+                #fds.write("""<?xml version="1.0" encoding="UTF-8"?>""")
+                fds.write(etree.tostring(root_xml_element, xml_declaration=True, pretty_print=True, encoding="utf-8"))
         self.log.debug("post_process done")
 
 
