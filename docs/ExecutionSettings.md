@@ -100,15 +100,13 @@ modules:
 ```
 
 #### Run Existing JMX File
-```javascript
-{
-  "execution": {
-    "scenario": {
-      "script": "tests/jmx/dummy.jmx"
-    }
-  }
-}
+```yaml
+execution:
+  scenario:
+    script: tests/jmx/dummy.jmx
 ```
+
+or simply `bzt tests/jmx/dummy.jmx`
 
 #### JMeter Properties
 There are two places to specify JMeter properties: global at module-level and local at scenario-level. Scenario properties are merged into global properties and resulting set comes as input for JMeter, see corresponding `.properties` file in artifacts.
@@ -144,7 +142,21 @@ For the command-line, use `-o modules.jmeter.gui=true`, without the need to edit
 
 #### Modifications for Existing Scripts
 
+JMeter executor allows you to apply some modifications to the JMX file before running JMeter (this affects both existing and generated from request JMXes):
 
+```yaml
+execution:
+  scenario:
+    script: tests/jmx/dummy.jmx
+    modifications:
+        disable:  # Names of the tree elements to disable
+            - Thread Group 1
+        enable:  # Names of the tree elements to ensable
+            - Thread Group 2
+        set-prop:  # Set element properties, selected as [Element Name]>[property name]
+          "HTTP Sampler>HTTPSampler.connect_timeout": "0"
+          "HTTP Sampler>HTTPSampler.protocol": "https"
+```
 
 
 ### Gatling Executor
