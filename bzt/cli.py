@@ -27,7 +27,8 @@ import traceback
 
 from colorlog import ColoredFormatter
 
-from bzt import ManualShutdown, NormalShutdown, version
+from bzt import ManualShutdown, NormalShutdown
+import bzt
 from bzt.engine import Engine, Configuration
 from bzt.utils import run_once
 
@@ -44,7 +45,7 @@ class CLI(object):
         self.options = options
         self.setup_logging(options)
         self.log = logging.getLogger('')
-        self.log.info("Taurus CLI Tool v%s", version)
+        self.log.info("Taurus CLI Tool v%s", bzt.version)
         logging.debug("Command-line options: %s", self.options)
         self.engine = Engine(self.log)
         self.engine.artifacts_base_dir = self.options.datadir
@@ -247,7 +248,7 @@ def main():
     This function is used as entrypoint by setuptools
     """
     usage = "Usage: bzt [options] [configs] [-aliases]"
-    dsc = "BlazeMeter Taurus Tool v%s, the configuration-driven test running engine" % version
+    dsc = "BlazeMeter Taurus Tool v%s, the configuration-driven test running engine" % bzt.version
     parser = OptionParserWithAliases(usage=usage, description=dsc, prog="bzt")
     parser.add_option('-d', '--datadir', action='store', default=".",
                       help="Artifacts base dir")
