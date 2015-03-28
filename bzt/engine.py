@@ -67,19 +67,22 @@ class Engine(object):
 
         self.__counters_ts = None
 
-    def prepare(self, user_configs, aliases):
+    def configure(self, user_configs):
         """
-        Prepare engine for work, will call preparing of Provisioning and add
-        downstream EngineModule instances
-
-        :type user_configs: list
+        Load configuration files
         """
-        self.log.info("Preparing...")
+        self.log.info("Configuring...")
         self._create_artifacts_dir()
         dump = self.create_artifact("effective", "")  # FIXME: not good since this file not exists
         self.config.set_dump_file(dump)
+        self.__load_configs(user_configs)
 
-        self.__load_configs(user_configs, aliases)
+    def prepare(self):
+        """
+        Prepare engine for work, will call preparing of Provisioning and add
+        downstream EngineModule instances
+        """
+        self.log.info("Preparing...")
         self.__prepare_provisioning()
         self.__prepare_reporters()
 
@@ -295,7 +298,7 @@ class Engine(object):
         else:
             raise IOError("File not found: %s" % filename)
 
-    def __load_configs(self, user_configs, aliases):
+    def __load_configs(self, user_configs):
         for fname in user_configs:
             self.existing_artifact(fname)
 
@@ -312,6 +315,13 @@ class Engine(object):
         else:
             self.log.info("No machine configs dir: %s", machine_dir)
 
+        user_file = os.path.expanduser('~' + os.path.sep + ".bzt-rc")
+        if os.path.isfile(user_file):
+            self.log.debug("Adding personal config: %s", user_file)
+            base_configs.insert(0, user_file)
+        else:
+            self.log.info("No personal config: %s", user_file)
+
         # load user configs
         user_config = Configuration()
         user_config.load(user_configs)
@@ -321,13 +331,6 @@ class Engine(object):
         # load base and merge user into it
         self.config.load(base_configs)
         self.config.merge(user_config)
-
-        # apply aliases
-        for alias in aliases:
-            al_config = self.config.get("aliases").get(alias, None)
-            if al_config is None:
-                raise RuntimeError("Alias '%s' is not found within configuration" % alias)
-            self.config.merge(al_config)
 
     def __prepare_provisioning(self):
         cls = self.config.get(Provisioning.PROV, "")

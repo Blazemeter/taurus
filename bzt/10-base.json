@@ -62,7 +62,7 @@
     "default-executor": "jmeter",
     "aggregator": "consolidator"
   },
-  "aliases": {
+  "cli-aliases": {
     "report": {
       "reporting": [
         "blazemeter"

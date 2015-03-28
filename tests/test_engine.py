@@ -18,7 +18,8 @@ class TestEngine(BZTestCase):
             __dir__() + "/json/jmx.json",
             self.paths
         ]
-        self.obj.prepare(configs, [])
+        self.obj.configure(configs)
+        self.obj.prepare()
         self.obj.run()
         self.obj.post_process()
 
@@ -29,7 +30,9 @@ class TestEngine(BZTestCase):
             __dir__() + "/json/reporting.json",
             self.paths
         ]
-        self.obj.prepare(configs, [])
+        self.obj.configure(configs)
+        self.obj.prepare()
+        self.obj.prepare()
         self.obj.run()
         self.obj.post_process()
 
@@ -40,7 +43,8 @@ class TestEngine(BZTestCase):
             __dir__() + "/json/reporting.json",
             self.paths
         ]
-        self.obj.prepare(configs, [])
+        self.obj.configure(configs)
+        self.obj.prepare()
         self.obj.run()
         self.obj.post_process()
 
@@ -51,7 +55,8 @@ class TestEngine(BZTestCase):
             __dir__() + "/json/loadosophia.json",
             self.paths
         ]
-        self.obj.prepare(configs, [])
+        self.obj.configure(configs)
+        self.obj.prepare()
         self.obj.run()
         try:
             self.obj.post_process()
@@ -64,7 +69,8 @@ class TestEngine(BZTestCase):
             __dir__() + "/json/grinder.json",
             self.paths
         ]
-        self.obj.prepare(configs, [])
+        self.obj.configure(configs)
+        self.obj.prepare()
         self.obj.run()
         self.obj.post_process()
 
@@ -74,6 +80,7 @@ class TestEngine(BZTestCase):
             __dir__() + "/json/gatling.json",
             self.paths
         ]
-        self.obj.prepare(configs, [])
+        self.obj.configure(configs)
+        self.obj.prepare()
         self.obj.run()
         self.obj.post_process()

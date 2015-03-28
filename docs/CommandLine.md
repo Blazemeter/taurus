@@ -17,7 +17,7 @@ Taurus tool consumes configuration files as input format (start learning its syn
   3. all command-line passed configs (like `bzt config-1.yml config-2.json`) are added to list after per-user config
   4. all command-line option overrides (like `bzt -o execution.0.scenario=my-test`) are placed into temporary file and added to the end of the list
   5. files list is loaded according to the [merge rules](ConfigSyntax.md#multiple-files-merging-rules)
-  6. aliases applied 
+  6. aliases applied - `TODO`
 
 Note that per-user config will not be copied into artifact directories, so those files are recommended to put API keys and tokens to improve security. Also it is convenient place to set paths to tools and your favorite preferences.
 

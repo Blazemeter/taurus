@@ -105,20 +105,21 @@ class CLI(object):
         :type configs: list
         :return: integer exit code
         """
-        # FIXME: it should not be collected as artifact!
-        user_file = os.path.expanduser('~') + os.path.sep + ".bzt-rc"
-        if os.path.isfile(user_file):
-            self.log.debug("Adding personal config: %s", user_file)
-            configs.insert(0, user_file)
-        else:
-            self.log.info("No personal config: %s", user_file)
-
         overrides = []
         try:
             overrides = self.__get_config_overrides()
             configs.extend(overrides)
             logging.info("Starting with configs: %s", configs)
-            self.engine.prepare(configs, self.options.aliases)
+            self.engine.configure(configs)
+
+            # apply aliases
+            for alias in self.options.aliases:
+                al_config = self.engine.config.get("cli-aliases").get(alias, None)
+                if al_config is None:
+                    raise RuntimeError("Alias '%s' is not found within configuration" % alias)
+                self.engine.config.merge(al_config)
+
+            self.engine.prepare()
             self.engine.run()
             exit_code = 0
         except BaseException, exc:

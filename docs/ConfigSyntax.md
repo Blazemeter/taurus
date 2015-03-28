@@ -8,7 +8,6 @@ Configuration dictionary has several top-level keys:
  - [`modules`](#modules-settings) - list of classes to load and their respective settings
  - [`settings`](#top-level-settings) - some top-level settings for the tool
  - `provisioning` - advanced option, allows using resources other than local to have distributed high-load test, available if you have corresponding provider installed and configured
- - `aliases` - TODO
  
  
 Example for config that touches all sections:
