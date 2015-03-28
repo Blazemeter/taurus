@@ -124,16 +124,13 @@ Like it always happens with tools that focused on _executing_ tests, they are un
 
 ![BlazeMeter Report](blazemeter.png)
 
-To enable results feeding, you need to specify following reporter config, its `test` option specifies test name to use:
+### Anonymous Usage
 
-```yaml
----
-reporting:
-  - module: blazemeter
-    test: Taurus Demo
-```
+The simpliest way to get a taste of BlazeMeter reporting is to use `-report` command-line switch. This will enable result feeding to service without any other settings required. You will receive the link for your report in the console text, and the link will be automatically opened in your default browser, see `browser-open` option for more tuning.
 
-Also you need to get API token from BlazeMeter.com (find it under your [Settings => API Key](https://a.blazemeter.com/app/#settings/api-key)) and put it into `token` option:
+### Personalized Usage
+
+If you want the results to be stored in your existing BlazeMeter account, you'll need to specify the reporting settings in your configuration file.Get the API token from BlazeMeter.com (find it under your [Settings => API Key](https://a.blazemeter.com/app/#settings/api-key)) and put it into `token` option:
 
 ```yaml
 ---
@@ -144,15 +141,24 @@ modules:
 
 It is highly recommended to place the token setting in your personal [per-user config](CommandLine.md#configuration-files-processing) `~/.bzt-rc` to prevent it from being logged and collected in artifacts.
 
+Now you can use `-report` command-line switch, or you can set BlazeMeter reporting as part of your config, the `test` option specifies test name to use:
+
+```yaml
+---
+reporting:
+  - module: blazemeter
+    test: Taurus Demo
+```
+
 Advanced settings:
 ```yaml
 ---
 modules:
   blazemeter:
     address: https://a.blazemeter.com  # reporting service address
+    browser-open: start  # auto-open the report in browser, possible values are "start", "end", "both"
     bulk-size: 5  # send data each n-th second
     timeout: 5  # connect and request timeout for BlazeMeter API
-    browser-open: start  # auto-open the report in browser, possible values are "start", "end", "both"
 ```
 
 
