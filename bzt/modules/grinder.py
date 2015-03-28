@@ -52,7 +52,7 @@ class GrinderExecutor(ScenarioExecutor):
 
     def __write_base_props(self, fds):
         # base props file
-        base_props_file = self.settings.get("properties_file", "")
+        base_props_file = self.settings.get("properties-file", "")
         if base_props_file:
             fds.write("# Base Properies File Start: %s\n" % base_props_file)
             with open(base_props_file) as bpf:
@@ -112,8 +112,6 @@ class GrinderExecutor(ScenarioExecutor):
         :return:
         """
         scenario = self.get_scenario()
-        # TODO: install the tool if missing, just like JMeter
-
 
         self.__check_grinder()
 
@@ -144,12 +142,8 @@ class GrinderExecutor(ScenarioExecutor):
         """
         Should start the tool as fast as possible.
         """
-        # cmdline = "java -classpath " + os.path.dirname(__file__)
-        # cmdline += os.path.pathsep + os.path.realpath(self.settings.get("path"))
-        # cmdline += os.path.sep + "lib" + os.path.sep + "grinder.jar"
-        # cmdline += " net.grinder.Grinder " + self.properties_file
-
-        cmdline = "java -classpath " + self.settings.get("path")
+        cmdline = "java -classpath " + os.path.dirname(__file__)
+        cmdline += os.path.pathsep + os.path.realpath(self.settings.get("path"))
         cmdline += " net.grinder.Grinder " + self.properties_file
 
         self.start_time = time.time()
@@ -175,14 +169,12 @@ class GrinderExecutor(ScenarioExecutor):
                 self.log.info("Grinder exit code: %s", self.retcode)
                 raise RuntimeError("Grinder exited with non-zero code")
 
-            # FIXME: restore this check
-            """
             if self.kpi_file:
                 if not os.path.exists(self.kpi_file) \
                         or not os.path.getsize(self.kpi_file):
                     msg = "Empty results log, most likely the tool failed: %s"
                     raise RuntimeWarning(msg % self.kpi_file)
-            """
+
             return True
         return False
 
