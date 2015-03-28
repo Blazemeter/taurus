@@ -50,7 +50,6 @@ class PassFailStatus(Reporter, AggregatorListener):
             if crit.is_triggered and not crit.stop and crit.fail:
                 raise AutomatedShutdown("%s" % crit)
 
-
     def check(self):
         """
         Check if we should stop
@@ -89,7 +88,8 @@ class FailCriteria(object):
     negate condition
 
     + percentage and absolute count => criteria-specific
-    a way to inform other modules about the reason and mark the moment of start counting and trigger countdown for windowed
+    a way to inform other modules about the reason and mark the moment of start counting
+    and trigger countdown for windowed
 
     :type config: dict
     """

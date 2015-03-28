@@ -538,8 +538,9 @@ class Configuration(BetterDict):
                 obj[key] = '*' * 8
 
     def __ensure_list_capacity(self, pointer, part, next_part=None):
-        if isinstance(pointer, list):
+        if isinstance(pointer, list) and isinstance(part, int):
             while len(pointer) <= part:
+                self.log.debug("Len %s less than %s", len(pointer), part)
                 if type(next_part) == int:
                     pointer.append([])
                 else:
