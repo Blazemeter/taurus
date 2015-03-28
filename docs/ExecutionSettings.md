@@ -91,6 +91,7 @@ If there is no JMeter installed at the configured `path`, Taurus will attempt to
 this location, by default `~/jmeter-taurus/bin/jmeter`. You can change this setting to your preferred JMeter location (consider putting it into `~/.bzt-rc` file). All module settings that relates to JMeter path and auto-installing are listed below:
  
 ```yaml
+---
 modules:
   jmeter:
     path: ~/jmeter-taurus/bin/jmeter
@@ -101,6 +102,7 @@ modules:
 
 #### Run Existing JMX File
 ```yaml
+---
 execution:
   scenario:
     script: tests/jmx/dummy.jmx
@@ -113,6 +115,7 @@ There are two places to specify JMeter properties: global at module-level and lo
 
 Global properties are set like this:
 ```yaml
+---
 modules:
   jmeter:
     properties:
@@ -122,6 +125,7 @@ modules:
 
 Scenario-level properties are set like this:
 ```yaml
+---
 execution:
   scenario: 
     properties:
@@ -132,6 +136,7 @@ execution:
 #### Open JMeter GUI
 When you want to verify or debug the JMX file that were generated from your requests scenario, you don't need to search for the file on disk, just enable GUI mode for JMeter module:
 ```yaml
+---
 modules:
   jmeter:
     gui: false  # set it to true to open JMeter GUI instead of running non-GUI test
@@ -142,9 +147,10 @@ For the command-line, use `-o modules.jmeter.gui=true`, without the need to edit
 
 #### Modifications for Existing Scripts
 
-JMeter executor allows you to apply some modifications to the JMX file before running JMeter (this affects both existing and generated from request JMXes):
+JMeter executor allows you to apply some modifications to the JMX file before running JMeter (this affects both existing JMXes and generated from requests):
 
 ```yaml
+---
 execution:
   scenario:
     script: tests/jmx/dummy.jmx
@@ -163,16 +169,16 @@ execution:
 
 configuration options:
 
- - "path": "/somepath/folder/bin/gatling_executable"
+ - `path`: "/somepath/folder/bin/gatling_executable"
     Path to Gatling executable.
     If no Gatling executable found, it will be automatically downloaded and installed in "path".
     By default "~/gatling-taurus/bin/gatling.sh".
     
- - "download-link":"http://somehost/gatling-charts-highcharts-bundle-{version}-bundle.zip"
+ - `download-link`:"http://somehost/gatling-charts-highcharts-bundle-{version}-bundle.zip"
     Link to download Gatling.
     By default: "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip"
     
- -  "version": "2.1.4"
+ -  `version`: "2.1.4"
     Gatling version, by default "2.1.4"
 
 #### Run Gatling Tool

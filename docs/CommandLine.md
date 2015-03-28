@@ -13,11 +13,12 @@ Command-line tool is named `bzt` and invoked like `bzt <options> [configs]`. Pos
 Taurus tool consumes configuration files as input format (start learning its syntax [here](ConfigSyntax.md)), it automatically detects YAML and JSON formats. Internally, all configuration files are merged into single configuration object (see merged.config artifact), and each following config overrides/appends previous. There are some special config locations that allows having per-machine and per-user configs, that will be loaded for every tool run. In general, configs load sequence is:
 
   1. `/etc/bzt.d` directory, contains per-machine configs, its contents are first in the configs list
-  2. `~/.bzt-rc` file, contained in user's home directory (holds per-user preferences) is added to list after per-machine configs
-  3. all command-line passed configs (like `bzt config-1.yml config-2.json`) are added to list after per-user config
-  4. all command-line option overrides (like `bzt -o execution.0.scenario=my-test`) are placed into temporary file and added to the end of the list
-  5. files list is loaded according to the [merge rules](ConfigSyntax.md#multiple-files-merging-rules)
-  6. aliases applied - `TODO`
+  1. `~/.bzt-rc` file, contained in user's home directory (holds per-user preferences) is added to list after per-machine configs
+  1. all command-line passed configs (like `bzt config-1.yml config-2.json`) are added to list after per-user config
+  1. all JMX shorthand configs generated and added to list (to support `bzt my-existing.jmx` launching)
+  1. all command-line option overrides (like `bzt -o execution.0.scenario=my-test`) are placed into temporary file and added to the end of the list
+  1. files list is loaded according to the [merge rules](ConfigSyntax.md#multiple-files-merging-rules)
+  1. [aliases](#aliases) applied
 
 Note that per-user config will not be copied into artifact directories, so those files are recommended to put API keys and tokens to improve security. Also it is convenient place to set paths to tools and your favorite preferences.
 
@@ -38,6 +39,24 @@ bzt -o execution.scenario.jmx=my_plan.jmx
 ```
 
 Rule for composing the override path is simple: it is built from dictionary keys and array indexes, separated by dot (`.`). If the array index is `-1` then list is appended.
+
+## Aliases
+
+There is a way to create some config chunks and apply them from command-line like this: `bzt -gui-mode -scenario1`
+Those aliases then searched in the config, in the section `cli-aliases` and applied over the configuration. Example:
+
+```yaml
+---
+cli-aliases:
+  gui-mode:
+    modules:
+      jmeter:
+        gui: true
+  scenario1:
+    scenarios:
+      my-scen:
+        script: jmx2.jmx
+```
 
 ## Artifacts
 
