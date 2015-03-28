@@ -3,7 +3,7 @@ import os
 
 from bzt.cli import CLI
 from tests import BZTestCase, __dir__
-from tests.mocks import EngineEmul
+from tests.mocks import EngineEmul, ModuleMock
 
 
 class TestCLI(BZTestCase):
@@ -22,10 +22,18 @@ class TestCLI(BZTestCase):
         self.assertEquals(0, ret)
 
     def test_perform_overrides(self):
+        self.option.append("modules.mock=" + ModuleMock.__module__ + "." + ModuleMock.__name__)
+        self.option.append("provisioning=mock")
+        self.option.append("test.subkey2.0.sskey=value")
+        self.option.append("test.subkey.0=value")
+        ret = self.obj.perform([])
+        self.assertEquals(0, ret)
+
+    def test_perform_overrides_fail(self):
         self.option.append("test.subkey2.0.sskey=value")
         self.option.append("test.subkey.0=value")
         ret = self.obj.perform([__dir__() + "/json/mock_normal.json"])
-        self.assertEquals(0, ret)
+        self.assertEquals(1, ret)
 
     def test_perform_prepare_err(self):
         ret = self.obj.perform([__dir__() + "/json/mock_prepare_err.json"])
