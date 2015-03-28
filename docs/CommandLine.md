@@ -21,7 +21,7 @@ Taurus tool consumes configuration files as input format (start learning its syn
 
 Note that per-user config will not be copied into artifact directories, so those files are recommended to put API keys and tokens to improve security. Also it is convenient place to set paths to tools and your favorite preferences.
 
-
+There is special shorthand for JMeter JMX test plans: if a config filename ends with `.jmx`, an execution for JMeter with existing script will be generated. This allows using Taurus just like `bzt test1.jmx test2.jmx`.
 
 ## Command-Line Options Override
  
@@ -37,7 +37,7 @@ Like this to launch existing JMX with no modifications:
 bzt -o execution.scenario.jmx=my_plan.jmx
 ```
 
-Rule for composing the override path is simple: it is built from dictionary keys and array indexes, separated by dot (`.`).
+Rule for composing the override path is simple: it is built from dictionary keys and array indexes, separated by dot (`.`). If the array index is `-1` then list is appended.
 
 ## Artifacts
 

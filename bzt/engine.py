@@ -559,7 +559,7 @@ class Configuration(BetterDict):
 
                 if type(part) == int:
                     pointer = pointer[part]
-                elif type(parts[index + 1]) == int:
+                elif type(parts[index + 1]) == int and isinstance(pointer, dict):
                     pointer = pointer.get(part, [])
                 else:
                     pointer = pointer.get(part)

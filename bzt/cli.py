@@ -28,7 +28,7 @@ import traceback
 from colorlog import ColoredFormatter
 
 from bzt import ManualShutdown, NormalShutdown, version
-from bzt.engine import Engine
+from bzt.engine import Engine, Configuration
 from bzt.utils import run_once
 
 
@@ -106,9 +106,14 @@ class CLI(object):
         :return: integer exit code
         """
         overrides = []
+        jmx_shorthands = []
         try:
+            jmx_shorthands = self.__get_jmx_shorthands(configs)
+            configs.extend(jmx_shorthands)
+
             overrides = self.__get_config_overrides()
             configs.extend(overrides)
+
             logging.info("Starting with configs: %s", configs)
             self.engine.configure(configs)
 
@@ -134,7 +139,7 @@ class CLI(object):
             exit_code = 1
         finally:
             try:
-                for fname in overrides:
+                for fname in overrides + jmx_shorthands:
                     os.remove(fname)
                 self.engine.post_process()
             except BaseException, exc:
@@ -160,13 +165,34 @@ class CLI(object):
     def __get_config_overrides(self):
         if self.options.option:
             self.log.debug("Adding overrides: %s", self.options.option)
-            fds, fname = tempfile.mkstemp(".ini", "overrides_",
-                                          dir=self.engine.artifacts_base_dir)
+            fds, fname = tempfile.mkstemp(".ini", "overrides_", dir=self.engine.artifacts_base_dir)
             os.close(fds)
             with open(fname, 'w') as fds:
                 fds.write("[DEFAULT]\n")
                 for option in self.options.option:
                     fds.write(option + "\n")
+            return [fname]
+        else:
+            return []
+
+    def __get_jmx_shorthands(self, configs):
+        jmxes = []
+        for n, filename in enumerate(configs):
+            if filename.lower().endswith(".jmx"):
+                jmxes.append(configs.pop(n))
+
+        if jmxes:
+            self.log.debug("Adding JMX shorthand config for: %s", jmxes)
+            fds, fname = tempfile.mkstemp(".json", "jmxes_", dir=self.engine.artifacts_base_dir)
+            os.close(fds)
+
+            config = Configuration()
+
+            for jmx_file in jmxes:
+                config.get("execution", []).append({"executor": "jmeter", "scenario": {"script": jmx_file}})
+
+            config.dump(fname, Configuration.JSON)
+
             return [fname]
         else:
             return []

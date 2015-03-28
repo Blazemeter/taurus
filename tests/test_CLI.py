@@ -11,13 +11,19 @@ class TestCLI(BZTestCase):
         super(TestCLI, self).setUp()
         self.log = os.path.dirname(__file__) + "/../build/bzt.log"
         self.verbose = True
-        self.option = ["test.subkey2.0.sskey=value", "test.subkey.0=value"]
+        self.option = []
         self.datadir = os.path.dirname(__file__) + "/../build/acli"
         self.obj = CLI(self)
         self.aliases = []
         self.obj.engine = EngineEmul()
 
     def test_perform_normal(self):
+        ret = self.obj.perform([__dir__() + "/json/mock_normal.json"])
+        self.assertEquals(0, ret)
+
+    def test_perform_overrides(self):
+        self.option.append("test.subkey2.0.sskey=value")
+        self.option.append("test.subkey.0=value")
         ret = self.obj.perform([__dir__() + "/json/mock_normal.json"])
         self.assertEquals(0, ret)
 
@@ -76,3 +82,7 @@ class TestCLI(BZTestCase):
         self.assertTrue(prov.was_check)
         self.assertTrue(prov.was_shutdown)
         self.assertTrue(prov.was_postproc)
+
+    def test_jmx_shorthand(self):
+        ret = self.obj.perform([__dir__() + "/json/mock_normal.json", __dir__() + "/jmx/dummy.jmx"])
+        self.assertEquals(0, ret)
