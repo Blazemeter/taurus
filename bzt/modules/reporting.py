@@ -133,7 +133,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
             self.log.error("Cannot create file %s" % self.report_file_path)
             raise exc_obj
 
-    def __make_summary_error_report(self, summary_KPISet):
+    def __make_summary_error_report(self, summary_kpi_set):
         """
         Makes summary error report J
         :return: str
@@ -143,7 +143,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         error_report = ""  # errors with descriptions and urls (summary report)
         err_counter = 0  # used in summary report (summary report)
 
-        for error in summary_KPISet[KPISet.ERRORS]:
+        for error in summary_kpi_set[KPISet.ERRORS]:
             error_report += err_template.format(rc=error['rc'], msg=error['msg'], cnt=error['cnt'])
             urls_err_string = ""
             # enumerate urls and count errors (from Counter object)
@@ -154,7 +154,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
 
         return str(err_counter), error_report
 
-    def __make_xml_header(self, summary_KPISet):
+    def __make_xml_header(self, summary_kpi_set):
         """
         get summary KPI, generate root_xml_element and summary report for erros.
         used in __process_sample_labels
@@ -163,10 +163,10 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         """
         summary_report_template = "Success: {success}, Sample count: {throughput}, " \
                                   "Failures: {fail}, Errors: {errors}\n"
-        succ = str(summary_KPISet[KPISet.SUCCESSES])
-        throughput = str(summary_KPISet[KPISet.SAMPLE_COUNT])
-        fail = str(summary_KPISet[KPISet.FAILURES])
-        errors, error_report = self.__make_summary_error_report(summary_KPISet)
+        succ = str(summary_kpi_set[KPISet.SUCCESSES])
+        throughput = str(summary_kpi_set[KPISet.SAMPLE_COUNT])
+        fail = str(summary_kpi_set[KPISet.FAILURES])
+        errors, error_report = self.__make_summary_error_report(summary_kpi_set)
         summary_report = summary_report_template.format(success=succ, throughput=throughput, fail=fail,
                                                         errors=errors)
         summary_report += error_report
@@ -189,8 +189,8 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         # enumerate all sample-labels, blank url is a summary data
         for key in sorted(_kpiset.keys()):
             if key == "":
-                summary_KPISet = _kpiset[key]
-                root_xml_element = self.__make_xml_header(summary_KPISet)
+                summary_kpi_set = _kpiset[key]
+                root_xml_element = self.__make_xml_header(summary_kpi_set)
             else:  # if label is not blank
                 class_name, resource_name = self.__convert_label_name(key)
                 # generate <testcase> subelement
