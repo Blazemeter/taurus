@@ -183,14 +183,17 @@ modules:
 
 ![Loadosophia Report](loadosophia.png)
 
-## JUnitXML Reporter
 
-This reporter provides test results in JUnit xml format parsable by Jenkins "Junit test result report".
+## JUnit XML Reporter
+
+This reporter provides test results in JUnit xml format parsable by Jenkins [JUnit Plugin](https://wiki.jenkins-ci.org/display/JENKINS/JUnit+Plugin).
 Reporter has two options:
-- filename (full path to report file, optional. By default xunit.xml in artifacts dir)
-- data-source (which data source to use: sample-labels or pass-fail)
-If sample-labels option used, report will contain urls with test errors.
-If pass-fail option used, report will contain triggered Pass/Fail criterias.
+- `filename` (full path to report file, optional. By default `xunit.xml` in artifacts dir)
+- `data-source` (which data source to use: `sample-labels` or `pass-fail`)
+
+If `sample-labels` used as source data, report will contain urls with test errors.
+If `pass-fail` used as source data, report will contain Pass/Fail criterias information.
+
 Sample configuration:
 
 ```yaml
