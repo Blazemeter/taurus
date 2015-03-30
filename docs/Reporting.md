@@ -199,7 +199,7 @@ Sample configuration:
 ```yaml
 ---
 reporting:
-  - module junit-xml:
+  - module: junit-xml:
       filename: /path_to_file/file.xml
       data-source: pass-fail
 ```
