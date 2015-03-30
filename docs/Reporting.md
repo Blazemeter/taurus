@@ -179,17 +179,17 @@ modules:
 
 This reporter provides test results in JUnit xml format parsable by Jenkins "Junit test result report".
 Reporter has two options:
-- file-name (full path to report file, optional. By default junitxml_report.xml in artifacts dir)
-- data-source (which data source to use: finalstats or pass-fail)
-If finalstats option used, report will contain urls with test errors.
+- filename (full path to report file, optional. By default junit-xml.xml in artifacts dir)
+- data-source (which data source to use: sample-labels or pass-fail)
+If sample-labels option used, report will contain urls with test errors.
 If pass-fail option used, report will contain triggered Pass/Fail criterias.
 Sample configuration:
 
 ```yaml
-modules:
-  junitxml:
-    filename: /path_to_file/file.xml
-    data-source: pass-fail
+reporting:
+  - module junit-xml:
+      filename: /path_to_file/file.xml
+      data-source: pass-fail
 ```
 
 

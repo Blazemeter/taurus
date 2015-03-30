@@ -57,7 +57,7 @@
     "fail-criteria": {
       "class": "bzt.modules.passfail.PassFailStatus"
     },
-    "junitxml": {
+    "junit-xml": {
       "class": "bzt.modules.reporting.JUnitXMLReporter"
     }
   },
