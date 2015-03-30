@@ -59,7 +59,6 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         super(JUnitXMLReporter, self).__init__()
         self.report_file_path = None
         self.last_second = None
-        self.xml_report = None
 
     def prepare(self):
         """

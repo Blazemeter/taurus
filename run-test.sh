@@ -2,13 +2,8 @@
 
 mkdir -p build
 
-python -m nose tests \
-    --with-xunit --xunit-file=build/xunit.xml \
-    --with-coverage --cover-package=bzt \
-    --cover-xml --cover-xml-file=build/coverage/coverage.xml \
-    --cover-html --cover-html-dir=build/coverage --cover-branches \
-    -v --nocapture || echo Tests failed
+python -m nose tests.modules.test_JUnitXMLReporter --nocapture -v -x
 
 # install it under virtualenv and try
-python setup.py sdist
+#python setup.py sdist
 
