@@ -57,6 +57,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         """
         super(BlazeMeterUploader, self).prepare()
         self.client.address = self.settings.get("address", "https://a.blazemeter.com")
+        self.client.data_address = self.settings.get("data-address", "https://data.blazemeter.com")
         self.client.timeout = dehumanize_time(self.settings.get("timeout", self.client.timeout))
         self.bulk_size = self.settings.get("bulk-size", self.bulk_size)
         self.browser_open = self.settings.get("browser-open", self.browser_open)
@@ -197,6 +198,7 @@ class BlazeMeterClient(object):
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.token = None
         self.address = None
+        self.data_address = None
         self.results_url = None
         self.active_session_id = None
         self.data_signature = None
@@ -346,7 +348,7 @@ class BlazeMeterClient(object):
 
         data = {"labels": data}
 
-        url = self.address + "/submit.php?session_id=%s&signature=%s&test_id=%s&user_id=%s"
+        url = self.data_address + "/submit.php?session_id=%s&signature=%s&test_id=%s&user_id=%s"
         url = url % (self.active_session_id, self.data_signature, self.test_id, self.user_id)
         url += "&pq=0&target=labels_bulk&update=1"
         hdr = {"Content-Type": " application/json"}
