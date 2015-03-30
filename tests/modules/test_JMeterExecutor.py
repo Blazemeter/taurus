@@ -1,5 +1,4 @@
 """ test """
-import hashlib
 import json
 import time
 import os
@@ -110,20 +109,6 @@ class TestJMeterExecutor(BZTestCase):
             }
         })
         obj.prepare()
-
-    def clean_har(self):
-        def clean_cookies(visitor):
-            if isinstance(visitor, dict):
-                if "name" in visitor and visitor['name'] == 'Cookie':
-                    visitor['value'] = hashlib.md5(visitor['value']).hexdigest()
-
-                if "cookies" in visitor:
-                    for c in visitor['cookies']:
-                        c['value'] = hashlib.md5(c['value']).hexdigest()
-
-        obj = json.loads(open("har/demo.har").read())
-        BetterDict.traverse(obj, clean_cookies)
-        open("har/demo1.har", 'w').write(json.dumps(obj, indent=True))
 
     def test_install_jmeter(self):
 

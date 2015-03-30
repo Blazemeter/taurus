@@ -163,27 +163,6 @@ modules:
 ```
 
 
-## Loadosophia.org Reporting Service
-
-[Loadosophia](https://loadosophia.org/) is another results analysis and storage service and Taurus is able to feed its results into it. Currently, Loadosophia supports only JMeter results with per-execution reports, no top-level aggregate report available. To enable the integration, use following configuration file:
-
-```yaml
----
-reporting:
-  - module: loadosophia
-    project: DEFAULT  # optional, project name or project ID 
-    name: Taurus Test  # text label that will be set for the reports
-    color: red  # color flag that will be set for the report
-    
-# upload token is set through module settings
-modules:
-  loadosophia:
-    token: 'LS0tLS1CRUdJTiBSU0EgU...d2tUMkJMNUFnaHZNSjZzTUpkYytRSUpBTWVR5'
-```
-
-![Loadosophia Report](loadosophia.png)
-
-
 ## JUnit XML Reporter
 
 This reporter provides test results in JUnit xml format parsable by Jenkins [JUnit Plugin](https://wiki.jenkins-ci.org/display/JENKINS/JUnit+Plugin).

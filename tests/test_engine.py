@@ -48,21 +48,6 @@ class TestEngine(BZTestCase):
         self.obj.run()
         self.obj.post_process()
 
-    def test_loadosophia(self):
-        configs = [
-            __dir__() + "/../bzt/10-base.json",
-            __dir__() + "/json/get-post.json",
-            __dir__() + "/json/loadosophia.json",
-            self.paths
-        ]
-        self.obj.configure(configs)
-        self.obj.prepare()
-        self.obj.run()
-        try:
-            self.obj.post_process()
-        except RuntimeError:
-            pass
-
     def test_grinder(self):
         configs = [
             __dir__() + "/../bzt/10-base.json",

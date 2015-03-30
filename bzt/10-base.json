@@ -45,9 +45,6 @@
       "class": "bzt.modules.console.ConsoleStatusReporter",
       "disable": false
     },
-    "loadosophia": {
-      "class": "bzt.modules.loadosophia.Loadosophia"
-    },
     "blazemeter": {
       "class": "bzt.modules.blazemeter.BlazeMeterUploader"
     },
