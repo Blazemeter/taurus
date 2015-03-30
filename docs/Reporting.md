@@ -183,6 +183,25 @@ modules:
 
 ![Loadosophia Report](loadosophia.png)
 
+## JUnitXML Reporter
+
+This reporter provides test results in JUnit xml format parsable by Jenkins "Junit test result report".
+Reporter has two options:
+- filename (full path to report file, optional. By default xunit.xml in artifacts dir)
+- data-source (which data source to use: sample-labels or pass-fail)
+If sample-labels option used, report will contain urls with test errors.
+If pass-fail option used, report will contain triggered Pass/Fail criterias.
+Sample configuration:
+
+```yaml
+---
+reporting:
+  - module junit-xml:
+      filename: /path_to_file/file.xml
+      data-source: pass-fail
+```
+
+
 ## Results Reading and Aggregating Facility
 
 Aggregating facility module is set through general settings, by default it is: 
