@@ -24,7 +24,8 @@ class GatlingExecutor(ScenarioExecutor):
     Gatling executor module
     """
     # NOTE: will be moved to GatlingVerifier
-    DOWNLOAD_LINK = "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip"
+    DOWNLOAD_LINK = "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle/"\
+            "{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip"
     VERSION = "2.1.4"
 
     def __init__(self):
