@@ -24,6 +24,7 @@ import traceback
 import time
 import webbrowser
 import zipfile
+import six
 
 from bzt import ManualShutdown
 from bzt.engine import Reporter, AggregatorListener
@@ -318,7 +319,7 @@ class BlazeMeterClient(object):
             self._first = min(self._first, sec[DataPoint.TIMESTAMP])
             self._last = max(self._last, sec[DataPoint.TIMESTAMP])
 
-            for lbl, item in sec[DataPoint.CURRENT].iteritems():
+            for lbl, item in six.iteritems(sec[DataPoint.CURRENT]):
                 if lbl == '':
                     label = "ALL"
                 else:
@@ -335,7 +336,7 @@ class BlazeMeterClient(object):
                     data.append(json_item)
 
                 interval_item = self.__interval_json(item, sec)
-                for rc, cnt in item[KPISet.RESP_CODES].iteritems():
+                for rc, cnt in six.iteritems(item[KPISet.RESP_CODES]):
                     interval_item['rc'].append({"n": cnt, "rc": rc})
 
                 json_item['intervals'].append(interval_item)
@@ -343,15 +344,6 @@ class BlazeMeterClient(object):
                 cumul = sec[DataPoint.CUMULATIVE][lbl]
                 json_item['n'] = cumul[KPISet.SAMPLE_COUNT]
                 json_item["summary"] = self.__summary_json(cumul)
-
-                """
-                for err, cnt in item[KPISet.ERRORS].iteritems():
-                    json_item['errors'].append({
-                        "m": err[1],
-                        "rc": err[0],
-                        "count": cnt,
-                    })
-                """
 
         data = {"labels": data}
 
@@ -495,7 +487,7 @@ class BlazeMeterClient(object):
             return
 
         errors = self.__errors_skel(recent[DataPoint.TIMESTAMP], self.active_session_id, self.test_id, self.user_id)
-        for label, label_data in recent[DataPoint.CUMULATIVE].iteritems():
+        for label, label_data in six.iteritems(recent[DataPoint.CUMULATIVE]):
             if not label_data[KPISet.ERRORS]:
                 continue
 

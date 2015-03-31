@@ -31,6 +31,7 @@ import zipfile
 import sys
 
 from psutil import Popen
+import six
 
 
 if sys.version > '3':
@@ -132,7 +133,7 @@ class BetterDict(defaultdict):
         if not isinstance(src, dict):
             raise ValueError("Loaded object is not dict: %s" % src)
 
-        for key, val in src.iteritems():
+        for key, val in six.iteritems(src):
             if len(key) and key[0] == '~':  # overwrite flag
                 if key[1:] in self:
                     self.pop(key[1:])
@@ -188,7 +189,7 @@ class BetterDict(defaultdict):
         """
         if isinstance(obj, dict):
             visitor(obj)
-            for key, val in obj.iteritems():
+            for key, val in six.iteritems(obj):
                 cls.traverse(val, visitor)
         elif isinstance(obj, list):
             for val in obj:
@@ -252,7 +253,7 @@ def dict_key(dictnr, value):
     :type value: type
     :return: :raise KeyError:
     """
-    for key, val in dictnr.iteritems():
+    for key, val in six.iteritems(dictnr):
         if val == value:
             return key
     raise KeyError("Value not found in dict: %s" % value)
@@ -371,9 +372,6 @@ class JSONDumpable(object):
     pass
 
 
-import string as basestring
-
-
 class ComplexEncoder(json.JSONEncoder):
     """
     Magic class to help serialize in JSON any object.
@@ -390,7 +388,7 @@ class ComplexEncoder(json.JSONEncoder):
 
         if self.__dumpable(obj):
             res = {}
-            for key, val in obj.__dict__.iteritems():
+            for key, val in six.iteritems(obj.__dict__):
                 if not self.__dumpable(val):
                     # logging.debug("Filtered out: %s.%s", key, val)
                     pass

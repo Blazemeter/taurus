@@ -22,6 +22,7 @@ import subprocess
 from subprocess import CalledProcessError
 import traceback
 import urllib
+import six
 
 from bzt.engine import ScenarioExecutor, Scenario
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
@@ -64,7 +65,7 @@ class GrinderExecutor(ScenarioExecutor):
         base_props = self.settings.get("properties")
         if base_props:
             fds.write("# Base Properies Start\n")
-            for key, val in base_props.iteritems():
+            for key, val in six.iteritems(base_props):
                 fds.write("%s=%s\n" % (key, val))
             fds.write("# Base Properies End\n\n")
 
@@ -83,7 +84,7 @@ class GrinderExecutor(ScenarioExecutor):
         local_props = scenario.get("properties")
         if local_props:
             fds.write("# Scenario Properies Start\n")
-            for key, val in local_props.iteritems():
+            for key, val in six.iteritems(local_props):
                 fds.write("%s=%s\n" % (key, val))
             fds.write("# Scenario Properies End\n\n")
 
