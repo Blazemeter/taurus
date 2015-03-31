@@ -21,7 +21,7 @@ class TestBlazeMeterUploader(BZTestCase):
             {"marker": "second push", 'result': {'session': {"statusCode": 140, 'status': 'ENDED'}}})
         # client.results.append(None)  # second check error stats
         client.results.append({"marker": "post-proc push", 'result': {'session': {}}})
-        client.results.append(None)  # post-proc error stats
+        client.results.append({"marker": "upload1", "result": True})  # post-proc error stats
         client.results.append({"marker": "terminate", 'result': {'session': {}}})
 
         obj = BlazeMeterUploader()

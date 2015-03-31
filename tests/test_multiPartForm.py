@@ -20,7 +20,7 @@ class TestMultiPartForm(BZTestCase):
 
             fname = os.path.basename(extra_file)
             encoded = six.u("file_%s" % extra_file)
-            body.add_file_as_string(encoded, fname, file_data.decode())
+            body.add_file_as_string(encoded, fname, file_data)
 
         txt = str(body)
         logging.debug("%s", len(txt))

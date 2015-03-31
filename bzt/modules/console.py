@@ -14,6 +14,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+
 """
 Console reporting for CLI usage
 """
@@ -36,16 +37,12 @@ from urwid.font import Thin6x6Font
 from urwid.graphics import BigText
 from urwid.listbox import SimpleListWalker
 from urwid.widget import Divider
+from six import StringIO
 
 from bzt.modules.provisioning import Local
 from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.aggregator import DataPoint, KPISet
 
-
-try:
-    from StringIO import StringIO
-except ImportError:
-    from io import StringIO
 
 if platform.system() == 'Windows':
     from urwid.raw_display import Screen  # curses unavailable on windows

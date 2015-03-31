@@ -21,7 +21,6 @@ import signal
 import subprocess
 from subprocess import CalledProcessError
 import traceback
-
 import six
 
 from bzt.engine import ScenarioExecutor, Scenario
