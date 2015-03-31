@@ -22,7 +22,6 @@ import signal
 import subprocess
 from subprocess import CalledProcessError
 import traceback
-import urllib
 import platform
 
 from bzt.engine import ScenarioExecutor, Scenario
@@ -30,6 +29,11 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.utils import shell_exec
 from bzt.utils import unzip, download_progress_hook
 
+
+try:
+    from urllib import FancyURLOpener
+except ImportError:
+    from urllib.request import FancyURLopener
 
 exe_suffix = ".bat" if platform.system() == 'Windows' else ".sh"
 
@@ -198,7 +202,7 @@ class GatlingExecutor(ScenarioExecutor):
             self.log.info("Will try to install Gatling into %s", dest)
 
         # download gatling
-        downloader = urllib.FancyURLopener()
+        downloader = FancyURLopener()
         gatling_zip_path = self.engine.create_artifact("gatling-dist", ".zip")
         version = self.settings.get("version", GatlingExecutor.VERSION)
         download_link = self.settings.get("download-link", GatlingExecutor.DOWNLOAD_LINK)
