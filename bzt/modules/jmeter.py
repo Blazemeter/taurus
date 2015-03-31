@@ -86,7 +86,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         scenario = self.get_scenario()
 
-        if Scenario.SCRIPT in scenario:
+        if Scenario.SCRIPT in scenario.keys():
             self.original_jmx = self.__get_script()
             self.engine.existing_artifact(self.original_jmx)
         elif "requests" in scenario:
@@ -418,7 +418,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if not dest:
             dest = "jmeter-taurus"
         dest = os.path.abspath(dest)
-        jmeter = dest + os.path.sep + "bin" + os.path.sep + "jmeter" + exe_suffix
+        jmeter = os.path.join(dest, "bin", "jmeter" + exe_suffix)
         try:
             self.__jmeter(jmeter)
             return jmeter

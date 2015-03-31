@@ -118,8 +118,11 @@ class BetterDict(defaultdict):
             default = BetterDict()
 
         value = self.setdefault(key, default)
-        if isinstance(value, unicode):
-            return value.encode()
+        if isinstance(value, basestring):
+            if isinstance(value, str): # this is a trick for python v2/v3 compatibility
+                return value
+            else:
+                return value.encode()
         else:
             return value
 

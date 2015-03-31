@@ -4,5 +4,5 @@ python:
   - "3.2"
   - "3.3"
   - "3.4"
-install: "pip install colorlog pyyaml psutil lxml cssselect grip urwid"
+install: "pip install colorlog pyyaml psutil lxml cssselect grip urwid six"
 script: nosetests
