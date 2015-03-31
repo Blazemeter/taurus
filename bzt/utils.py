@@ -294,7 +294,7 @@ class MultiPartForm(object):
         """ add raw string file
         :type fieldname: str
         :type filename: str
-        :type body: str
+        :type body: str | bytes
         :type mimetype: str
         """
         default = 'application/octet-stream'
@@ -304,8 +304,8 @@ class MultiPartForm(object):
         if isinstance(fieldname, unicode):
             fieldname = fieldname.encode()
 
-        if isinstance(filename, unicode):
-            filename = filename.encode()
+        if not isinstance(body, str):
+            body = body.decode()
 
         self.files.append((fieldname, filename, mimetype, body))
         return
