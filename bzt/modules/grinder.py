@@ -21,13 +21,19 @@ import signal
 import subprocess
 from subprocess import CalledProcessError
 import traceback
-import urllib
+
 import six
 
 from bzt.engine import ScenarioExecutor, Scenario
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.utils import shell_exec
 from bzt.utils import unzip, download_progress_hook
+
+
+try:
+    from urllib import FancyURLOpener
+except ImportError:
+    from urllib.request import FancyURLopener
 
 
 class GrinderExecutor(ScenarioExecutor):
@@ -278,7 +284,7 @@ class GrinderExecutor(ScenarioExecutor):
         except CalledProcessError:
             self.log.info("Will try to install grinder into %s", dest)
 
-        downloader = urllib.FancyURLopener()
+        downloader = FancyURLopener()
         grinder_zip_path = self.engine.create_artifact("grinder-dist", ".zip")
         version = self.settings.get("version", GrinderExecutor.VERSION)
         download_link = self.settings.get("download-link", GrinderExecutor.DOWNLOAD_LINK)

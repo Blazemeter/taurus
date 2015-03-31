@@ -318,7 +318,7 @@ class MultiPartForm(object):
         :type fieldname: str
         """
         if not file_handle:
-            with open(filename) as fds:
+            with open(filename, 'rb') as fds:
                 body = fds.read()
             filename = os.path.basename(filename)
         else:

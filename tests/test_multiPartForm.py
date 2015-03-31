@@ -15,9 +15,12 @@ class TestMultiPartForm(BZTestCase):
 
         for extra_file in additional_files:
             extra_file = __dir__() + six.u("/data/") + extra_file
-            with open(os.path.expanduser(extra_file)) as fd:
-                fname = os.path.basename(extra_file)
-                body.add_file_as_string(six.u("file_%s" % extra_file), fname, fd.read())
+            with open(os.path.expanduser(extra_file), 'rb') as fd:
+                file_data = fd.read()
+
+            fname = os.path.basename(extra_file)
+            encoded = six.u("file_%s" % extra_file)
+            body.add_file_as_string(encoded, fname, file_data.decode())
 
         txt = str(body)
         logging.debug("%s", len(txt))

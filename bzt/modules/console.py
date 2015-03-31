@@ -467,7 +467,7 @@ class StackedGraph(Widget):
         while len(matrix) < cols:
             matrix.insert(0, '0' * rows)
         matrix = zip(*matrix)
-        matrix.reverse()
+        #matrix.reverse()
         return matrix
 
     def render(self, size, focus=False):

@@ -24,13 +24,12 @@ import signal
 import traceback
 import logging
 from subprocess import CalledProcessError
+from xml.etree.ElementTree import Element, ElementTree, XMLPullParser
 
-from lxml import etree
 from cssselect import GenericTranslator
 import six
 import urwid
 
-from lxml.etree import XMLSyntaxError, Element, ElementTree
 from bzt.engine import ScenarioExecutor, Scenario
 from bzt.modules.console import WidgetProvider
 from bzt.modules.provisioning import FileLister
@@ -517,8 +516,9 @@ class JMX(object):
         :raise RuntimeError: in case of XML parsing error
         """
         try:
-            self.tree = etree.parse(original)
-        except XMLSyntaxError as exc:
+            self.tree = ElementTree()
+            self.tree.parse(original)
+        except BaseException as exc:
             self.log.debug("XML parsing error: %s", traceback.format_exc())
             data = (original, exc.message)
             raise RuntimeError("XML parsing failed for file %s: %s" % data)
@@ -557,10 +557,9 @@ class JMX(object):
         :param filename:
         """
         self.log.debug("Saving JMX to: %s", filename)
-        with open(filename, "w") as fhd:
+        with open(filename, "wb") as fhd:
             # self.log.debug("\n%s", etree.tostring(self.tree))
-            self.tree.write(fhd, pretty_print=True, encoding="UTF-8",
-                            xml_declaration=True)
+            self.tree.write(fhd, pretty_print=True, encoding="UTF-8", xml_declaration=True)
 
     def enabled_thread_groups(self):
         """
@@ -1150,7 +1149,7 @@ class JTLErrorsReader(object):
         # http://stackoverflow.com/questions/9809469/python-sax-to-lxml-for-80gb-xml/9814580#9814580
         super(JTLErrorsReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
-        self.parser = etree.XMLPullParser(events=('end',))
+        self.parser = XMLPullParser(events=('end',))
         # context = etree.iterparse(self.fds, events=('end',))
         self.offset = 0
         self.filename = filename

@@ -17,10 +17,11 @@ limitations under the License.
 """
 
 import os
-from lxml import etree
+from xml.etree.ElementTree import ElementTree, SubElement, Element
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.passfail import PassFailStatus
+
 
 try:
     from urlparse import urlparse
@@ -80,7 +81,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
 
     def __init__(self):
         super(JUnitXMLReporter, self).__init__()
-        self.report_file_path = None
+        self.report_file_path = "junit.xml"
         self.last_second = None
 
     def prepare(self):
@@ -128,7 +129,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         """
 
         # split url on domain resource, protocol, etc
-        parsed_url = urlparse.urlparse(url)
+        parsed_url = urlparse(url)
         # remove dots from url and join all pieces on dot
         # small fix needed - better do not use blank pieces
         class_name = parsed_url.scheme + "." + parsed_url.netloc.replace(".", "_")
@@ -138,9 +139,9 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
                                   parsed_url.fragment.replace(".", "_")])
         return class_name, resource_name
 
-    def __save_report(self, etree_obj):
+    def __save_report(self, root_node):
         """
-        :param etree_obj:
+        :param root_node:
         :return:
         """
         try:
@@ -150,8 +151,11 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
                 dirname = os.path.dirname(self.report_file_path)
                 if not os.path.exists(dirname):
                     os.makedirs(dirname)
-            with open(self.report_file_path, 'w') as _fds:
-                _fds.write(etree.tostring(etree_obj, xml_declaration=True, pretty_print=True, encoding="utf-8"))
+
+            etree_obj = ElementTree(root_node)
+            with open(self.report_file_path, 'wb') as _fds:
+                etree_obj.write(_fds, xml_declaration=True, encoding="UTF-8")
+
         except BaseException as exc_obj:
             self.log.error("Cannot create file %s", self.report_file_path)
             raise exc_obj
@@ -195,12 +199,12 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         summary_report += error_report
 
         # generate xml root element <testsuite>
-        root_xml_element = etree.Element("testsuite", name="taurus_sample-labels", tests=throughput,
-                                         failures=fail, skip="0")
-        summary_test_case = etree.SubElement(root_xml_element, "testcase", class_name="summary",
-                                             name="summary_report")
-        etree.SubElement(summary_test_case, "error", type="http error",
-                         message="error statistics:").text = summary_report
+        root_xml_element = Element("testsuite", name="taurus_sample-labels", tests=throughput,
+                                   failures=fail, skip="0")
+        summary_test_case = SubElement(root_xml_element, "testcase", class_name="summary",
+                                       name="summary_report")
+        SubElement(summary_test_case, "error", type="http error",
+                   message="error statistics:").text = summary_report
 
         return root_xml_element
 
@@ -217,16 +221,16 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
             else:  # if label is not blank
                 class_name, resource_name = self.__convert_label_name(key)
                 # generate <testcase> subelement
-                test_case = etree.SubElement(root_xml_element, "testcase", classname=class_name,
-                                             name=resource_name, time="0")
+                test_case = SubElement(root_xml_element, "testcase", classname=class_name,
+                                       name=resource_name, time="0")
                 # if any errors in label report, generate <error> subelement with error description
                 if _kpiset[key][KPISet.ERRORS]:
                     for er_dict in _kpiset[key][KPISet.ERRORS]:
                         err_message = str(er_dict["rc"])
                         err_type = str(er_dict["msg"])
                         err_desc = "total errors of this type:" + str(er_dict["cnt"])
-                        etree.SubElement(test_case, "error", type=err_type,
-                                         message=err_message).text = err_desc
+                        SubElement(test_case, "error", type=err_type,
+                                   message=err_message).text = err_desc
         return root_xml_element
 
     def __process_pass_fail(self):
@@ -241,16 +245,17 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
                 for _fc in pf_obj.criterias:
                     fail_criterias.append(_fc)
         # count total failed tests, tests, create root <testsuite>
-        total_failed = str(len([_x for _x in fail_criterias if _x.is_triggered]))
+        failures = [x for x in fail_criterias if x.is_triggered and x.fail]
+        total_failed = str(len(failures))
         tests_count = str(len(fail_criterias))
-        root_xml_element = etree.Element("testsuite", name="taurus_junitxml_pass_fail", tests=tests_count,
-                                         failures=total_failed, skip="0")
+        root_xml_element = Element("testsuite", name="taurus_junitxml_pass_fail", tests=tests_count,
+                                   failures=total_failed, skip="0")
         for fc_obj in fail_criterias:
             classname = str(fc_obj)
-            fc_xml_element = etree.SubElement(root_xml_element, "testcase", classname=classname, name="")
-            if fc_obj.is_triggered:
+            fc_xml_element = SubElement(root_xml_element, "testcase", classname=classname, name="")
+            if fc_obj.is_triggered and fc_obj.fail:
                 # NOTE: we can add error description im err_element.text()
-                etree.SubElement(fc_xml_element, "error", type="criteria failed", message="")
+                SubElement(fc_xml_element, "error", type="criteria failed", message="")
 
         # FIXME: minor fix criteria representation in report
         return root_xml_element
