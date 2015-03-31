@@ -131,7 +131,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
             except KeyboardInterrupt:
                 raise
             except BaseException as exc:
-                self.log.error("Console screen failure: %s", traceback.format_exc(exc))
+                self.log.error("Console screen failure: %s", traceback.format_exc())
                 self.shutdown()
 
     def aggregated_second(self, data):

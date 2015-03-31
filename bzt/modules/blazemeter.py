@@ -96,7 +96,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         except KeyboardInterrupt:
             raise
         except BaseException as exc:
-            self.log.debug("Exception: %s", traceback.format_exc(exc))
+            self.log.debug("Exception: %s", traceback.format_exc())
             self.log.warning("Failed to start feeding: %s", exc)
 
     def __get_jtls_and_more(self):
@@ -140,7 +140,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         try:
             self.__upload_artifacts()
         except IOError as exc:
-            self.log.warning("Failed artifact upload: %s", traceback.format_exc(exc))
+            self.log.warning("Failed artifact upload: %s", traceback.format_exc())
         finally:
             try:
                 self.client.end_online()
@@ -171,20 +171,20 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
             try:
                 self.client.send_kpi_data(data, do_check)
             except IOError as exc:
-                self.log.debug("Error sending data: %s", traceback.format_exc(exc))
+                self.log.debug("Error sending data: %s", traceback.format_exc())
                 self.log.warning("Failed to send data, will retry in %s sec...", self.client.timeout)
                 try:
                     time.sleep(self.client.timeout)
                     self.client.send_kpi_data(data, do_check)
                     self.log.info("Succeeded with retry")
                 except IOError as exc:
-                    self.log.error("Fatal error sending data: %s", traceback.format_exc(exc))
+                    self.log.error("Fatal error sending data: %s", traceback.format_exc())
                     self.log.warning("Will skip failed data and continue running")
 
             try:
                 self.client.send_error_summary(data)
             except IOError as exc:
-                self.log.debug("Failed sending error summary: %s", traceback.format_exc(exc))
+                self.log.debug("Failed sending error summary: %s", traceback.format_exc())
                 self.log.warning("Failed to send error summary: %s", exc)
 
     def aggregated_second(self, data):
