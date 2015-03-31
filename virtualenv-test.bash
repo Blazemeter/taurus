@@ -5,7 +5,7 @@ virtualenv --clear --system-site-packages build
 source build/bin/activate
 
 # install depends
-pip install colorlog pyyaml psutil lxml cssselect grip nose
+pip install colorlog pyyaml psutil lxml cssselect grip nose urwid coverage
 
 # run unit tests
 ./run-test.sh
