@@ -28,6 +28,7 @@ import urllib
 
 from lxml import etree
 from cssselect import GenericTranslator
+import six
 import urwid
 
 from lxml.etree import XMLSyntaxError, Element, ElementTree
@@ -104,7 +105,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.log.debug("Additional properties: %s", props)
             props_file = self.engine.create_artifact("jmeter-bzt", ".properties")
             with open(props_file, 'w') as fds:
-                for key, val in props.iteritems():
+                for key, val in six.iteritems(props):
                     fds.write("%s=%s\n" % (key, val))
             self.properties_file = props_file
 
@@ -354,7 +355,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :type jmx: JMX
         """
         modifs = self.get_scenario().get("modifications")
-        for action, items in modifs.iteritems():
+        for action, items in six.iteritems(modifs):
             if action in ('disable', 'enable'):
                 if not isinstance(items, list):
                     modifs[action] = [items]
@@ -362,7 +363,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 for name in items:
                     jmx.set_enabled("[testname='%s']" % name, True if action == 'enable' else False)
             elif action == 'set-prop':
-                for path, text in items.iteritems():
+                for path, text in six.iteritems(items):
                     parts = path.split('>')
                     if len(parts) < 2:
                         raise ValueError("Property selector must have at least 2 levels")
@@ -595,7 +596,7 @@ class JMX(object):
         value = Element("value")
         value.set("class", "SampleSaveConfiguration")
 
-        for key, val in flags.iteritems():
+        for key, val in six.iteritems(flags):
             value.append(JMX._flag(key, val))
         obj_prop = Element("objProp")
         obj_prop.append(name)
@@ -815,7 +816,7 @@ class JMX(object):
         mgr = Element("HeaderManager", guiclass="HeaderPanel", testclass="HeaderManager", testname="Headers")
 
         coll_prop = Element("collectionProp", name="HeaderManager.headers")
-        for hname, hval in hdict.iteritems():
+        for hname, hval in six.iteritems(hdict):
             header = Element("elementProp", name="", elementType="Header")
             header.append(JMX._string_prop("Header.name", hname))
             header.append(JMX._string_prop("Header.value", hval))
@@ -1122,7 +1123,7 @@ class JTLReader(ResultsReader):
         for point in super(JTLReader, self)._calculate_datapoints(final_pass):
             data = self.errors_reader.get_data(point[DataPoint.TIMESTAMP])
 
-            for label, label_data in point[DataPoint.CURRENT].iteritems():
+            for label, label_data in six.iteritems(point[DataPoint.CURRENT]):
                 if label in data:
                     label_data[KPISet.ERRORS] = data[label]
                 else:
@@ -1217,7 +1218,7 @@ class JTLErrorsReader(object):
             if ts > max_ts:
                 break
             labels = self.buffer.pop(ts)
-            for label, label_data in labels.iteritems():
+            for label, label_data in six.iteritems(labels):
                 res = result.get(label, [])
                 for err_item in label_data:
                     KPISet.inc_list(res, ('msg', err_item['msg']), err_item)

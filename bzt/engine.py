@@ -30,6 +30,7 @@ from json import encoder
 import sys
 
 import psutil
+import six
 import yaml
 from yaml.representer import SafeRepresenter
 
@@ -516,7 +517,7 @@ class Configuration(BetterDict):
         """
         if isinstance(obj, dict):
             result = ''
-            for key, val in obj.iteritems():
+            for key, val in six.iteritems(obj):
                 result += cls.__dict_to_overrides(val, '%s.%s' % (path, key))
             return result
         elif isinstance(obj, list):
