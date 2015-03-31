@@ -24,7 +24,6 @@ import signal
 import traceback
 import logging
 from subprocess import CalledProcessError
-from xml.etree.ElementTree import Element, ElementTree, XMLPullParser
 
 from cssselect import GenericTranslator
 import six
@@ -37,6 +36,14 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataP
 from bzt.utils import shell_exec, ensure_is_dict, humanize_time, dehumanize_time, BetterDict, \
     guess_csv_delimiter, unzip, download_progress_hook
 
+
+try:
+    from lxml import etree
+except ImportError:
+    try:
+        import cElementTree as etree
+    except ImportError:
+        import elementtree.ElementTree as etree
 
 try:
     from urllib import URLopener
@@ -68,7 +75,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.retcode = None
         self.reader = None
         self.widget = None
-
 
     def prepare(self):
         """
@@ -294,14 +300,14 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.kpi_jtl = self.engine.create_artifact("kpi", ".jtl")
         kpil = jmx.new_kpi_listener(self.kpi_jtl)
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, kpil)
-        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, Element("hashTree"))
+        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
 
         # NOTE: maybe have option not to write it, since it consumes drive space
         # TODO: option to enable full trace JTL for all requests
         self.errors_jtl = self.engine.create_artifact("errors", ".jtl")
         errs = jmx.new_errors_listener(self.errors_jtl)
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, errs)
-        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, Element("hashTree"))
+        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
 
         prefix = "modified_" + os.path.basename(original)
         filename = self.engine.create_artifact(prefix, ".jmx")
@@ -492,16 +498,16 @@ class JMX(object):
         if original:
             self.load(original)
         else:
-            root = Element("jmeterTestPlan")
-            self.tree = ElementTree(root)
+            root = etree.Element("jmeterTestPlan")
+            self.tree = etree.ElementTree(root)
 
-            test_plan = Element("TestPlan", guiclass="TestPlanGui",
-                                testname="BZT Generated Test Plan",
-                                testclass="TestPlan")
+            test_plan = etree.Element("TestPlan", guiclass="TestPlanGui",
+                                      testname="BZT Generated Test Plan",
+                                      testclass="TestPlan")
 
-            htree = Element("hashTree")
+            htree = etree.Element("hashTree")
             htree.append(test_plan)
-            htree.append(Element("hashTree"))
+            htree.append(etree.Element("hashTree"))
             self.append("jmeterTestPlan", htree)
 
             element_prop = self._get_arguments_panel(
@@ -516,11 +522,11 @@ class JMX(object):
         :raise RuntimeError: in case of XML parsing error
         """
         try:
-            self.tree = ElementTree()
+            self.tree = etree.ElementTree()
             self.tree.parse(original)
         except BaseException as exc:
             self.log.debug("XML parsing error: %s", traceback.format_exc())
-            data = (original, exc.message)
+            data = (original, exc)
             raise RuntimeError("XML parsing failed for file %s: %s" % data)
 
     def get(self, selector):
@@ -579,7 +585,7 @@ class JMX(object):
         :param bool_value:
         :return:
         """
-        elm = Element(flag_name)
+        elm = etree.Element(flag_name)
         elm.text = "true" if bool_value else "false"
         return elm
 
@@ -591,24 +597,24 @@ class JMX(object):
         :param filename:
         :return:
         """
-        jtl = Element("stringProp", {"name": "filename"})
+        jtl = etree.Element("stringProp", {"name": "filename"})
         jtl.text = filename
 
-        name = Element("name")
+        name = etree.Element("name")
         name.text = "saveConfig"
-        value = Element("value")
+        value = etree.Element("value")
         value.set("class", "SampleSaveConfiguration")
 
         for key, val in six.iteritems(flags):
             value.append(JMX._flag(key, val))
-        obj_prop = Element("objProp")
+        obj_prop = etree.Element("objProp")
         obj_prop.append(name)
         obj_prop.append(value)
 
-        kpi_listener = Element("ResultCollector",
-                               testname=label,
-                               testclass="ResultCollector",
-                               guiclass="SimpleDataWriter")
+        kpi_listener = etree.Element("ResultCollector",
+                                     testname=label,
+                                     testclass="ResultCollector",
+                                     guiclass="SimpleDataWriter")
         kpi_listener.append(jtl)
         kpi_listener.append(obj_prop)
         return kpi_listener
@@ -693,11 +699,11 @@ class JMX(object):
         :param name:
         :return:
         """
-        return Element("elementProp",
-                       name=name,
-                       elementType="Arguments",
-                       guiclass="ArgumentsPanel",
-                       testclass="Arguments")
+        return etree.Element("elementProp",
+                             name=name,
+                             elementType="Arguments",
+                             guiclass="ArgumentsPanel",
+                             testclass="Arguments")
 
     @staticmethod
     def _get_http_request(url, label, method, timeout, body):
@@ -709,15 +715,15 @@ class JMX(object):
         :type url: str
         :rtype: lxml.etree.Element
         """
-        proxy = Element("HTTPSamplerProxy", guiclass="HttpTestSampleGui",
-                        testclass="HTTPSamplerProxy")
+        proxy = etree.Element("HTTPSamplerProxy", guiclass="HttpTestSampleGui",
+                              testclass="HTTPSamplerProxy")
         proxy.set("testname", label)
 
         args = JMX._get_arguments_panel("HTTPsampler.Arguments")
         if body is not None:
             proxy.append(JMX._bool_prop("HTTPSampler.postBodyRaw", True))
-            coll_prop = Element("collectionProp", name="Arguments.arguments")
-            header = Element("elementProp", name="", elementType="HTTPArgument")
+            coll_prop = etree.Element("collectionProp", name="Arguments.arguments")
+            header = etree.Element("elementProp", name="", elementType="HTTPArgument")
             header.append(JMX._string_prop("Argument.value", body))
             coll_prop.append(header)
             args.append(coll_prop)
@@ -740,7 +746,7 @@ class JMX(object):
         :param value:
         :return:
         """
-        res = Element("stringProp", name=name)
+        res = etree.Element("stringProp", name=name)
         res.text = str(value)
         return res
 
@@ -753,7 +759,7 @@ class JMX(object):
         :param value:
         :return:
         """
-        res = Element("longProp", name=name)
+        res = etree.Element("longProp", name=name)
         res.text = str(value)
         return res
 
@@ -766,7 +772,7 @@ class JMX(object):
         :param value:
         :return:
         """
-        res = Element("boolProp", name=name)
+        res = etree.Element("boolProp", name=name)
         res.text = 'true' if value else 'false'
         return res
 
@@ -780,13 +786,13 @@ class JMX(object):
         :param concurrency:
         :return:
         """
-        trg = Element("ThreadGroup", guiclass="ThreadGroupGui",
-                      testclass="ThreadGroup", testname="TG")
-        loop = Element("elementProp",
-                       name="ThreadGroup.main_controller",
-                       elementType="LoopController",
-                       guiclass="LoopControlPanel",
-                       testclass="LoopController")
+        trg = etree.Element("ThreadGroup", guiclass="ThreadGroupGui",
+                            testclass="ThreadGroup", testname="TG")
+        loop = etree.Element("elementProp",
+                             name="ThreadGroup.main_controller",
+                             elementType="LoopController",
+                             guiclass="LoopControlPanel",
+                             testclass="LoopController")
         loop.append(JMX._bool_prop("LoopController.continue_forever", False))
         if not iterations:
             iterations = 1
@@ -816,11 +822,11 @@ class JMX(object):
         :type hdict: dict[str,str]
         :rtype: lxml.etree.Element
         """
-        mgr = Element("HeaderManager", guiclass="HeaderPanel", testclass="HeaderManager", testname="Headers")
+        mgr = etree.Element("HeaderManager", guiclass="HeaderPanel", testclass="HeaderManager", testname="Headers")
 
-        coll_prop = Element("collectionProp", name="HeaderManager.headers")
+        coll_prop = etree.Element("collectionProp", name="HeaderManager.headers")
         for hname, hval in six.iteritems(hdict):
-            header = Element("elementProp", name="", elementType="Header")
+            header = etree.Element("elementProp", name="", elementType="Header")
             header.append(JMX._string_prop("Header.name", hname))
             header.append(JMX._string_prop("Header.value", hval))
             coll_prop.append(header)
@@ -832,7 +838,7 @@ class JMX(object):
         """
         :rtype: lxml.etree.Element
         """
-        mgr = Element("CacheManager", guiclass="CacheManagerGui", testclass="CacheManager", testname="Cache")
+        mgr = etree.Element("CacheManager", guiclass="CacheManagerGui", testclass="CacheManager", testname="Cache")
         return mgr
 
     @staticmethod
@@ -840,7 +846,7 @@ class JMX(object):
         """
         :rtype: lxml.etree.Element
         """
-        mgr = Element("CookieManager", guiclass="CookiePanel", testclass="CookieManager", testname="Cookies")
+        mgr = etree.Element("CookieManager", guiclass="CookiePanel", testclass="CookieManager", testname="Cookies")
         return mgr
 
     @staticmethod
@@ -850,14 +856,14 @@ class JMX(object):
         :type timeout: int
         :rtype: lxml.etree.Element
         """
-        cfg = Element("ConfigTestElement", guiclass="HttpDefaultsGui",
-                      testclass="ConfigTestElement", testname="Defaults")
+        cfg = etree.Element("ConfigTestElement", guiclass="HttpDefaultsGui",
+                            testclass="ConfigTestElement", testname="Defaults")
 
-        params = Element("elementProp",
-                         name="HTTPsampler.Arguments",
-                         elementType="Arguments",
-                         guiclass="HTTPArgumentsPanel",
-                         testclass="Arguments")
+        params = etree.Element("elementProp",
+                               name="HTTPsampler.Arguments",
+                               elementType="Arguments",
+                               guiclass="HTTPArgumentsPanel",
+                               testclass="Arguments")
         cfg.append(params)
 
         # TODO: have an option for it, with full features (include/exclude, concurrency, etc)
@@ -875,8 +881,8 @@ class JMX(object):
         :type timeout: int
         :return:
         """
-        element = Element("DurationAssertion", guiclass="DurationAssertionGui",
-                          testclass="DurationAssertion", testname="Timeout Check")
+        element = etree.Element("DurationAssertion", guiclass="DurationAssertionGui",
+                                testclass="DurationAssertion", testname="Timeout Check")
         element.append(JMX._string_prop("DurationAssertion.duration", timeout))
         return element
 
@@ -887,8 +893,8 @@ class JMX(object):
         :type delay: int
         :rtype: lxml.etree.Element
         """
-        element = Element("ConstantTimer", guiclass="ConstantTimerGui",
-                          testclass="ConstantTimer", testname="Think-Time")
+        element = etree.Element("ConstantTimer", guiclass="ConstantTimerGui",
+                                testclass="ConstantTimer", testname="Think-Time")
         element.append(JMX._string_prop("ConstantTimer.delay", delay))
         return element
 
@@ -903,8 +909,8 @@ class JMX(object):
         :type default: str
         :rtype: lxml.etree.Element
         """
-        element = Element("RegexExtractor", guiclass="RegexExtractorGui",
-                          testclass="RegexExtractor", testname="Get %s" % varname)
+        element = etree.Element("RegexExtractor", guiclass="RegexExtractorGui",
+                                testclass="RegexExtractor", testname="Get %s" % varname)
         element.append(JMX._string_prop("RegexExtractor.refname", varname))
         element.append(JMX._string_prop("RegexExtractor.regex", regexp))
         element.append(JMX._string_prop("RegexExtractor.template", template))
@@ -920,10 +926,10 @@ class JMX(object):
         :type default: str
         :rtype: lxml.etree.Element
         """
-        element = Element("com.atlantbh.jmeter.plugins.jsonutils.jsonpathextractor.JSONPathExtractor",
-                          guiclass="com.atlantbh.jmeter.plugins.jsonutils.jsonpathextractor.gui.JSONPathExtractorGui",
-                          testclass="com.atlantbh.jmeter.plugins.jsonutils.jsonpathextractor.JSONPathExtractor",
-                          testname="Get %s" % varname)
+        element = etree.Element("com.atlantbh.jmeter.plugins.jsonutils.jsonpathextractor.JSONPathExtractor",
+                                guiclass="com.atlantbh.jmeter.plugins.jsonutils.jsonpathextractor.gui.JSONPathExtractorGui",
+                                testclass="com.atlantbh.jmeter.plugins.jsonutils.jsonpathextractor.JSONPathExtractor",
+                                testname="Get %s" % varname)
         element.append(JMX._string_prop("VAR", varname))
         element.append(JMX._string_prop("JSONPATH", jsonpath))
         element.append(JMX._string_prop("DEFAULT", default))
@@ -940,8 +946,8 @@ class JMX(object):
         :rtype: lxml.etree.Element
         """
         tname = "Assert %s has %s" % ("not" if is_invert else "", [str(x) for x in contains])
-        element = Element("ResponseAssertion", guiclass="AssertionGui",
-                          testclass="ResponseAssertion", testname=tname)
+        element = etree.Element("ResponseAssertion", guiclass="AssertionGui",
+                                testclass="ResponseAssertion", testname=tname)
         if field == JMX.FIELD_HEADERS:
             fld = "Assertion.response_headers"
         elif field == JMX.FIELD_RESP_CODE:
@@ -963,7 +969,7 @@ class JMX(object):
         element.append(JMX._string_prop("Assertion.test_field", fld))
         element.append(JMX._string_prop("Assertion.test_type", mtype))
 
-        coll_prop = Element("collectionProp", name="Asserion.test_strings")
+        coll_prop = etree.Element("collectionProp", name="Asserion.test_strings")
         for string in contains:
             coll_prop.append(JMX._string_prop("", string))
         element.append(coll_prop)
@@ -980,8 +986,8 @@ class JMX(object):
         :type is_recycle: bool
         :return:
         """
-        element = Element("CSVDataSet", guiclass="TestBeanGUI",
-                          testclass="CSVDataSet", testname="CSV %s" % os.path.basename(path))
+        element = etree.Element("CSVDataSet", guiclass="TestBeanGUI",
+                                testclass="CSVDataSet", testname="CSV %s" % os.path.basename(path))
         element.append(JMX._string_prop("filename", path))
         element.append(JMX._string_prop("delimiter", delimiter))
         element.append(JMX._bool_prop("quotedData", is_quoted))
@@ -1149,7 +1155,7 @@ class JTLErrorsReader(object):
         # http://stackoverflow.com/questions/9809469/python-sax-to-lxml-for-80gb-xml/9814580#9814580
         super(JTLErrorsReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
-        self.parser = XMLPullParser(events=('end',))
+        self.parser = etree.XMLPullParser(events=('end',))
         # context = etree.iterparse(self.fds, events=('end',))
         self.offset = 0
         self.filename = filename
@@ -1288,13 +1294,13 @@ class JMeterScenarioBuilder(JMX):
         headers = self.scenario.get_headers()
         if headers:
             self.append(self.TEST_PLAN_SEL, self._get_header_mgr(headers))
-            self.append(self.TEST_PLAN_SEL, Element("hashTree"))
+            self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
         if self.scenario.get("store-cache", True):
             self.append(self.TEST_PLAN_SEL, self._get_cache_mgr())
-            self.append(self.TEST_PLAN_SEL, Element("hashTree"))
+            self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
         if self.scenario.get("store-cookie", True):
             self.append(self.TEST_PLAN_SEL, self._get_cookie_mgr())
-            self.append(self.TEST_PLAN_SEL, Element("hashTree"))
+            self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
 
     def __add_defaults(self):
         """
@@ -1307,7 +1313,7 @@ class JMeterScenarioBuilder(JMX):
 
         if timeout is not None:
             self.append(self.TEST_PLAN_SEL, self._get_http_defaults(int(1000 * dehumanize_time(timeout))))
-            self.append(self.TEST_PLAN_SEL, Element("hashTree"))
+            self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
 
     def __add_think_time(self, children, request):
         global_ttime = self.scenario.get("think-time", None)
@@ -1319,7 +1325,7 @@ class JMeterScenarioBuilder(JMX):
             ttime = None
         if ttime is not None:
             children.append(JMX._get_constant_timer(ttime))
-            children.append(Element("hashTree"))
+            children.append(etree.Element("hashTree"))
 
     def __add_extractors(self, children, request):
         extractors = request.config.get("extract-regexp", BetterDict())
@@ -1329,7 +1335,7 @@ class JMeterScenarioBuilder(JMX):
             extractor = JMX._get_extractor(varname, cfg['regexp'], '$%s$' % cfg.get('template', 1),
                                            cfg.get('match-no', 1), cfg.get('default', 'NOT_FOUND'))
             children.append(extractor)
-            children.append(Element("hashTree"))
+            children.append(etree.Element("hashTree"))
 
         jextractors = request.config.get("extract-jsonpath", BetterDict())
         for varname in jextractors:
@@ -1340,7 +1346,7 @@ class JMeterScenarioBuilder(JMX):
                 cfg['jsonpath'],
                 cfg.get('default', 'NOT_FOUND'))
             )
-            children.append(Element("hashTree"))
+            children.append(etree.Element("hashTree"))
 
     def __add_assertions(self, children, request):
         assertions = request.config.get("assert", [])
@@ -1355,7 +1361,7 @@ class JMeterScenarioBuilder(JMX):
                 assertion.get('regexp', True),
                 assertion.get('not', False)
             ))
-            children.append(Element("hashTree"))
+            children.append(etree.Element("hashTree"))
 
     def __add_requests(self):
         global_timeout = self.scenario.get("timeout", None)
@@ -1371,11 +1377,11 @@ class JMeterScenarioBuilder(JMX):
             http = JMX._get_http_request(request.url, request.label, request.method, timeout, request.body)
             self.append(self.THR_GROUP_SEL, http)
 
-            children = Element("hashTree")
+            children = etree.Element("hashTree")
             self.append(self.THR_GROUP_SEL, children)
             if request.headers:
                 children.append(JMX._get_header_mgr(request.headers))
-                children.append(Element("hashTree"))
+                children.append(etree.Element("hashTree"))
 
             self.__add_think_time(children, request)
 
@@ -1383,7 +1389,7 @@ class JMeterScenarioBuilder(JMX):
 
             if timeout is not None:
                 children.append(JMX._get_dur_assertion(timeout))
-                children.append(Element("hashTree"))
+                children.append(etree.Element("hashTree"))
 
             self.__add_extractors(children, request)
 
@@ -1398,7 +1404,7 @@ class JMeterScenarioBuilder(JMX):
 
         thread_group = JMX._get_thread_group(1, 0, 1)
         self.append(self.TEST_PLAN_SEL, thread_group)
-        self.append(self.TEST_PLAN_SEL, Element("hashTree", type="tg"))  # arbitrary trick with our own attribute
+        self.append(self.TEST_PLAN_SEL, etree.Element("hashTree", type="tg"))  # arbitrary trick with our own attribute
 
         self.__add_requests()
         self.__add_results_tree()
@@ -1414,12 +1420,12 @@ class JMeterScenarioBuilder(JMX):
         super(JMeterScenarioBuilder, self).save(filename)
 
     def __add_results_tree(self):
-        dbg_tree = Element("ResultCollector",
-                           testname="View Results Tree",
-                           testclass="ResultCollector",
-                           guiclass="ViewResultsFullVisualizer")
+        dbg_tree = etree.Element("ResultCollector",
+                                 testname="View Results Tree",
+                                 testclass="ResultCollector",
+                                 guiclass="ViewResultsFullVisualizer")
         self.append(self.TEST_PLAN_SEL, dbg_tree)
-        self.append(self.TEST_PLAN_SEL, Element("hashTree"))
+        self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
 
     def __add_datasources(self):
         sources = self.scenario.get("data-sources", [])
@@ -1433,7 +1439,7 @@ class JMeterScenarioBuilder(JMX):
                 os.path.abspath(source['path']), delimiter,
                 source.get("quoted", False), source.get("loop", True)
             ))
-            self.append(self.TEST_PLAN_SEL, Element("hashTree"))
+            self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
 
     def __guess_delimiter(self, path):
         with open(path) as fhd:
