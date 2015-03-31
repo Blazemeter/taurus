@@ -1,6 +1,6 @@
 #!/bin/sh -xe
 
-mkdir -p build
+mkdir -p build/test
 
 python -m nose tests \
     --with-xunit --xunit-file=build/xunit.xml \
