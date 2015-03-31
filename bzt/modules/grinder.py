@@ -194,7 +194,7 @@ class GrinderExecutor(ScenarioExecutor):
             time.sleep(1)
             try:
                 os.killpg(self.process.pid, signal.SIGTERM)
-            except OSError, exc:
+            except OSError as exc:
                 self.log.debug("Failed to terminate: %s", exc)
 
             if self.stdout_file:
@@ -250,7 +250,7 @@ class GrinderExecutor(ScenarioExecutor):
             try:
                 jout = subprocess.check_output(["java", '-version'], stderr=subprocess.STDOUT)
                 self.log.debug("Java check: %s", jout)
-            except BaseException, exc:
+            except BaseException as exc:
                 self.log.warn("Failed to run java: %s", traceback.format_exc(exc))
                 raise RuntimeError("The 'java' is not operable or not available. Consider installing it")
 

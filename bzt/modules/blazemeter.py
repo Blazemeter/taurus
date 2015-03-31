@@ -87,7 +87,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
                 webbrowser.open(url)
         except KeyboardInterrupt:
             raise
-        except BaseException, exc:
+        except BaseException as exc:
             self.log.debug("Exception: %s", traceback.format_exc(exc))
             self.log.warn("Failed to start feeding: %s", exc)
 
@@ -131,14 +131,14 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
 
         try:
             self.__upload_artifacts()
-        except IOError, exc:
+        except IOError as exc:
             self.log.warn("Failed artifact upload: %s", traceback.format_exc(exc))
         finally:
             try:
                 self.client.end_online()
             except KeyboardInterrupt:
                 raise
-            except BaseException, exc:
+            except BaseException as exc:
                 self.log.warn("Failed to finish online: %s", exc)
 
         if self.client.results_url:
@@ -162,20 +162,20 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         if self.client.active_session_id:
             try:
                 self.client.send_kpi_data(data, do_check)
-            except IOError, exc:
+            except IOError as exc:
                 self.log.debug("Error sending data: %s", traceback.format_exc(exc))
                 self.log.warn("Failed to send data, will retry in %s sec...", self.client.timeout)
                 try:
                     time.sleep(self.client.timeout)
                     self.client.send_kpi_data(data, do_check)
                     self.log.info("Succeeded with retry")
-                except IOError, exc:
+                except IOError as exc:
                     self.log.error("Fatal error sending data: %s", traceback.format_exc(exc))
                     self.log.warn("Will skip failed data and continue running")
 
             try:
                 self.client.send_error_summary(data)
-            except IOError, exc:
+            except IOError as exc:
                 self.log.debug("Failed sending error summary: %s", traceback.format_exc(exc))
                 self.log.warn("Failed to send error summary: %s", exc)
 

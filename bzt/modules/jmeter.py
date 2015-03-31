@@ -130,7 +130,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.start_time = time.time()
         try:
             self.process = shell_exec(cmdline)
-        except OSError, exc:
+        except OSError as exc:
             self.log.error("Failed to start JMeter: %s", traceback.format_exc(exc))
             self.log.error("Failed command: %s", cmdline)
             raise RuntimeError("Failed to start JMeter: %s" % exc)
@@ -173,7 +173,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                     os.kill(self.process.pid, signal.SIGTERM)
                 else:
                     os.killpg(self.process.pid, signal.SIGTERM)
-            except OSError, exc:
+            except OSError as exc:
                 self.log.debug("Failed to terminate jmeter: %s", exc)
 
         if self.start_time:
@@ -399,7 +399,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             try:
                 jout = subprocess.check_output(["java", '-version'], stderr=subprocess.STDOUT)
                 self.log.debug("Java check: %s", jout)
-            except BaseException, exc:
+            except BaseException as exc:
                 self.log.warn("Failed to run java: %s", traceback.format_exc(exc))
                 raise RuntimeError("The 'java' is not operable or not available. Consider installing it")
             self.settings['path'] = self.__install_jmeter(jmeter)
@@ -515,7 +515,7 @@ class JMX(object):
         """
         try:
             self.tree = etree.parse(original)
-        except XMLSyntaxError, exc:
+        except XMLSyntaxError as exc:
             self.log.debug("XML parsing error: %s", traceback.format_exc(exc))
             data = (original, exc.message)
             raise RuntimeError("XML parsing failed for file %s: %s" % data)
