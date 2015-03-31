@@ -17,7 +17,6 @@ limitations under the License.
 """
 
 import os
-from xml.etree.ElementTree import ElementTree, SubElement, Element
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.passfail import PassFailStatus
@@ -28,10 +27,13 @@ try:
 except ImportError:
     from urllib.parse import urlparse
 
-from bzt.modules.aggregator import DataPoint, KPISet
-
-from bzt.engine import Reporter, AggregatorListener
-from bzt.modules.passfail import PassFailStatus
+try:
+    from lxml import etree
+except ImportError:
+    try:
+        import cElementTree as etree
+    except ImportError:
+        import elementtree.ElementTree as etree
 
 
 class FinalStatus(Reporter, AggregatorListener):
@@ -152,7 +154,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
                 if not os.path.exists(dirname):
                     os.makedirs(dirname)
 
-            etree_obj = ElementTree(root_node)
+            etree_obj = etree.ElementTree(root_node)
             with open(self.report_file_path, 'wb') as _fds:
                 etree_obj.write(_fds, xml_declaration=True, encoding="UTF-8")
 
@@ -199,12 +201,12 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         summary_report += error_report
 
         # generate xml root element <testsuite>
-        root_xml_element = Element("testsuite", name="taurus_sample-labels", tests=throughput,
-                                   failures=fail, skip="0")
-        summary_test_case = SubElement(root_xml_element, "testcase", class_name="summary",
-                                       name="summary_report")
-        SubElement(summary_test_case, "error", type="http error",
-                   message="error statistics:").text = summary_report
+        root_xml_element = etree.Element("testsuite", name="taurus_sample-labels", tests=throughput,
+                                         failures=fail, skip="0")
+        summary_test_case = etree.SubElement(root_xml_element, "testcase", class_name="summary",
+                                             name="summary_report")
+        etree.SubElement(summary_test_case, "error", type="http error",
+                         message="error statistics:").text = summary_report
 
         return root_xml_element
 
@@ -221,16 +223,16 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
             else:  # if label is not blank
                 class_name, resource_name = self.__convert_label_name(key)
                 # generate <testcase> subelement
-                test_case = SubElement(root_xml_element, "testcase", classname=class_name,
-                                       name=resource_name, time="0")
+                test_case = etree.SubElement(root_xml_element, "testcase", classname=class_name,
+                                             name=resource_name, time="0")
                 # if any errors in label report, generate <error> subelement with error description
                 if _kpiset[key][KPISet.ERRORS]:
                     for er_dict in _kpiset[key][KPISet.ERRORS]:
                         err_message = str(er_dict["rc"])
                         err_type = str(er_dict["msg"])
                         err_desc = "total errors of this type:" + str(er_dict["cnt"])
-                        SubElement(test_case, "error", type=err_type,
-                                   message=err_message).text = err_desc
+                        etree.SubElement(test_case, "error", type=err_type,
+                                         message=err_message).text = err_desc
         return root_xml_element
 
     def __process_pass_fail(self):
@@ -248,14 +250,14 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         failures = [x for x in fail_criterias if x.is_triggered and x.fail]
         total_failed = str(len(failures))
         tests_count = str(len(fail_criterias))
-        root_xml_element = Element("testsuite", name="taurus_junitxml_pass_fail", tests=tests_count,
-                                   failures=total_failed, skip="0")
+        root_xml_element = etree.Element("testsuite", name="taurus_junitxml_pass_fail", tests=tests_count,
+                                         failures=total_failed, skip="0")
         for fc_obj in fail_criterias:
             classname = str(fc_obj)
-            fc_xml_element = SubElement(root_xml_element, "testcase", classname=classname, name="")
+            fc_xml_element = etree.SubElement(root_xml_element, "testcase", classname=classname, name="")
             if fc_obj.is_triggered and fc_obj.fail:
                 # NOTE: we can add error description im err_element.text()
-                SubElement(fc_xml_element, "error", type="criteria failed", message="")
+                etree.SubElement(fc_xml_element, "error", type="criteria failed", message="")
 
         # FIXME: minor fix criteria representation in report
         return root_xml_element

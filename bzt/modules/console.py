@@ -361,7 +361,7 @@ class DummyScreen(BaseScreen):
         for char in canvas.content():
             line = ""
             for part in char:
-                line += part[2]
+                line += part[2].decode()
             data += "%s│\n" % line
         data = self.ansi_escape.sub('', data)
         logging.info("Screen %sx%s chars:\n%s", size[0], size[1], data)
@@ -466,8 +466,8 @@ class StackedGraph(Widget):
 
         while len(matrix) < cols:
             matrix.insert(0, '0' * rows)
-        matrix = zip(*matrix)
-        #matrix.reverse()
+        matrix = list(zip(*matrix))
+        matrix.reverse()
         return matrix
 
     def render(self, size, focus=False):
