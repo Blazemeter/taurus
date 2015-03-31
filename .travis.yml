@@ -1,5 +1,5 @@
 language: python
 python:
   - "2.7"
-install: "pip install colorlog pyyaml psutil lxml cssselect grip urwid"
+install: "pip install colorlog pyyaml psutil lxml cssselect grip urwid six"
 script: nosetests

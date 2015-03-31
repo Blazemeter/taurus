@@ -12,6 +12,10 @@ from bzt.modules.provisioning import FileLister
 from bzt.modules.aggregator import ResultsReader
 from tests import random_sample
 
+try:
+    from exceptions import KeyboardInterrupt
+except ImportError:
+    from builtins import KeyboardInterrupt
 
 class EngineEmul(Engine):
     """
@@ -45,7 +49,7 @@ class ModuleMock(ScenarioExecutor, Provisioning, Reporter, FileLister):
         self.startup_exc = None
         self.shutdown_exc = None
 
-        self.check_iterations = sys.maxint
+        self.check_iterations = sys.maxsize
 
         self.was_shutdown = False
         self.was_startup = False
@@ -172,6 +176,7 @@ class MockReader(ResultsReader, AggregatorListener):
                 raise AssertionError("TS sequence wrong: %s>=%s" % (self.results[-1]["ts"], data["ts"]))
         logging.info("Data: %s", data)
         self.results.append(data)
+
 
 def download_progress_mock(blocknum, blocksize, totalsize):
     pass

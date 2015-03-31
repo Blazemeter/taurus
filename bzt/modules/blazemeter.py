@@ -210,7 +210,7 @@ class BlazeMeterClient(object):
         self.results_url = None
         self.active_session_id = None
         self.data_signature = None
-        self._first = sys.maxint
+        self._first = sys.maxsize
         self._last = 0
         self.timeout = 5
 

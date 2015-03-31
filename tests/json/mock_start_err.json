@@ -3,7 +3,7 @@
   "modules": {
     "mock1": {
       "class": "tests.mocks.ModuleMock",
-      "startup": "exceptions.KeyboardInterrupt"
+      "startup": "tests.mocks.KeyboardInterrupt"
     }
   }
 }
