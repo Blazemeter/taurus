@@ -128,7 +128,7 @@ class CLI(object):
             self.engine.prepare()
             self.engine.run()
             exit_code = 0
-        except BaseException, exc:
+        except BaseException as exc:
             self.log.debug("Caught exception in try: %s", traceback.format_exc(exc))
             if isinstance(exc, ManualShutdown):
                 self.log.info("Interrupted by user: %s", exc)
@@ -143,7 +143,7 @@ class CLI(object):
                 for fname in overrides + jmx_shorthands:
                     os.remove(fname)
                 self.engine.post_process()
-            except BaseException, exc:
+            except BaseException as exc:
                 self.log.debug("Caught exception in finally: %s", traceback.format_exc(exc))
                 self.log.error("Exception: %s", exc)
                 exit_code = 1
@@ -230,7 +230,7 @@ class OptionParserWithAliases(OptionParser, object):
         # sys.stderr.write("Rargs: %s\n" % rargs)
         try:
             return OptionParser._process_short_opts(self, rargs, values)
-        except BadOptionError, exc:
+        except BadOptionError as exc:
             if candidate.startswith(exc.opt_str) and len(candidate) > 2:
                 self.aliases.append(candidate[1:])
             else:
@@ -267,7 +267,7 @@ def main():
 
     try:
         code = executor.perform(parsed_configs)
-    except BaseException, exc_top:
+    except BaseException as exc_top:
         logging.error("Exception: %s", exc_top)
         logging.debug("Exception: %s", traceback.format_exc(exc_top))
         code = 1

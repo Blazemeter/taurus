@@ -106,7 +106,7 @@ class Engine(object):
             self.provisioning.startup()
             self.config.dump()
             self.__wait()
-        except NormalShutdown, exc:
+        except NormalShutdown as exc:
             self.log.debug("Normal shutdown called: %s", traceback.format_exc(exc))
         finally:
             self.__shutdown()
@@ -135,7 +135,7 @@ class Engine(object):
             self.aggregator.shutdown()
             for module in self.reporters:
                 module.shutdown()
-        except BaseException, exc:
+        except BaseException as exc:
             self.log.error("Error while shutting down: %s", traceback.format_exc(exc))
             raise
         finally:
@@ -150,10 +150,10 @@ class Engine(object):
         try:
             for module in [self.provisioning, self.aggregator] + self.reporters:
                 module.post_process()
-        except KeyboardInterrupt, exc:
+        except KeyboardInterrupt as exc:
             self.log.error("Shutdown: %s", exc)
             exception = exc
-        except BaseException, exc:
+        except BaseException as exc:
             self.log.error("Error while post-processing: %s", traceback.format_exc(exc))
             exception = exc
         finally:
@@ -257,7 +257,7 @@ class Engine(object):
             self.modules[alias] = load_class(clsname)
             if not issubclass(self.modules[alias], EngineModule):
                 raise TypeError("Module class does not inherit from EngineModule: %s" % clsname)
-        except BaseException, exc:
+        except BaseException as exc:
             self.log.debug("Failed to load class %s: %s", clsname, traceback.format_exc(exc))
             raise RuntimeError("Cannot load module: %s" % clsname)
 
