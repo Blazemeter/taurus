@@ -800,10 +800,11 @@ class Reporter(EngineModule):
         self.parameters = BetterDict()
 
 
-class Scenario(object):
+class Scenario(DictMixin, object):
     """
     Test scenario entity
     """
+
     SCRIPT = "script"
 
     def __init__(self, scenario=None):
@@ -824,6 +825,16 @@ class Scenario(object):
 
     def __setitem__(self, key, value):
         self.data[key] = value
+
+    def __iter__(self):
+        for x in self.data:
+            yield x
+
+    def __len__(self):
+        return len(self.data)
+
+    def __delitem__(self, key):
+        return self.data.pop(key)
 
     # TODO: add HAR file support
     def get_headers(self):

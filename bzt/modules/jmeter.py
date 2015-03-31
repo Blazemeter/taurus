@@ -24,7 +24,6 @@ import signal
 import traceback
 import logging
 from subprocess import CalledProcessError
-import urllib
 
 from lxml import etree
 from cssselect import GenericTranslator
@@ -39,6 +38,11 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataP
 from bzt.utils import shell_exec, ensure_is_dict, humanize_time, dehumanize_time, BetterDict, \
     guess_csv_delimiter, unzip, download_progress_hook
 
+
+try:
+    from urllib import URLopener
+except ImportError:
+    from urllib.request import URLopener
 
 exe_suffix = ".bat" if platform.system() == 'Windows' else ""
 
@@ -425,7 +429,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         except OSError:
             self.log.info("Will try to install JMeter into %s", dest)
 
-        downloader = urllib.URLopener()
+        downloader = URLopener()
         jmeter_dist = self.engine.create_artifact("jmeter-dist", ".zip")
         jmeter_download_link = self.settings.get("download-link", JMeterExecutor.JMETER_DOWNLOAD_LINK)
         jmeter_version = self.settings.get("version", JMeterExecutor.JMETER_VER)
