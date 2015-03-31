@@ -21,17 +21,22 @@ import json
 import logging
 import os
 import platform
-from psutil import Popen
+import random
 import re
 import shlex
 from subprocess import PIPE
-import mimetools
 import mimetypes
 import itertools
-from types import NoneType
 import zipfile
-
 import sys
+
+from psutil import Popen
+
+
+if sys.version > '3':
+    long = int
+    unicode = str
+    basestring = str
 
 
 def run_once(f):
@@ -149,7 +154,7 @@ class BetterDict(defaultdict):
                 elif isinstance(dst, dict):
                     raise ValueError("Mix of DictOfDict and dict is forbidden")
                 else:
-                    self.log.warn("Overwritten key: %s", key)
+                    self.log.warning("Overwritten key: %s", key)
                     self[key] = val
             elif isinstance(val, list):
                 self.__ensure_list_type(val)
@@ -158,7 +163,7 @@ class BetterDict(defaultdict):
                 if isinstance(self[key], list):
                     self[key].extend(val)
                 else:
-                    self.log.warn("Overridden key: %s", key)
+                    self.log.warning("Overridden key: %s", key)
                     self[key] = val
             else:
                 self[key] = val
@@ -265,7 +270,7 @@ class MultiPartForm(object):
     def __init__(self):
         self.form_fields = []
         self.files = []
-        self.boundary = mimetools.choose_boundary()
+        self.boundary = make_boundary()
         return
 
     def get_content_type(self):
@@ -366,12 +371,14 @@ class JSONDumpable(object):
     pass
 
 
+import string as basestring
+
+
 class ComplexEncoder(json.JSONEncoder):
     """
     Magic class to help serialize in JSON any object.
     """
-    TYPES = [dict, list, tuple,
-             basestring, int, long, float, bool, NoneType]
+    TYPES = [dict, list, tuple, unicode, str, int, long, float, bool, type(None)]
 
     def default(self, obj):
         """
@@ -522,3 +529,21 @@ def download_progress_hook(blocknum, blocksize, totalsize):
             sys.stderr.write("\n")
     else:
         sys.stdout.write("read %d\n" % (readsofar,))
+
+
+def make_boundary(text=None):
+    _width = len(repr(sys.maxsize - 1))
+    _fmt = '%%0%dd' % _width
+    token = random.randrange(sys.maxsize)
+    boundary = ('=' * 15) + (_fmt % token) + '=='
+    if text is None:
+        return boundary
+    b = boundary
+    counter = 0
+    while True:
+        cre = re.compile('^--' + re.escape(b) + '(--)?$', re.MULTILINE)
+        if not cre.search(text):
+            break
+        b = boundary + '.' + str(counter)
+        counter += 1
+    return b

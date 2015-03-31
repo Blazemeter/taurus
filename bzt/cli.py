@@ -136,7 +136,7 @@ class CLI(object):
                 self.log.info("Normal shutdown")
             else:
                 self.log.error("Exception: %s", exc)
-            self.log.warn("Please wait for graceful shutdown...")
+            self.log.warning("Please wait for graceful shutdown...")
             exit_code = 1
         finally:
             try:

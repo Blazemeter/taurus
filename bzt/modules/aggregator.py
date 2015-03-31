@@ -303,7 +303,7 @@ class DataPoint(BetterDict):
         :type src: DataPoint
         """
         if self[self.TIMESTAMP] != src[self.TIMESTAMP]:
-            self.log.warn("Tried to merge data for %s and %s", self[self.TIMESTAMP], src[self.TIMESTAMP])
+            self.log.warning("Tried to merge data for %s and %s", self[self.TIMESTAMP], src[self.TIMESTAMP])
             raise ValueError("Cannot merge different timestamps")
 
         self[DataPoint.SUBRESULTS].append(src)
@@ -514,7 +514,7 @@ class ConsolidatingAggregator(EngineModule, ResultsProvider):
                 if self.buffer:
                     mints = min(self.buffer.keys())
                     if tstamp < mints:
-                        self.log.warn("Putting %s into %s", tstamp, mints)
+                        self.log.warning("Putting %s into %s", tstamp, mints)
                         data[DataPoint.TIMESTAMP] = mints
                         tstamp = mints
                 self.buffer.get(tstamp, []).append(data)

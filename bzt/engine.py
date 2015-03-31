@@ -15,8 +15,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import ConfigParser
-from UserDict import DictMixin
 from collections import namedtuple
 from collections import defaultdict
 import copy
@@ -24,17 +22,35 @@ import datetime
 import json
 import logging
 import os
-import psutil
 import shutil
 import tempfile
 import time
 import traceback
+from json import encoder
+import sys
+
+import psutil
 import yaml
 from yaml.representer import SafeRepresenter
-from json import encoder
 
 from bzt import ManualShutdown, NormalShutdown
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time
+
+
+if sys.version > '3':
+    long = int
+    unicode = str
+    basestring = str
+
+try:
+    import ConfigParser
+except ImportError:
+    import configparser as ConfigParser
+
+try:
+    from UserDict import DictMixin
+except ImportError:
+    from collections import MutableMapping as DictMixin
 
 
 class Engine(object):
@@ -214,7 +230,7 @@ class Engine(object):
             return
 
         if not os.path.exists(filename):
-            self.log.warn("Artifact file not exists: %s", filename)
+            self.log.warning("Artifact file not exists: %s", filename)
             return
 
         if move:
@@ -293,7 +309,7 @@ class Engine(object):
             return filename
         elif self.file_search_path:
             location = self.file_search_path + os.path.sep + os.path.basename(filename)
-            self.log.warn("Guessed location for file %s: %s", filename, location)
+            self.log.warning("Guessed location for file %s: %s", filename, location)
             return location
         else:
             raise IOError("File not found: %s" % filename)
@@ -359,7 +375,7 @@ class Engine(object):
     def __prepare_aggregator(self):
         cls = self.config.get("settings").get("aggregator", "")
         if not cls:
-            self.log.warn("Proceeding without aggregator, no results analysis")
+            self.log.warning("Proceeding without aggregator, no results analysis")
             self.aggregator = EngineModule()
         else:
             self.aggregator = self.instantiate_module(cls)
@@ -581,7 +597,8 @@ class Configuration(BetterDict):
 
 yaml.add_representer(Configuration, SafeRepresenter.represent_dict)
 yaml.add_representer(BetterDict, SafeRepresenter.represent_dict)
-yaml.add_representer(unicode, SafeRepresenter.represent_unicode)
+if sys.version < '3':
+    yaml.add_representer(unicode, SafeRepresenter.represent_unicode)
 
 # dirty hack from http://stackoverflow.com/questions/1447287/format-floats-with-standard-json-module
 encoder.FLOAT_REPR = lambda o: format(o, '.3g')
@@ -782,7 +799,7 @@ class Reporter(EngineModule):
         self.parameters = BetterDict()
 
 
-class Scenario(object, DictMixin):
+class Scenario(object):
     """
     Test scenario entity
     """

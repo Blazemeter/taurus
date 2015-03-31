@@ -39,7 +39,8 @@ class GatlingExecutor(ScenarioExecutor):
     Gatling executor module
     """
     # NOTE: will be moved to GatlingVerifier
-    DOWNLOAD_LINK = "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip"
+    DOWNLOAD_LINK = "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle" \
+                    "/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip"
     VERSION = "2.1.4"
 
     def __init__(self):
@@ -168,13 +169,13 @@ class GatlingExecutor(ScenarioExecutor):
         try:
             self.__gatling(gatling_path)
             return
-        except (OSError, CalledProcessError), exc:
+        except (OSError, CalledProcessError) as exc:
             self.log.debug("Failed to run Gatling: %s", traceback.format_exc(exc))
             try:
                 jout = subprocess.check_output(["java", '-version'], stderr=subprocess.STDOUT)
                 self.log.debug("Java check: %s", jout)
             except BaseException as exc:
-                self.log.warn("Failed to run java: %s", traceback.format_exc(exc))
+                self.log.warning("Failed to run java: %s", traceback.format_exc(exc))
                 raise RuntimeError("The 'java' is not operable or not available. Consider installing it")
 
             self.__install_gatling(gatling_path)
@@ -214,7 +215,7 @@ class GatlingExecutor(ScenarioExecutor):
         self.log.info("Unzipping %s", gatling_zip_path)
         unzip(gatling_zip_path, dest, 'gatling-charts-highcharts-bundle-' + version)
         os.remove(gatling_zip_path)
-        os.chmod(os.path.expanduser(gatling_path), 0755)
+        os.chmod(os.path.expanduser(gatling_path), 0o755)
         self.log.info("Installed Gatling successfully")
 
 
