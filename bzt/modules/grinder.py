@@ -247,13 +247,13 @@ class GrinderExecutor(ScenarioExecutor):
             self.__grinder(grinder_path)
             return
         except (OSError, CalledProcessError) as exc:
-            self.log.debug("Failed to run grinder: %s", traceback.format_exc(exc))
+            self.log.debug("Failed to run grinder: %s", traceback.format_exc())
 
             try:
                 jout = subprocess.check_output(["java", '-version'], stderr=subprocess.STDOUT)
                 self.log.debug("Java check: %s", jout)
             except BaseException as exc:
-                self.log.warning("Failed to run java: %s", traceback.format_exc(exc))
+                self.log.warning("Failed to run java: %s", traceback.format_exc())
                 raise RuntimeError("The 'java' is not operable or not available. Consider installing it")
 
             self.settings['path'] = self.__install_grinder(grinder_path)

@@ -124,7 +124,7 @@ class Engine(object):
             self.config.dump()
             self.__wait()
         except NormalShutdown as exc:
-            self.log.debug("Normal shutdown called: %s", traceback.format_exc(exc))
+            self.log.debug("Normal shutdown called: %s", traceback.format_exc())
         finally:
             self.__shutdown()
 
@@ -153,7 +153,7 @@ class Engine(object):
             for module in self.reporters:
                 module.shutdown()
         except BaseException as exc:
-            self.log.error("Error while shutting down: %s", traceback.format_exc(exc))
+            self.log.error("Error while shutting down: %s", traceback.format_exc())
             raise
         finally:
             self.config.dump()
@@ -171,7 +171,7 @@ class Engine(object):
             self.log.error("Shutdown: %s", exc)
             exception = exc
         except BaseException as exc:
-            self.log.error("Error while post-processing: %s", traceback.format_exc(exc))
+            self.log.error("Error while post-processing: %s", traceback.format_exc())
             exception = exc
         finally:
             self.__finalize()
@@ -275,7 +275,7 @@ class Engine(object):
             if not issubclass(self.modules[alias], EngineModule):
                 raise TypeError("Module class does not inherit from EngineModule: %s" % clsname)
         except BaseException as exc:
-            self.log.debug("Failed to load class %s: %s", clsname, traceback.format_exc(exc))
+            self.log.debug("Failed to load class %s: %s", clsname, traceback.format_exc())
             raise RuntimeError("Cannot load module: %s" % clsname)
 
         return self.modules[alias]

@@ -129,7 +129,7 @@ class CLI(object):
             self.engine.run()
             exit_code = 0
         except BaseException as exc:
-            self.log.debug("Caught exception in try: %s", traceback.format_exc(exc))
+            self.log.debug("Caught exception in try: %s", traceback.format_exc())
             if isinstance(exc, ManualShutdown):
                 self.log.info("Interrupted by user: %s", exc)
             elif isinstance(exc, NormalShutdown):
@@ -144,7 +144,7 @@ class CLI(object):
                     os.remove(fname)
                 self.engine.post_process()
             except BaseException as exc:
-                self.log.debug("Caught exception in finally: %s", traceback.format_exc(exc))
+                self.log.debug("Caught exception in finally: %s", traceback.format_exc())
                 self.log.error("Exception: %s", exc)
                 exit_code = 1
 
@@ -269,7 +269,7 @@ def main():
         code = executor.perform(parsed_configs)
     except BaseException as exc_top:
         logging.error("Exception: %s", exc_top)
-        logging.debug("Exception: %s", traceback.format_exc(exc_top))
+        logging.debug("Exception: %s", traceback.format_exc())
         code = 1
 
     exit(code)

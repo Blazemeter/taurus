@@ -170,12 +170,12 @@ class GatlingExecutor(ScenarioExecutor):
             self.__gatling(gatling_path)
             return
         except (OSError, CalledProcessError) as exc:
-            self.log.debug("Failed to run Gatling: %s", traceback.format_exc(exc))
+            self.log.debug("Failed to run Gatling: %s", traceback.format_exc())
             try:
                 jout = subprocess.check_output(["java", '-version'], stderr=subprocess.STDOUT)
                 self.log.debug("Java check: %s", jout)
             except BaseException as exc:
-                self.log.warning("Failed to run java: %s", traceback.format_exc(exc))
+                self.log.warning("Failed to run java: %s", traceback.format_exc())
                 raise RuntimeError("The 'java' is not operable or not available. Consider installing it")
 
             self.__install_gatling(gatling_path)
