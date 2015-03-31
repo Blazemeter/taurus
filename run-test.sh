@@ -9,6 +9,5 @@ python -m nose tests \
     --cover-html --cover-html-dir=build/coverage --cover-branches \
     -v --nocapture || echo Tests failed
 
-# install it under virtualenv and try
 python setup.py sdist
 
