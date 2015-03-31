@@ -33,7 +33,8 @@ class GrinderExecutor(ScenarioExecutor):
     """
     Grinder executor module
     """
-    DOWNLOAD_LINK = "http://switch.dl.sourceforge.net/project/grinder/The%20Grinder%203/{version}/grinder-{version}-binary.zip"
+    DOWNLOAD_LINK = "http://switch.dl.sourceforge.net/project/grinder/The%20Grinder%203/{version}" \
+                    "/grinder-{version}-binary.zip"
     VERSION = "3.11"
 
     def __init__(self):
@@ -244,14 +245,14 @@ class GrinderExecutor(ScenarioExecutor):
         try:
             self.__grinder(grinder_path)
             return
-        except (OSError, CalledProcessError), exc:
+        except (OSError, CalledProcessError) as exc:
             self.log.debug("Failed to run grinder: %s", traceback.format_exc(exc))
 
             try:
                 jout = subprocess.check_output(["java", '-version'], stderr=subprocess.STDOUT)
                 self.log.debug("Java check: %s", jout)
             except BaseException as exc:
-                self.log.warn("Failed to run java: %s", traceback.format_exc(exc))
+                self.log.warning("Failed to run java: %s", traceback.format_exc(exc))
                 raise RuntimeError("The 'java' is not operable or not available. Consider installing it")
 
             self.settings['path'] = self.__install_grinder(grinder_path)
@@ -269,8 +270,7 @@ class GrinderExecutor(ScenarioExecutor):
         if not dest:
             dest = os.path.expanduser("~/grinder-taurus")
         dest = os.path.abspath(dest)
-        grinder_full_path = dest + os.path.sep + "lib" + os.path.sep + "grinder.jar"
-        # grinder_full_path - /home/username/grinder-taurus/grinder-3.11/lib/grinder.jar
+        grinder_full_path = os.path.join(dest, "lib", "grinder.jar")
         try:
             self.__grinder(grinder_full_path)
             return grinder_full_path

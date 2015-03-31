@@ -16,7 +16,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 from collections import Counter
-from lxml import etree
 import os
 import platform
 import subprocess
@@ -27,10 +26,11 @@ import logging
 from subprocess import CalledProcessError
 import urllib
 
+from lxml import etree
 from cssselect import GenericTranslator
-from lxml.etree import XMLSyntaxError, Element, ElementTree
 import urwid
 
+from lxml.etree import XMLSyntaxError, Element, ElementTree
 from bzt.engine import ScenarioExecutor, Scenario
 from bzt.modules.console import WidgetProvider
 from bzt.modules.provisioning import FileLister
@@ -235,13 +235,11 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             leftover -= new
             othreads[0].text = str(new)
         if leftover < 0:
-            msg = "Had to add %s more threads"
-            msg += " to maintain thread group proportion"
-            self.log.warn(msg, -leftover)
+            msg = "Had to add %s more threads to maintain thread group proportion"
+            self.log.warning(msg, -leftover)
         elif leftover > 0:
-            msg = "%s threads left undistributed"
-            msg += " due to thread group proportion"
-            self.log.warn(msg, leftover)
+            msg = "%s threads left undistributed due to thread group proportion"
+            self.log.warning(msg, leftover)
 
     def __disable_listeners(self, jmx):
         sel = 'stringProp[name=filename]'
@@ -272,7 +270,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             msg = "You have specified both iterations count"
             msg += " and ramp-up/hold duration times, so test will end"
             msg += " on what runs out first"
-            self.log.warn(msg)
+            self.log.warning(msg)
 
         if load.concurrency:
             self.__apply_concurrency(jmx, load.concurrency)
@@ -394,13 +392,13 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         try:
             self.__jmeter(jmeter)
             return
-        except (OSError, CalledProcessError), exc:
+        except (OSError, CalledProcessError) as exc:
             self.log.debug("Failed to run JMeter: %s", traceback.format_exc(exc))
             try:
                 jout = subprocess.check_output(["java", '-version'], stderr=subprocess.STDOUT)
                 self.log.debug("Java check: %s", jout)
             except BaseException as exc:
-                self.log.warn("Failed to run java: %s", traceback.format_exc(exc))
+                self.log.warning("Failed to run java: %s", traceback.format_exc(exc))
                 raise RuntimeError("The 'java' is not operable or not available. Consider installing it")
             self.settings['path'] = self.__install_jmeter(jmeter)
             self.__jmeter(self.settings['path'])
@@ -447,7 +445,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         # TODO: remove old versions for httpclient JARs
 
         # set exec permissions
-        os.chmod(jmeter, 0755)
+        os.chmod(jmeter, 0o755)
         # NOTE: other files like shutdown.sh might also be needed later
         # install plugins
         for set_name in ("Standard", "Extras", "ExtrasLibs", "WebDriver"):
