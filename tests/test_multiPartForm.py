@@ -1,6 +1,5 @@
 import logging
 import os
-
 import six
 
 from bzt.utils import MultiPartForm
@@ -19,7 +18,7 @@ class TestMultiPartForm(BZTestCase):
                 file_data = fd.read()
 
             fname = os.path.basename(extra_file)
-            encoded = six.u("file_%s" % extra_file)
+            encoded = six.u("file_%s") % extra_file
             body.add_file_as_string(encoded, fname, file_data)
 
         txt = str(body)

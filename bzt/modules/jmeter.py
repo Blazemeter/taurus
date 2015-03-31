@@ -95,7 +95,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         scenario = self.get_scenario()
 
-        if Scenario.SCRIPT in scenario.keys():
+        if Scenario.SCRIPT in scenario:
             self.original_jmx = self.__get_script()
             self.engine.existing_artifact(self.original_jmx)
         elif "requests" in scenario:

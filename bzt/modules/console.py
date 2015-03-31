@@ -28,6 +28,7 @@ import math
 from datetime import datetime
 import copy
 import platform
+from six import StringIO
 
 from urwid.decoration import Padding
 from urwid.display_common import BaseScreen
@@ -37,7 +38,6 @@ from urwid.font import Thin6x6Font
 from urwid.graphics import BigText
 from urwid.listbox import SimpleListWalker
 from urwid.widget import Divider
-from six import StringIO
 
 from bzt.modules.provisioning import Local
 from bzt.engine import Reporter, AggregatorListener
@@ -358,7 +358,10 @@ class DummyScreen(BaseScreen):
         for char in canvas.content():
             line = ""
             for part in char:
-                line += part[2].decode()
+                if isinstance(part[2], str):
+                    line += part[2]
+                else:
+                    line += part[2].decode()
             data += "%s│\n" % line
         data = self.ansi_escape.sub('', data)
         logging.info("Screen %sx%s chars:\n%s", size[0], size[1], data)

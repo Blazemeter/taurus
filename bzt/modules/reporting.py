@@ -155,8 +155,9 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
                     os.makedirs(dirname)
 
             etree_obj = etree.ElementTree(root_node)
+            self.log.info("Writing JUnit XML report into: %s", self.report_file_path)
             with open(self.report_file_path, 'wb') as _fds:
-                etree_obj.write(_fds, xml_declaration=True, encoding="UTF-8")
+                etree_obj.write(_fds, xml_declaration=True, encoding="UTF-8", pretty_print=True)
 
         except BaseException as exc_obj:
             self.log.error("Cannot create file %s", self.report_file_path)
