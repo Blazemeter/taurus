@@ -1,4 +1,4 @@
-# Codename: Taurus
+# Codename: Taurus [![Build Status](https://api.travis-ci.org/Blazemeter/taurus.svg)](https://travis-ci.org/Blazemeter/taurus)
 
 <i><b>T</b>est <b>au</b>tomation <b>ru</b>nning <b>s</b>moothly
 
