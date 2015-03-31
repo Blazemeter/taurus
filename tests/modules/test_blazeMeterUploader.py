@@ -11,20 +11,22 @@ class TestBlazeMeterUploader(BZTestCase):
     def test_check(self):
         client = BlazeMeterClientEmul(logging.getLogger(''))
         client.results.append({"marker": "ping", 'result': {}})
-        # client.results.append({"marker": "tests", 'result': {}})
-        # client.results.append({"marker": "test-create", 'result': {'id': 'unittest1'}})
+        client.results.append({"marker": "tests", 'result': {}})
+        client.results.append({"marker": "test-create", 'result': {'id': 'unittest1'}})
         client.results.append(
             {"marker": "sess-start", 'result': {'session': {'id': 'sess1', 'userId': 1}, 'signature': ''}})
         client.results.append({"marker": "first push", 'result': {'session': {}}})
         # client.results.append(None)  # first check error stats
         client.results.append(
             {"marker": "second push", 'result': {'session': {"statusCode": 140, 'status': 'ENDED'}}})
-        client.results.append(None)  # second check error stats
+        # client.results.append(None)  # second check error stats
         client.results.append({"marker": "post-proc push", 'result': {'session': {}}})
         client.results.append(None)  # post-proc error stats
         client.results.append({"marker": "terminate", 'result': {'session': {}}})
 
         obj = BlazeMeterUploader()
+        obj.settings['token'] = '123'
+        obj.settings['browser-open'] = 'none'
         obj.engine = EngineEmul()
         shutil.copy(__file__, obj.engine.artifacts_dir + os.path.basename(__file__))
         obj.client = client

@@ -18,12 +18,12 @@ limitations under the License.
 import json
 import logging
 import os
-import urllib
 import sys
 import traceback
 import time
 import webbrowser
 import zipfile
+
 import six
 
 from bzt import ManualShutdown
@@ -32,15 +32,16 @@ from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.jmeter import JMeterExecutor
 from bzt.utils import to_json, dehumanize_time, MultiPartForm
 
-try:
-    from StringIO import StringIO
-except ImportError:
-    from io import StringIO
 
 try:
-    from urllib2 import HTTPError
+    from urllib2 import urlopen, Request, HTTPError
 except ImportError:
-    from urllib.error import HTTPError
+    from urllib.request import urlopen, Request, HTTPError
+
+try:
+    from urllib import urlencode
+except ImportError:
+    from urllib.parse import urlencode
 
 
 class BlazeMeterUploader(Reporter, AggregatorListener):
@@ -55,7 +56,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         self.browser_open = 'start'
         self.client = BlazeMeterClient(self.log)
         self.test = "Taurus Test"
-        self.test_id = None
+        self.test_id = ""
         self.kpi_buffer = []
         self.bulk_size = 5
 
@@ -100,7 +101,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
             self.log.warning("Failed to start feeding: %s", exc)
 
     def __get_jtls_and_more(self):
-        mf = StringIO()
+        mf = six.BytesIO()
         with zipfile.ZipFile(mf, mode='w', compression=zipfile.ZIP_DEFLATED, allowZip64=True) as zfh:
             for handler in self.engine.log.parent.handlers:
                 if isinstance(handler, logging.FileHandler):
@@ -139,7 +140,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
 
         try:
             self.__upload_artifacts()
-        except IOError as exc:
+        except IOError as _:
             self.log.warning("Failed artifact upload: %s", traceback.format_exc())
         finally:
             try:
@@ -170,14 +171,14 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         if self.client.active_session_id:
             try:
                 self.client.send_kpi_data(data, do_check)
-            except IOError as exc:
+            except IOError as _:
                 self.log.debug("Error sending data: %s", traceback.format_exc())
                 self.log.warning("Failed to send data, will retry in %s sec...", self.client.timeout)
                 try:
                     time.sleep(self.client.timeout)
                     self.client.send_kpi_data(data, do_check)
                     self.log.info("Succeeded with retry")
-                except IOError as exc:
+                except IOError as _:
                     self.log.error("Fatal error sending data: %s", traceback.format_exc())
                     self.log.warning("Will skip failed data and continue running")
 
@@ -219,9 +220,9 @@ class BlazeMeterClient(object):
             headers = {}
         headers["X-API-Key"] = self.token
         self.log.debug("Request %s: %s", url, data[:self.logger_limit] if data else None)
-        request = urllib2.Request(url, data, headers)
+        request = Request(url, data, headers)
 
-        response = urllib2.urlopen(request, timeout=self.timeout)
+        response = urlopen(request, timeout=self.timeout)
 
         if checker:
             checker(response)
@@ -238,7 +239,7 @@ class BlazeMeterClient(object):
         :return:
         """
         self.log.info("Initiating data feeding...")
-        data = urllib.urlencode({})
+        data = urlencode({})
 
         if self.token:
             url = self.address + "/api/latest/tests/%s/start-external" % test_id
