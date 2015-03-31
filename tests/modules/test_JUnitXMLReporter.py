@@ -20,7 +20,7 @@ class TestJUnitXML(BZTestCase):
         obj.engine = EngineEmul()
         obj.settings = BetterDict()
 
-        path_from_config = tempfile.mktemp(suffix='xml', prefix='junit-xml-path-in-settings',
+        path_from_config = tempfile.mktemp(suffix='.xml', prefix='junit-xml-path-in-settings',
                                            dir=obj.engine.artifacts_dir)
 
         obj.settings.merge({"filename": path_from_config, "data-source": "sample-labels"})
@@ -101,7 +101,7 @@ class TestJUnitXML(BZTestCase):
         obj.engine = EngineEmul()
         obj.settings = BetterDict()
 
-        path_from_config = tempfile.mktemp(suffix='xml', prefix='junit-xml-sample-labels', dir=obj.engine.artifacts_dir)
+        path_from_config = tempfile.mktemp(suffix='.xml', prefix='junit-xml-sample-labels', dir=obj.engine.artifacts_dir)
 
         # data-source: finalstats by default
         obj.settings.merge({"filename": path_from_config})
@@ -251,7 +251,7 @@ class TestJUnitXML(BZTestCase):
         obj.engine.reporters.append(pass_fail2)
         obj.engine.reporters.append(object())
 
-        path_from_config = tempfile.mktemp(suffix='xml', prefix='junit-xml_passfail', dir=obj.engine.artifacts_dir)
+        path_from_config = tempfile.mktemp(suffix='.xml', prefix='junit-xml_passfail', dir=obj.engine.artifacts_dir)
 
         obj.settings.merge({"filename": path_from_config, "data-source": "pass-fail"})
         obj.prepare()

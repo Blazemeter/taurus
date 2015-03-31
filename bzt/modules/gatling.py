@@ -31,7 +31,7 @@ from bzt.utils import unzip, download_progress_hook
 
 
 try:
-    from urllib import FancyURLOpener
+    from urllib import FancyURLopener
 except ImportError:
     from urllib.request import FancyURLopener
 
