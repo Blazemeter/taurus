@@ -18,11 +18,18 @@ limitations under the License.
 import fnmatch
 import logging
 import re
+import sys
 
 from bzt import AutomatedShutdown
 from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.aggregator import KPISet, DataPoint
 from bzt.utils import load_class, dehumanize_time
+
+
+if sys.version > '3':
+    long = int
+    unicode = str
+    basestring = str
 
 
 class PassFailStatus(Reporter, AggregatorListener):
