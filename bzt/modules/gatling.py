@@ -24,8 +24,8 @@ class GatlingExecutor(ScenarioExecutor):
     Gatling executor module
     """
     # NOTE: will be moved to GatlingVerifier
-    DOWNLOAD_LINK = "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle/"\
-            "{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip"
+    DOWNLOAD_LINK = "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle/" \
+                    "{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip"
     VERSION = "2.1.4"
 
     def __init__(self):
@@ -190,13 +190,13 @@ class GatlingExecutor(ScenarioExecutor):
         download_link = download_link.format(version=version)
         self.log.info("Downloading %s", download_link)
         # TODO: check archive checksum/hash before unzip and run
-        
+
         try:
             downloader.retrieve(download_link, gatling_zip_path, download_progress_hook)
         except BaseException as e:
             self.log.error("Error while downloading %s", download_link)
             raise e
-        
+
         self.log.info("Unzipping %s", gatling_zip_path)
         unzip(gatling_zip_path, dest, 'gatling-charts-highcharts-bundle-' + version)
         os.remove(gatling_zip_path)

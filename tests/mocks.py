@@ -173,5 +173,6 @@ class MockReader(ResultsReader, AggregatorListener):
         logging.info("Data: %s", data)
         self.results.append(data)
 
+
 def download_progress_mock(blocknum, blocksize, totalsize):
     pass
