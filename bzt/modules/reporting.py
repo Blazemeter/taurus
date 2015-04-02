@@ -16,14 +16,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from lxml import etree
+import os
+import urlparse
+
 from bzt.modules.aggregator import DataPoint, KPISet
 
 from bzt.engine import Reporter, AggregatorListener
-from lxml import etree
-import os
 from bzt.modules.passfail import PassFailStatus
-
-import urlparse
 
 
 class FinalStatus(Reporter, AggregatorListener):
@@ -151,7 +151,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
 
     def __make_summary_error_report(self, summary_kpi_set):
         """
-        Makes summary error report J
+        Makes summary error report
         :return: str
         """
         err_template = "Error code: {rc}, Message: {msg}, count: {cnt}\n"
@@ -205,8 +205,8 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         # enumerate all sample-labels, blank url is a summary data
         for key in sorted(_kpiset.keys()):
             if key == "":
-                summary_KPISet = _kpiset[key]
-                root_xml_element = self.__make_xml_header(summary_KPISet)
+                summary_kpiset = _kpiset[key]
+                root_xml_element = self.__make_xml_header(summary_kpiset)
             else:  # if label is not blank
                 class_name, resource_name = self.__convert_label_name(key)
                 # generate <testcase> subelement
