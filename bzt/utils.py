@@ -304,8 +304,8 @@ class MultiPartForm(object):
         if isinstance(fieldname, unicode):
             fieldname = fieldname.encode()
 
-        if isinstance(body, str):
-            body = body.encode()
+        #if isinstance(body, str):
+        #    body = body.encode()
 
         self.files.append((fieldname, filename, mimetype, body))
         return
