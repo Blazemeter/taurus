@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 """
 CLI tool wrapper to run Engine using command-line interface
 
