@@ -358,24 +358,6 @@ class MultiPartForm(object):
         # return b'\r\n'.join(x.encode() if isinstance(x, str) else x for x in flattened)
         return flattened
 
-    def __str__(self):
-        """
-
-        :return: str
-        """
-        def try_convert(data):
-            if isinstance(data, six.text_type):
-                return data
-            else:
-                try:
-                    data = data.encode()
-                except:
-                    data = six.u("binary data")
-                return data
-
-        str_representation = '\r\n'.join([try_convert(x) for x in self.__convert_to_list()])
-        return str_representation
-
     def form_as_bytes(self):
         """
         represents form contents as bytes in python3 or 8-bit str in python2
