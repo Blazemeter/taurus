@@ -16,9 +16,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from lxml import etree
 import os
-import urlparse
+from lxml import etree
+from bzt.modules.aggregator import DataPoint, KPISet
+from bzt.engine import Reporter, AggregatorListener
+from bzt.modules.passfail import PassFailStatus
+
+try:
+    from urlparse import urlparse
+except ImportError:
+    from urllib.parse import urlparse
 
 from bzt.modules.aggregator import DataPoint, KPISet
 

@@ -19,12 +19,9 @@ import json
 import logging
 import os
 import urllib
-import urllib2
 import sys
 import traceback
 import time
-import StringIO
-from urllib2 import HTTPError
 import webbrowser
 import zipfile
 
@@ -33,6 +30,16 @@ from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.jmeter import JMeterExecutor
 from bzt.utils import to_json, dehumanize_time, MultiPartForm
+
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
+
+try:
+    from urllib2 import HTTPError
+except ImportError:
+    from urllib.error import HTTPError
 
 
 class BlazeMeterUploader(Reporter, AggregatorListener):
@@ -92,7 +99,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
             self.log.warning("Failed to start feeding: %s", exc)
 
     def __get_jtls_and_more(self):
-        mf = StringIO.StringIO()
+        mf = StringIO()
         with zipfile.ZipFile(mf, mode='w', compression=zipfile.ZIP_DEFLATED, allowZip64=True) as zfh:
             for handler in self.engine.log.parent.handlers:
                 if isinstance(handler, logging.FileHandler):

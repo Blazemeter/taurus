@@ -21,18 +21,12 @@ import re
 import sys
 import logging
 from logging import StreamHandler
-from StringIO import StringIO
 from itertools import groupby
 import traceback
 import math
 from datetime import datetime
 import copy
 import platform
-
-if platform.system() == 'Windows':
-    from urwid.raw_display import Screen  # curses unavailable on windows
-else:
-    from urwid.curses_display import Screen  # curses unavailable on windows
 
 from urwid.decoration import Padding
 from urwid.display_common import BaseScreen
@@ -46,6 +40,17 @@ from urwid.widget import Divider
 from bzt.modules.provisioning import Local
 from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.aggregator import DataPoint, KPISet
+
+
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
+
+if platform.system() == 'Windows':
+    from urwid.raw_display import Screen  # curses unavailable on windows
+else:
+    from urwid.curses_display import Screen  # curses unavailable on windows
 
 
 class ConsoleStatusReporter(Reporter, AggregatorListener):
