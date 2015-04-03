@@ -220,6 +220,7 @@ class BlazeMeterClient(object):
         if self.token:
             headers["X-API-Key"] = self.token
         self.log.debug("Request %s: %s", url, data[:self.logger_limit] if data else None)
+        data = data.encode() if isinstance(data, six.u("blah")) else data
         request = Request(url, data, headers)
 
         response = urlopen(request, timeout=self.timeout)
