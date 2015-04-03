@@ -335,7 +335,7 @@ class Engine(object):
         user_file = os.path.expanduser('~' + os.path.sep + ".bzt-rc")
         if os.path.isfile(user_file):
             self.log.debug("Adding personal config: %s", user_file)
-            base_configs.insert(0, user_file)
+            base_configs.append(user_file)
         else:
             self.log.info("No personal config: %s", user_file)
 

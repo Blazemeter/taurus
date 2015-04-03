@@ -60,7 +60,7 @@ reporting:
 There is module settings for Console Screen, containing option `disable`. It allows easy disabling fullscreen display by using [command-line](CommandLine.md) switch `-o`:
 
 ```bash
-bzt config.yml -o modules.consoled.disable=true
+bzt config.yml -o modules.console.disable=true
 ```
 
 Two additional options are `dummy-cols` and `dummy-rows`, they affect the size of _dummy_ screen that is used for non-tty output (and on Windows platform).

@@ -443,9 +443,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         try:
             downloader.retrieve(jmeter_download_link, jmeter_dist, download_progress_hook)
-        except BaseException as e:
+        except BaseException as exc:
             self.log.error("Error while downloading %s", jmeter_download_link)
-            raise e
+            raise exc
 
         self.log.info("Unzipping %s to %s", jmeter_dist, dest)
         unzip(jmeter_dist, dest, 'apache-jmeter-' + jmeter_version)

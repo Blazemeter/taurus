@@ -17,7 +17,6 @@ limitations under the License.
 """
 
 import os
-
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.passfail import PassFailStatus
@@ -149,7 +148,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         """
         try:
             if os.path.exists(self.report_file_path):
-                self.log.warning("File %s already exists, will be overwritten" % self.report_file_path)
+                self.log.warning("File %s already exists, will be overwritten", self.report_file_path)
             else:
                 dirname = os.path.dirname(self.report_file_path)
                 if not os.path.exists(dirname):
@@ -161,12 +160,12 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
                 etree_obj.write(_fds, xml_declaration=True, encoding="UTF-8", pretty_print=True)
 
         except BaseException as exc_obj:
-            self.log.error("Cannot create file %s" % self.report_file_path)
+            self.log.error("Cannot create file %s", self.report_file_path)
             raise exc_obj
 
-    def __make_summary_error_report(self, summary_KPISet):
+    def __make_summary_error_report(self, summary_kpi_set):
         """
-        Makes summary error report J
+        Makes summary error report
         :return: str
         """
         err_template = "Error code: {rc}, Message: {msg}, count: {cnt}\n"
@@ -174,7 +173,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         error_report = ""  # errors with descriptions and urls (summary report)
         err_counter = 0  # used in summary report (summary report)
 
-        for error in summary_KPISet[KPISet.ERRORS]:
+        for error in summary_kpi_set[KPISet.ERRORS]:
             error_report += err_template.format(rc=error['rc'], msg=error['msg'], cnt=error['cnt'])
             urls_err_string = ""
             # enumerate urls and count errors (from Counter object)
@@ -185,7 +184,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
 
         return str(err_counter), error_report
 
-    def __make_xml_header(self, summary_KPISet):
+    def __make_xml_header(self, summary_kpi_set):
         """
         get summary KPI, generate root_xml_element and summary report for erros.
         used in __process_sample_labels
@@ -194,10 +193,10 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         """
         summary_report_template = "Success: {success}, Sample count: {throughput}, " \
                                   "Failures: {fail}, Errors: {errors}\n"
-        succ = str(summary_KPISet[KPISet.SUCCESSES])
-        throughput = str(summary_KPISet[KPISet.SAMPLE_COUNT])
-        fail = str(summary_KPISet[KPISet.FAILURES])
-        errors, error_report = self.__make_summary_error_report(summary_KPISet)
+        succ = str(summary_kpi_set[KPISet.SUCCESSES])
+        throughput = str(summary_kpi_set[KPISet.SAMPLE_COUNT])
+        fail = str(summary_kpi_set[KPISet.FAILURES])
+        errors, error_report = self.__make_summary_error_report(summary_kpi_set)
         summary_report = summary_report_template.format(success=succ, throughput=throughput, fail=fail,
                                                         errors=errors)
         summary_report += error_report
@@ -220,8 +219,8 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         # enumerate all sample-labels, blank url is a summary data
         for key in sorted(_kpiset.keys()):
             if key == "":
-                summary_KPISet = _kpiset[key]
-                root_xml_element = self.__make_xml_header(summary_KPISet)
+                summary_kpiset = _kpiset[key]
+                root_xml_element = self.__make_xml_header(summary_kpiset)
             else:  # if label is not blank
                 class_name, resource_name = self.__convert_label_name(key)
                 # generate <testcase> subelement
@@ -242,12 +241,12 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
 
         :return: etree xml root element
         """
-        pass_fail_objects = filter(lambda x: isinstance(x, PassFailStatus), self.engine.reporters)
+        pass_fail_objects = [_x for _x in self.engine.reporters if isinstance(_x, PassFailStatus)]
         fail_criterias = []
         for pf_obj in pass_fail_objects:
             if pf_obj.criterias:
-                for fc in pf_obj.criterias:
-                    fail_criterias.append(fc)
+                for _fc in pf_obj.criterias:
+                    fail_criterias.append(_fc)
         # count total failed tests, tests, create root <testsuite>
         failures = [x for x in fail_criterias if x.is_triggered and x.fail]
         total_failed = str(len(failures))
