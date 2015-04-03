@@ -304,8 +304,8 @@ class MultiPartForm(object):
         if isinstance(fieldname, unicode):
             fieldname = fieldname.encode()
 
-        if not isinstance(body, str):
-            body = body.decode()
+        #if isinstance(body, str):
+        #    body = body.encode()
 
         self.files.append((fieldname, filename, mimetype, body))
         return
@@ -326,7 +326,7 @@ class MultiPartForm(object):
         self.add_file_as_string(fieldname, filename, body, mimetype)
         return
 
-    def __str__(self):
+    def __convert_to_list(self):
         """Return a string representing the form, including attached files."""
         # Build a list of lists, each containing "lines" of the
         # request.  Each part is separated by a boundary string.
@@ -353,8 +353,27 @@ class MultiPartForm(object):
         # then return CR+LF separated data
         flattened = list(itertools.chain(*parts))
         flattened.append('--' + self.boundary + '--')
-        flattened.append('')
-        return '\r\n'.join(flattened)
+        # flattened.append('')
+        # return b'\r\n'.join(x.encode() if isinstance(x, str) else x for x in flattened)
+        return flattened
+
+    def __str__(self):
+
+        def try_convert(data):
+            if isinstance(data, str):
+                return data
+            else:
+                try:
+                    data = data.encode()
+                except:
+                    data = "binary data"
+                return data
+
+        str_representation = '\r\n'.join([try_convert(x) for x in self.__convert_to_list()])
+        return str_representation
+
+    def as_bytes(self):
+        return b'\r\n'.join(x.encode() if isinstance(x, str) else x for x in self.__convert_to_list())
 
 
 def to_json(obj):
