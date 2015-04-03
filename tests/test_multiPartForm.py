@@ -21,5 +21,5 @@ class TestMultiPartForm(BZTestCase):
             encoded = six.u("file_%s") % extra_file
             body.add_file_as_string(encoded, fname, file_data)
 
-        txt = str(body)
+        txt = body.form_as_bytes()
         logging.debug("%s", len(txt))

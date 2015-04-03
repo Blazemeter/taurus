@@ -470,7 +470,7 @@ class BlazeMeterClient(object):
         url = self.address + "/api/latest/image/%s/files?signature=%s"
         url = url % (self.active_session_id, self.data_signature)
         hdr = {"Content-Type": body.get_content_type()}
-        response = self._request(url, str(body), headers=hdr)
+        response = self._request(url, body.form_as_bytes(), headers=hdr)
         if not response['result']:
             raise IOError("Upload failed: %s" % response)
 
