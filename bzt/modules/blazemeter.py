@@ -231,7 +231,7 @@ class BlazeMeterClient(object):
         resp = response.read()
 
         if not isinstance(resp, str):
-            resp=resp.decode()
+            resp = resp.decode()
 
         self.log.debug("Response: %s", resp[:self.logger_limit] if resp else None)
         return json.loads(resp) if len(resp) else {}

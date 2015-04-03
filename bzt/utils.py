@@ -301,10 +301,10 @@ class MultiPartForm(object):
         if mimetype is None:
             mimetype = mimetypes.guess_type(filename)[0] or default
 
-        #if isinstance(fieldname, six.u()):
+        # if isinstance(fieldname, six.u()):
         #    fieldname = fieldname.encode()
 
-        #if isinstance(body, str):
+        # if isinstance(body, str):
         #    body = body.encode()
 
         self.files.append((fieldname, filename, mimetype, body))
@@ -323,7 +323,7 @@ class MultiPartForm(object):
 
             filename = os.path.basename(filename)
         else:
-            body = six.b(file_handle.read())
+            body = file_handle.read()
         self.add_file_as_string(fieldname, filename, body, mimetype)
         return
 
@@ -359,35 +359,40 @@ class MultiPartForm(object):
         return flattened
 
     def __str__(self):
-    # TODO: Rewrite using six.b()
+        """
+
+        :return: str
+        """
         def try_convert(data):
-            if isinstance(data, str):
+            if isinstance(data, six.text_type):
                 return data
             else:
                 try:
                     data = data.encode()
                 except:
-                    data = "binary data"
+                    data = six.u("binary data")
                 return data
 
         str_representation = '\r\n'.join([try_convert(x) for x in self.__convert_to_list()])
         return str_representation
 
     def form_as_bytes(self):
-        # TODO: Rewrite using six.b()
+        """
+        represents form contents as bytes in python3 or 8-bit str in python2
+        """
         result_list = []
         for x in self.__convert_to_list():
-            #if (8-bit str (2.7) or bytes (3.x), then no processing, just add)
-            if isinstance(x, type(six.b("blah"))):
+            # if (8-bit str (2.7) or bytes (3.x), then no processing, just add, else - encode)
+            if isinstance(x, six.binary_type):
                 result_list.append(x)
-            elif isinstance(x, type(six.u("blah"))):
+            elif isinstance(x, six.text_type):
                 result_list.append(x.encode())
             else:
                 raise BaseException
 
         res_bytes = six.b("\r\n").join(result_list)
         return res_bytes
-        #return b'\r\n'.join(x.encode() if isinstance(x, str) else x for x in self.__convert_to_list())
+        # return b'\r\n'.join(x.encode() if isinstance(x, str) else x for x in self.__convert_to_list())
 
 
 def to_json(obj):

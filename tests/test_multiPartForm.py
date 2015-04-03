@@ -1,6 +1,5 @@
 import logging
 import os
-import six
 
 from bzt.utils import MultiPartForm
 from tests import BZTestCase, __dir__
