@@ -52,6 +52,11 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.shutdown()
         obj.post_process()
 
+    def test_ping(self):
+        obj = BlazeMeterClient(logging.getLogger(''))
+        obj.address = "https://a.blazemeter.com"
+        obj.ping()
+
 
 class BlazeMeterClientEmul(BlazeMeterClient):
     def __init__(self, parent_logger):
