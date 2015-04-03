@@ -301,8 +301,8 @@ class MultiPartForm(object):
         if mimetype is None:
             mimetype = mimetypes.guess_type(filename)[0] or default
 
-        if isinstance(fieldname, unicode):
-            fieldname = fieldname.encode()
+        #if isinstance(fieldname, six.u()):
+        #    fieldname = fieldname.encode()
 
         #if isinstance(body, str):
         #    body = body.encode()
@@ -319,7 +319,8 @@ class MultiPartForm(object):
         """
         if not file_handle:
             with open(filename, 'rb') as fds:
-                body = six.b(fds.read())
+                body = fds.read()
+
             filename = os.path.basename(filename)
         else:
             body = six.b(file_handle.read())
