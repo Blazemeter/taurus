@@ -8,6 +8,14 @@ from bzt.modules.passfail import PassFailStatus, FailCriteria
 from bzt.modules.aggregator import DataPoint, KPISet
 import tempfile
 
+try:
+    from lxml import etree
+except ImportError:
+    try:
+        import cElementTree as etree
+    except ImportError:
+        import elementtree.ElementTree as etree
+
 import os
 
 setup_test_logging()
@@ -20,7 +28,7 @@ class TestJUnitXML(BZTestCase):
         obj.engine = EngineEmul()
         obj.settings = BetterDict()
 
-        path_from_config = tempfile.mktemp(suffix='xml', prefix='junit-xml-path-in-settings',
+        path_from_config = tempfile.mktemp(suffix='.xml', prefix='junit-xml-path-in-settings',
                                            dir=obj.engine.artifacts_dir)
 
         obj.settings.merge({"filename": path_from_config, "data-source": "sample-labels"})
@@ -95,13 +103,12 @@ class TestJUnitXML(BZTestCase):
     def test_xml_format_sample_labels(self):
         # generate xml, compare hash
 
-        ideal_xml_hash = '773f9765dafa188ef4eaf233dbd5d765'
-
         obj = JUnitXMLReporter()
         obj.engine = EngineEmul()
         obj.settings = BetterDict()
 
-        path_from_config = tempfile.mktemp(suffix='xml', prefix='junit-xml-sample-labels', dir=obj.engine.artifacts_dir)
+        path_from_config = tempfile.mktemp(suffix='.xml', prefix='junit-xml-sample-labels',
+                                           dir=obj.engine.artifacts_dir)
 
         # data-source: finalstats by default
         obj.settings.merge({"filename": path_from_config})
@@ -214,10 +221,15 @@ class TestJUnitXML(BZTestCase):
         with open(obj.report_file_path, 'rb') as fds:
             f_contents = fds.read()
 
-        self.assertEqual(hashlib.md5(f_contents).hexdigest(), ideal_xml_hash)
+        xml_tree = etree.fromstring(f_contents)
+        self.assertEqual('testsuite', xml_tree.tag)
+        self.assertEqual(4, len(xml_tree.getchildren()))
+        self.assertEqual('testcase', xml_tree.getchildren()[0].tag)
+        self.assertEqual('error', xml_tree.getchildren()[0].getchildren()[0].tag)
+        self.assertEqual('error', xml_tree.getchildren()[1].getchildren()[0].tag)
+        self.assertListEqual(['29656', 'taurus_sample-labels', '0', '59314'], xml_tree.values())
 
     def test_xml_format_passfail(self):
-        ideal_xml_hash = 'cc62886331c79f3e04d0ba367b9fac12'
 
         obj = JUnitXMLReporter()
         obj.engine = EngineEmul()
@@ -251,7 +263,7 @@ class TestJUnitXML(BZTestCase):
         obj.engine.reporters.append(pass_fail2)
         obj.engine.reporters.append(object())
 
-        path_from_config = tempfile.mktemp(suffix='xml', prefix='junit-xml_passfail', dir=obj.engine.artifacts_dir)
+        path_from_config = tempfile.mktemp(suffix='.xml', prefix='junit-xml_passfail', dir=obj.engine.artifacts_dir)
 
         obj.settings.merge({"filename": path_from_config, "data-source": "pass-fail"})
         obj.prepare()
@@ -260,4 +272,11 @@ class TestJUnitXML(BZTestCase):
         with open(obj.report_file_path, 'rb') as fds:
             f_contents = fds.read()
 
-        self.assertEqual(hashlib.md5(f_contents).hexdigest(), ideal_xml_hash)
+
+        xml_tree = etree.fromstring(f_contents)
+        self.assertEqual('testsuite', xml_tree.tag)
+        self.assertEqual(4, len(xml_tree.getchildren()))
+        self.assertEqual('testcase', xml_tree.getchildren()[0].tag)
+        self.assertEqual('error', xml_tree.getchildren()[0].getchildren()[0].tag)
+        self.assertEqual('error', xml_tree.getchildren()[2].getchildren()[0].tag)
+        self.assertListEqual(['2', 'taurus_junitxml_pass_fail', '0', '4'], xml_tree.values())

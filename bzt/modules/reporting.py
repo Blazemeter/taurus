@@ -16,14 +16,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from lxml import etree
 import os
-import urlparse
-
 from bzt.modules.aggregator import DataPoint, KPISet
-
 from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.passfail import PassFailStatus
+
+
+try:
+    from urlparse import urlparse
+except ImportError:
+    from urllib.parse import urlparse
+
+try:
+    from lxml import etree
+except ImportError:
+    try:
+        import cElementTree as etree
+    except ImportError:
+        import elementtree.ElementTree as etree
 
 
 class FinalStatus(Reporter, AggregatorListener):
@@ -73,7 +83,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
 
     def __init__(self):
         super(JUnitXMLReporter, self).__init__()
-        self.report_file_path = None
+        self.report_file_path = "junit.xml"
         self.last_second = None
 
     def prepare(self):
@@ -121,7 +131,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         """
 
         # split url on domain resource, protocol, etc
-        parsed_url = urlparse.urlparse(url)
+        parsed_url = urlparse(url)
         # remove dots from url and join all pieces on dot
         # small fix needed - better do not use blank pieces
         class_name = parsed_url.scheme + "." + parsed_url.netloc.replace(".", "_")
@@ -131,9 +141,9 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
                                   parsed_url.fragment.replace(".", "_")])
         return class_name, resource_name
 
-    def __save_report(self, etree_obj):
+    def __save_report(self, root_node):
         """
-        :param etree_obj:
+        :param root_node:
         :return:
         """
         try:
@@ -143,8 +153,12 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
                 dirname = os.path.dirname(self.report_file_path)
                 if not os.path.exists(dirname):
                     os.makedirs(dirname)
-            with open(self.report_file_path, 'w') as _fds:
-                _fds.write(etree.tostring(etree_obj, xml_declaration=True, pretty_print=True, encoding="utf-8"))
+
+            etree_obj = etree.ElementTree(root_node)
+            self.log.info("Writing JUnit XML report into: %s", self.report_file_path)
+            with open(self.report_file_path, 'wb') as _fds:
+                etree_obj.write(_fds, xml_declaration=True, encoding="UTF-8", pretty_print=True)
+
         except BaseException as exc_obj:
             self.log.error("Cannot create file %s", self.report_file_path)
             raise exc_obj
@@ -234,14 +248,15 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
                 for _fc in pf_obj.criterias:
                     fail_criterias.append(_fc)
         # count total failed tests, tests, create root <testsuite>
-        total_failed = str(len([_x for _x in fail_criterias if _x.is_triggered]))
+        failures = [x for x in fail_criterias if x.is_triggered and x.fail]
+        total_failed = str(len(failures))
         tests_count = str(len(fail_criterias))
         root_xml_element = etree.Element("testsuite", name="taurus_junitxml_pass_fail", tests=tests_count,
                                          failures=total_failed, skip="0")
         for fc_obj in fail_criterias:
             classname = str(fc_obj)
             fc_xml_element = etree.SubElement(root_xml_element, "testcase", classname=classname, name="")
-            if fc_obj.is_triggered:
+            if fc_obj.is_triggered and fc_obj.fail:
                 # NOTE: we can add error description im err_element.text()
                 etree.SubElement(fc_xml_element, "error", type="criteria failed", message="")
 

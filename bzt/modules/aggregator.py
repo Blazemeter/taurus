@@ -19,6 +19,7 @@ from collections import Counter
 import copy
 import logging
 import math
+import six
 
 from bzt.utils import BetterDict
 from bzt.engine import EngineModule
@@ -71,7 +72,7 @@ class KPISet(BetterDict):
         mycopy.sum_rt = self.sum_rt
         mycopy.sum_lt = self.sum_lt
         mycopy.sum_cn = self.sum_cn
-        for key, val in self.iteritems():
+        for key, val in six.iteritems(self):
             mycopy[key] = copy.deepcopy(val, memo)
         return mycopy
 
@@ -200,7 +201,7 @@ class KPISet(BetterDict):
         :rtype: KPISet
         """
         inst = KPISet()
-        for key, val in obj.iteritems():
+        for key, val in six.iteritems(obj):
             inst[key] = val
         inst.sum_cn = obj[inst.AVG_CONN_TIME] * obj[inst.SAMPLE_COUNT]
         inst.sum_lt = obj[inst.AVG_LATENCY] * obj[inst.SAMPLE_COUNT]
@@ -280,7 +281,7 @@ class DataPoint(BetterDict):
         self[self.SUBRESULTS] = []
 
     def __merge_kpis(self, src, dst, sid):
-        for label, val in src.iteritems():
+        for label, val in six.iteritems(src):
             dest = dst.get(label, KPISet(self.perc_levels))
             if not isinstance(val, KPISet):
                 val = KPISet.from_dict(val)
@@ -303,7 +304,7 @@ class DataPoint(BetterDict):
         :type src: DataPoint
         """
         if self[self.TIMESTAMP] != src[self.TIMESTAMP]:
-            self.log.warn("Tried to merge data for %s and %s", self[self.TIMESTAMP], src[self.TIMESTAMP])
+            self.log.warning("Tried to merge data for %s and %s", self[self.TIMESTAMP], src[self.TIMESTAMP])
             raise ValueError("Cannot merge different timestamps")
 
         self[DataPoint.SUBRESULTS].append(src)
@@ -334,7 +335,7 @@ class ResultsProvider(object):
         self.listeners.append(listener)
 
     def __merge_to_cumulative(self, current):
-        for label, data in current.iteritems():
+        for label, data in six.iteritems(current):
             cumul = self.cumulative.get(label, KPISet(self.track_percentiles))
             cumul.merge_kpis(data)
 
@@ -514,7 +515,7 @@ class ConsolidatingAggregator(EngineModule, ResultsProvider):
                 if self.buffer:
                     mints = min(self.buffer.keys())
                     if tstamp < mints:
-                        self.log.warn("Putting %s into %s", tstamp, mints)
+                        self.log.warning("Putting %s into %s", tstamp, mints)
                         data[DataPoint.TIMESTAMP] = mints
                         tstamp = mints
                 self.buffer.get(tstamp, []).append(data)

@@ -15,8 +15,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import ConfigParser
-from UserDict import DictMixin
 from collections import namedtuple
 from collections import defaultdict
 import copy
@@ -24,17 +22,36 @@ import datetime
 import json
 import logging
 import os
-import psutil
 import shutil
 import tempfile
 import time
 import traceback
+from json import encoder
+import sys
+
+import psutil
+import six
 import yaml
 from yaml.representer import SafeRepresenter
-from json import encoder
 
 from bzt import ManualShutdown, NormalShutdown
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time
+
+
+if sys.version > '3':
+    long = int
+    unicode = str
+    basestring = str
+
+try:
+    import ConfigParser
+except ImportError:
+    import configparser as ConfigParser
+
+try:
+    from UserDict import DictMixin
+except ImportError:
+    from collections import MutableMapping as DictMixin
 
 
 class Engine(object):
@@ -106,8 +123,8 @@ class Engine(object):
             self.provisioning.startup()
             self.config.dump()
             self.__wait()
-        except NormalShutdown, exc:
-            self.log.debug("Normal shutdown called: %s", traceback.format_exc(exc))
+        except NormalShutdown as exc:
+            self.log.debug("Normal shutdown called: %s", traceback.format_exc())
         finally:
             self.__shutdown()
 
@@ -135,8 +152,8 @@ class Engine(object):
             self.aggregator.shutdown()
             for module in self.reporters:
                 module.shutdown()
-        except BaseException, exc:
-            self.log.error("Error while shutting down: %s", traceback.format_exc(exc))
+        except BaseException as exc:
+            self.log.error("Error while shutting down: %s", traceback.format_exc())
             raise
         finally:
             self.config.dump()
@@ -150,11 +167,11 @@ class Engine(object):
         try:
             for module in [self.provisioning, self.aggregator] + self.reporters:
                 module.post_process()
-        except KeyboardInterrupt, exc:
+        except KeyboardInterrupt as exc:
             self.log.error("Shutdown: %s", exc)
             exception = exc
-        except BaseException, exc:
-            self.log.error("Error while post-processing: %s", traceback.format_exc(exc))
+        except BaseException as exc:
+            self.log.error("Error while post-processing: %s", traceback.format_exc())
             exception = exc
         finally:
             self.__finalize()
@@ -214,7 +231,7 @@ class Engine(object):
             return
 
         if not os.path.exists(filename):
-            self.log.warn("Artifact file not exists: %s", filename)
+            self.log.warning("Artifact file not exists: %s", filename)
             return
 
         if move:
@@ -257,8 +274,8 @@ class Engine(object):
             self.modules[alias] = load_class(clsname)
             if not issubclass(self.modules[alias], EngineModule):
                 raise TypeError("Module class does not inherit from EngineModule: %s" % clsname)
-        except BaseException, exc:
-            self.log.debug("Failed to load class %s: %s", clsname, traceback.format_exc(exc))
+        except BaseException as exc:
+            self.log.debug("Failed to load class %s: %s", clsname, traceback.format_exc())
             raise RuntimeError("Cannot load module: %s" % clsname)
 
         return self.modules[alias]
@@ -293,7 +310,7 @@ class Engine(object):
             return filename
         elif self.file_search_path:
             location = self.file_search_path + os.path.sep + os.path.basename(filename)
-            self.log.warn("Guessed location for file %s: %s", filename, location)
+            self.log.warning("Guessed location for file %s: %s", filename, location)
             return location
         else:
             raise IOError("File not found: %s" % filename)
@@ -359,7 +376,7 @@ class Engine(object):
     def __prepare_aggregator(self):
         cls = self.config.get("settings").get("aggregator", "")
         if not cls:
-            self.log.warn("Proceeding without aggregator, no results analysis")
+            self.log.warning("Proceeding without aggregator, no results analysis")
             self.aggregator = EngineModule()
         else:
             self.aggregator = self.instantiate_module(cls)
@@ -500,7 +517,7 @@ class Configuration(BetterDict):
         """
         if isinstance(obj, dict):
             result = ''
-            for key, val in obj.iteritems():
+            for key, val in six.iteritems(obj):
                 result += cls.__dict_to_overrides(val, '%s.%s' % (path, key))
             return result
         elif isinstance(obj, list):
@@ -581,7 +598,8 @@ class Configuration(BetterDict):
 
 yaml.add_representer(Configuration, SafeRepresenter.represent_dict)
 yaml.add_representer(BetterDict, SafeRepresenter.represent_dict)
-yaml.add_representer(unicode, SafeRepresenter.represent_unicode)
+if sys.version < '3':
+    yaml.add_representer(unicode, SafeRepresenter.represent_unicode)
 
 # dirty hack from http://stackoverflow.com/questions/1447287/format-floats-with-standard-json-module
 encoder.FLOAT_REPR = lambda o: format(o, '.3g')
@@ -782,10 +800,11 @@ class Reporter(EngineModule):
         self.parameters = BetterDict()
 
 
-class Scenario(object, DictMixin):
+class Scenario(DictMixin, object):
     """
     Test scenario entity
     """
+
     SCRIPT = "script"
 
     def __init__(self, scenario=None):
@@ -806,6 +825,16 @@ class Scenario(object, DictMixin):
 
     def __setitem__(self, key, value):
         self.data[key] = value
+
+    def __iter__(self):
+        for x in self.data:
+            yield x
+
+    def __len__(self):
+        return len(self.data)
+
+    def __delitem__(self, key):
+        return self.data.pop(key)
 
     # TODO: add HAR file support
     def get_headers(self):

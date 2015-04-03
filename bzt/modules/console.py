@@ -14,6 +14,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+
 """
 Console reporting for CLI usage
 """
@@ -21,18 +22,13 @@ import re
 import sys
 import logging
 from logging import StreamHandler
-from StringIO import StringIO
 from itertools import groupby
 import traceback
 import math
 from datetime import datetime
 import copy
 import platform
-
-if platform.system() == 'Windows':
-    from urwid.raw_display import Screen  # curses unavailable on windows
-else:
-    from urwid.curses_display import Screen  # curses unavailable on windows
+from six import StringIO
 
 from urwid.decoration import Padding
 from urwid.display_common import BaseScreen
@@ -46,6 +42,12 @@ from urwid.widget import Divider
 from bzt.modules.provisioning import Local
 from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.aggregator import DataPoint, KPISet
+
+
+if platform.system() == 'Windows':
+    from urwid.raw_display import Screen  # curses unavailable on windows
+else:
+    from urwid.curses_display import Screen  # curses unavailable on windows
 
 
 class ConsoleStatusReporter(Reporter, AggregatorListener):
@@ -109,7 +111,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
                 self.log.debug("Overriding logging stream")
                 self.logger_handler.stream = self.temp_stream
             else:
-                self.log.warn("Failed to mute console logging")
+                self.log.warning("Failed to mute console logging")
 
             self.screen.start()
             self.log.info("Waiting for finish...")
@@ -125,9 +127,8 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
                 self.__repaint()
             except KeyboardInterrupt:
                 raise
-            except BaseException, exc:
-                self.log.error("Console screen failure: %s",
-                               traceback.format_exc(exc))
+            except BaseException as exc:
+                self.log.error("Console screen failure: %s", traceback.format_exc())
                 self.shutdown()
 
     def aggregated_second(self, data):
@@ -284,7 +285,7 @@ class TaurusConsole(Columns):
         self.logo = TaurusLogo()
         right_pane = Pile([(10, self.logo),
                            right_widgets,
-                           (1, Filler(Divider(u'─'))),
+                           (1, Filler(Divider('─'))),
                            (WEIGHT, 1, self.log_widget)])
 
         columns = [(WEIGHT, 0.25, self.graphs),
@@ -357,7 +358,10 @@ class DummyScreen(BaseScreen):
         for char in canvas.content():
             line = ""
             for part in char:
-                line += part[2]
+                if isinstance(part[2], str):
+                    line += part[2]
+                else:
+                    line += part[2].decode()
             data += "%s│\n" % line
         data = self.ansi_escape.sub('', data)
         logging.info("Screen %sx%s chars:\n%s", size[0], size[1], data)
@@ -462,7 +466,7 @@ class StackedGraph(Widget):
 
         while len(matrix) < cols:
             matrix.insert(0, '0' * rows)
-        matrix = zip(*matrix)
+        matrix = list(zip(*matrix))
         matrix.reverse()
         return matrix
 

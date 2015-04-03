@@ -21,7 +21,7 @@ import signal
 import subprocess
 from subprocess import CalledProcessError
 import traceback
-import urllib
+import six
 
 from bzt.engine import ScenarioExecutor, Scenario
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
@@ -29,11 +29,18 @@ from bzt.utils import shell_exec
 from bzt.utils import unzip, download_progress_hook
 
 
+try:
+    from urllib import FancyURLopener
+except ImportError:
+    from urllib.request import FancyURLopener
+
+
 class GrinderExecutor(ScenarioExecutor):
     """
     Grinder executor module
     """
-    DOWNLOAD_LINK = "http://switch.dl.sourceforge.net/project/grinder/The%20Grinder%203/{version}/grinder-{version}-binary.zip"
+    DOWNLOAD_LINK = "http://switch.dl.sourceforge.net/project/grinder/The%20Grinder%203/{version}" \
+                    "/grinder-{version}-binary.zip"
     VERSION = "3.11"
 
     def __init__(self):
@@ -63,7 +70,7 @@ class GrinderExecutor(ScenarioExecutor):
         base_props = self.settings.get("properties")
         if base_props:
             fds.write("# Base Properies Start\n")
-            for key, val in base_props.iteritems():
+            for key, val in six.iteritems(base_props):
                 fds.write("%s=%s\n" % (key, val))
             fds.write("# Base Properies End\n\n")
 
@@ -82,7 +89,7 @@ class GrinderExecutor(ScenarioExecutor):
         local_props = scenario.get("properties")
         if local_props:
             fds.write("# Scenario Properies Start\n")
-            for key, val in local_props.iteritems():
+            for key, val in six.iteritems(local_props):
                 fds.write("%s=%s\n" % (key, val))
             fds.write("# Scenario Properies End\n\n")
 
@@ -194,7 +201,7 @@ class GrinderExecutor(ScenarioExecutor):
             time.sleep(1)
             try:
                 os.killpg(self.process.pid, signal.SIGTERM)
-            except OSError, exc:
+            except OSError as exc:
                 self.log.debug("Failed to terminate: %s", exc)
 
             if self.stdout_file:
@@ -244,14 +251,14 @@ class GrinderExecutor(ScenarioExecutor):
         try:
             self.__grinder(grinder_path)
             return
-        except (OSError, CalledProcessError), exc:
-            self.log.debug("Failed to run grinder: %s", traceback.format_exc(exc))
+        except (OSError, CalledProcessError) as exc:
+            self.log.debug("Failed to run grinder: %s", traceback.format_exc())
 
             try:
                 jout = subprocess.check_output(["java", '-version'], stderr=subprocess.STDOUT)
                 self.log.debug("Java check: %s", jout)
-            except BaseException, exc:
-                self.log.warn("Failed to run java: %s", traceback.format_exc(exc))
+            except BaseException as exc:
+                self.log.warning("Failed to run java: %s", traceback.format_exc())
                 raise RuntimeError("The 'java' is not operable or not available. Consider installing it")
 
             self.settings['path'] = self.__install_grinder(grinder_path)
@@ -269,15 +276,14 @@ class GrinderExecutor(ScenarioExecutor):
         if not dest:
             dest = os.path.expanduser("~/grinder-taurus")
         dest = os.path.abspath(dest)
-        grinder_full_path = dest + os.path.sep + "lib" + os.path.sep + "grinder.jar"
-        # grinder_full_path - /home/username/grinder-taurus/grinder-3.11/lib/grinder.jar
+        grinder_full_path = os.path.join(dest, "lib", "grinder.jar")
         try:
             self.__grinder(grinder_full_path)
             return grinder_full_path
         except CalledProcessError:
             self.log.info("Will try to install grinder into %s", dest)
 
-        downloader = urllib.FancyURLopener()
+        downloader = FancyURLopener()
         grinder_zip_path = self.engine.create_artifact("grinder-dist", ".zip")
         version = self.settings.get("version", GrinderExecutor.VERSION)
         download_link = self.settings.get("download-link", GrinderExecutor.DOWNLOAD_LINK)

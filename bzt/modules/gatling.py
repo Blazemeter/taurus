@@ -22,7 +22,6 @@ import signal
 import subprocess
 from subprocess import CalledProcessError
 import traceback
-import urllib
 import platform
 
 from bzt.engine import ScenarioExecutor, Scenario
@@ -30,6 +29,11 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.utils import shell_exec
 from bzt.utils import unzip, download_progress_hook
 
+
+try:
+    from urllib import FancyURLopener
+except ImportError:
+    from urllib.request import FancyURLopener
 
 exe_suffix = ".bat" if platform.system() == 'Windows' else ".sh"
 
@@ -39,7 +43,8 @@ class GatlingExecutor(ScenarioExecutor):
     Gatling executor module
     """
     # NOTE: will be moved to GatlingVerifier
-    DOWNLOAD_LINK = "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip"
+    DOWNLOAD_LINK = "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle" \
+                    "/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip"
     VERSION = "2.1.4"
 
     def __init__(self):
@@ -137,7 +142,7 @@ class GatlingExecutor(ScenarioExecutor):
             time.sleep(1)
             try:
                 os.killpg(self.process.pid, signal.SIGTERM)
-            except OSError, exc:
+            except OSError as exc:
                 self.log.debug("Failed to terminate: %s", exc)
 
             if self.stdout_file:
@@ -168,13 +173,13 @@ class GatlingExecutor(ScenarioExecutor):
         try:
             self.__gatling(gatling_path)
             return
-        except (OSError, CalledProcessError), exc:
-            self.log.debug("Failed to run Gatling: %s", traceback.format_exc(exc))
+        except (OSError, CalledProcessError) as exc:
+            self.log.debug("Failed to run Gatling: %s", traceback.format_exc())
             try:
                 jout = subprocess.check_output(["java", '-version'], stderr=subprocess.STDOUT)
                 self.log.debug("Java check: %s", jout)
-            except BaseException, exc:
-                self.log.warn("Failed to run java: %s", traceback.format_exc(exc))
+            except BaseException as exc:
+                self.log.warning("Failed to run java: %s", traceback.format_exc())
                 raise RuntimeError("The 'java' is not operable or not available. Consider installing it")
 
             self.__install_gatling(gatling_path)
@@ -197,7 +202,7 @@ class GatlingExecutor(ScenarioExecutor):
             self.log.info("Will try to install Gatling into %s", dest)
 
         # download gatling
-        downloader = urllib.FancyURLopener()
+        downloader = FancyURLopener()
         gatling_zip_path = self.engine.create_artifact("gatling-dist", ".zip")
         version = self.settings.get("version", GatlingExecutor.VERSION)
         download_link = self.settings.get("download-link", GatlingExecutor.DOWNLOAD_LINK)
@@ -214,7 +219,7 @@ class GatlingExecutor(ScenarioExecutor):
         self.log.info("Unzipping %s", gatling_zip_path)
         unzip(gatling_zip_path, dest, 'gatling-charts-highcharts-bundle-' + version)
         os.remove(gatling_zip_path)
-        os.chmod(os.path.expanduser(gatling_path), 0755)
+        os.chmod(os.path.expanduser(gatling_path), 0o755)
         self.log.info("Installed Gatling successfully")
 
 

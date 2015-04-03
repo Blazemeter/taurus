@@ -18,21 +18,29 @@ limitations under the License.
 import json
 import logging
 import os
-import urllib
-import urllib2
 import sys
 import traceback
 import time
-import StringIO
-from urllib2 import HTTPError
 import webbrowser
 import zipfile
+import six
 
 from bzt import ManualShutdown
 from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.jmeter import JMeterExecutor
 from bzt.utils import to_json, dehumanize_time, MultiPartForm
+
+
+try:
+    from urllib2 import urlopen, Request, HTTPError
+except ImportError:
+    from urllib.request import urlopen, Request, HTTPError
+
+try:
+    from urllib import urlencode
+except ImportError:
+    from urllib.parse import urlencode
 
 
 class BlazeMeterUploader(Reporter, AggregatorListener):
@@ -47,7 +55,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         self.browser_open = 'start'
         self.client = BlazeMeterClient(self.log)
         self.test = "Taurus Test"
-        self.test_id = None
+        self.test_id = ""
         self.kpi_buffer = []
         self.bulk_size = 5
 
@@ -87,12 +95,12 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
                 webbrowser.open(url)
         except KeyboardInterrupt:
             raise
-        except BaseException, exc:
-            self.log.debug("Exception: %s", traceback.format_exc(exc))
-            self.log.warn("Failed to start feeding: %s", exc)
+        except BaseException as exc:
+            self.log.debug("Exception: %s", traceback.format_exc())
+            self.log.warning("Failed to start feeding: %s", exc)
 
     def __get_jtls_and_more(self):
-        mf = StringIO.StringIO()
+        mf = six.BytesIO()
         with zipfile.ZipFile(mf, mode='w', compression=zipfile.ZIP_DEFLATED, allowZip64=True) as zfh:
             for handler in self.engine.log.parent.handlers:
                 if isinstance(handler, logging.FileHandler):
@@ -131,15 +139,15 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
 
         try:
             self.__upload_artifacts()
-        except IOError, exc:
-            self.log.warn("Failed artifact upload: %s", traceback.format_exc(exc))
+        except IOError as _:
+            self.log.warning("Failed artifact upload: %s", traceback.format_exc())
         finally:
             try:
                 self.client.end_online()
             except KeyboardInterrupt:
                 raise
-            except BaseException, exc:
-                self.log.warn("Failed to finish online: %s", exc)
+            except BaseException as exc:
+                self.log.warning("Failed to finish online: %s", exc)
 
         if self.client.results_url:
             if self.browser_open in ('end', 'both'):
@@ -162,22 +170,22 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         if self.client.active_session_id:
             try:
                 self.client.send_kpi_data(data, do_check)
-            except IOError, exc:
-                self.log.debug("Error sending data: %s", traceback.format_exc(exc))
-                self.log.warn("Failed to send data, will retry in %s sec...", self.client.timeout)
+            except IOError as _:
+                self.log.debug("Error sending data: %s", traceback.format_exc())
+                self.log.warning("Failed to send data, will retry in %s sec...", self.client.timeout)
                 try:
                     time.sleep(self.client.timeout)
                     self.client.send_kpi_data(data, do_check)
                     self.log.info("Succeeded with retry")
-                except IOError, exc:
-                    self.log.error("Fatal error sending data: %s", traceback.format_exc(exc))
-                    self.log.warn("Will skip failed data and continue running")
+                except IOError as _:
+                    self.log.error("Fatal error sending data: %s", traceback.format_exc())
+                    self.log.warning("Will skip failed data and continue running")
 
             try:
                 self.client.send_error_summary(data)
-            except IOError, exc:
-                self.log.debug("Failed sending error summary: %s", traceback.format_exc(exc))
-                self.log.warn("Failed to send error summary: %s", exc)
+            except IOError as exc:
+                self.log.debug("Failed sending error summary: %s", traceback.format_exc())
+                self.log.warning("Failed to send error summary: %s", exc)
 
     def aggregated_second(self, data):
         """
@@ -202,23 +210,29 @@ class BlazeMeterClient(object):
         self.results_url = None
         self.active_session_id = None
         self.data_signature = None
-        self._first = sys.maxint
+        self._first = sys.maxsize
         self._last = 0
         self.timeout = 5
 
     def _request(self, url, data=None, headers=None, checker=None):
         if not headers:
             headers = {}
-        headers["X-API-Key"] = self.token
+        if self.token:
+            headers["X-API-Key"] = self.token
         self.log.debug("Request %s: %s", url, data[:self.logger_limit] if data else None)
-        request = urllib2.Request(url, data, headers)
+        data = data.encode() if isinstance(data, type(six.u("blah"))) else data
+        request = Request(url, data, headers)
 
-        response = urllib2.urlopen(request, timeout=self.timeout)
+        response = urlopen(request, timeout=self.timeout)
 
         if checker:
             checker(response)
 
         resp = response.read()
+
+        if not isinstance(resp, str):
+            resp = resp.decode()
+
         self.log.debug("Response: %s", resp[:self.logger_limit] if resp else None)
         return json.loads(resp) if len(resp) else {}
 
@@ -230,7 +244,7 @@ class BlazeMeterClient(object):
         :return:
         """
         self.log.info("Initiating data feeding...")
-        data = urllib.urlencode({})
+        data = urlencode({})
 
         if self.token:
             url = self.address + "/api/latest/tests/%s/start-external" % test_id
@@ -311,7 +325,7 @@ class BlazeMeterClient(object):
             self._first = min(self._first, sec[DataPoint.TIMESTAMP])
             self._last = max(self._last, sec[DataPoint.TIMESTAMP])
 
-            for lbl, item in sec[DataPoint.CURRENT].iteritems():
+            for lbl, item in six.iteritems(sec[DataPoint.CURRENT]):
                 if lbl == '':
                     label = "ALL"
                 else:
@@ -328,7 +342,7 @@ class BlazeMeterClient(object):
                     data.append(json_item)
 
                 interval_item = self.__interval_json(item, sec)
-                for rc, cnt in item[KPISet.RESP_CODES].iteritems():
+                for rc, cnt in six.iteritems(item[KPISet.RESP_CODES]):
                     interval_item['rc'].append({"n": cnt, "rc": rc})
 
                 json_item['intervals'].append(interval_item)
@@ -336,15 +350,6 @@ class BlazeMeterClient(object):
                 cumul = sec[DataPoint.CUMULATIVE][lbl]
                 json_item['n'] = cumul[KPISet.SAMPLE_COUNT]
                 json_item["summary"] = self.__summary_json(cumul)
-
-                """
-                for err, cnt in item[KPISet.ERRORS].iteritems():
-                    json_item['errors'].append({
-                        "m": err[1],
-                        "rc": err[0],
-                        "count": cnt,
-                    })
-                """
 
         data = {"labels": data}
 
@@ -470,7 +475,7 @@ class BlazeMeterClient(object):
         url = self.address + "/api/latest/image/%s/files?signature=%s"
         url = url % (self.active_session_id, self.data_signature)
         hdr = {"Content-Type": body.get_content_type()}
-        response = self._request(url, str(body), headers=hdr)
+        response = self._request(url, body.form_as_bytes(), headers=hdr)
         if not response['result']:
             raise IOError("Upload failed: %s" % response)
 
@@ -488,7 +493,7 @@ class BlazeMeterClient(object):
             return
 
         errors = self.__errors_skel(recent[DataPoint.TIMESTAMP], self.active_session_id, self.test_id, self.user_id)
-        for label, label_data in recent[DataPoint.CUMULATIVE].iteritems():
+        for label, label_data in six.iteritems(recent[DataPoint.CUMULATIVE]):
             if not label_data[KPISet.ERRORS]:
                 continue
 

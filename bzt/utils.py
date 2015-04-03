@@ -21,17 +21,23 @@ import json
 import logging
 import os
 import platform
-from psutil import Popen
+import random
 import re
 import shlex
 from subprocess import PIPE
-import mimetools
 import mimetypes
 import itertools
-from types import NoneType
 import zipfile
-
 import sys
+
+from psutil import Popen
+import six
+
+
+if sys.version > '3':
+    long = int
+    unicode = str
+    basestring = str
 
 
 def run_once(f):
@@ -112,8 +118,11 @@ class BetterDict(defaultdict):
             default = BetterDict()
 
         value = self.setdefault(key, default)
-        if isinstance(value, unicode):
-            return value.encode()
+        if isinstance(value, basestring):
+            if isinstance(value, str):  # this is a trick for python v2/v3 compatibility
+                return value
+            else:
+                return value.encode()
         else:
             return value
 
@@ -127,7 +136,7 @@ class BetterDict(defaultdict):
         if not isinstance(src, dict):
             raise ValueError("Loaded object is not dict: %s" % src)
 
-        for key, val in src.iteritems():
+        for key, val in six.iteritems(src):
             if len(key) and key[0] == '~':  # overwrite flag
                 if key[1:] in self:
                     self.pop(key[1:])
@@ -149,7 +158,7 @@ class BetterDict(defaultdict):
                 elif isinstance(dst, dict):
                     raise ValueError("Mix of DictOfDict and dict is forbidden")
                 else:
-                    self.log.warn("Overwritten key: %s", key)
+                    self.log.warning("Overwritten key: %s", key)
                     self[key] = val
             elif isinstance(val, list):
                 self.__ensure_list_type(val)
@@ -158,7 +167,7 @@ class BetterDict(defaultdict):
                 if isinstance(self[key], list):
                     self[key].extend(val)
                 else:
-                    self.log.warn("Overridden key: %s", key)
+                    self.log.warning("Overridden key: %s", key)
                     self[key] = val
             else:
                 self[key] = val
@@ -183,7 +192,7 @@ class BetterDict(defaultdict):
         """
         if isinstance(obj, dict):
             visitor(obj)
-            for key, val in obj.iteritems():
+            for key, val in six.iteritems(obj):
                 cls.traverse(val, visitor)
         elif isinstance(obj, list):
             for val in obj:
@@ -247,7 +256,7 @@ def dict_key(dictnr, value):
     :type value: type
     :return: :raise KeyError:
     """
-    for key, val in dictnr.iteritems():
+    for key, val in six.iteritems(dictnr):
         if val == value:
             return key
     raise KeyError("Value not found in dict: %s" % value)
@@ -265,7 +274,7 @@ class MultiPartForm(object):
     def __init__(self):
         self.form_fields = []
         self.files = []
-        self.boundary = mimetools.choose_boundary()
+        self.boundary = make_boundary()
         return
 
     def get_content_type(self):
@@ -285,18 +294,18 @@ class MultiPartForm(object):
         """ add raw string file
         :type fieldname: str
         :type filename: str
-        :type body: str
+        :type body: str | bytes
         :type mimetype: str
         """
         default = 'application/octet-stream'
         if mimetype is None:
             mimetype = mimetypes.guess_type(filename)[0] or default
 
-        if isinstance(fieldname, unicode):
-            fieldname = fieldname.encode()
+        # if isinstance(fieldname, six.u()):
+        #    fieldname = fieldname.encode()
 
-        if isinstance(filename, unicode):
-            filename = filename.encode()
+        # if isinstance(body, str):
+        #    body = body.encode()
 
         self.files.append((fieldname, filename, mimetype, body))
         return
@@ -309,15 +318,16 @@ class MultiPartForm(object):
         :type fieldname: str
         """
         if not file_handle:
-            with open(filename) as fds:
+            with open(filename, 'rb') as fds:
                 body = fds.read()
+
             filename = os.path.basename(filename)
         else:
             body = file_handle.read()
         self.add_file_as_string(fieldname, filename, body, mimetype)
         return
 
-    def __str__(self):
+    def __convert_to_list(self):
         """Return a string representing the form, including attached files."""
         # Build a list of lists, each containing "lines" of the
         # request.  Each part is separated by a boundary string.
@@ -344,8 +354,27 @@ class MultiPartForm(object):
         # then return CR+LF separated data
         flattened = list(itertools.chain(*parts))
         flattened.append('--' + self.boundary + '--')
-        flattened.append('')
-        return '\r\n'.join(flattened)
+        # flattened.append('')
+        # return b'\r\n'.join(x.encode() if isinstance(x, str) else x for x in flattened)
+        return flattened
+
+    def form_as_bytes(self):
+        """
+        represents form contents as bytes in python3 or 8-bit str in python2
+        """
+        result_list = []
+        for x in self.__convert_to_list():
+            # if (8-bit str (2.7) or bytes (3.x), then no processing, just add, else - encode)
+            if isinstance(x, six.binary_type):
+                result_list.append(x)
+            elif isinstance(x, six.text_type):
+                result_list.append(x.encode())
+            else:
+                raise BaseException
+
+        res_bytes = six.b("\r\n").join(result_list)
+        return res_bytes
+        # return b'\r\n'.join(x.encode() if isinstance(x, str) else x for x in self.__convert_to_list())
 
 
 def to_json(obj):
@@ -370,8 +399,7 @@ class ComplexEncoder(json.JSONEncoder):
     """
     Magic class to help serialize in JSON any object.
     """
-    TYPES = [dict, list, tuple,
-             basestring, int, long, float, bool, NoneType]
+    TYPES = [dict, list, tuple, unicode, str, int, long, float, bool, type(None)]
 
     def default(self, obj):
         """
@@ -383,7 +411,7 @@ class ComplexEncoder(json.JSONEncoder):
 
         if self.__dumpable(obj):
             res = {}
-            for key, val in obj.__dict__.iteritems():
+            for key, val in six.iteritems(obj.__dict__):
                 if not self.__dumpable(val):
                     # logging.debug("Filtered out: %s.%s", key, val)
                     pass
@@ -522,3 +550,21 @@ def download_progress_hook(blocknum, blocksize, totalsize):
             sys.stderr.write("\n")
     else:
         sys.stdout.write("read %d\n" % (readsofar,))
+
+
+def make_boundary(text=None):
+    _width = len(repr(sys.maxsize - 1))
+    _fmt = '%%0%dd' % _width
+    token = random.randrange(sys.maxsize)
+    boundary = ('=' * 15) + (_fmt % token) + '=='
+    if text is None:
+        return boundary
+    b = boundary
+    counter = 0
+    while True:
+        cre = re.compile('^--' + re.escape(b) + '(--)?$', re.MULTILINE)
+        if not cre.search(text):
+            break
+        b = boundary + '.' + str(counter)
+        counter += 1
+    return b

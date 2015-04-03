@@ -90,7 +90,8 @@ def local_paths_config():
     """ to fix relative paths """
     dirname = os.path.dirname(__file__)
     fds, fname = tempfile.mkstemp()
-    os.write(fds, json.dumps({
+    os.close(fds)
+    settings = {
         "modules": {
             "jmeter": {
                 "path": dirname + "/../build/jmeter/bin/jmeter",
@@ -102,8 +103,10 @@ def local_paths_config():
                 "path": dirname + "/../build/gatling/bin/gatling.sh",
             }
         }
-    }))
-    os.close(fds)
+    }
+    jstring = json.dumps(settings)
+    with open(fname, 'w') as fds:
+        fds.write(jstring)
     return fname
 
 
