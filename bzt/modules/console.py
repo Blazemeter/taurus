@@ -14,7 +14,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import six
 
 """
 Console reporting for CLI usage
@@ -286,7 +285,7 @@ class TaurusConsole(Columns):
         self.logo = TaurusLogo()
         right_pane = Pile([(10, self.logo),
                            right_widgets,
-                           (1, Filler(Divider(six.u('─')))),
+                           (1, Filler(Divider('─'))),
                            (WEIGHT, 1, self.log_widget)])
 
         columns = [(WEIGHT, 0.25, self.graphs),
