@@ -23,7 +23,6 @@ import traceback
 import time
 import webbrowser
 import zipfile
-
 import six
 
 from bzt import ManualShutdown
@@ -218,7 +217,8 @@ class BlazeMeterClient(object):
     def _request(self, url, data=None, headers=None, checker=None):
         if not headers:
             headers = {}
-        headers["X-API-Key"] = self.token
+        if self.token:
+            headers["X-API-Key"] = self.token
         self.log.debug("Request %s: %s", url, data[:self.logger_limit] if data else None)
         request = Request(url, data, headers)
 
@@ -228,6 +228,10 @@ class BlazeMeterClient(object):
             checker(response)
 
         resp = response.read()
+
+        if not isinstance(resp, str):
+            resp=resp.decode()
+
         self.log.debug("Response: %s", resp[:self.logger_limit] if resp else None)
         return json.loads(resp) if len(resp) else {}
 
