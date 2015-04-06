@@ -34,7 +34,7 @@ from bzt.modules.console import WidgetProvider
 from bzt.modules.provisioning import FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.utils import shell_exec, ensure_is_dict, humanize_time, dehumanize_time, BetterDict, \
-    guess_csv_delimiter, unzip, download_progress_hook, split_to_chunks
+    guess_csv_delimiter, unzip, download_progress_hook
 
 
 try:
