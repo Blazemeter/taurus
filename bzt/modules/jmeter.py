@@ -936,7 +936,7 @@ class JMX(object):
         return element
 
     @staticmethod
-    def _get_json_path_assertion(jsonpath, expected_value, json_validation, expect_null):
+    def _get_json_path_assertion(jsonpath, expected_value, json_validation, expect_null, invert):
         """
         :type jsonpath: str
         :type expected_value: str
@@ -950,8 +950,10 @@ class JMX(object):
                                 testname="JSon path assertion")
         element.append(JMX._string_prop("JSON_PATH", jsonpath))
         element.append(JMX._string_prop("EXPECTED_VALUE", expected_value))
-        element.append(JMX._string_prop("JSONVALIDATION", "true" if json_validation else "false"))
-        element.append(JMX._string_prop("EXPECT_NULL", "true" if expect_null else "false"))
+        element.append(JMX._bool_prop("JSONVALIDATION", json_validation))
+        element.append(JMX._bool_prop("EXPECT_NULL", expect_null))
+        element.append(JMX._bool_prop("INVERT", expect_null))
+
         return element
 
     @staticmethod
@@ -1369,28 +1371,29 @@ class JMeterScenarioBuilder(JMX):
 
     def __add_assertions(self, children, request):
         assertions = request.config.get("assert", [])
-
-        for assertion_name, assertion_config in split_to_chunks(assertions,2):
-            if assertion_name == "contains_this_regexp":
-
-                children.append(JMX._get_resp_assertion(
-                        assertion_config.get("subject", self.FIELD_BODY),
-                        assertion_config['contains'],
-                        assertion_config.get('regexp', True),
-                        assertion_config.get('not', False)
-                    ))
-                children.append(etree.Element("hashTree"))
-            elif assertion_name == "json_path_assertion":
-                children.append(JMX._get_json_path_assertion(
-                    assertion_config["json_path"],
-                    assertion_config["expected_value"],
-                    assertion_config.get("json_validation"),
-                    assertion_config.get("expect_null"),
-
+        for idx, assertion in enumerate(assertions):
+            ensure_is_dict(assertions, idx, "contains")
+            assertion = assertions[idx]
+            if not isinstance(assertion['contains'], list):
+                assertion['contains'] = [assertion['contains']]
+            children.append(JMX._get_resp_assertion(
+                assertion.get("subject", self.FIELD_BODY),
+                assertion['contains'],
+                assertion.get('regexp', True),
+                assertion.get('not', False)
                 ))
-                children.append(etree.Element("hashTree"))
-            else:
-                pass
+            children.append(etree.Element("hashTree"))
+
+        jpath_assertions = request.config.get("json-path-assertion", BetterDict())
+        children.append(JMX._get_json_path_assertion(
+            jpath_assertions.get('json_path', ''),
+            jpath_assertions.get('expected_value', ''),
+            jpath_assertions.get('json_validation', False),
+            jpath_assertions.get('expect_null', False),
+            jpath_assertions.get('invert', False),
+        ))
+        children.append(etree.Element("hashTree"))
+
 
     def __add_requests(self):
         global_timeout = self.scenario.get("timeout", None)

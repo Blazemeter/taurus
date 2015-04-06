@@ -38,15 +38,15 @@
                 "302"
               ],
               "regexp": false
-            },
-            "json_path_assertion",
-            {
+            }
+          ],
+          "json-path-assertion": {
               "json_path": "$.result[*].type",
               "expected_value": "blah",
               "json_validation": true,
-              "expect_null": false
+              "expect_null": false,
+              "invert":false
             }
-          ]
         },
         "http://demo.blazemeter.com/?${somename}=${varname2}",
         {
