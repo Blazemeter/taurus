@@ -24,9 +24,9 @@ import signal
 import traceback
 import logging
 from subprocess import CalledProcessError
+import six
 
 from cssselect import GenericTranslator
-import six
 import urwid
 
 from bzt.engine import ScenarioExecutor, Scenario
@@ -936,6 +936,27 @@ class JMX(object):
         return element
 
     @staticmethod
+    def _get_json_path_assertion(jsonpath, expected_value, json_validation, expect_null, invert):
+        """
+        :type jsonpath: str
+        :type expected_value: str
+        :type json_validation: bool
+        :type expect_null: bool
+        :return: lxml.etree.Element
+        """
+        element = etree.Element("com.atlantbh.jmeter.plugins.jsonutils.jsonpathassertion.JSONPathAssertion",
+                                guiclass="com.atlantbh.jmeter.plugins.jsonutils.jsonpathassertion.gui.JSONPathAssertionGui",
+                                testclass="com.atlantbh.jmeter.plugins.jsonutils.jsonpathassertion.JSONPathAssertion",
+                                testname="JSon path assertion")
+        element.append(JMX._string_prop("JSON_PATH", jsonpath))
+        element.append(JMX._string_prop("EXPECTED_VALUE", expected_value))
+        element.append(JMX._bool_prop("JSONVALIDATION", json_validation))
+        element.append(JMX._bool_prop("EXPECT_NULL", expect_null))
+        element.append(JMX._bool_prop("INVERT", invert))
+
+        return element
+
+    @staticmethod
     def _get_resp_assertion(field, contains, is_regexp, is_invert):
         """
 
@@ -1360,6 +1381,19 @@ class JMeterScenarioBuilder(JMX):
                 assertion['contains'],
                 assertion.get('regexp', True),
                 assertion.get('not', False)
+            ))
+            children.append(etree.Element("hashTree"))
+
+        jpath_assertions = request.config.get("assert-jsonpath", [])
+        for idx, assertion in enumerate(jpath_assertions):
+            assertion = ensure_is_dict(jpath_assertions, idx, "jsonpath")
+
+            children.append(JMX._get_json_path_assertion(
+                assertion['jsonpath'],
+                assertion.get('expected-value', ''),
+                assertion.get('validate', False),
+                assertion.get('expect-null', False),
+                assertion.get('invert', False),
             ))
             children.append(etree.Element("hashTree"))
 

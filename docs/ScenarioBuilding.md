@@ -143,7 +143,9 @@ scenarios:
 
 ### Assertions
 
-Assertions are attached to request elements and used to set fail status on the response (it is not the same as response code). Currently only one type of response assertion is available. Its short form looks like this:
+Assertions are attached to request elements and used to set fail status on the response (it is not the same as response code).
+Currently only two types of response assertions are available.
+First one checks http response code, its short form looks like this:
 
 ```yaml
 ---
@@ -175,3 +177,33 @@ Possible subjects are:
   - `body`
   - `headers`
   - `http-code`
+
+
+The second assertion type is used to perform validation of JSON response against JSONPath expression.
+
+```yaml
+---
+scenarios:
+  my-req:
+    requests:
+      - url: http://blazedemo.com/
+        assert-jsonpath:  # contains list of options
+            - "$."  # if this JSONPath not found, assert will fail
+            - "$.result[0]" # there can be multiple JSONPaths provided            
+```
+
+Full form:
+
+```yaml
+---
+scenarios:
+  my-req:
+    requests:
+      - url: http://blazedemo.com/
+        assert-jsonpath:
+            - jsonpath: "$." # path to value, validation fails if path not exists
+              validate: true # validate value if true. or just check if json path exists if false
+              expected-value: "value" # the value we are expecting to validate
+              expect-null: false  # expected value is null
+              invert: false # invert condition
+```
