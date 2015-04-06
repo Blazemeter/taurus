@@ -198,8 +198,8 @@ scenarios:
     requests:
       - url: http://blazedemo.com/
         json-path-assertion:
-           json-path: $. # path to value, validation fails if path not exists
-           expected-value: # the value we are expecting to validate
+           json-path: "$." # path to value, validation fails if path not exists
+           expected-value: "value" # the value we are expecting to validate
            json-validation: true # validate value if true. or just check if json path exists if false
            expect-null: false  # expected value is null
            invert: false # invert condition
