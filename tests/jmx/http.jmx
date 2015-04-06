@@ -274,6 +274,14 @@ test</stringProp>
         <stringProp name="DEFAULT">default</stringProp>
       </com.atlantbh.jmeter.plugins.jsonutils.jsonpathextractor.JSONPathExtractor>
       <hashTree/>
+      <com.atlantbh.jmeter.plugins.jsonutils.jsonpathassertion.JSONPathAssertion guiclass="com.atlantbh.jmeter.plugins.jsonutils.jsonpathassertion.gui.JSONPathAssertionGui" testclass="com.atlantbh.jmeter.plugins.jsonutils.jsonpathassertion.JSONPathAssertion" testname="JSon path assertion">
+            <stringProp name="JSON_PATH">jsonpath</stringProp>
+            <stringProp name="EXPECTED_VALUE">expected_value</stringProp>
+            <boolProp name="JSONVALIDATION">false</boolProp>
+            <boolProp name="EXPECT_NULL">false</boolProp>
+            <boolProp name="INVERT">false</boolProp>
+          </com.atlantbh.jmeter.plugins.jsonutils.jsonpathassertion.JSONPathAssertion>
+          <hashTree/>
     </hashTree>
   </hashTree>
 </jmeterTestPlan>

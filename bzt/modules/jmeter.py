@@ -952,7 +952,7 @@ class JMX(object):
         element.append(JMX._string_prop("EXPECTED_VALUE", expected_value))
         element.append(JMX._bool_prop("JSONVALIDATION", json_validation))
         element.append(JMX._bool_prop("EXPECT_NULL", expect_null))
-        element.append(JMX._bool_prop("INVERT", expect_null))
+        element.append(JMX._bool_prop("INVERT", invert))
 
         return element
 
@@ -1381,7 +1381,7 @@ class JMeterScenarioBuilder(JMX):
                 assertion['contains'],
                 assertion.get('regexp', True),
                 assertion.get('not', False)
-                ))
+            ))
             children.append(etree.Element("hashTree"))
 
         jpath_assertions = request.config.get("json-path-assertion", [])
