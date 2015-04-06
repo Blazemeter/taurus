@@ -201,7 +201,7 @@ scenarios:
     requests:
       - url: http://blazedemo.com/
         assert-jsonpath:
-            - json-path: "$." # path to value, validation fails if path not exists
+            - jsonpath: "$." # path to value, validation fails if path not exists
               validate: true # validate value if true. or just check if json path exists if false
               expected-value: "value" # the value we are expecting to validate
               expect-null: false  # expected value is null
