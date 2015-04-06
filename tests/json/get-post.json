@@ -39,7 +39,17 @@
               ],
               "regexp": false
             }
-          ]
+          ],
+          "json-path-assertion": [
+            "$.",
+            {
+              "json-path": "$.result[*].type",
+              "expected-value": "blah",
+              "json-validation": true,
+              "expect-null": false,
+              "invert":false
+            }
+            ]
         },
         "http://demo.blazemeter.com/?${somename}=${varname2}",
         {

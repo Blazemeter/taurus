@@ -1384,15 +1384,18 @@ class JMeterScenarioBuilder(JMX):
                 ))
             children.append(etree.Element("hashTree"))
 
-        jpath_assertions = request.config.get("json-path-assertion", BetterDict())
-        children.append(JMX._get_json_path_assertion(
-            jpath_assertions.get('json_path', ''),
-            jpath_assertions.get('expected_value', ''),
-            jpath_assertions.get('json_validation', False),
-            jpath_assertions.get('expect_null', False),
-            jpath_assertions.get('invert', False),
-        ))
-        children.append(etree.Element("hashTree"))
+        jpath_assertions = request.config.get("json-path-assertion", [])
+        for idx, assertion in enumerate(jpath_assertions):
+            assertion = ensure_is_dict(jpath_assertions, idx, "json-path")
+
+            children.append(JMX._get_json_path_assertion(
+                assertion['json-path'],
+                assertion.get('expected-value', ''),
+                assertion.get('json-validation', False),
+                assertion.get('expect_null', False),
+                assertion.get('invert', False),
+            ))
+            children.append(etree.Element("hashTree"))
 
 
     def __add_requests(self):

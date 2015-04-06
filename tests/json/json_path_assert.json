@@ -40,13 +40,16 @@
               "regexp": false
             }
           ],
-          "json-path-assertion": {
-              "json_path": "$.result[*].type",
-              "expected_value": "blah",
-              "json_validation": true,
-              "expect_null": false,
+          "json-path-assertion": [
+            "$.",
+            {
+              "json-path": "$.result[*].type",
+              "expected-value": "blah",
+              "json-validation": true,
+              "expect-null": false,
               "invert":false
             }
+            ]
         },
         "http://demo.blazemeter.com/?${somename}=${varname2}",
         {
