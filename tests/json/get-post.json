@@ -40,16 +40,16 @@
               "regexp": false
             }
           ],
-          "json-path-assertion": [
+          "assert-jsonpath": [
             "$.",
             {
-              "json-path": "$.result[*].type",
+              "jsonpath": "$.result[*].type",
               "expected-value": "blah",
-              "json-validation": true,
+              "validate": true,
               "expect-null": false,
-              "invert":false
+              "invert": false
             }
-            ]
+          ]
         },
         "http://demo.blazemeter.com/?${somename}=${varname2}",
         {
@@ -101,7 +101,6 @@
       }
     }
   },
-
   "execution": {
     "concurrency": 5,
     "ramp-up": 15,
@@ -109,7 +108,6 @@
     "iterations": 10,
     "scenario": "get-post"
   },
-
   "modules": {
     "jmeter": {
       "path": "build/jmeter/bin/jmeter"

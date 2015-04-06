@@ -24,9 +24,9 @@ import signal
 import traceback
 import logging
 from subprocess import CalledProcessError
+import six
 
 from cssselect import GenericTranslator
-import six
 import urwid
 
 from bzt.engine import ScenarioExecutor, Scenario
@@ -1384,19 +1384,18 @@ class JMeterScenarioBuilder(JMX):
             ))
             children.append(etree.Element("hashTree"))
 
-        jpath_assertions = request.config.get("json-path-assertion", [])
+        jpath_assertions = request.config.get("assert-jsonpath", [])
         for idx, assertion in enumerate(jpath_assertions):
-            assertion = ensure_is_dict(jpath_assertions, idx, "json-path")
+            assertion = ensure_is_dict(jpath_assertions, idx, "jsonpath")
 
             children.append(JMX._get_json_path_assertion(
-                assertion['json-path'],
+                assertion['jsonpath'],
                 assertion.get('expected-value', ''),
-                assertion.get('json-validation', False),
-                assertion.get('expect_null', False),
+                assertion.get('validate', False),
+                assertion.get('expect-null', False),
                 assertion.get('invert', False),
             ))
             children.append(etree.Element("hashTree"))
-
 
     def __add_requests(self):
         global_timeout = self.scenario.get("timeout", None)

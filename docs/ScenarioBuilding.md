@@ -178,7 +178,8 @@ Possible subjects are:
   - `headers`
   - `http-code`
 
-The second one is used to perform validation of JSON response.
+
+The second assertion type is used to perform validation of JSON response against JSONPath expression.
 
 ```yaml
 ---
@@ -186,7 +187,9 @@ scenarios:
   my-req:
     requests:
       - url: http://blazedemo.com/
-        json-path-assertion:  # contains list of options
+        assert-jsonpath:  # contains list of options
+            - "$."  # if this JSONPath not found, assert will fail
+            - "$.result[0]" # there can be multiple JSONPaths provided            
 ```
 
 Full form:
@@ -197,10 +200,10 @@ scenarios:
   my-req:
     requests:
       - url: http://blazedemo.com/
-        json-path-assertion:
-           json-path: "$." # path to value, validation fails if path not exists
-           expected-value: "value" # the value we are expecting to validate
-           json-validation: true # validate value if true. or just check if json path exists if false
-           expect-null: false  # expected value is null
-           invert: false # invert condition
+        assert-jsonpath:
+            - json-path: "$." # path to value, validation fails if path not exists
+              validate: true # validate value if true. or just check if json path exists if false
+              expected-value: "value" # the value we are expecting to validate
+              expect-null: false  # expected value is null
+              invert: false # invert condition
 ```
