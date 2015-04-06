@@ -156,3 +156,11 @@ class TestJMeterExecutor(BZTestCase):
         obj.prepare()
         result = open(obj.modified_jmx).read()
         self.assertIn('<stringProp name="ConstantTimer.delay">750</stringProp>', result)
+
+    def test_json_path_assertion(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = BetterDict()
+        obj.engine.config = json.loads(open("tests/json/json_path_assert.json").read())
+        obj.execution = obj.engine.config['execution']
+        obj.prepare()

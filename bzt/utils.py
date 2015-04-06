@@ -568,3 +568,13 @@ def make_boundary(text=None):
         b = boundary + '.' + str(counter)
         counter += 1
     return b
+
+def split_to_chunks(some_iterable, chunk_size):
+    """
+    Splits iterable to list of chunks
+    :param some_iterable:
+    :param chunk_size:
+    :return: generator
+    """
+    for i in range(0,len(some_iterable), chunk_size):
+        yield some_iterable[i:i+chunk_size]

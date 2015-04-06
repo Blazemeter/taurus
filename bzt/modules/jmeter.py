@@ -34,7 +34,7 @@ from bzt.modules.console import WidgetProvider
 from bzt.modules.provisioning import FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.utils import shell_exec, ensure_is_dict, humanize_time, dehumanize_time, BetterDict, \
-    guess_csv_delimiter, unzip, download_progress_hook
+    guess_csv_delimiter, unzip, download_progress_hook, split_to_chunks
 
 
 try:
@@ -936,6 +936,25 @@ class JMX(object):
         return element
 
     @staticmethod
+    def _get_json_path_assertion(jsonpath, expected_value, json_validation, expect_null):
+        """
+        :type jsonpath: str
+        :type expected_value: str
+        :type json_validation: bool
+        :type expect_null: bool
+        :return: lxml.etree.Element
+        """
+        element = etree.Element("com.atlantbh.jmeter.plugins.jsonutils.jsonpathassertion.JSONPathAssertion",
+                                guiclass="com.atlantbh.jmeter.plugins.jsonutils.jsonpathassertion.gui.JSONPathAssertionGui",
+                                testclass="com.atlantbh.jmeter.plugins.jsonutils.jsonpathassertion.JSONPathAssertion",
+                                testname="JSon path assertion")
+        element.append(JMX._string_prop("JSON_PATH", jsonpath))
+        element.append(JMX._string_prop("EXPECTED_VALUE", expected_value))
+        element.append(JMX._string_prop("JSONVALIDATION", "true" if json_validation else "false"))
+        element.append(JMX._string_prop("EXPECT_NULL", "true" if expect_null else "false"))
+        return element
+
+    @staticmethod
     def _get_resp_assertion(field, contains, is_regexp, is_invert):
         """
 
@@ -1350,18 +1369,28 @@ class JMeterScenarioBuilder(JMX):
 
     def __add_assertions(self, children, request):
         assertions = request.config.get("assert", [])
-        for idx, assertion in enumerate(assertions):
-            ensure_is_dict(assertions, idx, "contains")
-            assertion = assertions[idx]
-            if not isinstance(assertion['contains'], list):
-                assertion['contains'] = [assertion['contains']]
-            children.append(JMX._get_resp_assertion(
-                assertion.get("subject", self.FIELD_BODY),
-                assertion['contains'],
-                assertion.get('regexp', True),
-                assertion.get('not', False)
-            ))
-            children.append(etree.Element("hashTree"))
+
+        for assertion_name, assertion_config in split_to_chunks(assertions,2):
+            if assertion_name == "contains_this_regexp":
+
+                children.append(JMX._get_resp_assertion(
+                        assertion_config.get("subject", self.FIELD_BODY),
+                        assertion_config['contains'],
+                        assertion_config.get('regexp', True),
+                        assertion_config.get('not', False)
+                    ))
+                children.append(etree.Element("hashTree"))
+            elif assertion_name == "json_path_assertion":
+                children.append(JMX._get_json_path_assertion(
+                    assertion_config["json_path"],
+                    assertion_config["expected_value"],
+                    assertion_config.get("json_validation"),
+                    assertion_config.get("expect_null"),
+
+                ))
+                children.append(etree.Element("hashTree"))
+            else:
+                pass
 
     def __add_requests(self):
         global_timeout = self.scenario.get("timeout", None)
