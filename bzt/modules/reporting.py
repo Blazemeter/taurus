@@ -96,12 +96,12 @@ class FinalStatus(Reporter, AggregatorListener):
         reports failed labels
         """
         report_template = "%d failed samples: %s"
-        # Upcoming fix soon (sort lambda)
         sorted_labels = sorted(self.last_sec[DataPoint.CUMULATIVE].keys())
         for sample_label in sorted_labels:
             if sample_label != "":
                 failed_samples_count = self.last_sec[DataPoint.CUMULATIVE][sample_label]['fail']
-                self.log.info(report_template, failed_samples_count, sample_label)
+                if failed_samples_count:
+                    self.log.info(report_template, failed_samples_count, sample_label)
 
 
 class JUnitXMLReporter(Reporter, AggregatorListener):
