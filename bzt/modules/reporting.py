@@ -97,7 +97,7 @@ class FinalStatus(Reporter, AggregatorListener):
         sorted_labels = sorted(cumulative.keys())
         for sample_label in sorted_labels:
             if sample_label != "":
-                failed_samples_count = self.last_sec[DataPoint.CUMULATIVE][sample_label]['fail']
+                failed_samples_count = cumulative[sample_label]['fail']
                 if failed_samples_count:
                     self.log.info(report_template, failed_samples_count, sample_label)
 
