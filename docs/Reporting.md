@@ -43,16 +43,14 @@ reporting:
     - final_stats
 ```
 Configuration options available for this reporter:
-
 ```yaml
 ---
-modules:
-  final_stats:
-    report_failed_labels: true # provides listing of urls with failures count, does not display urls with no failures.
-    report_sample_count: true # overall samples count and percent of failures
-    report_percentile: false # display average times and percentiles
+reporting:
+  - module: final_stats:
+      failed-labels: true # provides listing of urls with failures count, does not display urls with no failures.
+      samples-count: true # overall samples count and percent of failures
+      percentiles: false # display average times and percentiles
 ```
-report_failed_labels option provides listing of urls and number of fails 
 
 
 ## Console Screen

@@ -3,7 +3,6 @@ from tests.mocks import EngineEmul
 from bzt.modules.reporting import JUnitXMLReporter
 from bzt.utils import BetterDict
 from collections import Counter, defaultdict
-import hashlib
 from bzt.modules.passfail import PassFailStatus, FailCriteria
 from bzt.modules.aggregator import DataPoint, KPISet
 import tempfile

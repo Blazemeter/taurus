@@ -62,15 +62,13 @@ class FinalStatus(Reporter, AggregatorListener):
         if self.last_sec:
             summary_kpi = self.last_sec[DataPoint.CUMULATIVE][""]
 
-            if self.settings.get("report_sample_count", True):
+            if self.settings.get("samples-count", True):
                 self.__report_samples_count(summary_kpi)
-            if self.settings.get("report_percentile", True):
+            if self.settings.get("percentiles", True):
                 self.__report_percentiles(summary_kpi)
 
-            if self.settings.get("report_failed_labels", False):
-                self.__report_failed_labels()
-
-                # todo: add optional errors summary
+            if self.settings.get("failed-labels", False):
+                self.__report_failed_labels(self.last_sec[DataPoint.CUMULATIVE])
 
     def __report_samples_count(self, summary_kpi_set):
         """
@@ -91,12 +89,12 @@ class FinalStatus(Reporter, AggregatorListener):
         for key in sorted(summary_kpi_set[KPISet.PERCENTILES].keys(), key=float):
             self.log.info("Percentile %.1f%%: %.3f", float(key), summary_kpi_set[KPISet.PERCENTILES][key])
 
-    def __report_failed_labels(self):
+    def __report_failed_labels(self, cumulative):
         """
         reports failed labels
         """
         report_template = "%d failed samples: %s"
-        sorted_labels = sorted(self.last_sec[DataPoint.CUMULATIVE].keys())
+        sorted_labels = sorted(cumulative.keys())
         for sample_label in sorted_labels:
             if sample_label != "":
                 failed_samples_count = self.last_sec[DataPoint.CUMULATIVE][sample_label]['fail']
