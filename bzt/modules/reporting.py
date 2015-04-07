@@ -60,17 +60,46 @@ class FinalStatus(Reporter, AggregatorListener):
         super(FinalStatus, self).post_process()
 
         if self.last_sec:
-            cumul = self.last_sec[DataPoint.CUMULATIVE]
-            overall = cumul['']
-            err_rate = 100 * overall[KPISet.FAILURES] / float(overall[KPISet.SAMPLE_COUNT])
-            self.log.info("Samples count: %s, %.2f%% failures", overall[KPISet.SAMPLE_COUNT], err_rate)
-            fmt = "Average times: total %.3f, latency %.3f, connect %.3f"
-            self.log.info(fmt, overall[KPISet.AVG_RESP_TIME], overall[KPISet.AVG_LATENCY],
-                          overall[KPISet.AVG_CONN_TIME])
-            for key in sorted(overall[KPISet.PERCENTILES].keys(), key=float):
-                self.log.info("Percentile %.1f%%: %.3f", float(key), overall[KPISet.PERCENTILES][key])
+            summary_kpi = self.last_sec[DataPoint.CUMULATIVE][""]
 
-                # todo: add optional errors summary
+            if self.settings.get("samples-count", True):
+                self.__report_samples_count(summary_kpi)
+            if self.settings.get("percentiles", True):
+                self.__report_percentiles(summary_kpi)
+
+            if self.settings.get("failed-labels", False):
+                self.__report_failed_labels(self.last_sec[DataPoint.CUMULATIVE])
+
+    def __report_samples_count(self, summary_kpi_set):
+        """
+        reports samples count
+        """
+        err_rate = 100 * summary_kpi_set[KPISet.FAILURES] / float(summary_kpi_set[KPISet.SAMPLE_COUNT])
+        self.log.info("Samples count: %s, %.2f%% failures", summary_kpi_set[KPISet.SAMPLE_COUNT], err_rate)
+
+    def __report_percentiles(self, summary_kpi_set):
+        """
+        reports percentiles
+        """
+
+        fmt = "Average times: total %.3f, latency %.3f, connect %.3f"
+        self.log.info(fmt, summary_kpi_set[KPISet.AVG_RESP_TIME], summary_kpi_set[KPISet.AVG_LATENCY],
+                      summary_kpi_set[KPISet.AVG_CONN_TIME])
+
+        for key in sorted(summary_kpi_set[KPISet.PERCENTILES].keys(), key=float):
+            self.log.info("Percentile %.1f%%: %.3f", float(key), summary_kpi_set[KPISet.PERCENTILES][key])
+
+    def __report_failed_labels(self, cumulative):
+        """
+        reports failed labels
+        """
+        report_template = "%d failed samples: %s"
+        sorted_labels = sorted(cumulative.keys())
+        for sample_label in sorted_labels:
+            if sample_label != "":
+                failed_samples_count = cumulative[sample_label]['fail']
+                if failed_samples_count:
+                    self.log.info(report_template, failed_samples_count, sample_label)
 
 
 class JUnitXMLReporter(Reporter, AggregatorListener):

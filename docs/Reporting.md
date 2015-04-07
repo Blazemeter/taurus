@@ -42,6 +42,16 @@ This reporter is enabled by default. To enable it manually, use following config
 reporting:
     - final_stats
 ```
+Configuration options available for this reporter:
+```yaml
+---
+reporting:
+  - module: final_stats:
+      failed-labels: true # provides listing of urls with failures count, does not display urls with no failures.
+      samples-count: true # overall samples count and percent of failures
+      percentiles: false # display average times and percentiles
+```
+
 
 ## Console Screen
 
