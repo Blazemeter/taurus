@@ -7,4 +7,6 @@ Added JunitXMLReporter. Reports test results in JunitXML format which may be use
   (See configuration options in Reporting.md)
 Added JSON path assertion.
   (See Assertions in ScenarioBuilding.md)
+Added parameters for final_stats reporter
+  (See Reporting.md)
 ## Prev Versions
