@@ -156,3 +156,11 @@ class TestJMeterExecutor(BZTestCase):
         obj.prepare()
         result = open(obj.modified_jmx).read()
         self.assertIn('<stringProp name="ConstantTimer.delay">750</stringProp>', result)
+
+    def test_body_parse(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = json.loads(open("tests/json/local_get_post.json").read())
+        obj.execution = obj.engine.config['execution']
+        obj.prepare()
+        # to be continued
