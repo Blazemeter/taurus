@@ -66,7 +66,7 @@
           "method": "PUT",
           "url": "http://demo.blazemeter.com/api/user",
           "label": "With body from file",
-          "body-file": "tests/jmx/http.jmx"
+          "body-file": "tests/data/test1.csv"
         },
         {
           "method": "POST",
