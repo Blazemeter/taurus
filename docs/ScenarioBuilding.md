@@ -93,6 +93,7 @@ scenarios:
         label: homepage  # sampler label
 
         body: 'request-body-string'  # if present, will be used as body 
+        body: {}  # generate query string based on parameters and request type
         body-file: path/to/file.txt  # this file contents will be used as post body
 
         headers: {}  # local headers that override global
