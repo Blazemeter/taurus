@@ -10,38 +10,12 @@
         {
           "method": "POST",
           "multipart": true,
-          "keepalive":true,
+          "keepalive": true,
           "url": "http://demo.blazemeter.com/api/user",
           "label": "With body",
           "body": {
-            "http-args": [
-              {
-                "name": "foo",
-                "value": "bar",
-                "encode": true,
-                "metadata": "=",
-                "include-equals": true
-              },
-              {
-                "name": "foo2",
-                "value": "bar2",
-                "encode": true,
-                "metadata": "=",
-                "include-equals": true
-              }
-            ],
-            "files": [
-              {
-                "abs-path": "/tmp/file1.txt",
-                "param-name": "param_attached_file",
-                "mime-type": "text/plain"
-              },
-              {
-                "abs-path": "/tmp/file2.bin",
-                "param-name": "param_attached_file2",
-                "mime-type": "application/octet-stream"
-              }
-            ]
+            "param1":"param1_val",
+            "param2":"param2_val"
           }
         },
         {
