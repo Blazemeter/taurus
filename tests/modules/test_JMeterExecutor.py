@@ -12,6 +12,13 @@ from tests.mocks import EngineEmul
 from bzt.utils import BetterDict
 import bzt.utils
 
+try:
+    from lxml import etree
+except ImportError:
+    try:
+        import cElementTree as etree
+    except ImportError:
+        import elementtree.ElementTree as etree
 
 setup_test_logging()
 
@@ -160,7 +167,15 @@ class TestJMeterExecutor(BZTestCase):
     def test_body_parse(self):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
-        obj.engine.config = json.loads(open("tests/json/local_get_post.json").read())
+        obj.engine.config = json.loads(open("tests/json/get-post.json").read())
         obj.execution = obj.engine.config['execution']
         obj.prepare()
-        # to be continued
+
+        xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        sampler_element = xml_tree.findall(".//HTTPSamplerProxy[@testname='With body params']")
+        arguments_element_prop = sampler_element[0][0]
+        self.assertEqual(6, len(sampler_element[0].getchildren()))
+        self.assertEqual(1, len(arguments_element_prop.getchildren()))
+        self.assertEqual(2, len(arguments_element_prop[0].getchildren()))
+        self.assertEqual(1, len(arguments_element_prop[0].findall(".//elementProp[@name='param1']")))
+        self.assertEqual(1, len(arguments_element_prop.findall(".//elementProp[@name='param2']")))

@@ -706,7 +706,7 @@ class JMX(object):
                              testclass="Arguments")
 
     @staticmethod
-    def _get_http_request(url, label, method, timeout, body, keepalive, multipart):
+    def _get_http_request(url, label, method, timeout, body):
         """
         Generates HTTP request
         :type timeout: float
@@ -721,16 +721,6 @@ class JMX(object):
 
         args = JMX._get_arguments_panel("HTTPsampler.Arguments")
 
-
-        # if body is not None:
-        # proxy.append(JMX._bool_prop("HTTPSampler.postBodyRaw", True))
-        # coll_prop = etree.Element("collectionProp", name="Arguments.arguments")
-        #     header = etree.Element("elementProp", name="", elementType="HTTPArgument")
-        #     header.append(JMX._string_prop("Argument.value", body))
-        #     coll_prop.append(header)
-        #     args.append(coll_prop)
-        # proxy.append(args)
-
         # six.u
         if isinstance(body, six.string_types):
             proxy.append(JMX._bool_prop("HTTPSampler.postBodyRaw", True))
@@ -742,56 +732,19 @@ class JMX(object):
             proxy.append(args)
 
         elif isinstance(body, dict):
-            user_http_args = body.get("http-args")
-
-            if user_http_args:
-                http_args_coll_prop = JMX._collection_prop("Arguments.arguments")
-
-                for user_http_arg in user_http_args:
-                    arg_name = user_http_arg.get("name", "")
-                    arg_value = user_http_arg.get("value", "")
-                    arg_encode = user_http_arg.get("encode", False)
-                    arg_metadata = user_http_arg.get("metadata", "=")
-                    arg_include_equals = user_http_arg.get("include-equals", False)
-
-                    http_element_prop = JMX._element_prop(arg_name, "HTTPArgument")
-
-                    http_element_prop.append(JMX._bool_prop("HTTPArgument.always_encode", arg_encode))
-                    http_element_prop.append(JMX._string_prop("Argument.value", arg_value))
-                    http_element_prop.append(JMX._string_prop("Argument.metadata", arg_metadata))
-                    http_element_prop.append(JMX._bool_prop("HTTPArgument.use_equals", arg_include_equals))
-                    http_element_prop.append(JMX._string_prop("Argument.name", arg_name))
-
-                    http_args_coll_prop.append(http_element_prop)
-
-                args.append(http_args_coll_prop)
-                proxy.append(args)
-
-            attached_files = body.get("files")
-
-            if attached_files:
-                files_element_prop = JMX._element_prop("HTTPsampler.Files", "HTTPFileArgs")
-                files_coll_prop = JMX._collection_prop("HTTPFileArgs.files")
-                for attached_file in attached_files:
-                    file_path = attached_file.get("abs-path", "")
-                    file_param_name = attached_file.get("param-name", "")
-                    file_mime_type = attached_file.get("mime-type", "")
-
-                    file_element_prop = JMX._element_prop(file_path, "HTTPFileArg")
-                    file_element_prop.append(JMX._string_prop("File.path", file_path))
-                    file_element_prop.append(JMX._string_prop("File.paramname", file_param_name))
-                    file_element_prop.append(JMX._string_prop("File.mimetype", file_mime_type))
-
-                    files_coll_prop.append(file_element_prop)
-                files_element_prop.append(files_coll_prop)
-
-                proxy.append(files_element_prop)
+            http_args_coll_prop = JMX._collection_prop("Arguments.arguments")
+            for arg_name, arg_value in body.items():
+                http_element_prop = JMX._element_prop(arg_name, "HTTPArgument")
+                http_element_prop.append(JMX._bool_prop("HTTPArgument.always_encode", False))
+                http_element_prop.append(JMX._string_prop("Argument.value", arg_value))
+                http_element_prop.append(JMX._string_prop("Argument.name", arg_name))
+                http_args_coll_prop.append(http_element_prop)
+            args.append(http_args_coll_prop)
+            proxy.append(args)
 
         proxy.append(JMX._string_prop("HTTPSampler.path", url))
         proxy.append(JMX._string_prop("HTTPSampler.method", method))
-        proxy.append(JMX._bool_prop("HTTPSampler.use_keepalive", keepalive))
-        if method == "POST":
-            proxy.append(JMX._bool_prop("HTTPSampler.DO_MULTIPART_POST", multipart))
+        proxy.append(JMX._bool_prop("HTTPSampler.use_keepalive", True))  # TODO: parameterize it
 
         if timeout is not None:
             proxy.append(JMX._string_prop("HTTPSampler.connect_timeout", timeout))
@@ -1492,8 +1445,7 @@ class JMeterScenarioBuilder(JMX):
             else:
                 timeout = None
 
-            http = JMX._get_http_request(request.url, request.label, request.method, timeout, request.body,
-                                         request.keepalive, request.multipart)
+            http = JMX._get_http_request(request.url, request.label, request.method, timeout, request.body)
             self.append(self.THR_GROUP_SEL, http)
 
             children = etree.Element("hashTree")

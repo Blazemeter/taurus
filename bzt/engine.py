@@ -856,16 +856,14 @@ class Scenario(DictMixin, object):
         for key, val in enumerate(requests):
             ensure_is_dict(requests, key, "url")
             res = namedtuple("HTTPReq",
-                             ('url', 'label', 'method', 'headers', 'timeout', 'think_time', 'config', "body",
-                              "keepalive", "multipart"))
+                             ('url', 'label', 'method', 'headers', 'timeout', 'think_time', 'config', "body"))
             url = requests[key]["url"]
             label = requests[key].get("label", url)
             method = requests[key].get("method", "GET")
             headers = requests[key].get("headers", {})
             timeout = requests[key].get("timeout", None)
             think_time = requests[key].get("think-time", None)
-            keepalive = requests[key].get("keepalive", False)
-            multipart = requests[key].get("multipart", False)
+
             body = None
             bodyfile = requests[key].get("body-file", None)
             if bodyfile:
@@ -875,7 +873,7 @@ class Scenario(DictMixin, object):
 
             yield res(config=requests[key], label=label,
                       url=url, method=method, headers=headers,
-                      timeout=timeout, think_time=think_time, body=body, keepalive=keepalive, multipart=multipart)
+                      timeout=timeout, think_time=think_time, body=body)
 
 
 class AggregatorListener(object):

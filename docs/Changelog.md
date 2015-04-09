@@ -9,4 +9,6 @@ Added JSON path assertion.
   (See Assertions in ScenarioBuilding.md)
 Added parameters for final_stats reporter
   (See Reporting.md)
+Added ability to generate query string based on parameters and request type.
+  (see ScenarioBuilding.md)
 ## Prev Versions
