@@ -76,15 +76,6 @@
           "url": "http://demo.blazemeter.com/api/user",
           "label": "With body from file",
           "body-file": "tests/jmx/http.jmx"
-        },
-        {
-          "method": "POST",
-          "url": "http://demo.blazemeter.com/api/user",
-          "label": "With body of dict",
-          "body": {
-            "param1": "value1",
-            "param2": "value2"
-          }
         }
       ],
       "properties": {
