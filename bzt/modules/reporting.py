@@ -62,7 +62,7 @@ class FinalStatus(Reporter, AggregatorListener):
         if self.last_sec:
             summary_kpi = self.last_sec[DataPoint.CUMULATIVE][""]
 
-            if self.settings.get("samples-count", True):
+            if self.settings.get("summary", True):
                 self.__report_samples_count(summary_kpi)
             if self.settings.get("percentiles", True):
                 self.__report_percentiles(summary_kpi)

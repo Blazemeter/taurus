@@ -720,22 +720,59 @@ class JMX(object):
         proxy.set("testname", label)
 
         args = JMX._get_arguments_panel("HTTPsampler.Arguments")
-        if body is not None:
+
+        # six.u
+        if isinstance(body, six.string_types):
             proxy.append(JMX._bool_prop("HTTPSampler.postBodyRaw", True))
-            coll_prop = etree.Element("collectionProp", name="Arguments.arguments")
-            header = etree.Element("elementProp", name="", elementType="HTTPArgument")
+            coll_prop = JMX._collection_prop("Arguments.arguments")
+            header = JMX._element_prop("elementProp", "HTTPArgument")
             header.append(JMX._string_prop("Argument.value", body))
             coll_prop.append(header)
             args.append(coll_prop)
-        proxy.append(args)
+            proxy.append(args)
+
+        elif isinstance(body, dict):
+            http_args_coll_prop = JMX._collection_prop("Arguments.arguments")
+            for arg_name, arg_value in body.items():
+                http_element_prop = JMX._element_prop(arg_name, "HTTPArgument")
+                http_element_prop.append(JMX._bool_prop("HTTPArgument.always_encode", False))
+                http_element_prop.append(JMX._string_prop("Argument.value", arg_value))
+                http_element_prop.append(JMX._string_prop("Argument.name", arg_name))
+                http_args_coll_prop.append(http_element_prop)
+            args.append(http_args_coll_prop)
+            proxy.append(args)
 
         proxy.append(JMX._string_prop("HTTPSampler.path", url))
         proxy.append(JMX._string_prop("HTTPSampler.method", method))
         proxy.append(JMX._bool_prop("HTTPSampler.use_keepalive", True))  # TODO: parameterize it
+
         if timeout is not None:
             proxy.append(JMX._string_prop("HTTPSampler.connect_timeout", timeout))
             proxy.append(JMX._string_prop("HTTPSampler.response_timeout", timeout))
         return proxy
+
+    @staticmethod
+    def _element_prop(name, element_type):
+        """
+        Generates element property node
+
+        :param name:
+        :param element_type:
+        :return:
+        """
+        res = etree.Element("elementProp", name=name, elementType=element_type)
+        return res
+
+    @staticmethod
+    def _collection_prop(name):
+        """
+        Adds Collection prop
+        :param name:
+        :return:
+        """
+        res = etree.Element("collectionProp", name=name)
+        return res
+
 
     @staticmethod
     def _string_prop(name, value):

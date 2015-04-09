@@ -35,21 +35,15 @@ This is the simpliest reporter that just prints few basic KPIs in the console lo
 18:04:24 INFO: Percentile 100.0%: 3.641
 ```
 
-This reporter is enabled by default. To enable it manually, use following config:
+This reporter is enabled by default. To enable it manually, use following config, some additional options are available:
 
 ```yaml
 ---
 reporting:
-    - final_stats
-```
-Configuration options available for this reporter:
-```yaml
----
-reporting:
-  - module: final_stats:
-      failed-labels: true # provides listing of urls with failures count, does not display urls with no failures.
-      samples-count: true # overall samples count and percent of failures
-      percentiles: false # display average times and percentiles
+  - module: final_stats
+      summary: true  # overall samples count and percent of failures
+      percentiles: true  # display average times and percentiles
+      failed-labels: false  # provides list of sample labels with failures
 ```
 
 

@@ -63,6 +63,15 @@
           "body": "test"
         },
         {
+          "method": "POST",
+          "url": "http://demo.blazemeter.com/api/user",
+          "label": "With body params",
+          "body": {
+            "param1": "param1_value",
+            "param2": "param2_value"
+          }
+        },
+        {
           "method": "PUT",
           "url": "http://demo.blazemeter.com/api/user",
           "label": "With body from file",
