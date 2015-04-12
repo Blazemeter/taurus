@@ -342,7 +342,7 @@ class BlazeMeterClient(object):
         :rtype: list
         """
         tests = self._request(self.address + '/api/latest/tests')
-        self.log.debug("Tests for user: %s", tests['result'])
+        self.log.debug("Tests for user: %s", len(tests['result']))
         return tests['result']
 
     def send_kpi_data(self, data_buffer, is_check_response=True):
@@ -586,6 +586,10 @@ class BlazeMeterClient(object):
             "embeddedResources": [],
         }
 
+    def get_session(self, session_id):
+        sess = self._request(self.address + '/api/latest/sessions/%s' % session_id)
+        return sess['result']
+
 
 class CloudProvisioning(Provisioning):
     """
@@ -610,7 +614,6 @@ class CloudProvisioning(Provisioning):
 
         config = copy.deepcopy(self.engine.config)
         config.pop(Provisioning.PROV)
-        config.pop("modules")
 
         bza_plugin = {
             "type": "taurus",
@@ -630,5 +633,13 @@ class CloudProvisioning(Provisioning):
         url = self.client.start_taurus(self.test_id)
         self.log.info("Started cloud test: %s", url)
 
+    def check(self):
+        sess = self.client.get_session(self.client.active_session_id)
+        self.log.debug("Test status: %s", sess['status'])
+        if 'statusCode' in sess and sess['statusCode'] > 100:
+            self.log.info("Test was stopped in the cloud: %s", sess['status'])
+            return True
+        return False
+
     def shutdown(self):
-        super(CloudProvisioning, self).shutdown()
+        self.client.end_online()
