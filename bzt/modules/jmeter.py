@@ -417,8 +417,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         Installs JMeter and plugins.
         JMeter version, download links (templates) for JMeter and plugins may be set in config:
-        for JMeter: "download-link":"http://blah-{version}.zip"
-        for plugins: "plugins-download-link": "http://blah-{plugins}.zip"
+        for JMeter: "download-link":"http://domain/resource-{version}.zip"
+        for plugins: "plugins-download-link": "http://domain/resource-{plugins}.zip"
         JMeter version: "version":"1.2.3"
         """
         # normalize path

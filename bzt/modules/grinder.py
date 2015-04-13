@@ -268,7 +268,7 @@ class GrinderExecutor(ScenarioExecutor):
         """
         Installs Grinder.
         Grinder version and download link may be set in config:
-        "download-link":"http://blah-{version}.zip"
+        "download-link":"http://domain/resource-{version}.zip"
         "version":"1.2.3"
         """
 

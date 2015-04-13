@@ -44,7 +44,7 @@
             "$.",
             {
               "jsonpath": "$.result[*].type",
-              "expected-value": "blah",
+              "expected-value": "some_value",
               "validate": true,
               "expect-null": false,
               "invert": false
