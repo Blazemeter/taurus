@@ -346,7 +346,7 @@ class MultiPartForm(object):
         parts.extend(
             [part_boundary,
              'Content-Disposition: file; name="%s"; filename="%s"' % (field_name, filename),
-             'Content-Type: %s' % content_type, '', body, ]
+             'Content-Type: %s' % content_type, '', body, "\r\n"]
             for field_name, filename, content_type, body in self.files
         )
 
@@ -373,6 +373,7 @@ class MultiPartForm(object):
                 raise BaseException
 
         res_bytes = six.b("\r\n").join(result_list)
+        res_bytes += six.b("\r\n")
         return res_bytes
         # return b'\r\n'.join(x.encode() if isinstance(x, str) else x for x in self.__convert_to_list())
 
