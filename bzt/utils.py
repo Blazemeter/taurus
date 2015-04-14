@@ -275,7 +275,6 @@ class MultiPartForm(object):
         self.form_fields = []
         self.files = []
         self.boundary = make_boundary()
-        return
 
     def get_content_type(self):
         """ returns content type """
@@ -288,7 +287,6 @@ class MultiPartForm(object):
         :type value: str
         """
         self.form_fields.append((name, value))
-        return
 
     def add_file_as_string(self, fieldname, filename, body, mimetype=None):
         """ add raw string file
@@ -302,13 +300,12 @@ class MultiPartForm(object):
             mimetype = mimetypes.guess_type(filename)[0] or default
 
         # if isinstance(fieldname, six.u()):
-        #    fieldname = fieldname.encode()
+        # fieldname = fieldname.encode()
 
         # if isinstance(body, str):
         #    body = body.encode()
 
         self.files.append((fieldname, filename, mimetype, body))
-        return
 
     def add_file(self, fieldname, filename, file_handle=None, mimetype=None):
         """Add a file to be uploaded.
@@ -325,7 +322,6 @@ class MultiPartForm(object):
         else:
             body = file_handle.read()
         self.add_file_as_string(fieldname, filename, body, mimetype)
-        return
 
     def __convert_to_list(self):
         """Return a string representing the form, including attached files."""
@@ -373,6 +369,7 @@ class MultiPartForm(object):
                 raise BaseException
 
         res_bytes = six.b("\r\n").join(result_list)
+        res_bytes += six.b("\r\n")
         return res_bytes
         # return b'\r\n'.join(x.encode() if isinstance(x, str) else x for x in self.__convert_to_list())
 

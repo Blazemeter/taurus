@@ -65,7 +65,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         """
         super(BlazeMeterUploader, self).prepare()
         self.client.address = self.settings.get("address", self.client.address)
-        self.client.data_address = self.settings.get("data-address", "https://data.blazemeter.com")
+        self.client.data_address = self.settings.get("data-address", self.client.data_address)
         self.client.timeout = dehumanize_time(self.settings.get("timeout", self.client.timeout))
         self.bulk_size = self.settings.get("bulk-size", self.bulk_size)
         self.browser_open = self.settings.get("browser-open", self.browser_open)
@@ -214,7 +214,7 @@ class BlazeMeterClient(object):
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.token = None
         self.address = "https://a.blazemeter.com"
-        self.data_address = None
+        self.data_address = "https://data.blazemeter.com"
         self.results_url = None
         self.active_session_id = None
         self.data_signature = None
@@ -638,6 +638,7 @@ class CloudProvisioning(Provisioning):
         self.log.debug("Test status: %s", sess['status'])
         if 'statusCode' in sess and sess['statusCode'] > 100:
             self.log.info("Test was stopped in the cloud: %s", sess['status'])
+            self.client.active_session_id = None
             return True
         return False
 
