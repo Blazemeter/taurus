@@ -19,11 +19,13 @@ import fnmatch
 import logging
 import re
 import sys
+import urwid
 
 from bzt import AutomatedShutdown
 from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.aggregator import KPISet, DataPoint
 from bzt.utils import load_class, dehumanize_time
+from bzt.modules.console import WidgetProvider
 
 
 if sys.version > '3':
@@ -32,7 +34,7 @@ if sys.version > '3':
     basestring = str
 
 
-class PassFailStatus(Reporter, AggregatorListener):
+class PassFailStatus(Reporter, AggregatorListener, WidgetProvider):
     """
     :type criterias: list[FailCriteria]
     """
@@ -40,6 +42,7 @@ class PassFailStatus(Reporter, AggregatorListener):
     def __init__(self):
         super(PassFailStatus, self).__init__()
         self.criterias = []
+        self.widget = None
 
     def prepare(self):
         super(PassFailStatus, self).prepare()
@@ -63,6 +66,8 @@ class PassFailStatus(Reporter, AggregatorListener):
 
         :return:
         """
+        if self.widget:
+            self.widget.update()
         res = super(PassFailStatus, self).check()
         for crit in self.criterias:
             res = res or crit.check()
@@ -76,6 +81,16 @@ class PassFailStatus(Reporter, AggregatorListener):
         """
         for crit in self.criterias:
             crit.aggregated_second(data)
+
+    def get_widget(self):
+        """
+        Add progress widget to console screen sidebar
+
+        :return:
+        """
+        if not self.widget:
+            self.widget = PassFailWidget(self)
+        return self.widget
 
 
 class FailCriteria(object):
@@ -298,3 +313,35 @@ class FailCriteria(object):
             res["fail"] = action_groups[2] == "failed"
 
         return res
+
+
+class PassFailWidget(urwid.Pile):
+    """
+    Represents console widget for pass/fail criteria visualisation
+    If criteria is failing, it will be displayed on the widget
+    return urwid widget
+    """
+    def __init__(self, pass_fail_reporter):
+        self.pass_fail_reporter = pass_fail_reporter
+        self.repr_text = urwid.Text("No failures yet.", align=urwid.LEFT) # get pass_fail_repr
+        self.state = None # warning, critical, etc
+        self.failing_criterias = []
+        super(PassFailWidget, self).__init__([self.repr_text])
+
+    def update(self):
+        """
+
+        :return:
+        """
+        self.failing_criterias = [x for x in self.pass_fail_reporter.criterias if x.is_triggered]
+
+        # for _fc in self.pass_fail_reporter.criterias:
+        #     print(_fc.is_triggered)
+        #     if _fc.is_triggered and _fc not in self.failing_criterias:
+        #         self.failing_criterias.append(_fc)
+        #repr_str =
+
+        if self.failing_criterias:
+            self.repr_text.set_text(self.failing_criterias[0].__repr__())
+        self._invalidate()
+
