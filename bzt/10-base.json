@@ -48,6 +48,9 @@
     "blazemeter": {
       "class": "bzt.modules.blazemeter.BlazeMeterUploader"
     },
+    "cloud": {
+      "class": "bzt.modules.blazemeter.CloudProvisioning"
+    },
     "final_stats": {
       "class": "bzt.modules.reporting.FinalStatus"
     },

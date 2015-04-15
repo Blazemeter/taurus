@@ -63,17 +63,3 @@ class Local(Provisioning):
         for executor in self.executors:
             self.log.debug("Post-process %s", executor)
             executor.post_process()
-
-
-class FileLister(object):
-    """
-    A mixin to get required files info from executor
-    """
-
-    def resource_files(self):
-        """
-        Get list of resource files
-
-        :rtype: list
-        """
-        raise NotImplementedError()

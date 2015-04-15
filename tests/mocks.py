@@ -5,17 +5,18 @@ import tempfile
 import sys
 import random
 
-from bzt.engine import Engine, Configuration
+from bzt.engine import Engine, Configuration, FileLister
 from bzt.utils import load_class
 from bzt.engine import Provisioning, ScenarioExecutor, Reporter, AggregatorListener
-from bzt.modules.provisioning import FileLister
 from bzt.modules.aggregator import ResultsReader
 from tests import random_sample
+
 
 try:
     from exceptions import KeyboardInterrupt
 except ImportError:
     from builtins import KeyboardInterrupt
+
 
 class EngineEmul(Engine):
     """

@@ -1,14 +1,12 @@
 # Changelog
 
-## Next Version 0.1.8
-Added automatic installation of executors (JMeter, Grinder, Gatling).
-  (See configuration options in ExecutionSettings.md)
-Added JunitXMLReporter. Reports test results in JunitXML format which may be used by Jenkins "JUnit test result report".
-  (See configuration options in Reporting.md)
-Added JSON path assertion.
-  (See Assertions in ScenarioBuilding.md)
-Added parameters for final_stats reporter
-  (See Reporting.md)
-Added ability to generate query string based on parameters and request type.
-  (see ScenarioBuilding.md)
-## Prev Versions
+## Next Version 0.2.1
+
+
+
+## 0.2.0
+
+  - Added JSON path assertion.
+  - Added parameters for final_stats reporter
+  - Added ability to generate query string based on parameters and request type.
+ 

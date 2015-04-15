@@ -28,7 +28,6 @@ import time
 import traceback
 from json import encoder
 import sys
-
 import psutil
 import six
 import yaml
@@ -718,6 +717,20 @@ class Provisioning(EngineModule):
             self.executors.append(instance)
 
 
+class FileLister(object):
+    """
+    A mixin to get required files info from executor
+    """
+
+    def resource_files(self):
+        """
+        Get list of resource files
+
+        :rtype: list
+        """
+        raise NotImplementedError()
+
+
 class ScenarioExecutor(EngineModule):
     """
     :type provisioning: engine.Provisioning
@@ -785,6 +798,12 @@ class ScenarioExecutor(EngineModule):
         return res(concurrency=concurrency, ramp_up=ramp_up,
                    throughput=throughput, hold=hold, iterations=iterations,
                    duration=duration)
+
+    def get_resource_files(self):
+        files_list = self.execution.get("files", [])
+        if isinstance(self, FileLister):
+            files_list.extend(self.resource_files())
+        return files_list
 
 
 class Reporter(EngineModule):
