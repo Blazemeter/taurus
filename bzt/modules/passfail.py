@@ -157,9 +157,6 @@ class FailCriteria(object):
         self.counting += 1
         if self.counting >= self.window:
             self.is_triggered = True
-        if not self.started:
-            self.started = data[DataPoint.TIMESTAMP]
-            logging.info("%s", self)
 
     def aggregated_second(self, data):
         """
@@ -349,7 +346,6 @@ class PassFailWidget(urwid.Pile):
             result.append((color, failing_criteria.__repr__() + "\n"))
 
         return result
-
 
     def update(self):
         """
