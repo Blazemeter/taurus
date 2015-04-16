@@ -320,11 +320,10 @@ class PassFailWidget(urwid.Pile):
     """
 
     def __init__(self, pass_fail_reporter):
-        self.normal_text = ('stat-2xx', "No triggered criteria")
         self.pass_fail_reporter = pass_fail_reporter
-        self.repr_text = urwid.Text(self.normal_text)
         self.failing_criteria = []
-        super(PassFailWidget, self).__init__([self.repr_text])
+        self.text_widget = urwid.Text("")
+        super(PassFailWidget, self).__init__([self.text_widget])
 
     def __prepare_colors(self):
         """
@@ -341,7 +340,7 @@ class PassFailWidget(urwid.Pile):
                 color = 'pf-4'
             elif 1 <= percent:
                 color = 'pf-5'
-            result.append((color, failing_criteria.__repr__() + "\n"))
+            result.append((color, "%s\n" % failing_criteria.__repr__()))
 
         return result
 
@@ -353,8 +352,6 @@ class PassFailWidget(urwid.Pile):
         self.failing_criteria = [x for x in self.pass_fail_reporter.criterias if x.counting > 0]
         if self.failing_criteria:
             widget_text = self.__prepare_colors()
-            self.repr_text.set_text(widget_text)
-        else:
-            self.repr_text.set_text(('stat-2xx', "No triggered criteria"))
+            self.text_widget.set_text(widget_text)
         self._invalidate()
 

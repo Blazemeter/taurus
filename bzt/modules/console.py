@@ -271,8 +271,8 @@ class TaurusConsole(Columns):
         ('pb-dis', 'black', 'dark green', ''),
         ('pb-mid', 'brown', 'brown', ''),
         ('pf-3', 'yellow', ''),
-        ('pf-4', 'light red,underline', ''),
-        ('pf-5', 'dark red,underline,bold', ''),
+        ('pf-4', 'light red', ''),
+        ('pf-5', 'black', 'dark red'),
     ]
 
     def __init__(self, sidebar_widgets):
