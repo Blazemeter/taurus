@@ -340,7 +340,7 @@ class PassFailWidget(urwid.Pile):
                 color = 'pf-4'
             elif 1 <= percent:
                 color = 'pf-5'
-            result.append((color, "%s\n" % failing_criteria.__repr__()))
+            result.append((color, "%s\n" % failing_criteria))
 
         return result
 
