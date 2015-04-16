@@ -335,9 +335,7 @@ class PassFailWidget(urwid.Pile):
         for failing_criteria in self.failing_criteria:
             percent = failing_criteria.counting / failing_criteria.window
             color = 'stat-txt'
-            if 0.3 <= percent < 0.5:
-                color = 'pf-2'
-            elif 0.5 <= percent < 0.8:
+            if 0.5 <= percent < 0.8:
                 color = 'pf-3'
             elif 0.8 <= percent < 1:
                 color = 'pf-4'
