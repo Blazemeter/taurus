@@ -235,6 +235,7 @@ class DataLogReader(ResultsReader):
         self.fds = None
         self.partial_buffer = ""
         self.delimiter = "\t"
+        self.offset = 0
 
     def _read(self, last_pass=False):
         """
@@ -247,10 +248,12 @@ class DataLogReader(ResultsReader):
             yield None
 
         self.log.debug("Reading gatling results")
+        self.fds.seek(self.offset)  # without this we have a stuck reads on Mac
         if last_pass:
             lines = self.fds.readlines()  # unlimited
         else:
             lines = self.fds.readlines(1024 * 1024)  # 1MB limit to read
+        self.offset = self.fds.tell()
 
         for line in lines:
             if not line.endswith("\n"):
