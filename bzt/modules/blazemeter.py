@@ -228,7 +228,8 @@ class BlazeMeterClient(object):
         if self.token:
             headers["X-API-Key"] = self.token
         self.log.debug("Request %s: %s", url, data[:self.logger_limit] if data else None)
-        data = data.encode() if isinstance(data, six.string_types) else data
+        # .encode("utf-8") is probably better
+        data = data.encode() if isinstance(data, six.text_type) else data
         request = Request(url, data, headers)
         if method:
             request.get_method = lambda: method
