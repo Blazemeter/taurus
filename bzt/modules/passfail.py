@@ -84,7 +84,7 @@ class PassFailStatus(Reporter, AggregatorListener, WidgetProvider):
 
     def get_widget(self):
         """
-        Add progress widget to console screen sidebar
+        Add widget to console screen
 
         :return:
         """
@@ -321,6 +321,7 @@ class PassFailWidget(urwid.Pile):
     If criteria is failing, it will be displayed on the widget
     return urwid widget
     """
+
     def __init__(self, pass_fail_reporter):
         self.normal_text = ('stat-2xx', "No triggered criteria")
         self.pass_fail_reporter = pass_fail_reporter
@@ -339,11 +340,11 @@ class PassFailWidget(urwid.Pile):
             color = 'stat-txt'
             if 0.3 <= percent < 0.5:
                 color = 'pf-2'
-            elif 0.5 <= percent <0.8:
+            elif 0.5 <= percent < 0.8:
                 color = 'pf-3'
             elif 0.8 <= percent < 1:
                 color = 'pf-4'
-            elif 1<= percent:
+            elif 1 <= percent:
                 color = 'pf-5'
             result.append((color, failing_criteria.__repr__() + "\n"))
 
