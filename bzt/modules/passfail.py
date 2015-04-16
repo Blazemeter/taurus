@@ -322,26 +322,44 @@ class PassFailWidget(urwid.Pile):
     return urwid widget
     """
     def __init__(self, pass_fail_reporter):
+        self.normal_text = ('stat-2xx', "No triggered criteria")
         self.pass_fail_reporter = pass_fail_reporter
-        self.repr_text = urwid.Text("No failures yet.", align=urwid.LEFT) # get pass_fail_repr
-        self.state = None # warning, critical, etc
-        self.failing_criterias = []
+        self.repr_text = urwid.Text(self.normal_text)
+        self.failing_criteria = []
         super(PassFailWidget, self).__init__([self.repr_text])
+
+    def __prepare_colors(self):
+        """
+        returns tuple ("color", text)
+        :return:
+        """
+        result = []
+        for failing_criteria in self.failing_criteria:
+            percent = failing_criteria.counting / failing_criteria.window
+            color = 'stat-txt'
+            if 0.3 <= percent < 0.5:
+                color = 'pf-2'
+            elif 0.5 <= percent <0.8:
+                color = 'pf-3'
+            elif 0.8 <= percent < 1:
+                color = 'pf-4'
+            elif 1<= percent:
+                color = 'pf-5'
+            result.append((color, failing_criteria.__repr__() + "\n"))
+
+        return result
+
 
     def update(self):
         """
-
+        updates widget text
         :return:
         """
-        self.failing_criterias = [x for x in self.pass_fail_reporter.criterias if x.is_triggered]
-
-        # for _fc in self.pass_fail_reporter.criterias:
-        #     print(_fc.is_triggered)
-        #     if _fc.is_triggered and _fc not in self.failing_criterias:
-        #         self.failing_criterias.append(_fc)
-        #repr_str =
-
-        if self.failing_criterias:
-            self.repr_text.set_text(self.failing_criterias[0].__repr__())
+        self.failing_criteria = [x for x in self.pass_fail_reporter.criterias if x.counting > 0]
+        if self.failing_criteria:
+            widget_text = self.__prepare_colors()
+            self.repr_text.set_text(widget_text)
+        else:
+            self.repr_text.set_text(('stat-2xx', "No triggered criteria"))
         self._invalidate()
 
