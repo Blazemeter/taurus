@@ -1,6 +1,7 @@
 # Changelog
 
 ## Next Version 0.2.1
+  - Added pass/fail criteria report on console reporter.
 
 
 
