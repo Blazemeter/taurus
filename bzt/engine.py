@@ -762,7 +762,12 @@ class ScenarioExecutor(EngineModule):
                 if scenario not in scenarios:
                     raise ValueError("Scenario not found in scenarios: %s" % scenario)
                 scenario = scenarios.get(scenario)
-            self.__scenario = Scenario(scenario)
+                self.__scenario = Scenario(scenario)
+            elif isinstance(scenario, dict):
+                self.__scenario = Scenario(scenario)
+            else:
+                raise ValueError("Scenario not configured properly: %s" % scenario)
+
         return self.__scenario
 
     def get_load(self):
