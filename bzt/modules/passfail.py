@@ -19,11 +19,13 @@ import fnmatch
 import logging
 import re
 import sys
+import urwid
 
 from bzt import AutomatedShutdown
 from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.aggregator import KPISet, DataPoint
 from bzt.utils import load_class, dehumanize_time
+from bzt.modules.console import WidgetProvider
 
 
 if sys.version > '3':
@@ -32,7 +34,7 @@ if sys.version > '3':
     basestring = str
 
 
-class PassFailStatus(Reporter, AggregatorListener):
+class PassFailStatus(Reporter, AggregatorListener, WidgetProvider):
     """
     :type criterias: list[FailCriteria]
     """
@@ -40,6 +42,7 @@ class PassFailStatus(Reporter, AggregatorListener):
     def __init__(self):
         super(PassFailStatus, self).__init__()
         self.criterias = []
+        self.widget = None
 
     def prepare(self):
         super(PassFailStatus, self).prepare()
@@ -63,6 +66,8 @@ class PassFailStatus(Reporter, AggregatorListener):
 
         :return:
         """
+        if self.widget:
+            self.widget.update()
         res = super(PassFailStatus, self).check()
         for crit in self.criterias:
             res = res or crit.check()
@@ -76,6 +81,16 @@ class PassFailStatus(Reporter, AggregatorListener):
         """
         for crit in self.criterias:
             crit.aggregated_second(data)
+
+    def get_widget(self):
+        """
+        Add widget to console screen
+
+        :return:
+        """
+        if not self.widget:
+            self.widget = PassFailWidget(self)
+        return self.widget
 
 
 class FailCriteria(object):
@@ -142,9 +157,6 @@ class FailCriteria(object):
         self.counting += 1
         if self.counting >= self.window:
             self.is_triggered = True
-        if not self.started:
-            self.started = data[DataPoint.TIMESTAMP]
-            logging.info("%s", self)
 
     def aggregated_second(self, data):
         """
@@ -298,3 +310,48 @@ class FailCriteria(object):
             res["fail"] = action_groups[2] == "failed"
 
         return res
+
+
+class PassFailWidget(urwid.Pile):
+    """
+    Represents console widget for pass/fail criteria visualisation
+    If criteria is failing, it will be displayed on the widget
+    return urwid widget
+    """
+
+    def __init__(self, pass_fail_reporter):
+        self.pass_fail_reporter = pass_fail_reporter
+        self.failing_criteria = []
+        self.text_widget = urwid.Text("")
+        super(PassFailWidget, self).__init__([self.text_widget])
+
+    def __prepare_colors(self):
+        """
+        returns tuple ("color", text)
+        :return:
+        """
+        result = []
+        for failing_criteria in self.failing_criteria:
+            percent = failing_criteria.counting / failing_criteria.window
+            color = 'stat-txt'
+            if 0.5 <= percent < 0.8:
+                color = 'pf-3'
+            elif 0.8 <= percent < 1:
+                color = 'pf-4'
+            elif 1 <= percent:
+                color = 'pf-5'
+            result.append((color, "%s\n" % failing_criteria))
+
+        return result
+
+    def update(self):
+        """
+        updates widget text
+        :return:
+        """
+        self.failing_criteria = [x for x in self.pass_fail_reporter.criterias if x.counting > 0]
+        if self.failing_criteria:
+            widget_text = self.__prepare_colors()
+            self.text_widget.set_text(widget_text)
+        self._invalidate()
+

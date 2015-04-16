@@ -1,5 +1,6 @@
 import json
 import logging
+import time
 
 from bzt import AutomatedShutdown
 from bzt.modules.aggregator import DataPoint, KPISet
@@ -60,3 +61,19 @@ class TestPassFailStatus(BZTestCase):
             self.fail()
         except AutomatedShutdown:
             pass
+
+    def test_widget(self):
+        obj = PassFailStatus()
+        obj.parameters = {"criterias": ["avg-rt>10ms for 2s, continue as failed"]}
+        obj.prepare()
+        obj.get_widget()
+        start_time = time.time()
+
+        for _n in range(0, 10):
+            point = random_datapoint(start_time)
+            point[DataPoint.CURRENT]['']["avg_rt"] = 1.0
+            obj.aggregated_second(point)
+            obj.check()
+            start_time += 1
+
+        self.assertEqual(obj.widget.text_widget.text, "Failed: avg-rt>10ms for 10 sec\n")

@@ -88,6 +88,9 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
             for executor in self.engine.provisioning.executors:
                 if isinstance(executor, WidgetProvider):
                     widgets.append(executor.get_widget())
+            for reporter in self.engine.reporters:
+                if isinstance(reporter, WidgetProvider):
+                    widgets.append(reporter.get_widget())
 
         self.console = TaurusConsole(widgets)
         self.screen.register_palette(self.console.palette)
@@ -267,6 +270,9 @@ class TaurusConsole(Columns):
         ('pb-en', 'white', 'dark blue', ''),
         ('pb-dis', 'black', 'dark green', ''),
         ('pb-mid', 'brown', 'brown', ''),
+        ('pf-3', 'yellow', ''),
+        ('pf-4', 'light red', ''),
+        ('pf-5', 'black', 'dark red'),
     ]
 
     def __init__(self, sidebar_widgets):
