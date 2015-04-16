@@ -149,9 +149,9 @@ class GrinderExecutor(ScenarioExecutor):
         """
         Should start the tool as fast as possible.
         """
-        cmdline = "java -classpath " + os.path.dirname(__file__)
-        cmdline += os.path.pathsep + os.path.realpath(self.settings.get("path"))
-        cmdline += " net.grinder.Grinder " + self.properties_file
+        cmdline = ["java", "-classpath",
+                   os.path.dirname(__file__) + os.path.pathsep + os.path.realpath(self.settings.get("path"))]
+        cmdline += ["net.grinder.Grinder", self.properties_file]
 
         self.start_time = time.time()
         out = self.engine.create_artifact("grinder-stdout", ".log")

@@ -93,9 +93,9 @@ class GatlingExecutor(ScenarioExecutor):
         datadir = os.path.realpath(self.engine.artifacts_dir)
 
         # NOTE: exe_suffix already in "path"
-        cmdline = self.settings["path"]
-        cmdline += " -sf " + datadir + " -df " + datadir + " -rf " + datadir
-        cmdline += " -on gatling-bzt -m  -s " + simulation
+        cmdline = [self.settings["path"]]
+        cmdline += ["-sf", datadir, "-df", datadir, " -rf ", datadir]
+        cmdline += ["-on", "gatling-bzt", "-m", "-s", simulation]
 
         self.start_time = time.time()
         out = self.engine.create_artifact("gatling-stdout", ".log")
