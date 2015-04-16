@@ -34,7 +34,7 @@ def __dir__():
 
 
 def r(mul=5):
-    return int(mul * random()) / 1000.0
+    return 1 + int(mul * random()) / 1000.0
 
 
 def rc():
