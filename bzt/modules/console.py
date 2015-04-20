@@ -43,6 +43,7 @@ from bzt.modules.provisioning import Local
 from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.aggregator import DataPoint, KPISet
 
+from bzt.utils import intersp
 
 if platform.system() == 'Windows':
     from urwid.raw_display import Screen  # curses unavailable on windows
@@ -286,7 +287,9 @@ class TaurusConsole(Columns):
 
         self.graphs = ThreeGraphs()
 
-        right_widgets = ListBox(SimpleListWalker(sidebar_widgets))
+        dvd = Divider()
+        _divided_sidebar_widgets = list(intersp(sidebar_widgets, dvd))
+        right_widgets = ListBox(SimpleListWalker(_divided_sidebar_widgets))
 
         self.logo = TaurusLogo()
         right_pane = Pile([(10, self.logo),
