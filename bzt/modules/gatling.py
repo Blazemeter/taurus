@@ -301,8 +301,8 @@ class DataLogReader(ResultsReader):
             if fields[0] == 'OK':
                 rc = '200'
             else:
-                # TODO: we can do more intelligent analysis here for some cases
-                rc = "500"
+                _tmp_rc = fields[-1].split(" ")[-1]
+                rc = _tmp_rc if _tmp_rc.isdigit() else 'No RC'
 
             if len(fields) >= 11 and fields[10]:
                 error = fields[10]
