@@ -283,7 +283,6 @@ class TaurusConsole(Columns):
         self.cumulative_stats = CumulativeStats()
 
         stats_pane = Pile([(WEIGHT, 0.50, self.latest_stats),
-                           (1, Filler(Divider())),
                            (WEIGHT, 0.50, self.cumulative_stats), ])
 
         self.graphs = ThreeGraphs()
@@ -301,7 +300,7 @@ class TaurusConsole(Columns):
         columns = [(WEIGHT, 0.25, self.graphs),
                    (WEIGHT, 0.50, stats_pane),
                    (WEIGHT, 0.25, right_pane)]
-        super(TaurusConsole, self).__init__(columns, dividechars=1)
+        super(TaurusConsole, self).__init__(columns)
 
     def add_data(self, data):
         """
@@ -421,10 +420,8 @@ class ThreeGraphs(Pile):
                               ("graph cn", '3'), " conn) "],
                              ("graph bg", "graph rt", "graph lt", "graph cn"))
 
-        dvd = Filler(Divider())
         graphs = [self.vu, self.rps, self.rt]
-        divided_graphs = list(intersp(graphs, (1,dvd)))
-        super(ThreeGraphs, self).__init__(divided_graphs)
+        super(ThreeGraphs, self).__init__(graphs)
 
     def append(self, vu, active, rps, fail, rtime, conn, lat):
         """
@@ -758,9 +755,7 @@ class TaurusLogo(Pile):
         bt = Filler(bt)
 
         self.byb = Filler(Text('', align=CENTER))
-        dvd = Filler(Divider())
         parts = [
-            (1, dvd),
             (5, bt),
             (1, self.byb),
         ]
