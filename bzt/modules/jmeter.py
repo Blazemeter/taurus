@@ -1302,6 +1302,7 @@ class JMeterWidget(urwid.Pile):
     def __init__(self, executor):
         self.executor = executor
         self.dur = executor.get_load().duration
+        self.script_name = urwid.Text("Script: %s" % os.path.basename(self.executor.original_jmx))
         if self.dur:
             self.progress = urwid.ProgressBar('pb-en', 'pb-dis', done=self.dur)
         else:
@@ -1310,7 +1311,7 @@ class JMeterWidget(urwid.Pile):
         self.elapsed = urwid.Text("Elapsed: N/A")
         self.eta = urwid.Text("ETA: N/A", align=urwid.RIGHT)
 
-        super(JMeterWidget, self).__init__([self.progress, urwid.Columns([self.elapsed, self.eta])])
+        super(JMeterWidget, self).__init__([self.script_name, self.progress, urwid.Columns([self.elapsed, self.eta])])
 
     def update(self):
         """
