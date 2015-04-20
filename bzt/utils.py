@@ -565,3 +565,17 @@ def make_boundary(text=None):
         b = boundary + '.' + str(counter)
         counter += 1
     return b
+
+def intersp(iterable, delimiter):
+    """
+    puts delimiter object between items in list
+
+    :param iterable:
+    :param delimiter:
+    :return:
+    """
+    it = iter(iterable)
+    yield next(it)
+    for x in it:
+        yield delimiter
+        yield x

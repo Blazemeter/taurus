@@ -43,6 +43,7 @@ from bzt.modules.provisioning import Local
 from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.aggregator import DataPoint, KPISet
 
+from bzt.utils import intersp
 
 if platform.system() == 'Windows':
     from urwid.raw_display import Screen  # curses unavailable on windows
@@ -282,11 +283,14 @@ class TaurusConsole(Columns):
         self.cumulative_stats = CumulativeStats()
 
         stats_pane = Pile([(WEIGHT, 0.50, self.latest_stats),
+                           (1, Filler(Divider())),
                            (WEIGHT, 0.50, self.cumulative_stats), ])
 
         self.graphs = ThreeGraphs()
 
-        right_widgets = ListBox(SimpleListWalker(sidebar_widgets))
+        dvd = Divider()
+        _divided_sidebar_widgets = list(intersp(sidebar_widgets, dvd))
+        right_widgets = ListBox(SimpleListWalker(_divided_sidebar_widgets))
 
         self.logo = TaurusLogo()
         right_pane = Pile([(10, self.logo),
@@ -297,7 +301,7 @@ class TaurusConsole(Columns):
         columns = [(WEIGHT, 0.25, self.graphs),
                    (WEIGHT, 0.50, stats_pane),
                    (WEIGHT, 0.25, right_pane)]
-        super(TaurusConsole, self).__init__(columns)
+        super(TaurusConsole, self).__init__(columns, dividechars=1)
 
     def add_data(self, data):
         """
@@ -417,8 +421,10 @@ class ThreeGraphs(Pile):
                               ("graph cn", '3'), " conn) "],
                              ("graph bg", "graph rt", "graph lt", "graph cn"))
 
+        dvd = Filler(Divider())
         graphs = [self.vu, self.rps, self.rt]
-        super(ThreeGraphs, self).__init__(graphs)
+        divided_graphs = list(intersp(graphs, (1,dvd)))
+        super(ThreeGraphs, self).__init__(divided_graphs)
 
     def append(self, vu, active, rps, fail, rtime, conn, lat):
         """
@@ -752,7 +758,9 @@ class TaurusLogo(Pile):
         bt = Filler(bt)
 
         self.byb = Filler(Text('', align=CENTER))
+        dvd = Filler(Divider())
         parts = [
+            (1, dvd),
             (5, bt),
             (1, self.byb),
         ]
