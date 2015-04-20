@@ -288,7 +288,7 @@ class TaurusConsole(Columns):
 
         self.graphs = ThreeGraphs()
 
-        dvd = Divider(" ")
+        dvd = Divider()
         _divided_sidebar_widgets = list(intersp(sidebar_widgets, dvd))
         right_widgets = ListBox(SimpleListWalker(_divided_sidebar_widgets))
 
@@ -421,9 +421,10 @@ class ThreeGraphs(Pile):
                               ("graph cn", '3'), " conn) "],
                              ("graph bg", "graph rt", "graph lt", "graph cn"))
 
-        dvd = Filler(Divider(" "))
-        graphs = [self.vu, (1,dvd), self.rps, (1,dvd), self.rt]
-        super(ThreeGraphs, self).__init__(graphs)
+        dvd = Filler(Divider())
+        graphs = [self.vu, self.rps, self.rt]
+        divided_graphs = list(intersp(graphs, (1,dvd)))
+        super(ThreeGraphs, self).__init__(divided_graphs)
 
     def append(self, vu, active, rps, fail, rtime, conn, lat):
         """
@@ -757,7 +758,7 @@ class TaurusLogo(Pile):
         bt = Filler(bt)
 
         self.byb = Filler(Text('', align=CENTER))
-        dvd = Filler(Divider(" "))
+        dvd = Filler(Divider())
         parts = [
             (1, dvd),
             (5, bt),
