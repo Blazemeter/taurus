@@ -286,7 +286,7 @@ class TaurusConsole(Columns):
 
         self.graphs = ThreeGraphs()
 
-        right_widgets = ListBox(SimpleListWalker(sidebar_widgets))
+        right_widgets = ListBox(SimpleListWalker([Pile([x, Divider()]) for x in sidebar_widgets]))
 
         self.logo = TaurusLogo()
         right_pane = Pile([(10, self.logo),
