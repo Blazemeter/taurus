@@ -298,7 +298,7 @@ class DataLogReader(ResultsReader):
             lt = (int(fields[7]) - int(fields[5])) / 1000.0
             cn = (int(fields[6]) - int(fields[5])) / 1000.0
 
-            if fields[0] == 'OK':
+            if fields[-1] == 'OK':
                 rc = '200'
             else:
                 _tmp_rc = fields[-1].split(" ")[-1]
@@ -327,26 +327,30 @@ class DataLogReader(ResultsReader):
         self.fds = open(self.filename)
         return True
 
+
 class GatlingWidget(urwid.Pile):
     """
     Progress sidebar widget
 
-    :type executor: bzt.modules.grinder.GrinderExecutor
+    :type executor: bzt.modules.grinder.GatlingExecutor
     """
 
     def __init__(self, executor):
         self.executor = executor
         self.dur = executor.get_load().duration
-        self.script_name = urwid.Text("Script: %s" % os.path.basename(self.executor.script))
+        widgets = []
+        if self.executor.script:
+            self.script_name = urwid.Text("Script: %s" % os.path.basename(self.executor.script))
+            widgets.append(self.script_name)
         if self.dur:
             self.progress = urwid.ProgressBar('pb-en', 'pb-dis', done=self.dur)
         else:
             self.progress = urwid.Text("Running...")
-
+        widgets.append(self.progress)
         self.elapsed = urwid.Text("Elapsed: N/A")
         self.eta = urwid.Text("ETA: N/A", align=urwid.RIGHT)
-
-        super(GatlingWidget, self).__init__([self.script_name, self.progress, urwid.Columns([self.elapsed, self.eta])])
+        widgets.append(urwid.Columns([self.elapsed, self.eta]))
+        super(GatlingWidget, self).__init__(widgets)
 
     def update(self):
         """

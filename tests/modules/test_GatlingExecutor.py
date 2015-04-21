@@ -43,4 +43,11 @@ class TestGatlingExecutor(BZTestCase):
         GatlingExecutor.VERSION = gatling_ver
         
         bzt.utils.TEST_RUNNING = False
-        
+
+    def test_gatling_widget(self):
+        obj = GatlingExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({"scenario":{"script":"tests/gatling/LocalBasicSimulation.scala"}})
+        obj.prepare()
+        obj.get_widget()
+        self.assertEqual(obj.widget.script_name.text, "Script: LocalBasicSimulation.scala")
