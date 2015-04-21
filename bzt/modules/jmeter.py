@@ -117,6 +117,25 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                     fds.write("%s=%s\n" % (key, val))
             self.properties_file = props_file
 
+        data_sources = scenario.data.get("data-sources", [])
+        if data_sources:
+            for data_source in data_sources:
+                ds_path = data_source.get("path")
+                if ds_path:
+                    data_s = self.engine.create_artifact(*os.path.splitext(os.path.basename(ds_path)))
+                    with open(data_s, 'w') as _fds:
+                        _fds.write(open(ds_path).read())
+        for req in scenario.data.get("requests", []):
+            if req['body'] and not isinstance(req['body'], BetterDict):
+                req_body_art = self.engine.create_artifact("req_body", ".txt")
+                with open(req_body_art, 'w') as _fds:
+                    _fds.write(req['body'])
+            if req['body-file']:
+                req_body_art = self.engine.create_artifact("req_body_file", ".txt")
+                with open(req_body_art, 'w') as _fds:
+                    _fds.write(open(req['body-file']).read())
+
+
         self.reader = JTLReader(self.kpi_jtl, self.log, self.errors_jtl)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
