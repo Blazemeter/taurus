@@ -23,6 +23,7 @@ from subprocess import CalledProcessError
 import traceback
 import six
 import urwid
+import re
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
@@ -315,8 +316,13 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def resource_files(self):
         script = self.__get_script()
-
-        return [script]
+        prop_file = self.get_scenario().get("properties_file", "")
+        if prop_file:
+            file_contents = open(prop_file, 'rt').read()
+            search_pattern = re.compile("grinder\.script.*")
+            l = search_pattern.findall(file_contents)
+            pass
+        return [prop_file, script]
 
     def __get_script(self):
         scenario = self.get_scenario()

@@ -25,6 +25,12 @@ class BasicSimulation extends Simulation {
           .body(ELFileBodyPart("tests/json/mock_start_err.json"))
           .body(ELFileBodyPart("file_name", "tests/json/throughput.json"))
 
+          csv("tests/json/gatling.json")
+          tsv("tests/json/get-post.json")
+          ssv("tests/json/merge2.json")
+          separatedValues("tests/json/reporting.json", "#")
+          jsonFile("tests/postproc_err/json")
+
       )
 
   setUp(

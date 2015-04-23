@@ -336,7 +336,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         Get resource files
         """
         # TODO: get CSVs, other known files like included test plans
-        # modify jmx script,
         script = self.__get_script()
         if script:
             resource_files = []
@@ -349,12 +348,15 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                         resource_files.append(resource_element.text)
                         resource_element.text = os.path.basename(resource_element.text)
             if resource_files:
-                for _x in resource_files:
-                    shutil.copy2(_x, self.engine.artifacts_dir)
-                # modified_script = self.engine.create_artifact(script, "")
-                # with open(modified_script, 'wb') as _fds:
-                #     _fds.write(script_xml_tree.to_string(pretty_print=True, encoding="UTF-8", xml_declaration=True))
-            resource_files.append(script)
+                for _file in resource_files:
+                    shutil.copy2(_file, self.engine.artifacts_dir)
+                script_name, script_ext = os.path.splitext(script)
+                script_name = os.path.basename(script_name)
+                modified_script = self.engine.create_artifact(script_name, script_ext)
+                with open(modified_script, 'wb') as _fds:
+                     _fds.write(etree.tostring(script_xml_tree, pretty_print=True, encoding="UTF-8", xml_declaration=True))
+
+            resource_files.append(modified_script)
             return resource_files
         else:
             return []

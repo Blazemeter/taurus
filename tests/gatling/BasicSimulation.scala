@@ -7,7 +7,7 @@ import scala.concurrent.duration._
 class BasicSimulation extends Simulation {
 
   val httpConf = http
-    .baseURL("http://demo.blazemeter.com")
+    .baseURL("http://blazemeter.com")
     .acceptHeader("text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
     .doNotTrackHeader("1")
     .acceptLanguageHeader("en-US,en;q=0.5")
@@ -19,25 +19,45 @@ class BasicSimulation extends Simulation {
       ).pause(1).exec(
           http("request_1").get("/1")
       ).pause(1).exec(
-          http("request_7").get("/2")
+          http("request_1").get("/")
+      ).pause(1).exec(
+          http("request_1").get("/1")
       ).pause(1).exec(
           http("request_1").get("/")
       ).pause(1).exec(
-          http("request_1").get("/")
+          http("request_1").get("/1")
       ).pause(1).exec(
           http("request_1").get("/")
       ).pause(1).exec(
-          http("request_5").get("/4")
+          http("request_1").get("/1")
       ).pause(1).exec(
           http("request_1").get("/")
       ).pause(1).exec(
-          http("request_6").get("/")
+          http("request_1").get("/1")
       ).pause(1).exec(
           http("request_1").get("/")
       ).pause(1).exec(
-          http("request_1").get("/")
+          http("request_1").get("/1")
       ).pause(1).exec(
           http("request_1").get("/")
+      ).pause(1).exec(
+          http("request_1").get("/1")
+      ).pause(1).exec(
+          http("request_1").get("/")
+      ).pause(1).exec(
+          http("request_1").get("/1")
+      ).pause(1).exec(
+          http("request_1").get("/")
+      ).pause(1).exec(
+          http("request_1").get("/1")
+      ).pause(1).exec(
+          http("request_1").get("/")
+      ).pause(1).exec(
+          http("request_1").get("/1")
+      ).pause(1).exec(
+          http("request_1").get("/")
+      ).pause(1).exec(
+          http("request_1").get("/1")
       )
 
   setUp(

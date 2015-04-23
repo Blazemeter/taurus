@@ -238,12 +238,14 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if script:
             patterns = []
             script_contents = open(script, 'rt').read()
-            search_patterns = [re.compile(".formUpload\(.*?\)"),
+            search_patterns = [re.compile("\.formUpload\(.*?\)"),
                                re.compile("RawFileBody\(.*?\)"),
                                re.compile("RawFileBodyPart\(.*?\)"),
                                re.compile("ELFileBody\(.*?\)"),
                                re.compile("ELFileBodyPart\(.*?\)"),
-                               re.compile("feed\(csv\(.*?\)")
+                               re.compile("csv\(.*?\)"),
+                               re.compile("tsv\(.*?\)"),
+                               re.compile("ssv\(.*?\)")
                                ]
             for search_pattern in search_patterns:
                 found_samples = search_pattern.findall(script_contents)

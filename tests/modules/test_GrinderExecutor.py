@@ -57,6 +57,7 @@ class TestGrinderExecutor(BZTestCase):
     def test_resource_files_collection(self):
         obj = GrinderExecutor()
         obj.engine = EngineEmul()
+        obj.execution = BetterDict()
         obj.execution.merge({"scenario":{"script":"tests/grinder/helloworld.py",
                                          "properties_file": "tests/grinder/grinder.properties"}})
-        obj.resource_files()
+        l = obj.resource_files()
