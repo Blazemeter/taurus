@@ -34,8 +34,8 @@ class TestGatlingExecutor(BZTestCase):
         obj.settings.merge({"path": path})
         
         obj.execution = BetterDict()
-        obj.execution.merge({"scenario": {"script": "tests/gatling/LocalBasicSimulation.scala",\
-                                          "simulation": "mytest.LocalBasicSimulation"}})
+        obj.execution.merge({"scenario": {"script": "tests/gatling/BasicSimulation.scala",\
+                                          "simulation": "mytest.BasicSimulation"}})
         obj.prepare()
         self.assertTrue(os.path.exists(path))
         obj.prepare()
@@ -47,7 +47,13 @@ class TestGatlingExecutor(BZTestCase):
     def test_gatling_widget(self):
         obj = GatlingExecutor()
         obj.engine = EngineEmul()
-        obj.execution.merge({"scenario":{"script":"tests/gatling/LocalBasicSimulation.scala"}})
+        obj.execution.merge({"scenario":{"script":"tests/gatling/BasicSimulation.scala"}})
         obj.prepare()
         obj.get_widget()
-        self.assertEqual(obj.widget.script_name.text, "Script: LocalBasicSimulation.scala")
+        self.assertEqual(obj.widget.script_name.text, "Script: BasicSimulation.scala")
+
+    def test_resource_files_collection(self):
+        obj = GatlingExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({"scenario":{"script":"tests/gatling/LocalBasicSimulation.scala"}})
+        obj.resource_files()

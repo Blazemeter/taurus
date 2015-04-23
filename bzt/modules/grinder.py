@@ -24,9 +24,9 @@ import traceback
 import six
 import urwid
 
-from bzt.engine import ScenarioExecutor, Scenario
+from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
-from bzt.utils import shell_exec
+from bzt.utils import shell_exec, ensure_is_dict
 from bzt.utils import unzip, download_progress_hook, humanize_time
 from bzt.modules.console import WidgetProvider
 
@@ -36,7 +36,7 @@ except ImportError:
     from urllib.request import FancyURLopener
 
 
-class GrinderExecutor(ScenarioExecutor, WidgetProvider):
+class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     """
     Grinder executor module
     """
@@ -312,6 +312,23 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider):
         if not self.widget:
             self.widget = GrinderWidget(self)
         return self.widget
+
+    def resource_files(self):
+        script = self.__get_script()
+
+        return [script]
+
+    def __get_script(self):
+        scenario = self.get_scenario()
+        if Scenario.SCRIPT not in scenario:
+            return None
+
+        ensure_is_dict(scenario, Scenario.SCRIPT, "path")
+        fname = scenario[Scenario.SCRIPT]["path"]
+        if fname is not None:
+            return self.engine.find_file(fname)
+        else:
+            return None
 
 
 class DataLogReader(ResultsReader):

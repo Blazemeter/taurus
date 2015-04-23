@@ -179,3 +179,12 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(2, len(arguments_element_prop[0].getchildren()))
         self.assertEqual(1, len(arguments_element_prop[0].findall(".//elementProp[@name='param1']")))
         self.assertEqual(1, len(arguments_element_prop.findall(".//elementProp[@name='param2']")))
+
+    def test_resource_files_collection(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.execution = BetterDict()
+        obj.execution.merge({"scenario": {"script": "build/with_file.jmx"}})
+        self.assertEqual(obj.resource_files(), ['test.jtl', 'tests/jmx/http.jmx'])
+
+        # {"scenario": {"script": "tests/jmx/broken.jmx"}

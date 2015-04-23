@@ -24,10 +24,11 @@ from subprocess import CalledProcessError
 import traceback
 import platform
 import urwid
+import shutil
 
-from bzt.engine import ScenarioExecutor, Scenario
+from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
-from bzt.utils import shell_exec
+from bzt.utils import shell_exec, ensure_is_dict
 from bzt.utils import unzip, download_progress_hook, humanize_time
 from bzt.modules.console import WidgetProvider
 
@@ -39,7 +40,7 @@ except ImportError:
 exe_suffix = ".bat" if platform.system() == 'Windows' else ".sh"
 
 
-class GatlingExecutor(ScenarioExecutor, WidgetProvider):
+class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     """
     Gatling executor module
     """
@@ -230,6 +231,43 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider):
         if not self.widget:
             self.widget = GatlingWidget(self)
         return self.widget
+
+    def resource_files(self):
+        script = self.__get_script()
+        # modify script contents
+        if script:
+            patterns = []
+            script_contents = open(script, 'rt').read()
+            search_patterns = [re.compile(".formUpload\(.*?\)"),
+                               re.compile("RawFileBody\(.*?\)"),
+                               re.compile("RawFileBodyPart\(.*?\)"),
+                               re.compile("ELFileBody\(.*?\)"),
+                               re.compile("ELFileBodyPart\(.*?\)"),
+                               re.compile("feed\(csv\(.*?\)")
+                               ]
+            for search_pattern in search_patterns:
+                found_samples = search_pattern.findall(script_contents)
+                for found_sample in found_samples:
+                    tmp = found_sample.split(",")
+                    file_path = re.compile('\".*?\"').findall(tmp[-1])[0].strip('"')
+                    shutil.copy(file_path, self.engine.artifacts_dir)
+                    patterns.append(found_sample)
+
+        else:
+            return []
+
+    def __get_script(self):
+        scenario = self.get_scenario()
+        if Scenario.SCRIPT not in scenario:
+            return None
+
+        ensure_is_dict(scenario, Scenario.SCRIPT, "path")
+        fname = scenario[Scenario.SCRIPT]["path"]
+        if fname is not None:
+            return self.engine.find_file(fname)
+        else:
+            return None
+
 
 
 class DataLogReader(ResultsReader):

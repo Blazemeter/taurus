@@ -15,29 +15,16 @@ class BasicSimulation extends Simulation {
     .userAgentHeader("Mozilla/5.0 (Windows NT 5.1; rv:31.0) Gecko/20100101 Firefox/31.0")
 
   val scn =     scenario("BasicSimulation") .exec(
-          http("request_1").get("/")
-      ).pause(1).exec(
-          http("request_1").get("/1")
-      ).pause(1).exec(
-          http("request_7").get("/2")
-      ).pause(1).exec(
-          http("request_1").get("/")
-      ).pause(1).exec(
-          http("request_1").get("/")
-      ).pause(1).exec(
-          http("request_1").get("/")
-      ).pause(1).exec(
-          http("request_5").get("/4")
-      ).pause(1).exec(
-          http("request_1").get("/")
-      ).pause(1).exec(
-          http("request_6").get("/")
-      ).pause(1).exec(
-          http("request_1").get("/")
-      ).pause(1).exec(
-          http("request_1").get("/")
-      ).pause(1).exec(
-          http("request_1").get("/")
+          http("request_1").post("some_action")
+          .formUpload("key", "tests/data/test1.csv")
+          .bodyPart(RawFileBodyPart("file", "tests/data/unicode_file").contentType("application/binary").fileName("unicode_file")).asMultipartForm
+          .body(RawFileBody("tests/json/dummy.json"))
+          .body(ELFileBody("tests/json/includes.json"))
+          .body(RawFileBodyPart("tests/json/local.json"))
+          .body(RawFileBodyPart("file_name", "tests/json/passfail.json"))
+          .body(ELFileBodyPart("tests/json/mock_start_err.json"))
+          .body(ELFileBodyPart("file_name", "tests/json/throughput.json"))
+
       )
 
   setUp(

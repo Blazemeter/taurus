@@ -52,4 +52,11 @@ class TestGrinderExecutor(BZTestCase):
         obj.prepare()
         obj.get_widget()
         self.assertEqual(obj.widget.script_name.text, "Script: helloworld.py")
-        
+
+
+    def test_resource_files_collection(self):
+        obj = GrinderExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({"scenario":{"script":"tests/grinder/helloworld.py",
+                                         "properties_file": "tests/grinder/grinder.properties"}})
+        obj.resource_files()
