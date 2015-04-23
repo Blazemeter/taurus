@@ -11,6 +11,7 @@ import os
 from tests.mocks import EngineEmul
 from bzt.utils import BetterDict
 import bzt.utils
+import json
 
 setup_test_logging()
 
@@ -53,11 +54,23 @@ class TestGrinderExecutor(BZTestCase):
         obj.get_widget()
         self.assertEqual(obj.widget.script_name.text, "Script: helloworld.py")
 
-
     def test_resource_files_collection(self):
         obj = GrinderExecutor()
         obj.engine = EngineEmul()
-        obj.execution = BetterDict()
         obj.execution.merge({"scenario":{"script":"tests/grinder/helloworld.py",
                                          "properties_file": "tests/grinder/grinder.properties"}})
-        l = obj.resource_files()
+        res_files = obj.resource_files()
+        artifacts = os.listdir(obj.engine.artifacts_dir)
+        self.assertEqual(len(res_files), 2)
+        self.assertEqual(len(artifacts), 2)
+
+
+    def test_resource_files_from_requests(self):
+        obj = GrinderExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = json.loads(open("tests/json/get-post.json").read())
+        obj.execution = obj.engine.config['execution']
+        res_files = obj.resource_files()
+        artifacts = os.listdir(obj.engine.artifacts_dir)
+        self.assertEqual(len(res_files), 1)
+        self.assertEqual(len(artifacts), 1)

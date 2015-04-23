@@ -30,6 +30,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.utils import shell_exec, ensure_is_dict
 from bzt.utils import unzip, download_progress_hook, humanize_time
 from bzt.modules.console import WidgetProvider
+import shutil
 
 try:
     from urllib import FancyURLopener
@@ -314,15 +315,47 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.widget = GrinderWidget(self)
         return self.widget
 
+    def __extract_resources_from_scenario(self):
+        """
+        Get post-body files from scenario
+        :return:
+        """
+        post_body_files = []
+        scenario = self.get_scenario()
+        requests = scenario.data.get("requests")
+        if requests:
+            for req in requests:
+                if isinstance(req, dict):
+                    post_body_path = req.get('body-file')
+                    if post_body_path:
+                        shutil.copy2(post_body_path, self.engine.artifacts_dir)
+                        post_body_files.append(post_body_path)
+
+        return post_body_files
+
     def resource_files(self):
-        script = self.__get_script()
+        resource_files = self.__extract_resources_from_scenario()
         prop_file = self.get_scenario().get("properties_file", "")
         if prop_file:
             file_contents = open(prop_file, 'rt').read()
             search_pattern = re.compile("grinder\.script.*")
-            l = search_pattern.findall(file_contents)
-            pass
-        return [prop_file, script]
+            found_patterns = search_pattern.findall(file_contents)
+            for pattern in found_patterns:
+                file_path = pattern.split("=")[-1].strip()
+                shutil.copy2(file_path, self.engine.artifacts_dir)
+                resource_files.append(file_path)
+            if resource_files:
+                for resource_file in resource_files:
+                    file_contents = file_contents.replace(resource_file, os.path.basename(resource_file))
+                script_name, script_ext = os.path.splitext(prop_file)
+                script_name = os.path.basename(script_name)
+                # create modified jmx script in artifacts dir
+                modified_script = self.engine.create_artifact(script_name, script_ext)
+                with open(modified_script, 'wt') as _fds:
+                    _fds.write(file_contents)
+                resource_files.append(modified_script)
+
+        return [os.path.basename(x) for x in resource_files]
 
     def __get_script(self):
         scenario = self.get_scenario()
