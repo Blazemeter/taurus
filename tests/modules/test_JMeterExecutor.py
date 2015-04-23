@@ -183,7 +183,7 @@ class TestJMeterExecutor(BZTestCase):
     def test_resource_files_collection(self):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
-        obj.execution.merge({"scenario": {"script": "build/files.jmx"}})
+        obj.execution.merge({"scenario": {"script": "tests/jmx/files.jmx"}})
         res_files = obj.resource_files()
         artifacts = os.listdir(obj.engine.artifacts_dir)
         self.assertEqual(len(res_files), 5)
