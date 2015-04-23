@@ -185,6 +185,8 @@ class TestJMeterExecutor(BZTestCase):
         obj.engine = EngineEmul()
         obj.execution = BetterDict()
         obj.execution.merge({"scenario": {"script": "build/files.jmx"}})
-        # self.assertEqual(obj.resource_files(), ['test.jtl', 'tests/jmx/http.jmx'])
-
+        obj.resource_files()
+        artifacts = os.listdir(obj.engine.artifacts_dir)
+        self.assertEqual(len(obj.resource_files()), 5)
+        self.assertEqual(len(artifacts), 5)
         # {"scenario": {"script": "tests/jmx/broken.jmx"}

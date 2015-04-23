@@ -336,28 +336,40 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         Get resource files
         """
         # TODO: get CSVs, other known files like included test plans
+        resource_files = []
         script = self.__get_script()
         if script:
-            resource_files = []
+        #    resource_files = []
             script_xml_tree = etree.fromstring(open(script, "rb").read())
             search_patterns = ["File.path", "filename", "BeanShellSampler.filename"]
             for pattern in search_patterns:
                 resource_elements = script_xml_tree.findall(".//stringProp[@name='%s']" % pattern)
                 for resource_element in resource_elements:
-                    if resource_element.text:
+                    # check if none of parents are disabled
+                    parent = resource_element.getparent()
+                    parent_disabled = False
+                    while parent != None: # ?
+                        if parent.get('enabled') == 'false':
+                            parent_disabled = True
+                            break
+                        parent = parent.getparent()
+
+                    if resource_element.text and parent_disabled == False:
                         resource_files.append(resource_element.text)
                         resource_element.text = os.path.basename(resource_element.text)
             if resource_files:
+                # copy to artifacts dir
                 for _file in resource_files:
                     shutil.copy2(_file, self.engine.artifacts_dir)
                 script_name, script_ext = os.path.splitext(script)
                 script_name = os.path.basename(script_name)
+                # create modified jmx script in artifacts dir
                 modified_script = self.engine.create_artifact(script_name, script_ext)
                 with open(modified_script, 'wb') as _fds:
                      _fds.write(etree.tostring(script_xml_tree, pretty_print=True, encoding="UTF-8", xml_declaration=True))
 
-            resource_files.append(modified_script)
-            return resource_files
+            resource_files.append(modified_script) # should we use abspath?
+            return [os.path.basename(file_path) for file_path in resource_files]
         else:
             return []
 
