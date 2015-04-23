@@ -8,6 +8,7 @@ from tests import setup_test_logging, BZTestCase, __dir__
 from bzt.modules.gatling import GatlingExecutor
 import shutil
 import os
+import json
 from tests.mocks import EngineEmul
 import bzt.utils
 from bzt.utils import BetterDict
@@ -56,4 +57,17 @@ class TestGatlingExecutor(BZTestCase):
         obj = GatlingExecutor()
         obj.engine = EngineEmul()
         obj.execution.merge({"scenario":{"script":"tests/gatling/LocalBasicSimulation.scala"}})
-        obj.resource_files()
+        res_files = obj.resource_files()
+        artifacts = os.listdir(obj.engine.artifacts_dir)
+        self.assertEqual(len(res_files), 13)
+        self.assertEqual(len(artifacts), 13)
+
+    def test_resource_files_from_requests(self):
+        obj = GatlingExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = json.loads(open("tests/json/get-post.json").read())
+        obj.execution = obj.engine.config['execution']
+        res_files = obj.resource_files()
+        artifacts = os.listdir(obj.engine.artifacts_dir)
+        self.assertEqual(len(res_files), 1)
+        self.assertEqual(len(artifacts), 1)

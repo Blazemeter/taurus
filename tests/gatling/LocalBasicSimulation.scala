@@ -29,7 +29,7 @@ class BasicSimulation extends Simulation {
           tsv("tests/json/get-post.json")
           ssv("tests/json/merge2.json")
           separatedValues("tests/json/reporting.json", "#")
-          jsonFile("tests/postproc_err/json")
+          jsonFile("tests/json/mock_normal.json")
 
       )
 

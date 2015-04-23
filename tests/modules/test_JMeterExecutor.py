@@ -184,9 +184,9 @@ class TestJMeterExecutor(BZTestCase):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
         obj.execution.merge({"scenario": {"script": "build/files.jmx"}})
-        obj.resource_files()
+        res_files = obj.resource_files()
         artifacts = os.listdir(obj.engine.artifacts_dir)
-        self.assertEqual(len(obj.resource_files()), 5)
+        self.assertEqual(len(res_files), 5)
         self.assertEqual(len(artifacts), 5)
 
     def test_resource_files_from_requests(self):
@@ -194,7 +194,7 @@ class TestJMeterExecutor(BZTestCase):
         obj.engine = EngineEmul()
         obj.engine.config = json.loads(open("tests/json/get-post.json").read())
         obj.execution = obj.engine.config['execution']
-        obj.resource_files()
+        res_files = obj.resource_files()
         artifacts = os.listdir(obj.engine.artifacts_dir)
-        self.assertEqual(len(obj.resource_files()), 1)
+        self.assertEqual(len(res_files), 1)
         self.assertEqual(len(artifacts), 1)

@@ -390,9 +390,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 with open(modified_script, 'wb') as _fds:
                      _fds.write(etree.tostring(script_xml_tree, pretty_print=True, encoding="UTF-8", xml_declaration=True))
 
-            resource_files.append(modified_script) # should we use abspath?
+            resource_files.append(modified_script)
             resource_files.extend(files_from_requests)
-            return [os.path.basename(file_path) for file_path in resource_files]
+            return [os.path.basename(file_path) for file_path in resource_files] # return list of file names
         else:
             return files_from_requests
 

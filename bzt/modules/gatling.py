@@ -235,8 +235,10 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     def resource_files(self):
         script = self.__get_script()
         # modify script contents
+        resource_files = []
+        files_from_requests = self.__extract_resources_from_scenario()
+
         if script:
-            patterns = []
             script_contents = open(script, 'rt').read()
             search_patterns = [re.compile("\.formUpload\(.*?\)"),
                                re.compile("RawFileBody\(.*?\)"),
@@ -245,18 +247,49 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                                re.compile("ELFileBodyPart\(.*?\)"),
                                re.compile("csv\(.*?\)"),
                                re.compile("tsv\(.*?\)"),
-                               re.compile("ssv\(.*?\)")
-                               ]
+                               re.compile("ssv\(.*?\)"),
+                               re.compile("jsonFile\(.*?\)")]
             for search_pattern in search_patterns:
                 found_samples = search_pattern.findall(script_contents)
                 for found_sample in found_samples:
                     tmp = found_sample.split(",")
-                    file_path = re.compile('\".*?\"').findall(tmp[-1])[0].strip('"')
+                    file_path = re.compile('\".*?\"').findall(tmp[-1])[0].strip('"') # FIXME: minor: separatedValues
                     shutil.copy(file_path, self.engine.artifacts_dir)
-                    patterns.append(found_sample)
+                    resource_files.append(file_path)
+            # modify .scala script
+            if resource_files:
+                for resource_file in resource_files:
+                    script_contents = script_contents.replace(resource_file, os.path.basename(resource_file))
 
+                script_name, script_ext = os.path.splitext(script)
+                script_name = os.path.basename(script_name)
+                modified_script = self.engine.create_artifact(script_name, script_ext)
+                with open(modified_script, 'wt') as _fds:
+                    _fds.write(script_contents)
+
+            resource_files.append(modified_script)
+            resource_files.extend(files_from_requests)
+            return [os.path.basename(file_path) for file_path in resource_files]
         else:
-            return []
+            return files_from_requests
+
+    def __extract_resources_from_scenario(self):
+        """
+        Get post-body files from scenario
+        :return:
+        """
+        post_body_files = []
+        scenario = self.get_scenario()
+        requests = scenario.data.get("requests")
+        if requests:
+            for req in requests:
+                if isinstance(req, dict):
+                    post_body_path = req.get('body-file')
+                    if post_body_path:
+                        shutil.copy2(post_body_path, self.engine.artifacts_dir)
+                        post_body_files.append(post_body_path)
+
+        return post_body_files
 
     def __get_script(self):
         scenario = self.get_scenario()
