@@ -183,10 +183,18 @@ class TestJMeterExecutor(BZTestCase):
     def test_resource_files_collection(self):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
-        obj.execution = BetterDict()
         obj.execution.merge({"scenario": {"script": "build/files.jmx"}})
         obj.resource_files()
         artifacts = os.listdir(obj.engine.artifacts_dir)
         self.assertEqual(len(obj.resource_files()), 5)
         self.assertEqual(len(artifacts), 5)
-        # {"scenario": {"script": "tests/jmx/broken.jmx"}
+
+    def test_resource_files_from_requests(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = json.loads(open("tests/json/get-post.json").read())
+        obj.execution = obj.engine.config['execution']
+        obj.resource_files()
+        artifacts = os.listdir(obj.engine.artifacts_dir)
+        self.assertEqual(len(obj.resource_files()), 1)
+        self.assertEqual(len(artifacts), 1)

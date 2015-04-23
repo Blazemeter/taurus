@@ -331,12 +331,34 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.widget = JMeterWidget(self)
         return self.widget
 
+    def __extract_resources_from_scenario(self):
+        """
+        Get post-body files from scenario
+        :return:
+        """
+        post_body_files = []
+        scenario = self.get_scenario()
+        requests = scenario.data.get("requests")
+        if requests:
+            for req in requests:
+                if isinstance(req, dict):
+                    post_body_path = req.get('body-file')
+                    if post_body_path:
+                        shutil.copy2(post_body_path, self.engine.artifacts_dir)
+                        post_body_files.append(post_body_path)
+
+        return post_body_files
+
+
     def resource_files(self):
         """
         Get resource files
         """
         # TODO: get CSVs, other known files like included test plans
         resource_files = []
+        # get all resource files from settings
+        files_from_requests = self.__extract_resources_from_scenario()
+
         script = self.__get_script()
         if script:
         #    resource_files = []
@@ -369,9 +391,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                      _fds.write(etree.tostring(script_xml_tree, pretty_print=True, encoding="UTF-8", xml_declaration=True))
 
             resource_files.append(modified_script) # should we use abspath?
+            resource_files.extend(files_from_requests)
             return [os.path.basename(file_path) for file_path in resource_files]
         else:
-            return []
+            return files_from_requests
 
     def __get_script(self):
         scenario = self.get_scenario()
