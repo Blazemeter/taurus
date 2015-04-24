@@ -52,7 +52,6 @@ class PassFailStatus(Reporter, AggregatorListener, WidgetProvider):
                 self.parameters['criterias'][idx] = crit_config
             crit = load_class(crit_config.get('type', FailCriteria.__module__ + "." + FailCriteria.__name__))
             self.criterias.append(crit(crit_config))
-            # TODO: prepare sidebar widget
 
     def post_process(self):
         super(PassFailStatus, self).post_process()

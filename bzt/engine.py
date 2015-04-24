@@ -860,7 +860,6 @@ class Scenario(DictMixin, object):
     def __delitem__(self, key):
         return self.data.pop(key)
 
-    # TODO: add HAR file support
     def get_headers(self):
         """
         Returns global headers

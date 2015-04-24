@@ -477,7 +477,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         return jmeter
 
 
-# TODO: present a way to encode post body parameters as form data
 class JMX(object):
     """
     A class to manipulate and generate JMX test plans for JMeter
