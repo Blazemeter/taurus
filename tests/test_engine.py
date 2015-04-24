@@ -1,6 +1,8 @@
 """ unit test """
 import tempfile
 
+from bzt.utils import BetterDict
+
 from tests import BZTestCase, __dir__, local_paths_config
 from tests.mocks import EngineEmul
 
@@ -69,3 +71,19 @@ class TestEngine(BZTestCase):
         self.obj.prepare()
         self.obj.run()
         self.obj.post_process()
+
+    def test_unknown_module(self):
+        configs = [
+            __dir__() + "/../bzt/10-base.json",
+            __dir__() + "/json/gatling.json",
+            self.paths
+        ]
+        self.obj.configure(configs)
+        self.obj.config["provisioning"] = "unknown"
+        self.obj.config["modules"]["unknown"] = BetterDict()
+
+        try:
+            self.obj.prepare()
+            self.fail()
+        except ValueError:
+            pass

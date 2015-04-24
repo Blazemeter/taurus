@@ -264,18 +264,19 @@ class Engine(object):
             raise ValueError("Module alias '%s' not found in module settings" % alias)
 
         settings = ensure_is_dict(mod_conf, alias, "class")
-        self.log.debug("Module config: %s %s", alias, settings)  # FIXME: it exposes API tokens through log
-        default = EngineModule.__module__
-        default += "." + EngineModule.__name__
-        self.log.debug("Default: %s", default)
-        clsname = settings.get('class', default)
+
+        acopy = copy.deepcopy(settings)
+        BetterDict.traverse(acopy, Configuration.masq_sensitive)
+        self.log.debug("Module config: %s %s", alias, acopy)
+
+        clsname = settings.get('class', None)
         try:
             self.modules[alias] = load_class(clsname)
             if not issubclass(self.modules[alias], EngineModule):
                 raise TypeError("Module class does not inherit from EngineModule: %s" % clsname)
         except BaseException as exc:
             self.log.debug("Failed to load class %s: %s", clsname, traceback.format_exc())
-            raise RuntimeError("Cannot load module: %s" % clsname)
+            raise ValueError("Cannot load module '%s' with class %s" % (alias, clsname))
 
         return self.modules[alias]
 
@@ -546,15 +547,16 @@ class Configuration(BetterDict):
                 return
 
             acopy = copy.deepcopy(self)
-            BetterDict.traverse(acopy, self.__masq_sensitive)
+            BetterDict.traverse(acopy, self.masq_sensitive)
             with open(filename, "w") as fhd:
                 self.log.debug("Dumping %s config into %s", fmt, filename)
                 acopy.write(fhd, fmt)
 
-    def __masq_sensitive(self, obj):
-        for key in obj.keys():
-            if key in ('password', 'secret', 'token') and obj[key]:
-                obj[key] = '*' * 8
+    @staticmethod
+    def masq_sensitive(config):
+        for key in config.keys():
+            if key in ('password', 'secret', 'token') and config[key]:
+                config[key] = '*' * 8
 
     def __ensure_list_capacity(self, pointer, part, next_part=None):
         if isinstance(pointer, list) and isinstance(part, int):
@@ -877,24 +879,24 @@ class Scenario(DictMixin, object):
         scenario = self
         requests = scenario.get("requests", [])
         for key, val in enumerate(requests):
-            ensure_is_dict(requests, key, "url")
+            request = ensure_is_dict(requests, key, "url")
             res = namedtuple("HTTPReq",
                              ('url', 'label', 'method', 'headers', 'timeout', 'think_time', 'config', "body"))
-            url = requests[key]["url"]
-            label = requests[key].get("label", url)
-            method = requests[key].get("method", "GET")
-            headers = requests[key].get("headers", {})
-            timeout = requests[key].get("timeout", None)
-            think_time = requests[key].get("think-time", None)
+            url = request["url"]
+            label = request.get("label", url)
+            method = request.get("method", "GET")
+            headers = request.get("headers", {})
+            timeout = request.get("timeout", None)
+            think_time = request.get("think-time", None)
 
             body = None
-            bodyfile = requests[key].get("body-file", None)
+            bodyfile = request.get("body-file", None)
             if bodyfile:
                 with open(bodyfile) as fhd:
                     body = fhd.read()
-            body = requests[key].get("body", body)
+            body = request.get("body", body)
 
-            yield res(config=requests[key], label=label,
+            yield res(config=request, label=label,
                       url=url, method=method, headers=headers,
                       timeout=timeout, think_time=think_time, body=body)
 
