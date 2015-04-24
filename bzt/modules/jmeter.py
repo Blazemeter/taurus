@@ -346,8 +346,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if Scenario.SCRIPT not in scenario:
             return None
 
-        ensure_is_dict(scenario, Scenario.SCRIPT, "path")
-        fname = scenario[Scenario.SCRIPT]["path"]
+        scen = ensure_is_dict(scenario, Scenario.SCRIPT, "path")
+        fname = scen["path"]
         if fname is not None:
             return self.engine.find_file(fname)
         else:
@@ -1390,8 +1390,7 @@ class JMeterScenarioBuilder(JMX):
     def __add_extractors(self, children, request):
         extractors = request.config.get("extract-regexp", BetterDict())
         for varname in extractors:
-            ensure_is_dict(extractors, varname, "regexp")
-            cfg = extractors[varname]
+            cfg = ensure_is_dict(extractors, varname, "regexp")
             extractor = JMX._get_extractor(varname, cfg['regexp'], '$%s$' % cfg.get('template', 1),
                                            cfg.get('match-no', 1), cfg.get('default', 'NOT_FOUND'))
             children.append(extractor)
@@ -1399,8 +1398,7 @@ class JMeterScenarioBuilder(JMX):
 
         jextractors = request.config.get("extract-jsonpath", BetterDict())
         for varname in jextractors:
-            ensure_is_dict(jextractors, varname, "jsonpath")
-            cfg = jextractors[varname]
+            cfg = ensure_is_dict(jextractors, varname, "jsonpath")
             children.append(JMX._get_json_extractor(
                 varname,
                 cfg['jsonpath'],
@@ -1411,8 +1409,7 @@ class JMeterScenarioBuilder(JMX):
     def __add_assertions(self, children, request):
         assertions = request.config.get("assert", [])
         for idx, assertion in enumerate(assertions):
-            ensure_is_dict(assertions, idx, "contains")
-            assertion = assertions[idx]
+            assertion = ensure_is_dict(assertions, idx, "contains")
             if not isinstance(assertion['contains'], list):
                 assertion['contains'] = [assertion['contains']]
             children.append(JMX._get_resp_assertion(
@@ -1503,8 +1500,7 @@ class JMeterScenarioBuilder(JMX):
     def __add_datasources(self):
         sources = self.scenario.get("data-sources", [])
         for idx, source in enumerate(sources):
-            ensure_is_dict(sources, idx, "path")
-            source = sources[idx]
+            source = ensure_is_dict(sources, idx, "path")
 
             delimiter = source.get("delimiter", self.__guess_delimiter(source['path']))
 
