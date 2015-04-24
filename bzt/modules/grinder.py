@@ -316,28 +316,40 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         return self.widget
 
     def resource_files(self):
-        resource_files = extract_resources_from_scenario(self)
+        resource_files = []
+        files_from_requests = extract_resources_from_scenario(self)
         prop_file = self.get_scenario().get("properties_file", "")
         if prop_file:
-            file_contents = open(prop_file, 'rt').read()
-            search_pattern = re.compile("grinder\.script.*")
-            found_patterns = search_pattern.findall(file_contents)
-            for pattern in found_patterns:
-                file_path = pattern.split("=")[-1].strip()
-                shutil.copy2(file_path, self.engine.artifacts_dir)
-                resource_files.append(file_path)
+            script_contents = open(prop_file, 'rt').read()
+            resource_files, modified_contents = self.__get_resource_files_from_script(script_contents)
             if resource_files:
                 for resource_file in resource_files:
-                    file_contents = file_contents.replace(resource_file, os.path.basename(resource_file))
+                    shutil.copy2(resource_file, self.engine.artifacts_dir)
+
                 script_name, script_ext = os.path.splitext(prop_file)
                 script_name = os.path.basename(script_name)
                 # create modified jmx script in artifacts dir
                 modified_script = self.engine.create_artifact(script_name, script_ext)
                 with open(modified_script, 'wt') as _fds:
-                    _fds.write(file_contents)
+                    _fds.write(modified_contents)
                 resource_files.append(modified_script)
-
+            else:
+                shutil.copy2(prop_file, self.engine.artifacts_dir)
+                resource_files.append(prop_file)
+        resource_files.extend(files_from_requests)
         return [os.path.basename(x) for x in resource_files]
+
+    def __get_resource_files_from_script(self, script_contents):
+        resource_files = []
+        search_pattern = re.compile("grinder\.script.*")
+        found_patterns = search_pattern.findall(script_contents)
+        for pattern in found_patterns:
+            file_path = pattern.split("=")[-1].strip()
+            resource_files.append(file_path)
+        if resource_files:
+            for resource_file in resource_files:
+                script_contents = script_contents.replace(resource_file, os.path.basename(resource_file))
+        return resource_files, script_contents
 
     def __get_script(self):
         scenario = self.get_scenario()

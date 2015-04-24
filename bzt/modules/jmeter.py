@@ -339,26 +339,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         resource_files = []
         # get all resource files from settings
         files_from_requests = extract_resources_from_scenario(self)
-
         script = self.__get_script()
         if script:
             script_xml_tree = etree.fromstring(open(script, "rb").read())
-            search_patterns = ["File.path", "filename", "BeanShellSampler.filename"]
-            for pattern in search_patterns:
-                resource_elements = script_xml_tree.findall(".//stringProp[@name='%s']" % pattern)
-                for resource_element in resource_elements:
-                    # check if none of parents are disabled
-                    parent = resource_element.getparent()
-                    parent_disabled = False
-                    while parent is not None:  # ?
-                        if parent.get('enabled') == 'false':
-                            parent_disabled = True
-                            break
-                        parent = parent.getparent()
-
-                    if resource_element.text and parent_disabled is False:
-                        resource_files.append(resource_element.text)
-                        resource_element.text = os.path.basename(resource_element.text)
+            resource_files, modified_xml_tree = self.__get_resource_files_from_script(script_xml_tree)
             if resource_files:
                 # copy to artifacts dir
                 for _file in resource_files:
@@ -369,7 +353,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 modified_script = self.engine.create_artifact(script_name, script_ext)
                 with open(modified_script, 'wb') as _fds:
                     _fds.write(
-                        etree.tostring(script_xml_tree, pretty_print=True, encoding="UTF-8", xml_declaration=True))
+                        etree.tostring(modified_xml_tree, pretty_print=True, encoding="UTF-8", xml_declaration=True))
                 resource_files.append(modified_script)
             else:
                 # copy original script to artifacts
@@ -378,6 +362,30 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         resource_files.extend(files_from_requests)
         return [os.path.basename(file_path) for file_path in resource_files]  # return list of file names
+
+    def __get_resource_files_from_script(self, script_xml_tree):
+        """
+
+        :return: (list, etree)
+        """
+        resource_files = []
+        search_patterns = ["File.path", "filename", "BeanShellSampler.filename"]
+        for pattern in search_patterns:
+            resource_elements = script_xml_tree.findall(".//stringProp[@name='%s']" % pattern)
+            for resource_element in resource_elements:
+                # check if none of parents are disabled
+                parent = resource_element.getparent()
+                parent_disabled = False
+                while parent is not None:  # ?
+                    if parent.get('enabled') == 'false':
+                        parent_disabled = True
+                        break
+                    parent = parent.getparent()
+
+                if resource_element.text and parent_disabled is False:
+                    resource_files.append(resource_element.text)
+                    resource_element.text = os.path.basename(resource_element.text)
+        return resource_files, script_xml_tree
 
     def __get_script(self):
         scenario = self.get_scenario()
