@@ -106,6 +106,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
             except BaseException as exc:
                 self.log.debug("Exception: %s", traceback.format_exc())
                 self.log.warning("Failed to start feeding: %s", exc)
+                raise
 
     def __get_jtls_and_more(self):
         mf = six.BytesIO()
@@ -227,7 +228,7 @@ class BlazeMeterClient(object):
             headers = {}
         if self.token:
             headers["X-API-Key"] = self.token
-        self.log.debug("Request %s: %s", url, data[:self.logger_limit] if data else None)
+        self.log.debug("Request %s: %s", url, data if data else None)
         # .encode("utf-8") is probably better
         data = data.encode() if isinstance(data, six.text_type) else data
         request = Request(url, data, headers)
