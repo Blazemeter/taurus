@@ -28,7 +28,7 @@ import re
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.utils import shell_exec, ensure_is_dict
-from bzt.utils import unzip, download_progress_hook, humanize_time
+from bzt.utils import unzip, download_progress_hook, humanize_time, extract_resources_from_scenario
 from bzt.modules.console import WidgetProvider
 import shutil
 
@@ -315,26 +315,8 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.widget = GrinderWidget(self)
         return self.widget
 
-    def __extract_resources_from_scenario(self):
-        """
-        Get post-body files from scenario
-        :return:
-        """
-        post_body_files = []
-        scenario = self.get_scenario()
-        requests = scenario.data.get("requests")
-        if requests:
-            for req in requests:
-                if isinstance(req, dict):
-                    post_body_path = req.get('body-file')
-                    if post_body_path:
-                        shutil.copy2(post_body_path, self.engine.artifacts_dir)
-                        post_body_files.append(post_body_path)
-
-        return post_body_files
-
     def resource_files(self):
-        resource_files = self.__extract_resources_from_scenario()
+        resource_files = extract_resources_from_scenario(self)
         prop_file = self.get_scenario().get("properties_file", "")
         if prop_file:
             file_contents = open(prop_file, 'rt').read()

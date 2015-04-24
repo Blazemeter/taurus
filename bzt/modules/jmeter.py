@@ -34,7 +34,7 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.console import WidgetProvider
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.utils import shell_exec, ensure_is_dict, humanize_time, dehumanize_time, BetterDict, \
-    guess_csv_delimiter, unzip, download_progress_hook
+    guess_csv_delimiter, unzip, download_progress_hook, extract_resources_from_scenario
 
 
 try:
@@ -331,25 +331,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.widget = JMeterWidget(self)
         return self.widget
 
-    def __extract_resources_from_scenario(self):
-        """
-        Get post-body files from scenario
-        :return:
-        """
-        post_body_files = []
-        scenario = self.get_scenario()
-        requests = scenario.data.get("requests")
-        if requests:
-            for req in requests:
-                if isinstance(req, dict):
-                    post_body_path = req.get('body-file')
-                    if post_body_path:
-                        shutil.copy2(post_body_path, self.engine.artifacts_dir)
-                        post_body_files.append(post_body_path)
-
-        return post_body_files
-
-
     def resource_files(self):
         """
         Get resource files
@@ -357,11 +338,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         # TODO: get CSVs, other known files like included test plans
         resource_files = []
         # get all resource files from settings
-        files_from_requests = self.__extract_resources_from_scenario()
+        files_from_requests = extract_resources_from_scenario(self)
 
         script = self.__get_script()
         if script:
-        #    resource_files = []
             script_xml_tree = etree.fromstring(open(script, "rb").read())
             search_patterns = ["File.path", "filename", "BeanShellSampler.filename"]
             for pattern in search_patterns:
@@ -370,13 +350,13 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                     # check if none of parents are disabled
                     parent = resource_element.getparent()
                     parent_disabled = False
-                    while parent != None: # ?
+                    while parent is not None:  # ?
                         if parent.get('enabled') == 'false':
                             parent_disabled = True
                             break
                         parent = parent.getparent()
 
-                    if resource_element.text and parent_disabled == False:
+                    if resource_element.text and parent_disabled is False:
                         resource_files.append(resource_element.text)
                         resource_element.text = os.path.basename(resource_element.text)
             if resource_files:
@@ -388,13 +368,16 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 # create modified jmx script in artifacts dir
                 modified_script = self.engine.create_artifact(script_name, script_ext)
                 with open(modified_script, 'wb') as _fds:
-                     _fds.write(etree.tostring(script_xml_tree, pretty_print=True, encoding="UTF-8", xml_declaration=True))
+                    _fds.write(
+                        etree.tostring(script_xml_tree, pretty_print=True, encoding="UTF-8", xml_declaration=True))
+                resource_files.append(modified_script)
+            else:
+                # copy original script to artifacts
+                shutil.copy2(script, self.engine.artifacts_dir)
+                resource_files.append(script)
 
-            resource_files.append(modified_script)
-            resource_files.extend(files_from_requests)
-            return [os.path.basename(file_path) for file_path in resource_files] # return list of file names
-        else:
-            return files_from_requests
+        resource_files.extend(files_from_requests)
+        return [os.path.basename(file_path) for file_path in resource_files]  # return list of file names
 
     def __get_script(self):
         scenario = self.get_scenario()

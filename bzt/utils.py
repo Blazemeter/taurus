@@ -29,6 +29,7 @@ import mimetypes
 import itertools
 import zipfile
 import sys
+import shutil
 
 from psutil import Popen
 import six
@@ -565,3 +566,22 @@ def make_boundary(text=None):
         b = boundary + '.' + str(counter)
         counter += 1
     return b
+
+
+def extract_resources_from_scenario(executor):
+        """
+        Get post-body files from scenario
+        :return:
+        """
+        post_body_files = []
+        scenario = executor.get_scenario()
+        requests = scenario.data.get("requests")
+        if requests:
+            for req in requests:
+                if isinstance(req, dict):
+                    post_body_path = req.get('body-file')
+                    if post_body_path:
+                        shutil.copy2(post_body_path, executor.engine.artifacts_dir)
+                        post_body_files.append(post_body_path)
+
+        return post_body_files
