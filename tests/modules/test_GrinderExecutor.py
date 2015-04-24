@@ -33,7 +33,7 @@ class TestGrinderExecutor(BZTestCase):
         obj.settings.merge({"path": path})
         obj.execution = BetterDict()
         obj.execution.merge({"scenario": {
-                                         "script": "tests/grinder/local_helloworld.py",
+                                         "script": "tests/grinder/helloworld.py",
                                          "properties_file": "tests/grinder/grinder.properties",
                                          "properties": {"grinder.useConsole": "false"}}})
         obj.prepare()
@@ -44,4 +44,12 @@ class TestGrinderExecutor(BZTestCase):
         GrinderExecutor.DOWNLOAD_LINK = grinder_link
         GrinderExecutor.VERSION = grinder_version
         bzt.utils.TEST_RUNNING = False
+
+    def test_grinder_widget(self):
+        obj = GrinderExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({"scenario":{"script":"tests/grinder/helloworld.py"}})
+        obj.prepare()
+        obj.get_widget()
+        self.assertEqual(obj.widget.script_name.text, "Script: helloworld.py")
         

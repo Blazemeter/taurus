@@ -23,12 +23,13 @@ import subprocess
 from subprocess import CalledProcessError
 import traceback
 import platform
+import urwid
 
 from bzt.engine import ScenarioExecutor, Scenario
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.utils import shell_exec
-from bzt.utils import unzip, download_progress_hook
-
+from bzt.utils import unzip, download_progress_hook, humanize_time
+from bzt.modules.console import WidgetProvider
 
 try:
     from urllib import FancyURLopener
@@ -38,7 +39,7 @@ except ImportError:
 exe_suffix = ".bat" if platform.system() == 'Windows' else ".sh"
 
 
-class GatlingExecutor(ScenarioExecutor):
+class GatlingExecutor(ScenarioExecutor, WidgetProvider):
     """
     Gatling executor module
     """
@@ -57,6 +58,7 @@ class GatlingExecutor(ScenarioExecutor):
         self.reader = None
         self.stdout_file = None
         self.stderr_file = None
+        self.widget = None
 
     def prepare(self):
         """
@@ -121,6 +123,8 @@ class GatlingExecutor(ScenarioExecutor):
         :return: bool
         :raise RuntimeWarning:
         """
+        if self.widget:
+            self.widget.update()
         self.retcode = self.process.poll()
         if self.retcode is not None:
             if self.retcode != 0:
@@ -222,6 +226,11 @@ class GatlingExecutor(ScenarioExecutor):
         os.chmod(os.path.expanduser(gatling_path), 0o755)
         self.log.info("Installed Gatling successfully")
 
+    def get_widget(self):
+        if not self.widget:
+            self.widget = GatlingWidget(self)
+        return self.widget
+
 
 class DataLogReader(ResultsReader):
     """ Class to read KPI from data log """
@@ -289,11 +298,11 @@ class DataLogReader(ResultsReader):
             lt = (int(fields[7]) - int(fields[5])) / 1000.0
             cn = (int(fields[6]) - int(fields[5])) / 1000.0
 
-            if fields[0] == 'OK':
+            if fields[-1] == 'OK':
                 rc = '200'
             else:
-                # TODO: we can do more intelligent analysis here for some cases
-                rc = "500"
+                _tmp_rc = fields[-1].split(" ")[-1]
+                rc = _tmp_rc if _tmp_rc.isdigit() else 'No RC'
 
             if len(fields) >= 11 and fields[10]:
                 error = fields[10]
@@ -317,3 +326,51 @@ class DataLogReader(ResultsReader):
 
         self.fds = open(self.filename)
         return True
+
+
+class GatlingWidget(urwid.Pile):
+    """
+    Progress sidebar widget
+
+    :type executor: bzt.modules.grinder.GatlingExecutor
+    """
+
+    def __init__(self, executor):
+        self.executor = executor
+        self.dur = executor.get_load().duration
+        widgets = []
+        if self.executor.script:
+            self.script_name = urwid.Text("Script: %s" % os.path.basename(self.executor.script))
+            widgets.append(self.script_name)
+        if self.dur:
+            self.progress = urwid.ProgressBar('pb-en', 'pb-dis', done=self.dur)
+        else:
+            self.progress = urwid.Text("Running...")
+        widgets.append(self.progress)
+        self.elapsed = urwid.Text("Elapsed: N/A")
+        self.eta = urwid.Text("ETA: N/A", align=urwid.RIGHT)
+        widgets.append(urwid.Columns([self.elapsed, self.eta]))
+        super(GatlingWidget, self).__init__(widgets)
+
+    def update(self):
+        """
+        Refresh widget values
+        """
+        if self.executor.start_time:
+            elapsed = time.time() - self.executor.start_time
+            self.elapsed.set_text("Elapsed: %s" % humanize_time(elapsed))
+
+            if self.dur:
+                eta = self.dur - elapsed
+                if eta >= 0:
+                    self.eta.set_text("ETA: %s" % humanize_time(eta))
+                else:
+                    over = elapsed - self.dur
+                    self.eta.set_text("Overtime: %s" % humanize_time(over))
+            else:
+                self.eta.set_text("")
+
+            if isinstance(self.progress, urwid.ProgressBar):
+                self.progress.set_completion(elapsed)
+
+        self._invalidate()

@@ -22,12 +22,13 @@ import subprocess
 from subprocess import CalledProcessError
 import traceback
 import six
+import urwid
 
 from bzt.engine import ScenarioExecutor, Scenario
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.utils import shell_exec
-from bzt.utils import unzip, download_progress_hook
-
+from bzt.utils import unzip, download_progress_hook, humanize_time
+from bzt.modules.console import WidgetProvider
 
 try:
     from urllib import FancyURLopener
@@ -35,7 +36,7 @@ except ImportError:
     from urllib.request import FancyURLopener
 
 
-class GrinderExecutor(ScenarioExecutor):
+class GrinderExecutor(ScenarioExecutor, WidgetProvider):
     """
     Grinder executor module
     """
@@ -56,6 +57,7 @@ class GrinderExecutor(ScenarioExecutor):
         self.reader = None
         self.stdout_file = None
         self.stderr_file = None
+        self.widget = None
 
     def __write_base_props(self, fds):
         # base props file
@@ -170,6 +172,9 @@ class GrinderExecutor(ScenarioExecutor):
         :return: bool
         :raise RuntimeWarning:
         """
+        if self.widget:
+            self.widget.update()
+
         self.retcode = self.process.poll()
         if self.retcode is not None:
             if self.retcode != 0:
@@ -247,6 +252,7 @@ class GrinderExecutor(ScenarioExecutor):
         """
         grinder_path = self.settings.get("path", "~/grinder-taurus/lib/grinder.jar")
         grinder_path = os.path.abspath(os.path.expanduser(grinder_path))
+        self.settings['path'] = grinder_path
 
         try:
             self.__grinder(grinder_path)
@@ -301,6 +307,11 @@ class GrinderExecutor(ScenarioExecutor):
         os.remove(grinder_zip_path)
         self.log.info("Installed grinder successfully")
         return grinder_full_path
+
+    def get_widget(self):
+        if not self.widget:
+            self.widget = GrinderWidget(self)
+        return self.widget
 
 
 class DataLogReader(ResultsReader):
@@ -375,3 +386,51 @@ class DataLogReader(ResultsReader):
         for ix, field in enumerate(header):
             self.idx[field.strip()] = ix
         return True
+
+
+class GrinderWidget(urwid.Pile):
+    """
+    Progress sidebar widget
+
+    :type executor: bzt.modules.grinder.GrinderExecutor
+    """
+
+    def __init__(self, executor):
+        self.executor = executor
+        self.dur = executor.get_load().duration
+        widgets = []
+        if self.executor.script:
+            self.script_name = urwid.Text("Script: %s" % os.path.basename(self.executor.script))
+            widgets.append(self.script_name)
+        if self.dur:
+            self.progress = urwid.ProgressBar('pb-en', 'pb-dis', done=self.dur)
+        else:
+            self.progress = urwid.Text("Running...")
+        widgets.append(self.progress)
+        self.elapsed = urwid.Text("Elapsed: N/A")
+        self.eta = urwid.Text("ETA: N/A", align=urwid.RIGHT)
+        widgets.append(urwid.Columns([self.elapsed, self.eta]))
+        super(GrinderWidget, self).__init__(widgets)
+
+    def update(self):
+        """
+        Refresh widget values
+        """
+        if self.executor.start_time:
+            elapsed = time.time() - self.executor.start_time
+            self.elapsed.set_text("Elapsed: %s" % humanize_time(elapsed))
+
+            if self.dur:
+                eta = self.dur - elapsed
+                if eta >= 0:
+                    self.eta.set_text("ETA: %s" % humanize_time(eta))
+                else:
+                    over = elapsed - self.dur
+                    self.eta.set_text("Overtime: %s" % humanize_time(over))
+            else:
+                self.eta.set_text("")
+
+            if isinstance(self.progress, urwid.ProgressBar):
+                self.progress.set_completion(elapsed)
+
+        self._invalidate()
