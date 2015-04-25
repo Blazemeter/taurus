@@ -29,7 +29,7 @@ import shutil
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.utils import shell_exec, ensure_is_dict
-from bzt.utils import unzip, download_progress_hook, humanize_time, extract_resources_from_scenario
+from bzt.utils import unzip, download_progress_hook, humanize_time
 from bzt.modules.console import WidgetProvider
 
 try:
@@ -235,7 +235,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     def resource_files(self):
         script = self.__get_script()
         resource_files = []
-        files_from_requests = extract_resources_from_scenario(self)
 
         if script:
             script_contents = open(script, 'rt').read()
@@ -243,41 +242,48 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
             if resource_files:
                 for resource_file in resource_files:
-                    shutil.copy(resource_file, self.engine.artifacts_dir)
+                    if os.path.exists(resource_file):
+                        try:
+                            shutil.copy(resource_file, self.engine.artifacts_dir)
+                        except:
+                            self.log.warning("Cannot copy file: %s" % resource_file)
+                    else:
+                        self.log.warning("File not found: %s" % resource_file)
 
                 script_name, script_ext = os.path.splitext(script)
                 script_name = os.path.basename(script_name)
                 modified_script = self.engine.create_artifact(script_name, script_ext)
                 with open(modified_script, 'wt') as _fds:
-                    _fds.write(script_contents)
+                    _fds.write(modified_contents)
                 resource_files.append(modified_script)
             else:
                 shutil.copy2(script, self.engine.artifacts_dir)
                 resource_files.append(script)
 
-        resource_files.extend(files_from_requests)
         return [os.path.basename(file_path) for file_path in resource_files]
 
     def __get_resource_files_from_script(self, script_contents):
         modified_contents = script_contents
         resource_files = []
-        search_patterns = [re.compile("\.formUpload\(.*?\)"),
-                           re.compile("RawFileBody\(.*?\)"),
-                           re.compile("RawFileBodyPart\(.*?\)"),
-                           re.compile("ELFileBody\(.*?\)"),
-                           re.compile("ELFileBodyPart\(.*?\)"),
-                           re.compile("csv\(.*?\)"),
-                           re.compile("tsv\(.*?\)"),
-                           re.compile("ssv\(.*?\)"),
-                           re.compile("jsonFile\(.*?\)")]
+        search_patterns = [re.compile('\.formUpload\(".*?"\)'),
+                           re.compile('RawFileBody\(".*?"\)'),
+                           re.compile('RawFileBodyPart\(".*?"\)'),
+                           re.compile('ELFileBody\(".*?"\)'),
+                           re.compile('ELFileBodyPart\(".*?"\)'),
+                           re.compile('csv\(".*?"\)'),
+                           re.compile('tsv\(".*?"\)'),
+                           re.compile('ssv\(".*?"\)'),
+                           re.compile('jsonFile\(".*?"\)'),
+                           re.compile('separatedValues\(".*?"\)')]
         for search_pattern in search_patterns:
             found_samples = search_pattern.findall(script_contents)
             for found_sample in found_samples:
-                tmp = found_sample.split(",")
-                file_path = re.compile('\".*?\"').findall(tmp[-1])[0].strip('"')  # FIXME: minor: separatedValues
+                param_list = found_sample.split(",")
+                param_index = 0 if "separatedValues" in search_pattern.pattern else -1  # first or last param
+                file_path = re.compile('\".*?\"').findall(param_list[param_index])[0].strip('"')
                 resource_files.append(file_path)
         for resource_file in resource_files:
-            modified_contents = script_contents.replace(resource_file, os.path.basename(resource_file))
+            modified_contents = modified_contents.replace(resource_file, os.path.basename(resource_file))
 
         return resource_files, modified_contents
 

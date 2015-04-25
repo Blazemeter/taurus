@@ -11,36 +11,35 @@ import os
 from tests.mocks import EngineEmul
 from bzt.utils import BetterDict
 import bzt.utils
-import json
 
 setup_test_logging()
 
+
 class TestGrinderExecutor(BZTestCase):
-    
     def test_install_Grinder(self):
         bzt.utils.TEST_RUNNING = True
         path = os.path.abspath(__dir__() + "/../../build/tmp/grinder-taurus/lib/grinder.jar")
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
-        
+
         grinder_link = GrinderExecutor.DOWNLOAD_LINK
         grinder_version = GrinderExecutor.VERSION
         GrinderExecutor.DOWNLOAD_LINK = "file://" + __dir__() + "/../data/grinder-{version}_{version}-binary.zip"
         GrinderExecutor.VERSION = "3.11"
-        
+
         self.assertFalse(os.path.exists(path))
-        
+
         obj = GrinderExecutor()
         obj.engine = EngineEmul()
         obj.settings.merge({"path": path})
         obj.execution = BetterDict()
         obj.execution.merge({"scenario": {
-                                         "script": "tests/grinder/helloworld.py",
-                                         "properties_file": "tests/grinder/grinder.properties",
-                                         "properties": {"grinder.useConsole": "false"}}})
+            "script": "tests/grinder/helloworld.py",
+            "properties-file": "tests/grinder/grinder.properties",
+            "properties": {"grinder.useConsole": "false"}}})
         obj.prepare()
-        
+
         self.assertTrue(os.path.exists(path))
-        
+
         obj.prepare()
         GrinderExecutor.DOWNLOAD_LINK = grinder_link
         GrinderExecutor.VERSION = grinder_version
@@ -49,7 +48,7 @@ class TestGrinderExecutor(BZTestCase):
     def test_grinder_widget(self):
         obj = GrinderExecutor()
         obj.engine = EngineEmul()
-        obj.execution.merge({"scenario":{"script":"tests/grinder/helloworld.py"}})
+        obj.execution.merge({"scenario": {"script": "tests/grinder/helloworld.py"}})
         obj.prepare()
         obj.get_widget()
         self.assertEqual(obj.widget.script_name.text, "Script: helloworld.py")
@@ -57,20 +56,31 @@ class TestGrinderExecutor(BZTestCase):
     def test_resource_files_collection(self):
         obj = GrinderExecutor()
         obj.engine = EngineEmul()
-        obj.execution.merge({"scenario":{"script":"tests/grinder/helloworld.py",
-                                         "properties_file": "tests/grinder/grinder.properties"}})
+        obj.execution.merge({"scenario": {"script": "tests/grinder/helloworld.py",
+                                          "properties-file": "tests/grinder/grinder.properties"}})
         res_files = obj.resource_files()
         artifacts = os.listdir(obj.engine.artifacts_dir)
         self.assertEqual(len(res_files), 2)
         self.assertEqual(len(artifacts), 2)
 
-
-    def test_resource_files_from_requests(self):
+    def test_resource_files_collection_invalid(self):
         obj = GrinderExecutor()
         obj.engine = EngineEmul()
-        obj.engine.config = json.loads(open("tests/json/get-post.json").read())
-        obj.execution = obj.engine.config['execution']
+        obj.execution.merge({"scenario": {"script": "tests/grinder/helloworld.py",
+                                          "properties-file": "tests/grinder/grinder_invalid.properties"}})
         res_files = obj.resource_files()
         artifacts = os.listdir(obj.engine.artifacts_dir)
-        self.assertEqual(len(res_files), 1)
-        self.assertEqual(len(artifacts), 1)
+        self.assertEqual(len(res_files), 2)
+        self.assertEqual(len(artifacts), 2)
+
+        self.assertIn("helloworld.py", open(os.path.join(obj.engine.artifacts_dir,
+                                                         "grinder_invalid.properties")).read())
+
+    def test_resource_files_collection_noscript(self):
+        obj = GrinderExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({"scenario": {"properties-file": "tests/grinder/grinder.properties"}})
+        res_files = obj.resource_files()
+        artifacts = os.listdir(obj.engine.artifacts_dir)
+        self.assertEqual(len(res_files), 2)
+        self.assertEqual(len(artifacts), 2)

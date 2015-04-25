@@ -34,7 +34,7 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.console import WidgetProvider
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.utils import shell_exec, ensure_is_dict, humanize_time, dehumanize_time, BetterDict, \
-    guess_csv_delimiter, unzip, download_progress_hook, extract_resources_from_scenario
+    guess_csv_delimiter, unzip, download_progress_hook
 
 
 try:
@@ -338,15 +338,22 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         # TODO: get CSVs, other known files like included test plans
         resource_files = []
         # get all resource files from settings
-        files_from_requests = extract_resources_from_scenario(self)
+        files_from_requests = self.extract_resources_from_scenario()
         script = self.__get_script()
         if script:
             script_xml_tree = etree.fromstring(open(script, "rb").read())
             resource_files, modified_xml_tree = self.__get_resource_files_from_script(script_xml_tree)
             if resource_files:
                 # copy to artifacts dir
-                for _file in resource_files:
-                    shutil.copy2(_file, self.engine.artifacts_dir)
+                for resource_file in resource_files:
+                    if os.path.exists(resource_file):
+                        try:
+                            shutil.copy(resource_file, self.engine.artifacts_dir)
+                        except:
+                            self.log.warning("Cannot copy file: %s" % resource_file)
+                    else:
+                        self.log.warning("File not found: %s" % resource_file)
+
                 script_name, script_ext = os.path.splitext(script)
                 script_name = os.path.basename(script_name)
                 # create modified jmx script in artifacts dir
@@ -386,6 +393,31 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                     resource_files.append(resource_element.text)
                     resource_element.text = os.path.basename(resource_element.text)
         return resource_files, script_xml_tree
+
+    def extract_resources_from_scenario(self):
+        """
+        Get post-body files from scenario
+        :return:
+        """
+        post_body_files = []
+        scenario = self.get_scenario()
+        requests = scenario.data.get("requests")
+        if requests:
+            for req in requests:
+                if isinstance(req, dict):
+                    post_body_path = req.get('body-file')
+                    if post_body_path:
+                        if os.path.exists(post_body_path):
+                            try:
+                                shutil.copy(post_body_path, self.engine.artifacts_dir)
+                            except:
+                                self.log.warning("Cannot copy file: %s" % post_body_path)
+                        else:
+                            self.log.warning("File not found: %s" % post_body_path)
+
+                        post_body_files.append(post_body_path)
+
+        return post_body_files
 
     def __get_script(self):
         scenario = self.get_scenario()
