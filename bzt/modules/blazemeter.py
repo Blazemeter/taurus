@@ -221,14 +221,14 @@ class BlazeMeterClient(object):
         self.data_signature = None
         self._first = sys.maxsize
         self._last = 0
-        self.timeout = 5
+        self.timeout = 10
 
     def _request(self, url, data=None, headers=None, checker=None, method=None):
         if not headers:
             headers = {}
         if self.token:
             headers["X-API-Key"] = self.token
-        self.log.debug("Request %s: %s", url, data if data else None)
+        self.log.debug("Request %s: %s", url, data[:self.logger_limit] if data else None)
         # .encode("utf-8") is probably better
         data = data.encode() if isinstance(data, six.text_type) else data
         request = Request(url, data, headers)
@@ -461,8 +461,8 @@ class BlazeMeterClient(object):
             "failed": item[KPISet.FAILURES],
             "rc": [],  # filled later
             "t": {
-                "min": 0,
-                "max": 0,
+                "min": int(1000 * item[KPISet.PERCENTILES]["0.0"]) if "0.0" in item[KPISet.PERCENTILES] else 0,
+                "max": int(1000 * item[KPISet.PERCENTILES]["100.0"]) if "100.0" in item[KPISet.PERCENTILES] else 0,
                 "sum": 1000 * item[KPISet.AVG_RESP_TIME] * item[KPISet.SAMPLE_COUNT],
                 "n": item[KPISet.SAMPLE_COUNT],
                 "std": 1000 * item[KPISet.STDEV_RESP_TIME],
