@@ -364,7 +364,6 @@ class ResultsReader(ResultsProvider):
     Aggregator that reads samples one by one,
     supposed to be attached to every executor
     """
-    # NOTE: introduce granulation (1sec, 1min samples)
 
     def __init__(self, perc_levels=()):
         super(ResultsReader, self).__init__()
@@ -385,15 +384,13 @@ class ResultsReader(ResultsProvider):
                 if label in self.ignored_labels:
                     continue
                 if ts < self.min_timestamp:
-                    self.log.debug("Putting %s into %s", ts,
-                                   self.min_timestamp)
+                    self.log.warning("Putting %s into %s", ts, self.min_timestamp)
                     ts = self.min_timestamp
                 if ts not in self.buffer:
                     self.buffer[ts] = []
                 self.buffer[ts].append((label, conc, rt, cn, lt, rc, error))
             else:
-                msg = "Unsupported results from reader: %s" % result
-                raise ValueError(msg)
+                raise ValueError("Unsupported results from reader: %s" % result)
 
     def __aggreagate_current(self, datapoint, samples):
         current = datapoint[DataPoint.CURRENT]
@@ -426,7 +423,7 @@ class ResultsReader(ResultsProvider):
         timestamps = sorted(self.buffer.keys())
         while final_pass or (timestamps[-1] >= timestamps[0] + self.buffer_len):
             timestamp = timestamps.pop(0)
-            self.min_timestamp = timestamp + 1
+            self.min_timestamp = timestamp + 1  # NOTE: why +1?
             self.log.debug("Aggregating: %s", timestamp)
             samples = self.buffer.pop(timestamp)
             datapoint = self.__get_new_datapoint(timestamp)
