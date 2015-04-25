@@ -401,12 +401,12 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         try:
             self.__jmeter(jmeter)
             return
-        except (OSError, CalledProcessError) as exc:
+        except (OSError, CalledProcessError):
             self.log.debug("Failed to run JMeter: %s", traceback.format_exc())
             try:
                 jout = subprocess.check_output(["java", '-version'], stderr=subprocess.STDOUT)
                 self.log.debug("Java check: %s", jout)
-            except BaseException as exc:
+            except BaseException:
                 self.log.warning("Failed to run java: %s", traceback.format_exc())
                 raise RuntimeError("The 'java' is not operable or not available. Consider installing it")
             self.settings['path'] = self.__install_jmeter(jmeter)
@@ -960,9 +960,10 @@ class JMX(object):
         :type default: str
         :rtype: lxml.etree.Element
         """
-        element = etree.Element("com.atlantbh.jmeter.plugins.jsonutils.jsonpathextractor.JSONPathExtractor",
-                                guiclass="com.atlantbh.jmeter.plugins.jsonutils.jsonpathextractor.gui.JSONPathExtractorGui",
-                                testclass="com.atlantbh.jmeter.plugins.jsonutils.jsonpathextractor.JSONPathExtractor",
+        package = "com.atlantbh.jmeter.plugins.jsonutils.jsonpathextractor"
+        element = etree.Element("%s.JSONPathExtractor" % package,
+                                guiclass="%s.gui.JSONPathExtractorGui" % package,
+                                testclass="%s.JSONPathExtractor" % package,
                                 testname="Get %s" % varname)
         element.append(JMX._string_prop("VAR", varname))
         element.append(JMX._string_prop("JSONPATH", jsonpath))
@@ -978,9 +979,10 @@ class JMX(object):
         :type expect_null: bool
         :return: lxml.etree.Element
         """
-        element = etree.Element("com.atlantbh.jmeter.plugins.jsonutils.jsonpathassertion.JSONPathAssertion",
-                                guiclass="com.atlantbh.jmeter.plugins.jsonutils.jsonpathassertion.gui.JSONPathAssertionGui",
-                                testclass="com.atlantbh.jmeter.plugins.jsonutils.jsonpathassertion.JSONPathAssertion",
+        package = "com.atlantbh.jmeter.plugins.jsonutils.jsonpathassertion"
+        element = etree.Element("%s.JSONPathAssertion" % package,
+                                guiclass="%s.gui.JSONPathAssertionGui" % package,
+                                testclass="%s.JSONPathAssertion" % package,
                                 testname="JSon path assertion")
         element.append(JMX._string_prop("JSON_PATH", jsonpath))
         element.append(JMX._string_prop("EXPECTED_VALUE", expected_value))
@@ -1149,12 +1151,10 @@ class JTLReader(ResultsReader):
                 error = fields[self.indexes["responseMessage"]]
             else:
                 error = None
-            # timeStamp is start timestamp in JMeter
-            tstmp = int(fields[self.indexes["timeStamp"]])
-            tstmp += int(fields[self.indexes["elapsed"]])
-            tstmp /= 1000
 
-            yield int(tstmp), label, concur, rtm, cnn, ltc, rcd, error
+            tstmp = int(fields[self.indexes["timeStamp"]] / 1000)
+
+            yield tstmp, label, concur, rtm, cnn, ltc, rcd, error
 
     def __open_fds(self):
         """
