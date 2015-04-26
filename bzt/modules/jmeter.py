@@ -1152,7 +1152,7 @@ class JTLReader(ResultsReader):
             else:
                 error = None
 
-            tstmp = int(fields[self.indexes["timeStamp"]] / 1000)
+            tstmp = int(int(fields[self.indexes["timeStamp"]]) / 1000)
 
             yield tstmp, label, concur, rtm, cnn, ltc, rcd, error
 
