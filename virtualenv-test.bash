@@ -2,6 +2,15 @@
 
 # setup env
 virtualenv --clear --system-site-packages build
+
+mv build/bin/pip build/bin/real_pip
+printf '%s\n"' '#!/bin/bash' > build/bin/pip
+python -c 'import os; import sys; sys.stdout.write(os.path.abspath(os.path.join(os.curdir, "build/bin/python")))' >> build/bin/pip
+printf '" "'  >> build/bin/pip
+python -c 'import os; import sys; sys.stdout.write(os.path.abspath(os.path.join(os.curdir, "build/bin/real_pip")))' >> build/bin/pip
+printf '" $@' >> build/bin/pip
+chmod +x build/bin/pip
+
 source build/bin/activate
 
 # install depends
