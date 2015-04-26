@@ -29,6 +29,7 @@ import mimetypes
 import itertools
 import zipfile
 import sys
+import shutil
 
 from psutil import Popen
 import six
@@ -303,7 +304,7 @@ class MultiPartForm(object):
         # fieldname = fieldname.encode()
 
         # if isinstance(body, str):
-        #    body = body.encode()
+        # body = body.encode()
 
         self.files.append((fieldname, filename, mimetype, body))
 

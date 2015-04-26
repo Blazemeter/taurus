@@ -24,10 +24,11 @@ from subprocess import CalledProcessError
 import traceback
 import platform
 import urwid
+import shutil
 
-from bzt.engine import ScenarioExecutor, Scenario
+from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
-from bzt.utils import shell_exec
+from bzt.utils import shell_exec, ensure_is_dict
 from bzt.utils import unzip, download_progress_hook, humanize_time
 from bzt.modules.console import WidgetProvider
 
@@ -39,7 +40,7 @@ except ImportError:
 exe_suffix = ".bat" if platform.system() == 'Windows' else ".sh"
 
 
-class GatlingExecutor(ScenarioExecutor, WidgetProvider):
+class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     """
     Gatling executor module
     """
@@ -230,6 +231,73 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider):
         if not self.widget:
             self.widget = GatlingWidget(self)
         return self.widget
+
+    def resource_files(self):
+        script = self.__get_script()
+        resource_files = []
+
+        if script:
+            script_contents = open(script, 'rt').read()
+            resource_files, modified_contents = self.__get_resource_files_from_script(script_contents)
+
+            if resource_files:
+                for resource_file in resource_files:
+                    if os.path.exists(resource_file):
+                        try:
+                            shutil.copy(resource_file, self.engine.artifacts_dir)
+                        except:
+                            self.log.warning("Cannot copy file: %s" % resource_file)
+                    else:
+                        self.log.warning("File not found: %s" % resource_file)
+
+                script_name, script_ext = os.path.splitext(script)
+                script_name = os.path.basename(script_name)
+                modified_script = self.engine.create_artifact(script_name, script_ext)
+                with open(modified_script, 'wt') as _fds:
+                    _fds.write(modified_contents)
+                resource_files.append(modified_script)
+            else:
+                shutil.copy2(script, self.engine.artifacts_dir)
+                resource_files.append(script)
+
+        return [os.path.basename(file_path) for file_path in resource_files]
+
+    def __get_resource_files_from_script(self, script_contents):
+        modified_contents = script_contents
+        resource_files = []
+        search_patterns = [re.compile('\.formUpload\(".*?"\)'),
+                           re.compile('RawFileBody\(".*?"\)'),
+                           re.compile('RawFileBodyPart\(".*?"\)'),
+                           re.compile('ELFileBody\(".*?"\)'),
+                           re.compile('ELFileBodyPart\(".*?"\)'),
+                           re.compile('csv\(".*?"\)'),
+                           re.compile('tsv\(".*?"\)'),
+                           re.compile('ssv\(".*?"\)'),
+                           re.compile('jsonFile\(".*?"\)'),
+                           re.compile('separatedValues\(".*?"\)')]
+        for search_pattern in search_patterns:
+            found_samples = search_pattern.findall(script_contents)
+            for found_sample in found_samples:
+                param_list = found_sample.split(",")
+                param_index = 0 if "separatedValues" in search_pattern.pattern else -1  # first or last param
+                file_path = re.compile('\".*?\"').findall(param_list[param_index])[0].strip('"')
+                resource_files.append(file_path)
+        for resource_file in resource_files:
+            modified_contents = modified_contents.replace(resource_file, os.path.basename(resource_file))
+
+        return resource_files, modified_contents
+
+    def __get_script(self):
+        scenario = self.get_scenario()
+        if Scenario.SCRIPT not in scenario:
+            return None
+
+        ensure_is_dict(scenario, Scenario.SCRIPT, "path")
+        fname = scenario[Scenario.SCRIPT]["path"]
+        if fname is not None:
+            return self.engine.find_file(fname)
+        else:
+            return None
 
 
 class DataLogReader(ResultsReader):
