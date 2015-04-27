@@ -62,12 +62,12 @@ class FinalStatus(Reporter, AggregatorListener):
         if self.last_sec:
             summary_kpi = self.last_sec[DataPoint.CUMULATIVE][""]
 
-            if self.settings.get("summary", True):
+            if self.parameters.get("summary", True):
                 self.__report_samples_count(summary_kpi)
-            if self.settings.get("percentiles", True):
+            if self.parameters.get("percentiles", True):
                 self.__report_percentiles(summary_kpi)
 
-            if self.settings.get("failed-labels", False):
+            if self.parameters.get("failed-labels", False):
                 self.__report_failed_labels(self.last_sec[DataPoint.CUMULATIVE])
 
     def __report_samples_count(self, summary_kpi_set):
@@ -118,16 +118,16 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
     def prepare(self):
         """
         create artifacts, parse options.
-        report filename from settings
+        report filename from parameters
         :return:
         """
-        filename = self.settings.get("filename", None)
+        filename = self.parameters.get("filename", None)
         if filename:
             self.report_file_path = filename
         else:
             self.report_file_path = self.engine.create_artifact(JUnitXMLReporter.REPORT_FILE_NAME,
                                                                 JUnitXMLReporter.REPORT_FILE_EXT)
-            self.settings["filename"] = self.report_file_path
+        self.parameters["filename"] = self.report_file_path
 
     def aggregated_second(self, data):
         """
@@ -141,7 +141,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         Get report data, generate xml report.
         """
         super(JUnitXMLReporter, self).post_process()
-        test_data_source = self.settings.get("data-source", "sample-labels")
+        test_data_source = self.parameters.get("data-source", "sample-labels")
 
         # data-source sample-labels
         if test_data_source == "sample-labels":
