@@ -14,6 +14,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import bzt
 
 """
 Console reporting for CLI usage
@@ -743,7 +744,7 @@ class TaurusLogo(Pile):
     """
     seq = r'/-\|'
 
-    by_text = '%s by BlazeMeter.com %s'
+    by_text = '%s v%s by BlazeMeter.com %s'
 
     def __init__(self):
         self.idx = 0
@@ -762,7 +763,7 @@ class TaurusLogo(Pile):
         """
         Update rotating sticks
         """
-        txt = self.by_text % (self.seq[self.idx], self.seq[self.idx])
+        txt = self.by_text % (self.seq[self.idx], bzt.version, self.seq[self.idx])
         self.byb.body.set_text(txt)
         self.idx += 1
         if self.idx >= len(self.seq):
