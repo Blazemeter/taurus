@@ -8,7 +8,7 @@ import six
 from bzt.modules.aggregator import DataPoint, KPISet
 
 
-class logger_mock:
+class logger_mock(object):
     def __init__(self):
         self.info_buf = StringIO()
 
@@ -25,9 +25,9 @@ class TestFinalStatsReporter(BZTestCase):
     def test_log_messages_failed_labels(self):
         obj = FinalStatus()
         obj.engine = EngineEmul
-        obj.settings = BetterDict()
+        obj.parameters = BetterDict()
         obj.log = logger_mock()
-        obj.settings.merge({"failed-labels": True, "percentiles": False, "summary": False})
+        obj.parameters.merge({"failed-labels": True, "percentiles": False, "summary": False})
 
         datapoint = DataPoint(None, None)
         cumul_data = datapoint[DataPoint.CUMULATIVE]
@@ -135,9 +135,9 @@ class TestFinalStatsReporter(BZTestCase):
     def test_log_messages_percentiles(self):
         obj = FinalStatus()
         obj.engine = EngineEmul
-        obj.settings = BetterDict()
+        obj.parameters = BetterDict()
         obj.log = logger_mock()
-        obj.settings.merge({"failed-labels": False, "percentiles": True, "summary": False})
+        obj.parameters.merge({"failed-labels": False, "percentiles": True, "summary": False})
 
         datapoint = DataPoint(None, None)
 
@@ -179,9 +179,9 @@ class TestFinalStatsReporter(BZTestCase):
     def test_log_messages_samples_count(self):
         obj = FinalStatus()
         obj.engine = EngineEmul
-        obj.settings = BetterDict()
+        obj.parameters = BetterDict()
         obj.log = logger_mock()
-        obj.settings.merge({"failed-labels": False, "percentiles": False, "summary": True})
+        obj.parameters.merge({"failed-labels": False, "percentiles": False, "summary": True})
 
         datapoint = DataPoint(None, None)
 
