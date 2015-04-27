@@ -284,7 +284,12 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         root_xml_element = etree.Element("testsuite", name="taurus_junitxml_pass_fail", tests=tests_count,
                                          failures=total_failed, skip="0")
         for fc_obj in fail_criterias:
-            classname = str(fc_obj)
+            if fc_obj['label']:
+                data = (fc_obj['subject'], fc_obj['label'], fc_obj['condition'], fc_obj['threshold'])
+                classname = "%s of %s%s%s" % data
+            else:
+                classname = "%s%s%s" % (fc_obj['subject'], fc_obj['condition'], fc_obj['threshold'])
+
             fc_xml_element = etree.SubElement(root_xml_element, "testcase", classname=classname, name="")
             if fc_obj.is_triggered and fc_obj.fail:
                 # NOTE: we can add error description im err_element.text()
