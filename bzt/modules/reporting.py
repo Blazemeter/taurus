@@ -290,7 +290,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
                 tpl = "%s of %s%s%s"
             else:
                 data = (fc_obj.config['subject'], fc_obj.config['condition'], fc_obj.config['threshold'])
-                tpl = "%s%s%s for %s"
+                tpl = "%s%s%s"
 
             if fc_obj.config['timeframe']:
                 tpl += " for %s"
@@ -300,7 +300,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
             fc_xml_element = etree.SubElement(root_xml_element, "testcase", classname=classname, name="")
             if fc_obj.is_triggered and fc_obj.fail:
                 # NOTE: we can add error description im err_element.text()
-                etree.SubElement(fc_xml_element, "error", type="criteria failed", message="")
+                etree.SubElement(fc_xml_element, "error", type="pass/fail criteria triggered", message="")
 
         # FIXME: minor fix criteria representation in report
         return root_xml_element
