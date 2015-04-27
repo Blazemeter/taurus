@@ -25,12 +25,12 @@ class TestJUnitXML(BZTestCase):
         # test path parameter from config
         obj = JUnitXMLReporter()
         obj.engine = EngineEmul()
-        obj.settings = BetterDict()
+        obj.parameters = BetterDict()
 
         path_from_config = tempfile.mktemp(suffix='.xml', prefix='junit-xml-path-in-settings',
                                            dir=obj.engine.artifacts_dir)
 
-        obj.settings.merge({"filename": path_from_config, "data-source": "sample-labels"})
+        obj.parameters.merge({"filename": path_from_config, "data-source": "sample-labels"})
 
         obj.prepare()
 
@@ -65,9 +65,9 @@ class TestJUnitXML(BZTestCase):
     def test_prepare_no_filename_in_settings(self):
         obj = JUnitXMLReporter()
         obj.engine = EngineEmul()
-        obj.settings = BetterDict()
+        obj.parameters = BetterDict()
 
-        obj.settings.merge({"data-source": "sample-labels"})
+        obj.parameters.merge({"data-source": "sample-labels"})
 
         obj.prepare()
         datapoint = DataPoint(None, None)
@@ -104,13 +104,13 @@ class TestJUnitXML(BZTestCase):
 
         obj = JUnitXMLReporter()
         obj.engine = EngineEmul()
-        obj.settings = BetterDict()
+        obj.parameters = BetterDict()
 
         path_from_config = tempfile.mktemp(suffix='.xml', prefix='junit-xml-sample-labels',
                                            dir=obj.engine.artifacts_dir)
 
         # data-source: finalstats by default
-        obj.settings.merge({"filename": path_from_config})
+        obj.parameters.merge({"filename": path_from_config})
 
         obj.prepare()
 
@@ -232,7 +232,7 @@ class TestJUnitXML(BZTestCase):
 
         obj = JUnitXMLReporter()
         obj.engine = EngineEmul()
-        obj.settings = BetterDict()
+        obj.parameters = BetterDict()
 
         pass_fail1 = PassFailStatus()
 
@@ -264,7 +264,7 @@ class TestJUnitXML(BZTestCase):
 
         path_from_config = tempfile.mktemp(suffix='.xml', prefix='junit-xml_passfail', dir=obj.engine.artifacts_dir)
 
-        obj.settings.merge({"filename": path_from_config, "data-source": "pass-fail"})
+        obj.parameters.merge({"filename": path_from_config, "data-source": "pass-fail"})
         obj.prepare()
         obj.post_process()
 
