@@ -25,6 +25,7 @@ import traceback
 import logging
 from subprocess import CalledProcessError
 import six
+import shutil
 
 from cssselect import GenericTranslator
 import urwid
@@ -335,11 +336,88 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         Get resource files
         """
         # TODO: get CSVs, other known files like included test plans
+        resource_files = []
+        # get all resource files from settings
+        files_from_requests = self.extract_resources_from_scenario()
         script = self.__get_script()
         if script:
-            return [script]
-        else:
-            return []
+            script_xml_tree = etree.fromstring(open(script, "rb").read())
+            resource_files, modified_xml_tree = self.__get_resource_files_from_script(script_xml_tree)
+            if resource_files:
+                # copy to artifacts dir
+                for resource_file in resource_files:
+                    if os.path.exists(resource_file):
+                        try:
+                            shutil.copy(resource_file, self.engine.artifacts_dir)
+                        except:
+                            self.log.warning("Cannot copy file: %s" % resource_file)
+                    else:
+                        self.log.warning("File not found: %s" % resource_file)
+
+                script_name, script_ext = os.path.splitext(script)
+                script_name = os.path.basename(script_name)
+                # create modified jmx script in artifacts dir
+                modified_script = self.engine.create_artifact(script_name, script_ext)
+                with open(modified_script, 'wb') as _fds:
+                    _fds.write(
+                        etree.tostring(modified_xml_tree, pretty_print=True, encoding="UTF-8", xml_declaration=True))
+                resource_files.append(modified_script)
+            else:
+                # copy original script to artifacts
+                shutil.copy2(script, self.engine.artifacts_dir)
+                resource_files.append(script)
+
+        resource_files.extend(files_from_requests)
+        return [os.path.basename(file_path) for file_path in resource_files]  # return list of file names
+
+    def __get_resource_files_from_script(self, script_xml_tree):
+        """
+
+        :return: (list, etree)
+        """
+        resource_files = []
+        search_patterns = ["File.path", "filename", "BeanShellSampler.filename"]
+        for pattern in search_patterns:
+            resource_elements = script_xml_tree.findall(".//stringProp[@name='%s']" % pattern)
+            for resource_element in resource_elements:
+                # check if none of parents are disabled
+                parent = resource_element.getparent()
+                parent_disabled = False
+                while parent is not None:  # ?
+                    if parent.get('enabled') == 'false':
+                        parent_disabled = True
+                        break
+                    parent = parent.getparent()
+
+                if resource_element.text and parent_disabled is False:
+                    resource_files.append(resource_element.text)
+                    resource_element.text = os.path.basename(resource_element.text)
+        return resource_files, script_xml_tree
+
+    def extract_resources_from_scenario(self):
+        """
+        Get post-body files from scenario
+        :return:
+        """
+        post_body_files = []
+        scenario = self.get_scenario()
+        requests = scenario.data.get("requests")
+        if requests:
+            for req in requests:
+                if isinstance(req, dict):
+                    post_body_path = req.get('body-file')
+                    if post_body_path:
+                        if os.path.exists(post_body_path):
+                            try:
+                                shutil.copy(post_body_path, self.engine.artifacts_dir)
+                            except:
+                                self.log.warning("Cannot copy file: %s" % post_body_path)
+                        else:
+                            self.log.warning("File not found: %s" % post_body_path)
+
+                        post_body_files.append(post_body_path)
+
+        return post_body_files
 
     def __get_script(self):
         scenario = self.get_scenario()

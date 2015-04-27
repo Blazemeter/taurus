@@ -23,12 +23,14 @@ from subprocess import CalledProcessError
 import traceback
 import six
 import urwid
+import re
 
-from bzt.engine import ScenarioExecutor, Scenario
+from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
-from bzt.utils import shell_exec
+from bzt.utils import shell_exec, ensure_is_dict
 from bzt.utils import unzip, download_progress_hook, humanize_time
 from bzt.modules.console import WidgetProvider
+import shutil
 
 try:
     from urllib import FancyURLopener
@@ -36,7 +38,7 @@ except ImportError:
     from urllib.request import FancyURLopener
 
 
-class GrinderExecutor(ScenarioExecutor, WidgetProvider):
+class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     """
     Grinder executor module
     """
@@ -78,7 +80,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider):
 
     def __write_scenario_props(self, fds, scenario):
         # scenario props file
-        script_props_file = scenario.get("properties_file", "")
+        script_props_file = scenario.get("properties-file", "")
         if script_props_file:
             fds.write(
                 "# Script Properies File Start: %s\n" % script_props_file)
@@ -312,6 +314,64 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider):
         if not self.widget:
             self.widget = GrinderWidget(self)
         return self.widget
+
+    def resource_files(self):
+        """
+
+        :return:
+        """
+        resource_files = []
+        prop_file = self.get_scenario().get("properties-file")
+
+        if prop_file:
+            prop_file_contents = open(prop_file, 'rt').read()
+            resource_files, modified_contents = self.__get_resource_files_from_script(prop_file_contents)
+            if resource_files:
+                for resource_file in resource_files:
+                    if os.path.exists(resource_file):
+                        try:
+                            shutil.copy(resource_file, self.engine.artifacts_dir)
+                        except:
+                            self.log.warning("Cannot copy file: %s" % resource_file)
+                    else:
+                        self.log.warning("File not found: %s" % resource_file)
+
+                script_name, script_ext = os.path.splitext(prop_file)
+                script_name = os.path.basename(script_name)
+                modified_script = self.engine.create_artifact(script_name, script_ext)
+                with open(modified_script, 'wt') as _fds:
+                    _fds.write(modified_contents)
+                resource_files.append(modified_script)
+            else:
+                shutil.copy2(prop_file, self.engine.artifacts_dir)
+                resource_files.append(prop_file)
+
+        return [os.path.basename(x) for x in resource_files]
+
+    def __get_resource_files_from_script(self, prop_file_contents):
+        """
+        if "script" in scenario:
+            add script file to resources and override script name in .prop file
+        else:
+            take script name from .prop file and add it to resources
+
+        :param prop_file_contents:
+        :return: list of resource files and contents of .prop file
+        """
+        resource_files = []
+        script_file_path = self.get_scenario().get("script")
+
+        search_pattern = re.compile("grinder\.script.*")
+        found_pattern = search_pattern.findall(prop_file_contents)[-1]  # take last
+        file_path_in_prop = found_pattern.split("=")[-1].strip()
+
+        if script_file_path:
+            resource_files.append(script_file_path)
+            prop_file_contents = prop_file_contents.replace(file_path_in_prop, os.path.basename(script_file_path))
+        else:
+            resource_files.append(file_path_in_prop)
+
+        return resource_files, prop_file_contents
 
 
 class DataLogReader(ResultsReader):

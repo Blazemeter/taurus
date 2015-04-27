@@ -19,25 +19,45 @@ class BasicSimulation extends Simulation {
       ).pause(1).exec(
           http("request_1").get("/1")
       ).pause(1).exec(
-          http("request_7").get("/2")
+          http("request_1").get("/")
+      ).pause(1).exec(
+          http("request_1").get("/1")
       ).pause(1).exec(
           http("request_1").get("/")
       ).pause(1).exec(
-          http("request_1").get("/")
+          http("request_1").get("/1")
       ).pause(1).exec(
           http("request_1").get("/")
       ).pause(1).exec(
-          http("request_5").get("/4")
+          http("request_1").get("/1")
       ).pause(1).exec(
           http("request_1").get("/")
       ).pause(1).exec(
-          http("request_6").get("/")
+          http("request_1").get("/1")
       ).pause(1).exec(
           http("request_1").get("/")
       ).pause(1).exec(
-          http("request_1").get("/")
+          http("request_1").get("/1")
       ).pause(1).exec(
           http("request_1").get("/")
+      ).pause(1).exec(
+          http("request_1").get("/1")
+      ).pause(1).exec(
+          http("request_1").get("/")
+      ).pause(1).exec(
+          http("request_1").get("/1")
+      ).pause(1).exec(
+          http("request_1").get("/")
+      ).pause(1).exec(
+          http("request_1").get("/1")
+      ).pause(1).exec(
+          http("request_1").get("/")
+      ).pause(1).exec(
+          http("request_1").get("/1")
+      ).pause(1).exec(
+          http("request_1").get("/")
+      ).pause(1).exec(
+          http("request_1").get("/1")
       )
 
   setUp(
