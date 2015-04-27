@@ -19,6 +19,7 @@ import fnmatch
 import logging
 import re
 import sys
+
 import urwid
 
 from bzt import AutomatedShutdown
@@ -155,6 +156,8 @@ class FailCriteria(object):
         self.ended = data[DataPoint.TIMESTAMP]
         self.counting += 1
         if self.counting >= self.window:
+            if not self.is_triggered:
+                logging.warning("%s", self)
             self.is_triggered = True
 
     def aggregated_second(self, data):

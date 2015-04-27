@@ -287,10 +287,15 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
             if fc_obj.config['label']:
                 data = (fc_obj.config['subject'], fc_obj.config['label'],
                         fc_obj.config['condition'], fc_obj.config['threshold'])
-                classname = "%s of %s%s%s" % data
+                tpl = "%s of %s%s%s"
             else:
-                classname = "%s%s%s" % (fc_obj.config['subject'],
-                                        fc_obj.config['condition'], fc_obj.config['threshold'])
+                data = (fc_obj.config['subject'], fc_obj.config['condition'], fc_obj.config['threshold'])
+                tpl = "%s%s%s for %s"
+
+            if fc_obj.config['timeframe']:
+                tpl += " for %s"
+                data += (fc_obj.config['timeframe'],)
+            classname = tpl % data
 
             fc_xml_element = etree.SubElement(root_xml_element, "testcase", classname=classname, name="")
             if fc_obj.is_triggered and fc_obj.fail:
