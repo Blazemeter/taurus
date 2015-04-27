@@ -17,6 +17,7 @@ limitations under the License.
 """
 
 import os
+
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.passfail import PassFailStatus
@@ -180,7 +181,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
                 self.log.warning("File %s already exists, will be overwritten", self.report_file_path)
             else:
                 dirname = os.path.dirname(self.report_file_path)
-                if not os.path.exists(dirname):
+                if dirname and not os.path.exists(dirname):
                     os.makedirs(dirname)
 
             etree_obj = etree.ElementTree(root_node)
@@ -190,7 +191,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
 
         except BaseException as exc_obj:
             self.log.error("Cannot create file %s", self.report_file_path)
-            raise exc_obj
+            raise
 
     def __make_summary_error_report(self, summary_kpi_set):
         """
