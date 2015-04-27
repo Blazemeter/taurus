@@ -121,6 +121,7 @@ Global properties are set like this:
 modules:
   jmeter:
     properties:
+      my-hostname: www.pre-test.com
       log_level.jmeter: WARN
       log_level.jmeter.threads: DEBUG
 ```
@@ -131,7 +132,7 @@ Scenario-level properties are set like this:
 execution:
   scenario: 
     properties:
-        this_is: scenario-specific properties
+        my-hostname: www.prod.com
         log_level.jmeter: DEBUG
 ```
 
