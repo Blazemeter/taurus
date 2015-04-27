@@ -27,7 +27,7 @@ import traceback
 
 from colorlog import ColoredFormatter
 
-from bzt import ManualShutdown, NormalShutdown
+from bzt import ManualShutdown, NormalShutdown, RCProvider
 import bzt
 from bzt.engine import Engine, Configuration
 from bzt.utils import run_once
@@ -99,6 +99,19 @@ class CLI(object):
 
         logger.addHandler(console_handler)
 
+    def __close_log(self):
+        if self.options.log:
+            if platform.system() == 'Windows':
+                # need to finalize the logger before moving file
+                for handler in self.log.handlers:
+                    if isinstance(handler, FileHandler):
+                        self.log.debug("Closing log handler: %s", handler.baseFilename)
+                        handler.close()
+                self.engine.existing_artifact(self.options.log)
+                # os.remove(self.options.log) does not work - says that file is busy
+            else:
+                self.engine.existing_artifact(self.options.log, True)
+
     def perform(self, configs):
         """
         Run the tool
@@ -148,19 +161,13 @@ class CLI(object):
                 self.log.error("Exception: %s", exc)
                 exit_code = 1
 
+        if isinstance(self.engine.stopping_reason, RCProvider):
+            exit_code = self.engine.stopping_reason.get_rc()
+
         self.log.info("Artifacts dir: %s", self.engine.artifacts_dir)
         self.log.info("Done performing with code: %s", exit_code)
-        if self.options.log:
-            if platform.system() == 'Windows':
-                # need to finalize the logger before moving file
-                for handler in self.log.handlers:
-                    if isinstance(handler, FileHandler):
-                        self.log.debug("Closing log handler: %s", handler.baseFilename)
-                        handler.close()
-                self.engine.existing_artifact(self.options.log)
-                # os.remove(self.options.log) does not work - says that file is busy
-            else:
-                self.engine.existing_artifact(self.options.log, True)
+        self.__close_log()
+
         return exit_code
 
     def __get_config_overrides(self):

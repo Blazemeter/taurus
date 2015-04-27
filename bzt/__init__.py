@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-version = "0.2.6"
+version = "0.2.7"
 
 import signal
 
@@ -32,15 +32,23 @@ signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
 
 
-class NormalShutdown(KeyboardInterrupt):
-    pass
+class RCProvider(object):
+    def get_rc(self):
+        raise NotImplementedError()
 
 
-class ManualShutdown(KeyboardInterrupt):
-    pass
+class NormalShutdown(KeyboardInterrupt, RCProvider):
+    def get_rc(self):
+        return 0
 
 
-class AutomatedShutdown(KeyboardInterrupt):
-    pass
+class ManualShutdown(KeyboardInterrupt, RCProvider):
+    def get_rc(self):
+        return 2
+
+
+class AutomatedShutdown(KeyboardInterrupt, RCProvider):
+    def get_rc(self):
+        return 3
 
 

@@ -3,7 +3,7 @@
   "modules": {
     "mock1": {
       "class": "tests.mocks.ModuleMock",
-      "postproc": "tests.mocks.KeyboardInterrupt"
+      "postproc": "bzt.AutomatedShutdown"
     }
   }
 }

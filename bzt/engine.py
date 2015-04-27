@@ -60,6 +60,7 @@ class Engine(object):
     :type reporters: list[Reporter]
     :type log: logging.Logger
     :type aggregator: bzt.modules.aggregator.ConsolidatingAggregator
+    :type stopping_reason: BaseException
     """
 
     def __init__(self, parent_logger):
@@ -80,6 +81,7 @@ class Engine(object):
         self.aggregator = EngineModule()
         self.interrupted = False
         self.check_interval = 1
+        self.stopping_reason = None
 
         self.__counters_ts = None
 
@@ -102,7 +104,8 @@ class Engine(object):
         self.__prepare_provisioning()
         self.__prepare_reporters()
 
-        self.check_interval = dehumanize_time(self.config.get("settings").get("check-interval", self.check_interval))
+        interval = self.config.get("settings").get("check-interval", self.check_interval)
+        self.check_interval = dehumanize_time(interval)
 
         self.config.dump()
 
@@ -124,6 +127,10 @@ class Engine(object):
             self.__wait()
         except NormalShutdown as exc:
             self.log.debug("Normal shutdown called: %s", traceback.format_exc())
+            self.stopping_reason = exc if not self.stopping_reason else self.stopping_reason
+        except BaseException as exc:
+            self.stopping_reason = exc if not self.stopping_reason else self.stopping_reason
+            raise
         finally:
             self.__shutdown()
 
@@ -135,8 +142,7 @@ class Engine(object):
             now = time.time()
             diff = now - prev
             delay = self.check_interval - diff
-            msg = "Iteration took %.3f sec, sleeping for %.3f sec..."
-            self.log.debug(msg, diff, delay)
+            self.log.debug("Iteration took %.3f sec, sleeping for %.3f sec...", diff, delay)
             if delay > 0:
                 time.sleep(delay)
             prev = time.time()
@@ -150,9 +156,10 @@ class Engine(object):
             self.provisioning.shutdown()
             self.aggregator.shutdown()
             for module in self.reporters:
-                module.shutdown()
+                module.shutdown()  # FIXME: same problem of not all reporters did shutdown
         except BaseException as exc:
             self.log.error("Error while shutting down: %s", traceback.format_exc())
+            self.stopping_reason = exc if not self.stopping_reason else self.stopping_reason
             raise
         finally:
             self.config.dump()
@@ -165,18 +172,30 @@ class Engine(object):
         exception = None
         try:
             for module in [self.provisioning, self.aggregator] + self.reporters:
-                module.post_process()
-        except KeyboardInterrupt as exc:
-            self.log.error("Shutdown: %s", exc)
-            exception = exc
-        except BaseException as exc:
-            self.log.error("Error while post-processing: %s", traceback.format_exc())
-            exception = exc
+                try:
+                    module.post_process()
+                except KeyboardInterrupt as exc:
+                    self.log.error("Shutdown: %s", exc)
+                    self.stopping_reason = exc if not self.stopping_reason else self.stopping_reason
+                    if not exception:
+                        exception = exc
+                except BaseException as exc:
+                    self.log.error("Error while post-processing: %s", traceback.format_exc())
+                    self.stopping_reason = exc if not self.stopping_reason else self.stopping_reason
+                    if not exception:
+                        exception = exc
         finally:
             self.__finalize()
+
         self.config.dump()
 
         if exception:
+            self.log.debug("Exception in post-process: %s", traceback.format_exc())
+            self.stopping_reason = exception if not self.stopping_reason else self.stopping_reason
+
+        if isinstance(exception, KeyboardInterrupt):
+            raise exception
+        elif exception:
             raise RuntimeError("Failed post-processing, see errors above")
 
     def __finalize(self):

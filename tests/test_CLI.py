@@ -82,7 +82,7 @@ class TestCLI(BZTestCase):
 
     def test_perform_postproc_err(self):
         conf = __dir__() + "/json/mock_postproc_err.json"
-        self.assertEquals(1, self.obj.perform([conf]))
+        self.assertEquals(3, self.obj.perform([conf]))
 
         prov = self.obj.engine.provisioning
         self.assertTrue(prov.was_prepare)
