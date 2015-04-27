@@ -110,6 +110,8 @@ execution:
 
 or simply `bzt tests/jmx/dummy.jmx`
 
+TODO: explain how multi-thread group will accept concurrency with maintained proportion
+
 #### JMeter Properties
 There are two places to specify JMeter properties: global at module-level and local at scenario-level. Scenario properties are merged into global properties and resulting set comes as input for JMeter, see corresponding `.properties` file in artifacts.
 

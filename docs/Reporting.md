@@ -79,27 +79,12 @@ Pass/fail criterias are specified as array of `criterias`, set through `reportin
 ---
 reporting:
  - module: fail-criteria
-  criterias:
-  - subject: avg-rt  # required
-    label: 'Sample Label'  # optional, default is ''
-    condition: '>'  # required
-    threshold: 150ms  # required
-    timeframe: 10s  # optional, default is none
-    fail: true  # optional, default is true
-    stop: true  # optional, default is true
-```
-
-The above example shows full form of the criteria just how Taurus interprets it. However, there is more easy-to-read shorthand form that would look like:
-
-```yaml
----
-reporting:
- - module: fail-criteria
    criterias:
    - avg-rt of Sample Label>150ms for 10s, stop as failed
+   - hits of Sample Label>150ms for 10s, stop as failed
 ```
 
-The short form has general format of `subject of label{condition}threshold for timeframe, action as status`, where:
+The above example use short form for criterias, its general format is `subject of label{condition}threshold for timeframe, action as status`, where:
   - `subject` is the KPI that will be compared, listed below
   - `label` is sample label, empty for overall
   - `{condition}` is the comparison operator, one of `>`, `<`, `>=`, `<=`, `=`, `==` (same as `=`)
@@ -120,6 +105,23 @@ Possible subjects are:
  - `succ` or `success` - successful responses, supports percentage threshold, e.g. `succ<100%` 
  - `fail` or `failures` - failed responses, supports percentage threshold, e.g. `failures>50% for 5s, stop as failed`
  - `rc*` - response codes criteria, supports percentage threshold, response code may be specified using wildcards `?` and `*`, e.g. `rc500>20 for 5s, stop as failed`, `rc4??>20%`, `rc*>=10 for 1m`, `rc*Exception>99% for 1m, continue as failed`, 
+
+
+The full form of the criteria is conducted by Taurus automatically from short form. You can also specify it as this:
+
+```yaml
+---
+reporting:
+ - module: fail-criteria
+  criterias:
+  - subject: avg-rt  # required
+    label: 'Sample Label'  # optional, default is ''
+    condition: '>'  # required
+    threshold: 150ms  # required
+    timeframe: 10s  # optional, default is none
+    fail: true  # optional, default is true
+    stop: true  # optional, default is true
+```
 
 
 ## BlazeMeter.com Reporting Service
@@ -161,7 +163,7 @@ modules:
   blazemeter:
     address: https://a.blazemeter.com  # reporting service address
     data-address: https://data.blazemeter.com  # data service address
-    browser-open: start  # auto-open the report in browser, possible values are "start", "end", "both"
+    browser-open: start  # auto-open the report in browser, possible values are "start", "end", "both", "none"
     bulk-size: 5  # send data each n-th second
     timeout: 5  # connect and request timeout for BlazeMeter API
 ```
@@ -182,9 +184,9 @@ Sample configuration:
 ```yaml
 ---
 reporting:
-  - module: junit-xml:
-      filename: /path_to_file/file.xml
-      data-source: pass-fail
+  - module: junit-xml
+    filename: /path_to_file/file.xml
+    data-source: pass-fail
 ```
 
 
