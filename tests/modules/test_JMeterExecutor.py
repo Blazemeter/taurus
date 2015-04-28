@@ -118,9 +118,6 @@ class TestJMeterExecutor(BZTestCase):
         obj.prepare()
 
     def test_install_jmeter(self):
-
-        bzt.utils.TEST_RUNNING = True
-
         path = os.path.abspath(__dir__() + "/../../build/tmp/jmeter-taurus/bin/jmeter")
 
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
@@ -151,8 +148,6 @@ class TestJMeterExecutor(BZTestCase):
         JMeterExecutor.JMETER_DOWNLOAD_LINK = jmeter_link
         JMeterExecutor.PLUGINS_DOWNLOAD_TPL = plugins_link
         JMeterExecutor.JMETER_VER = jmeter_ver
-
-        bzt.utils.TEST_RUNNING = False
 
     def test_think_time_bug(self):
         obj = JMeterExecutor()
