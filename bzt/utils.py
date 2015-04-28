@@ -35,10 +35,9 @@ from psutil import Popen
 import six
 
 
-if sys.version > '3':
-    long = int
-    unicode = str
-    basestring = str
+# if sys.version > '3':
+#    unicode = str
+#    basestring = str
 
 
 def run_once(f):
@@ -119,7 +118,7 @@ class BetterDict(defaultdict):
             default = BetterDict()
 
         value = self.setdefault(key, default)
-        if isinstance(value, basestring):
+        if isinstance(value, six.string_types):
             if isinstance(value, str):  # this is a trick for python v2/v3 compatibility
                 return value
             else:
@@ -212,7 +211,7 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE):
     :return:
     """
 
-    if isinstance(args, basestring):
+    if isinstance(args, six.string_types):
         args = shlex.split(args)
     logging.getLogger(__name__).debug("Executing shell: %s", args)
     if platform.system() == 'Windows':
@@ -397,7 +396,7 @@ class ComplexEncoder(json.JSONEncoder):
     """
     Magic class to help serialize in JSON any object.
     """
-    TYPES = [dict, list, tuple, unicode, str, int, long, float, bool, type(None)]
+    TYPES = [dict, list, tuple, six.string_types, six.integer_types, float, bool, type(None)]
 
     def default(self, obj):
         """
