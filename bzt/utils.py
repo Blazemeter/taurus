@@ -396,7 +396,7 @@ class ComplexEncoder(json.JSONEncoder):
     """
     Magic class to help serialize in JSON any object.
     """
-    TYPES = [dict, list, tuple, six.string_types, six.integer_types, float, bool, type(None)]
+    TYPES = [dict, list, tuple, six.text_type, six.string_types, six.integer_types, float, bool, type(None)]
 
     def default(self, obj):
         """
