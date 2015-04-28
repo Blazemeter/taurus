@@ -612,7 +612,8 @@ class Configuration(BetterDict):
 
 yaml.add_representer(Configuration, SafeRepresenter.represent_dict)
 yaml.add_representer(BetterDict, SafeRepresenter.represent_dict)
-yaml.add_representer(six.text_type, SafeRepresenter.represent_unicode)
+if six.PY2:
+    yaml.add_representer(six.text_type, SafeRepresenter.represent_unicode)
 
 # dirty hack from http://stackoverflow.com/questions/1447287/format-floats-with-standard-json-module
 encoder.FLOAT_REPR = lambda o: format(o, '.3g')
