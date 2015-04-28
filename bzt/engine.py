@@ -27,7 +27,6 @@ import tempfile
 import time
 import traceback
 from json import encoder
-import sys
 import psutil
 import six
 import yaml
@@ -36,11 +35,6 @@ from yaml.representer import SafeRepresenter
 from bzt import ManualShutdown, NormalShutdown
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time
 
-
-if sys.version > '3':
-    long = int
-    unicode = str
-    basestring = str
 
 try:
     import ConfigParser
@@ -603,7 +597,7 @@ class Configuration(BetterDict):
 
             self.__ensure_list_capacity(pointer, parts[-1])
             self.log.debug("Applying: %s[%s]=%s", pointer, parts[-1], value)
-            if isinstance(parts[-1], basestring) and parts[-1][0] == '^':
+            if isinstance(parts[-1], six.string_types) and parts[-1][0] == '^':
                 del pointer[parts[-1][1:]]
             else:
                 if value.isdigit():
@@ -618,8 +612,8 @@ class Configuration(BetterDict):
 
 yaml.add_representer(Configuration, SafeRepresenter.represent_dict)
 yaml.add_representer(BetterDict, SafeRepresenter.represent_dict)
-if sys.version < '3':
-    yaml.add_representer(unicode, SafeRepresenter.represent_unicode)
+if six.PY2:
+    yaml.add_representer(six.text_type, SafeRepresenter.represent_unicode)
 
 # dirty hack from http://stackoverflow.com/questions/1447287/format-floats-with-standard-json-module
 encoder.FLOAT_REPR = lambda o: format(o, '.3g')
@@ -778,7 +772,7 @@ class ScenarioExecutor(EngineModule):
         """
         if self.__scenario is None:
             scenario = self.execution.get('scenario', {})
-            if isinstance(scenario, basestring):
+            if isinstance(scenario, six.string_types):
                 scenarios = self.engine.config.get("scenarios")
                 if scenario not in scenarios:
                     raise ValueError("Scenario not found in scenarios: %s" % scenario)
