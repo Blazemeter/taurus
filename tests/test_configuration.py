@@ -1,4 +1,5 @@
 import logging
+import six
 import tempfile
 
 from bzt.engine import Configuration
@@ -64,3 +65,16 @@ class TestConfiguration(BZTestCase):
         self.assertNotEquals('test', token)
         token_orig = obj["list-complex"][1][0]['token']
         self.assertEquals('test', token_orig)
+
+    def test_save(self):
+        obj = Configuration()
+        obj.merge({
+            "str": "text",
+            "uc": six.u("ucstring")
+        })
+        fname = tempfile.mkstemp()[1]
+        obj.dump(fname, Configuration.YAML)
+        with open(fname) as fh:
+            written = fh.read()
+            logging.debug("YAML:\n%s", written)
+            self.assertNotIn("unicode", written)
