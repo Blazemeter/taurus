@@ -27,7 +27,7 @@ import traceback
 
 from colorlog import ColoredFormatter
 
-from bzt import ManualShutdown, NormalShutdown, RCProvider
+from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown
 import bzt
 from bzt.engine import Engine, Configuration
 from bzt.utils import run_once
@@ -147,6 +147,8 @@ class CLI(object):
                 self.log.info("Interrupted by user: %s", exc)
             elif isinstance(exc, NormalShutdown):
                 self.log.info("Normal shutdown")
+            elif isinstance(exc, AutomatedShutdown):
+                self.log.info("Automated shutdown")
             else:
                 self.log.error("Exception: %s", exc)
             self.log.warning("Please wait for graceful shutdown...")
@@ -156,6 +158,11 @@ class CLI(object):
                 for fname in overrides + jmx_shorthands:
                     os.remove(fname)
                 self.engine.post_process()
+            except KeyboardInterrupt as exc:
+                self.log.debug("Exception: %s", traceback.format_exc())
+                exit_code = 1
+                if isinstance(exc, RCProvider):
+                    exit_code = exc.get_rc()
             except BaseException as exc:
                 self.log.debug("Caught exception in finally: %s", traceback.format_exc())
                 self.log.error("Exception: %s", exc)
