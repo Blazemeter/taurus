@@ -1,9 +1,10 @@
 # Changelog
 
-## Next Version 0.2.1
+## Next Version
+  - More info in console dashboard
+
+## 0.2.1
   - Added pass/fail criteria report on console reporter.
-
-
 
 ## 0.2.0
 
