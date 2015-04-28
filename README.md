@@ -1,8 +1,8 @@
-# Codename: Taurus 
+# Taurus 
 <i><b>T</b>est <b>au</b>tomation <b>ru</b>nning <b>s</b>moothly
 
 ## Purpose
-A tool to hide the complexity of tests under automation-friendly convenience wrapper. Project is licensed under Apache 2.0 License.
+A tool to hide the complexity of performance and functional tests under automation-friendly convenience wrapper. It relies on JMeter, Graling and Grinder as its underlying tools. Project is licensed under Apache 2.0 License.
 
 ![CLI dashboard and BlazeMeter Report](cli-bza.png)
 
