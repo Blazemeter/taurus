@@ -34,14 +34,6 @@ from psutil import Popen
 import six
 
 
-
-
-
-# if sys.version > '3':
-# unicode = str
-# basestring = str
-
-
 def run_once(f):
     """
     A decorator to run function only once
