@@ -30,6 +30,7 @@ from datetime import datetime
 import copy
 import platform
 from six import StringIO
+import time
 
 from urwid.decoration import Padding
 from urwid.display_common import BaseScreen
@@ -43,7 +44,7 @@ from urwid.widget import Divider
 from bzt.modules.provisioning import Local
 from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.aggregator import DataPoint, KPISet
-
+from bzt.utils import humanize_time
 
 if platform.system() == 'Windows':
     from urwid.raw_display import Screen  # curses unavailable on windows
@@ -567,10 +568,10 @@ class LatestStats(LineBox):
         self.label_stats = LabelStats(DataPoint.CURRENT)
         self.errors_description = DetailedErrorList(DataPoint.CURRENT)
         original_widget = Columns(
-            [Pile([self.avg_times,self.label_list]),
-             Pile([self.percentiles,self.label_stats]),
+            [Pile([self.avg_times, self.label_list]),
+             Pile([self.percentiles, self.label_stats]),
              Pile([self.rcodes, self.errors_description])
-                   ], dividechars=1)
+             ], dividechars=1)
         padded = Padding(original_widget, align=CENTER)
         super(LatestStats, self).__init__(padded,
                                           self.title)
@@ -607,8 +608,10 @@ class CumulativeStats(LineBox):
         self.label_list = SampleLabelsList(DataPoint.CUMULATIVE)
         self.label_stats = LabelStats(DataPoint.CUMULATIVE)
         self.errors_description = DetailedErrorList(DataPoint.CUMULATIVE)
-        original_widget = Columns(
-            [Pile([self.avg_times,self.label_list]), Pile([self.percentiles, self.label_stats]), Pile([self.rcodes, self.errors_description])],
+        original_widget = Columns([
+            Pile([self.avg_times, self.label_list]),
+            Pile([self.percentiles, self.label_stats]),
+            Pile([self.rcodes, self.errors_description])],
             dividechars=1)
         padded = Padding(original_widget, align=CENTER)
         super(CumulativeStats, self).__init__(padded,
@@ -627,6 +630,7 @@ class CumulativeStats(LineBox):
         self.label_list.add_data(data)
         self.label_stats.add_data(data)
         self.errors_description.add_data(data)
+
 
 class PercentilesList(ListBox):
     """
@@ -693,6 +697,7 @@ class AvgTimesList(ListBox):
         self.body.append(Text(("stat-txt", "~Receive: %.3f" % recv),
                               align=RIGHT))
 
+
 class SampleLabelsList(ListBox):
     """
     Sample labels block
@@ -713,13 +718,13 @@ class SampleLabelsList(ListBox):
         while len(self.body):
             self.body.pop(0)
 
-        self.body.append(Text(("stat-hdr", " Labels:"), align=CENTER))
+        self.body.append(Text(("stat-hdr", " Labels:"), align=LEFT))
         overall = data.get(self.key)
 
-        for label in sorted(overall.keys(), key=lambda x:x.lower):
+        for label in sorted(overall.keys(), key=lambda x: x.lower):
             if label != "":
                 self.body.append(
-                    Text(("stat-txt",label), align=LEFT, wrap=CLIP))
+                    Text(("stat-txt", label), align=LEFT, wrap=CLIP))
 
 
 class DetailedErrorList(ListBox):
@@ -741,13 +746,14 @@ class DetailedErrorList(ListBox):
         while len(self.body):
             self.body.pop(0)
 
-        self.body.append(Text(("stat-hdr", " Errors:"), align=CENTER))
+        self.body.append(Text(("stat-hdr", " Errors:"), align=RIGHT))
         overall = data.get(self.key)
 
-        for key in sorted(overall.keys(), key=lambda x:x.lower):
-            if key != "":
-                error = overall.get(key).get(KPISet.ERRORS)
-                self.body.append(Text(("stat-txt", ' '.join([x.get('msg') for x in error])), align=LEFT, wrap=CLIP))
+        for label in sorted(overall.keys(), key=lambda x: x.lower):
+            if label != "":
+                error = overall.get(label).get(KPISet.ERRORS)
+                self.body.append(
+                    Text(("stat-txt", ' '.join([x.get('msg').split(':')[-1] for x in error])), align=RIGHT, wrap=CLIP))
 
 
 class LabelStats(ListBox):
@@ -759,6 +765,8 @@ class LabelStats(ListBox):
     def __init__(self, key):
         super(LabelStats, self).__init__(SimpleListWalker([]))
         self.key = key
+        self.first_ts = None
+        self.prev_ts = None
 
     def add_data(self, data):
         """
@@ -769,18 +777,32 @@ class LabelStats(ListBox):
         while len(self.body):
             self.body.pop(0)
 
+        cur_ts = float(data.get(DataPoint.TIMESTAMP))
+        if not self.first_ts: self.first_ts = cur_ts
+        if not self.prev_ts: self.prev_ts = self.first_ts
+
         self.body.append(Text(("stat-hdr", " LabelStats:"), align=CENTER))
         overall = data.get(self.key)
 
-        for label in sorted(overall.keys(), key=lambda x:x.lower):
-            if label != '':
+        time_amount = cur_ts - self.first_ts if self.key == DataPoint.CUMULATIVE else cur_ts - self.prev_ts
+        for label in sorted(overall.keys(), key=lambda x: x.lower):
+            if label != "":
                 lab_stat = overall.get(label)
+                samples = lab_stat.get(KPISet.SAMPLE_COUNT)
+                errors_count = sum([x['cnt'] for x in lab_stat.get(KPISet.ERRORS)])
+                err_rate = time_amount / errors_count if errors_count != 0 else 0.0
+                avg_rt = lab_stat.get(KPISet.AVG_RESP_TIME)
+                rps = time_amount / samples
+                display_list = []
+
+                display_list.append("smpls:%d" % samples)
+                display_list.append("avg_rt:%.3f" % avg_rt)
+                if rps: display_list.append("rps:%.1f" % rps)
+                if errors_count: display_list.append("erps:%.1f" % err_rate)
                 self.body.append(Text(("stat-txt",
-                    ' '.join([
-                            "%d" % lab_stat.get(KPISet.SAMPLE_COUNT),
-                            "%d" % len(lab_stat.get(KPISet.ERRORS)),
-                            "%.3f" % lab_stat.get(KPISet.AVG_RESP_TIME)
-                            ])), align=LEFT, wrap=CLIP))
+                                       ' '.join(display_list)), align=LEFT, wrap=CLIP))
+
+        self.prev_ts = data.get(DataPoint.TIMESTAMP)
 
 
 # TODO: errors, throughput, labels

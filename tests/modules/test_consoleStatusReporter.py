@@ -63,3 +63,29 @@ class TestConsoleStatusReporter(BZTestCase):
         obj.check()
         obj.shutdown()
         obj.post_process()
+
+    def test_2(self):
+        obj = ConsoleStatusReporter()
+        obj.engine = EngineEmul()
+        obj.engine.provisioning = Local()
+        obj.engine.config[Provisioning.PROV] = ''
+        jmeter = JMeterExecutor()
+        jmeter.engine = obj.engine
+        jmeter.start_time = time.time()
+        jmeter.execution[ScenarioExecutor.HOLD_FOR] = 10
+        obj.engine.provisioning.executors = [jmeter]
+        obj.settings["disable"] = False
+        obj.settings['dummy_cols'] = 160
+        obj.settings['dummy_rows'] = 40
+        obj.prepare()
+        obj.startup()
+
+        for n in range(0, 10):
+            point = self.__get_datapoint(0)
+            obj.aggregated_second(point)
+            obj.check()
+            self.assertTrue(obj.screen.started)
+
+        obj.check()
+        obj.shutdown()
+        obj.post_process()
