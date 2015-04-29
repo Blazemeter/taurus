@@ -1,8 +1,11 @@
 # Changelog
 
-## Next Version 0.2.1
-  - Added pass/fail criteria report on console reporter.
+## Next Version
 
+
+## 0.2.8
+  - Added pass/fail criteria report on console reporter.
+  - Fix base config not found on Windows with multiple disks  
 
 
 ## 0.2.0
