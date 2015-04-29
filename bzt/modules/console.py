@@ -714,12 +714,12 @@ class SampleLabelsList(ListBox):
             self.body.pop(0)
 
         self.body.append(Text(("stat-hdr", " Labels:"), align=CENTER))
-        overall = data.get(DataPoint.CUMULATIVE)
+        overall = data.get(self.key)
 
-        for key in overall.keys():
-            if key != "":
+        for label in sorted(overall.keys(), key=lambda x:x.lower):
+            if label != "":
                 self.body.append(
-                    Text(("stat-txt",key), align=LEFT, wrap=CLIP))
+                    Text(("stat-txt",label), align=LEFT, wrap=CLIP))
 
 
 class DetailedErrorList(ListBox):
@@ -742,9 +742,9 @@ class DetailedErrorList(ListBox):
             self.body.pop(0)
 
         self.body.append(Text(("stat-hdr", " Errors:"), align=CENTER))
-        overall = data.get(DataPoint.CUMULATIVE)
+        overall = data.get(self.key)
 
-        for key in overall.keys():
+        for key in sorted(overall.keys(), key=lambda x:x.lower):
             if key != "":
                 error = overall.get(key).get(KPISet.ERRORS)
                 self.body.append(Text(("stat-txt", ' '.join([x.get('msg') for x in error])), align=LEFT, wrap=CLIP))
@@ -770,16 +770,17 @@ class LabelStats(ListBox):
             self.body.pop(0)
 
         self.body.append(Text(("stat-hdr", " LabelStats:"), align=CENTER))
-        overall = data.get(DataPoint.CUMULATIVE)
+        overall = data.get(self.key)
 
-        for key in sorted(overall.keys(), key=lambda x:x.lower):
-            if key != "":
-                lab_stat = overall.get(key)
+        for label in sorted(overall.keys(), key=lambda x:x.lower):
+            if label != '':
+                lab_stat = overall.get(label)
                 self.body.append(Text(("stat-txt",
-                    ' '.join([str(lab_stat.get(KPISet.SAMPLE_COUNT)),
-                              str(len(lab_stat.get(KPISet.ERRORS))),
-                              "%.3f" % lab_stat.get(KPISet.AVG_RESP_TIME)
-                              ])), align=LEFT, wrap=CLIP))
+                    ' '.join([
+                            "%d" % lab_stat.get(KPISet.SAMPLE_COUNT),
+                            "%d" % len(lab_stat.get(KPISet.ERRORS)),
+                            "%.3f" % lab_stat.get(KPISet.AVG_RESP_TIME)
+                            ])), align=LEFT, wrap=CLIP))
 
 
 # TODO: errors, throughput, labels
