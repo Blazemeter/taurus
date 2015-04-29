@@ -34,7 +34,7 @@ import yaml
 from yaml.representer import SafeRepresenter
 
 from bzt import ManualShutdown, NormalShutdown
-from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time
+from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, base_configs_path
 
 
 try:
@@ -347,8 +347,7 @@ class Engine(object):
 
         # prepare base configs
         base_configs = []
-        machine_dir = os.getenv("VIRTUAL_ENV", "")  # respect virtualenv
-        machine_dir += os.path.sep + "etc" + os.path.sep + "bzt.d"
+        machine_dir = base_configs_path()
         if os.path.isdir(machine_dir):
             self.log.debug("Reading machine configs from: %s", machine_dir)
             for cfile in os.listdir(machine_dir):

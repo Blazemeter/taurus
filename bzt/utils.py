@@ -29,14 +29,14 @@ import mimetypes
 import itertools
 import zipfile
 import sys
-import shutil
 
 from psutil import Popen
 import six
 
 
+
 # if sys.version > '3':
-#    unicode = str
+# unicode = str
 #    basestring = str
 
 
@@ -565,3 +565,8 @@ def make_boundary(text=None):
         b = boundary + '.' + str(counter)
         counter += 1
     return b
+
+
+def base_configs_path():
+    path=os.getenv("VIRTUAL_ENV", "") + os.path.sep + "etc" + os.path.sep + "bzt.d"
+    return path

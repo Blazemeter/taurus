@@ -21,7 +21,7 @@ from setuptools import setup
 from setuptools.command.install import install
 
 import bzt
-
+from bzt import utils
 
 class InstallWithHook(install, object):
     """
@@ -36,7 +36,7 @@ class InstallWithHook(install, object):
         self.__hook()
 
     def __hook(self):
-        dirname = os.getenv("VIRTUAL_ENV", "") + os.path.sep + "etc" + os.path.sep + "bzt.d"
+        dirname = utils.base_configs_path()
         sys.stdout.write("Creating %s" % dirname)
         if not os.path.exists(dirname):
             os.makedirs(dirname)
