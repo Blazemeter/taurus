@@ -42,7 +42,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     """
     Grinder executor module
     """
-    DOWNLOAD_LINK = "http://switch.dl.sourceforge.net/project/grinder/The%20Grinder%203/{version}" \
+    DOWNLOAD_LINK = "http://netcologne.dl.sourceforge.net/project/grinder/The%20Grinder%203/{version}" \
                     "/grinder-{version}-binary.zip"
     VERSION = "3.11"
 
