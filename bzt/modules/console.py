@@ -34,7 +34,7 @@ from six import StringIO
 from urwid.decoration import Padding
 from urwid.display_common import BaseScreen
 from urwid import Text, Pile, WEIGHT, Filler, Columns, Widget, \
-    CanvasCombine, LineBox, ListBox, RIGHT, CENTER, BOTTOM, CLIP
+    CanvasCombine, LineBox, ListBox, RIGHT, CENTER, BOTTOM, CLIP, LEFT
 from urwid.font import Thin6x6Font
 from urwid.graphics import BigText
 from urwid.listbox import SimpleListWalker
@@ -563,9 +563,14 @@ class LatestStats(LineBox):
         self.percentiles = PercentilesList(DataPoint.CURRENT)
         self.avg_times = AvgTimesList(DataPoint.CURRENT)
         self.rcodes = RCodesList(DataPoint.CURRENT)
+        self.label_list = SampleLabelsList(DataPoint.CURRENT)
+        self.label_stats = LabelStats(DataPoint.CURRENT)
+        self.errors_description = DetailedErrorList(DataPoint.CURRENT)
         original_widget = Columns(
-            [self.avg_times, self.percentiles, self.rcodes],
-            dividechars=1)
+            [Pile([self.avg_times,self.label_list]),
+             Pile([self.percentiles,self.label_stats]),
+             Pile([self.rcodes, self.errors_description])
+                   ], dividechars=1)
         padded = Padding(original_widget, align=CENTER)
         super(LatestStats, self).__init__(padded,
                                           self.title)
@@ -584,6 +589,9 @@ class LatestStats(LineBox):
         self.percentiles.add_data(data)
         self.avg_times.add_data(data)
         self.rcodes.add_data(data)
+        self.label_list.add_data(data)
+        self.label_stats.add_data(data)
+        self.errors_description.add_data(data)
 
 
 class CumulativeStats(LineBox):
@@ -596,8 +604,11 @@ class CumulativeStats(LineBox):
         self.percentiles = PercentilesList(DataPoint.CUMULATIVE)
         self.avg_times = AvgTimesList(DataPoint.CUMULATIVE)
         self.rcodes = RCodesList(DataPoint.CUMULATIVE)
+        self.label_list = SampleLabelsList(DataPoint.CUMULATIVE)
+        self.label_stats = LabelStats(DataPoint.CUMULATIVE)
+        self.errors_description = DetailedErrorList(DataPoint.CUMULATIVE)
         original_widget = Columns(
-            [self.avg_times, self.percentiles, self.rcodes],
+            [Pile([self.avg_times,self.label_list]), Pile([self.percentiles, self.label_stats]), Pile([self.rcodes, self.errors_description])],
             dividechars=1)
         padded = Padding(original_widget, align=CENTER)
         super(CumulativeStats, self).__init__(padded,
@@ -613,7 +624,9 @@ class CumulativeStats(LineBox):
         self.percentiles.add_data(data)
         self.avg_times.add_data(data)
         self.rcodes.add_data(data)
-
+        self.label_list.add_data(data)
+        self.label_stats.add_data(data)
+        self.errors_description.add_data(data)
 
 class PercentilesList(ListBox):
     """
@@ -679,6 +692,94 @@ class AvgTimesList(ListBox):
                  align=RIGHT))
         self.body.append(Text(("stat-txt", "~Receive: %.3f" % recv),
                               align=RIGHT))
+
+class SampleLabelsList(ListBox):
+    """
+    Sample labels block
+
+    :type key: str
+    """
+
+    def __init__(self, key):
+        super(SampleLabelsList, self).__init__(SimpleListWalker([]))
+        self.key = key
+
+    def add_data(self, data):
+        """
+        Append data
+
+        :type data: bzt.modules.aggregator.DataPoint
+        """
+        while len(self.body):
+            self.body.pop(0)
+
+        self.body.append(Text(("stat-hdr", " Labels:"), align=CENTER))
+        overall = data.get(DataPoint.CUMULATIVE)
+
+        for key in overall.keys():
+            if key != "":
+                self.body.append(
+                    Text(("stat-txt",key), align=LEFT, wrap=CLIP))
+
+
+class DetailedErrorList(ListBox):
+    """
+
+    :type key: str
+    """
+
+    def __init__(self, key):
+        super(DetailedErrorList, self).__init__(SimpleListWalker([]))
+        self.key = key
+
+    def add_data(self, data):
+        """
+        Append data
+
+        :type data: bzt.modules.aggregator.DataPoint
+        """
+        while len(self.body):
+            self.body.pop(0)
+
+        self.body.append(Text(("stat-hdr", " Errors:"), align=CENTER))
+        overall = data.get(DataPoint.CUMULATIVE)
+
+        for key in overall.keys():
+            if key != "":
+                error = overall.get(key).get(KPISet.ERRORS)
+                self.body.append(Text(("stat-txt", ' '.join([x.get('msg') for x in error])), align=LEFT, wrap=CLIP))
+
+
+class LabelStats(ListBox):
+    """
+
+    :type key: str
+    """
+
+    def __init__(self, key):
+        super(LabelStats, self).__init__(SimpleListWalker([]))
+        self.key = key
+
+    def add_data(self, data):
+        """
+        Display sample count, err_rate, avg_rt
+
+        :type data: bzt.modules.aggregator.DataPoint
+        """
+        while len(self.body):
+            self.body.pop(0)
+
+        self.body.append(Text(("stat-hdr", " LabelStats:"), align=CENTER))
+        overall = data.get(DataPoint.CUMULATIVE)
+
+        for key in sorted(overall.keys(), key=lambda x:x.lower):
+            if key != "":
+                lab_stat = overall.get(key)
+                self.body.append(Text(("stat-txt",
+                    ' '.join([str(lab_stat.get(KPISet.SAMPLE_COUNT)),
+                              str(len(lab_stat.get(KPISet.ERRORS))),
+                              "%.3f" % lab_stat.get(KPISet.AVG_RESP_TIME)
+                              ])), align=LEFT, wrap=CLIP))
 
 
 # TODO: errors, throughput, labels
