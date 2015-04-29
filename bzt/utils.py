@@ -35,9 +35,11 @@ import six
 
 
 
+
+
 # if sys.version > '3':
 # unicode = str
-#    basestring = str
+# basestring = str
 
 
 def run_once(f):
@@ -568,5 +570,6 @@ def make_boundary(text=None):
 
 
 def base_configs_path():
-    path=os.getenv("VIRTUAL_ENV", "") + os.path.sep + "etc" + os.path.sep + "bzt.d"
+    path = os.getenv("VIRTUAL_ENV", "") if os.getenv("VIRTUAL_ENV", "") else os.path.splitdrive(__file__)[0]
+    path += os.path.sep + "etc" + os.path.sep + "bzt.d"
     return path
