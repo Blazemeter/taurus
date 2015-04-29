@@ -17,7 +17,6 @@ setup_test_logging()
 
 class TestGrinderExecutor(BZTestCase):
     def test_install_Grinder(self):
-        bzt.utils.TEST_RUNNING = True
         path = os.path.abspath(__dir__() + "/../../build/tmp/grinder-taurus/lib/grinder.jar")
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
 
@@ -43,7 +42,6 @@ class TestGrinderExecutor(BZTestCase):
         obj.prepare()
         GrinderExecutor.DOWNLOAD_LINK = grinder_link
         GrinderExecutor.VERSION = grinder_version
-        bzt.utils.TEST_RUNNING = False
 
     def test_grinder_widget(self):
         obj = GrinderExecutor()

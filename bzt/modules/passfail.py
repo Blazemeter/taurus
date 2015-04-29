@@ -27,12 +27,7 @@ from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.aggregator import KPISet, DataPoint
 from bzt.utils import load_class, dehumanize_time
 from bzt.modules.console import WidgetProvider
-
-
-if sys.version > '3':
-    long = int
-    unicode = str
-    basestring = str
+import six
 
 
 class PassFailStatus(Reporter, AggregatorListener, WidgetProvider):
@@ -48,7 +43,7 @@ class PassFailStatus(Reporter, AggregatorListener, WidgetProvider):
     def prepare(self):
         super(PassFailStatus, self).prepare()
         for idx, crit_config in enumerate(self.parameters.get("criterias", [])):
-            if isinstance(crit_config, basestring):
+            if isinstance(crit_config, six.string_types):
                 crit_config = FailCriteria.string_to_config(crit_config)
                 self.parameters['criterias'][idx] = crit_config
             crit = load_class(crit_config.get('type', FailCriteria.__module__ + "." + FailCriteria.__name__))

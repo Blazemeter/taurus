@@ -1,24 +1,17 @@
-'''
-Created on Mar 20, 2015
-
-@author: Coeurl
-'''
+import shutil
+import os
 
 from tests import setup_test_logging, BZTestCase, __dir__
 from bzt.modules.gatling import GatlingExecutor
-import shutil
-import os
 from tests.mocks import EngineEmul
-import bzt.utils
 from bzt.utils import BetterDict
+
 
 setup_test_logging()
 
 
 class TestGatlingExecutor(BZTestCase):
     def test_install_Gatling(self):
-        bzt.utils.TEST_RUNNING = True
-
         path = os.path.abspath(__dir__() + "/../../build/tmp/gatling-taurus/bin/gatling.sh")
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
 
@@ -35,7 +28,7 @@ class TestGatlingExecutor(BZTestCase):
         obj.settings.merge({"path": path})
 
         obj.execution = BetterDict()
-        obj.execution.merge({"scenario": {"script": "tests/gatling/BasicSimulation.scala", \
+        obj.execution.merge({"scenario": {"script": "tests/gatling/BasicSimulation.scala",
                                           "simulation": "mytest.BasicSimulation"}})
         obj.prepare()
         self.assertTrue(os.path.exists(path))
@@ -43,7 +36,6 @@ class TestGatlingExecutor(BZTestCase):
         GatlingExecutor.DOWNLOAD_LINK = gatling_link
         GatlingExecutor.VERSION = gatling_ver
 
-        bzt.utils.TEST_RUNNING = False
 
     def test_gatling_widget(self):
         obj = GatlingExecutor()
