@@ -30,12 +30,11 @@ from datetime import datetime
 import copy
 import platform
 from six import StringIO
-import time
 
 from urwid.decoration import Padding
 from urwid.display_common import BaseScreen
 from urwid import Text, Pile, WEIGHT, Filler, Columns, Widget, \
-    CanvasCombine, LineBox, ListBox, RIGHT, CENTER, BOTTOM, CLIP, LEFT, GIVEN
+    CanvasCombine, LineBox, ListBox, RIGHT, CENTER, BOTTOM, CLIP, LEFT
 from urwid.font import Thin6x6Font
 from urwid.graphics import BigText
 from urwid.listbox import SimpleListWalker
@@ -44,7 +43,6 @@ from urwid.widget import Divider
 from bzt.modules.provisioning import Local
 from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.aggregator import DataPoint, KPISet
-from bzt.utils import humanize_time
 
 if platform.system() == 'Windows':
     from urwid.raw_display import Screen  # curses unavailable on windows
@@ -705,12 +703,11 @@ class SampleLabelsColumns(Columns):
         self.avg_rt = SampleLabelsAvgRT()
 
         columns = [self.labels,
-                   (WEIGHT, 0.10, self.hits),
-                   (WEIGHT, 0.10, self.failed),
-                   (WEIGHT, 0.10, self.avg_rt),
-                   ]
+                   (6, self.hits),
+                   (8, self.failed),
+                   (6, self.avg_rt)]
 
-        super(SampleLabelsColumns, self).__init__(columns)
+        super(SampleLabelsColumns, self).__init__(columns, dividechars=1)
         self.key = key
 
     def add_data(self, data):
@@ -723,8 +720,6 @@ class SampleLabelsColumns(Columns):
         self.hits.flush_data()
         self.failed.flush_data()
         self.avg_rt.flush_data()
-
-        # self.body.append(Text(("stat-hdr", " Labels:"), align=LEFT))
         overall = data.get(self.key)
 
         for label in overall.keys():
@@ -738,71 +733,50 @@ class SampleLabelsColumns(Columns):
                 self.avg_rt.add_data(avg_rt)
 
 
-class SampleLabelsNames(ListBox):
-    """
-    hits
-    """
+class LabelTableColumn():
+    def flush_data(self):
+        """
+        Erase data, draw header
+        """
+        while len(self.body):
+            self.body.pop(0)
+        self.body.append(self.header)
 
+
+class SampleLabelsNames(ListBox, LabelTableColumn):
     def __init__(self):
         super(SampleLabelsNames, self).__init__(SimpleListWalker([]))
         self.header = Text(("stat-hdr", "Labels"), align=LEFT)
         self.body.append(self.header)
 
     def add_data(self, data):
-        data_widget = Text(("stat-txt", "%s" % data), align=LEFT)
+        data_widget = Text(("stat-txt", "%s" % data), align=LEFT, wrap=CLIP)
         self.body.append(data_widget)
 
-    def flush_data(self):
-        while len(self.body):
-            self.body.pop(0)
-        self.body.append(self.header)
 
-
-class SampleLabelsHits(ListBox):
-    """
-    hits
-    """
-
+class SampleLabelsHits(ListBox, LabelTableColumn):
     def __init__(self):
         super(SampleLabelsHits, self).__init__(SimpleListWalker([]))
-        self.header = Text(("stat-hdr", "Hits"), align=LEFT)
+        self.header = Text(("stat-hdr", "Hits"), align=RIGHT)
         self.body.append(self.header)
 
     def add_data(self, data):
-        data_widget = Text(("stat-txt", "%d" % data), align=LEFT)
+        data_widget = Text(("stat-txt", "%d" % data), align=RIGHT)
         self.body.append(data_widget)
 
-    def flush_data(self):
-        while len(self.body):
-            self.body.pop(0)
-        self.body.append(self.header)
 
-
-class SampleLabelsFailed(ListBox):
-    """
-    hits
-    """
-
+class SampleLabelsFailed(ListBox, LabelTableColumn):
     def __init__(self):
         super(SampleLabelsFailed, self).__init__(SimpleListWalker([]))
         self.header = Text(("stat-hdr", "Failures"), align=CENTER)
         self.body.append(self.header)
 
     def add_data(self, data):
-        data_widget = Text(("stat-txt", "%.2f%%" % data), align=CENTER)
+        data_widget = Text(("stat-txt", "%.2f%%" % data), align=RIGHT)
         self.body.append(data_widget)
 
-    def flush_data(self):
-        while len(self.body):
-            self.body.pop(0)
-        self.body.append(self.header)
 
-
-class SampleLabelsAvgRT(ListBox):
-    """
-    hits
-    """
-
+class SampleLabelsAvgRT(ListBox, LabelTableColumn):
     def __init__(self):
         super(SampleLabelsAvgRT, self).__init__(SimpleListWalker([]))
         self.header = Text(("stat-hdr", "avg rt"), align=RIGHT)
@@ -811,11 +785,6 @@ class SampleLabelsAvgRT(ListBox):
     def add_data(self, data):
         data_widget = Text(("stat-txt", "%.3f" % data), align=RIGHT)
         self.body.append(data_widget)
-
-    def flush_data(self):
-        while len(self.body):
-            self.body.pop(0)
-        self.body.append(self.header)
 
 
 class DetailedErrorString(ListBox):
@@ -841,8 +810,7 @@ class DetailedErrorString(ListBox):
         overall = data.get(self.key)
         errors = overall.get('').get(KPISet.ERRORS)
         err_descriptions = '; '.join([x.get('msg') for x in errors]) if errors else "No Errors."
-        self.body.append(
-            Text(("stat-txt", err_descriptions), align=LEFT))
+        self.body.append(Text(("stat-txt", err_descriptions), align=LEFT))
 
 
 # TODO: errors, throughput, labels
