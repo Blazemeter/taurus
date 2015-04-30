@@ -727,7 +727,7 @@ class SampleLabelsColumns(Columns):
         # self.body.append(Text(("stat-hdr", " Labels:"), align=LEFT))
         overall = data.get(self.key)
 
-        for label in sorted(overall.keys(), key=lambda x: x.lower):
+        for label in overall.keys():
             if label != "":
                 hits = overall.get(label).get(KPISet.SAMPLE_COUNT)
                 failed = float(overall.get(label).get(KPISet.FAILURES)) / hits * 100 if hits else 0.0
