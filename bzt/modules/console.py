@@ -283,8 +283,8 @@ class TaurusConsole(Columns):
         self.latest_stats = LatestStats()
         self.cumulative_stats = CumulativeStats()
 
-        stats_pane = Pile([(WEIGHT, 0.50, self.latest_stats),
-                           (WEIGHT, 0.50, self.cumulative_stats), ])
+        stats_pane = Pile([(WEIGHT, 0.33, self.latest_stats),
+                           (WEIGHT, 0.67, self.cumulative_stats), ])
 
         self.graphs = ThreeGraphs()
 
@@ -564,14 +564,8 @@ class LatestStats(LineBox):
         self.percentiles = PercentilesList(DataPoint.CURRENT)
         self.avg_times = AvgTimesList(DataPoint.CURRENT)
         self.rcodes = RCodesList(DataPoint.CURRENT)
-        self.label_list = SampleLabelsList(DataPoint.CURRENT)
-        self.label_stats = LabelStats(DataPoint.CURRENT)
-        self.errors_description = DetailedErrorList(DataPoint.CURRENT)
         original_widget = Columns(
-            [Pile([self.avg_times, self.label_list]),
-             Pile([self.percentiles, self.label_stats]),
-             Pile([self.rcodes, self.errors_description])
-             ], dividechars=1)
+            [self.avg_times, self.percentiles, self.rcodes], dividechars=1)
         padded = Padding(original_widget, align=CENTER)
         super(LatestStats, self).__init__(padded,
                                           self.title)
@@ -590,9 +584,6 @@ class LatestStats(LineBox):
         self.percentiles.add_data(data)
         self.avg_times.add_data(data)
         self.rcodes.add_data(data)
-        self.label_list.add_data(data)
-        self.label_stats.add_data(data)
-        self.errors_description.add_data(data)
 
 
 class CumulativeStats(LineBox):
@@ -608,11 +599,14 @@ class CumulativeStats(LineBox):
         self.label_list = SampleLabelsList(DataPoint.CUMULATIVE)
         self.label_stats = LabelStats(DataPoint.CUMULATIVE)
         self.errors_description = DetailedErrorList(DataPoint.CUMULATIVE)
-        original_widget = Columns([
-            Pile([self.avg_times, self.label_list]),
-            Pile([self.percentiles, self.label_stats]),
-            Pile([self.rcodes, self.errors_description])],
-            dividechars=1)
+        original_widget = Pile([
+            Columns([
+                self.avg_times,
+                self.percentiles,
+                self.rcodes], dividechars=1),
+            Pile([Columns([self.label_list, self.label_stats],dividechars=1),
+                  self.errors_description])
+            ])
         padded = Padding(original_widget, align=CENTER)
         super(CumulativeStats, self).__init__(padded,
                                               "Cumulative Stats")
@@ -753,7 +747,7 @@ class DetailedErrorList(ListBox):
             if label != "":
                 error = overall.get(label).get(KPISet.ERRORS)
                 self.body.append(
-                    Text(("stat-txt", ' '.join([x.get('msg').split(':')[-1] for x in error])), align=RIGHT, wrap=CLIP))
+                    Text(("stat-txt", ' '.join([x.get('msg') for x in error])), align=RIGHT))
 
 
 class LabelStats(ListBox):
