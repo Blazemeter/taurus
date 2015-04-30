@@ -605,7 +605,7 @@ class CumulativeStats(LineBox):
                 self.rcodes], dividechars=1),
             Pile([self.label_columns,
                   self.errors_description])
-            ])
+        ])
         padded = Padding(original_widget, align=CENTER)
         super(CumulativeStats, self).__init__(padded,
                                               "Cumulative Stats")
@@ -621,7 +621,7 @@ class CumulativeStats(LineBox):
         self.avg_times.add_data(data)
         self.rcodes.add_data(data)
         self.label_columns.add_data(data)
-        #self.label_stats.add_data(data)
+        # self.label_stats.add_data(data)
         self.errors_description.add_data(data)
 
 
@@ -691,8 +691,6 @@ class AvgTimesList(ListBox):
                               align=RIGHT))
 
 
-
-
 class SampleLabelsColumns(Columns):
     """
     Sample labels block
@@ -726,90 +724,99 @@ class SampleLabelsColumns(Columns):
         self.failed.flush_data()
         self.avg_rt.flush_data()
 
-        #self.body.append(Text(("stat-hdr", " Labels:"), align=LEFT))
+        # self.body.append(Text(("stat-hdr", " Labels:"), align=LEFT))
         overall = data.get(self.key)
 
         for label in sorted(overall.keys(), key=lambda x: x.lower):
             if label != "":
-                hits = len(overall.get(label).get(KPISet.ERRORS))
-                failed = 5.01
-                avg_rt = 0.234
+                hits = overall.get(label).get(KPISet.SAMPLE_COUNT)
+                failed = float(overall.get(label).get(KPISet.FAILURES)) / hits * 100 if hits else 0.0
+                avg_rt = overall.get(label).get(KPISet.AVG_RESP_TIME)
                 self.labels.add_data(label)
                 self.hits.add_data(hits)
                 self.failed.add_data(failed)
                 self.avg_rt.add_data(avg_rt)
 
+
 class SampleLabelsNames(ListBox):
     """
     hits
     """
+
     def __init__(self):
         super(SampleLabelsNames, self).__init__(SimpleListWalker([]))
-        self.header = Text(("stat-hdr", "Labels"), align = LEFT)
+        self.header = Text(("stat-hdr", "Labels"), align=LEFT)
         self.body.append(self.header)
 
     def add_data(self, data):
-        data_widget = Text(("stat-txt", "%s" % data), align = LEFT)
+        data_widget = Text(("stat-txt", "%s" % data), align=LEFT)
         self.body.append(data_widget)
 
     def flush_data(self):
         while len(self.body):
             self.body.pop(0)
         self.body.append(self.header)
+
 
 class SampleLabelsHits(ListBox):
     """
     hits
     """
+
     def __init__(self):
         super(SampleLabelsHits, self).__init__(SimpleListWalker([]))
-        self.header = Text(("stat-hdr", "Hits"), align = LEFT)
+        self.header = Text(("stat-hdr", "Hits"), align=LEFT)
         self.body.append(self.header)
 
     def add_data(self, data):
-        data_widget = Text(("stat-txt", "%d" % data), align = LEFT)
+        data_widget = Text(("stat-txt", "%d" % data), align=LEFT)
         self.body.append(data_widget)
 
     def flush_data(self):
         while len(self.body):
             self.body.pop(0)
         self.body.append(self.header)
+
 
 class SampleLabelsFailed(ListBox):
     """
     hits
     """
+
     def __init__(self):
         super(SampleLabelsFailed, self).__init__(SimpleListWalker([]))
-        self.header = Text(("stat-hdr", "Failures"), align = LEFT)
+        self.header = Text(("stat-hdr", "Failures"), align=CENTER)
         self.body.append(self.header)
 
     def add_data(self, data):
-        data_widget = Text(("stat-txt", "%.3f" % data), align = LEFT)
+        data_widget = Text(("stat-txt", "%.2f%%" % data), align=CENTER)
         self.body.append(data_widget)
 
     def flush_data(self):
         while len(self.body):
             self.body.pop(0)
         self.body.append(self.header)
+
 
 class SampleLabelsAvgRT(ListBox):
     """
     hits
     """
+
     def __init__(self):
         super(SampleLabelsAvgRT, self).__init__(SimpleListWalker([]))
-        self.header = Text(("stat-hdr", "avg rt"), align = LEFT)
+        self.header = Text(("stat-hdr", "avg rt"), align=RIGHT)
         self.body.append(self.header)
 
     def add_data(self, data):
-        data_widget = Text(("stat-txt", "%.3f" % data), align = LEFT)
+        data_widget = Text(("stat-txt", "%.3f" % data), align=RIGHT)
         self.body.append(data_widget)
 
     def flush_data(self):
         while len(self.body):
             self.body.pop(0)
         self.body.append(self.header)
+
 
 class DetailedErrorString(ListBox):
     """
@@ -833,58 +840,9 @@ class DetailedErrorString(ListBox):
         self.body.append(Text(("stat-hdr", " Errors:"), align=LEFT))
         overall = data.get(self.key)
         errors = overall.get('').get(KPISet.ERRORS)
-        err_descriptions  = '; '.join([x.get('msg') for x in errors]) if errors else "No Errors."
+        err_descriptions = '; '.join([x.get('msg') for x in errors]) if errors else "No Errors."
         self.body.append(
             Text(("stat-txt", err_descriptions), align=LEFT))
-
-
-class LabelStats(ListBox):
-    """
-
-    :type key: str
-    """
-
-    def __init__(self, key):
-        super(LabelStats, self).__init__(SimpleListWalker([]))
-        self.key = key
-        self.first_ts = None
-        self.prev_ts = None
-
-    def add_data(self, data):
-        """
-        Display sample count, err_rate, avg_rt
-
-        :type data: bzt.modules.aggregator.DataPoint
-        """
-        while len(self.body):
-            self.body.pop(0)
-
-        cur_ts = float(data.get(DataPoint.TIMESTAMP))
-        if not self.first_ts: self.first_ts = cur_ts
-        if not self.prev_ts: self.prev_ts = self.first_ts
-
-        self.body.append(Text(("stat-hdr", " LabelStats:"), align=CENTER))
-        overall = data.get(self.key)
-
-        time_amount = cur_ts - self.first_ts if self.key == DataPoint.CUMULATIVE else cur_ts - self.prev_ts
-        for label in sorted(overall.keys(), key=lambda x: x.lower):
-            if label != "":
-                lab_stat = overall.get(label)
-                samples = lab_stat.get(KPISet.SAMPLE_COUNT)
-                errors_count = sum([x['cnt'] for x in lab_stat.get(KPISet.ERRORS)])
-                err_rate = time_amount / errors_count if errors_count != 0 else 0.0
-                avg_rt = lab_stat.get(KPISet.AVG_RESP_TIME)
-                rps = time_amount / samples
-                display_list = []
-
-                display_list.append("smpls:%d" % samples)
-                display_list.append("avg_rt:%.3f" % avg_rt)
-                if rps: display_list.append("rps:%.1f" % rps)
-                if errors_count: display_list.append("erps:%.1f" % err_rate)
-                self.body.append(Text(("stat-txt",
-                                       ' '.join(display_list)), align=LEFT, wrap=CLIP))
-
-        self.prev_ts = data.get(DataPoint.TIMESTAMP)
 
 
 # TODO: errors, throughput, labels
