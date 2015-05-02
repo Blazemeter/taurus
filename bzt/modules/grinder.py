@@ -42,8 +42,11 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     """
     Grinder executor module
     """
-    DOWNLOAD_LINK = "http://switch.dl.sourceforge.net/project/grinder/The%20Grinder%203/{version}" \
-                    "/grinder-{version}-binary.zip"
+    # DOWNLOAD_LINK = "http://switch.dl.sourceforge.net/project/grinder/The%20Grinder%203/{version}" \
+    # "/grinder-{version}-binary.zip"
+
+    DOWNLOAD_LINK = "http://sourceforge.net/projects/grinder/files/The%20Grinder%203/{version}" \
+                    "/grinder-{version}-binary.zip/download"
     VERSION = "3.11"
 
     def __init__(self):
