@@ -19,6 +19,7 @@ from setuptools.command.install import install
 
 import bzt
 
+
 class InstallWithHook(install, object):
     """
     Command adding post-install hook to setup
@@ -29,6 +30,7 @@ class InstallWithHook(install, object):
         Do the command's job!
         """
         install.run(self)
+
 
 setup(
     name="bzt",
