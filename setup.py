@@ -13,15 +13,11 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import os
-import shutil
-import sys
 
 from setuptools import setup
 from setuptools.command.install import install
 
 import bzt
-from bzt import utils
 
 class InstallWithHook(install, object):
     """
@@ -33,18 +29,6 @@ class InstallWithHook(install, object):
         Do the command's job!
         """
         install.run(self)
-        self.__hook()
-
-    def __hook(self):
-        dirname = utils.base_configs_path()
-        sys.stdout.write("Creating %s" % dirname)
-        if not os.path.exists(dirname):
-            os.makedirs(dirname)
-        src = os.path.dirname(__file__)
-        src += os.path.sep + "bzt" + os.path.sep + "10-base.json"
-        sys.stdout.write("Copying %s to %s" % (src, dirname))
-        shutil.copy(src, dirname + os.path.sep)
-
 
 setup(
     name="bzt",
@@ -64,7 +48,7 @@ setup(
         ],
     },
     package_data={
-        "bzt": []
+        "bzt": ['etc/10-base.json']
     },
     cmdclass=dict(install=InstallWithHook)
 )
