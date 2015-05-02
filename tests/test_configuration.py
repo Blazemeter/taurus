@@ -11,7 +11,7 @@ class TestConfiguration(BZTestCase):
     def test_load(self):
         obj = Configuration()
         configs = [
-            __dir__() + "/../bzt/10-base.json",
+            __dir__() + "/../bzt/etc/10-base.json",
             __dir__() + "/json/jmx.json",
             __dir__() + "/json/concurrency.json"
         ]

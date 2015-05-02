@@ -16,7 +16,7 @@ class TestEngine(BZTestCase):
 
     def test_jmx(self):
         configs = [
-            __dir__() + "/../bzt/10-base.json",
+            __dir__() + "/../bzt/etc/10-base.json",
             __dir__() + "/json/jmx.json",
             self.paths
         ]
@@ -27,7 +27,7 @@ class TestEngine(BZTestCase):
 
     def test_requests(self):
         configs = [
-            __dir__() + "/../bzt/10-base.json",
+            __dir__() + "/../bzt/etc/10-base.json",
             __dir__() + "/json/get-post.json",
             __dir__() + "/json/reporting.json",
             self.paths
@@ -40,7 +40,7 @@ class TestEngine(BZTestCase):
 
     def test_double_exec(self):
         configs = [
-            __dir__() + "/../bzt/10-base.json",
+            __dir__() + "/../bzt/etc/10-base.json",
             __dir__() + "/yaml/triple.yml",
             __dir__() + "/json/reporting.json",
             self.paths
@@ -52,7 +52,7 @@ class TestEngine(BZTestCase):
 
     def test_grinder(self):
         configs = [
-            __dir__() + "/../bzt/10-base.json",
+            __dir__() + "/../bzt/etc/10-base.json",
             __dir__() + "/json/grinder.json",
             self.paths
         ]
@@ -63,7 +63,7 @@ class TestEngine(BZTestCase):
 
     def test_gatling(self):
         configs = [
-            __dir__() + "/../bzt/10-base.json",
+            __dir__() + "/../bzt/etc/10-base.json",
             __dir__() + "/json/gatling.json",
             self.paths
         ]
@@ -74,7 +74,7 @@ class TestEngine(BZTestCase):
 
     def test_unknown_module(self):
         configs = [
-            __dir__() + "/../bzt/10-base.json",
+            __dir__() + "/../bzt/etc/10-base.json",
             __dir__() + "/json/gatling.json",
             self.paths
         ]

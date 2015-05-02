@@ -34,7 +34,7 @@ import yaml
 from yaml.representer import SafeRepresenter
 
 from bzt import ManualShutdown, NormalShutdown
-from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, base_configs_path
+from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time
 
 
 try:
@@ -132,8 +132,7 @@ class Engine(object):
     def __wait(self):
         self.log.info("Waiting for finish...")
         prev = time.time()
-        while not self.provisioning.check() \
-                and not self.aggregator.check() \
+        while not self.provisioning.check() and not self.aggregator.check() \
                 and not EngineModule.check_modules_list(self.reporters):
             now = time.time()
             diff = now - prev
@@ -347,7 +346,7 @@ class Engine(object):
 
         # prepare base configs
         base_configs = []
-        machine_dir = base_configs_path()
+        machine_dir = os.path.dirname(os.path.abspath(__file__)) + os.path.sep + "etc"
         if os.path.isdir(machine_dir):
             self.log.debug("Reading machine configs from: %s", machine_dir)
             for cfile in os.listdir(machine_dir):
