@@ -251,6 +251,22 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             msg = "%s threads left undistributed due to thread group proportion"
             self.log.warning(msg, leftover)
 
+    def __add_shaper(self, jmx, load):
+        """
+
+        :param jmx:
+        :param load: namedtuple("LoadSpec",
+                         ('concurrency', "throughput", 'ramp_up', 'hold', 'iterations', 'duration'))
+        :return:
+        """
+
+        # Ask about WARN  - kg.apc.jmeter.timers.VariableThroughputTimer: No free threads left in worker pool
+
+        new_shaper_element = JMX._get_rps_shaper(load.throughput, load.throughput, load.duration)
+
+        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, new_shaper_element)
+        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
+
     def __disable_listeners(self, jmx):
         sel = 'stringProp[name=filename]'
         xpath = GenericTranslator().css_to_xpath(sel)
@@ -431,10 +447,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         else:
             return None
 
-    def __add_shaper(self, jmx, load):
-        # TODO: add RPS control when needed
-        # TODO: how to make it spread load appropriately?
-        pass
 
     def __apply_modifications(self, jmx):
         """
@@ -926,6 +938,36 @@ class JMX(object):
         trg.append(JMX._long_prop("ThreadGroup.duration", 0))
 
         return trg
+
+    @staticmethod
+    def _get_rps_shaper(start_rps, end_rps, duration):
+        """
+
+        :param start_rps: int rps
+        :param end_rps: int rps
+        :param duration: int seconds
+        :return: etree.Element
+        """
+
+        throughput_timer_element = etree.Element("kg.apc.jmeter.timers.VariableThroughputTimer",
+                                             guiclass="kg.apc.jmeter.timers.VariableThroughputTimerGui",
+                                             testclass="kg.apc.jmeter.timers.VariableThroughputTimer",
+                                             testname="jp@gc - Throughput Shaping Timer",
+                                             enabled="true")
+        shaper_load_prof = JMX._collection_prop("load_profile")
+        coll_prop = JMX._collection_prop("1817389797")
+        start_rps_prop = JMX._string_prop("49", start_rps)
+        end_rps_prop = JMX._string_prop("1567", end_rps)
+        duration_prop = JMX._string_prop("53", duration)
+        coll_prop.append(start_rps_prop)
+        coll_prop.append(end_rps_prop)
+        coll_prop.append(duration_prop)
+
+        shaper_load_prof.append(coll_prop)
+        throughput_timer_element.append(shaper_load_prof)
+
+        return throughput_timer_element
+
 
     @staticmethod
     def _get_header_mgr(hdict):

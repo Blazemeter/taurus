@@ -193,3 +193,14 @@ class TestJMeterExecutor(BZTestCase):
         artifacts = os.listdir(obj.engine.artifacts_dir)
         self.assertEqual(len(res_files), 1)
         self.assertEqual(len(artifacts), 1)
+
+    def test_add_shaper(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = BetterDict()
+        # obj.engine.config.merge(yaml.load(open("tests/yaml/throughput.yml").read()))
+        # obj.execution = obj.engine.config['execution']
+        # obj.prepare()
+
+        # xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        # self.assertEqual(1, len(xml_tree.findall(".//kg.apc.jmeter.timers.VariableThroughputTimer[@testname='jp@gc - Throughput Shaping Timer']")))
