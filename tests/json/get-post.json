@@ -89,6 +89,11 @@
       "store-cookie": true,
       "timeout": 1,
       "think-time": 0.5,
+      "default-domain": "localhost",
+      "default-port": 80,
+      "keepalive": false,
+      "retrieve-resources": true,
+      "concurrent-pull-size": 10,
       "disable-listeners": true,
       "data-sources": [
         "tests/data/test1.csv",

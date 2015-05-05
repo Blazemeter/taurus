@@ -820,7 +820,7 @@ class JMX(object):
 
         proxy.append(JMX._string_prop("HTTPSampler.path", url))
         proxy.append(JMX._string_prop("HTTPSampler.method", method))
-        proxy.append(JMX._bool_prop("HTTPSampler.use_keepalive", keepalive))  # TODO: parameterize it
+        proxy.append(JMX._bool_prop("HTTPSampler.use_keepalive", keepalive))
 
         if timeout is not None:
             proxy.append(JMX._string_prop("HTTPSampler.connect_timeout", timeout))
@@ -981,7 +981,7 @@ class JMX(object):
             cfg.append(JMX._bool_prop("HTTPSampler.image_parser", True))
             cfg.append(JMX._bool_prop("HTTPSampler.concurrentDwn", True))
             if concurrent_pull_size:
-                cfg.append(JMX._bool_prop("HTTPSampler.concurrentPool", concurrent_pull_size))
+                cfg.append(JMX._string_prop("HTTPSampler.concurrentPool", concurrent_pull_size))
 
 
         # TODO: have an option for it, with full features (include/exclude, concurrency, etc)
@@ -1454,7 +1454,6 @@ class JMeterScenarioBuilder(JMX):
 
         :return:
         """
-        # TODO: default hostname and port
         default_domain = self.scenario.get("default-domain", None)
         default_port = self.scenario.get("default-port", None)
         retrieve_resources = self.scenario.get("retrieve-resources", None)
