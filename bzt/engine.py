@@ -27,14 +27,13 @@ import tempfile
 import time
 import traceback
 from json import encoder
-
 import psutil
 import six
 import yaml
 from yaml.representer import SafeRepresenter
 
 from bzt import ManualShutdown, NormalShutdown
-from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, base_configs_path
+from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time
 
 
 try:
@@ -347,7 +346,9 @@ class Engine(object):
 
         # prepare base configs
         base_configs = []
-        machine_dir = base_configs_path()
+        # can't refactor machine_dir out - see setup.py
+        machine_dir = os.getenv("VIRTUAL_ENV", "") if os.getenv("VIRTUAL_ENV", "") else os.path.splitdrive(__file__)[0]
+        machine_dir += os.path.sep + "etc" + os.path.sep + "bzt.d"
         if os.path.isdir(machine_dir):
             self.log.debug("Reading machine configs from: %s", machine_dir)
             for cfile in os.listdir(machine_dir):

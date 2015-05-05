@@ -21,7 +21,7 @@ from setuptools import setup
 from setuptools.command.install import install
 
 import bzt
-from bzt import utils
+
 
 class InstallWithHook(install, object):
     """
@@ -36,10 +36,13 @@ class InstallWithHook(install, object):
         self.__hook()
 
     def __hook(self):
-        dirname = utils.base_configs_path()
+        # can't refactor this out - otherwise Windows fails putting it into right place
+        dirname = os.getenv("VIRTUAL_ENV", "") if os.getenv("VIRTUAL_ENV", "") else os.path.splitdrive(__file__)[0]
+        dirname += os.path.sep + "etc" + os.path.sep + "bzt.d"
         sys.stdout.write("Creating %s\n" % dirname)
         if not os.path.exists(dirname):
             os.makedirs(dirname)
+
         src = os.path.dirname(__file__)
         src += os.path.sep + "bzt" + os.path.sep + "10-base.json"
         sys.stdout.write("Copying %s to %s\n" % (src, dirname))
