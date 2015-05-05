@@ -962,25 +962,34 @@ class JMX(object):
         return mgr
 
     @staticmethod
-    def _get_http_defaults(timeout):
+    def _get_http_defaults(default_domain_name, default_port, timeout, retrieve_resources, concurrent_pull_size=4):
         """
 
         :type timeout: int
         :rtype: lxml.etree.Element
         """
         cfg = etree.Element("ConfigTestElement", guiclass="HttpDefaultsGui",
-                            testclass="ConfigTestElement", testname="Defaults")
+                            testclass="ConfigTestElement", testname="Defaults", enabled="true")
 
         params = etree.Element("elementProp",
                                name="HTTPsampler.Arguments",
                                elementType="Arguments",
                                guiclass="HTTPArgumentsPanel",
-                               testclass="Arguments")
+                               testclass="Arguments", testname="user_defined", enabled="true")
         cfg.append(params)
+        if retrieve_resources:
+            cfg.append(JMX._bool_prop("HTTPSampler.image_parser", True))
+            cfg.append(JMX._bool_prop("HTTPSampler.concurrentDwn", True))
+            if concurrent_pull_size:
+                cfg.append(JMX._bool_prop("HTTPSampler.concurrentPool", concurrent_pull_size))
+
 
         # TODO: have an option for it, with full features (include/exclude, concurrency, etc)
         cfg.append(JMX._bool_prop("HTTPSampler.image_parser", True))
-
+        if default_domain_name:
+            cfg.append(JMX._string_prop("HTTPSampler.domain", default_domain_name))
+        if default_port:
+            cfg.append(JMX._string_prop("HTTPSampler.port", default_port))
         if timeout:
             cfg.append(JMX._string_prop("HTTPSampler.connect_timeout", timeout))
             cfg.append(JMX._string_prop("HTTPSampler.response_timeout", timeout))
@@ -1446,12 +1455,16 @@ class JMeterScenarioBuilder(JMX):
         :return:
         """
         # TODO: default hostname and port
+        default_domain = self.scenario.get("default-domain", None)
+        default_port = self.scenario.get("default-port", None)
+        retrieve_resources = self.scenario.get("retrieve-resources", None)
+        concurrent_pull_size = self.scenario.get("concurrent-pull-size", 4)
 
         timeout = self.scenario.get("timeout", None)
-
-        if timeout is not None:
-            self.append(self.TEST_PLAN_SEL, self._get_http_defaults(int(1000 * dehumanize_time(timeout))))
-            self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
+        timeout = int(1000 * dehumanize_time(timeout))
+        self.append(self.TEST_PLAN_SEL, self._get_http_defaults(default_domain, default_port, timeout,
+                                                                retrieve_resources, concurrent_pull_size))
+        self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
 
     def __add_think_time(self, children, request):
         global_ttime = self.scenario.get("think-time", None)
