@@ -733,7 +733,11 @@ class SampleLabelsColumns(Columns):
                 self.avg_rt.add_data(avg_rt)
 
 
-class LabelTableColumn():
+class LabelTableColumn(object):
+    def __init__(self):
+        self.header = None
+        self.body = None
+
     def flush_data(self):
         """
         Erase data, draw header
@@ -746,7 +750,7 @@ class LabelTableColumn():
 class SampleLabelsNames(ListBox, LabelTableColumn):
     def __init__(self):
         super(SampleLabelsNames, self).__init__(SimpleListWalker([]))
-        self.header = Text(("stat-hdr", "Labels"), align=LEFT)
+        self.header = Text(("stat-hdr", " Labels "), align=LEFT)
         self.body.append(self.header)
 
     def add_data(self, data):
@@ -813,7 +817,6 @@ class DetailedErrorString(ListBox):
         self.body.append(Text(("stat-txt", err_descriptions), align=LEFT))
 
 
-# TODO: errors, throughput, labels
 # TODO: detect and inform on engine overload in local provisioning
 
 class RCodesList(ListBox):
