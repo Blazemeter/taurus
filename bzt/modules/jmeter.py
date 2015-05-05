@@ -782,7 +782,7 @@ class JMX(object):
                              testclass="Arguments")
 
     @staticmethod
-    def _get_http_request(url, label, method, timeout, body):
+    def _get_http_request(url, label, method, timeout, body, keepalive):
         """
         Generates HTTP request
         :type timeout: float
@@ -820,7 +820,7 @@ class JMX(object):
 
         proxy.append(JMX._string_prop("HTTPSampler.path", url))
         proxy.append(JMX._string_prop("HTTPSampler.method", method))
-        proxy.append(JMX._bool_prop("HTTPSampler.use_keepalive", True))  # TODO: parameterize it
+        proxy.append(JMX._bool_prop("HTTPSampler.use_keepalive", keepalive))  # TODO: parameterize it
 
         if timeout is not None:
             proxy.append(JMX._string_prop("HTTPSampler.connect_timeout", timeout))
@@ -1526,6 +1526,7 @@ class JMeterScenarioBuilder(JMX):
 
     def __add_requests(self):
         global_timeout = self.scenario.get("timeout", None)
+        global_keepalive = self.scenario.get("keepalive", True)
 
         for request in self.scenario.get_requests():
             if request.timeout is not None:
@@ -1535,7 +1536,8 @@ class JMeterScenarioBuilder(JMX):
             else:
                 timeout = None
 
-            http = JMX._get_http_request(request.url, request.label, request.method, timeout, request.body)
+            http = JMX._get_http_request(request.url, request.label, request.method, timeout, request.body,
+                                         global_keepalive)
             self.append(self.THR_GROUP_SEL, http)
 
             children = etree.Element("hashTree")
