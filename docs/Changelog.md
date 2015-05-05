@@ -1,7 +1,10 @@
 # Changelog
 
 ## Next Version
-  - Require proper lxml version for install
+
+
+## 0.2.11
+  - Added Throughput Shaping Timer
 
 ## 0.2.8
   - Fix base config not found on Windows with multiple disks
