@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-version = "0.2.10"
+version = "0.2.11"
 
 import signal
 

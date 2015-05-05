@@ -31,7 +31,6 @@ import zipfile
 import sys
 from psutil import Popen
 import six
-import appdirs
 
 
 def run_once(f):
@@ -564,6 +563,6 @@ def make_boundary(text=None):
 def get_configs_dir():
     path = os.getenv("VIRTUAL_ENV", "") \
         if os.getenv("VIRTUAL_ENV", "") \
-        else os.path.splitdrive(sys.argv[0])[0]
-    appdirs
+        else os.path.splitdrive(sys.executable)[0]
+    path = os.path.join(path, os.path.sep, "etc", "bzt.d")  # os.path.join does not work for some reason
     return path
