@@ -1,6 +1,7 @@
 # Changelog
 
 ## Next Version
+  - Require proper lxml version for install
 
 ## 0.2.8
   - Fix base config not found on Windows with multiple disks
