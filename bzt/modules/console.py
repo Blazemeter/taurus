@@ -688,7 +688,6 @@ class AvgTimesList(ListBox):
         self.body.append(Text(("stat-txt", "~Receive: %.3f" % recv),
                               align=RIGHT))
 
-
 class SampleLabelsColumns(Columns):
     """
     Sample labels block
@@ -703,7 +702,7 @@ class SampleLabelsColumns(Columns):
         self.avg_rt = SampleLabelsAvgRT()
 
         columns = [self.labels,
-                   (8, self.hits),
+                   self.hits,
                    (10, self.failed),
                    (10, self.avg_rt)]
 
@@ -813,8 +812,16 @@ class DetailedErrorString(ListBox):
         self.body.append(Text(("stat-hdr", " Errors: "), align=LEFT))
         overall = data.get(self.key)
         errors = overall.get('').get(KPISet.ERRORS)
-        err_descriptions = '; '.join([x.get('msg') for x in errors]) if errors else "No Errors."
-        self.body.append(Text(("stat-txt", err_descriptions), align=LEFT))
+        if errors:
+            err_template = "{0}) Count:{1} Message:{2}"
+            for num, error in enumerate(errors):
+                err_description = error.get('msg')
+                err_count = error.get('cnt')
+
+                self.body.append(Text(("stat-txt", err_template.format(num+1, err_count, err_description)), align=LEFT,
+                                      wrap=CLIP))
+        else:
+            self.body.append(Text(("stat-txt", "No errors yet..."), align=LEFT))
 
 
 # TODO: detect and inform on engine overload in local provisioning
