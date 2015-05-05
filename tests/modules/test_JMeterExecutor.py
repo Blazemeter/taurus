@@ -194,13 +194,39 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(len(res_files), 1)
         self.assertEqual(len(artifacts), 1)
 
-    def test_add_shaper(self):
+    def test_add_shaper_constant(self):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
         obj.engine.config = BetterDict()
-        # obj.engine.config.merge(yaml.load(open("tests/yaml/throughput.yml").read()))
-        # obj.execution = obj.engine.config['execution']
-        # obj.prepare()
+        obj.engine.config.merge(yaml.load(open("tests/yaml/throughput_constant.yml").read()))
+        obj.engine.config.merge({"provisioning": "local"})
+        obj.execution = obj.engine.config['execution']
+        obj.prepare()
+        xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        shaper_elements = xml_tree.findall(
+            ".//kg.apc.jmeter.timers.VariableThroughputTimer[@testclass='kg.apc.jmeter.timers.VariableThroughputTimer']")
+        self.assertEqual(1, len(shaper_elements))
+        shaper_coll_element = shaper_elements[0].find(".//collectionProp[@name='load_profile']")
 
-        # xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
-        # self.assertEqual(1, len(xml_tree.findall(".//kg.apc.jmeter.timers.VariableThroughputTimer[@testname='jp@gc - Throughput Shaping Timer']")))
+        self.assertEqual("100", shaper_coll_element.find(".//stringProp[@name='49']").text)
+        self.assertEqual("100", shaper_coll_element.find(".//stringProp[@name='1567']").text)
+        self.assertEqual("60.0", shaper_coll_element.find(".//stringProp[@name='53']").text)
+
+
+    def test_add_shaper_ramp_up(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = BetterDict()
+        obj.engine.config.merge(yaml.load(open("tests/yaml/throughput_ramp_up.yml").read()))
+        obj.engine.config.merge({"provisioning": "local"})
+        obj.execution = obj.engine.config['execution']
+        obj.prepare()
+        xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        shaper_elements = xml_tree.findall(
+            ".//kg.apc.jmeter.timers.VariableThroughputTimer[@testclass='kg.apc.jmeter.timers.VariableThroughputTimer']")
+        self.assertEqual(1, len(shaper_elements))
+        shaper_coll_element = shaper_elements[0].find(".//collectionProp[@name='load_profile']")
+
+        self.assertEqual("1", shaper_coll_element.find(".//stringProp[@name='49']").text)
+        self.assertEqual("100", shaper_coll_element.find(".//stringProp[@name='1567']").text)
+        self.assertEqual("75.0", shaper_coll_element.find(".//stringProp[@name='53']").text)

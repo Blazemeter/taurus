@@ -260,12 +260,14 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :return:
         """
 
-        # Ask about WARN  - kg.apc.jmeter.timers.VariableThroughputTimer: No free threads left in worker pool
+        if load.throughput:
+            if load.ramp_up:
+                new_shaper_element = JMX._get_rps_shaper(1, load.throughput, load.duration)
+            else:
+                new_shaper_element = JMX._get_rps_shaper(load.throughput, load.throughput, load.duration)
 
-        new_shaper_element = JMX._get_rps_shaper(load.throughput, load.throughput, load.duration)
-
-        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, new_shaper_element)
-        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
+            jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, new_shaper_element)
+            jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
 
     def __disable_listeners(self, jmx):
         sel = 'stringProp[name=filename]'
@@ -950,10 +952,10 @@ class JMX(object):
         """
 
         throughput_timer_element = etree.Element("kg.apc.jmeter.timers.VariableThroughputTimer",
-                                             guiclass="kg.apc.jmeter.timers.VariableThroughputTimerGui",
-                                             testclass="kg.apc.jmeter.timers.VariableThroughputTimer",
-                                             testname="jp@gc - Throughput Shaping Timer",
-                                             enabled="true")
+                                                 guiclass="kg.apc.jmeter.timers.VariableThroughputTimerGui",
+                                                 testclass="kg.apc.jmeter.timers.VariableThroughputTimer",
+                                                 testname="jp@gc - Throughput Shaping Timer",
+                                                 enabled="true")
         shaper_load_prof = JMX._collection_prop("load_profile")
         coll_prop = JMX._collection_prop("1817389797")
         start_rps_prop = JMX._string_prop("49", start_rps)
