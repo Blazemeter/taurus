@@ -5,10 +5,15 @@ virtualenv --clear --system-site-packages build
 source build/bin/activate
 
 # install depends
-pip install colorlog pyyaml psutil lxml cssselect grip nose urwid coverage six
+pip install colorlog pyyaml psutil lxml cssselect nose urwid coverage six
 
 # run unit tests
 ./run-test.sh
+
+# re-setup env
+deactivate
+virtualenv --clear --system-site-packages build
+source build/bin/activate
 
 # run installation test
 pip -v install dist/bzt-*.tar.gz
@@ -19,6 +24,7 @@ bzt -d build/test tests/json/jmeter_minimal.json -o modules.jmeter.path=build/jm
 bzt -d build/test tests/json/get-post.json -o modules.jmeter.path=build/jmeter/bin/jmeter
 
 # generate docs
+pip install grip
 ./make-docs.sh
 
 deactivate
