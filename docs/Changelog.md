@@ -1,10 +1,17 @@
 # Changelog
 
 ## Next Version
-  - Require proper lxml version for install
+
+
+## 0.2.10
+  - Added http request defaults options.
+
+## 0.2.9
+  - Another base config fix on Windows and minor changes in setup.py
 
 ## 0.2.8
   - Fix base config not found on Windows with multiple disks
+  - Added proper version of lxml in requirements
 
 ## 0.2.1
   - Added pass/fail criteria report on console reporter.
