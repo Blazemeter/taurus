@@ -962,7 +962,7 @@ class JMX(object):
         return mgr
 
     @staticmethod
-    def _get_http_defaults(default_domain_name, default_port, timeout, retrieve_resources, concurrent_pull_size=4):
+    def _get_http_defaults(default_domain_name, default_port, timeout, retrieve_resources, concurrent_pool_size=4):
         """
 
         :type timeout: int
@@ -980,12 +980,9 @@ class JMX(object):
         if retrieve_resources:
             cfg.append(JMX._bool_prop("HTTPSampler.image_parser", True))
             cfg.append(JMX._bool_prop("HTTPSampler.concurrentDwn", True))
-            if concurrent_pull_size:
-                cfg.append(JMX._string_prop("HTTPSampler.concurrentPool", concurrent_pull_size))
+            if concurrent_pool_size:
+                cfg.append(JMX._string_prop("HTTPSampler.concurrentPool", concurrent_pool_size))
 
-
-        # TODO: have an option for it, with full features (include/exclude, concurrency, etc)
-        cfg.append(JMX._bool_prop("HTTPSampler.image_parser", True))
         if default_domain_name:
             cfg.append(JMX._string_prop("HTTPSampler.domain", default_domain_name))
         if default_port:
@@ -1457,12 +1454,12 @@ class JMeterScenarioBuilder(JMX):
         default_domain = self.scenario.get("default-domain", None)
         default_port = self.scenario.get("default-port", None)
         retrieve_resources = self.scenario.get("retrieve-resources", True)
-        concurrent_pull_size = self.scenario.get("concurrent-pull-size", 4)
+        concurrent_pool_size = self.scenario.get("concurrent-pool-size", 4)
 
         timeout = self.scenario.get("timeout", None)
         timeout = int(1000 * dehumanize_time(timeout))
         self.append(self.TEST_PLAN_SEL, self._get_http_defaults(default_domain, default_port, timeout,
-                                                                retrieve_resources, concurrent_pull_size))
+                                                                retrieve_resources, concurrent_pool_size))
         self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
 
     def __add_think_time(self, children, request):

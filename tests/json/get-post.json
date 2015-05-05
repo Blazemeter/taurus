@@ -92,7 +92,7 @@
       "default-domain": "localhost",
       "default-port": 80,
       "keepalive": false,
-      "concurrent-pull-size": 10,
+      "concurrent-pool-size": 10,
       "disable-listeners": true,
       "data-sources": [
         "tests/data/test1.csv",
