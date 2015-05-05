@@ -23,14 +23,16 @@ import subprocess
 from subprocess import CalledProcessError
 import traceback
 import platform
-import urwid
 import shutil
+
+import urwid
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.utils import shell_exec, ensure_is_dict
 from bzt.utils import unzip, download_progress_hook, humanize_time
 from bzt.modules.console import WidgetProvider
+
 
 try:
     from urllib import FancyURLopener
@@ -384,8 +386,7 @@ class DataLogReader(ResultsReader):
 
         for fname in os.listdir(self.basedir):
             if prog.match(fname):
-                self.filename = self.basedir + os.path.sep + fname
-                self.filename += os.path.sep + "simulation.log"
+                self.filename = os.path.join(self.basedir, fname, "simulation.log")
                 break
 
         if not self.filename:

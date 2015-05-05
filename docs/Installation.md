@@ -9,7 +9,7 @@ Tried on Windows 7 and Windows XP:
 3. Get Microsoft Visual C++ Compiler for Python 2.7 from http://aka.ms/vcpython27 and install it
 4. Install pip by following these directions: http://pip.readthedocs.org/en/latest/installing.html
 5. Upgrade to the latest setuptools by running the following in a command prompt: `pip install --upgrade setuptools`
-6. Open Command Prompt, type `pip install bzt` and hit `Enter`
+6. Open Command Prompt from administrative account, type `pip install bzt` and hit `Enter`
 
 To upgrade it, open Command Prompt and type `pip install --upgrade bzt`, then hit `Enter`
 
