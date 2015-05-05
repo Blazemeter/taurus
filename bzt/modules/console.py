@@ -783,7 +783,7 @@ class SampleLabelsFailed(ListBox, LabelTableColumn):
 class SampleLabelsAvgRT(ListBox, LabelTableColumn):
     def __init__(self):
         super(SampleLabelsAvgRT, self).__init__(SimpleListWalker([]))
-        self.header = Text(("stat-hdr", "avg rt"), align=RIGHT)
+        self.header = Text(("stat-hdr", "Avg Time"), align=RIGHT)
         self.body.append(self.header)
 
     def add_data(self, data):
