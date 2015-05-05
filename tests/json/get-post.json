@@ -92,7 +92,6 @@
       "default-domain": "localhost",
       "default-port": 80,
       "keepalive": false,
-      "retrieve-resources": true,
       "concurrent-pull-size": 10,
       "disable-listeners": true,
       "data-sources": [

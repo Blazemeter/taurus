@@ -969,13 +969,13 @@ class JMX(object):
         :rtype: lxml.etree.Element
         """
         cfg = etree.Element("ConfigTestElement", guiclass="HttpDefaultsGui",
-                            testclass="ConfigTestElement", testname="Defaults", enabled="true")
+                            testclass="ConfigTestElement", testname="Defaults")
 
         params = etree.Element("elementProp",
                                name="HTTPsampler.Arguments",
                                elementType="Arguments",
                                guiclass="HTTPArgumentsPanel",
-                               testclass="Arguments", testname="user_defined", enabled="true")
+                               testclass="Arguments", testname="user_defined")
         cfg.append(params)
         if retrieve_resources:
             cfg.append(JMX._bool_prop("HTTPSampler.image_parser", True))
@@ -1456,7 +1456,7 @@ class JMeterScenarioBuilder(JMX):
         """
         default_domain = self.scenario.get("default-domain", None)
         default_port = self.scenario.get("default-port", None)
-        retrieve_resources = self.scenario.get("retrieve-resources", None)
+        retrieve_resources = self.scenario.get("retrieve-resources", True)
         concurrent_pull_size = self.scenario.get("concurrent-pull-size", 4)
 
         timeout = self.scenario.get("timeout", None)

@@ -61,7 +61,7 @@ scenarios:
     default-domain: "domain"  # http request defaults, server name
     default-port: 80  # http request defaults, port
     keepalive: true  # true by default, applied on all requests in scenario
-    retrieve-resources: true  # false by default, retrieves all embedded resources
+    retrieve-resources: true  # true by default, retrieves all embedded resources
     concurrent-pull-size: 10  # pull size for concurrent download, 4 by default
     data-sources: # list of external data sources
       - path/to/my.csv  # this is a shorthand form
