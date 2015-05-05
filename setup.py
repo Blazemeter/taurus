@@ -36,13 +36,16 @@ class InstallWithHook(install, object):
         self.__hook()
 
     def __hook(self):
-        dirname = os.getenv("VIRTUAL_ENV", "") + os.path.sep + "etc" + os.path.sep + "bzt.d"
-        sys.stdout.write("Creating %s" % dirname)
+        # can't refactor this out - otherwise Windows fails putting it into right place
+        dirname = os.getenv("VIRTUAL_ENV", "") if os.getenv("VIRTUAL_ENV", "") else os.path.splitdrive(__file__)[0]
+        dirname += os.path.sep + "etc" + os.path.sep + "bzt.d"
+        sys.stdout.write("Creating %s\n" % dirname)
         if not os.path.exists(dirname):
             os.makedirs(dirname)
+
         src = os.path.dirname(__file__)
         src += os.path.sep + "bzt" + os.path.sep + "10-base.json"
-        sys.stdout.write("Copying %s to %s" % (src, dirname))
+        sys.stdout.write("Copying %s to %s\n" % (src, dirname))
         shutil.copy(src, dirname + os.path.sep)
 
 
@@ -55,7 +58,7 @@ setup(
     url='https://github.com/Blazemeter/taurus/',
 
     install_requires=[
-        'pyyaml', 'psutil', 'colorlog', 'colorama', 'lxml', 'cssselect', 'urwid', 'six'
+        'pyyaml', 'psutil', 'colorlog', 'colorama', 'lxml >= 3.4.2', 'cssselect', 'urwid', 'six'
     ],
     packages=['bzt', 'bzt.modules'],
     entry_points={

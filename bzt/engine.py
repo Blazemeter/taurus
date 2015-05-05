@@ -131,7 +131,8 @@ class Engine(object):
     def __wait(self):
         self.log.info("Waiting for finish...")
         prev = time.time()
-        while not self.provisioning.check() and not self.aggregator.check() \
+        while not self.provisioning.check() \
+                and not self.aggregator.check() \
                 and not EngineModule.check_modules_list(self.reporters):
             now = time.time()
             diff = now - prev
@@ -149,8 +150,19 @@ class Engine(object):
         try:
             self.provisioning.shutdown()
             self.aggregator.shutdown()
+
+            exception = None
             for module in self.reporters:
-                module.shutdown()  # FIXME: same problem of not all reporters did shutdown
+                try:
+                    module.shutdown()
+                except BaseException as exc:
+                    self.log.error("Error while shutting down: %s", traceback.format_exc())
+                    self.stopping_reason = exc if not self.stopping_reason else self.stopping_reason
+                    if not exception:
+                        exception = exc
+
+                if exception:
+                    raise exception
         except BaseException as exc:
             self.log.error("Error while shutting down: %s", traceback.format_exc())
             self.stopping_reason = exc if not self.stopping_reason else self.stopping_reason
@@ -334,7 +346,8 @@ class Engine(object):
 
         # prepare base configs
         base_configs = []
-        machine_dir = os.getenv("VIRTUAL_ENV", "")  # respect virtualenv
+        # can't refactor machine_dir out - see setup.py
+        machine_dir = os.getenv("VIRTUAL_ENV", "") if os.getenv("VIRTUAL_ENV", "") else os.path.splitdrive(__file__)[0]
         machine_dir += os.path.sep + "etc" + os.path.sep + "bzt.d"
         if os.path.isdir(machine_dir):
             self.log.debug("Reading machine configs from: %s", machine_dir)

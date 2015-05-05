@@ -1,7 +1,10 @@
 # Changelog
 
 ## Next Version
-  - More info in console dashboard
+  - Require proper lxml version for install
+
+## 0.2.8
+  - Fix base config not found on Windows with multiple disks
 
 ## 0.2.1
   - Added pass/fail criteria report on console reporter.
