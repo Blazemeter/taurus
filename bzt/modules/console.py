@@ -703,9 +703,9 @@ class SampleLabelsColumns(Columns):
         self.avg_rt = SampleLabelsAvgRT()
 
         columns = [self.labels,
-                   (6, self.hits),
-                   (8, self.failed),
-                   (6, self.avg_rt)]
+                   (8, self.hits),
+                   (10, self.failed),
+                   (10, self.avg_rt)]
 
         super(SampleLabelsColumns, self).__init__(columns, dividechars=1)
         self.key = key
@@ -761,7 +761,7 @@ class SampleLabelsNames(ListBox, LabelTableColumn):
 class SampleLabelsHits(ListBox, LabelTableColumn):
     def __init__(self):
         super(SampleLabelsHits, self).__init__(SimpleListWalker([]))
-        self.header = Text(("stat-hdr", "Hits"), align=RIGHT)
+        self.header = Text(("stat-hdr", " Hits "), align=RIGHT)
         self.body.append(self.header)
 
     def add_data(self, data):
@@ -772,7 +772,7 @@ class SampleLabelsHits(ListBox, LabelTableColumn):
 class SampleLabelsFailed(ListBox, LabelTableColumn):
     def __init__(self):
         super(SampleLabelsFailed, self).__init__(SimpleListWalker([]))
-        self.header = Text(("stat-hdr", "Failures"), align=CENTER)
+        self.header = Text(("stat-hdr", " Failures "), align=CENTER)
         self.body.append(self.header)
 
     def add_data(self, data):
@@ -783,7 +783,7 @@ class SampleLabelsFailed(ListBox, LabelTableColumn):
 class SampleLabelsAvgRT(ListBox, LabelTableColumn):
     def __init__(self):
         super(SampleLabelsAvgRT, self).__init__(SimpleListWalker([]))
-        self.header = Text(("stat-hdr", "Avg Time"), align=RIGHT)
+        self.header = Text(("stat-hdr", " Avg Time "), align=RIGHT)
         self.body.append(self.header)
 
     def add_data(self, data):
@@ -810,7 +810,7 @@ class DetailedErrorString(ListBox):
         while len(self.body):
             self.body.pop(0)
 
-        self.body.append(Text(("stat-hdr", " Errors:"), align=LEFT))
+        self.body.append(Text(("stat-hdr", " Errors: "), align=LEFT))
         overall = data.get(self.key)
         errors = overall.get('').get(KPISet.ERRORS)
         err_descriptions = '; '.join([x.get('msg') for x in errors]) if errors else "No Errors."
