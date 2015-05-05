@@ -29,7 +29,6 @@ import mimetypes
 import itertools
 import zipfile
 import sys
-
 from psutil import Popen
 import six
 
@@ -561,7 +560,9 @@ def make_boundary(text=None):
     return b
 
 
-def base_configs_path():
-    path = os.getenv("VIRTUAL_ENV", "") if os.getenv("VIRTUAL_ENV", "") else os.path.splitdrive(__file__)[0]
-    path += os.path.sep + "etc" + os.path.sep + "bzt.d"
+def get_configs_dir():
+    path = os.getenv("VIRTUAL_ENV", "") \
+        if os.getenv("VIRTUAL_ENV", "") \
+        else os.path.splitdrive(sys.executable)[0]
+    path = os.path.join(path, os.path.sep, "etc", "bzt.d")  # os.path.join does not work for some reason
     return path

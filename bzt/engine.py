@@ -27,14 +27,13 @@ import tempfile
 import time
 import traceback
 from json import encoder
-
 import psutil
 import six
 import yaml
 from yaml.representer import SafeRepresenter
 
 from bzt import ManualShutdown, NormalShutdown
-from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, base_configs_path
+from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, get_configs_dir
 
 
 try:
@@ -226,7 +225,7 @@ class Engine(object):
             raise ValueError("Cannot create artifact: no artifacts_dir set up")
 
         diff = ""
-        base = self.artifacts_dir + os.path.sep + prefix
+        base = os.path.join(self.artifacts_dir, prefix)
         while os.path.exists(base + diff + suffix) or base + diff + suffix in self.__artifacts:
             if diff:
                 diff = "-%s" % (int(diff[1:]) + 1)
@@ -247,8 +246,7 @@ class Engine(object):
         :type move: bool
         """
         self.log.debug("Add existing artifact (move=%s): %s", move, filename)
-        newname = self.artifacts_dir
-        newname += os.path.sep + os.path.basename(filename)
+        newname = os.path.join(self.artifacts_dir, os.path.basename(filename))
         self.__artifacts.append(newname)
 
         if os.path.realpath(filename) == os.path.realpath(newname):
@@ -335,7 +333,7 @@ class Engine(object):
         if os.path.isfile(filename):
             return filename
         elif self.file_search_path:
-            location = self.file_search_path + os.path.sep + os.path.basename(filename)
+            location = os.path.join(self.file_search_path, os.path.basename(filename))
             self.log.warning("Guessed location for file %s: %s", filename, location)
             return location
         else:
@@ -347,17 +345,18 @@ class Engine(object):
 
         # prepare base configs
         base_configs = []
-        machine_dir = base_configs_path()
+        # can't refactor machine_dir out - see setup.py
+        machine_dir = get_configs_dir()
         if os.path.isdir(machine_dir):
             self.log.debug("Reading machine configs from: %s", machine_dir)
             for cfile in os.listdir(machine_dir):
-                fname = machine_dir + os.path.sep + cfile
+                fname = os.path.join(machine_dir, cfile)
                 if os.path.isfile(fname):
                     base_configs.append(fname)
         else:
             self.log.info("No machine configs dir: %s", machine_dir)
 
-        user_file = os.path.expanduser('~' + os.path.sep + ".bzt-rc")
+        user_file = os.path.expanduser(os.path.join('~', ".bzt-rc"))
         if os.path.isfile(user_file):
             self.log.debug("Adding personal config: %s", user_file)
             base_configs.append(user_file)

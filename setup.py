@@ -21,7 +21,7 @@ from setuptools import setup
 from setuptools.command.install import install
 
 import bzt
-from bzt import utils
+
 
 class InstallWithHook(install, object):
     """
@@ -36,13 +36,16 @@ class InstallWithHook(install, object):
         self.__hook()
 
     def __hook(self):
-        dirname = utils.base_configs_path()
-        sys.stdout.write("Creating %s" % dirname)
+        # can't refactor this out - otherwise Windows fails putting it into right place
+        from bzt import utils
+
+        dirname = utils.get_configs_dir()
+        sys.stdout.write("Creating %s\n" % dirname)
         if not os.path.exists(dirname):
             os.makedirs(dirname)
-        src = os.path.dirname(__file__)
-        src += os.path.sep + "bzt" + os.path.sep + "10-base.json"
-        sys.stdout.write("Copying %s to %s" % (src, dirname))
+
+        src = os.path.join(os.path.dirname(__file__), "bzt", "10-base.json")
+        sys.stdout.write("Copying %s to %s\n" % (src, dirname))
         shutil.copy(src, dirname + os.path.sep)
 
 

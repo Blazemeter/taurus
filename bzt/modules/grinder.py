@@ -22,15 +22,19 @@ import subprocess
 from subprocess import CalledProcessError
 import traceback
 import six
-import urwid
 import re
+import shutil
+
+import urwid
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
+
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
-from bzt.utils import shell_exec, ensure_is_dict
+
+from bzt.utils import shell_exec
 from bzt.utils import unzip, download_progress_hook, humanize_time
 from bzt.modules.console import WidgetProvider
-import shutil
+
 
 try:
     from urllib import FancyURLopener
@@ -142,8 +146,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.__write_bzt_props(fds)
 
         # FIXME: multi-grinder executions have different names
-        self.kpi_file = self.engine.artifacts_dir + os.path.sep
-        self.kpi_file += "grinder-bzt-kpi.log"
+        self.kpi_file = os.path.join(self.engine.artifacts_dir, "grinder-bzt-kpi.log")
 
         self.reader = DataLogReader(self.kpi_file, self.log)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
@@ -223,7 +226,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def __scenario_from_requests(self):
         script = self.engine.create_artifact("requests", ".py")
-        tpl = os.path.dirname(__file__) + os.path.sep + "grinder-requests.tpl"
+        tpl = os.path.join(os.path.dirname(__file__), "grinder-requests.tpl")
         self.log.debug("Generating grinder scenario: %s", tpl)
         with open(script, 'w') as fds:
             with open(tpl) as tds:
