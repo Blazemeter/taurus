@@ -29,9 +29,9 @@ import mimetypes
 import itertools
 import zipfile
 import sys
-
 from psutil import Popen
 import six
+import appdirs
 
 
 def run_once(f):
@@ -559,3 +559,11 @@ def make_boundary(text=None):
         b = boundary + '.' + str(counter)
         counter += 1
     return b
+
+
+def get_configs_dir():
+    path = os.getenv("VIRTUAL_ENV", "") \
+        if os.getenv("VIRTUAL_ENV", "") \
+        else os.path.splitdrive(sys.argv[0])[0]
+    appdirs
+    return path

@@ -37,14 +37,14 @@ class InstallWithHook(install, object):
 
     def __hook(self):
         # can't refactor this out - otherwise Windows fails putting it into right place
-        dirname = os.getenv("VIRTUAL_ENV", "") if os.getenv("VIRTUAL_ENV", "") else os.path.splitdrive(__file__)[0]
-        dirname += os.path.sep + "etc" + os.path.sep + "bzt.d"
+        from bzt import utils
+
+        dirname = utils.get_configs_dir()
         sys.stdout.write("Creating %s\n" % dirname)
         if not os.path.exists(dirname):
             os.makedirs(dirname)
 
-        src = os.path.dirname(__file__)
-        src += os.path.sep + "bzt" + os.path.sep + "10-base.json"
+        src = os.path.join(os.path.dirname(__file__), "bzt", "10-base.json")
         sys.stdout.write("Copying %s to %s\n" % (src, dirname))
         shutil.copy(src, dirname + os.path.sep)
 
