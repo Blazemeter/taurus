@@ -1,13 +1,10 @@
 # Changelog
 
-## Next Version
-
-
-## 0.2.10
+## 0.2.12
   - Added http request defaults options.
 
-## 0.2.9
-  - Another base config fix on Windows and minor changes in setup.py
+## 0.2.11
+  - Base config fix on Windows and minor changes in setup.py
 
 ## 0.2.8
   - Fix base config not found on Windows with multiple disks
