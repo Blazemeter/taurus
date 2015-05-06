@@ -246,7 +246,7 @@ class TestJMeterExecutor(BZTestCase):
         shaper_elements = xml_tree.findall(
             ".//kg.apc.jmeter.timers.VariableThroughputTimer[@testclass='kg.apc.jmeter.timers.VariableThroughputTimer']")
         self.assertEqual(1, len(shaper_elements))
-        shaper_coll_element = shaper_elements[0].find(".//collectionProp[@name='load_profile']")
+        # shaper_coll_element = shaper_elements[0].find(".//collectionProp[@name='load_profile']")
 
         # self.assertEqual("100", shaper_coll_element.findall(".//stringProp[@name='49']")[0].text)
         # self.assertEqual("100", shaper_coll_element.findall(".//stringProp[@name='1567']")[0].text)
