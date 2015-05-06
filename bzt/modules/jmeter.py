@@ -106,7 +106,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         load = self.get_load()
         self.modified_jmx = self.__get_modified_jmx(self.original_jmx, load)
-
+        self.resource_files()
         props = self.settings.get("properties")
         props_local = scenario.get("properties")
         props.merge(props_local)
