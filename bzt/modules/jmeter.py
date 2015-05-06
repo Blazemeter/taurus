@@ -583,23 +583,19 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 self.file_name = file_name
                 self.lib_name = '-'.join(file_name.split('-')[:-1])
 
-        fs_objects = os.listdir(path)
-        jars = [file for file in fs_objects if os.path.isfile(os.path.join(path, file))]
-        jars = [JarLib(x) for x in list(filter(lambda x: '-' in x, jars))]
+        jars = [JarLib(file) for file in os.listdir(path) if '-' in file and os.path.isfile(os.path.join(path, file))]
         duplicated_libraries = []
         for jar_lib_obj in jars:
-            if jar_lib_obj.lib_name != '':
-                similar_packages = tuple(
-                    [LooseVersion(x.file_name) for x in filter(lambda x: x.lib_name == jar_lib_obj.lib_name, jars)])
-                if len(similar_packages) > 1:
-                    duplicated_libraries.append(similar_packages)
-        remove_list = []
-        for lib_tuple in duplicated_libraries:
-            right_version = max(lib_tuple)
-            remove_list.extend([x.vstring for x in lib_tuple if x != right_version and x not in remove_list])
-        for remove_file_name in remove_list:
-            os.remove(os.path.join(path, remove_file_name))
-            self.log.debug("Old jar removed %s" % remove_file_name)
+            similar_packages = [LooseVersion(x.file_name) for x in
+                                filter(lambda x: x.lib_name == jar_lib_obj.lib_name, jars)]
+            if len(similar_packages) > 1:
+                right_version = max(similar_packages)
+                similar_packages.remove(right_version)
+                duplicated_libraries.extend(filter(lambda x: x not in duplicated_libraries, similar_packages))
+
+        for remove_file_name in duplicated_libraries:
+            os.remove(os.path.join(path, remove_file_name.vstring))
+            self.log.debug("Old jar removed %s" % remove_file_name.vstring)
 
 
 class JMX(object):
