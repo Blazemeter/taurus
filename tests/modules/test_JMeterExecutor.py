@@ -215,4 +215,43 @@ class TestJMeterExecutor(BZTestCase):
         for request in requests:
             self.assertEqual("false", request.find(".//boolProp[@name='HTTPSampler.use_keepalive']").text)
 
+    def test_add_shaper_constant(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = BetterDict()
+        obj.engine.config.merge(yaml.load(open("tests/yaml/throughput_constant.yml").read()))
+        obj.engine.config.merge({"provisioning": "local"})
+        obj.execution = obj.engine.config['execution']
+        obj.prepare()
+        xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        shaper_elements = xml_tree.findall(
+            ".//kg.apc.jmeter.timers.VariableThroughputTimer[@testclass='kg.apc.jmeter.timers.VariableThroughputTimer']")
+        self.assertEqual(1, len(shaper_elements))
+        shaper_coll_element = shaper_elements[0].find(".//collectionProp[@name='load_profile']")
 
+        self.assertEqual("100", shaper_coll_element.find(".//stringProp[@name='49']").text)
+        self.assertEqual("100", shaper_coll_element.find(".//stringProp[@name='1567']").text)
+        self.assertEqual("60", shaper_coll_element.find(".//stringProp[@name='53']").text)
+
+
+    def test_add_shaper_ramp_up(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = BetterDict()
+        obj.engine.config.merge(yaml.load(open("tests/yaml/throughput_ramp_up.yml").read()))
+        obj.engine.config.merge({"provisioning": "local"})
+        obj.execution = obj.engine.config['execution']
+        obj.prepare()
+        xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        shaper_elements = xml_tree.findall(
+            ".//kg.apc.jmeter.timers.VariableThroughputTimer[@testclass='kg.apc.jmeter.timers.VariableThroughputTimer']")
+        self.assertEqual(1, len(shaper_elements))
+        shaper_coll_element = shaper_elements[0].find(".//collectionProp[@name='load_profile']")
+
+        self.assertEqual("1", shaper_coll_element.findall(".//stringProp[@name='49']")[0].text)
+        self.assertEqual("10", shaper_coll_element.findall(".//stringProp[@name='1567']")[0].text)
+        self.assertEqual("60", shaper_coll_element.findall(".//stringProp[@name='53']")[0].text)
+
+        self.assertEqual("10", shaper_coll_element.findall(".//stringProp[@name='49']")[1].text)
+        self.assertEqual("10", shaper_coll_element.findall(".//stringProp[@name='1567']")[1].text)
+        self.assertEqual("120", shaper_coll_element.findall(".//stringProp[@name='53']")[1].text)
