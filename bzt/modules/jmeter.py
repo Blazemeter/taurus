@@ -15,7 +15,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-from collections import Counter
+from collections import Counter, namedtuple
 import os
 import platform
 import subprocess
@@ -577,25 +577,22 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         Remove old jars
         """
+        JarLib = namedtuple("JarLib", ("file_name", "lib_name"))
+        jars = [file for file in os.listdir(path) if '-' in file and os.path.isfile(os.path.join(path, file))]
+        jar_libs = [JarLib(file_name=jar, lib_name='-'.join(jar.split('-')[:-1])) for jar in jars]
 
-        class JarLib:
-            def __init__(self, file_name):
-                self.file_name = file_name
-                self.lib_name = '-'.join(file_name.split('-')[:-1])
-
-        jars = [JarLib(file) for file in os.listdir(path) if '-' in file and os.path.isfile(os.path.join(path, file))]
         duplicated_libraries = []
-        for jar_lib_obj in jars:
+        for jar_lib_obj in jar_libs:
             similar_packages = [LooseVersion(x.file_name) for x in
-                                filter(lambda x: x.lib_name == jar_lib_obj.lib_name, jars)]
+                                filter(lambda x: x.lib_name == jar_lib_obj.lib_name, jar_libs)]
             if len(similar_packages) > 1:
                 right_version = max(similar_packages)
                 similar_packages.remove(right_version)
                 duplicated_libraries.extend(filter(lambda x: x not in duplicated_libraries, similar_packages))
 
-        for remove_file_name in duplicated_libraries:
-            os.remove(os.path.join(path, remove_file_name.vstring))
-            self.log.debug("Old jar removed %s" % remove_file_name.vstring)
+        for old_lib in duplicated_libraries:
+            os.remove(os.path.join(path, old_lib.vstring))
+            self.log.debug("Old jar removed %s" % old_lib.vstring)
 
 
 class JMX(object):
