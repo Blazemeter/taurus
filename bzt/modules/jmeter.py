@@ -263,9 +263,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if load.throughput:
             etree_shaper = JMX._get_rps_shaper()
             if load.ramp_up:
-                const_load = load.throughput - load.throughput * (load.ramp_up / load.hold)
-                JMX._add_rps_shaper_schedule(etree_shaper, const_load, const_load, load.hold)
-                JMX._add_rps_shaper_schedule(etree_shaper, const_load, load.throughput, load.ramp_up)
+                JMX._add_rps_shaper_schedule(etree_shaper, 1, load.throughput, load.ramp_up)
+                JMX._add_rps_shaper_schedule(etree_shaper, load.throughput, load.throughput, load.hold)
             else:
                 JMX._add_rps_shaper_schedule(etree_shaper, load.throughput, load.throughput, load.hold)
 
