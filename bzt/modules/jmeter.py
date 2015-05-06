@@ -796,7 +796,7 @@ class JMX(object):
                              testclass="Arguments")
 
     @staticmethod
-    def _get_http_request(url, label, method, timeout, body):
+    def _get_http_request(url, label, method, timeout, body, keepalive):
         """
         Generates HTTP request
         :type timeout: float
@@ -834,7 +834,7 @@ class JMX(object):
 
         proxy.append(JMX._string_prop("HTTPSampler.path", url))
         proxy.append(JMX._string_prop("HTTPSampler.method", method))
-        proxy.append(JMX._bool_prop("HTTPSampler.use_keepalive", True))  # TODO: parameterize it
+        proxy.append(JMX._bool_prop("HTTPSampler.use_keepalive", keepalive))
 
         if timeout is not None:
             proxy.append(JMX._string_prop("HTTPSampler.connect_timeout", timeout))
@@ -1006,7 +1006,7 @@ class JMX(object):
         return mgr
 
     @staticmethod
-    def _get_http_defaults(timeout):
+    def _get_http_defaults(default_domain_name, default_port, timeout, retrieve_resources, concurrent_pool_size=4):
         """
 
         :type timeout: int
@@ -1019,12 +1019,18 @@ class JMX(object):
                                name="HTTPsampler.Arguments",
                                elementType="Arguments",
                                guiclass="HTTPArgumentsPanel",
-                               testclass="Arguments")
+                               testclass="Arguments", testname="user_defined")
         cfg.append(params)
+        if retrieve_resources:
+            cfg.append(JMX._bool_prop("HTTPSampler.image_parser", True))
+            cfg.append(JMX._bool_prop("HTTPSampler.concurrentDwn", True))
+            if concurrent_pool_size:
+                cfg.append(JMX._string_prop("HTTPSampler.concurrentPool", concurrent_pool_size))
 
-        # TODO: have an option for it, with full features (include/exclude, concurrency, etc)
-        cfg.append(JMX._bool_prop("HTTPSampler.image_parser", True))
-
+        if default_domain_name:
+            cfg.append(JMX._string_prop("HTTPSampler.domain", default_domain_name))
+        if default_port:
+            cfg.append(JMX._string_prop("HTTPSampler.port", default_port))
         if timeout:
             cfg.append(JMX._string_prop("HTTPSampler.connect_timeout", timeout))
             cfg.append(JMX._string_prop("HTTPSampler.response_timeout", timeout))
@@ -1489,13 +1495,16 @@ class JMeterScenarioBuilder(JMX):
 
         :return:
         """
-        # TODO: default hostname and port
+        default_domain = self.scenario.get("default-domain", None)
+        default_port = self.scenario.get("default-port", None)
+        retrieve_resources = self.scenario.get("retrieve-resources", True)
+        concurrent_pool_size = self.scenario.get("concurrent-pool-size", 4)
 
         timeout = self.scenario.get("timeout", None)
-
-        if timeout is not None:
-            self.append(self.TEST_PLAN_SEL, self._get_http_defaults(int(1000 * dehumanize_time(timeout))))
-            self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
+        timeout = int(1000 * dehumanize_time(timeout))
+        self.append(self.TEST_PLAN_SEL, self._get_http_defaults(default_domain, default_port, timeout,
+                                                                retrieve_resources, concurrent_pool_size))
+        self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
 
     def __add_think_time(self, children, request):
         global_ttime = self.scenario.get("think-time", None)
@@ -1557,6 +1566,7 @@ class JMeterScenarioBuilder(JMX):
 
     def __add_requests(self):
         global_timeout = self.scenario.get("timeout", None)
+        global_keepalive = self.scenario.get("keepalive", True)
 
         for request in self.scenario.get_requests():
             if request.timeout is not None:
@@ -1566,7 +1576,8 @@ class JMeterScenarioBuilder(JMX):
             else:
                 timeout = None
 
-            http = JMX._get_http_request(request.url, request.label, request.method, timeout, request.body)
+            http = JMX._get_http_request(request.url, request.label, request.method, timeout, request.body,
+                                         global_keepalive)
             self.append(self.THR_GROUP_SEL, http)
 
             children = etree.Element("hashTree")
