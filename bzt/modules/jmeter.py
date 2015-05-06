@@ -15,7 +15,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-from collections import Counter
+from collections import Counter, namedtuple
 import os
 import platform
 import subprocess
@@ -28,6 +28,7 @@ import six
 import shutil
 
 from cssselect import GenericTranslator
+from distutils.version import LooseVersion
 import urwid
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
@@ -567,8 +568,31 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             unzip(plugin_dist, dest)
             os.remove(plugin_dist)
 
+        self.__remove_old_jar_versions(os.path.join(dest, 'lib'))
+
         self.log.info("Installed JMeter and Plugins successfully")
         return jmeter
+
+    def __remove_old_jar_versions(self, path):
+        """
+        Remove old jars
+        """
+        JarLib = namedtuple("JarLib", ("file_name", "lib_name"))
+        jars = [file for file in os.listdir(path) if '-' in file and os.path.isfile(os.path.join(path, file))]
+        jar_libs = [JarLib(file_name=jar, lib_name='-'.join(jar.split('-')[:-1])) for jar in jars]
+
+        duplicated_libraries = []
+        for jar_lib_obj in jar_libs:
+            similar_packages = [LooseVersion(x.file_name) for x in
+                                filter(lambda x: x.lib_name == jar_lib_obj.lib_name, jar_libs)]
+            if len(similar_packages) > 1:
+                right_version = max(similar_packages)
+                similar_packages.remove(right_version)
+                duplicated_libraries.extend(filter(lambda x: x not in duplicated_libraries, similar_packages))
+
+        for old_lib in duplicated_libraries:
+            os.remove(os.path.join(path, old_lib.vstring))
+            self.log.debug("Old jar removed %s" % old_lib.vstring)
 
 
 class JMX(object):
