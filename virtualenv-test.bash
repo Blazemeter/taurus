@@ -16,7 +16,9 @@ virtualenv --clear --system-site-packages build
 source build/bin/activate
 
 # run installation test
-pip -v install dist/bzt-*.tar.gz
+cd build # cd is to make it not find bzt package from sources
+pip -v install ../dist/bzt-*.tar.gz
+cd ..
 
 # run functional tests
 bzt -o execution.scenario.script=tests/jmx/dummy.jmx -d build/test -o modules.jmeter.path=build/jmeter/bin/jmeter
