@@ -263,10 +263,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if load.throughput:
             etree_shaper = JMX._get_rps_shaper()
             if load.ramp_up:
-                JMX._add_rps_shaper_schedule(etree_shaper, load.throughput, load.throughput, load.hold)
-                JMX._add_rps_shaper_schedule(etree_shaper, load.throughput,
-                                             load.throughput + load.throughput * (load.ramp_up / load.hold),
-                                             load.ramp_up)
+                const_load = load.throughput - load.throughput * (load.ramp_up / load.hold)
+                JMX._add_rps_shaper_schedule(etree_shaper, const_load, const_load, load.hold)
+                JMX._add_rps_shaper_schedule(etree_shaper, const_load, load.throughput, load.ramp_up)
             else:
                 JMX._add_rps_shaper_schedule(etree_shaper, load.throughput, load.throughput, load.hold)
 
@@ -970,9 +969,9 @@ class JMX(object):
     def _add_rps_shaper_schedule(shaper_etree, start_rps, end_rps, duration):
         shaper_collection = shaper_etree.find(".//collectionProp[@name='load_profile']")
         coll_prop = JMX._collection_prop("1817389797")
-        start_rps_prop = JMX._string_prop("49", start_rps)
-        end_rps_prop = JMX._string_prop("1567", end_rps)
-        duration_prop = JMX._string_prop("53", duration)
+        start_rps_prop = JMX._string_prop("49", int(start_rps))
+        end_rps_prop = JMX._string_prop("1567", int(end_rps))
+        duration_prop = JMX._string_prop("53", int(duration))
         coll_prop.append(start_rps_prop)
         coll_prop.append(end_rps_prop)
         coll_prop.append(duration_prop)
