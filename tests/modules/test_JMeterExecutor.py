@@ -246,12 +246,12 @@ class TestJMeterExecutor(BZTestCase):
         shaper_elements = xml_tree.findall(
             ".//kg.apc.jmeter.timers.VariableThroughputTimer[@testclass='kg.apc.jmeter.timers.VariableThroughputTimer']")
         self.assertEqual(1, len(shaper_elements))
-        # shaper_coll_element = shaper_elements[0].find(".//collectionProp[@name='load_profile']")
+        shaper_coll_element = shaper_elements[0].find(".//collectionProp[@name='load_profile']")
 
-        # self.assertEqual("100", shaper_coll_element.findall(".//stringProp[@name='49']")[0].text)
-        # self.assertEqual("100", shaper_coll_element.findall(".//stringProp[@name='1567']")[0].text)
-        # self.assertEqual("60.0", shaper_coll_element.findall(".//stringProp[@name='53']")[0].text)
+        self.assertEqual("1", shaper_coll_element.findall(".//stringProp[@name='49']")[0].text)
+        self.assertEqual("10", shaper_coll_element.findall(".//stringProp[@name='1567']")[0].text)
+        self.assertEqual("60", shaper_coll_element.findall(".//stringProp[@name='53']")[0].text)
 
-        # self.assertEqual("100", shaper_coll_element.findall(".//stringProp[@name='49']")[1].text)
-        # self.assertEqual("125.0", shaper_coll_element.findall(".//stringProp[@name='1567']")[1].text)
-        # self.assertEqual("15.0", shaper_coll_element.findall(".//stringProp[@name='53']")[1].text)
+        self.assertEqual("10", shaper_coll_element.findall(".//stringProp[@name='49']")[1].text)
+        self.assertEqual("10", shaper_coll_element.findall(".//stringProp[@name='1567']")[1].text)
+        self.assertEqual("120", shaper_coll_element.findall(".//stringProp[@name='53']")[1].text)

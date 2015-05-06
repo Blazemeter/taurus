@@ -2,6 +2,7 @@
 
 ## 0.2.12
   - Added http request defaults options.
+  - Added support of RPS shaper component
 
 ## 0.2.11
   - Base config fix on Windows and minor changes in setup.py

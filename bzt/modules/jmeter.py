@@ -261,12 +261,12 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
 
         if load.throughput:
-            etree_shaper = JMX._get_rps_shaper()
+            etree_shaper = jmx.get_rps_shaper()
             if load.ramp_up:
-                JMX._add_rps_shaper_schedule(etree_shaper, 1, load.throughput, load.ramp_up)
-                JMX._add_rps_shaper_schedule(etree_shaper, load.throughput, load.throughput, load.hold)
+                jmx.add_rps_shaper_schedule(etree_shaper, 1, load.throughput, load.ramp_up)
+                jmx.add_rps_shaper_schedule(etree_shaper, load.throughput, load.throughput, load.hold)
             else:
-                JMX._add_rps_shaper_schedule(etree_shaper, load.throughput, load.throughput, load.hold)
+                jmx.add_rps_shaper_schedule(etree_shaper, load.throughput, load.throughput, load.hold)
 
             jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree_shaper)
             jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
@@ -943,8 +943,7 @@ class JMX(object):
 
         return trg
 
-    @staticmethod
-    def _get_rps_shaper():
+    def get_rps_shaper(self):
         """
 
         :param start_rps: int rps
@@ -958,19 +957,18 @@ class JMX(object):
                                                  testclass="kg.apc.jmeter.timers.VariableThroughputTimer",
                                                  testname="jp@gc - Throughput Shaping Timer",
                                                  enabled="true")
-        shaper_load_prof = JMX._collection_prop("load_profile")
+        shaper_load_prof = self._collection_prop("load_profile")
 
         throughput_timer_element.append(shaper_load_prof)
 
         return throughput_timer_element
 
-    @staticmethod
-    def _add_rps_shaper_schedule(shaper_etree, start_rps, end_rps, duration):
+    def add_rps_shaper_schedule(self, shaper_etree, start_rps, end_rps, duration):
         shaper_collection = shaper_etree.find(".//collectionProp[@name='load_profile']")
-        coll_prop = JMX._collection_prop("1817389797")
-        start_rps_prop = JMX._string_prop("49", int(start_rps))
-        end_rps_prop = JMX._string_prop("1567", int(end_rps))
-        duration_prop = JMX._string_prop("53", int(duration))
+        coll_prop = self._collection_prop("1817389797")
+        start_rps_prop = self._string_prop("49", int(start_rps))
+        end_rps_prop = self._string_prop("1567", int(end_rps))
+        duration_prop = self._string_prop("53", int(duration))
         coll_prop.append(start_rps_prop)
         coll_prop.append(end_rps_prop)
         coll_prop.append(duration_prop)
