@@ -477,7 +477,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             else:
                 raise ValueError("Unsupported JMX modification action: %s" % action)
 
-    def __jmeter(self, jmeter):
+    def __jmeter_check(self, jmeter):
         """
         Try to execute JMeter
         """
@@ -494,7 +494,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.settings['path'] = jmeter  # set back after expanding ~
 
         try:
-            self.__jmeter(jmeter)
+            self.__jmeter_check(jmeter)
             return
         except (OSError, CalledProcessError):
             self.log.debug("Failed to run JMeter: %s", traceback.format_exc())
@@ -505,7 +505,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 self.log.warning("Failed to run java: %s", traceback.format_exc())
                 raise RuntimeError("The 'java' is not operable or not available. Consider installing it")
             self.settings['path'] = self.__install_jmeter(jmeter)
-            self.__jmeter(self.settings['path'])
+            self.__jmeter_check(self.settings['path'])
 
     def __install_jmeter(self, path):
         """
@@ -523,7 +523,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         dest = os.path.abspath(dest)
         jmeter = os.path.join(dest, "bin", "jmeter" + exe_suffix)
         try:
-            self.__jmeter(jmeter)
+            self.__jmeter_check(jmeter)
             return jmeter
         except OSError:
             self.log.info("Will try to install JMeter into %s", dest)

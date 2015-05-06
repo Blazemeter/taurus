@@ -40,12 +40,12 @@ class InstallWithHook(install, object):
         from bzt import utils
 
         dirname = utils.get_configs_dir()
-        sys.stdout.write("Creating %s\n" % dirname)
+        sys.stdout.write("[%s] Creating %s\n" % (bzt.version, dirname))
         if not os.path.exists(dirname):
             os.makedirs(dirname)
 
         src = os.path.join(os.path.dirname(__file__), "bzt", "10-base.json")
-        sys.stdout.write("Copying %s to %s\n" % (src, dirname))
+        sys.stdout.write("[%s] Copying %s to %s\n" % (bzt.version, src, dirname))
         shutil.copy(src, dirname + os.path.sep)
 
 
