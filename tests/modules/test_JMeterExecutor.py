@@ -193,3 +193,26 @@ class TestJMeterExecutor(BZTestCase):
         artifacts = os.listdir(obj.engine.artifacts_dir)
         self.assertEqual(len(res_files), 1)
         self.assertEqual(len(artifacts), 1)
+
+    def test_http_request_defaults(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = json.loads(open("tests/json/get-post.json").read())
+        obj.execution = obj.engine.config['execution']
+        obj.prepare()
+        xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        default_elements = xml_tree.findall(".//ConfigTestElement[@testclass='ConfigTestElement']")
+        self.assertEqual(1, len(default_elements))
+
+        default_element = default_elements[0]
+        self.assertEqual("localhost", default_element.find(".//stringProp[@name='HTTPSampler.domain']").text)
+        self.assertEqual("80", default_element.find(".//stringProp[@name='HTTPSampler.port']").text)
+        self.assertEqual("true", default_element.find(".//boolProp[@name='HTTPSampler.image_parser']").text)
+        self.assertEqual("true", default_element.find(".//boolProp[@name='HTTPSampler.concurrentDwn']").text)
+        self.assertEqual("10", default_element.find(".//stringProp[@name='HTTPSampler.concurrentPool']").text)
+        # all keepalives in requests are disabled
+        requests = xml_tree.findall(".//HTTPSamplerProxy[@testclass='HTTPSamplerProxy']")
+        for request in requests:
+            self.assertEqual("false", request.find(".//boolProp[@name='HTTPSampler.use_keepalive']").text)
+
+
