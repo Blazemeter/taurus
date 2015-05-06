@@ -28,6 +28,7 @@ import six
 import shutil
 
 from cssselect import GenericTranslator
+from distutils.version import LooseVersion
 import urwid
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
@@ -567,8 +568,38 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             unzip(plugin_dist, dest)
             os.remove(plugin_dist)
 
+        self.__remove_old_jar_versions(os.path.join(dest, 'lib'))
+
         self.log.info("Installed JMeter and Plugins successfully")
         return jmeter
+
+    def __remove_old_jar_versions(self, path):
+        """
+        Remove old jars
+        """
+
+        class JarLib:
+            def __init__(self, file_name):
+                self.file_name = file_name
+                self.lib_name = '-'.join(file_name.split('-')[:-1])
+
+        fs_objects = os.listdir(path)
+        jars = [file for file in fs_objects if os.path.isfile(os.path.join(path, file))]
+        jars = [JarLib(x) for x in list(filter(lambda x: '-' in x, jars))]
+        duplicated_libraries = []
+        for jar_lib_obj in jars:
+            if jar_lib_obj.lib_name != '':
+                similar_packages = tuple(
+                    [LooseVersion(x.file_name) for x in filter(lambda x: x.lib_name == jar_lib_obj.lib_name, jars)])
+                if len(similar_packages) > 1:
+                    duplicated_libraries.append(similar_packages)
+        remove_list = []
+        for lib_tuple in duplicated_libraries:
+            right_version = max(lib_tuple)
+            remove_list.extend([x.vstring for x in lib_tuple if x != right_version and x not in remove_list])
+        for remove_file_name in remove_list:
+            os.remove(os.path.join(path, remove_file_name))
+            self.log.debug("Old jar removed %s" % remove_file_name)
 
 
 class JMX(object):

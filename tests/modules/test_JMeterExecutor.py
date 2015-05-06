@@ -140,6 +140,11 @@ class TestJMeterExecutor(BZTestCase):
         obj.execution.merge({"scenario": {"requests": []}})
 
         obj.prepare()
+        jars = os.listdir(os.path.abspath(os.path.join(path, '../../lib')))
+        old_jars = ['httpcore-4.2.5.jar', 'httpmime-4.2.6.jar', 'xercesImpl-2.9.1.jar', 'commons-jexl-1.1.jar',
+                    'httpclient-4.2.6.jar']
+        for old_jar in old_jars:
+            self.assertNotIn(old_jar, jars)
 
         self.assertTrue(os.path.exists(path))
 
