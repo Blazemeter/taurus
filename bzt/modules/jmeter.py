@@ -260,12 +260,12 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :return:
         """
 
-        if load.throughput:
+        if load.throughput and load.duration:
             etree_shaper = jmx.get_rps_shaper()
             if load.ramp_up:
                 jmx.add_rps_shaper_schedule(etree_shaper, 1, load.throughput, load.ramp_up)
-                jmx.add_rps_shaper_schedule(etree_shaper, load.throughput, load.throughput, load.hold)
-            else:
+
+            if load.hold:
                 jmx.add_rps_shaper_schedule(etree_shaper, load.throughput, load.throughput, load.hold)
 
             jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree_shaper)
@@ -946,9 +946,6 @@ class JMX(object):
     def get_rps_shaper(self):
         """
 
-        :param start_rps: int rps
-        :param end_rps: int rps
-        :param duration: int seconds
         :return: etree.Element
         """
 
