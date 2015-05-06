@@ -253,7 +253,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def __add_shaper(self, jmx, load):
         """
-
+        Adds shaper
         :param jmx:
         :param load: namedtuple("LoadSpec",
                          ('concurrency', "throughput", 'ramp_up', 'hold', 'iterations', 'duration'))
@@ -261,12 +261,16 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
 
         if load.throughput:
+            etree_shaper = JMX._get_rps_shaper()
             if load.ramp_up:
-                new_shaper_element = JMX._get_rps_shaper(1, load.throughput, load.duration)
+                JMX._add_rps_shaper_schedule(etree_shaper, load.throughput, load.throughput, load.hold)
+                JMX._add_rps_shaper_schedule(etree_shaper, load.throughput,
+                                             load.throughput + load.throughput * (load.ramp_up / load.hold),
+                                             load.ramp_up)
             else:
-                new_shaper_element = JMX._get_rps_shaper(load.throughput, load.throughput, load.duration)
+                JMX._add_rps_shaper_schedule(etree_shaper, load.throughput, load.throughput, load.hold)
 
-            jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, new_shaper_element)
+            jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree_shaper)
             jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
 
     def __disable_listeners(self, jmx):
@@ -942,7 +946,7 @@ class JMX(object):
         return trg
 
     @staticmethod
-    def _get_rps_shaper(start_rps, end_rps, duration):
+    def _get_rps_shaper():
         """
 
         :param start_rps: int rps
@@ -957,6 +961,14 @@ class JMX(object):
                                                  testname="jp@gc - Throughput Shaping Timer",
                                                  enabled="true")
         shaper_load_prof = JMX._collection_prop("load_profile")
+
+        throughput_timer_element.append(shaper_load_prof)
+
+        return throughput_timer_element
+
+    @staticmethod
+    def _add_rps_shaper_schedule(shaper_etree, start_rps, end_rps, duration):
+        shaper_collection = shaper_etree.find(".//collectionProp[@name='load_profile']")
         coll_prop = JMX._collection_prop("1817389797")
         start_rps_prop = JMX._string_prop("49", start_rps)
         end_rps_prop = JMX._string_prop("1567", end_rps)
@@ -964,11 +976,7 @@ class JMX(object):
         coll_prop.append(start_rps_prop)
         coll_prop.append(end_rps_prop)
         coll_prop.append(duration_prop)
-
-        shaper_load_prof.append(coll_prop)
-        throughput_timer_element.append(shaper_load_prof)
-
-        return throughput_timer_element
+        shaper_collection.append(coll_prop)
 
 
     @staticmethod
