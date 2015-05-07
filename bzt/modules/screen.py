@@ -18,6 +18,8 @@ from Tkinter import Tk, Text
 import Tkinter
 import logging
 import re
+import tkFont
+import math
 
 from urwid import BaseScreen
 
@@ -67,7 +69,8 @@ class GUIScreen(BaseScreen):
     def __init__(self):
         super(GUIScreen, self).__init__()
         self.root = None
-        self.size = (0, 0)
+        self.size = (146, 50)
+        self.title = "Taurus Status"
 
     def get_cols_rows(self):
         """
@@ -80,10 +83,11 @@ class GUIScreen(BaseScreen):
     def _start(self):
         super(GUIScreen, self)._start()
         self.root = Tk()
-        self.root.geometry("800x600")
+        self.root.geometry("%sx%s" % (self.size[0] * 7, self.size[1] * 15))
         self.root.bind("<Configure>", self.resize)
         self.root.protocol("WM_DELETE_WINDOW", self.closed_window)
-        self.text = Text(self.root)
+        self.text = Text(self.root, font="TkFixedFont", wrap=Tkinter.NONE)
+        self.text.pack(side=Tkinter.LEFT, fill=Tkinter.BOTH, expand=Tkinter.YES)
 
     def _stop(self):
         if self.root:
@@ -91,8 +95,14 @@ class GUIScreen(BaseScreen):
         super(GUIScreen, self)._stop()
 
     def resize(self, event):
-        logging.debug("Resized %s x %s", event.width, event.height)
-        self.size = (int(event.width / 10), int(event.height / 10))
+        font = tkFont.Font(self.root, self.text.cget("font"))
+        (cwdth, chght) = (font.measure(' '), font.metrics("linespace"))
+        logging.debug("Font: %s", (cwdth, chght))
+
+        width = int(math.floor((self.text.winfo_width() - float(cwdth) / 2) / float(cwdth)))
+        height = int(math.floor(self.text.winfo_height() / float(chght)))
+        self.size = (width, height)
+        self.root.title(self.title + " %sx%s" % self.size)
 
     def closed_window(self):
         self.root.destroy()
@@ -116,6 +126,4 @@ class GUIScreen(BaseScreen):
         if self.root:
             self.text.delete("1.0", Tkinter.END)
             self.text.insert(Tkinter.END, data)
-            self.text.pack()
             self.root.update()
-

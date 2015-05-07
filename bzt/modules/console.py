@@ -73,7 +73,8 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
 
         if True or sys.stdout.isatty():  # FIXME: remove
             self.screen = Screen()
-            # self.__detect_console_logger() FIXME: restore it
+            if platform.system() != 'Windows':
+                self.__detect_console_logger()
         else:
             cols = self.settings.get('dummy-cols', self.screen_size[0])
             rows = self.settings.get('dummy-rows', self.screen_size[1])
@@ -110,7 +111,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
                 self.log.debug("Overriding logging stream")
                 self.logger_handler.stream = self.temp_stream
             else:
-                self.log.warning("Failed to mute console logging")
+                self.log.debug("Did not mute console logging")
 
             self.screen.start()
             self.log.info("Waiting for finish...")
