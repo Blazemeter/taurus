@@ -14,6 +14,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+from Tkinter import Tk, Text
+import Tkinter
 import logging
 import re
 
@@ -58,8 +60,14 @@ class DummyScreen(BaseScreen):
 
 
 class GUIScreen(BaseScreen):
+    """
+    :type root: Tk
+    """
+
     def __init__(self):
         super(GUIScreen, self).__init__()
+        self.root = None
+        self.size = (0, 0)
 
     def get_cols_rows(self):
         """
@@ -67,14 +75,28 @@ class GUIScreen(BaseScreen):
 
         :return:
         """
-        return (100, 100)
-
-    def _stop(self):
-
-        super(GUIScreen, self)._stop()
+        return self.size
 
     def _start(self):
         super(GUIScreen, self)._start()
+        self.root = Tk()
+        self.root.geometry("800x600")
+        self.root.bind("<Configure>", self.resize)
+        self.root.protocol("WM_DELETE_WINDOW", self.closed_window)
+        self.text = Text(self.root)
+
+    def _stop(self):
+        if self.root:
+            self.root.destroy()
+        super(GUIScreen, self)._stop()
+
+    def resize(self, event):
+        logging.debug("Resized %s x %s", event.width, event.height)
+        self.size = (int(event.width / 10), int(event.height / 10))
+
+    def closed_window(self):
+        self.root.destroy()
+        self.root = None
 
     def draw_screen(self, size, canvas):
         """
@@ -91,6 +113,9 @@ class GUIScreen(BaseScreen):
                 else:
                     line += part[2].decode()
             data += "%s\n" % line
-        logging.info("Screen %sx%s chars:\n%s", size[0], size[1], data)
-
+        if self.root:
+            self.text.delete("1.0", Tkinter.END)
+            self.text.insert(Tkinter.END, data)
+            self.text.pack()
+            self.root.update()
 
