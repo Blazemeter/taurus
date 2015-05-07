@@ -20,7 +20,8 @@ class TestCanvas(Canvas):
 
 class TestGUIScreen(TestCase):
     def test_draw_screen(self):
-        canvas = TestCanvas([[(x[0], None, x[0] + "\n") for x in TaurusConsole.palette]])
+        lines = [((x[0], None, "%s\n" % x[0]),) for x in TaurusConsole.palette]
+        canvas = TestCanvas(lines)
 
         obj = GUIScreen()
         obj.register_palette(TaurusConsole.palette)
