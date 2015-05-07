@@ -24,6 +24,8 @@ import math
 
 from urwid import BaseScreen
 
+from bzt import ManualShutdown
+
 
 class DummyScreen(BaseScreen):
     """
@@ -118,16 +120,15 @@ class GUIScreen(BaseScreen):
         :type canvas: urwid.Canvas
         """
         if not self.root:
-            return
+            raise ManualShutdown("GUI window was closed")
 
-            # enable changes
+        # enable changes
         self.text.config(state=Tkinter.NORMAL)
         self.text.delete("1.0", Tkinter.END)
 
         for idx, row in enumerate(canvas.content()):
             pos = 0
             for part in row:
-                strlen = len(part[2])
                 if isinstance(part[2], str):
                     txt = part[2]
                 else:

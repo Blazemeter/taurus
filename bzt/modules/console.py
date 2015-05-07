@@ -40,7 +40,7 @@ from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.aggregator import DataPoint, KPISet
 
 
-if True or platform.system() == 'Windows':  # FIXME: remove
+if platform.system() == 'Windows':
     from bzt.modules.screen import GUIScreen as Screen  # curses unavailable on windows
 else:
     from urwid.curses_display import Screen
@@ -71,7 +71,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         if self.disabled:
             return
 
-        if True or sys.stdout.isatty():  # FIXME: remove
+        if sys.stdout.isatty():
             self.screen = Screen()
             if platform.system() != 'Windows':
                 self.__detect_console_logger()
@@ -127,7 +127,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
                 self.__repaint()
             except KeyboardInterrupt:
                 raise
-            except BaseException as exc:
+            except BaseException:
                 self.log.error("Console screen failure: %s", traceback.format_exc())
                 self.shutdown()
 
