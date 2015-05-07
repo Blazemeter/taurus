@@ -116,36 +116,41 @@ class GUIScreen(BaseScreen):
         :param size:
         :type canvas: urwid.Canvas
         """
-        if self.root:
-            # enable changes
-            self.text.config(state=Tkinter.NORMAL)
-            self.text.delete("1.0", Tkinter.END)
+        if not self.root:
+            return
 
-            for row in canvas.content():
-                for part in row:
-                    self.__add_chunk(part)
+            # enable changes
+        self.text.config(state=Tkinter.NORMAL)
+        self.text.delete("1.0", Tkinter.END)
+
+        for idx, row in enumerate(canvas.content()):
+            pos = 0
+            for part in row:
+                strlen = len(part[2])
+                if isinstance(part[2], str):
+                    txt = part[2]
+                else:
+                    txt = part[2].decode()
+
+                self.text.insert(Tkinter.END, txt)
+                if part[0] is not None:
+                    self.text.tag_add(part[0], "%s.%s" % (idx + 1, pos), "%s.%s" % (idx + 1, pos + strlen))
+                pos += strlen
 
             self.text.insert(Tkinter.END, "\n")
 
-            # disable changes
-            self.text.config(state=Tkinter.DISABLED)
-            self.root.update()
+        # disable changes
+        self.text.config(state=Tkinter.DISABLED)
+        self.root.update()
 
-    def __add_chunk(self, part):
-        line = ""
-        if isinstance(part[2], str):
-            line += part[2]
-        else:
-            line += part[2].decode()
-        self.text.insert(Tkinter.END, line)
 
     def __translate_tcl_color(self, style):
         if style == 'default':
             return None
         elif style == "light magenta":
-            return "orchid"
+            return "magenta"
         elif style == "light red":
-            return "pink"
+            return "red"
         else:
             return style
 
