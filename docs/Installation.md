@@ -15,7 +15,7 @@ To upgrade it, open Command Prompt and type `pip install --upgrade bzt`, then hi
 
 Known limitations on Windows:
  - bzt.log file is not deleted at the end of execution
- - console screen is available only as "text logging"
+ - console screen is available as separate GUI window
 
 ## Linux
 Instructions are tested on Ubuntu 14.04 (Trusty) minimal install, but should work on other distributions with corresponding packages and libs:

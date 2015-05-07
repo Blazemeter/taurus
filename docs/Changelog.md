@@ -4,6 +4,7 @@
   - Added http request defaults options.
   - Added support of RPS shaper component
   - Remove conflicting JAR libraries during JMeter installation procedure
+  - add GUI window for status screen on Windows
 
 ## 0.2.11
   - Base config fix on Windows and minor changes in setup.py
