@@ -134,7 +134,11 @@ class GUIScreen(BaseScreen):
                 else:
                     txt = part[2].decode()
 
-                strlen = len(txt.decode("utf-8"))
+                try:
+                    strlen = len(txt.decode("utf-8"))
+                except UnicodeDecodeError:
+                    strlen = len(txt)
+
                 self.text.insert(Tkinter.END, txt)
                 if part[0] is not None:
                     self.text.tag_add(part[0], "%s.%s" % (idx + 1, pos), "%s.%s" % (idx + 1, pos + strlen))

@@ -50,5 +50,3 @@ class ManualShutdown(KeyboardInterrupt, RCProvider):
 class AutomatedShutdown(KeyboardInterrupt, RCProvider):
     def get_rc(self):
         return 3
-
-
