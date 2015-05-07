@@ -86,7 +86,7 @@ class GUIScreen(BaseScreen):
         self.root.geometry("%sx%s" % (self.size[0] * 7, self.size[1] * 15))
         self.root.bind("<Configure>", self.resize)
         self.root.protocol("WM_DELETE_WINDOW", self.closed_window)
-        self.text = Text(self.root, font="TkFixedFont", wrap=Tkinter.NONE)
+        self.text = Text(self.root, font="TkFixedFont", wrap=Tkinter.NONE, state=Tkinter.DISABLED)
         self.text.pack(side=Tkinter.LEFT, fill=Tkinter.BOTH, expand=Tkinter.YES)
 
     def _stop(self):
@@ -124,6 +124,8 @@ class GUIScreen(BaseScreen):
                     line += part[2].decode()
             data += "%s\n" % line
         if self.root:
+            self.text.config(state=Tkinter.NORMAL)
             self.text.delete("1.0", Tkinter.END)
             self.text.insert(Tkinter.END, data)
+            self.text.config(state=Tkinter.DISABLED)
             self.root.update()
