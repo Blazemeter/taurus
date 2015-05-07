@@ -18,6 +18,7 @@ from Tkinter import Tk, Text
 import Tkinter
 import logging
 import re
+import six
 import tkFont
 import math
 
@@ -88,6 +89,7 @@ class GUIScreen(BaseScreen):
         self.root.protocol("WM_DELETE_WINDOW", self.closed_window)
         self.text = Text(self.root, font="TkFixedFont", wrap=Tkinter.NONE, state=Tkinter.DISABLED)
         self.text.pack(side=Tkinter.LEFT, fill=Tkinter.BOTH, expand=Tkinter.YES)
+        self.__prepare_tags()
 
     def _stop(self):
         if self.root:
@@ -114,18 +116,42 @@ class GUIScreen(BaseScreen):
         :param size:
         :type canvas: urwid.Canvas
         """
-        data = ""
-        for char in canvas.content():
-            line = ""
-            for part in char:
-                if isinstance(part[2], str):
-                    line += part[2]
-                else:
-                    line += part[2].decode()
-            data += "%s\n" % line
         if self.root:
+            # enable changes
             self.text.config(state=Tkinter.NORMAL)
             self.text.delete("1.0", Tkinter.END)
-            self.text.insert(Tkinter.END, data)
+
+            for row in canvas.content():
+                for part in row:
+                    self.__add_chunk(part)
+
+            self.text.insert(Tkinter.END, "\n")
+
+            # disable changes
             self.text.config(state=Tkinter.DISABLED)
             self.root.update()
+
+    def __add_chunk(self, part):
+        line = ""
+        if isinstance(part[2], str):
+            line += part[2]
+        else:
+            line += part[2].decode()
+        self.text.insert(Tkinter.END, line)
+
+    def __translate_tcl_color(self, style):
+        if style == 'default':
+            return None
+        elif style == "light magenta":
+            return "orchid"
+        elif style == "light red":
+            return "pink"
+        else:
+            return style
+
+    def __prepare_tags(self):
+        for name, style in six.iteritems(self._palette):
+            # NOTE: not sure which index use, used [0]
+            bgc = self.__translate_tcl_color(style[0].background)
+            fgc = self.__translate_tcl_color(style[0].foreground)
+            self.text.tag_configure(name, background=bgc, foreground=fgc)
