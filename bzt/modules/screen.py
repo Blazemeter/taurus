@@ -87,7 +87,8 @@ class GUIScreen(BaseScreen):
         self.root.geometry("%sx%s" % (self.size[0] * 7, self.size[1] * 15))
         self.root.bind("<Configure>", self.resize)
         self.root.protocol("WM_DELETE_WINDOW", self.closed_window)
-        self.text = Text(self.root, font="TkFixedFont", wrap=Tkinter.NONE, state=Tkinter.DISABLED)
+        self.text = Text(self.root, font="TkFixedFont", wrap=Tkinter.NONE, state=Tkinter.DISABLED,
+                         background="black", foreground="light gray")
         self.text.pack(side=Tkinter.LEFT, fill=Tkinter.BOTH, expand=Tkinter.YES)
         self.__prepare_tags()
 
@@ -132,6 +133,7 @@ class GUIScreen(BaseScreen):
                 else:
                     txt = part[2].decode()
 
+                strlen = len(txt.decode("utf-8"))
                 self.text.insert(Tkinter.END, txt)
                 if part[0] is not None:
                     self.text.tag_add(part[0], "%s.%s" % (idx + 1, pos), "%s.%s" % (idx + 1, pos + strlen))
@@ -143,7 +145,6 @@ class GUIScreen(BaseScreen):
         self.text.config(state=Tkinter.DISABLED)
         self.root.update()
 
-
     def __translate_tcl_color(self, style):
         if style == 'default':
             return None
@@ -151,6 +152,8 @@ class GUIScreen(BaseScreen):
             return "magenta"
         elif style == "light red":
             return "red"
+        elif style == "brown":
+            return "dark orange"
         else:
             return style
 
