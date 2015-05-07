@@ -180,7 +180,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(1, len(arguments_element_prop[0].findall(".//elementProp[@name='param1']")))
         self.assertEqual(1, len(arguments_element_prop.findall(".//elementProp[@name='param2']")))
 
-    def test_resource_files_collection(self):
+    def test_resource_files_collection_remote_prov(self):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
         obj.execution.merge({"scenario": {"script": "tests/jmx/files.jmx"}})
@@ -189,7 +189,16 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(len(res_files), 5)
         self.assertEqual(len(artifacts), 5)
 
-    def test_resource_files_from_requests(self):
+    def test_resource_files_collection_local_prov(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({"scenario": {"script": "tests/jmx/files.jmx"}})
+        obj.prepare()
+        artifacts = os.listdir(obj.engine.artifacts_dir)
+        self.assertEqual(len(artifacts), 5)
+
+
+    def test_resource_files_from_requests_remote_prov(self):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
         obj.engine.config = json.loads(open("tests/json/get-post.json").read())

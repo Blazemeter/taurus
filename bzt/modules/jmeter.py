@@ -426,9 +426,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :return: etree
         """
         for file_path in file_list:
-            file_path_elements = jmx.findall(".//stringProp[@text='%s']" % file_path)
+            file_path_elements = jmx.xpath('//stringProp[text()="%s"]' % file_path)
             for file_path_element in file_path_elements:
-                file_path_elements.text = os.path.basename(file_path_element)
+                file_path_element.text = os.path.basename(file_path)
 
 
         # etree_str = etree.tostring(jmx, pretty_print=True, encoding="UTF-8", xml_declaration=True)
