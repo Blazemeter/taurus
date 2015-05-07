@@ -14,14 +14,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import bzt
-
-"""
-Console reporting for CLI usage
-"""
 import re
 import sys
-import logging
 from logging import StreamHandler
 from itertools import groupby
 import traceback
@@ -32,7 +26,6 @@ import platform
 from six import StringIO
 
 from urwid.decoration import Padding
-from urwid.display_common import BaseScreen
 from urwid import Text, Pile, WEIGHT, Filler, Columns, Widget, \
     CanvasCombine, LineBox, ListBox, RIGHT, CENTER, BOTTOM, CLIP
 from urwid.font import Thin6x6Font
@@ -40,15 +33,17 @@ from urwid.graphics import BigText
 from urwid.listbox import SimpleListWalker
 from urwid.widget import Divider
 
+import bzt
+from bzt.modules.screen import DummyScreen
 from bzt.modules.provisioning import Local
 from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.aggregator import DataPoint, KPISet
 
 
 if platform.system() == 'Windows':
-    from urwid.raw_display import Screen  # curses unavailable on windows
+    from bzt.modules.screen import GUIScreen as Screen  # curses unavailable on windows
 else:
-    from urwid.curses_display import Screen  # curses unavailable on windows
+    from urwid.curses_display import Screen
 
 
 class ConsoleStatusReporter(Reporter, AggregatorListener):
@@ -76,9 +71,10 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         if self.disabled:
             return
 
-        if sys.stdout.isatty() and platform.system() != 'Windows':
+        if sys.stdout.isatty():
             self.screen = Screen()
-            self.__detect_console_logger()
+            if platform.system() != 'Windows':
+                self.__detect_console_logger()
         else:
             cols = self.settings.get('dummy-cols', self.screen_size[0])
             rows = self.settings.get('dummy-rows', self.screen_size[1])
@@ -335,43 +331,6 @@ class TaurusConsole(Columns):
         Update ticking widgets
         """
         self.logo.tick()
-
-
-class DummyScreen(BaseScreen):
-    """
-    Null-object for Screen on non-tty output
-    """
-
-    def __init__(self, cols, rows):
-        super(DummyScreen, self).__init__()
-        self.size = (cols, rows)
-        self.ansi_escape = re.compile(r'\x1b[^m]*m')
-
-    def get_cols_rows(self):
-        """
-        Dummy cols and rows
-
-        :return:
-        """
-        return self.size
-
-    def draw_screen(self, size, canvas):
-        """
-
-        :param size:
-        :type canvas: urwid.Canvas
-        """
-        data = ""
-        for char in canvas.content():
-            line = ""
-            for part in char:
-                if isinstance(part[2], str):
-                    line += part[2]
-                else:
-                    line += part[2].decode()
-            data += "%s│\n" % line
-        data = self.ansi_escape.sub('', data)
-        logging.info("Screen %sx%s chars:\n%s", size[0], size[1], data)
 
 
 class StringIONotifying(StringIO, object):
