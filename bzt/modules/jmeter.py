@@ -96,7 +96,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.resource_files()
         scenario = self.get_scenario()
 
-
         if Scenario.SCRIPT in scenario:
             self.original_jmx = self.__get_script()
             self.engine.existing_artifact(self.original_jmx)
@@ -107,10 +106,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         load = self.get_load()
 
-
         self.modified_jmx = self.__get_modified_jmx(self.original_jmx, load)
-
-        # self.resource_files()
 
         props = self.settings.get("properties")
         props_local = scenario.get("properties")
@@ -376,31 +372,24 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         if script:
             jmx = JMX(script)
-            # TODO: move all jmx methods to JMX class
             resource_files_from_jmx = self.get_resource_files_from_jmx(jmx)
 
             if resource_files_from_jmx:
-                modified_xml_tree = self.modify_resources_paths_in_jmx(jmx.tree, resource_files_from_jmx)
+                self.modify_resources_paths_in_jmx(jmx.tree, resource_files_from_jmx)
 
                 script_name, script_ext = os.path.splitext(script)
                 script_name = os.path.basename(script_name)
                 # create modified jmx script in artifacts dir
                 modified_script = self.engine.create_artifact(script_name, script_ext)
                 jmx.save(modified_script)
-                #with open(modified_script, 'wb') as _fds:
-                #    _fds.write(
-                #        etree.tostring(modified_xml_tree, pretty_print=True, encoding="UTF-8", xml_declaration=True))
                 script = modified_script
-                # resource_files.append(modified_script)
                 resource_files.extend(resource_files_from_jmx)
-            # else:
-                # copy original script to artifacts
-                # shutil.copy2(script, self.engine.artifacts_dir)
 
         resource_files.extend(files_from_requests)
         # copy files to artifacts dir
         self.__copy_resources_to_artifacts_dir(resource_files)
-        resource_files.append(script)
+        if script:
+            resource_files.append(script)
         return [os.path.basename(file_path) for file_path in resource_files]  # return list of file names
 
     def __copy_resources_to_artifacts_dir(self, resource_files_list):
@@ -430,13 +419,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             for file_path_element in file_path_elements:
                 file_path_element.text = os.path.basename(file_path)
 
-
-        # etree_str = etree.tostring(jmx, pretty_print=True, encoding="UTF-8", xml_declaration=True)
-        # for res_file in file_list:
-        #    etree_str = etree_str.replace(res_file, os.path.basename(res_file))
-        # modified_etree = etree.fromstring(etree_str)
-        # return modified_etree
-
     def get_resource_files_from_jmx(self, jmx):
         """
 
@@ -461,7 +443,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         return resource_files
 
 
-
     def __get_resource_files_from_requests(self):
         """
         Get post-body files from requests
@@ -469,11 +450,18 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         post_body_files = []
         scenario = self.get_scenario()
+        data_sources = scenario.data.get('data-sources')
+        if data_sources:
+            for data_source in data_sources:
+                if isinstance(data_source, six.text_type):
+                    post_body_files.append(data_source)
+
         requests = scenario.data.get("requests")
         if requests:
             for req in requests:
                 if isinstance(req, dict):
                     post_body_path = req.get('body-file')
+
                     if post_body_path:
                         post_body_files.append(post_body_path)
 
@@ -584,8 +572,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         unzip(jmeter_dist, dest, 'apache-jmeter-' + jmeter_version)
         # NOTE: should we remove this file in test environment? or not?
         os.remove(jmeter_dist)
-
-        # TODO: remove old versions for httpclient JARs
 
         # set exec permissions
         os.chmod(jmeter, 0o755)
@@ -1264,9 +1250,6 @@ class JMX(object):
         items = self.get(sel)
         for item in items:
             item.text = text
-
-
-
 
 
 class JTLReader(ResultsReader):
