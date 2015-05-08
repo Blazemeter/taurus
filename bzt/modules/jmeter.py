@@ -292,13 +292,13 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.log.debug("Load: %s", load)
         jmx = JMX(original)
 
-        resource_files_from_jmx = self.get_resource_files_from_jmx(jmx)
+        resource_files_from_jmx = self.__get_resource_files_from_jmx(jmx)
         resource_files_from_requests = self.__get_resource_files_from_requests()
         self.__copy_resources_to_artifacts_dir(resource_files_from_jmx)
         self.__copy_resources_to_artifacts_dir(resource_files_from_requests)
 
         if resource_files_from_jmx:
-            self.modify_resources_paths_in_jmx(jmx.tree, resource_files_from_jmx)
+            self.__modify_resources_paths_in_jmx(jmx.tree, resource_files_from_jmx)
 
         if self.get_scenario().get("disable-listeners", True):
             self.__disable_listeners(jmx)
@@ -371,10 +371,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         if script:
             jmx = JMX(script)
-            resource_files_from_jmx = self.get_resource_files_from_jmx(jmx)
+            resource_files_from_jmx = self.__get_resource_files_from_jmx(jmx)
 
             if resource_files_from_jmx:
-                self.modify_resources_paths_in_jmx(jmx.tree, resource_files_from_jmx)
+                self.__modify_resources_paths_in_jmx(jmx.tree, resource_files_from_jmx)
 
                 script_name, script_ext = os.path.splitext(script)
                 script_name = os.path.basename(script_name)
@@ -406,7 +406,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             else:
                 self.log.warning("File not found: %s" % resource_file)
 
-    def modify_resources_paths_in_jmx(self, jmx, file_list):
+    def __modify_resources_paths_in_jmx(self, jmx, file_list):
         """
 
         :param jmx_etree:
@@ -418,7 +418,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             for file_path_element in file_path_elements:
                 file_path_element.text = os.path.basename(file_path)
 
-    def get_resource_files_from_jmx(self, jmx):
+    def __get_resource_files_from_jmx(self, jmx):
         """
 
         :return: (file list)
