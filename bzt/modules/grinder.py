@@ -147,6 +147,15 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.__write_scenario_props(fds, scenario)
             self.__write_bzt_props(fds)
 
+        # modify file path in script
+
+        with open(self.properties_file, 'rt') as fds:
+                prop_contents = fds.read()
+        resource_files, modified_contents = self.__get_resource_files_from_script(prop_contents)
+        if resource_files:
+            with open(self.properties_file, 'wt') as fds:
+                fds.write(modified_contents)
+
         # FIXME: multi-grinder executions have different names
         self.kpi_file = os.path.join(self.engine.artifacts_dir, "grinder-bzt-kpi.log")
 
@@ -332,15 +341,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             prop_file_contents = open(prop_file, 'rt').read()
             resource_files, modified_contents = self.__get_resource_files_from_script(prop_file_contents)
             if resource_files:
-                for resource_file in resource_files:
-                    if os.path.exists(resource_file):
-                        try:
-                            shutil.copy(resource_file, self.engine.artifacts_dir)
-                        except:
-                            self.log.warning("Cannot copy file: %s" % resource_file)
-                    else:
-                        self.log.warning("File not found: %s" % resource_file)
-
+                self.__copy_resources_to_artifacts_dir(resource_files)
                 script_name, script_ext = os.path.splitext(prop_file)
                 script_name = os.path.basename(script_name)
                 modified_script = self.engine.create_artifact(script_name, script_ext)
@@ -352,6 +353,21 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 resource_files.append(prop_file)
 
         return [os.path.basename(x) for x in resource_files]
+
+    def __copy_resources_to_artifacts_dir(self, resource_files_list):
+        """
+
+        :param file_list:
+        :return:
+        """
+        for resource_file in resource_files_list:
+            if os.path.exists(resource_file):
+                try:
+                    shutil.copy(resource_file, self.engine.artifacts_dir)
+                except:
+                    self.log.warning("Cannot copy file: %s" % resource_file)
+            else:
+                self.log.warning("File not found: %s" % resource_file)
 
     def __get_resource_files_from_script(self, prop_file_contents):
         """

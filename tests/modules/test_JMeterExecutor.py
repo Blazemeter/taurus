@@ -180,7 +180,29 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(1, len(arguments_element_prop[0].findall(".//elementProp[@name='param1']")))
         self.assertEqual(1, len(arguments_element_prop.findall(".//elementProp[@name='param2']")))
 
-    def test_resource_files_collection(self):
+
+    def __check_path_resource_files(self, jmx_file_path, exclude_jtls=False):
+        xml_tree = etree.fromstring(open(jmx_file_path, "rb").read())
+        search_patterns = ["File.path", "filename", "BeanShellSampler.filename"]
+        for pattern in search_patterns:
+            resource_elements = xml_tree.findall(".//stringProp[@name='%s']" % pattern)
+            for resource_element in resource_elements:
+                parent = resource_element.getparent()
+                parent_disabled = False
+                while parent is not None:
+                    if parent.get('enabled') == 'false':
+                        parent_disabled = True
+                        break
+                    parent = parent.getparent()
+                if resource_element.text and parent_disabled is False:
+                    if exclude_jtls:
+                        if not resource_element.text.endswith('.jtl'):
+                            self.assertEqual("", os.path.dirname(resource_element.text))
+                    else:
+                        self.assertEqual("", os.path.dirname(resource_element.text))
+
+
+    def test_resource_files_collection_remote_prov(self):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
         obj.execution.merge({"scenario": {"script": "tests/jmx/files.jmx"}})
@@ -188,16 +210,41 @@ class TestJMeterExecutor(BZTestCase):
         artifacts = os.listdir(obj.engine.artifacts_dir)
         self.assertEqual(len(res_files), 5)
         self.assertEqual(len(artifacts), 5)
+        target_jmx = os.path.join(obj.engine.artifacts_dir, "files.jmx")
+        self.__check_path_resource_files(target_jmx, exclude_jtls=False)
 
-    def test_resource_files_from_requests(self):
+
+    def test_resource_files_collection_local_prov(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({"scenario": {"script": "tests/jmx/files.jmx"}})
+        obj.prepare()
+        artifacts = os.listdir(obj.engine.artifacts_dir)
+        self.assertEqual(len(artifacts), 8)
+        target_jmx = os.path.join(obj.engine.artifacts_dir, "modified_files.jmx.jmx")
+        self.__check_path_resource_files(target_jmx, exclude_jtls=True)
+
+
+    def test_resource_files_from_requests_remote_prov(self):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
         obj.engine.config = json.loads(open("tests/json/get-post.json").read())
         obj.execution = obj.engine.config['execution']
         res_files = obj.resource_files()
         artifacts = os.listdir(obj.engine.artifacts_dir)
-        self.assertEqual(len(res_files), 1)
-        self.assertEqual(len(artifacts), 1)
+        self.assertEqual(len(res_files), 2)
+        self.assertEqual(len(artifacts), 2)
+
+    def test_resource_files_from_requests_local_prov(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = json.loads(open("tests/json/get-post.json").read())
+        obj.execution = obj.engine.config['execution']
+        obj.prepare()
+        artifacts = os.listdir(obj.engine.artifacts_dir)
+        self.assertEqual(len(artifacts), 6)
+        target_jmx = os.path.join(obj.engine.artifacts_dir, "modified_requests.jmx.jmx")
+        self.__check_path_resource_files(target_jmx, exclude_jtls=True)
 
     def test_http_request_defaults(self):
         obj = JMeterExecutor()

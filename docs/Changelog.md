@@ -1,9 +1,10 @@
 # Changelog
 
 ## 0.2.12
-  - Added http request defaults options.
+  - Added http request defaults options
   - Added support of RPS shaper component
   - Remove conflicting JAR libraries during JMeter installation procedure
+  - Fixed bug when resource files were not properly copied to artifacts directory
 
 ## 0.2.11
   - Base config fix on Windows and minor changes in setup.py
@@ -13,7 +14,7 @@
   - Added proper version of lxml in requirements
 
 ## 0.2.1
-  - Added pass/fail criteria report on console reporter.
+  - Added pass/fail criteria report on console reporter
 
 ## 0.2.0
 
