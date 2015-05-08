@@ -388,7 +388,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         if script_file_path:
             resource_files.append(script_file_path)
-            prop_file_contents = prop_file_contents.replace(script_file_path, os.path.basename(script_file_path))
+            prop_file_contents = prop_file_contents.replace(file_path_in_prop, os.path.basename(script_file_path))
         else:
             resource_files.append(file_path_in_prop)
 
