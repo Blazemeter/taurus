@@ -10,7 +10,7 @@ import shutil
 import os
 from tests.mocks import EngineEmul
 from bzt.utils import BetterDict
-import bzt.utils
+import json
 
 setup_test_logging()
 
@@ -51,7 +51,7 @@ class TestGrinderExecutor(BZTestCase):
         obj.get_widget()
         self.assertEqual(obj.widget.script_name.text, "Script: helloworld.py")
 
-    def test_resource_files_collection(self):
+    def test_resource_files_collection_remote(self):
         obj = GrinderExecutor()
         obj.engine = EngineEmul()
         obj.execution.merge({"scenario": {"script": "tests/grinder/helloworld.py",
@@ -59,6 +59,15 @@ class TestGrinderExecutor(BZTestCase):
         res_files = obj.resource_files()
         artifacts = os.listdir(obj.engine.artifacts_dir)
         self.assertEqual(len(res_files), 2)
+        self.assertEqual(len(artifacts), 2)
+
+    def test_resource_files_collection_local(self):
+        obj = GrinderExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({"scenario": {"script": "tests/grinder/helloworld.py",
+                                          "properties-file": "tests/grinder/grinder.properties"}})
+        obj.prepare()
+        artifacts = os.listdir(obj.engine.artifacts_dir)
         self.assertEqual(len(artifacts), 2)
 
     def test_resource_files_collection_invalid(self):

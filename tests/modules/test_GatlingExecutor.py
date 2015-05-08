@@ -73,7 +73,7 @@ class TestGatlingExecutor(BZTestCase):
         obj.execution.merge({"scenario": {"script": "tests/gatling/LocalBasicSimulation.scala"}})
         res_files = obj.resource_files()
         artifacts = os.listdir(obj.engine.artifacts_dir)
-        self.assertEqual(len(res_files), 15)
+        self.assertEqual(len(res_files), 15)  # file "gatling_" will be not found
         self.assertEqual(len(artifacts), 14)
         self.__check_path_resource_files(os.path.join(obj.engine.artifacts_dir, "LocalBasicSimulation.scala"))
 

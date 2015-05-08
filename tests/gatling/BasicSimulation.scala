@@ -57,7 +57,7 @@ class BasicSimulation extends Simulation {
       ).pause(1).exec(
           http("request_1").get("/")
       ).pause(1).exec(
-          http("request_1").get("/1")
+          http("request_1").post("my.post.uri").body(ELFileBody("tests/json/get-post.json")).asJSON
       )
 
   setUp(

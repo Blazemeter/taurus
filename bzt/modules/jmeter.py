@@ -93,9 +93,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         # TODO: switch to verifier.verify()
         self.__check_jmeter()
         # self.verifier.verify()
-        self.resource_files()
         scenario = self.get_scenario()
-
+        self.resource_files()
         if Scenario.SCRIPT in scenario:
             self.original_jmx = self.__get_script()
             self.engine.existing_artifact(self.original_jmx)
@@ -464,7 +463,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
                     if post_body_path:
                         post_body_files.append(post_body_path)
-
         return post_body_files
 
     def __get_script(self):
