@@ -318,7 +318,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.__apply_ramp_up(jmx, int(load.ramp_up))
 
         if load.iterations is not None:
-            self.__apply_iterations(jmx, load.iterations)
+            self.__apply_iterations(jmx, int(load.iterations))
 
         if load.duration:
             self.__apply_duration(jmx, int(load.duration))
