@@ -23,14 +23,16 @@ import subprocess
 from subprocess import CalledProcessError
 import traceback
 import platform
-import urwid
 import shutil
+
+import urwid
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.utils import shell_exec, ensure_is_dict
 from bzt.utils import unzip, download_progress_hook, humanize_time
 from bzt.modules.console import WidgetProvider
+
 
 try:
     from urllib import FancyURLopener
@@ -74,6 +76,15 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if Scenario.SCRIPT in scenario:
             self.script = self.engine.find_file(scenario[Scenario.SCRIPT])
             self.engine.existing_artifact(self.script)
+            with open(os.path.join(self.engine.artifacts_dir, os.path.basename(self.script)), 'rt') as fds:
+                script_contents = fds.read()
+            resource_files = self.__get_resource_files_from_script(script_contents)
+            if resource_files:
+                modified_contents = self.__modify_resources_paths_in_scala(script_contents, resource_files)
+                with open(os.path.join(self.engine.artifacts_dir, os.path.basename(self.script)), 'wt') as fds:
+                    fds.write(modified_contents)
+                self.__copy_resources_to_artifacts_dir(resource_files)
+
         elif "requests" in scenario:
             raise NotImplementedError()  # TODO: implement script generation for gatling
         else:
@@ -238,21 +249,15 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         if script:
             script_contents = open(script, 'rt').read()
-            resource_files, modified_contents = self.__get_resource_files_from_script(script_contents)
+            resource_files = self.__get_resource_files_from_script(script_contents)
 
             if resource_files:
-                for resource_file in resource_files:
-                    if os.path.exists(resource_file):
-                        try:
-                            shutil.copy(resource_file, self.engine.artifacts_dir)
-                        except:
-                            self.log.warning("Cannot copy file: %s" % resource_file)
-                    else:
-                        self.log.warning("File not found: %s" % resource_file)
 
                 script_name, script_ext = os.path.splitext(script)
                 script_name = os.path.basename(script_name)
                 modified_script = self.engine.create_artifact(script_name, script_ext)
+                modified_contents = self.__modify_resources_paths_in_scala(script_contents, resource_files)
+                self.__copy_resources_to_artifacts_dir(resource_files)
                 with open(modified_script, 'wt') as _fds:
                     _fds.write(modified_contents)
                 resource_files.append(modified_script)
@@ -263,7 +268,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         return [os.path.basename(file_path) for file_path in resource_files]
 
     def __get_resource_files_from_script(self, script_contents):
-        modified_contents = script_contents
         resource_files = []
         search_patterns = [re.compile('\.formUpload\(".*?"\)'),
                            re.compile('RawFileBody\(".*?"\)'),
@@ -282,10 +286,35 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 param_index = 0 if "separatedValues" in search_pattern.pattern else -1  # first or last param
                 file_path = re.compile('\".*?\"').findall(param_list[param_index])[0].strip('"')
                 resource_files.append(file_path)
-        for resource_file in resource_files:
-            modified_contents = modified_contents.replace(resource_file, os.path.basename(resource_file))
 
-        return resource_files, modified_contents
+        return resource_files
+
+    def __modify_resources_paths_in_scala(self, scala_script_contents, file_list):
+        """
+
+        :param scala_path:
+        :param file_list:
+        :return:
+        """
+        for file_path in file_list:
+            scala_script_contents = scala_script_contents.replace(file_path, os.path.basename(file_path))
+        return scala_script_contents
+
+
+    def __copy_resources_to_artifacts_dir(self, resource_files_list):
+        """
+
+        :param file_list:
+        :return:
+        """
+        for resource_file in resource_files_list:
+            if os.path.exists(resource_file):
+                try:
+                    shutil.copy(resource_file, self.engine.artifacts_dir)
+                except:
+                    self.log.warning("Cannot copy file: %s" % resource_file)
+            else:
+                self.log.warning("File not found: %s" % resource_file)
 
     def __get_script(self):
         scenario = self.get_scenario()
@@ -384,8 +413,7 @@ class DataLogReader(ResultsReader):
 
         for fname in os.listdir(self.basedir):
             if prog.match(fname):
-                self.filename = self.basedir + os.path.sep + fname
-                self.filename += os.path.sep + "simulation.log"
+                self.filename = os.path.join(self.basedir, fname, "simulation.log")
                 break
 
         if not self.filename:

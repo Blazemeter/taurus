@@ -140,6 +140,11 @@ class TestJMeterExecutor(BZTestCase):
         obj.execution.merge({"scenario": {"requests": []}})
 
         obj.prepare()
+        jars = os.listdir(os.path.abspath(os.path.join(path, '../../lib')))
+        old_jars = ['httpcore-4.2.5.jar', 'httpmime-4.2.6.jar', 'xercesImpl-2.9.1.jar', 'commons-jexl-1.1.jar',
+                    'httpclient-4.2.6.jar']
+        for old_jar in old_jars:
+            self.assertNotIn(old_jar, jars)
 
         self.assertTrue(os.path.exists(path))
 
@@ -175,7 +180,29 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(1, len(arguments_element_prop[0].findall(".//elementProp[@name='param1']")))
         self.assertEqual(1, len(arguments_element_prop.findall(".//elementProp[@name='param2']")))
 
-    def test_resource_files_collection(self):
+
+    def __check_path_resource_files(self, jmx_file_path, exclude_jtls=False):
+        xml_tree = etree.fromstring(open(jmx_file_path, "rb").read())
+        search_patterns = ["File.path", "filename", "BeanShellSampler.filename"]
+        for pattern in search_patterns:
+            resource_elements = xml_tree.findall(".//stringProp[@name='%s']" % pattern)
+            for resource_element in resource_elements:
+                parent = resource_element.getparent()
+                parent_disabled = False
+                while parent is not None:
+                    if parent.get('enabled') == 'false':
+                        parent_disabled = True
+                        break
+                    parent = parent.getparent()
+                if resource_element.text and parent_disabled is False:
+                    if exclude_jtls:
+                        if not resource_element.text.endswith('.jtl'):
+                            self.assertEqual("", os.path.dirname(resource_element.text))
+                    else:
+                        self.assertEqual("", os.path.dirname(resource_element.text))
+
+
+    def test_resource_files_collection_remote_prov(self):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
         obj.execution.merge({"scenario": {"script": "tests/jmx/files.jmx"}})
@@ -183,13 +210,100 @@ class TestJMeterExecutor(BZTestCase):
         artifacts = os.listdir(obj.engine.artifacts_dir)
         self.assertEqual(len(res_files), 5)
         self.assertEqual(len(artifacts), 5)
+        target_jmx = os.path.join(obj.engine.artifacts_dir, "files.jmx")
+        self.__check_path_resource_files(target_jmx, exclude_jtls=False)
 
-    def test_resource_files_from_requests(self):
+
+    def test_resource_files_collection_local_prov(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({"scenario": {"script": "tests/jmx/files.jmx"}})
+        obj.prepare()
+        artifacts = os.listdir(obj.engine.artifacts_dir)
+        self.assertEqual(len(artifacts), 8)
+        target_jmx = os.path.join(obj.engine.artifacts_dir, "modified_files.jmx.jmx")
+        self.__check_path_resource_files(target_jmx, exclude_jtls=True)
+
+
+    def test_resource_files_from_requests_remote_prov(self):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
         obj.engine.config = json.loads(open("tests/json/get-post.json").read())
         obj.execution = obj.engine.config['execution']
         res_files = obj.resource_files()
         artifacts = os.listdir(obj.engine.artifacts_dir)
-        self.assertEqual(len(res_files), 1)
-        self.assertEqual(len(artifacts), 1)
+        self.assertEqual(len(res_files), 2)
+        self.assertEqual(len(artifacts), 2)
+
+    def test_resource_files_from_requests_local_prov(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = json.loads(open("tests/json/get-post.json").read())
+        obj.execution = obj.engine.config['execution']
+        obj.prepare()
+        artifacts = os.listdir(obj.engine.artifacts_dir)
+        self.assertEqual(len(artifacts), 6)
+        target_jmx = os.path.join(obj.engine.artifacts_dir, "modified_requests.jmx.jmx")
+        self.__check_path_resource_files(target_jmx, exclude_jtls=True)
+
+    def test_http_request_defaults(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = json.loads(open("tests/json/get-post.json").read())
+        obj.execution = obj.engine.config['execution']
+        obj.prepare()
+        xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        default_elements = xml_tree.findall(".//ConfigTestElement[@testclass='ConfigTestElement']")
+        self.assertEqual(1, len(default_elements))
+
+        default_element = default_elements[0]
+        self.assertEqual("localhost", default_element.find(".//stringProp[@name='HTTPSampler.domain']").text)
+        self.assertEqual("80", default_element.find(".//stringProp[@name='HTTPSampler.port']").text)
+        self.assertEqual("true", default_element.find(".//boolProp[@name='HTTPSampler.image_parser']").text)
+        self.assertEqual("true", default_element.find(".//boolProp[@name='HTTPSampler.concurrentDwn']").text)
+        self.assertEqual("10", default_element.find(".//stringProp[@name='HTTPSampler.concurrentPool']").text)
+        # all keepalives in requests are disabled
+        requests = xml_tree.findall(".//HTTPSamplerProxy[@testclass='HTTPSamplerProxy']")
+        for request in requests:
+            self.assertEqual("false", request.find(".//boolProp[@name='HTTPSampler.use_keepalive']").text)
+
+    def test_add_shaper_constant(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = BetterDict()
+        obj.engine.config.merge(yaml.load(open("tests/yaml/throughput_constant.yml").read()))
+        obj.engine.config.merge({"provisioning": "local"})
+        obj.execution = obj.engine.config['execution']
+        obj.prepare()
+        xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        shaper_elements = xml_tree.findall(
+            ".//kg.apc.jmeter.timers.VariableThroughputTimer[@testclass='kg.apc.jmeter.timers.VariableThroughputTimer']")
+        self.assertEqual(1, len(shaper_elements))
+        shaper_coll_element = shaper_elements[0].find(".//collectionProp[@name='load_profile']")
+
+        self.assertEqual("100", shaper_coll_element.find(".//stringProp[@name='49']").text)
+        self.assertEqual("100", shaper_coll_element.find(".//stringProp[@name='1567']").text)
+        self.assertEqual("60", shaper_coll_element.find(".//stringProp[@name='53']").text)
+
+
+    def test_add_shaper_ramp_up(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = BetterDict()
+        obj.engine.config.merge(yaml.load(open("tests/yaml/throughput_ramp_up.yml").read()))
+        obj.engine.config.merge({"provisioning": "local"})
+        obj.execution = obj.engine.config['execution']
+        obj.prepare()
+        xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        shaper_elements = xml_tree.findall(
+            ".//kg.apc.jmeter.timers.VariableThroughputTimer[@testclass='kg.apc.jmeter.timers.VariableThroughputTimer']")
+        self.assertEqual(1, len(shaper_elements))
+        shaper_coll_element = shaper_elements[0].find(".//collectionProp[@name='load_profile']")
+
+        self.assertEqual("1", shaper_coll_element.findall(".//stringProp[@name='49']")[0].text)
+        self.assertEqual("10", shaper_coll_element.findall(".//stringProp[@name='1567']")[0].text)
+        self.assertEqual("60", shaper_coll_element.findall(".//stringProp[@name='53']")[0].text)
+
+        self.assertEqual("10", shaper_coll_element.findall(".//stringProp[@name='49']")[1].text)
+        self.assertEqual("10", shaper_coll_element.findall(".//stringProp[@name='1567']")[1].text)
+        self.assertEqual("120", shaper_coll_element.findall(".//stringProp[@name='53']")[1].text)

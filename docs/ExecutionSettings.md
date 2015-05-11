@@ -57,7 +57,8 @@ Execution has several options to set load profile settings. Available settings a
  - `concurrency` - number of target concurrent virtual users
  - `ramp-up` - ramp-up time to reach target concurrency
  - `hold-for` - time to hold target concurrency
- - `iterations` - limit scenario iterations number, 
+ - `iterations` - limit scenario iterations number
+ - `throughput` - apply RPS shaper, limiting maximum RPS to throughput
 
 ```yaml
 ---
@@ -66,6 +67,7 @@ execution:
   ramp-up: 15s
   hold-for: 2m
   iterations: 1000
+  throughput: 20
 ```
 
 ## Executor Types

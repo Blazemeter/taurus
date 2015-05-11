@@ -22,15 +22,19 @@ import subprocess
 from subprocess import CalledProcessError
 import traceback
 import six
-import urwid
 import re
+import shutil
+
+import urwid
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
+
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
-from bzt.utils import shell_exec, ensure_is_dict
+
+from bzt.utils import shell_exec
 from bzt.utils import unzip, download_progress_hook, humanize_time
 from bzt.modules.console import WidgetProvider
-import shutil
+
 
 try:
     from urllib import FancyURLopener
@@ -42,8 +46,10 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     """
     Grinder executor module
     """
-    DOWNLOAD_LINK = "http://netcologne.dl.sourceforge.net/project/grinder/The%20Grinder%203/{version}" \
-                    "/grinder-{version}-binary.zip"
+    # OLD_DOWNLOAD_LINK = "http://switch.dl.sourceforge.net/project/grinder/The%20Grinder%203/{version}" \
+    #                 "/grinder-{version}-binary.zip"
+    DOWNLOAD_LINK = "http://sourceforge.net/projects/grinder/files/The%20Grinder%203/{version}" \
+                    "/grinder-{version}-binary.zip/download"
     VERSION = "3.11"
 
     def __init__(self):
@@ -141,9 +147,17 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.__write_scenario_props(fds, scenario)
             self.__write_bzt_props(fds)
 
+        # modify file path in script
+
+        with open(self.properties_file, 'rt') as fds:
+                prop_contents = fds.read()
+        resource_files, modified_contents = self.__get_resource_files_from_script(prop_contents)
+        if resource_files:
+            with open(self.properties_file, 'wt') as fds:
+                fds.write(modified_contents)
+
         # FIXME: multi-grinder executions have different names
-        self.kpi_file = self.engine.artifacts_dir + os.path.sep
-        self.kpi_file += "grinder-bzt-kpi.log"
+        self.kpi_file = os.path.join(self.engine.artifacts_dir, "grinder-bzt-kpi.log")
 
         self.reader = DataLogReader(self.kpi_file, self.log)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
@@ -223,7 +237,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def __scenario_from_requests(self):
         script = self.engine.create_artifact("requests", ".py")
-        tpl = os.path.dirname(__file__) + os.path.sep + "grinder-requests.tpl"
+        tpl = os.path.join(os.path.dirname(__file__), "grinder-requests.tpl")
         self.log.debug("Generating grinder scenario: %s", tpl)
         with open(script, 'w') as fds:
             with open(tpl) as tds:
@@ -327,15 +341,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             prop_file_contents = open(prop_file, 'rt').read()
             resource_files, modified_contents = self.__get_resource_files_from_script(prop_file_contents)
             if resource_files:
-                for resource_file in resource_files:
-                    if os.path.exists(resource_file):
-                        try:
-                            shutil.copy(resource_file, self.engine.artifacts_dir)
-                        except:
-                            self.log.warning("Cannot copy file: %s" % resource_file)
-                    else:
-                        self.log.warning("File not found: %s" % resource_file)
-
+                self.__copy_resources_to_artifacts_dir(resource_files)
                 script_name, script_ext = os.path.splitext(prop_file)
                 script_name = os.path.basename(script_name)
                 modified_script = self.engine.create_artifact(script_name, script_ext)
@@ -347,6 +353,21 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 resource_files.append(prop_file)
 
         return [os.path.basename(x) for x in resource_files]
+
+    def __copy_resources_to_artifacts_dir(self, resource_files_list):
+        """
+
+        :param file_list:
+        :return:
+        """
+        for resource_file in resource_files_list:
+            if os.path.exists(resource_file):
+                try:
+                    shutil.copy(resource_file, self.engine.artifacts_dir)
+                except:
+                    self.log.warning("Cannot copy file: %s" % resource_file)
+            else:
+                self.log.warning("File not found: %s" % resource_file)
 
     def __get_resource_files_from_script(self, prop_file_contents):
         """
