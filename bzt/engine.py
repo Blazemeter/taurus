@@ -827,7 +827,7 @@ class ScenarioExecutor(EngineModule):
         res = namedtuple("LoadSpec",
                          ('concurrency', "throughput", 'ramp_up', 'hold', 'iterations', 'duration'))
         return res(concurrency=concurrency, ramp_up=ramp_up,
-                   throughput=throughput, hold=hold, iterations=int(iterations),
+                   throughput=throughput, hold=hold, iterations=iterations,
                    duration=duration)
 
     def get_resource_files(self):
