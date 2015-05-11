@@ -886,7 +886,7 @@ class DetailedErrorString(ListBox):
                 self.body.append(
                     Text(("stat-txt", err_template.format(num + 1, err_count, err_description)), wrap=CLIP))
         else:
-            self.body.append(Text("stat-txt", "No errors yet..."))
+            self.body.append(Text(("stat-txt", "No errors yet...")))
 
 
 # TODO: detect and inform on engine overload in local provisioning
