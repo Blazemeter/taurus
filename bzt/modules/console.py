@@ -15,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import bzt
+import random
 
 """
 Console reporting for CLI usage
@@ -34,7 +35,7 @@ from six import StringIO
 from urwid.decoration import Padding
 from urwid.display_common import BaseScreen
 from urwid import Text, Pile, WEIGHT, Filler, Columns, Widget, \
-    CanvasCombine, LineBox, ListBox, RIGHT, CENTER, BOTTOM, CLIP, LEFT
+    CanvasCombine, LineBox, ListBox, RIGHT, CENTER, BOTTOM, CLIP, LEFT, BoxAdapter
 from urwid.font import Thin6x6Font
 from urwid.graphics import BigText
 from urwid.listbox import SimpleListWalker
@@ -697,16 +698,11 @@ class SampleLabelsColumns(Columns):
 
     def __init__(self, key):
         self.labels = SampleLabelsNames()
-        self.hits = SampleLabelsHits()
-        self.failed = SampleLabelsFailed()
-        self.avg_rt = SampleLabelsAvgRT()
+        self.stats_table = CumulativeTable()
+        self.columns = [self.labels,
+                        self.stats_table]
 
-        columns = [self.labels,
-                   self.hits,
-                   (10, self.failed),
-                   (10, self.avg_rt)]
-
-        super(SampleLabelsColumns, self).__init__(columns, dividechars=1)
+        super(SampleLabelsColumns, self).__init__(self.columns, dividechars=1)
         self.key = key
 
     def add_data(self, data):
@@ -716,9 +712,8 @@ class SampleLabelsColumns(Columns):
         :type data: bzt.modules.aggregator.DataPoint
         """
         self.labels.flush_data()
-        self.hits.flush_data()
-        self.failed.flush_data()
-        self.avg_rt.flush_data()
+        self.stats_table.flush_data()
+
         overall = data.get(self.key)
 
         for label in overall.keys():
@@ -727,15 +722,109 @@ class SampleLabelsColumns(Columns):
                 failed = float(overall.get(label).get(KPISet.FAILURES)) / hits * 100 if hits else 0.0
                 avg_rt = overall.get(label).get(KPISet.AVG_RESP_TIME)
                 self.labels.add_data(label)
-                self.hits.add_data(hits)
-                self.failed.add_data(failed)
-                self.avg_rt.add_data(avg_rt)
+                self.stats_table.add_data(hits, failed, avg_rt)
+
+    def render(self, size, focus=False):
+        # TODO: implement min size for label
+        max_width = size[0]
+
+        stat_table_max_width = self.stats_table.get_width(len(self.labels.body))
+        label_names_width = self.labels.get_width()
+        # label_names_min_width = len(self.labels.body[0].text)
+
+        if stat_table_max_width + label_names_width <= max_width:
+            self.contents[0] = (self.contents[0][0], ('given', label_names_width-1, False))
+            # self.contents[1] = (self.contents[1][0], ('given', stat_table_max_width+20, False))
+
+        else:
+            self.contents[0] = (self.contents[0][0], ('given', max_width - stat_table_max_width, False))
+            # self.contents[1] = (self.contents[1][0], ('given', stat_table_max_width+20, False))
 
 
-class LabelTableColumn(object):
+        return super(SampleLabelsColumns, self).render(size, focus=False)
+
+
+class CumulativeTable(Columns):
     def __init__(self):
-        self.header = None
-        self.body = None
+        self.hits = SampleLabelsHits()
+        self.failed = SampleLabelsFailed()
+        self.avg_rt = SampleLabelsAvgRT()
+        self.columns = [self.hits, (10, self.failed), (10, self.avg_rt)]
+        super(CumulativeTable, self).__init__(self.columns, dividechars=1)
+
+    def flush_data(self):
+        self.hits.flush_data()
+        self.failed.flush_data()
+        self.avg_rt.flush_data()
+
+    def add_data(self, hits, failed, avg_rt):
+        self.hits.add_data(hits)
+        self.failed.add_data(failed)
+        self.avg_rt.add_data(avg_rt)
+
+    def get_width(self, total_labels):
+        delimiter = 1
+        table_size = self.hits.get_width() + self.columns[1][0] + self.columns[2][0] + delimiter * 3
+        #for label_number in range(0,total_labels):
+        #    row_size = sum([len(x[0].body[label_number].text) for x in self.contents])
+        #    if row_size > max_size: max_size = row_size
+        return table_size
+
+    def render(self, size, focus=False):
+        """
+        set width for columns
+        """
+        # hits = self.contents[0]
+        # failed = self.contents[1]
+        # avg_rt = self.contents[2]
+
+        hits_size = self.hits.get_width()
+        # failed_size = self.failed.get_width()
+        # avg_rt_size = self.avg_rt.get_width()
+
+        self.contents[0] = (self.contents[0][0], ('given', hits_size, False))
+        # self.contents[1] = (failed, ('given', failed_size, False))
+        # self.contents[2] = (avg_rt, ('given', avg_rt_size, False))
+
+        return super(CumulativeTable, self).render(size, focus=False)
+
+
+
+
+class SampleLabelsNames(ListBox):
+    def __init__(self):
+        super(SampleLabelsNames, self).__init__(SimpleListWalker([]))
+        self.header = Text(("stat-hdr", " Labels "), align=LEFT)
+        self.body.append(self.header)
+
+    def add_data(self, data):
+        data_widget = Text(("stat-txt", "%s" % data), align=LEFT, wrap=CLIP)
+        self.body.append(data_widget)
+
+    def flush_data(self):
+        """
+        Erase data, draw header
+        """
+        while len(self.body):
+            self.body.pop(0)
+        self.body.append(self.header)
+
+    def get_width(self):
+        return max([len(x.text) for x in self.body])
+
+class SampleLabelsHits(ListBox):
+    def __init__(self):
+        super(SampleLabelsHits, self).__init__(SimpleListWalker([]))
+        self.header = Text(("stat-hdr", " Hits "), align=RIGHT)
+        self.body.append(self.header)
+
+    def add_data(self, data):
+        r = random.randint(0,10)
+        data_widget = Text(("stat-txt", "%s%d" % (r*'*', data)), align=RIGHT)
+        self.body.append(data_widget)
+
+    def get_width(self):
+        return max([len(x.text) for x in self.body])
 
     def flush_data(self):
         """
@@ -746,29 +835,7 @@ class LabelTableColumn(object):
         self.body.append(self.header)
 
 
-class SampleLabelsNames(ListBox, LabelTableColumn):
-    def __init__(self):
-        super(SampleLabelsNames, self).__init__(SimpleListWalker([]))
-        self.header = Text(("stat-hdr", " Labels "), align=LEFT)
-        self.body.append(self.header)
-
-    def add_data(self, data):
-        data_widget = Text(("stat-txt", "%s" % data), align=LEFT, wrap=CLIP)
-        self.body.append(data_widget)
-
-
-class SampleLabelsHits(ListBox, LabelTableColumn):
-    def __init__(self):
-        super(SampleLabelsHits, self).__init__(SimpleListWalker([]))
-        self.header = Text(("stat-hdr", " Hits "), align=RIGHT)
-        self.body.append(self.header)
-
-    def add_data(self, data):
-        data_widget = Text(("stat-txt", "%d" % data), align=RIGHT)
-        self.body.append(data_widget)
-
-
-class SampleLabelsFailed(ListBox, LabelTableColumn):
+class SampleLabelsFailed(ListBox):
     def __init__(self):
         super(SampleLabelsFailed, self).__init__(SimpleListWalker([]))
         self.header = Text(("stat-hdr", " Failures "), align=CENTER)
@@ -778,8 +845,19 @@ class SampleLabelsFailed(ListBox, LabelTableColumn):
         data_widget = Text(("stat-txt", "%.2f%%" % data), align=RIGHT)
         self.body.append(data_widget)
 
+    def flush_data(self):
+        """
+        Erase data, draw header
+        """
+        while len(self.body):
+            self.body.pop(0)
+        self.body.append(self.header)
 
-class SampleLabelsAvgRT(ListBox, LabelTableColumn):
+    def get_width(self):
+        return max([len(x.text) for x in self.body])
+
+
+class SampleLabelsAvgRT(ListBox):
     def __init__(self):
         super(SampleLabelsAvgRT, self).__init__(SimpleListWalker([]))
         self.header = Text(("stat-hdr", " Avg Time "), align=RIGHT)
@@ -788,6 +866,17 @@ class SampleLabelsAvgRT(ListBox, LabelTableColumn):
     def add_data(self, data):
         data_widget = Text(("stat-txt", "%.3f" % data), align=RIGHT)
         self.body.append(data_widget)
+
+    def get_width(self):
+        return max([len(x.text) for x in self.body])
+
+    def flush_data(self):
+        """
+        Erase data, draw header
+        """
+        while len(self.body):
+            self.body.pop(0)
+        self.body.append(self.header)
 
 
 class DetailedErrorString(ListBox):
