@@ -595,15 +595,13 @@ class CumulativeStats(LineBox):
         self.percentiles = PercentilesList(DataPoint.CUMULATIVE)
         self.avg_times = AvgTimesList(DataPoint.CUMULATIVE)
         self.rcodes = RCodesList(DataPoint.CUMULATIVE)
-        self.label_columns = SampleLabelsColumns(DataPoint.CUMULATIVE)
-        self.errors_description = DetailedErrorString(DataPoint.CUMULATIVE)
+        self.labels_pile = LabelsPile(DataPoint.CUMULATIVE)
         original_widget = Pile([
             Columns([
                 self.avg_times,
                 self.percentiles,
                 self.rcodes], dividechars=1),
-            Pile([self.label_columns,
-                  self.errors_description])
+            self.labels_pile
         ])
         padded = Padding(original_widget, align=CENTER)
         super(CumulativeStats, self).__init__(padded,
@@ -619,9 +617,10 @@ class CumulativeStats(LineBox):
         self.percentiles.add_data(data)
         self.avg_times.add_data(data)
         self.rcodes.add_data(data)
-        self.label_columns.add_data(data)
+        self.labels_pile.add_data(data)
+        # self.label_columns.add_data(data)
         # self.label_stats.add_data(data)
-        self.errors_description.add_data(data)
+        # self.errors_description.add_data(data)
 
 
 class PercentilesList(ListBox):
@@ -689,6 +688,7 @@ class AvgTimesList(ListBox):
         self.body.append(Text(("stat-txt", "~Receive: %.3f" % recv),
                               align=RIGHT))
 
+
 class SampleLabelsColumns(Columns):
     """
     Sample labels block
@@ -733,15 +733,17 @@ class SampleLabelsColumns(Columns):
         # label_names_min_width = len(self.labels.body[0].text)
 
         if stat_table_max_width + label_names_width <= max_width:
-            self.contents[0] = (self.contents[0][0], ('given', label_names_width-1, False))
+            self.contents[0] = (self.contents[0][0], ('given', label_names_width - 1, False))
             # self.contents[1] = (self.contents[1][0], ('given', stat_table_max_width+20, False))
 
         else:
             self.contents[0] = (self.contents[0][0], ('given', max_width - stat_table_max_width, False))
             # self.contents[1] = (self.contents[1][0], ('given', stat_table_max_width+20, False))
 
-
         return super(SampleLabelsColumns, self).render(size, focus=False)
+
+    def get_height(self):
+        return self.labels.get_height()
 
 
 class CumulativeTable(Columns):
@@ -765,7 +767,7 @@ class CumulativeTable(Columns):
     def get_width(self, total_labels):
         delimiter = 1
         table_size = self.hits.get_width() + self.columns[1][0] + self.columns[2][0] + delimiter * 3
-        #for label_number in range(0,total_labels):
+        # for label_number in range(0,total_labels):
         #    row_size = sum([len(x[0].body[label_number].text) for x in self.contents])
         #    if row_size > max_size: max_size = row_size
         return table_size
@@ -789,6 +791,22 @@ class CumulativeTable(Columns):
         return super(CumulativeTable, self).render(size, focus=False)
 
 
+class LabelsPile(Pile):
+    def __init__(self, datapoint):
+        self.label_columns = SampleLabelsColumns(datapoint)
+        self.errors_description = DetailedErrorString(datapoint)
+        self.rows = [self.label_columns,
+                     self.errors_description]
+        super(LabelsPile, self).__init__(self.rows)
+
+    def add_data(self, data):
+        self.label_columns.add_data(data)
+        self.errors_description.add_data(data)
+
+    def render(self, size, focus=False):
+        labels_height = self.label_columns.get_height() + 1
+        self.contents[0] = (self.contents[0][0], ('given', labels_height))
+        return super(LabelsPile, self).render(size, False)
 
 
 class SampleLabelsNames(ListBox):
@@ -812,6 +830,10 @@ class SampleLabelsNames(ListBox):
     def get_width(self):
         return max([len(x.text) for x in self.body])
 
+    def get_height(self):
+        return len(self.body)
+
+
 class SampleLabelsHits(ListBox):
     def __init__(self):
         super(SampleLabelsHits, self).__init__(SimpleListWalker([]))
@@ -819,8 +841,8 @@ class SampleLabelsHits(ListBox):
         self.body.append(self.header)
 
     def add_data(self, data):
-        r = random.randint(0,10)
-        data_widget = Text(("stat-txt", "%s%d" % (r*'*', data)), align=RIGHT)
+        r = random.randint(0, 10)
+        data_widget = Text(("stat-txt", "%s%d" % (r * '*', data)), align=RIGHT)
         self.body.append(data_widget)
 
     def get_width(self):
@@ -907,8 +929,9 @@ class DetailedErrorString(ListBox):
                 err_description = error.get('msg')
                 err_count = error.get('cnt')
 
-                self.body.append(Text(("stat-txt", err_template.format(num+1, err_count, err_description)), align=LEFT,
-                                      wrap=CLIP))
+                self.body.append(
+                    Text(("stat-txt", err_template.format(num + 1, err_count, err_description)), align=LEFT,
+                         wrap=CLIP))
         else:
             self.body.append(Text(("stat-txt", "No errors yet..."), align=LEFT))
 
