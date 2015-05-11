@@ -15,7 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import bzt
-import random
 
 """
 Console reporting for CLI usage
@@ -35,7 +34,7 @@ from six import StringIO
 from urwid.decoration import Padding
 from urwid.display_common import BaseScreen
 from urwid import Text, Pile, WEIGHT, Filler, Columns, Widget, \
-    CanvasCombine, LineBox, ListBox, RIGHT, CENTER, BOTTOM, CLIP, LEFT, BoxAdapter
+    CanvasCombine, LineBox, ListBox, RIGHT, CENTER, BOTTOM, CLIP, GIVEN
 from urwid.font import Thin6x6Font
 from urwid.graphics import BigText
 from urwid.listbox import SimpleListWalker
@@ -618,9 +617,6 @@ class CumulativeStats(LineBox):
         self.avg_times.add_data(data)
         self.rcodes.add_data(data)
         self.labels_pile.add_data(data)
-        # self.label_columns.add_data(data)
-        # self.label_stats.add_data(data)
-        # self.errors_description.add_data(data)
 
 
 class PercentilesList(ListBox):
@@ -689,7 +685,29 @@ class AvgTimesList(ListBox):
                               align=RIGHT))
 
 
-class SampleLabelsColumns(Columns):
+class LabelsPile(Pile):
+    """
+    Label stats and error descriptions
+    """
+
+    def __init__(self, data):
+        self.label_columns = LabelStatsTable(data)
+        self.errors_description = DetailedErrorString(data)
+        self.rows = [self.label_columns,
+                     self.errors_description]
+        super(LabelsPile, self).__init__(self.rows)
+
+    def add_data(self, data):
+        self.label_columns.add_data(data)
+        self.errors_description.add_data(data)
+
+    def render(self, size, focus=False):
+        labels_height = self.label_columns.get_height() + 1
+        self.contents[0] = (self.contents[0][0], (GIVEN, labels_height))
+        return super(LabelsPile, self).render(size, False)
+
+
+class LabelStatsTable(Columns):
     """
     Sample labels block
 
@@ -698,11 +716,11 @@ class SampleLabelsColumns(Columns):
 
     def __init__(self, key):
         self.labels = SampleLabelsNames()
-        self.stats_table = CumulativeTable()
+        self.stats_table = StatsTable()
         self.columns = [self.labels,
                         self.stats_table]
 
-        super(SampleLabelsColumns, self).__init__(self.columns, dividechars=1)
+        super(LabelStatsTable, self).__init__(self.columns, dividechars=1)
         self.key = key
 
     def add_data(self, data):
@@ -725,34 +743,30 @@ class SampleLabelsColumns(Columns):
                 self.stats_table.add_data(hits, failed, avg_rt)
 
     def render(self, size, focus=False):
-        # TODO: implement min size for label
         max_width = size[0]
-
-        stat_table_max_width = self.stats_table.get_width(len(self.labels.body))
+        stat_table_max_width = self.stats_table.get_width()
         label_names_width = self.labels.get_width()
-        # label_names_min_width = len(self.labels.body[0].text)
-
         if stat_table_max_width + label_names_width <= max_width:
-            self.contents[0] = (self.contents[0][0], ('given', label_names_width - 1, False))
-            # self.contents[1] = (self.contents[1][0], ('given', stat_table_max_width+20, False))
-
+            self.contents[0] = (self.contents[0][0], (GIVEN, label_names_width, False))
         else:
-            self.contents[0] = (self.contents[0][0], ('given', max_width - stat_table_max_width, False))
-            # self.contents[1] = (self.contents[1][0], ('given', stat_table_max_width+20, False))
-
-        return super(SampleLabelsColumns, self).render(size, focus=False)
+            self.contents[0] = (self.contents[0][0], (GIVEN, max_width - stat_table_max_width, False))
+        return super(LabelStatsTable, self).render(size, focus=False)
 
     def get_height(self):
         return self.labels.get_height()
 
 
-class CumulativeTable(Columns):
+class StatsTable(Columns):
+    """
+    Hits, Failures, AvgRT stats
+    """
+
     def __init__(self):
         self.hits = SampleLabelsHits()
         self.failed = SampleLabelsFailed()
         self.avg_rt = SampleLabelsAvgRT()
         self.columns = [self.hits, (10, self.failed), (10, self.avg_rt)]
-        super(CumulativeTable, self).__init__(self.columns, dividechars=1)
+        super(StatsTable, self).__init__(self.columns, dividechars=1)
 
     def flush_data(self):
         self.hits.flush_data()
@@ -764,60 +778,23 @@ class CumulativeTable(Columns):
         self.failed.add_data(failed)
         self.avg_rt.add_data(avg_rt)
 
-    def get_width(self, total_labels):
-        delimiter = 1
-        table_size = self.hits.get_width() + self.columns[1][0] + self.columns[2][0] + delimiter * 3
-        # for label_number in range(0,total_labels):
-        #    row_size = sum([len(x[0].body[label_number].text) for x in self.contents])
-        #    if row_size > max_size: max_size = row_size
+    def get_width(self):
+        dividechars = 1
+        table_size = self.hits.get_width() + self.columns[1][0] + self.columns[2][0] + dividechars * 3
         return table_size
 
     def render(self, size, focus=False):
         """
         set width for columns
         """
-        # hits = self.contents[0]
-        # failed = self.contents[1]
-        # avg_rt = self.contents[2]
-
         hits_size = self.hits.get_width()
-        # failed_size = self.failed.get_width()
-        # avg_rt_size = self.avg_rt.get_width()
-
-        self.contents[0] = (self.contents[0][0], ('given', hits_size, False))
-        # self.contents[1] = (failed, ('given', failed_size, False))
-        # self.contents[2] = (avg_rt, ('given', avg_rt_size, False))
-
-        return super(CumulativeTable, self).render(size, focus=False)
+        self.contents[0] = (self.contents[0][0], (GIVEN, hits_size, False))
+        return super(StatsTable, self).render(size, focus=False)
 
 
-class LabelsPile(Pile):
-    def __init__(self, datapoint):
-        self.label_columns = SampleLabelsColumns(datapoint)
-        self.errors_description = DetailedErrorString(datapoint)
-        self.rows = [self.label_columns,
-                     self.errors_description]
-        super(LabelsPile, self).__init__(self.rows)
-
-    def add_data(self, data):
-        self.label_columns.add_data(data)
-        self.errors_description.add_data(data)
-
-    def render(self, size, focus=False):
-        labels_height = self.label_columns.get_height() + 1
-        self.contents[0] = (self.contents[0][0], ('given', labels_height))
-        return super(LabelsPile, self).render(size, False)
-
-
-class SampleLabelsNames(ListBox):
-    def __init__(self):
-        super(SampleLabelsNames, self).__init__(SimpleListWalker([]))
-        self.header = Text(("stat-hdr", " Labels "), align=LEFT)
-        self.body.append(self.header)
-
-    def add_data(self, data):
-        data_widget = Text(("stat-txt", "%s" % data), align=LEFT, wrap=CLIP)
-        self.body.append(data_widget)
+class StatsColumn(ListBox):
+    def __init__(self, *args, **kargs):
+        super(StatsColumn, self).__init__(*args, **kargs)
 
     def flush_data(self):
         """
@@ -834,30 +811,29 @@ class SampleLabelsNames(ListBox):
         return len(self.body)
 
 
-class SampleLabelsHits(ListBox):
+class SampleLabelsNames(StatsColumn):
+    def __init__(self):
+        super(SampleLabelsNames, self).__init__(SimpleListWalker([]))
+        self.header = Text(("stat-hdr", " Labels "))
+        self.body.append(self.header)
+
+    def add_data(self, data):
+        data_widget = Text(("stat-txt", "%s" % data), wrap=CLIP)
+        self.body.append(data_widget)
+
+
+class SampleLabelsHits(StatsColumn):
     def __init__(self):
         super(SampleLabelsHits, self).__init__(SimpleListWalker([]))
         self.header = Text(("stat-hdr", " Hits "), align=RIGHT)
         self.body.append(self.header)
 
     def add_data(self, data):
-        r = random.randint(0, 10)
-        data_widget = Text(("stat-txt", "%s%d" % (r * '*', data)), align=RIGHT)
+        data_widget = Text(("stat-txt", "%d" % data), align=RIGHT)
         self.body.append(data_widget)
 
-    def get_width(self):
-        return max([len(x.text) for x in self.body])
 
-    def flush_data(self):
-        """
-        Erase data, draw header
-        """
-        while len(self.body):
-            self.body.pop(0)
-        self.body.append(self.header)
-
-
-class SampleLabelsFailed(ListBox):
+class SampleLabelsFailed(StatsColumn):
     def __init__(self):
         super(SampleLabelsFailed, self).__init__(SimpleListWalker([]))
         self.header = Text(("stat-hdr", " Failures "), align=CENTER)
@@ -867,19 +843,8 @@ class SampleLabelsFailed(ListBox):
         data_widget = Text(("stat-txt", "%.2f%%" % data), align=RIGHT)
         self.body.append(data_widget)
 
-    def flush_data(self):
-        """
-        Erase data, draw header
-        """
-        while len(self.body):
-            self.body.pop(0)
-        self.body.append(self.header)
 
-    def get_width(self):
-        return max([len(x.text) for x in self.body])
-
-
-class SampleLabelsAvgRT(ListBox):
+class SampleLabelsAvgRT(StatsColumn):
     def __init__(self):
         super(SampleLabelsAvgRT, self).__init__(SimpleListWalker([]))
         self.header = Text(("stat-hdr", " Avg Time "), align=RIGHT)
@@ -888,17 +853,6 @@ class SampleLabelsAvgRT(ListBox):
     def add_data(self, data):
         data_widget = Text(("stat-txt", "%.3f" % data), align=RIGHT)
         self.body.append(data_widget)
-
-    def get_width(self):
-        return max([len(x.text) for x in self.body])
-
-    def flush_data(self):
-        """
-        Erase data, draw header
-        """
-        while len(self.body):
-            self.body.pop(0)
-        self.body.append(self.header)
 
 
 class DetailedErrorString(ListBox):
@@ -920,7 +874,7 @@ class DetailedErrorString(ListBox):
         while len(self.body):
             self.body.pop(0)
 
-        self.body.append(Text(("stat-hdr", " Errors: "), align=LEFT))
+        self.body.append(Text(("stat-hdr", " Errors: ")))
         overall = data.get(self.key)
         errors = overall.get('').get(KPISet.ERRORS)
         if errors:
@@ -930,10 +884,9 @@ class DetailedErrorString(ListBox):
                 err_count = error.get('cnt')
 
                 self.body.append(
-                    Text(("stat-txt", err_template.format(num + 1, err_count, err_description)), align=LEFT,
-                         wrap=CLIP))
+                    Text(("stat-txt", err_template.format(num + 1, err_count, err_description)), wrap=CLIP))
         else:
-            self.body.append(Text(("stat-txt", "No errors yet..."), align=LEFT))
+            self.body.append(Text("stat-txt", "No errors yet..."))
 
 
 # TODO: detect and inform on engine overload in local provisioning
