@@ -16,9 +16,6 @@ limitations under the License.
 """
 import bzt
 
-"""
-Console reporting for CLI usage
-"""
 import re
 import sys
 import logging

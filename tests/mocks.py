@@ -111,6 +111,7 @@ class ModuleMock(ScenarioExecutor, Provisioning, Reporter, FileLister):
         :raise self.shutdown_exc:
         """
         self.log.info("Shutdown mock")
+        time.sleep(3)
         self.was_shutdown = True
         if self.shutdown_exc:
             raise self.shutdown_exc
