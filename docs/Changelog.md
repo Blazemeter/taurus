@@ -1,7 +1,6 @@
 # Changelog
 
 ## Next version
-  - Fixed loop count bug.
   - Some more stats have been added to console screen.
   
 ## 0.2.12
