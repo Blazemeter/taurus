@@ -484,7 +484,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         else:
             return None
 
-
     def __apply_modifications(self, jmx):
         """
         :type jmx: JMX
@@ -1024,7 +1023,6 @@ class JMX(object):
         coll_prop.append(end_rps_prop)
         coll_prop.append(duration_prop)
         shaper_collection.append(coll_prop)
-
 
     def add_user_def_vars_elements(self, udv_dict):
         """
