@@ -10,7 +10,6 @@ from bzt.modules.jmeter import JMeterExecutor, JMX
 from tests import setup_test_logging, BZTestCase, __dir__
 from tests.mocks import EngineEmul
 from bzt.utils import BetterDict
-import bzt.utils
 
 try:
     from lxml import etree
@@ -180,7 +179,6 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(1, len(arguments_element_prop[0].findall(".//elementProp[@name='param1']")))
         self.assertEqual(1, len(arguments_element_prop.findall(".//elementProp[@name='param2']")))
 
-
     def __check_path_resource_files(self, jmx_file_path, exclude_jtls=False):
         xml_tree = etree.fromstring(open(jmx_file_path, "rb").read())
         search_patterns = ["File.path", "filename", "BeanShellSampler.filename"]
@@ -201,7 +199,6 @@ class TestJMeterExecutor(BZTestCase):
                     else:
                         self.assertEqual("", os.path.dirname(resource_element.text))
 
-
     def test_resource_files_collection_remote_prov(self):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
@@ -213,7 +210,6 @@ class TestJMeterExecutor(BZTestCase):
         target_jmx = os.path.join(obj.engine.artifacts_dir, "files.jmx")
         self.__check_path_resource_files(target_jmx, exclude_jtls=False)
 
-
     def test_resource_files_collection_local_prov(self):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
@@ -223,7 +219,6 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(len(artifacts), 8)
         target_jmx = os.path.join(obj.engine.artifacts_dir, "modified_files.jmx.jmx")
         self.__check_path_resource_files(target_jmx, exclude_jtls=True)
-
 
     def test_resource_files_from_requests_remote_prov(self):
         obj = JMeterExecutor()
@@ -277,14 +272,13 @@ class TestJMeterExecutor(BZTestCase):
         obj.prepare()
         xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
         shaper_elements = xml_tree.findall(
-            ".//kg.apc.jmeter.timers.VariableThroughputTimer[@testclass='kg.apc.jmeter.timers.VariableThroughputTimer']")
+           ".//kg.apc.jmeter.timers.VariableThroughputTimer[@testclass='kg.apc.jmeter.timers.VariableThroughputTimer']")
         self.assertEqual(1, len(shaper_elements))
         shaper_coll_element = shaper_elements[0].find(".//collectionProp[@name='load_profile']")
 
         self.assertEqual("100", shaper_coll_element.find(".//stringProp[@name='49']").text)
         self.assertEqual("100", shaper_coll_element.find(".//stringProp[@name='1567']").text)
         self.assertEqual("60", shaper_coll_element.find(".//stringProp[@name='53']").text)
-
 
     def test_add_shaper_ramp_up(self):
         obj = JMeterExecutor()
@@ -296,7 +290,7 @@ class TestJMeterExecutor(BZTestCase):
         obj.prepare()
         xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
         shaper_elements = xml_tree.findall(
-            ".//kg.apc.jmeter.timers.VariableThroughputTimer[@testclass='kg.apc.jmeter.timers.VariableThroughputTimer']")
+           ".//kg.apc.jmeter.timers.VariableThroughputTimer[@testclass='kg.apc.jmeter.timers.VariableThroughputTimer']")
         self.assertEqual(1, len(shaper_elements))
         shaper_coll_element = shaper_elements[0].find(".//collectionProp[@name='load_profile']")
 
