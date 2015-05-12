@@ -141,7 +141,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         self.start_time = time.time()
         try:
-            self.process = shell_exec(cmdline, stdout=None, stderr=None)
+            self.process = shell_exec(cmdline, stderr=None)
         except OSError as exc:
             self.log.error("Failed to start JMeter: %s", traceback.format_exc())
             self.log.error("Failed command: %s", cmdline)
