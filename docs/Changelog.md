@@ -1,5 +1,8 @@
 # Changelog
 
+## Next version
+  - Some more stats have been added to console screen.
+  
 ## 0.2.12
   - Added http request defaults options
   - Added support of RPS shaper component
