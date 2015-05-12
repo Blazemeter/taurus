@@ -119,7 +119,8 @@
       },
       "user-defined-vars": {
         "my_var": "http://demo.blazemeter.com/api/user",
-        "my_var2": "my_val2"}
+        "my_var2": "my_val2"
+      }
     }
   },
   "execution": {

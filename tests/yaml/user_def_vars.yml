@@ -5,7 +5,7 @@ execution:
   throughput: 100
 
   scenario: 
-    script: build/simple.jmx
+    script: tests/jmx/http.jmx
     user-defined-vars:
       my_var: http://demo.blazemeter.com/api/user
       myvar2: val2
