@@ -26,9 +26,9 @@ import logging
 from subprocess import CalledProcessError
 import six
 import shutil
+from distutils.version import LooseVersion
 
 from cssselect import GenericTranslator
-from distutils.version import LooseVersion
 import urwid
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
@@ -76,6 +76,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.retcode = None
         self.reader = None
         self.widget = None
+        self.distributed_servers = []
 
     def prepare(self):
         """
@@ -86,13 +87,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         :raise ValueError:
         """
-        # TODO: global variables
-        # TODO: move all files to artifacts
         self.jmeter_log = self.engine.create_artifact("jmeter", ".log")
 
-        # TODO: switch to verifier.verify()
         self.__check_jmeter()
-        # self.verifier.verify()
+        self.distributed_servers = self.execution.get('distributed', self.distributed_servers)
         scenario = self.get_scenario()
         self.resource_files()
         if Scenario.SCRIPT in scenario:
@@ -138,9 +136,12 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if self.properties_file:
             cmdline += ["-p", self.properties_file]
 
+        if self.distributed_servers:
+            cmdline += ['-R%s' % ','.join(self.distributed_servers)]
+
         self.start_time = time.time()
         try:
-            self.process = shell_exec(cmdline)
+            self.process = shell_exec(cmdline, stdout=None, stderr=None)
         except OSError as exc:
             self.log.error("Failed to start JMeter: %s", traceback.format_exc())
             self.log.error("Failed command: %s", cmdline)
@@ -163,10 +164,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 self.log.info("JMeter exit code: %s", self.retcode)
                 raise RuntimeError("JMeter exited with non-zero code")
 
-            if self.kpi_jtl:
-                if not os.path.exists(self.kpi_jtl) or not os.path.getsize(self.kpi_jtl):
-                    msg = "Empty results JTL, most likely JMeter failed: %s"
-                    raise RuntimeWarning(msg % self.kpi_jtl)
             return True
 
         return False
@@ -175,6 +172,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         If JMeter is still running - let's stop it.
         """
+        # TODO: print JMeter's stdout/stderr on empty JTL
         while self.process and self.process.poll() is None:
             # TODO: find a way to have graceful shutdown, then kill
             self.log.info("Terminating jmeter PID: %s", self.process.pid)
@@ -190,6 +188,11 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if self.start_time:
             self.end_time = time.time()
             self.log.debug("JMeter worked for %s seconds", self.end_time - self.start_time)
+
+        if self.kpi_jtl:
+            if not os.path.exists(self.kpi_jtl) or not os.path.getsize(self.kpi_jtl):
+                msg = "Empty results JTL, most likely JMeter failed: %s"
+                raise RuntimeWarning(msg % self.kpi_jtl)
 
     def __apply_ramp_up(self, jmx, ramp_up):
         rampup_sel = "stringProp[name='ThreadGroup.ramp_time']"
@@ -394,7 +397,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     def __copy_resources_to_artifacts_dir(self, resource_files_list):
         """
 
-        :param file_list:
+        :param resource_files_list:
         :return:
         """
         for resource_file in resource_files_list:
@@ -409,7 +412,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     def __modify_resources_paths_in_jmx(self, jmx, file_list):
         """
 
-        :param jmx_etree:
+        :param jmx:
         :param file_list:
         :return: etree
         """
@@ -440,7 +443,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 if resource_element.text and parent_disabled is False:
                     resource_files.append(resource_element.text)
         return resource_files
-
 
     def __get_resource_files_from_requests(self):
         """
@@ -476,7 +478,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             return self.engine.find_file(fname)
         else:
             return None
-
 
     def __apply_modifications(self, jmx):
         """
@@ -600,18 +601,18 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         Remove old jars
         """
-        JarLib = namedtuple("JarLib", ("file_name", "lib_name"))
-        jars = [file for file in os.listdir(path) if '-' in file and os.path.isfile(os.path.join(path, file))]
-        jar_libs = [JarLib(file_name=jar, lib_name='-'.join(jar.split('-')[:-1])) for jar in jars]
+        jarlib = namedtuple("jarlib", ("file_name", "lib_name"))
+        jars = [fname for fname in os.listdir(path) if '-' in fname and os.path.isfile(os.path.join(path, fname))]
+        jar_libs = [jarlib(file_name=jar, lib_name='-'.join(jar.split('-')[:-1])) for jar in jars]
 
         duplicated_libraries = []
         for jar_lib_obj in jar_libs:
             similar_packages = [LooseVersion(x.file_name) for x in
-                                filter(lambda x: x.lib_name == jar_lib_obj.lib_name, jar_libs)]
+                                filter(lambda _: _.lib_name == jar_lib_obj.lib_name, jar_libs)]
             if len(similar_packages) > 1:
                 right_version = max(similar_packages)
                 similar_packages.remove(right_version)
-                duplicated_libraries.extend(filter(lambda x: x not in duplicated_libraries, similar_packages))
+                duplicated_libraries.extend(filter(lambda _: _ not in duplicated_libraries, similar_packages))
 
         for old_lib in duplicated_libraries:
             os.remove(os.path.join(path, old_lib.vstring))
@@ -1017,7 +1018,6 @@ class JMX(object):
         coll_prop.append(end_rps_prop)
         coll_prop.append(duration_prop)
         shaper_collection.append(coll_prop)
-
 
     @staticmethod
     def _get_header_mgr(hdict):

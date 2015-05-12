@@ -14,7 +14,8 @@
         "jmeter.save.saveservice.autoflush": "true",
         "jmeterengine.force.system.exit": "true",
         "jmeter.save.saveservice.connect_time": "true",
-        "summariser.name": ""
+        "summariser.name": "",
+        "mode": "Stripped"
       },
       "path": "~/jmeter-taurus/bin/jmeter"
     },

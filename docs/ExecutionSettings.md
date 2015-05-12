@@ -149,6 +149,20 @@ modules:
 
 For the command-line, use alias `-gui` or option `-o modules.jmeter.gui=true`, without the need to edit configuration file.
 
+#### Run JMeter in Distributed Mode
+Distributed mode for JMeter is enabled with simple option `distributed` under execution settings, listing JMeter servers under it:
+
+```yaml
+---
+execution:
+  distributed: 
+    - host1.mynet.com
+    - host2.mynet.com
+    - host3.mynet.com
+  scenario:
+    script: my-test.jmx
+```
+
 
 #### Modifications for Existing Scripts
 
