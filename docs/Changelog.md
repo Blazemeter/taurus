@@ -1,7 +1,7 @@
 # Changelog
 
 ## Next version
-  - added support of user defined variables
+  - added support for user defined variables
 
 ## 0.2.13
   - Some more stats have been added to console screen

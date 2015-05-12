@@ -4,6 +4,7 @@ import os
 import tempfile
 import sys
 import random
+import time
 
 from bzt.engine import Engine, Configuration, FileLister
 from bzt.utils import load_class
@@ -94,6 +95,7 @@ class ModuleMock(ScenarioExecutor, Provisioning, Reporter, FileLister):
         """
         :return: :raise self.check_exc:
         """
+        time.sleep(1)
         self.was_check = True
         self.log.info("Checks remaining: %s", self.check_iterations)
         self.check_iterations -= 1
