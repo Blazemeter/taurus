@@ -1018,6 +1018,40 @@ class JMX(object):
         coll_prop.append(duration_prop)
         shaper_collection.append(coll_prop)
 
+    def get_udv_etree(self):
+        """
+
+        :return: etree.Element
+        """
+        udv_element = etree.Element("Arguments", guiclass="ArgumentsPanel", testclass="Arguments",
+                                    testname="my_defined_vars")
+        udv_collection = self._collection_prop("Arguments.arguments")
+        udv_element.append(udv_collection)
+        return udv_element
+
+    def add_udv_element(self, udv_etree, var_name, var_value, var_desc):
+
+        """
+
+        :param udv_etree:
+        :param var_name:
+        :param var_value:
+        :param var_:
+        :return:
+        """
+        udv_collection_prop = udv_etree.find(".//collectionProp[@name='Arguments.arguments']")
+        udv_element_prop = self._element_prop(var_name, "Argument")
+        udv_arg_name_prop = self._string_prop("Argument.name", var_name)
+        udv_arg_value_prop = self._string_prop("Argument.value", var_value)
+        udv_arg_desc_prop = self._string_prop("Argument.desc", var_desc)
+        udv_arg_meta_prop = self._string_prop("Argument.metadata", "=")
+
+        udv_element_prop.append(udv_arg_name_prop)
+        udv_element_prop.append(udv_arg_value_prop)
+        udv_element_prop.append(udv_arg_desc_prop)
+        udv_element_prop.append(udv_arg_meta_prop)
+
+        udv_collection_prop.append(udv_element_prop)
 
     @staticmethod
     def _get_header_mgr(hdict):
@@ -1554,6 +1588,17 @@ class JMeterScenarioBuilder(JMX):
                                                                 retrieve_resources, concurrent_pool_size))
         self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
 
+    def __add_udv(self):
+        udvs = self.scenario.get("user-defined-vars")
+        if udvs:
+            udv_element = self.get_udv_etree()
+            for udv in udvs:
+                self.add_udv_element(udv_element, udv.get("name"), udv.get("value"),udv.get("desc"))
+            self.append(self.TEST_PLAN_SEL, udv_element)
+            self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
+
+
+
     def __add_think_time(self, children, request):
         global_ttime = self.scenario.get("think-time", None)
         if request.think_time is not None:
@@ -1653,12 +1698,14 @@ class JMeterScenarioBuilder(JMX):
         self.__add_defaults()
         self.__add_datasources()
 
+
         thread_group = JMX._get_thread_group(1, 0, 1)
         self.append(self.TEST_PLAN_SEL, thread_group)
         self.append(self.TEST_PLAN_SEL, etree.Element("hashTree", type="tg"))  # arbitrary trick with our own attribute
 
         self.__add_requests()
         self.__add_results_tree()
+        self.__add_udv()
 
     def save(self, filename):
         """
