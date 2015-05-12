@@ -321,8 +321,7 @@ class TestJMeterExecutor(BZTestCase):
     def test_user_def_vars_override(self):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
-        x = yaml.load(open("tests/yaml/user_def_vars.yml").read())
-        obj.engine.config.merge(x)
+        obj.engine.config.merge(yaml.load(open("tests/yaml/user_def_vars.yml").read()))
         obj.execution = obj.engine.config['execution']
         obj.prepare()
         xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
