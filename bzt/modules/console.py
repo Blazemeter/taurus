@@ -886,8 +886,6 @@ class DetailedErrorString(ListBox):
             self.body.append(Text(("stat-txt", "No errors yet...")))
 
 
-# TODO: detect and inform on engine overload in local provisioning
-
 class RCodesList(ListBox):
     """
     Response codes list
