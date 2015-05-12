@@ -591,32 +591,39 @@ class Configuration(BetterDict):
                 else:
                     pointer.append(BetterDict())
 
+    def __apply_single_override(self, name, value):
+        self.log.debug("Applying %s=%s", name, value)
+        parts = [(int(x) if x.isdigit() else x) for x in name.split(".")]
+        pointer = self
+        for index, part in enumerate(parts[:-1]):
+            self.__ensure_list_capacity(pointer, part, parts[index + 1])
+
+            if type(part) == int:
+                pointer = pointer[part]
+            elif type(parts[index + 1]) == int and isinstance(pointer, dict):
+                pointer = pointer.get(part, [])
+            else:
+                pointer = pointer.get(part)
+        self.__ensure_list_capacity(pointer, parts[-1])
+        self.log.debug("Applying: %s[%s]=%s", pointer, parts[-1], value)
+        if isinstance(parts[-1], six.string_types) and parts[-1][0] == '^':
+            del pointer[parts[-1][1:]]
+        else:
+            if value.isdigit():
+                value = float(value)
+            if isinstance(pointer, list) and parts[-1] == '-1':
+                pointer.append(value)
+            else:
+                pointer[parts[-1]] = value
+
     def __apply_overrides(self, opts):
         for name, value in opts:
-            self.log.debug("Applying %s=%s", name, value)
-            parts = [(int(x) if x.isdigit() else x) for x in name.split(".")]
-            pointer = self
-            for index, part in enumerate(parts[:-1]):
-                self.__ensure_list_capacity(pointer, part, parts[index + 1])
-
-                if type(part) == int:
-                    pointer = pointer[part]
-                elif type(parts[index + 1]) == int and isinstance(pointer, dict):
-                    pointer = pointer.get(part, [])
-                else:
-                    pointer = pointer.get(part)
-
-            self.__ensure_list_capacity(pointer, parts[-1])
-            self.log.debug("Applying: %s[%s]=%s", pointer, parts[-1], value)
-            if isinstance(parts[-1], six.string_types) and parts[-1][0] == '^':
-                del pointer[parts[-1][1:]]
-            else:
-                if value.isdigit():
-                    value = float(value)
-                if isinstance(pointer, list) and parts[-1] == '-1':
-                    pointer.append(value)
-                else:
-                    pointer[parts[-1]] = value
+            try:
+                self.__apply_single_override(name, value)
+            except BaseException as exc:
+                self.log.debug("Failed override: %s", traceback.format_exc())
+                self.log.error("Failed to apply override %s=%s", name, value)
+                raise
 
         self.dump()
 
