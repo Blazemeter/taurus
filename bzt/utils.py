@@ -566,3 +566,11 @@ def get_configs_dir():
         else os.path.splitdrive(sys.executable)[0]
     path += os.path.sep + os.path.join("etc", "bzt.d")  # os.path.join does not work for some reason
     return path
+
+
+def is_int(str_val):
+    try:
+        int(str_val)
+        return True
+    except ValueError:
+        return False

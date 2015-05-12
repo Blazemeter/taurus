@@ -33,7 +33,7 @@ import yaml
 from yaml.representer import SafeRepresenter
 
 from bzt import ManualShutdown, NormalShutdown
-from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, get_configs_dir
+from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, get_configs_dir, is_int
 
 
 try:
@@ -593,7 +593,7 @@ class Configuration(BetterDict):
 
     def __apply_single_override(self, name, value):
         self.log.debug("Applying %s=%s", name, value)
-        parts = [(int(x) if x.isdigit() else x) for x in name.split(".")]
+        parts = [(int(x) if is_int(x) else x) for x in name.split(".")]
         pointer = self
         for index, part in enumerate(parts[:-1]):
             self.__ensure_list_capacity(pointer, part, parts[index + 1])
@@ -611,7 +611,7 @@ class Configuration(BetterDict):
         else:
             if value.isdigit():
                 value = float(value)
-            if isinstance(pointer, list) and parts[-1] == '-1':
+            if isinstance(pointer, list) and parts[-1] < 0:
                 pointer.append(value)
             else:
                 pointer[parts[-1]] = value
@@ -620,7 +620,7 @@ class Configuration(BetterDict):
         for name, value in opts:
             try:
                 self.__apply_single_override(name, value)
-            except BaseException as exc:
+            except:
                 self.log.debug("Failed override: %s", traceback.format_exc())
                 self.log.error("Failed to apply override %s=%s", name, value)
                 raise
