@@ -22,6 +22,7 @@ class TestCLI(BZTestCase):
         self.assertEquals(0, ret)
 
     def test_perform_overrides(self):
+        self.option.append("test.subkey5.-1=value")
         self.option.append("modules.mock=" + ModuleMock.__module__ + "." + ModuleMock.__name__)
         self.option.append("provisioning=mock")
         self.option.append("test.subkey2.0.sskey=value")

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.13
+  - Some more stats have been added to console screen.
+  - add `-gui` command-line alias to open JMeter UI for debugging
+  - add support for JMeter distributed mode
+  
 ## 0.2.12
   - Added http request defaults options
   - Added support of RPS shaper component
@@ -17,7 +22,6 @@
   - Added pass/fail criteria report on console reporter
 
 ## 0.2.0
-
   - Added JSON path assertion.
   - Added parameters for final_stats reporter
   - Added ability to generate query string based on parameters and request type.
