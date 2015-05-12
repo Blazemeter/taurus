@@ -76,6 +76,11 @@
           "url": "http://demo.blazemeter.com/api/user",
           "label": "With body from file",
           "body-file": "tests/jmx/http.jmx"
+        },
+        {
+          "method": "GET",
+          "url": "${my_var}",
+          "label": "UDV"
         }
       ],
       "properties": {
@@ -111,6 +116,10 @@
           "Disable.Me>HTTPSampler.connect_timeout": "0",
           "Disable.Me>HTTPSampler.protocol": "https"
         }
+      },
+      "variables": {
+        "my_var": "http://demo.blazemeter.com/api/user",
+        "my_var2": "my_val2"
       }
     }
   },
