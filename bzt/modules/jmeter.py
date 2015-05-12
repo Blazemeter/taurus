@@ -306,6 +306,11 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if self.get_scenario().get("disable-listeners", True):
             self.__disable_listeners(jmx)
 
+        user_def_vars = self.get_scenario().get("variables")
+        if user_def_vars:
+            jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, jmx.add_user_def_vars_elements(user_def_vars))
+            jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
+
         self.__apply_modifications(jmx)
 
         if load.duration and load.iterations:
@@ -1018,6 +1023,32 @@ class JMX(object):
         coll_prop.append(end_rps_prop)
         coll_prop.append(duration_prop)
         shaper_collection.append(coll_prop)
+
+    def add_user_def_vars_elements(self, udv_dict):
+        """
+
+        :param udv_dict:
+        :return:
+        """
+
+        udv_element = etree.Element("Arguments", guiclass="ArgumentsPanel", testclass="Arguments",
+                                    testname="my_defined_vars")
+        udv_collection_prop = self._collection_prop("Arguments.arguments")
+
+        for var_name, var_value in udv_dict.items():
+            udv_element_prop = self._element_prop(var_name, "Argument")
+            udv_arg_name_prop = self._string_prop("Argument.name", var_name)
+            udv_arg_value_prop = self._string_prop("Argument.value", var_value)
+            udv_arg_desc_prop = self._string_prop("Argument.desc", "")
+            udv_arg_meta_prop = self._string_prop("Argument.metadata", "=")
+            udv_element_prop.append(udv_arg_name_prop)
+            udv_element_prop.append(udv_arg_value_prop)
+            udv_element_prop.append(udv_arg_desc_prop)
+            udv_element_prop.append(udv_arg_meta_prop)
+            udv_collection_prop.append(udv_element_prop)
+
+        udv_element.append(udv_collection_prop)
+        return udv_element
 
     @staticmethod
     def _get_header_mgr(hdict):
