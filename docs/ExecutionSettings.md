@@ -173,7 +173,7 @@ JMeter executor allows you to apply some modifications to the JMX file before ru
 execution:
   scenario:
     script: tests/jmx/dummy.jmx
-    user-defined-vars:
+    variables: # add User Defined Variables component to test plan, overriding other global variables
       user_def_var: http://demo.blazemeter.com/api/user
       user_def_var2: user_def_val_2
     modifications:

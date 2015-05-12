@@ -306,7 +306,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if self.get_scenario().get("disable-listeners", True):
             self.__disable_listeners(jmx)
 
-        user_def_vars = self.get_scenario().get("user-defined-vars")
+        user_def_vars = self.get_scenario().get("variables")
         if user_def_vars:
             jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, jmx.add_user_def_vars_elements(user_def_vars))
             jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))

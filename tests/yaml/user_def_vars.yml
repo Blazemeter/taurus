@@ -6,7 +6,7 @@ execution:
 
   scenario: 
     script: tests/jmx/http.jmx
-    user-defined-vars:
+    variables:
       my_var: http://demo.blazemeter.com/api/user
       myvar2: val2
     properties:
