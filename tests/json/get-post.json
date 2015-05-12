@@ -117,18 +117,9 @@
           "Disable.Me>HTTPSampler.protocol": "https"
         }
       },
-      "user-defined-vars": [
-        {
-          "name": "my_var",
-          "value": "http://demo.blazemeter.com/api/user",
-          "desc": "my_desc"
-        },
-        {
-          "name": "my_var2",
-          "value": "my_val2",
-          "desc": "my_desc2"
-        }
-      ]
+      "user-defined-vars": {
+        "my_var": "http://demo.blazemeter.com/api/user",
+        "my_var2": "my_val2"}
     }
   },
   "execution": {

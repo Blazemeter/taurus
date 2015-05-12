@@ -308,20 +308,21 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual("10", shaper_coll_element.findall(".//stringProp[@name='1567']")[1].text)
         self.assertEqual("120", shaper_coll_element.findall(".//stringProp[@name='53']")[1].text)
 
-
-#    def test_udv_from_jmx(self):
-#        obj = JMeterExecutor()
-#        obj.engine = EngineEmul()
-#        obj.execution.merge({"scenario": {"script": "tests/jmx/udv.jmx"}})
-#        obj.prepare()
-#        xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
-#        udv_elements = xml_tree.findall(".//Arguments[@testclass='Arguments']")
-#        self.assertEqual(1, len(udv_elements))
-
-    def test_udv_from_requests(self):
+    def test_user_def_vars_from_requests(self):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
         obj.engine.config = json.loads(open("tests/json/get-post.json").read())
+        obj.execution = obj.engine.config['execution']
+        obj.prepare()
+        xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        udv_elements = xml_tree.findall(".//Arguments[@testclass='Arguments']")
+        self.assertEqual(1, len(udv_elements))
+
+    def test_user_def_vars_override(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        x = yaml.load(open("tests/yaml/user_def_vars.yml").read())
+        obj.engine.config.merge(x)
         obj.execution = obj.engine.config['execution']
         obj.prepare()
         xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
