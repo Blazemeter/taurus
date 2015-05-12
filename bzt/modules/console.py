@@ -878,13 +878,13 @@ class DetailedErrorString(ListBox):
         overall = data.get(self.key)
         errors = overall.get('').get(KPISet.ERRORS)
         if errors:
-            err_template = "{0}) Count:{1} Message:{2}"
+            err_template = "{0} of: {1}"
             for num, error in enumerate(errors):
                 err_description = error.get('msg')
                 err_count = error.get('cnt')
 
                 self.body.append(
-                    Text(("stat-txt", err_template.format(num + 1, err_count, err_description)), wrap=CLIP))
+                    Text(("stat-txt", err_template.format(err_count, err_description)), wrap=CLIP))
         else:
             self.body.append(Text(("stat-txt", "No errors yet...")))
 
