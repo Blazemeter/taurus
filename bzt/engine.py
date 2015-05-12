@@ -118,7 +118,7 @@ class Engine(object):
 
             self.provisioning.startup()
             self.config.dump()
-            self.__wait()
+            self._wait()
         except NormalShutdown as exc:
             self.log.debug("Normal shutdown called: %s", traceback.format_exc())
             self.stopping_reason = exc if not self.stopping_reason else self.stopping_reason
@@ -126,9 +126,9 @@ class Engine(object):
             self.stopping_reason = exc if not self.stopping_reason else self.stopping_reason
             raise
         finally:
-            self.__shutdown()
+            self._shutdown()
 
-    def __wait(self):
+    def _wait(self):
         self.log.info("Waiting for finish...")
         prev = time.time()
         while not self.provisioning.check() \
@@ -145,7 +145,7 @@ class Engine(object):
                 raise ManualShutdown()
         self.config.dump()
 
-    def __shutdown(self):
+    def _shutdown(self):
         self.log.info("Shutting down...")
         try:
             self.provisioning.shutdown()

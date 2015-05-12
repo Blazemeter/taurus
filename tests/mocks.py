@@ -32,6 +32,10 @@ class EngineEmul(Engine):
         self.finalize_exc = None
         self.was_finalize = False
 
+    def _shutdown(self):
+        time.sleep(5)
+        return super(EngineEmul, self)._shutdown()
+
     def dump_config(self):
         """ test """
         fname = tempfile.mkstemp()[1]
