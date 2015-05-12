@@ -2,6 +2,7 @@
 
 ## Next version
   - Some more stats have been added to console screen.
+  - add `-gui` command-line alias to open JMeter UI for debugging
   
 ## 0.2.12
   - Added http request defaults options

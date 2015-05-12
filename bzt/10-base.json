@@ -70,6 +70,13 @@
       "reporting": [
         "blazemeter"
       ]
+    },
+    "gui": {
+      "modules": {
+        "jmeter": {
+          "gui": true
+        }
+      }
     }
   }
 }

@@ -147,7 +147,7 @@ modules:
     gui: false  # set it to true to open JMeter GUI instead of running non-GUI test
 ```
 
-For the command-line, use `-o modules.jmeter.gui=true`, without the need to edit configuration file.
+For the command-line, use alias `-gui` or option `-o modules.jmeter.gui=true`, without the need to edit configuration file.
 
 
 #### Modifications for Existing Scripts
