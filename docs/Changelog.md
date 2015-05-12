@@ -1,6 +1,6 @@
 # Changelog
 
-## Next version
+## 0.2.13
   - Some more stats have been added to console screen.
   - add `-gui` command-line alias to open JMeter UI for debugging
   - add support for JMeter distributed mode
