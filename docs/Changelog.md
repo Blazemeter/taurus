@@ -2,6 +2,7 @@
 
 ## 0.2.15
   - replace digits and UUID sequences with N and U to decrease label count
+  - fix not working `bzt 1.jmx 2.jmx 3.jmx`
 
 ## 0.2.14
   - added support for user defined variables
