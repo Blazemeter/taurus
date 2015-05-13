@@ -8,7 +8,7 @@
   "modules": {
     "mock": {
       "class": "tests.mocks.ModuleMock",
-      "check_iterations": 10
+      "check_iterations": 30
     },
     "console": {
       "disable": false
