@@ -1,7 +1,7 @@
 # Taurus 
 <i><b>T</b>est <b>au</b>tomation <b>ru</b>nning <b>s</b>moothly
 
-Quick links: [Taurus Documentation](docs/Home.md) | [Support Forum](https://groups.google.com/forum/#!forum/codename-taurus)
+Quick links: [Taurus Documentation](docs/Home.md) | [Videos](docs/Videos.md) | [Support Forum](https://groups.google.com/forum/#!forum/codename-taurus)
 
 ## Purpose
 Hides the complexity of performance and functional tests with an automation-friendly convenience wrapper. Taurus relies on JMeter, Gatling and Grinder as its underlying tools. Project is licensed under Apache 2.0 License.
