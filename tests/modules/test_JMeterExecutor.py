@@ -8,7 +8,7 @@ import yaml
 import sys
 
 from bzt.engine import Provisioning
-from bzt.modules.jmeter import JMeterExecutor, JMX, JTLErrorsReader
+from bzt.modules.jmeter import JMeterExecutor, JMX, JTLErrorsReader, JTLReader
 from tests import setup_test_logging, BZTestCase, __dir__
 from tests.mocks import EngineEmul
 from bzt.utils import BetterDict
@@ -335,4 +335,9 @@ class TestJMeterExecutor(BZTestCase):
         obj = JTLErrorsReader(__dir__() + "/../data/standard-errors.jtl", logging.getLogger(''))
         obj.read_file(True)
         values = obj.get_data(sys.maxsize)
+        self.assertEquals(3, len(values))
+
+    def test_tranctl_jtl(self):
+        obj = JTLReader(__dir__() + "/../data/tranctl.jtl", logging.getLogger(''), None)
+        values = [x for x in obj.datapoints(True)]
         self.assertEquals(3, len(values))
