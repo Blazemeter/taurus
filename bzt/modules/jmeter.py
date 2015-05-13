@@ -1353,7 +1353,6 @@ class IncrementalCSVReader(csv.DictReader, object):
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.indexes = {}
         self.partial_buffer = ""
-        self.delimiter = ","
         self.offset = 0
         self.filename = filename
         self.fds = None
@@ -1361,7 +1360,7 @@ class IncrementalCSVReader(csv.DictReader, object):
     def read(self, last_pass=False):
         while not self.fds and not self.__open_fds():
             self.log.debug("No data to start reading yet")
-            yield None
+            return 
 
         self.log.debug("Reading JTL [%s]: %s", os.path.getsize(self.filename), self.filename)
 
@@ -1384,16 +1383,18 @@ class IncrementalCSVReader(csv.DictReader, object):
             line = "%s%s" % (self.partial_buffer, line)
             self.partial_buffer = ""
 
-            if not self.fieldnames:
-                self.delimiter = guess_csv_dialect(line).delimiter
-                self.fieldnames += line.strip().split(self.delimiter)
+            if not self._fieldnames:
+                self.dialect = guess_csv_dialect(line)
+                self._fieldnames += line.strip().split(self.dialect.delimiter)
                 self.log.debug("Analyzed header line: %s", self.fieldnames)
                 continue
 
             self.buffer.write(line)
 
+        self.buffer.seek(0)
         for row in self:
             yield row
+        self.buffer.truncate()
 
 
     def __open_fds(self):
