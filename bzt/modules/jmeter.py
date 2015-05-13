@@ -16,6 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 from collections import Counter, namedtuple
+import csv
 import os
 import platform
 import subprocess
@@ -1290,13 +1291,11 @@ class JTLReader(ResultsReader):
     def __init__(self, filename, parent_logger, errors_filename):
         super(JTLReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
-        self.filename = filename
-        self.fds = None
-        self.indexes = {}
-        self.partial_buffer = ""
-        self.delimiter = ","
-        self.offset = 0
-        self.errors_reader = JTLErrorsReader(errors_filename, parent_logger)
+        self.csvreader = IncrementalCSVReader(filename)
+        if errors_filename:
+            self.errors_reader = JTLErrorsReader(errors_filename, parent_logger)
+        else:
+            self.errors_reader = None
 
     def _read(self, last_pass=False):
         """
@@ -1304,8 +1303,60 @@ class JTLReader(ResultsReader):
 
         :type last_pass: bool
         """
-        self.errors_reader.read_file(last_pass)
+        if self.errors_reader:
+            self.errors_reader.read_file(last_pass)
 
+        for row in self.csvreader.read(last_pass):
+            label = row["label"]
+            concur = int(row["allThreads"])
+            rtm = int(row["elapsed"]) / 1000.0
+            ltc = int(row["Latency"]) / 1000.0
+            if "Connect" in row:
+                cnn = int(row["Connect"]) / 1000.0
+                if cnn < ltc:  # this is generally bad idea...
+                    ltc -= cnn  # fixing latency included into connect time
+            else:
+                cnn = None
+
+            rcd = row["responseCode"]
+            if rcd.endswith('Exception'):
+                rcd = rcd.split('.')[-1]
+
+            if row["success"] != "true":
+                error = row["responseMessage"]
+            else:
+                error = None
+
+            tstmp = int(int(row["timeStamp"]) / 1000)
+            yield tstmp, label, concur, rtm, cnn, ltc, rcd, error
+
+    def _calculate_datapoints(self, final_pass=False):
+        for point in super(JTLReader, self)._calculate_datapoints(final_pass):
+            if self.errors_reader:
+                data = self.errors_reader.get_data(point[DataPoint.TIMESTAMP])
+            else:
+                data = {}
+
+            for label, label_data in six.iteritems(point[DataPoint.CURRENT]):
+                if label in data:
+                    label_data[KPISet.ERRORS] = data[label]
+                else:
+                    label_data[KPISet.ERRORS] = {}
+
+            yield point
+
+
+class IncrementalCSVReader(object, csv.DictReader):
+    def __init__(self, parent_logger, filename):
+        super(IncrementalCSVReader, self).__init__()
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.indexes = {}
+        self.partial_buffer = ""
+        self.delimiter = ","
+        self.offset = 0
+        self.filename = filename
+
+    def read(self, last_pass=False):
         while not self.fds and not self.__open_fds():
             self.log.debug("No data to start reading yet")
             yield None
@@ -1340,28 +1391,6 @@ class JTLReader(ResultsReader):
                 continue
 
             fields = line.strip().split(self.delimiter)
-            label = fields[self.indexes["label"]]
-            concur = int(fields[self.indexes["allThreads"]])
-            rtm = int(fields[self.indexes["elapsed"]]) / 1000.0
-            ltc = int(fields[self.indexes["Latency"]]) / 1000.0
-            if "Connect" in self.indexes:
-                cnn = int(fields[self.indexes["Connect"]]) / 1000.0
-                if cnn < ltc:  # this is generally bad idea...
-                    ltc -= cnn  # fixing latency included into connect time
-            else:
-                cnn = None
-            rcd = fields[self.indexes["responseCode"]]
-            if rcd.endswith('Exception'):
-                rcd = rcd.split('.')[-1]
-
-            if fields[self.indexes["success"]] != "true":
-                error = fields[self.indexes["responseMessage"]]
-            else:
-                error = None
-
-            tstmp = int(int(fields[self.indexes["timeStamp"]]) / 1000)
-
-            yield tstmp, label, concur, rtm, cnn, ltc, rcd, error
 
     def __open_fds(self):
         """
@@ -1383,24 +1412,14 @@ class JTLReader(ResultsReader):
         self.log.debug("Opening file: %s", self.filename)
         self.fds = open(self.filename)
         self.fds.seek(self.offset)
+        self.csvreader = csv.reader(self.fds)
         return True
+
 
     def __del__(self):
         if self.fds:
             logging.debug("Closing file descriptor for %s", self.filename)
             self.fds.close()
-
-    def _calculate_datapoints(self, final_pass=False):
-        for point in super(JTLReader, self)._calculate_datapoints(final_pass):
-            data = self.errors_reader.get_data(point[DataPoint.TIMESTAMP])
-
-            for label, label_data in six.iteritems(point[DataPoint.CURRENT]):
-                if label in data:
-                    label_data[KPISet.ERRORS] = data[label]
-                else:
-                    label_data[KPISet.ERRORS] = {}
-
-            yield point
 
 
 class JTLErrorsReader(object):
