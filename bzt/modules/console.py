@@ -34,6 +34,7 @@ from urwid.font import Thin6x6Font
 from urwid.graphics import BigText
 from urwid.listbox import SimpleListWalker
 from urwid.widget import Divider
+import urwid
 
 import bzt
 from bzt.modules.provisioning import Local
@@ -41,11 +42,10 @@ from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.aggregator import DataPoint, KPISet
 
 
+urwid.set_encoding('utf8')
+
 if platform.system() == 'Windows':
     from bzt.modules.screen import GUIScreen as Screen  # curses unavailable on windows
-    import urwid
-
-    urwid.set_encoding('utf8')
 else:
     from urwid.curses_display import Screen
 
