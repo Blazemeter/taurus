@@ -14,8 +14,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import bzt
-
 import re
 import sys
 import logging
@@ -37,44 +35,19 @@ from urwid.graphics import BigText
 from urwid.listbox import SimpleListWalker
 from urwid.widget import Divider
 
+import bzt
 from bzt.modules.provisioning import Local
 from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.aggregator import DataPoint, KPISet
 
+
 if platform.system() == 'Windows':
-    class WindowsLineBox(LineBox):
-        def __init__(self, *args, **kargs):
-            super(WindowsLineBox, self).__init__(*args, tlcorner='.', trcorner='.', blcorner='.', brcorner='.',
-                                                 lline='|', tline='-', rline='|', bline='_', **kargs)
-
-    class WindowsThin6x6Font(Thin6x6Font):
-        data = Thin6x6Font.data
-        for row_num, row_contents in enumerate(data):
-            for char_from_contents in row_contents:
-                if char_from_contents >= u"\u2500":
-                    row_contents = row_contents.replace(char_from_contents, "*")
-            data[row_num] = row_contents
-
-    import os
-    import os.path
-    import _winreg
-
-    try:
-        reg = _winreg.ConnectRegistry(None, _winreg.HKEY_LOCAL_MACHINE)
-        key = _winreg.OpenKey(reg, r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\Python.exe")
-        real_interpreter_path = os.path.dirname(_winreg.QueryValueEx(key, "")[0])
-        tcl_path = os.path.join(real_interpreter_path, r"tcl\tcl8.5") # tcl8.6 in python3
-        os.environ["TCL_LIBRARY"] = tcl_path
-
-    except BaseException as exc:
-        os.environ["TCL_LIBRARY"] = r"C:\Python27\tcl\tcl8.5"
-    LineBox = WindowsLineBox
-    Thin6x6Font = WindowsThin6x6Font
-    scroll_log_divider = '_'
     from bzt.modules.screen import GUIScreen as Screen  # curses unavailable on windows
+    import urwid
+
+    urwid.set_encoding('utf8')
 else:
     from urwid.curses_display import Screen
-    scroll_log_divider = u'-'
 
 
 class ConsoleStatusReporter(Reporter, AggregatorListener):
@@ -319,7 +292,7 @@ class TaurusConsole(Columns):
         self.logo = TaurusLogo()
         right_pane = Pile([(10, self.logo),
                            right_widgets,
-                           (1, Filler(Divider(scroll_log_divider))),
+                           (1, Filler(Divider('─'))),
                            (WEIGHT, 1, self.log_widget)])
 
         columns = [(WEIGHT, 0.25, self.graphs),
