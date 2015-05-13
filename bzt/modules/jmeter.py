@@ -1358,12 +1358,11 @@ class IncrementalCSVReader(csv.DictReader, object):
         self.fds = None
 
     def read(self, last_pass=False):
-        while not self.fds and not self.__open_fds():
+        if not self.fds and not self.__open_fds():
             self.log.debug("No data to start reading yet")
-            return 
+            return
 
-        self.log.debug("Reading JTL [%s]: %s", os.path.getsize(self.filename), self.filename)
-
+        self.log.debug("Reading JTL: %s", self.filename)
         self.fds.seek(self.offset)  # without this we have stuck reads on Mac
 
         if last_pass:
@@ -1395,7 +1394,6 @@ class IncrementalCSVReader(csv.DictReader, object):
         for row in self:
             yield row
         self.buffer.truncate()
-
 
     def __open_fds(self):
         """
