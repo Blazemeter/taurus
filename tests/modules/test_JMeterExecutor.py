@@ -329,7 +329,7 @@ class TestJMeterExecutor(BZTestCase):
         obj = JTLErrorsReader(__dir__() + "/../data/nonstantard-errors.jtl", logging.getLogger(''))
         obj.read_file(True)
         values = obj.get_data(sys.maxsize)
-        self.assertEquals(1, len(values))
+        self.assertEquals(2, len(values))
 
     def test_standard_errors_format(self):
         obj = JTLErrorsReader(__dir__() + "/../data/standard-errors.jtl", logging.getLogger(''))
