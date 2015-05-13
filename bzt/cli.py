@@ -191,9 +191,10 @@ class CLI(object):
 
     def __get_jmx_shorthands(self, configs):
         jmxes = []
-        for n, filename in enumerate(configs):
+        for n, filename in enumerate(configs[:]):
             if filename.lower().endswith(".jmx"):
-                jmxes.append(configs.pop(n))
+                jmxes.append(filename)
+                configs.remove(filename)
 
         if jmxes:
             self.log.debug("Adding JMX shorthand config for: %s", jmxes)

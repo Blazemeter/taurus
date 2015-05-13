@@ -93,5 +93,9 @@ class TestCLI(BZTestCase):
         self.assertTrue(prov.was_postproc)
 
     def test_jmx_shorthand(self):
-        ret = self.obj.perform([__dir__() + "/json/mock_normal.json", __dir__() + "/jmx/dummy.jmx"])
+        ret = self.obj.perform([
+            __dir__() + "/json/mock_normal.json",
+            __dir__() + "/jmx/dummy.jmx",
+            __dir__() + "/jmx/dummy.jmx",
+        ])
         self.assertEquals(0, ret)
