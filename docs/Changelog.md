@@ -1,7 +1,8 @@
 # Changelog
 
-## Next version
+## 0.2.14
   - added support for user defined variables
+  - fix reading for non-standard errors JTL
 
 ## 0.2.13
   - Some more stats have been added to console screen

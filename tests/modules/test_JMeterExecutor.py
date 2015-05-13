@@ -1,15 +1,18 @@
 """ test """
 import json
+import logging
 import time
 import os
 import shutil
 import yaml
+import sys
 
 from bzt.engine import Provisioning
-from bzt.modules.jmeter import JMeterExecutor, JMX
+from bzt.modules.jmeter import JMeterExecutor, JMX, JTLErrorsReader
 from tests import setup_test_logging, BZTestCase, __dir__
 from tests.mocks import EngineEmul
 from bzt.utils import BetterDict
+
 
 try:
     from lxml import etree
@@ -208,7 +211,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(len(res_files), 5)
         self.assertEqual(len(artifacts), 5)
         target_jmx = os.path.join(obj.engine.artifacts_dir, "files.jmx")
-        self.__check_path_resource_files(target_jmx, exclude_jtls=False)
+        self.__check_path_resource_files(target_jmx)
 
     def test_resource_files_collection_local_prov(self):
         obj = JMeterExecutor()
@@ -272,7 +275,7 @@ class TestJMeterExecutor(BZTestCase):
         obj.prepare()
         xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
         shaper_elements = xml_tree.findall(
-           ".//kg.apc.jmeter.timers.VariableThroughputTimer[@testclass='kg.apc.jmeter.timers.VariableThroughputTimer']")
+            ".//kg.apc.jmeter.timers.VariableThroughputTimer[@testclass='kg.apc.jmeter.timers.VariableThroughputTimer']")
         self.assertEqual(1, len(shaper_elements))
         shaper_coll_element = shaper_elements[0].find(".//collectionProp[@name='load_profile']")
 
@@ -290,7 +293,7 @@ class TestJMeterExecutor(BZTestCase):
         obj.prepare()
         xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
         shaper_elements = xml_tree.findall(
-           ".//kg.apc.jmeter.timers.VariableThroughputTimer[@testclass='kg.apc.jmeter.timers.VariableThroughputTimer']")
+            ".//kg.apc.jmeter.timers.VariableThroughputTimer[@testclass='kg.apc.jmeter.timers.VariableThroughputTimer']")
         self.assertEqual(1, len(shaper_elements))
         shaper_coll_element = shaper_elements[0].find(".//collectionProp[@name='load_profile']")
 
@@ -321,3 +324,15 @@ class TestJMeterExecutor(BZTestCase):
         xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
         udv_elements = xml_tree.findall(".//Arguments[@testclass='Arguments']")
         self.assertEqual(1, len(udv_elements))
+
+    def test_nonstandard_errors_format(self):
+        obj = JTLErrorsReader(__dir__() + "/../data/nonstantard-errors.jtl", logging.getLogger(''))
+        obj.read_file(True)
+        values = obj.get_data(sys.maxsize)
+        self.assertEquals(1, len(values))
+
+    def test_standard_errors_format(self):
+        obj = JTLErrorsReader(__dir__() + "/../data/standard-errors.jtl", logging.getLogger(''))
+        obj.read_file(True)
+        values = obj.get_data(sys.maxsize)
+        self.assertEquals(3, len(values))

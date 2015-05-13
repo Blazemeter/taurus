@@ -1441,6 +1441,7 @@ class JTLErrorsReader(object):
                 self.log.debug("Opening %s", self.filename)
                 self.fds = open(self.filename)  # NOTE: maybe we have the same mac problem with seek() needed
             else:
+                self.log.debug("File not exists: %s", self.filename)
                 return
 
         self.fds.seek(self.offset)
@@ -1450,27 +1451,10 @@ class JTLErrorsReader(object):
             if elem.getparent() is None or elem.getparent().tag != 'testResults':
                 continue
 
-            # extract necessary data
-            # TODO: support non-standard samples notation
-            ts = int(elem.get("ts")) / 1000
-            label = elem.get("lb")
-            message = elem.get("rm")
-            rc = elem.get("rc")
-            urls = elem.xpath(self.url_xpath)
-            if urls:
-                url = Counter({urls[0].text: 1})
+            if elem.items():
+                self.__extract_standard(elem)
             else:
-                url = Counter()
-
-            errtype = KPISet.ERRTYPE_ERROR
-            massert = elem.xpath(self.assertionMessage)
-            if len(massert):
-                errtype = KPISet.ERRTYPE_ASSERT
-                message = massert[0].text
-
-            err_item = KPISet.error_item_skel(message, rc, 1, errtype, url)
-            KPISet.inc_list(self.buffer.get(ts).get(label, []), ("msg", message), err_item)
-            KPISet.inc_list(self.buffer.get(ts).get('', []), ("msg", message), err_item)
+                self.__extract_nonstandard(elem)
 
             # cleanup processed from the memory
             elem.clear()
@@ -1495,6 +1479,50 @@ class JTLErrorsReader(object):
                     KPISet.inc_list(res, ('msg', err_item['msg']), err_item)
 
         return result
+
+    def __extract_standard(self, elem):
+        ts = int(elem.get("ts")) / 1000
+        label = elem.get("lb")
+        message = elem.get("rm")
+        rc = elem.get("rc")
+        urls = elem.xpath(self.url_xpath)
+        if urls:
+            url = Counter({urls[0].text: 1})
+        else:
+            url = Counter()
+        errtype = KPISet.ERRTYPE_ERROR
+        massert = elem.xpath(self.assertionMessage)
+        if len(massert):
+            errtype = KPISet.ERRTYPE_ASSERT
+            message = massert[0].text
+        err_item = KPISet.error_item_skel(message, rc, 1, errtype, url)
+        KPISet.inc_list(self.buffer.get(ts).get(label, []), ("msg", message), err_item)
+        KPISet.inc_list(self.buffer.get(ts).get('', []), ("msg", message), err_item)
+
+    def __extract_nonstandard(self, elem):
+        ts = int(self.__get_child(elem, 'timeStamp')) / 1000  # NOTE: will it be sometimes EndTime?
+        label = self.__get_child(elem, "label")
+        message = self.__get_child(elem, "responseMessage")
+        rc = self.__get_child(elem, "responseCode")
+
+        urls = elem.xpath(self.url_xpath)
+        if urls:
+            url = Counter({urls[0].text: 1})
+        else:
+            url = Counter()
+        errtype = KPISet.ERRTYPE_ERROR
+        massert = elem.xpath(self.assertionMessage)
+        if len(massert):
+            errtype = KPISet.ERRTYPE_ASSERT
+            message = massert[0].text
+        err_item = KPISet.error_item_skel(message, rc, 1, errtype, url)
+        KPISet.inc_list(self.buffer.get(ts).get(label, []), ("msg", message), err_item)
+        KPISet.inc_list(self.buffer.get(ts).get('', []), ("msg", message), err_item)
+
+    def __get_child(self, elem, tag):
+        for child in elem:
+            if child.tag == tag:
+                return child.text
 
 
 class JMeterWidget(urwid.Pile):
