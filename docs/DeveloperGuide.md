@@ -13,6 +13,6 @@
  - Set correct version, commit
  - Create git tag
  - git push, including tag
- - Upload tp PyPi: `setup.py clean sdist upload`
+ - Upload tp PyPi: `./make-docs.sh &&  python ./setup.py clean sdist upload upload_docs --upload-dir=build/docs`
  - generate and upload docs (TODO)
  
