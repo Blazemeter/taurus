@@ -16,7 +16,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-from logging import Formatter, FileHandler
+from logging import Formatter
 from optparse import OptionParser, BadOptionError, Option
 import logging
 import os
@@ -107,7 +107,7 @@ class CLI(object):
                     if issubclass(handler.__class__, logging.FileHandler):
                         self.log.debug("Closing log handler: %s", handler.baseFilename)
                         handler.close()
-                        _f = self.log.handlers.pop(num)
+                        _fh = self.log.handlers.pop(num)
                 self.engine.existing_artifact(self.options.log)
                 os.remove(self.options.log)
             else:
