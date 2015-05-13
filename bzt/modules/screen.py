@@ -14,12 +14,18 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-from Tkinter import Tk, Text
-import Tkinter
+
 import logging
 import re
 import six
-import tkFont
+
+try:
+    from six.moves.tkinter import Tk, Text
+    import six.moves.tkinter as Tkinter
+    import six.moves.tkinter_font as tkFont
+except ImportError:
+    raise  # ?
+
 import math
 
 from urwid import BaseScreen
