@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.15
+  - replace digits and UUID sequences with N and U to decrease label count
+
 ## 0.2.14
   - added support for user defined variables
   - fix reading for non-standard errors JTL

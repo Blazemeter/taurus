@@ -40,6 +40,9 @@
         99.0,
         99.9,
         100.0
+      ],
+      "ignore-labels": [
+        "ignore"
       ]
     },
     "console": {
