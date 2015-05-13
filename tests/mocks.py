@@ -33,7 +33,6 @@ class EngineEmul(Engine):
         self.was_finalize = False
 
     def _shutdown(self):
-        time.sleep(5)
         return super(EngineEmul, self)._shutdown()
 
     def dump_config(self):
@@ -99,7 +98,6 @@ class ModuleMock(ScenarioExecutor, Provisioning, Reporter, FileLister):
         """
         :return: :raise self.check_exc:
         """
-        time.sleep(1)
         self.was_check = True
         self.log.info("Checks remaining: %s", self.check_iterations)
         self.check_iterations -= 1
@@ -115,7 +113,6 @@ class ModuleMock(ScenarioExecutor, Provisioning, Reporter, FileLister):
         :raise self.shutdown_exc:
         """
         self.log.info("Shutdown mock")
-        time.sleep(3)
         self.was_shutdown = True
         if self.shutdown_exc:
             raise self.shutdown_exc

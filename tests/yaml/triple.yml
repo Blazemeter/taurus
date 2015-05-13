@@ -3,9 +3,12 @@ execution:
     - scenario:
         requests:
             - http://localhost/
+      iterations: 100
     - scenario:
         requests:
             - http://localhost/
+      iterations: 100
     - scenario:
         requests:
             - http://localhost/
+      iterations: 100
