@@ -103,12 +103,13 @@ class CLI(object):
         if self.options.log:
             if platform.system() == 'Windows':
                 # need to finalize the logger before moving file
-                for handler in self.log.handlers:
-                    if isinstance(handler, FileHandler):
+                for num, handler in enumerate(self.log.handlers):
+                    if issubclass(handler.__class__, logging.FileHandler):
                         self.log.debug("Closing log handler: %s", handler.baseFilename)
                         handler.close()
+                        _f = self.log.handlers.pop(num)
                 self.engine.existing_artifact(self.options.log)
-                # os.remove(self.options.log) does not work - says that file is busy
+                os.remove(self.options.log)
             else:
                 self.engine.existing_artifact(self.options.log, True)
 

@@ -41,9 +41,39 @@ from bzt.modules.aggregator import DataPoint, KPISet
 
 
 if platform.system() == 'Windows':
+    class WindowsLineBox(LineBox):
+        def __init__(self, *args, **kargs):
+            super(WindowsLineBox, self).__init__(*args, tlcorner='.', trcorner='.', blcorner='.', brcorner='.',
+                                                 lline='|', tline='-', rline='|', bline='_', **kargs)
+
+    class WindowsThin6x6Font(Thin6x6Font):
+        data = Thin6x6Font.data
+        for i, d in enumerate(data):
+            for s in d:
+                if s >= u"\u2500":
+                    d = d.replace(s, "*")
+            data[i] = d
+
+    import os
+    import os.path
+    import _winreg
+
+    try:
+        reg = _winreg.ConnectRegistry(None, _winreg.HKEY_LOCAL_MACHINE)
+        key = _winreg.OpenKey(reg, r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\Python.exe")
+        real_interpreter_path = os.path.dirname(_winreg.QueryValueEx(key, "")[0])
+        tcl_path = os.path.join(real_interpreter_path, r"tcl\tcl8.5")
+        os.environ["TCL_LIBRARY"] = tcl_path
+
+    except BaseException as exc:
+        os.environ["TCL_LIBRARY"] = r"C:\Python27\tcl\tcl8.5"
+    LineBox = WindowsLineBox
+    Thin6x6Font = WindowsThin6x6Font
+    divider = '_'
     from bzt.modules.screen import GUIScreen as Screen  # curses unavailable on windows
 else:
     from urwid.curses_display import Screen
+    divider = '-'
 
 
 class ConsoleStatusReporter(Reporter, AggregatorListener):
@@ -288,7 +318,7 @@ class TaurusConsole(Columns):
         self.logo = TaurusLogo()
         right_pane = Pile([(10, self.logo),
                            right_widgets,
-                           (1, Filler(Divider('─'))),
+                           (1, Filler(Divider(divider))),
                            (WEIGHT, 1, self.log_widget)])
 
         columns = [(WEIGHT, 0.25, self.graphs),

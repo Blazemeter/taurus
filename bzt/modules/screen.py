@@ -72,7 +72,7 @@ class GUIScreen(BaseScreen):
     def __init__(self):
         super(GUIScreen, self).__init__()
         self.root = None
-        self.size = (146, 50)
+        self.size = (180, 60)
         self.title = "Taurus Status"
 
     def get_cols_rows(self):
@@ -129,15 +129,8 @@ class GUIScreen(BaseScreen):
         for idx, row in enumerate(canvas.content()):
             pos = 0
             for part in row:
-                if isinstance(part[2], str):
-                    txt = part[2]
-                else:
-                    txt = part[2].decode()
-
-                try:
-                    strlen = len(txt.decode("utf-8"))
-                except UnicodeDecodeError:
-                    strlen = len(txt)
+                txt = part[2]
+                strlen = len(txt)
 
                 self.text.insert(Tkinter.END, txt)
                 if part[0] is not None:
