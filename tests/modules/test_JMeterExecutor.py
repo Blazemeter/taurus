@@ -340,4 +340,4 @@ class TestJMeterExecutor(BZTestCase):
     def test_tranctl_jtl(self):
         obj = JTLReader(__dir__() + "/../data/tranctl.jtl", logging.getLogger(''), None)
         values = [x for x in obj.datapoints(True)]
-        self.assertEquals(3, len(values))
+        self.assertEquals(1, len(values))

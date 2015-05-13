@@ -36,7 +36,7 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.console import WidgetProvider
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.utils import shell_exec, ensure_is_dict, humanize_time, dehumanize_time, BetterDict, \
-    guess_csv_delimiter, unzip, download_progress_hook
+    guess_csv_dialect, unzip, download_progress_hook
 
 
 try:
@@ -1291,7 +1291,7 @@ class JTLReader(ResultsReader):
     def __init__(self, filename, parent_logger, errors_filename):
         super(JTLReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
-        self.csvreader = IncrementalCSVReader(filename)
+        self.csvreader = IncrementalCSVReader(self.log, filename)
         if errors_filename:
             self.errors_reader = JTLErrorsReader(errors_filename, parent_logger)
         else:
@@ -1346,15 +1346,17 @@ class JTLReader(ResultsReader):
             yield point
 
 
-class IncrementalCSVReader(object, csv.DictReader):
+class IncrementalCSVReader(csv.DictReader, object):
     def __init__(self, parent_logger, filename):
-        super(IncrementalCSVReader, self).__init__()
+        self.buffer = six.StringIO()
+        super(IncrementalCSVReader, self).__init__(self.buffer, [])
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.indexes = {}
         self.partial_buffer = ""
         self.delimiter = ","
         self.offset = 0
         self.filename = filename
+        self.fds = None
 
     def read(self, last_pass=False):
         while not self.fds and not self.__open_fds():
@@ -1363,7 +1365,7 @@ class IncrementalCSVReader(object, csv.DictReader):
 
         self.log.debug("Reading JTL [%s]: %s", os.path.getsize(self.filename), self.filename)
 
-        self.fds.seek(self.offset)  # without this we have a stuck reads on Mac
+        self.fds.seek(self.offset)  # without this we have stuck reads on Mac
 
         if last_pass:
             lines = self.fds.readlines()  # unlimited
@@ -1382,15 +1384,17 @@ class IncrementalCSVReader(object, csv.DictReader):
             line = "%s%s" % (self.partial_buffer, line)
             self.partial_buffer = ""
 
-            if not self.indexes:
-                self.delimiter = guess_csv_delimiter(line)
-                columns = line.strip().split(self.delimiter)
-                for idx, field in enumerate(columns):
-                    self.indexes[field] = idx
-                self.log.debug("Analyzed header line: %s", self.indexes)
+            if not self.fieldnames:
+                self.delimiter = guess_csv_dialect(line).delimiter
+                self.fieldnames += line.strip().split(self.delimiter)
+                self.log.debug("Analyzed header line: %s", self.fieldnames)
                 continue
 
-            fields = line.strip().split(self.delimiter)
+            self.buffer.write(line)
+
+        for row in self:
+            yield row
+
 
     def __open_fds(self):
         """
@@ -1414,7 +1418,6 @@ class IncrementalCSVReader(object, csv.DictReader):
         self.fds.seek(self.offset)
         self.csvreader = csv.reader(self.fds)
         return True
-
 
     def __del__(self):
         if self.fds:
@@ -1772,4 +1775,4 @@ class JMeterScenarioBuilder(JMX):
     def __guess_delimiter(self, path):
         with open(path) as fhd:
             header = fhd.read(4096)  # 4KB is enough for header
-            return guess_csv_delimiter(header)
+            return guess_csv_dialect(header).delimiter
