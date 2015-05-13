@@ -14,8 +14,11 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import bzt
+
 import re
 import sys
+import logging
 from logging import StreamHandler
 from itertools import groupby
 import traceback
@@ -26,19 +29,17 @@ import platform
 from six import StringIO
 
 from urwid.decoration import Padding
+from urwid.display_common import BaseScreen
 from urwid import Text, Pile, WEIGHT, Filler, Columns, Widget, \
-    CanvasCombine, LineBox, ListBox, RIGHT, CENTER, BOTTOM, CLIP
+    CanvasCombine, LineBox, ListBox, RIGHT, CENTER, BOTTOM, CLIP, GIVEN
 from urwid.font import Thin6x6Font
 from urwid.graphics import BigText
 from urwid.listbox import SimpleListWalker
 from urwid.widget import Divider
 
-import bzt
-from bzt.modules.screen import DummyScreen
 from bzt.modules.provisioning import Local
 from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.aggregator import DataPoint, KPISet
-
 
 if platform.system() == 'Windows':
     class WindowsLineBox(LineBox):
@@ -141,7 +142,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
                 self.log.debug("Overriding logging stream")
                 self.logger_handler.stream = self.temp_stream
             else:
-                self.log.debug("Did not mute console logging")
+                self.log.warning("Failed to mute console logging")
 
             self.screen.start()
             self.log.info("Waiting for finish...")
@@ -157,7 +158,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
                 self.__repaint()
             except KeyboardInterrupt:
                 raise
-            except BaseException:
+            except BaseException as exc:
                 self.log.error("Console screen failure: %s", traceback.format_exc())
                 self.shutdown()
 
@@ -308,8 +309,8 @@ class TaurusConsole(Columns):
         self.latest_stats = LatestStats()
         self.cumulative_stats = CumulativeStats()
 
-        stats_pane = Pile([(WEIGHT, 0.50, self.latest_stats),
-                           (WEIGHT, 0.50, self.cumulative_stats), ])
+        stats_pane = Pile([(WEIGHT, 0.33, self.latest_stats),
+                           (WEIGHT, 0.67, self.cumulative_stats), ])
 
         self.graphs = ThreeGraphs()
 
@@ -361,6 +362,43 @@ class TaurusConsole(Columns):
         Update ticking widgets
         """
         self.logo.tick()
+
+
+class DummyScreen(BaseScreen):
+    """
+    Null-object for Screen on non-tty output
+    """
+
+    def __init__(self, cols, rows):
+        super(DummyScreen, self).__init__()
+        self.size = (cols, rows)
+        self.ansi_escape = re.compile(r'\x1b[^m]*m')
+
+    def get_cols_rows(self):
+        """
+        Dummy cols and rows
+
+        :return:
+        """
+        return self.size
+
+    def draw_screen(self, size, canvas):
+        """
+
+        :param size:
+        :type canvas: urwid.Canvas
+        """
+        data = ""
+        for char in canvas.content():
+            line = ""
+            for part in char:
+                if isinstance(part[2], str):
+                    line += part[2]
+                else:
+                    line += part[2].decode()
+            data += "%s│\n" % line
+        data = self.ansi_escape.sub('', data)
+        logging.info("Screen %sx%s chars:\n%s", size[0], size[1], data)
 
 
 class StringIONotifying(StringIO, object):
@@ -553,8 +591,7 @@ class LatestStats(LineBox):
         self.avg_times = AvgTimesList(DataPoint.CURRENT)
         self.rcodes = RCodesList(DataPoint.CURRENT)
         original_widget = Columns(
-            [self.avg_times, self.percentiles, self.rcodes],
-            dividechars=1)
+            [self.avg_times, self.percentiles, self.rcodes], dividechars=1)
         padded = Padding(original_widget, align=CENTER)
         super(LatestStats, self).__init__(padded,
                                           self.title)
@@ -585,9 +622,14 @@ class CumulativeStats(LineBox):
         self.percentiles = PercentilesList(DataPoint.CUMULATIVE)
         self.avg_times = AvgTimesList(DataPoint.CUMULATIVE)
         self.rcodes = RCodesList(DataPoint.CUMULATIVE)
-        original_widget = Columns(
-            [self.avg_times, self.percentiles, self.rcodes],
-            dividechars=1)
+        self.labels_pile = LabelsPile(DataPoint.CUMULATIVE)
+        original_widget = Pile([
+            Columns([
+                self.avg_times,
+                self.percentiles,
+                self.rcodes], dividechars=1),
+            self.labels_pile
+        ])
         padded = Padding(original_widget, align=CENTER)
         super(CumulativeStats, self).__init__(padded,
                                               "Cumulative Stats")
@@ -602,6 +644,7 @@ class CumulativeStats(LineBox):
         self.percentiles.add_data(data)
         self.avg_times.add_data(data)
         self.rcodes.add_data(data)
+        self.labels_pile.add_data(data)
 
 
 class PercentilesList(ListBox):
@@ -670,8 +713,209 @@ class AvgTimesList(ListBox):
                               align=RIGHT))
 
 
-# TODO: errors, throughput, labels
-# TODO: detect and inform on engine overload in local provisioning
+class LabelsPile(Pile):
+    """
+    Label stats and error descriptions
+    """
+
+    def __init__(self, data):
+        self.label_columns = LabelStatsTable(data)
+        self.errors_description = DetailedErrorString(data)
+        self.rows = [self.label_columns,
+                     self.errors_description]
+        super(LabelsPile, self).__init__(self.rows)
+
+    def add_data(self, data):
+        self.label_columns.add_data(data)
+        self.errors_description.add_data(data)
+
+    def render(self, size, focus=False):
+        labels_height = self.label_columns.get_height() + 1
+        self.contents[0] = (self.contents[0][0], (GIVEN, labels_height))
+        return super(LabelsPile, self).render(size, False)
+
+
+class LabelStatsTable(Columns):
+    """
+    Sample labels block
+
+    :type key: str
+    """
+
+    def __init__(self, key):
+        self.labels = SampleLabelsNames()
+        self.stats_table = StatsTable()
+        self.columns = [self.labels,
+                        self.stats_table]
+
+        super(LabelStatsTable, self).__init__(self.columns, dividechars=1)
+        self.key = key
+
+    def add_data(self, data):
+        """
+        Append data
+
+        :type data: bzt.modules.aggregator.DataPoint
+        """
+        self.labels.flush_data()
+        self.stats_table.flush_data()
+
+        overall = data.get(self.key)
+
+        for label in overall.keys():
+            if label != "":
+                hits = overall.get(label).get(KPISet.SAMPLE_COUNT)
+                failed = float(overall.get(label).get(KPISet.FAILURES)) / hits * 100 if hits else 0.0
+                avg_rt = overall.get(label).get(KPISet.AVG_RESP_TIME)
+                self.labels.add_data(label)
+                self.stats_table.add_data(hits, failed, avg_rt)
+
+    def render(self, size, focus=False):
+        max_width = size[0]
+        stat_table_max_width = self.stats_table.get_width()
+        label_names_width = self.labels.get_width()
+        if stat_table_max_width + label_names_width <= max_width:
+            self.contents[0] = (self.contents[0][0], (GIVEN, label_names_width, False))
+        else:
+            self.contents[0] = (self.contents[0][0], (GIVEN, max_width - stat_table_max_width, False))
+        return super(LabelStatsTable, self).render(size, focus=False)
+
+    def get_height(self):
+        return self.labels.get_height()
+
+
+class StatsTable(Columns):
+    """
+    Hits, Failures, AvgRT stats
+    """
+
+    def __init__(self):
+        self.hits = SampleLabelsHits()
+        self.failed = SampleLabelsFailed()
+        self.avg_rt = SampleLabelsAvgRT()
+        self.columns = [self.hits, (10, self.failed), (10, self.avg_rt)]
+        super(StatsTable, self).__init__(self.columns, dividechars=1)
+
+    def flush_data(self):
+        self.hits.flush_data()
+        self.failed.flush_data()
+        self.avg_rt.flush_data()
+
+    def add_data(self, hits, failed, avg_rt):
+        self.hits.add_data(hits)
+        self.failed.add_data(failed)
+        self.avg_rt.add_data(avg_rt)
+
+    def get_width(self):
+        dividechars = 1
+        table_size = self.hits.get_width() + self.columns[1][0] + self.columns[2][0] + dividechars * 3
+        return table_size
+
+    def render(self, size, focus=False):
+        """
+        set width for columns
+        """
+        hits_size = self.hits.get_width()
+        self.contents[0] = (self.contents[0][0], (GIVEN, hits_size, False))
+        return super(StatsTable, self).render(size, focus=False)
+
+
+class StatsColumn(ListBox):
+    def __init__(self, *args, **kargs):
+        super(StatsColumn, self).__init__(*args, **kargs)
+
+    def flush_data(self):
+        """
+        Erase data, draw header
+        """
+        while len(self.body):
+            self.body.pop(0)
+        self.body.append(self.header)
+
+    def get_width(self):
+        return max([len(x.text) for x in self.body])
+
+    def get_height(self):
+        return len(self.body)
+
+
+class SampleLabelsNames(StatsColumn):
+    def __init__(self):
+        super(SampleLabelsNames, self).__init__(SimpleListWalker([]))
+        self.header = Text(("stat-hdr", " Labels "))
+        self.body.append(self.header)
+
+    def add_data(self, data):
+        data_widget = Text(("stat-txt", "%s" % data), wrap=CLIP)
+        self.body.append(data_widget)
+
+
+class SampleLabelsHits(StatsColumn):
+    def __init__(self):
+        super(SampleLabelsHits, self).__init__(SimpleListWalker([]))
+        self.header = Text(("stat-hdr", " Hits "), align=RIGHT)
+        self.body.append(self.header)
+
+    def add_data(self, data):
+        data_widget = Text(("stat-txt", "%d" % data), align=RIGHT)
+        self.body.append(data_widget)
+
+
+class SampleLabelsFailed(StatsColumn):
+    def __init__(self):
+        super(SampleLabelsFailed, self).__init__(SimpleListWalker([]))
+        self.header = Text(("stat-hdr", " Failures "), align=CENTER)
+        self.body.append(self.header)
+
+    def add_data(self, data):
+        data_widget = Text(("stat-txt", "%.2f%%" % data), align=RIGHT)
+        self.body.append(data_widget)
+
+
+class SampleLabelsAvgRT(StatsColumn):
+    def __init__(self):
+        super(SampleLabelsAvgRT, self).__init__(SimpleListWalker([]))
+        self.header = Text(("stat-hdr", " Avg Time "), align=RIGHT)
+        self.body.append(self.header)
+
+    def add_data(self, data):
+        data_widget = Text(("stat-txt", "%.3f" % data), align=RIGHT)
+        self.body.append(data_widget)
+
+
+class DetailedErrorString(ListBox):
+    """
+
+    :type key: str
+    """
+
+    def __init__(self, key):
+        super(DetailedErrorString, self).__init__(SimpleListWalker([]))
+        self.key = key
+
+    def add_data(self, data):
+        """
+        Append data
+
+        :type data: bzt.modules.aggregator.DataPoint
+        """
+        while len(self.body):
+            self.body.pop(0)
+
+        self.body.append(Text(("stat-hdr", " Errors: ")))
+        overall = data.get(self.key)
+        errors = overall.get('').get(KPISet.ERRORS)
+        if errors:
+            err_template = "{0} of: {1}"
+            for num, error in enumerate(errors):
+                err_description = error.get('msg')
+                err_count = error.get('cnt')
+
+                self.body.append(
+                    Text(("stat-txt", err_template.format(err_count, err_description)), wrap=CLIP))
+        else:
+            self.body.append(Text(("stat-txt", "No errors yet...")))
+
 
 class RCodesList(ListBox):
     """

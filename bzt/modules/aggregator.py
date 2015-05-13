@@ -20,6 +20,7 @@ import copy
 import logging
 import math
 import six
+import re
 
 from bzt.utils import BetterDict
 from bzt.engine import EngineModule
@@ -364,9 +365,16 @@ class ResultsReader(ResultsProvider):
     Aggregator that reads samples one by one,
     supposed to be attached to every executor
     """
+    label_generalize_regexps = [
+        (re.compile(r"\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b"), "U"),
+        (re.compile(r"\b[0-9a-fA-F]{2,}\b"), "U"),
+        # (re.compile(r"\b[0-9a-fA-F]{32}\b"), "U"), # implied by previous, maybe prev is too wide
+        (re.compile(r"\b\d{2,}\b"), "N")
+    ]
 
     def __init__(self, perc_levels=()):
         super(ResultsReader, self).__init__()
+        self.generalize_labels = True
         self.ignored_labels = []
         self.log = logging.getLogger(self.__class__.__name__)
         self.buffer = {}
@@ -396,9 +404,12 @@ class ResultsReader(ResultsProvider):
         current = datapoint[DataPoint.CURRENT]
         for sample in samples:
             label, rt, concur, cn, lt, rc, error = sample
-            # TODO: replace digit/uuid sequences in sample names, like in LS, have option for it
             if label == '':
                 label = '[empty]'
+
+            if self.generalize_labels:
+                label = self.__generalize_label(label)
+
             label = current.get(label, KPISet(self.track_percentiles))
             # empty means overall
             label.add_sample((rt, concur, cn, lt, rc, error))
@@ -451,6 +462,12 @@ class ResultsReader(ResultsProvider):
         """
         raise NotImplementedError()
 
+    def __generalize_label(self, label):
+        for regexp, replacement in self.label_generalize_regexps:
+            label = regexp.sub(replacement, label)
+
+        return label
+
 
 class ConsolidatingAggregator(EngineModule, ResultsProvider):
     """
@@ -461,6 +478,7 @@ class ConsolidatingAggregator(EngineModule, ResultsProvider):
     def __init__(self):
         EngineModule.__init__(self)
         ResultsProvider.__init__(self)
+        self.generalize_labels = True
         self.ignored_labels = []
         self.underlings = []
         self.buffer = BetterDict()
@@ -473,7 +491,8 @@ class ConsolidatingAggregator(EngineModule, ResultsProvider):
         super(ConsolidatingAggregator, self).prepare()
         self.track_percentiles = self.settings.get("percentiles", self.track_percentiles)
         self.buffer_len = self.settings.get("buffer-seconds", self.buffer_len)
-        self.ignored_labels = self.settings.get("ignore-labels", ["ignore"])
+        self.ignored_labels = self.settings.get("ignore-labels", self.ignored_labels)
+        self.generalize_labels = self.settings.get("generalize-labels", self.generalize_labels)
 
     def add_underling(self, underling):
         """
@@ -484,7 +503,8 @@ class ConsolidatingAggregator(EngineModule, ResultsProvider):
         underling.track_percentiles = self.track_percentiles
         if isinstance(underling, ResultsReader):
             underling.ignored_labels = self.ignored_labels
-        # TODO: how to pass buffer len to underling?
+            underling.generalize_labels = self.generalize_labels
+            # underling.buffer_len = self.buffer_len  # NOTE: is it ok for underling to have the same buffer len?
         self.underlings.append(underling)
 
     def check(self):

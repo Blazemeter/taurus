@@ -6,7 +6,10 @@
     }
   ],
   "modules": {
-    "mock": "tests.mocks.ModuleMock",
+    "mock": {
+      "class": "tests.mocks.ModuleMock",
+      "check_iterations": 30
+    },
     "console": {
       "disable": false
     }

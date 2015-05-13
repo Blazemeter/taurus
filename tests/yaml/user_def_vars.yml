@@ -1,0 +1,13 @@
+---
+execution: 
+  concurrency: 200
+  hold-for: 1m
+  throughput: 100
+
+  scenario: 
+    script: tests/jmx/http.jmx
+    variables:
+      my_var: http://demo.blazemeter.com/api/user
+      myvar2: val2
+    properties:
+      log_level.jmeter: DEBUG

@@ -14,7 +14,8 @@
         "jmeter.save.saveservice.autoflush": "true",
         "jmeterengine.force.system.exit": "true",
         "jmeter.save.saveservice.connect_time": "true",
-        "summariser.name": ""
+        "summariser.name": "",
+        "mode": "Stripped"
       },
       "path": "~/jmeter-taurus/bin/jmeter"
     },
@@ -39,6 +40,9 @@
         99.0,
         99.9,
         100.0
+      ],
+      "ignore-labels": [
+        "ignore"
       ]
     },
     "console": {
@@ -70,6 +74,13 @@
       "reporting": [
         "blazemeter"
       ]
+    },
+    "gui": {
+      "modules": {
+        "jmeter": {
+          "gui": true
+        }
+      }
     }
   }
 }

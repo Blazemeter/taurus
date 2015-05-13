@@ -4,6 +4,7 @@ import os
 import tempfile
 import sys
 import random
+import time
 
 from bzt.engine import Engine, Configuration, FileLister
 from bzt.utils import load_class
@@ -30,6 +31,9 @@ class EngineEmul(Engine):
 
         self.finalize_exc = None
         self.was_finalize = False
+
+    def _shutdown(self):
+        return super(EngineEmul, self)._shutdown()
 
     def dump_config(self):
         """ test """

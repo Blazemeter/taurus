@@ -205,6 +205,7 @@ The `consolidator` has several settings:
 ---
 modules:
   consolidator:
+    generalize-labels: true  # replace digits and UUID sequences with N and U to decrease label count
     ignore-labels: # sample labels from this list will be ignored by results reader
       - ignore
     buffer-seconds: 2  # this buffer is used to wait for complete data within a second

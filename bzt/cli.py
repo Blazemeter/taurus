@@ -1,7 +1,5 @@
 #! /usr/bin/env python
 """
-CLI tool wrapper to run Engine using command-line interface
-
 Copyright 2015 BlazeMeter Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");

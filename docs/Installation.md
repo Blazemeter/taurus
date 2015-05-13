@@ -18,7 +18,7 @@ Known limitations on Windows:
  - console screen is available as separate GUI window
 
 ## Linux
-Instructions are tested on Ubuntu 14.04 (Trusty) minimal install, but should work on other distributions with corresponding packages and libs:
+Instructions are tested on Ubuntu 14.04 (Trusty) minimal install, but should work on other distributions with corresponding packages and libs. You will need python 2.7 or higher and Java Runtime installed.
 
 Way 1, python dependencies by debian:
 
@@ -37,7 +37,9 @@ sudo pip install bzt
 
 ## Mac OS
 
-Most likely you need first to upgrade `setuptools`:
+You will need python 2.7 or higher and Java Runtime installed.
+
+Most likely you also need first to upgrade `setuptools`:
 ```bash
 sudo pip install --upgrade setuptools
 ```

@@ -26,9 +26,9 @@ import logging
 from subprocess import CalledProcessError
 import six
 import shutil
+from distutils.version import LooseVersion
 
 from cssselect import GenericTranslator
-from distutils.version import LooseVersion
 import urwid
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
@@ -76,6 +76,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.retcode = None
         self.reader = None
         self.widget = None
+        self.distributed_servers = []
 
     def prepare(self):
         """
@@ -86,16 +87,12 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         :raise ValueError:
         """
-        # TODO: global variables
-        # TODO: move all files to artifacts
         self.jmeter_log = self.engine.create_artifact("jmeter", ".log")
 
-        # TODO: switch to verifier.verify()
         self.__check_jmeter()
-        # self.verifier.verify()
-
+        self.distributed_servers = self.execution.get('distributed', self.distributed_servers)
         scenario = self.get_scenario()
-
+        self.resource_files()
         if Scenario.SCRIPT in scenario:
             self.original_jmx = self.__get_script()
             self.engine.existing_artifact(self.original_jmx)
@@ -105,6 +102,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             raise ValueError("There must be a JMX file to run JMeter")
 
         load = self.get_load()
+
         self.modified_jmx = self.__get_modified_jmx(self.original_jmx, load)
 
         props = self.settings.get("properties")
@@ -138,9 +136,12 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if self.properties_file:
             cmdline += ["-p", self.properties_file]
 
+        if self.distributed_servers:
+            cmdline += ['-R%s' % ','.join(self.distributed_servers)]
+
         self.start_time = time.time()
         try:
-            self.process = shell_exec(cmdline)
+            self.process = shell_exec(cmdline, stderr=None)
         except OSError as exc:
             self.log.error("Failed to start JMeter: %s", traceback.format_exc())
             self.log.error("Failed command: %s", cmdline)
@@ -163,10 +164,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 self.log.info("JMeter exit code: %s", self.retcode)
                 raise RuntimeError("JMeter exited with non-zero code")
 
-            if self.kpi_jtl:
-                if not os.path.exists(self.kpi_jtl) or not os.path.getsize(self.kpi_jtl):
-                    msg = "Empty results JTL, most likely JMeter failed: %s"
-                    raise RuntimeWarning(msg % self.kpi_jtl)
             return True
 
         return False
@@ -175,6 +172,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         If JMeter is still running - let's stop it.
         """
+        # TODO: print JMeter's stdout/stderr on empty JTL
         while self.process and self.process.poll() is None:
             # TODO: find a way to have graceful shutdown, then kill
             self.log.info("Terminating jmeter PID: %s", self.process.pid)
@@ -190,6 +188,11 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if self.start_time:
             self.end_time = time.time()
             self.log.debug("JMeter worked for %s seconds", self.end_time - self.start_time)
+
+        if self.kpi_jtl:
+            if not os.path.exists(self.kpi_jtl) or not os.path.getsize(self.kpi_jtl):
+                msg = "Empty results JTL, most likely JMeter failed: %s"
+                raise RuntimeWarning(msg % self.kpi_jtl)
 
     def __apply_ramp_up(self, jmx, ramp_up):
         rampup_sel = "stringProp[name='ThreadGroup.ramp_time']"
@@ -292,8 +295,21 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.log.debug("Load: %s", load)
         jmx = JMX(original)
 
+        resource_files_from_jmx = self.__get_resource_files_from_jmx(jmx)
+        resource_files_from_requests = self.__get_resource_files_from_requests()
+        self.__copy_resources_to_artifacts_dir(resource_files_from_jmx)
+        self.__copy_resources_to_artifacts_dir(resource_files_from_requests)
+
+        if resource_files_from_jmx:
+            self.__modify_resources_paths_in_jmx(jmx.tree, resource_files_from_jmx)
+
         if self.get_scenario().get("disable-listeners", True):
             self.__disable_listeners(jmx)
+
+        user_def_vars = self.get_scenario().get("variables")
+        if user_def_vars:
+            jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, jmx.add_user_def_vars_elements(user_def_vars))
+            jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
 
         self.__apply_modifications(jmx)
 
@@ -310,7 +326,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.__apply_ramp_up(jmx, int(load.ramp_up))
 
         if load.iterations is not None:
-            self.__apply_iterations(jmx, load.iterations)
+            self.__apply_iterations(jmx, int(load.iterations))
 
         if load.duration:
             self.__apply_duration(jmx, int(load.duration))
@@ -354,52 +370,71 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def resource_files(self):
         """
-        Get resource files
+        Get list of resource files, copy resource files to artifacts dir, modify jmx
         """
-        # TODO: get CSVs, other known files like included test plans
         resource_files = []
-        # get all resource files from settings
-        files_from_requests = self.extract_resources_from_scenario()
+        # get all resource files from requests
+        files_from_requests = self.__get_resource_files_from_requests()
         script = self.__get_script()
+
         if script:
-            script_xml_tree = etree.fromstring(open(script, "rb").read())
-            resource_files, modified_xml_tree = self.__get_resource_files_from_script(script_xml_tree)
-            if resource_files:
-                # copy to artifacts dir
-                for resource_file in resource_files:
-                    if os.path.exists(resource_file):
-                        try:
-                            shutil.copy(resource_file, self.engine.artifacts_dir)
-                        except:
-                            self.log.warning("Cannot copy file: %s" % resource_file)
-                    else:
-                        self.log.warning("File not found: %s" % resource_file)
+            jmx = JMX(script)
+            resource_files_from_jmx = self.__get_resource_files_from_jmx(jmx)
+
+            if resource_files_from_jmx:
+                self.__modify_resources_paths_in_jmx(jmx.tree, resource_files_from_jmx)
 
                 script_name, script_ext = os.path.splitext(script)
                 script_name = os.path.basename(script_name)
                 # create modified jmx script in artifacts dir
                 modified_script = self.engine.create_artifact(script_name, script_ext)
-                with open(modified_script, 'wb') as _fds:
-                    _fds.write(
-                        etree.tostring(modified_xml_tree, pretty_print=True, encoding="UTF-8", xml_declaration=True))
-                resource_files.append(modified_script)
-            else:
-                # copy original script to artifacts
-                shutil.copy2(script, self.engine.artifacts_dir)
-                resource_files.append(script)
+                jmx.save(modified_script)
+                script = modified_script
+                resource_files.extend(resource_files_from_jmx)
 
         resource_files.extend(files_from_requests)
+        # copy files to artifacts dir
+        self.__copy_resources_to_artifacts_dir(resource_files)
+        if script:
+            resource_files.append(script)
         return [os.path.basename(file_path) for file_path in resource_files]  # return list of file names
 
-    def __get_resource_files_from_script(self, script_xml_tree):
+    def __copy_resources_to_artifacts_dir(self, resource_files_list):
         """
 
-        :return: (list, etree)
+        :param resource_files_list:
+        :return:
+        """
+        for resource_file in resource_files_list:
+            if os.path.exists(resource_file):
+                try:
+                    shutil.copy(resource_file, self.engine.artifacts_dir)
+                except:
+                    self.log.warning("Cannot copy file: %s" % resource_file)
+            else:
+                self.log.warning("File not found: %s" % resource_file)
+
+    def __modify_resources_paths_in_jmx(self, jmx, file_list):
+        """
+
+        :param jmx:
+        :param file_list:
+        :return: etree
+        """
+        for file_path in file_list:
+            file_path_elements = jmx.xpath('//stringProp[text()="%s"]' % file_path)
+            for file_path_element in file_path_elements:
+                file_path_element.text = os.path.basename(file_path)
+
+    def __get_resource_files_from_jmx(self, jmx):
+        """
+
+        :return: (file list)
         """
         resource_files = []
         search_patterns = ["File.path", "filename", "BeanShellSampler.filename"]
         for pattern in search_patterns:
-            resource_elements = script_xml_tree.findall(".//stringProp[@name='%s']" % pattern)
+            resource_elements = jmx.tree.findall(".//stringProp[@name='%s']" % pattern)
             for resource_element in resource_elements:
                 # check if none of parents are disabled
                 parent = resource_element.getparent()
@@ -412,32 +447,29 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
                 if resource_element.text and parent_disabled is False:
                     resource_files.append(resource_element.text)
-                    resource_element.text = os.path.basename(resource_element.text)
-        return resource_files, script_xml_tree
+        return resource_files
 
-    def extract_resources_from_scenario(self):
+    def __get_resource_files_from_requests(self):
         """
-        Get post-body files from scenario
-        :return:
+        Get post-body files from requests
+        :return file list:
         """
         post_body_files = []
         scenario = self.get_scenario()
+        data_sources = scenario.data.get('data-sources')
+        if data_sources:
+            for data_source in data_sources:
+                if isinstance(data_source, six.text_type):
+                    post_body_files.append(data_source)
+
         requests = scenario.data.get("requests")
         if requests:
             for req in requests:
                 if isinstance(req, dict):
                     post_body_path = req.get('body-file')
+
                     if post_body_path:
-                        if os.path.exists(post_body_path):
-                            try:
-                                shutil.copy(post_body_path, self.engine.artifacts_dir)
-                            except:
-                                self.log.warning("Cannot copy file: %s" % post_body_path)
-                        else:
-                            self.log.warning("File not found: %s" % post_body_path)
-
                         post_body_files.append(post_body_path)
-
         return post_body_files
 
     def __get_script(self):
@@ -451,7 +483,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             return self.engine.find_file(fname)
         else:
             return None
-
 
     def __apply_modifications(self, jmx):
         """
@@ -546,8 +577,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         # NOTE: should we remove this file in test environment? or not?
         os.remove(jmeter_dist)
 
-        # TODO: remove old versions for httpclient JARs
-
         # set exec permissions
         os.chmod(jmeter, 0o755)
         # NOTE: other files like shutdown.sh might also be needed later
@@ -577,18 +606,18 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         Remove old jars
         """
-        JarLib = namedtuple("JarLib", ("file_name", "lib_name"))
-        jars = [file for file in os.listdir(path) if '-' in file and os.path.isfile(os.path.join(path, file))]
-        jar_libs = [JarLib(file_name=jar, lib_name='-'.join(jar.split('-')[:-1])) for jar in jars]
+        jarlib = namedtuple("jarlib", ("file_name", "lib_name"))
+        jars = [fname for fname in os.listdir(path) if '-' in fname and os.path.isfile(os.path.join(path, fname))]
+        jar_libs = [jarlib(file_name=jar, lib_name='-'.join(jar.split('-')[:-1])) for jar in jars]
 
         duplicated_libraries = []
         for jar_lib_obj in jar_libs:
             similar_packages = [LooseVersion(x.file_name) for x in
-                                filter(lambda x: x.lib_name == jar_lib_obj.lib_name, jar_libs)]
+                                filter(lambda _: _.lib_name == jar_lib_obj.lib_name, jar_libs)]
             if len(similar_packages) > 1:
                 right_version = max(similar_packages)
                 similar_packages.remove(right_version)
-                duplicated_libraries.extend(filter(lambda x: x not in duplicated_libraries, similar_packages))
+                duplicated_libraries.extend(filter(lambda _: _ not in duplicated_libraries, similar_packages))
 
         for old_lib in duplicated_libraries:
             os.remove(os.path.join(path, old_lib.vstring))
@@ -995,6 +1024,31 @@ class JMX(object):
         coll_prop.append(duration_prop)
         shaper_collection.append(coll_prop)
 
+    def add_user_def_vars_elements(self, udv_dict):
+        """
+
+        :param udv_dict:
+        :return:
+        """
+
+        udv_element = etree.Element("Arguments", guiclass="ArgumentsPanel", testclass="Arguments",
+                                    testname="my_defined_vars")
+        udv_collection_prop = self._collection_prop("Arguments.arguments")
+
+        for var_name, var_value in udv_dict.items():
+            udv_element_prop = self._element_prop(var_name, "Argument")
+            udv_arg_name_prop = self._string_prop("Argument.name", var_name)
+            udv_arg_value_prop = self._string_prop("Argument.value", var_value)
+            udv_arg_desc_prop = self._string_prop("Argument.desc", "")
+            udv_arg_meta_prop = self._string_prop("Argument.metadata", "=")
+            udv_element_prop.append(udv_arg_name_prop)
+            udv_element_prop.append(udv_arg_value_prop)
+            udv_element_prop.append(udv_arg_desc_prop)
+            udv_element_prop.append(udv_arg_meta_prop)
+            udv_collection_prop.append(udv_element_prop)
+
+        udv_element.append(udv_collection_prop)
+        return udv_element
 
     @staticmethod
     def _get_header_mgr(hdict):
@@ -1387,6 +1441,7 @@ class JTLErrorsReader(object):
                 self.log.debug("Opening %s", self.filename)
                 self.fds = open(self.filename)  # NOTE: maybe we have the same mac problem with seek() needed
             else:
+                self.log.debug("File not exists: %s", self.filename)
                 return
 
         self.fds.seek(self.offset)
@@ -1396,27 +1451,10 @@ class JTLErrorsReader(object):
             if elem.getparent() is None or elem.getparent().tag != 'testResults':
                 continue
 
-            # extract necessary data
-            # TODO: support non-standard samples notation
-            ts = int(elem.get("ts")) / 1000
-            label = elem.get("lb")
-            message = elem.get("rm")
-            rc = elem.get("rc")
-            urls = elem.xpath(self.url_xpath)
-            if urls:
-                url = Counter({urls[0].text: 1})
+            if elem.items():
+                self.__extract_standard(elem)
             else:
-                url = Counter()
-
-            errtype = KPISet.ERRTYPE_ERROR
-            massert = elem.xpath(self.assertionMessage)
-            if len(massert):
-                errtype = KPISet.ERRTYPE_ASSERT
-                message = massert[0].text
-
-            err_item = KPISet.error_item_skel(message, rc, 1, errtype, url)
-            KPISet.inc_list(self.buffer.get(ts).get(label, []), ("msg", message), err_item)
-            KPISet.inc_list(self.buffer.get(ts).get('', []), ("msg", message), err_item)
+                self.__extract_nonstandard(elem)
 
             # cleanup processed from the memory
             elem.clear()
@@ -1441,6 +1479,50 @@ class JTLErrorsReader(object):
                     KPISet.inc_list(res, ('msg', err_item['msg']), err_item)
 
         return result
+
+    def __extract_standard(self, elem):
+        ts = int(elem.get("ts")) / 1000
+        label = elem.get("lb")
+        message = elem.get("rm")
+        rc = elem.get("rc")
+        urls = elem.xpath(self.url_xpath)
+        if urls:
+            url = Counter({urls[0].text: 1})
+        else:
+            url = Counter()
+        errtype = KPISet.ERRTYPE_ERROR
+        massert = elem.xpath(self.assertionMessage)
+        if len(massert):
+            errtype = KPISet.ERRTYPE_ASSERT
+            message = massert[0].text
+        err_item = KPISet.error_item_skel(message, rc, 1, errtype, url)
+        KPISet.inc_list(self.buffer.get(ts).get(label, []), ("msg", message), err_item)
+        KPISet.inc_list(self.buffer.get(ts).get('', []), ("msg", message), err_item)
+
+    def __extract_nonstandard(self, elem):
+        ts = int(self.__get_child(elem, 'timeStamp')) / 1000  # NOTE: will it be sometimes EndTime?
+        label = self.__get_child(elem, "label")
+        message = self.__get_child(elem, "responseMessage")
+        rc = self.__get_child(elem, "responseCode")
+
+        urls = elem.xpath(self.url_xpath)
+        if urls:
+            url = Counter({urls[0].text: 1})
+        else:
+            url = Counter()
+        errtype = KPISet.ERRTYPE_ERROR
+        massert = elem.xpath(self.assertionMessage)
+        if len(massert):
+            errtype = KPISet.ERRTYPE_ASSERT
+            message = massert[0].text
+        err_item = KPISet.error_item_skel(message, rc, 1, errtype, url)
+        KPISet.inc_list(self.buffer.get(ts).get(label, []), ("msg", message), err_item)
+        KPISet.inc_list(self.buffer.get(ts).get('', []), ("msg", message), err_item)
+
+    def __get_child(self, elem, tag):
+        for child in elem:
+            if child.tag == tag:
+                return child.text
 
 
 class JMeterWidget(urwid.Pile):
