@@ -421,10 +421,12 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :param file_list:
         :return: etree
         """
+        cur_path = r"${__BeanShell(import org.apache.jmeter.services.FileServer; FileServer.getFileServer()" \
+                   r".getBaseDir();)}${__BeanShell(File.separator,)}"
         for file_path in file_list:
             file_path_elements = jmx.xpath('//stringProp[text()="%s"]' % file_path)
             for file_path_element in file_path_elements:
-                file_path_element.text = os.path.basename(file_path)
+                file_path_element.text = cur_path + os.path.basename(file_path)
 
     def __get_resource_files_from_jmx(self, jmx):
         """
