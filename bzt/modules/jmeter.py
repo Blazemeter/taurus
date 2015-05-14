@@ -123,7 +123,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
-    # TODO: weighted requests
     def startup(self):
         """
         Should start JMeter as fast as possible.
@@ -185,8 +184,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                     if self.process.pid in cur_pids:
                         jm_proc = psutil.Process(self.process.pid)
                         for child_proc in jm_proc.get_children(recursive=True):
-                            self.log.debug("Terminating child process %d" % child_proc.pid)
+                            self.log.debug("Terminating child process: %d", child_proc.pid)
                             child_proc.send_signal(signal.SIGTERM)
+                        os.kill(self.process.pid, signal.SIGTERM)
                 else:
                     os.killpg(self.process.pid, signal.SIGTERM)
             except OSError as exc:
