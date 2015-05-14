@@ -14,8 +14,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import bzt
-
 import re
 import sys
 import logging
@@ -36,15 +34,18 @@ from urwid.font import Thin6x6Font
 from urwid.graphics import BigText
 from urwid.listbox import SimpleListWalker
 from urwid.widget import Divider
+import urwid
 
+import bzt
 from bzt.modules.provisioning import Local
 from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.aggregator import DataPoint, KPISet
 
+
 if platform.system() == 'Windows':
-    from urwid.raw_display import Screen  # curses unavailable on windows
+    from bzt.modules.screen import GUIScreen as Screen  # curses unavailable on windows
 else:
-    from urwid.curses_display import Screen  # curses unavailable on windows
+    from urwid.curses_display import Screen
 
 
 class ConsoleStatusReporter(Reporter, AggregatorListener):
@@ -72,9 +73,10 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         if self.disabled:
             return
 
-        if sys.stdout.isatty() and platform.system() != 'Windows':
+        if sys.stdout.isatty():
             self.screen = Screen()
-            self.__detect_console_logger()
+            if platform.system() != 'Windows':
+                self.__detect_console_logger()
         else:
             cols = self.settings.get('dummy-cols', self.screen_size[0])
             rows = self.settings.get('dummy-rows', self.screen_size[1])
