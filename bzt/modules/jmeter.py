@@ -180,10 +180,12 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             time.sleep(1)
             try:
                 if platform.system() == 'Windows':
-                    pyt_proc=psutil.Process()
-                    for child_proc in pyt_proc.get_children(recursive=True):
-                        self.log.debug("Terminating child process %d" % child_proc.pid)
-                        child_proc.send_signal(signal.SIGTERM)
+                    cur_pids = psutil.get_pid_list()
+                    if self.process.pid in cur_pids:
+                        jm_proc = psutil.Process(self.process.pid)
+                        for child_proc in jm_proc.get_children(recursive=True):
+                            self.log.debug("Terminating child process %d" % child_proc.pid)
+                            child_proc.send_signal(signal.SIGTERM)
                 else:
                     os.killpg(self.process.pid, signal.SIGTERM)
             except OSError as exc:
