@@ -560,14 +560,6 @@ def make_boundary(text=None):
     return b
 
 
-def get_configs_dir():
-    path = os.getenv("VIRTUAL_ENV", "") \
-        if os.getenv("VIRTUAL_ENV", "") \
-        else os.path.splitdrive(sys.executable)[0]
-    path += os.path.sep + os.path.join("etc", "bzt.d")  # os.path.join does not work for some reason
-    return path
-
-
 def is_int(str_val):
     try:
         int(str_val)

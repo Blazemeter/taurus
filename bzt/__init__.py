@@ -13,6 +13,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import os
+import sys
 
 version = "0.2.15"
 
@@ -52,3 +54,10 @@ class AutomatedShutdown(KeyboardInterrupt, RCProvider):
         return 3
 
 
+def get_configs_dir():
+    # can't put into utils because of imports issue
+    path = os.getenv("VIRTUAL_ENV", "") \
+        if os.getenv("VIRTUAL_ENV", "") \
+        else os.path.splitdrive(sys.executable)[0]
+    path += os.path.sep + os.path.join("etc", "bzt.d")  # os.path.join does not work for some reason
+    return path
