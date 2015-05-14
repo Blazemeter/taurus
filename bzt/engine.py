@@ -33,7 +33,7 @@ import yaml
 from yaml.representer import SafeRepresenter
 
 from bzt import ManualShutdown, NormalShutdown, get_configs_dir
-from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, get_configs_dir, is_int
+from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_int
 
 
 try:
@@ -274,6 +274,8 @@ class Engine(object):
                                                       self.artifacts_base_dir))
         else:
             self.artifacts_dir = os.path.expanduser(self.artifacts_dir)
+
+        self.artifacts_dir = os.path.abspath(self.artifacts_dir)
         self.log.info("Artifacts dir: %s", self.artifacts_dir)
 
         if not os.path.isdir(self.artifacts_dir):
