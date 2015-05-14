@@ -2,6 +2,7 @@
 
 ## 0.2.16
   - fix base config not copied because of broken imports
+  - display console screen in separate window on windows
 
 ## 0.2.15
   - replace digits and UUID sequences with N and U to decrease label count
