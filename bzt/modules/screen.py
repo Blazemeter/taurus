@@ -17,7 +17,10 @@ limitations under the License.
 
 import logging
 import re
+
 import six
+import urwid
+
 
 try:
     from six.moves.tkinter import Tk, Text
@@ -77,6 +80,7 @@ class GUIScreen(BaseScreen):
 
     def __init__(self):
         super(GUIScreen, self).__init__()
+        urwid.set_encoding('utf8')
         self.root = None
         self.size = (180, 60)
         self.title = "Taurus Status"

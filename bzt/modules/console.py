@@ -42,8 +42,6 @@ from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.aggregator import DataPoint, KPISet
 
 
-urwid.set_encoding('utf8')
-
 if platform.system() == 'Windows':
     from bzt.modules.screen import GUIScreen as Screen  # curses unavailable on windows
 else:
