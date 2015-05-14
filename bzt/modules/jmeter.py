@@ -19,6 +19,7 @@ from collections import Counter, namedtuple
 import os
 import platform
 import subprocess
+import psutil
 import time
 import signal
 import traceback
@@ -179,7 +180,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             time.sleep(1)
             try:
                 if platform.system() == 'Windows':
-                    os.kill(self.process.pid, signal.SIGTERM)
+                    pyt_proc=psutil.Process()
+                    for child_proc in pyt_proc.get_children(recursive=True):
+                        self.log.debug("Terminating child process %d" % child_proc.pid)
+                        child_proc.send_signal(signal.SIGTERM)
                 else:
                     os.killpg(self.process.pid, signal.SIGTERM)
             except OSError as exc:
