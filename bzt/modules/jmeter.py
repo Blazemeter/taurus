@@ -25,9 +25,10 @@ import signal
 import traceback
 import logging
 from subprocess import CalledProcessError
-import six
 import shutil
 from distutils.version import LooseVersion
+import psutil
+import six
 
 from cssselect import GenericTranslator
 import urwid
@@ -130,19 +131,19 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         cmdline = [self.settings.get("path")]  # default is set when prepared
         if not self.settings.get("gui", False):
             cmdline += ["-n"]
-        cmdline += ["-t", self.modified_jmx]
+        cmdline += ["-t", os.path.abspath(self.modified_jmx)]
         if self.jmeter_log:
-            cmdline += ["-j", self.jmeter_log]
+            cmdline += ["-j", os.path.abspath(self.jmeter_log)]
 
         if self.properties_file:
-            cmdline += ["-p", self.properties_file]
+            cmdline += ["-p", os.path.abspath(self.properties_file)]
 
         if self.distributed_servers:
             cmdline += ['-R%s' % ','.join(self.distributed_servers)]
 
         self.start_time = time.time()
         try:
-            self.process = shell_exec(cmdline, stderr=None)
+            self.process = shell_exec(cmdline, stderr=None, cwd=self.engine.artifacts_dir)
         except OSError as exc:
             self.log.error("Failed to start JMeter: %s", traceback.format_exc())
             self.log.error("Failed command: %s", cmdline)

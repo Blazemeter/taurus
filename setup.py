@@ -36,10 +36,7 @@ class InstallWithHook(install, object):
         self.__hook()
 
     def __hook(self):
-        # can't refactor this out - otherwise Windows fails putting it into right place
-        from bzt import utils
-
-        dirname = utils.get_configs_dir()
+        dirname = bzt.get_configs_dir()
         sys.stdout.write("[%s] Creating %s\n" % (bzt.version, dirname))
         if not os.path.exists(dirname):
             os.makedirs(dirname)
