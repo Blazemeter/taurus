@@ -1,7 +1,7 @@
 #!/bin/bash -xe
 
 # setup env
-virtualenv --clear --system-site-packages build
+virtualenv --clear build
 source build/bin/activate
 
 # install depends

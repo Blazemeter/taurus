@@ -113,7 +113,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
                 self.log.debug("Overriding logging stream")
                 self.logger_handler.stream = self.temp_stream
             else:
-                self.log.warning("Failed to mute console logging")
+                self.log.info("Did not mute console logging")
 
             self.screen.start()
             self.log.info("Waiting for finish...")
