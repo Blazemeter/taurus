@@ -16,7 +16,7 @@ limitations under the License.
 import os
 import sys
 
-version = "0.2.16"
+version = "0.2.17"
 
 import signal
 
