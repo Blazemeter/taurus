@@ -1,5 +1,8 @@
 # Changelog
 
+## Next version
+  - added ability to change font size in windows console gui on ctrl + mousewheel event
+
 ## 0.2.16
   - fix base config not copied because of broken imports
   - display console screen in separate window on windows
