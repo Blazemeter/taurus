@@ -2,6 +2,7 @@
 
 ## Next version
   - added ability to change font size in windows console gui on ctrl + mousewheel event
+  - reworked CSV reading for JMeter to support quoted data
 
 ## 0.2.16
   - fix base config not copied because of broken imports
