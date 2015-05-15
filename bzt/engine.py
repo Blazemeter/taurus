@@ -196,7 +196,7 @@ class Engine(object):
         self.config.dump()
 
         if exception:
-            self.log.debug("Exception in post-process: %s", traceback.format_exc())
+            self.log.debug("Exception in post-process: %s", exception)
             self.stopping_reason = exception if not self.stopping_reason else self.stopping_reason
 
         if isinstance(exception, KeyboardInterrupt):
