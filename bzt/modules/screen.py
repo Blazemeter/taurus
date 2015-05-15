@@ -117,13 +117,17 @@ class GUIScreen(BaseScreen):
         super(GUIScreen, self)._stop()
 
     def change_font(self, event):
+        min_size = 4
+        max_size = 20
         cur_size = self.font['size']
         if event.num == 5 or event.delta > 0:
-            self.font.configure(size = cur_size + 1)
-            self.resize(event)
+            if cur_size < max_size:
+                self.font.configure(size = cur_size + 1)
+                self.resize(event)
         if event.num == 4 or event.delta < 0:
-            self.font.configure(size = cur_size - 1)
-            self.resize(event)
+            if cur_size > min_size:
+                self.font.configure(size = cur_size - 1)
+                self.resize(event)
 
     def resize(self, event):
         (cwdth, chght) = (self.font.measure(' '), self.font.metrics("linespace"))
