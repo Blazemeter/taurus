@@ -1,0 +1,3 @@
+timeStamp,elapsed,label,responseCode,responseMessage,success,grpThreads,allThreads,Latency,Connect
+1431534938725,264,Transaction Controller1,200,"Number of samples in transaction : 1, number of failing samples : 0",true,1,1,0,0
+1431534938734,998,Transaction Controller2,200,"Number of samples in transaction : 1, number of failing samples : 1",false,1,1,0,0
