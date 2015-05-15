@@ -392,7 +392,7 @@ class ResultsReader(ResultsProvider):
                 if label in self.ignored_labels:
                     continue
                 if ts < self.min_timestamp:
-                    self.log.warning("Putting %s into %s", ts, self.min_timestamp)
+                    self.log.warning("Putting sample %s into %s", ts, self.min_timestamp)
                     ts = self.min_timestamp
                 if ts not in self.buffer:
                     self.buffer[ts] = []
@@ -432,7 +432,7 @@ class ResultsReader(ResultsProvider):
         if not self.buffer:
             return
         timestamps = sorted(self.buffer.keys())
-        while final_pass or (timestamps[-1] >= timestamps[0] + self.buffer_len):
+        while final_pass or (timestamps[-1] >= (timestamps[0] + self.buffer_len)):
             timestamp = timestamps.pop(0)
             self.min_timestamp = timestamp + 1  # NOTE: why +1?
             self.log.debug("Aggregating: %s", timestamp)
@@ -532,7 +532,7 @@ class ConsolidatingAggregator(EngineModule, ResultsProvider):
                 if self.buffer:
                     mints = min(self.buffer.keys())
                     if tstamp < mints:
-                        self.log.warning("Putting %s into %s", tstamp, mints)
+                        self.log.warning("Putting datapoint %s into %s", tstamp, mints)
                         data[DataPoint.TIMESTAMP] = mints
                         tstamp = mints
                 self.buffer.get(tstamp, []).append(data)

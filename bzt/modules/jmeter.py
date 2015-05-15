@@ -16,6 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 from collections import Counter, namedtuple
+import csv
 import os
 import platform
 import subprocess
@@ -36,7 +37,7 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.console import WidgetProvider
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.utils import shell_exec, ensure_is_dict, humanize_time, dehumanize_time, BetterDict, \
-    guess_csv_delimiter, unzip, download_progress_hook
+    guess_csv_dialect, unzip, download_progress_hook
 
 
 try:
@@ -1296,13 +1297,11 @@ class JTLReader(ResultsReader):
     def __init__(self, filename, parent_logger, errors_filename):
         super(JTLReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
-        self.filename = filename
-        self.fds = None
-        self.indexes = {}
-        self.partial_buffer = ""
-        self.delimiter = ","
-        self.offset = 0
-        self.errors_reader = JTLErrorsReader(errors_filename, parent_logger)
+        self.csvreader = IncrementalCSVReader(self.log, filename)
+        if errors_filename:
+            self.errors_reader = JTLErrorsReader(errors_filename, parent_logger)
+        else:
+            self.errors_reader = None
 
     def _read(self, last_pass=False):
         """
@@ -1310,15 +1309,67 @@ class JTLReader(ResultsReader):
 
         :type last_pass: bool
         """
-        self.errors_reader.read_file(last_pass)
+        if self.errors_reader:
+            self.errors_reader.read_file(last_pass)
 
-        while not self.fds and not self.__open_fds():
+        for row in self.csvreader.read(last_pass):
+            label = row["label"]
+            concur = int(row["allThreads"])
+            rtm = int(row["elapsed"]) / 1000.0
+            ltc = int(row["Latency"]) / 1000.0
+            if "Connect" in row:
+                cnn = int(row["Connect"]) / 1000.0
+                if cnn < ltc:  # this is generally bad idea...
+                    ltc -= cnn  # fixing latency included into connect time
+            else:
+                cnn = None
+
+            rcd = row["responseCode"]
+            if rcd.endswith('Exception'):
+                rcd = rcd.split('.')[-1]
+
+            if row["success"] != "true":
+                error = row["responseMessage"]
+            else:
+                error = None
+
+            tstmp = int(int(row["timeStamp"]) / 1000)
+            yield tstmp, label, concur, rtm, cnn, ltc, rcd, error
+
+    def _calculate_datapoints(self, final_pass=False):
+        for point in super(JTLReader, self)._calculate_datapoints(final_pass):
+            if self.errors_reader:
+                data = self.errors_reader.get_data(point[DataPoint.TIMESTAMP])
+            else:
+                data = {}
+
+            for label, label_data in six.iteritems(point[DataPoint.CURRENT]):
+                if label in data:
+                    label_data[KPISet.ERRORS] = data[label]
+                else:
+                    label_data[KPISet.ERRORS] = {}
+
+            yield point
+
+
+class IncrementalCSVReader(csv.DictReader, object):
+    def __init__(self, parent_logger, filename):
+        self.buffer = six.StringIO()
+        super(IncrementalCSVReader, self).__init__(self.buffer, [])
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.indexes = {}
+        self.partial_buffer = ""
+        self.offset = 0
+        self.filename = filename
+        self.fds = None
+
+    def read(self, last_pass=False):
+        if not self.fds and not self.__open_fds():
             self.log.debug("No data to start reading yet")
-            yield None
+            return
 
-        self.log.debug("Reading JTL [%s]: %s", os.path.getsize(self.filename), self.filename)
-
-        self.fds.seek(self.offset)  # without this we have a stuck reads on Mac
+        self.log.debug("Reading JTL: %s", self.filename)
+        self.fds.seek(self.offset)  # without this we have stuck reads on Mac
 
         if last_pass:
             lines = self.fds.readlines()  # unlimited
@@ -1337,37 +1388,18 @@ class JTLReader(ResultsReader):
             line = "%s%s" % (self.partial_buffer, line)
             self.partial_buffer = ""
 
-            if not self.indexes:
-                self.delimiter = guess_csv_delimiter(line)
-                columns = line.strip().split(self.delimiter)
-                for idx, field in enumerate(columns):
-                    self.indexes[field] = idx
-                self.log.debug("Analyzed header line: %s", self.indexes)
+            if not self._fieldnames:
+                self.dialect = guess_csv_dialect(line)
+                self._fieldnames += line.strip().split(self.dialect.delimiter)
+                self.log.debug("Analyzed header line: %s", self.fieldnames)
                 continue
 
-            fields = line.strip().split(self.delimiter)
-            label = fields[self.indexes["label"]]
-            concur = int(fields[self.indexes["allThreads"]])
-            rtm = int(fields[self.indexes["elapsed"]]) / 1000.0
-            ltc = int(fields[self.indexes["Latency"]]) / 1000.0
-            if "Connect" in self.indexes:
-                cnn = int(fields[self.indexes["Connect"]]) / 1000.0
-                if cnn < ltc:  # this is generally bad idea...
-                    ltc -= cnn  # fixing latency included into connect time
-            else:
-                cnn = None
-            rcd = fields[self.indexes["responseCode"]]
-            if rcd.endswith('Exception'):
-                rcd = rcd.split('.')[-1]
+            self.buffer.write(line)
 
-            if fields[self.indexes["success"]] != "true":
-                error = fields[self.indexes["responseMessage"]]
-            else:
-                error = None
-
-            tstmp = int(int(fields[self.indexes["timeStamp"]]) / 1000)
-
-            yield tstmp, label, concur, rtm, cnn, ltc, rcd, error
+        self.buffer.seek(0)
+        for row in self:
+            yield row
+        self.buffer.truncate(0)
 
     def __open_fds(self):
         """
@@ -1389,24 +1421,13 @@ class JTLReader(ResultsReader):
         self.log.debug("Opening file: %s", self.filename)
         self.fds = open(self.filename)
         self.fds.seek(self.offset)
+        self.csvreader = csv.reader(self.fds)
         return True
 
     def __del__(self):
         if self.fds:
             logging.debug("Closing file descriptor for %s", self.filename)
             self.fds.close()
-
-    def _calculate_datapoints(self, final_pass=False):
-        for point in super(JTLReader, self)._calculate_datapoints(final_pass):
-            data = self.errors_reader.get_data(point[DataPoint.TIMESTAMP])
-
-            for label, label_data in six.iteritems(point[DataPoint.CURRENT]):
-                if label in data:
-                    label_data[KPISet.ERRORS] = data[label]
-                else:
-                    label_data[KPISet.ERRORS] = {}
-
-            yield point
 
 
 class JTLErrorsReader(object):
@@ -1759,4 +1780,4 @@ class JMeterScenarioBuilder(JMX):
     def __guess_delimiter(self, path):
         with open(path) as fhd:
             header = fhd.read(4096)  # 4KB is enough for header
-            return guess_csv_delimiter(header)
+            return guess_csv_dialect(header).delimiter
