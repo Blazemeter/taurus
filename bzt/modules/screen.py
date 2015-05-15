@@ -20,7 +20,7 @@ import re
 
 import six
 import urwid
-
+import platform
 
 try:
     from six.moves.tkinter import Tk, Text
@@ -98,10 +98,17 @@ class GUIScreen(BaseScreen):
         self.root = Tk()
         self.root.geometry("%sx%s" % (self.size[0] * 7, self.size[1] * 15))
         self.root.bind("<Configure>", self.resize)
+        if platform.system() == 'Windows':
+            self.root.bind("<Control-MouseWheel>", self.change_font)
+        else:
+            self.root.bind("<Control-4>", self.change_font)
+            self.root.bind("<Control-5>", self.change_font)
         self.root.protocol("WM_DELETE_WINDOW", self.closed_window)
         self.text = Text(self.root, font="TkFixedFont", wrap=Tkinter.NONE, state=Tkinter.DISABLED,
                          background="black", foreground="light gray")
         self.text.pack(side=Tkinter.LEFT, fill=Tkinter.BOTH, expand=Tkinter.YES)
+        self.font = tkFont.Font(self.root, self.text.cget("font"))
+        self.text.config(font=self.font)
         self.__prepare_tags()
 
     def _stop(self):
@@ -109,9 +116,17 @@ class GUIScreen(BaseScreen):
             self.root.destroy()
         super(GUIScreen, self)._stop()
 
+    def change_font(self, event):
+        cur_size = self.font['size']
+        if event.num == 5 or event.delta > 0:
+            self.font.configure(size = cur_size + 1)
+            self.resize(event)
+        if event.num == 4 or event.delta < 0:
+            self.font.configure(size = cur_size - 1)
+            self.resize(event)
+
     def resize(self, event):
-        font = tkFont.Font(self.root, self.text.cget("font"))
-        (cwdth, chght) = (font.measure(' '), font.metrics("linespace"))
+        (cwdth, chght) = (self.font.measure(' '), self.font.metrics("linespace"))
         logging.debug("Font: %s", (cwdth, chght))
 
         width = int(math.floor((self.text.winfo_width() - float(cwdth) / 2) / float(cwdth)))
