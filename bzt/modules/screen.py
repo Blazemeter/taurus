@@ -119,7 +119,7 @@ class GUIScreen(BaseScreen):
     def change_font(self, event):
         min_size = 1
         cur_size = self.font['size']
-        inc = 1 if platform.system() == 'Windows' else -1
+        inc = 1 if cur_size > 0 else -1
         if event.num == 4 or event.delta > 0:
             self.font.configure(size=cur_size + inc)
             self.resize(event)
