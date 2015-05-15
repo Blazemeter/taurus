@@ -122,11 +122,11 @@ class GUIScreen(BaseScreen):
         cur_size = self.font['size']
         if event.num == 5 or event.delta > 0:
             if cur_size < max_size:
-                self.font.configure(size = cur_size + 1)
+                self.font.configure(size=cur_size + 1)
                 self.resize(event)
         if event.num == 4 or event.delta < 0:
             if cur_size > min_size:
-                self.font.configure(size = cur_size - 1)
+                self.font.configure(size=cur_size - 1)
                 self.resize(event)
 
     def resize(self, event):
