@@ -35,16 +35,8 @@ from yaml.representer import SafeRepresenter
 from bzt import ManualShutdown, NormalShutdown, get_configs_dir
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_int
 
-
-try:
-    import ConfigParser
-except ImportError:
-    import configparser as ConfigParser
-
-try:
-    from UserDict import DictMixin
-except ImportError:
-    from collections import MutableMapping as DictMixin
+from six.moves import configparser as ConfigParser
+from six.moves import UserDict as DictMixin
 
 
 class Engine(object):

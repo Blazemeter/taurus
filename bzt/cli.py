@@ -98,6 +98,10 @@ class CLI(object):
         logger.addHandler(console_handler)
 
     def __close_log(self):
+        """
+        Close log handlers, move log to artifacts dir
+        :return:
+        """
         if self.options.log:
             if platform.system() == 'Windows':
                 # need to finalize the logger before moving file
@@ -177,6 +181,11 @@ class CLI(object):
         return exit_code
 
     def __get_config_overrides(self):
+        """
+        Close log handlers, move log to artifacts dir
+        :return:
+        """
+
         if self.options.option:
             self.log.debug("Adding overrides: %s", self.options.option)
             fds, fname = tempfile.mkstemp(".ini", "overrides_", dir=self.engine.artifacts_base_dir)
@@ -191,7 +200,7 @@ class CLI(object):
 
     def __get_jmx_shorthands(self, configs):
         jmxes = []
-        for n, filename in enumerate(configs[:]):
+        for _num, filename in enumerate(configs[:]):
             if filename.lower().endswith(".jmx"):
                 jmxes.append(filename)
                 configs.remove(filename)
@@ -249,7 +258,6 @@ class OptionParserWithAliases(OptionParser, object):
                 self.aliases.append(candidate[1:])
             else:
                 raise
-            pass
 
     def parse_args(self, args=None, values=None):
         res = OptionParser.parse_args(self, args, values)
