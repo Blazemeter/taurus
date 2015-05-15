@@ -25,9 +25,10 @@ import signal
 import traceback
 import logging
 from subprocess import CalledProcessError
-import six
 import shutil
 from distutils.version import LooseVersion
+import psutil
+import six
 
 from cssselect import GenericTranslator
 import urwid
@@ -109,7 +110,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         props = self.settings.get("properties")
         props_local = scenario.get("properties")
         props.merge(props_local)
-        props['user.classpath'] = self.engine.artifacts_dir
+        props['user.classpath'] = self.engine.artifacts_dir.replace(os.path.sep, "/")  # replace to avoid Windows issue
         if props:
             self.log.debug("Additional properties: %s", props)
             props_file = self.engine.create_artifact("jmeter-bzt", ".properties")
@@ -122,7 +123,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
-    # TODO: weighted requests
     def startup(self):
         """
         Should start JMeter as fast as possible.
@@ -130,19 +130,19 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         cmdline = [self.settings.get("path")]  # default is set when prepared
         if not self.settings.get("gui", False):
             cmdline += ["-n"]
-        cmdline += ["-t", self.modified_jmx]
+        cmdline += ["-t", os.path.abspath(self.modified_jmx)]
         if self.jmeter_log:
-            cmdline += ["-j", self.jmeter_log]
+            cmdline += ["-j", os.path.abspath(self.jmeter_log)]
 
         if self.properties_file:
-            cmdline += ["-p", self.properties_file]
+            cmdline += ["-p", os.path.abspath(self.properties_file)]
 
         if self.distributed_servers:
             cmdline += ['-R%s' % ','.join(self.distributed_servers)]
 
         self.start_time = time.time()
         try:
-            self.process = shell_exec(cmdline, stderr=None)
+            self.process = shell_exec(cmdline, stderr=None, cwd=self.engine.artifacts_dir)
         except OSError as exc:
             self.log.error("Failed to start JMeter: %s", traceback.format_exc())
             self.log.error("Failed command: %s", cmdline)
@@ -180,7 +180,13 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             time.sleep(1)
             try:
                 if platform.system() == 'Windows':
-                    os.kill(self.process.pid, signal.SIGTERM)
+                    cur_pids = psutil.get_pid_list()
+                    if self.process.pid in cur_pids:
+                        jm_proc = psutil.Process(self.process.pid)
+                        for child_proc in jm_proc.get_children(recursive=True):
+                            self.log.debug("Terminating child process: %d", child_proc.pid)
+                            child_proc.send_signal(signal.SIGTERM)
+                        os.kill(self.process.pid, signal.SIGTERM)
                 else:
                     os.killpg(self.process.pid, signal.SIGTERM)
             except OSError as exc:
