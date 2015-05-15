@@ -580,7 +580,7 @@ class Configuration(BetterDict):
         if isinstance(pointer, list) and isinstance(part, int):
             while len(pointer) <= part:
                 self.log.debug("Len %s less than %s", len(pointer), part)
-                if type(next_part) == int:
+                if isinstance(next_part, int):
                     pointer.append([])
                 else:
                     pointer.append(BetterDict())
@@ -592,9 +592,9 @@ class Configuration(BetterDict):
         for index, part in enumerate(parts[:-1]):
             self.__ensure_list_capacity(pointer, part, parts[index + 1])
 
-            if type(part) == int:
+            if isinstance(part, int):
                 pointer = pointer[part]
-            elif type(parts[index + 1]) == int and isinstance(pointer, dict):
+            elif isinstance(parts[index + 1], int) and isinstance(pointer, dict):
                 pointer = pointer.get(part, [])
             else:
                 pointer = pointer.get(part)
