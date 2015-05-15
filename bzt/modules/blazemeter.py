@@ -32,17 +32,9 @@ from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.jmeter import JMeterExecutor
 from bzt.utils import to_json, dehumanize_time, MultiPartForm
 
-
-try:
-    from urllib2 import urlopen, Request, HTTPError
-except ImportError:
-    from urllib.request import urlopen, Request, HTTPError
-
-try:
-    from urllib import urlencode
-except ImportError:
-    from urllib.parse import urlencode
-
+from six.moves.urllib.request import Request, urlopen
+from six.moves.urllib.error import HTTPError
+from six.moves.urllib.parse import urlencode
 
 class BlazeMeterUploader(Reporter, AggregatorListener):
     """
