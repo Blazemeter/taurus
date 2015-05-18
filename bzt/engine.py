@@ -121,6 +121,10 @@ class Engine(object):
             self._shutdown()
 
     def _wait(self):
+        """
+        Wait modules for finish
+        :return:
+        """
         self.log.info("Waiting for finish...")
         prev = time.time()
         while not self.provisioning.check() \
@@ -138,6 +142,10 @@ class Engine(object):
         self.config.dump()
 
     def _shutdown(self):
+        """
+        Shutdown modules
+        :return:
+        """
         self.log.info("Shutting down...")
         try:
             self.provisioning.shutdown()
@@ -257,6 +265,10 @@ class Engine(object):
             shutil.copy(filename, newname)
 
     def _create_artifacts_dir(self):
+        """
+        Create directory for artifacts, directory name based on datetime.now()
+        :return:
+        """
         if not self.artifacts_dir:
             date_str = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S.")
             if not os.path.isdir(self.artifacts_base_dir):
@@ -274,6 +286,11 @@ class Engine(object):
             os.makedirs(self.artifacts_dir)
 
     def __load_module(self, alias):
+        """
+        Load module class by alias
+        :param alias: str
+        :return: class
+        """
         if alias in self.modules:
             return self.modules[alias]
 
@@ -334,6 +351,11 @@ class Engine(object):
             raise IOError("File not found: %s" % filename)
 
     def __load_configs(self, user_configs):
+        """
+
+        :param user_configs: list of config files
+        :return:
+        """
         for fname in user_configs:
             self.existing_artifact(fname)
 
@@ -368,6 +390,10 @@ class Engine(object):
         self.config.merge(user_config)
 
     def __prepare_provisioning(self):
+        """
+        Instantiate provisioning class
+        :return:
+        """
         cls = self.config.get(Provisioning.PROV, "")
         if not cls:
             raise ValueError("Please configure provisioning settings")
@@ -376,6 +402,10 @@ class Engine(object):
         self.provisioning.prepare()
 
     def __prepare_reporters(self):
+        """
+        Instantiate reporters, then prepare them in case they would like to interact
+        :return:
+        """
         # instantiate reporters
         reporting = self.config.get(Reporter.REP, [])
         for index, reporter in enumerate(reporting):
@@ -387,11 +417,15 @@ class Engine(object):
                 self.aggregator.add_listener(instance)  # NOTE: bad design, add_listener method is unknown
             self.reporters.append(instance)
 
-        # then prepare them in case they would like to interact
+        # prepare reporters
         for module in self.reporters:
             module.prepare()
 
     def __prepare_aggregator(self):
+        """
+        Instantiate aggregators
+        :return:
+        """
         cls = self.config.get("settings").get("aggregator", "")
         if not cls:
             self.log.warning("Proceeding without aggregator, no results analysis")
@@ -408,16 +442,20 @@ class Engine(object):
         """
         stats = namedtuple("ResourceStats", ('cpu', 'disk_usage', 'mem_usage',
                                              'rx', 'tx', 'dru', 'dwu'))
-        rx, tx, dru, dwu = self.__get_resource_stats()
+        rx_bytes, tx_bytes, dru, dwu = self.__get_resource_stats()
         # TODO: measure and report check loop utilization
         return stats(
             cpu=psutil.cpu_percent(interval=None),
             disk_usage=psutil.disk_usage(self.artifacts_dir).percent,
             mem_usage=psutil.virtual_memory().percent,
-            rx=rx, tx=tx, dru=dru, dwu=dwu
+            rx=rx_bytes, tx=tx_bytes, dru=dru, dwu=dwu
         )
 
     def __get_resource_stats(self):
+        """
+        Get network and disk counters
+        :return: tuple
+        """
         if not self.__counters_ts:
             self.__disk_counters = psutil.disk_io_counters()
             self.__net_counters = psutil.net_io_counters()
@@ -428,8 +466,8 @@ class Engine(object):
         interval = (now - self.__counters_ts).total_seconds()
 
         net = psutil.net_io_counters()
-        tx = (net.bytes_sent - self.__net_counters.bytes_sent) / interval
-        rx = (net.bytes_recv - self.__net_counters.bytes_recv) / interval
+        tx_bytes = (net.bytes_sent - self.__net_counters.bytes_sent) / interval
+        rx_bytes = (net.bytes_recv - self.__net_counters.bytes_recv) / interval
         self.__net_counters = net
 
         disk = psutil.disk_io_counters()
@@ -438,7 +476,7 @@ class Engine(object):
         self.__disk_counters = disk
 
         self.__counters_ts = now
-        return rx, tx, dru, dwu
+        return rx_bytes, tx_bytes, dru, dwu
 
 
 class Configuration(BetterDict):
@@ -472,18 +510,23 @@ class Configuration(BetterDict):
                 self.merge(config)
 
     def __read_file(self, filename):
-        with open(filename) as fh:
+        """
+        Read and parse config file
+        :param filename: str
+        :return: dict, str
+        """
+        with open(filename) as fds:
             first_line = "#"
             while first_line.startswith("#"):
-                first_line = fh.readline().strip()
-            fh.seek(0)
+                first_line = fds.readline().strip()
+            fds.seek(0)
 
             if first_line.startswith('---'):
                 self.log.debug("Reading %s as YAML", filename)
-                return yaml.load(fh), self.YAML
+                return yaml.load(fds), self.YAML
             elif first_line.startswith('{'):
                 self.log.debug("Reading %s as JSON", filename)
-                return json.loads(fh.read()), self.JSON
+                return json.loads(fds.read()), self.JSON
             elif first_line.startswith('['):
                 self.log.debug("Reading %s as INI", filename)
                 parser = ConfigParser.SafeConfigParser()
@@ -572,11 +615,19 @@ class Configuration(BetterDict):
 
     @staticmethod
     def masq_sensitive(config):
+        """
+        Remove sensitive data from config
+        """
         for key in config.keys():
             if key in ('password', 'secret', 'token') and config[key]:
                 config[key] = '*' * 8
 
     def __ensure_list_capacity(self, pointer, part, next_part=None):
+        """
+        Extend pointer list to hold additional item
+        :type pointer: list
+        :type part: int
+        """
         if isinstance(pointer, list) and isinstance(part, int):
             while len(pointer) <= part:
                 self.log.debug("Len %s less than %s", len(pointer), part)
@@ -586,6 +637,11 @@ class Configuration(BetterDict):
                     pointer.append(BetterDict())
 
     def __apply_single_override(self, name, value):
+        """
+        Apply single override
+        :type name: str
+        :type value: str
+        """
         self.log.debug("Applying %s=%s", name, value)
         parts = [(int(x) if is_int(x) else x) for x in name.split(".")]
         pointer = self
@@ -611,6 +667,10 @@ class Configuration(BetterDict):
                 pointer[parts[-1]] = value
 
     def __apply_overrides(self, opts):
+        """
+        Apply overrides
+        :type opts: dict
+        """
         for name, value in opts:
             try:
                 self.__apply_single_override(name, value)
@@ -832,6 +892,9 @@ class ScenarioExecutor(EngineModule):
                    duration=duration)
 
     def get_resource_files(self):
+        """
+        Return resource files list
+        """
         files_list = self.execution.get("files", [])
         if isinstance(self, FileLister):
             files_list.extend(self.resource_files())
@@ -878,8 +941,8 @@ class Scenario(DictMixin, object):
         self.data[key] = value
 
     def __iter__(self):
-        for x in self.data:
-            yield x
+        for item in self.data:
+            yield item
 
     def __len__(self):
         return len(self.data)

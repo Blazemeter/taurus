@@ -199,6 +199,13 @@ class CLI(object):
             return []
 
     def __get_jmx_shorthands(self, configs):
+        """
+        Generate json file with execution, executor and scenario settings
+        :type configs: list
+        :return: list
+
+        """
+
         jmxes = []
         for _num, filename in enumerate(configs[:]):
             if filename.lower().endswith(".jmx"):

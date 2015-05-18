@@ -33,11 +33,11 @@ from psutil import Popen
 import six
 
 
-def run_once(f):
+def run_once(func):
     """
     A decorator to run function only once
 
-    :type f: __builtin__.function
+    :type func: __builtin__.function
     :return:
     """
 
@@ -48,7 +48,7 @@ def run_once(f):
         """
         if not wrapper.has_run:
             wrapper.has_run = True
-            return f(*args, **kwargs)
+            return func(*args, **kwargs)
 
     wrapper.has_run = False
     return wrapper
@@ -168,6 +168,11 @@ class BetterDict(defaultdict):
         return
 
     def __ensure_list_type(self, values):
+        """
+        Ensure that values is a list, convert if needed
+        :param values: dict or list
+        :return:
+        """
         for idx, obj in enumerate(values):
             if isinstance(obj, dict):
                 values[idx] = BetterDict()
@@ -352,12 +357,12 @@ class MultiPartForm(object):
         represents form contents as bytes in python3 or 8-bit str in python2
         """
         result_list = []
-        for x in self.__convert_to_list():
+        for item in self.__convert_to_list():
             # if (8-bit str (2.7) or bytes (3.x), then no processing, just add, else - encode)
-            if isinstance(x, six.binary_type):
-                result_list.append(x)
-            elif isinstance(x, six.text_type):
-                result_list.append(x.encode())
+            if isinstance(item, six.binary_type):
+                result_list.append(item)
+            elif isinstance(item, six.text_type):
+                result_list.append(item.encode())
             else:
                 raise BaseException
 
@@ -496,8 +501,8 @@ def unzip(source_filename, dest_dir, rel_path=None):
     """
     logging.debug("Extracting %s to %s", source_filename, dest_dir)
 
-    with zipfile.ZipFile(source_filename) as zf:
-        for member in zf.infolist():
+    with zipfile.ZipFile(source_filename) as zfd:
+        for member in zfd.infolist():
             if rel_path:
                 if not member.filename.startswith(rel_path):
                     continue
@@ -511,16 +516,14 @@ def unzip(source_filename, dest_dir, rel_path=None):
             # http://hg.python.org/cpython/file/tip/Lib/http/server.py#l789
             logging.debug("Writing %s%s%s", dest_dir, os.path.sep, member.filename)
 
-            zf.extract(member, dest_dir)
+            zfd.extract(member, dest_dir)
 
 
 def download_progress_hook(blocknum, blocksize, totalsize):
     """
     displays download progress, invoked by UrlOpener() or it's subclasses.
     mocked as tests.mocks.download_progress_mock
-    
     :return:
-    
     """
     if not callable(getattr(sys.stdout, 'isatty')):
         return
@@ -533,9 +536,9 @@ def download_progress_hook(blocknum, blocksize, totalsize):
         percent = readsofar * 100 / totalsize
         # TODO: fix bug when downloaded size < totalsize at 100%.
         # or just skip downloaded output
-        s = "\r%5.1f%% %*d of %d" % (
+        progress_str = "\r%5.1f%% %*d of %d" % (
             percent, len(str(totalsize)), readsofar, totalsize)
-        sys.stdout.write(s)
+        sys.stdout.write(progress_str)
         if readsofar >= totalsize:  # near the end
             sys.stderr.write("\n")
     else:
@@ -543,24 +546,34 @@ def download_progress_hook(blocknum, blocksize, totalsize):
 
 
 def make_boundary(text=None):
+    """
+    Generate boundary id
+    :param text:
+    :return:
+    """
     _width = len(repr(sys.maxsize - 1))
     _fmt = '%%0%dd' % _width
     token = random.randrange(sys.maxsize)
     boundary = ('=' * 15) + (_fmt % token) + '=='
     if text is None:
         return boundary
-    b = boundary
+    bnd = boundary
     counter = 0
     while True:
-        cre = re.compile('^--' + re.escape(b) + '(--)?$', re.MULTILINE)
+        cre = re.compile('^--' + re.escape(bnd) + '(--)?$', re.MULTILINE)
         if not cre.search(text):
             break
-        b = boundary + '.' + str(counter)
+        bnd = boundary + '.' + str(counter)
         counter += 1
-    return b
+    return bnd
 
 
 def is_int(str_val):
+    """
+    Check if str_val is int type
+    :param str_val: str
+    :return: bool
+    """
     try:
         int(str_val)
         return True

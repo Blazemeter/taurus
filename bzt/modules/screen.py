@@ -117,6 +117,11 @@ class GUIScreen(BaseScreen):
         super(GUIScreen, self)._stop()
 
     def change_font(self, event):
+        """
+        Change font event handler
+        :param event:
+        :return:
+        """
         min_size = 1
         cur_size = self.font['size']
         inc = 1 if cur_size > 0 else -1
@@ -129,6 +134,11 @@ class GUIScreen(BaseScreen):
                 self.resize(event)
 
     def resize(self, event):
+        """
+        Resize screen
+        :param event:
+        :return:
+        """
         (cwdth, chght) = (self.font.measure(' '), self.font.metrics("linespace"))
         logging.debug("Font: %s", (cwdth, chght))
 

@@ -35,27 +35,48 @@ signal.signal(signal.SIGTERM, signal_handler)
 
 
 class RCProvider(object):
+    """
+    Abstract return code provider
+    """
     def get_rc(self):
+        """
+        Must be implemented in subclasses
+        """
         raise NotImplementedError()
 
 
 class NormalShutdown(KeyboardInterrupt, RCProvider):
     def get_rc(self):
+        """
+        Returns normal rc
+        :return: int
+        """
         return 0
 
 
 class ManualShutdown(KeyboardInterrupt, RCProvider):
     def get_rc(self):
+        """
+        Returns manual shutdown rc
+        :return: int
+        """
         return 2
 
 
 class AutomatedShutdown(KeyboardInterrupt, RCProvider):
     def get_rc(self):
+        """
+        Returns automated shutdown rc
+        :return: int
+        """
         return 3
 
 
 def get_configs_dir():
-    # can't put into utils because of imports issue
+    """
+    Generate configs dir path on install, moved from utils due to import error
+    :return: str
+    """
     path = os.getenv("VIRTUAL_ENV", "") \
         if os.getenv("VIRTUAL_ENV", "") \
         else os.path.splitdrive(sys.executable)[0]

@@ -48,12 +48,9 @@ except ImportError:
     except ImportError:
         import elementtree.ElementTree as etree
 
-try:
-    from urllib import URLopener
-except ImportError:
-    from urllib.request import URLopener
+from six.moves.urllib.request import URLopener
 
-exe_suffix = ".bat" if platform.system() == 'Windows' else ""
+EXE_SUFFIX = ".bat" if platform.system() == 'Windows' else ""
 
 
 class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
@@ -201,7 +198,14 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 msg = "Empty results JTL, most likely JMeter failed: %s"
                 raise RuntimeWarning(msg % self.kpi_jtl)
 
-    def __apply_ramp_up(self, jmx, ramp_up):
+    @staticmethod
+    def __apply_ramp_up(jmx, ramp_up):
+        """
+        Apply ramp up period in seconds to ThreadGroup.ramp_time
+        :param jmx: JMX
+        :param ramp_up: int ramp_up period
+        :return:
+        """
         rampup_sel = "stringProp[name='ThreadGroup.ramp_time']"
         xpath = GenericTranslator().css_to_xpath(rampup_sel)
 
@@ -209,7 +213,14 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             prop = group.xpath(xpath)
             prop[0].text = str(ramp_up)
 
-    def __apply_duration(self, jmx, duration):
+    @staticmethod
+    def __apply_duration(jmx, duration):
+        """
+        Apply duration to ThreadGroup.duration
+        :param jmx: JMX
+        :param duration: int
+        :return:
+        """
         sched_sel = "[name='ThreadGroup.scheduler']"
         sched_xpath = GenericTranslator().css_to_xpath(sched_sel)
         dur_sel = "[name='ThreadGroup.duration']"
@@ -219,7 +230,14 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             group.xpath(sched_xpath)[0].text = 'true'
             group.xpath(dur_xpath)[0].text = str(int(duration))
 
-    def __apply_iterations(self, jmx, iterations):
+    @staticmethod
+    def __apply_iterations(jmx, iterations):
+        """
+        Apply iterations to LoopController.loops
+        :param jmx: JMX
+        :param iterations: int
+        :return:
+        """
         sel = "elementProp>[name='LoopController.loops']"
         xpath = GenericTranslator().css_to_xpath(sel)
 
@@ -240,6 +258,12 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 sprop[0].text = str(iterations)
 
     def __apply_concurrency(self, jmx, concurrency):
+        """
+        Apply concurrency to ThreadGroup.num_threads
+        :param jmx: JMX
+        :param concurrency: int
+        :return:
+        """
         tnum_sel = "stringProp[name='ThreadGroup.num_threads']"
         tnum_xpath = GenericTranslator().css_to_xpath(tnum_sel)
 
@@ -262,10 +286,11 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             msg = "%s threads left undistributed due to thread group proportion"
             self.log.warning(msg, leftover)
 
-    def __add_shaper(self, jmx, load):
+    @staticmethod
+    def __add_shaper(jmx, load):
         """
-        Adds shaper
-        :param jmx:
+        Add shaper
+        :param jmx: JMX
         :param load: namedtuple("LoadSpec",
                          ('concurrency', "throughput", 'ramp_up', 'hold', 'iterations', 'duration'))
         :return:
@@ -282,7 +307,13 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree_shaper)
             jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
 
-    def __disable_listeners(self, jmx):
+    @staticmethod
+    def __disable_listeners(jmx):
+        """
+        Set ResultCollector to disabled
+        :param jmx: JMX
+        :return:
+        """
         sel = 'stringProp[name=filename]'
         xpath = GenericTranslator().css_to_xpath(sel)
 
@@ -302,16 +333,16 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.log.debug("Load: %s", load)
         jmx = JMX(original)
 
-        resource_files_from_jmx = self.__get_resource_files_from_jmx(jmx)
-        resource_files_from_requests = self.__get_resource_files_from_requests()
-        self.__copy_resources_to_artifacts_dir(resource_files_from_jmx)
-        self.__copy_resources_to_artifacts_dir(resource_files_from_requests)
+        resource_files_from_jmx = JMeterExecutor.__get_resource_files_from_jmx(jmx)
+        resource_files_from_requests = self.__get_res_files_from_requests()
+        self.__cp_res_files_to_artifacts_dir(resource_files_from_jmx)
+        self.__cp_res_files_to_artifacts_dir(resource_files_from_requests)
 
         if resource_files_from_jmx:
-            self.__modify_resources_paths_in_jmx(jmx.tree, resource_files_from_jmx)
+            JMeterExecutor.__modify_resources_paths_in_jmx(jmx.tree, resource_files_from_jmx)
 
         if self.get_scenario().get("disable-listeners", True):
-            self.__disable_listeners(jmx)
+            JMeterExecutor.__disable_listeners(jmx)
 
         user_def_vars = self.get_scenario().get("variables")
         if user_def_vars:
@@ -330,16 +361,16 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.__apply_concurrency(jmx, load.concurrency)
 
         if load.ramp_up is not None:
-            self.__apply_ramp_up(jmx, int(load.ramp_up))
+            JMeterExecutor.__apply_ramp_up(jmx, int(load.ramp_up))
 
         if load.iterations is not None:
-            self.__apply_iterations(jmx, int(load.iterations))
+            JMeterExecutor.__apply_iterations(jmx, int(load.iterations))
 
         if load.duration:
-            self.__apply_duration(jmx, int(load.duration))
+            JMeterExecutor.__apply_duration(jmx, int(load.duration))
 
         if load.throughput:
-            self.__add_shaper(jmx, load)
+            JMeterExecutor.__add_shaper(jmx, load)
 
         self.kpi_jtl = self.engine.create_artifact("kpi", ".jtl")
         kpil = jmx.new_kpi_listener(self.kpi_jtl)
@@ -359,6 +390,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         return filename
 
     def __jmx_from_requests(self):
+        """
+        Generate jmx file from requests
+        :return:
+        """
         filename = self.engine.create_artifact("requests", ".jmx")
         jmx = JMeterScenarioBuilder()
         jmx.scenario = self.get_scenario()
@@ -381,12 +416,12 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         resource_files = []
         # get all resource files from requests
-        files_from_requests = self.__get_resource_files_from_requests()
+        files_from_requests = self.__get_res_files_from_requests()
         script = self.__get_script()
 
         if script:
             jmx = JMX(script)
-            resource_files_from_jmx = self.__get_resource_files_from_jmx(jmx)
+            resource_files_from_jmx = JMeterExecutor.__get_resource_files_from_jmx(jmx)
 
             if resource_files_from_jmx:
                 self.__modify_resources_paths_in_jmx(jmx.tree, resource_files_from_jmx)
@@ -401,12 +436,12 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         resource_files.extend(files_from_requests)
         # copy files to artifacts dir
-        self.__copy_resources_to_artifacts_dir(resource_files)
+        self.__cp_res_files_to_artifacts_dir(resource_files)
         if script:
             resource_files.append(script)
         return [os.path.basename(file_path) for file_path in resource_files]  # return list of file names
 
-    def __copy_resources_to_artifacts_dir(self, resource_files_list):
+    def __cp_res_files_to_artifacts_dir(self, resource_files_list):
         """
 
         :param resource_files_list:
@@ -416,26 +451,29 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             if os.path.exists(resource_file):
                 try:
                     shutil.copy(resource_file, self.engine.artifacts_dir)
-                except:
-                    self.log.warning("Cannot copy file: %s" % resource_file)
+                except BaseException as exc:
+                    self.log.warning("Cannot copy file: %s", resource_file)
             else:
-                self.log.warning("File not found: %s" % resource_file)
+                self.log.warning("File not found: %s", resource_file)
 
-    def __modify_resources_paths_in_jmx(self, jmx, file_list):
+    @staticmethod
+    def __modify_resources_paths_in_jmx(jmx, file_list):
         """
+        Modify resource files paths in jmx etree
 
-        :param jmx:
-        :param file_list:
-        :return: etree
+        :param jmx: JMX
+        :param file_list: list
+        :return:
         """
         for file_path in file_list:
             file_path_elements = jmx.xpath('//stringProp[text()="%s"]' % file_path)
             for file_path_element in file_path_elements:
                 file_path_element.text = os.path.basename(file_path)
 
-    def __get_resource_files_from_jmx(self, jmx):
+    @staticmethod
+    def __get_resource_files_from_jmx(jmx):
         """
-
+        Get list of resource files paths from jmx scenario
         :return: (file list)
         """
         resource_files = []
@@ -456,7 +494,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                     resource_files.append(resource_element.text)
         return resource_files
 
-    def __get_resource_files_from_requests(self):
+    def __get_res_files_from_requests(self):
         """
         Get post-body files from requests
         :return file list:
@@ -480,6 +518,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         return post_body_files
 
     def __get_script(self):
+        """
+
+        :return: script path
+        """
         scenario = self.get_scenario()
         if Scenario.SCRIPT not in scenario:
             return None
@@ -527,7 +569,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         Checks if JMeter is available, otherwise download and install it.
         """
-        jmeter = self.settings.get("path", "~/jmeter-taurus/bin/jmeter" + exe_suffix)
+        jmeter = self.settings.get("path", "~/jmeter-taurus/bin/jmeter" + EXE_SUFFIX)
         jmeter = os.path.abspath(os.path.expanduser(jmeter))
         self.settings['path'] = jmeter  # set back after expanding ~
 
@@ -559,7 +601,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if not dest:
             dest = "jmeter-taurus"
         dest = os.path.abspath(dest)
-        jmeter = os.path.join(dest, "bin", "jmeter" + exe_suffix)
+        jmeter = os.path.join(dest, "bin", "jmeter" + EXE_SUFFIX)
         try:
             self.__jmeter_check(jmeter)
             return jmeter
@@ -596,9 +638,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             # TODO: fix socket timeout timer (tcp connection timeout too long)
             try:
                 downloader.retrieve(plugin_download_link, plugin_dist, download_progress_hook)
-            except BaseException as e:
+            except BaseException as exc:
                 self.log.error("Error while downloading %s", plugin_download_link)
-                raise e
+                raise exc
 
             self.log.info("Unzipping %s", plugin_dist)
             unzip(plugin_dist, dest)
@@ -619,16 +661,16 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         duplicated_libraries = []
         for jar_lib_obj in jar_libs:
-            similar_packages = [LooseVersion(x.file_name) for x in
-                                filter(lambda _: _.lib_name == jar_lib_obj.lib_name, jar_libs)]
+            similar_packages = [LooseVersion(_jarlib.file_name) for _jarlib in
+                                [lib for lib in jar_libs if lib.lib_name ==  jar_lib_obj.lib_name]]
             if len(similar_packages) > 1:
                 right_version = max(similar_packages)
                 similar_packages.remove(right_version)
-                duplicated_libraries.extend(filter(lambda _: _ not in duplicated_libraries, similar_packages))
+                duplicated_libraries.extend([lib for lib in similar_packages if lib not in duplicated_libraries])
 
         for old_lib in duplicated_libraries:
             os.remove(os.path.join(path, old_lib.vstring))
-            self.log.debug("Old jar removed %s" % old_lib.vstring)
+            self.log.debug("Old jar removed %s", old_lib.vstring)
 
 
 class JMX(object):
@@ -1021,6 +1063,14 @@ class JMX(object):
         return throughput_timer_element
 
     def add_rps_shaper_schedule(self, shaper_etree, start_rps, end_rps, duration):
+        """
+        Adds schedule to rps shaper
+        :param shaper_etree:
+        :param start_rps:
+        :param end_rps:
+        :param duration:
+        :return:
+        """
         shaper_collection = shaper_etree.find(".//collectionProp[@name='load_profile']")
         coll_prop = self._collection_prop("1817389797")
         start_rps_prop = self._string_prop("49", int(start_rps))
@@ -1353,6 +1403,9 @@ class JTLReader(ResultsReader):
 
 
 class IncrementalCSVReader(csv.DictReader, object):
+    """
+    JTL csv reader
+    """
     def __init__(self, parent_logger, filename):
         self.buffer = six.StringIO()
         super(IncrementalCSVReader, self).__init__(self.buffer, [])
@@ -1364,6 +1417,10 @@ class IncrementalCSVReader(csv.DictReader, object):
         self.fds = None
 
     def read(self, last_pass=False):
+        """
+        read data from jtl
+        yield csv row
+        """
         if not self.fds and not self.__open_fds():
             self.log.debug("No data to start reading yet")
             return

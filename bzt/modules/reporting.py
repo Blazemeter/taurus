@@ -17,16 +17,11 @@ limitations under the License.
 """
 
 import os
+from six.moves.urllib.parse import urlparse
 
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.passfail import PassFailStatus
-
-
-try:
-    from urlparse import urlparse
-except ImportError:
-    from urllib.parse import urlparse
 
 try:
     from lxml import etree
@@ -153,7 +148,8 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
             root_xml_element = self.__process_pass_fail()
             self.__save_report(root_xml_element)
 
-    def __convert_label_name(self, url):
+    @staticmethod
+    def __convert_label_name(url):
         """
         http://some.address/path/resource?query -> http.some_address.path.resource.query
         :param url:
@@ -189,11 +185,11 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
             with open(self.report_file_path, 'wb') as _fds:
                 etree_obj.write(_fds, xml_declaration=True, encoding="UTF-8", pretty_print=True)
 
-        except BaseException as exc_obj:
+        except BaseException as exc:
             self.log.error("Cannot create file %s", self.report_file_path)
             raise
-
-    def __make_summary_error_report(self, summary_kpi_set):
+    @staticmethod
+    def __make_summary_error_report(summary_kpi_set):
         """
         Makes summary error report
         :return: str
@@ -226,7 +222,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         succ = str(summary_kpi_set[KPISet.SUCCESSES])
         throughput = str(summary_kpi_set[KPISet.SAMPLE_COUNT])
         fail = str(summary_kpi_set[KPISet.FAILURES])
-        errors, error_report = self.__make_summary_error_report(summary_kpi_set)
+        errors, error_report = JUnitXMLReporter.__make_summary_error_report(summary_kpi_set)
         summary_report = summary_report_template.format(success=succ, throughput=throughput, fail=fail,
                                                         errors=errors)
         summary_report += error_report
@@ -242,7 +238,10 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         return root_xml_element
 
     def __process_sample_labels(self):
+        """
 
+        :return: etree xml root element
+        """
         root_xml_element = None
         # _kpiset - cumulative test data, type: KPISet
         _kpiset = self.last_second[DataPoint.CUMULATIVE]
@@ -252,7 +251,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
                 summary_kpiset = _kpiset[key]
                 root_xml_element = self.__make_xml_header(summary_kpiset)
             else:  # if label is not blank
-                class_name, resource_name = self.__convert_label_name(key)
+                class_name, resource_name = JUnitXMLReporter.__convert_label_name(key)
                 # generate <testcase> subelement
                 test_case = etree.SubElement(root_xml_element, "testcase", classname=class_name,
                                              name=resource_name, time="0")

@@ -101,8 +101,12 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
                 raise
 
     def __get_jtls_and_more(self):
-        mf = six.BytesIO()
-        with zipfile.ZipFile(mf, mode='w', compression=zipfile.ZIP_DEFLATED, allowZip64=True) as zfh:
+        """
+        Compress all files in artifacts dir to single zipfile
+        :return: BytesIO
+        """
+        mfile = six.BytesIO()
+        with zipfile.ZipFile(mfile, mode='w', compression=zipfile.ZIP_DEFLATED, allowZip64=True) as zfh:
             for handler in self.engine.log.parent.handlers:
                 if isinstance(handler, logging.FileHandler):
                     zfh.write(handler.baseFilename, os.path.basename(handler.baseFilename))
@@ -110,13 +114,18 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
             for root, dirs, files in os.walk(self.engine.artifacts_dir):
                 for filename in files:
                     zfh.write(os.path.join(root, filename), filename)
-        return mf
+        return mfile
 
     def __upload_artifacts(self):
+        """
+        If token provided, upload artifacts folder contents and jmeter_log
+        else: jmeter_log only
+        :return:
+        """
         if self.client.token:
             self.log.info("Uploading all artifacts as jtls_and_more.zip ...")
-            mf = self.__get_jtls_and_more()
-            self.client.upload_file("jtls_and_more.zip", mf.getvalue())
+            mfile = self.__get_jtls_and_more()
+            self.client.upload_file("jtls_and_more.zip", mfile.getvalue())
 
         for executor in self.engine.provisioning.executors:
             if isinstance(executor, JMeterExecutor):
@@ -168,6 +177,10 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         return super(BlazeMeterUploader, self).check()
 
     def __send_data(self, data, do_check=True):
+        """
+        :param data: list[bzt.modules.aggregator.DataPoint]
+        :return:
+        """
         if self.client.active_session_id:
             try:
                 self.client.send_kpi_data(data, do_check)

@@ -24,8 +24,9 @@ from subprocess import CalledProcessError
 import traceback
 import platform
 import shutil
-
 import urwid
+
+from six.moves.urllib.request import FancyURLopener
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
@@ -33,13 +34,7 @@ from bzt.utils import shell_exec, ensure_is_dict
 from bzt.utils import unzip, download_progress_hook, humanize_time
 from bzt.modules.console import WidgetProvider
 
-
-try:
-    from urllib import FancyURLopener
-except ImportError:
-    from urllib.request import FancyURLopener
-
-exe_suffix = ".bat" if platform.system() == 'Windows' else ".sh"
+EXE_SUFFIX = ".bat" if platform.system() == 'Windows' else ".sh"
 
 
 class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
@@ -78,12 +73,12 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.engine.existing_artifact(self.script)
             with open(os.path.join(self.engine.artifacts_dir, os.path.basename(self.script)), 'rt') as fds:
                 script_contents = fds.read()
-            resource_files = self.__get_resource_files_from_script(script_contents)
+            resource_files = GatlingExecutor.__get_res_files_from_script(script_contents)
             if resource_files:
-                modified_contents = self.__modify_resources_paths_in_scala(script_contents, resource_files)
+                modified_contents = GatlingExecutor.__modify_res_paths_in_scala(script_contents, resource_files)
                 with open(os.path.join(self.engine.artifacts_dir, os.path.basename(self.script)), 'wt') as fds:
                     fds.write(modified_contents)
-                self.__copy_resources_to_artifacts_dir(resource_files)
+                self.__cp_res_files_to_artifacts_dir(resource_files)
 
         elif "requests" in scenario:
             raise NotImplementedError()  # TODO: implement script generation for gatling
@@ -182,7 +177,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         Checks if Gatling is available, otherwise download and install it.
         """
         # NOTE: file extension should be in config
-        gatling_path = self.settings.get("path", "~/gatling-taurus/bin/gatling" + exe_suffix)
+        gatling_path = self.settings.get("path", "~/gatling-taurus/bin/gatling" + EXE_SUFFIX)
         gatling_path = os.path.abspath(os.path.expanduser(gatling_path))
         self.settings["path"] = gatling_path
 
@@ -228,9 +223,9 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         try:
             downloader.retrieve(download_link, gatling_zip_path, download_progress_hook)
-        except BaseException as e:
+        except BaseException as exc:
             self.log.error("Error while downloading %s", download_link)
-            raise e
+            raise exc
 
         self.log.info("Unzipping %s", gatling_zip_path)
         unzip(gatling_zip_path, dest, 'gatling-charts-highcharts-bundle-' + version)
@@ -249,15 +244,15 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         if script:
             script_contents = open(script, 'rt').read()
-            resource_files = self.__get_resource_files_from_script(script_contents)
+            resource_files = GatlingExecutor.__get_res_files_from_script(script_contents)
 
             if resource_files:
 
                 script_name, script_ext = os.path.splitext(script)
                 script_name = os.path.basename(script_name)
                 modified_script = self.engine.create_artifact(script_name, script_ext)
-                modified_contents = self.__modify_resources_paths_in_scala(script_contents, resource_files)
-                self.__copy_resources_to_artifacts_dir(resource_files)
+                modified_contents = GatlingExecutor.__modify_res_paths_in_scala(script_contents, resource_files)
+                self.__cp_res_files_to_artifacts_dir(resource_files)
                 with open(modified_script, 'wt') as _fds:
                     _fds.write(modified_contents)
                 resource_files.append(modified_script)
@@ -267,7 +262,13 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         return [os.path.basename(file_path) for file_path in resource_files]
 
-    def __get_resource_files_from_script(self, script_contents):
+    @staticmethod
+    def __get_res_files_from_script(script_contents):
+        """
+        Get resource files list from scala script
+        :param script_contents:
+        :return:
+        """
         resource_files = []
         search_patterns = [re.compile('\.formUpload\(".*?"\)'),
                            re.compile('RawFileBody\(".*?"\)'),
@@ -289,7 +290,8 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         return resource_files
 
-    def __modify_resources_paths_in_scala(self, scala_script_contents, file_list):
+    @staticmethod
+    def __modify_res_paths_in_scala(scala_script_contents, file_list):
         """
 
         :param scala_path:
@@ -301,7 +303,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         return scala_script_contents
 
 
-    def __copy_resources_to_artifacts_dir(self, resource_files_list):
+    def __cp_res_files_to_artifacts_dir(self, resource_files_list):
         """
 
         :param file_list:
@@ -311,12 +313,16 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             if os.path.exists(resource_file):
                 try:
                     shutil.copy(resource_file, self.engine.artifacts_dir)
-                except:
-                    self.log.warning("Cannot copy file: %s" % resource_file)
+                except BaseException as exc:
+                    self.log.warning("Cannot copy file: %s", resource_file)
             else:
-                self.log.warning("File not found: %s" % resource_file)
+                self.log.warning("File not found: %s", resource_file)
 
     def __get_script(self):
+        """
+        get script name
+        :return:
+        """
         scenario = self.get_scenario()
         if Scenario.SCRIPT not in scenario:
             return None
@@ -409,6 +415,9 @@ class DataLogReader(ResultsReader):
             yield int(ts), label, self.concurrency, rt, cn, lt, rc, error
 
     def __open_fds(self):
+        """
+        open gatling simulation.log
+        """
         prog = re.compile("^gatling-bzt-[0-9]+$")
 
         for fname in os.listdir(self.basedir):
