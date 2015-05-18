@@ -67,7 +67,8 @@ There is module settings for Console Screen, containing option `disable`. It all
 bzt config.yml -o modules.console.disable=true
 ```
 
-Two additional options are `dummy-cols` and `dummy-rows`, they affect the size of _dummy_ screen that is used for non-tty output (and on Windows platform).
+On Windows, Console Screen is shown in separate window and users may change font size by holding Ctrl key and using mouse wheel.
+Two additional options are `dummy-cols` and `dummy-rows`, they affect the size of _dummy_ screen that is used for non-tty output.
 
 ## Pass/Fail Criterias
 

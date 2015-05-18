@@ -30,4 +30,17 @@ class TestGUIScreen(TestCase):
         for _ in range(1, 10):
             obj.draw_screen((1, 1), canvas)
             time.sleep(0.5)
+
+        old_font_size = obj.font['size']
+        obj.root.event_generate("<Control-4>")
+        obj.root.event_generate("<Control-MouseWheel>", delta=120)
+        if old_font_size > 0:
+            self.assertGreater(obj.font['size'], old_font_size)
+        else:
+            self.assertLess(obj.font['size'], old_font_size)
+        obj.root.event_generate("<Control-5>")
+        obj.root.event_generate("<Control-MouseWheel>", delta=-120)
+
+        self.assertEqual(obj.font['size'], old_font_size)
+
         obj.stop()

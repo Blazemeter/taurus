@@ -452,12 +452,12 @@ def humanize_time(secs):
     return '%02d:%02d:%02d' % (hours, mins, secs)
 
 
-def guess_csv_delimiter(header):
+def guess_csv_dialect(header):
     """ completely arbitrary fn to detect the delimiter
 
     :type header: str
     :raise ValueError:
-    :rtype: str
+    :rtype: csv.Dialect
     """
     possible_delims = "\t;|:,"
     lines = header.split("\n")
@@ -465,7 +465,7 @@ def guess_csv_delimiter(header):
         raise ValueError("CSV header must contain at least 1 line")
 
     dialect = csv.Sniffer().sniff(header, delimiters=possible_delims)
-    return dialect.delimiter
+    return dialect
 
 
 def load_class(full_name):

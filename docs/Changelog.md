@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.18 (next)
+
+## 0.2.17
+  - added ability to change font size in Windows dashboard GUI on Ctrl + mousewheel event
+  - reworked CSV reading for JMeter to support quoted data
+
 ## 0.2.16
   - fix base config not copied because of broken imports
   - display console screen in separate window on windows
