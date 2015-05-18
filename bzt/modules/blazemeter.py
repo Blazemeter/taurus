@@ -26,15 +26,16 @@ import webbrowser
 import zipfile
 import six
 
+from six.moves.urllib.request import Request, urlopen
+from six.moves.urllib.error import HTTPError
+from six.moves.urllib.parse import urlencode
+
 from bzt import ManualShutdown
 from bzt.engine import Reporter, AggregatorListener, Provisioning
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.jmeter import JMeterExecutor
 from bzt.utils import to_json, dehumanize_time, MultiPartForm
 
-from six.moves.urllib.request import Request, urlopen
-from six.moves.urllib.error import HTTPError
-from six.moves.urllib.parse import urlencode
 
 class BlazeMeterUploader(Reporter, AggregatorListener):
     """

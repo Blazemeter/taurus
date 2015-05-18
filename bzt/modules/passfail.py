@@ -28,7 +28,6 @@ from bzt.utils import load_class, dehumanize_time
 from bzt.modules.console import WidgetProvider
 
 
-
 class PassFailStatus(Reporter, AggregatorListener, WidgetProvider):
     """
     :type criterias: list[FailCriteria]

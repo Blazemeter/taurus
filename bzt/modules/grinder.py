@@ -19,13 +19,13 @@ import os
 import time
 import signal
 import subprocess
-from subprocess import CalledProcessError
 import traceback
 import six
 import re
 import shutil
 import urwid
 
+from subprocess import CalledProcessError
 from six.moves.urllib.request import FancyURLopener
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
@@ -35,15 +35,12 @@ from bzt.utils import unzip, download_progress_hook, humanize_time
 from bzt.modules.console import WidgetProvider
 
 
-
-
-
 class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     """
     Grinder executor module
     """
     # OLD_DOWNLOAD_LINK = "http://switch.dl.sourceforge.net/project/grinder/The%20Grinder%203/{version}" \
-    #                 "/grinder-{version}-binary.zip"
+    # "/grinder-{version}-binary.zip"
     DOWNLOAD_LINK = "http://sourceforge.net/projects/grinder/files/The%20Grinder%203/{version}" \
                     "/grinder-{version}-binary.zip/download"
     VERSION = "3.11"
@@ -159,7 +156,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         # modify file path in script
 
         with open(self.properties_file, 'rt') as fds:
-                prop_contents = fds.read()
+            prop_contents = fds.read()
         resource_files, modified_contents = self.__get_res_files_from_script(prop_contents)
         if resource_files:
             with open(self.properties_file, 'wt') as fds:

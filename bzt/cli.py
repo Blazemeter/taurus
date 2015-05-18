@@ -14,19 +14,20 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-from logging import Formatter
-from optparse import OptionParser, BadOptionError, Option
+
 import logging
 import os
 import platform
 import sys
 import tempfile
 import traceback
+import bzt
 
 from colorlog import ColoredFormatter
+from logging import Formatter
+from optparse import OptionParser, BadOptionError, Option
 
 from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown
-import bzt
 from bzt.engine import Engine, Configuration
 from bzt.utils import run_once
 

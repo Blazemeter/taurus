@@ -15,12 +15,13 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-from collections import Counter
 import copy
 import logging
 import math
 import six
 import re
+
+from collections import Counter
 
 from bzt.utils import BetterDict
 from bzt.engine import EngineModule

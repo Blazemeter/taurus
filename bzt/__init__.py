@@ -15,10 +15,9 @@ limitations under the License.
 """
 import os
 import sys
+import signal
 
 version = "0.2.17"
-
-import signal
 
 
 def signal_handler(sig, frame):
@@ -38,6 +37,7 @@ class RCProvider(object):
     """
     Abstract return code provider
     """
+
     def get_rc(self):
         """
         Must be implemented in subclasses

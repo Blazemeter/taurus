@@ -15,8 +15,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-from collections import namedtuple
-from collections import defaultdict
+
 import copy
 import datetime
 import json
@@ -26,17 +25,18 @@ import shutil
 import tempfile
 import time
 import traceback
-from json import encoder
 import psutil
 import six
 import yaml
+
+from collections import namedtuple, defaultdict
+from json import encoder
 from yaml.representer import SafeRepresenter
+from six.moves import configparser as ConfigParser
+from six.moves import UserDict as DictMixin
 
 from bzt import ManualShutdown, NormalShutdown, get_configs_dir
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_int
-
-from six.moves import configparser as ConfigParser
-from six.moves import UserDict as DictMixin
 
 
 class Engine(object):

@@ -15,8 +15,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-
 import os
+
 from six.moves.urllib.parse import urlparse
 
 from bzt.modules.aggregator import DataPoint, KPISet
@@ -188,6 +188,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         except BaseException as exc:
             self.log.error("Cannot create file %s", self.report_file_path)
             raise
+
     @staticmethod
     def __make_summary_error_report(summary_kpi_set):
         """

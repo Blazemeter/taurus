@@ -17,21 +17,19 @@ limitations under the License.
 
 import logging
 import re
-
 import six
 import urwid
 import platform
+import math
+
+from urwid import BaseScreen
 
 try:
     from six.moves.tkinter import Tk, Text
     import six.moves.tkinter as Tkinter
     import six.moves.tkinter_font as tkFont
 except ImportError:
-    raise  # ?
-
-import math
-
-from urwid import BaseScreen
+    raise
 
 from bzt import ManualShutdown
 

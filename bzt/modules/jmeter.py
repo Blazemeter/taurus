@@ -15,7 +15,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-from collections import Counter, namedtuple
 import csv
 import os
 import platform
@@ -24,14 +23,15 @@ import time
 import signal
 import traceback
 import logging
-from subprocess import CalledProcessError
 import shutil
-from distutils.version import LooseVersion
 import psutil
 import six
-
-from cssselect import GenericTranslator
 import urwid
+
+from collections import Counter, namedtuple
+from subprocess import CalledProcessError
+from distutils.version import LooseVersion
+from cssselect import GenericTranslator
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.console import WidgetProvider
@@ -662,7 +662,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         duplicated_libraries = []
         for jar_lib_obj in jar_libs:
             similar_packages = [LooseVersion(_jarlib.file_name) for _jarlib in
-                                [lib for lib in jar_libs if lib.lib_name ==  jar_lib_obj.lib_name]]
+                                [lib for lib in jar_libs if lib.lib_name == jar_lib_obj.lib_name]]
             if len(similar_packages) > 1:
                 right_version = max(similar_packages)
                 similar_packages.remove(right_version)
@@ -1406,6 +1406,7 @@ class IncrementalCSVReader(csv.DictReader, object):
     """
     JTL csv reader
     """
+
     def __init__(self, parent_logger, filename):
         self.buffer = six.StringIO()
         super(IncrementalCSVReader, self).__init__(self.buffer, [])

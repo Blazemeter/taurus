@@ -17,13 +17,15 @@ limitations under the License.
 import re
 import sys
 import logging
-from logging import StreamHandler
-from itertools import groupby
 import traceback
 import math
-from datetime import datetime
 import copy
 import platform
+import bzt
+
+from logging import StreamHandler
+from itertools import groupby
+from datetime import datetime
 from six import StringIO
 
 from urwid.decoration import Padding
@@ -35,7 +37,6 @@ from urwid.graphics import BigText
 from urwid.listbox import SimpleListWalker
 from urwid.widget import Divider
 
-import bzt
 from bzt.modules.provisioning import Local
 from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.aggregator import DataPoint, KPISet
@@ -828,6 +829,7 @@ class StatsColumn(ListBox):
     """
     Abstract stats table column
     """
+
     def __init__(self, *args, **kargs):
         super(StatsColumn, self).__init__(*args, **kargs)
 
@@ -856,6 +858,7 @@ class SampleLabelsNames(StatsColumn):
     """
     Stats table column with labels names
     """
+
     def __init__(self):
         super(SampleLabelsNames, self).__init__(SimpleListWalker([]))
         self.header = Text(("stat-hdr", " Labels "))
@@ -873,6 +876,7 @@ class SampleLabelsHits(StatsColumn):
     """
     Stats table column with hits
     """
+
     def __init__(self):
         super(SampleLabelsHits, self).__init__(SimpleListWalker([]))
         self.header = Text(("stat-hdr", " Hits "), align=RIGHT)
@@ -890,6 +894,7 @@ class SampleLabelsFailed(StatsColumn):
     """
     Stats table column with fails
     """
+
     def __init__(self):
         super(SampleLabelsFailed, self).__init__(SimpleListWalker([]))
         self.header = Text(("stat-hdr", " Failures "), align=CENTER)
@@ -907,6 +912,7 @@ class SampleLabelsAvgRT(StatsColumn):
     """
     Stats table column with average rt
     """
+
     def __init__(self):
         super(SampleLabelsAvgRT, self).__init__(SimpleListWalker([]))
         self.header = Text(("stat-hdr", " Avg Time "), align=RIGHT)

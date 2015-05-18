@@ -15,7 +15,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-from collections import defaultdict, Counter
+
 import csv
 import json
 import logging
@@ -24,13 +24,15 @@ import platform
 import random
 import re
 import shlex
-from subprocess import PIPE
 import mimetypes
 import itertools
 import zipfile
 import sys
-from psutil import Popen
 import six
+
+from collections import defaultdict, Counter
+from subprocess import PIPE
+from psutil import Popen
 
 
 def run_once(func):

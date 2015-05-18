@@ -20,12 +20,12 @@ import re
 import time
 import signal
 import subprocess
-from subprocess import CalledProcessError
 import traceback
 import platform
 import shutil
 import urwid
 
+from subprocess import CalledProcessError
 from six.moves.urllib.request import FancyURLopener
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
@@ -301,7 +301,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         for file_path in file_list:
             scala_script_contents = scala_script_contents.replace(file_path, os.path.basename(file_path))
         return scala_script_contents
-
 
     def __cp_res_files_to_artifacts_dir(self, resource_files_list):
         """
