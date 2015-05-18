@@ -17,13 +17,15 @@ limitations under the License.
 import re
 import sys
 import logging
-from logging import StreamHandler
-from itertools import groupby
 import traceback
 import math
-from datetime import datetime
 import copy
 import platform
+import bzt
+
+from logging import StreamHandler
+from itertools import groupby
+from datetime import datetime
 from six import StringIO
 
 from urwid.decoration import Padding
@@ -34,9 +36,7 @@ from urwid.font import Thin6x6Font
 from urwid.graphics import BigText
 from urwid.listbox import SimpleListWalker
 from urwid.widget import Divider
-import urwid
 
-import bzt
 from bzt.modules.provisioning import Local
 from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.aggregator import DataPoint, KPISet
@@ -107,6 +107,10 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         return False
 
     def __start_screen(self):
+        """
+        Start GUIScreen on windows or urwid.curses_display on *nix
+        :return:
+        """
         if self.data_started and not self.screen.started:
             if self.logger_handler:
                 self.orig_stream = self.logger_handler.stream
@@ -119,6 +123,11 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
             self.log.info("Waiting for finish...")
 
     def __update_screen(self):
+        """
+        update screen size, update log entries
+        call screen.__repaint()
+        :return:
+        """
         if self.screen.started:
             self.console.tick()
 
@@ -148,6 +157,9 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         self.data_started = True
 
     def __dump_saved_log(self):
+        """
+        Dump data from background logging buffer to orig_stream
+        """
         if self.logger_handler and self.orig_stream:
             # dump what we have in our background logging stream
             self.logger_handler.stream = self.orig_stream
@@ -697,10 +709,16 @@ class LabelsPile(Pile):
         super(LabelsPile, self).__init__(self.rows)
 
     def add_data(self, data):
+        """
+        add data to label columns and errors listbox
+        """
         self.label_columns.add_data(data)
         self.errors_description.add_data(data)
 
     def render(self, size, focus=False):
+        """
+        Draws LabelsPile based on height of labels_column
+        """
         labels_height = self.label_columns.get_height() + 1
         self.contents[0] = (self.contents[0][0], (GIVEN, labels_height))
         return super(LabelsPile, self).render(size, False)
@@ -742,6 +760,10 @@ class LabelStatsTable(Columns):
                 self.stats_table.add_data(hits, failed, avg_rt)
 
     def render(self, size, focus=False):
+        """
+        render widget based on stat_table width
+        if no space available, cut obtain some space from labels
+        """
         max_width = size[0]
         stat_table_max_width = self.stats_table.get_width()
         label_names_width = self.labels.get_width()
@@ -752,6 +774,9 @@ class LabelStatsTable(Columns):
         return super(LabelStatsTable, self).render(size, focus=False)
 
     def get_height(self):
+        """
+        Return widget's height
+        """
         return self.labels.get_height()
 
 
@@ -768,16 +793,25 @@ class StatsTable(Columns):
         super(StatsTable, self).__init__(self.columns, dividechars=1)
 
     def flush_data(self):
+        """
+        flush data from stats table columns
+        """
         self.hits.flush_data()
         self.failed.flush_data()
         self.avg_rt.flush_data()
 
     def add_data(self, hits, failed, avg_rt):
+        """
+        add data to stats table columns
+        """
         self.hits.add_data(hits)
         self.failed.add_data(failed)
         self.avg_rt.add_data(avg_rt)
 
     def get_width(self):
+        """
+        returns width of stats table widget
+        """
         dividechars = 1
         table_size = self.hits.get_width() + self.columns[1][0] + self.columns[2][0] + dividechars * 3
         return table_size
@@ -792,6 +826,10 @@ class StatsTable(Columns):
 
 
 class StatsColumn(ListBox):
+    """
+    Abstract stats table column
+    """
+
     def __init__(self, *args, **kargs):
         super(StatsColumn, self).__init__(*args, **kargs)
 
@@ -804,52 +842,86 @@ class StatsColumn(ListBox):
         self.body.append(self.header)
 
     def get_width(self):
+        """
+        get widget width
+        """
         return max([len(x.text) for x in self.body])
 
     def get_height(self):
+        """
+        get widget height
+        """
         return len(self.body)
 
 
 class SampleLabelsNames(StatsColumn):
+    """
+    Stats table column with labels names
+    """
+
     def __init__(self):
         super(SampleLabelsNames, self).__init__(SimpleListWalker([]))
         self.header = Text(("stat-hdr", " Labels "))
         self.body.append(self.header)
 
     def add_data(self, data):
+        """
+        add label name
+        """
         data_widget = Text(("stat-txt", "%s" % data), wrap=CLIP)
         self.body.append(data_widget)
 
 
 class SampleLabelsHits(StatsColumn):
+    """
+    Stats table column with hits
+    """
+
     def __init__(self):
         super(SampleLabelsHits, self).__init__(SimpleListWalker([]))
         self.header = Text(("stat-hdr", " Hits "), align=RIGHT)
         self.body.append(self.header)
 
     def add_data(self, data):
+        """
+        add new hits value to column
+        """
         data_widget = Text(("stat-txt", "%d" % data), align=RIGHT)
         self.body.append(data_widget)
 
 
 class SampleLabelsFailed(StatsColumn):
+    """
+    Stats table column with fails
+    """
+
     def __init__(self):
         super(SampleLabelsFailed, self).__init__(SimpleListWalker([]))
         self.header = Text(("stat-hdr", " Failures "), align=CENTER)
         self.body.append(self.header)
 
     def add_data(self, data):
+        """
+        add new failed value to column
+        """
         data_widget = Text(("stat-txt", "%.2f%%" % data), align=RIGHT)
         self.body.append(data_widget)
 
 
 class SampleLabelsAvgRT(StatsColumn):
+    """
+    Stats table column with average rt
+    """
+
     def __init__(self):
         super(SampleLabelsAvgRT, self).__init__(SimpleListWalker([]))
         self.header = Text(("stat-hdr", " Avg Time "), align=RIGHT)
         self.body.append(self.header)
 
     def add_data(self, data):
+        """
+        add new avg rt value to column
+        """
         data_widget = Text(("stat-txt", "%.3f" % data), align=RIGHT)
         self.body.append(data_widget)
 
@@ -952,13 +1024,13 @@ class TaurusLogo(Pile):
 
     def __init__(self):
         self.idx = 0
-        bt = BigText("Taurus", Thin6x6Font())
-        bt = Padding(bt, CENTER, width=CLIP)
-        bt = Filler(bt)
+        b_txt = BigText("Taurus", Thin6x6Font())
+        b_txt = Padding(b_txt, CENTER, width=CLIP)
+        b_txt = Filler(b_txt)
 
         self.byb = Filler(Text('', align=CENTER))
         parts = [
-            (5, bt),
+            (5, b_txt),
             (1, self.byb),
         ]
         super(TaurusLogo, self).__init__(parts)

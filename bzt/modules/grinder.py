@@ -19,27 +19,20 @@ import os
 import time
 import signal
 import subprocess
-from subprocess import CalledProcessError
 import traceback
 import six
 import re
 import shutil
-
 import urwid
 
+from subprocess import CalledProcessError
+from six.moves.urllib.request import FancyURLopener
+
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
-
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
-
 from bzt.utils import shell_exec
 from bzt.utils import unzip, download_progress_hook, humanize_time
 from bzt.modules.console import WidgetProvider
-
-
-try:
-    from urllib import FancyURLopener
-except ImportError:
-    from urllib.request import FancyURLopener
 
 
 class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
@@ -47,7 +40,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     Grinder executor module
     """
     # OLD_DOWNLOAD_LINK = "http://switch.dl.sourceforge.net/project/grinder/The%20Grinder%203/{version}" \
-    #                 "/grinder-{version}-binary.zip"
+    # "/grinder-{version}-binary.zip"
     DOWNLOAD_LINK = "http://sourceforge.net/projects/grinder/files/The%20Grinder%203/{version}" \
                     "/grinder-{version}-binary.zip/download"
     VERSION = "3.11"
@@ -68,7 +61,11 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.widget = None
 
     def __write_base_props(self, fds):
-        # base props file
+        """
+        write base properties and base properties file contents to fds
+        :param fds: fds
+        :return:
+        """
         base_props_file = self.settings.get("properties-file", "")
         if base_props_file:
             fds.write("# Base Properies File Start: %s\n" % base_props_file)
@@ -85,7 +82,12 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             fds.write("# Base Properies End\n\n")
 
     def __write_scenario_props(self, fds, scenario):
-        # scenario props file
+        """
+        Write scenario props and scenario file props to fds
+        :param fds:
+        :param scenario: dict
+        :return:
+        """
         script_props_file = scenario.get("properties-file", "")
         if script_props_file:
             fds.write(
@@ -104,7 +106,11 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             fds.write("# Scenario Properies End\n\n")
 
     def __write_bzt_props(self, fds):
-        # BZT props
+        """
+        Write bzt properties to fds
+        :param fds:
+        :return:
+        """
         fds.write("# BZT Properies Start\n")
         fds.write("grinder.hostID=grinder-bzt\n")
         fds.write("grinder.script=%s\n" % os.path.realpath(self.script))
@@ -150,8 +156,8 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         # modify file path in script
 
         with open(self.properties_file, 'rt') as fds:
-                prop_contents = fds.read()
-        resource_files, modified_contents = self.__get_resource_files_from_script(prop_contents)
+            prop_contents = fds.read()
+        resource_files, modified_contents = self.__get_res_files_from_script(prop_contents)
         if resource_files:
             with open(self.properties_file, 'wt') as fds:
                 fds.write(modified_contents)
@@ -236,6 +242,10 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                            self.end_time - self.start_time)
 
     def __scenario_from_requests(self):
+        """
+        Generate grinder scenario from requests
+        :return: script
+        """
         script = self.engine.create_artifact("requests", ".py")
         tpl = os.path.join(os.path.dirname(__file__), "grinder-requests.tpl")
         self.log.debug("Generating grinder scenario: %s", tpl)
@@ -314,9 +324,9 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         try:
             downloader.retrieve(download_link, grinder_zip_path, download_progress_hook)
-        except BaseException as e:
+        except BaseException as exc:
             self.log.error("Error while downloading %s", download_link)
-            raise e
+            raise exc
 
         self.log.info("Unzipping %s", grinder_zip_path)
         unzip(grinder_zip_path, dest, 'grinder-' + version)
@@ -339,9 +349,9 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         if prop_file:
             prop_file_contents = open(prop_file, 'rt').read()
-            resource_files, modified_contents = self.__get_resource_files_from_script(prop_file_contents)
+            resource_files, modified_contents = self.__get_res_files_from_script(prop_file_contents)
             if resource_files:
-                self.__copy_resources_to_artifacts_dir(resource_files)
+                self.__cp_res_files_to_artifacts_dir(resource_files)
                 script_name, script_ext = os.path.splitext(prop_file)
                 script_name = os.path.basename(script_name)
                 modified_script = self.engine.create_artifact(script_name, script_ext)
@@ -354,7 +364,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         return [os.path.basename(x) for x in resource_files]
 
-    def __copy_resources_to_artifacts_dir(self, resource_files_list):
+    def __cp_res_files_to_artifacts_dir(self, resource_files_list):
         """
 
         :param file_list:
@@ -364,12 +374,12 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             if os.path.exists(resource_file):
                 try:
                     shutil.copy(resource_file, self.engine.artifacts_dir)
-                except:
-                    self.log.warning("Cannot copy file: %s" % resource_file)
+                except BaseException as exc:
+                    self.log.warning("Cannot copy file: %s", resource_file)
             else:
-                self.log.warning("File not found: %s" % resource_file)
+                self.log.warning("File not found: %s", resource_file)
 
-    def __get_resource_files_from_script(self, prop_file_contents):
+    def __get_res_files_from_script(self, prop_file_contents):
         """
         if "script" in scenario:
             add script file to resources and override script name in .prop file
@@ -454,6 +464,9 @@ class DataLogReader(ResultsReader):
             yield int(ts), label, concur, rt, cn, lt, rc, error
 
     def __open_fds(self):
+        """
+        opens grinder-bzt-kpi.log
+        """
         if not os.path.isfile(self.filename):
             self.log.debug("File not appeared yet")
             return False
@@ -464,8 +477,8 @@ class DataLogReader(ResultsReader):
 
         self.fds = open(self.filename)
         header = self.fds.readline().strip().split(self.delimiter)
-        for ix, field in enumerate(header):
-            self.idx[field.strip()] = ix
+        for _ix, field in enumerate(header):
+            self.idx[field.strip()] = _ix
         return True
 
 

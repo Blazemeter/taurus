@@ -15,12 +15,13 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-from collections import Counter
 import copy
 import logging
 import math
 import six
 import re
+
+from collections import Counter
 
 from bzt.utils import BetterDict
 from bzt.engine import EngineModule
@@ -78,11 +79,11 @@ class KPISet(BetterDict):
         return mycopy
 
     @staticmethod
-    def error_item_skel(error, rc, cnt, errtype, urls):
+    def error_item_skel(error, ret_c, cnt, errtype, urls):
         """
 
         :type error: str
-        :type rc: str
+        :type ret_c: str
         :type cnt: int
         :type errtype: int
         :type urls: Counter
@@ -91,7 +92,7 @@ class KPISet(BetterDict):
         return {
             "cnt": cnt,
             "msg": error,
-            "rc": rc,
+            "rc": ret_c,
             "type": errtype,
             "urls": urls
         }
@@ -282,6 +283,12 @@ class DataPoint(BetterDict):
         self[self.SUBRESULTS] = []
 
     def __merge_kpis(self, src, dst, sid):
+        """
+        :param src: KPISet
+        :param dst: KPISet
+        :param sid: int
+        :return:
+        """
         for label, val in six.iteritems(src):
             dest = dst.get(label, KPISet(self.perc_levels))
             if not isinstance(val, KPISet):
@@ -336,6 +343,11 @@ class ResultsProvider(object):
         self.listeners.append(listener)
 
     def __merge_to_cumulative(self, current):
+        """
+        Merge current KPISet to cumulative
+        :param current: KPISet
+        :return:
+        """
         for label, data in six.iteritems(current):
             cumul = self.cumulative.get(label, KPISet(self.track_percentiles))
             cumul.merge_kpis(data)
@@ -383,6 +395,11 @@ class ResultsReader(ResultsProvider):
         self.track_percentiles = perc_levels
 
     def __process_readers(self, final_pass=False):
+        """
+
+        :param final_pass: True if in post-process stage
+        :return:
+        """
         for result in self._read(final_pass):
             if result is None:
                 self.log.debug("No data from reader")
@@ -401,6 +418,11 @@ class ResultsReader(ResultsProvider):
                 raise ValueError("Unsupported results from reader: %s" % result)
 
     def __aggreagate_current(self, datapoint, samples):
+        """
+        :param datapoint: DataPoint
+        :param samples: list of samples
+        :return:
+        """
         current = datapoint[DataPoint.CURRENT]
         for sample in samples:
             label, rt, concur, cn, lt, rc, error = sample
@@ -538,6 +560,10 @@ class ConsolidatingAggregator(EngineModule, ResultsProvider):
                 self.buffer.get(tstamp, []).append(data)
 
     def _calculate_datapoints(self, final_pass=False):
+        """
+        Override ResultsProvider._calculate_datapoints
+
+        """
         self._process_underlings(final_pass)
 
         self.log.debug("Consolidator buffer[%s]: %s", len(self.buffer), self.buffer.keys())

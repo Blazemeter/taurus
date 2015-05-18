@@ -17,21 +17,19 @@ limitations under the License.
 
 import logging
 import re
-
 import six
 import urwid
 import platform
+import math
+
+from urwid import BaseScreen
 
 try:
     from six.moves.tkinter import Tk, Text
     import six.moves.tkinter as Tkinter
     import six.moves.tkinter_font as tkFont
 except ImportError:
-    raise  # ?
-
-import math
-
-from urwid import BaseScreen
+    raise
 
 from bzt import ManualShutdown
 
@@ -117,6 +115,11 @@ class GUIScreen(BaseScreen):
         super(GUIScreen, self)._stop()
 
     def change_font(self, event):
+        """
+        Change font event handler
+        :param event:
+        :return:
+        """
         min_size = 1
         cur_size = self.font['size']
         inc = 1 if cur_size > 0 else -1
@@ -129,6 +132,11 @@ class GUIScreen(BaseScreen):
                 self.resize(event)
 
     def resize(self, event):
+        """
+        Resize screen
+        :param event:
+        :return:
+        """
         (cwdth, chght) = (self.font.measure(' '), self.font.metrics("linespace"))
         logging.debug("Font: %s", (cwdth, chght))
 

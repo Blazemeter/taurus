@@ -18,16 +18,14 @@ limitations under the License.
 import fnmatch
 import logging
 import re
-import sys
-
 import urwid
+import six
 
 from bzt import AutomatedShutdown
 from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.aggregator import KPISet, DataPoint
 from bzt.utils import load_class, dehumanize_time
 from bzt.modules.console import WidgetProvider
-import six
 
 
 class PassFailStatus(Reporter, AggregatorListener, WidgetProvider):

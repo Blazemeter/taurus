@@ -14,19 +14,20 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-from logging import Formatter
-from optparse import OptionParser, BadOptionError, Option
+
 import logging
 import os
 import platform
 import sys
 import tempfile
 import traceback
+import bzt
 
 from colorlog import ColoredFormatter
+from logging import Formatter
+from optparse import OptionParser, BadOptionError, Option
 
 from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown
-import bzt
 from bzt.engine import Engine, Configuration
 from bzt.utils import run_once
 
@@ -98,6 +99,10 @@ class CLI(object):
         logger.addHandler(console_handler)
 
     def __close_log(self):
+        """
+        Close log handlers, move log to artifacts dir
+        :return:
+        """
         if self.options.log:
             if platform.system() == 'Windows':
                 # need to finalize the logger before moving file
@@ -177,6 +182,11 @@ class CLI(object):
         return exit_code
 
     def __get_config_overrides(self):
+        """
+        Close log handlers, move log to artifacts dir
+        :return:
+        """
+
         if self.options.option:
             self.log.debug("Adding overrides: %s", self.options.option)
             fds, fname = tempfile.mkstemp(".ini", "overrides_", dir=self.engine.artifacts_base_dir)
@@ -190,8 +200,15 @@ class CLI(object):
             return []
 
     def __get_jmx_shorthands(self, configs):
+        """
+        Generate json file with execution, executor and scenario settings
+        :type configs: list
+        :return: list
+
+        """
+
         jmxes = []
-        for n, filename in enumerate(configs[:]):
+        for _num, filename in enumerate(configs[:]):
             if filename.lower().endswith(".jmx"):
                 jmxes.append(filename)
                 configs.remove(filename)
@@ -249,7 +266,6 @@ class OptionParserWithAliases(OptionParser, object):
                 self.aliases.append(candidate[1:])
             else:
                 raise
-            pass
 
     def parse_args(self, args=None, values=None):
         res = OptionParser.parse_args(self, args, values)
