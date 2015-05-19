@@ -283,13 +283,13 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         try:
             self.__grinder(grinder_path)
             return
-        except (OSError, CalledProcessError) as exc:
+        except (OSError, CalledProcessError):
             self.log.debug("Failed to run grinder: %s", traceback.format_exc())
 
             try:
                 jout = subprocess.check_output(["java", '-version'], stderr=subprocess.STDOUT)
                 self.log.debug("Java check: %s", jout)
-            except BaseException as exc:
+            except BaseException:
                 self.log.warning("Failed to run java: %s", traceback.format_exc())
                 raise RuntimeError("The 'java' is not operable or not available. Consider installing it")
 
@@ -374,7 +374,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             if os.path.exists(resource_file):
                 try:
                     shutil.copy(resource_file, self.engine.artifacts_dir)
-                except BaseException as exc:
+                except BaseException:
                     self.log.warning("Cannot copy file: %s", resource_file)
             else:
                 self.log.warning("File not found: %s", resource_file)

@@ -44,7 +44,7 @@ class CLI(object):
         self.options = options
         self.setup_logging(options)
         self.log = logging.getLogger('')
-        self.log.info("Taurus CLI Tool v%s", bzt.version)
+        self.log.info("Taurus CLI Tool v%s", bzt.VERSION)
         logging.debug("Command-line options: %s", self.options)
         self.engine = Engine(self.log)
         self.engine.artifacts_base_dir = self.options.datadir
@@ -278,7 +278,7 @@ def main():
     This function is used as entrypoint by setuptools
     """
     usage = "Usage: bzt [options] [configs] [-aliases]"
-    dsc = "BlazeMeter Taurus Tool v%s, the configuration-driven test running engine" % bzt.version
+    dsc = "BlazeMeter Taurus Tool v%s, the configuration-driven test running engine" % bzt.VERSION
     parser = OptionParserWithAliases(usage=usage, description=dsc, prog="bzt")
     parser.add_option('-d', '--datadir', action='store', default=".",
                       help="Artifacts base dir")
