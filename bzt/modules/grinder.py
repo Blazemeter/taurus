@@ -283,13 +283,13 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         try:
             self.__grinder(grinder_path)
             return
-        except (OSError, CalledProcessError) as exc:
+        except (OSError, CalledProcessError):
             self.log.debug("Failed to run grinder: %s", traceback.format_exc())
 
             try:
                 jout = subprocess.check_output(["java", '-version'], stderr=subprocess.STDOUT)
                 self.log.debug("Java check: %s", jout)
-            except BaseException as exc:
+            except BaseException:
                 self.log.warning("Failed to run java: %s", traceback.format_exc())
                 raise RuntimeError("The 'java' is not operable or not available. Consider installing it")
 
@@ -374,7 +374,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             if os.path.exists(resource_file):
                 try:
                     shutil.copy(resource_file, self.engine.artifacts_dir)
-                except BaseException as exc:
+                except BaseException:
                     self.log.warning("Cannot copy file: %s", resource_file)
             else:
                 self.log.warning("File not found: %s", resource_file)
@@ -392,7 +392,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         resource_files = []
         script_file_path = self.get_scenario().get("script")
 
-        search_pattern = re.compile("grinder\.script.*")
+        search_pattern = re.compile(r"grinder\.script.*")
         found_pattern = search_pattern.findall(prop_file_contents)[-1]  # take last
         file_path_in_prop = found_pattern.split("=")[-1].strip()
 
@@ -449,19 +449,19 @@ class DataLogReader(ResultsReader):
             if not fields[1].strip().isdigit():
                 self.log.debug("Skipping line: %s", line)
                 continue
-            ts = int(fields[self.idx["Start time (ms since Epoch)"]]) / 1000.0
+            t_stamp = int(fields[self.idx["Start time (ms since Epoch)"]]) / 1000.0
             label = ""
-            rt = int(fields[self.idx["Test time"]]) / 1000.0
-            lt = int(fields[self.idx["Time to first byte"]]) / 1000.0
-            rc = fields[self.idx["HTTP response code"]].strip()
-            cn = int(fields[self.idx["Time to resolve host"]]) / 1000.0
-            cn += int(fields[self.idx["Time to establish connection"]]) / 1000.0
+            r_time = int(fields[self.idx["Test time"]]) / 1000.0
+            latency = int(fields[self.idx["Time to first byte"]]) / 1000.0
+            r_code = fields[self.idx["HTTP response code"]].strip()
+            con_time = int(fields[self.idx["Time to resolve host"]]) / 1000.0
+            con_time += int(fields[self.idx["Time to establish connection"]]) / 1000.0
             if int(fields[self.idx["Errors"]]):
                 error = "There were some errors in Grinder test"
             else:
                 error = None
             concur = None  # TODO: how to get this for grinder
-            yield int(ts), label, concur, rt, cn, lt, rc, error
+            yield int(t_stamp), label, concur, r_time, con_time, latency, r_code, error
 
     def __open_fds(self):
         """

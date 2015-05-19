@@ -282,7 +282,7 @@ class FailCriteria(object):
         else:
             action_str = ""
 
-        crit_pat = re.compile("([\w\?-]+)(\s*of\s*([\S ]+))?([<>=]+)(\S+)(\s+for\s+(\S+))?")
+        crit_pat = re.compile(r"([\w\?-]+)(\s*of\s*([\S ]+))?([<>=]+)(\S+)(\s+for\s+(\S+))?")
         crit_match = crit_pat.match(crit_str.strip())
         if not crit_match:
             raise ValueError("Criteria string is mailformed in its condition part: %s" % crit_str)
@@ -296,7 +296,7 @@ class FailCriteria(object):
             res["timeframe"] = crit_groups[6]
 
         if action_str:
-            action_pat = re.compile("(stop|continue)(\s+as\s+(failed|non-failed))?")
+            action_pat = re.compile(r"(stop|continue)(\s+as\s+(failed|non-failed))?")
             act_match = action_pat.match(action_str.strip())
             if not act_match:
                 raise ValueError("Criteria string is mailformed in its action part: %s" % action_str)
