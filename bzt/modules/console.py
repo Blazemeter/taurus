@@ -268,7 +268,7 @@ class TaurusConsole(Columns):
         ('graph vc', 'brown', 'brown'),
         ('graph rps', 'dark green', 'dark green'),
         ('graph fail', 'dark red', 'dark red'),
-        ('graph r_time', 'dark blue', 'dark blue'),
+        ('graph rt', 'dark blue', 'dark blue'),
         ('graph lt', 'dark cyan', 'dark cyan'),
         ('graph cn', 'dark magenta', 'dark magenta'),
         ('stat-hdr', 'light gray', 'dark blue'),
@@ -423,15 +423,15 @@ class ThreeGraphs(Pile):
         self.rps = BoxedGraph([' ', ("graph rps", '1'), " %d hits, ",
                                ("graph fail", '2'), " %d fail "],
                               ("graph bg", "graph rps", "graph fail"))
-        self.r_time = BoxedGraph([" ", ("graph r_time", '1'), " %.3f avg time (",
+        self.r_time = BoxedGraph([" ", ("graph rt", '1'), " %.3f avg time (",
                               ("graph lt", '2'), " lat, ",
                               ("graph cn", '3'), " conn) "],
-                             ("graph bg", "graph r_time", "graph lt", "graph cn"))
+                             ("graph bg", "graph rt", "graph lt", "graph cn"))
 
         graphs = [self.v_users, self.rps, self.r_time]
         super(ThreeGraphs, self).__init__(graphs)
 
-    def append(self, v_users, active, rps, fail, rtime, conn, lat):
+    def append(self, v_users, active, rps, fail, r_time, conn, lat):
         """
         Append data
 
@@ -439,7 +439,7 @@ class ThreeGraphs(Pile):
         :type active: int
         :type rps: int
         :type fail: int
-        :type rtime: float
+        :type r_time: float
         :type conn: float
         :type lat: float
         """
@@ -450,7 +450,7 @@ class ThreeGraphs(Pile):
 
         self.v_users.append((v_users, active))
         self.rps.append((rps, fail))
-        self.r_time.append((rtime, lat, conn, ))
+        self.r_time.append((r_time, lat, conn, ))
 
         self._invalidate()
 
@@ -910,7 +910,7 @@ class SampleLabelsFailed(StatsColumn):
 
 class SampleLabelsAvgRT(StatsColumn):
     """
-    Stats table column with average r_time
+    Stats table column with average rt
     """
 
     def __init__(self):
@@ -920,7 +920,7 @@ class SampleLabelsAvgRT(StatsColumn):
 
     def add_data(self, data):
         """
-        add new avg r_time value to column
+        add new avg rt value to column
         """
         data_widget = Text(("stat-txt", "%.3f" % data), align=RIGHT)
         self.body.append(data_widget)
