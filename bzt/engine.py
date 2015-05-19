@@ -503,7 +503,7 @@ class Configuration(BetterDict):
         """
         self.log.debug("Configs: %s", configs)
         for config_file in configs:
-            config, _ctype = self.__read_file(config_file)
+            config = self.__read_file(config_file)[0]
 
             if isinstance(config, list):
                 self.__apply_overrides(config)
@@ -967,7 +967,7 @@ class Scenario(DictMixin, object):
         """
         scenario = self
         requests = scenario.get("requests", [])
-        for key, _val in enumerate(requests):
+        for key in range(len(requests)):
             request = ensure_is_dict(requests, key, "url")
             res = namedtuple("HTTPReq",
                              ('url', 'label', 'method', 'headers', 'timeout', 'think_time', 'config', "body"))
