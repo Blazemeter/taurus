@@ -409,7 +409,7 @@ class DataLogReader(ResultsReader):
             else:
                 error = None
 
-            yield int(t_stamp), label, self.concurrency, r_time, con_time, latency, r_code, error
+            yield int(t_stamp), label, self.concurrency, r_time, con_time, latency, r_code, error, ''
 
     def __open_fds(self):
         """
