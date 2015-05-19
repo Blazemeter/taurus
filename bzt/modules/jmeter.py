@@ -1457,7 +1457,8 @@ class IncrementalCSVReader(csv.DictReader, object):
         self.buffer.seek(0)
         for row in self:
             yield row
-        self.buffer.truncate()
+        self.buffer.seek(0)
+        self.buffer.truncate(0)
 
     def __open_fds(self):
         """
