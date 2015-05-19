@@ -950,7 +950,7 @@ class DetailedErrorString(ListBox):
         errors = overall.get('').get(KPISet.ERRORS)
         if errors:
             err_template = "{0} of: {1}"
-            for error in sorted(errors, key=lambda x: x.get('cnt'), reverse=True):
+            for error in sorted(errors, key=lambda _err: _err.get('cnt'), reverse=True):
                 err_description = error.get('msg')
                 err_count = error.get('cnt')
 
