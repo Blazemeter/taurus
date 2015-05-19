@@ -5,7 +5,9 @@ virtualenv --clear build
 source build/bin/activate
 
 # install depends
-pip install colorlog pyyaml psutil lxml cssselect nose urwid coverage six
+pip install colorlog pyyaml psutil lxml cssselect nose urwid coverage six pylint
+
+pylint -d R0903,R0904,C0301,C0302,C0111,E1103,R0201,R0902,W0511,F0401,E0611,R0801 -f parseable bzt > build/pylint.out || echo
 
 # run unit tests
 ./run-test.sh

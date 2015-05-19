@@ -82,6 +82,8 @@ class GUIScreen(BaseScreen):
         self.root = None
         self.size = (180, 60)
         self.title = "Taurus Status"
+        self.text = None
+        self.font = None
 
     def get_cols_rows(self):
         """

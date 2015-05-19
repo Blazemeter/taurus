@@ -451,7 +451,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             if os.path.exists(resource_file):
                 try:
                     shutil.copy(resource_file, self.engine.artifacts_dir)
-                except BaseException as exc:
+                except BaseException:
                     self.log.warning("Cannot copy file: %s", resource_file)
             else:
                 self.log.warning("File not found: %s", resource_file)
@@ -1416,6 +1416,7 @@ class IncrementalCSVReader(csv.DictReader, object):
         self.offset = 0
         self.filename = filename
         self.fds = None
+        self.csvreader = None
 
     def read(self, last_pass=False):
         """
@@ -1533,7 +1534,7 @@ class JTLErrorsReader(object):
         self.fds.seek(self.offset)
         self.parser.feed(self.fds.read(1024 * 1024))  # "Huge input lookup" error without capping :)
         self.offset = self.fds.tell()
-        for action, elem in self.parser.read_events():
+        for _action, elem in self.parser.read_events():
             if elem.getparent() is None or elem.getparent().tag != 'testResults':
                 continue
 
@@ -1555,10 +1556,10 @@ class JTLErrorsReader(object):
         :return:
         """
         result = BetterDict()
-        for ts in sorted(self.buffer.keys()):
-            if ts > max_ts:
+        for t_stamp in sorted(self.buffer.keys()):
+            if t_stamp > max_ts:
                 break
-            labels = self.buffer.pop(ts)
+            labels = self.buffer.pop(t_stamp)
             for label, label_data in six.iteritems(labels):
                 res = result.get(label, [])
                 for err_item in label_data:
@@ -1567,10 +1568,10 @@ class JTLErrorsReader(object):
         return result
 
     def __extract_standard(self, elem):
-        ts = int(elem.get("ts")) / 1000
+        t_stamp = int(elem.get("ts")) / 1000
         label = elem.get("lb")
         message = elem.get("rm")
-        rc = elem.get("rc")
+        r_code = elem.get("rc")
         urls = elem.xpath(self.url_xpath)
         if urls:
             url = Counter({urls[0].text: 1})
@@ -1581,15 +1582,15 @@ class JTLErrorsReader(object):
         if len(massert):
             errtype = KPISet.ERRTYPE_ASSERT
             message = massert[0].text
-        err_item = KPISet.error_item_skel(message, rc, 1, errtype, url)
-        KPISet.inc_list(self.buffer.get(ts).get(label, []), ("msg", message), err_item)
-        KPISet.inc_list(self.buffer.get(ts).get('', []), ("msg", message), err_item)
+        err_item = KPISet.error_item_skel(message, r_code, 1, errtype, url)
+        KPISet.inc_list(self.buffer.get(t_stamp).get(label, []), ("msg", message), err_item)
+        KPISet.inc_list(self.buffer.get(t_stamp).get('', []), ("msg", message), err_item)
 
     def __extract_nonstandard(self, elem):
-        ts = int(self.__get_child(elem, 'timeStamp')) / 1000  # NOTE: will it be sometimes EndTime?
+        t_stamp = int(self.__get_child(elem, 'timeStamp')) / 1000  # NOTE: will it be sometimes EndTime?
         label = self.__get_child(elem, "label")
         message = self.__get_child(elem, "responseMessage")
-        rc = self.__get_child(elem, "responseCode")
+        r_code = self.__get_child(elem, "responseCode")
 
         urls = elem.xpath(self.url_xpath)
         if urls:
@@ -1601,9 +1602,9 @@ class JTLErrorsReader(object):
         if len(massert):
             errtype = KPISet.ERRTYPE_ASSERT
             message = massert[0].text
-        err_item = KPISet.error_item_skel(message, rc, 1, errtype, url)
-        KPISet.inc_list(self.buffer.get(ts).get(label, []), ("msg", message), err_item)
-        KPISet.inc_list(self.buffer.get(ts).get('', []), ("msg", message), err_item)
+        err_item = KPISet.error_item_skel(message, r_code, 1, errtype, url)
+        KPISet.inc_list(self.buffer.get(t_stamp).get(label, []), ("msg", message), err_item)
+        KPISet.inc_list(self.buffer.get(t_stamp).get('', []), ("msg", message), err_item)
 
     def __get_child(self, elem, tag):
         for child in elem:
@@ -1723,11 +1724,7 @@ class JMeterScenarioBuilder(JMX):
         jextractors = request.config.get("extract-jsonpath", BetterDict())
         for varname in jextractors:
             cfg = ensure_is_dict(jextractors, varname, "jsonpath")
-            children.append(JMX._get_json_extractor(
-                varname,
-                cfg['jsonpath'],
-                cfg.get('default', 'NOT_FOUND'))
-            )
+            children.append(JMX._get_json_extractor(varname, cfg['jsonpath'], cfg.get('default', 'NOT_FOUND')))
             children.append(etree.Element("hashTree"))
 
     def __add_assertions(self, children, request):
@@ -1736,12 +1733,10 @@ class JMeterScenarioBuilder(JMX):
             assertion = ensure_is_dict(assertions, idx, "contains")
             if not isinstance(assertion['contains'], list):
                 assertion['contains'] = [assertion['contains']]
-            children.append(JMX._get_resp_assertion(
-                assertion.get("subject", self.FIELD_BODY),
-                assertion['contains'],
-                assertion.get('regexp', True),
-                assertion.get('not', False)
-            ))
+            children.append(JMX._get_resp_assertion(assertion.get("subject", self.FIELD_BODY),
+                                                    assertion['contains'],
+                                                    assertion.get('regexp', True),
+                                                    assertion.get('not', False)))
             children.append(etree.Element("hashTree"))
 
         jpath_assertions = request.config.get("assert-jsonpath", [])

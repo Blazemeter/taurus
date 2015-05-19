@@ -68,7 +68,8 @@ class Engine(object):
         self.interrupted = False
         self.check_interval = 1
         self.stopping_reason = None
-
+        self.__disk_counters = None
+        self.__net_counters = None
         self.__counters_ts = None
 
     def configure(self, user_configs):
@@ -309,7 +310,7 @@ class Engine(object):
             self.modules[alias] = load_class(clsname)
             if not issubclass(self.modules[alias], EngineModule):
                 raise TypeError("Module class does not inherit from EngineModule: %s" % clsname)
-        except BaseException as exc:
+        except BaseException:
             self.log.debug("Failed to load class %s: %s", clsname, traceback.format_exc())
             raise ValueError("Cannot load module '%s' with class %s" % (alias, clsname))
 
@@ -502,7 +503,7 @@ class Configuration(BetterDict):
         """
         self.log.debug("Configs: %s", configs)
         for config_file in configs:
-            config, ctype = self.__read_file(config_file)
+            config = self.__read_file(config_file)[0]
 
             if isinstance(config, list):
                 self.__apply_overrides(config)
@@ -966,7 +967,7 @@ class Scenario(DictMixin, object):
         """
         scenario = self
         requests = scenario.get("requests", [])
-        for key, val in enumerate(requests):
+        for key in range(len(requests)):
             request = ensure_is_dict(requests, key, "url")
             res = namedtuple("HTTPReq",
                              ('url', 'label', 'method', 'headers', 'timeout', 'think_time', 'config', "body"))

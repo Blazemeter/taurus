@@ -184,12 +184,12 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         try:
             self.__gatling(gatling_path)
             return
-        except (OSError, CalledProcessError) as exc:
+        except (OSError, CalledProcessError):
             self.log.debug("Failed to run Gatling: %s", traceback.format_exc())
             try:
                 jout = subprocess.check_output(["java", '-version'], stderr=subprocess.STDOUT)
                 self.log.debug("Java check: %s", jout)
-            except BaseException as exc:
+            except BaseException:
                 self.log.warning("Failed to run java: %s", traceback.format_exc())
                 raise RuntimeError("The 'java' is not operable or not available. Consider installing it")
 
@@ -270,22 +270,22 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :return:
         """
         resource_files = []
-        search_patterns = [re.compile('\.formUpload\(".*?"\)'),
-                           re.compile('RawFileBody\(".*?"\)'),
-                           re.compile('RawFileBodyPart\(".*?"\)'),
-                           re.compile('ELFileBody\(".*?"\)'),
-                           re.compile('ELFileBodyPart\(".*?"\)'),
-                           re.compile('csv\(".*?"\)'),
-                           re.compile('tsv\(".*?"\)'),
-                           re.compile('ssv\(".*?"\)'),
-                           re.compile('jsonFile\(".*?"\)'),
-                           re.compile('separatedValues\(".*?"\)')]
+        search_patterns = [re.compile(r'\.formUpload\(".*?"\)'),
+                           re.compile(r'RawFileBody\(".*?"\)'),
+                           re.compile(r'RawFileBodyPart\(".*?"\)'),
+                           re.compile(r'ELFileBody\(".*?"\)'),
+                           re.compile(r'ELFileBodyPart\(".*?"\)'),
+                           re.compile(r'csv\(".*?"\)'),
+                           re.compile(r'tsv\(".*?"\)'),
+                           re.compile(r'ssv\(".*?"\)'),
+                           re.compile(r'jsonFile\(".*?"\)'),
+                           re.compile(r'separatedValues\(".*?"\)')]
         for search_pattern in search_patterns:
             found_samples = search_pattern.findall(script_contents)
             for found_sample in found_samples:
                 param_list = found_sample.split(",")
                 param_index = 0 if "separatedValues" in search_pattern.pattern else -1  # first or last param
-                file_path = re.compile('\".*?\"').findall(param_list[param_index])[0].strip('"')
+                file_path = re.compile(r'\".*?\"').findall(param_list[param_index])[0].strip('"')
                 resource_files.append(file_path)
 
         return resource_files
@@ -312,7 +312,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             if os.path.exists(resource_file):
                 try:
                     shutil.copy(resource_file, self.engine.artifacts_dir)
-                except BaseException as exc:
+                except BaseException:
                     self.log.warning("Cannot copy file: %s", resource_file)
             else:
                 self.log.warning("File not found: %s", resource_file)
@@ -394,24 +394,24 @@ class DataLogReader(ResultsReader):
                 continue
             self.log.debug("Accept line: %s", line)
             label = fields[4]
-            ts = int(fields[8]) / 1000.0
+            t_stamp = int(fields[8]) / 1000.0
 
-            rt = (int(fields[8]) - int(fields[5])) / 1000.0
-            lt = (int(fields[7]) - int(fields[5])) / 1000.0
-            cn = (int(fields[6]) - int(fields[5])) / 1000.0
+            r_time = (int(fields[8]) - int(fields[5])) / 1000.0
+            latency = (int(fields[7]) - int(fields[5])) / 1000.0
+            con_time = (int(fields[6]) - int(fields[5])) / 1000.0
 
             if fields[-1] == 'OK':
-                rc = '200'
+                r_code = '200'
             else:
                 _tmp_rc = fields[-1].split(" ")[-1]
-                rc = _tmp_rc if _tmp_rc.isdigit() else 'No RC'
+                r_code = _tmp_rc if _tmp_rc.isdigit() else 'No RC'
 
             if len(fields) >= 11 and fields[10]:
                 error = fields[10]
             else:
                 error = None
 
-            yield int(ts), label, self.concurrency, rt, cn, lt, rc, error
+            yield int(t_stamp), label, self.concurrency, r_time, con_time, latency, r_code, error
 
     def __open_fds(self):
         """

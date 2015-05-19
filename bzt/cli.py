@@ -44,7 +44,7 @@ class CLI(object):
         self.options = options
         self.setup_logging(options)
         self.log = logging.getLogger('')
-        self.log.info("Taurus CLI Tool v%s", bzt.version)
+        self.log.info("Taurus CLI Tool v%s", bzt.VERSION)
         logging.debug("Command-line options: %s", self.options)
         self.engine = Engine(self.log)
         self.engine.artifacts_base_dir = self.options.datadir
@@ -106,11 +106,11 @@ class CLI(object):
         if self.options.log:
             if platform.system() == 'Windows':
                 # need to finalize the logger before moving file
-                for num, handler in enumerate(self.log.handlers):
+                for handler in self.log.handlers:
                     if issubclass(handler.__class__, logging.FileHandler):
                         self.log.debug("Closing log handler: %s", handler.baseFilename)
                         handler.close()
-                        _fh = self.log.handlers.pop(num)
+                        self.log.handlers.remove(handler)
                 self.engine.existing_artifact(self.options.log)
                 os.remove(self.options.log)
             else:
@@ -208,7 +208,7 @@ class CLI(object):
         """
 
         jmxes = []
-        for _num, filename in enumerate(configs[:]):
+        for filename in configs[:]:
             if filename.lower().endswith(".jmx"):
                 jmxes.append(filename)
                 configs.remove(filename)
@@ -278,7 +278,7 @@ def main():
     This function is used as entrypoint by setuptools
     """
     usage = "Usage: bzt [options] [configs] [-aliases]"
-    dsc = "BlazeMeter Taurus Tool v%s, the configuration-driven test running engine" % bzt.version
+    dsc = "BlazeMeter Taurus Tool v%s, the configuration-driven test running engine" % bzt.VERSION
     parser = OptionParserWithAliases(usage=usage, description=dsc, prog="bzt")
     parser.add_option('-d', '--datadir', action='store', default=".",
                       help="Artifacts base dir")

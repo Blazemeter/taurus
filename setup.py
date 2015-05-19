@@ -37,18 +37,18 @@ class InstallWithHook(install, object):
 
     def __hook(self):
         dirname = bzt.get_configs_dir()
-        sys.stdout.write("[%s] Creating %s\n" % (bzt.version, dirname))
+        sys.stdout.write("[%s] Creating %s\n" % (bzt.VERSION, dirname))
         if not os.path.exists(dirname):
             os.makedirs(dirname)
 
         src = os.path.join(os.path.dirname(__file__), "bzt", "10-base.json")
-        sys.stdout.write("[%s] Copying %s to %s\n" % (bzt.version, src, dirname))
+        sys.stdout.write("[%s] Copying %s to %s\n" % (bzt.VERSION, src, dirname))
         shutil.copy(src, dirname + os.path.sep)
 
 
 setup(
     name="bzt",
-    version=bzt.version,
+    version=bzt.VERSION,
     description='Taurus Tool for Continuous Testing',
     author='Andrey Pokhilko',
     author_email='andrey@blazemeter.com',

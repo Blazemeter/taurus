@@ -138,7 +138,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
                 self.__repaint()
             except KeyboardInterrupt:
                 raise
-            except BaseException as exc:
+            except BaseException:
                 self.log.error("Console screen failure: %s", traceback.format_exc())
                 self.shutdown()
 
@@ -416,41 +416,41 @@ class ThreeGraphs(Pile):
     """
 
     def __init__(self, ):
-        self.vu = BoxedGraph(
+        self.v_users = BoxedGraph(
             [' ', ("graph vu", '1'), " %s users, ",
              ("graph vc", '2'), " ~%s active "],
             ("graph bg", "graph vu", "graph vc"))
         self.rps = BoxedGraph([' ', ("graph rps", '1'), " %d hits, ",
                                ("graph fail", '2'), " %d fail "],
                               ("graph bg", "graph rps", "graph fail"))
-        self.rt = BoxedGraph([" ", ("graph rt", '1'), " %.3f avg time (",
-                              ("graph lt", '2'), " lat, ",
-                              ("graph cn", '3'), " conn) "],
-                             ("graph bg", "graph rt", "graph lt", "graph cn"))
+        self.r_time = BoxedGraph([" ", ("graph rt", '1'), " %.3f avg time (",
+                                  ("graph lt", '2'), " lat, ",
+                                  ("graph cn", '3'), " conn) "],
+                                 ("graph bg", "graph rt", "graph lt", "graph cn"))
 
-        graphs = [self.vu, self.rps, self.rt]
+        graphs = [self.v_users, self.rps, self.r_time]
         super(ThreeGraphs, self).__init__(graphs)
 
-    def append(self, vu, active, rps, fail, rtime, conn, lat):
+    def append(self, v_users, active, rps, fail, r_time, conn, lat):
         """
         Append data
 
-        :type vu: int
+        :type v_users: int
         :type active: int
         :type rps: int
         :type fail: int
-        :type rtime: float
+        :type r_time: float
         :type conn: float
         :type lat: float
         """
-        if vu is None:
-            vu = 0
+        if v_users is None:
+            v_users = 0
         if active is None:
             active = 0
 
-        self.vu.append((vu, active))
+        self.v_users.append((v_users, active))
         self.rps.append((rps, fail))
-        self.rt.append((rtime, lat, conn, ))
+        self.r_time.append((r_time, lat, conn, ))
 
         self._invalidate()
 
@@ -501,7 +501,7 @@ class StackedGraph(Widget):
         rows = []
         for row in range(0, size[1]):
             line = []
-            groups = ["".join(grp) for num, grp in groupby(matrix[row])]
+            groups = ["".join(grp) for _num, grp in groupby(matrix[row])]
             for chunk in groups:
                 color = self.colors[int(chunk[0])]
                 char = self.chars[int(chunk[0])]
@@ -1039,7 +1039,7 @@ class TaurusLogo(Pile):
         """
         Update rotating sticks
         """
-        txt = self.by_text % (self.seq[self.idx], bzt.version, self.seq[self.idx])
+        txt = self.by_text % (self.seq[self.idx], bzt.VERSION, self.seq[self.idx])
         self.byb.body.set_text(txt)
         self.idx += 1
         if self.idx >= len(self.seq):
