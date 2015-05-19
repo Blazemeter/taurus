@@ -1486,7 +1486,6 @@ class IncrementalCSVReader(csv.DictReader, object):
 
     def __del__(self):
         if self.fds:
-            logging.debug("Closing file descriptor for %s", self.filename)
             self.fds.close()
 
 
@@ -1513,7 +1512,6 @@ class JTLErrorsReader(object):
 
     def __del__(self):
         if self.fds:
-            self.log.debug("Closing file descriptor for %s", self.filename)
             self.fds.close()
 
     def read_file(self, final_pass=False):
