@@ -25,12 +25,12 @@ import traceback
 import logging
 import shutil
 import psutil
-import six
-import urwid
-
 from collections import Counter, namedtuple
 from subprocess import CalledProcessError
 from distutils.version import LooseVersion
+
+import six
+import urwid
 from cssselect import GenericTranslator
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
@@ -117,6 +117,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.properties_file = props_file
 
         self.reader = JTLReader(self.kpi_jtl, self.log, self.errors_jtl)
+        self.reader.is_distributed = self.distributed_servers
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
@@ -831,7 +832,7 @@ class JMX(object):
             "label": True,
             "code": True,
             "message": True,
-            "threadName": False,
+            "threadName": True,
             "dataType": False,
             "encoding": False,
             "assertions": False,
@@ -1346,6 +1347,7 @@ class JTLReader(ResultsReader):
 
     def __init__(self, filename, parent_logger, errors_filename):
         super(JTLReader, self).__init__()
+        self.is_distributed = False
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.csvreader = IncrementalCSVReader(self.log, filename)
         if errors_filename:
@@ -1364,7 +1366,13 @@ class JTLReader(ResultsReader):
 
         for row in self.csvreader.read(last_pass):
             label = row["label"]
-            concur = int(row["allThreads"])
+            if self.is_distributed:
+                concur = int(row["grpThreads"])
+                trname = row["threadName"][:row["threadName"].rfind(' ')]
+            else:
+                concur = int(row["allThreads"])
+                trname = ''
+
             rtm = int(row["elapsed"]) / 1000.0
             ltc = int(row["Latency"]) / 1000.0
             if "Connect" in row:
@@ -1384,7 +1392,7 @@ class JTLReader(ResultsReader):
                 error = None
 
             tstmp = int(int(row["timeStamp"]) / 1000)
-            yield tstmp, label, concur, rtm, cnn, ltc, rcd, error
+            yield tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname
 
     def _calculate_datapoints(self, final_pass=False):
         for point in super(JTLReader, self)._calculate_datapoints(final_pass):
