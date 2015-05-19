@@ -192,7 +192,7 @@ class BetterDict(defaultdict):
         """
         if isinstance(obj, dict):
             visitor(obj)
-            for key, val in six.iteritems(obj):
+            for _key, val in six.iteritems(obj):
                 cls.traverse(val, visitor)
         elif isinstance(obj, list):
             for val in obj:

@@ -138,7 +138,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
                 self.__repaint()
             except KeyboardInterrupt:
                 raise
-            except BaseException as exc:
+            except BaseException:
                 self.log.error("Console screen failure: %s", traceback.format_exc())
                 self.shutdown()
 
@@ -1039,7 +1039,7 @@ class TaurusLogo(Pile):
         """
         Update rotating sticks
         """
-        txt = self.by_text % (self.seq[self.idx], bzt.version, self.seq[self.idx])
+        txt = self.by_text % (self.seq[self.idx], bzt.VERSION, self.seq[self.idx])
         self.byb.body.set_text(txt)
         self.idx += 1
         if self.idx >= len(self.seq):

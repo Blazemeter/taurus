@@ -17,7 +17,7 @@ import os
 import sys
 import signal
 
-version = "0.2.17"
+VERSION = "0.2.17"
 
 
 def signal_handler(sig, frame):
