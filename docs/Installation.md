@@ -13,27 +13,18 @@ Tried on Windows 7 and Windows XP:
 
 To upgrade it, open Command Prompt and type `pip install --upgrade bzt`, then hit `Enter`
 
-Known limitations on Windows:
- - bzt.log file is not deleted at the end of execution
- - console screen is available as separate GUI window
-
 ## Linux
-Instructions are tested on Ubuntu 14.04 (Trusty) minimal install, but should work on other distributions with corresponding packages and libs. You will need python 2.7 or higher and Java Runtime installed.
-
-Way 1, python dependencies by debian:
-
-```bash
-sudo apt-get install python default-jre-headless python-pip python-lxml python-psutil
-sudo pip install bzt
-```
-
-Way 2, python dependencies by pip (you have to use it with Ubuntu 12.04):
+Instructions are tested on Ubuntu 14.04 (Trusty) minimal install, but should work on other distributions with corresponding packages and libs. You will need python 2.7 or higher and Java installed.
 
 ```bash
 sudo apt-get install python default-jre-headless python-pip python-dev libxml2-dev libxslt-dev zlib1g-dev
 sudo pip install bzt
 ```
 
+Upgrading to latest is as simple as this:
+```bash
+sudo pip install --upgrade bzt
+```
 
 ## Mac OS
 
@@ -47,4 +38,9 @@ sudo pip install --upgrade setuptools
 Then install Taurus:
 ```bash
 sudo pip install bzt
+```
+
+Upgrading to latest is as simple as this:
+```bash
+sudo pip install --upgrade bzt
 ```
