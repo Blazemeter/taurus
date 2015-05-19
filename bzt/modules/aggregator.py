@@ -456,7 +456,7 @@ class ResultsReader(ResultsProvider):
         timestamps = sorted(self.buffer.keys())
         while final_pass or (timestamps[-1] >= (timestamps[0] + self.buffer_len)):
             timestamp = timestamps.pop(0)
-            self.min_timestamp = timestamp + 1  # NOTE: why +1?
+            self.min_timestamp = timestamp + 1
             self.log.debug("Aggregating: %s", timestamp)
             samples = self.buffer.pop(timestamp)
             datapoint = self.__get_new_datapoint(timestamp)
