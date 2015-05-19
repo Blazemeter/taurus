@@ -268,7 +268,7 @@ class TaurusConsole(Columns):
         ('graph vc', 'brown', 'brown'),
         ('graph rps', 'dark green', 'dark green'),
         ('graph fail', 'dark red', 'dark red'),
-        ('graph rt', 'dark blue', 'dark blue'),
+        ('graph r_time', 'dark blue', 'dark blue'),
         ('graph lt', 'dark cyan', 'dark cyan'),
         ('graph cn', 'dark magenta', 'dark magenta'),
         ('stat-hdr', 'light gray', 'dark blue'),
@@ -416,26 +416,26 @@ class ThreeGraphs(Pile):
     """
 
     def __init__(self, ):
-        self.vu = BoxedGraph(
+        self.v_users = BoxedGraph(
             [' ', ("graph vu", '1'), " %s users, ",
              ("graph vc", '2'), " ~%s active "],
             ("graph bg", "graph vu", "graph vc"))
         self.rps = BoxedGraph([' ', ("graph rps", '1'), " %d hits, ",
                                ("graph fail", '2'), " %d fail "],
                               ("graph bg", "graph rps", "graph fail"))
-        self.rt = BoxedGraph([" ", ("graph rt", '1'), " %.3f avg time (",
+        self.r_time = BoxedGraph([" ", ("graph r_time", '1'), " %.3f avg time (",
                               ("graph lt", '2'), " lat, ",
                               ("graph cn", '3'), " conn) "],
-                             ("graph bg", "graph rt", "graph lt", "graph cn"))
+                             ("graph bg", "graph r_time", "graph lt", "graph cn"))
 
-        graphs = [self.vu, self.rps, self.rt]
+        graphs = [self.v_users, self.rps, self.r_time]
         super(ThreeGraphs, self).__init__(graphs)
 
-    def append(self, vu, active, rps, fail, rtime, conn, lat):
+    def append(self, v_users, active, rps, fail, rtime, conn, lat):
         """
         Append data
 
-        :type vu: int
+        :type v_users: int
         :type active: int
         :type rps: int
         :type fail: int
@@ -443,14 +443,14 @@ class ThreeGraphs(Pile):
         :type conn: float
         :type lat: float
         """
-        if vu is None:
-            vu = 0
+        if v_users is None:
+            v_users = 0
         if active is None:
             active = 0
 
-        self.vu.append((vu, active))
+        self.v_users.append((v_users, active))
         self.rps.append((rps, fail))
-        self.rt.append((rtime, lat, conn, ))
+        self.r_time.append((rtime, lat, conn, ))
 
         self._invalidate()
 
@@ -910,7 +910,7 @@ class SampleLabelsFailed(StatsColumn):
 
 class SampleLabelsAvgRT(StatsColumn):
     """
-    Stats table column with average rt
+    Stats table column with average r_time
     """
 
     def __init__(self):
@@ -920,7 +920,7 @@ class SampleLabelsAvgRT(StatsColumn):
 
     def add_data(self, data):
         """
-        add new avg rt value to column
+        add new avg r_time value to column
         """
         data_widget = Text(("stat-txt", "%.3f" % data), align=RIGHT)
         self.body.append(data_widget)

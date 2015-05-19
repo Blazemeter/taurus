@@ -68,7 +68,8 @@ class Engine(object):
         self.interrupted = False
         self.check_interval = 1
         self.stopping_reason = None
-
+        self.__disk_counters = None
+        self.__net_counters = None
         self.__counters_ts = None
 
     def configure(self, user_configs):

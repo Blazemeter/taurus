@@ -64,7 +64,7 @@ def dehumanize_time(str_time):
     :return: float value in seconds
     :raise ValueError: in case of unsupported unit
     """
-    parser = re.compile('([\d\.]+)([a-zA-Z]*)')
+    parser = re.compile(r'([\d\.]+)([a-zA-Z]*)')
     parts = parser.findall(str(str_time).replace(' ', ''))
     result = 0.0
     for value, unit in parts:
@@ -562,7 +562,7 @@ def make_boundary(text=None):
     bnd = boundary
     counter = 0
     while True:
-        cre = re.compile('^--' + re.escape(bnd) + '(--)?$', re.MULTILINE)
+        cre = re.compile(r'^--' + re.escape(bnd) + '(--)?$', re.MULTILINE)
         if not cre.search(text):
             break
         bnd = boundary + '.' + str(counter)

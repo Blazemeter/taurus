@@ -383,8 +383,8 @@ class BlazeMeterClient(object):
                     data.append(json_item)
 
                 interval_item = self.__interval_json(item, sec)
-                for rc, cnt in six.iteritems(item[KPISet.RESP_CODES]):
-                    interval_item['rc'].append({"n": cnt, "rc": rc})
+                for r_code, cnt in six.iteritems(item[KPISet.RESP_CODES]):
+                    interval_item['rc'].append({"n": cnt, "rc": r_code})
 
                 json_item['intervals'].append(interval_item)
 
@@ -563,17 +563,17 @@ class BlazeMeterClient(object):
 
         self.upload_file("sample.jtl.blazemeter.summery.json", to_json(errors))
 
-    def __errors_skel(self, ts, sess_id, test_id, user_id):
+    def __errors_skel(self, t_stamp, sess_id, test_id, user_id):
         return {
             "reportInfo": {
                 "sessionId": sess_id,
-                "timestamp": ts,
+                "timestamp": t_stamp,
                 "userId": user_id,
                 "testId": test_id,
                 "type": "SUMMERY",
                 # "testName": test_name
             },
-            "timestamp": ts,
+            "timestamp": t_stamp,
             "summery": {
                 "labels": [],
                 "empty": False
