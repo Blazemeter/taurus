@@ -18,10 +18,10 @@ limitations under the License.
 import copy
 import logging
 import math
-import six
 import re
-
 from collections import Counter
+
+import six
 
 from bzt.utils import BetterDict
 from bzt.engine import EngineModule
@@ -111,7 +111,8 @@ class KPISet(BetterDict):
         self.sum_rt += r_time
         self[self.SAMPLE_COUNT] = self.get(self.SAMPLE_COUNT, 0) + 1
         if cnc:
-            self[self.CONCURRENCY] = cnc
+            self._concurrencies[trname] = cnc
+
         resp_codes = self.get(self.RESP_CODES)
         resp_codes[r_code] = resp_codes.get(r_code, 0) + 1
         if error is not None:
@@ -179,6 +180,8 @@ class KPISet(BetterDict):
         :type src: KPISet
         :return:
         """
+        src.recalculate()
+
         self.sum_cn += src.sum_cn
         self.sum_lt += src.sum_lt
         self.sum_rt += src.sum_rt
