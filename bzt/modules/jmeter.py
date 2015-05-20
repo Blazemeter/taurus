@@ -373,6 +373,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if load.throughput:
             JMeterExecutor.__add_shaper(jmx, load)
 
+        rename_threads = self.get_scenario().get("rename-threads", True)
+        if self.distributed_servers and rename_threads:
+            self.__rename_thread_groups(jmx)
+
         self.kpi_jtl = self.engine.create_artifact("kpi", ".jtl")
         kpil = jmx.new_kpi_listener(self.kpi_jtl)
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, kpil)
@@ -517,6 +521,21 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                     if post_body_path:
                         post_body_files.append(post_body_path)
         return post_body_files
+
+    def __rename_thread_groups(self, jmx):
+        """
+        In case of distributed test, rename thread groups
+        :param jmx: JMX
+        :return:
+        """
+        prepend_str = r"${__machineName()}"
+        thread_groups = jmx.tree.findall(".//ThreadGroup")
+        for thread_group in thread_groups:
+            test_name = thread_group.attrib["testname"]
+            if prepend_str not in test_name:
+                thread_group.attrib["testname"] = prepend_str + test_name
+
+        self.log.debug(str(thread_groups))
 
     def __get_script(self):
         """

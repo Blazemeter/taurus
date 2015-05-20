@@ -341,3 +341,17 @@ class TestJMeterExecutor(BZTestCase):
         obj = JTLReader(__dir__() + "/../data/tranctl.jtl", logging.getLogger(''), None)
         values = [x for x in obj.datapoints(True)]
         self.assertEquals(1, len(values))
+
+    def test_distributed_th_hostnames(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({"scenario": {"script": "build/simple.jmx"}})
+        obj.distributed_servers=["127.0.0.1", "127.0.0.1"]
+        obj.prepare()
+        xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        thread_groups = xml_tree.findall(".//ThreadGroup")
+        prepend_str = r"${__machineName()}"
+        for thread_group in thread_groups:
+            self.assertTrue(thread_group.attrib["testname"].startswith(prepend_str))
+
+
