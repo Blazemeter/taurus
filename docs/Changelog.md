@@ -1,6 +1,7 @@
 # Changelog
 
 ## 0.2.18 (next)
+  - fixed bug when in distributed tests VU count was not calculated properly.
 
 ## 0.2.17
   - added ability to change font size in Windows dashboard GUI on Ctrl + mousewheel event
