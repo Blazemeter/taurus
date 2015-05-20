@@ -535,7 +535,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             if prepend_str not in test_name:
                 thread_group.attrib["testname"] = prepend_str + test_name
 
-        self.log.debug(str(thread_groups))
+        self.log.debug("ThreadGroups renamed: %d", len(thread_groups))
 
     def __get_script(self):
         """
