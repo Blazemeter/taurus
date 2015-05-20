@@ -18,10 +18,10 @@ limitations under the License.
 import copy
 import logging
 import math
-import six
 import re
-
 from collections import Counter
+
+import six
 
 from bzt.utils import BetterDict
 from bzt.engine import EngineModule
@@ -99,30 +99,31 @@ class KPISet(BetterDict):
 
     def add_sample(self, sample):
         """
-        Add sample, consisting of: cnc, rt, cn, lt, rc, error
+        Add sample, consisting of: cnc, rt, cn, lt, rc, error, trname
 
         :type sample: tuple
         """
         # TODO: introduce a flag to not count failed in resp times? or offer it always?
-        cnc, rt, cn, lt, rc, error = sample
-        if cn:
-            self.sum_cn += cn
-        self.sum_lt += lt
-        self.sum_rt += rt
+        cnc, r_time, con_time, latency, r_code, error, trname = sample
+        if con_time:
+            self.sum_cn += con_time
+        self.sum_lt += latency
+        self.sum_rt += r_time
         self[self.SAMPLE_COUNT] = self.get(self.SAMPLE_COUNT, 0) + 1
-        if cnc:  # NOTE: maybe should find a way to handle it more gracefully
-            self[self.CONCURRENCY] = cnc
+        if cnc:
+            self._concurrencies[trname] = cnc
+
         resp_codes = self.get(self.RESP_CODES)
-        resp_codes[rc] = resp_codes.get(rc, 0) + 1
+        resp_codes[r_code] = resp_codes.get(r_code, 0) + 1
         if error is not None:
             self[self.FAILURES] = self.get(self.FAILURES, 0) + 1
 
-            item = self.error_item_skel(error, rc, 1, KPISet.ERRTYPE_ERROR, Counter())
+            item = self.error_item_skel(error, r_code, 1, KPISet.ERRTYPE_ERROR, Counter())
             self.inc_list(self.get(self.ERRORS), ("msg", error), item)
         else:
             self[self.SUCCESSES] = self.get(self.SUCCESSES, 0) + 1
 
-        self.get(self.RESP_TIMES)[rt] += 1
+        self.get(self.RESP_TIMES)[r_time] += 1
         # TODO: max/min rt? there is percentiles...
         # TODO: throughput if interval is not 1s
 
@@ -179,6 +180,8 @@ class KPISet(BetterDict):
         :type src: KPISet
         :return:
         """
+        src.recalculate()
+
         self.sum_cn += src.sum_cn
         self.sum_lt += src.sum_lt
         self.sum_rt += src.sum_rt
@@ -228,7 +231,7 @@ class KPISet(BetterDict):
         :type percentiles_to_calc: list(float)
         :type cnts_dict: collections.Counter
         """
-        assert all(0 <= p <= 100 for p in percentiles_to_calc)
+        assert all(0 <= percentile <= 100 for percentile in percentiles_to_calc)
         percentiles = []
         if not cnts_dict:
             return percentiles, 0
@@ -239,18 +242,18 @@ class KPISet(BetterDict):
         curr_pos = cnts[0][1]  # sum of freqs up to current_cnts_pos
 
         sqr_diffs = 0
-        for p in sorted(percentiles_to_calc):
-            if p < 100:
-                percentile_pos = p / 100.0 * num
+        for percentile in sorted(percentiles_to_calc):
+            if percentile < 100:
+                percentile_pos = percentile / 100.0 * num
                 while curr_pos <= percentile_pos and curr_cnts_pos < len(cnts):
                     sqr_diffs += cnts[curr_cnts_pos][1] * math.pow(cnts[curr_cnts_pos][0] - avg, 2)
 
                     curr_cnts_pos += 1
                     curr_pos += cnts[curr_cnts_pos][1]
 
-                percentiles.append((p, cnts[curr_cnts_pos][0]))
+                percentiles.append((percentile, cnts[curr_cnts_pos][0]))
             else:
-                percentiles.append((p, cnts[-1][0]))  # we could add a small value
+                percentiles.append((percentile, cnts[-1][0]))  # we could add a small value
 
         while curr_cnts_pos < len(cnts):
             sqr_diffs += cnts[curr_cnts_pos][1] * math.pow(cnts[curr_cnts_pos][0] - avg, 2)
@@ -405,15 +408,15 @@ class ResultsReader(ResultsProvider):
                 self.log.debug("No data from reader")
                 break
             elif isinstance(result, list) or isinstance(result, tuple):
-                ts, label, conc, rt, cn, lt, rc, error = result
+                t_stamp, label, conc, r_time, con_time, latency, r_code, error, trname = result
                 if label in self.ignored_labels:
                     continue
-                if ts < self.min_timestamp:
-                    self.log.warning("Putting sample %s into %s", ts, self.min_timestamp)
-                    ts = self.min_timestamp
-                if ts not in self.buffer:
-                    self.buffer[ts] = []
-                self.buffer[ts].append((label, conc, rt, cn, lt, rc, error))
+                if t_stamp < self.min_timestamp:
+                    self.log.warning("Putting sample %s into %s", t_stamp, self.min_timestamp)
+                    t_stamp = self.min_timestamp
+                if t_stamp not in self.buffer:
+                    self.buffer[t_stamp] = []
+                self.buffer[t_stamp].append((label, conc, r_time, con_time, latency, r_code, error, trname))
             else:
                 raise ValueError("Unsupported results from reader: %s" % result)
 
@@ -425,7 +428,7 @@ class ResultsReader(ResultsProvider):
         """
         current = datapoint[DataPoint.CURRENT]
         for sample in samples:
-            label, rt, concur, cn, lt, rc, error = sample
+            label, r_time, concur, con_time, latency, r_code, error, trname = sample
             if label == '':
                 label = '[empty]'
 
@@ -434,7 +437,7 @@ class ResultsReader(ResultsProvider):
 
             label = current.get(label, KPISet(self.track_percentiles))
             # empty means overall
-            label.add_sample((rt, concur, cn, lt, rc, error))
+            label.add_sample((r_time, concur, con_time, latency, r_code, error, trname))
         overall = KPISet(self.track_percentiles)
         for label in current.values():
             overall.merge_kpis(label, datapoint[DataPoint.SOURCE_ID])

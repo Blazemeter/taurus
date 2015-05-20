@@ -18,21 +18,21 @@ class TestDefaultAggregator(BZTestCase):
         obj = self.obj
 
         mock = MockReader()
-        mock.data.append((1, "", 1, r(), r(), r(), 200, None))
-        mock.data.append((2, "", 1, r(), r(), r(), 200, None))
-        mock.data.append((2, "", 1, r(), r(), r(), 200, None))
-        mock.data.append((3, "", 1, r(), r(), r(), 200, None))
-        mock.data.append((3, "", 1, r(), r(), r(), 200, None))
-        mock.data.append((4, "", 1, r(), r(), r(), 200, None))
-        mock.data.append((4, "", 1, r(), r(), r(), 200, None))
+        mock.data.append((1, "", 1, r(), r(), r(), 200, None, ''))
+        mock.data.append((2, "", 1, r(), r(), r(), 200, None, ''))
+        mock.data.append((2, "", 1, r(), r(), r(), 200, None, ''))
+        mock.data.append((3, "", 1, r(), r(), r(), 200, None, ''))
+        mock.data.append((3, "", 1, r(), r(), r(), 200, None, ''))
+        mock.data.append((4, "", 1, r(), r(), r(), 200, None, ''))
+        mock.data.append((4, "", 1, r(), r(), r(), 200, None, ''))
 
         obj.add_listener(mock)
 
         for point in mock.datapoints():
             pass
 
-        mock.data.append((2, "", 1, r(), r(), r(), 200, None))
-        mock.data.append((2, "", 1, r(), r(), r(), 200, None))
+        mock.data.append((2, "", 1, r(), r(), r(), 200, None, ''))
+        mock.data.append((2, "", 1, r(), r(), r(), 200, None, ''))
 
         for point in mock.datapoints():
             pass
@@ -55,7 +55,7 @@ class TestDefaultAggregator(BZTestCase):
         # current measurements shows ~25K samples/sec
         for cnt in (10, 100, 1000, 10000, 25000, 40000, 50000):
             for a in range(0, cnt):
-                sample = (cnt, "", 1, r(1000), r(1000), r(1000), rc(), err())
+                sample = (cnt, "", 1, r(1000), r(1000), r(1000), rc(), err(), '')
                 mock.data.append(sample)
             before = time.time()
             for point in mock.datapoints():
