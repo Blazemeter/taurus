@@ -106,11 +106,11 @@ class CLI(object):
         if self.options.log:
             if platform.system() == 'Windows':
                 # need to finalize the logger before moving file
-                for num, handler in enumerate(self.log.handlers):
+                for handler in self.log.handlers:
                     if issubclass(handler.__class__, logging.FileHandler):
                         self.log.debug("Closing log handler: %s", handler.baseFilename)
                         handler.close()
-                        _fh = self.log.handlers.pop(num)
+                        self.log.handlers.remove(handler)
                 self.engine.existing_artifact(self.options.log)
                 os.remove(self.options.log)
             else:
@@ -208,7 +208,7 @@ class CLI(object):
         """
 
         jmxes = []
-        for _num, filename in enumerate(configs[:]):
+        for filename in configs[:]:
             if filename.lower().endswith(".jmx"):
                 jmxes.append(filename)
                 configs.remove(filename)

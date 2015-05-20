@@ -1443,6 +1443,7 @@ class IncrementalCSVReader(csv.DictReader, object):
         self.offset = 0
         self.filename = filename
         self.fds = None
+        self.csvreader = None
 
     def read(self, last_pass=False):
         """
@@ -1750,11 +1751,7 @@ class JMeterScenarioBuilder(JMX):
         jextractors = request.config.get("extract-jsonpath", BetterDict())
         for varname in jextractors:
             cfg = ensure_is_dict(jextractors, varname, "jsonpath")
-            children.append(JMX._get_json_extractor(
-                varname,
-                cfg['jsonpath'],
-                cfg.get('default', 'NOT_FOUND'))
-            )
+            children.append(JMX._get_json_extractor(varname, cfg['jsonpath'], cfg.get('default', 'NOT_FOUND')))
             children.append(etree.Element("hashTree"))
 
     def __add_assertions(self, children, request):
@@ -1764,9 +1761,9 @@ class JMeterScenarioBuilder(JMX):
             if not isinstance(assertion['contains'], list):
                 assertion['contains'] = [assertion['contains']]
             children.append(JMX._get_resp_assertion(assertion.get("subject", self.FIELD_BODY),
-                            assertion['contains'],
-                            assertion.get('regexp', True),
-                            assertion.get('not', False)))
+                                                    assertion['contains'],
+                                                    assertion.get('regexp', True),
+                                                    assertion.get('not', False)))
             children.append(etree.Element("hashTree"))
 
         jpath_assertions = request.config.get("assert-jsonpath", [])

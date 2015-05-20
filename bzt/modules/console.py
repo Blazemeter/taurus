@@ -424,9 +424,9 @@ class ThreeGraphs(Pile):
                                ("graph fail", '2'), " %d fail "],
                               ("graph bg", "graph rps", "graph fail"))
         self.r_time = BoxedGraph([" ", ("graph rt", '1'), " %.3f avg time (",
-                              ("graph lt", '2'), " lat, ",
-                              ("graph cn", '3'), " conn) "],
-                             ("graph bg", "graph rt", "graph lt", "graph cn"))
+                                  ("graph lt", '2'), " lat, ",
+                                  ("graph cn", '3'), " conn) "],
+                                 ("graph bg", "graph rt", "graph lt", "graph cn"))
 
         graphs = [self.v_users, self.rps, self.r_time]
         super(ThreeGraphs, self).__init__(graphs)
@@ -501,7 +501,7 @@ class StackedGraph(Widget):
         rows = []
         for row in range(0, size[1]):
             line = []
-            groups = ["".join(grp) for num, grp in groupby(matrix[row])]
+            groups = ["".join(grp) for _num, grp in groupby(matrix[row])]
             for chunk in groups:
                 color = self.colors[int(chunk[0])]
                 char = self.chars[int(chunk[0])]

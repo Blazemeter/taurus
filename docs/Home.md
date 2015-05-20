@@ -7,7 +7,6 @@
     1. [Execution Settings](ExecutionSettings.md)
     1. [Scenario Building](ScenarioBuilding.md)
     1. [Reporting and Results Processing](Reporting.md)
- 1. [Config Recipes](Recipes.md)   
  1. [Troubleshooting, Support and Feedback](https://groups.google.com/forum/#!forum/codename-taurus)
 
 ## Developer Documentation
