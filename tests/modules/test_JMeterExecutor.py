@@ -345,7 +345,7 @@ class TestJMeterExecutor(BZTestCase):
     def test_distributed_th_hostnames(self):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
-        obj.execution.merge({"scenario": {"script": "build/simple.jmx"}})
+        obj.execution.merge({"scenario": {"script": "tests/jmx/http.jmx"}})
         obj.distributed_servers=["127.0.0.1", "127.0.0.1"]
         obj.prepare()
         xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
