@@ -2,6 +2,7 @@
 
 ## 0.2.18 (next)
   - set "clear each iteration" flag for cache and cookie managers when generating JMX from requests
+  - allow wildcards in enable-disable modifications  
 
 ## 0.2.17
   - added ability to change font size in Windows dashboard GUI on Ctrl + mousewheel event

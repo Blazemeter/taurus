@@ -16,6 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import csv
+import fnmatch
 import os
 import platform
 import subprocess
@@ -561,7 +562,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             modifs[action] = [items]
             items = modifs[action]
         for name in items:
-            jmx.set_enabled("[testname='%s']" % name, True if action == 'enable' else False)
+            candidates = jmx.get("[testname]")
+            for candidate in candidates:
+                if fnmatch.fnmatch(candidate.get('testname'), name):
+                    jmx.set_enabled("[testname='%s']" % candidate.get('testname'), True if action == 'enable' else False)
 
     def __jmeter_check(self, jmeter):
         """
