@@ -63,6 +63,7 @@ scenarios:
     keepalive: true  # true by default, applied on all requests in scenario
     retrieve-resources: true  # true by default, retrieves all embedded resources from HTML pages
     concurrent-pool-size: 4  # concurrent pool size for resources download, 4 by default
+    use-dns-cache-mgr: true  # use DNS Cache Manager to test resources behind dns load balancers. False by default.
     data-sources: # list of external data sources
       - path/to/my.csv  # this is a shorthand form
       - path: path/to/another.csv  # this is full form, path option is required

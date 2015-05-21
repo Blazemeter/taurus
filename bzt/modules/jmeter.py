@@ -573,10 +573,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         self.sys_properties_file = self.engine.create_artifact("system", ".properties")
         with open(self.sys_properties_file, 'wt') as sp_fds:
-            sp_fds.write("sun.net.http.allowRestrictedHeaders=true")
-            sp_fds.write("\n")
+            sp_fds.write("sun.net.http.allowRestrictedHeaders=true\n")
             sp_fds.write("sun.net.inetaddr.ttl=0")
-            sp_fds.write("\n")
 
     def __jmeter_check(self, jmeter):
         """

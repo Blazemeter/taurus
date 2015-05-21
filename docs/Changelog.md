@@ -1,6 +1,7 @@
 # Changelog
 
 ## 0.2.18 (next)
+  - added support to test resources with dns load balance (use-dns-cache-mgr option in scenario settings)
 
 ## 0.2.17
   - added ability to change font size in Windows dashboard GUI on Ctrl + mousewheel event
