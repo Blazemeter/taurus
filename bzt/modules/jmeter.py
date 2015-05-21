@@ -39,7 +39,6 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataP
 from bzt.utils import shell_exec, ensure_is_dict, humanize_time, dehumanize_time, BetterDict, \
     guess_csv_dialect, unzip, download_progress_hook
 
-
 try:
     from lxml import etree
 except ImportError:
@@ -1131,6 +1130,8 @@ class JMX(object):
         :rtype: lxml.etree.Element
         """
         mgr = etree.Element("CacheManager", guiclass="CacheManagerGui", testclass="CacheManager", testname="Cache")
+        mgr.append(JMX._bool_prop("clearEachIteration", True))
+        mgr.append(JMX._bool_prop("useExpires", True))
         return mgr
 
     @staticmethod
@@ -1139,6 +1140,7 @@ class JMX(object):
         :rtype: lxml.etree.Element
         """
         mgr = etree.Element("CookieManager", guiclass="CookiePanel", testclass="CookieManager", testname="Cookies")
+        mgr.append(JMX._bool_prop("CookieManager.clearEachIteration", True))
         return mgr
 
     @staticmethod
