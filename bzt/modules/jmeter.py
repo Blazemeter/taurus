@@ -67,6 +67,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.modified_jmx = None
         self.jmeter_log = None
         self.properties_file = None
+        self.sys_properties_file = None
         self.kpi_jtl = None
         self.errors_jtl = None
         self.process = None
@@ -134,6 +135,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if self.properties_file:
             cmdline += ["-p", os.path.abspath(self.properties_file)]
 
+        if self.sys_properties_file:
+            cmdline += ["-S", os.path.abspath(self.sys_properties_file)]
         if self.distributed_servers:
             cmdline += ['-R%s' % ','.join(self.distributed_servers)]
 
@@ -372,6 +375,12 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if load.throughput:
             JMeterExecutor.__add_shaper(jmx, load)
 
+        if self.get_scenario().get("use-dns-cache-mgr", False):
+            jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, jmx.add_dns_cache_mgr())
+            jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
+            jmx.requests_to_http_client4()
+            self.__add_system_prop_file()
+
         self.kpi_jtl = self.engine.create_artifact("kpi", ".jtl")
         kpil = jmx.new_kpi_listener(self.kpi_jtl)
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, kpil)
@@ -556,6 +565,18 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                     jmx.set_text(sel, text)
             else:
                 raise ValueError("Unsupported JMX modification action: %s" % action)
+
+    def __add_system_prop_file(self):
+        """
+        In case of usage dns cache mgr
+        :return:
+        """
+        self.sys_properties_file = self.engine.create_artifact("system", ".properties")
+        with open(self.sys_properties_file, 'wt') as sp_fds:
+            sp_fds.write("sun.net.http.allowRestrictedHeaders=true")
+            sp_fds.write("\n")
+            sp_fds.write("sun.net.inetaddr.ttl=0")
+            sp_fds.write("\n")
 
     def __jmeter_check(self, jmeter):
         """
@@ -1106,6 +1127,36 @@ class JMX(object):
 
         udv_element.append(udv_collection_prop)
         return udv_element
+
+    @staticmethod
+    def add_dns_cache_mgr():
+        """
+        Adds dns cache element with defaults parameters
+
+        :return:
+        """
+        dns_element = etree.Element("DNSCacheManager", guiclass="DNSCachePanel", testclass="DNSCacheManager",
+                                    testname="DNS Cache Manager")
+        dns_element.append(JMX._collection_prop("DNSCacheManager.servers"))
+        dns_element.append(JMX._bool_prop("DNSCacheManager.clearEachIteration", False))
+        dns_element.append(JMX._bool_prop("DNSCacheManager.isCustomResolver", False))
+        return dns_element
+
+    def requests_to_http_client4(self):
+        """
+        Change http requests to HTTPClient4 implementation
+        :return:
+        """
+        tar_implementation = "HttpClient4"
+        http_requests = self.tree.findall(".//HTTPSamplerProxy")
+        for http_req in http_requests:
+            implementation = http_req.find(".//stringProp[@name='HTTPSampler.implementation']")
+            if implementation:
+                implementation.text = tar_implementation
+            else:
+                http_req.append(JMX._string_prop("HTTPSampler.implementation", tar_implementation))
+
+
 
     @staticmethod
     def _get_header_mgr(hdict):

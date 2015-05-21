@@ -341,3 +341,17 @@ class TestJMeterExecutor(BZTestCase):
         obj = JTLReader(__dir__() + "/../data/tranctl.jtl", logging.getLogger(''), None)
         values = [x for x in obj.datapoints(True)]
         self.assertEquals(1, len(values))
+
+    def test_dns_cache_mgr(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({"scenario": {"script": "tests/jmx/http.jmx", "use-dns-cache-mgr": True}})
+        obj.prepare()
+        xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        dns_element = xml_tree.findall(".//DNSCacheManager")
+        self.assertEqual(len(dns_element), 1)
+        requests = xml_tree.findall(".//HTTPSamplerProxy")
+        for request in requests:
+            implementation = request.find(".//stringProp[@name='HTTPSampler.implementation']")
+            self.assertEqual(implementation.text, "HttpClient4")
+        self.assertTrue(obj.sys_properties_file.endswith("system.properties"))
