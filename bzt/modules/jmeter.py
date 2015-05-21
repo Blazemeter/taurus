@@ -537,24 +537,31 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :type jmx: JMX
         """
         modifs = self.get_scenario().get("modifications")
-        for action, items in six.iteritems(modifs):
-            if action in ('disable', 'enable'):
-                if not isinstance(items, list):
-                    modifs[action] = [items]
-                    items = modifs[action]
-                for name in items:
-                    jmx.set_enabled("[testname='%s']" % name, True if action == 'enable' else False)
-            elif action == 'set-prop':
-                for path, text in six.iteritems(items):
-                    parts = path.split('>')
-                    if len(parts) < 2:
-                        raise ValueError("Property selector must have at least 2 levels")
-                    sel = "[testname='%s']" % parts[0]
-                    for add in parts[1:]:
-                        sel += ">[name='%s']" % add
-                    jmx.set_text(sel, text)
-            else:
-                raise ValueError("Unsupported JMX modification action: %s" % action)
+
+        if 'disable' in modifs:
+            self.__apply_enable_disable(modifs, 'disable', jmx)
+
+        if 'enable' in modifs:
+            self.__apply_enable_disable(modifs, 'enable', jmx)
+
+        if 'set-prop' in modifs:
+            items = modifs['set-prop']
+            for path, text in six.iteritems(items):
+                parts = path.split('>')
+                if len(parts) < 2:
+                    raise ValueError("Property selector must have at least 2 levels")
+                sel = "[testname='%s']" % parts[0]
+                for add in parts[1:]:
+                    sel += ">[name='%s']" % add
+                jmx.set_text(sel, text)
+
+    def __apply_enable_disable(self, modifs, action, jmx):
+        items = modifs[action]
+        if not isinstance(items, list):
+            modifs[action] = [items]
+            items = modifs[action]
+        for name in items:
+            jmx.set_enabled("[testname='%s']" % name, True if action == 'enable' else False)
 
     def __jmeter_check(self, jmeter):
         """
@@ -1325,6 +1332,7 @@ class JMX(object):
         :type state: bool
         """
         items = self.get(sel)
+        self.log.debug("Enable %s elements %s: %s", state, sel, items)
         for item in items:
             item.set("enabled", 'true' if state else 'false')
 
