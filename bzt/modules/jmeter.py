@@ -26,12 +26,12 @@ import traceback
 import logging
 import shutil
 import psutil
-import six
-import urwid
-
 from collections import Counter, namedtuple
 from subprocess import CalledProcessError
 from distutils.version import LooseVersion
+
+import six
+import urwid
 from cssselect import GenericTranslator
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
@@ -117,6 +117,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.properties_file = props_file
 
         self.reader = JTLReader(self.kpi_jtl, self.log, self.errors_jtl)
+        self.reader.is_distributed = self.distributed_servers
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
@@ -372,6 +373,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if load.throughput:
             JMeterExecutor.__add_shaper(jmx, load)
 
+        rename_threads = self.get_scenario().get("rename-threads", True)
+        if self.distributed_servers and rename_threads:
+            self.__rename_thread_groups(jmx)
+
         self.kpi_jtl = self.engine.create_artifact("kpi", ".jtl")
         kpil = jmx.new_kpi_listener(self.kpi_jtl)
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, kpil)
@@ -516,6 +521,21 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                     if post_body_path:
                         post_body_files.append(post_body_path)
         return post_body_files
+
+    def __rename_thread_groups(self, jmx):
+        """
+        In case of distributed test, rename thread groups
+        :param jmx: JMX
+        :return:
+        """
+        prepend_str = r"${__machineName()}"
+        thread_groups = jmx.tree.findall(".//ThreadGroup")
+        for thread_group in thread_groups:
+            test_name = thread_group.attrib["testname"]
+            if prepend_str not in test_name:
+                thread_group.attrib["testname"] = prepend_str + test_name
+
+        self.log.debug("ThreadGroups renamed: %d", len(thread_groups))
 
     def __get_script(self):
         """
@@ -841,7 +861,7 @@ class JMX(object):
             "label": True,
             "code": True,
             "message": True,
-            "threadName": False,
+            "threadName": True,
             "dataType": False,
             "encoding": False,
             "assertions": False,
@@ -1360,6 +1380,7 @@ class JTLReader(ResultsReader):
 
     def __init__(self, filename, parent_logger, errors_filename):
         super(JTLReader, self).__init__()
+        self.is_distributed = False
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.csvreader = IncrementalCSVReader(self.log, filename)
         if errors_filename:
@@ -1378,7 +1399,13 @@ class JTLReader(ResultsReader):
 
         for row in self.csvreader.read(last_pass):
             label = row["label"]
-            concur = int(row["allThreads"])
+            if self.is_distributed:
+                concur = int(row["grpThreads"])
+                trname = row["threadName"][:row["threadName"].rfind(' ')]
+            else:
+                concur = int(row["allThreads"])
+                trname = ''
+
             rtm = int(row["elapsed"]) / 1000.0
             ltc = int(row["Latency"]) / 1000.0
             if "Connect" in row:
@@ -1398,7 +1425,7 @@ class JTLReader(ResultsReader):
                 error = None
 
             tstmp = int(int(row["timeStamp"]) / 1000)
-            yield tstmp, label, concur, rtm, cnn, ltc, rcd, error
+            yield tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname
 
     def _calculate_datapoints(self, final_pass=False):
         for point in super(JTLReader, self)._calculate_datapoints(final_pass):
