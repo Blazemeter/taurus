@@ -1,5 +1,9 @@
 # Changelog
 
+# 0.2.19 (next)
+  - fixed bug when in distributed tests VU count was not calculated properly.
+  - auto-append `${__machineName()}` for thread names in distributed test
+
 ## 0.2.18
   - set "clear each iteration" flag for cache and cookie managers when generating JMX from requests
   - allow wildcards in enable-disable modifications  
