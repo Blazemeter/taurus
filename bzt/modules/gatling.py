@@ -41,7 +41,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     """
     Gatling executor module
     """
-    # NOTE: will be moved to GatlingVerifier
     DOWNLOAD_LINK = "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle" \
                     "/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip"
     VERSION = "2.1.4"
@@ -65,7 +64,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         scenario = self.get_scenario()
 
-        # TODO: will be moved to GatlingVerifier
         self.__check_gatling()
 
         if Scenario.SCRIPT in scenario:
@@ -411,7 +409,7 @@ class DataLogReader(ResultsReader):
             else:
                 error = None
 
-            yield int(t_stamp), label, self.concurrency, r_time, con_time, latency, r_code, error
+            yield int(t_stamp), label, self.concurrency, r_time, con_time, latency, r_code, error, ''
 
     def __open_fds(self):
         """

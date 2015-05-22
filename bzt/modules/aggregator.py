@@ -18,10 +18,10 @@ limitations under the License.
 import copy
 import logging
 import math
-import six
 import re
-
 from collections import Counter
+
+import six
 
 from bzt.utils import BetterDict
 from bzt.engine import EngineModule
@@ -99,19 +99,20 @@ class KPISet(BetterDict):
 
     def add_sample(self, sample):
         """
-        Add sample, consisting of: cnc, rt, cn, lt, rc, error
+        Add sample, consisting of: cnc, rt, cn, lt, rc, error, trname
 
         :type sample: tuple
         """
         # TODO: introduce a flag to not count failed in resp times? or offer it always?
-        cnc, r_time, con_time, latency, r_code, error = sample
+        cnc, r_time, con_time, latency, r_code, error, trname = sample
         if con_time:
             self.sum_cn += con_time
         self.sum_lt += latency
         self.sum_rt += r_time
         self[self.SAMPLE_COUNT] = self.get(self.SAMPLE_COUNT, 0) + 1
-        if cnc:  # NOTE: maybe should find a way to handle it more gracefully
-            self[self.CONCURRENCY] = cnc
+        if cnc:
+            self._concurrencies[trname] = cnc
+
         resp_codes = self.get(self.RESP_CODES)
         resp_codes[r_code] = resp_codes.get(r_code, 0) + 1
         if error is not None:
@@ -179,6 +180,8 @@ class KPISet(BetterDict):
         :type src: KPISet
         :return:
         """
+        src.recalculate()
+
         self.sum_cn += src.sum_cn
         self.sum_lt += src.sum_lt
         self.sum_rt += src.sum_rt
@@ -405,7 +408,7 @@ class ResultsReader(ResultsProvider):
                 self.log.debug("No data from reader")
                 break
             elif isinstance(result, list) or isinstance(result, tuple):
-                t_stamp, label, conc, r_time, con_time, latency, r_code, error = result
+                t_stamp, label, conc, r_time, con_time, latency, r_code, error, trname = result
                 if label in self.ignored_labels:
                     continue
                 if t_stamp < self.min_timestamp:
@@ -413,7 +416,7 @@ class ResultsReader(ResultsProvider):
                     t_stamp = self.min_timestamp
                 if t_stamp not in self.buffer:
                     self.buffer[t_stamp] = []
-                self.buffer[t_stamp].append((label, conc, r_time, con_time, latency, r_code, error))
+                self.buffer[t_stamp].append((label, conc, r_time, con_time, latency, r_code, error, trname))
             else:
                 raise ValueError("Unsupported results from reader: %s" % result)
 
@@ -425,7 +428,7 @@ class ResultsReader(ResultsProvider):
         """
         current = datapoint[DataPoint.CURRENT]
         for sample in samples:
-            label, r_time, concur, con_time, latency, r_code, error = sample
+            label, r_time, concur, con_time, latency, r_code, error, trname = sample
             if label == '':
                 label = '[empty]'
 
@@ -434,7 +437,7 @@ class ResultsReader(ResultsProvider):
 
             label = current.get(label, KPISet(self.track_percentiles))
             # empty means overall
-            label.add_sample((r_time, concur, con_time, latency, r_code, error))
+            label.add_sample((r_time, concur, con_time, latency, r_code, error, trname))
         overall = KPISet(self.track_percentiles)
         for label in current.values():
             overall.merge_kpis(label, datapoint[DataPoint.SOURCE_ID])
@@ -456,7 +459,7 @@ class ResultsReader(ResultsProvider):
         timestamps = sorted(self.buffer.keys())
         while final_pass or (timestamps[-1] >= (timestamps[0] + self.buffer_len)):
             timestamp = timestamps.pop(0)
-            self.min_timestamp = timestamp + 1  # NOTE: why +1?
+            self.min_timestamp = timestamp + 1
             self.log.debug("Aggregating: %s", timestamp)
             samples = self.buffer.pop(timestamp)
             datapoint = self.__get_new_datapoint(timestamp)

@@ -36,7 +36,7 @@ modules:
     disable: false
     
 settings:
-  check_interval: 5s
+  check-interval: 5s
   default_executor: jmeter
 
 provisioning: local

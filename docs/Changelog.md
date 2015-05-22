@@ -1,7 +1,12 @@
 # Changelog
 
-## 0.2.18 (next)
-  - added support to test resources with dns load balance (use-dns-cache-mgr option in scenario settings)
+# 0.2.19 (next)
+  - fixed bug when in distributed tests VU count was not calculated properly.
+  - auto-append `${__machineName()}` for thread names in distributed test
+
+## 0.2.18
+  - set "clear each iteration" flag for cache and cookie managers when generating JMX from requests
+  - allow wildcards in enable-disable modifications  
 
 ## 0.2.17
   - added ability to change font size in Windows dashboard GUI on Ctrl + mousewheel event

@@ -461,7 +461,7 @@ class DataLogReader(ResultsReader):
             else:
                 error = None
             concur = None  # TODO: how to get this for grinder
-            yield int(t_stamp), label, concur, r_time, con_time, latency, r_code, error
+            yield int(t_stamp), label, concur, r_time, con_time, latency, r_code, error, ''
 
     def __open_fds(self):
         """

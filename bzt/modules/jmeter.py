@@ -16,6 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import csv
+import fnmatch
 import os
 import platform
 import subprocess
@@ -38,7 +39,6 @@ from bzt.modules.console import WidgetProvider
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.utils import shell_exec, ensure_is_dict, humanize_time, dehumanize_time, BetterDict, \
     guess_csv_dialect, unzip, download_progress_hook
-
 
 try:
     from lxml import etree
@@ -118,6 +118,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.properties_file = props_file
 
         self.reader = JTLReader(self.kpi_jtl, self.log, self.errors_jtl)
+        self.reader.is_distributed = self.distributed_servers
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
@@ -375,6 +376,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if load.throughput:
             JMeterExecutor.__add_shaper(jmx, load)
 
+        rename_threads = self.get_scenario().get("rename-threads", True)
+        if self.distributed_servers and rename_threads:
+            self.__rename_thread_groups(jmx)
+
         if self.get_scenario().get("use-dns-cache-mgr", False):
             jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, jmx.add_dns_cache_mgr())
             jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
@@ -526,6 +531,21 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                         post_body_files.append(post_body_path)
         return post_body_files
 
+    def __rename_thread_groups(self, jmx):
+        """
+        In case of distributed test, rename thread groups
+        :param jmx: JMX
+        :return:
+        """
+        prepend_str = r"${__machineName()}"
+        thread_groups = jmx.tree.findall(".//ThreadGroup")
+        for thread_group in thread_groups:
+            test_name = thread_group.attrib["testname"]
+            if prepend_str not in test_name:
+                thread_group.attrib["testname"] = prepend_str + test_name
+
+        self.log.debug("ThreadGroups renamed: %d", len(thread_groups))
+
     def __get_script(self):
         """
 
@@ -547,24 +567,34 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :type jmx: JMX
         """
         modifs = self.get_scenario().get("modifications")
-        for action, items in six.iteritems(modifs):
-            if action in ('disable', 'enable'):
-                if not isinstance(items, list):
-                    modifs[action] = [items]
-                    items = modifs[action]
-                for name in items:
-                    jmx.set_enabled("[testname='%s']" % name, True if action == 'enable' else False)
-            elif action == 'set-prop':
-                for path, text in six.iteritems(items):
-                    parts = path.split('>')
-                    if len(parts) < 2:
-                        raise ValueError("Property selector must have at least 2 levels")
-                    sel = "[testname='%s']" % parts[0]
-                    for add in parts[1:]:
-                        sel += ">[name='%s']" % add
-                    jmx.set_text(sel, text)
-            else:
-                raise ValueError("Unsupported JMX modification action: %s" % action)
+
+        if 'disable' in modifs:
+            self.__apply_enable_disable(modifs, 'disable', jmx)
+
+        if 'enable' in modifs:
+            self.__apply_enable_disable(modifs, 'enable', jmx)
+
+        if 'set-prop' in modifs:
+            items = modifs['set-prop']
+            for path, text in six.iteritems(items):
+                parts = path.split('>')
+                if len(parts) < 2:
+                    raise ValueError("Property selector must have at least 2 levels")
+                sel = "[testname='%s']" % parts[0]
+                for add in parts[1:]:
+                    sel += ">[name='%s']" % add
+                jmx.set_text(sel, text)
+
+    def __apply_enable_disable(self, modifs, action, jmx):
+        items = modifs[action]
+        if not isinstance(items, list):
+            modifs[action] = [items]
+            items = modifs[action]
+        for name in items:
+            candidates = jmx.get("[testname]")
+            for candidate in candidates:
+                if fnmatch.fnmatch(candidate.get('testname'), name):
+                    jmx.set_enabled("[testname='%s']" % candidate.get('testname'), True if action == 'enable' else False)
 
     def __add_system_prop_file(self):
         """
@@ -850,7 +880,7 @@ class JMX(object):
             "label": True,
             "code": True,
             "message": True,
-            "threadName": False,
+            "threadName": True,
             "dataType": False,
             "encoding": False,
             "assertions": False,
@@ -1180,6 +1210,8 @@ class JMX(object):
         :rtype: lxml.etree.Element
         """
         mgr = etree.Element("CacheManager", guiclass="CacheManagerGui", testclass="CacheManager", testname="Cache")
+        mgr.append(JMX._bool_prop("clearEachIteration", True))
+        mgr.append(JMX._bool_prop("useExpires", True))
         return mgr
 
     @staticmethod
@@ -1188,6 +1220,7 @@ class JMX(object):
         :rtype: lxml.etree.Element
         """
         mgr = etree.Element("CookieManager", guiclass="CookiePanel", testclass="CookieManager", testname="Cookies")
+        mgr.append(JMX._bool_prop("CookieManager.clearEachIteration", True))
         return mgr
 
     @staticmethod
@@ -1372,6 +1405,7 @@ class JMX(object):
         :type state: bool
         """
         items = self.get(sel)
+        self.log.debug("Enable %s elements %s: %s", state, sel, items)
         for item in items:
             item.set("enabled", 'true' if state else 'false')
 
@@ -1395,6 +1429,7 @@ class JTLReader(ResultsReader):
 
     def __init__(self, filename, parent_logger, errors_filename):
         super(JTLReader, self).__init__()
+        self.is_distributed = False
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.csvreader = IncrementalCSVReader(self.log, filename)
         if errors_filename:
@@ -1413,7 +1448,13 @@ class JTLReader(ResultsReader):
 
         for row in self.csvreader.read(last_pass):
             label = row["label"]
-            concur = int(row["allThreads"])
+            if self.is_distributed:
+                concur = int(row["grpThreads"])
+                trname = row["threadName"][:row["threadName"].rfind(' ')]
+            else:
+                concur = int(row["allThreads"])
+                trname = ''
+
             rtm = int(row["elapsed"]) / 1000.0
             ltc = int(row["Latency"]) / 1000.0
             if "Connect" in row:
@@ -1433,7 +1474,7 @@ class JTLReader(ResultsReader):
                 error = None
 
             tstmp = int(int(row["timeStamp"]) / 1000)
-            yield tstmp, label, concur, rtm, cnn, ltc, rcd, error
+            yield tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname
 
     def _calculate_datapoints(self, final_pass=False):
         for point in super(JTLReader, self)._calculate_datapoints(final_pass):
@@ -1535,7 +1576,6 @@ class IncrementalCSVReader(csv.DictReader, object):
 
     def __del__(self):
         if self.fds:
-            logging.debug("Closing file descriptor for %s", self.filename)
             self.fds.close()
 
 
@@ -1562,7 +1602,6 @@ class JTLErrorsReader(object):
 
     def __del__(self):
         if self.fds:
-            self.log.debug("Closing file descriptor for %s", self.filename)
             self.fds.close()
 
     def read_file(self, final_pass=False):
