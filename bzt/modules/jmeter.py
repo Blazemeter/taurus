@@ -49,7 +49,7 @@ except ImportError:
         import elementtree.ElementTree as etree
 
 from six.moves.urllib.request import URLopener
-from six.moves.urllib.parse import urlsplit
+from six.moves.urllib.parse import urlsplit, parse_qsl
 
 EXE_SUFFIX = ".bat" if platform.system() == 'Windows' else ""
 
@@ -94,14 +94,11 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.distributed_servers = self.execution.get('distributed', self.distributed_servers)
         scenario = self.get_scenario()
         self.resource_files()
-        system_props = self.settings.get("system-properties")
+
         if Scenario.SCRIPT in scenario:
             self.original_jmx = self.__get_script()
             self.engine.existing_artifact(self.original_jmx)
         elif "requests" in scenario:
-            if system_props:
-                if not system_props.get("sun.net.inetaddr.ttl"):
-                    system_props["sun.net.inetaddr.ttl"] = 0
             self.original_jmx = self.__jmx_from_requests()
         else:
             raise ValueError("There must be a JMX file to run JMeter")
@@ -110,9 +107,12 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         self.modified_jmx = self.__get_modified_jmx(self.original_jmx, load)
 
+        system_props = self.settings.get("system-properties")
         props = self.settings.get("properties")
         props_local = scenario.get("properties")
         props.merge(props_local)
+        if scenario.get("use-dns-cache-mgr"):
+            system_props["sun.net.inetaddr.ttl"] = 0
         props['user.classpath'] = self.engine.artifacts_dir.replace(os.path.sep, "/")  # replace to avoid Windows issue
         if props:
             self.log.debug("Additional properties: %s", props)
@@ -1153,7 +1153,29 @@ class JMX(object):
 
         udv_element.append(udv_collection_prop)
         return udv_element
+    @staticmethod
+    def add_arguments_to_def_req(arg_tuple):
+        """
+        Used in http_defaults
+        :param arg_tuple: tuple from parse_qs
+        :return:
+        """
+        udv_collection_prop = JMX._collection_prop("Arguments.arguments")
+        for key, value in arg_tuple:
+            http_arg_element = JMX._element_prop(key, "HTTPArgument")
+            encode_prop = JMX._bool_prop("HTTPArgument.always_encode", False)
+            arg_val = JMX._string_prop("Argument.value", value)
+            arg_meta = JMX._string_prop("Argument.metadata", "=")
+            arg_use_eq = JMX._bool_prop("HTTPArgument.use_equals", True)
+            arg_name = JMX._string_prop("Argument.name", key)
+            http_arg_element.append(encode_prop)
+            http_arg_element.append(arg_val)
+            http_arg_element.append(arg_meta)
+            http_arg_element.append(arg_use_eq)
+            http_arg_element.append(arg_name)
+            udv_collection_prop.append(http_arg_element)
 
+        return udv_collection_prop
     @staticmethod
     def _get_dns_cache_mgr():
         """
@@ -1167,22 +1189,6 @@ class JMX(object):
         dns_element.append(JMX._bool_prop("DNSCacheManager.clearEachIteration", False))
         dns_element.append(JMX._bool_prop("DNSCacheManager.isCustomResolver", False))
         return dns_element
-
-    def requests_to_http_client4(self):
-        """
-        Change http requests to HTTPClient4 implementation
-        :return:
-        """
-        tar_implementation = "HttpClient4"
-        http_requests = self.tree.findall(".//HTTPSamplerProxy")
-        for http_req in http_requests:
-            implementation = http_req.find(".//stringProp[@name='HTTPSampler.implementation']")
-            if implementation:
-                implementation.text = tar_implementation
-            else:
-                http_req.append(JMX._string_prop("HTTPSampler.implementation", tar_implementation))
-
-
 
     @staticmethod
     def _get_header_mgr(hdict):
@@ -1242,7 +1248,7 @@ class JMX(object):
                                elementType="Arguments",
                                guiclass="HTTPArgumentsPanel",
                                testclass="Arguments", testname="user_defined")
-        cfg.append(params)
+
         if default_url:
             parsed_url = urlsplit(default_url)
             if parsed_url.scheme:
@@ -1253,7 +1259,10 @@ class JMX(object):
                 cfg.append(JMX._string_prop("HTTPSampler.port", parsed_url.port))
             if parsed_url.path:
                 cfg.append(JMX._string_prop("HTTPSampler.path", parsed_url.path))
-
+            if parsed_url.query:
+                query_params = parse_qsl(parsed_url.query)
+                params.append(JMX.add_arguments_to_def_req(query_params))
+        cfg.append(params)
         if timeout:
             cfg.append(JMX._string_prop("HTTPSampler.connect_timeout", timeout))
             cfg.append(JMX._string_prop("HTTPSampler.response_timeout", timeout))
@@ -1776,8 +1785,9 @@ class JMeterScenarioBuilder(JMX):
         if self.scenario.get("store-cookie", True):
             self.append(self.TEST_PLAN_SEL, self._get_cookie_mgr())
             self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
-        self.append(self.TEST_PLAN_SEL, self._get_dns_cache_mgr())
-        self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
+        if self.scenario.get("use-dns-cache-mgr", True):
+            self.append(self.TEST_PLAN_SEL, self._get_dns_cache_mgr())
+            self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
 
     def __add_defaults(self):
         """

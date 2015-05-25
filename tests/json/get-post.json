@@ -96,6 +96,7 @@
       "think-time": 0.5,
       "default-url": "https://www.somehost.com:884/location/script.aspx?param1=test&param2=test2",
       "keepalive": false,
+      "use-dns-cache-mgr": true,
       "concurrent-pool-size": 10,
       "disable-listeners": true,
       "data-sources": [

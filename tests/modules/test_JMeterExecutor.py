@@ -240,7 +240,7 @@ class TestJMeterExecutor(BZTestCase):
         obj.execution = obj.engine.config['execution']
         obj.prepare()
         artifacts = os.listdir(obj.engine.artifacts_dir)
-        self.assertEqual(len(artifacts), 6)
+        self.assertEqual(len(artifacts), 7)  # + system.properties
         target_jmx = os.path.join(obj.engine.artifacts_dir, "modified_requests.jmx.jmx")
         self.__check_path_resource_files(target_jmx, exclude_jtls=True)
 
@@ -392,10 +392,6 @@ class TestJMeterExecutor(BZTestCase):
         sys_prop = open(os.path.join(obj.engine.artifacts_dir, "system.properties")).read()
         self.assertTrue("any_prop=true" in sys_prop)
         self.assertTrue("sun.net.inetaddr.ttl=0" in sys_prop)
-#        for request in requests:
-#            implementation = request.find(".//stringProp[@name='HTTPSampler.implementation']")
-#            self.assertEqual(implementation.text, "HttpClient4")
-#        self.assertTrue(obj.sys_properties_file.endswith("system.properties"))
 
     def test_dns_cache_mgr_script(self):
         """
