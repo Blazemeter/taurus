@@ -45,7 +45,9 @@ class PassFailStatus(Reporter, AggregatorListener, WidgetProvider):
                 crit_config = FailCriteria.string_to_config(crit_config)
                 self.parameters['criterias'][idx] = crit_config
             crit = load_class(crit_config.get('type', FailCriteria.__module__ + "." + FailCriteria.__name__))
-            self.criterias.append(crit(crit_config))
+            crit_instance = crit(crit_config)
+            crit_instance.owner = self
+            self.criterias.append(crit_instance)
 
     def post_process(self):
         super(PassFailStatus, self).post_process()
@@ -98,7 +100,7 @@ class FailCriteria(object):
 
     + overall and by label => label
     + stop test and not (what to do then??) => stop
-    cumulative and last / instant or windowed => window size
+    + cumulative and last / instant or windowed => window size
     steady and threshold
     negate condition
 
@@ -107,12 +109,15 @@ class FailCriteria(object):
     and trigger countdown for windowed
 
     :type config: dict
+    :type owner: PassFailStatus
     """
 
     def __init__(self, config):
         super(FailCriteria, self).__init__()
+        self.owner = None
         self.config = config
         self.get_value = self.__get_field_functor(config['subject'], str(config['threshold']).endswith('%'))
+        self.agg_logic = self.__get_aggregator_functor(config['logic'], config['subject'])
         self.condition = self.__get_condition_functor(config['condition'])
         self.label = config.get('label', '')
         self.threshold = dehumanize_time(config['threshold'])
@@ -142,8 +147,9 @@ class FailCriteria(object):
                 self.config['subject'],
                 self.config['condition'],
                 self.config['threshold'],
+                self.config['logic'],
                 self.counting)
-        return "%s: %s%s%s for %s sec" % data
+        return "%s: %s%s%s %s %s sec" % data
 
     def __count(self, data):
         self.ended = data[DataPoint.TIMESTAMP]
@@ -162,7 +168,7 @@ class FailCriteria(object):
         part = data[self.selector]
         if self.label not in part:
             return
-        value = self.get_value(part[self.label])
+        value = self.agg_logic(data[DataPoint.TIMESTAMP], self.get_value(part[self.label]))
 
         state = self.condition(value, self.threshold)
         if not state:
@@ -190,8 +196,6 @@ class FailCriteria(object):
             else:
                 return True
         return False
-
-    # TODO: support aggregative algo, maybe like 'within' instead of 'for'
 
     def __get_field_functor(self, subject, percentage):
         if subject == 'avg-rt':
@@ -269,6 +273,7 @@ class FailCriteria(object):
             "subject": None,
             "condition": None,
             "threshold": None,
+            "logic": "for",
             "timeframe": -1,
             "label": "",
             "stop": True,
@@ -282,7 +287,7 @@ class FailCriteria(object):
         else:
             action_str = ""
 
-        crit_pat = re.compile(r"([\w\?-]+)(\s*of\s*([\S ]+))?([<>=]+)(\S+)(\s+for\s+(\S+))?")
+        crit_pat = re.compile(r"([\w\?-]+)(\s*of\s*([\S ]+))?([<>=]+)(\S+)(\s+(for|within)\s+(\S+))?")
         crit_match = crit_pat.match(crit_str.strip())
         if not crit_match:
             raise ValueError("Criteria string is mailformed in its condition part: %s" % crit_str)
@@ -293,7 +298,9 @@ class FailCriteria(object):
         if crit_groups[2]:
             res["label"] = crit_groups[2]
         if crit_groups[6]:
-            res["timeframe"] = crit_groups[6]
+            res["logic"] = crit_groups[6]
+        if crit_groups[7]:
+            res["timeframe"] = crit_groups[7]
 
         if action_str:
             action_pat = re.compile(r"(stop|continue)(\s+as\s+(failed|non-failed))?")
@@ -305,6 +312,26 @@ class FailCriteria(object):
             res["fail"] = action_groups[2] == "failed"
 
         return res
+
+    def __get_aggregator_functor(self, logic, subject):
+        if logic == 'for':
+            return lambda x: x
+        elif logic == 'within':
+            if subject in ('hits',) \
+                    or subject.startswith('succ') \
+                    or subject.startswith('fail') \
+                    or subject.startswith('rc'):
+                return self.__within_aggregator_sum
+            else:
+                return self.__within_aggregator_avg
+        else:
+            raise ValueError("Unsupported window logic: %s", logic)
+
+    def __within_aggregator_sum(self, tstmp, value):
+        pass
+
+    def __within_aggregator_avg(self, tstmp, value):
+        pass
 
 
 class PassFailWidget(urwid.Pile):
@@ -349,4 +376,3 @@ class PassFailWidget(urwid.Pile):
             widget_text = self.__prepare_colors()
             self.text_widget.set_text(widget_text)
         self._invalidate()
-
