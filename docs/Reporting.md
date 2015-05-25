@@ -221,3 +221,5 @@ modules:
 ```
 
 Note that increasing `buffer-seconds` might sometimes make results aggregation more robust, by price of delaying analysis.
+
+![Analytics](https://ga-beacon.appspot.com/UA-63369152-1/taurus/reporting)

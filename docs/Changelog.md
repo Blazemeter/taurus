@@ -51,3 +51,5 @@
   - Added parameters for final_stats reporter
   - Added ability to generate query string based on parameters and request type.
  
+
+![Analytics](https://ga-beacon.appspot.com/UA-63369152-1/taurus/changelog)

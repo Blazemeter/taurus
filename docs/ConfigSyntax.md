@@ -186,3 +186,4 @@ Now you are able to start this file on its own:
 ./myscript.yml -o execution.hold-for=5m
 ```
 
+![Analytics](https://ga-beacon.appspot.com/UA-63369152-1/taurus/cfgsyntax)

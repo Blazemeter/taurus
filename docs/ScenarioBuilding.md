@@ -213,3 +213,5 @@ scenarios:
               expect-null: false  # expected value is null
               invert: false # invert condition
 ```
+
+![Analytics](https://ga-beacon.appspot.com/UA-63369152-1/taurus/scenario)
