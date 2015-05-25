@@ -335,7 +335,7 @@ class FailCriteria(object):
 
     def __get_windowed_points(self, tstmp, value):
         self.agg_buffer[tstmp] = value
-        for tstmp_old in self.agg_buffer.iterkeys():
+        for tstmp_old in self.agg_buffer.keys():
             if tstmp_old <= tstmp - self.window:
                 del self.agg_buffer[tstmp_old]
                 continue
