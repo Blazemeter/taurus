@@ -46,8 +46,7 @@ class PassFailStatus(Reporter, AggregatorListener, WidgetProvider):
                 crit_config = FailCriteria.string_to_config(crit_config)
                 self.parameters['criterias'][idx] = crit_config
             crit = load_class(crit_config.get('type', FailCriteria.__module__ + "." + FailCriteria.__name__))
-            crit_instance = crit(crit_config)
-            self.criterias.append(crit_instance)
+            self.criterias.append(crit(crit_config))
 
     def post_process(self):
         super(PassFailStatus, self).post_process()
