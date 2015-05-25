@@ -94,8 +94,7 @@
       "store-cookie": true,
       "timeout": 1,
       "think-time": 0.5,
-      "default-domain": "localhost",
-      "default-port": 80,
+      "default-domain": "https://www.somehost.com:884/location/script.aspx?param1=test&param2=test2",
       "keepalive": false,
       "concurrent-pool-size": 10,
       "disable-listeners": true,
@@ -132,7 +131,13 @@
   },
   "modules": {
     "jmeter": {
-      "path": "build/jmeter/bin/jmeter"
+      "path": "build/jmeter/bin/jmeter",
+      "properties":{
+        "jmeter.save.saveservice.autoflush": "true"
+      },
+      "system-properties": {
+      "any_prop": "true"
+      }
     }
   }
 }

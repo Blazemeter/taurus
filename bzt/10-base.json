@@ -17,6 +17,9 @@
         "summariser.name": "",
         "mode": "Stripped"
       },
+      "system-properties":{
+        "sun.net.http.allowRestrictedHeaders": "true"
+      },
       "path": "~/jmeter-taurus/bin/jmeter"
     },
     "grinder": {

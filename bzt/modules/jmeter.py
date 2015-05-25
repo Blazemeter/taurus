@@ -49,6 +49,7 @@ except ImportError:
         import elementtree.ElementTree as etree
 
 from six.moves.urllib.request import URLopener
+from six.moves.urllib.parse import urlsplit
 
 EXE_SUFFIX = ".bat" if platform.system() == 'Windows' else ""
 
@@ -93,10 +94,14 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.distributed_servers = self.execution.get('distributed', self.distributed_servers)
         scenario = self.get_scenario()
         self.resource_files()
+        system_props = self.engine.config.get("modules").get("jmeter").get("system-properties", None)
         if Scenario.SCRIPT in scenario:
             self.original_jmx = self.__get_script()
             self.engine.existing_artifact(self.original_jmx)
         elif "requests" in scenario:
+            if system_props:
+                if not system_props.get("sun.net.inetaddr.ttl"):
+                    system_props["sun.net.inetaddr.ttl"] = 0
             self.original_jmx = self.__jmx_from_requests()
         else:
             raise ValueError("There must be a JMX file to run JMeter")
@@ -116,6 +121,14 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 for key, val in six.iteritems(props):
                     fds.write("%s=%s\n" % (key, val))
             self.properties_file = props_file
+
+        if system_props:
+            self.log.debug("Additional system properties %s", system_props)
+            sys_props_file = self.engine.create_artifact("system", ".properties")
+            with open(sys_props_file, 'w') as fds:
+                for key, val in six.iteritems(system_props):
+                    fds.write("%s=%s\n" % (key, val))
+            self.sys_properties_file = sys_props_file
 
         self.reader = JTLReader(self.kpi_jtl, self.log, self.errors_jtl)
         self.reader.is_distributed = self.distributed_servers
@@ -380,12 +393,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if self.distributed_servers and rename_threads:
             self.__rename_thread_groups(jmx)
 
-        if self.get_scenario().get("use-dns-cache-mgr", False):
-            jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, jmx.add_dns_cache_mgr())
-            jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
-            jmx.requests_to_http_client4()
-            self.__add_system_prop_file()
-
         self.kpi_jtl = self.engine.create_artifact("kpi", ".jtl")
         kpil = jmx.new_kpi_listener(self.kpi_jtl)
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, kpil)
@@ -595,16 +602,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             for candidate in candidates:
                 if fnmatch.fnmatch(candidate.get('testname'), name):
                     jmx.set_enabled("[testname='%s']" % candidate.get('testname'), True if action == 'enable' else False)
-
-    def __add_system_prop_file(self):
-        """
-        In case of usage dns cache mgr
-        :return:
-        """
-        self.sys_properties_file = self.engine.create_artifact("system", ".properties")
-        with open(self.sys_properties_file, 'wt') as sp_fds:
-            sp_fds.write("sun.net.http.allowRestrictedHeaders=true\n")
-            sp_fds.write("sun.net.inetaddr.ttl=0")
 
     def __jmeter_check(self, jmeter):
         """
@@ -1157,7 +1154,7 @@ class JMX(object):
         return udv_element
 
     @staticmethod
-    def add_dns_cache_mgr():
+    def _get_dns_cache_mgr():
         """
         Adds dns cache element with defaults parameters
 
@@ -1224,7 +1221,7 @@ class JMX(object):
         return mgr
 
     @staticmethod
-    def _get_http_defaults(default_domain_name, default_port, timeout, retrieve_resources, concurrent_pool_size=4):
+    def _get_http_defaults(default_domain_name, timeout, retrieve_resources, concurrent_pool_size=4):
         """
 
         :type timeout: int
@@ -1246,9 +1243,15 @@ class JMX(object):
                 cfg.append(JMX._string_prop("HTTPSampler.concurrentPool", concurrent_pool_size))
 
         if default_domain_name:
-            cfg.append(JMX._string_prop("HTTPSampler.domain", default_domain_name))
-        if default_port:
-            cfg.append(JMX._string_prop("HTTPSampler.port", default_port))
+            parsed_url = urlsplit(default_domain_name)
+            if parsed_url.scheme:
+                cfg.append(JMX._string_prop("HTTPSampler.protocol", parsed_url.scheme))
+            if parsed_url.hostname:
+                cfg.append(JMX._string_prop("HTTPSampler.domain", parsed_url.hostname))
+            if parsed_url.port:
+                cfg.append(JMX._string_prop("HTTPSampler.port", parsed_url.port))
+            if parsed_url.path:
+                cfg.append(JMX._string_prop("HTTPSampler.path", parsed_url.path))
         if timeout:
             cfg.append(JMX._string_prop("HTTPSampler.connect_timeout", timeout))
             cfg.append(JMX._string_prop("HTTPSampler.response_timeout", timeout))
@@ -1771,6 +1774,8 @@ class JMeterScenarioBuilder(JMX):
         if self.scenario.get("store-cookie", True):
             self.append(self.TEST_PLAN_SEL, self._get_cookie_mgr())
             self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
+        self.append(self.TEST_PLAN_SEL, self._get_dns_cache_mgr())
+        self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
 
     def __add_defaults(self):
         """
@@ -1778,13 +1783,12 @@ class JMeterScenarioBuilder(JMX):
         :return:
         """
         default_domain = self.scenario.get("default-domain", None)
-        default_port = self.scenario.get("default-port", None)
         retrieve_resources = self.scenario.get("retrieve-resources", True)
         concurrent_pool_size = self.scenario.get("concurrent-pool-size", 4)
 
         timeout = self.scenario.get("timeout", None)
         timeout = int(1000 * dehumanize_time(timeout))
-        self.append(self.TEST_PLAN_SEL, self._get_http_defaults(default_domain, default_port, timeout,
+        self.append(self.TEST_PLAN_SEL, self._get_http_defaults(default_domain, timeout,
                                                                 retrieve_resources, concurrent_pool_size))
         self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
 
