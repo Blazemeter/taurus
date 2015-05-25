@@ -94,7 +94,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.distributed_servers = self.execution.get('distributed', self.distributed_servers)
         scenario = self.get_scenario()
         self.resource_files()
-        system_props = self.engine.config.get("modules").get("jmeter").get("system-properties", None)
+        system_props = self.settings.get("system-properties")
         if Scenario.SCRIPT in scenario:
             self.original_jmx = self.__get_script()
             self.engine.existing_artifact(self.original_jmx)
@@ -1127,7 +1127,8 @@ class JMX(object):
         coll_prop.append(duration_prop)
         shaper_collection.append(coll_prop)
 
-    def add_user_def_vars_elements(self, udv_dict):
+    @staticmethod
+    def add_user_def_vars_elements(udv_dict):
         """
 
         :param udv_dict:
@@ -1136,14 +1137,14 @@ class JMX(object):
 
         udv_element = etree.Element("Arguments", guiclass="ArgumentsPanel", testclass="Arguments",
                                     testname="my_defined_vars")
-        udv_collection_prop = self._collection_prop("Arguments.arguments")
+        udv_collection_prop = JMX._collection_prop("Arguments.arguments")
 
         for var_name, var_value in udv_dict.items():
-            udv_element_prop = self._element_prop(var_name, "Argument")
-            udv_arg_name_prop = self._string_prop("Argument.name", var_name)
-            udv_arg_value_prop = self._string_prop("Argument.value", var_value)
-            udv_arg_desc_prop = self._string_prop("Argument.desc", "")
-            udv_arg_meta_prop = self._string_prop("Argument.metadata", "=")
+            udv_element_prop = JMX._element_prop(var_name, "Argument")
+            udv_arg_name_prop = JMX._string_prop("Argument.name", var_name)
+            udv_arg_value_prop = JMX._string_prop("Argument.value", var_value)
+            udv_arg_desc_prop = JMX._string_prop("Argument.desc", "")
+            udv_arg_meta_prop = JMX._string_prop("Argument.metadata", "=")
             udv_element_prop.append(udv_arg_name_prop)
             udv_element_prop.append(udv_arg_value_prop)
             udv_element_prop.append(udv_arg_desc_prop)
@@ -1221,7 +1222,7 @@ class JMX(object):
         return mgr
 
     @staticmethod
-    def _get_http_defaults(default_domain_name, timeout, retrieve_resources, concurrent_pool_size=4):
+    def _get_http_defaults(default_url, timeout, retrieve_resources, concurrent_pool_size=4):
         """
 
         :type timeout: int
@@ -1230,20 +1231,20 @@ class JMX(object):
         cfg = etree.Element("ConfigTestElement", guiclass="HttpDefaultsGui",
                             testclass="ConfigTestElement", testname="Defaults")
 
-        params = etree.Element("elementProp",
-                               name="HTTPsampler.Arguments",
-                               elementType="Arguments",
-                               guiclass="HTTPArgumentsPanel",
-                               testclass="Arguments", testname="user_defined")
-        cfg.append(params)
         if retrieve_resources:
             cfg.append(JMX._bool_prop("HTTPSampler.image_parser", True))
             cfg.append(JMX._bool_prop("HTTPSampler.concurrentDwn", True))
             if concurrent_pool_size:
                 cfg.append(JMX._string_prop("HTTPSampler.concurrentPool", concurrent_pool_size))
 
-        if default_domain_name:
-            parsed_url = urlsplit(default_domain_name)
+        params = etree.Element("elementProp",
+                               name="HTTPsampler.Arguments",
+                               elementType="Arguments",
+                               guiclass="HTTPArgumentsPanel",
+                               testclass="Arguments", testname="user_defined")
+        cfg.append(params)
+        if default_url:
+            parsed_url = urlsplit(default_url)
             if parsed_url.scheme:
                 cfg.append(JMX._string_prop("HTTPSampler.protocol", parsed_url.scheme))
             if parsed_url.hostname:
@@ -1252,6 +1253,7 @@ class JMX(object):
                 cfg.append(JMX._string_prop("HTTPSampler.port", parsed_url.port))
             if parsed_url.path:
                 cfg.append(JMX._string_prop("HTTPSampler.path", parsed_url.path))
+
         if timeout:
             cfg.append(JMX._string_prop("HTTPSampler.connect_timeout", timeout))
             cfg.append(JMX._string_prop("HTTPSampler.response_timeout", timeout))
@@ -1782,13 +1784,13 @@ class JMeterScenarioBuilder(JMX):
 
         :return:
         """
-        default_domain = self.scenario.get("default-domain", None)
+        default_url = self.scenario.get("default-url", None)
         retrieve_resources = self.scenario.get("retrieve-resources", True)
         concurrent_pool_size = self.scenario.get("concurrent-pool-size", 4)
 
         timeout = self.scenario.get("timeout", None)
         timeout = int(1000 * dehumanize_time(timeout))
-        self.append(self.TEST_PLAN_SEL, self._get_http_defaults(default_domain, timeout,
+        self.append(self.TEST_PLAN_SEL, self._get_http_defaults(default_url, timeout,
                                                                 retrieve_resources, concurrent_pool_size))
         self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
 

@@ -240,7 +240,7 @@ class TestJMeterExecutor(BZTestCase):
         obj.execution = obj.engine.config['execution']
         obj.prepare()
         artifacts = os.listdir(obj.engine.artifacts_dir)
-        self.assertEqual(len(artifacts), 7) # + system.propertes
+        self.assertEqual(len(artifacts), 6)
         target_jmx = os.path.join(obj.engine.artifacts_dir, "modified_requests.jmx.jmx")
         self.__check_path_resource_files(target_jmx, exclude_jtls=True)
 
@@ -382,6 +382,7 @@ class TestJMeterExecutor(BZTestCase):
         obj.engine = EngineEmul()
         obj.engine.config = json.loads(open("tests/json/get-post.json").read())
         obj.execution = obj.engine.config['execution']
+        obj.settings.merge(obj.engine.config.get("modules").get("jmeter"))
         obj.prepare()
         xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
         dns_managers = xml_tree.findall(".//DNSCacheManager")
@@ -407,6 +408,7 @@ class TestJMeterExecutor(BZTestCase):
         obj.engine.config.merge(yaml.load(open("tests/yaml/dns_mgr_script.yml").read()))
         obj.engine.config.merge({"provisioning": "local"})
         obj.execution = obj.engine.config['execution']
+        obj.settings.merge(obj.engine.config.get("modules").get("jmeter"))
         obj.prepare()
         xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
         dns_managers = xml_tree.findall(".//DNSCacheManager")

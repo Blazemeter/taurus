@@ -94,7 +94,7 @@
       "store-cookie": true,
       "timeout": 1,
       "think-time": 0.5,
-      "default-domain": "https://www.somehost.com:884/location/script.aspx?param1=test&param2=test2",
+      "default-url": "https://www.somehost.com:884/location/script.aspx?param1=test&param2=test2",
       "keepalive": false,
       "concurrent-pool-size": 10,
       "disable-listeners": true,
