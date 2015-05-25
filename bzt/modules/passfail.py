@@ -15,6 +15,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+from collections import OrderedDict
 import fnmatch
 import logging
 import re
@@ -46,7 +47,6 @@ class PassFailStatus(Reporter, AggregatorListener, WidgetProvider):
                 self.parameters['criterias'][idx] = crit_config
             crit = load_class(crit_config.get('type', FailCriteria.__module__ + "." + FailCriteria.__name__))
             crit_instance = crit(crit_config)
-            crit_instance.owner = self
             self.criterias.append(crit_instance)
 
     def post_process(self):
@@ -109,12 +109,11 @@ class FailCriteria(object):
     and trigger countdown for windowed
 
     :type config: dict
-    :type owner: PassFailStatus
     """
 
     def __init__(self, config):
         super(FailCriteria, self).__init__()
-        self.owner = None
+        self.agg_buffer = OrderedDict()
         self.config = config
         self.get_value = self.__get_field_functor(config['subject'], str(config['threshold']).endswith('%'))
         self.agg_logic = self.__get_aggregator_functor(config['logic'], config['subject'])
@@ -328,10 +327,21 @@ class FailCriteria(object):
             raise ValueError("Unsupported window logic: %s", logic)
 
     def __within_aggregator_sum(self, tstmp, value):
-        pass
+        return sum(self.__get_windowed_points(tstmp, value))
 
     def __within_aggregator_avg(self, tstmp, value):
-        pass
+        points = self.__get_windowed_points(tstmp, value)
+        return sum(points) / len(points)
+
+    def __get_windowed_points(self, tstmp, value):
+        self.agg_buffer[tstmp] = value
+        for tstmp_old in self.agg_buffer.iterkeys():
+            if tstmp_old <= tstmp - self.window:
+                del self.agg_buffer[tstmp_old]
+                continue
+            break
+
+        return six.viewvalues(self.agg_buffer)
 
 
 class PassFailWidget(urwid.Pile):

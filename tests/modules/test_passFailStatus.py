@@ -82,15 +82,16 @@ class TestPassFailStatus(BZTestCase):
     def test_within(self):
         obj = PassFailStatus()
         obj.parameters = {"criterias": [
-            "avg-rt of label>100ms within 1m",
-            "succ>100 within 1m",
+            "fail>1000 within 5s",
+            "avg-rt>100ms within 10s",
         ]}
         obj.prepare()
 
         start_time = time.time()
-        for _n in range(0, 10):
+        for _n in range(0, 20):
             point = random_datapoint(start_time)
-            point[DataPoint.CURRENT]['']["avg_rt"] = 1.0
             obj.aggregated_second(point)
+            if _n % 2 == 0:
+                obj.check()
             obj.check()
             start_time += 1
