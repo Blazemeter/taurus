@@ -116,7 +116,7 @@ class FailCriteria(object):
         self.agg_buffer = OrderedDict()
         self.config = config
         self.get_value = self.__get_field_functor(config['subject'], str(config['threshold']).endswith('%'))
-        self.agg_logic = self.__get_aggregator_functor(config['logic'], config['subject'])
+        self.agg_logic = self.__get_aggregator_functor(config.get('logic', 'for'), config['subject'])
         self.condition = self.__get_condition_functor(config['condition'])
         self.label = config.get('label', '')
         self.threshold = dehumanize_time(config['threshold'])
@@ -146,7 +146,7 @@ class FailCriteria(object):
                 self.config['subject'],
                 self.config['condition'],
                 self.config['threshold'],
-                self.config['logic'],
+                self.config.get('logic', 'for'),
                 self.counting)
         return "%s: %s%s%s %s %s sec" % data
 
@@ -314,7 +314,7 @@ class FailCriteria(object):
 
     def __get_aggregator_functor(self, logic, subject):
         if logic == 'for':
-            return lambda x: x
+            return lambda tstmp, value: value
         elif logic == 'within':
             if subject in ('hits',) \
                     or subject.startswith('succ') \
