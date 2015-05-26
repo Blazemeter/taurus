@@ -38,3 +38,5 @@ execution:
 ```
 
 Then run `bzt test.yml`. After the tool finishes, observe resulting summary stats in console log (more reporting options [here](docs/Reporting.md)). All artifact files from the run will be placed in the directory mentioned in console log. Read more on command-line tool usage [here](docs/CommandLine.md).
+
+![Analytics](https://ga-beacon.appspot.com/UA-63369152-1/taurus/readme)

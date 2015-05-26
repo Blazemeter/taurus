@@ -1,5 +1,8 @@
 # Changelog
 
+# 0.2.20
+  - add `within` logic to timeframed pass-fail criterias 
+
 # 0.2.19
   - fixed bug when in distributed tests VU count was not calculated properly.
   - auto-append `${__machineName()}` for thread names in distributed test
@@ -51,3 +54,5 @@
   - Added parameters for final_stats reporter
   - Added ability to generate query string based on parameters and request type.
  
+
+![Analytics](https://ga-beacon.appspot.com/UA-63369152-1/taurus/changelog)
