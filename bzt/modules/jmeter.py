@@ -69,7 +69,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.jmeter_log = None
         self.properties_file = None
         self.sys_properties_file = None
-        self.sys_props = None
         self.kpi_jtl = None
         self.errors_jtl = None
         self.process = None
@@ -1216,7 +1215,7 @@ class JMX(object):
         return mgr
 
     @staticmethod
-    def _get_http_defaults(default_url, timeout, retrieve_resources, concurrent_pool_size=4):
+    def _get_http_defaults(default_address, timeout, retrieve_resources, concurrent_pool_size=4):
         """
 
         :type timeout: int
@@ -1237,8 +1236,8 @@ class JMX(object):
                                guiclass="HTTPArgumentsPanel",
                                testclass="Arguments", testname="user_defined")
         cfg.append(params)
-        if default_url:
-            parsed_url = urlsplit(default_url)
+        if default_address:
+            parsed_url = urlsplit(default_address)
             if parsed_url.scheme:
                 cfg.append(JMX._string_prop("HTTPSampler.protocol", parsed_url.scheme))
             if parsed_url.hostname:
