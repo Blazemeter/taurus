@@ -58,8 +58,7 @@ scenarios:
       header-name: header-value
     think-time: 1s500ms  # global delay between each request
     timeout: 500ms  #  timeout for connecting, receiving results
-    default-domain: "blazedemo.com"  # http request defaults, server name
-    default-port: 80  # http request defaults, port
+    default-address: "https://www.blazedemo.com:8080"  # http request defaults scheme, domain, port
     keepalive: true  # true by default, applied on all requests in scenario
     retrieve-resources: true  # true by default, retrieves all embedded resources from HTML pages
     concurrent-pool-size: 4  # concurrent pool size for resources download, 4 by default
