@@ -355,3 +355,11 @@ class TestJMeterExecutor(BZTestCase):
             self.assertTrue(thread_group.attrib["testname"].startswith(prepend_str))
 
 
+    def test_stepping_thread_group(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = BetterDict()
+        obj.engine.config.merge(yaml.load(open("tests/yaml/stepping_ramp_up.yml").read()))
+        obj.engine.config.merge({"provisioning": "local"})
+        obj.execution = obj.engine.config['execution']
+        obj.prepare()

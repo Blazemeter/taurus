@@ -1037,6 +1037,18 @@ class JMX(object):
         return res
 
     @staticmethod
+    def _int_prop(name, value):
+        """
+        JMX int property
+        :param name:
+        :param value:
+        :return:
+        """
+        res = etree.Element("boolProp", name=name)
+        res.text = str(value)
+        return res
+
+    @staticmethod
     def _get_thread_group(concurrency=None, rampup=None, iterations=None):
         """
         Generates ThreadGroup with 1 thread and 1 loop
@@ -1136,6 +1148,35 @@ class JMX(object):
 
         udv_element.append(udv_collection_prop)
         return udv_element
+
+    @staticmethod
+    def get_stepping_thread_group(concurrency, step_threads, step_time, hold_for):
+        """
+        :return: etree element, Stepping Thread Group
+        """
+        stepping_thread_group = etree.Element("kg.apc.jmeter.threads.SteppingThreadGroup",
+                                                 guiclass="kg.apc.jmeter.threads.SteppingThreadGroupGui",
+                                                 testclass="kg.apc.jmeter.threads.SteppingThreadGroup",
+                                                 testname="jp@gc - Stepping Thread Group",
+                                                 enabled="true")
+        stepping_thread_group.append(JMX._string_prop("ThreadGroup.on_sample_error", "continue"))
+        stepping_thread_group.append(JMX._string_prop("ThreadGroup.num_threads", concurrency))
+        stepping_thread_group.append(JMX._string_prop("Threads initial delay", 0))
+        stepping_thread_group.append(JMX._string_prop("Start users count", step_threads))
+        stepping_thread_group.append(JMX._string_prop("Start users count burst", 0))
+        stepping_thread_group.append(JMX._string_prop("Start users period", step_time))
+        stepping_thread_group.append(JMX._string_prop("Stop users count", ""))
+        stepping_thread_group.append(JMX._string_prop("Stop users period", 1))
+        stepping_thread_group.append(JMX._string_prop("flighttime", hold_for))
+        stepping_thread_group.append(JMX._string_prop("rampUp", 0))
+
+        loop_controller = etree.Element("elementProp", name="ThreadGroup.main_controller", elementType="LoopController",
+                                        guiclass="LoopControlPanel", testclass="LoopController",
+                                        testname="Loop Controller", enabled="true")
+        loop_controller.append(JMX._bool_prop("LoopController.continue_forever", False))
+        loop_controller.append(JMX._int_prop("LoopController.loops", -1))
+
+        stepping_thread_group.append(loop_controller)
 
     @staticmethod
     def _get_header_mgr(hdict):

@@ -1,0 +1,8 @@
+---
+execution: 
+  concurrency: 100
+  ramp-up: 100s
+  steps: 5
+  hold-for: 2m
+  scenario: 
+    script: tests/jmx/http.jmx
