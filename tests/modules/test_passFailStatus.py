@@ -82,6 +82,7 @@ class TestPassFailStatus(BZTestCase):
     def test_within(self):
         obj = PassFailStatus()
         obj.parameters = {"criterias": [
+            "fail>10% within 5s",
             "fail>1000 within 5s",
             "avg-rt>100ms within 10s",
         ]}
