@@ -7,12 +7,11 @@ import shutil
 import yaml
 import sys
 
+from tests import setup_test_logging, BZTestCase, __dir__
 from bzt.engine import Provisioning
 from bzt.modules.jmeter import JMeterExecutor, JMX, JTLErrorsReader, JTLReader
-from tests import setup_test_logging, BZTestCase, __dir__
 from tests.mocks import EngineEmul
 from bzt.utils import BetterDict
-
 
 try:
     from lxml import etree
@@ -347,7 +346,7 @@ class TestJMeterExecutor(BZTestCase):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
         obj.execution.merge({"scenario": {"script": "tests/jmx/http.jmx"}})
-        obj.distributed_servers=["127.0.0.1", "127.0.0.1"]
+        obj.distributed_servers = ["127.0.0.1", "127.0.0.1"]
         obj.prepare()
         xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
         thread_groups = xml_tree.findall(".//ThreadGroup")
@@ -378,7 +377,7 @@ class TestJMeterExecutor(BZTestCase):
         """
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
-        obj.engine.config = json.loads(open("tests/json/get-post.json").read())
+        obj.engine.config = json.loads(open(__dir__() + "/../../tests/json/get-post.json").read())
         obj.execution = obj.engine.config['execution']
         obj.settings.merge(obj.engine.config.get("modules").get("jmeter"))
         obj.prepare()
