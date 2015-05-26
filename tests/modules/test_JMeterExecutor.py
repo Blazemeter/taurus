@@ -258,8 +258,6 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual("www.somehost.com", default_element.find(".//stringProp[@name='HTTPSampler.domain']").text)
         self.assertEqual("884", default_element.find(".//stringProp[@name='HTTPSampler.port']").text)
         self.assertEqual("https", default_element.find(".//stringProp[@name='HTTPSampler.protocol']").text)
-        self.assertEqual("/location/script.aspx",
-                         default_element.find(".//stringProp[@name='HTTPSampler.path']").text)
         self.assertEqual("true", default_element.find(".//boolProp[@name='HTTPSampler.image_parser']").text)
         self.assertEqual("true", default_element.find(".//boolProp[@name='HTTPSampler.concurrentDwn']").text)
         self.assertEqual("10", default_element.find(".//stringProp[@name='HTTPSampler.concurrentPool']").text)

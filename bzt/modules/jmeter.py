@@ -49,7 +49,7 @@ except ImportError:
         import elementtree.ElementTree as etree
 
 from six.moves.urllib.request import URLopener
-from six.moves.urllib.parse import urlsplit, parse_qsl
+from six.moves.urllib.parse import urlsplit
 
 EXE_SUFFIX = ".bat" if platform.system() == 'Windows' else ""
 
@@ -69,6 +69,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.jmeter_log = None
         self.properties_file = None
         self.sys_properties_file = None
+        self.sys_props = None
         self.kpi_jtl = None
         self.errors_jtl = None
         self.process = None
@@ -94,7 +95,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.distributed_servers = self.execution.get('distributed', self.distributed_servers)
         scenario = self.get_scenario()
         self.resource_files()
-
         if Scenario.SCRIPT in scenario:
             self.original_jmx = self.__get_script()
             self.engine.existing_artifact(self.original_jmx)
@@ -102,32 +102,23 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.original_jmx = self.__jmx_from_requests()
         else:
             raise ValueError("There must be a JMX file to run JMeter")
-
         load = self.get_load()
-
         self.modified_jmx = self.__get_modified_jmx(self.original_jmx, load)
-
-        system_props = self.settings.get("system-properties")
+        sys_props = self.settings.get("system-properties")
         props = self.settings.get("properties")
         props_local = scenario.get("properties")
         props.merge(props_local)
-        if scenario.get("use-dns-cache-mgr"):
-            system_props["sun.net.inetaddr.ttl"] = 0
         props['user.classpath'] = self.engine.artifacts_dir.replace(os.path.sep, "/")  # replace to avoid Windows issue
         if props:
             self.log.debug("Additional properties: %s", props)
             props_file = self.engine.create_artifact("jmeter-bzt", ".properties")
-            with open(props_file, 'w') as fds:
-                for key, val in six.iteritems(props):
-                    fds.write("%s=%s\n" % (key, val))
+            JMeterExecutor.__write_props_to_file(props_file, props)
             self.properties_file = props_file
 
-        if system_props:
-            self.log.debug("Additional system properties %s", system_props)
+        if sys_props:
+            self.log.debug("Additional system properties %s", sys_props)
             sys_props_file = self.engine.create_artifact("system", ".properties")
-            with open(sys_props_file, 'w') as fds:
-                for key, val in six.iteritems(system_props):
-                    fds.write("%s=%s\n" % (key, val))
+            JMeterExecutor.__write_props_to_file(sys_props_file, sys_props)
             self.sys_properties_file = sys_props_file
 
         self.reader = JTLReader(self.kpi_jtl, self.log, self.errors_jtl)
@@ -389,6 +380,11 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if load.throughput:
             JMeterExecutor.__add_shaper(jmx, load)
 
+        if self.get_scenario().get("use-dns-cache-mgr"):
+            jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, JMX.get_dns_cache_mgr())
+            jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
+            self.settings.merge({"system-properties": {"sun.net.inetaddr.ttl": 0}})
+
         rename_threads = self.get_scenario().get("rename-threads", True)
         if self.distributed_servers and rename_threads:
             self.__rename_thread_groups(jmx)
@@ -415,11 +411,24 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         Generate jmx file from requests
         :return:
         """
+        self.get_scenario()
         filename = self.engine.create_artifact("requests", ".jmx")
         jmx = JMeterScenarioBuilder()
         jmx.scenario = self.get_scenario()
         jmx.save(filename)
         return filename
+
+    @staticmethod
+    def __write_props_to_file(file_path, params):
+        """
+        Write properties to file
+        :param file_path:
+        :param params:
+        :return:
+        """
+        with open(file_path, 'w') as fds:
+            for key, val in six.iteritems(params):
+                fds.write("%s=%s\n" % (key, val))
 
     def get_widget(self):
         """
@@ -601,7 +610,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             candidates = jmx.get("[testname]")
             for candidate in candidates:
                 if fnmatch.fnmatch(candidate.get('testname'), name):
-                    jmx.set_enabled("[testname='%s']" % candidate.get('testname'), True if action == 'enable' else False)
+                    jmx.set_enabled("[testname='%s']" % candidate.get('testname'),
+                                    True if action == 'enable' else False)
 
     def __jmeter_check(self, jmeter):
         """
@@ -1153,31 +1163,9 @@ class JMX(object):
 
         udv_element.append(udv_collection_prop)
         return udv_element
-    @staticmethod
-    def add_arguments_to_def_req(arg_tuple):
-        """
-        Used in http_defaults
-        :param arg_tuple: tuple from parse_qs
-        :return:
-        """
-        udv_collection_prop = JMX._collection_prop("Arguments.arguments")
-        for key, value in arg_tuple:
-            http_arg_element = JMX._element_prop(key, "HTTPArgument")
-            encode_prop = JMX._bool_prop("HTTPArgument.always_encode", False)
-            arg_val = JMX._string_prop("Argument.value", value)
-            arg_meta = JMX._string_prop("Argument.metadata", "=")
-            arg_use_eq = JMX._bool_prop("HTTPArgument.use_equals", True)
-            arg_name = JMX._string_prop("Argument.name", key)
-            http_arg_element.append(encode_prop)
-            http_arg_element.append(arg_val)
-            http_arg_element.append(arg_meta)
-            http_arg_element.append(arg_use_eq)
-            http_arg_element.append(arg_name)
-            udv_collection_prop.append(http_arg_element)
 
-        return udv_collection_prop
     @staticmethod
-    def _get_dns_cache_mgr():
+    def get_dns_cache_mgr():
         """
         Adds dns cache element with defaults parameters
 
@@ -1248,7 +1236,7 @@ class JMX(object):
                                elementType="Arguments",
                                guiclass="HTTPArgumentsPanel",
                                testclass="Arguments", testname="user_defined")
-
+        cfg.append(params)
         if default_url:
             parsed_url = urlsplit(default_url)
             if parsed_url.scheme:
@@ -1257,12 +1245,7 @@ class JMX(object):
                 cfg.append(JMX._string_prop("HTTPSampler.domain", parsed_url.hostname))
             if parsed_url.port:
                 cfg.append(JMX._string_prop("HTTPSampler.port", parsed_url.port))
-            if parsed_url.path:
-                cfg.append(JMX._string_prop("HTTPSampler.path", parsed_url.path))
-            if parsed_url.query:
-                query_params = parse_qsl(parsed_url.query)
-                params.append(JMX.add_arguments_to_def_req(query_params))
-        cfg.append(params)
+
         if timeout:
             cfg.append(JMX._string_prop("HTTPSampler.connect_timeout", timeout))
             cfg.append(JMX._string_prop("HTTPSampler.response_timeout", timeout))
@@ -1785,22 +1768,19 @@ class JMeterScenarioBuilder(JMX):
         if self.scenario.get("store-cookie", True):
             self.append(self.TEST_PLAN_SEL, self._get_cookie_mgr())
             self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
-        if self.scenario.get("use-dns-cache-mgr", True):
-            self.append(self.TEST_PLAN_SEL, self._get_dns_cache_mgr())
-            self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
 
     def __add_defaults(self):
         """
 
         :return:
         """
-        default_url = self.scenario.get("default-url", None)
+        default_address = self.scenario.get("default-address", None)
         retrieve_resources = self.scenario.get("retrieve-resources", True)
         concurrent_pool_size = self.scenario.get("concurrent-pool-size", 4)
 
         timeout = self.scenario.get("timeout", None)
         timeout = int(1000 * dehumanize_time(timeout))
-        self.append(self.TEST_PLAN_SEL, self._get_http_defaults(default_url, timeout,
+        self.append(self.TEST_PLAN_SEL, self._get_http_defaults(default_address, timeout,
                                                                 retrieve_resources, concurrent_pool_size))
         self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
 
