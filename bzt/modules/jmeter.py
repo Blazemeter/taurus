@@ -379,11 +379,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if load.throughput:
             JMeterExecutor.__add_shaper(jmx, load)
 
-        if self.get_scenario().get("use-dns-cache-mgr"):
-            jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, JMX.get_dns_cache_mgr())
-            jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
-            self.settings.merge({"system-properties": {"sun.net.inetaddr.ttl": 0}})
-
         rename_threads = self.get_scenario().get("rename-threads", True)
         if self.distributed_servers and rename_threads:
             self.__rename_thread_groups(jmx)
@@ -410,11 +405,11 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         Generate jmx file from requests
         :return:
         """
-        self.get_scenario()
         filename = self.engine.create_artifact("requests", ".jmx")
         jmx = JMeterScenarioBuilder()
         jmx.scenario = self.get_scenario()
         jmx.save(filename)
+        self.settings.merge(jmx.system_props)
         return filename
 
     @staticmethod
@@ -1755,6 +1750,7 @@ class JMeterScenarioBuilder(JMX):
     def __init__(self, original=None):
         super(JMeterScenarioBuilder, self).__init__(original)
         self.scenario = Scenario()
+        self.system_props = BetterDict()
 
     def __add_managers(self):
         headers = self.scenario.get_headers()
@@ -1767,6 +1763,10 @@ class JMeterScenarioBuilder(JMX):
         if self.scenario.get("store-cookie", True):
             self.append(self.TEST_PLAN_SEL, self._get_cookie_mgr())
             self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
+        if self.scenario.get("use-dns-cache-mgr", True):
+            self.append(self.TEST_PLAN_SEL, self.get_dns_cache_mgr())
+            self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
+            self.system_props.merge({"system-properties": {"sun.net.inetaddr.ttl": 0}})
 
     def __add_defaults(self):
         """
