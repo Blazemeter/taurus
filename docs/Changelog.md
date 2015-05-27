@@ -2,6 +2,7 @@
 
 # 0.2.20
   - add `within` logic to timeframed pass-fail criterias 
+  - added `steps` option to execution settings.
 
 # 0.2.19
   - fixed bug when in distributed tests VU count was not calculated properly.

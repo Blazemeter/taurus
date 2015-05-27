@@ -354,8 +354,7 @@ class TestJMeterExecutor(BZTestCase):
         for thread_group in thread_groups:
             self.assertTrue(thread_group.attrib["testname"].startswith(prepend_str))
 
-
-    def test_stepping_thread_group(self):
+    def test_distributed_th_hostnames_with_steps(self):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
         obj.engine.config = BetterDict()
@@ -363,3 +362,69 @@ class TestJMeterExecutor(BZTestCase):
         obj.engine.config.merge({"provisioning": "local"})
         obj.execution = obj.engine.config['execution']
         obj.prepare()
+        xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        thread_groups = xml_tree.findall(".//kg.apc.jmeter.threads.SteppingThreadGroup")
+        prepend_str = r"${__machineName()}"
+        for thread_group in thread_groups:
+            self.assertTrue(thread_group.attrib["testname"].startswith(prepend_str))
+
+    def test_stepping_tg_ramp_no_proportion(self):
+        """
+        Tested without concurrency proportions
+        :return:
+        """
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = BetterDict()
+        obj.engine.config.merge(yaml.load(open("tests/yaml/stepping_ramp_up.yml").read()))
+        obj.engine.config.merge({"provisioning": "local"})
+        obj.execution = obj.engine.config['execution']
+        obj.prepare()
+        load = obj.get_load()
+        orig_xml_tree = etree.fromstring(open(obj.original_jmx, "rb").read())
+        modified_xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        mod_stepping_tgs = modified_xml_tree.findall(".//kg.apc.jmeter.threads.SteppingThreadGroup")
+        orig_tgs = orig_xml_tree.findall(".//ThreadGroup")
+        self.assertEqual(len(mod_stepping_tgs), len(orig_tgs))
+        for orig_th, step_th in zip(orig_tgs, mod_stepping_tgs):
+            orig_num_threads = int(orig_th.find(".//stringProp[@name='ThreadGroup.num_threads']").text)
+            mod_num_threads = int(step_th.find(".//stringProp[@name='ThreadGroup.num_threads']").text)
+            self.assertEqual(orig_num_threads, mod_num_threads)
+
+            self.assertEqual(step_th.find(".//stringProp[@name='Start users period']").text,
+                             str(int(load.ramp_up/load.steps)))
+            self.assertEqual(step_th.find(".//stringProp[@name='Start users count']").text,
+                             str(int(orig_num_threads/load.steps)))
+
+    def test_stepping_tg_ramp_proportion(self):
+        """
+        Tested with concurrency proportions
+        :return:
+        """
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = BetterDict()
+        obj.engine.config.merge(yaml.load(open("tests/yaml/stepping_ramp_up.yml").read()))
+        obj.engine.config['execution'].merge({"concurrency": 100})
+        obj.engine.config.merge({"provisioning": "local"})
+        obj.execution = obj.engine.config['execution']
+        obj.execution['concurrency'] = 100  # from 170 to 100
+        obj.execution['steps'] = 4  # from 5 to 4
+        obj.prepare()
+        load = obj.get_load()
+        orig_xml_tree = etree.fromstring(open(obj.original_jmx, "rb").read())
+        modified_xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        mod_stepping_tgs = modified_xml_tree.findall(".//kg.apc.jmeter.threads.SteppingThreadGroup")
+        orig_tgs = orig_xml_tree.findall(".//ThreadGroup")
+        self.assertEqual(len(mod_stepping_tgs), len(orig_tgs))
+        orig_summ_cnc = sum([int(x.find(".//stringProp[@name='ThreadGroup.num_threads']").text) for x in orig_tgs])
+        for orig_th, step_th in zip(orig_tgs, mod_stepping_tgs):
+            orig_num_threads = int(orig_th.find(".//stringProp[@name='ThreadGroup.num_threads']").text)
+            mod_num_threads = int(step_th.find(".//stringProp[@name='ThreadGroup.num_threads']").text)
+
+            self.assertEqual(round(orig_num_threads*(float(load.concurrency)/orig_summ_cnc)), mod_num_threads)
+
+            self.assertEqual(step_th.find(".//stringProp[@name='Start users period']").text,
+                             str(int(load.ramp_up/load.steps)))
+            self.assertEqual(step_th.find(".//stringProp[@name='Start users count']").text,
+                             str(int(round(orig_num_threads*(float(load.concurrency)/orig_summ_cnc))/load.steps)))

@@ -1,8 +1,10 @@
 ---
-execution: 
-  concurrency: 100
-  ramp-up: 100s
+execution:
+  distributed:
+    - 127.0.0.1
+  concurrency: 170
+  ramp-up: 1m
   steps: 5
   hold-for: 2m
   scenario: 
-    script: tests/jmx/http.jmx
+    script: build/stepping_ramp_up.jmx

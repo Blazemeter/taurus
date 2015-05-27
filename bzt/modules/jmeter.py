@@ -215,6 +215,23 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             prop[0].text = str(ramp_up)
 
     @staticmethod
+    def __apply_stepping_ramp_up(jmx, load):
+        """
+        Change all thread groups to step groups, use ramp-up/steps
+        :param jmx:
+        :param load:
+        :return:
+        """
+        step_time = int(load.ramp_up / load.steps)
+        thread_groups = jmx.tree.findall(".//ThreadGroup")
+        for thread_group in thread_groups:
+            thread_cnc = int(thread_group.find(".//stringProp[@name='ThreadGroup.num_threads']").text)
+            tg_name = thread_group.attrib["testname"]
+            thread_step = int(thread_cnc / load.steps)
+            step_group = JMX.get_stepping_thread_group(thread_cnc, thread_step, step_time, load.hold, tg_name)
+            thread_group.getparent().replace(thread_group, step_group)
+
+    @staticmethod
     def __apply_duration(jmx, duration):
         """
         Apply duration to ThreadGroup.duration
@@ -358,11 +375,17 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             msg += " on what runs out first"
             self.log.warning(msg)
 
+        rename_threads = self.get_scenario().get("rename-threads", True)
+        if self.distributed_servers and rename_threads:
+            self.__rename_thread_groups(jmx)
+
         if load.concurrency:
             self.__apply_concurrency(jmx, load.concurrency)
 
-        if load.ramp_up is not None:
+        if load.ramp_up is not None and not load.steps:
             JMeterExecutor.__apply_ramp_up(jmx, int(load.ramp_up))
+        elif load.ramp_up is not None and load.steps:
+            JMeterExecutor.__apply_stepping_ramp_up(jmx, load)
 
         if load.iterations is not None:
             JMeterExecutor.__apply_iterations(jmx, int(load.iterations))
@@ -372,10 +395,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         if load.throughput:
             JMeterExecutor.__add_shaper(jmx, load)
-
-        rename_threads = self.get_scenario().get("rename-threads", True)
-        if self.distributed_servers and rename_threads:
-            self.__rename_thread_groups(jmx)
 
         self.kpi_jtl = self.engine.create_artifact("kpi", ".jtl")
         kpil = jmx.new_kpi_listener(self.kpi_jtl)
@@ -585,7 +604,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             candidates = jmx.get("[testname]")
             for candidate in candidates:
                 if fnmatch.fnmatch(candidate.get('testname'), name):
-                    jmx.set_enabled("[testname='%s']" % candidate.get('testname'), True if action == 'enable' else False)
+                    jmx.set_enabled("[testname='%s']" % candidate.get('testname'),
+                                    True if action == 'enable' else False)
 
     def __jmeter_check(self, jmeter):
         """
@@ -1150,15 +1170,14 @@ class JMX(object):
         return udv_element
 
     @staticmethod
-    def get_stepping_thread_group(concurrency, step_threads, step_time, hold_for):
+    def get_stepping_thread_group(concurrency, step_threads, step_time, hold_for, tg_name):
         """
         :return: etree element, Stepping Thread Group
         """
         stepping_thread_group = etree.Element("kg.apc.jmeter.threads.SteppingThreadGroup",
-                                                 guiclass="kg.apc.jmeter.threads.SteppingThreadGroupGui",
-                                                 testclass="kg.apc.jmeter.threads.SteppingThreadGroup",
-                                                 testname="jp@gc - Stepping Thread Group",
-                                                 enabled="true")
+                                              guiclass="kg.apc.jmeter.threads.SteppingThreadGroupGui",
+                                              testclass="kg.apc.jmeter.threads.SteppingThreadGroup",
+                                              testname=tg_name, enabled="true")
         stepping_thread_group.append(JMX._string_prop("ThreadGroup.on_sample_error", "continue"))
         stepping_thread_group.append(JMX._string_prop("ThreadGroup.num_threads", concurrency))
         stepping_thread_group.append(JMX._string_prop("Threads initial delay", 0))
@@ -1177,6 +1196,7 @@ class JMX(object):
         loop_controller.append(JMX._int_prop("LoopController.loops", -1))
 
         stepping_thread_group.append(loop_controller)
+        return stepping_thread_group
 
     @staticmethod
     def _get_header_mgr(hdict):
