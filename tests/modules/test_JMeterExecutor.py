@@ -12,6 +12,7 @@ from bzt.engine import Provisioning
 from bzt.modules.jmeter import JMeterExecutor, JMX, JTLErrorsReader, JTLReader
 from tests.mocks import EngineEmul
 from bzt.utils import BetterDict
+from math import ceil
 
 try:
     from lxml import etree
@@ -448,7 +449,6 @@ class TestJMeterExecutor(BZTestCase):
         obj.engine = EngineEmul()
         obj.engine.config = BetterDict()
         obj.engine.config.merge(yaml.load(open("tests/yaml/stepping_ramp_up.yml").read()))
-        obj.engine.config['execution'].merge({"concurrency": 100})
         obj.engine.config.merge({"provisioning": "local"})
         obj.execution = obj.engine.config['execution']
         obj.execution['concurrency'] = 100  # from 170 to 100
@@ -470,7 +470,8 @@ class TestJMeterExecutor(BZTestCase):
             self.assertEqual(step_th.find(".//stringProp[@name='Start users period']").text,
                              str(int(load.ramp_up / load.steps)))
             self.assertEqual(step_th.find(".//stringProp[@name='Start users count']").text,
-                             str(int(round(orig_num_threads * (float(load.concurrency) / orig_summ_cnc)) / load.steps)))
+                             str(int(ceil(float(load.concurrency) / orig_summ_cnc * orig_num_threads / load.steps))))
+                             #str(int(ceil(orig_num_threads * (float(load.concurrency) / orig_summ_cnc)) / load.steps)))
 
     def test_step_shaper(self):
         obj = JMeterExecutor()

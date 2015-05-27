@@ -33,6 +33,7 @@ from collections import Counter, namedtuple
 from subprocess import CalledProcessError
 from distutils.version import LooseVersion
 from cssselect import GenericTranslator
+from math import ceil
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.console import WidgetProvider
@@ -233,8 +234,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         for thread_group in thread_groups:
             thread_cnc = int(thread_group.find(".//stringProp[@name='ThreadGroup.num_threads']").text)
             tg_name = thread_group.attrib["testname"]
-            thread_step = int(thread_cnc / load.steps)
-            step_group = JMX.get_stepping_thread_group(thread_cnc, thread_step, step_time, load.hold, tg_name)
+            thread_step = int(ceil(float(thread_cnc) / load.steps))
+            step_group = JMX.get_stepping_thread_group(thread_cnc, thread_step, step_time, load.hold + step_time,
+                                                       tg_name)
             thread_group.getparent().replace(thread_group, step_group)
 
     @staticmethod
