@@ -410,7 +410,7 @@ class TestJMeterExecutor(BZTestCase):
         sys_prop = open(os.path.join(obj.engine.artifacts_dir, "system.properties")).read()
         self.assertTrue("any_prop=true" in sys_prop)
         self.assertFalse("sun.net.inetaddr.ttl=0" in sys_prop)
-    
+
     def test_stepping_tg_ramp_no_proportion(self):
         """
         Tested without concurrency proportions
@@ -435,9 +435,9 @@ class TestJMeterExecutor(BZTestCase):
             self.assertEqual(orig_num_threads, mod_num_threads)
 
             self.assertEqual(step_th.find(".//stringProp[@name='Start users period']").text,
-                             str(int(load.ramp_up/load.steps)))
+                             str(int(load.ramp_up / load.steps)))
             self.assertEqual(step_th.find(".//stringProp[@name='Start users count']").text,
-                             str(int(orig_num_threads/load.steps)))
+                             str(int(orig_num_threads / load.steps)))
 
     def test_stepping_tg_ramp_proportion(self):
         """
@@ -465,9 +465,30 @@ class TestJMeterExecutor(BZTestCase):
             orig_num_threads = int(orig_th.find(".//stringProp[@name='ThreadGroup.num_threads']").text)
             mod_num_threads = int(step_th.find(".//stringProp[@name='ThreadGroup.num_threads']").text)
 
-            self.assertEqual(round(orig_num_threads*(float(load.concurrency)/orig_summ_cnc)), mod_num_threads)
+            self.assertEqual(round(orig_num_threads * (float(load.concurrency) / orig_summ_cnc)), mod_num_threads)
 
             self.assertEqual(step_th.find(".//stringProp[@name='Start users period']").text,
-                             str(int(load.ramp_up/load.steps)))
+                             str(int(load.ramp_up / load.steps)))
             self.assertEqual(step_th.find(".//stringProp[@name='Start users count']").text,
-                             str(int(round(orig_num_threads*(float(load.concurrency)/orig_summ_cnc))/load.steps)))
+                             str(int(round(orig_num_threads * (float(load.concurrency) / orig_summ_cnc)) / load.steps)))
+
+    def test_step_shaper(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = BetterDict()
+        obj.engine.config.merge(yaml.load(open("tests/yaml/stepping_ramp_up.yml").read()))
+        obj.engine.config.merge({"provisioning": "local"})
+        obj.execution = obj.engine.config['execution']
+        obj.execution['throughput'] = 100
+        obj.prepare()
+        load = obj.get_load()
+        modified_xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        timer = modified_xml_tree.findall(".//kg.apc.jmeter.timers.VariableThroughputTimer")
+        self.assertEqual(len(timer), 1)
+        for num, step_collection in enumerate(timer[0].findall(".//load_profile")):
+            step_start_rps = step_collection.find(".//stringProp[@name='49']")
+            step_stop_rps = step_collection.find(".//stringProp[@name='1567']")
+            self.assertTrue(step_start_rps == step_stop_rps == str(int(round(float(load.throughput) / load.steps))))
+            if num + 1 == load.steps:
+                self.assertEqual(step_collection.find(".//stringProp[@name='53']"),
+                                 load.hold + load.ramp_up / load.steps)

@@ -331,6 +331,35 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree_shaper)
             jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
 
+    def __add_stepping_shaper(self, jmx, load):
+        """
+        adds stepping shaper
+        1) disable all timers
+        2) add timer to testplan
+        :param jmx: JMX
+        :param load: load
+        :return:
+        """
+        timers_patterns = ["ConstantThroughputTimer", "kg.apc.jmeter.timers.VariableThroughputTimer"]
+
+        for timer_pattern in timers_patterns:
+            for timer in jmx.tree.findall(".//%s" % timer_pattern):
+                self.log.warning("Found %s timer! ", timer.attrib['testname'])
+
+        step_rps = int(round(float(load.throughput) / load.steps))
+        step_time = int(round(float(load.ramp_up) / load.steps))
+        step_shaper = jmx.get_rps_shaper()
+
+        for step in range(1, load.steps + 1):
+            if step != load.steps:
+                jmx.add_rps_shaper_schedule(step_shaper, step * step_rps, step * step_rps, step_time)
+            else:
+                if load.hold:
+                    jmx.add_rps_shaper_schedule(step_shaper, step * step_rps, step * step_rps, step_time + load.hold)
+
+        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, step_shaper)
+        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
+
     @staticmethod
     def __disable_listeners(jmx):
         """
@@ -388,10 +417,11 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if load.concurrency:
             self.__apply_concurrency(jmx, load.concurrency)
 
-        if load.ramp_up is not None and not load.steps:
-            JMeterExecutor.__apply_ramp_up(jmx, int(load.ramp_up))
-        elif load.ramp_up is not None and load.steps:
-            JMeterExecutor.__apply_stepping_ramp_up(jmx, load)
+        if load.ramp_up is not None:
+            if load.steps and not load.throughput:
+                JMeterExecutor.__apply_stepping_ramp_up(jmx, load)
+            else:
+                JMeterExecutor.__apply_ramp_up(jmx, int(load.ramp_up))
 
         if load.iterations is not None:
             JMeterExecutor.__apply_iterations(jmx, int(load.iterations))
@@ -400,7 +430,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             JMeterExecutor.__apply_duration(jmx, int(load.duration))
 
         if load.throughput:
-            JMeterExecutor.__add_shaper(jmx, load)
+            if load.steps:
+                self.__add_stepping_shaper(jmx, load)
+            else:
+                JMeterExecutor.__add_shaper(jmx, load)
 
         self.kpi_jtl = self.engine.create_artifact("kpi", ".jtl")
         kpil = jmx.new_kpi_listener(self.kpi_jtl)
