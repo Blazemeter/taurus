@@ -114,7 +114,8 @@ class FailCriteria(object):
         super(FailCriteria, self).__init__()
         self.agg_buffer = OrderedDict()
         self.config = config
-        self.get_value = self.__get_field_functor(config['subject'], str(config['threshold']).endswith('%'))
+        self.percentage = str(config['threshold']).endswith('%')
+        self.get_value = self.__get_field_functor(config['subject'], self.percentage)
         self.agg_logic = self.__get_aggregator_functor(config.get('logic', 'for'), config['subject'])
         self.condition = self.__get_condition_functor(config['condition'])
         self.label = config.get('label', '')
@@ -315,13 +316,15 @@ class FailCriteria(object):
         if logic == 'for':
             return lambda tstmp, value: value
         elif logic == 'within':
-            if subject in ('hits',) \
-                    or subject.startswith('succ') \
-                    or subject.startswith('fail') \
-                    or subject.startswith('rc'):
+            if not self.percentage \
+                    and (subject in ('hits',)
+                         or subject.startswith('succ')
+                         or subject.startswith('fail')
+                         or subject.startswith('rc')
+                         ):
                 return self.__within_aggregator_sum
             else:
-                return self.__within_aggregator_avg
+                return self.__within_aggregator_avg  # FIXME: having simple average for percented values is a bit wrong
         else:
             raise ValueError("Unsupported window logic: %s", logic)
 

@@ -404,12 +404,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         self.__apply_modifications(jmx)
 
-        if load.duration and load.iterations:
-            msg = "You have specified both iterations count"
-            msg += " and ramp-up/hold duration times, so test will end"
-            msg += " on what runs out first"
-            self.log.warning(msg)
-
         rename_threads = self.get_scenario().get("rename-threads", True)
         if self.distributed_servers and rename_threads:
             self.__rename_thread_groups(jmx)
@@ -417,16 +411,12 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if load.concurrency:
             self.__apply_concurrency(jmx, load.concurrency)
 
-        if load.ramp_up is not None and not load.throughput:
-            if load.steps:
-                JMeterExecutor.__apply_stepping_ramp_up(jmx, load)
-            else:
-                JMeterExecutor.__apply_ramp_up(jmx, int(load.ramp_up))
+        if load.ramp_up is not None:
+            JMeterExecutor.__apply_ramp_up(jmx, int(load.ramp_up))
 
         if load.iterations is not None:
             JMeterExecutor.__apply_iterations(jmx, int(load.iterations))
-
-        if load.duration:
+        elif load.duration:
             JMeterExecutor.__apply_duration(jmx, int(load.duration))
 
         if load.throughput:
