@@ -101,7 +101,7 @@ settings:
 All time specifications in Taurus configs, including timeouts and durations, are _always_ expressed in unit of _seconds_.
 Use special strings convention to make it human-readable. Examples:
 
-  - `1s120ms` = 1 second 200 milliseconds
+  - `1s200ms` = 1 second 200 milliseconds
   - `1d 2h 3m 4s` = 93784 seconds
  
 d - days, h - hours, m - minutes, s - seconds, ms - milliseconds, optional space characters allowed
