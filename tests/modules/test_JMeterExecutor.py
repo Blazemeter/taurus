@@ -7,12 +7,11 @@ import shutil
 import yaml
 import sys
 
+from tests import setup_test_logging, BZTestCase, __dir__
 from bzt.engine import Provisioning
 from bzt.modules.jmeter import JMeterExecutor, JMX, JTLErrorsReader, JTLReader
-from tests import setup_test_logging, BZTestCase, __dir__
 from tests.mocks import EngineEmul
 from bzt.utils import BetterDict
-
 
 try:
     from lxml import etree
@@ -240,7 +239,7 @@ class TestJMeterExecutor(BZTestCase):
         obj.execution = obj.engine.config['execution']
         obj.prepare()
         artifacts = os.listdir(obj.engine.artifacts_dir)
-        self.assertEqual(len(artifacts), 6)
+        self.assertEqual(len(artifacts), 7)  # + system.properties
         target_jmx = os.path.join(obj.engine.artifacts_dir, "modified_requests.jmx.jmx")
         self.__check_path_resource_files(target_jmx, exclude_jtls=True)
 
@@ -255,8 +254,9 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(1, len(default_elements))
 
         default_element = default_elements[0]
-        self.assertEqual("localhost", default_element.find(".//stringProp[@name='HTTPSampler.domain']").text)
-        self.assertEqual("80", default_element.find(".//stringProp[@name='HTTPSampler.port']").text)
+        self.assertEqual("www.somehost.com", default_element.find(".//stringProp[@name='HTTPSampler.domain']").text)
+        self.assertEqual("884", default_element.find(".//stringProp[@name='HTTPSampler.port']").text)
+        self.assertEqual("https", default_element.find(".//stringProp[@name='HTTPSampler.protocol']").text)
         self.assertEqual("true", default_element.find(".//boolProp[@name='HTTPSampler.image_parser']").text)
         self.assertEqual("true", default_element.find(".//boolProp[@name='HTTPSampler.concurrentDwn']").text)
         self.assertEqual("10", default_element.find(".//stringProp[@name='HTTPSampler.concurrentPool']").text)
@@ -346,7 +346,7 @@ class TestJMeterExecutor(BZTestCase):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
         obj.execution.merge({"scenario": {"script": "tests/jmx/http.jmx"}})
-        obj.distributed_servers=["127.0.0.1", "127.0.0.1"]
+        obj.distributed_servers = ["127.0.0.1", "127.0.0.1"]
         obj.prepare()
         xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
         thread_groups = xml_tree.findall(".//ThreadGroup")
@@ -354,20 +354,63 @@ class TestJMeterExecutor(BZTestCase):
         for thread_group in thread_groups:
             self.assertTrue(thread_group.attrib["testname"].startswith(prepend_str))
 
-    def test_distributed_th_hostnames_with_steps(self):
+    def test_dns_cache_mgr_scenario(self):
+        """
+        No system properties
+        :return:
+        """
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({"scenario": {"script": "tests/jmx/http.jmx"}})
+        obj.prepare()
+        xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        dns_element = xml_tree.findall(".//DNSCacheManager")
+        # no dns manager when using jmx, no system.properties file
+        self.assertEqual(len(dns_element), 0)
+        arts = os.listdir(obj.engine.artifacts_dir)
+        self.assertNotIn("system.properties", arts)
+
+    def test_dns_cache_mgr_requests(self):
+        """
+
+        :return:
+        """
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = json.loads(open(__dir__() + "/../../tests/json/get-post.json").read())
+        obj.execution = obj.engine.config['execution']
+        obj.settings.merge(obj.engine.config.get("modules").get("jmeter"))
+        obj.prepare()
+        xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        dns_managers = xml_tree.findall(".//DNSCacheManager")
+        # 1 dns_manager
+        self.assertEqual(len(dns_managers), 1)
+        # check system.properies file contents
+        sys_prop = open(os.path.join(obj.engine.artifacts_dir, "system.properties")).read()
+        self.assertTrue("any_prop=true" in sys_prop)
+        self.assertTrue("sun.net.inetaddr.ttl=0" in sys_prop)
+
+    def test_dns_cache_mgr_script(self):
+        """
+
+        :return:
+        """
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
         obj.engine.config = BetterDict()
-        obj.engine.config.merge(yaml.load(open("tests/yaml/stepping_ramp_up.yml").read()))
+        obj.engine.config.merge(yaml.load(open("tests/yaml/dns_mgr_script.yml").read()))
         obj.engine.config.merge({"provisioning": "local"})
         obj.execution = obj.engine.config['execution']
+        obj.settings.merge(obj.engine.config.get("modules").get("jmeter"))
         obj.prepare()
         xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
-        thread_groups = xml_tree.findall(".//kg.apc.jmeter.threads.SteppingThreadGroup")
-        prepend_str = r"${__machineName()}"
-        for thread_group in thread_groups:
-            self.assertTrue(thread_group.attrib["testname"].startswith(prepend_str))
-
+        dns_managers = xml_tree.findall(".//DNSCacheManager")
+        # 0 dns_managers
+        self.assertEqual(len(dns_managers), 0)
+        sys_prop = open(os.path.join(obj.engine.artifacts_dir, "system.properties")).read()
+        self.assertTrue("any_prop=true" in sys_prop)
+        self.assertFalse("sun.net.inetaddr.ttl=0" in sys_prop)
+    
     def test_stepping_tg_ramp_no_proportion(self):
         """
         Tested without concurrency proportions
