@@ -1232,7 +1232,7 @@ class JMX(object):
         stepping_thread_group.append(JMX._string_prop("Start users period", step_time))
         stepping_thread_group.append(JMX._string_prop("Stop users count", ""))
         stepping_thread_group.append(JMX._string_prop("Stop users period", 1))
-        stepping_thread_group.append(JMX._string_prop("flighttime", hold_for))
+        stepping_thread_group.append(JMX._string_prop("flighttime", int(hold_for)))
         stepping_thread_group.append(JMX._string_prop("rampUp", 0))
 
         loop_controller = etree.Element("elementProp", name="ThreadGroup.main_controller", elementType="LoopController",
