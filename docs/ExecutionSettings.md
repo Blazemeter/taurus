@@ -59,8 +59,7 @@ Execution has several options to set load profile settings. Available settings a
  - `hold-for` - time to hold target concurrency
  - `iterations` - limit scenario iterations number
  - `throughput` - apply RPS shaper, limiting maximum RPS to throughput
- - `steps` - allows users to apply stepping ramp-up for concurrency or rps, depending on usage of `throughput` option,
-             this option requires JMeter plugins to be installed!
+ - `steps` - allows users to apply stepping ramp-up for concurrency and rps. Requires JMeter plugins to be installed!
 
 ```yaml
 ---

@@ -413,16 +413,16 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if load.concurrency:
             self.__apply_concurrency(jmx, load.concurrency)
 
-        if load.ramp_up is not None:
+        if load.iterations:
+            JMeterExecutor.__apply_iterations(jmx, int(load.iterations))
+        elif load.duration:
+            JMeterExecutor.__apply_duration(jmx, int(load.duration))
+
+        if load.ramp_up:
             if load.steps:
                 JMeterExecutor.__apply_stepping_ramp_up(jmx, load)
             else:
                 JMeterExecutor.__apply_ramp_up(jmx, int(load.ramp_up))
-
-        if load.iterations is not None:
-            JMeterExecutor.__apply_iterations(jmx, int(load.iterations))
-        elif load.duration:
-            JMeterExecutor.__apply_duration(jmx, int(load.duration))
 
         if load.throughput:
             if load.steps:
@@ -1111,7 +1111,7 @@ class JMX(object):
         :param value:
         :return:
         """
-        res = etree.Element("boolProp", name=name)
+        res = etree.Element("intProp", name=name)
         res.text = str(value)
         return res
 
