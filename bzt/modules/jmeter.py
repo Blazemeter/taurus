@@ -358,12 +358,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         self.__apply_modifications(jmx)
 
-        if load.duration and load.iterations:
-            msg = "You have specified both iterations count"
-            msg += " and ramp-up/hold duration times, so test will end"
-            msg += " on what runs out first"
-            self.log.warning(msg)
-
         if load.concurrency:
             self.__apply_concurrency(jmx, load.concurrency)
 
@@ -372,8 +366,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         if load.iterations is not None:
             JMeterExecutor.__apply_iterations(jmx, int(load.iterations))
-
-        if load.duration:
+        elif load.duration:
             JMeterExecutor.__apply_duration(jmx, int(load.duration))
 
         if load.throughput:

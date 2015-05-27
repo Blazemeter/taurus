@@ -1,5 +1,8 @@
 # Changelog
 
+# 0.2.21 (next)
+  - if `iterations` set, then duration for test will not be limited
+
 # 0.2.20
   - add `within` logic to timeframed pass-fail criterias
   - added `use-dns-cache-mgr` option.
