@@ -411,7 +411,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if load.concurrency:
             self.__apply_concurrency(jmx, load.concurrency)
 
-        if load.ramp_up is not None and not load.throughput:
+        if load.ramp_up is not None:
             if load.steps:
                 JMeterExecutor.__apply_stepping_ramp_up(jmx, load)
             else:
