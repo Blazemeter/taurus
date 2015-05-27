@@ -7,4 +7,4 @@ execution:
   steps: 5
   hold-for: 2m
   scenario: 
-    script: build/stepping_ramp_up.jmx
+    script: tests/jmx/stepping_ramp_up.jmx
