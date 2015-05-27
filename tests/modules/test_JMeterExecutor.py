@@ -492,3 +492,5 @@ class TestJMeterExecutor(BZTestCase):
             if num + 1 == load.steps:
                 self.assertEqual(step_collection.find(".//stringProp[@name='53']"),
                                  load.hold + load.ramp_up / load.steps)
+            else:
+                self.assertEqual(step_collection.find(".//stringProp[@name='53']"), load.ramp_up / load.steps)

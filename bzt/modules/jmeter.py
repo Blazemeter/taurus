@@ -224,8 +224,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     def __apply_stepping_ramp_up(jmx, load):
         """
         Change all thread groups to step groups, use ramp-up/steps
-        :param jmx:
-        :param load:
+        :param jmx: JMX
+        :param load: load
         :return:
         """
         step_time = int(load.ramp_up / load.steps)
@@ -334,8 +334,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     def __add_stepping_shaper(self, jmx, load):
         """
         adds stepping shaper
-        1) disable all timers
-        2) add timer to testplan
+        1) warning if any ThroughputTimer found
+        2) add VariableThroughputTimer to test plan
         :param jmx: JMX
         :param load: load
         :return:
@@ -417,8 +417,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if load.concurrency:
             self.__apply_concurrency(jmx, load.concurrency)
 
-        if load.ramp_up is not None:
-            if load.steps and not load.throughput:
+        if load.ramp_up is not None and not load.throughput:
+            if load.steps:
                 JMeterExecutor.__apply_stepping_ramp_up(jmx, load)
             else:
                 JMeterExecutor.__apply_ramp_up(jmx, int(load.ramp_up))
