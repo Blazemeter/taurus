@@ -471,7 +471,6 @@ class TestJMeterExecutor(BZTestCase):
                              str(int(load.ramp_up / load.steps)))
             self.assertEqual(step_th.find(".//stringProp[@name='Start users count']").text,
                              str(int(ceil(float(load.concurrency) / orig_summ_cnc * orig_num_threads / load.steps))))
-                             #str(int(ceil(orig_num_threads * (float(load.concurrency) / orig_summ_cnc)) / load.steps)))
 
     def test_step_shaper(self):
         obj = JMeterExecutor()
