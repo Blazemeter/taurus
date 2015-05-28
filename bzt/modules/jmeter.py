@@ -232,7 +232,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         step_time = int(load.ramp_up / load.steps)
         thread_groups = jmx.tree.findall(".//ThreadGroup")
         for thread_group in thread_groups:
-            thread_cnc = int(thread_group.find(".//stringProp[@name='ThreadGroup.num_threads']").text)
+            thread_cnc = int(thread_group.find(".//*[@name='ThreadGroup.num_threads']").text)
             tg_name = thread_group.attrib["testname"]
             thread_step = int(ceil(float(thread_cnc) / load.steps))
             step_group = JMX.get_stepping_thread_group(thread_cnc, thread_step, step_time, load.hold + step_time,
@@ -353,11 +353,12 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         step_shaper = jmx.get_rps_shaper()
 
         for step in range(1, load.steps + 1):
+            step_load = step * step_rps
             if step != load.steps:
-                jmx.add_rps_shaper_schedule(step_shaper, step * step_rps, step * step_rps, step_time)
+                jmx.add_rps_shaper_schedule(step_shaper, step_load, step_load, step_time)
             else:
                 if load.hold:
-                    jmx.add_rps_shaper_schedule(step_shaper, step * step_rps, step * step_rps, step_time + load.hold)
+                    jmx.add_rps_shaper_schedule(step_shaper, step_load, step_load, step_time + load.hold)
 
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, step_shaper)
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
@@ -419,10 +420,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             JMeterExecutor.__apply_duration(jmx, int(load.duration))
 
         if load.ramp_up:
+            JMeterExecutor.__apply_ramp_up(jmx, int(load.ramp_up))
             if load.steps:
                 JMeterExecutor.__apply_stepping_ramp_up(jmx, load)
-            else:
-                JMeterExecutor.__apply_ramp_up(jmx, int(load.ramp_up))
 
         if load.throughput:
             if load.steps:
