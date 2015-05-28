@@ -290,6 +290,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :param concurrency: int
         :return:
         """
+        # TODO: what to do when they used non-standard thread groups?
         tnum_sel = "stringProp[name='ThreadGroup.num_threads']"
         tnum_xpath = GenericTranslator().css_to_xpath(tnum_sel)
 
@@ -346,7 +347,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         for timer_pattern in timers_patterns:
             for timer in jmx.tree.findall(".//%s" % timer_pattern):
-                self.log.warning("Found %s timer! ", timer.attrib['testname'])
+                self.log.warning("Test plan already use %s", timer.attrib['testname'])
 
         step_rps = int(round(float(load.throughput) / load.steps))
         step_time = int(round(float(load.ramp_up) / load.steps))
