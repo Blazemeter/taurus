@@ -466,7 +466,6 @@ class TestJMeterExecutor(BZTestCase):
             mod_num_threads = int(step_th.find(".//stringProp[@name='ThreadGroup.num_threads']").text)
 
             self.assertEqual(round(orig_num_threads * (float(load.concurrency) / orig_summ_cnc)), mod_num_threads)
-
             self.assertEqual(step_th.find(".//stringProp[@name='Start users period']").text,
                              str(int(load.ramp_up / load.steps)))
             self.assertEqual(step_th.find(".//stringProp[@name='Start users count']").text,
