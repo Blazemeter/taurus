@@ -50,7 +50,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         self.client = BlazeMeterClient(self.log)
         self.test_id = ""
         self.kpi_buffer = []
-        self.bulk_size = 5
+        self.bulk_size = 30
 
     def prepare(self):
         """
