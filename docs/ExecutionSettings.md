@@ -167,7 +167,7 @@ execution:
     script: my-test.jmx
 modules:
   jmeter:
-    rename-threads: true  # Will add ${__machineName()} expression to thread names, true by default
+    rename-distributed-threads: true  # Will add ${__machineName()} expression to thread names, true by default
 ```
 
 
