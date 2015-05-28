@@ -12,6 +12,7 @@ from bzt.engine import Provisioning
 from bzt.modules.jmeter import JMeterExecutor, JMX, JTLErrorsReader, JTLReader
 from tests.mocks import EngineEmul
 from bzt.utils import BetterDict
+from math import ceil
 
 try:
     from lxml import etree
@@ -354,6 +355,19 @@ class TestJMeterExecutor(BZTestCase):
         for thread_group in thread_groups:
             self.assertTrue(thread_group.attrib["testname"].startswith(prepend_str))
 
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = json.loads(open(__dir__() + "/../../tests/json/get-post.json").read())
+        obj.execution = obj.engine.config['execution']
+        obj.settings.merge(obj.engine.config.get("modules").get("jmeter"))
+        obj.distributed_servers = ["127.0.0.1", "127.0.0.1"]
+        obj.prepare()
+        xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        thread_groups = xml_tree.findall(".//ThreadGroup")
+        prepend_str = r"${__machineName()}"
+        for thread_group in thread_groups:
+            self.assertFalse(thread_group.attrib["testname"].startswith(prepend_str))
+
     def test_dns_cache_mgr_scenario(self):
         """
         No system properties
@@ -410,3 +424,85 @@ class TestJMeterExecutor(BZTestCase):
         sys_prop = open(os.path.join(obj.engine.artifacts_dir, "system.properties")).read()
         self.assertTrue("any_prop=true" in sys_prop)
         self.assertFalse("sun.net.inetaddr.ttl=0" in sys_prop)
+
+    def test_stepping_tg_ramp_no_proportion(self):
+        """
+        Tested without concurrency proportions
+        :return:
+        """
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = BetterDict()
+        obj.engine.config.merge(yaml.load(open("tests/yaml/stepping_ramp_up.yml").read()))
+        obj.engine.config.merge({"provisioning": "local"})
+        obj.execution = obj.engine.config['execution']
+        obj.prepare()
+        load = obj.get_load()
+        orig_xml_tree = etree.fromstring(open(obj.original_jmx, "rb").read())
+        modified_xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        mod_stepping_tgs = modified_xml_tree.findall(".//kg.apc.jmeter.threads.SteppingThreadGroup")
+        orig_tgs = orig_xml_tree.findall(".//ThreadGroup")
+        self.assertEqual(len(mod_stepping_tgs), len(orig_tgs))
+        for orig_th, step_th in zip(orig_tgs, mod_stepping_tgs):
+            orig_num_threads = int(orig_th.find(".//stringProp[@name='ThreadGroup.num_threads']").text)
+            mod_num_threads = int(step_th.find(".//stringProp[@name='ThreadGroup.num_threads']").text)
+            self.assertEqual(orig_num_threads, mod_num_threads)
+
+            self.assertEqual(step_th.find(".//stringProp[@name='Start users period']").text,
+                             str(int(load.ramp_up / load.steps)))
+            self.assertEqual(step_th.find(".//stringProp[@name='Start users count']").text,
+                             str(int(orig_num_threads / load.steps)))
+
+    def test_stepping_tg_ramp_proportion(self):
+        """
+        Tested with concurrency proportions
+        :return:
+        """
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = BetterDict()
+        obj.engine.config.merge(yaml.load(open("tests/yaml/stepping_ramp_up.yml").read()))
+        obj.engine.config.merge({"provisioning": "local"})
+        obj.execution = obj.engine.config['execution']
+        obj.execution['concurrency'] = 100  # from 170 to 100
+        obj.execution['steps'] = 4  # from 5 to 4
+        obj.prepare()
+        load = obj.get_load()
+        orig_xml_tree = etree.fromstring(open(obj.original_jmx, "rb").read())
+        modified_xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        mod_stepping_tgs = modified_xml_tree.findall(".//kg.apc.jmeter.threads.SteppingThreadGroup")
+        orig_tgs = orig_xml_tree.findall(".//ThreadGroup")
+        self.assertEqual(len(mod_stepping_tgs), len(orig_tgs))
+        orig_summ_cnc = sum([int(x.find(".//stringProp[@name='ThreadGroup.num_threads']").text) for x in orig_tgs])
+        for orig_th, step_th in zip(orig_tgs, mod_stepping_tgs):
+            orig_num_threads = int(orig_th.find(".//stringProp[@name='ThreadGroup.num_threads']").text)
+            mod_num_threads = int(step_th.find(".//stringProp[@name='ThreadGroup.num_threads']").text)
+
+            self.assertEqual(round(orig_num_threads * (float(load.concurrency) / orig_summ_cnc)), mod_num_threads)
+            self.assertEqual(step_th.find(".//stringProp[@name='Start users period']").text,
+                             str(int(load.ramp_up / load.steps)))
+            self.assertEqual(step_th.find(".//stringProp[@name='Start users count']").text,
+                             str(int(ceil(float(load.concurrency) / orig_summ_cnc * orig_num_threads / load.steps))))
+
+    def test_step_shaper(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = BetterDict()
+        obj.engine.config.merge(yaml.load(open("tests/yaml/stepping_ramp_up.yml").read()))
+        obj.engine.config.merge({"provisioning": "local"})
+        obj.execution = obj.engine.config['execution']
+        obj.execution['throughput'] = 100
+        obj.prepare()
+        load = obj.get_load()
+        modified_xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        timer = modified_xml_tree.findall(".//kg.apc.jmeter.timers.VariableThroughputTimer")
+        self.assertEqual(len(timer), 1)
+        for num, step_collection in enumerate(timer[0].findall(".//load_profile")):
+            step_start_rps = step_collection.find(".//stringProp[@name='49']")
+            step_stop_rps = step_collection.find(".//stringProp[@name='1567']")
+            self.assertTrue(step_start_rps == step_stop_rps == str(int(round(float(load.throughput) / load.steps))))
+            if num + 1 == load.steps:
+                self.assertEqual(step_collection.find(".//stringProp[@name='53']"),
+                                 load.hold + load.ramp_up / load.steps)
+            else:
+                self.assertEqual(step_collection.find(".//stringProp[@name='53']"), load.ramp_up / load.steps)

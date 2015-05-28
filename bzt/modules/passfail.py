@@ -320,8 +320,7 @@ class FailCriteria(object):
                     and (subject in ('hits',)
                          or subject.startswith('succ')
                          or subject.startswith('fail')
-                         or subject.startswith('rc')
-                         ):
+                         or subject.startswith('rc')):
                 return self.__within_aggregator_sum
             else:
                 return self.__within_aggregator_avg  # FIXME: having simple average for percented values is a bit wrong

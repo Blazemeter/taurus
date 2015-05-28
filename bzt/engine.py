@@ -830,6 +830,7 @@ class ScenarioExecutor(EngineModule):
     CONCURR = "concurrency"
     THRPT = "throughput"
     EXEC = "execution"
+    STEPS = "steps"
 
     def __init__(self):
         super(ScenarioExecutor, self).__init__()
@@ -875,6 +876,7 @@ class ScenarioExecutor(EngineModule):
         iterations = self.execution.get("iterations", None)
 
         ramp_up = self.execution.get(ScenarioExecutor.RAMP_UP, None)
+        steps = self.execution.get(ScenarioExecutor.STEPS, None)
         hold = dehumanize_time(self.execution.get(ScenarioExecutor.HOLD_FOR, 0))
         if ramp_up is None:
             ramp_up = None
@@ -887,10 +889,10 @@ class ScenarioExecutor(EngineModule):
             iterations = 0  # which means infinite
 
         res = namedtuple("LoadSpec",
-                         ('concurrency', "throughput", 'ramp_up', 'hold', 'iterations', 'duration'))
+                         ('concurrency', "throughput", 'ramp_up', 'hold', 'iterations', 'duration', 'steps'))
         return res(concurrency=concurrency, ramp_up=ramp_up,
                    throughput=throughput, hold=hold, iterations=iterations,
-                   duration=duration)
+                   duration=duration, steps=steps)
 
     def get_resource_files(self):
         """
