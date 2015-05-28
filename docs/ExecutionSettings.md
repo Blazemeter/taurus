@@ -117,6 +117,7 @@ TODO: explain how multi-thread group will accept concurrency with maintained pro
 
 #### JMeter Properties
 There are two places to specify JMeter properties: global at module-level and local at scenario-level. Scenario properties are merged into global properties and resulting set comes as input for JMeter, see corresponding `.properties` file in artifacts.
+You may also specify system properties for JMeter in system-properties section. They comes as system.properties file in artifacts.
 
 Global properties are set like this:
 ```yaml
@@ -127,6 +128,8 @@ modules:
       my-hostname: www.pre-test.com
       log_level.jmeter: WARN
       log_level.jmeter.threads: DEBUG
+    system-properties:
+      sun.net.http.allowRestrictedHeaders: "true"
 ```
 
 Scenario-level properties are set like this:
@@ -162,6 +165,9 @@ execution:
     - host3.mynet.com
   scenario:
     script: my-test.jmx
+modules:
+  jmeter:
+    rename-threads: true  # Will add ${__machineName()} expression to thread names, true by default
 ```
 
 

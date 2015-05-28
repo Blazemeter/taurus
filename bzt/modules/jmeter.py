@@ -408,7 +408,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         self.__apply_modifications(jmx)
 
-        rename_threads = self.get_scenario().get("rename-threads", True)
+        rename_threads = self.settings.get("rename-threads", True)
         if self.distributed_servers and rename_threads:
             self.__rename_thread_groups(jmx)
 
