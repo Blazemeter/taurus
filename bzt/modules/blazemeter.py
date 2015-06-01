@@ -26,9 +26,9 @@ import webbrowser
 import zipfile
 import six
 
-from six.moves.urllib.request import Request, urlopen
+from six.moves.urllib.request import Request, urlopen, ProxyHandler, HTTPBasicAuthHandler, build_opener, install_opener
 from six.moves.urllib.error import HTTPError
-from six.moves.urllib.parse import urlencode
+from six.moves.urllib.parse import urlencode, urlsplit
 
 from bzt import ManualShutdown
 from bzt.engine import Reporter, AggregatorListener, Provisioning
@@ -63,6 +63,20 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         self.bulk_size = self.settings.get("bulk-size", self.bulk_size)
         self.browser_open = self.settings.get("browser-open", self.browser_open)
         token = self.settings.get("token", "")
+        proxy_settings = self.settings.get("proxy", None)
+        if proxy_settings:
+            if proxy_settings.get("address"):
+                proxy_url = urlsplit(proxy_settings.get("address"))
+                username = proxy_settings.get("username")
+                pwd = proxy_settings.get("password")
+                if username and pwd:
+                    proxy_uri = "%s://%s:%s@%s" % (proxy_url.scheme, username, pwd, proxy_url.netloc)
+                else:
+                    proxy_uri = "%s://%s" % (proxy_url.scheme, proxy_url.netloc)
+                proxy_handler = ProxyHandler({"https":proxy_uri})
+                opener = build_opener(proxy_handler)
+                install_opener(opener)
+
         if not token:
             self.log.warning("No BlazeMeter API key provided, will upload anonymously")
         self.client.token = token
@@ -238,6 +252,7 @@ class BlazeMeterClient(object):
         # .encode("utf-8") is probably better
         data = data.encode() if isinstance(data, six.text_type) else data
         request = Request(url, data, headers)
+
         if method:
             request.get_method = lambda: method
 
