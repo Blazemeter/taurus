@@ -168,9 +168,9 @@ modules:
     browser-open: start  # auto-open the report in browser, possible values are "start", "end", "both", "none"
     bulk-size: 5  # send data each n-th second
     timeout: 5  # connect and request timeout for BlazeMeter API
-    proxy:  # if bza should be accessed through proxy
+    proxy:  # custom proxy settings for BZA feeding, if not configured, will use proxy settings in OS environment.
       address: http://127.0.0.1:8080  # proxy server address
-      username: user  # username and password if basic authentication is used on proxy server
+      username: user  # username and password used if authentication is configured on proxy server
       password: 12345
 ```
 

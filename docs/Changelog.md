@@ -3,7 +3,7 @@
 # 0.2.21 (next)
   - if `iterations` set, then duration for test will not be limited
   - added `steps` option to execution settings
-  - added ability to access bza feeding through proxy
+  - added ability to access BZA feeding through proxy
   
 # 0.2.20
   - add `within` logic to timeframed pass-fail criterias

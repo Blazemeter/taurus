@@ -26,7 +26,7 @@ import webbrowser
 import zipfile
 import six
 
-from six.moves.urllib.request import Request, urlopen, ProxyHandler, HTTPBasicAuthHandler, build_opener, install_opener
+from six.moves.urllib.request import Request, urlopen, ProxyHandler, build_opener, install_opener
 from six.moves.urllib.error import HTTPError
 from six.moves.urllib.parse import urlencode, urlsplit
 
