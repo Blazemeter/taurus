@@ -252,7 +252,6 @@ class BlazeMeterClient(object):
         # .encode("utf-8") is probably better
         data = data.encode() if isinstance(data, six.text_type) else data
         request = Request(url, data, headers)
-
         if method:
             request.get_method = lambda: method
 
