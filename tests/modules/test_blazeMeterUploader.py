@@ -1,8 +1,8 @@
 import logging
 import os
 import shutil
-from bzt.modules.blazemeter import BlazeMeterUploader, BlazeMeterClient
 from tests import BZTestCase, random_datapoint
+from bzt.modules.blazemeter import BlazeMeterUploader, BlazeMeterClient
 from tests.mocks import EngineEmul
 from io import BytesIO
 import bzt.modules.blazemeter
@@ -32,17 +32,11 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.client = client
         obj.prepare()
         obj.startup()
-        obj.aggregated_second(random_datapoint(0))
-        obj.aggregated_second(random_datapoint(1))
-        obj.aggregated_second(random_datapoint(2))
-        obj.aggregated_second(random_datapoint(3))
-        obj.aggregated_second(random_datapoint(4))
+        for x in range(0, 31):
+            obj.aggregated_second(random_datapoint(x))
         obj.check()
-        obj.aggregated_second(random_datapoint(5))
-        obj.aggregated_second(random_datapoint(6))
-        obj.aggregated_second(random_datapoint(7))
-        obj.aggregated_second(random_datapoint(8))
-        obj.aggregated_second(random_datapoint(9))
+        for x in range(32, 65):
+            obj.aggregated_second(random_datapoint(x))
         try:
             obj.check()
             self.fail()
