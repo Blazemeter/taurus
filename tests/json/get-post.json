@@ -140,14 +140,6 @@
       "system-properties": {
       "any_prop": "true"
       }
-    },
-    "blazemeter":{
-      "proxy":{
-        "address": "http://127.0.0.1:8080",
-        "username": "user",
-        "password": "pass"
-      }
-
     }
   }
 }
