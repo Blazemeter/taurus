@@ -2,11 +2,11 @@
 
 # 0.2.22 (next)
   - send data to BlazeMeter less frequently (30 secs)
-
+  - added ability to access BZA feeding through proxy
+  
 # 0.2.21
   - if `iterations` set, then duration for test will not be limited
   - added `steps` option to execution settings
-  - added ability to access BZA feeding through proxy
   
 # 0.2.20
   - add `within` logic to timeframed pass-fail criterias
