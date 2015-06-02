@@ -176,7 +176,7 @@ class TestJMeterExecutor(BZTestCase):
         xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
         sampler_element = xml_tree.findall(".//HTTPSamplerProxy[@testname='With body params']")
         arguments_element_prop = sampler_element[0][0]
-        self.assertEqual(6, len(sampler_element[0].getchildren()))
+        self.assertEqual(7, len(sampler_element[0].getchildren()))
         self.assertEqual(1, len(arguments_element_prop.getchildren()))
         self.assertEqual(2, len(arguments_element_prop[0].getchildren()))
         self.assertEqual(1, len(arguments_element_prop[0].findall(".//elementProp[@name='param1']")))
