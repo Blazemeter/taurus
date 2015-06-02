@@ -63,7 +63,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         self.bulk_size = self.settings.get("bulk-size", self.bulk_size)
         self.browser_open = self.settings.get("browser-open", self.browser_open)
         token = self.settings.get("token", "")
-        proxy_settings = self.settings.get("proxy", None)
+        proxy_settings = self.engine.config.get("settings").get("proxy")
         if proxy_settings:
             if proxy_settings.get("address"):
                 proxy_url = urlsplit(proxy_settings.get("address"))

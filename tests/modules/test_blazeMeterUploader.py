@@ -58,9 +58,9 @@ class TestBlazeMeterUploader(BZTestCase):
         client.results.append({"marker": "test-create", 'result': {'id': 'unittest1'}})
         obj = BlazeMeterUploader()
         obj.settings['token'] = '123'
-        obj.settings['proxy'] = {"username":"user", "password":"password", "address":"http://127.0.0.1:8080"}
         obj.settings['browser-open'] = 'none'
         obj.engine = EngineEmul()
+        obj.engine.config.merge({"settings":{'proxy': {"username":"user", "password":"password", "address":"http://127.0.0.1:8080"}}})
         obj.client = client
         try:
             from urllib2 import _opener
