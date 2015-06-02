@@ -50,7 +50,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         self.client = BlazeMeterClient(self.log)
         self.test_id = ""
         self.kpi_buffer = []
-        self.bulk_size = 5
+        self.bulk_size = 30
 
     def prepare(self):
         """
@@ -215,7 +215,7 @@ class BlazeMeterClient(object):
     """ Service client class """
 
     def __init__(self, parent_logger):
-        self.logger_limit = 512  # TODO: provide control over it
+        self.logger_limit = 512  # NOTE: provide control over it
         self.user_id = None
         self.test_id = None
         self.log = parent_logger.getChild(self.__class__.__name__)

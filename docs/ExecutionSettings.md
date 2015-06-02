@@ -59,6 +59,7 @@ Execution has several options to set load profile settings. Available settings a
  - `hold-for` - time to hold target concurrency
  - `iterations` - limit scenario iterations number
  - `throughput` - apply RPS shaper, limiting maximum RPS to throughput
+ - `steps` - allows users to apply stepping ramp-up for concurrency and rps. Requires JMeter plugins to be installed!
 
 ```yaml
 ---
@@ -116,6 +117,7 @@ TODO: explain how multi-thread group will accept concurrency with maintained pro
 
 #### JMeter Properties
 There are two places to specify JMeter properties: global at module-level and local at scenario-level. Scenario properties are merged into global properties and resulting set comes as input for JMeter, see corresponding `.properties` file in artifacts.
+You may also specify system properties for JMeter in system-properties section. They comes as system.properties file in artifacts.
 
 Global properties are set like this:
 ```yaml
@@ -126,6 +128,8 @@ modules:
       my-hostname: www.pre-test.com
       log_level.jmeter: WARN
       log_level.jmeter.threads: DEBUG
+    system-properties:
+      sun.net.http.allowRestrictedHeaders: "true"
 ```
 
 Scenario-level properties are set like this:
@@ -161,6 +165,9 @@ execution:
     - host3.mynet.com
   scenario:
     script: my-test.jmx
+modules:
+  jmeter:
+    rename-distributed-threads: true  # Will add ${__machineName()} expression to thread names, true by default
 ```
 
 
@@ -265,3 +272,5 @@ configuration options:
   ]
 }
 ```
+
+![Analytics](https://ga-beacon.appspot.com/UA-63369152-1/taurus/exec)

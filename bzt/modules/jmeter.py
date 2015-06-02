@@ -16,6 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import csv
+import fnmatch
 import os
 import platform
 import subprocess
@@ -32,13 +33,13 @@ from collections import Counter, namedtuple
 from subprocess import CalledProcessError
 from distutils.version import LooseVersion
 from cssselect import GenericTranslator
+from math import ceil
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.console import WidgetProvider
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.utils import shell_exec, ensure_is_dict, humanize_time, dehumanize_time, BetterDict, \
     guess_csv_dialect, unzip, download_progress_hook
-
 
 try:
     from lxml import etree
@@ -49,6 +50,7 @@ except ImportError:
         import elementtree.ElementTree as etree
 
 from six.moves.urllib.request import URLopener
+from six.moves.urllib.parse import urlsplit
 
 EXE_SUFFIX = ".bat" if platform.system() == 'Windows' else ""
 
@@ -67,6 +69,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.modified_jmx = None
         self.jmeter_log = None
         self.properties_file = None
+        self.sys_properties_file = None
         self.kpi_jtl = None
         self.errors_jtl = None
         self.process = None
@@ -99,11 +102,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.original_jmx = self.__jmx_from_requests()
         else:
             raise ValueError("There must be a JMX file to run JMeter")
-
         load = self.get_load()
-
         self.modified_jmx = self.__get_modified_jmx(self.original_jmx, load)
-
+        sys_props = self.settings.get("system-properties")
         props = self.settings.get("properties")
         props_local = scenario.get("properties")
         props.merge(props_local)
@@ -111,12 +112,17 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if props:
             self.log.debug("Additional properties: %s", props)
             props_file = self.engine.create_artifact("jmeter-bzt", ".properties")
-            with open(props_file, 'w') as fds:
-                for key, val in six.iteritems(props):
-                    fds.write("%s=%s\n" % (key, val))
+            JMeterExecutor.__write_props_to_file(props_file, props)
             self.properties_file = props_file
 
+        if sys_props:
+            self.log.debug("Additional system properties %s", sys_props)
+            sys_props_file = self.engine.create_artifact("system", ".properties")
+            JMeterExecutor.__write_props_to_file(sys_props_file, sys_props)
+            self.sys_properties_file = sys_props_file
+
         self.reader = JTLReader(self.kpi_jtl, self.log, self.errors_jtl)
+        self.reader.is_distributed = self.distributed_servers
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
@@ -134,6 +140,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if self.properties_file:
             cmdline += ["-p", os.path.abspath(self.properties_file)]
 
+        if self.sys_properties_file:
+            cmdline += ["-S", os.path.abspath(self.sys_properties_file)]
         if self.distributed_servers:
             cmdline += ['-R%s' % ','.join(self.distributed_servers)]
 
@@ -214,6 +222,24 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             prop[0].text = str(ramp_up)
 
     @staticmethod
+    def __apply_stepping_ramp_up(jmx, load):
+        """
+        Change all thread groups to step groups, use ramp-up/steps
+        :param jmx: JMX
+        :param load: load
+        :return:
+        """
+        step_time = int(load.ramp_up / load.steps)
+        thread_groups = jmx.tree.findall(".//ThreadGroup")
+        for thread_group in thread_groups:
+            thread_cnc = int(thread_group.find(".//*[@name='ThreadGroup.num_threads']").text)
+            tg_name = thread_group.attrib["testname"]
+            thread_step = int(ceil(float(thread_cnc) / load.steps))
+            step_group = JMX.get_stepping_thread_group(thread_cnc, thread_step, step_time, load.hold + step_time,
+                                                       tg_name)
+            thread_group.getparent().replace(thread_group, step_group)
+
+    @staticmethod
     def __apply_duration(jmx, duration):
         """
         Apply duration to ThreadGroup.duration
@@ -264,6 +290,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :param concurrency: int
         :return:
         """
+        # TODO: what to do when they used non-standard thread groups?
         tnum_sel = "stringProp[name='ThreadGroup.num_threads']"
         tnum_xpath = GenericTranslator().css_to_xpath(tnum_sel)
 
@@ -306,6 +333,36 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
             jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree_shaper)
             jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
+
+    def __add_stepping_shaper(self, jmx, load):
+        """
+        adds stepping shaper
+        1) warning if any ThroughputTimer found
+        2) add VariableThroughputTimer to test plan
+        :param jmx: JMX
+        :param load: load
+        :return:
+        """
+        timers_patterns = ["ConstantThroughputTimer", "kg.apc.jmeter.timers.VariableThroughputTimer"]
+
+        for timer_pattern in timers_patterns:
+            for timer in jmx.tree.findall(".//%s" % timer_pattern):
+                self.log.warning("Test plan already use %s", timer.attrib['testname'])
+
+        step_rps = int(round(float(load.throughput) / load.steps))
+        step_time = int(round(float(load.ramp_up) / load.steps))
+        step_shaper = jmx.get_rps_shaper()
+
+        for step in range(1, load.steps + 1):
+            step_load = step * step_rps
+            if step != load.steps:
+                jmx.add_rps_shaper_schedule(step_shaper, step_load, step_load, step_time)
+            else:
+                if load.hold:
+                    jmx.add_rps_shaper_schedule(step_shaper, step_load, step_load, step_time + load.hold)
+
+        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, step_shaper)
+        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
 
     @staticmethod
     def __disable_listeners(jmx):
@@ -351,26 +408,28 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         self.__apply_modifications(jmx)
 
-        if load.duration and load.iterations:
-            msg = "You have specified both iterations count"
-            msg += " and ramp-up/hold duration times, so test will end"
-            msg += " on what runs out first"
-            self.log.warning(msg)
+        rename_threads = self.settings.get("rename-distributed-threads", True)
+        if self.distributed_servers and rename_threads:
+            self.__rename_thread_groups(jmx)
 
         if load.concurrency:
             self.__apply_concurrency(jmx, load.concurrency)
 
-        if load.ramp_up is not None:
-            JMeterExecutor.__apply_ramp_up(jmx, int(load.ramp_up))
-
-        if load.iterations is not None:
+        if load.iterations:
             JMeterExecutor.__apply_iterations(jmx, int(load.iterations))
-
-        if load.duration:
+        elif load.duration:
             JMeterExecutor.__apply_duration(jmx, int(load.duration))
 
+        if load.ramp_up:
+            JMeterExecutor.__apply_ramp_up(jmx, int(load.ramp_up))
+            if load.steps:
+                JMeterExecutor.__apply_stepping_ramp_up(jmx, load)
+
         if load.throughput:
-            JMeterExecutor.__add_shaper(jmx, load)
+            if load.steps:
+                self.__add_stepping_shaper(jmx, load)
+            else:
+                JMeterExecutor.__add_shaper(jmx, load)
 
         self.kpi_jtl = self.engine.create_artifact("kpi", ".jtl")
         kpil = jmx.new_kpi_listener(self.kpi_jtl)
@@ -398,7 +457,20 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         jmx = JMeterScenarioBuilder()
         jmx.scenario = self.get_scenario()
         jmx.save(filename)
+        self.settings.merge(jmx.system_props)
         return filename
+
+    @staticmethod
+    def __write_props_to_file(file_path, params):
+        """
+        Write properties to file
+        :param file_path:
+        :param params:
+        :return:
+        """
+        with open(file_path, 'w') as fds:
+            for key, val in six.iteritems(params):
+                fds.write("%s=%s\n" % (key, val))
 
     def get_widget(self):
         """
@@ -517,6 +589,21 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                         post_body_files.append(post_body_path)
         return post_body_files
 
+    def __rename_thread_groups(self, jmx):
+        """
+        In case of distributed test, rename thread groups
+        :param jmx: JMX
+        :return:
+        """
+        prepend_str = r"${__machineName()}"
+        thread_groups = jmx.tree.findall(".//ThreadGroup")
+        for thread_group in thread_groups:
+            test_name = thread_group.attrib["testname"]
+            if prepend_str not in test_name:
+                thread_group.attrib["testname"] = prepend_str + test_name
+
+        self.log.debug("ThreadGroups renamed: %d", len(thread_groups))
+
     def __get_script(self):
         """
 
@@ -538,24 +625,35 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :type jmx: JMX
         """
         modifs = self.get_scenario().get("modifications")
-        for action, items in six.iteritems(modifs):
-            if action in ('disable', 'enable'):
-                if not isinstance(items, list):
-                    modifs[action] = [items]
-                    items = modifs[action]
-                for name in items:
-                    jmx.set_enabled("[testname='%s']" % name, True if action == 'enable' else False)
-            elif action == 'set-prop':
-                for path, text in six.iteritems(items):
-                    parts = path.split('>')
-                    if len(parts) < 2:
-                        raise ValueError("Property selector must have at least 2 levels")
-                    sel = "[testname='%s']" % parts[0]
-                    for add in parts[1:]:
-                        sel += ">[name='%s']" % add
-                    jmx.set_text(sel, text)
-            else:
-                raise ValueError("Unsupported JMX modification action: %s" % action)
+
+        if 'disable' in modifs:
+            self.__apply_enable_disable(modifs, 'disable', jmx)
+
+        if 'enable' in modifs:
+            self.__apply_enable_disable(modifs, 'enable', jmx)
+
+        if 'set-prop' in modifs:
+            items = modifs['set-prop']
+            for path, text in six.iteritems(items):
+                parts = path.split('>')
+                if len(parts) < 2:
+                    raise ValueError("Property selector must have at least 2 levels")
+                sel = "[testname='%s']" % parts[0]
+                for add in parts[1:]:
+                    sel += ">[name='%s']" % add
+                jmx.set_text(sel, text)
+
+    def __apply_enable_disable(self, modifs, action, jmx):
+        items = modifs[action]
+        if not isinstance(items, list):
+            modifs[action] = [items]
+            items = modifs[action]
+        for name in items:
+            candidates = jmx.get("[testname]")
+            for candidate in candidates:
+                if fnmatch.fnmatch(candidate.get('testname'), name):
+                    jmx.set_enabled("[testname='%s']" % candidate.get('testname'),
+                                    True if action == 'enable' else False)
 
     def __jmeter_check(self, jmeter):
         """
@@ -831,7 +929,7 @@ class JMX(object):
             "label": True,
             "code": True,
             "message": True,
-            "threadName": False,
+            "threadName": True,
             "dataType": False,
             "encoding": False,
             "assertions": False,
@@ -1009,6 +1107,18 @@ class JMX(object):
         return res
 
     @staticmethod
+    def _int_prop(name, value):
+        """
+        JMX int property
+        :param name:
+        :param value:
+        :return:
+        """
+        res = etree.Element("intProp", name=name)
+        res.text = str(value)
+        return res
+
+    @staticmethod
     def _get_thread_group(concurrency=None, rampup=None, iterations=None):
         """
         Generates ThreadGroup with 1 thread and 1 loop
@@ -1083,7 +1193,8 @@ class JMX(object):
         coll_prop.append(duration_prop)
         shaper_collection.append(coll_prop)
 
-    def add_user_def_vars_elements(self, udv_dict):
+    @staticmethod
+    def add_user_def_vars_elements(udv_dict):
         """
 
         :param udv_dict:
@@ -1092,14 +1203,14 @@ class JMX(object):
 
         udv_element = etree.Element("Arguments", guiclass="ArgumentsPanel", testclass="Arguments",
                                     testname="my_defined_vars")
-        udv_collection_prop = self._collection_prop("Arguments.arguments")
+        udv_collection_prop = JMX._collection_prop("Arguments.arguments")
 
         for var_name, var_value in udv_dict.items():
-            udv_element_prop = self._element_prop(var_name, "Argument")
-            udv_arg_name_prop = self._string_prop("Argument.name", var_name)
-            udv_arg_value_prop = self._string_prop("Argument.value", var_value)
-            udv_arg_desc_prop = self._string_prop("Argument.desc", "")
-            udv_arg_meta_prop = self._string_prop("Argument.metadata", "=")
+            udv_element_prop = JMX._element_prop(var_name, "Argument")
+            udv_arg_name_prop = JMX._string_prop("Argument.name", var_name)
+            udv_arg_value_prop = JMX._string_prop("Argument.value", var_value)
+            udv_arg_desc_prop = JMX._string_prop("Argument.desc", "")
+            udv_arg_meta_prop = JMX._string_prop("Argument.metadata", "=")
             udv_element_prop.append(udv_arg_name_prop)
             udv_element_prop.append(udv_arg_value_prop)
             udv_element_prop.append(udv_arg_desc_prop)
@@ -1108,6 +1219,49 @@ class JMX(object):
 
         udv_element.append(udv_collection_prop)
         return udv_element
+
+    @staticmethod
+    def get_stepping_thread_group(concurrency, step_threads, step_time, hold_for, tg_name):
+        """
+        :return: etree element, Stepping Thread Group
+        """
+        stepping_thread_group = etree.Element("kg.apc.jmeter.threads.SteppingThreadGroup",
+                                              guiclass="kg.apc.jmeter.threads.SteppingThreadGroupGui",
+                                              testclass="kg.apc.jmeter.threads.SteppingThreadGroup",
+                                              testname=tg_name, enabled="true")
+        stepping_thread_group.append(JMX._string_prop("ThreadGroup.on_sample_error", "continue"))
+        stepping_thread_group.append(JMX._string_prop("ThreadGroup.num_threads", concurrency))
+        stepping_thread_group.append(JMX._string_prop("Threads initial delay", 0))
+        stepping_thread_group.append(JMX._string_prop("Start users count", step_threads))
+        stepping_thread_group.append(JMX._string_prop("Start users count burst", 0))
+        stepping_thread_group.append(JMX._string_prop("Start users period", step_time))
+        stepping_thread_group.append(JMX._string_prop("Stop users count", ""))
+        stepping_thread_group.append(JMX._string_prop("Stop users period", 1))
+        stepping_thread_group.append(JMX._string_prop("flighttime", int(hold_for)))
+        stepping_thread_group.append(JMX._string_prop("rampUp", 0))
+
+        loop_controller = etree.Element("elementProp", name="ThreadGroup.main_controller", elementType="LoopController",
+                                        guiclass="LoopControlPanel", testclass="LoopController",
+                                        testname="Loop Controller", enabled="true")
+        loop_controller.append(JMX._bool_prop("LoopController.continue_forever", False))
+        loop_controller.append(JMX._int_prop("LoopController.loops", -1))
+
+        stepping_thread_group.append(loop_controller)
+        return stepping_thread_group
+
+    @staticmethod
+    def get_dns_cache_mgr():
+        """
+        Adds dns cache element with defaults parameters
+
+        :return:
+        """
+        dns_element = etree.Element("DNSCacheManager", guiclass="DNSCachePanel", testclass="DNSCacheManager",
+                                    testname="DNS Cache Manager")
+        dns_element.append(JMX._collection_prop("DNSCacheManager.servers"))
+        dns_element.append(JMX._bool_prop("DNSCacheManager.clearEachIteration", False))
+        dns_element.append(JMX._bool_prop("DNSCacheManager.isCustomResolver", False))
+        return dns_element
 
     @staticmethod
     def _get_header_mgr(hdict):
@@ -1133,6 +1287,8 @@ class JMX(object):
         :rtype: lxml.etree.Element
         """
         mgr = etree.Element("CacheManager", guiclass="CacheManagerGui", testclass="CacheManager", testname="Cache")
+        mgr.append(JMX._bool_prop("clearEachIteration", True))
+        mgr.append(JMX._bool_prop("useExpires", True))
         return mgr
 
     @staticmethod
@@ -1141,10 +1297,11 @@ class JMX(object):
         :rtype: lxml.etree.Element
         """
         mgr = etree.Element("CookieManager", guiclass="CookiePanel", testclass="CookieManager", testname="Cookies")
+        mgr.append(JMX._bool_prop("CookieManager.clearEachIteration", True))
         return mgr
 
     @staticmethod
-    def _get_http_defaults(default_domain_name, default_port, timeout, retrieve_resources, concurrent_pool_size=4):
+    def _get_http_defaults(default_address, timeout, retrieve_resources, concurrent_pool_size=4):
         """
 
         :type timeout: int
@@ -1153,22 +1310,27 @@ class JMX(object):
         cfg = etree.Element("ConfigTestElement", guiclass="HttpDefaultsGui",
                             testclass="ConfigTestElement", testname="Defaults")
 
-        params = etree.Element("elementProp",
-                               name="HTTPsampler.Arguments",
-                               elementType="Arguments",
-                               guiclass="HTTPArgumentsPanel",
-                               testclass="Arguments", testname="user_defined")
-        cfg.append(params)
         if retrieve_resources:
             cfg.append(JMX._bool_prop("HTTPSampler.image_parser", True))
             cfg.append(JMX._bool_prop("HTTPSampler.concurrentDwn", True))
             if concurrent_pool_size:
                 cfg.append(JMX._string_prop("HTTPSampler.concurrentPool", concurrent_pool_size))
 
-        if default_domain_name:
-            cfg.append(JMX._string_prop("HTTPSampler.domain", default_domain_name))
-        if default_port:
-            cfg.append(JMX._string_prop("HTTPSampler.port", default_port))
+        params = etree.Element("elementProp",
+                               name="HTTPsampler.Arguments",
+                               elementType="Arguments",
+                               guiclass="HTTPArgumentsPanel",
+                               testclass="Arguments", testname="user_defined")
+        cfg.append(params)
+        if default_address:
+            parsed_url = urlsplit(default_address)
+            if parsed_url.scheme:
+                cfg.append(JMX._string_prop("HTTPSampler.protocol", parsed_url.scheme))
+            if parsed_url.hostname:
+                cfg.append(JMX._string_prop("HTTPSampler.domain", parsed_url.hostname))
+            if parsed_url.port:
+                cfg.append(JMX._string_prop("HTTPSampler.port", parsed_url.port))
+
         if timeout:
             cfg.append(JMX._string_prop("HTTPSampler.connect_timeout", timeout))
             cfg.append(JMX._string_prop("HTTPSampler.response_timeout", timeout))
@@ -1325,6 +1487,7 @@ class JMX(object):
         :type state: bool
         """
         items = self.get(sel)
+        self.log.debug("Enable %s elements %s: %s", state, sel, items)
         for item in items:
             item.set("enabled", 'true' if state else 'false')
 
@@ -1348,6 +1511,7 @@ class JTLReader(ResultsReader):
 
     def __init__(self, filename, parent_logger, errors_filename):
         super(JTLReader, self).__init__()
+        self.is_distributed = False
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.csvreader = IncrementalCSVReader(self.log, filename)
         if errors_filename:
@@ -1366,7 +1530,13 @@ class JTLReader(ResultsReader):
 
         for row in self.csvreader.read(last_pass):
             label = row["label"]
-            concur = int(row["allThreads"])
+            if self.is_distributed:
+                concur = int(row["grpThreads"])
+                trname = row["threadName"][:row["threadName"].rfind(' ')]
+            else:
+                concur = int(row["allThreads"])
+                trname = ''
+
             rtm = int(row["elapsed"]) / 1000.0
             ltc = int(row["Latency"]) / 1000.0
             if "Connect" in row:
@@ -1386,7 +1556,7 @@ class JTLReader(ResultsReader):
                 error = None
 
             tstmp = int(int(row["timeStamp"]) / 1000)
-            yield tstmp, label, concur, rtm, cnn, ltc, rcd, error
+            yield tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname
 
     def _calculate_datapoints(self, final_pass=False):
         for point in super(JTLReader, self)._calculate_datapoints(final_pass):
@@ -1671,6 +1841,7 @@ class JMeterScenarioBuilder(JMX):
     def __init__(self, original=None):
         super(JMeterScenarioBuilder, self).__init__(original)
         self.scenario = Scenario()
+        self.system_props = BetterDict()
 
     def __add_managers(self):
         headers = self.scenario.get_headers()
@@ -1683,20 +1854,23 @@ class JMeterScenarioBuilder(JMX):
         if self.scenario.get("store-cookie", True):
             self.append(self.TEST_PLAN_SEL, self._get_cookie_mgr())
             self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
+        if self.scenario.get("use-dns-cache-mgr", True):
+            self.append(self.TEST_PLAN_SEL, self.get_dns_cache_mgr())
+            self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
+            self.system_props.merge({"system-properties": {"sun.net.inetaddr.ttl": 0}})
 
     def __add_defaults(self):
         """
 
         :return:
         """
-        default_domain = self.scenario.get("default-domain", None)
-        default_port = self.scenario.get("default-port", None)
+        default_address = self.scenario.get("default-address", None)
         retrieve_resources = self.scenario.get("retrieve-resources", True)
         concurrent_pool_size = self.scenario.get("concurrent-pool-size", 4)
 
         timeout = self.scenario.get("timeout", None)
         timeout = int(1000 * dehumanize_time(timeout))
-        self.append(self.TEST_PLAN_SEL, self._get_http_defaults(default_domain, default_port, timeout,
+        self.append(self.TEST_PLAN_SEL, self._get_http_defaults(default_address, timeout,
                                                                 retrieve_resources, concurrent_pool_size))
         self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
 

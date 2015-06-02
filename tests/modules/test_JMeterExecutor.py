@@ -7,12 +7,12 @@ import shutil
 import yaml
 import sys
 
+from tests import setup_test_logging, BZTestCase, __dir__
 from bzt.engine import Provisioning
 from bzt.modules.jmeter import JMeterExecutor, JMX, JTLErrorsReader, JTLReader
-from tests import setup_test_logging, BZTestCase, __dir__
 from tests.mocks import EngineEmul
 from bzt.utils import BetterDict
-
+from math import ceil
 
 try:
     from lxml import etree
@@ -240,7 +240,7 @@ class TestJMeterExecutor(BZTestCase):
         obj.execution = obj.engine.config['execution']
         obj.prepare()
         artifacts = os.listdir(obj.engine.artifacts_dir)
-        self.assertEqual(len(artifacts), 6)
+        self.assertEqual(len(artifacts), 7)  # + system.properties
         target_jmx = os.path.join(obj.engine.artifacts_dir, "modified_requests.jmx.jmx")
         self.__check_path_resource_files(target_jmx, exclude_jtls=True)
 
@@ -255,8 +255,9 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(1, len(default_elements))
 
         default_element = default_elements[0]
-        self.assertEqual("localhost", default_element.find(".//stringProp[@name='HTTPSampler.domain']").text)
-        self.assertEqual("80", default_element.find(".//stringProp[@name='HTTPSampler.port']").text)
+        self.assertEqual("www.somehost.com", default_element.find(".//stringProp[@name='HTTPSampler.domain']").text)
+        self.assertEqual("884", default_element.find(".//stringProp[@name='HTTPSampler.port']").text)
+        self.assertEqual("https", default_element.find(".//stringProp[@name='HTTPSampler.protocol']").text)
         self.assertEqual("true", default_element.find(".//boolProp[@name='HTTPSampler.image_parser']").text)
         self.assertEqual("true", default_element.find(".//boolProp[@name='HTTPSampler.concurrentDwn']").text)
         self.assertEqual("10", default_element.find(".//stringProp[@name='HTTPSampler.concurrentPool']").text)
@@ -341,3 +342,167 @@ class TestJMeterExecutor(BZTestCase):
         obj = JTLReader(__dir__() + "/../data/tranctl.jtl", logging.getLogger(''), None)
         values = [x for x in obj.datapoints(True)]
         self.assertEquals(1, len(values))
+
+    def test_distributed_th_hostnames(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({"scenario": {"script": "tests/jmx/http.jmx"}})
+        obj.distributed_servers = ["127.0.0.1", "127.0.0.1"]
+        obj.prepare()
+        xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        thread_groups = xml_tree.findall(".//ThreadGroup")
+        prepend_str = r"${__machineName()}"
+        for thread_group in thread_groups:
+            self.assertTrue(thread_group.attrib["testname"].startswith(prepend_str))
+
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = json.loads(open(__dir__() + "/../../tests/json/get-post.json").read())
+        obj.execution = obj.engine.config['execution']
+        obj.settings.merge(obj.engine.config.get("modules").get("jmeter"))
+        obj.distributed_servers = ["127.0.0.1", "127.0.0.1"]
+        obj.prepare()
+        xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        thread_groups = xml_tree.findall(".//ThreadGroup")
+        prepend_str = r"${__machineName()}"
+        for thread_group in thread_groups:
+            self.assertFalse(thread_group.attrib["testname"].startswith(prepend_str))
+
+    def test_dns_cache_mgr_scenario(self):
+        """
+        No system properties
+        :return:
+        """
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({"scenario": {"script": "tests/jmx/http.jmx"}})
+        obj.prepare()
+        xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        dns_element = xml_tree.findall(".//DNSCacheManager")
+        # no dns manager when using jmx, no system.properties file
+        self.assertEqual(len(dns_element), 0)
+        arts = os.listdir(obj.engine.artifacts_dir)
+        self.assertNotIn("system.properties", arts)
+
+    def test_dns_cache_mgr_requests(self):
+        """
+
+        :return:
+        """
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = json.loads(open(__dir__() + "/../../tests/json/get-post.json").read())
+        obj.execution = obj.engine.config['execution']
+        obj.settings.merge(obj.engine.config.get("modules").get("jmeter"))
+        obj.prepare()
+        xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        dns_managers = xml_tree.findall(".//DNSCacheManager")
+        # 1 dns_manager
+        self.assertEqual(len(dns_managers), 1)
+        # check system.properies file contents
+        sys_prop = open(os.path.join(obj.engine.artifacts_dir, "system.properties")).read()
+        self.assertTrue("any_prop=true" in sys_prop)
+        self.assertTrue("sun.net.inetaddr.ttl=0" in sys_prop)
+
+    def test_dns_cache_mgr_script(self):
+        """
+
+        :return:
+        """
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = BetterDict()
+        obj.engine.config.merge(yaml.load(open("tests/yaml/dns_mgr_script.yml").read()))
+        obj.engine.config.merge({"provisioning": "local"})
+        obj.execution = obj.engine.config['execution']
+        obj.settings.merge(obj.engine.config.get("modules").get("jmeter"))
+        obj.prepare()
+        xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        dns_managers = xml_tree.findall(".//DNSCacheManager")
+        # 0 dns_managers
+        self.assertEqual(len(dns_managers), 0)
+        sys_prop = open(os.path.join(obj.engine.artifacts_dir, "system.properties")).read()
+        self.assertTrue("any_prop=true" in sys_prop)
+        self.assertFalse("sun.net.inetaddr.ttl=0" in sys_prop)
+
+    def test_stepping_tg_ramp_no_proportion(self):
+        """
+        Tested without concurrency proportions
+        :return:
+        """
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = BetterDict()
+        obj.engine.config.merge(yaml.load(open("tests/yaml/stepping_ramp_up.yml").read()))
+        obj.engine.config.merge({"provisioning": "local"})
+        obj.execution = obj.engine.config['execution']
+        obj.prepare()
+        load = obj.get_load()
+        orig_xml_tree = etree.fromstring(open(obj.original_jmx, "rb").read())
+        modified_xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        mod_stepping_tgs = modified_xml_tree.findall(".//kg.apc.jmeter.threads.SteppingThreadGroup")
+        orig_tgs = orig_xml_tree.findall(".//ThreadGroup")
+        self.assertEqual(len(mod_stepping_tgs), len(orig_tgs))
+        for orig_th, step_th in zip(orig_tgs, mod_stepping_tgs):
+            orig_num_threads = int(orig_th.find(".//stringProp[@name='ThreadGroup.num_threads']").text)
+            mod_num_threads = int(step_th.find(".//stringProp[@name='ThreadGroup.num_threads']").text)
+            self.assertEqual(orig_num_threads, mod_num_threads)
+
+            self.assertEqual(step_th.find(".//stringProp[@name='Start users period']").text,
+                             str(int(load.ramp_up / load.steps)))
+            self.assertEqual(step_th.find(".//stringProp[@name='Start users count']").text,
+                             str(int(orig_num_threads / load.steps)))
+
+    def test_stepping_tg_ramp_proportion(self):
+        """
+        Tested with concurrency proportions
+        :return:
+        """
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = BetterDict()
+        obj.engine.config.merge(yaml.load(open("tests/yaml/stepping_ramp_up.yml").read()))
+        obj.engine.config.merge({"provisioning": "local"})
+        obj.execution = obj.engine.config['execution']
+        obj.execution['concurrency'] = 100  # from 170 to 100
+        obj.execution['steps'] = 4  # from 5 to 4
+        obj.prepare()
+        load = obj.get_load()
+        orig_xml_tree = etree.fromstring(open(obj.original_jmx, "rb").read())
+        modified_xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        mod_stepping_tgs = modified_xml_tree.findall(".//kg.apc.jmeter.threads.SteppingThreadGroup")
+        orig_tgs = orig_xml_tree.findall(".//ThreadGroup")
+        self.assertEqual(len(mod_stepping_tgs), len(orig_tgs))
+        orig_summ_cnc = sum([int(x.find(".//stringProp[@name='ThreadGroup.num_threads']").text) for x in orig_tgs])
+        for orig_th, step_th in zip(orig_tgs, mod_stepping_tgs):
+            orig_num_threads = int(orig_th.find(".//stringProp[@name='ThreadGroup.num_threads']").text)
+            mod_num_threads = int(step_th.find(".//stringProp[@name='ThreadGroup.num_threads']").text)
+
+            self.assertEqual(round(orig_num_threads * (float(load.concurrency) / orig_summ_cnc)), mod_num_threads)
+            self.assertEqual(step_th.find(".//stringProp[@name='Start users period']").text,
+                             str(int(load.ramp_up / load.steps)))
+            self.assertEqual(step_th.find(".//stringProp[@name='Start users count']").text,
+                             str(int(ceil(float(load.concurrency) / orig_summ_cnc * orig_num_threads / load.steps))))
+
+    def test_step_shaper(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = BetterDict()
+        obj.engine.config.merge(yaml.load(open("tests/yaml/stepping_ramp_up.yml").read()))
+        obj.engine.config.merge({"provisioning": "local"})
+        obj.execution = obj.engine.config['execution']
+        obj.execution['throughput'] = 100
+        obj.prepare()
+        load = obj.get_load()
+        modified_xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        timer = modified_xml_tree.findall(".//kg.apc.jmeter.timers.VariableThroughputTimer")
+        self.assertEqual(len(timer), 1)
+        for num, step_collection in enumerate(timer[0].findall(".//load_profile")):
+            step_start_rps = step_collection.find(".//stringProp[@name='49']")
+            step_stop_rps = step_collection.find(".//stringProp[@name='1567']")
+            self.assertTrue(step_start_rps == step_stop_rps == str(int(round(float(load.throughput) / load.steps))))
+            if num + 1 == load.steps:
+                self.assertEqual(step_collection.find(".//stringProp[@name='53']"),
+                                 load.hold + load.ramp_up / load.steps)
+            else:
+                self.assertEqual(step_collection.find(".//stringProp[@name='53']"), load.ramp_up / load.steps)

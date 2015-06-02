@@ -7,10 +7,11 @@
     1. [Execution Settings](ExecutionSettings.md)
     1. [Scenario Building](ScenarioBuilding.md)
     1. [Reporting and Results Processing](Reporting.md)
- 1. [Config Recipes](Recipes.md)   
  1. [Troubleshooting, Support and Feedback](https://groups.google.com/forum/#!forum/codename-taurus)
 
 ## Developer Documentation
 
   1. [Changelog](Changelog.md)
   1. [Developer Guide](DeveloperGuide.md)
+
+![Analytics](https://ga-beacon.appspot.com/UA-63369152-1/taurus/home)

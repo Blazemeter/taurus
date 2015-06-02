@@ -58,11 +58,11 @@ scenarios:
       header-name: header-value
     think-time: 1s500ms  # global delay between each request
     timeout: 500ms  #  timeout for connecting, receiving results
-    default-domain: "blazedemo.com"  # http request defaults, server name
-    default-port: 80  # http request defaults, port
+    default-address: "https://www.blazedemo.com:8080"  # http request defaults scheme, domain, port
     keepalive: true  # true by default, applied on all requests in scenario
     retrieve-resources: true  # true by default, retrieves all embedded resources from HTML pages
     concurrent-pool-size: 4  # concurrent pool size for resources download, 4 by default
+    use-dns-cache-mgr: true  # use DNS Cache Manager to test resources behind dns load balancers. True by default.
     data-sources: # list of external data sources
       - path/to/my.csv  # this is a shorthand form
       - path: path/to/another.csv  # this is full form, path option is required
@@ -217,3 +217,5 @@ scenarios:
               expect-null: false  # expected value is null
               invert: false # invert condition
 ```
+
+![Analytics](https://ga-beacon.appspot.com/UA-63369152-1/taurus/scenario)

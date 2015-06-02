@@ -120,6 +120,7 @@ reporting:
     condition: '>'  # required
     threshold: 150ms  # required
     timeframe: 10s  # optional, default is none
+    logic: for  # optional, logic to aggregate values within timeframe. Default 'for' means take latest, 'within' means take sum/avg of all values within interval
     fail: true  # optional, default is true
     stop: true  # optional, default is true
 ```
@@ -221,3 +222,5 @@ modules:
 ```
 
 Note that increasing `buffer-seconds` might sometimes make results aggregation more robust, by price of delaying analysis.
+
+![Analytics](https://ga-beacon.appspot.com/UA-63369152-1/taurus/reporting)

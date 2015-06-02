@@ -1,6 +1,25 @@
 # Changelog
 
-## 0.2.18 (next)
+# 0.2.22 (next)
+  - send data to BlazeMeter less frequently (30 secs)
+
+# 0.2.21
+  - if `iterations` set, then duration for test will not be limited
+  - added `steps` option to execution settings
+  
+# 0.2.20
+  - add `within` logic to timeframed pass-fail criterias
+  - added `use-dns-cache-mgr` option.
+  - default-domain option renamed to default-address (scheme, hostname, port are now parsed from this option).
+  
+# 0.2.19
+  - fixed bug when in distributed tests VU count was not calculated properly.
+  - auto-append `${__machineName()}` for thread names in distributed test
+  - fix module search path issue on MacOS
+
+## 0.2.18
+  - set "clear each iteration" flag for cache and cookie managers when generating JMX from requests
+  - allow wildcards in enable-disable modifications  
 
 ## 0.2.17
   - added ability to change font size in Windows dashboard GUI on Ctrl + mousewheel event
@@ -44,3 +63,5 @@
   - Added parameters for final_stats reporter
   - Added ability to generate query string based on parameters and request type.
  
+
+![Analytics](https://ga-beacon.appspot.com/UA-63369152-1/taurus/changelog)

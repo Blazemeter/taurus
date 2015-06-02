@@ -15,6 +15,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+from collections import OrderedDict
 import fnmatch
 import logging
 import re
@@ -98,7 +99,7 @@ class FailCriteria(object):
 
     + overall and by label => label
     + stop test and not (what to do then??) => stop
-    cumulative and last / instant or windowed => window size
+    + cumulative and last / instant or windowed => window size
     steady and threshold
     negate condition
 
@@ -111,8 +112,11 @@ class FailCriteria(object):
 
     def __init__(self, config):
         super(FailCriteria, self).__init__()
+        self.agg_buffer = OrderedDict()
         self.config = config
-        self.get_value = self.__get_field_functor(config['subject'], str(config['threshold']).endswith('%'))
+        self.percentage = str(config['threshold']).endswith('%')
+        self.get_value = self.__get_field_functor(config['subject'], self.percentage)
+        self.agg_logic = self.__get_aggregator_functor(config.get('logic', 'for'), config['subject'])
         self.condition = self.__get_condition_functor(config['condition'])
         self.label = config.get('label', '')
         self.threshold = dehumanize_time(config['threshold'])
@@ -142,8 +146,9 @@ class FailCriteria(object):
                 self.config['subject'],
                 self.config['condition'],
                 self.config['threshold'],
+                self.config.get('logic', 'for'),
                 self.counting)
-        return "%s: %s%s%s for %s sec" % data
+        return "%s: %s%s%s %s %s sec" % data
 
     def __count(self, data):
         self.ended = data[DataPoint.TIMESTAMP]
@@ -162,7 +167,7 @@ class FailCriteria(object):
         part = data[self.selector]
         if self.label not in part:
             return
-        value = self.get_value(part[self.label])
+        value = self.agg_logic(data[DataPoint.TIMESTAMP], self.get_value(part[self.label]))
 
         state = self.condition(value, self.threshold)
         if not state:
@@ -190,8 +195,6 @@ class FailCriteria(object):
             else:
                 return True
         return False
-
-    # TODO: support aggregative algo, maybe like 'within' instead of 'for'
 
     def __get_field_functor(self, subject, percentage):
         if subject == 'avg-rt':
@@ -269,6 +272,7 @@ class FailCriteria(object):
             "subject": None,
             "condition": None,
             "threshold": None,
+            "logic": "for",
             "timeframe": -1,
             "label": "",
             "stop": True,
@@ -282,7 +286,7 @@ class FailCriteria(object):
         else:
             action_str = ""
 
-        crit_pat = re.compile(r"([\w\?-]+)(\s*of\s*([\S ]+))?([<>=]+)(\S+)(\s+for\s+(\S+))?")
+        crit_pat = re.compile(r"([\w\?-]+)(\s*of\s*([\S ]+))?([<>=]+)(\S+)(\s+(for|within)\s+(\S+))?")
         crit_match = crit_pat.match(crit_str.strip())
         if not crit_match:
             raise ValueError("Criteria string is mailformed in its condition part: %s" % crit_str)
@@ -293,7 +297,9 @@ class FailCriteria(object):
         if crit_groups[2]:
             res["label"] = crit_groups[2]
         if crit_groups[6]:
-            res["timeframe"] = crit_groups[6]
+            res["logic"] = crit_groups[6]
+        if crit_groups[7]:
+            res["timeframe"] = crit_groups[7]
 
         if action_str:
             action_pat = re.compile(r"(stop|continue)(\s+as\s+(failed|non-failed))?")
@@ -305,6 +311,38 @@ class FailCriteria(object):
             res["fail"] = action_groups[2] == "failed"
 
         return res
+
+    def __get_aggregator_functor(self, logic, subject):
+        if logic == 'for':
+            return lambda tstmp, value: value
+        elif logic == 'within':
+            if not self.percentage \
+                    and (subject in ('hits',)
+                         or subject.startswith('succ')
+                         or subject.startswith('fail')
+                         or subject.startswith('rc')):
+                return self.__within_aggregator_sum
+            else:
+                return self.__within_aggregator_avg  # FIXME: having simple average for percented values is a bit wrong
+        else:
+            raise ValueError("Unsupported window logic: %s", logic)
+
+    def __within_aggregator_sum(self, tstmp, value):
+        return sum(self.__get_windowed_points(tstmp, value))
+
+    def __within_aggregator_avg(self, tstmp, value):
+        points = self.__get_windowed_points(tstmp, value)
+        return sum(points) / len(points)
+
+    def __get_windowed_points(self, tstmp, value):
+        self.agg_buffer[tstmp] = value
+        for tstmp_old in self.agg_buffer.keys():
+            if tstmp_old <= tstmp - self.window:
+                del self.agg_buffer[tstmp_old]
+                continue
+            break
+
+        return six.viewvalues(self.agg_buffer)
 
 
 class PassFailWidget(urwid.Pile):
@@ -349,4 +387,3 @@ class PassFailWidget(urwid.Pile):
             widget_text = self.__prepare_colors()
             self.text_widget.set_text(widget_text)
         self._invalidate()
-
