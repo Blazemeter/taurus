@@ -73,7 +73,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
                     proxy_uri = "%s://%s:%s@%s" % (proxy_url.scheme, username, pwd, proxy_url.netloc)
                 else:
                     proxy_uri = "%s://%s" % (proxy_url.scheme, proxy_url.netloc)
-                proxy_handler = ProxyHandler({"https":proxy_uri})
+                proxy_handler = ProxyHandler({"https":proxy_uri, "http":proxy_uri})
                 opener = build_opener(proxy_handler)
                 install_opener(opener)
 
