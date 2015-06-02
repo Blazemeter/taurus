@@ -1,6 +1,6 @@
 # Changelog
 
-# 0.2.22 (next)
+# 0.2.22
   - send data to BlazeMeter less frequently (30 secs)
   - added ability to access BZA feeding through proxy
   - fixed bug with modifying paths of resource files in distribute test mode
