@@ -395,7 +395,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.__cp_res_files_to_artifacts_dir(resource_files_from_jmx)
         self.__cp_res_files_to_artifacts_dir(resource_files_from_requests)
 
-        if resource_files_from_jmx:
+        if resource_files_from_jmx and not self.distributed_servers:
             JMeterExecutor.__modify_resources_paths_in_jmx(jmx.tree, resource_files_from_jmx)
 
         if self.get_scenario().get("disable-listeners", True):

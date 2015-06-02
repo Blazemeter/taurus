@@ -182,7 +182,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(1, len(arguments_element_prop[0].findall(".//elementProp[@name='param1']")))
         self.assertEqual(1, len(arguments_element_prop.findall(".//elementProp[@name='param2']")))
 
-    def __check_path_resource_files(self, jmx_file_path, exclude_jtls=False):
+    def __check_path_resource_files(self, jmx_file_path, exclude_jtls=False, reverse_check=False):
         xml_tree = etree.fromstring(open(jmx_file_path, "rb").read())
         search_patterns = ["File.path", "filename", "BeanShellSampler.filename"]
         for pattern in search_patterns:
@@ -198,9 +198,15 @@ class TestJMeterExecutor(BZTestCase):
                 if resource_element.text and parent_disabled is False:
                     if exclude_jtls:
                         if not resource_element.text.endswith('.jtl'):
-                            self.assertEqual("", os.path.dirname(resource_element.text))
+                            if not reverse_check:
+                                self.assertEqual("", os.path.dirname(resource_element.text))
+                            else:
+                                self.assertNotEqual("", os.path.dirname(resource_element.text))
                     else:
-                        self.assertEqual("", os.path.dirname(resource_element.text))
+                        if not reverse_check:
+                            self.assertEqual("", os.path.dirname(resource_element.text))
+                        else:
+                            self.assertNotEqual("", os.path.dirname(resource_element.text))
 
     def test_resource_files_collection_remote_prov(self):
         obj = JMeterExecutor()
@@ -506,3 +512,12 @@ class TestJMeterExecutor(BZTestCase):
                                  load.hold + load.ramp_up / load.steps)
             else:
                 self.assertEqual(step_collection.find(".//stringProp[@name='53']"), load.ramp_up / load.steps)
+
+    def test_csv_path_bug_in_distributed_mode(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({"scenario": {"script": "tests/jmx/files.jmx"}})
+        obj.distributed_servers = ["127.0.0.1", "127.0.0.1"]
+        obj.prepare()
+        target_jmx = os.path.join(obj.engine.artifacts_dir, "modified_files.jmx.jmx")
+        self.__check_path_resource_files(target_jmx, exclude_jtls=True, reverse_check=True)
