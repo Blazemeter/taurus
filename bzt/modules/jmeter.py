@@ -929,7 +929,8 @@ class JMX(object):
             http_args_coll_prop = JMX._collection_prop("Arguments.arguments")
             for arg_name, arg_value in body.items():
                 http_element_prop = JMX._element_prop(arg_name, "HTTPArgument")
-                http_element_prop.append(JMX._bool_prop("HTTPArgument.always_encode", False))
+                http_element_prop.append(JMX._bool_prop("HTTPArgument.always_encode", True))
+                http_element_prop.append(JMX._bool_prop("HTTPArgument.use_equals", True))
                 http_element_prop.append(JMX._string_prop("Argument.value", arg_value))
                 http_element_prop.append(JMX._string_prop("Argument.name", arg_name))
                 http_args_coll_prop.append(http_element_prop)
@@ -939,6 +940,7 @@ class JMX(object):
         proxy.append(JMX._string_prop("HTTPSampler.path", url))
         proxy.append(JMX._string_prop("HTTPSampler.method", method))
         proxy.append(JMX._bool_prop("HTTPSampler.use_keepalive", keepalive))
+        proxy.append(JMX._bool_prop("HTTPSampler.follow_redirects", True))
 
         if timeout is not None:
             proxy.append(JMX._string_prop("HTTPSampler.connect_timeout", timeout))
