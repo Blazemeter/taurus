@@ -98,10 +98,14 @@ scenarios:
         label: homepage  # sampler label
 
         body: 'request-body-string'  # if present, will be used as body 
-        body: {}  # generate query string based on parameters and request type
+        body:  # generate query string based on parameters and request type
+          param1: value1
+          param2: value2
         body-file: path/to/file.txt  # this file contents will be used as post body
 
-        headers: {}  # local headers that override global
+        headers:  # local headers that override global
+          Authentication: Token 1234567890
+          Referer: http://taurus.blazemeter/docs
         think-time: 1s  # local think-time, overrides global
         timeout: 1s  # local timeout, overrides global
 

@@ -86,7 +86,7 @@ Available settings are:
  - `check-interval` - polling interval that used by engine after startup and until shutdown to determine if test is need to be stopped 
  - `aggregator` - module alias for top-level [results aggregator](Reporting.md#results-reading-and-aggregating-facility) to be used for collecting results and passing it to reporters
  - `default-executor` - module alias for executor that will be used by default for [executions](ExecutionSettings)
- 
+ - `proxy` - proxy settings for BZA feeding, Taurus will use proxy settings from OS environment by default.
 See default settings below:
 ```yaml
 ---
@@ -94,6 +94,10 @@ settings:
   aggregator: consolidator
   default-executor: jmeter
   check-interval: 1
+  proxy:  # custom proxy settings
+    address: http://127.0.0.1:8080  # proxy server address
+    username: user  # username and password used if authentication is configured on proxy server
+    password: 12345
 ``` 
 
 
