@@ -24,12 +24,12 @@ import traceback
 import time
 import webbrowser
 import zipfile
+
 import six
 
 from six.moves.urllib.request import Request, urlopen, ProxyHandler, build_opener, install_opener
 from six.moves.urllib.error import HTTPError
 from six.moves.urllib.parse import urlencode, urlsplit
-
 from bzt import ManualShutdown
 from bzt.engine import Reporter, AggregatorListener, Provisioning
 from bzt.modules.aggregator import DataPoint, KPISet
@@ -73,7 +73,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
                     proxy_uri = "%s://%s:%s@%s" % (proxy_url.scheme, username, pwd, proxy_url.netloc)
                 else:
                     proxy_uri = "%s://%s" % (proxy_url.scheme, proxy_url.netloc)
-                proxy_handler = ProxyHandler({"https":proxy_uri, "http":proxy_uri})
+                proxy_handler = ProxyHandler({"https": proxy_uri, "http": proxy_uri})
                 opener = build_opener(proxy_handler)
                 install_opener(opener)
 
@@ -248,7 +248,8 @@ class BlazeMeterClient(object):
             headers = {}
         if self.token:
             headers["X-API-Key"] = self.token
-        self.log.debug("Request %s: %s", url, data[:self.logger_limit] if data else None)
+        self.log.debug("Request: %s %s %s", method if method else 'GET', url,
+                       data[:self.logger_limit] if data else None)
         # .encode("utf-8") is probably better
         data = data.encode() if isinstance(data, six.text_type) else data
         request = Request(url, data, headers)
@@ -510,7 +511,7 @@ class BlazeMeterClient(object):
         """
         Quick check if we can access the service
         """
-        self._request(self.address + '/api/latest/explorer/resources.json')
+        self._request(self.address + '/api/latest/web/version')
 
     def upload_file(self, filename, contents=None):
         """
