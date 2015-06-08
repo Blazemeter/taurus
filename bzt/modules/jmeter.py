@@ -277,10 +277,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         for group in jmx.enabled_thread_groups():
             sprop = group.xpath(xpath)
             bprop = group.xpath(flag_xpath)
-            if not iterations:
-                bprop[0].text = 'true'
-                sprop[0].text = str(-1)
-            else:
+            if iterations:
                 bprop[0].text = 'false'
                 sprop[0].text = str(iterations)
 
