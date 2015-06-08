@@ -185,8 +185,10 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
 
         :return:
         """
+        self.log.debug("KPI bulk buffer len: %s", len(self.kpi_buffer))
         if len(self.kpi_buffer):
-            if len(self.kpi_buffer) >= self.bulk_size:
+            if (len(self.kpi_buffer) >= self.bulk_size) \
+                    or (len(self.kpi_buffer) >= 2 and not self.client.last_ts):  # at least 2 points to show the graph
                 self.__send_data(self.kpi_buffer)
                 self.kpi_buffer = []
         return super(BlazeMeterUploader, self).check()
@@ -239,8 +241,8 @@ class BlazeMeterClient(object):
         self.results_url = None
         self.active_session_id = None
         self.data_signature = None
-        self._first = sys.maxsize
-        self._last = 0
+        self.first_ts = sys.maxsize
+        self.last_ts = 0
         self.timeout = 10
 
     def _request(self, url, data=None, headers=None, checker=None, method=None):
@@ -378,8 +380,8 @@ class BlazeMeterClient(object):
         data = []
 
         for sec in data_buffer:
-            self._first = min(self._first, sec[DataPoint.TIMESTAMP])
-            self._last = max(self._last, sec[DataPoint.TIMESTAMP])
+            self.first_ts = min(self.first_ts, sec[DataPoint.TIMESTAMP])
+            self.last_ts = max(self.last_ts, sec[DataPoint.TIMESTAMP])
 
             for lbl, item in six.iteritems(sec[DataPoint.CURRENT]):
                 if lbl == '':
@@ -445,9 +447,9 @@ class BlazeMeterClient(object):
 
     def __summary_json(self, cumul):
         return {
-            "first": self._first,
-            "last": self._last,
-            "duration": self._last - self._first,
+            "first": self.first_ts,
+            "last": self.last_ts,
+            "duration": self.last_ts - self.first_ts,
             "failed": cumul[KPISet.FAILURES],
             "hits": cumul[KPISet.SAMPLE_COUNT],
 
