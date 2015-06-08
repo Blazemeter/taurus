@@ -1,5 +1,8 @@
 # Changelog
 
+# 0.2.23
+  - rename bulk-size into send-interval for BlazeMeter reporter
+
 # 0.2.22
   - send data to BlazeMeter less frequently (30 secs)
   - added ability to access BZA feeding through proxy

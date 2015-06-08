@@ -50,7 +50,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         self.client = BlazeMeterClient(self.log)
         self.test_id = ""
         self.kpi_buffer = []
-        self.bulk_size = 30
+        self.send_interval = 30
 
     def prepare(self):
         """
@@ -60,7 +60,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         self.client.address = self.settings.get("address", self.client.address)
         self.client.data_address = self.settings.get("data-address", self.client.data_address)
         self.client.timeout = dehumanize_time(self.settings.get("timeout", self.client.timeout))
-        self.bulk_size = self.settings.get("bulk-size", self.bulk_size)
+        self.send_interval = dehumanize_time(self.settings.get("send-interval", self.send_interval))
         self.browser_open = self.settings.get("browser-open", self.browser_open)
         token = self.settings.get("token", "")
         proxy_settings = self.engine.config.get("settings").get("proxy")
@@ -187,8 +187,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         """
         self.log.debug("KPI bulk buffer len: %s", len(self.kpi_buffer))
         if len(self.kpi_buffer):
-            if (len(self.kpi_buffer) >= self.bulk_size) \
-                    or (len(self.kpi_buffer) >= 2 and not self.client.last_ts):  # at least 2 points to show the graph
+            if (self.client.last_ts < (time.time() - self.send_interval)):
                 self.__send_data(self.kpi_buffer)
                 self.kpi_buffer = []
         return super(BlazeMeterUploader, self).check()
