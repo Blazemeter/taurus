@@ -3,6 +3,7 @@
 # 0.2.23
   - rename `bulk-size` option into `send-interval` for BlazeMeter reporter
   - explicitly fail in case of wrong `body` option for HTTP request
+  - fixed bug when JMeter test duration was not applied properly.
 
 # 0.2.22
   - send data to BlazeMeter less frequently (30 secs)
