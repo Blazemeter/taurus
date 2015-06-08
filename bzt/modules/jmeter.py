@@ -256,6 +256,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         for group in jmx.enabled_thread_groups():
             group.xpath(sched_xpath)[0].text = 'true'
             group.xpath(dur_xpath)[0].text = str(int(duration))
+            loops_element = group.find(".//elementProp[@name='ThreadGroup.main_controller']")
+            loops_loop_count = loops_element.find("*[@name='LoopController.loops']")
+            loops_loop_count.getparent().replace(loops_loop_count, JMX._int_prop("LoopController.loops", -1))
 
     @staticmethod
     def __apply_iterations(jmx, iterations):
@@ -272,16 +275,13 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         flag_xpath = GenericTranslator().css_to_xpath(flag_sel)
 
         for group in jmx.enabled_thread_groups():
+            sprop = group.xpath(xpath)
             bprop = group.xpath(flag_xpath)
             if not iterations:
                 bprop[0].text = 'true'
-            else:
-                bprop[0].text = 'false'
-
-            sprop = group.xpath(xpath)
-            if not iterations:
                 sprop[0].text = str(-1)
             else:
+                bprop[0].text = 'false'
                 sprop[0].text = str(iterations)
 
     def __apply_concurrency(self, jmx, concurrency):

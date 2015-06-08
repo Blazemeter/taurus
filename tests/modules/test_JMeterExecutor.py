@@ -521,3 +521,55 @@ class TestJMeterExecutor(BZTestCase):
         obj.prepare()
         target_jmx = os.path.join(obj.engine.artifacts_dir, "modified_files.jmx.jmx")
         self.__check_path_resource_files(target_jmx, exclude_jtls=True, reverse_check=True)
+
+    def test_duration_loops_bug(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config[Provisioning.PROV] = 'test'
+        obj.execution = BetterDict()
+        obj.execution.merge({
+            "concurrency": 10,
+            "ramp-up": 15,
+            "hold-for": "2m",
+            "scenario": {"script": __dir__() + "/../jmx/http.jmx"}
+        })
+        obj.prepare()
+
+        modified_xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        tg = modified_xml_tree.find(".//ThreadGroup")
+        loop_ctrl = tg.find(".//elementProp[@name='ThreadGroup.main_controller']")
+        tg_loops = loop_ctrl.find(".//intProp[@name='LoopController.loops']")
+        tg_forever = loop_ctrl.find(".//boolProp[@name='LoopController.continue_forever']")
+        self.assertEqual(tg_loops.text, "-1")
+        self.assertEqual(tg_forever.text, "false")
+
+    def test_iterations_loop_bug(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config[Provisioning.PROV] = 'test'
+        obj.execution = BetterDict()
+        obj.execution.merge({"iterations":10 ,"scenario": {"script": __dir__() + "/../jmx/http.jmx"}})
+        obj.prepare()
+        modified_xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        tg = modified_xml_tree.find(".//ThreadGroup")
+        loop_ctrl = tg.find(".//elementProp[@name='ThreadGroup.main_controller']")
+        tg_loops = loop_ctrl.find(".//stringProp[@name='LoopController.loops']")
+        tg_forever = loop_ctrl.find(".//boolProp[@name='LoopController.continue_forever']")
+        self.assertEqual(tg_loops.text, "10")
+        self.assertEqual(tg_forever.text, "false")
+
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config[Provisioning.PROV] = 'test'
+        obj.execution = BetterDict()
+        obj.execution.merge({"scenario": {"script": __dir__() + "/../jmx/http.jmx"}})
+        obj.prepare()
+        modified_xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        tg = modified_xml_tree.find(".//ThreadGroup")
+        loop_ctrl = tg.find(".//elementProp[@name='ThreadGroup.main_controller']")
+        tg_loops = loop_ctrl.find("*[@name='LoopController.loops']")
+        tg_forever = loop_ctrl.find(".//boolProp[@name='LoopController.continue_forever']")
+        self.assertEqual(tg_loops.text, "1")
+        self.assertEqual(tg_forever.text, "false")
+
+
