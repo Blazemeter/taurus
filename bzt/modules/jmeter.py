@@ -1033,7 +1033,7 @@ class JMX(object):
                 http_args_coll_prop.append(http_element_prop)
             args.append(http_args_coll_prop)
             proxy.append(args)
-        else:
+        elif body:
             raise ValueError("Cannot handle 'body' option of type %s: %s" % (type(body), body))
 
         proxy.append(JMX._string_prop("HTTPSampler.path", url))
