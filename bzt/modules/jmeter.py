@@ -26,20 +26,21 @@ import traceback
 import logging
 import shutil
 import psutil
-import six
-import urwid
-
 from collections import Counter, namedtuple
 from subprocess import CalledProcessError
 from distutils.version import LooseVersion
-from cssselect import GenericTranslator
 from math import ceil
+
+import six
+import urwid
+from cssselect import GenericTranslator
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.console import WidgetProvider
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.utils import shell_exec, ensure_is_dict, humanize_time, dehumanize_time, BetterDict, \
     guess_csv_dialect, unzip, download_progress_hook
+
 
 try:
     from lxml import etree
@@ -1013,7 +1014,6 @@ class JMX(object):
 
         args = JMX._get_arguments_panel("HTTPsampler.Arguments")
 
-        # six.u
         if isinstance(body, six.string_types):
             proxy.append(JMX._bool_prop("HTTPSampler.postBodyRaw", True))
             coll_prop = JMX._collection_prop("Arguments.arguments")
@@ -1022,7 +1022,6 @@ class JMX(object):
             coll_prop.append(header)
             args.append(coll_prop)
             proxy.append(args)
-
         elif isinstance(body, dict):
             http_args_coll_prop = JMX._collection_prop("Arguments.arguments")
             for arg_name, arg_value in body.items():
@@ -1034,6 +1033,8 @@ class JMX(object):
                 http_args_coll_prop.append(http_element_prop)
             args.append(http_args_coll_prop)
             proxy.append(args)
+        else:
+            raise ValueError("Cannot handle 'body' option of type %s: %s" % (type(body), body))
 
         proxy.append(JMX._string_prop("HTTPSampler.path", url))
         proxy.append(JMX._string_prop("HTTPSampler.method", method))
