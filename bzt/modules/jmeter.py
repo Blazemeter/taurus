@@ -31,6 +31,7 @@ from subprocess import CalledProcessError
 from distutils.version import LooseVersion
 from math import ceil
 
+from lxml.etree import XMLSyntaxError
 import six
 import urwid
 from cssselect import GenericTranslator
@@ -636,7 +637,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 parts = path.split('>')
                 if len(parts) < 2:
                     raise ValueError("Property selector must have at least 2 levels")
-                sel = "[testname='%s']" % parts[0]
+                sel = "[testname='%s']" % parts[0]  # TODO: support wildcards in element names
                 for add in parts[1:]:
                     sel += ">[name='%s']" % add
                 jmx.set_text(sel, text)
@@ -1700,7 +1701,12 @@ class JTLErrorsReader(object):
                 return
 
         self.fds.seek(self.offset)
-        self.parser.feed(self.fds.read(1024 * 1024))  # "Huge input lookup" error without capping :)
+        try:
+            self.parser.feed(self.fds.read(1024 * 1024))  # "Huge input lookup" error without capping :)
+        except XMLSyntaxError as exc:
+            self.log.debug("Error reading errors.jtl: %s", traceback.format_exc())
+            self.log.warning("Failed to parse errors XML: %s", exc)
+
         self.offset = self.fds.tell()
         for _action, elem in self.parser.read_events():
             if elem.getparent() is None or elem.getparent().tag != 'testResults':

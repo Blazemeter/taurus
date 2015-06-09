@@ -1,5 +1,8 @@
 # Changelog
 
+# 0.2.24 (next)
+  - fix crashing on second start jmeter under GUI mode
+
 # 0.2.23
   - rename `bulk-size` option into `send-interval` for BlazeMeter reporter
   - explicitly fail in case of wrong `body` option for HTTP request
