@@ -2,6 +2,8 @@
 
 # 0.2.24 (next)
   - fix crashing on second start jmeter under GUI mode
+  - iterate requests forever if no limits were specified
+  - fix test duration logic to respect iterations set
 
 # 0.2.23
   - rename `bulk-size` option into `send-interval` for BlazeMeter reporter
