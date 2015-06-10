@@ -379,6 +379,43 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             if not file_setting or not file_setting[0].text:
                 listener.set("enabled", "false")
 
+    def __apply_load_settings(self, jmx, load):
+        if load.concurrency:
+            self.__apply_concurrency(jmx, load.concurrency)
+        if load.hold or (load.ramp_up and not load.iterations):
+            JMeterExecutor.__apply_duration(jmx, int(load.duration))
+        if load.iterations:
+            JMeterExecutor.__apply_iterations(jmx, int(load.iterations))
+        if load.ramp_up:
+            JMeterExecutor.__apply_ramp_up(jmx, int(load.ramp_up))
+            if load.steps:
+                JMeterExecutor.__apply_stepping_ramp_up(jmx, load)
+        if load.throughput:
+            if load.steps:
+                self.__add_stepping_shaper(jmx, load)
+            else:
+                JMeterExecutor.__add_shaper(jmx, load)
+
+    def __add_result_writers(self, jmx):
+        self.kpi_jtl = self.engine.create_artifact("kpi", ".jtl")
+        kpil = jmx.new_kpi_listener(self.kpi_jtl)
+        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, kpil)
+        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
+        # NOTE: maybe have option not to write it, since it consumes drive space
+        # TODO: option to enable full trace JTL for all requests
+        self.errors_jtl = self.engine.create_artifact("errors", ".jtl")
+        errs = jmx.new_errors_listener(self.errors_jtl)
+        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, errs)
+        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
+
+    def __prepare_resources(self, jmx):
+        resource_files_from_jmx = JMeterExecutor.__get_resource_files_from_jmx(jmx)
+        resource_files_from_requests = self.__get_res_files_from_requests()
+        self.__cp_res_files_to_artifacts_dir(resource_files_from_jmx)
+        self.__cp_res_files_to_artifacts_dir(resource_files_from_requests)
+        if resource_files_from_jmx and not self.distributed_servers:
+            JMeterExecutor.__modify_resources_paths_in_jmx(jmx.tree, resource_files_from_jmx)
+
     def __get_modified_jmx(self, original, load):
         """
         add two listeners to test plan:
@@ -388,14 +425,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         self.log.debug("Load: %s", load)
         jmx = JMX(original)
-
-        resource_files_from_jmx = JMeterExecutor.__get_resource_files_from_jmx(jmx)
-        resource_files_from_requests = self.__get_res_files_from_requests()
-        self.__cp_res_files_to_artifacts_dir(resource_files_from_jmx)
-        self.__cp_res_files_to_artifacts_dir(resource_files_from_requests)
-
-        if resource_files_from_jmx and not self.distributed_servers:
-            JMeterExecutor.__modify_resources_paths_in_jmx(jmx.tree, resource_files_from_jmx)
 
         if self.get_scenario().get("disable-listeners", True):
             JMeterExecutor.__disable_listeners(jmx)
@@ -411,37 +440,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if self.distributed_servers and rename_threads:
             self.__rename_thread_groups(jmx)
 
-        if load.concurrency:
-            self.__apply_concurrency(jmx, load.concurrency)
-
-        if load.hold or (load.ramp_up and not load.iterations):
-            JMeterExecutor.__apply_duration(jmx, int(load.duration))
-
-        if load.iterations:
-            JMeterExecutor.__apply_iterations(jmx, int(load.iterations))
-
-        if load.ramp_up:
-            JMeterExecutor.__apply_ramp_up(jmx, int(load.ramp_up))
-            if load.steps:
-                JMeterExecutor.__apply_stepping_ramp_up(jmx, load)
-
-        if load.throughput:
-            if load.steps:
-                self.__add_stepping_shaper(jmx, load)
-            else:
-                JMeterExecutor.__add_shaper(jmx, load)
-
-        self.kpi_jtl = self.engine.create_artifact("kpi", ".jtl")
-        kpil = jmx.new_kpi_listener(self.kpi_jtl)
-        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, kpil)
-        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
-
-        # NOTE: maybe have option not to write it, since it consumes drive space
-        # TODO: option to enable full trace JTL for all requests
-        self.errors_jtl = self.engine.create_artifact("errors", ".jtl")
-        errs = jmx.new_errors_listener(self.errors_jtl)
-        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, errs)
-        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
+        self.__apply_load_settings(jmx, load)
+        self.__prepare_resources(jmx)
+        self.__add_result_writers(jmx)
 
         prefix = "modified_" + os.path.basename(original)
         filename = self.engine.create_artifact(prefix, ".jmx")
