@@ -414,7 +414,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if load.concurrency:
             self.__apply_concurrency(jmx, load.concurrency)
 
-        if load.duration:
+        if load.hold:
             JMeterExecutor.__apply_duration(jmx, int(load.duration))
         if load.iterations:
             JMeterExecutor.__apply_iterations(jmx, int(load.iterations))
