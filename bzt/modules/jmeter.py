@@ -414,10 +414,11 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if load.concurrency:
             self.__apply_concurrency(jmx, load.concurrency)
 
+        if load.hold or (load.ramp_up and not load.iterations):
+            JMeterExecutor.__apply_duration(jmx, int(load.duration))
+
         if load.iterations:
             JMeterExecutor.__apply_iterations(jmx, int(load.iterations))
-        elif load.duration:
-            JMeterExecutor.__apply_duration(jmx, int(load.duration))
 
         if load.ramp_up:
             JMeterExecutor.__apply_ramp_up(jmx, int(load.ramp_up))
@@ -1134,7 +1135,7 @@ class JMX(object):
                              elementType="LoopController",
                              guiclass="LoopControlPanel",
                              testclass="LoopController")
-        loop.append(JMX._bool_prop("LoopController.continue_forever", False))
+        loop.append(JMX._bool_prop("LoopController.continue_forever", iterations < 0))
         if not iterations:
             iterations = 1
         loop.append(JMX._string_prop("LoopController.loops", iterations))
@@ -1971,7 +1972,7 @@ class JMeterScenarioBuilder(JMX):
         self.__add_defaults()
         self.__add_datasources()
 
-        thread_group = JMX._get_thread_group(1, 0, 1)
+        thread_group = self._get_thread_group(1, 0, -1)
         self.append(self.TEST_PLAN_SEL, thread_group)
         self.append(self.TEST_PLAN_SEL, etree.Element("hashTree", type="tg"))  # arbitrary trick with our own attribute
 
