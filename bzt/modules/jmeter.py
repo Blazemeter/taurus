@@ -414,10 +414,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if load.concurrency:
             self.__apply_concurrency(jmx, load.concurrency)
 
+        if load.duration:
+            JMeterExecutor.__apply_duration(jmx, int(load.duration))
         if load.iterations:
             JMeterExecutor.__apply_iterations(jmx, int(load.iterations))
-        elif load.duration:
-            JMeterExecutor.__apply_duration(jmx, int(load.duration))
 
         if load.ramp_up:
             JMeterExecutor.__apply_ramp_up(jmx, int(load.ramp_up))
