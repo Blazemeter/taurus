@@ -30,6 +30,10 @@
       "class": "bzt.modules.gatling.GatlingExecutor",
       "path": "~/gatling-taurus/bin/gatling.sh"
     },
+    "selenium": {
+      "class": "bzt.modules.selenium.SeleniumExecutor",
+      "path": "~/selenium-taurus/selenium-server.jar"
+    },
     "consolidator": {
       "class": "bzt.modules.aggregator.ConsolidatingAggregator",
       "percentiles": [

@@ -5,6 +5,8 @@ from tests.mocks import EngineEmul
 from bzt.utils import BetterDict
 import os
 import shutil
+import yaml
+import time
 
 setup_test_logging()
 
@@ -51,9 +53,87 @@ class TestSeleniumExecutor(BZTestCase):
         SeleniumExecutor.SELENIUM_DOWNLOAD_LINK = selenium_server_link
         SeleniumExecutor.SELEINUM_VERSION = selenium_server_version
 
-    def test_startup_shutdown(self):
+    def test_selenium_prepare_folder_java(self):
+        """
+        Check if scripts copied
+        :return:
+        """
         obj = SeleniumExecutor()
         obj.engine = EngineEmul()
         obj.execution = BetterDict()
+        obj.execution.merge({"scenario": {"script": os.path.abspath(__dir__() + "/../../tests/selenium/java/")}})
+        obj.prepare()
+        java_scripts = os.listdir(os.path.join(obj.engine.artifacts_dir, "selenium_scripts"))
+        self.assertEqual(len(java_scripts), 2)
 
+    def test_selenium_prepare_folder_python(self):
+        """
+        Check if scripts copied python
+        :return:
+        """
+        obj = SeleniumExecutor()
+        obj.engine = EngineEmul()
+        obj.execution = BetterDict()
+        obj.execution.merge({"scenario": {"script": os.path.abspath(__dir__() + "/../../tests/selenium/python/")}})
+        obj.prepare()
+        python_scripts = os.listdir(os.path.join(obj.engine.artifacts_dir, "selenium_scripts"))
+        self.assertEqual(len(python_scripts), 2)
 
+    def test_selenium_startup_shutdown_java_maven(self):
+        """
+        Check if scripts copied and test completed
+        :return:
+        """
+        obj = SeleniumExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = BetterDict()
+        obj.engine.config.merge(yaml.load(open("tests/yaml/selenium_executor.yml").read()))
+        obj.engine.config.merge({"provisioning": "local"})
+        obj.execution = obj.engine.config['execution']
+        obj.prepare()
+        obj.startup()
+        while not obj.check():
+            time.sleep(1)
+        obj.shutdown()
+        self.assertNotEqual(obj.process.poll(), 1)
+        self.assertEqual(obj.test_runner.process.poll(), 0)
+
+    def test_selenium_startup_shutdown_java_maven_single(self):
+        """
+        test if script copied and test completed with single java file
+        :return:
+        """
+        obj = SeleniumExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = BetterDict()
+        obj.engine.config.merge(yaml.load(open("tests/yaml/selenium_executor.yml").read()))
+        obj.engine.config.merge({"provisioning": "local"})
+        obj.execution = obj.engine.config['execution']
+        obj.execution.merge({"scenario": {"script": os.path.abspath(__dir__() + "/../../tests/selenium/java/TestBlazemeterPass.java")}})
+        obj.prepare()
+        obj.startup()
+        while not obj.check():
+            time.sleep(1)
+        obj.shutdown()
+        self.assertNotEqual(obj.process.poll(), 1)
+        self.assertEqual(obj.test_runner.process.poll(), 0)
+
+    def test_selenium_startup_shutdown_python(self):
+        """
+        test if script copied and test completed with single java file
+        :return:
+        """
+        obj = SeleniumExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = BetterDict()
+        obj.engine.config.merge(yaml.load(open("tests/yaml/selenium_executor.yml").read()))
+        obj.engine.config.merge({"provisioning": "local"})
+        obj.execution = obj.engine.config['execution']
+        obj.execution.merge({"scenario": {"script": os.path.abspath(__dir__() + "/../../tests/selenium/python/")}})
+        obj.prepare()
+        obj.startup()
+        while not obj.check():
+            time.sleep(1)
+        obj.shutdown()
+        self.assertNotEqual(obj.process.poll(), 1)
+        self.assertEqual(obj.test_runner.process.poll(), 0)

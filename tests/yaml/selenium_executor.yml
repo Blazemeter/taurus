@@ -1,0 +1,15 @@
+---
+execution:
+  executor: "selenium"
+  scenario:
+    script: "tests/selenium/java/"
+
+modules:
+  selenium:
+    selenium-tools:
+      maven:
+        path: "build/tools/maven/bin/mvn"
+
+# add option to specify existing pom
+# add option to use tmp directory instead of artifacts (do not save project)
+# add option to maven which files to use as test files (*Test, Test*, etc)
