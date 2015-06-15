@@ -124,7 +124,8 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
         # TODO: implement selenium-server grid
         self.start_time = time.time()
         if self.is_grid:
-            selenium_hub_cmdline = ["java", "-jar", os.path.realpath(self.settings.get("path")), "-role", "hub" ]  # , "-debug", "-log", "test.log"
+            selenium_hub_cmdline = ["java", "-jar", os.path.realpath(self.settings.get("path")), "-role",
+                                    "hub"]  # , "-debug", "-log", "test.log"
             selenium_node_cmdline = ["java", "-jar", os.path.realpath(self.settings.get("path")), "-role", "webdriver",
                                      "-port 5555", "-hub http://127.0.0.1:4444/grid/register",
                                      "-browser browserName=firefox"]
@@ -139,12 +140,12 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
             self.stderr_node = open(node_err, "w")
 
             self.hub_process = shell_exec(selenium_hub_cmdline, cwd=self.engine.artifacts_dir,
-                                  stdout=self.stdout_hub,
-                                  stderr=self.stderr_hub)
+                                          stdout=self.stdout_hub,
+                                          stderr=self.stderr_hub)
 
             self.node_process = shell_exec(selenium_node_cmdline, cwd=self.engine.artifacts_dir,
-                                  stdout=self.stdout_node,
-                                  stderr=self.stderr_node)
+                                           stdout=self.stdout_node,
+                                           stderr=self.stderr_node)
 
         self.test_runner.run_tests(self.engine.artifacts_dir, self.get_scenario())
 
@@ -186,7 +187,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
         if self.start_time:
             self.end_time = time.time()
             self.log.info("Selenium server worked for %s seconds",
-                           self.end_time - self.start_time)
+                          self.end_time - self.start_time)
 
     def get_widget(self):
         """
@@ -300,6 +301,7 @@ class AbstractTestRunner():
     def is_finished(self):
         raise NotImplementedError
 
+
 class Maven(AbstractTestRunner):
     MAVEN_DOWNLOAD_LINK = "http://apache-mirror.rbc.ru/pub/apache/maven/maven-3/{version}/binaries/apache-maven-{version}-bin.zip"
     MAVEN_VERSION = "3.3.3"
@@ -376,6 +378,7 @@ class Maven(AbstractTestRunner):
         :return: bool
         """
 
+
 class PomFile():
     def __init__(self, existing_pom_file_path):
         self.pom_file_path = existing_pom_file_path
@@ -433,7 +436,7 @@ class PomFile():
         #    root = etree.Element(b"project")
         #    self.xml_tree = etree.Element(root)
         #    self.xml_tree.append(etree.fromstring(base_pom))
-        #else:
+        # else:
         #    with open(self.pom_file_path, 'rb') as fds:
         #        self.xml_tree = etree.parse(fds)
 
@@ -472,7 +475,6 @@ class JunitTester(AbstractTestRunner):
         return self.junit_path
 
     def run_tests(self, artifacts_dir, scenario):
-
         # java -cp junit.jar:selenium-test-small.jar:selenium-2.46.0/selenium-java-2.46.0.jar:./../selenium-server.jar org.junit.runner.JUnitCore TestBlazemeterPass
 
         junit_class_path = self.junit_path
@@ -481,7 +483,8 @@ class JunitTester(AbstractTestRunner):
         selenium_server = os.path.expanduser("~/selenium-taurus/selenium-server.jar")
         junit_test_class = self.settings.get("test-class")
 
-        junit_command_line = ["java", "-cp", ":".join([junit_class_path, test_jar_path, selenium_java, selenium_server]),
+        junit_command_line = ["java", "-cp",
+                              ":".join([junit_class_path, test_jar_path, selenium_java, selenium_server]),
                               "org.junit.runner.JUnitCore", junit_test_class]
 
         self.log.info(junit_command_line)
@@ -496,12 +499,11 @@ class JunitTester(AbstractTestRunner):
         pass
 
 
-
-
 class NoseTester(AbstractTestRunner):
     """
     Python selenium tests runner
     """
+
     def __init__(self):
         self.log = logging.getLogger('')
         self.thread = None
@@ -514,6 +516,7 @@ class NoseTester(AbstractTestRunner):
         try:
             import nose
             import selenium
+
             self.log.info("nose and selenium already installed")
             return True
         except ImportError:
@@ -526,6 +529,7 @@ class NoseTester(AbstractTestRunner):
         """
         try:
             import pip
+
             pip.main(['install', "nose"])
             pip.main(['install', "selenium"])
             self.log.info("nose and selenium packages were successfully installed")
@@ -546,6 +550,7 @@ class NoseTester(AbstractTestRunner):
         try:
             import nose
             import selenium
+
             nose.run()
         except BaseException as exc:
             self.log.debug("failed", traceback.format_exc())
@@ -555,12 +560,11 @@ class NoseTester(AbstractTestRunner):
         return not self.thread.isAlive()
 
 
-
-
 class SeleniumWidget(urwid.Pile):
     """
     Not implemented yet
     """
+
     def __init__(self, executor):
         self.executor = executor
         self.dur = executor.get_load().duration
@@ -568,15 +572,17 @@ class SeleniumWidget(urwid.Pile):
         self.elapsed = urwid.Text("Elapsed: N/A")
         self.eta = urwid.Text("ETA: N/A", align=urwid.RIGHT)
         widgets.append(urwid.Columns([self.elapsed, self.eta]))
-        #if self.executor.script:
+        # if self.executor.script:
         #    self.script_name = urwid.Text("Script: %s" % os.path.basename(self.executor.script))
         #    widgets.append(self.script_name)
         super(SeleniumWidget, self).__init__(widgets)
+
     def update(self):
         if self.executor.start_time:
             elapsed = time.time() - self.executor.start_time
             self.elapsed.set_text("Elapsed: %s" % humanize_time(elapsed))
         self._invalidate()
+
 
 class DumbReader(ResultsReader):
     def _read(self, last_pass=False):
