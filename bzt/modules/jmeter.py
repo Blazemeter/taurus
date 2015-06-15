@@ -25,12 +25,13 @@ import signal
 import traceback
 import logging
 import shutil
-import psutil
 from collections import Counter, namedtuple
 from subprocess import CalledProcessError
 from distutils.version import LooseVersion
 from math import ceil
 
+import psutil
+from lxml.etree import XMLSyntaxError
 import six
 import urwid
 from cssselect import GenericTranslator
@@ -256,6 +257,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         for group in jmx.enabled_thread_groups():
             group.xpath(sched_xpath)[0].text = 'true'
             group.xpath(dur_xpath)[0].text = str(int(duration))
+            loops_element = group.find(".//elementProp[@name='ThreadGroup.main_controller']")
+            loops_loop_count = loops_element.find("*[@name='LoopController.loops']")
+            loops_loop_count.getparent().replace(loops_loop_count, JMX._int_prop("LoopController.loops", -1))
 
     @staticmethod
     def __apply_iterations(jmx, iterations):
@@ -272,16 +276,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         flag_xpath = GenericTranslator().css_to_xpath(flag_sel)
 
         for group in jmx.enabled_thread_groups():
-            bprop = group.xpath(flag_xpath)
-            if not iterations:
-                bprop[0].text = 'true'
-            else:
-                bprop[0].text = 'false'
-
             sprop = group.xpath(xpath)
-            if not iterations:
-                sprop[0].text = str(-1)
-            else:
+            bprop = group.xpath(flag_xpath)
+            if iterations:
+                bprop[0].text = 'false'
                 sprop[0].text = str(iterations)
 
     def __apply_concurrency(self, jmx, concurrency):
@@ -381,6 +379,43 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             if not file_setting or not file_setting[0].text:
                 listener.set("enabled", "false")
 
+    def __apply_load_settings(self, jmx, load):
+        if load.concurrency:
+            self.__apply_concurrency(jmx, load.concurrency)
+        if load.hold or (load.ramp_up and not load.iterations):
+            JMeterExecutor.__apply_duration(jmx, int(load.duration))
+        if load.iterations:
+            JMeterExecutor.__apply_iterations(jmx, int(load.iterations))
+        if load.ramp_up:
+            JMeterExecutor.__apply_ramp_up(jmx, int(load.ramp_up))
+            if load.steps:
+                JMeterExecutor.__apply_stepping_ramp_up(jmx, load)
+        if load.throughput:
+            if load.steps:
+                self.__add_stepping_shaper(jmx, load)
+            else:
+                JMeterExecutor.__add_shaper(jmx, load)
+
+    def __add_result_writers(self, jmx):
+        self.kpi_jtl = self.engine.create_artifact("kpi", ".jtl")
+        kpil = jmx.new_kpi_listener(self.kpi_jtl)
+        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, kpil)
+        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
+        # NOTE: maybe have option not to write it, since it consumes drive space
+        # TODO: option to enable full trace JTL for all requests
+        self.errors_jtl = self.engine.create_artifact("errors", ".jtl")
+        errs = jmx.new_errors_listener(self.errors_jtl)
+        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, errs)
+        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
+
+    def __prepare_resources(self, jmx):
+        resource_files_from_jmx = JMeterExecutor.__get_resource_files_from_jmx(jmx)
+        resource_files_from_requests = self.__get_res_files_from_requests()
+        self.__cp_res_files_to_artifacts_dir(resource_files_from_jmx)
+        self.__cp_res_files_to_artifacts_dir(resource_files_from_requests)
+        if resource_files_from_jmx and not self.distributed_servers:
+            JMeterExecutor.__modify_resources_paths_in_jmx(jmx.tree, resource_files_from_jmx)
+
     def __get_modified_jmx(self, original, load):
         """
         add two listeners to test plan:
@@ -390,14 +425,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         self.log.debug("Load: %s", load)
         jmx = JMX(original)
-
-        resource_files_from_jmx = JMeterExecutor.__get_resource_files_from_jmx(jmx)
-        resource_files_from_requests = self.__get_res_files_from_requests()
-        self.__cp_res_files_to_artifacts_dir(resource_files_from_jmx)
-        self.__cp_res_files_to_artifacts_dir(resource_files_from_requests)
-
-        if resource_files_from_jmx and not self.distributed_servers:
-            JMeterExecutor.__modify_resources_paths_in_jmx(jmx.tree, resource_files_from_jmx)
 
         if self.get_scenario().get("disable-listeners", True):
             JMeterExecutor.__disable_listeners(jmx)
@@ -413,36 +440,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if self.distributed_servers and rename_threads:
             self.__rename_thread_groups(jmx)
 
-        if load.concurrency:
-            self.__apply_concurrency(jmx, load.concurrency)
-
-        if load.iterations:
-            JMeterExecutor.__apply_iterations(jmx, int(load.iterations))
-        elif load.duration:
-            JMeterExecutor.__apply_duration(jmx, int(load.duration))
-
-        if load.ramp_up:
-            JMeterExecutor.__apply_ramp_up(jmx, int(load.ramp_up))
-            if load.steps:
-                JMeterExecutor.__apply_stepping_ramp_up(jmx, load)
-
-        if load.throughput:
-            if load.steps:
-                self.__add_stepping_shaper(jmx, load)
-            else:
-                JMeterExecutor.__add_shaper(jmx, load)
-
-        self.kpi_jtl = self.engine.create_artifact("kpi", ".jtl")
-        kpil = jmx.new_kpi_listener(self.kpi_jtl)
-        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, kpil)
-        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
-
-        # NOTE: maybe have option not to write it, since it consumes drive space
-        # TODO: option to enable full trace JTL for all requests
-        self.errors_jtl = self.engine.create_artifact("errors", ".jtl")
-        errs = jmx.new_errors_listener(self.errors_jtl)
-        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, errs)
-        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
+        self.__apply_load_settings(jmx, load)
+        self.__prepare_resources(jmx)
+        self.__add_result_writers(jmx)
 
         prefix = "modified_" + os.path.basename(original)
         filename = self.engine.create_artifact(prefix, ".jmx")
@@ -639,7 +639,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 parts = path.split('>')
                 if len(parts) < 2:
                     raise ValueError("Property selector must have at least 2 levels")
-                sel = "[testname='%s']" % parts[0]
+                sel = "[testname='%s']" % parts[0]  # TODO: support wildcards in element names
                 for add in parts[1:]:
                     sel += ">[name='%s']" % add
                 jmx.set_text(sel, text)
@@ -786,7 +786,7 @@ class JMX(object):
     FIELD_HEADERS = "headers"
     FIELD_BODY = "body"
 
-    def __init__(self, original=None):
+    def __init__(self, original=None, test_plan_name="BZT Generated Test Plan"):
         self.log = logging.getLogger(self.__class__.__name__)
         if original:
             self.load(original)
@@ -795,7 +795,7 @@ class JMX(object):
             self.tree = etree.ElementTree(root)
 
             test_plan = etree.Element("TestPlan", guiclass="TestPlanGui",
-                                      testname="BZT Generated Test Plan",
+                                      testname=test_plan_name,
                                       testclass="TestPlan")
 
             htree = etree.Element("hashTree")
@@ -1136,7 +1136,7 @@ class JMX(object):
                              elementType="LoopController",
                              guiclass="LoopControlPanel",
                              testclass="LoopController")
-        loop.append(JMX._bool_prop("LoopController.continue_forever", False))
+        loop.append(JMX._bool_prop("LoopController.continue_forever", iterations < 0))
         if not iterations:
             iterations = 1
         loop.append(JMX._string_prop("LoopController.loops", iterations))
@@ -1362,7 +1362,7 @@ class JMX(object):
         return element
 
     @staticmethod
-    def _get_extractor(varname, regexp, template, match_no, default):
+    def _get_extractor(varname, regexp, template, match_no, default='NOT_FOUND'):
         """
 
         :type varname: str
@@ -1382,7 +1382,28 @@ class JMX(object):
         return element
 
     @staticmethod
-    def _get_json_extractor(varname, jsonpath, default):
+    def _get_jquerycss_extractor(varname, selector, attribute, match_no, default="NOT_FOUND"):
+        """
+
+        :type varname: str
+        :type regexp: str
+        :type match_no: int
+        :type default: str
+        :rtype: lxml.etree.Element
+        """
+
+        element = etree.Element("HtmlExtractor", guiclass="HtmlExtractorGui", testclass="HtmlExtractor",
+                                testname="Get %s" % varname)
+        element.append(JMX._string_prop("HtmlExtractor.refname", varname))
+        element.append(JMX._string_prop("HtmlExtractor.expr", selector))
+        element.append(JMX._string_prop("HtmlExtractor.attribute", attribute))
+        element.append(JMX._string_prop("HtmlExtractor.match_number", match_no))
+        element.append(JMX._string_prop("HtmlExtractor.default", default))
+        return element
+
+
+    @staticmethod
+    def _get_json_extractor(varname, jsonpath, default='NOT_FOUND', from_variable=None):
         """
 
         :type varname: str
@@ -1397,6 +1418,9 @@ class JMX(object):
         element.append(JMX._string_prop("VAR", varname))
         element.append(JMX._string_prop("JSONPATH", jsonpath))
         element.append(JMX._string_prop("DEFAULT", default))
+        if from_variable:
+            element.append(JMX._string_prop("VARIABLE", from_variable))
+            element.append(JMX._string_prop("SUBJECT", "VAR"))
         return element
 
     @staticmethod
@@ -1703,7 +1727,12 @@ class JTLErrorsReader(object):
                 return
 
         self.fds.seek(self.offset)
-        self.parser.feed(self.fds.read(1024 * 1024))  # "Huge input lookup" error without capping :)
+        try:
+            self.parser.feed(self.fds.read(1024 * 1024))  # "Huge input lookup" error without capping :)
+        except XMLSyntaxError as exc:
+            self.log.debug("Error reading errors.jtl: %s", traceback.format_exc())
+            self.log.warning("Failed to parse errors XML: %s", exc)
+
         self.offset = self.fds.tell()
         for _action, elem in self.parser.read_events():
             if elem.getparent() is None or elem.getparent().tag != 'testResults':
@@ -1968,7 +1997,7 @@ class JMeterScenarioBuilder(JMX):
         self.__add_defaults()
         self.__add_datasources()
 
-        thread_group = JMX._get_thread_group(1, 0, 1)
+        thread_group = self._get_thread_group(1, 0, -1)
         self.append(self.TEST_PLAN_SEL, thread_group)
         self.append(self.TEST_PLAN_SEL, etree.Element("hashTree", type="tg"))  # arbitrary trick with our own attribute
 
