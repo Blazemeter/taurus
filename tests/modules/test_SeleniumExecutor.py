@@ -146,7 +146,7 @@ class TestSeleniumExecutor(BZTestCase):
         obj = SeleniumExecutor()
         obj.engine = EngineEmul()
         obj.execution = BetterDict()
-        obj.execution.merge({"scenario": {"script": os.path.abspath(__dir__() + "/../../tests/selenium/jar/TestBlazemeterPass.jar")}})
+        obj.execution.merge({"scenario": {"script": os.path.abspath(__dir__() + "/../../tests/selenium/jar/selenium-test-small.jar")}})
         obj.prepare()
         java_scripts = os.listdir(os.path.join(obj.engine.artifacts_dir, "selenium_scripts"))
         self.assertEqual(len(java_scripts), 1)
@@ -159,7 +159,7 @@ class TestSeleniumExecutor(BZTestCase):
         obj = SeleniumExecutor()
         obj.engine = EngineEmul()
         obj.engine.config = BetterDict()
-        obj.engine.config.merge(yaml.load(open("tests/yaml/selenium_executor.yml").read()))
+        obj.engine.config.merge(yaml.load(open("tests/yaml/selenium_executor_jar.yml").read()))
         obj.engine.config.merge({"provisioning": "local"})
         obj.execution = obj.engine.config['execution']
         #obj.execution.merge({"scenario": {"script": os.path.abspath(__dir__() + "/../../tests/selenium/jar/TestBlazemeterPass.jar")}})

@@ -7,7 +7,7 @@ from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import NoAlertPresentException
 import unittest, time, re
 
-class BlazemeterPass(unittest.TestCase):
+class TestBlazemeterFail(unittest.TestCase):
     def setUp(self):
         self.driver = webdriver.Firefox()
         self.driver.implicitly_wait(30)
@@ -15,11 +15,11 @@ class BlazemeterPass(unittest.TestCase):
         self.verificationErrors = []
         self.accept_next_alert = True
     
-    def test_blazemeter_pass(self):
+    def test_blazemeter_fail(self):
         driver = self.driver
         driver.get(self.base_url + "/index.html")
         driver.find_element_by_css_selector("a[title=\"Home\"]").click()
-        self.assertEqual("Pricing", driver.find_element_by_link_text("Pricing").text)
+        self.assertEqual("", driver.title)
     
     def is_element_present(self, how, what):
         try: self.driver.find_element(by=how, value=what)

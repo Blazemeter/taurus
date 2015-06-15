@@ -17,7 +17,7 @@ import urwid
 import tempfile
 import logging
 import shutil
-import threading
+import sys
 from bzt.modules.aggregator import ResultsReader
 
 try:
@@ -54,7 +54,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
         :return:
         """
 
-        # self.reader = DumbReader()
+        self.reader = DumbReader(None, self.log)
         self.selenium_log = self.engine.create_artifact("selenium", ".log")
         self.scenario = self.get_scenario()
         self.is_grid = self.scenario.get("use-grid", False)
@@ -487,7 +487,7 @@ class JunitTester(AbstractTestRunner):
                               ":".join([junit_class_path, test_jar_path, selenium_java, selenium_server]),
                               "org.junit.runner.JUnitCore", junit_test_class]
 
-        self.log.info(junit_command_line)
+        # self.log.info(junit_command_line)
         self.start_time = time.time()
         junit_out = open(os.path.join(artifacts_dir, "junit_out"), 'ab')
         junit_err = open(os.path.join(artifacts_dir, "junit_err"), 'ab')
@@ -516,7 +516,6 @@ class NoseTester(AbstractTestRunner):
         try:
             import nose
             import selenium
-
             self.log.info("nose and selenium already installed")
             return True
         except ImportError:
@@ -529,7 +528,6 @@ class NoseTester(AbstractTestRunner):
         """
         try:
             import pip
-
             pip.main(['install', "nose"])
             pip.main(['install', "selenium"])
             self.log.info("nose and selenium packages were successfully installed")
@@ -537,27 +535,23 @@ class NoseTester(AbstractTestRunner):
             self.log.debug("Error while installing additional packages: nose, selenium", traceback.format_exc())
             raise RuntimeError("Error while installing nose and selenium %s" % exc)
 
-    def run_tests(self, artifacts_dir):
+    def run_tests(self, artifacts_dir, scenario):
         """
-        run python tests in separate thread,
+        run python tests
         """
-        self.thread = threading.Thread(target=self._run_in_thread, args=(artifacts_dir,))
-        self.thread.start()
-
-    def _run_in_thread(self, artifacts_dir):
-
-        self.log.info("running in thread %s", artifacts_dir)
-        try:
-            import nose
-            import selenium
-
-            nose.run()
-        except BaseException as exc:
-            self.log.debug("failed", traceback.format_exc())
-            raise RuntimeError("Nose failed: %s" % exc)
+        env = os.environ.copy()
+        executable = sys.executable
+        nose_command_line = [executable, "-m", "nose", "selenium_scripts"]
+        self.log.info(nose_command_line)
+        self.start_time = time.time()
+        nose_out = open(os.path.join(artifacts_dir, "nose_out"), 'ab')
+        nose_err = open(os.path.join(artifacts_dir, "nose_err"), 'ab')
+        self.process = subprocess.Popen(nose_command_line, cwd=artifacts_dir,
+                                  stdout=nose_out,
+                                  stderr=nose_err, env=env)
 
     def is_finished(self):
-        return not self.thread.isAlive()
+        pass
 
 
 class SeleniumWidget(urwid.Pile):
@@ -585,6 +579,10 @@ class SeleniumWidget(urwid.Pile):
 
 
 class DumbReader(ResultsReader):
+    def __init__(self, filename, parent_logger):
+        super(DumbReader, self).__init__()
+        self.log = parent_logger.getChild(self.__class__.__name__)
+
     def _read(self, last_pass=False):
         tstmp = 0
         label = "dummy label"
