@@ -64,6 +64,8 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
             self.test_runner = Maven(self.settings)
         elif script_type == "python":
             self.test_runner = NoseTester()
+        elif script_type == "jar":
+            self.test_runner = JunitTester()
 
         if not self.test_runner.check_if_installed():
             self.test_runner.install()
@@ -85,7 +87,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
         if os.path.isdir(script_path):
             self.log.info("processing all scripts in a folder %s", script_path)
             for script_file in os.listdir(script_path):
-                file_ext = os.path.splitext(script_file)[1]
+                file_ext = os.path.splitext(script_file)[1].lower()
                 if file_ext == ".java":
                     self.log.info("detected script type: java")
                     return ("java", True)
@@ -103,6 +105,9 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
             elif file_ext == ".py":
                 self.log.info("detected script type: python")
                 return ("python", False)
+            elif file_ext == ".jar":
+                self.log.info("detected script type: jar")
+                return ("jar", False)
             else:
                 self.log.error("Unknown script type.")
                 raise BaseException("unknown script type")
@@ -285,7 +290,8 @@ class Maven(AbstractTestRunner):
 
     def __init__(self, executor_config):
         self.settings = executor_config.get("maven", {})
-        self.maven_path = self.settings.get("path", "tools/maven/bin/mvn")
+        self.maven_path = self.settings.get("path", "~/selenium-taurus/tools/maven/bin/mvn")
+        self.maven_path = os.path.expanduser(self.maven_path)
         self.log = logging.getLogger('')
         self.pom_file = PomFile(self.settings.get("pom_file", ""))
 
@@ -434,6 +440,24 @@ class PomFile():
         test_path.text = "selenium_scripts"
         build_tag.append(test_path)
         project_tag.append(build_tag)
+
+
+class JunitTester(AbstractTestRunner):
+    def __init__(self, executor_settings):
+        self.log = logging.getLogger("")
+
+
+    def check_if_installed(self):
+        try:
+            subprocess.check_output(["mvn", "-v"], stderr=subprocess.STDOUT)  # check if installed globally
+            return True
+        except (OSError, CalledProcessError):
+            try:
+                subprocess.check_output([self.maven_path, "-v"], stderr=subprocess.STDOUT)
+                self.maven_path = os.path.abspath(self.maven_path)
+                return True
+            except (OSError, CalledProcessError):
+                return False
 
 class NoseTester(AbstractTestRunner):
     """
