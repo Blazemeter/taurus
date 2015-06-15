@@ -25,12 +25,12 @@ import signal
 import traceback
 import logging
 import shutil
-import psutil
 from collections import Counter, namedtuple
 from subprocess import CalledProcessError
 from distutils.version import LooseVersion
 from math import ceil
 
+import psutil
 from lxml.etree import XMLSyntaxError
 import six
 import urwid
@@ -786,7 +786,7 @@ class JMX(object):
     FIELD_HEADERS = "headers"
     FIELD_BODY = "body"
 
-    def __init__(self, original=None):
+    def __init__(self, original=None, test_plan_name="BZT Generated Test Plan"):
         self.log = logging.getLogger(self.__class__.__name__)
         if original:
             self.load(original)
@@ -795,7 +795,7 @@ class JMX(object):
             self.tree = etree.ElementTree(root)
 
             test_plan = etree.Element("TestPlan", guiclass="TestPlanGui",
-                                      testname="BZT Generated Test Plan",
+                                      testname=test_plan_name,
                                       testclass="TestPlan")
 
             htree = etree.Element("hashTree")
@@ -1362,7 +1362,7 @@ class JMX(object):
         return element
 
     @staticmethod
-    def _get_extractor(varname, regexp, template, match_no, default):
+    def _get_extractor(varname, regexp, template, match_no, default='NOT_FOUND'):
         """
 
         :type varname: str
@@ -1382,7 +1382,28 @@ class JMX(object):
         return element
 
     @staticmethod
-    def _get_json_extractor(varname, jsonpath, default):
+    def _get_jquerycss_extractor(varname, selector, attribute, match_no, default="NOT_FOUND"):
+        """
+
+        :type varname: str
+        :type regexp: str
+        :type match_no: int
+        :type default: str
+        :rtype: lxml.etree.Element
+        """
+
+        element = etree.Element("HtmlExtractor", guiclass="HtmlExtractorGui", testclass="HtmlExtractor",
+                                testname="Get %s" % varname)
+        element.append(JMX._string_prop("HtmlExtractor.refname", varname))
+        element.append(JMX._string_prop("HtmlExtractor.expr", selector))
+        element.append(JMX._string_prop("HtmlExtractor.attribute", attribute))
+        element.append(JMX._string_prop("HtmlExtractor.match_number", match_no))
+        element.append(JMX._string_prop("HtmlExtractor.default", default))
+        return element
+
+
+    @staticmethod
+    def _get_json_extractor(varname, jsonpath, default='NOT_FOUND', from_variable=None):
         """
 
         :type varname: str
@@ -1397,6 +1418,9 @@ class JMX(object):
         element.append(JMX._string_prop("VAR", varname))
         element.append(JMX._string_prop("JSONPATH", jsonpath))
         element.append(JMX._string_prop("DEFAULT", default))
+        if from_variable:
+            element.append(JMX._string_prop("VARIABLE", from_variable))
+            element.append(JMX._string_prop("SUBJECT", "VAR"))
         return element
 
     @staticmethod
