@@ -13,3 +13,4 @@ modules:
 # add option to specify existing pom
 # add option to use tmp directory instead of artifacts (do not save project)
 # add option to maven which files to use as test files (*Test, Test*, etc)
+# add option to continue tests even when one failed

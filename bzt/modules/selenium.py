@@ -17,6 +17,7 @@ import urwid
 import tempfile
 import logging
 import shutil
+import threading
 from bzt.modules.aggregator import ResultsReader
 
 try:
@@ -134,6 +135,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
         """
         if self.widget:
             self.widget.update()
+
         self.retcode = self.test_runner.process.poll()
         if self.retcode is not None:
             if self.retcode != 0:
@@ -274,6 +276,8 @@ class AbstractTestRunner():
     def run_tests(self, artifacts_dir):
         raise NotImplementedError
 
+    def is_finished(self):
+        raise NotImplementedError
 
 class Maven(AbstractTestRunner):
     MAVEN_DOWNLOAD_LINK = "http://apache-mirror.rbc.ru/pub/apache/maven/maven-3/{version}/binaries/apache-maven-{version}-bin.zip"
@@ -343,7 +347,12 @@ class Maven(AbstractTestRunner):
         maven_out = open(os.path.join(artifacts_dir, "mvn_out"), 'wb')
         maven_err = open(os.path.join(artifacts_dir, "mvn_err"), 'wb')
         self.process = shell_exec(self.maven_path + " test -fn", cwd=artifacts_dir, stdout=maven_out, stderr=maven_err)
-        # if self.process
+
+    def is_finished(self):
+        """
+        return
+        :return: bool
+        """
 
 class PomFile():
     def __init__(self, existing_pom_file_path):
@@ -394,8 +403,6 @@ class PomFile():
       </plugin>
     </plugins>
   </reporting>
-
-
 </project>"""
 
         self.xml_tree = base_pom
@@ -432,25 +439,59 @@ class NoseTester(AbstractTestRunner):
     """
     Python selenium tests runner
     """
+    def __init__(self):
+        self.log = logging.getLogger('')
+        self.thread = None
+        self.return_code = None
+
     def check_if_installed(self):
         """
-        nose test plugin
+        nose and selenium packages are required.
         """
         try:
             import nose
+            import selenium
+            self.log.info("nose and selenium already installed")
             return True
         except ImportError:
+            self.log.info("missing nose or selenium packages")
             return False
 
     def install(self):
         """
-        install nose from pip
+        install nose, selenium from pip
         """
-        import pip
-        pip.main(['install', "nose"])
+        try:
+            import pip
+            pip.main(['install', "nose"])
+            pip.main(['install', "selenium"])
+            self.log.info("nose and selenium packages were successfully installed")
+        except BaseException as exc:
+            self.log.debug("Error while installing additional packages: nose, selenium", traceback.format_exc())
+            raise RuntimeError("Error while installing nose and selenium %s" % exc)
 
     def run_tests(self, artifacts_dir):
-        pass
+        """
+        run python tests in separate thread,
+        """
+        self.thread = threading.Thread(target=self._run_in_thread, args=(artifacts_dir,))
+        self.thread.start()
+
+    def _run_in_thread(self, artifacts_dir):
+
+        self.log.info("running in thread %s", artifacts_dir)
+        try:
+            import nose
+            import selenium
+            nose.run()
+        except BaseException as exc:
+            self.log.debug("failed", traceback.format_exc())
+            raise RuntimeError("Nose failed: %s" % exc)
+
+    def is_finished(self):
+        return not self.thread.isAlive()
+
+
 
 
 class SeleniumWidget(urwid.Pile):
@@ -484,6 +525,6 @@ class DumbReader(ResultsReader):
         ltc = 0
         rcd = 0
         error = 0
-        tname = ""
+        trname = ""
 
         yield tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname

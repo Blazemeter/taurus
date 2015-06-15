@@ -32,7 +32,12 @@
     },
     "selenium": {
       "class": "bzt.modules.selenium.SeleniumExecutor",
-      "path": "~/selenium-taurus/selenium-server.jar"
+      "path": "~/selenium-taurus/selenium-server.jar",
+      "selenium-tools": {
+       "maven": {
+         "path": "~/selenium-taurus/tools/maven/bin/mvn"
+       }
+      }
     },
     "consolidator": {
       "class": "bzt.modules.aggregator.ConsolidatingAggregator",
