@@ -95,7 +95,7 @@ class TestSeleniumExecutor(BZTestCase):
         while not obj.check():
             time.sleep(1)
         obj.shutdown()
-        self.assertNotEqual(obj.process.poll(), 1)
+        self.assertNotEqual(obj.hub_process.poll(), 1)
         self.assertEqual(obj.test_runner.process.poll(), 0)
 
     def test_selenium_startup_shutdown_java_maven_single(self):
@@ -115,7 +115,7 @@ class TestSeleniumExecutor(BZTestCase):
         while not obj.check():
             time.sleep(1)
         obj.shutdown()
-        self.assertNotEqual(obj.process.poll(), 1)
+        self.assertNotEqual(obj.hub_process.poll(), 1)
         self.assertEqual(obj.test_runner.process.poll(), 0)
 
     def test_selenium_startup_shutdown_python(self):
@@ -135,5 +135,38 @@ class TestSeleniumExecutor(BZTestCase):
         while not obj.check():
             time.sleep(1)
         obj.shutdown()
-        self.assertNotEqual(obj.process.poll(), 1)
+        self.assertNotEqual(obj.hub_process.poll(), 1)
+        self.assertEqual(obj.test_runner.process.poll(), 0)
+
+    def test_selenium_prepare_single_jar(self):
+        """
+        Check if scripts copied
+        :return:
+        """
+        obj = SeleniumExecutor()
+        obj.engine = EngineEmul()
+        obj.execution = BetterDict()
+        obj.execution.merge({"scenario": {"script": os.path.abspath(__dir__() + "/../../tests/selenium/jar/TestBlazemeterPass.jar")}})
+        obj.prepare()
+        java_scripts = os.listdir(os.path.join(obj.engine.artifacts_dir, "selenium_scripts"))
+        self.assertEqual(len(java_scripts), 1)
+
+    def test_selenium_startup_shutdown_jar(self):
+        """
+        test if script copied and test completed with single java file
+        :return:
+        """
+        obj = SeleniumExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = BetterDict()
+        obj.engine.config.merge(yaml.load(open("tests/yaml/selenium_executor.yml").read()))
+        obj.engine.config.merge({"provisioning": "local"})
+        obj.execution = obj.engine.config['execution']
+        #obj.execution.merge({"scenario": {"script": os.path.abspath(__dir__() + "/../../tests/selenium/jar/TestBlazemeterPass.jar")}})
+        obj.prepare()
+        obj.startup()
+        while not obj.check():
+            time.sleep(1)
+        obj.shutdown()
+        self.assertNotEqual(obj.hub_process.poll(), 1)
         self.assertEqual(obj.test_runner.process.poll(), 0)

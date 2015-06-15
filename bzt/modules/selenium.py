@@ -42,41 +42,45 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
         self.test_runner = None
         self.widget = None
         self.reader = None
+        self.is_grid = None
+        self.scenario = None
 
     def prepare(self):
         """
         1) Locate script or folder
         2) check type py/java
+        2.5) check if we need grid server
         3) check tool readiness (maven or nose + pip selenium)
         :return:
         """
 
-        self.reader = DumbReader()
+        # self.reader = DumbReader()
         self.selenium_log = self.engine.create_artifact("selenium", ".log")
-        scenario = self.get_scenario()
-        # TODO: check if scenario is directory or script
-
+        self.scenario = self.get_scenario()
+        self.is_grid = self.scenario.get("use-grid", False)
         self.__run_checklist()
 
-        script_type, script_is_folder = self.detect_script_type(scenario.get("script"))
+        script_type, script_is_folder = self.detect_script_type(self.scenario.get("script"))
 
         if script_type == "java":
             self.test_runner = Maven(self.settings)
         elif script_type == "python":
             self.test_runner = NoseTester()
         elif script_type == "jar":
-            self.test_runner = JunitTester()
+            junit_config = self.settings.get("selenium-tools").get("junit")
+            self.test_runner = JunitTester(junit_config)
 
         if not self.test_runner.check_if_installed():
             self.test_runner.install()
 
-        tests_scripts_folder = os.path.join(self.engine.artifacts_dir, "selenium_scripts")
-        if Scenario.SCRIPT in scenario:
+        tests_scripts_folder = os.path.join(self.engine.artifacts_dir, "selenium_scripts")  # should be set in config
+
+        if Scenario.SCRIPT in self.scenario:
             if script_is_folder:
-                shutil.copytree(scenario.get("script"), tests_scripts_folder)
+                shutil.copytree(self.scenario.get("script"), tests_scripts_folder)
             else:
                 os.makedirs(tests_scripts_folder)
-                shutil.copy2(scenario.get("script"), tests_scripts_folder)
+                shutil.copy2(self.scenario.get("script"), tests_scripts_folder)
 
     def detect_script_type(self, script_path):
         """
@@ -118,58 +122,70 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
         :return:
         """
         # TODO: implement selenium-server grid
-
-        selenium_server_cmdline = ["java", "-jar", os.path.realpath(self.settings.get("path"))]  # , "-debug", "-log", "test.log"
-
         self.start_time = time.time()
-        out = self.engine.create_artifact("selenium-server-stdout", ".log")
-        err = self.engine.create_artifact("selenium-server-stderr", ".log")
-        self.stdout_file = open(out, "w")
-        self.stderr_file = open(err, "w")
+        if self.is_grid:
+            selenium_hub_cmdline = ["java", "-jar", os.path.realpath(self.settings.get("path")), "-role", "hub" ]  # , "-debug", "-log", "test.log"
+            selenium_node_cmdline = ["java", "-jar", os.path.realpath(self.settings.get("path")), "-role", "webdriver",
+                                     "-port 5555", "-hub http://127.0.0.1:4444/grid/register",
+                                     "-browser browserName=firefox"]
+            hub_out = self.engine.create_artifact("selenium-hub-stdout", ".log")
+            hub_err = self.engine.create_artifact("selenium-hub-stderr", ".log")
+            self.stdout_hub = open(hub_out, "w")
+            self.stderr_hub = open(hub_err, "w")
 
-        self.process = shell_exec(selenium_server_cmdline, cwd=self.engine.artifacts_dir,
-                                  stdout=self.stdout_file,
-                                  stderr=self.stderr_file)
+            node_out = self.engine.create_artifact("selenium-node-stdout", ".log")
+            node_err = self.engine.create_artifact("selenium-node-stderr", ".log")
+            self.stdout_node = open(node_out, "w")
+            self.stderr_node = open(node_err, "w")
 
-        self.test_runner.run_tests(self.engine.artifacts_dir)
+            self.hub_process = shell_exec(selenium_hub_cmdline, cwd=self.engine.artifacts_dir,
+                                  stdout=self.stdout_hub,
+                                  stderr=self.stderr_hub)
+
+            self.node_process = shell_exec(selenium_node_cmdline, cwd=self.engine.artifacts_dir,
+                                  stdout=self.stdout_node,
+                                  stderr=self.stderr_node)
+
+        self.test_runner.run_tests(self.engine.artifacts_dir, self.get_scenario())
 
     def check(self):
         """
         check if test completed
         :return:
         """
-        if self.widget:
-            self.widget.update()
+        # if self.widget:
+        #    self.widget.update()
 
-        self.retcode = self.test_runner.process.poll()
-        if self.retcode is not None:
-            if self.retcode != 0:
-                self.log.info("test runner exit code: %s", self.retcode)
+        self.test_runner_retcode = self.test_runner.process.poll()
+        if self.test_runner_retcode is not None:
+            if self.test_runner_retcode != 0:
+                self.log.info("test runner exit code: %s", self.test_runner_retcode)
                 raise RuntimeError("test runner exited with non-zero code")
             return True
         return False
 
     def shutdown(self):
         """
-        shutdown server
+        shutdown test_runner, shutdown selenium-server hub/node if grid
         :return:
         """
-        while self.process and self.process.poll() is None:
-            self.log.info("Terminating selenium-server PID: %s", self.process.pid)
-            time.sleep(1)
-            try:
-                os.killpg(self.process.pid, signal.SIGTERM)
-            except OSError as exc:
-                self.log.debug("Failed to terminate: %s", exc)
+        if self.is_grid:
+            while self.hub_process and self.hub_process.poll() is None:
+                self.log.info("Terminating selenium-server PID: %s", self.hub_process.pid)
+                time.sleep(1)
+                try:
+                    os.killpg(self.hub_process.pid, signal.SIGTERM)
+                except OSError as exc:
+                    self.log.debug("Failed to terminate: %s", exc)
 
-            if self.stdout_file:
-                self.stdout_file.close()
-            if self.stderr_file:
-                self.stderr_file.close()
+                if self.stdout_hub:
+                    self.stdout_hub.close()
+                if self.stderr_hub:
+                    self.stderr_hub.close()
 
         if self.start_time:
             self.end_time = time.time()
-            self.log.debug("Selenium server worked for %s seconds",
+            self.log.info("Selenium server worked for %s seconds",
                            self.end_time - self.start_time)
 
     def get_widget(self):
@@ -188,7 +204,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
         """
         selenium_path = self.settings.get("path", "~/selenium-taurus/selenium-server.jar")
         selenium_path = os.path.abspath(os.path.expanduser(selenium_path))
-        selenium_tools_path = self.settings.get("tools-spath", "~/selenium-taurus/tools/")
+        selenium_tools_path = self.settings.get("tools-path", "~/selenium-taurus/tools/")
         selenium_tools_path = os.path.abspath(os.path.expanduser(selenium_tools_path))
         self.settings['path'] = selenium_path
         self.settings['tools-path'] = selenium_tools_path
@@ -278,7 +294,7 @@ class AbstractTestRunner():
     def install(self):
         raise NotImplementedError
 
-    def run_tests(self, artifacts_dir):
+    def run_tests(self, artifacts_dir, scenario):
         raise NotImplementedError
 
     def is_finished(self):
@@ -340,7 +356,7 @@ class Maven(AbstractTestRunner):
             self.log.info("Installed maven successfully")
             return self.maven_path
 
-    def run_tests(self, artifacts_dir):
+    def run_tests(self, artifacts_dir, scenario):
         """
         run tests
         1) generate pom
@@ -374,8 +390,8 @@ class PomFile():
         base_pom = b"""<?xml version="1.0" encoding="UTF-8"?>
 <project>
 <modelVersion>4.0.0</modelVersion>
-<groupId>test.test</groupId>
-<artifactId>web-driver-jenkins-integration</artifactId>
+<groupId>com.example.tests</groupId>
+<artifactId>test_jar</artifactId>
 <version>1.0.0-SNAPSHOT</version>
 <build>
 <directory>target</directory>
@@ -443,21 +459,44 @@ class PomFile():
 
 
 class JunitTester(AbstractTestRunner):
-    def __init__(self, executor_settings):
+    def __init__(self, executor_config):
         self.log = logging.getLogger("")
-
+        self.settings = executor_config
+        self.junit_path = self.settings.get("path", "~/selenium-taurus/tools/junit/junit.jar")
+        self.junit_path = os.path.expanduser(self.junit_path)
 
     def check_if_installed(self):
-        try:
-            subprocess.check_output(["mvn", "-v"], stderr=subprocess.STDOUT)  # check if installed globally
-            return True
-        except (OSError, CalledProcessError):
-            try:
-                subprocess.check_output([self.maven_path, "-v"], stderr=subprocess.STDOUT)
-                self.maven_path = os.path.abspath(self.maven_path)
-                return True
-            except (OSError, CalledProcessError):
-                return False
+        return True
+
+    def install(self):
+        return self.junit_path
+
+    def run_tests(self, artifacts_dir, scenario):
+
+        # java -cp junit.jar:selenium-test-small.jar:selenium-2.46.0/selenium-java-2.46.0.jar:./../selenium-server.jar org.junit.runner.JUnitCore TestBlazemeterPass
+
+        junit_class_path = self.junit_path
+        test_jar_path = os.path.abspath(scenario.get("script"))
+        selenium_java = os.path.expanduser(self.settings.get("selenium-libs"))
+        selenium_server = os.path.expanduser("~/selenium-taurus/selenium-server.jar")
+        junit_test_class = self.settings.get("test-class")
+
+        junit_command_line = ["java", "-cp", ":".join([junit_class_path, test_jar_path, selenium_java, selenium_server]),
+                              "org.junit.runner.JUnitCore", junit_test_class]
+
+        self.log.info(junit_command_line)
+        self.start_time = time.time()
+        junit_out = open(os.path.join(artifacts_dir, "junit_out"), 'ab')
+        junit_err = open(os.path.join(artifacts_dir, "junit_err"), 'ab')
+        self.process = shell_exec(junit_command_line, cwd=artifacts_dir,
+                                  stdout=junit_out,
+                                  stderr=junit_err)
+
+    def is_finished(self):
+        pass
+
+
+
 
 class NoseTester(AbstractTestRunner):
     """

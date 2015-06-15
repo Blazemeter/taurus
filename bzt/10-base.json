@@ -36,6 +36,9 @@
       "selenium-tools": {
        "maven": {
          "path": "~/selenium-taurus/tools/maven/bin/mvn"
+       },
+       "junit": {
+         "path": "~/selenium-taurus/tools/junit/junit.jar"
        }
       }
     },
