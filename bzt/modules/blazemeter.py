@@ -187,7 +187,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         """
         self.log.debug("KPI bulk buffer len: %s", len(self.kpi_buffer))
         if len(self.kpi_buffer):
-            if (self.client.last_ts < (time.time() - self.send_interval)):
+            if self.client.last_ts < (time.time() - self.send_interval):
                 self.__send_data(self.kpi_buffer)
                 self.kpi_buffer = []
         return super(BlazeMeterUploader, self).check()
