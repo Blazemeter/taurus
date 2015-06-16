@@ -588,5 +588,7 @@ class TestJMeterExecutor(BZTestCase):
         obj.execution = BetterDict()
         obj.execution.merge({"kpi-jtl": __dir__() + "/../data/distributed.jtl"})
         obj.prepare()
+        obj.reader.is_distributed = True
+
         obj.engine.aggregator.post_process()
-        self.assertEquals(25, self.maxc)
+        self.assertEquals(23, self.maxc)

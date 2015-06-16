@@ -124,7 +124,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.sys_properties_file = sys_props_file
 
         self.reader = JTLReader(self.kpi_jtl, self.log, self.errors_jtl)
-        self.reader.is_distributed = self.distributed_servers
+        self.reader.is_distributed = len(self.distributed_servers) > 0
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
@@ -776,6 +776,7 @@ class JMeterJTLLoaderExecutor(ScenarioExecutor):
     """
     Executor type that just loads existing kpi.jtl and errors.jtl
     """
+
     def __init__(self):
         # TODO: document this executor
         super(JMeterJTLLoaderExecutor, self).__init__()
