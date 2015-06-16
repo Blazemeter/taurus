@@ -5,7 +5,7 @@ Module holds selenium stuff
 import os
 
 from bzt.engine import ScenarioExecutor, Scenario
-from bzt.modules.console import WidgetProvider
+# from bzt.modules.console import WidgetProvider
 from subprocess import CalledProcessError
 import subprocess
 import traceback
@@ -18,32 +18,40 @@ import tempfile
 import logging
 import shutil
 import sys
-from bzt.modules.aggregator import ResultsReader
 
-try:
-    from lxml import etree
-except ImportError:
-    try:
-        import cElementTree as etree
-    except ImportError:
-        import elementtree.ElementTree as etree
+# try:
+#     from lxml import etree
+# except ImportError:
+#     try:
+#         import cElementTree as etree
+#     except ImportError:
+#         import elementtree.ElementTree as etree
 
 
-class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
+class SeleniumExecutor(ScenarioExecutor):
     """
     Selenium executor
     """
-    SELENIUM_DOWNLOAD_LINK = "http://selenium-release.storage.googleapis.com/{version}/selenium-server-standalone-{version}.0.jar"
-    SELEINUM_VERSION = "2.46"
+    SELENIUM_DOWNLOAD_LINK = "http://selenium-release.storage.googleapis.com/{version}/" \
+                             "selenium-server-standalone-{version}.0.jar"
+    SELENIUM_VERSION = "2.46"
+    RUNNER = None
 
     def __init__(self):
         super(SeleniumExecutor, self).__init__()
         self.selenium_log = None
-        self.test_runner = None
         self.widget = None
         self.reader = None
         self.is_grid = None
         self.scenario = None
+        self.start_time = None
+        self.end_time = None
+        self.hub_process = None
+        self.node_process = None
+        self.stdout_hub = None
+        self.stderr_node = None
+        self.stdout_node = None
+        self.stderr_hub = None
 
     def prepare(self):
         """
@@ -53,8 +61,6 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
         3) check tool readiness (maven or nose + pip selenium)
         :return:
         """
-
-        self.reader = DumbReader(None, self.log)
         self.selenium_log = self.engine.create_artifact("selenium", ".log")
         self.scenario = self.get_scenario()
         self.is_grid = self.scenario.get("use-grid", False)
@@ -63,15 +69,17 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
         script_type, script_is_folder = self.detect_script_type(self.scenario.get("script"))
 
         if script_type == "java":
-            self.test_runner = Maven(self.settings)
+            maven_config = self.settings.get("selenium-tools").get("maven")
+            SeleniumExecutor.RUNNER = Maven(maven_config)
         elif script_type == "python":
-            self.test_runner = NoseTester()
+            nose_config = self.settings.get("selenium-tools").get("nose")
+            SeleniumExecutor.RUNNER = NoseTester(nose_config)
         elif script_type == "jar":
             junit_config = self.settings.get("selenium-tools").get("junit")
-            self.test_runner = JunitTester(junit_config)
+            SeleniumExecutor.RUNNER = JunitTester(junit_config)
 
-        if not self.test_runner.check_if_installed():
-            self.test_runner.install()
+        if not SeleniumExecutor.RUNNER.check_if_installed():
+            SeleniumExecutor.RUNNER.install()
 
         tests_scripts_folder = os.path.join(self.engine.artifacts_dir, "selenium_scripts")  # should be set in config
 
@@ -94,10 +102,13 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
                 file_ext = os.path.splitext(script_file)[1].lower()
                 if file_ext == ".java":
                     self.log.info("detected script type: java")
-                    return ("java", True)
+                    return "java", True
                 elif file_ext == ".py":
                     self.log.info("detected script type: python")
-                    return ("python", True)
+                    return "python", True
+                elif file_ext == ".jar":
+                    self.log.info("detected script type: jar")
+                    return "jar", True
             self.log.error("Unknown script type.")
             raise BaseException("unknown script type")
         else:
@@ -105,13 +116,13 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
             file_ext = os.path.splitext(script_path)[1]
             if file_ext == ".java":
                 self.log.info("detected script type: java")
-                return ("java", False)
+                return "java", False
             elif file_ext == ".py":
                 self.log.info("detected script type: python")
-                return ("python", False)
+                return "python", False
             elif file_ext == ".jar":
                 self.log.info("detected script type: jar")
-                return ("jar", False)
+                return "jar", False
             else:
                 self.log.error("Unknown script type.")
                 raise BaseException("unknown script type")
@@ -147,7 +158,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
                                            stdout=self.stdout_node,
                                            stderr=self.stderr_node)
 
-        self.test_runner.run_tests(self.engine.artifacts_dir, self.get_scenario())
+        SeleniumExecutor.RUNNER.run_tests(self.engine.artifacts_dir, self.get_scenario())
 
     def check(self):
         """
@@ -157,13 +168,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
         # if self.widget:
         #    self.widget.update()
 
-        self.test_runner_retcode = self.test_runner.process.poll()
-        if self.test_runner_retcode is not None:
-            if self.test_runner_retcode != 0:
-                self.log.info("test runner exit code: %s", self.test_runner_retcode)
-                raise RuntimeError("test runner exited with non-zero code")
-            return True
-        return False
+        return SeleniumExecutor.RUNNER.is_finished()
 
     def shutdown(self):
         """
@@ -184,9 +189,11 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
                 if self.stderr_hub:
                     self.stderr_hub.close()
 
+        SeleniumExecutor.RUNNER.prepare_logs(self.engine.artifacts_dir)
+
         if self.start_time:
             self.end_time = time.time()
-            self.log.info("Selenium server worked for %s seconds",
+            self.log.info("Selenium tests run for %s seconds",
                           self.end_time - self.start_time)
 
     def get_widget(self):
@@ -243,7 +250,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
     def __install_selenium_server(self, dest_path):
         """
         Download and install selenium-server
-        :param dest: path
+        :param dest_path: path
         :return:
         """
 
@@ -263,7 +270,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
 
         downloader = URLopener()
         selenium_server_download_link = self.settings.get("download-link", SeleniumExecutor.SELENIUM_DOWNLOAD_LINK)
-        selenium_version = self.settings.get("version", SeleniumExecutor.SELEINUM_VERSION)
+        selenium_version = self.settings.get("version", SeleniumExecutor.SELENIUM_VERSION)
         selenium_server_download_link = selenium_server_download_link.format(version=selenium_version)
         self.log.info("Downloading %s", selenium_server_download_link)
         try:
@@ -285,9 +292,16 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
             raise RuntimeError("The 'java' is not operable or not available. Consider installing it")
 
 
-class AbstractTestRunner():
-    def check_requirements(self):
-        raise NotImplementedError
+class AbstractTestRunner(object):
+    """
+    Abstract class test runner
+    """
+
+    def __init__(self, settings):
+        self.process = None
+        self.settings = settings
+        self.log = logging.getLogger('')
+        self.report_files = []
 
     def check_if_installed(self):
         raise NotImplementedError
@@ -301,16 +315,19 @@ class AbstractTestRunner():
     def is_finished(self):
         raise NotImplementedError
 
+    def prepare_logs(self, artifacts_dir):
+        raise NotImplementedError
+
 
 class Maven(AbstractTestRunner):
-    MAVEN_DOWNLOAD_LINK = "http://apache-mirror.rbc.ru/pub/apache/maven/maven-3/{version}/binaries/apache-maven-{version}-bin.zip"
+    MAVEN_DOWNLOAD_LINK = "http://apache-mirror.rbc.ru/pub/apache/maven/maven-3/{version}/" \
+                          "binaries/apache-maven-{version}-bin.zip"
     MAVEN_VERSION = "3.3.3"
 
-    def __init__(self, executor_config):
-        self.settings = executor_config.get("maven", {})
+    def __init__(self, maven_config):
+        super(Maven, self).__init__(maven_config)
         self.maven_path = self.settings.get("path", "~/selenium-taurus/tools/maven/bin/mvn")
-        self.maven_path = os.path.expanduser(self.maven_path)
-        self.log = logging.getLogger('')
+        self.maven_path = os.path.abspath(os.path.expanduser(self.maven_path))
         self.pom_file = PomFile(self.settings.get("pom_file", ""))
 
     def check_if_installed(self):
@@ -372,17 +389,32 @@ class Maven(AbstractTestRunner):
         maven_err = open(os.path.join(artifacts_dir, "mvn_err"), 'wb')
         self.process = shell_exec(self.maven_path + " test -fn", cwd=artifacts_dir, stdout=maven_out, stderr=maven_err)
 
+    def prepare_logs(self, artifacts_dir):
+        """
+        get all report files
+        :param artifacts_dir: path
+        :return:
+        """
+        report_folder = os.path.join(artifacts_dir, "selenium_scripts", "reports", "surefire-reports")
+        report_folder = os.path.abspath(os.path.expanduser(report_folder))
+        report_files = [file_path for file_path in os.listdir(report_folder) if file_path.endswith(".txt")]
+        for report_file in report_files:
+            self.report_files.append(os.path.join(report_folder, report_file))
+
     def is_finished(self):
-        """
-        return
-        :return: bool
-        """
+        ret_code = self.process.poll()
+        if ret_code is not None:
+            if ret_code != 0:
+                self.log.info("test runner exit code: %s", ret_code)
+                raise RuntimeError("test runner exited with non-zero code")
+            return True
+        return False
 
 
-class PomFile():
+class PomFile(object):
     def __init__(self, existing_pom_file_path):
         self.pom_file_path = existing_pom_file_path
-        self.xml_tree = None
+        self.xml_tree = b""
 
     def generate_pom(self):
         """
@@ -397,9 +429,9 @@ class PomFile():
 <artifactId>test_jar</artifactId>
 <version>1.0.0-SNAPSHOT</version>
 <build>
-<directory>target</directory>
-<outputDirectory>target/classes</outputDirectory>
-<testOutputDirectory>target/test-classes</testOutputDirectory>
+<directory>selenium_scripts/reports</directory>
+<outputDirectory>selenium_scripts/compiled/classes</outputDirectory>
+<testOutputDirectory>selenium_scripts/compiled/test-classes</testOutputDirectory>
 <sourceDirectory>selenium_scripts</sourceDirectory>
 <scriptSourceDirectory>selenium_scripts</scriptSourceDirectory>
 <testSourceDirectory>selenium_scripts</testSourceDirectory>
@@ -423,7 +455,7 @@ class PomFile():
         <artifactId>maven-surefire-report-plugin</artifactId>
         <version>2.18.1</version>
         <configuration>
-          <outputDirectory>${basedir}/surefire</outputDirectory>
+          <outputDirectory>surefire</outputDirectory>
         </configuration>
       </plugin>
     </plugins>
@@ -452,30 +484,36 @@ class PomFile():
             fds.write(self.xml_tree)
             # fds.write(self.xml_tree.tostring, pretty_print=True, encoding="UTF-8", xml_declaration=True)
 
-    def modify_test_dir(self):
-        project_tag = self.xml_tree.find("project")
-        build_tag = etree.Element("build")
-        test_path = etree.Element("testSourceDirectory")
-        test_path.text = "selenium_scripts"
-        build_tag.append(test_path)
-        project_tag.append(build_tag)
+            # def modify_test_dir(self):
+            #     project_tag = self.xml_tree.find("project")
+            #     build_tag = etree.Element("build")
+            #     test_path = etree.Element("testSourceDirectory")
+            #     test_path.text = "selenium_scripts"
+            #     build_tag.append(test_path)
+            #     project_tag.append(build_tag)
 
 
 class JunitTester(AbstractTestRunner):
-    def __init__(self, executor_config):
-        self.log = logging.getLogger("")
-        self.settings = executor_config
+    """
+    Allows to test jar files
+    """
+    # TODO: implement support of .class files, custom junit result listener
+    def __init__(self, junit_config):
+        super(JunitTester, self).__init__(junit_config)
         self.junit_path = self.settings.get("path", "~/selenium-taurus/tools/junit/junit.jar")
-        self.junit_path = os.path.expanduser(self.junit_path)
+        self.junit_path = os.path.abspath(os.path.expanduser(self.junit_path))
 
     def check_if_installed(self):
         return True
 
     def install(self):
+        # TODO: implement custom junit installation
         return self.junit_path
 
     def run_tests(self, artifacts_dir, scenario):
-        # java -cp junit.jar:selenium-test-small.jar:selenium-2.46.0/selenium-java-2.46.0.jar:./../selenium-server.jar org.junit.runner.JUnitCore TestBlazemeterPass
+        # java -cp junit.jar:selenium-test-small.jar:
+        # selenium-2.46.0/selenium-java-2.46.0.jar:./../selenium-server.jar
+        # org.junit.runner.JUnitCore TestBlazemeterPass
 
         junit_class_path = self.junit_path
         test_jar_path = os.path.abspath(scenario.get("script"))
@@ -483,31 +521,49 @@ class JunitTester(AbstractTestRunner):
         selenium_server = os.path.expanduser("~/selenium-taurus/selenium-server.jar")
         junit_test_class = self.settings.get("test-class")
 
-        junit_command_line = ["java", "-cp",
-                              ":".join([junit_class_path, test_jar_path, selenium_java, selenium_server]),
-                              "org.junit.runner.JUnitCore", junit_test_class]
+        if not os.path.isdir(test_jar_path):
 
-        # self.log.info(junit_command_line)
-        self.start_time = time.time()
-        junit_out = open(os.path.join(artifacts_dir, "junit_out"), 'ab')
-        junit_err = open(os.path.join(artifacts_dir, "junit_err"), 'ab')
-        self.process = shell_exec(junit_command_line, cwd=artifacts_dir,
-                                  stdout=junit_out,
-                                  stderr=junit_err)
+            junit_command_line = ["java", "-cp",
+                                  ":".join([junit_class_path, test_jar_path, selenium_java, selenium_server]),
+                                  "org.junit.runner.JUnitCore", junit_test_class]
+
+            # self.log.info(junit_command_line)
+            junit_out_path = os.path.join(artifacts_dir, "junit_out")
+            junit_err_path = os.path.join(artifacts_dir, "junit_err")
+
+            junit_out = open(junit_out_path, 'wb')
+            junit_err = open(junit_err_path, 'wb')
+
+            self.process = shell_exec(junit_command_line, cwd=artifacts_dir,
+                                      stdout=junit_out,
+                                      stderr=junit_err)
+
+            self.report_files.append(junit_out_path)
+            self.report_files.append(junit_err_path)
+
+        else:
+            raise RuntimeError("Testing with more then one jar file currently not implemented")
+
+    def prepare_logs(self, artifacts_dir):
+        pass
 
     def is_finished(self):
-        pass
+        ret_code = self.process.poll()
+        if ret_code is not None:
+            if ret_code != 0:
+                self.log.info("test runner exit code: %s", ret_code)
+                raise RuntimeError("test runner exited with non-zero code")
+            return True
+        return False
 
 
 class NoseTester(AbstractTestRunner):
     """
     Python selenium tests runner
     """
-
-    def __init__(self):
-        self.log = logging.getLogger('')
-        self.thread = None
-        self.return_code = None
+    # TODO: implement custom nose report plugin
+    def __init__(self, nose_config):
+        super(NoseTester, self).__init__(nose_config)
 
     def check_if_installed(self):
         """
@@ -516,6 +572,7 @@ class NoseTester(AbstractTestRunner):
         try:
             import nose
             import selenium
+
             self.log.info("nose and selenium already installed")
             return True
         except ImportError:
@@ -526,13 +583,16 @@ class NoseTester(AbstractTestRunner):
         """
         install nose, selenium from pip
         """
+        # FIXME: We should not install those if python3 (we need python2 to run selenium tests)
+
         try:
             import pip
+
             pip.main(['install', "nose"])
             pip.main(['install', "selenium"])
             self.log.info("nose and selenium packages were successfully installed")
         except BaseException as exc:
-            self.log.debug("Error while installing additional packages: nose, selenium", traceback.format_exc())
+            self.log.debug("Error while installing additional packages: nose, selenium %s", traceback.format_exc())
             raise RuntimeError("Error while installing nose and selenium %s" % exc)
 
     def run_tests(self, artifacts_dir, scenario):
@@ -543,15 +603,26 @@ class NoseTester(AbstractTestRunner):
         executable = sys.executable
         nose_command_line = [executable, "-m", "nose", "selenium_scripts"]
         self.log.info(nose_command_line)
-        self.start_time = time.time()
         nose_out = open(os.path.join(artifacts_dir, "nose_out"), 'ab')
         nose_err = open(os.path.join(artifacts_dir, "nose_err"), 'ab')
         self.process = subprocess.Popen(nose_command_line, cwd=artifacts_dir,
-                                  stdout=nose_out,
-                                  stderr=nose_err, env=env)
+                                        stdout=nose_out,
+                                        stderr=nose_err, env=env)
+        self.report_files.append(os.path.join(artifacts_dir, "nose_out"))
+        self.report_files.append(os.path.join(artifacts_dir, "nose_err"))
+
+    def prepare_logs(self, artifacts_dir):
+        pass
 
     def is_finished(self):
-        pass
+        ret_code = self.process.poll()
+        if ret_code is not None:
+            if ret_code == 0:
+                self.log.info("python nose tests exit code: %s", ret_code)
+            elif ret_code == 1:
+                self.log.info("python nose tests exit code: %s, some tests failed", ret_code)
+            return True
+        return False
 
 
 class SeleniumWidget(urwid.Pile):
@@ -576,22 +647,3 @@ class SeleniumWidget(urwid.Pile):
             elapsed = time.time() - self.executor.start_time
             self.elapsed.set_text("Elapsed: %s" % humanize_time(elapsed))
         self._invalidate()
-
-
-class DumbReader(ResultsReader):
-    def __init__(self, filename, parent_logger):
-        super(DumbReader, self).__init__()
-        self.log = parent_logger.getChild(self.__class__.__name__)
-
-    def _read(self, last_pass=False):
-        tstmp = 0
-        label = "dummy label"
-        concur = 0
-        rtm = 0
-        cnn = 0
-        ltc = 0
-        rcd = 0
-        error = 0
-        trname = ""
-
-        yield tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname

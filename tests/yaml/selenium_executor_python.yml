@@ -14,3 +14,6 @@ modules:
         path: "~/selenium-taurus/tools/junit/junit.jar"
         selenium-libs: "~/selenium-taurus/tools/junit/selenium-2.46.0/selenium-java-2.46.0.jar"
         test-class: "TestBlazemeterPass"
+
+reporting:
+  - module: selenium-reporter
