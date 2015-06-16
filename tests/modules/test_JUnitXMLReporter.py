@@ -229,7 +229,6 @@ class TestJUnitXML(BZTestCase):
         self.assertListEqual(['29656', 'taurus_sample-labels', '0', '59314'], xml_tree.values())
 
     def test_xml_format_passfail(self):
-
         obj = JUnitXMLReporter()
         obj.engine = EngineEmul()
         obj.parameters = BetterDict()
@@ -270,7 +269,6 @@ class TestJUnitXML(BZTestCase):
 
         with open(obj.report_file_path, 'rb') as fds:
             f_contents = fds.read()
-
 
         xml_tree = etree.fromstring(f_contents)
         self.assertEqual('testsuite', xml_tree.tag)

@@ -548,7 +548,7 @@ class TestJMeterExecutor(BZTestCase):
         obj.engine = EngineEmul()
         obj.engine.config[Provisioning.PROV] = 'test'
         obj.execution = BetterDict()
-        obj.execution.merge({"iterations":10 ,"scenario": {"script": __dir__() + "/../jmx/http.jmx"}})
+        obj.execution.merge({"iterations": 10, "scenario": {"script": __dir__() + "/../jmx/http.jmx"}})
         obj.prepare()
         modified_xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
         tg = modified_xml_tree.find(".//ThreadGroup")
