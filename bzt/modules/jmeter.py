@@ -29,8 +29,8 @@ from collections import Counter, namedtuple
 from subprocess import CalledProcessError
 from distutils.version import LooseVersion
 from math import ceil
-
 import psutil
+
 from lxml.etree import XMLSyntaxError
 import six
 import urwid
@@ -770,6 +770,31 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         for old_lib in duplicated_libraries:
             os.remove(os.path.join(path, old_lib.vstring))
             self.log.debug("Old jar removed %s", old_lib.vstring)
+
+
+class JMeterJTLLoaderExecutor(ScenarioExecutor):
+    """
+    Executor type that just loads existing kpi.jtl and errors.jtl
+    """
+    def __init__(self):
+        # TODO: document this executor
+        super(JMeterJTLLoaderExecutor, self).__init__()
+        self.kpi_jtl = None
+        self.errors_jtl = None
+        self.reader = None
+
+    def prepare(self):
+        self.kpi_jtl = self.execution.get("kpi-jtl", None)
+        if self.kpi_jtl is None:
+            raise ValueError("Option is required for executor: kpi-jtl")
+        self.errors_jtl = self.execution.get("errors-jtl", None)
+
+        self.reader = JTLReader(self.kpi_jtl, self.log, self.errors_jtl)
+        if isinstance(self.engine.aggregator, ConsolidatingAggregator):
+            self.engine.aggregator.add_underling(self.reader)
+
+    def check(self):
+        return True
 
 
 class JMX(object):
