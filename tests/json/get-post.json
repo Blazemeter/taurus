@@ -134,11 +134,11 @@
     "jmeter": {
       "path": "build/jmeter/bin/jmeter",
       "rename-distributed-threads": false,
-      "properties":{
+      "properties": {
         "jmeter.save.saveservice.autoflush": "true"
       },
       "system-properties": {
-      "any_prop": "true"
+        "any_prop": "true"
       }
     }
   }
