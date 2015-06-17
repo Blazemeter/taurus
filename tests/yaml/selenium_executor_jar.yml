@@ -13,8 +13,7 @@ modules:
         path: "build/tools/maven/bin/mvn"
       junit:
         path: "~/selenium-taurus/tools/junit/junit.jar"
-        selenium-libs: "~/selenium-taurus/tools/junit/selenium-2.46.0/selenium-java-2.46.0.jar"
-        test-class: "TestBlazemeterPass"
+        selenium-libs: "~/selenium-taurus/tools/junit/selenium-2.46.0/selenium-java-2.46.0.jar" # not necessary
 
 reporting:
   - module: selenium-reporter

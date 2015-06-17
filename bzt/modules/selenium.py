@@ -13,11 +13,12 @@ from six.moves.urllib.request import URLopener
 from bzt.utils import download_progress_hook, unzip, shell_exec, humanize_time
 import time
 import signal
-import urwid
 import tempfile
 import logging
 import shutil
 import sys
+
+
 
 # try:
 #     from lxml import etree
@@ -195,15 +196,6 @@ class SeleniumExecutor(ScenarioExecutor):
             self.end_time = time.time()
             self.log.info("Selenium tests run for %s seconds",
                           self.end_time - self.start_time)
-
-    def get_widget(self):
-        """
-
-        :return:
-        """
-        if not self.widget:
-            self.widget = SeleniumWidget(self)
-        return self.widget
 
     def __run_checklist(self):
         """
@@ -516,16 +508,16 @@ class JunitTester(AbstractTestRunner):
         # org.junit.runner.JUnitCore TestBlazemeterPass
 
         junit_class_path = self.junit_path
-        test_jar_path = os.path.abspath(scenario.get("script"))
+        test_jar_path = os.path.abspath(scenario.get("script"))  # TODO: should list all jars and add them in cp
         selenium_java = os.path.expanduser(self.settings.get("selenium-libs"))
         selenium_server = os.path.expanduser("~/selenium-taurus/selenium-server.jar")
-        junit_test_class = self.settings.get("test-class")
+        taurus_test_suite = os.path.abspath(os.path.expanduser("tests/selenium/junit_listener/taurus_testsuite.jar"))
 
         if not os.path.isdir(test_jar_path):
 
             junit_command_line = ["java", "-cp",
-                                  ":".join([junit_class_path, test_jar_path, selenium_java, selenium_server]),
-                                  "org.junit.runner.JUnitCore", junit_test_class]
+                                  ":".join([junit_class_path, test_jar_path, selenium_java, selenium_server, taurus_test_suite]),
+                                  "taurus_junit_testsuite.CustomTestSuite", test_jar_path]
 
             # self.log.info(junit_command_line)
             junit_out_path = os.path.join(artifacts_dir, "junit_out")
@@ -538,8 +530,7 @@ class JunitTester(AbstractTestRunner):
                                       stdout=junit_out,
                                       stderr=junit_err)
 
-            self.report_files.append(junit_out_path)
-            self.report_files.append(junit_err_path)
+            self.report_files.append(os.path.join(artifacts_dir, "report.txt"))
 
         else:
             raise RuntimeError("Testing with more then one jar file currently not implemented")
@@ -570,13 +561,12 @@ class NoseTester(AbstractTestRunner):
         nose and selenium packages are required.
         """
         try:
-            import nose
             import selenium
 
-            self.log.info("nose and selenium already installed")
+            self.log.info("selenium already installed")
             return True
         except ImportError:
-            self.log.info("missing nose or selenium packages")
+            self.log.info("missing selenium packages")
             return False
 
     def install(self):
@@ -587,13 +577,12 @@ class NoseTester(AbstractTestRunner):
 
         try:
             import pip
-
             pip.main(['install', "nose"])
             pip.main(['install', "selenium"])
-            self.log.info("nose and selenium packages were successfully installed")
+            self.log.info("selenium packages were successfully installed")
         except BaseException as exc:
-            self.log.debug("Error while installing additional packages: nose, selenium %s", traceback.format_exc())
-            raise RuntimeError("Error while installing nose and selenium %s" % exc)
+            self.log.debug("Error while installing additional package selenium %s", traceback.format_exc())
+            raise RuntimeError("Error while installing selenium %s" % exc)
 
     def run_tests(self, artifacts_dir, scenario):
         """
@@ -601,15 +590,14 @@ class NoseTester(AbstractTestRunner):
         """
         env = os.environ.copy()
         executable = sys.executable
-        nose_command_line = [executable, "-m", "nose", "selenium_scripts"]
+        nose_command_line = [executable, "-m", "nose", "--with-taurus_nose_plugin", "selenium_scripts"]
         self.log.info(nose_command_line)
         nose_out = open(os.path.join(artifacts_dir, "nose_out"), 'ab')
         nose_err = open(os.path.join(artifacts_dir, "nose_err"), 'ab')
         self.process = subprocess.Popen(nose_command_line, cwd=artifacts_dir,
                                         stdout=nose_out,
                                         stderr=nose_err, env=env)
-        self.report_files.append(os.path.join(artifacts_dir, "nose_out"))
-        self.report_files.append(os.path.join(artifacts_dir, "nose_err"))
+        self.report_files.append(os.path.join(artifacts_dir, "report.txt"))
 
     def prepare_logs(self, artifacts_dir):
         pass
@@ -625,25 +613,3 @@ class NoseTester(AbstractTestRunner):
         return False
 
 
-class SeleniumWidget(urwid.Pile):
-    """
-    Not implemented yet
-    """
-
-    def __init__(self, executor):
-        self.executor = executor
-        self.dur = executor.get_load().duration
-        widgets = []
-        self.elapsed = urwid.Text("Elapsed: N/A")
-        self.eta = urwid.Text("ETA: N/A", align=urwid.RIGHT)
-        widgets.append(urwid.Columns([self.elapsed, self.eta]))
-        # if self.executor.script:
-        #    self.script_name = urwid.Text("Script: %s" % os.path.basename(self.executor.script))
-        #    widgets.append(self.script_name)
-        super(SeleniumWidget, self).__init__(widgets)
-
-    def update(self):
-        if self.executor.start_time:
-            elapsed = time.time() - self.executor.start_time
-            self.elapsed.set_text("Elapsed: %s" % humanize_time(elapsed))
-        self._invalidate()
