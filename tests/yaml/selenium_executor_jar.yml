@@ -2,18 +2,18 @@
 execution:
   executor: "selenium"
   scenario:
-    script: "tests/selenium/jar/selenium-test-small.jar"
+    script: "tests/selenium/jar/"
     test-class: "TestBlazemeterPass"
     use-grid: False
+    custom-jars:
 
 modules:
   selenium:
     selenium-tools:
-      maven:
-        path: "build/tools/maven/bin/mvn"
       junit:
         path: "~/selenium-taurus/tools/junit/junit.jar"
-        selenium-libs: "~/selenium-taurus/tools/junit/selenium-2.46.0/selenium-java-2.46.0.jar" # not necessary
+        selenium-server: "~/selenium-taurus/selenium-server.jar"
+        junit_listener: ""
 
 reporting:
   - module: selenium-reporter

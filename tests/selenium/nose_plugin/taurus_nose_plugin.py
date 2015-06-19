@@ -5,27 +5,6 @@ import traceback
 class TaurusNosePlugin(Plugin):
     """
     Output test results in a format suitable for Taurus report.
-    We need to report:
-
-    - Module name
-    - Current test
-    - Test name
-        if failed:
-            FAILED
-            message
-            trace
-        if exception"
-            FAILED
-            trace
-        if passed:
-            OK
-        time elapsed
-
-    - Another Test name
-    ...
-    Total tests, total pass
-    Total failed
-    Time elapsed
     """
 
     name = 'taurus_nose_plugin'
@@ -33,7 +12,7 @@ class TaurusNosePlugin(Plugin):
 
     def report_error(self, err):
         exc_type, value, tb = err
-        return "--TRACE:\n" + "".join(traceback.format_exception(exc_type, value, tb))
+        return "--TRACE:" + "".join(traceback.format_exception(exc_type, value, tb))
 
     def addError(self, test, err, capt=None):
         """
@@ -42,7 +21,6 @@ class TaurusNosePlugin(Plugin):
         :param err:
         :return:
         """
-        self._error_tests += 1
         self.stream.write("--RESULT: ERROR\n")
         self.stream.flush()
         self._trace = self.report_error(err)
@@ -55,7 +33,6 @@ class TaurusNosePlugin(Plugin):
 
         :return:
         """
-        self._failed_tests += 1
         self.stream.write("--RESULT: FAILED\n")
         self.stream.flush()
         self._trace = self.report_error(err)
@@ -85,12 +62,7 @@ class TaurusNosePlugin(Plugin):
         :return:
         """
         self._module_name = ""
-        self._total_tests = 0
-        self._failed_tests = 0
-        self._error_tests = 0
         self.stream = open("report.txt", "wt")
-        self.stream.write("--BEGIN\n")
-        self.stream.flush()
 
     def finalize(self, result):
         """
@@ -98,12 +70,6 @@ class TaurusNosePlugin(Plugin):
         :param result:
         :return:
         """
-        self.stream.write("--TOTAL TIME: %d\n" % (time() - self._total_time))
-        self.stream.write("--TOTAL TESTS: %d\n" % self._total_tests)
-        self.stream.write("--TOTAL FAILED: %d\n" % self._failed_tests)
-        self.stream.write("--TOTAL ERRORS: %d\n" % self._error_tests)
-        self.stream.write("--END")
-        self.stream.flush()
         self.stream.close()
 
     def startTest(self, test):
@@ -114,13 +80,10 @@ class TaurusNosePlugin(Plugin):
         """
         if self._module_name != str(test.__module__):
             self._module_name = str(test.__module__)
-            self.stream.write("\n--MODULE: %s\n" % self._module_name)
-            self.stream.flush()
         self._trace = ""
         self._time = time()
-        if not hasattr(self, "_total_time"):
-            self._total_time = self._time
-
+        self.stream.write("--TIMESTAMP: %d\n" % (1000*self._time))
+        self.stream.write("--MODULE: %s\n" % self._module_name)
         self.stream.write("--RUN: %s\n" % test)
         self.stream.flush()
 
@@ -133,9 +96,8 @@ class TaurusNosePlugin(Plugin):
         if self._trace:
             self.stream.write(self._trace)
             self.stream.flush()
-        self.stream.write("--TIME: %d\n\n" % (1000*(time() - self._time)))
+        self.stream.write("--TIME: %d\n" % (1000*(time() - self._time)))
         self.stream.flush()
-        self._total_tests += 1
 
     def setOutputStream(self, stream):
 

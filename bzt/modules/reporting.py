@@ -306,28 +306,8 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         return root_xml_element
 
 
-class SeleniumFinalReporter(Reporter):
-    """
-    Selenium reporter,
-    """
-    def __init__(self):
-        super(SeleniumFinalReporter, self).__init__()
-        self.test_runner = None
+class SeleniumJUnitXML(JUnitXMLReporter):
+    @staticmethod
+    def __convert_label_name(url):
+        return url, url
 
-    def prepare(self):
-        selenium_executor_obj = self.engine.modules.get("selenium")
-        self.test_runner = selenium_executor_obj.RUNNER
-
-    def shutdown(self):
-        """
-        :return:
-        """
-        self.log.info('--- start of report')
-        for report in self.test_runner.report_files:
-            if os.path.exists(report):
-                with open(report) as fds:
-                    self.log.info("contents of %s", os.path.basename(report))
-                    self.log.info(fds.read())
-            else:
-                self.log.warn("report file %s does not exists!", report)
-        self.log.info('--- end of report')

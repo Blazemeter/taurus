@@ -1,3 +1,7 @@
 include bzt/10-base.json
 include LICENSE
 include NOTICE
+include bzt/modules/grinder-requests.tpl
+include bzt/modules/logback-worker.xml
+include bzt/modules/taurus_junit.jar
+include bzt/modules/taurus_nose_plugin.tar.gz

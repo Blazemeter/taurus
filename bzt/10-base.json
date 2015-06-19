@@ -77,7 +77,7 @@
       "class": "bzt.modules.reporting.JUnitXMLReporter"
     },
     "selenium-reporter": {
-      "class": "bzt.modules.reporting.SeleniumFinalReporter"
+      "class": "bzt.modules.reporting.SeleniumJUnitXML"
     }
   },
   "settings": {

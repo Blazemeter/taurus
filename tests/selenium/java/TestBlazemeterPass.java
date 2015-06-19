@@ -1,5 +1,3 @@
-package com.example.tests;
-
 import java.util.regex.Pattern;
 import java.util.concurrent.TimeUnit;
 import org.junit.*;

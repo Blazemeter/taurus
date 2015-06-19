@@ -3,31 +3,26 @@ Module holds selenium stuff
 """
 
 import os
-
-from bzt.engine import ScenarioExecutor, Scenario
-# from bzt.modules.console import WidgetProvider
-from subprocess import CalledProcessError
-import subprocess
-import traceback
-from six.moves.urllib.request import URLopener
-from bzt.utils import download_progress_hook, unzip, shell_exec, humanize_time
 import time
-import signal
-import tempfile
 import logging
 import shutil
 import sys
+import platform
+import inspect
+import psutil
+import signal
+import subprocess
 
+from bzt.engine import ScenarioExecutor, Scenario
+from six.moves.urllib.request import FancyURLopener
+from bzt.utils import download_progress_hook, shell_exec
+from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 
+CP_SEP = ";" if platform.system() == 'Windows' else ":"
 
-# try:
-#     from lxml import etree
-# except ImportError:
-#     try:
-#         import cElementTree as etree
-#     except ImportError:
-#         import elementtree.ElementTree as etree
-
+def __dir__():
+    filename = inspect.getouterframes(inspect.currentframe())[1][1]
+    return os.path.dirname(filename)
 
 class SeleniumExecutor(ScenarioExecutor):
     """
@@ -36,51 +31,44 @@ class SeleniumExecutor(ScenarioExecutor):
     SELENIUM_DOWNLOAD_LINK = "http://selenium-release.storage.googleapis.com/{version}/" \
                              "selenium-server-standalone-{version}.0.jar"
     SELENIUM_VERSION = "2.46"
-    RUNNER = None
+
+    JUNIT_DOWNLOAD_LINK = "http://search.maven.org/remotecontent?filepath=junit/junit/{version}/junit-{version}.jar"
+    JUNIT_VERSION = "4.12"
+
+    SUPPORTED_TYPES = [".py", ".jar", ".java"]
 
     def __init__(self):
         super(SeleniumExecutor, self).__init__()
         self.selenium_log = None
-        self.widget = None
         self.reader = None
         self.is_grid = None
         self.scenario = None
         self.start_time = None
         self.end_time = None
-        self.hub_process = None
-        self.node_process = None
-        self.stdout_hub = None
-        self.stderr_node = None
-        self.stdout_node = None
-        self.stderr_hub = None
+        self.runner = None
+        self.kpi_file = ""
 
     def prepare(self):
         """
         1) Locate script or folder
         2) check type py/java
-        2.5) check if we need grid server
-        3) check tool readiness (maven or nose + pip selenium)
-        :return:
+        3) check if all required tools are installed
         """
         self.selenium_log = self.engine.create_artifact("selenium", ".log")
         self.scenario = self.get_scenario()
         self.is_grid = self.scenario.get("use-grid", False)
-        self.__run_checklist()
 
         script_type, script_is_folder = self.detect_script_type(self.scenario.get("script"))
 
-        if script_type == "java":
-            maven_config = self.settings.get("selenium-tools").get("maven")
-            SeleniumExecutor.RUNNER = Maven(maven_config)
-        elif script_type == "python":
+        if script_type == ".py":
             nose_config = self.settings.get("selenium-tools").get("nose")
-            SeleniumExecutor.RUNNER = NoseTester(nose_config)
-        elif script_type == "jar":
+            self.runner = NoseTester(nose_config, self.scenario)
+        elif script_type == ".jar" or script_type == ".java":
             junit_config = self.settings.get("selenium-tools").get("junit")
-            SeleniumExecutor.RUNNER = JunitTester(junit_config)
+            junit_config["script_type"] = script_type
+            self.runner = JunitTester(junit_config, self.scenario)
 
-        if not SeleniumExecutor.RUNNER.check_if_installed():
-            SeleniumExecutor.RUNNER.install()
+        self.runner.run_checklist()
 
         tests_scripts_folder = os.path.join(self.engine.artifacts_dir, "selenium_scripts")  # should be set in config
 
@@ -91,75 +79,38 @@ class SeleniumExecutor(ScenarioExecutor):
                 os.makedirs(tests_scripts_folder)
                 shutil.copy2(self.scenario.get("script"), tests_scripts_folder)
 
+        self.kpi_file = os.path.join(self.engine.artifacts_dir, "report.txt")
+        self.reader = SeleniumDataReader(self.kpi_file, self.log)
+        if isinstance(self.engine.aggregator, ConsolidatingAggregator):
+            self.engine.aggregator.add_underling(self.reader)
+
     def detect_script_type(self, script_path):
         """
         checks if script is java or python
         if it's folder or single script
         :return:
         """
+        script_path_is_directory = False
+
         if os.path.isdir(script_path):
-            self.log.info("processing all scripts in a folder %s", script_path)
-            for script_file in os.listdir(script_path):
-                file_ext = os.path.splitext(script_file)[1].lower()
-                if file_ext == ".java":
-                    self.log.info("detected script type: java")
-                    return "java", True
-                elif file_ext == ".py":
-                    self.log.info("detected script type: python")
-                    return "python", True
-                elif file_ext == ".jar":
-                    self.log.info("detected script type: jar")
-                    return "jar", True
-            self.log.error("Unknown script type.")
-            raise BaseException("unknown script type")
+            file_ext = os.path.splitext(os.listdir(script_path)[0])[1].lower()
+            script_path_is_directory = True
         else:
-            self.log.info("checking type of script %s", script_path)
             file_ext = os.path.splitext(script_path)[1]
-            if file_ext == ".java":
-                self.log.info("detected script type: java")
-                return "java", False
-            elif file_ext == ".py":
-                self.log.info("detected script type: python")
-                return "python", False
-            elif file_ext == ".jar":
-                self.log.info("detected script type: jar")
-                return "jar", False
-            else:
-                self.log.error("Unknown script type.")
-                raise BaseException("unknown script type")
+
+        if file_ext not in SeleniumExecutor.SUPPORTED_TYPES:
+            raise RuntimeError("Unsupported script type: %s" % file_ext)
+        return file_ext, script_path_is_directory
 
     def startup(self):
         """
-        Start selenium server, execute script
+        Start runner
         :return:
         """
-        # TODO: implement selenium-server grid
         self.start_time = time.time()
-        if self.is_grid:
-            selenium_hub_cmdline = ["java", "-jar", os.path.realpath(self.settings.get("path")), "-role",
-                                    "hub"]  # , "-debug", "-log", "test.log"
-            selenium_node_cmdline = ["java", "-jar", os.path.realpath(self.settings.get("path")), "-role", "webdriver",
-                                     "-port 5555", "-hub http://127.0.0.1:4444/grid/register",
-                                     "-browser browserName=firefox"]
-            hub_out = self.engine.create_artifact("selenium-hub-stdout", ".log")
-            hub_err = self.engine.create_artifact("selenium-hub-stderr", ".log")
-            self.stdout_hub = open(hub_out, "w")
-            self.stderr_hub = open(hub_err, "w")
+        # TODO: implement selenium-server grid
 
-            node_out = self.engine.create_artifact("selenium-node-stdout", ".log")
-            node_err = self.engine.create_artifact("selenium-node-stderr", ".log")
-            self.stdout_node = open(node_out, "w")
-            self.stderr_node = open(node_err, "w")
-
-            self.hub_process = shell_exec(selenium_hub_cmdline, cwd=self.engine.artifacts_dir,
-                                          stdout=self.stdout_hub,
-                                          stderr=self.stderr_hub)
-
-            self.node_process = shell_exec(selenium_node_cmdline, cwd=self.engine.artifacts_dir,
-                                           stdout=self.stdout_node,
-                                           stderr=self.stderr_node)
-
-        SeleniumExecutor.RUNNER.run_tests(self.engine.artifacts_dir, self.get_scenario())
+        self.runner.run_tests(self.engine.artifacts_dir)
 
     def check(self):
         """
@@ -169,229 +120,39 @@ class SeleniumExecutor(ScenarioExecutor):
         # if self.widget:
         #    self.widget.update()
 
-        return SeleniumExecutor.RUNNER.is_finished()
+        return self.runner.is_finished()
 
     def shutdown(self):
         """
-        shutdown test_runner, shutdown selenium-server hub/node if grid
+        shutdown test_runner
         :return:
         """
-        if self.is_grid:
-            while self.hub_process and self.hub_process.poll() is None:
-                self.log.info("Terminating selenium-server PID: %s", self.hub_process.pid)
-                time.sleep(1)
-                try:
-                    os.killpg(self.hub_process.pid, signal.SIGTERM)
-                except OSError as exc:
-                    self.log.debug("Failed to terminate: %s", exc)
-
-                if self.stdout_hub:
-                    self.stdout_hub.close()
-                if self.stderr_hub:
-                    self.stderr_hub.close()
-
-        SeleniumExecutor.RUNNER.prepare_logs(self.engine.artifacts_dir)
+        self.runner.shutdown()
 
         if self.start_time:
             self.end_time = time.time()
             self.log.info("Selenium tests run for %s seconds",
                           self.end_time - self.start_time)
 
-    def __run_checklist(self):
-        """
-        Check all tools: java, maven, selenium-server, installed selenium package (python)
-        :return:
-        """
-        selenium_path = self.settings.get("path", "~/selenium-taurus/selenium-server.jar")
-        selenium_path = os.path.abspath(os.path.expanduser(selenium_path))
-        selenium_tools_path = self.settings.get("tools-path", "~/selenium-taurus/tools/")
-        selenium_tools_path = os.path.abspath(os.path.expanduser(selenium_tools_path))
-        self.settings['path'] = selenium_path
-        self.settings['tools-path'] = selenium_tools_path
-
-        try:
-            self.__check_java()
-        except (OSError, CalledProcessError):
-            self.log.debug("Failed to run java: %s", traceback.format_exc())
-            return
-
-        try:
-            self.__check_selenium_server(selenium_path)
-        except (OSError, CalledProcessError):
-            self.log.debug("Failed to run selenium-server: %s", traceback.format_exc())
-            # try install selenium-server
-            self.__install_selenium_server(selenium_path)
-            self.__check_selenium_server(selenium_path)
-            return
-
-    def __check_selenium_server(self, selenium_path):
-        """
-        Check if selenium server working
-
-        :return: Bool
-        """
-        self.log.debug("Trying selenium-server: %s > %s", selenium_path, self.selenium_log)
-        selenium_launch_command = ["java", "-jar", selenium_path, "-help"]
-        selenium_subproc = subprocess.Popen(selenium_launch_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        selenium_output = selenium_subproc.communicate()[0]
-
-        if selenium_subproc.returncode != 0:
-            raise CalledProcessError(selenium_subproc.returncode, " ".join(selenium_launch_command))
-        self.log.debug("Selenium check: %s", selenium_output)
-
-    def __install_selenium_server(self, dest_path):
-        """
-        Download and install selenium-server
-        :param dest_path: path
-        :return:
-        """
-
-        dest = os.path.dirname(os.path.expanduser(dest_path))
-        if not dest:
-            dest = "selenium-taurus"
-        dest = os.path.abspath(dest)
-        if not os.path.exists(dest):
-            os.makedirs(dest)
-
-        selenium_path = os.path.join(dest, "selenium-server.jar")
-        try:
-            self.__check_selenium_server(selenium_path)
-            return selenium_path
-        except (OSError, CalledProcessError):
-            self.log.info("Will try to install selenium server into %s", dest)
-
-        downloader = URLopener()
-        selenium_server_download_link = self.settings.get("download-link", SeleniumExecutor.SELENIUM_DOWNLOAD_LINK)
-        selenium_version = self.settings.get("version", SeleniumExecutor.SELENIUM_VERSION)
-        selenium_server_download_link = selenium_server_download_link.format(version=selenium_version)
-        self.log.info("Downloading %s", selenium_server_download_link)
-        try:
-            downloader.retrieve(selenium_server_download_link, selenium_path, download_progress_hook)
-        except BaseException as exc:
-            self.log.error("Error while downloading %s", selenium_server_download_link)
-            raise exc
-
-    def __check_java(self):
-        """
-        Check java
-        :return:
-        """
-        try:
-            jout = subprocess.check_output(["java", '-version'], stderr=subprocess.STDOUT)
-            self.log.debug("Java check: %s", jout)
-        except BaseException:
-            self.log.warning("Failed to run java: %s", traceback.format_exc())
-            raise RuntimeError("The 'java' is not operable or not available. Consider installing it")
-
 
 class AbstractTestRunner(object):
     """
-    Abstract class test runner
+    Abstract test runner
     """
 
-    def __init__(self, settings):
+    def __init__(self, settings, scenario):
         self.process = None
         self.settings = settings
         self.log = logging.getLogger('')
-        self.report_files = []
+        self.report_file = "report.txt"
+        self.required_tools = []
+        self.scenario = scenario
 
-    def check_if_installed(self):
+    def run_checklist(self):
         raise NotImplementedError
 
-    def install(self):
+    def run_tests(self, artifacts_dir):
         raise NotImplementedError
-
-    def run_tests(self, artifacts_dir, scenario):
-        raise NotImplementedError
-
-    def is_finished(self):
-        raise NotImplementedError
-
-    def prepare_logs(self, artifacts_dir):
-        raise NotImplementedError
-
-
-class Maven(AbstractTestRunner):
-    MAVEN_DOWNLOAD_LINK = "http://apache-mirror.rbc.ru/pub/apache/maven/maven-3/{version}/" \
-                          "binaries/apache-maven-{version}-bin.zip"
-    MAVEN_VERSION = "3.3.3"
-
-    def __init__(self, maven_config):
-        super(Maven, self).__init__(maven_config)
-        self.maven_path = self.settings.get("path", "~/selenium-taurus/tools/maven/bin/mvn")
-        self.maven_path = os.path.abspath(os.path.expanduser(self.maven_path))
-        self.pom_file = PomFile(self.settings.get("pom_file", ""))
-
-    def check_if_installed(self):
-        """
-        Check if maven installed
-        """
-        try:
-            subprocess.check_output(["mvn", "-v"], stderr=subprocess.STDOUT)  # check if installed globally
-            return True
-        except (OSError, CalledProcessError):
-            try:
-                subprocess.check_output([self.maven_path, "-v"], stderr=subprocess.STDOUT)
-                self.maven_path = os.path.abspath(self.maven_path)
-                return True
-            except (OSError, CalledProcessError):
-                return False
-
-    def install(self):
-        """
-        Install maven
-        """
-        dest = os.path.dirname(os.path.dirname(os.path.expanduser(self.maven_path)))
-        if not dest:
-            dest = "selenium-taurus/tools/maven/"
-        dest = os.path.abspath(dest)
-
-        if not os.path.exists(dest):
-            os.makedirs(dest)
-
-        with tempfile.NamedTemporaryFile() as maven_zip_path:
-            downloader = URLopener()
-            maven_download_link = self.settings.get("download-link", Maven.MAVEN_DOWNLOAD_LINK)
-            maven_version = self.settings.get("maven-version", Maven.MAVEN_VERSION)
-            maven_download_link = maven_download_link.format(version=maven_version)
-            self.log.info("Downloading %s", maven_download_link)
-            try:
-                downloader.retrieve(maven_download_link, maven_zip_path.name, download_progress_hook)
-            except BaseException as exc:
-                self.log.error("Error while downloading %s", maven_download_link)
-                raise exc
-
-            self.log.info("Unzipping %s", os.path.join(dest, "maven"))
-            unzip(maven_zip_path.name, dest, "apache-maven-%s" % Maven.MAVEN_VERSION)
-            os.chmod(self.maven_path, 0o755)
-            self.log.info("Installed maven successfully")
-            return self.maven_path
-
-    def run_tests(self, artifacts_dir, scenario):
-        """
-        run tests
-        1) generate pom
-        2) save pom into artifacts
-        3) execute maven tests
-        """
-        self.pom_file.generate_pom()
-        self.pom_file.save(os.path.join(artifacts_dir, "pom.xml"))
-
-        maven_out = open(os.path.join(artifacts_dir, "mvn_out"), 'wb')
-        maven_err = open(os.path.join(artifacts_dir, "mvn_err"), 'wb')
-        self.process = shell_exec(self.maven_path + " test -fn", cwd=artifacts_dir, stdout=maven_out, stderr=maven_err)
-
-    def prepare_logs(self, artifacts_dir):
-        """
-        get all report files
-        :param artifacts_dir: path
-        :return:
-        """
-        report_folder = os.path.join(artifacts_dir, "selenium_scripts", "reports", "surefire-reports")
-        report_folder = os.path.abspath(os.path.expanduser(report_folder))
-        report_files = [file_path for file_path in os.listdir(report_folder) if file_path.endswith(".txt")]
-        for report_file in report_files:
-            self.report_files.append(os.path.join(report_folder, report_file))
 
     def is_finished(self):
         ret_code = self.process.poll()
@@ -402,192 +163,186 @@ class Maven(AbstractTestRunner):
             return True
         return False
 
-
-class PomFile(object):
-    def __init__(self, existing_pom_file_path):
-        self.pom_file_path = existing_pom_file_path
-        self.xml_tree = b""
-
-    def generate_pom(self):
-        """
-        Generate POM from scratch or use and modify existing pom
-        :return:
-        """
-        #  TODO implement xml modification
-        base_pom = b"""<?xml version="1.0" encoding="UTF-8"?>
-<project>
-<modelVersion>4.0.0</modelVersion>
-<groupId>com.example.tests</groupId>
-<artifactId>test_jar</artifactId>
-<version>1.0.0-SNAPSHOT</version>
-<build>
-<directory>selenium_scripts/reports</directory>
-<outputDirectory>selenium_scripts/compiled/classes</outputDirectory>
-<testOutputDirectory>selenium_scripts/compiled/test-classes</testOutputDirectory>
-<sourceDirectory>selenium_scripts</sourceDirectory>
-<scriptSourceDirectory>selenium_scripts</scriptSourceDirectory>
-<testSourceDirectory>selenium_scripts</testSourceDirectory>
-</build>
-<dependencies>
-<dependency>
-<groupId>junit</groupId>
-<artifactId>junit</artifactId>
-<version>4.11</version>
-</dependency>
-<dependency>
-<groupId>org.seleniumhq.selenium</groupId>
-<artifactId>selenium-java</artifactId>
-<version>LATEST</version>
-</dependency>
-</dependencies>
-<reporting>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-surefire-report-plugin</artifactId>
-        <version>2.18.1</version>
-        <configuration>
-          <outputDirectory>surefire</outputDirectory>
-        </configuration>
-      </plugin>
-    </plugins>
-  </reporting>
-</project>"""
-
-        self.xml_tree = base_pom
-
-        # if not self.pom_file_path:
-        #    root = etree.Element(b"project")
-        #    self.xml_tree = etree.Element(root)
-        #    self.xml_tree.append(etree.fromstring(base_pom))
-        # else:
-        #    with open(self.pom_file_path, 'rb') as fds:
-        #        self.xml_tree = etree.parse(fds)
-
-        # self.modify_test_dir()
-
-    def save(self, path):
-        """
-        save pom to file
-        :param path:
-        :return:
-        """
-        with open(path, "wb") as fds:
-            fds.write(self.xml_tree)
-            # fds.write(self.xml_tree.tostring, pretty_print=True, encoding="UTF-8", xml_declaration=True)
-
-            # def modify_test_dir(self):
-            #     project_tag = self.xml_tree.find("project")
-            #     build_tag = etree.Element("build")
-            #     test_path = etree.Element("testSourceDirectory")
-            #     test_path.text = "selenium_scripts"
-            #     build_tag.append(test_path)
-            #     project_tag.append(build_tag)
+    def shutdown(self):
+        while self.process and self.process.poll() is None:
+            # TODO: find a way to have graceful shutdown, then kill
+            self.log.info("Terminating runner PID: %s", self.process.pid)
+            time.sleep(1)
+            try:
+                if platform.system() == 'Windows':
+                    cur_pids = psutil.get_pid_list()
+                    if self.process.pid in cur_pids:
+                        jm_proc = psutil.Process(self.process.pid)
+                        for child_proc in jm_proc.get_children(recursive=True):
+                            self.log.debug("Terminating child process: %d", child_proc.pid)
+                            child_proc.send_signal(signal.SIGTERM)
+                        os.kill(self.process.pid, signal.SIGTERM)
+                else:
+                    os.killpg(self.process.pid, signal.SIGTERM)
+            except OSError as exc:
+                self.log.debug("Failed to terminate test runner: %s", exc)
 
 
 class JunitTester(AbstractTestRunner):
     """
-    Allows to test jar files
+    Allows to test java and jar files
     """
-    # TODO: implement support of .class files, custom junit result listener
-    def __init__(self, junit_config):
-        super(JunitTester, self).__init__(junit_config)
-        self.junit_path = self.settings.get("path", "~/selenium-taurus/tools/junit/junit.jar")
-        self.junit_path = os.path.abspath(os.path.expanduser(self.junit_path))
 
-    def check_if_installed(self):
-        return True
+    def __init__(self, junit_config, scenario):
+        super(JunitTester, self).__init__(junit_config, scenario)
+        self.junit_path = os.path.abspath(
+            os.path.expanduser(self.settings.get("path", "~/selenium-taurus/tools/junit/junit.jar")))
+        self.selenium_server_jar_path = os.path.abspath(
+            os.path.expanduser(self.settings.get("selenium-server", "~/selenium-taurus/selenium-server.jar")))
+        self.junit_listener_path = os.path.abspath(os.path.expanduser(
+            self.settings.get("junit-listener", "~/selenium-taurus/tools/junit_listener/taurus_junit.jar")))
+        self.path_to_scripts = self.scenario.get("script")
+        self.base_class_path = [self.selenium_server_jar_path, self.junit_path, self.junit_listener_path]
+        self.base_class_path.extend(self.scenario.get("custom_jars", []))
 
-    def install(self):
-        # TODO: implement custom junit installation
-        return self.junit_path
+    def run_checklist(self):
+        """
+        java
+        javac
+        selenium-server.jar
+        junit.jar
+        junit_listener.jar
+        """
 
-    def run_tests(self, artifacts_dir, scenario):
+        self.required_tools.append(JavaVM("", ""))
+        self.required_tools.append(JavaC("", ""))
+        self.required_tools.append(SeleniumServerJar(self.selenium_server_jar_path,
+                                                     SeleniumExecutor.SELENIUM_DOWNLOAD_LINK.format(
+                                                         version=SeleniumExecutor.SELENIUM_VERSION)))
+        self.required_tools.append(JUnitJar(self.junit_path, SeleniumExecutor.JUNIT_DOWNLOAD_LINK.format(
+            version=SeleniumExecutor.JUNIT_VERSION)))
+        self.required_tools.append(
+            JUnitListenerJar(self.junit_listener_path, "file:///" + os.path.join(__dir__(), "taurus_junit.jar")))
+
+        for tool in self.required_tools:
+            if not tool.check_if_installed():
+                self.log.info("Installing %s", tool.tool_name)
+                tool.install()
+
+    def compile_scripts(self, artifacts_dir):
+        """
+        Compile .java files, modify self.complete_class_path
+        """
+        self.log.debug("Compiling java files...")
+        scripts_folder = os.path.join(artifacts_dir, "selenium_scripts")
+
+        java_files = [java_file for java_file in os.listdir(scripts_folder) if java_file.endswith(".java")]
+        compile_cl = ["javac", "-cp", CP_SEP.join(self.base_class_path)]
+        compile_cl.extend(java_files)
+
+        javac_out = open(os.path.join(artifacts_dir, "javac_out"), 'wb')
+        javac_err = open(os.path.join(artifacts_dir, "javac_err"), 'wb')
+        self.process = shell_exec(compile_cl, cwd=scripts_folder, stdout=javac_out, stderr=javac_err)
+
+        ret_code = self.process.poll()
+
+        while ret_code is None:
+            self.log.debug("Compiling java files...")
+            time.sleep(1)
+            ret_code = self.process.poll()
+
+        if ret_code != 0:
+            self.log.info("Compile failed: %s", ret_code)
+            raise RuntimeError("test runner exited with non-zero code")
+
+        self.log.info("Compile completed: %s", ret_code)
+
+        self.make_jar(artifacts_dir)
+
+    def make_jar(self, artifacts_dir):
+        """
+        move all .class files to compiled.jar
+        """
+        self.log.debug("Compiling jars...")
+        scripts_folder = os.path.join(artifacts_dir, "selenium_scripts")
+        jar_out = open(os.path.join(artifacts_dir, "jar_out"), 'wb')
+        jar_err = open(os.path.join(artifacts_dir, "jar_err"), 'wb')
+        class_files = [java_file for java_file in os.listdir(scripts_folder) if java_file.endswith(".class")]
+        compile_jar_cl = ["jar", "-cf", "compiled.jar"]
+        compile_jar_cl.extend(class_files)
+        self.process = shell_exec(compile_jar_cl, cwd=scripts_folder, stdout=jar_out, stderr=jar_err)
+
+        ret_code = self.process.poll()
+
+        while ret_code is None:
+            self.log.debug("Compiling jar file...")
+            time.sleep(1)
+            ret_code = self.process.poll()
+
+        if ret_code != 0:
+            self.log.info("Compile failed: %s", ret_code)
+            raise RuntimeError("test runner exited with non-zero code")
+
+        self.log.info("Compile jar file completed: %s", ret_code)
+
+    def run_tests(self, artifacts_dir):
         # java -cp junit.jar:selenium-test-small.jar:
         # selenium-2.46.0/selenium-java-2.46.0.jar:./../selenium-server.jar
         # org.junit.runner.JUnitCore TestBlazemeterPass
+        if self.settings.get("script_type", None) == ".java":
+            self.compile_scripts(artifacts_dir)
 
-        junit_class_path = self.junit_path
-        test_jar_path = os.path.abspath(scenario.get("script"))  # TODO: should list all jars and add them in cp
-        selenium_java = os.path.expanduser(self.settings.get("selenium-libs"))
-        selenium_server = os.path.expanduser("~/selenium-taurus/selenium-server.jar")
-        taurus_test_suite = os.path.abspath(os.path.expanduser("tests/selenium/junit_listener/taurus_testsuite.jar"))
-
-        if not os.path.isdir(test_jar_path):
-
-            junit_command_line = ["java", "-cp",
-                                  ":".join([junit_class_path, test_jar_path, selenium_java, selenium_server, taurus_test_suite]),
-                                  "taurus_junit_testsuite.CustomTestSuite", test_jar_path]
-
-            # self.log.info(junit_command_line)
-            junit_out_path = os.path.join(artifacts_dir, "junit_out")
-            junit_err_path = os.path.join(artifacts_dir, "junit_err")
-
-            junit_out = open(junit_out_path, 'wb')
-            junit_err = open(junit_err_path, 'wb')
-
-            self.process = shell_exec(junit_command_line, cwd=artifacts_dir,
-                                      stdout=junit_out,
-                                      stderr=junit_err)
-
-            self.report_files.append(os.path.join(artifacts_dir, "report.txt"))
-
+        # TODO: implement user input as list of .java/jar files, not only one and folder
+        if not os.path.isdir(self.path_to_scripts):
+            self.base_class_path.extend([self.path_to_scripts])
+            jar_list = [os.path.basename(self.path_to_scripts)]
         else:
-            raise RuntimeError("Testing with more then one jar file currently not implemented")
+            jar_list = [os.path.join("selenium_scripts", jar) for jar in
+                        os.listdir(os.path.join(artifacts_dir, "selenium_scripts")) if jar.endswith(".jar")]
+            self.base_class_path.extend(jar_list)
 
-    def prepare_logs(self, artifacts_dir):
-        pass
+        junit_command_line = ["java", "-cp", CP_SEP.join(self.base_class_path),
+                              "taurus_junit_listener.CustomRunner"]
+        junit_command_line.extend(jar_list)
 
-    def is_finished(self):
-        ret_code = self.process.poll()
-        if ret_code is not None:
-            if ret_code != 0:
-                self.log.info("test runner exit code: %s", ret_code)
-                raise RuntimeError("test runner exited with non-zero code")
-            return True
-        return False
+        self.log.debug(" ".join(junit_command_line))
+
+        # self.log.info(junit_command_line)
+        junit_out_path = os.path.join(artifacts_dir, "junit_out")
+        junit_err_path = os.path.join(artifacts_dir, "junit_err")
+
+        junit_out = open(junit_out_path, 'wb')
+        junit_err = open(junit_err_path, 'wb')
+
+        self.process = shell_exec(junit_command_line, cwd=artifacts_dir,
+                                  stdout=junit_out,
+                                  stderr=junit_err)
 
 
 class NoseTester(AbstractTestRunner):
     """
     Python selenium tests runner
     """
-    # TODO: implement custom nose report plugin
-    def __init__(self, nose_config):
-        super(NoseTester, self).__init__(nose_config)
 
-    def check_if_installed(self):
+    def __init__(self, nose_config, scenario):
+        super(NoseTester, self).__init__(nose_config, scenario)
+        self.plugin_path = os.path.abspath(os.path.expanduser(
+            self.settings.get("taurus-nose-plugin", "~/selenium-taurus/tools/nose_plugin/taurus_nose_plugin.tar.gz")))
+
+    def run_checklist(self):
         """
-        nose and selenium packages are required.
+        we need installed nose plugin
         """
-        try:
-            import selenium
+        if sys.version >= '3':
+            self.log.warn("You are using python3, make sure that your scripts are able to run in python3!")
 
-            self.log.info("selenium already installed")
-            return True
-        except ImportError:
-            self.log.info("missing selenium packages")
-            return False
+        self.required_tools.append(
+            TaurusNosePlugin(self.plugin_path, "file:///" + os.path.join(__dir__(), "taurus_nose_plugin.tar.gz")))
 
-    def install(self):
-        """
-        install nose, selenium from pip
-        """
-        # FIXME: We should not install those if python3 (we need python2 to run selenium tests)
+        for tool in self.required_tools:
+            if not tool.check_if_installed():
+                tool.install()
 
-        try:
-            import pip
-            pip.main(['install', "nose"])
-            pip.main(['install', "selenium"])
-            self.log.info("selenium packages were successfully installed")
-        except BaseException as exc:
-            self.log.debug("Error while installing additional package selenium %s", traceback.format_exc())
-            raise RuntimeError("Error while installing selenium %s" % exc)
-
-    def run_tests(self, artifacts_dir, scenario):
+    def run_tests(self, artifacts_dir):
         """
         run python tests
         """
+
         env = os.environ.copy()
         executable = sys.executable
         nose_command_line = [executable, "-m", "nose", "--with-taurus_nose_plugin", "selenium_scripts"]
@@ -597,10 +352,7 @@ class NoseTester(AbstractTestRunner):
         self.process = subprocess.Popen(nose_command_line, cwd=artifacts_dir,
                                         stdout=nose_out,
                                         stderr=nose_err, env=env)
-        self.report_files.append(os.path.join(artifacts_dir, "report.txt"))
-
-    def prepare_logs(self, artifacts_dir):
-        pass
+        self.report_file = os.path.join(artifacts_dir, "report.txt")
 
     def is_finished(self):
         ret_code = self.process.poll()
@@ -613,3 +365,233 @@ class NoseTester(AbstractTestRunner):
         return False
 
 
+class SeleniumDataReader(ResultsReader):
+    """
+    Read KPI from data log
+    """
+
+    def __init__(self, filename, parent_logger):
+        super(SeleniumDataReader, self).__init__()
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.filename = filename
+        self.fds = None
+        self.partial_buffer = ""
+        self.test_buffer = TestSample()
+        self.offset = 0
+        self.trace_buff = ""
+        self.err_message_buff = ""
+        self.err_codes = {"OK": "200", "SKIPPED": "300", "FAILED": "404", "ERROR": "500", "":"999"}  # FIXME: blank err code bug on manual stop
+
+    def _read(self, last_pass=False):
+        """
+        :param last_pass:
+        """
+
+        while not self.fds and not self.__open_fds():
+            self.log.debug("No data to start reading yet")
+            yield None
+
+        self.log.debug("Reading selenium results")
+        # self.fds.seek(self.offset)  # without this we have a stuck reads on Mac
+        if last_pass:
+            lines = self.fds.readlines()  # unlimited
+        else:
+            lines = self.fds.readlines(1024 * 1024)  # 1MB limit to read
+        # self.offset = self.fds.tell()
+        for line in lines:
+            if not line.endswith("\n"):
+                self.partial_buffer += line
+                continue
+
+            line = "%s%s" % (self.partial_buffer, line)
+            self.partial_buffer = ""
+            line = line.strip("\n")
+            # TODO: Optimise it
+            if line.startswith("--TIMESTAMP:"):
+                self.test_buffer = TestSample()
+                self.trace_buff = ""
+                self.err_message_buff = ""
+                self.test_buffer.T_STAMP = line[12:]
+                self.log.debug(line)
+                self.log.debug(self.test_buffer.T_STAMP)
+            elif line.startswith("--MODULE:"):
+                self.test_buffer.MODULE = line[9:]
+            elif line.startswith("--RUN:"):
+                self.test_buffer.TEST_NAME = line[6:]
+            elif line.startswith("--RESULT:"):
+                self.test_buffer.RESULT = line[10:]
+            elif line.startswith("--TRACE:"):
+                self.trace_buff = line[8:]
+            elif line.startswith("--MESSAGE:"):
+                self.err_message_buff = line[9:]
+            elif line.startswith("--TIME:"):
+                self.test_buffer.TIME = line[7:]
+                self.test_buffer.TRACE = self.trace_buff
+                self.test_buffer.MESSAGE = self.err_message_buff
+
+                r_code = self.err_codes[self.test_buffer.RESULT]
+                concur = 1
+                conn_time = 0
+                latency = 0
+
+                if self.test_buffer.TRACE or self.test_buffer.MESSAGE:
+                    if not self.test_buffer.MESSAGE:
+                        error = self.test_buffer.TRACE
+                    else:
+                        error = self.test_buffer.MESSAGE + "\n" + self.test_buffer.TRACE
+                else:
+                    error = None
+                yield int(self.test_buffer.T_STAMP) / 1000.0, self.test_buffer.TEST_NAME, concur, \
+                      int(self.test_buffer.TIME) / 1000.0, conn_time, latency, r_code, error, self.test_buffer.MODULE
+            else:
+                if not self.err_message_buff:
+                    self.trace_buff += line
+                else:
+                    self.err_message_buff += line
+
+    def __open_fds(self):
+        """
+        opens results.txt
+        """
+        if not os.path.isfile(self.filename):
+            self.log.debug("File not appeared yet")
+            return False
+
+        if not os.path.getsize(self.filename):
+            self.log.debug("File is empty: %s", self.filename)
+            return False
+
+        self.fds = open(self.filename)
+        return True
+
+
+class TestSample(object):
+    def __init__(self):
+        self.T_STAMP = ""
+        self.MODULE = ""
+        self.TEST_NAME = ""
+        self.RESULT = ""
+        self.TRACE = ""
+        self.MESSAGE = ""
+        self.TIME = ""
+
+
+class RequiredTool(object):
+    """
+    Abstract required tool
+    """
+
+    def __init__(self, tool_name, tool_path, download_link):
+        self.tool_name = tool_name
+        self.tool_path = tool_path
+        self.download_link = download_link
+        self.already_installed = False
+
+    def check_if_installed(self):
+        if os.path.exists(self.tool_path):
+            self.already_installed = True
+            return True
+        return False
+
+    def install(self):
+        try:
+            if not os.path.exists(os.path.dirname(self.tool_path)):
+                os.makedirs(os.path.dirname(self.tool_path))
+            downloader = FancyURLopener()
+            downloader.retrieve(self.download_link, self.tool_path, download_progress_hook)
+
+            if self.check_if_installed():
+                return self.tool_path
+            else:
+                raise RuntimeError("Unable to run %s after installation!" % self.tool_name)
+        except BaseException as exc:
+            raise exc
+
+
+class SeleniumServerJar(RequiredTool):
+    def __init__(self, tool_path, download_link):
+        super(SeleniumServerJar, self).__init__("Selenium server", tool_path, download_link)
+
+    def check_if_installed(self):
+        selenium_launch_command = ["java", "-jar", self.tool_path, "-help"]
+        selenium_subproc = subprocess.Popen(selenium_launch_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        selenium_subproc.communicate()
+        if selenium_subproc.returncode == 0:
+            self.already_installed = True
+            return True
+        else:
+            return False
+
+
+class JUnitJar(RequiredTool):
+    def __init__(self, tool_path, download_link):
+        super(JUnitJar, self).__init__("JUnit", tool_path, download_link)
+
+
+class JavaVM(RequiredTool):
+    def __init__(self, tool_path, download_link):
+        super(JavaVM, self).__init__("JavaVM", tool_path, download_link)
+
+    def check_if_installed(self):
+        try:
+            subprocess.check_output(["java", '-version'], stderr=subprocess.STDOUT)
+            return True
+        except BaseException:
+            raise RuntimeError("The %s is not operable or not available. Consider installing it" % self.tool_name)
+
+    def install(self):
+        raise NotImplementedError
+
+
+class JavaC(RequiredTool):
+    def __init__(self, tool_path, download_link):
+        super(JavaC, self).__init__("JavaC", tool_path, download_link)
+
+    def check_if_installed(self):
+        try:
+            subprocess.check_output(["javac", '-version'], stderr=subprocess.STDOUT)
+            return True
+        except BaseException:
+            raise RuntimeError("The %s is not operable or not available. Consider installing it" % self.tool_name)
+
+    def install(self):
+        raise NotImplementedError
+
+
+class JUnitListenerJar(RequiredTool):
+    def __init__(self, tool_path, download_link):
+        super(JUnitListenerJar, self).__init__("JUnitListener", tool_path, download_link)
+
+
+class TaurusNosePlugin(RequiredTool):
+    def __init__(self, tool_path, download_link):
+        super(TaurusNosePlugin, self).__init__("TaurusNosePlugin", tool_path, download_link)
+
+    def check_if_installed(self):
+        env = os.environ.copy()
+        executable = sys.executable
+        nose_command_line = [executable, "-m", "nose", "--with-taurus_nose_plugin", "--collect-only"]
+        subproc = subprocess.Popen(nose_command_line, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env)
+        subproc.communicate()
+        if subproc.returncode == 0:
+            self.already_installed = True
+            return True
+        else:
+            return False
+
+    def install(self):
+
+        if not os.path.exists(os.path.dirname(self.tool_path)):
+            os.makedirs(os.path.dirname(self.tool_path))
+            downloader = FancyURLopener()
+            downloader.retrieve(self.download_link, self.tool_path, download_progress_hook)
+
+        env = os.environ.copy()
+        executable = sys.executable
+        pip_command_line = [executable, "-m", "pip", "install", self.tool_path]
+        pip_subproc = subprocess.Popen(pip_command_line, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env)
+        pip_subproc.communicate()
+        if self.check_if_installed():
+            return self.tool_path
+        else:
+            raise RuntimeError("Unable to run %s after installation!" % self.tool_name)
