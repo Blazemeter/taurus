@@ -1056,6 +1056,7 @@ class JMX(object):
                 http_element_prop.append(JMX._bool_prop("HTTPArgument.use_equals", True))
                 http_element_prop.append(JMX._string_prop("Argument.value", arg_value))
                 http_element_prop.append(JMX._string_prop("Argument.name", arg_name))
+                http_element_prop.append(JMX._string_prop("Argument.metadata", '='))
                 http_args_coll_prop.append(http_element_prop)
             args.append(http_args_coll_prop)
             proxy.append(args)
