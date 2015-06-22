@@ -306,8 +306,107 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         return root_xml_element
 
 
-class SeleniumJUnitXML(JUnitXMLReporter):
-    @staticmethod
-    def __convert_label_name(url):
-        return url, url
+class SeleniumJUnitXML(Reporter, AggregatorListener):
+    """
+    Selenium results reporter in JUnitXML
+    """
+    REPORT_FILE_NAME = "xunit"
+    REPORT_FILE_EXT = ".xml"
 
+    def __init__(self):
+        super(SeleniumJUnitXML, self).__init__()
+        self.report_file_path = "junit.xml"
+        self.last_second = None
+
+    def prepare(self):
+        """
+        create artifacts, parse options.
+        report filename from parameters
+        :return:
+        """
+        filename = self.parameters.get("filename", None)
+        if filename:
+            self.report_file_path = filename
+        else:
+            self.report_file_path = self.engine.create_artifact(SeleniumJUnitXML.REPORT_FILE_NAME,
+                                                                SeleniumJUnitXML.REPORT_FILE_EXT)
+        self.parameters["filename"] = self.report_file_path
+
+    def aggregated_second(self, data):
+        """
+        :param data:
+        :return:
+        """
+        self.last_second = data
+
+    def post_process(self):
+        """
+        Get report data, generate xml report.
+        """
+        super(SeleniumJUnitXML, self).post_process()
+        root_xml_element = self.__process_test_results()
+        self.__save_report(root_xml_element)
+
+
+    def __process_test_results(self):
+        """
+
+        :return:
+        """
+        _kpiset = self.last_second[DataPoint.CUMULATIVE]
+        # summary_kpi_set = _kpiset['']
+        # tests_count = str(summary_kpi_set[KPISet.SAMPLE_COUNT])
+
+        root_xml_element = etree.Element("result", plugin="junit@1.2-beta-4")
+        suites = etree.SubElement(root_xml_element, "suites")
+        suite = etree.SubElement(suites, "suite")
+        file_name = etree.SubElement(suite, "file")
+        file_name.text = self.parameters["filename"]
+
+        name = etree.SubElement(suite, "name")
+        name.text = "taurus_selenium_report"
+
+        duration = etree.SubElement(suite, "duration")
+        duration.text = str(sum([_kpiset[_x][KPISet.AVG_RESP_TIME] for _x in _kpiset.keys() if _x != '']))
+        cases = etree.SubElement(suite, "cases")
+
+        for key in sorted(_kpiset.keys()):
+            if key != "":
+
+                case = etree.SubElement(cases, "cases")
+                case_duration = etree.SubElement(case, "case")
+                case_duration.text = str(_kpiset[key][KPISet.AVG_RESP_TIME])
+                class_name = etree.SubElement(case, "className")
+                class_name.text = key
+                test_name = etree.SubElement(case, "testName")
+                test_name.text = ""
+
+                # if any errors in label report, generate <error> subelement with error description
+                if _kpiset[key][KPISet.ERRORS]:
+                    err_element = etree.SubElement(case, "errorStackTrace")
+                    err_element.text = "\n".join([err["msg"] for err in _kpiset[key][KPISet.ERRORS]])
+
+        return root_xml_element
+
+
+    def __save_report(self, root_node):
+        """
+        :param root_node:
+        :return:
+        """
+        try:
+            if os.path.exists(self.report_file_path):
+                self.log.warning("File %s already exists, will be overwritten", self.report_file_path)
+            else:
+                dirname = os.path.dirname(self.report_file_path)
+                if dirname and not os.path.exists(dirname):
+                    os.makedirs(dirname)
+
+            etree_obj = etree.ElementTree(root_node)
+            self.log.info("Writing JUnit XML report into: %s", self.report_file_path)
+            with open(self.report_file_path, 'wb') as _fds:
+                etree_obj.write(_fds, xml_declaration=True, encoding="UTF-8", pretty_print=True)
+
+        except BaseException:
+            self.log.error("Cannot create file %s", self.report_file_path)
+            raise
