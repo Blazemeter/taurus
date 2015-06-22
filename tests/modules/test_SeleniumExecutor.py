@@ -1,5 +1,5 @@
 from tests import setup_test_logging, BZTestCase, __dir__
-from bzt.modules.selenium import SeleniumExecutor, Maven
+from bzt.modules.selenium import SeleniumExecutor
 from tests.mocks import EngineEmul
 from bzt.utils import BetterDict
 import os
@@ -11,22 +11,6 @@ setup_test_logging()
 
 
 class TestSeleniumExecutor(BZTestCase):
-    def test_install_maven(self):
-        """
-        Test maven installation
-        :return:
-        """
-
-        maven_config = BetterDict()
-        maven_config.merge({"path": __dir__() + "/../../build/tmp/selenium-taurus/tools/maven/bin/mvn"})
-        maven_dir = os.path.dirname(os.path.dirname(maven_config.get("path")))
-        if os.path.exists(maven_dir):
-            shutil.rmtree(maven_dir)
-        maven = Maven(maven_config)
-        self.assertFalse(maven.check_if_installed())
-        maven.install()
-        self.assertTrue(maven.check_if_installed())
-
     def test_install_selenium_server(self):
         """
         Test selenium_server installation
