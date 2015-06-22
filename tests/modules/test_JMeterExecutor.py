@@ -4,15 +4,18 @@ import logging
 import time
 import os
 import shutil
-import yaml
 import sys
+from math import ceil
 
+import yaml
+
+from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet
 from tests import setup_test_logging, BZTestCase, __dir__
 from bzt.engine import Provisioning
-from bzt.modules.jmeter import JMeterExecutor, JMX, JTLErrorsReader, JTLReader
-from tests.mocks import EngineEmul
+from bzt.modules.jmeter import JMeterExecutor, JMX, JTLErrorsReader, JTLReader, JMeterJTLLoaderExecutor
+from tests.mocks import EngineEmul, ResultChecker
 from bzt.utils import BetterDict
-from math import ceil
+
 
 try:
     from lxml import etree
@@ -548,7 +551,7 @@ class TestJMeterExecutor(BZTestCase):
         obj.engine = EngineEmul()
         obj.engine.config[Provisioning.PROV] = 'test'
         obj.execution = BetterDict()
-        obj.execution.merge({"iterations":10 ,"scenario": {"script": __dir__() + "/../jmx/http.jmx"}})
+        obj.execution.merge({"iterations": 10, "scenario": {"script": __dir__() + "/../jmx/http.jmx"}})
         obj.prepare()
         modified_xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
         tg = modified_xml_tree.find(".//ThreadGroup")
@@ -572,5 +575,20 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(tg_loops.text, "1")  # default value, not disabled
         self.assertEqual(tg_forever.text, "false")
 
+    def test_distributed_jtl(self):
+        obj = JMeterJTLLoaderExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.aggregator = ConsolidatingAggregator()
+        self.maxc = 0
 
+        def clb(x):
+            self.maxc = max(self.maxc, x[DataPoint.CURRENT][''][KPISet.CONCURRENCY])
 
+        obj.engine.aggregator.add_listener(ResultChecker(clb))
+        obj.execution = BetterDict()
+        obj.execution.merge({"kpi-jtl": __dir__() + "/../data/distributed.jtl"})
+        obj.prepare()
+        obj.reader.is_distributed = True
+
+        obj.engine.aggregator.post_process()
+        self.assertEquals(23, self.maxc)

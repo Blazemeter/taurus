@@ -40,6 +40,14 @@ Then install Taurus:
 sudo pip install bzt
 ```
 
+If you experience `libxml/xmlversion.h missing` error, try running:
+```bash
+brew install libxml2
+brew install libxslt
+```
+then try installing Taurus again.
+
+
 Upgrading to latest is as simple as this:
 ```bash
 sudo pip install --upgrade bzt

@@ -1,5 +1,5 @@
 {
-    "scenarios": [
-        "@scenario-for-inclusion.json"
-    ]
+  "scenarios": [
+    "@scenario-for-inclusion.json"
+  ]
 }

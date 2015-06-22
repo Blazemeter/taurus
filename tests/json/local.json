@@ -1,5 +1,5 @@
 {
-    "provisioning": {
-        "type": "local"
-    }
+  "provisioning": {
+    "type": "local"
+  }
 }

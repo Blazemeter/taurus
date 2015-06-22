@@ -19,6 +19,7 @@
       },
       "path": "~/jmeter-taurus/bin/jmeter"
     },
+    "jtl-loader": "bzt.modules.jmeter.JMeterJTLLoaderExecutor",
     "grinder": {
       "class": "bzt.modules.grinder.GrinderExecutor",
       "properties": {

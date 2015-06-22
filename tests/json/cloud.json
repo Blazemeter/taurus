@@ -1,18 +1,18 @@
 {
-    "execution": {
-        "scenario": "Scenario Name",
-        "locations": [
-            "aws-eu",
-            "aws-us-west",
-            {
-                "location": "aws-us-west",
-                "weight": 5,
-                "concurrency": 50,
-                "machines": 10
-            }
-        ]
-    },
-    "provisioning": {
-        "type": "cloud"
-    }
+  "execution": {
+    "scenario": "Scenario Name",
+    "locations": [
+      "aws-eu",
+      "aws-us-west",
+      {
+        "location": "aws-us-west",
+        "weight": 5,
+        "concurrency": 50,
+        "machines": 10
+      }
+    ]
+  },
+  "provisioning": {
+    "type": "cloud"
+  }
 }

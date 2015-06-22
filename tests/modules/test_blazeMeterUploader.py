@@ -2,10 +2,12 @@ import logging
 import os
 import shutil
 from tests import BZTestCase, random_datapoint
+
 from bzt.modules.blazemeter import BlazeMeterUploader, BlazeMeterClient
 from tests.mocks import EngineEmul
 from io import BytesIO
 import bzt.modules.blazemeter
+
 
 class TestBlazeMeterUploader(BZTestCase):
     def test_check(self):
@@ -60,7 +62,8 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.settings['token'] = '123'
         obj.settings['browser-open'] = 'none'
         obj.engine = EngineEmul()
-        obj.engine.config.merge({"settings":{'proxy': {"username":"user", "password":"password", "address":"http://127.0.0.1:8080"}}})
+        obj.engine.config.merge(
+            {"settings": {'proxy': {"username": "user", "password": "password", "address": "http://127.0.0.1:8080"}}})
         obj.client = client
         try:
             from urllib2 import _opener
@@ -89,6 +92,7 @@ class TestBlazeMeterUploader(BZTestCase):
         _opener = None
         obj.prepare()
         self.assertIsNone(_opener)
+
 
 class BlazeMeterClientEmul(BlazeMeterClient):
     def __init__(self, parent_logger):
