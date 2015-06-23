@@ -1,6 +1,9 @@
 from time import time
+
 from nose.plugins import Plugin
+import nose
 import traceback
+import sys
 
 class TaurusNosePlugin(Plugin):
     """
@@ -113,3 +116,6 @@ class TaurusNosePlugin(Plugin):
 
         d = dummy()
         return d
+
+if __name__ == "__main__":
+    nose.main(addplugins=[TaurusNosePlugin()], argv=sys.argv)
