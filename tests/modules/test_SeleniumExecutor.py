@@ -242,7 +242,6 @@ class TestSeleniumNoseRunner(BZTestCase):
         Check if script copied and test completed with folder, python
         :return:
         """
-
         obj = SeleniumExecutor()
         obj.engine = EngineEmul()
         obj.engine.config = BetterDict()
