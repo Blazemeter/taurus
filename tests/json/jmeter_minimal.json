@@ -1,7 +1,7 @@
 {
-    "execution": {
-        "scenario": {
-            "script": "tests/jmx/dummy.jmx"
-        }
+  "execution": {
+    "scenario": {
+      "script": "tests/jmx/dummy.jmx"
     }
+  }
 }

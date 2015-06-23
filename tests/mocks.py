@@ -6,7 +6,7 @@ import sys
 import random
 import time
 
-from bzt.engine import Engine, Configuration, FileLister
+from bzt.engine import Engine, Configuration, FileLister, AggregatorListener
 from bzt.utils import load_class
 from bzt.engine import Provisioning, ScenarioExecutor, Reporter, AggregatorListener
 from bzt.modules.aggregator import ResultsReader
@@ -185,3 +185,12 @@ class MockReader(ResultsReader, AggregatorListener):
 
 def download_progress_mock(blocknum, blocksize, totalsize):
     pass
+
+
+class ResultChecker(AggregatorListener):
+    def __init__(self, callback):
+        super(ResultChecker, self).__init__()
+        self.callback = callback
+
+    def aggregated_second(self, data):
+        self.callback(data)

@@ -29,8 +29,8 @@ from collections import Counter, namedtuple
 from subprocess import CalledProcessError
 from distutils.version import LooseVersion
 from math import ceil
-
 import psutil
+
 from lxml.etree import XMLSyntaxError
 import six
 import urwid
@@ -124,7 +124,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.sys_properties_file = sys_props_file
 
         self.reader = JTLReader(self.kpi_jtl, self.log, self.errors_jtl)
-        self.reader.is_distributed = self.distributed_servers
+        self.reader.is_distributed = len(self.distributed_servers) > 0
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
@@ -772,6 +772,32 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.log.debug("Old jar removed %s", old_lib.vstring)
 
 
+class JMeterJTLLoaderExecutor(ScenarioExecutor):
+    """
+    Executor type that just loads existing kpi.jtl and errors.jtl
+    """
+
+    def __init__(self):
+        # TODO: document this executor
+        super(JMeterJTLLoaderExecutor, self).__init__()
+        self.kpi_jtl = None
+        self.errors_jtl = None
+        self.reader = None
+
+    def prepare(self):
+        self.kpi_jtl = self.execution.get("kpi-jtl", None)
+        if self.kpi_jtl is None:
+            raise ValueError("Option is required for executor: kpi-jtl")
+        self.errors_jtl = self.execution.get("errors-jtl", None)
+
+        self.reader = JTLReader(self.kpi_jtl, self.log, self.errors_jtl)
+        if isinstance(self.engine.aggregator, ConsolidatingAggregator):
+            self.engine.aggregator.add_underling(self.reader)
+
+    def check(self):
+        return True
+
+
 class JMX(object):
     """
     A class to manipulate and generate JMX test plans for JMeter
@@ -1030,6 +1056,7 @@ class JMX(object):
                 http_element_prop.append(JMX._bool_prop("HTTPArgument.use_equals", True))
                 http_element_prop.append(JMX._string_prop("Argument.value", arg_value))
                 http_element_prop.append(JMX._string_prop("Argument.name", arg_name))
+                http_element_prop.append(JMX._string_prop("Argument.metadata", '='))
                 http_args_coll_prop.append(http_element_prop)
             args.append(http_args_coll_prop)
             proxy.append(args)
