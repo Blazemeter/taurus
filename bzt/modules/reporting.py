@@ -347,47 +347,27 @@ class SeleniumJUnitXML(Reporter, AggregatorListener):
         root_xml_element = self.__process_test_results()
         self.__save_report(root_xml_element)
 
-
     def __process_test_results(self):
         """
 
         :return:
         """
         _kpiset = self.last_second[DataPoint.CUMULATIVE]
-        # summary_kpi_set = _kpiset['']
-        # tests_count = str(summary_kpi_set[KPISet.SAMPLE_COUNT])
+        summary_kpi_set = _kpiset['']
+        tests_count = str(summary_kpi_set[KPISet.SAMPLE_COUNT])
 
-        root_xml_element = etree.Element("result", plugin="junit@1.2-beta-4")
-        suites = etree.SubElement(root_xml_element, "suites")
-        suite = etree.SubElement(suites, "suite")
-        file_name = etree.SubElement(suite, "file")
-        file_name.text = self.parameters["filename"]
-
-        name = etree.SubElement(suite, "name")
-        name.text = "taurus_selenium_report"
-
-        duration = etree.SubElement(suite, "duration")
-        duration.text = str(sum([_kpiset[_x][KPISet.AVG_RESP_TIME] for _x in _kpiset.keys() if _x != '']))
-        cases = etree.SubElement(suite, "cases")
+        root_xml_element = etree.Element("testsuite", name="taurus_junitxml", tests=tests_count, failures="0", skip="0")
 
         for key in sorted(_kpiset.keys()):
             if key != "":
 
-                case = etree.SubElement(cases, "cases")
-                case_duration = etree.SubElement(case, "case")
-                case_duration.text = str(_kpiset[key][KPISet.AVG_RESP_TIME])
-                class_name = etree.SubElement(case, "className")
-                class_name.text = key
-                test_name = etree.SubElement(case, "testName")
-                test_name.text = ""
-
-                # if any errors in label report, generate <error> subelement with error description
+                case = etree.SubElement(root_xml_element, "testcase", classname=key, name="",
+                                        time=str(_kpiset[key][KPISet.AVG_RESP_TIME]))
                 if _kpiset[key][KPISet.ERRORS]:
-                    err_element = etree.SubElement(case, "errorStackTrace")
-                    err_element.text = "\n".join([err["msg"] for err in _kpiset[key][KPISet.ERRORS]])
+                    err = "\n".join([err["msg"] for err in _kpiset[key][KPISet.ERRORS]])
+                    etree.SubElement(case, "error", type="test_error", message="test_message").text = err
 
         return root_xml_element
-
 
     def __save_report(self, root_node):
         """

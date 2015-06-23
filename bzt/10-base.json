@@ -34,9 +34,6 @@
       "class": "bzt.modules.selenium.SeleniumExecutor",
       "path": "~/selenium-taurus/selenium-server.jar",
       "selenium-tools": {
-       "maven": {
-         "path": "~/selenium-taurus/tools/maven/bin/mvn"
-       },
        "junit": {
          "path": "~/selenium-taurus/tools/junit/junit.jar"
        }

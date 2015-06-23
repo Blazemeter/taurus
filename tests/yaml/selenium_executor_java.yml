@@ -3,17 +3,14 @@ execution:
   executor: "selenium"
   scenario:
     script: "tests/selenium/java/"
-    use-grid: False
 
 modules:
   selenium:
     selenium-tools:
-      maven:
-        path: "~/selenium-taurus/tools/maven/bin/mvn"
       junit:
         path: "~/selenium-taurus/tools/junit/junit.jar"
-        selenium-libs: "~/selenium-taurus/tools/junit/selenium-2.46.0/selenium-java-2.46.0.jar"
-        test-class: "TestBlazemeterPass"
+        selenium-server: "~/selenium-taurus/selenium-server.jar"
+        junit-listener: "~/selenium-taurus/tools/junit/junit_listener/taurus_junit.jar"
 
 reporting:
   - module: selenium-reporter

@@ -35,6 +35,8 @@ class SeleniumExecutor(ScenarioExecutor):
     JUNIT_DOWNLOAD_LINK = "http://search.maven.org/remotecontent?filepath=junit/junit/{version}/junit-{version}.jar"
     JUNIT_VERSION = "4.12"
 
+    JUNIT_LISTENER_LINK = "file://" + os.path.join(__dir__(), "taurus_junit.jar")
+
     SUPPORTED_TYPES = [".py", ".jar", ".java"]
 
     def __init__(self):
@@ -217,7 +219,7 @@ class JunitTester(AbstractTestRunner):
         self.required_tools.append(JUnitJar(self.junit_path, SeleniumExecutor.JUNIT_DOWNLOAD_LINK.format(
             version=SeleniumExecutor.JUNIT_VERSION)))
         self.required_tools.append(
-            JUnitListenerJar(self.junit_listener_path, "file:///" + os.path.join(__dir__(), "taurus_junit.jar")))
+            JUnitListenerJar(self.junit_listener_path, SeleniumExecutor.JUNIT_LISTENER_LINK))
 
         for tool in self.required_tools:
             if not tool.check_if_installed():
@@ -286,11 +288,12 @@ class JunitTester(AbstractTestRunner):
         # org.junit.runner.JUnitCore TestBlazemeterPass
         if self.settings.get("script_type", None) == ".java":
             self.compile_scripts(artifacts_dir)
+            self.path_to_scripts = "compiled.jar"
 
         # TODO: implement user input as list of .java/jar files, not only one and folder
         if not os.path.isdir(self.path_to_scripts):
             self.base_class_path.extend([self.path_to_scripts])
-            jar_list = [os.path.basename(self.path_to_scripts)]
+            jar_list = [os.path.join("selenium_scripts", os.path.basename(self.path_to_scripts))]
         else:
             jar_list = [os.path.join("selenium_scripts", jar) for jar in
                         os.listdir(os.path.join(artifacts_dir, "selenium_scripts")) if jar.endswith(".jar")]

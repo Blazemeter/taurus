@@ -3,8 +3,6 @@ execution:
   executor: "selenium"
   scenario:
     script: "tests/selenium/jar/"
-    test-class: "TestBlazemeterPass"
-    use-grid: False
     custom-jars:
 
 modules:
@@ -13,11 +11,8 @@ modules:
       junit:
         path: "~/selenium-taurus/tools/junit/junit.jar"
         selenium-server: "~/selenium-taurus/selenium-server.jar"
-        junit_listener: ""
+        junit-listener: "~/selenium-taurus/tools/junit/junit_listener/taurus_junit.jar"
 
 reporting:
   - module: selenium-reporter
-# add option to specify existing pom
-# add option to use tmp directory instead of artifacts (do not save project)
-# add option to maven which files to use as test files (*Test, Test*, etc)
 # add option to continue tests even when one failed
