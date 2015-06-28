@@ -3,7 +3,7 @@ execution:
   executor: "selenium"
   scenario:
     script: "tests/selenium/jar/"
-    custom-jars:
+#    additional-classpath:
 
 modules:
   selenium:

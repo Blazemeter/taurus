@@ -1,0 +1,12 @@
+---
+execution:
+  executor: "selenium"
+  scenario:
+    script: "tests/selenium/java_package/"
+
+modules:
+  selenium:
+    selenium-tools:
+      junit:
+        path: "~/selenium-taurus/tools/junit/junit.jar"
+        selenium-server: "~/selenium-taurus/selenium-server.jar"

@@ -3,19 +3,21 @@ from time import time
 from nose.plugins import Plugin
 from nose import main
 import traceback
-
+import sys
 
 class TaurusNosePlugin(Plugin):
     """
     Output test results in a format suitable for Taurus report.
     """
 
-    name = 'taurus_nose_plugin'
+    name = 'nose_plugin'
     enabled = True
 
-    def __init__(self):
+    def __init__(self, output_file):
         super(TaurusNosePlugin, self).__init__()
-        self.enabled = True
+        self._trace = None
+        self._module_name = None
+        self.output_file = output_file
 
     def report_error(self, err):
         exc_type, value, tb = err
@@ -71,7 +73,7 @@ class TaurusNosePlugin(Plugin):
         :return:
         """
         self._module_name = ""
-        self.stream = open("report.txt", "wt")
+        self.stream = open(self.output_file, "wt")
 
     def finalize(self, result):
         """
@@ -120,11 +122,12 @@ class TaurusNosePlugin(Plugin):
             def flush(self, *arg):
                 pass
 
-        d = dummy()
-        return d
+        return dummy()
 
 
 if __name__ == "__main__":
-    test_path = "../python"
-    argv = [__file__, '-v', test_path, ]
-    main(addplugins=[TaurusNosePlugin()], argv=argv + ['--with-taurus_nose_plugin'])
+    output_file = sys.argv[1]
+    test_path = sys.argv[2:]
+    argv = [__file__, '-v']
+    argv.extend(test_path)
+    main(addplugins=[TaurusNosePlugin(output_file)], argv=argv + ['--with-nose_plugin'])
