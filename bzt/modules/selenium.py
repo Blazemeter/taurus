@@ -14,8 +14,6 @@ from bzt.utils import download_progress_hook, shell_exec, shutdown_process, Bett
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 
 
-
-
 class SeleniumExecutor(ScenarioExecutor):
     """
     Selenium executor
@@ -188,12 +186,10 @@ class JunitTester(AbstractTestRunner):
 
         self.junit_path = path_lambda("path", "~/selenium-taurus/tools/junit/junit.jar")
         self.selenium_server_jar_path = path_lambda("selenium-server", "~/selenium-taurus/selenium-server.jar")
-        self.junit_listener_path = os.path.join(os.path.dirname(__file__), "taurus_junit.jar")
+        self.junit_listener_path = os.path.join(os.path.dirname(__file__), "resources", "taurus_junit.jar")
 
         self.base_class_path = [self.selenium_server_jar_path, self.junit_path, self.junit_listener_path]
         self.base_class_path.extend(self.scenario.get("additional-classpath", []))
-
-
 
     def prepare(self):
         """
@@ -325,7 +321,7 @@ class NoseTester(AbstractTestRunner):
     def __init__(self, nose_config, scenario, parent_logger):
         super(NoseTester, self).__init__(nose_config, scenario)
         self.log = parent_logger.getChild(self.__class__.__name__)
-        self.plugin_path = os.path.join(os.path.dirname(__file__),"resources", "nose_plugin.py")
+        self.plugin_path = os.path.join(os.path.dirname(__file__), "resources", "nose_plugin.py")
 
     def prepare(self):
         self.run_checklist()
@@ -397,12 +393,12 @@ class SeleniumDataReader(ResultsReader):
             yield None
 
         self.log.debug("Reading selenium results")
-        # self.fds.seek(self.offset)  # without this we have a stuck reads on Mac
+        self.fds.seek(self.offset)  # without this we have a stuck reads on Mac
         if last_pass:
             lines = self.fds.readlines()  # unlimited
         else:
             lines = self.fds.readlines(1024 * 1024)  # 1MB limit to read
-        # self.offset = self.fds.tell()
+        self.offset = self.fds.tell()
         for line in lines:
             if not line.endswith("\n"):
                 self.partial_buffer += line
@@ -525,7 +521,7 @@ class SeleniumServerJar(RequiredTool):
         selenium_launch_command = ["java", "-jar", self.tool_path, "-help"]
         selenium_subproc = shell_exec(selenium_launch_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         output = selenium_subproc.communicate()
-        self.log.debug("%s output: %s",self.tool_name, output)
+        self.log.debug("%s output: %s", self.tool_name, output)
         if selenium_subproc.returncode == 0:
             self.already_installed = True
             return True
@@ -546,7 +542,7 @@ class JavaVM(RequiredTool):
     def check_if_installed(self):
         try:
             output = subprocess.check_output(["java", '-version'], stderr=subprocess.STDOUT)
-            self.log.debug("%s output: %s",self.tool_name, output)
+            self.log.debug("%s output: %s", self.tool_name, output)
             return True
         except BaseException:
             raise RuntimeError("The %s is not operable or not available. Consider installing it" % self.tool_name)
@@ -563,7 +559,7 @@ class JavaC(RequiredTool):
     def check_if_installed(self):
         try:
             output = subprocess.check_output(["javac", '-version'], stderr=subprocess.STDOUT)
-            self.log.debug("%s output: %s",self.tool_name, output)
+            self.log.debug("%s output: %s", self.tool_name, output)
             return True
         except BaseException:
             raise RuntimeError("The %s is not operable or not available. Consider installing it" % self.tool_name)

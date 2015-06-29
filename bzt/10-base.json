@@ -36,8 +36,13 @@
       "selenium-tools": {
        "junit": {
          "path": "~/selenium-taurus/tools/junit/junit.jar",
-         "selenium-server": "~/selenium-taurus/selenium-server.jar"
-       }
+         "selenium-server": "~/selenium-taurus/selenium-server.jar",
+         "jar-name": "compiled.jar",
+         "working-dir": "classes"
+       },
+        "nose":{
+         "working-dir": "classes"
+        }
       }
     },
     "consolidator": {
