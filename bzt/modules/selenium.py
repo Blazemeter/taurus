@@ -214,8 +214,8 @@ class JunitTester(AbstractTestRunner):
         """
 
         if self.settings.get("script_type", None) == ".java":
-            self.required_tools.append(JavaC("", ""))
-        self.required_tools.append(JavaVM("", ""))
+            self.required_tools.append(JavaC("", "", self.log))
+        self.required_tools.append(JavaVM("", "", self.log))
         self.required_tools.append(SeleniumServerJar(self.selenium_server_jar_path,
                                                      SeleniumExecutor.SELENIUM_DOWNLOAD_LINK.format(
                                                          version=SeleniumExecutor.SELENIUM_VERSION), self.log))
@@ -521,11 +521,11 @@ class SeleniumServerJar(RequiredTool):
         self.log = parent_logger.getChild(self.__class__.__name__)
 
     def check_if_installed(self):
-        self.log.debug("Server path: %s", self.tool_path)
+        self.log.debug("%s path: %s", self.tool_name, self.tool_path)
         selenium_launch_command = ["java", "-jar", self.tool_path, "-help"]
         selenium_subproc = shell_exec(selenium_launch_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         output = selenium_subproc.communicate()
-        self.log.debug(output)
+        self.log.debug("%s output: %s",self.tool_name, output)
         if selenium_subproc.returncode == 0:
             self.already_installed = True
             return True
@@ -539,12 +539,14 @@ class JUnitJar(RequiredTool):
 
 
 class JavaVM(RequiredTool):
-    def __init__(self, tool_path, download_link):
+    def __init__(self, tool_path, download_link, parent_logger):
         super(JavaVM, self).__init__("JavaVM", tool_path, download_link)
+        self.log = parent_logger.getChild(self.__class__.__name__)
 
     def check_if_installed(self):
         try:
-            subprocess.check_output(["java", '-version'], stderr=subprocess.STDOUT)
+            output = subprocess.check_output(["java", '-version'], stderr=subprocess.STDOUT)
+            self.log.debug("%s output: %s",self.tool_name, output)
             return True
         except BaseException:
             raise RuntimeError("The %s is not operable or not available. Consider installing it" % self.tool_name)
@@ -554,12 +556,14 @@ class JavaVM(RequiredTool):
 
 
 class JavaC(RequiredTool):
-    def __init__(self, tool_path, download_link):
+    def __init__(self, tool_path, download_link, parent_logger):
         super(JavaC, self).__init__("JavaC", tool_path, download_link)
+        self.log = parent_logger.getChild(self.__class__.__name__)
 
     def check_if_installed(self):
         try:
-            subprocess.check_output(["javac", '-version'], stderr=subprocess.STDOUT)
+            output = subprocess.check_output(["javac", '-version'], stderr=subprocess.STDOUT)
+            self.log.debug("%s output: %s",self.tool_name, output)
             return True
         except BaseException:
             raise RuntimeError("The %s is not operable or not available. Consider installing it" % self.tool_name)

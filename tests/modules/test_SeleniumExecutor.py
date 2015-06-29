@@ -17,10 +17,6 @@ class TestSeleniumJUnitRunner(BZTestCase):
     jar:one/folder/list
     python:one/folder/list
     """
-    @classmethod
-    def setUpClass(cls):
-        pass
-        # shutil.rmtree(os.path.abspath(os.path.expanduser("~/selenium-taurus")), ignore_errors=True)
 
     def test_install_tools(self):
         """
