@@ -218,7 +218,7 @@ class JunitTester(AbstractTestRunner):
         self.required_tools.append(JavaVM("", ""))
         self.required_tools.append(SeleniumServerJar(self.selenium_server_jar_path,
                                                      SeleniumExecutor.SELENIUM_DOWNLOAD_LINK.format(
-                                                         version=SeleniumExecutor.SELENIUM_VERSION)))
+                                                         version=SeleniumExecutor.SELENIUM_VERSION), self.log))
         self.required_tools.append(JUnitJar(self.junit_path, SeleniumExecutor.JUNIT_DOWNLOAD_LINK.format(
             version=SeleniumExecutor.JUNIT_VERSION)))
         self.required_tools.append(JUnitListenerJar(self.junit_listener_path, ""))
@@ -516,13 +516,16 @@ class RequiredTool(object):
 
 
 class SeleniumServerJar(RequiredTool):
-    def __init__(self, tool_path, download_link):
+    def __init__(self, tool_path, download_link, parent_logger):
         super(SeleniumServerJar, self).__init__("Selenium server", tool_path, download_link)
+        self.log = parent_logger.getChild(self.__class__.__name__)
 
     def check_if_installed(self):
+        self.log.debug("Server path: %s", self.tool_path)
         selenium_launch_command = ["java", "-jar", self.tool_path, "-help"]
         selenium_subproc = shell_exec(selenium_launch_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        selenium_subproc.communicate()
+        output = selenium_subproc.communicate()
+        self.log.debug(output)
         if selenium_subproc.returncode == 0:
             self.already_installed = True
             return True
