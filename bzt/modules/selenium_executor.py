@@ -38,7 +38,6 @@ class SeleniumExecutor(ScenarioExecutor):
         self.end_time = None
         self.runner = None
         self.kpi_file = None
-        self.runner_working_dir = None
 
     def prepare(self):
         """
@@ -61,18 +60,18 @@ class SeleniumExecutor(ScenarioExecutor):
             runner_config = self.settings.get("selenium-tools").get("junit")
 
         runner_config["script_type"] = script_type
-        self.runner_working_dir = self.engine.create_artifact(runner_config.get("working-dir", "classes"), "")
+        runner_working_dir = self.engine.create_artifact(runner_config.get("working-dir", "classes"), "")
 
         runner_config.get("artifacts-dir", self.engine.artifacts_dir)
-        runner_config.get("working-dir", self.runner_working_dir)
+        runner_config.get("working-dir", runner_working_dir)
         runner_config.get("report-file", self.kpi_file)
 
         if Scenario.SCRIPT in self.scenario:
             if script_is_folder:
-                shutil.copytree(self.scenario.get("script"), self.runner_working_dir)
+                shutil.copytree(self.scenario.get("script"), runner_working_dir)
             else:
-                os.makedirs(self.runner_working_dir)
-                shutil.copy2(self.scenario.get("script"), self.runner_working_dir)
+                os.makedirs(runner_working_dir)
+                shutil.copy2(self.scenario.get("script"), runner_working_dir)
 
         self.runner = self.runner(runner_config, self.scenario, self.log)
         self.runner.prepare()
@@ -351,7 +350,7 @@ class NoseTester(AbstractTestRunner):
         """
         run python tests
         """
-        executable = sys.executable
+        executable = self.settings.get("interpreter", sys.executable)
         nose_command_line = [executable, self.plugin_path, self.report_file, self.working_dir]
         self.log.info(nose_command_line)
         nose_out = open(os.path.join(self.artifacts_dir, "nose_out"), 'ab')

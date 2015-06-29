@@ -160,11 +160,15 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         parsed_url = urlparse(url)
         # remove dots from url and join all pieces on dot
         # small fix needed - better do not use blank pieces
-        class_name = parsed_url.scheme + "." + parsed_url.netloc.replace(".", "_")
-        resource_name = ".".join([parsed_url.path.replace(".", "_"),
-                                  parsed_url.params.replace(".", "_"),
-                                  parsed_url.query.replace(".", "_"),
-                                  parsed_url.fragment.replace(".", "_")])
+        if parsed_url.scheme:
+            class_name = parsed_url.scheme + "." + parsed_url.netloc.replace(".", "_")
+            resource_name = ".".join([parsed_url.path.replace(".", "_"),
+                                      parsed_url.params.replace(".", "_"),
+                                      parsed_url.query.replace(".", "_"),
+                                      parsed_url.fragment.replace(".", "_")])
+        else:
+            class_name = url
+            resource_name = ""
         return class_name, resource_name
 
     def __save_report(self, root_node):
@@ -304,89 +308,3 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
 
         # FIXME: minor fix criteria representation in report
         return root_xml_element
-
-
-class SeleniumJUnitXML(Reporter, AggregatorListener):
-    """
-    Selenium results reporter in JUnitXML
-    """
-    REPORT_FILE_NAME = "xunit"
-    REPORT_FILE_EXT = ".xml"
-
-    def __init__(self):
-        super(SeleniumJUnitXML, self).__init__()
-        self.report_file_path = "junit.xml"
-        self.last_second = None
-
-    def prepare(self):
-        """
-        create artifacts, parse options.
-        report filename from parameters
-        :return:
-        """
-        filename = self.parameters.get("filename", None)
-        if filename:
-            self.report_file_path = filename
-        else:
-            self.report_file_path = self.engine.create_artifact(SeleniumJUnitXML.REPORT_FILE_NAME,
-                                                                SeleniumJUnitXML.REPORT_FILE_EXT)
-        self.parameters["filename"] = self.report_file_path
-
-    def aggregated_second(self, data):
-        """
-        :param data:
-        :return:
-        """
-        self.last_second = data
-
-    def post_process(self):
-        """
-        Get report data, generate xml report.
-        """
-        super(SeleniumJUnitXML, self).post_process()
-        root_xml_element = self.__process_test_results()
-        self.__save_report(root_xml_element)
-
-    def __process_test_results(self):
-        """
-
-        :return:
-        """
-        _kpiset = self.last_second[DataPoint.CUMULATIVE]
-        summary_kpi_set = _kpiset['']
-        tests_count = str(summary_kpi_set[KPISet.SAMPLE_COUNT])
-
-        root_xml_element = etree.Element("testsuite", name="taurus_junitxml", tests=tests_count, failures="0", skip="0")
-
-        for key in sorted(_kpiset.keys()):
-            if key != "":
-
-                case = etree.SubElement(root_xml_element, "testcase", classname=key, name="",
-                                        time=str(_kpiset[key][KPISet.AVG_RESP_TIME]))
-                if _kpiset[key][KPISet.ERRORS]:
-                    err = "\n".join([err["msg"] for err in _kpiset[key][KPISet.ERRORS]])
-                    etree.SubElement(case, "error", type="test_error", message="test_message").text = err
-
-        return root_xml_element
-
-    def __save_report(self, root_node):
-        """
-        :param root_node:
-        :return:
-        """
-        try:
-            if os.path.exists(self.report_file_path):
-                self.log.warning("File %s already exists, will be overwritten", self.report_file_path)
-            else:
-                dirname = os.path.dirname(self.report_file_path)
-                if dirname and not os.path.exists(dirname):
-                    os.makedirs(dirname)
-
-            etree_obj = etree.ElementTree(root_node)
-            self.log.info("Writing JUnit XML report into: %s", self.report_file_path)
-            with open(self.report_file_path, 'wb') as _fds:
-                etree_obj.write(_fds, xml_declaration=True, encoding="UTF-8", pretty_print=True)
-
-        except BaseException:
-            self.log.error("Cannot create file %s", self.report_file_path)
-            raise

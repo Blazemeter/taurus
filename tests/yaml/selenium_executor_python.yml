@@ -5,4 +5,4 @@ execution:
     script: "tests/selenium/python/"
 
 reporting:
-  - module: selenium-reporter
+  - module: junit-xml

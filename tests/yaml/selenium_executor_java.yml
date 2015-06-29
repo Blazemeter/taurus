@@ -10,7 +10,6 @@ modules:
       junit:
         path: "~/selenium-taurus/tools/junit/junit.jar"
         selenium-server: "~/selenium-taurus/selenium-server.jar"
-        junit-listener: "~/selenium-taurus/tools/junit/junit_listener/taurus_junit.jar"
 
 reporting:
-  - module: selenium-reporter
+  - module: junit-xml
