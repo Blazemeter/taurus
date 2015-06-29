@@ -270,13 +270,13 @@ class JunitTester(AbstractTestRunner):
         with open(os.path.join(self.artifacts_dir, "jar_out"), 'ab') as jar_out:
             with open(os.path.join(self.artifacts_dir, "jar_err"), 'ab') as jar_err:
                 class_files = [java_file for java_file in os.listdir(self.working_dir) if java_file.endswith(".class")]
-
+                jar_name = self.settings.get("jar-name", "compiled.jar")
                 if class_files:
-                    compile_jar_cl = ["jar", "-cf", "compiled.jar"]
+                    compile_jar_cl = ["jar", "-cf", jar_name]
                     compile_jar_cl.extend(class_files)
                 else:
                     package_dir = os.listdir(self.working_dir)[0]
-                    compile_jar_cl = ["jar", "-cf", "compiled.jar", "-C", package_dir, "."]
+                    compile_jar_cl = ["jar", "-cf", jar_name, "-C", package_dir, "."]
 
                 self.process = shell_exec(compile_jar_cl, cwd=self.working_dir, stdout=jar_out, stderr=jar_err)
                 ret_code = self.process.poll()
@@ -352,7 +352,7 @@ class NoseTester(AbstractTestRunner):
         """
         executable = self.settings.get("interpreter", sys.executable)
         nose_command_line = [executable, self.plugin_path, self.report_file, self.working_dir]
-        self.log.info(nose_command_line)
+        self.log.debug(nose_command_line)
         nose_out = open(os.path.join(self.artifacts_dir, "nose_out"), 'ab')
         nose_err = open(os.path.join(self.artifacts_dir, "nose_err"), 'ab')
 
