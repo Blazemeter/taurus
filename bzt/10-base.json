@@ -32,7 +32,7 @@
       "path": "~/gatling-taurus/bin/gatling.sh"
     },
     "selenium": {
-      "class": "bzt.modules.selenium_executor.SeleniumExecutor",
+      "class": "bzt.modules.selenium.SeleniumExecutor",
       "path": "~/selenium-taurus/selenium-server.jar",
       "selenium-tools": {
        "junit": {

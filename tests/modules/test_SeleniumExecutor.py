@@ -1,5 +1,5 @@
 from tests import setup_test_logging, BZTestCase, __dir__
-from bzt.modules.selenium_executor import SeleniumExecutor
+from bzt.modules.selenium import SeleniumExecutor
 from tests.mocks import EngineEmul
 from bzt.utils import BetterDict
 import os
@@ -17,6 +17,10 @@ class TestSeleniumJUnitRunner(BZTestCase):
     jar:one/folder/list
     python:one/folder/list
     """
+    @classmethod
+    def setUpClass(cls):
+
+        shutil.rmtree(os.path.abspath(os.path.expanduser("~/selenium-taurus")), ignore_errors=True)
 
     def test_install_tools(self):
         """
@@ -25,6 +29,7 @@ class TestSeleniumJUnitRunner(BZTestCase):
         """
         dummy_installation_path = os.path.abspath(__dir__() + "/../../build/tmp/selenium-taurus")
         base_link = "file://" + __dir__() + "/../data/"
+
         shutil.rmtree(os.path.dirname(dummy_installation_path), ignore_errors=True)
 
         selenium_server_link = SeleniumExecutor.SELENIUM_DOWNLOAD_LINK
@@ -40,8 +45,7 @@ class TestSeleniumJUnitRunner(BZTestCase):
         "junit": {"selenium-server": os.path.join(dummy_installation_path, "selenium-server.jar")}}})
         obj.settings.merge({"selenium-tools": {
         "junit": {"path": os.path.join(dummy_installation_path, "tools", "junit", "junit.jar")}}})
-        obj.settings.merge({"selenium-tools": {"junit": {
-        "junit-listener": os.path.join(dummy_installation_path, "tools", "junit-listener", "junit_listener.jar")}}})
+
         obj.execution = BetterDict()
         obj.execution.merge({"scenario": {"script": os.path.abspath(__dir__() + "/../../tests/selenium/jar/")}})
         obj.prepare()

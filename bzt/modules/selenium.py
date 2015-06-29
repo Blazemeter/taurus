@@ -6,7 +6,6 @@ import os
 import time
 import shutil
 import sys
-import platform
 import subprocess
 
 from bzt.engine import ScenarioExecutor, Scenario
@@ -14,7 +13,7 @@ from six.moves.urllib.request import FancyURLopener
 from bzt.utils import download_progress_hook, shell_exec, shutdown_process, BetterDict
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 
-CP_SEP = ";" if platform.system() == 'Windows' else ":"
+
 
 
 class SeleniumExecutor(ScenarioExecutor):
@@ -32,12 +31,10 @@ class SeleniumExecutor(ScenarioExecutor):
 
     def __init__(self):
         super(SeleniumExecutor, self).__init__()
-        self.reader = None
         self.scenario = None
         self.start_time = None
         self.end_time = None
         self.runner = None
-        self.kpi_file = None
 
     def prepare(self):
         """
@@ -46,7 +43,7 @@ class SeleniumExecutor(ScenarioExecutor):
         3) create runner instance, prepare runner
         """
         self.scenario = self.get_scenario()
-        self.kpi_file = self.engine.create_artifact("runner_report", ".txt")
+        kpi_file = self.engine.create_artifact("selenium_tests_report", ".txt")
 
         script_type, script_is_folder = self.detect_script_type(self.scenario.get("script"))
         runner_config = BetterDict()
@@ -59,12 +56,12 @@ class SeleniumExecutor(ScenarioExecutor):
             self.runner = JunitTester
             runner_config = self.settings.get("selenium-tools").get("junit")
 
-        runner_config["script_type"] = script_type
+        runner_config["script-type"] = script_type
         runner_working_dir = self.engine.create_artifact(runner_config.get("working-dir", "classes"), "")
-
+        runner_config["working-dir"] = runner_working_dir
         runner_config.get("artifacts-dir", self.engine.artifacts_dir)
         runner_config.get("working-dir", runner_working_dir)
-        runner_config.get("report-file", self.kpi_file)
+        runner_config.get("report-file", kpi_file)
 
         if Scenario.SCRIPT in self.scenario:
             if script_is_folder:
@@ -75,9 +72,9 @@ class SeleniumExecutor(ScenarioExecutor):
 
         self.runner = self.runner(runner_config, self.scenario, self.log)
         self.runner.prepare()
-        self.reader = SeleniumDataReader(self.kpi_file, self.log)
+        reader = SeleniumDataReader(kpi_file, self.log)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
-            self.engine.aggregator.add_underling(self.reader)
+            self.engine.aggregator.add_underling(reader)
 
     def detect_script_type(self, script_path):
         """
@@ -100,7 +97,7 @@ class SeleniumExecutor(ScenarioExecutor):
             file_ext = os.path.splitext(script_path)[1]
 
         if file_ext not in SeleniumExecutor.SUPPORTED_TYPES:
-            raise RuntimeError("Supported tests types [.java, .jar, .py] was not found.")
+            raise RuntimeError("Supported tests types %s was not found" % SeleniumExecutor.SUPPORTED_TYPES)
         return file_ext, script_path_is_directory
 
     def startup(self):
@@ -130,7 +127,7 @@ class SeleniumExecutor(ScenarioExecutor):
 
         if self.start_time:
             self.end_time = time.time()
-            self.log.info("Selenium tests ran for %s seconds", self.end_time - self.start_time)
+            self.log.debug("Selenium tests ran for %s seconds", self.end_time - self.start_time)
 
 
 class AbstractTestRunner(object):
@@ -145,7 +142,7 @@ class AbstractTestRunner(object):
         self.scenario = scenario
         self.report_file = self.settings.get("report-file")
         self.artifacts_dir = self.settings.get("artifacts-dir")
-        self.working_dir = os.path.join(self.artifacts_dir, self.settings.get("working-dir"))
+        self.working_dir = self.settings.get("working-dir")
         self.log = None
         self.opened_descriptors = []
 
@@ -162,8 +159,8 @@ class AbstractTestRunner(object):
         ret_code = self.process.poll()
         if ret_code is not None:
             if ret_code != 0:
-                self.log.info("test runner exit code: %s", ret_code)
-                raise RuntimeError("test runner exited with non-zero code")
+                self.log.info("Test runner exit code: %s", ret_code)
+                raise RuntimeError("Test runner exited with non-zero code")
             return True
         return False
 
@@ -186,16 +183,17 @@ class JunitTester(AbstractTestRunner):
 
     def __init__(self, junit_config, scenario, parent_logger):
         super(JunitTester, self).__init__(junit_config, scenario)
-        self.path_lambda = lambda key, val: os.path.abspath(os.path.expanduser(self.settings.get(key, val)))
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        path_lambda = lambda key, val: os.path.abspath(os.path.expanduser(self.settings.get(key, val)))
 
-        self.junit_path = self.path_lambda("path", "~/selenium-taurus/tools/junit/junit.jar")
-        self.selenium_server_jar_path = self.path_lambda("selenium-server", "~/selenium-taurus/selenium-server.jar")
+        self.junit_path = path_lambda("path", "~/selenium-taurus/tools/junit/junit.jar")
+        self.selenium_server_jar_path = path_lambda("selenium-server", "~/selenium-taurus/selenium-server.jar")
         self.junit_listener_path = os.path.join(os.path.dirname(__file__), "taurus_junit.jar")
 
         self.base_class_path = [self.selenium_server_jar_path, self.junit_path, self.junit_listener_path]
         self.base_class_path.extend(self.scenario.get("additional-classpath", []))
 
-        self.log = parent_logger.getChild(self.__class__.__name__)
+
 
     def prepare(self):
         """
@@ -203,7 +201,7 @@ class JunitTester(AbstractTestRunner):
         """
         self.run_checklist()
 
-        if self.settings.get("script_type", None) == ".java":
+        if self.settings.get("script-type", None) == ".java":
             self.compile_scripts()
 
     def run_checklist(self):
@@ -231,7 +229,7 @@ class JunitTester(AbstractTestRunner):
         """
         Compile .java files
         """
-        self.log.debug("Compiling .java files started.")
+        self.log.debug("Compiling .java files started")
         java_files = []
 
         for dir_entry in os.walk(self.working_dir):
@@ -240,7 +238,7 @@ class JunitTester(AbstractTestRunner):
                     if os.path.splitext(test_file)[1].lower() == ".java":
                         java_files.append(os.path.join(dir_entry[0], test_file))
 
-        compile_cl = ["javac", "-cp", CP_SEP.join(self.base_class_path)]
+        compile_cl = ["javac", "-cp", os.pathsep.join(self.base_class_path)]
         compile_cl.extend(java_files)
 
         with open(os.path.join(self.artifacts_dir, "javac_out"), 'ab') as javac_out:
@@ -255,9 +253,9 @@ class JunitTester(AbstractTestRunner):
 
                 if ret_code != 0:
                     self.log.info("Compiler failed with code: %s", ret_code)
-                    raise RuntimeError("test runner exited with non-zero code")
+                    raise RuntimeError("Javac exited with non-zero code")
 
-                self.log.info("Compiling .java files completed.")
+                self.log.info("Compiling .java files completed")
 
         self.make_jar()
 
@@ -288,9 +286,9 @@ class JunitTester(AbstractTestRunner):
 
                 if ret_code != 0:
                     self.log.info("Making jar failed with code %s", ret_code)
-                    raise RuntimeError("test runner exited with non-zero code")
+                    raise RuntimeError("Jar exited with non-zero code")
 
-        self.log.info("Making .jar file completed.")
+        self.log.info("Making .jar file completed")
 
     def run_tests(self):
         # java -cp junit.jar:selenium-test-small.jar:
@@ -300,12 +298,10 @@ class JunitTester(AbstractTestRunner):
         jar_list = [os.path.join(self.working_dir, jar) for jar in os.listdir(self.working_dir) if jar.endswith(".jar")]
         self.base_class_path.extend(jar_list)
 
-        junit_command_line = ["java", "-cp", CP_SEP.join(self.base_class_path),
+        junit_command_line = ["java", "-cp", os.pathsep.join(self.base_class_path),
                               "taurus_junit_listener.CustomRunner"]
         junit_command_line.extend(jar_list)
         junit_command_line.extend([self.report_file])
-
-        self.log.debug(" ".join(junit_command_line))
 
         junit_out_path = os.path.join(self.artifacts_dir, "junit_out")
         junit_err_path = os.path.join(self.artifacts_dir, "junit_err")
@@ -328,8 +324,8 @@ class NoseTester(AbstractTestRunner):
 
     def __init__(self, nose_config, scenario, parent_logger):
         super(NoseTester, self).__init__(nose_config, scenario)
-        self.plugin_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "nose_plugin.py"))
         self.log = parent_logger.getChild(self.__class__.__name__)
+        self.plugin_path = os.path.join(os.path.dirname(__file__),"resources", "nose_plugin.py")
 
     def prepare(self):
         self.run_checklist()
@@ -352,7 +348,6 @@ class NoseTester(AbstractTestRunner):
         """
         executable = self.settings.get("interpreter", sys.executable)
         nose_command_line = [executable, self.plugin_path, self.report_file, self.working_dir]
-        self.log.debug(nose_command_line)
         nose_out = open(os.path.join(self.artifacts_dir, "nose_out"), 'ab')
         nose_err = open(os.path.join(self.artifacts_dir, "nose_err"), 'ab')
 
@@ -422,8 +417,6 @@ class SeleniumDataReader(ResultsReader):
                 self.trace_buff = ""
                 self.err_message_buff = ""
                 self.test_buffer.T_STAMP = line[12:]
-                self.log.debug(line)
-                self.log.debug(self.test_buffer.T_STAMP)
             elif line.startswith("--MODULE:"):
                 self.test_buffer.MODULE = line[9:]
             elif line.startswith("--RUN:"):
