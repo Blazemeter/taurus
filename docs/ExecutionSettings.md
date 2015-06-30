@@ -287,18 +287,19 @@ Selenium executor uses two types of test runners: JUnit and Nose, test type and 
   - .java/single file
   - .java/folder (flat structure, no package)
   - .java/folders (package)
-
   - .jar/single file
   - .jar/folder
-
   - .py/single file
   - .py/folder
 
 ### Runner types:
 
   - JUnit
+  
 .java files will be compiled and packed into jar file before running tests.
 All necessary tools will be downloaded and installed automatically in ~/selenium-taurus.
+
+
 config options:
 
 ```yaml
@@ -314,12 +315,9 @@ modules:
 ```
 
   - Python Nose
-config options:
- "nose":{
-         "working-dir": "classes",  # name of runner working directory in artifacts dir
-         "interpreter": "/home/user/interpreter/python"
-        }
 
+
+config options:
 ```yaml
 ---
 modules:
