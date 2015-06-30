@@ -356,8 +356,8 @@ Extended scenario with runner options:
 execution:
   executor: "selenium"
   scenario:
-    script: "tests/selenium/jar/"
-    additional-classpath:  # will be added to java classpath
+    script: "/home/user/tests/my_test.java"
+    additional-classpath:  # optional, following libs will be added to java classpath
       - /home/user/lib_one.jar
       - /home/user/lib_two.jar
 modules:
