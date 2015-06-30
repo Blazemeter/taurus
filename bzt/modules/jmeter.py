@@ -63,7 +63,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     """
     JMETER_DOWNLOAD_LINK = "http://apache.claz.org/jmeter/binaries/apache-jmeter-{version}.zip"
     JMETER_VER = "2.13"
-    PLUGINS_DOWNLOAD_TPL = "http://jmeter-plugins.org/files/JMeterPlugins-{plugin}-1.2.1.zip"
+    PLUGINS_DOWNLOAD_TPL = "http://jmeter-plugins.org/files/JMeterPlugins-{plugin}-1.3.0.zip"
 
     def __init__(self):
         super(JMeterExecutor, self).__init__()
