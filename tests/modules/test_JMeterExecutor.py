@@ -16,7 +16,6 @@ from bzt.modules.jmeter import JMeterExecutor, JMX, JTLErrorsReader, JTLReader, 
 from tests.mocks import EngineEmul, ResultChecker
 from bzt.utils import BetterDict
 
-
 try:
     from lxml import etree
 except ImportError:
@@ -592,3 +591,18 @@ class TestJMeterExecutor(BZTestCase):
 
         obj.engine.aggregator.post_process()
         self.assertEquals(23, self.maxc)
+
+    def test_distributed_gui(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = BetterDict()
+        obj.engine.config.merge(yaml.load(open("tests/yaml/distributed_gui.yml").read()))
+        obj.settings.merge(obj.engine.config.get("modules").get("jmeter"))
+        obj.execution = obj.engine.config['execution']
+        obj.prepare()
+
+        prop_file_path = os.path.join(obj.engine.artifacts_dir, "jmeter-bzt.properties")
+        self.assertTrue(os.path.exists(prop_file_path))
+        with open(prop_file_path) as prop_file:
+            contents = prop_file.read()
+        self.assertIn("remote_hosts=127.0.0.1,127.0.0.2", contents)
