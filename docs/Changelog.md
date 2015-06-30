@@ -5,6 +5,7 @@
   - iterate requests forever if no limits were specified
   - fix test duration logic to respect iterations set
   - distributed tests are now supported with JMeter UI (gui: true option)
+  - install JMeter-Plugins 1.3.0
 
 # 0.2.23
   - rename `bulk-size` option into `send-interval` for BlazeMeter reporter
