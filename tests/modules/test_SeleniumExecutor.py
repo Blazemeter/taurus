@@ -311,3 +311,14 @@ class TestSeleniumNoseRunner(BZTestCase):
         python_files = [file for file in prepared_files if file.endswith(".py")]
         self.assertEqual(2, len(python_files))
         self.assertTrue(os.path.exists(obj.runner.report_file))
+
+
+class TestSeleniumStuff(BZTestCase):
+
+    def test_empty(self):
+        obj = SeleniumExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = BetterDict()
+        obj.engine.config.merge({"execution":{"executor": "selenium"}})
+        obj.execution = obj.engine.config['execution']
+        self.assertRaises(RuntimeError, obj.prepare)

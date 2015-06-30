@@ -7,6 +7,7 @@ import time
 import shutil
 import sys
 import subprocess
+import six
 
 from bzt.engine import ScenarioExecutor, Scenario
 from six.moves.urllib.request import FancyURLopener
@@ -42,7 +43,6 @@ class SeleniumExecutor(ScenarioExecutor):
         """
         self.scenario = self.get_scenario()
         kpi_file = self.engine.create_artifact("selenium_tests_report", ".txt")
-
         script_type, script_is_folder = self.detect_script_type(self.scenario.get("script"))
         runner_config = BetterDict()
 
@@ -80,6 +80,8 @@ class SeleniumExecutor(ScenarioExecutor):
         if it's folder or single script
         :return:
         """
+        if not isinstance(script_path, six.string_types) and not isinstance(script_path, six.text_type):
+            raise RuntimeError("Nothing to test, no files were provided in scenario")
         script_path_is_directory = False
         test_files = []
         for dir_entry in os.walk(script_path):
