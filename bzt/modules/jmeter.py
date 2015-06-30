@@ -42,7 +42,6 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataP
 from bzt.utils import shell_exec, ensure_is_dict, humanize_time, dehumanize_time, BetterDict, \
     guess_csv_dialect, unzip, download_progress_hook
 
-
 try:
     from lxml import etree
 except ImportError:
@@ -109,6 +108,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         sys_props = self.settings.get("system-properties")
         props = self.settings.get("properties")
         props_local = scenario.get("properties")
+        if self.distributed_servers and self.settings.get("gui", False):
+            props_local.merge({"remote_hosts": ",".join(self.distributed_servers)})
         props.merge(props_local)
         props['user.classpath'] = self.engine.artifacts_dir.replace(os.path.sep, "/")  # replace to avoid Windows issue
         if props:
@@ -144,7 +145,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         if self.sys_properties_file:
             cmdline += ["-S", os.path.abspath(self.sys_properties_file)]
-        if self.distributed_servers:
+        if self.distributed_servers and not self.settings.get("gui", False):
             cmdline += ['-R%s' % ','.join(self.distributed_servers)]
 
         self.start_time = time.time()
@@ -1427,7 +1428,6 @@ class JMX(object):
         element.append(JMX._string_prop("HtmlExtractor.match_number", match_no))
         element.append(JMX._string_prop("HtmlExtractor.default", default))
         return element
-
 
     @staticmethod
     def _get_json_extractor(varname, jsonpath, default='NOT_FOUND', from_variable=None):
