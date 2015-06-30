@@ -364,8 +364,7 @@ modules:
   selenium:
     selenium-tools:
       junit:
-        path: "~/selenium-taurus/tools/junit/junit.jar"
-        selenium-server: "~/selenium-taurus/selenium-server.jar"
+        "jar-name": "compiled_jar_from_provided_sources.jar"
 reporting:
   - module: junit-xml
 ```
