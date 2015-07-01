@@ -1,1 +1,10 @@
-<url class="PWE\Modules\HTMLPage\HTMLPage" src="index.html" template="dat/taurus.tpl"/>
+<?xml version='1.0' encoding='UTF-8'?>
+<url title="Codename: Taurus" template="dat/taurus.tpl" custom_logo="/img/tau.png"
+     class="PWE\Modules\HTMLPage\HTMLPage" src="index.html">
+    <url link="home" title="Home" menu="1"
+         class="PWE\Modules\RedirectAccepted\RedirectAccepted" base="/#"/>
+
+    <url link="docs" accept="1" menu="1" title="Documentation"
+         class="PWE\Modules\SimpleWiki\SimpleWiki" wiki_dir="docs" start_page="Home" wiki_file_ext="md"
+            />
+</url>
