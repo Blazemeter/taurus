@@ -1,5 +1,7 @@
 body {
     background-color: white;
+    font-size: 12pt;
+    font-family: 'Open Sans', sans-serif;
 }
 
 .menu1 {
@@ -13,10 +15,8 @@ body {
     border-bottom: 1px solid #d6d6d6;
 }
 
-
 .menu1 td.hl {
-    background-color: white;
-    background-image: none;
+    background: white none;
     border: 1px solid #d6d6d6;
     border-bottom: none;
 }
@@ -31,14 +31,13 @@ table.breadcrumbs td {
 }
 
 table.breadcrumbs {
-    position: fixed; 
+    position: fixed;
     z-index: 999;
 }
 
 #toppanel {
     padding-top: 1.2em;
 }
-
 
 td.logo {
     padding: 1em;
@@ -47,7 +46,7 @@ td.logo {
 td.header_title {
     white-space: nowrap;
     font-weight: normal;
-    width: 100%; 
+    width: 100%;
     font-size: 1.4em;
     color: #666;
 }
@@ -56,15 +55,13 @@ td.header_right {
     vertical-align: middle;
 }
 
-.main td.root
-{
+.main td.root {
     border: none;
     background-color: transparent;
     padding: 5px 10px;
 }
 
-h1, h2, h3, h4
-{
+h1, h2, h3, h4 {
     color: black;
 }
 
@@ -75,8 +72,9 @@ td.footer {
 /* WIKI */
 table.wiki pre, table.wiki tt {
     background-color: #EEE;
-    font-size: 1.2em;
+    font-size: 1em;
     padding: 0 0.25em;
+    border-radius: 0.25em;
 }
 
 table.wiki pre {
@@ -102,4 +100,12 @@ table.wiki .toc-list {
 table.wiki .toc-list1 {
     padding-bottom: 1em;
     border-bottom: 2px dotted #ccc;
+}
+
+pre.yaml .sy1 {
+    color: gray;
+}
+
+pre.yaml .co1 {
+    color: silver;
 }
