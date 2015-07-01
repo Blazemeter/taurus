@@ -56,7 +56,7 @@
     {else}
         {$smarty.block.parent}
     {/if}
-    :: JMeter-Plugins.org
+    :: Taurus
 {/block}
 
 {block name="content" append}

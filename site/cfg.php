@@ -7,3 +7,4 @@ require_once __DIR__ . '/vendor/autoload.php';
 
 /** @var $PWECore PWE\Core\PWECore */
 $PWECore->setRootDirectory(__DIR__);
+$PWECore->setXMLDirectory($PWECore->getDataDirectory());
