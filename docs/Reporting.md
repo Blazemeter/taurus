@@ -136,6 +136,8 @@ Like it always happens with tools that focused on _executing_ tests, they are un
 
 The simpliest way to get a taste of BlazeMeter reporting is to use `-report` command-line switch. This will enable result feeding to service without any other settings required. You will receive the link for your report in the console text, and the link will be automatically opened in your default browser, see `browser-open` option for more tuning.
 
+The official policy for BlazeMeter reports uploaded from Taurus, is that anonymous reports are kept for 7 days and if you're using your own account, then reports are kept according to the retention policy of your account. For details see BlazeMeter service [website](https://blazemeter.com/). 
+
 ### Personalized Usage
 
 If you want the results to be stored in your existing BlazeMeter account, you'll need to specify the reporting settings in your configuration file.Get the API token from BlazeMeter.com (find it under your [Settings => API Key](https://a.blazemeter.com/app/#settings/api-key)) and put it into `token` option:
