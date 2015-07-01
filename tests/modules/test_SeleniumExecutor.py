@@ -315,10 +315,68 @@ class TestSeleniumNoseRunner(BZTestCase):
 
 class TestSeleniumStuff(BZTestCase):
 
-    def test_empty(self):
+    def test_empty_scenario(self):
         obj = SeleniumExecutor()
         obj.engine = EngineEmul()
         obj.engine.config = BetterDict()
         obj.engine.config.merge({"execution":{"executor": "selenium"}})
         obj.execution = obj.engine.config['execution']
         self.assertRaises(RuntimeError, obj.prepare)
+
+    def test_javac_fail(self):
+        obj = SeleniumExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = BetterDict()
+        obj.engine.config.merge({"execution":{"executor": "selenium", "scenario" :{"script":"tests/selenium/invalid/invalid.java"}}})
+        obj.execution = obj.engine.config['execution']
+        self.assertRaises(RuntimeError, obj.prepare)
+
+    def test_no_supported_files_to_test(self):
+        obj = SeleniumExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = BetterDict()
+        obj.engine.config.merge({"execution":{"executor": "selenium", "scenario" :{"script":"tests/selenium/invalid/not_found"}}})
+        obj.execution = obj.engine.config['execution']
+        self.assertRaises(RuntimeError, obj.prepare)
+
+    def test_samples_count_annotations(self):
+        obj = SeleniumExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = BetterDict()
+        obj.engine.config.merge({"execution":{"executor": "selenium", "scenario" :{"script":"tests/selenium/invalid/SeleniumTest.java"}}})
+        obj.execution = obj.engine.config['execution']
+        obj.prepare()
+        obj.startup()
+        while not obj.check():
+            time.sleep(1)
+        obj.shutdown()
+        with open(obj.kpi_file) as kpi_fds:
+            contents = kpi_fds.read()
+        self.assertEqual(contents.count("--TIME:"), 2)
+
+    def test_samples_count_testcase(self):
+        obj = SeleniumExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = BetterDict()
+        obj.engine.config.merge({"execution":{"executor": "selenium", "scenario" :{"script":"tests/selenium/invalid/SimpleTest.java"}}})
+        obj.execution = obj.engine.config['execution']
+        obj.prepare()
+        obj.startup()
+        while not obj.check():
+            time.sleep(1)
+        obj.shutdown()
+        with open(obj.kpi_file) as kpi_fds:
+            contents = kpi_fds.read()
+        self.assertEqual(contents.count("--TIME:"), 2)
+
+    def test_not_junit(self):
+        obj = SeleniumExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = BetterDict()
+        obj.engine.config.merge({"execution":{"executor": "selenium", "scenario" :{"script":"tests/selenium/invalid/NotJUnittest.java"}}})
+        obj.execution = obj.engine.config['execution']
+        obj.prepare()
+        obj.startup()
+        while not obj.check():
+            time.sleep(1)
+        self.assertRaises(RuntimeWarning, obj.shutdown)

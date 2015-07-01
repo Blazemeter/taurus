@@ -3,4 +3,4 @@ include LICENSE
 include NOTICE
 include bzt/modules/grinder-requests.tpl
 include bzt/modules/logback-worker.xml
-include bzt/modules/taurus_junit.jar
+include bzt/modules/resources/taurus_junit.jar

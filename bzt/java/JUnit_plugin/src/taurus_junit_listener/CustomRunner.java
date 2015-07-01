@@ -1,10 +1,11 @@
 package taurus_junit_listener;
 
 import org.junit.runner.JUnitCore;
-
+import junit.framework.TestCase;
 import taurus_junit_listener.CustomListener;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.jar.JarEntry;
@@ -14,7 +15,16 @@ import java.util.Enumeration;
 import java.util.List;
 
 public class CustomRunner {
-
+	
+	public static boolean has_annotations(Class<?> c){
+		for (Method method : c.getDeclaredMethods()){
+			if (method.isAnnotationPresent(org.junit.Test.class)) {
+				return true;
+			}
+		}
+		
+		return false;
+	};
 	public static void main(String[] args) {
 	//Open Jar files in args, scan them, load test classes, run test suite
 	//Last item in args is a report filename
@@ -41,10 +51,11 @@ public class CustomRunner {
 			    String className = jar_entry.getName().substring(0,jar_entry.getName().length()-6); //-6 == len(".class")
 			    className = className.replace('/', '.');
 			    
-				if (className.toLowerCase().contains("test") == true) {
+				if (className.toLowerCase().contains("test") == true){
 			    	Class<?> c = cl.loadClass(className);
+			    	if (TestCase.class.isAssignableFrom(c) || has_annotations(c)){ 
 			    	test_classes.add(c);
-				    }
+				    }}
 			}
 			jarFile.close();
 		} catch (IOException e) {

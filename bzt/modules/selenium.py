@@ -8,14 +8,17 @@ import shutil
 import sys
 import subprocess
 import six
+import urwid
 
+from collections import Counter
 from bzt.engine import ScenarioExecutor, Scenario
 from six.moves.urllib.request import FancyURLopener
 from bzt.utils import download_progress_hook, shell_exec, shutdown_process, BetterDict
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
+from bzt.modules.console import WidgetProvider
 
 
-class SeleniumExecutor(ScenarioExecutor):
+class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
     """
     Selenium executor
     """
@@ -30,10 +33,12 @@ class SeleniumExecutor(ScenarioExecutor):
 
     def __init__(self):
         super(SeleniumExecutor, self).__init__()
-        self.scenario = None
         self.start_time = None
         self.end_time = None
         self.runner = None
+        self.widget = None
+        self.reader = None
+        self.kpi_file = None
 
     def prepare(self):
         """
@@ -41,9 +46,9 @@ class SeleniumExecutor(ScenarioExecutor):
         2) detect script type
         3) create runner instance, prepare runner
         """
-        self.scenario = self.get_scenario()
-        kpi_file = self.engine.create_artifact("selenium_tests_report", ".txt")
-        script_type, script_is_folder = self.detect_script_type(self.scenario.get("script"))
+        scenario = self.get_scenario()
+        self.kpi_file = self.engine.create_artifact("selenium_tests_report", ".txt")
+        script_type, script_is_folder = self.detect_script_type(scenario.get("script"))
         runner_config = BetterDict()
 
         if script_type == ".py":
@@ -59,20 +64,20 @@ class SeleniumExecutor(ScenarioExecutor):
         runner_config["working-dir"] = runner_working_dir
         runner_config.get("artifacts-dir", self.engine.artifacts_dir)
         runner_config.get("working-dir", runner_working_dir)
-        runner_config.get("report-file", kpi_file)
+        runner_config.get("report-file", self.kpi_file)
 
-        if Scenario.SCRIPT in self.scenario:
+        if Scenario.SCRIPT in scenario:
             if script_is_folder:
-                shutil.copytree(self.scenario.get("script"), runner_working_dir)
+                shutil.copytree(scenario.get("script"), runner_working_dir)
             else:
                 os.makedirs(runner_working_dir)
-                shutil.copy2(self.scenario.get("script"), runner_working_dir)
+                shutil.copy2(scenario.get("script"), runner_working_dir)
 
-        self.runner = self.runner(runner_config, self.scenario, self.log)
+        self.runner = self.runner(runner_config, scenario, self.log)
         self.runner.prepare()
-        reader = SeleniumDataReader(kpi_file, self.log)
+        self.reader = SeleniumDataReader(self.kpi_file, self.log)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
-            self.engine.aggregator.add_underling(reader)
+            self.engine.aggregator.add_underling(self.reader)
 
     def detect_script_type(self, script_path):
         """
@@ -113,8 +118,9 @@ class SeleniumExecutor(ScenarioExecutor):
         check if test completed
         :return:
         """
-        # if self.widget:
-        #    self.widget.update()
+        if self.widget:
+            cur_state = self.reader.get_state()
+            self.widget.update(cur_state, self.reader.summary)
 
         return self.runner.is_finished()
 
@@ -128,6 +134,16 @@ class SeleniumExecutor(ScenarioExecutor):
         if self.start_time:
             self.end_time = time.time()
             self.log.debug("Selenium tests ran for %s seconds", self.end_time - self.start_time)
+
+        if self.kpi_file:
+            if not os.path.exists(self.kpi_file) or not os.path.getsize(self.kpi_file):
+                msg = "Empty runner report, most likely runner failed: %s"
+                raise RuntimeWarning(msg % self.kpi_file)
+
+    def get_widget(self):
+        if not self.widget:
+            self.widget = SeleniumWidget(self.get_scenario().get("script"))
+        return self.widget
 
 
 class AbstractTestRunner(object):
@@ -249,11 +265,14 @@ class JunitTester(AbstractTestRunner):
                     time.sleep(1)
                     ret_code = self.process.poll()
 
-                if ret_code != 0:
-                    self.log.info("Compiler failed with code: %s", ret_code)
-                    raise RuntimeError("Javac exited with non-zero code")
+        if ret_code != 0:
+            self.log.warn("Compiler failed with code: %s", ret_code)
+            with open(javac_err.name) as err_file:
+                out = err_file.read()
+            self.log.info("javac output: %s", out)
+            raise RuntimeError("Javac exited with non-zero code")
 
-                self.log.info("Compiling .java files completed")
+        self.log.info("Compiling .java files completed")
 
         self.make_jar()
 
@@ -282,9 +301,12 @@ class JunitTester(AbstractTestRunner):
                     time.sleep(1)
                     ret_code = self.process.poll()
 
-                if ret_code != 0:
-                    self.log.info("Making jar failed with code %s", ret_code)
-                    raise RuntimeError("Jar exited with non-zero code")
+        if ret_code != 0:
+            with open(jar_err.name) as err_file:
+                out = err_file.read()
+            self.log.info("Making jar failed with code %s", ret_code)
+            self.log.info("jar output: %s", out)
+            raise RuntimeError("Jar exited with non-zero code")
 
         self.log.info("Making .jar file completed")
 
@@ -382,8 +404,8 @@ class SeleniumDataReader(ResultsReader):
         self.offset = 0
         self.trace_buff = ""
         self.err_message_buff = ""
-        self.err_codes = {"OK": "200", "SKIPPED": "300", "FAILED": "404", "ERROR": "500",
-                          "": "999"}  # FIXME: blank err code bug on manual stop
+        self.err_codes = {"OK": "200", "SKIPPED": "300", "FAILED": "404", "ERROR": "500"}
+        self.summary = Counter({"total": 0, "pass": 0, "fail": 0})
 
     def _read(self, last_pass=False):
         """
@@ -426,6 +448,7 @@ class SeleniumDataReader(ResultsReader):
             elif line.startswith("--MESSAGE:"):
                 self.err_message_buff = line[9:]
             elif line.startswith("--TIME:"):
+                self.summary['total'] += 1
                 self.test_buffer.TIME = line[7:]
                 self.test_buffer.TRACE = self.trace_buff
                 self.test_buffer.MESSAGE = self.err_message_buff
@@ -436,11 +459,13 @@ class SeleniumDataReader(ResultsReader):
                 latency = 0
 
                 if self.test_buffer.TRACE or self.test_buffer.MESSAGE:
+                    self.summary["fail"] += 1
                     if not self.test_buffer.MESSAGE:
                         error = self.test_buffer.TRACE
                     else:
                         error = self.test_buffer.MESSAGE + "\n" + self.test_buffer.TRACE
                 else:
+                    self.summary["pass"] += 1
                     error = None
                 yield int(self.test_buffer.T_STAMP) / 1000.0, self.test_buffer.TEST_NAME, concur, \
                       int(self.test_buffer.TIME) / 1000.0, conn_time, latency, r_code, error, self.test_buffer.MODULE
@@ -449,6 +474,9 @@ class SeleniumDataReader(ResultsReader):
                     self.trace_buff += line
                 else:
                     self.err_message_buff += line
+
+    def get_state(self):
+        return self.test_buffer.TEST_NAME
 
     def __open_fds(self):
         """
@@ -479,6 +507,24 @@ class TestSample(object):
         self.TRACE = ""
         self.MESSAGE = ""
         self.TIME = ""
+
+
+class SeleniumWidget(urwid.Pile):
+    def __init__(self, script):
+        widgets = []
+        self.script_name = urwid.Text("Tests: %s" % script)
+        self.summary_stats = urwid.Text("")
+        self.current_test = urwid.Text("")
+        widgets.append(self.script_name)
+        widgets.append(self.summary_stats)
+        widgets.append(self.current_test)
+        super(SeleniumWidget, self).__init__(widgets)
+
+    def update(self, cur_test, reader_summary):
+        self.current_test.set_text(cur_test)
+        self.summary_stats.set_text(
+            "Total:%d Pass:%d Fail:%d" % (reader_summary['total'], reader_summary['pass'], reader_summary['fail']))
+        self._invalidate()
 
 
 class RequiredTool(object):
