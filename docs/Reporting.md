@@ -22,7 +22,7 @@ Possible reporting modules are listed below.
 
 ## Post-Test Summary
 
-This is the simpliest reporter that just prints few basic KPIs in the console log after test execution, for example:
+This is the simplest reporter that just prints few basic KPIs in the console log after test execution, for example:
 
 ```
 18:04:24 INFO: Samples count: 367, 8.17% failures
@@ -139,7 +139,7 @@ Like it always happens with tools that focused on _executing_ tests, they are un
 
 ### Anonymous Usage
 
-The simpliest way to get a taste of BlazeMeter reporting is to use `-report` command-line switch. This will enable result feeding to service without any other settings required. You will receive the link for your report in the console text, and the link will be automatically opened in your default browser, see `browser-open` option for more tuning.
+The simplest way to get a taste of BlazeMeter reporting is to use `-report` command-line switch. This will enable result feeding to service without any other settings required. You will receive the link for your report in the console text, and the link will be automatically opened in your default browser, see `browser-open` option for more tuning.
 
 The official policy for BlazeMeter reports uploaded from Taurus, is that anonymous reports are kept for 7 days and if you're using your own account, then reports are kept according to the retention policy of your account. For details see BlazeMeter service [website](https://blazemeter.com/). 
 
@@ -231,3 +231,4 @@ modules:
 ```
 
 Note that increasing `buffer-seconds` might sometimes make results aggregation more robust, by price of delaying analysis.
+
