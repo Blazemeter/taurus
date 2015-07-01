@@ -265,6 +265,7 @@ class TestJUnitXML(BZTestCase):
 
         obj.parameters.merge({"filename": path_from_config, "data-source": "pass-fail"})
         obj.prepare()
+        obj.last_second = DataPoint(None, None)
         obj.post_process()
 
         with open(obj.report_file_path, 'rb') as fds:

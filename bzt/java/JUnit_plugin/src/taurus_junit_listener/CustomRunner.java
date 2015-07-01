@@ -13,6 +13,8 @@ import java.util.jar.JarFile;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.Arrays;
+
 
 public class CustomRunner {
 	
@@ -30,7 +32,7 @@ public class CustomRunner {
 	//Last item in args is a report filename
 	
 	List<Class<?>> test_classes = new ArrayList<Class<?>>(); //List of loaded classes
-	
+	List<String> class_names = new ArrayList<String>(); 
 	String[] jar_pathes = new String[args.length -1];
 	System.arraycopy(args, 0, jar_pathes, 0, args.length-1);
 	
@@ -51,11 +53,11 @@ public class CustomRunner {
 			    String className = jar_entry.getName().substring(0,jar_entry.getName().length()-6); //-6 == len(".class")
 			    className = className.replace('/', '.');
 			    
-				if (className.toLowerCase().contains("test") == true){
-			    	Class<?> c = cl.loadClass(className);
-			    	if (TestCase.class.isAssignableFrom(c) || has_annotations(c)){ 
+			    Class<?> c = cl.loadClass(className);
+			    if (TestCase.class.isAssignableFrom(c) || has_annotations(c)){ 
 			    	test_classes.add(c);
-				    }}
+			    	class_names.add(className);
+				}	
 			}
 			jarFile.close();
 		} catch (IOException e) {
@@ -66,12 +68,21 @@ public class CustomRunner {
 			e1.printStackTrace();
 		}
 		}
-
+	
+	if (test_classes.isEmpty())
+	{
+		System.err.println("There is nothing to test.");
+		System.exit(1);
+	}
+	else{
+		System.out.println(Arrays.toString(class_names.toArray()));
+		
 	JUnitCore runner = new JUnitCore();
 	CustomListener custom_listener = new CustomListener();
 	custom_listener.reporter = new Reporter(args[args.length-1]);
 	runner.addListener(custom_listener);
 	runner.run(test_classes.toArray(new Class[test_classes.size()]));
+		}
 	}
 
 }

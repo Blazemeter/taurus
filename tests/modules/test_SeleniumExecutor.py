@@ -377,6 +377,25 @@ class TestSeleniumStuff(BZTestCase):
         obj.execution = obj.engine.config['execution']
         obj.prepare()
         obj.startup()
+        try:
+            while not obj.check():
+                time.sleep(1)
+        except BaseException as exc:
+            self.assertEqual(exc.args[0],"Test runner exited with non-zero code")
+
+
+
+    def test_no_test_in_name(self):
+        obj = SeleniumExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = BetterDict()
+        obj.engine.config.merge({"execution":{"executor": "selenium", "scenario" :{"script":"tests/selenium/invalid/selenium1.java"}}})
+        obj.execution = obj.engine.config['execution']
+        obj.prepare()
+        obj.startup()
         while not obj.check():
             time.sleep(1)
-        self.assertRaises(RuntimeWarning, obj.shutdown)
+        obj.shutdown()
+        with open(obj.kpi_file) as kpi_fds:
+            contents = kpi_fds.read()
+        self.assertEqual(contents.count("--TIME:"), 2)
