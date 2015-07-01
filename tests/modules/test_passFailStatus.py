@@ -93,6 +93,13 @@ class TestPassFailStatus(BZTestCase):
             point = random_datapoint(start_time)
             obj.aggregated_second(point)
             if _n % 2 == 0:
+                try:
+                    obj.check()
+                except KeyboardInterrupt:
+                    pass
+
+            try:
                 obj.check()
-            obj.check()
+            except KeyboardInterrupt:
+                pass
             start_time += 1
