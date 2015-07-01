@@ -1,4 +1,6 @@
-*Quick links*
+##### Quick links:
+
+[Educational Videos](Videos)
 
 [Command-Line Tool](CommandLine)
 

@@ -4,6 +4,15 @@
     <url link="home" title="Home" menu="1"
          class="PWE\Modules\RedirectAccepted\RedirectAccepted" base="/#"/>
 
+    <url link="install" menu="1" title="Installation"
+         class="PWE\Modules\RedirectAccepted\RedirectAccepted"
+         base="/docs/Installation" accept="1"/>
+
     <url link="docs" accept="1" menu="1" title="Documentation" class="PWE\Modules\SimpleWiki\SimpleWiki"
          wiki_dir="docs" start_page="Home" wiki_file_ext="md" syntax="PWE\Modules\SimpleWiki\GitHubMarkdownSyntax\Config"/>
+
+    <url link="support" menu="1" title="Support Forums"
+         class="PWE\Modules\RedirectAccepted\RedirectAccepted"
+         base="http://groups.google.com/forum/#!forum/codename-taurus" accept="1"/>
+
 </url>

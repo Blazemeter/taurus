@@ -79,6 +79,7 @@ table.wiki pre, table.wiki tt {
 
 table.wiki pre {
     padding: 1em;
+    overflow: hidden;
 }
 
 table.wiki .sidebar {

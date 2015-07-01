@@ -11,6 +11,7 @@ Tried on Windows 7 and Windows XP:
   5. Upgrade to the latest setuptools by running the following in a command prompt: `pip install --upgrade setuptools`
   6. Open Command Prompt from administrative account, type `pip install bzt` and hit `Enter`
 
+
 To upgrade it, open Command Prompt and type `pip install --upgrade bzt`, then hit `Enter`
 
 ## Linux
@@ -22,6 +23,7 @@ sudo pip install bzt
 ```
 
 Upgrading to latest is as simple as this:
+
 ```bash
 sudo pip install --upgrade bzt
 ```
@@ -31,16 +33,19 @@ sudo pip install --upgrade bzt
 You will need python 2.7 or higher and Java Runtime installed.
 
 Most likely you also need first to upgrade `setuptools`:
+
 ```bash
 sudo pip install --upgrade setuptools
 ```
 
 Then install Taurus:
+
 ```bash
 sudo pip install bzt
 ```
 
 If you experience `libxml/xmlversion.h missing` error, try running:
+
 ```bash
 brew install libxml2
 brew install libxslt
@@ -49,8 +54,7 @@ then try installing Taurus again.
 
 
 Upgrading to latest is as simple as this:
+
 ```bash
 sudo pip install --upgrade bzt
 ```
-
-![Analytics](https://ga-beacon.appspot.com/UA-63369152-1/taurus/installing)
