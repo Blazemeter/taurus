@@ -1,15 +1,17 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <url title="Codename: Taurus" template="dat/taurus.tpl" custom_logo="/img/tau.png"
-     class="PWE\Modules\HTMLPage\HTMLPage" src="index.html">
+     class1="PWE\Modules\HTMLPage\HTMLPage" src="index.html"
+     class="PWE\Modules\RedirectAccepted\RedirectAccepted" base="docs">
     <url link="home" title="Home" menu="1"
-         class="PWE\Modules\RedirectAccepted\RedirectAccepted" base="/#"/>
+         class="PWE\Modules\RedirectAccepted\RedirectAccepted" base="../"/>
 
     <url link="install" menu="1" title="Installation"
          class="PWE\Modules\RedirectAccepted\RedirectAccepted"
          base="/docs/Installation" accept="1"/>
 
     <url link="docs" accept="1" menu="1" title="Documentation" class="PWE\Modules\SimpleWiki\SimpleWiki"
-         wiki_dir="docs" start_page="Home" wiki_file_ext="md" syntax="PWE\Modules\SimpleWiki\GitHubMarkdownSyntax\Config"/>
+         wiki_dir="docs" start_page="Home" wiki_file_ext="md"
+         syntax="PWE\Modules\SimpleWiki\GitHubMarkdownSyntax\Config"/>
 
     <url link="support" menu="1" title="Support Forums"
          class="PWE\Modules\RedirectAccepted\RedirectAccepted"

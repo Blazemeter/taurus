@@ -40,7 +40,11 @@ table.breadcrumbs {
 }
 
 td.logo {
-    padding: 1em;
+    padding: 0.4em;
+}
+
+td.logo img {
+    display: none;
 }
 
 td.header_title {
