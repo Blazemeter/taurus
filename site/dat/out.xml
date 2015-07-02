@@ -5,7 +5,7 @@
     <url link="home" title="Home" menu="1"
          class="PWE\Modules\RedirectAccepted\RedirectAccepted" base="../"/>
 
-    <url link="install" menu="1" title="Installation"
+    <url link="install" menu="1" title="Install"
          class="PWE\Modules\RedirectAccepted\RedirectAccepted"
          base="/docs/Installation" accept="1"/>
 

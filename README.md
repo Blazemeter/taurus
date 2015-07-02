@@ -1,7 +1,7 @@
 # Taurus 
 <i><b>T</b>est <b>au</b>tomation <b>ru</b>nning <b>s</b>moothly
 
-Quick links: [Taurus Documentation](docs/Home.md) | [Videos](docs/Videos.md) | [Support Forum](https://groups.google.com/forum/#!forum/codename-taurus)
+Quick links: [Taurus Documentation](http://gettaurus.org/docs/Home.md) | [Videos](http://gettaurus.org/docs/Videos.md) | [Support Forum](https://groups.google.com/forum/#!forum/codename-taurus)
 
 ## Purpose
 Hides the complexity of performance and functional tests with an automation-friendly convenience wrapper. Taurus relies on JMeter, Gatling and Grinder as its underlying tools. Project is licensed under Apache 2.0 License.
@@ -17,7 +17,7 @@ Just install it using PyPi:
 pip install bzt
 ```
 
-More detailed instructions for Linux, Mac OS and Windows available [here](docs/Installation.md).
+More detailed instructions for Linux, Mac OS and Windows available [here](http://gettaurus.org/docs/Installation.md).
 
 ## Getting Started
 
@@ -37,6 +37,6 @@ execution:
       - http://blazedemo.com/vacation.html
 ```
 
-Then run `bzt test.yml`. After the tool finishes, observe resulting summary stats in console log (more reporting options [here](docs/Reporting.md)). All artifact files from the run will be placed in the directory mentioned in console log. Read more on command-line tool usage [here](docs/CommandLine.md).
+Then run `bzt test.yml`. After the tool finishes, observe resulting summary stats in console log (more reporting options [here](http://gettaurus.org/docs/Reporting.md)). All artifact files from the run will be placed in the directory mentioned in console log. Read more on command-line tool usage [here](http://gettaurus.org/docs/CommandLine.md).
 
 ![Analytics](https://ga-beacon.appspot.com/UA-63369152-1/taurus/readme)
