@@ -121,6 +121,7 @@ There are two places to specify JMeter properties: global at module-level and lo
 You may also specify system properties for JMeter in system-properties section. They comes as system.properties file in artifacts.
 
 Global properties are set like this:
+
 ```yaml
 ---
 modules:
@@ -134,6 +135,7 @@ modules:
 ```
 
 Scenario-level properties are set like this:
+
 ```yaml
 ---
 execution:
@@ -145,6 +147,7 @@ execution:
 
 #### Open JMeter GUI
 When you want to verify or debug the JMX file that were generated from your requests scenario, you don't need to search for the file on disk, just enable GUI mode for JMeter module:
+
 ```yaml
 ---
 modules:
@@ -242,6 +245,7 @@ configuration options:
     Grinder version, by default "3.11"
 
 #### Run Grinder Tool
+
 ```javascript
 {
   "execution": [
@@ -368,5 +372,3 @@ modules:
 reporting:
   - module: junit-xml
 ```
-
-![Analytics](https://ga-beacon.appspot.com/UA-63369152-1/taurus/exec)
