@@ -27,8 +27,4 @@ bzt -o execution.scenario.script=tests/jmx/dummy.jmx -d build/test -o modules.jm
 bzt -d build/test tests/json/jmeter_minimal.json -o modules.jmeter.path=build/jmeter/bin/jmeter
 bzt -d build/test tests/json/get-post.json -o modules.jmeter.path=build/jmeter/bin/jmeter
 
-# generate docs
-pip install grip
-./make-docs.sh
-
 deactivate
