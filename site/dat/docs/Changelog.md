@@ -1,6 +1,7 @@
 # Changelog
 
-# 0.2.24 (next)
+# 0.3.0 (next)
+  - implement `selenium` executor
   - fix crashing on second start jmeter under GUI mode
   - iterate requests forever if no limits were specified
   - fix test duration logic to respect iterations set
