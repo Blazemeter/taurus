@@ -1,0 +1,10 @@
+{
+  "execution": {
+    "executor": "selenium",
+    "scenario": {
+      "script": "",
+      "source-path": ""
+
+    }
+  }
+}

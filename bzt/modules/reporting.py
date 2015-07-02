@@ -139,14 +139,15 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         super(JUnitXMLReporter, self).post_process()
         test_data_source = self.parameters.get("data-source", "sample-labels")
 
-        # data-source sample-labels
-        if test_data_source == "sample-labels":
-            root_xml_element = self.__process_sample_labels()
-            self.__save_report(root_xml_element)
-        # data-source pass-fail
-        elif test_data_source == "pass-fail":
-            root_xml_element = self.__process_pass_fail()
-            self.__save_report(root_xml_element)
+        if self.last_second:
+            # data-source sample-labels
+            if test_data_source == "sample-labels":
+                root_xml_element = self.__process_sample_labels()
+                self.__save_report(root_xml_element)
+            # data-source pass-fail
+            elif test_data_source == "pass-fail":
+                root_xml_element = self.__process_pass_fail()
+                self.__save_report(root_xml_element)
 
     @staticmethod
     def __convert_label_name(url):
@@ -160,11 +161,15 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         parsed_url = urlparse(url)
         # remove dots from url and join all pieces on dot
         # small fix needed - better do not use blank pieces
-        class_name = parsed_url.scheme + "." + parsed_url.netloc.replace(".", "_")
-        resource_name = ".".join([parsed_url.path.replace(".", "_"),
-                                  parsed_url.params.replace(".", "_"),
-                                  parsed_url.query.replace(".", "_"),
-                                  parsed_url.fragment.replace(".", "_")])
+        if parsed_url.scheme:
+            class_name = parsed_url.scheme + "." + parsed_url.netloc.replace(".", "_")
+            resource_name = ".".join([parsed_url.path.replace(".", "_"),
+                                      parsed_url.params.replace(".", "_"),
+                                      parsed_url.query.replace(".", "_"),
+                                      parsed_url.fragment.replace(".", "_")])
+        else:
+            class_name = url
+            resource_name = ""
         return class_name, resource_name
 
     def __save_report(self, root_node):
