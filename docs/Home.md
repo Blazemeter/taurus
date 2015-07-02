@@ -13,5 +13,3 @@
 
   1. [Changelog](Changelog.md)
   1. [Developer Guide](DeveloperGuide.md)
-
-![Analytics](https://ga-beacon.appspot.com/UA-63369152-1/taurus/home)

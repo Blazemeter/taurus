@@ -15,6 +15,7 @@ execution:
 ```
 
 Referred form is useful when you use separate configs to store scenarios and executions, it is recommended for all cases. Scenarios are listed in top-level `scenarios` element and referred from executions by their alias:
+
 ```yaml
 ---
 scenarios:
@@ -30,6 +31,7 @@ execution:
 ## Existing Script Scenario
 
 If you have pre-existing script for your tool, you can use it as a scenario like this:
+
 ```yaml
 execution:
   scenario:
@@ -132,6 +134,7 @@ scenarios:
 ```
 
 The full form for extractors is:
+
 ```yaml
 ---
 scenarios:
@@ -217,5 +220,3 @@ scenarios:
               expect-null: false  # expected value is null
               invert: false # invert condition
 ```
-
-![Analytics](https://ga-beacon.appspot.com/UA-63369152-1/taurus/scenario)

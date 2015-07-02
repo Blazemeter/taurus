@@ -1,3 +1,7 @@
+##### Quick links:
+
+[Educational Videos](Videos)
+
 [Command-Line Tool](CommandLine)
 
 [Configuration Syntax](ConfigSyntax)
