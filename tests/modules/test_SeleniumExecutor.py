@@ -20,7 +20,7 @@ class TestSeleniumJUnitRunner(BZTestCase):
 
     def test_install_tools(self):
         """
-        check installation of selenium-server, junit, junit_plugin
+        check installation of selenium-server, junit
         :return:
         """
         dummy_installation_path = os.path.abspath(__dir__() + "/../../build/tmp/selenium-taurus")
@@ -38,9 +38,9 @@ class TestSeleniumJUnitRunner(BZTestCase):
         obj = SeleniumExecutor()
         obj.engine = EngineEmul()
         obj.settings.merge({"selenium-tools": {
-        "junit": {"selenium-server": os.path.join(dummy_installation_path, "selenium-server.jar")}}})
+            "junit": {"selenium-server": os.path.join(dummy_installation_path, "selenium-server.jar")}}})
         obj.settings.merge({"selenium-tools": {
-        "junit": {"path": os.path.join(dummy_installation_path, "tools", "junit", "junit.jar")}}})
+            "junit": {"path": os.path.join(dummy_installation_path, "tools", "junit", "junit.jar")}}})
 
         obj.execution = BetterDict()
         obj.execution.merge({"scenario": {"script": os.path.abspath(__dir__() + "/../../tests/selenium/jar/")}})
@@ -53,7 +53,7 @@ class TestSeleniumJUnitRunner(BZTestCase):
 
     def test_prepare_java_single(self):
         """
-        Check if script copied
+        Check if script exists in working dir
         :return:
         """
         obj = SeleniumExecutor()
@@ -68,7 +68,7 @@ class TestSeleniumJUnitRunner(BZTestCase):
 
     def test_prepare_java_folder(self):
         """
-        Check if script copied
+        Check if scripts exist in working dir
         :return:
         """
         obj = SeleniumExecutor()
@@ -85,14 +85,23 @@ class TestSeleniumJUnitRunner(BZTestCase):
         self.assertEqual(len(jars), 1)
 
     def test_prepare_java_package(self):
+        """
+        Check if scripts exist in working dir
+        :return:
+        """
         obj = SeleniumExecutor()
         obj.engine = EngineEmul()
         obj.execution = BetterDict()
-        obj.execution.merge({"scenario": {"script": os.path.abspath(__dir__() + "/../../tests/selenium/java_package/")}})
+        obj.execution.merge(
+            {"scenario": {"script": os.path.abspath(__dir__() + "/../../tests/selenium/java_package/")}})
         obj.prepare()
         self.assertTrue(os.path.exists(os.path.join(obj.runner.working_dir, "compiled.jar")))
 
     def test_selenium_startup_shutdown_java_package(self):
+        """
+        Run tests from package
+        :return:
+        """
         obj = SeleniumExecutor()
         obj.engine = EngineEmul()
         obj.engine.config.merge(yaml.load(open("tests/yaml/selenium_executor_java_package.yml").read()))
@@ -108,6 +117,10 @@ class TestSeleniumJUnitRunner(BZTestCase):
         self.assertTrue(os.path.exists(os.path.join(obj.runner.working_dir, "compiled.jar")))
 
     def test_prepare_jar_single(self):
+        """
+        Check if jar exists in working dir
+        :return:
+        """
         obj = SeleniumExecutor()
         obj.engine = EngineEmul()
         obj.execution = BetterDict()
@@ -118,6 +131,10 @@ class TestSeleniumJUnitRunner(BZTestCase):
             os.path.exists(os.path.join(obj.runner.working_dir, "dummy.jar")))
 
     def test_prepare_jar_folder(self):
+        """
+        Check if jars exist in working dir
+        :return:
+        """
         obj = SeleniumExecutor()
         obj.engine = EngineEmul()
         obj.execution = BetterDict()
@@ -128,6 +145,7 @@ class TestSeleniumJUnitRunner(BZTestCase):
 
     def test_selenium_startup_shutdown_jar_single(self):
         """
+        runt tests from single jar
         :return:
         """
         obj = SeleniumExecutor()
@@ -155,6 +173,7 @@ class TestSeleniumJUnitRunner(BZTestCase):
 
     def test_selenium_startup_shutdown_jar_folder(self):
         """
+        run tests from jars
         :return:
         """
         obj = SeleniumExecutor()
@@ -180,7 +199,7 @@ class TestSeleniumJUnitRunner(BZTestCase):
 
     def test_selenium_startup_shutdown_java_single(self):
         """
-        Check if jar copied and test completed with single jar file
+        run tests from single .java file
         :return:
         """
         obj = SeleniumExecutor()
@@ -209,7 +228,7 @@ class TestSeleniumJUnitRunner(BZTestCase):
 
     def test_selenium_startup_shutdown_java_folder(self):
         """
-        Check if jar copied and test completed with single jar file
+        run tests from .java files
         :return:
         """
         obj = SeleniumExecutor()
@@ -234,25 +253,46 @@ class TestSeleniumJUnitRunner(BZTestCase):
         self.assertTrue(os.path.exists(os.path.join(obj.runner.working_dir, "compiled.jar")))
         self.assertTrue(os.path.exists(obj.runner.report_file))
 
+    def test_not_junit(self):
+        """
+        Check that JUnit runner fails if no tests were found
+        :return:
+        """
+        obj = SeleniumExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = BetterDict()
+        obj.engine.config.merge(
+            {"execution": {"executor": "selenium", "scenario": {"script": "tests/selenium/invalid/NotJUnittest.java"}}})
+        obj.execution = obj.engine.config['execution']
+        obj.prepare()
+        obj.startup()
+        try:
+            while not obj.check():
+                time.sleep(1)
+        except BaseException as exc:
+            self.assertEqual(exc.args[0], "Test runner exited with non-zero code")
+
+        self.assertRaises(RuntimeWarning, obj.shutdown)
+
 
 class TestSeleniumNoseRunner(BZTestCase):
     def test_selenium_prepare_python_single(self):
         """
-        Check if scripts copied, folder, python
+        Check if script exists in working dir
         :return:
         """
         obj = SeleniumExecutor()
         obj.engine = EngineEmul()
         obj.execution = BetterDict()
         obj.execution.merge({"scenario": {
-        "script": os.path.abspath(__dir__() + "/../../tests/selenium/python/test_blazemeter_fail.py")}})
+            "script": os.path.abspath(__dir__() + "/../../tests/selenium/python/test_blazemeter_fail.py")}})
         obj.prepare()
         python_scripts = os.listdir(obj.runner.working_dir)
         self.assertEqual(len(python_scripts), 1)
 
     def test_selenium_prepare_python_folder(self):
         """
-        Check if scripts copied, folder, python
+        Check if scripts exist in working dir
         :return:
         """
         obj = SeleniumExecutor()
@@ -265,7 +305,7 @@ class TestSeleniumNoseRunner(BZTestCase):
 
     def test_selenium_startup_shutdown_python_single(self):
         """
-        Check if script copied and test completed with folder, python
+        run tests from .py file
         :return:
         """
 
@@ -277,7 +317,7 @@ class TestSeleniumNoseRunner(BZTestCase):
         obj.execution = obj.engine.config['execution']
 
         obj.execution.merge({"scenario": {
-        "script": os.path.abspath(__dir__() + "/../../tests/selenium/python/test_blazemeter_fail.py")}})
+            "script": os.path.abspath(__dir__() + "/../../tests/selenium/python/test_blazemeter_fail.py")}})
 
         obj.settings.merge(obj.engine.config.get("modules").get("selenium"))
         obj.prepare()
@@ -292,7 +332,7 @@ class TestSeleniumNoseRunner(BZTestCase):
 
     def test_selenium_startup_shutdown_python_folder(self):
         """
-        Check if script copied and test completed with folder, python
+        run tests from .py files
         :return:
         """
         obj = SeleniumExecutor()
@@ -312,38 +352,77 @@ class TestSeleniumNoseRunner(BZTestCase):
         self.assertEqual(2, len(python_files))
         self.assertTrue(os.path.exists(obj.runner.report_file))
 
-
-class TestSeleniumStuff(BZTestCase):
-
-    def test_empty_scenario(self):
+    def runner_fail_no_test_found(self):
+        """
+        Check that Python Nose runner fails if no tests were found
+        :return:
+        """
         obj = SeleniumExecutor()
         obj.engine = EngineEmul()
         obj.engine.config = BetterDict()
-        obj.engine.config.merge({"execution":{"executor": "selenium"}})
+        obj.engine.config.merge(
+            {"execution": {"executor": "selenium", "scenario": {"script": "tests/selenium/invalid/dummy.py"}}})
+        obj.execution = obj.engine.config['execution']
+        obj.prepare()
+        obj.startup()
+        try:
+            while not obj.check():
+                time.sleep(1)
+        except BaseException as exc:
+            self.assertEqual(exc.args[0], "Test runner exited with non-zero code")
+
+        self.assertRaises(RuntimeWarning, obj.shutdown)
+
+
+class TestSeleniumStuff(BZTestCase):
+    def test_empty_scenario(self):
+        """
+        Raise runtime error when no scenario provided
+        :return:
+        """
+        obj = SeleniumExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = BetterDict()
+        obj.engine.config.merge({"execution": {"executor": "selenium"}})
         obj.execution = obj.engine.config['execution']
         self.assertRaises(RuntimeError, obj.prepare)
 
     def test_javac_fail(self):
+        """
+        Test RuntimeError when compilation fails
+        :return:
+        """
         obj = SeleniumExecutor()
         obj.engine = EngineEmul()
         obj.engine.config = BetterDict()
-        obj.engine.config.merge({"execution":{"executor": "selenium", "scenario" :{"script":"tests/selenium/invalid/invalid.java"}}})
+        obj.engine.config.merge(
+            {"execution": {"executor": "selenium", "scenario": {"script": "tests/selenium/invalid/invalid.java"}}})
         obj.execution = obj.engine.config['execution']
         self.assertRaises(RuntimeError, obj.prepare)
 
     def test_no_supported_files_to_test(self):
+        """
+        Test RuntimeError raised when no files of known types were found.
+        :return:
+        """
         obj = SeleniumExecutor()
         obj.engine = EngineEmul()
         obj.engine.config = BetterDict()
-        obj.engine.config.merge({"execution":{"executor": "selenium", "scenario" :{"script":"tests/selenium/invalid/not_found"}}})
+        obj.engine.config.merge(
+            {"execution": {"executor": "selenium", "scenario": {"script": "tests/selenium/invalid/not_found"}}})
         obj.execution = obj.engine.config['execution']
         self.assertRaises(RuntimeError, obj.prepare)
 
     def test_samples_count_annotations(self):
+        """
+        Test exact number of tests when java annotations used
+        :return:
+        """
         obj = SeleniumExecutor()
         obj.engine = EngineEmul()
         obj.engine.config = BetterDict()
-        obj.engine.config.merge({"execution":{"executor": "selenium", "scenario" :{"script":"tests/selenium/invalid/SeleniumTest.java"}}})
+        obj.engine.config.merge(
+            {"execution": {"executor": "selenium", "scenario": {"script": "tests/selenium/invalid/SeleniumTest.java"}}})
         obj.execution = obj.engine.config['execution']
         obj.prepare()
         obj.startup()
@@ -355,10 +434,15 @@ class TestSeleniumStuff(BZTestCase):
         self.assertEqual(contents.count("--TIME:"), 2)
 
     def test_samples_count_testcase(self):
+        """
+        Test exact number of tests when test class extends JUnit TestCase
+        :return:
+        """
         obj = SeleniumExecutor()
         obj.engine = EngineEmul()
         obj.engine.config = BetterDict()
-        obj.engine.config.merge({"execution":{"executor": "selenium", "scenario" :{"script":"tests/selenium/invalid/SimpleTest.java"}}})
+        obj.engine.config.merge(
+            {"execution": {"executor": "selenium", "scenario": {"script": "tests/selenium/invalid/SimpleTest.java"}}})
         obj.execution = obj.engine.config['execution']
         obj.prepare()
         obj.startup()
@@ -369,27 +453,16 @@ class TestSeleniumStuff(BZTestCase):
             contents = kpi_fds.read()
         self.assertEqual(contents.count("--TIME:"), 2)
 
-    def test_not_junit(self):
-        obj = SeleniumExecutor()
-        obj.engine = EngineEmul()
-        obj.engine.config = BetterDict()
-        obj.engine.config.merge({"execution":{"executor": "selenium", "scenario" :{"script":"tests/selenium/invalid/NotJUnittest.java"}}})
-        obj.execution = obj.engine.config['execution']
-        obj.prepare()
-        obj.startup()
-        try:
-            while not obj.check():
-                time.sleep(1)
-        except BaseException as exc:
-            self.assertEqual(exc.args[0],"Test runner exited with non-zero code")
-
-
-
     def test_no_test_in_name(self):
+        """
+        Test exact number of tests when annotations used and no "test" in class name
+        :return:
+        """
         obj = SeleniumExecutor()
         obj.engine = EngineEmul()
         obj.engine.config = BetterDict()
-        obj.engine.config.merge({"execution":{"executor": "selenium", "scenario" :{"script":"tests/selenium/invalid/selenium1.java"}}})
+        obj.engine.config.merge(
+            {"execution": {"executor": "selenium", "scenario": {"script": "tests/selenium/invalid/selenium1.java"}}})
         obj.execution = obj.engine.config['execution']
         obj.prepare()
         obj.startup()

@@ -378,16 +378,6 @@ class NoseTester(AbstractTestRunner):
                                   stdout=nose_out,
                                   stderr=nose_err)
 
-    def is_finished(self):
-        ret_code = self.process.poll()
-        if ret_code is not None:
-            if ret_code == 0:
-                self.log.debug("Nose tests exit code: %s", ret_code)
-            elif ret_code == 1:
-                self.log.debug("Nose tests exit code: %s, some tests failed", ret_code)
-            return True
-        return False
-
 
 class SeleniumDataReader(ResultsReader):
     """

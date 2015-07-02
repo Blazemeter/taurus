@@ -1,9 +1,11 @@
 from time import time
 
 from nose.plugins import Plugin
-from nose import main
+from nose import run
 import traceback
 import sys
+from nose.loader import defaultTestLoader
+
 
 class TaurusNosePlugin(Plugin):
     """
@@ -18,6 +20,7 @@ class TaurusNosePlugin(Plugin):
         self._trace = None
         self._module_name = None
         self.output_file = output_file
+        self.test_count = 0
 
     def report_error(self, err):
         exc_type, value, tb = err
@@ -82,6 +85,8 @@ class TaurusNosePlugin(Plugin):
         :return:
         """
         self.stream.close()
+        if not self.test_count:
+            raise RuntimeError("No tests to run.")
 
     def startTest(self, test):
         """
@@ -97,6 +102,7 @@ class TaurusNosePlugin(Plugin):
         self.stream.write("--MODULE: %s\n" % self._module_name)
         self.stream.write("--RUN: %s\n" % test)
         self.stream.flush()
+        self.test_count += 1
 
     def stopTest(self, test):
         """
@@ -130,4 +136,4 @@ if __name__ == "__main__":
     test_path = sys.argv[2:]
     argv = [__file__, '-v']
     argv.extend(test_path)
-    main(addplugins=[TaurusNosePlugin(output_file)], argv=argv + ['--with-nose_plugin'])
+    run(addplugins=[TaurusNosePlugin(output_file)], argv=argv + ['--with-nose_plugin'])
