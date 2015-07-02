@@ -11,6 +11,7 @@ Configuration dictionary has several top-level keys:
  
  
 Example for config that touches all sections:
+
 ```yaml
 ---
 execution:
@@ -87,7 +88,9 @@ Available settings are:
  - `aggregator` - module alias for top-level [results aggregator](Reporting.md#results-reading-and-aggregating-facility) to be used for collecting results and passing it to reporters
  - `default-executor` - module alias for executor that will be used by default for [executions](ExecutionSettings)
  - `proxy` - proxy settings for BZA feeding, Taurus will use proxy settings from OS environment by default.
+ 
 See default settings below:
+
 ```yaml
 ---
 settings:
@@ -108,7 +111,7 @@ Use special strings convention to make it human-readable. Examples:
   - `1s200ms` = 1 second 200 milliseconds
   - `1d 2h 3m 4s` = 93784 seconds
  
-d - days, h - hours, m - minutes, s - seconds, ms - milliseconds, optional space characters allowed
+`d` - days, `h` - hours, `m` - minutes, `s` - seconds, `ms` - milliseconds, optional space characters allowed
 
 If you have found config instruction that does not follow this rule, report immediately, this is most likely a bug.
 
@@ -150,6 +153,7 @@ engine will perfectly deal with it. For example, following JSON file:
 ```
  
 is equivalent to YAML:
+
 ```yaml
 ---
 aggregator: aggregator
@@ -170,6 +174,7 @@ reporting:
 ```
 
 Hint: YAML config files on Linux/MacOS allows a trick of self-executing config. To have it, add _shebang line_ as first line of your file, like this:
+
 ```yaml
 #! /usr/local/bin/bzt
 ---
@@ -181,6 +186,7 @@ execution:
 ```
 
 Then add execution flag to the file:
+
 ```bash
 chmod +x myscript.yml
 ```
@@ -189,5 +195,3 @@ Now you are able to start this file on its own:
 ```bash
 ./myscript.yml -o execution.hold-for=5m
 ```
-
-![Analytics](https://ga-beacon.appspot.com/UA-63369152-1/taurus/cfgsyntax)

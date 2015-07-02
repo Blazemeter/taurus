@@ -22,7 +22,8 @@ Possible reporting modules are listed below.
 
 ## Post-Test Summary
 
-This is the simpliest reporter that just prints few basic KPIs in the console log after test execution, for example:
+This is the simplest reporter that just prints few basic KPIs in the console log after test execution, for example:
+
 ```
 18:04:24 INFO: Samples count: 367, 8.17% failures
 18:04:24 INFO: Average times: total 0.385, latency 0.115, connect 0.000
@@ -86,6 +87,7 @@ reporting:
 ```
 
 The above example use short form for criterias, its general format is `subject of label{condition}threshold for timeframe, action as status`, where:
+
   - `subject` is the KPI that will be compared, listed below
   - `label` is sample label, empty for overall
   - `{condition}` is the comparison operator, one of `>`, `<`, `>=`, `<=`, `=`, `==` (same as `=`)
@@ -97,15 +99,16 @@ The above example use short form for criterias, its general format is `subject o
 Any non-required parameters might be omitted, the minimal form is `subject{condition}threshold`. 
 
 Possible subjects are:
+
  - `avg-rt` - average response time, e.g. `avg-rt>2s500ms`
  - `avg-lt`- average latency, e.g. `avg-lt for mylabel>2`
  - `avg-ct` - average connect time, e.g. `avg-ct>100ms`
  - `stdev-rt` - standard deviation for full response time, e.g. `stdev-rt>0.5`
- - `p*` - percentile timing, e.g. `p90>1s for 10s`, `p99.9>10s, stop as failed`
+ - `p...` - percentile timing, e.g. `p90>1s for 10s`, `p99.9>10s, stop as failed`
  - `hits` - number of responses, e.g. `hits for my-label>100 for 5s, stop as non-failed`
  - `succ` or `success` - successful responses, supports percentage threshold, e.g. `succ<100%` 
  - `fail` or `failures` - failed responses, supports percentage threshold, e.g. `failures>50% for 5s, stop as failed`
- - `rc*` - response codes criteria, supports percentage threshold, response code may be specified using wildcards `?` and `*`, e.g. `rc500>20 for 5s, stop as failed`, `rc4??>20%`, `rc*>=10 for 1m`, `rc*Exception>99% for 1m, continue as failed`, 
+ - `rc...` - response codes criteria, supports percentage threshold, response code may be specified using wildcards `?` and `*`, e.g. `rc500>20 for 5s, stop as failed`, `rc4??>20%`, `rc*>=10 for 1m`, `rcException>99% for 1m, continue as failed`, 
 
 
 The full form of the criteria is conducted by Taurus automatically from short form. You can also specify it as this:
@@ -120,7 +123,9 @@ reporting:
     condition: '>'  # required
     threshold: 150ms  # required
     timeframe: 10s  # optional, default is none
-    logic: for  # optional, logic to aggregate values within timeframe. Default 'for' means take latest, 'within' means take sum/avg of all values within interval
+    logic: for  # optional, logic to aggregate values within timeframe. 
+                # Default 'for' means take latest, 
+                # 'within' means take sum/avg of all values within interval
     fail: true  # optional, default is true
     stop: true  # optional, default is true
 ```
@@ -134,7 +139,7 @@ Like it always happens with tools that focused on _executing_ tests, they are un
 
 ### Anonymous Usage
 
-The simpliest way to get a taste of BlazeMeter reporting is to use `-report` command-line switch. This will enable result feeding to service without any other settings required. You will receive the link for your report in the console text, and the link will be automatically opened in your default browser, see `browser-open` option for more tuning.
+The simplest way to get a taste of BlazeMeter reporting is to use `-report` command-line switch. This will enable result feeding to service without any other settings required. You will receive the link for your report in the console text, and the link will be automatically opened in your default browser, see `browser-open` option for more tuning.
 
 The official policy for BlazeMeter reports uploaded from Taurus, is that anonymous reports are kept for 7 days and if you're using your own account, then reports are kept according to the retention policy of your account. For details see BlazeMeter service [website](https://blazemeter.com/). 
 
@@ -161,6 +166,7 @@ reporting:
 ```
 
 Advanced settings:
+
 ```yaml
 ---
 modules:
@@ -205,6 +211,7 @@ settings:
 ```
 
 The `consolidator` has several settings:
+
 ```yaml
 ---
 modules:
@@ -225,4 +232,3 @@ modules:
 
 Note that increasing `buffer-seconds` might sometimes make results aggregation more robust, by price of delaying analysis.
 
-![Analytics](https://ga-beacon.appspot.com/UA-63369152-1/taurus/reporting)

@@ -69,5 +69,3 @@ Each tool start creates _artifacts directory_ under base dir (see `-d` command-l
 ## Some Ways to Shoot Your Leg
 **Advice 1**: Don't interrupt graceful shutdown after hitting `Ctrl+C` once, let the tool finish its cleanup. The tool is made to be obedient, so if you will insist on interrupting by pressing `Ctrl+C` for the second time, it will exit immediately, leaving background processes unterminated, remote APIs will not be informed of the interrupt and, with little chance, some puppies or kitten might start crying in the world. So let the tool shutdown gracefully, _just be patient, please_.
 
-
-![Analytics](https://ga-beacon.appspot.com/UA-63369152-1/taurus/cmdline)

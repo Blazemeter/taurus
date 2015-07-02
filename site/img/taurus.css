@@ -1,0 +1,116 @@
+body {
+    background-color: white;
+    font-size: 12pt;
+    font-family: 'Open Sans', sans-serif;
+}
+
+.menu1 {
+    border-top: 0.5em solid #f7f7f7;
+}
+
+.menu1 td {
+    font-size: 1em;
+    background: #f7f7f7;
+    padding: 0.4em 1em;
+    border-bottom: 1px solid #d6d6d6;
+}
+
+.menu1 td.hl {
+    background: white none;
+    border: 1px solid #d6d6d6;
+    border-bottom: none;
+}
+
+a.hl, .hl a, .hl {
+    color: black;
+    text-decoration: none;
+}
+
+table.breadcrumbs td {
+    border-bottom: 1px solid #f0f0f0;
+}
+
+table.breadcrumbs {
+    position: fixed;
+    z-index: 999;
+}
+
+#toppanel {
+    padding-top: 1.2em;
+}
+
+td.logo {
+    padding: 0.4em;
+}
+
+td.logo img {
+    display: none;
+}
+
+td.header_title {
+    white-space: nowrap;
+    font-weight: normal;
+    width: 100%;
+    font-size: 1.4em;
+    color: #666;
+}
+
+td.header_right {
+    vertical-align: middle;
+}
+
+.main td.root {
+    border: none;
+    background-color: transparent;
+    padding: 5px 10px;
+}
+
+h1, h2, h3, h4 {
+    color: black;
+}
+
+td.footer {
+    border-top: 2px solid #ccc;
+}
+
+/* WIKI */
+table.wiki pre, table.wiki tt {
+    background-color: #EEE;
+    font-size: 1em;
+    padding: 0 0.25em;
+    border-radius: 0.25em;
+}
+
+table.wiki pre {
+    padding: 1em;
+    overflow: hidden;
+}
+
+table.wiki .sidebar {
+    white-space: nowrap;
+    padding-left: 1em;
+    border-left: 2px solid #ccc;
+}
+
+table.wiki .sidebar sup, table.wiki .sidebar font {
+    display: none;
+}
+
+table.wiki .toc-list {
+    margin-bottom: 0.75em;
+    white-space: nowrap;
+    list-style-type: decimal;
+}
+
+table.wiki .toc-list1 {
+    padding-bottom: 1em;
+    border-bottom: 2px dotted #ccc;
+}
+
+pre.yaml .sy1 {
+    color: gray;
+}
+
+pre.yaml .co1 {
+    color: silver;
+}

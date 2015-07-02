@@ -1,0 +1,16 @@
+{
+    "name": "blazemeter/taurus-website",
+    "description": "Homepage for project Taurus",
+    "minimum-stability": "dev",
+    "license": "Apache 2.0",
+    "authors": [
+        {
+            "name": "Andrey Pokhilko",
+            "email": "andrey@blazemeter.com"
+        }
+    ],
+    "require": {
+        "php": ">=5.5.0",
+        "undera/pwe":"dev-master"
+    }
+}

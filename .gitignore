@@ -1,3 +1,4 @@
+/site/dat/eg_globals.xml
 /.idea/
 /build/
 /dist/
@@ -6,3 +7,11 @@
 
 *.pyc
 *.project
+
+/site/composer.lock
+/site/index.php
+/site/.htaccess
+/site/vendor
+/site/img/design
+/site/dat/tmp
+/site/.idea
