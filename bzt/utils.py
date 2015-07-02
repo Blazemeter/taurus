@@ -29,6 +29,9 @@ import itertools
 import zipfile
 import sys
 import six
+import time
+import psutil
+import signal
 
 from collections import defaultdict, Counter
 from subprocess import PIPE
@@ -581,3 +584,22 @@ def is_int(str_val):
         return True
     except ValueError:
         return False
+
+def shutdown_process(process_obj, log_obj):
+    while process_obj and process_obj.poll() is None:
+        # TODO: find a way to have graceful shutdown, then kill
+        log_obj.info("Terminating process PID: %s", process_obj.pid)
+        time.sleep(1)
+        try:
+            if platform.system() == 'Windows':
+                cur_pids = psutil.get_pid_list()
+                if process_obj.pid in cur_pids:
+                    jm_proc = psutil.Process(process_obj.pid)
+                    for child_proc in jm_proc.get_children(recursive=True):
+                        log_obj.debug("Terminating child process: %d", child_proc.pid)
+                        child_proc.send_signal(signal.SIGTERM)
+                    os.kill(process_obj.pid, signal.SIGTERM)
+            else:
+                os.killpg(process_obj.pid, signal.SIGTERM)
+        except OSError as exc:
+            log_obj.debug("Failed to terminate process: %s", exc)
