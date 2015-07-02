@@ -4,7 +4,6 @@ from nose.plugins import Plugin
 from nose import run
 import traceback
 import sys
-from nose.loader import defaultTestLoader
 
 
 class TaurusNosePlugin(Plugin):
@@ -86,7 +85,8 @@ class TaurusNosePlugin(Plugin):
         """
         self.stream.close()
         if not self.test_count:
-            raise RuntimeError("No tests to run.")
+            sys.stderr.write("Nothing to test.")
+            sys.exit(1)
 
     def startTest(self, test):
         """

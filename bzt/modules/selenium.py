@@ -136,7 +136,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
             self.log.debug("Selenium tests ran for %s seconds", self.end_time - self.start_time)
 
         if self.kpi_file:
-            if not os.path.exists(self.kpi_file) or not os.path.getsize(self.kpi_file):
+            if (not os.path.exists(self.kpi_file) or not os.path.getsize(self.kpi_file)) and not self.runner.is_failed:
                 msg = "Empty runner report, most likely runner failed: %s"
                 raise RuntimeWarning(msg % self.kpi_file)
 
@@ -160,7 +160,8 @@ class AbstractTestRunner(object):
         self.artifacts_dir = self.settings.get("artifacts-dir")
         self.working_dir = self.settings.get("working-dir")
         self.log = None
-        self.opened_descriptors = []
+        self.opened_descriptors = {"std_err": None, "std_out": None}
+        self.is_failed = False
 
     def prepare(self):
         raise NotImplementedError
@@ -175,8 +176,11 @@ class AbstractTestRunner(object):
         ret_code = self.process.poll()
         if ret_code is not None:
             if ret_code != 0:
-                self.log.info("Test runner exit code: %s", ret_code)
-                raise RuntimeError("Test runner exited with non-zero code")
+                self.log.debug("Test runner exit code: %s", ret_code)
+                with open(self.opened_descriptors["std_err"].name) as fds:
+                    std_err = fds.read()
+                self.is_failed = True
+                raise RuntimeError("Test runner %s has failed: %s" % (self.__class__.__name__, std_err.strip()))
             return True
         return False
 
@@ -188,8 +192,9 @@ class AbstractTestRunner(object):
 
     def shutdown(self):
         shutdown_process(self.process, self.log)
-        for desc in self.opened_descriptors:
+        for desc in self.opened_descriptors.values():
             desc.close()
+        self.opened_descriptors = {}
 
 
 class JunitTester(AbstractTestRunner):
@@ -266,11 +271,10 @@ class JunitTester(AbstractTestRunner):
                     ret_code = self.process.poll()
 
         if ret_code != 0:
-            self.log.warn("Compiler failed with code: %s", ret_code)
+            self.log.debug("javac exit code: %s", ret_code)
             with open(javac_err.name) as err_file:
                 out = err_file.read()
-            self.log.info("javac output: %s", out)
-            raise RuntimeError("Javac exited with non-zero code")
+            raise RuntimeError("Javac exited with error:\n %s" % out.strip())
 
         self.log.info("Compiling .java files completed")
 
@@ -329,8 +333,8 @@ class JunitTester(AbstractTestRunner):
         junit_out = open(junit_out_path, 'ab')
         junit_err = open(junit_err_path, 'ab')
 
-        self.opened_descriptors.append(junit_out)
-        self.opened_descriptors.append(junit_err)
+        self.opened_descriptors["std_out"] = junit_out
+        self.opened_descriptors["std_err"] = junit_err
 
         self.process = shell_exec(junit_command_line, cwd=self.artifacts_dir,
                                   stdout=junit_out,
@@ -371,8 +375,8 @@ class NoseTester(AbstractTestRunner):
         nose_out = open(os.path.join(self.artifacts_dir, "nose_out"), 'ab')
         nose_err = open(os.path.join(self.artifacts_dir, "nose_err"), 'ab')
 
-        self.opened_descriptors.append(nose_out)
-        self.opened_descriptors.append(nose_err)
+        self.opened_descriptors["std_out"] = nose_out
+        self.opened_descriptors["std_err"] = nose_err
 
         self.process = shell_exec(nose_command_line, cwd=self.artifacts_dir,
                                   stdout=nose_out,
