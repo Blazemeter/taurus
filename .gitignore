@@ -9,7 +9,6 @@
 *.project
 
 /site/composer.lock
-/site/index.php
 /site/.htaccess
 /site/vendor
 /site/img/design
