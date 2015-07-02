@@ -3,7 +3,7 @@ require_once __DIR__ . '/vendor/autoload.php';
 
 if ($_SERVER['SERVER_ADDR'] == $_SERVER['REMOTE_ADDR']) {
     $level = \PWE\Core\PWELogger::DEBUG;
-    $logfile = "/tmp/pwe.log";
+    $logfile = "/tmp/taurus-pwe.log";
     $tempdir = "/tmp";
 } else {
     $level = \PWE\Core\PWELogger::WARNING;
