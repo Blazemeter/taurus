@@ -127,3 +127,9 @@ table.wiki a.anchorLink {
 table.wiki img {
     max-width: 100%;
 }
+
+.stick {
+    position: fixed;
+    top: 2em;
+    display: block;
+}

@@ -173,6 +173,8 @@ reporting:
 - module: status
 ```
 
+Look for `merged.yml/json` and `effective.yml/json` file pairs in artifacts to see matching examples. 
+
 Hint: YAML config files on Linux/MacOS allows a trick of self-executing config. To have it, add [shebang line](https://en.wikipedia.org/wiki/Shebang_(Unix\)) as first line of your file, like this:
 
 ```yaml
