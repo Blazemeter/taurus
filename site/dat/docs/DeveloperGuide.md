@@ -16,5 +16,23 @@
  - Upload tp PyPi: `./make-docs.sh && python ./setup.py clean sdist upload upload_docs --upload-dir=build/docs`
  - generate and upload docs (TODO)
  
+# Deploying Project Website
+ 
+If you want to deploy project website locally to debug its content, have Apache webserver installed and configure it to point to `site` directory like this:
+```
+<Directory "/home/mydir/taurus/site">
+    Options FollowSymlinks
+    AllowOverride All
+    Require all granted
+</Directory>
+
+Listen 8002
+<VirtualHost _default_:8002>
+        DocumentRoot /home/mydir/taurus/site
+</VirtualHost>
+```
+
+Then get [PHP composer](https://getcomposer.org/download/), go to `site` dir and run `composer.phar update`. Then open [http://localhost:8002](http://localhost:8002) in your browser, you should see our website.
+
 # Dev Artifacts
 [Code Coverage Report](/coverage/)

@@ -1,10 +1,9 @@
 # Taurus 
-<i><b>T</b>est <b>au</b>tomation <b>ru</b>nning <b>s</b>moothly
 
 Quick links: [Taurus Documentation](http://gettaurus.org/docs/Home.md) | [Videos](http://gettaurus.org/docs/Videos.md) | [Support Forum](https://groups.google.com/forum/#!forum/codename-taurus)
 
 ## Purpose
-Hides the complexity of performance and functional tests with an automation-friendly convenience wrapper. Taurus relies on JMeter, Gatling and Grinder as its underlying tools. Project is licensed under Apache 2.0 License.
+Hides the complexity of performance and functional tests with an automation-friendly convenience wrapper. Taurus relies on JMeter, Gatling, Grinder and Selenium WebDriver as its underlying tools. Free and open source under Apache 2.0 License.
 
 ![CLI dashboard and BlazeMeter Report](cli-bza.png)
 

@@ -114,3 +114,12 @@ pre.yaml .sy1 {
 pre.yaml .co1 {
     color: silver;
 }
+
+a.anchorLink {
+    vertical-align: bottom;
+    padding-left: 0.5em;
+    font-size: 0.8em;
+    text-decoration: none;
+    color: gray;
+    top: -0.25em;
+}
