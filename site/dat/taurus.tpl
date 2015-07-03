@@ -19,6 +19,7 @@
 
 
 {block name="head" append}
+    <link rel="shortcut icon" href="/favicon.ico">
     <script type='text/javascript' src="//code.jquery.com/jquery-1.11.0.js"></script>
     {if $smarty.server.SERVER_ADDR==$smarty.server.REMOTE_ADDR}
         <style type='text/css'>

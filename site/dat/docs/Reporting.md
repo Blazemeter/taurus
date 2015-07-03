@@ -52,7 +52,7 @@ reporting:
 
 This reporter shows fullscreen dashboard with some KPIs and even ASCII-art graphs like this:
 
-![Console Screen](console.png)
+![Console Screen](console-rsz.png)
 
 This reporter is enabled by default. To enable it manually, use following config:
 
@@ -135,7 +135,7 @@ reporting:
 
 Like it always happens with tools that focused on _executing_ tests, they are unable to provide sufficient reporting functionality. As professional user, you need some centralized storage to be able to access test results in convenient and interactive way, compare different executions, see trends over time and collaborate with your colleagues. [BlazeMeter.com](http://blazemeter.com) offers such service, it has both commercial and free of charge versions. 
 
-![BlazeMeter Report](blazemeter.png)
+![BlazeMeter Report](blazemeter-rsz.png)
 
 ### Anonymous Usage
 
@@ -174,7 +174,7 @@ modules:
     address: https://a.blazemeter.com  # reporting service address
     data-address: https://data.blazemeter.com  # data service address
     browser-open: start  # auto-open the report in browser, 
-                         # possible values are "start", "end", "both", "none"
+                         # can be "start", "end", "both", "none"
     send-interval: 30s   # send data each n-th second
     timeout: 5  # connect and request timeout for BlazeMeter API
 ```
