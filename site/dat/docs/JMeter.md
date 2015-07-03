@@ -1,8 +1,8 @@
-### JMeter Executor
+# JMeter Executor
 
 This executor type is used by default, it uses [Apache JMeter](http://jmeter.apache.org/) as underlying tool.
 
-#### JMeter Location & Auto-Installation
+## JMeter Location & Auto-Installation
 
 If there is no JMeter installed at the configured `path`, Taurus will attempt to install latest JMeter and Plugins into
 this location, by default `~/jmeter-taurus/bin/jmeter`. You can change this setting to your preferred JMeter location (consider putting it into `~/.bzt-rc` file). All module settings that relates to JMeter path and auto-installing are listed below:
@@ -17,7 +17,7 @@ modules:
     plugins-download-link: http://jmeter-plugins.org/files/JMeterPlugins-{plugin}-1.2.1.zip
 ```
 
-#### Run Existing JMX File
+## Run Existing JMX File
 ```yaml
 ---
 execution:
@@ -29,7 +29,7 @@ or simply `bzt tests/jmx/dummy.jmx`
 
 TODO: explain how multi-thread group will accept concurrency with maintained proportion
 
-#### JMeter Properties
+## JMeter Properties
 There are two places to specify JMeter properties: global at module-level and local at scenario-level. Scenario properties are merged into global properties and resulting set comes as input for JMeter, see corresponding `.properties` file in artifacts.
 You may also specify system properties for JMeter in system-properties section. They comes as system.properties file in artifacts.
 
@@ -58,7 +58,7 @@ execution:
         log_level.jmeter: DEBUG
 ```
 
-#### Open JMeter GUI
+## Open JMeter GUI
 When you want to verify or debug the JMX file that were generated from your requests scenario, you don't need to search for the file on disk, just enable GUI mode for JMeter module:
 
 ```yaml
@@ -70,7 +70,7 @@ modules:
 
 For the command-line, use alias `-gui` or option `-o modules.jmeter.gui=true`, without the need to edit configuration file.
 
-#### Run JMeter in Distributed Mode
+## Run JMeter in Distributed Mode
 Distributed mode for JMeter is enabled with simple option `distributed` under execution settings, listing JMeter servers under it:
 
 ```yaml
@@ -87,8 +87,7 @@ modules:
     rename-distributed-threads: true  # Will add ${__machineName()} expression to thread names, true by default
 ```
 
-
-#### Modifications for Existing Scripts
+## Modifications for Existing Scripts
 
 JMeter executor allows you to apply some modifications to the JMX file before running JMeter (this affects both existing JMXes and generated from requests):
 
@@ -110,9 +109,11 @@ execution:
           "HTTP Sampler>HTTPSampler.protocol": "https"
 ```
 
+## Building Test Plan from Config
 
+Scenario that has `requests` element makes Taurus to generate the script for underlying tools automatically. For now, this is available for JMeter, partially available for Grinder and not available for Gatling. 
 
-# Scenario Building
+The `requests` element must contain a list of requests, each with its settings and child elements (assertions, extractors). Also there are additional configuration elements for requests-based scenario, described below.
 
 Scenario is the sequence of steps and some settings that will be used by underlying tools (JMeter, Grinder, Gatling) on execution stage. There is two ways to specify scenarios for executions: _inline in execution_ and _referred by alias_.
 
@@ -142,23 +143,6 @@ execution:
   scenario: get-requests  # alias from above is used 
 ```
 
-## Existing Script Scenario
-
-If you have pre-existing script for your tool, you can use it as a scenario like this:
-
-```yaml
-execution:
-  scenario:
-    script: tests/jmx/dummy.jmx
-```
-
-Read the [execution settings](ExecutionSettings.md) section for you tool to learn additional options available with existing scripts.
-
-## Requests Scenario
-
-Scenario that has `requests` element makes Taurus to generate the script for underlying tools automatically. For now, this is available for JMeter, partially available for Grinder and not available for Gatling. You may contribute your efforts in supporting requests-scenarios for your favorite tool by discussing this on [project forums](https://groups.google.com/forum/#!forum/codename-taurus).
-
-The `requests` element must contain a list of requests, each with its settings and child elements (assertions, extractors). Also there are additional configuration elements for requests-based scenario, described below.
 
 ### Global Settings
 

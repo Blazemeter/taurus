@@ -1,14 +1,9 @@
+# Selenium Executor
+Allows to run functional tests locally with Selenium WebDriver. Currently supported selenium test languages: Java/JUnit, Python UnitTest. Using Selenium Grid is not supported.
 
+Selenium executor uses two types of test runners: JUnit and Nose, test type and runner type are detected automatically. Scenario may be presented not only as single file but as a folder.
 
-### Selenium Executor
-Allows to run functional tests with Selenium WebDriver.
-Currently supported test cases: Java/JUnit, Python/Unittest.
-Grid is not supported.
-
-Scenario may be presented not only as single file but as folder.
-Selenium executor uses two types of test runners: JUnit and Nose, test type and runner type are detected automatically.
-
-### Supported file types:
+## Supported file types:
 
   - .java/single file
   - .java/folder (flat structure, no package)
@@ -18,15 +13,11 @@ Selenium executor uses two types of test runners: JUnit and Nose, test type and 
   - .py/single file
   - .py/folder
 
-### Runner types:
+## JUnit Runner
 
-  - JUnit
-  
-.java files will be compiled and packed into jar file before running tests.
-All necessary tools will be downloaded and installed automatically in ~/selenium-taurus.
+All `.java` files will be compiled and packed into jar file before running tests. All necessary tools will be downloaded and installed automatically into ~/selenium-taurus.
 
-
-config options:
+Configuration options:
 
 ```yaml
 ---
@@ -40,10 +31,10 @@ modules:
         "working-dir": "classes"  # set name of runner working directory within artifacts dir     
 ```
 
-  - Python Nose
+## Python Nose Runner
 
+Configuration options:
 
-config options:
 ```yaml
 ---
 modules:
@@ -54,8 +45,8 @@ modules:
         "interpreter": "/home/user/interpreter/python"  # path to custom interpreter.
 ```
 
-### Scenario samples
-Minimal working scenarios:
+## Scenario samples
+Minimal working scenario:
 
 ```yaml
 ---

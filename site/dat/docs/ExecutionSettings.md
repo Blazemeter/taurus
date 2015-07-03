@@ -76,10 +76,10 @@ execution:
 
 Taurus tool may use different underlying tools as executors for scenarios. Currently supported tools are:
  
-  - JMeter, executor type `jmeter`
-  - Grinder, executor type `grinder`
-  - Gatling, executor type `gatling`
-  - Selenium, executor type `selenium`
+  - [JMeter](JMeter.md), executor type `jmeter`
+  - [Selenium](Selenium.md), executor type `selenium`
+  - [Gatling](Gatling.md), executor type `gatling`
+  - [Grinder](Grinder.md), executor type `grinder`
 
 Default executor is `jmeter` and can be changed under [general settings](ConfigSyntax.md#top-level-settings) section.
 ```yaml
@@ -88,3 +88,4 @@ settings:
   default-executor: jmeter
 ```
 
+You may contribute your efforts in supporting requests-scenarios for your favorite tool by discussing this on [project forums](https://groups.google.com/forum/#!forum/codename-taurus).

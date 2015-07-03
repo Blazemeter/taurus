@@ -1,6 +1,4 @@
-
-
-### Gatling Executor
+# Gatling Executor
 
 configuration options:
 
@@ -16,7 +14,7 @@ configuration options:
  -  `version`: "2.1.4"
     Gatling version, by default "2.1.4"
 
-#### Run Gatling Tool
+## Run Gatling Tool
 
 ```yaml
 execution:
