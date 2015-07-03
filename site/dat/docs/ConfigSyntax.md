@@ -2,11 +2,11 @@
 
 Configuration dictionary has several top-level keys:
 
- - [`execution`](ExecutionSettings.md) - main section, declares tools to be executed during run, scenarios to use, etc
- - [`reporting`](Reporting.md) - analysis and reporting settings, list of reporting modules to process results 
+ - `[execution](ExecutionSettings.md)` - main section, declares tools to be executed during run, scenarios to use, etc
+ - `[reporting](Reporting.md)` - analysis and reporting settings, list of reporting modules to process results 
  - `scenarios` - dictionary of scenario specifications with aliases, to be referred from executions
- - [`modules`](#modules-settings) - list of classes to load and their respective settings
- - [`settings`](#top-level-settings) - some top-level settings for the tool
+ - `[modules](#modules-settings)` - list of classes to load and their respective settings
+ - `[settings](#top-level-settings)` - some top-level settings for the tool
  - `provisioning` - advanced option, allows using resources other than local to have distributed high-load test, available if you have corresponding provider installed and configured
  
  
@@ -173,7 +173,7 @@ reporting:
 - module: status
 ```
 
-Hint: YAML config files on Linux/MacOS allows a trick of self-executing config. To have it, add _shebang line_ as first line of your file, like this:
+Hint: YAML config files on Linux/MacOS allows a trick of self-executing config. To have it, add [shebang line](https://en.wikipedia.org/wiki/Shebang_(Unix\)) as first line of your file, like this:
 
 ```yaml
 #! /usr/local/bin/bzt
