@@ -107,19 +107,23 @@ table.wiki .toc-list1 {
     border-bottom: 2px dotted #ccc;
 }
 
-pre.yaml .sy1 {
+table.wiki pre.yaml .sy1 {
     color: gray;
 }
 
-pre.yaml .co1 {
+table.wiki pre.yaml .co1 {
     color: silver;
 }
 
-a.anchorLink {
+table.wiki a.anchorLink {
     vertical-align: bottom;
     padding-left: 0.5em;
     font-size: 0.8em;
     text-decoration: none;
     color: gray;
     top: -0.25em;
+}
+
+table.wiki img {
+    max-width: 100%;
 }

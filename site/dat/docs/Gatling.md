@@ -18,15 +18,11 @@ configuration options:
 
 #### Run Gatling Tool
 
-```javascript
-{
-  "execution": {
-    "executor": "gatling",
-    "scenario": {
-      "script": "tests/gatling/BasicSimulation.scala",
-      "simulation": "mytest.BasicSimulation"
-    }
-  }
-}
+```yaml
+execution:
+  executor: gatling
+  scenario:
+    script: tests/gatling/BasicSimulation.scala
+    simulation: mytest.BasicSimulation
 ```
 

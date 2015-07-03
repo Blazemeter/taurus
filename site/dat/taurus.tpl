@@ -38,9 +38,9 @@
 {block name="header_right"}
     <table style="white-space: nowrap; vertical-align: middle;">
         <tr>
-            <td style="padding: 0 0.5em; padding-right: 6em;">
+            <td style="padding: 0 0.5em; padding-right: 7em;">
             <i>
-            <b>T</b>est <b>au</b>tomation <b>ru</b>nning <b>s</b>moothly...</i>
+            <b>T</b>est <b>au</b>tomation <b>ru</b>nning <b>s</b>moothly!</i>
                 <a href="https://github.com/blazemeter/taurus">
                     <img style="position: absolute; top: 1.2em; right: 0; border: 0;"
                          src="https://camo.githubusercontent.com/a6677b08c955af8400f44c6298f40e7d19cc5b2d/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f677261795f3664366436642e706e67"

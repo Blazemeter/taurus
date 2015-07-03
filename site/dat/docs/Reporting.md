@@ -71,11 +71,11 @@ bzt config.yml -o modules.console.disable=true
 On Windows, Console Screen is shown in separate window and users may change font size by holding Ctrl key and using mouse wheel.
 Two additional options are `dummy-cols` and `dummy-rows`, they affect the size of _dummy_ screen that is used for non-tty output.
 
-## Pass/Fail Criterias
+## Pass/Fail Criteria
 
-Every execution has pass/fail status and there is a way to set this status based on runtime criteria. Special `fail-criteria` reporter offers this functionality. Another useful feature of pass/fail criterias is _auto-stop_ functionality, allowing to interrupt failed tests automatically, sparing the time and resources.
+Every execution has pass/fail status and there is a way to set this status based on runtime criteria. Special `fail-criteria` reporter offers this functionality. Another useful feature of pass/fail criteria is _auto-stop_ functionality, allowing to interrupt failed tests automatically, sparing the time and resources.
 
-Pass/fail criterias are specified as array of `criterias`, set through `reporting` item in config:
+Pass/fail criteria are specified as array of `criteria`, set through `reporting` item in config:
 
 ```yaml
 ---
@@ -86,7 +86,7 @@ reporting:
    - hits of Sample Label>150ms for 10s, stop as failed
 ```
 
-The above example use short form for criterias, its general format is `subject of label{condition}threshold for timeframe, action as status`, where:
+The above example use short form for criteria, its general format is `subject of label{condition}threshold for timeframe, action as status`, where:
 
   - `subject` is the KPI that will be compared, listed below
   - `label` is sample label, empty for overall
@@ -173,8 +173,9 @@ modules:
   blazemeter:
     address: https://a.blazemeter.com  # reporting service address
     data-address: https://data.blazemeter.com  # data service address
-    browser-open: start  # auto-open the report in browser, possible values are "start", "end", "both", "none"
-    send-interval: 30s  # send data each n-th second
+    browser-open: start  # auto-open the report in browser, 
+                         # possible values are "start", "end", "both", "none"
+    send-interval: 30s   # send data each n-th second
     timeout: 5  # connect and request timeout for BlazeMeter API
 ```
 
@@ -216,11 +217,15 @@ The `consolidator` has several settings:
 ---
 modules:
   consolidator:
-    generalize-labels: true  # replace digits and UUID sequences with N and U to decrease label count
-    ignore-labels: # sample labels from this list will be ignored by results reader
+    generalize-labels: true  # replace digits and UUID sequences 
+                             # with N and U to decrease label count
+    ignore-labels: # sample labels from this list 
+                   # will be ignored by results reader
       - ignore
-    buffer-seconds: 2  # this buffer is used to wait for complete data within a second
-    percentiles:  # percentile levels to track, 0 also means min, 100 also means max 
+    buffer-seconds: 2  # this buffer is used to wait 
+                       # for complete data within a second
+    percentiles:  # percentile levels to track, 
+                  # 0 also means min, 100 also means max 
     - 0.0
     - 50.0
     - 90.0

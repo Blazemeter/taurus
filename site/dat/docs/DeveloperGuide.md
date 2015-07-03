@@ -18,7 +18,7 @@
  
 # Deploying Project Website
  
-If you want to deploy project website locally to debug its content, have Apache webserver installed and configure it to point to `site` directory like this:
+If you want to deploy project website locally to debug its content, have Apache web server installed and configure it to point to `site` directory like this:
 ```
 <Directory "/home/mydir/taurus/site">
     Options FollowSymlinks
