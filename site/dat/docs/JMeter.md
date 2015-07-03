@@ -1,3 +1,117 @@
+### JMeter Executor
+
+This executor type is used by default, it uses [Apache JMeter](http://jmeter.apache.org/) as underlying tool.
+
+#### JMeter Location & Auto-Installation
+
+If there is no JMeter installed at the configured `path`, Taurus will attempt to install latest JMeter and Plugins into
+this location, by default `~/jmeter-taurus/bin/jmeter`. You can change this setting to your preferred JMeter location (consider putting it into `~/.bzt-rc` file). All module settings that relates to JMeter path and auto-installing are listed below:
+ 
+```yaml
+---
+modules:
+  jmeter:
+    path: ~/jmeter-taurus/bin/jmeter
+    download-link: http://apache.claz.org/jmeter/binaries/apache-jmeter-{version}.zip
+    version: 2.13
+    plugins-download-link: http://jmeter-plugins.org/files/JMeterPlugins-{plugin}-1.2.1.zip
+```
+
+#### Run Existing JMX File
+```yaml
+---
+execution:
+  scenario:
+    script: tests/jmx/dummy.jmx
+```
+
+or simply `bzt tests/jmx/dummy.jmx`
+
+TODO: explain how multi-thread group will accept concurrency with maintained proportion
+
+#### JMeter Properties
+There are two places to specify JMeter properties: global at module-level and local at scenario-level. Scenario properties are merged into global properties and resulting set comes as input for JMeter, see corresponding `.properties` file in artifacts.
+You may also specify system properties for JMeter in system-properties section. They comes as system.properties file in artifacts.
+
+Global properties are set like this:
+
+```yaml
+---
+modules:
+  jmeter:
+    properties:
+      my-hostname: www.pre-test.com
+      log_level.jmeter: WARN
+      log_level.jmeter.threads: DEBUG
+    system-properties:
+      sun.net.http.allowRestrictedHeaders: "true"
+```
+
+Scenario-level properties are set like this:
+
+```yaml
+---
+execution:
+  scenario: 
+    properties:
+        my-hostname: www.prod.com
+        log_level.jmeter: DEBUG
+```
+
+#### Open JMeter GUI
+When you want to verify or debug the JMX file that were generated from your requests scenario, you don't need to search for the file on disk, just enable GUI mode for JMeter module:
+
+```yaml
+---
+modules:
+  jmeter:
+    gui: false  # set it to true to open JMeter GUI instead of running non-GUI test
+```
+
+For the command-line, use alias `-gui` or option `-o modules.jmeter.gui=true`, without the need to edit configuration file.
+
+#### Run JMeter in Distributed Mode
+Distributed mode for JMeter is enabled with simple option `distributed` under execution settings, listing JMeter servers under it:
+
+```yaml
+---
+execution:
+  distributed: 
+    - host1.mynet.com
+    - host2.mynet.com
+    - host3.mynet.com
+  scenario:
+    script: my-test.jmx
+modules:
+  jmeter:
+    rename-distributed-threads: true  # Will add ${__machineName()} expression to thread names, true by default
+```
+
+
+#### Modifications for Existing Scripts
+
+JMeter executor allows you to apply some modifications to the JMX file before running JMeter (this affects both existing JMXes and generated from requests):
+
+```yaml
+---
+execution:
+  scenario:
+    script: tests/jmx/dummy.jmx
+    variables: # add User Defined Variables component to test plan, overriding other global variables
+      user_def_var: http://demo.blazemeter.com/api/user
+      user_def_var2: user_def_val_2
+    modifications:
+        disable:  # Names of the tree elements to disable
+            - Thread Group 1
+        enable:  # Names of the tree elements to ensable
+            - Thread Group 2
+        set-prop:  # Set element properties, selected as [Element Name]>[property name]
+          "HTTP Sampler>HTTPSampler.connect_timeout": "0"
+          "HTTP Sampler>HTTPSampler.protocol": "https"
+```
+
+
+
 # Scenario Building
 
 Scenario is the sequence of steps and some settings that will be used by underlying tools (JMeter, Grinder, Gatling) on execution stage. There is two ways to specify scenarios for executions: _inline in execution_ and _referred by alias_.
