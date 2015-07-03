@@ -30,9 +30,9 @@
 {/block}
 
 {block name="header_title"}
-    <span style="font-size: 2em;"><span style="color: silver; font-size: 0.5em">Codename: </span>Taurus</span>
+    <span style="font-size: 2em;"><span style="color: silver;">Codename: </span>Taurus</span>
     <br/>
-    <span style="font-size: 0.8em;">Automation tool for tests execution</span>
+    <span style="font-size: 0.7em;margin-left: 0.5em;">Automation-friendly framework for Continuous Testing</span>
 {/block}
 
 {block name="header_right"}
