@@ -83,7 +83,8 @@ execution:
     script: my-test.jmx
 modules:
   jmeter:
-    rename-distributed-threads: true  # Will add ${__machineName()} expression to thread names, true by default
+    rename-distributed-threads: true  # Will add ${__machineName()} expression 
+                                      # to thread names, true by default
 ```
 
 ## Modifications for Existing Scripts
@@ -95,7 +96,8 @@ JMeter executor allows you to apply some modifications to the JMX file before ru
 execution:
   scenario:
     script: tests/jmx/dummy.jmx
-    variables: # add User Defined Variables component to test plan, overriding other global variables
+    variables: # add User Defined Variables component to test plan, 
+               # overriding other global variables
       user_def_var: http://demo.blazemeter.com/api/user
       user_def_var2: user_def_val_2
     modifications:
@@ -161,7 +163,8 @@ scenarios:
     keepalive: true  # true by default, applied on all requests in scenario
     retrieve-resources: true  # true by default, retrieves all embedded resources from HTML pages
     concurrent-pool-size: 4  # concurrent pool size for resources download, 4 by default
-    use-dns-cache-mgr: true  # use DNS Cache Manager to test resources behind dns load balancers. True by default.
+    use-dns-cache-mgr: true  # use DNS Cache Manager to test resources 
+                             # behind dns load balancers. True by default.
     data-sources: # list of external data sources
       - path/to/my.csv  # this is a shorthand form
       - path: path/to/another.csv  # this is full form, path option is required
@@ -312,7 +315,7 @@ scenarios:
       - url: http://blazedemo.com/
         assert-jsonpath:
             - jsonpath: "$." # path to value, validation fails if path not exists
-              validate: true # validate value if true. or just check if json path exists if false
+              validate: true # validate against expected value
               expected-value: "value" # the value we are expecting to validate
               expect-null: false  # expected value is null
               invert: false # invert condition
