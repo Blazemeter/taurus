@@ -13,6 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+from abc import abstractmethod
 import os
 import sys
 import signal
@@ -37,12 +38,12 @@ class RCProvider(object):
     """
     Abstract return code provider
     """
-
+    @abstractmethod
     def get_rc(self):
         """
         Must be implemented in subclasses
         """
-        raise NotImplementedError()
+        pass
 
 
 class NormalShutdown(KeyboardInterrupt, RCProvider):

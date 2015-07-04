@@ -15,6 +15,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+from abc import abstractmethod
 import copy
 import logging
 import math
@@ -371,8 +372,9 @@ class ResultsProvider(object):
                 listener.aggregated_second(datapoint)
             yield datapoint
 
+    @abstractmethod
     def _calculate_datapoints(self, final_pass=False):
-        raise NotImplementedError()
+        pass
 
 
 class ResultsReader(ResultsProvider):
@@ -477,6 +479,7 @@ class ResultsReader(ResultsProvider):
         point[DataPoint.SOURCE_ID] = id(self)
         return point
 
+    @abstractmethod
     def _read(self, final_pass=False):
         """
 
@@ -485,7 +488,7 @@ class ResultsReader(ResultsProvider):
         :rtype: iterable
         :return: timestamp, label, concurrency, rt, latency, rc, error
         """
-        raise NotImplementedError()
+        pass
 
     def __generalize_label(self, label):
         for regexp, replacement in self.label_generalize_regexps:

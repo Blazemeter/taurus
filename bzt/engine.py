@@ -15,6 +15,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+from abc import abstractmethod
 
 import copy
 import datetime
@@ -274,9 +275,7 @@ class Engine(object):
             date_str = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S.")
             if not os.path.isdir(self.artifacts_base_dir):
                 os.makedirs(self.artifacts_base_dir)
-            self.artifacts_dir = tempfile.mkdtemp(prefix=date_str,
-                                                  dir=os.path.expanduser(
-                                                      self.artifacts_base_dir))
+            self.artifacts_dir = tempfile.mkdtemp(prefix=date_str, dir=os.path.expanduser(self.artifacts_base_dir))
         else:
             self.artifacts_dir = os.path.expanduser(self.artifacts_dir)
 
@@ -810,13 +809,14 @@ class FileLister(object):
     A mixin to get required files info from executor
     """
 
+    @abstractmethod
     def resource_files(self):
         """
         Get list of resource files
 
         :rtype: list
         """
-        raise NotImplementedError()
+        pass
 
 
 class ScenarioExecutor(EngineModule):
@@ -997,13 +997,14 @@ class AggregatorListener(object):
     Mixin for listeners of aggregator data
     """
 
+    @abstractmethod
     def aggregated_second(self, data):
         """
         Notification about new data point
 
         :param data: bzt.modules.reporting.DataPoint
         """
-        raise NotImplementedError()
+        pass
 
     def finalize(self):
         """

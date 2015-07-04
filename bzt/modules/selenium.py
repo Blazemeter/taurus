@@ -1,6 +1,7 @@
 """
 Module holds selenium stuff
 """
+from abc import abstractmethod
 
 import os
 import time
@@ -163,14 +164,17 @@ class AbstractTestRunner(object):
         self.opened_descriptors = {"std_err": None, "std_out": None}
         self.is_failed = False
 
+    @abstractmethod
     def prepare(self):
-        raise NotImplementedError
+        pass
 
+    @abstractmethod
     def run_checklist(self):
-        raise NotImplementedError
+        pass
 
+    @abstractmethod
     def run_tests(self):
-        raise NotImplementedError
+        pass
 
     def is_finished(self):
         ret_code = self.process.poll()
@@ -590,7 +594,7 @@ class JavaVM(RequiredTool):
             raise RuntimeError("The %s is not operable or not available. Consider installing it" % self.tool_name)
 
     def install(self):
-        raise NotImplementedError
+        raise NotImplementedError()
 
 
 class JavaC(RequiredTool):
@@ -607,7 +611,7 @@ class JavaC(RequiredTool):
             raise RuntimeError("The %s is not operable or not available. Consider installing it" % self.tool_name)
 
     def install(self):
-        raise NotImplementedError
+        raise NotImplementedError()
 
 
 class JUnitListenerJar(RequiredTool):
@@ -615,7 +619,7 @@ class JUnitListenerJar(RequiredTool):
         super(JUnitListenerJar, self).__init__("JUnitListener", tool_path, download_link)
 
     def install(self):
-        raise NotImplementedError
+        raise NotImplementedError()
 
 
 class TaurusNosePlugin(RequiredTool):
@@ -623,4 +627,4 @@ class TaurusNosePlugin(RequiredTool):
         super(TaurusNosePlugin, self).__init__("TaurusNosePlugin", tool_path, download_link)
 
     def install(self):
-        raise NotImplementedError
+        raise NotImplementedError()
