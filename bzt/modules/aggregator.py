@@ -114,8 +114,10 @@ class KPISet(BetterDict):
         if cnc:
             self._concurrencies[trname] = cnc
 
-        resp_codes = self.get(self.RESP_CODES)
-        resp_codes[r_code] = resp_codes.get(r_code, 0) + 1
+        if r_code is not None:
+            resp_codes = self.get(self.RESP_CODES)
+            resp_codes[r_code] = resp_codes.get(r_code, 0) + 1
+
         if error is not None:
             self[self.FAILURES] = self.get(self.FAILURES, 0) + 1
 
@@ -374,6 +376,10 @@ class ResultsProvider(object):
 
     @abstractmethod
     def _calculate_datapoints(self, final_pass=False):
+        """
+
+        :rtype : tuple
+        """
         pass
 
 
@@ -485,7 +491,7 @@ class ResultsReader(ResultsProvider):
 
         :param final_pass: True if called from post-process stage, when reader
             should report possible rests of results
-        :rtype: iterable
+        :rtype: generator
         :return: timestamp, label, concurrency, rt, latency, rc, error
         """
         pass
