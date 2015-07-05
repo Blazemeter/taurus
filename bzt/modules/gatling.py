@@ -175,7 +175,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         Checks if Gatling is available, otherwise download and install it.
         """
         # NOTE: file extension should be in config
-        gatling_path = self.settings.get("path", "~/gatling-taurus/bin/gatling" + EXE_SUFFIX)
+        gatling_path = self.settings.get("path", "~/.bzt/gatling-taurus/bin/gatling" + EXE_SUFFIX)
         gatling_path = os.path.abspath(os.path.expanduser(gatling_path))
         self.settings["path"] = gatling_path
 

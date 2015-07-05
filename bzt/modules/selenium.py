@@ -211,8 +211,8 @@ class JunitTester(AbstractTestRunner):
         self.log = parent_logger.getChild(self.__class__.__name__)
         path_lambda = lambda key, val: os.path.abspath(os.path.expanduser(self.settings.get(key, val)))
 
-        self.junit_path = path_lambda("path", "~/selenium-taurus/tools/junit/junit.jar")
-        self.selenium_server_jar_path = path_lambda("selenium-server", "~/selenium-taurus/selenium-server.jar")
+        self.junit_path = path_lambda("path", "~/.bzt/selenium-taurus/tools/junit/junit.jar")
+        self.selenium_server_jar_path = path_lambda("selenium-server", "~/.bzt/selenium-taurus/selenium-server.jar")
         self.junit_listener_path = os.path.join(os.path.dirname(__file__), "resources", "taurus_junit.jar")
 
         self.base_class_path = [self.selenium_server_jar_path, self.junit_path, self.junit_listener_path]

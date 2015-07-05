@@ -276,7 +276,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         Checks if Grinder is available, otherwise download and install it.
         """
-        grinder_path = self.settings.get("path", "~/grinder-taurus/lib/grinder.jar")
+        grinder_path = self.settings.get("path", "~/.bzt/grinder-taurus/lib/grinder.jar")
         grinder_path = os.path.abspath(os.path.expanduser(grinder_path))
         self.settings['path'] = grinder_path
 
@@ -306,7 +306,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         dest = os.path.dirname(os.path.dirname(os.path.expanduser(grinder_path)))
         if not dest:
-            dest = os.path.expanduser("~/grinder-taurus")
+            dest = os.path.expanduser("~/.bzt/grinder-taurus")
         dest = os.path.abspath(dest)
         grinder_full_path = os.path.join(dest, "lib", "grinder.jar")
         try:

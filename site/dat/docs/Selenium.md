@@ -15,7 +15,7 @@ Selenium executor uses two types of test runners: JUnit and Nose, test type and 
 
 ## JUnit Runner
 
-All `.java` files will be compiled and packed into jar file before running tests. All necessary tools will be downloaded and installed automatically into ~/selenium-taurus.
+All `.java` files will be compiled and packed into jar file before running tests. All necessary tools will be downloaded and installed automatically into `~/.bzt/selenium-taurus`.
 
 Configuration options:
 
@@ -25,8 +25,8 @@ modules:
   selenium:
     selenium-tools:
       junit:
-        path: "~/selenium-taurus/tools/junit/junit.jar"  # path to JUnit framework
-        selenium-server: "~/selenium-taurus/selenium-server.jar"  # path to Selenium Standalone Server
+        path: "~/.bzt/selenium-taurus/tools/junit/junit.jar"  # path to JUnit framework
+        selenium-server: "~/.bzt/selenium-taurus/selenium-server.jar"  # path to Selenium Standalone Server
         "jar-name": "compiled.jar",  # set name of jar file when compiling from java source files 
         "working-dir": "classes"  # set name of runner working directory within artifacts dir     
 ```

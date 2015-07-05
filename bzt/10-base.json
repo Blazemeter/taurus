@@ -17,7 +17,7 @@
         "summariser.name": "",
         "mode": "Stripped"
       },
-      "path": "~/jmeter-taurus/bin/jmeter"
+      "path": "~/.bzt/jmeter-taurus/bin/jmeter"
     },
     "jtl-loader": "bzt.modules.jmeter.JMeterJTLLoaderExecutor",
     "grinder": {
@@ -25,18 +25,18 @@
       "properties": {
         "grinder.useConsole": false
       },
-      "path": "~/grinder-taurus/lib/grinder.jar"
+      "path": "~/.bzt/grinder-taurus/lib/grinder.jar"
     },
     "gatling": {
       "class": "bzt.modules.gatling.GatlingExecutor",
-      "path": "~/gatling-taurus/bin/gatling.sh"
+      "path": "~/.bzt/gatling-taurus/bin/gatling.sh"
     },
     "selenium": {
       "class": "bzt.modules.selenium.SeleniumExecutor",
       "selenium-tools": {
        "junit": {
-         "path": "~/selenium-taurus/tools/junit/junit.jar",
-         "selenium-server": "~/selenium-taurus/selenium-server.jar",
+         "path": "~/.bzt/selenium-taurus/tools/junit/junit.jar",
+         "selenium-server": "~/.bzt/selenium-taurus/selenium-server.jar",
          "jar-name": "compiled.jar",
          "working-dir": "classes"
        },

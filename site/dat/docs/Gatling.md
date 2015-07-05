@@ -5,7 +5,7 @@ configuration options:
  - `path`: "/somepath/folder/bin/gatling_executable"
     Path to Gatling executable.
     If no Gatling executable found, it will be automatically downloaded and installed in "path".
-    By default "~/gatling-taurus/bin/gatling.sh".
+    By default "~/.bzt/gatling-taurus/bin/gatling.sh".
     
  - `download-link`:"http://somehost/gatling-charts-highcharts-bundle-{version}-bundle.zip"
     Link to download Gatling.

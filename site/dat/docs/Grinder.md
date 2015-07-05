@@ -5,7 +5,7 @@ Configuration options:
  - `path`: "/somepath/folder/"
     Path to Grinder.
     If no grinder.jar found in folder/lib/, Grinder tool will be automatically downloaded and installed in "path".
-    By default "~/grinder-taurus/".
+    By default "~/.bzt/grinder-taurus/".
  - `download-link`:"http://somehost/grinder-{version}-binary.zip"
     Link to download Grinder.
     By default "http://switch.dl.sourceforge.net/project/grinder/The%20Grinder%203/{version}/grinder-{version}-binary.zip"

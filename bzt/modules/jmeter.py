@@ -669,7 +669,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         Checks if JMeter is available, otherwise download and install it.
         """
-        jmeter = self.settings.get("path", "~/jmeter-taurus/bin/jmeter" + EXE_SUFFIX)
+        jmeter = self.settings.get("path", "~/.bzt/jmeter-taurus/bin/jmeter" + EXE_SUFFIX)
         jmeter = os.path.abspath(os.path.expanduser(jmeter))
         self.settings['path'] = jmeter  # set back after expanding ~
 
