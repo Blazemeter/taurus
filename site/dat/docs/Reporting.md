@@ -45,6 +45,7 @@ reporting:
       summary: true  # overall samples count and percent of failures
       percentiles: true  # display average times and percentiles
       failed-labels: false  # provides list of sample labels with failures
+      test-duration: true  # provides test duration 
 ```
 
 

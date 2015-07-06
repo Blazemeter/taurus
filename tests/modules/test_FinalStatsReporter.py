@@ -2,11 +2,13 @@ from io import StringIO
 from tests import BZTestCase
 from tests.mocks import EngineEmul
 from bzt.modules.reporting import FinalStatus
+from bzt.modules.jmeter import JMeterExecutor
 from bzt.utils import BetterDict
 from collections import Counter, defaultdict
 import six
 from bzt.modules.aggregator import DataPoint, KPISet
-
+import time
+from bzt.engine import Provisioning
 
 class logger_mock(object):
     def __init__(self):
@@ -27,7 +29,7 @@ class TestFinalStatsReporter(BZTestCase):
         obj.engine = EngineEmul
         obj.parameters = BetterDict()
         obj.log = logger_mock()
-        obj.parameters.merge({"failed-labels": True, "percentiles": False, "summary": False})
+        obj.parameters.merge({"failed-labels": True, "percentiles": False, "summary": False, "test-duration":False})
 
         datapoint = DataPoint(None, None)
         cumul_data = datapoint[DataPoint.CUMULATIVE]
@@ -137,7 +139,7 @@ class TestFinalStatsReporter(BZTestCase):
         obj.engine = EngineEmul
         obj.parameters = BetterDict()
         obj.log = logger_mock()
-        obj.parameters.merge({"failed-labels": False, "percentiles": True, "summary": False})
+        obj.parameters.merge({"failed-labels": False, "percentiles": True, "summary": False, "test-duration":False})
 
         datapoint = DataPoint(None, None)
 
@@ -181,7 +183,7 @@ class TestFinalStatsReporter(BZTestCase):
         obj.engine = EngineEmul
         obj.parameters = BetterDict()
         obj.log = logger_mock()
-        obj.parameters.merge({"failed-labels": False, "percentiles": False, "summary": True})
+        obj.parameters.merge({"failed-labels": False, "percentiles": False, "summary": True, "test-duration":False})
 
         datapoint = DataPoint(None, None)
 
@@ -211,3 +213,22 @@ class TestFinalStatsReporter(BZTestCase):
         obj.post_process()
 
         self.assertEqual("Samples count: 59314, 50.00% failures\n", obj.log.info_buf.getvalue())
+
+    def test_log_messages_duration(self):
+        """
+        Test duration report
+        :return:
+        """
+        executor_obj = JMeterExecutor()
+        executor_obj.engine = EngineEmul()
+        executor_obj.engine.provisioning = Provisioning()
+        executor_obj.engine.provisioning.executors.append(executor_obj)
+        executor_obj.start_time = time.time()
+        executor_obj.end_time = executor_obj.start_time + 120005
+
+        obj = FinalStatus()
+        obj.parameters = BetterDict()
+        obj.engine = executor_obj.engine
+        obj.log = logger_mock()
+        obj.post_process()
+        self.assertEqual("Test duration: 1 day, 9:20:05\n", obj.log.info_buf.getvalue())
