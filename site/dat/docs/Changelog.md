@@ -1,15 +1,18 @@
 # Changelog
 
-## 0.3.0 (next)
+## 0.3.1 (next)
+
+
+## 0.3.0
   - implement `selenium` executor
   - fix crashing on second start jmeter under GUI mode
   - iterate requests forever if no limits were specified
   - fix test duration logic to respect iterations set
-  - distributed tests are now supported with JMeter UI (gui: true option)
+  - distributed tests are now supported with JMeter UI (`gui: true` option)
   - install JMeter-Plugins 1.3.0
   - all default tool locations are now under `~/.bzt` dir
   - FinalStatus reporter now provides test duration (test-duration option, True by default)
-  - bzt now fails when no requests were given in scenario
+  - bzt now fails when no requests were given in requests scenario
   - six module version requirements was removed
 
 ## 0.2.23
