@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testResults version="1.2">
+<httpSample t="637" lt="255" ct="132" ts="1436177302019" s="false" lb="HTTP Request" rc="200" rm="OK" tn="Thread Group 1-1" dt="text" de="windows-1251" by="87533" ng="1" na="1">
+  <httpSample t="255" lt="255" ct="132" ts="1436177301637" s="true" lb="http://meteocenter.asia/ts.php?p=UUDG&amp;dt=201303" rc="200" rm="OK" tn="Thread Group 1-1" dt="text" de="windows-1251" by="22843" ng="1" na="1">
+    <responseHeader class="java.lang.String">HTTP/1.1 200 OK
+Date: Mon, 06 Jul 2015 10:08:21 GMT
+Server: Apache/2.2.3 (CentOS)
+X-Powered-By: PHP/5.4.24
+Connection: close
+Transfer-Encoding: chunked
+Content-Type: text/html; charset=windows-1251
+</responseHeader>
+    <requestHeader class="java.lang.String">Connection: keep-alive
+Host: meteocenter.asia
+User-Agent: Apache-HttpClient/4.5 (Java/1.8.0_45)
+</requestHeader>
+    <responseData class="java.lang.String">&lt;html&gt;&#xd;
+&lt;/html&gt;&#xd;
+Worktime 0.0433 sec.</responseData>
+    <cookies class="java.lang.String"></cookies>
+    <method class="java.lang.String">GET</method>
+    <queryString class="java.lang.String"></queryString>
+    <java.net.URL>http://meteocenter.asia/ts.php?p=UUDG&amp;dt=201303</java.net.URL>
+  </httpSample>
+  <httpSample t="0" lt="0" ct="0" ts="1436177301782" s="false" lb="http://meteocenter.asia/\&quot;//yandex.st/share/share.js\&quot;" rc="Non HTTP response code: java.net.URISyntaxException" rm="Non HTTP response message: Illegal character in path at index 24: http://meteocenter.asia/\&quot;//yandex.st/share/share.js\&quot;" tn="Thread Group 1-1" dt="text" de="" by="1452" ng="1" na="1">
+    <responseHeader class="java.lang.String"></responseHeader>
+    <requestHeader class="java.lang.String"></requestHeader>
+    <responseData class="java.lang.String">java.net.URISyntaxException: Illegal character in path at index 24: http://meteocenter.asia/\&quot;//yandex.st/share/share.js\&quot;
+	at java.net.URI$Parser.fail(URI.java:2848)
+	at java.net.URI$Parser.checkChars(URI.java:3021)
+	at java.net.URI$Parser.parseHierarchical(URI.java:3105)
+	at java.net.URI$Parser.parse(URI.java:3053)
+	at java.net.URI.&lt;init&gt;(URI.java:588)
+	at java.net.URL.toURI(URL.java:939)
+	at org.apache.jmeter.protocol.http.sampler.HTTPHC4Impl.sample(HTTPHC4Impl.java:286)
+	at org.apache.jmeter.protocol.http.sampler.HTTPSamplerProxy.sample(HTTPSamplerProxy.java:74)
+	at org.apache.jmeter.protocol.http.sampler.HTTPSamplerBase.downloadPageResources(HTTPSamplerBase.java:1265)
+	at org.apache.jmeter.protocol.http.sampler.HTTPSamplerBase.resultProcessing(HTTPSamplerBase.java:1590)
+	at org.apache.jmeter.protocol.http.sampler.HTTPAbstractImpl.resultProcessing(HTTPAbstractImpl.java:463)
+	at org.apache.jmeter.protocol.http.sampler.HTTPHC4Impl.sample(HTTPHC4Impl.java:411)
+	at org.apache.jmeter.protocol.http.sampler.HTTPSamplerProxy.sample(HTTPSamplerProxy.java:74)
+	at org.apache.jmeter.protocol.http.sampler.HTTPSamplerBase.sample(HTTPSamplerBase.java:1146)
+	at org.apache.jmeter.protocol.http.sampler.HTTPSamplerBase.sample(HTTPSamplerBase.java:1135)
+	at org.apache.jmeter.threads.JMeterThread.process_sampler(JMeterThread.java:434)
+	at org.apache.jmeter.threads.JMeterThread.run(JMeterThread.java:261)
+	at java.lang.Thread.run(Thread.java:745)
+</responseData>
+    <cookies class="java.lang.String"></cookies>
+    <method class="java.lang.String">GET</method>
+    <queryString class="java.lang.String"></queryString>
+    <java.net.URL>http://meteocenter.asia/\&quot;//yandex.st/share/share.js\&quot;</java.net.URL>
+  </httpSample>
+  <httpSample t="219" lt="18" ct="10" ts="1436177302019" s="true" lb="http://mc.yandex.ru/metrika/watch.js-&gt;https://mc.yandex.ru/metrika/watch.js" rc="200" rm="OK" tn="Thread Group 1-1" dt="text" de="" by="63238" ng="1" na="1">
+    <httpSample t="18" lt="18" ct="10" ts="1436177301818" s="true" lb="http://mc.yandex.ru/metrika/watch.js" rc="301" rm="Moved Permanently" tn="" dt="text" de="" by="395" ng="0" na="0">
+      <responseHeader class="java.lang.String">HTTP/1.1 301 Moved Permanently
+Server: nginx/1.6.2
+Date: Mon, 06 Jul 2015 10:08:21 GMT
+Content-Type: text/html
+Content-Length: 184
+Connection: keep-alive
+Location: https://mc.yandex.ru/metrika/watch.js
+</responseHeader>
+      <requestHeader class="java.lang.String">Connection: keep-alive
+Host: mc.yandex.ru
+User-Agent: Apache-HttpClient/4.5 (Java/1.8.0_45)
+</requestHeader>
+      <responseData class="java.lang.String">&lt;html&gt;&#xd;
+&lt;head&gt;&lt;title&gt;301 Moved Permanently&lt;/title&gt;&lt;/head&gt;&#xd;
+&lt;body bgcolor=&quot;white&quot;&gt;&#xd;
+&lt;center&gt;&lt;h1&gt;301 Moved Permanently&lt;/h1&gt;&lt;/center&gt;&#xd;
+&lt;hr&gt;&lt;center&gt;nginx/1.6.2&lt;/center&gt;&#xd;
+&lt;/body&gt;&#xd;
+&lt;/html&gt;&#xd;
+</responseData>
+      <cookies class="java.lang.String"></cookies>
+      <method class="java.lang.String">GET</method>
+      <queryString class="java.lang.String"></queryString>
+      <redirectLocation class="java.lang.String">https://mc.yandex.ru/metrika/watch.js</redirectLocation>
+      <java.net.URL>http://mc.yandex.ru/metrika/watch.js</java.net.URL>
+    </httpSample>
+    <httpSample t="197" lt="170" ct="133" ts="1436177302019" s="true" lb="https://mc.yandex.ru/metrika/watch.js" rc="200" rm="OK" tn="Thread Group 1-1" dt="text" de="" by="62843" ng="0" na="0">
+      <responseHeader class="java.lang.String">HTTP/1.1 200 OK
+Server: nginx/1.6.2
+Date: Mon, 06 Jul 2015 10:08:21 GMT
+Content-Type: application/x-javascript
+Content-Length: 62507
+Connection: keep-alive
+P3P: CP=&quot;NOI DEVa TAIa OUR BUS UNI STA&quot;
+Last-Modified: Fri, 12 Jun 2015 21:06:57 GMT
+Expires: Mon, 06 Jul 2015 11:08:21 GMT
+Strict-Transport-Security: max-age=31536000
+</responseHeader>
+      <requestHeader class="java.lang.String">Connection: keep-alive
+Host: mc.yandex.ru
+User-Agent: Apache-HttpClient/4.5 (Java/1.8.0_45)
+</requestHeader>
+      <responseData class="java.lang.String">data
+</responseData>
+      <cookies class="java.lang.String"></cookies>
+      <method class="java.lang.String">GET</method>
+      <queryString class="java.lang.String"></queryString>
+      <java.net.URL>https://mc.yandex.ru/metrika/watch.js</java.net.URL>
+    </httpSample>
+    <responseHeader class="java.lang.String">HTTP/1.1 200 OK
+Server: nginx/1.6.2
+Date: Mon, 06 Jul 2015 10:08:21 GMT
+Content-Type: application/x-javascript
+Content-Length: 62507
+Connection: keep-alive
+P3P: CP=&quot;NOI DEVa TAIa OUR BUS UNI STA&quot;
+Last-Modified: Fri, 12 Jun 2015 21:06:57 GMT
+Expires: Mon, 06 Jul 2015 11:08:21 GMT
+Strict-Transport-Security: max-age=31536000
+</responseHeader>
+    <requestHeader class="java.lang.String">Connection: keep-alive
+Host: mc.yandex.ru
+User-Agent: Apache-HttpClient/4.5 (Java/1.8.0_45)
+</requestHeader>
+    <responseData class="java.lang.String">data
+</responseData>
+    <cookies class="java.lang.String"></cookies>
+    <method class="java.lang.String">GET</method>
+    <queryString class="java.lang.String"></queryString>
+    <redirectLocation class="java.lang.String">https://mc.yandex.ru/metrika/watch.js</redirectLocation>
+    <java.net.URL>https://mc.yandex.ru/metrika/watch.js</java.net.URL>
+  </httpSample>
+  <responseHeader class="java.lang.String">HTTP/1.1 200 OK
+Date: Mon, 06 Jul 2015 10:08:21 GMT
+Server: Apache/2.2.3 (CentOS)
+X-Powered-By: PHP/5.4.24
+Connection: close
+Transfer-Encoding: chunked
+Content-Type: text/html; charset=windows-1251
+</responseHeader>
+  <requestHeader class="java.lang.String">Connection: keep-alive
+Host: meteocenter.asia
+User-Agent: Apache-HttpClient/4.5 (Java/1.8.0_45)
+</requestHeader>
+  <responseData class="java.lang.String">data
+Worktime 0.0433 sec.</responseData>
+  <cookies class="java.lang.String"></cookies>
+  <method class="java.lang.String">GET</method>
+  <queryString class="java.lang.String"></queryString>
+  <java.net.URL>http://meteocenter.asia/ts.php?p=UUDG&amp;dt=201303</java.net.URL>
+</httpSample>
+
+</testResults>
