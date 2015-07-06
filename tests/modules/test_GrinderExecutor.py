@@ -10,7 +10,6 @@ import shutil
 import os
 from tests.mocks import EngineEmul
 from bzt.utils import BetterDict
-import json
 
 setup_test_logging()
 

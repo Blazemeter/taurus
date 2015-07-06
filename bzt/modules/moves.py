@@ -44,6 +44,9 @@ if PY2:
     def b(s):
         return s
 
+    def u(s):
+        return unicode(s.replace(r'\\', r'\\\\'), "unicode_escape")
+
 else:
     string_types = str,
     integer_types = int,
@@ -83,3 +86,6 @@ else:
 
     def b(s):
         return s.encode("latin-1")
+
+    def u(s):
+        return s

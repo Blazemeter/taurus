@@ -4,7 +4,6 @@ import os
 import tempfile
 import sys
 import random
-import time
 
 from bzt.engine import Engine, Configuration, FileLister, AggregatorListener
 from bzt.utils import load_class

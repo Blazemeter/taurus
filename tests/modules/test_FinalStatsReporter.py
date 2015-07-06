@@ -5,7 +5,7 @@ from bzt.modules.reporting import FinalStatus
 from bzt.modules.jmeter import JMeterExecutor
 from bzt.utils import BetterDict
 from collections import Counter, defaultdict
-import six
+from bzt.modules.moves import u
 from bzt.modules.aggregator import DataPoint, KPISet
 import time
 from bzt.engine import Provisioning
@@ -16,11 +16,11 @@ class logger_mock(object):
 
     def info(self, str_template, *args):
         if args:
-            self.info_buf.write(six.u(str_template % args))
-            self.info_buf.write(six.u("\n"))
+            self.info_buf.write(u(str_template % args))
+            self.info_buf.write(u("\n"))
         else:
-            self.info_buf.write(six.u(str_template))
-            self.info_buf.write(six.u("\n"))
+            self.info_buf.write(u(str_template))
+            self.info_buf.write(u("\n"))
 
 
 class TestFinalStatsReporter(BZTestCase):
