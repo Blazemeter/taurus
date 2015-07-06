@@ -614,4 +614,8 @@ class TestJMeterExecutor(BZTestCase):
         obj.engine.config.merge(yaml.load(open("tests/yaml/startup_no_requests.yml").read()))
         obj.settings.merge(obj.engine.config.get("modules").get("jmeter"))
         obj.execution = obj.engine.config['execution']
-        self.assertRaises(RuntimeError, obj.prepare)
+
+        try:
+            obj.prepare()
+        except RuntimeError as exc:
+            self.assertEqual(exc.args[0], "Nothing to test, no requests were provided in scenario")
