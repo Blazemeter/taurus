@@ -1,6 +1,6 @@
 # Changelog
 
-# 0.3.0 (next)
+## 0.3.0 (next)
   - implement `selenium` executor
   - fix crashing on second start jmeter under GUI mode
   - iterate requests forever if no limits were specified
@@ -9,26 +9,26 @@
   - install JMeter-Plugins 1.3.0
   - all default tool locations are now under `~/.bzt` dir
 
-# 0.2.23
+## 0.2.23
   - rename `bulk-size` option into `send-interval` for BlazeMeter reporter
   - explicitly fail in case of wrong `body` option for HTTP request
   - fixed bug when JMeter test duration was not applied properly.
 
-# 0.2.22
+## 0.2.22
   - send data to BlazeMeter less frequently (30 secs)
   - added ability to access BZA feeding through proxy
   - fixed bug with modifying paths of resource files in distribute test mode
   
-# 0.2.21
+## 0.2.21
   - if `iterations` set, then duration for test will not be limited
   - added `steps` option to execution settings
   
-# 0.2.20
+## 0.2.20
   - add `within` logic to timeframed pass-fail criterias
   - added `use-dns-cache-mgr` option.
   - default-domain option renamed to default-address (scheme, hostname, port are now parsed from this option).
   
-# 0.2.19
+## 0.2.19
   - fixed bug when in distributed tests VU count was not calculated properly.
   - auto-append `${__machineName()}` for thread names in distributed test
   - fix module search path issue on MacOS
