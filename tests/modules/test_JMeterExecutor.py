@@ -606,3 +606,15 @@ class TestJMeterExecutor(BZTestCase):
         with open(prop_file_path) as prop_file:
             contents = prop_file.read()
         self.assertIn("remote_hosts=127.0.0.1,127.0.0.2", contents)
+
+    def test_embedded_fail_msg(self):
+        """
+        display actual error msg instead of "OK"
+        :return:
+        """
+        obj = JTLErrorsReader(__dir__() + "/../data/embedded_res_error_standard", logging.getLogger(''))
+        obj.read_file(True)
+        values = obj.get_data(sys.maxsize)
+        self.assertEquals(2, len(values))
+        unexpected_msg = "OK"
+        self.assertNotEqual(values.get("HTTP Request")[0].get("msg"), unexpected_msg)

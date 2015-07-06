@@ -1802,6 +1802,12 @@ class JTLErrorsReader(object):
         urls = elem.xpath(self.url_xpath)
         if urls:
             url = Counter({urls[0].text: 1})
+            for embeded_sample in urls:
+                http_sample = embeded_sample.getparent()
+                err_msg = http_sample.get("rm")
+                if message != err_msg:
+                    message = err_msg
+                    break
         else:
             url = Counter()
         errtype = KPISet.ERRTYPE_ERROR
