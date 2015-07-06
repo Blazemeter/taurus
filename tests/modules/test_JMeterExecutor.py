@@ -617,5 +617,6 @@ class TestJMeterExecutor(BZTestCase):
 
         try:
             obj.prepare()
+            self.fail()
         except RuntimeError as exc:
             self.assertEqual(exc.args[0], "Nothing to test, no requests were provided in scenario")
