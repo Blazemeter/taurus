@@ -606,3 +606,12 @@ class TestJMeterExecutor(BZTestCase):
         with open(prop_file_path) as prop_file:
             contents = prop_file.read()
         self.assertIn("remote_hosts=127.0.0.1,127.0.0.2", contents)
+
+    def test_empty_requests(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = BetterDict()
+        obj.engine.config.merge(yaml.load(open("tests/yaml/startup_no_requests.yml").read()))
+        obj.settings.merge(obj.engine.config.get("modules").get("jmeter"))
+        obj.execution = obj.engine.config['execution']
+        self.assertRaises(RuntimeError, obj.prepare)

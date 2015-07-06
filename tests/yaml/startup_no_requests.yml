@@ -1,0 +1,13 @@
+---
+execution:
+  concurrency: 5
+  ramp-up: 10s
+  hold-for: 30s
+  requests:
+  - http://blazedemo.com/
+  - http://blazedemo.com/vacation.html
+
+  scenario:
+    think-time: 0.75
+
+#https://groups.google.com/forum/#!topic/codename-taurus/iaT6O2UhfBE

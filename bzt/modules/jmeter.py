@@ -100,7 +100,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.original_jmx = self.__get_script()
             self.engine.existing_artifact(self.original_jmx)
         elif "requests" in scenario:
-            self.original_jmx = self.__jmx_from_requests()
+            if scenario.get("requests"):
+                self.original_jmx = self.__jmx_from_requests()
+            else:
+                raise RuntimeError("Nothing to test, no requests were provided in scenario")
         else:
             raise ValueError("There must be a JMX file to run JMeter")
         load = self.get_load()
