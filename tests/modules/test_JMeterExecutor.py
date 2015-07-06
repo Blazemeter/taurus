@@ -141,7 +141,7 @@ class TestJMeterExecutor(BZTestCase):
         obj.settings.merge({"path": path})
 
         obj.execution = BetterDict()
-        obj.execution.merge({"scenario": {"requests": []}})
+        obj.execution.merge({"scenario": {"requests": ["http://localhost"]}})
 
         obj.prepare()
         jars = os.listdir(os.path.abspath(os.path.join(path, '../../lib')))
