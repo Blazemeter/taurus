@@ -28,11 +28,11 @@ import mimetypes
 import itertools
 import zipfile
 import sys
-import six
 import time
 import psutil
 import signal
 
+from bzt.modules.moves import string_types, iteritems, viewvalues, binary_type, text_type, b, integer_types
 from collections import defaultdict, Counter
 from subprocess import PIPE
 from psutil import Popen
@@ -116,7 +116,7 @@ class BetterDict(defaultdict):
             default = BetterDict()
 
         value = self.setdefault(key, default)
-        if isinstance(value, six.string_types):
+        if isinstance(value, string_types):
             if isinstance(value, str):  # this is a trick for python v2/v3 compatibility
                 return value
             else:
@@ -134,7 +134,7 @@ class BetterDict(defaultdict):
         if not isinstance(src, dict):
             raise ValueError("Loaded object is not dict: %s" % src)
 
-        for key, val in six.iteritems(src):
+        for key, val in iteritems(src):
             if len(key) and key[0] == '~':  # overwrite flag
                 if key[1:] in self:
                     self.pop(key[1:])
@@ -195,7 +195,7 @@ class BetterDict(defaultdict):
         """
         if isinstance(obj, dict):
             visitor(obj)
-            for val in six.viewvalues(obj):
+            for val in viewvalues(obj):
                 cls.traverse(val, visitor)
         elif isinstance(obj, list):
             for val in obj:
@@ -214,7 +214,7 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE):
     :return:
     """
 
-    if isinstance(args, six.string_types):
+    if isinstance(args, string_types):
         args = shlex.split(args)
     logging.getLogger(__name__).debug("Executing shell: %s", args)
     if platform.system() == 'Windows':
@@ -259,7 +259,7 @@ def dict_key(dictnr, value):
     :type value: type
     :return: :raise KeyError:
     """
-    for key, val in six.iteritems(dictnr):
+    for key, val in iteritems(dictnr):
         if val == value:
             return key
     raise KeyError("Value not found in dict: %s" % value)
@@ -364,15 +364,15 @@ class MultiPartForm(object):
         result_list = []
         for item in self.__convert_to_list():
             # if (8-bit str (2.7) or bytes (3.x), then no processing, just add, else - encode)
-            if isinstance(item, six.binary_type):
+            if isinstance(item, binary_type):
                 result_list.append(item)
-            elif isinstance(item, six.text_type):
+            elif isinstance(item, text_type):
                 result_list.append(item.encode())
             else:
                 raise BaseException
 
-        res_bytes = six.b("\r\n").join(result_list)
-        res_bytes += six.b("\r\n")
+        res_bytes = b("\r\n").join(result_list)
+        res_bytes += b("\r\n")
         return res_bytes
         # return b'\r\n'.join(x.encode() if isinstance(x, str) else x for x in self.__convert_to_list())
 
@@ -399,7 +399,7 @@ class ComplexEncoder(json.JSONEncoder):
     """
     Magic class to help serialize in JSON any object.
     """
-    TYPES = [dict, list, tuple, six.text_type, six.string_types, six.integer_types, float, bool, type(None)]
+    TYPES = [dict, list, tuple, text_type, string_types, integer_types, float, bool, type(None)]
 
     def default(self, obj):
         """
@@ -411,7 +411,7 @@ class ComplexEncoder(json.JSONEncoder):
 
         if self.__dumpable(obj):
             res = {}
-            for key, val in six.iteritems(obj.__dict__):
+            for key, val in iteritems(obj.__dict__):
                 if not self.__dumpable(val):
                     # logging.debug("Filtered out: %s.%s", key, val)
                     pass

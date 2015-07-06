@@ -10,6 +10,7 @@
   - all default tool locations are now under `~/.bzt` dir
   - FinalStatus reporter now provides test duration (test-duration option, True by default)
   - bzt now fails when no requests were given in scenario
+  - six module version requirements was removed
 
 ## 0.2.23
   - rename `bulk-size` option into `send-interval` for BlazeMeter reporter

@@ -17,7 +17,6 @@ limitations under the License.
 
 import logging
 import re
-import six
 import urwid
 import platform
 import math
@@ -25,9 +24,8 @@ import math
 from urwid import BaseScreen
 
 try:
-    from six.moves.tkinter import Tk, Text
-    import six.moves.tkinter as Tkinter
-    import six.moves.tkinter_font as tkFont
+    from bzt.modules.moves import Tk, Text, Tkinter, tkFont, text_type, iteritems
+
 except ImportError:
     raise
 
@@ -107,7 +105,7 @@ class GUIScreen(BaseScreen):
         self.text = Text(self.root, font="TkFixedFont", wrap=Tkinter.NONE, state=Tkinter.DISABLED,
                          background="black", foreground="light gray")
         self.text.pack(side=Tkinter.LEFT, fill=Tkinter.BOTH, expand=Tkinter.YES)
-        self.font = tkFont.Font(self.root, self.text.cget("font"))
+        self.font = tkFont(self.root, self.text.cget("font"))
         self.text.config(font=self.font)
         self.__prepare_tags()
 
@@ -168,7 +166,7 @@ class GUIScreen(BaseScreen):
             pos = 0
             for part in row:
                 txt = part[2]
-                if isinstance(txt, six.text_type):
+                if isinstance(txt, text_type):
                     strlen = len(txt)
                 else:
                     strlen = len(txt.decode('utf8'))
@@ -196,7 +194,7 @@ class GUIScreen(BaseScreen):
             return style
 
     def __prepare_tags(self):
-        for name, style in six.iteritems(self._palette):
+        for name, style in iteritems(self._palette):
             # NOTE: not sure which index use, used [0]
             bgc = self.__translate_tcl_color(style[0].background)
             fgc = self.__translate_tcl_color(style[0].foreground)

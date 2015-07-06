@@ -25,11 +25,9 @@ import time
 import webbrowser
 import zipfile
 
-import six
+from bzt.modules.moves import Request, urlopen, ProxyHandler, build_opener, install_opener, HTTPError, urlencode, \
+    urlsplit, BytesIO, text_type, iteritems
 
-from six.moves.urllib.request import Request, urlopen, ProxyHandler, build_opener, install_opener
-from six.moves.urllib.error import HTTPError
-from six.moves.urllib.parse import urlencode, urlsplit
 from bzt import ManualShutdown
 from bzt.engine import Reporter, AggregatorListener, Provisioning
 from bzt.modules.aggregator import DataPoint, KPISet
@@ -120,7 +118,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         Compress all files in artifacts dir to single zipfile
         :return: BytesIO
         """
-        mfile = six.BytesIO()
+        mfile = BytesIO()
         with zipfile.ZipFile(mfile, mode='w', compression=zipfile.ZIP_DEFLATED, allowZip64=True) as zfh:
             for handler in self.engine.log.parent.handlers:
                 if isinstance(handler, logging.FileHandler):
@@ -252,7 +250,7 @@ class BlazeMeterClient(object):
         self.log.debug("Request: %s %s %s", method if method else 'GET', url,
                        data[:self.logger_limit] if data else None)
         # .encode("utf-8") is probably better
-        data = data.encode() if isinstance(data, six.text_type) else data
+        data = data.encode() if isinstance(data, text_type) else data
         request = Request(url, data, headers)
         if method:
             request.get_method = lambda: method
@@ -382,7 +380,7 @@ class BlazeMeterClient(object):
             self.first_ts = min(self.first_ts, sec[DataPoint.TIMESTAMP])
             self.last_ts = max(self.last_ts, sec[DataPoint.TIMESTAMP])
 
-            for lbl, item in six.iteritems(sec[DataPoint.CURRENT]):
+            for lbl, item in iteritems(sec[DataPoint.CURRENT]):
                 if lbl == '':
                     label = "ALL"
                 else:
@@ -399,7 +397,7 @@ class BlazeMeterClient(object):
                     data.append(json_item)
 
                 interval_item = self.__interval_json(item, sec)
-                for r_code, cnt in six.iteritems(item[KPISet.RESP_CODES]):
+                for r_code, cnt in iteritems(item[KPISet.RESP_CODES]):
                     interval_item['rc'].append({"n": cnt, "rc": r_code})
 
                 json_item['intervals'].append(interval_item)
@@ -550,7 +548,7 @@ class BlazeMeterClient(object):
             return
 
         errors = self.__errors_skel(recent[DataPoint.TIMESTAMP], self.active_session_id, self.test_id, self.user_id)
-        for label, label_data in six.iteritems(recent[DataPoint.CUMULATIVE]):
+        for label, label_data in iteritems(recent[DataPoint.CUMULATIVE]):
             if not label_data[KPISet.ERRORS]:
                 continue
 

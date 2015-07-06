@@ -8,12 +8,11 @@ import time
 import shutil
 import sys
 import subprocess
-import six
 import urwid
 
 from collections import Counter
 from bzt.engine import ScenarioExecutor, Scenario
-from six.moves.urllib.request import FancyURLopener
+from bzt.modules.moves import FancyURLopener, string_types, text_type
 from bzt.utils import download_progress_hook, shell_exec, shutdown_process, BetterDict
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider
@@ -86,7 +85,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
         if it's folder or single script
         :return:
         """
-        if not isinstance(script_path, six.string_types) and not isinstance(script_path, six.text_type):
+        if not isinstance(script_path, string_types) and not isinstance(script_path, text_type):
             raise RuntimeError("Nothing to test, no files were provided in scenario")
         script_path_is_directory = False
         test_files = []

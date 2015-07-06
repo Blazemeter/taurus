@@ -1,9 +1,9 @@
 import logging
-import six
 import tempfile
 
 from bzt.engine import Configuration
 from bzt.utils import BetterDict
+from bzt.modules.moves import u
 from tests import BZTestCase, __dir__
 
 
@@ -70,7 +70,7 @@ class TestConfiguration(BZTestCase):
         obj = Configuration()
         obj.merge({
             "str": "text",
-            "uc": six.u("ucstring")
+            "uc": u("ucstring")
         })
         fname = tempfile.mkstemp()[1]
         obj.dump(fname, Configuration.YAML)
