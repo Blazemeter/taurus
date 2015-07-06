@@ -141,7 +141,7 @@ class TestJMeterExecutor(BZTestCase):
         obj.settings.merge({"path": path})
 
         obj.execution = BetterDict()
-        obj.execution.merge({"scenario": {"requests": []}})
+        obj.execution.merge({"scenario": {"requests": ["http://localhost"]}})
 
         obj.prepare()
         jars = os.listdir(os.path.abspath(os.path.join(path, '../../lib')))
@@ -606,3 +606,17 @@ class TestJMeterExecutor(BZTestCase):
         with open(prop_file_path) as prop_file:
             contents = prop_file.read()
         self.assertIn("remote_hosts=127.0.0.1,127.0.0.2", contents)
+
+    def test_empty_requests(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = BetterDict()
+        obj.engine.config.merge(yaml.load(open("tests/yaml/startup_no_requests.yml").read()))
+        obj.settings.merge(obj.engine.config.get("modules").get("jmeter"))
+        obj.execution = obj.engine.config['execution']
+
+        try:
+            obj.prepare()
+            self.fail()
+        except RuntimeError as exc:
+            self.assertEqual(exc.args[0], "Nothing to test, no requests were provided in scenario")

@@ -105,16 +105,20 @@ class KPISet(BetterDict):
         """
         # TODO: introduce a flag to not count failed in resp times? or offer it always?
         cnc, r_time, con_time, latency, r_code, error, trname = sample
-        if con_time:
-            self.sum_cn += con_time
-        self.sum_lt += latency
-        self.sum_rt += r_time
         self[self.SAMPLE_COUNT] = self.get(self.SAMPLE_COUNT, 0) + 1
         if cnc:
             self._concurrencies[trname] = cnc
 
-        resp_codes = self.get(self.RESP_CODES)
-        resp_codes[r_code] = resp_codes.get(r_code, 0) + 1
+        if r_code is not None:
+            resp_codes = self.get(self.RESP_CODES)
+            resp_codes[r_code] = resp_codes.get(r_code, 0) + 1
+
+            # count times only if we have RCs
+            if con_time:
+                self.sum_cn += con_time
+            self.sum_lt += latency
+            self.sum_rt += r_time
+
         if error is not None:
             self[self.FAILURES] = self.get(self.FAILURES, 0) + 1
 
@@ -373,6 +377,10 @@ class ResultsProvider(object):
 
     @abstractmethod
     def _calculate_datapoints(self, final_pass=False):
+        """
+
+        :rtype : tuple
+        """
         pass
 
 
@@ -484,10 +492,10 @@ class ResultsReader(ResultsProvider):
 
         :param final_pass: True if called from post-process stage, when reader
             should report possible rests of results
-        :rtype: iterable
+        :rtype: list
         :return: timestamp, label, concurrency, rt, latency, rc, error
         """
-        pass
+        yield
 
     def __generalize_label(self, label):
         for regexp, replacement in self.label_generalize_regexps:

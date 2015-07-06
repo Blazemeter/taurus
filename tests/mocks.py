@@ -5,12 +5,11 @@ import tempfile
 import sys
 import random
 
-from bzt.engine import Engine, Configuration, FileLister, AggregatorListener
+from bzt.engine import Engine, Configuration, FileLister
 from bzt.utils import load_class
 from bzt.engine import Provisioning, ScenarioExecutor, Reporter, AggregatorListener
 from bzt.modules.aggregator import ResultsReader
 from tests import random_sample
-
 
 try:
     from exceptions import KeyboardInterrupt

@@ -75,7 +75,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.start_time = None
         self.end_time = None
         self.retcode = None
-        self.reader = None
         self.widget = None
         self.distributed_servers = []
 
@@ -98,7 +97,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.original_jmx = self.__get_script()
             self.engine.existing_artifact(self.original_jmx)
         elif "requests" in scenario:
-            self.original_jmx = self.__jmx_from_requests()
+            if scenario.get("requests"):
+                self.original_jmx = self.__jmx_from_requests()
+            else:
+                raise RuntimeError("Nothing to test, no requests were provided in scenario")
         else:
             raise ValueError("There must be a JMX file to run JMeter")
         load = self.get_load()
@@ -122,10 +124,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             JMeterExecutor.__write_props_to_file(sys_props_file, sys_props)
             self.sys_properties_file = sys_props_file
 
-        self.reader = JTLReader(self.kpi_jtl, self.log, self.errors_jtl)
-        self.reader.is_distributed = len(self.distributed_servers) > 0
+        reader = JTLReader(self.kpi_jtl, self.log, self.errors_jtl)
+        reader.is_distributed = len(self.distributed_servers) > 0
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
-            self.engine.aggregator.add_underling(self.reader)
+            self.engine.aggregator.add_underling(reader)
 
     def startup(self):
         """
