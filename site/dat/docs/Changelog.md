@@ -8,7 +8,7 @@
   - distributed tests are now supported with JMeter UI (gui: true option)
   - install JMeter-Plugins 1.3.0
   - all default tool locations are now under `~/.bzt` dir
-  - FinalStatus reporter now provides test duration
+  - FinalStatus reporter now provides test duration (test-duration option, True by default)
 
 # 0.2.23
   - rename `bulk-size` option into `send-interval` for BlazeMeter reporter

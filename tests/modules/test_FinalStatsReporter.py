@@ -29,7 +29,7 @@ class TestFinalStatsReporter(BZTestCase):
         obj.engine = EngineEmul
         obj.parameters = BetterDict()
         obj.log = logger_mock()
-        obj.parameters.merge({"failed-labels": True, "percentiles": False, "summary": False})
+        obj.parameters.merge({"failed-labels": True, "percentiles": False, "summary": False, "test-duration":False})
 
         datapoint = DataPoint(None, None)
         cumul_data = datapoint[DataPoint.CUMULATIVE]
@@ -139,7 +139,7 @@ class TestFinalStatsReporter(BZTestCase):
         obj.engine = EngineEmul
         obj.parameters = BetterDict()
         obj.log = logger_mock()
-        obj.parameters.merge({"failed-labels": False, "percentiles": True, "summary": False})
+        obj.parameters.merge({"failed-labels": False, "percentiles": True, "summary": False, "test-duration":False})
 
         datapoint = DataPoint(None, None)
 
@@ -183,7 +183,7 @@ class TestFinalStatsReporter(BZTestCase):
         obj.engine = EngineEmul
         obj.parameters = BetterDict()
         obj.log = logger_mock()
-        obj.parameters.merge({"failed-labels": False, "percentiles": False, "summary": True})
+        obj.parameters.merge({"failed-labels": False, "percentiles": False, "summary": True, "test-duration":False})
 
         datapoint = DataPoint(None, None)
 
