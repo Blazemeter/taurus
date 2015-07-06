@@ -8,6 +8,7 @@
   - distributed tests are now supported with JMeter UI (gui: true option)
   - install JMeter-Plugins 1.3.0
   - all default tool locations are now under `~/.bzt` dir
+  - bzt now fails when no requests were given in scenario
 
 # 0.2.23
   - rename `bulk-size` option into `send-interval` for BlazeMeter reporter
