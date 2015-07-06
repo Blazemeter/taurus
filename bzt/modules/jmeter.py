@@ -32,7 +32,6 @@ from math import ceil
 import psutil
 
 from lxml.etree import XMLSyntaxError
-import six
 import urwid
 from cssselect import GenericTranslator
 
@@ -50,8 +49,7 @@ except ImportError:
     except ImportError:
         import elementtree.ElementTree as etree
 
-from six.moves.urllib.request import URLopener
-from six.moves.urllib.parse import urlsplit
+from bzt.modules.moves import URLopener, urlsplit, iteritems, text_type, string_types, StringIO
 
 EXE_SUFFIX = ".bat" if platform.system() == 'Windows' else ""
 
@@ -471,7 +469,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :return:
         """
         with open(file_path, 'w') as fds:
-            for key, val in six.iteritems(params):
+            for key, val in iteritems(params):
                 fds.write("%s=%s\n" % (key, val))
 
     def get_widget(self):
@@ -578,7 +576,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         data_sources = scenario.data.get('data-sources')
         if data_sources:
             for data_source in data_sources:
-                if isinstance(data_source, six.text_type):
+                if isinstance(data_source, text_type):
                     post_body_files.append(data_source)
 
         requests = scenario.data.get("requests")
@@ -636,7 +634,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         if 'set-prop' in modifs:
             items = modifs['set-prop']
-            for path, text in six.iteritems(items):
+            for path, text in iteritems(items):
                 parts = path.split('>')
                 if len(parts) < 2:
                     raise ValueError("Property selector must have at least 2 levels")
@@ -925,7 +923,7 @@ class JMX(object):
         value = etree.Element("value")
         value.set("class", "SampleSaveConfiguration")
 
-        for key, val in six.iteritems(flags):
+        for key, val in iteritems(flags):
             value.append(JMX._flag(key, val))
         obj_prop = etree.Element("objProp")
         obj_prop.append(name)
@@ -1041,7 +1039,7 @@ class JMX(object):
 
         args = JMX._get_arguments_panel("HTTPsampler.Arguments")
 
-        if isinstance(body, six.string_types):
+        if isinstance(body, string_types):
             proxy.append(JMX._bool_prop("HTTPSampler.postBodyRaw", True))
             coll_prop = JMX._collection_prop("Arguments.arguments")
             header = JMX._element_prop("elementProp", "HTTPArgument")
@@ -1302,7 +1300,7 @@ class JMX(object):
         mgr = etree.Element("HeaderManager", guiclass="HeaderPanel", testclass="HeaderManager", testname="Headers")
 
         coll_prop = etree.Element("collectionProp", name="HeaderManager.headers")
-        for hname, hval in six.iteritems(hdict):
+        for hname, hval in iteritems(hdict):
             header = etree.Element("elementProp", name="", elementType="Header")
             header.append(JMX._string_prop("Header.name", hname))
             header.append(JMX._string_prop("Header.value", hval))
@@ -1617,7 +1615,7 @@ class JTLReader(ResultsReader):
             else:
                 data = {}
 
-            for label, label_data in six.iteritems(point[DataPoint.CURRENT]):
+            for label, label_data in iteritems(point[DataPoint.CURRENT]):
                 if label in data:
                     label_data[KPISet.ERRORS] = data[label]
                 else:
@@ -1632,7 +1630,7 @@ class IncrementalCSVReader(csv.DictReader, object):
     """
 
     def __init__(self, parent_logger, filename):
-        self.buffer = six.StringIO()
+        self.buffer = StringIO()
         super(IncrementalCSVReader, self).__init__(self.buffer, [])
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.indexes = {}
@@ -1787,7 +1785,7 @@ class JTLErrorsReader(object):
             if t_stamp > max_ts:
                 break
             labels = self.buffer.pop(t_stamp)
-            for label, label_data in six.iteritems(labels):
+            for label, label_data in iteritems(labels):
                 res = result.get(label, [])
                 for err_item in label_data:
                     KPISet.inc_list(res, ('msg', err_item['msg']), err_item)

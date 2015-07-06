@@ -17,7 +17,7 @@ limitations under the License.
 """
 import os
 from datetime import datetime
-from six.moves.urllib.parse import urlparse
+from bzt.modules.moves import urlparse
 
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.engine import Reporter, AggregatorListener

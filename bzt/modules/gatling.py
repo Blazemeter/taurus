@@ -26,7 +26,7 @@ import shutil
 import urwid
 
 from subprocess import CalledProcessError
-from six.moves.urllib.request import FancyURLopener
+from bzt.modules.moves import FancyURLopener
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader

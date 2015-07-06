@@ -20,13 +20,12 @@ import time
 import signal
 import subprocess
 import traceback
-import six
 import re
 import shutil
 import urwid
 
 from subprocess import CalledProcessError
-from six.moves.urllib.request import FancyURLopener
+from bzt.modules.moves import FancyURLopener, iteritems
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
@@ -77,7 +76,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         base_props = self.settings.get("properties")
         if base_props:
             fds.write("# Base Properies Start\n")
-            for key, val in six.iteritems(base_props):
+            for key, val in iteritems(base_props):
                 fds.write("%s=%s\n" % (key, val))
             fds.write("# Base Properies End\n\n")
 
@@ -101,7 +100,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         local_props = scenario.get("properties")
         if local_props:
             fds.write("# Scenario Properies Start\n")
-            for key, val in six.iteritems(local_props):
+            for key, val in iteritems(local_props):
                 fds.write("%s=%s\n" % (key, val))
             fds.write("# Scenario Properies End\n\n")
 
