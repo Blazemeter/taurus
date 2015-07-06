@@ -25,7 +25,8 @@ import time
 import webbrowser
 import zipfile
 
-from bzt.modules.moves import Request, urlopen, ProxyHandler, build_opener, install_opener, HTTPError, urlencode, urlsplit, BytesIO, text_type, iteritems
+from bzt.modules.moves import Request, urlopen, ProxyHandler, build_opener, install_opener, HTTPError, urlencode, \
+    urlsplit, BytesIO, text_type, iteritems
 
 from bzt import ManualShutdown
 from bzt.engine import Reporter, AggregatorListener, Provisioning

@@ -5,7 +5,6 @@ import operator
 PY2 = sys.version_info[0] == 2
 PY3 = sys.version_info[0] == 3
 
-
 if PY2:
 
     string_types = basestring,
@@ -39,6 +38,7 @@ if PY2:
     viewvalues = operator.methodcaller("viewvalues")
 
     import StringIO
+
     StringIO = BytesIO = StringIO.StringIO
 
     def b(s):
@@ -77,11 +77,9 @@ else:
     viewvalues = operator.methodcaller("values")
 
     import io
+
     StringIO = io.StringIO
     BytesIO = io.BytesIO
-
-
-    MAXSIZE = sys.maxsize
 
     def b(s):
         return s.encode("latin-1")
