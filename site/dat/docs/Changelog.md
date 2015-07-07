@@ -1,6 +1,9 @@
 # Changelog
 
-## 0.3.1 (next)
+## 0.3.2 (next)
+
+
+## 0.3.1
   - fixed python3 installation issue (progressbar33 now used instead of progressbar)
 
 ## 0.3.0
