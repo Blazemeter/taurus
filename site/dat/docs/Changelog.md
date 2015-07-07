@@ -1,7 +1,7 @@
 # Changelog
 
 ## 0.3.1 (next)
-
+  - fixed python3 installation issue (progressbar33 now used instead of progressbar)
 
 ## 0.3.0
   - implement `selenium` executor
