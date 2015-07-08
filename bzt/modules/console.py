@@ -42,7 +42,6 @@ from bzt.modules.provisioning import Local
 from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.aggregator import DataPoint, KPISet
 
-
 if platform.system() == 'Windows':
     from bzt.modules.screen import GUIScreen as Screen  # curses unavailable on windows
 else:
@@ -153,7 +152,10 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         if self.disabled:
             return
 
-        self.console.add_data(data)
+        try:
+            self.console.add_data(data)
+        except BaseException:
+            self.log.warning("Failed to add datapoint to display")
 
         self.data_started = True
 
@@ -451,7 +453,7 @@ class ThreeGraphs(Pile):
 
         self.v_users.append((v_users, active))
         self.rps.append((rps, fail))
-        self.r_time.append((r_time, lat, conn, ))
+        self.r_time.append((r_time, lat, conn,))
 
         self._invalidate()
 
