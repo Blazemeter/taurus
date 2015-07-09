@@ -17,20 +17,17 @@ limitations under the License.
 """
 import os
 import time
-import signal
 import subprocess
-import traceback
 import re
 import shutil
 import urwid
-
-from subprocess import CalledProcessError
-from bzt.modules.moves import FancyURLopener, iteritems
+import tempfile
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.utils import shell_exec
-from bzt.utils import unzip, download_progress_hook, humanize_time
+from bzt.utils import unzip, download_progress_hook, humanize_time, RequiredTool, JavaVM, shutdown_process
+from bzt.moves import iteritems, FancyURLopener
 from bzt.modules.console import WidgetProvider
 
 
@@ -135,7 +132,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         scenario = self.get_scenario()
 
-        self.__check_grinder()
+        self.run_checklist()
 
         if Scenario.SCRIPT in scenario:
             self.script = self.engine.find_file(scenario[Scenario.SCRIPT])
@@ -222,18 +219,12 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         If tool is still running - let's stop it.
         """
-        while self.process and self.process.poll() is None:
-            self.log.info("Terminating Grinder PID: %s", self.process.pid)
-            time.sleep(1)
-            try:
-                os.killpg(self.process.pid, signal.SIGTERM)
-            except OSError as exc:
-                self.log.debug("Failed to terminate: %s", exc)
+        shutdown_process(self.process, self.log)
 
-            if self.stdout_file:
-                self.stdout_file.close()
-            if self.stderr_file:
-                self.stderr_file.close()
+        if self.stdout_file:
+            self.stdout_file.close()
+        if self.stderr_file:
+            self.stderr_file.close()
 
         if self.start_time:
             self.end_time = time.time()
@@ -256,82 +247,22 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 fds.write(line)
         return script
 
-    def __grinder(self, grinder_full_path):
-        """Check if grinder installed"""
-        # java -classpath /home/user/Downloads/grinder-3.11/lib/grinder.jar net.grinder.Grinder --help
-        # CHECK ERRORLEVEL TO BE SURE
-        self.log.debug("Trying grinder: %s", grinder_full_path)
-        grinder_launch_command = ["java", "-classpath", grinder_full_path, "net.grinder.Grinder"]
-        # print "grinder_launch command:", grinder_launch_command
-        grinder_subprocess = subprocess.Popen(grinder_launch_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        _process_output = grinder_subprocess.communicate()[0]
+    def run_checklist(self):
 
-        if grinder_subprocess.returncode != 0:
-            raise CalledProcessError(grinder_subprocess.returncode, " ".join(grinder_launch_command))
-        # grinder_subprocess = subprocess.check_output(["java -classpath " + grinder_full_path + "grinder.jar net.grinder.Grinder", '--help'], stderr=subprocess.STDOUT)
-        self.log.debug("grinder check: %s", _process_output)
-
-    def __check_grinder(self):
-        """
-        Checks if Grinder is available, otherwise download and install it.
-        """
         grinder_path = self.settings.get("path", "~/.bzt/grinder-taurus/lib/grinder.jar")
         grinder_path = os.path.abspath(os.path.expanduser(grinder_path))
-        self.settings['path'] = grinder_path
+        self.settings["path"] = grinder_path
+        required_tools = []
+        required_tools.append(JavaVM("", "", self.log))
+        required_tools.append(Grinder(grinder_path, GrinderExecutor.DOWNLOAD_LINK, self.log, GrinderExecutor.VERSION))
 
-        try:
-            self.__grinder(grinder_path)
-            return
-        except (OSError, CalledProcessError):
-            self.log.debug("Failed to run grinder: %s", traceback.format_exc())
+        self.check_tools(required_tools)
 
-            try:
-                jout = subprocess.check_output(["java", '-version'], stderr=subprocess.STDOUT)
-                self.log.debug("Java check: %s", jout)
-            except BaseException:
-                self.log.warning("Failed to run java: %s", traceback.format_exc())
-                raise RuntimeError("The 'java' is not operable or not available. Consider installing it")
-
-            self.settings['path'] = self.__install_grinder(grinder_path)
-            self.__grinder(self.settings['path'])
-
-    def __install_grinder(self, grinder_path):
-        """
-        Installs Grinder.
-        Grinder version and download link may be set in config:
-        "download-link":"http://domain/resource-{version}.zip"
-        "version":"1.2.3"
-        """
-
-        dest = os.path.dirname(os.path.dirname(os.path.expanduser(grinder_path)))
-        if not dest:
-            dest = os.path.expanduser("~/.bzt/grinder-taurus")
-        dest = os.path.abspath(dest)
-        grinder_full_path = os.path.join(dest, "lib", "grinder.jar")
-        try:
-            self.__grinder(grinder_full_path)
-            return grinder_full_path
-        except CalledProcessError:
-            self.log.info("Will try to install grinder into %s", dest)
-
-        downloader = FancyURLopener()
-        grinder_zip_path = self.engine.create_artifact("grinder-dist", ".zip")
-        version = self.settings.get("version", GrinderExecutor.VERSION)
-        download_link = self.settings.get("download-link", GrinderExecutor.DOWNLOAD_LINK)
-        download_link = download_link.format(version=version)
-        self.log.info("Downloading %s", download_link)
-
-        try:
-            downloader.retrieve(download_link, grinder_zip_path, download_progress_hook)
-        except BaseException as exc:
-            self.log.error("Error while downloading %s", download_link)
-            raise exc
-
-        self.log.info("Unzipping %s", grinder_zip_path)
-        unzip(grinder_zip_path, dest, 'grinder-' + version)
-        os.remove(grinder_zip_path)
-        self.log.info("Installed grinder successfully")
-        return grinder_full_path
+    def check_tools(self, required_tools):
+        for tool in required_tools:
+            if not tool.check_if_installed():
+                self.log.info("Installing %s", tool.tool_name)
+                tool.install()
 
     def get_widget(self):
         if not self.widget:
@@ -527,3 +458,45 @@ class GrinderWidget(urwid.Pile):
                 self.progress.set_completion(elapsed)
 
         self._invalidate()
+
+
+class Grinder(RequiredTool):
+    def __init__(self, tool_path, download_link, parent_logger, version):
+        super(Grinder, self).__init__("Grinder", tool_path, download_link)
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.version = version
+
+    def check_if_installed(self):
+        self.log.debug("Trying grinder: %s", self.tool_path)
+        grinder_launch_command = ["java", "-classpath", self.tool_path, "net.grinder.Grinder"]
+        grinder_subprocess = shell_exec(grinder_launch_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        output = grinder_subprocess.communicate()
+        self.log.debug("%s output: %s", self.tool_name, output)
+        if grinder_subprocess.returncode == 0:
+            self.already_installed = True
+            return True
+        else:
+            return False
+
+    def install(self):
+        dest = os.path.dirname(os.path.dirname(os.path.expanduser(self.tool_path)))
+        dest = os.path.abspath(dest)
+
+        downloader = FancyURLopener()
+        grinder_zip_file = tempfile.NamedTemporaryFile(suffix=".zip", delete=True)
+        self.download_link = self.download_link.format(version=self.version)
+        self.log.info("Downloading %s", self.download_link)
+
+        try:
+            downloader.retrieve(self.download_link, grinder_zip_file.name, download_progress_hook)
+        except BaseException as exc:
+            self.log.error("Error while downloading %s", self.download_link)
+            raise exc
+
+        self.log.info("Unzipping %s", grinder_zip_file.name)
+        unzip(grinder_zip_file.name, dest, 'grinder-' + self.version)
+        grinder_zip_file.close()
+
+        self.log.info("Installed grinder successfully")
+        if not self.check_if_installed():
+            raise RuntimeError("Unable to run %s after installation!" % self.tool_name)

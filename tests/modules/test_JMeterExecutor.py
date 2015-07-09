@@ -227,7 +227,7 @@ class TestJMeterExecutor(BZTestCase):
         obj.execution.merge({"scenario": {"script": "tests/jmx/files.jmx"}})
         obj.prepare()
         artifacts = os.listdir(obj.engine.artifacts_dir)
-        self.assertEqual(len(artifacts), 8)
+        self.assertEqual(len(artifacts), 7)  # minus jmeter.log
         target_jmx = os.path.join(obj.engine.artifacts_dir, "modified_files.jmx.jmx")
         self.__check_path_resource_files(target_jmx, exclude_jtls=True)
 
@@ -248,7 +248,7 @@ class TestJMeterExecutor(BZTestCase):
         obj.execution = obj.engine.config['execution']
         obj.prepare()
         artifacts = os.listdir(obj.engine.artifacts_dir)
-        self.assertEqual(len(artifacts), 7)  # + system.properties
+        self.assertEqual(len(artifacts), 6)  # + system.properties, minus jmeter.log
         target_jmx = os.path.join(obj.engine.artifacts_dir, "modified_requests.jmx.jmx")
         self.__check_path_resource_files(target_jmx, exclude_jtls=True)
 

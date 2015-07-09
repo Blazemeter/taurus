@@ -31,11 +31,13 @@ import sys
 import time
 import psutil
 import signal
+import subprocess
 
-from bzt.modules.moves import string_types, iteritems, viewvalues, binary_type, text_type, b, integer_types
 from collections import defaultdict, Counter
 from subprocess import PIPE
 from psutil import Popen
+from bzt.moves import string_types, iteritems, viewvalues, binary_type, text_type, to_bytes, integer_types, \
+    FancyURLopener
 
 
 def run_once(func):
@@ -371,8 +373,8 @@ class MultiPartForm(object):
             else:
                 raise BaseException
 
-        res_bytes = b("\r\n").join(result_list)
-        res_bytes += b("\r\n")
+        res_bytes = to_bytes("\r\n").join(result_list)
+        res_bytes += to_bytes("\r\n")
         return res_bytes
         # return b'\r\n'.join(x.encode() if isinstance(x, str) else x for x in self.__convert_to_list())
 
@@ -585,6 +587,7 @@ def is_int(str_val):
     except ValueError:
         return False
 
+
 def shutdown_process(process_obj, log_obj):
     while process_obj and process_obj.poll() is None:
         # TODO: find a way to have graceful shutdown, then kill
@@ -603,3 +606,52 @@ def shutdown_process(process_obj, log_obj):
                 os.killpg(process_obj.pid, signal.SIGTERM)
         except OSError as exc:
             log_obj.debug("Failed to terminate process: %s", exc)
+
+
+class RequiredTool(object):
+    """
+    Abstract required tool
+    """
+
+    def __init__(self, tool_name, tool_path, download_link):
+        self.tool_name = tool_name
+        self.tool_path = tool_path
+        self.download_link = download_link
+        self.already_installed = False
+
+    def check_if_installed(self):
+        if os.path.exists(self.tool_path):
+            self.already_installed = True
+            return True
+        return False
+
+    def install(self):
+        try:
+            if not os.path.exists(os.path.dirname(self.tool_path)):
+                os.makedirs(os.path.dirname(self.tool_path))
+            downloader = FancyURLopener()
+            downloader.retrieve(self.download_link, self.tool_path, download_progress_hook)
+
+            if self.check_if_installed():
+                return self.tool_path
+            else:
+                raise RuntimeError("Unable to run %s after installation!" % self.tool_name)
+        except BaseException as exc:
+            raise exc
+
+
+class JavaVM(RequiredTool):
+    def __init__(self, tool_path, download_link, parent_logger):
+        super(JavaVM, self).__init__("JavaVM", tool_path, download_link)
+        self.log = parent_logger.getChild(self.__class__.__name__)
+
+    def check_if_installed(self):
+        try:
+            output = subprocess.check_output(["java", '-version'], stderr=subprocess.STDOUT)
+            self.log.debug("%s output: %s", self.tool_name, output)
+            return True
+        except BaseException:
+            raise RuntimeError("The %s is not operable or not available. Consider installing it" % self.tool_name)
+
+    def install(self):
+        raise NotImplementedError()

@@ -32,10 +32,10 @@ import yaml
 from collections import namedtuple, defaultdict
 from json import encoder
 from yaml.representer import SafeRepresenter
-from bzt.modules.moves import ConfigParser, UserDict as DictMixin, iteritems, string_types, text_type, PY2
 
 from bzt import ManualShutdown, NormalShutdown, get_configs_dir
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_int
+from bzt.moves import ConfigParser, iteritems, string_types, text_type, PY2, UserDict
 
 
 class Engine(object):
@@ -915,7 +915,7 @@ class Reporter(EngineModule):
         self.parameters = BetterDict()
 
 
-class Scenario(DictMixin, object):
+class Scenario(UserDict, object):
     """
     Test scenario entity
     """

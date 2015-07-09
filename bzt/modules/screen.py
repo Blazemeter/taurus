@@ -22,12 +22,7 @@ import platform
 import math
 
 from urwid import BaseScreen
-
-try:
-    from bzt.modules.moves import Tk, Text, Tkinter, tkFont, text_type, iteritems
-
-except ImportError:
-    raise
+from bzt.moves import TkMoved, Text, Tkinter, tkFont, text_type, iteritems
 
 from bzt import ManualShutdown
 
@@ -93,7 +88,7 @@ class GUIScreen(BaseScreen):
 
     def _start(self):
         super(GUIScreen, self)._start()
-        self.root = Tk()
+        self.root = TkMoved()
         self.root.geometry("%sx%s" % (self.size[0] * 7, self.size[1] * 15))
         self.root.bind("<Configure>", self.resize)
         if platform.system() == 'Windows':

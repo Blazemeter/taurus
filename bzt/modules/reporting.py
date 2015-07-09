@@ -18,11 +18,11 @@ limitations under the License.
 import os
 import time
 from datetime import datetime
-from bzt.modules.moves import urlparse
 
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.passfail import PassFailStatus
+from bzt.moves import urlparse
 
 try:
     from lxml import etree
@@ -75,7 +75,7 @@ class FinalStatus(Reporter, AggregatorListener):
                 self.__report_failed_labels(self.last_sec[DataPoint.CUMULATIVE])
 
         if self.parameters.get("test-duration", True):
-                self.__report_duration()
+            self.__report_duration()
 
     def __report_samples_count(self, summary_kpi_set):
         """
