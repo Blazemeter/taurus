@@ -51,10 +51,7 @@ class TestBlazeMeterUploader(BZTestCase):
     def test_ping(self):
         obj = BlazeMeterClient(logging.getLogger(''))
         obj.address = "https://a.blazemeter.com"
-        normal_urlopen = bzt.modules.blazemeter.Moves.urlopen
-        bzt.modules.blazemeter.Moves.urlopen = staticmethod(dummy_urlopen)
         obj.ping()
-        bzt.modules.blazemeter.Moves.urlopen = normal_urlopen
 
     def test_proxy(self):
         client = BlazeMeterClientEmul(logging.getLogger(''))
