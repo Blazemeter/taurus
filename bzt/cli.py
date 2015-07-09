@@ -293,10 +293,6 @@ def main():
 
     parsed_options, parsed_configs = parser.parse_args()
 
-    if not parsed_configs: # if no configs to run provided
-        parser.print_help()
-        sys.exit(1)
-
     executor = CLI(parsed_options)
 
     try:

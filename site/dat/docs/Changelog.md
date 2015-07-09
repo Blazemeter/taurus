@@ -1,7 +1,6 @@
 # Changelog
 
 ## 0.3.2 (next)
-  - print help string if no configs provided
 
 
 ## 0.3.1
