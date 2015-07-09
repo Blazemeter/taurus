@@ -63,6 +63,9 @@ class FinalStatus(Reporter, AggregatorListener):
 
         self.end_time = time.time()
 
+        if self.parameters.get("test-duration", True):
+                self.__report_duration()
+
         if self.last_sec:
             summary_kpi = self.last_sec[DataPoint.CUMULATIVE][""]
 
@@ -73,9 +76,6 @@ class FinalStatus(Reporter, AggregatorListener):
 
             if self.parameters.get("failed-labels", False):
                 self.__report_failed_labels(self.last_sec[DataPoint.CUMULATIVE])
-
-        if self.parameters.get("test-duration", True):
-                self.__report_duration()
 
     def __report_samples_count(self, summary_kpi_set):
         """
