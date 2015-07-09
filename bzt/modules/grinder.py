@@ -26,7 +26,8 @@ import tempfile
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.utils import shell_exec
-from bzt.utils import unzip, download_progress_hook, humanize_time, RequiredTool, JavaVM, Moves, shutdown_process
+from bzt.utils import unzip, download_progress_hook, humanize_time, RequiredTool, JavaVM, shutdown_process
+from bzt.moves import iteritems, FancyURLopener
 from bzt.modules.console import WidgetProvider
 
 
@@ -72,7 +73,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         base_props = self.settings.get("properties")
         if base_props:
             fds.write("# Base Properies Start\n")
-            for key, val in Moves.iteritems(base_props):
+            for key, val in iteritems(base_props):
                 fds.write("%s=%s\n" % (key, val))
             fds.write("# Base Properies End\n\n")
 
@@ -96,7 +97,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         local_props = scenario.get("properties")
         if local_props:
             fds.write("# Scenario Properies Start\n")
-            for key, val in Moves.iteritems(local_props):
+            for key, val in iteritems(local_props):
                 fds.write("%s=%s\n" % (key, val))
             fds.write("# Scenario Properies End\n\n")
 
@@ -481,7 +482,7 @@ class Grinder(RequiredTool):
         dest = os.path.dirname(os.path.dirname(os.path.expanduser(self.tool_path)))
         dest = os.path.abspath(dest)
 
-        downloader = Moves.FancyURLopener()
+        downloader = FancyURLopener()
         grinder_zip_file = tempfile.NamedTemporaryFile(suffix=".zip", delete=True)
         self.download_link = self.download_link.format(version=self.version)
         self.log.info("Downloading %s", self.download_link)

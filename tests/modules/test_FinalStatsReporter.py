@@ -3,7 +3,8 @@ from tests import BZTestCase
 from tests.mocks import EngineEmul
 from bzt.modules.reporting import FinalStatus
 from bzt.modules.jmeter import JMeterExecutor
-from bzt.utils import BetterDict, Moves
+from bzt.utils import BetterDict
+from bzt.moves import to_unicode
 from collections import Counter, defaultdict
 from bzt.modules.aggregator import DataPoint, KPISet
 import time
@@ -15,11 +16,11 @@ class logger_mock(object):
 
     def info(self, str_template, *args):
         if args:
-            self.info_buf.write(Moves.to_unicode(str_template % args))
-            self.info_buf.write(Moves.to_unicode("\n"))
+            self.info_buf.write(to_unicode(str_template % args))
+            self.info_buf.write(to_unicode("\n"))
         else:
-            self.info_buf.write(Moves.to_unicode(str_template))
-            self.info_buf.write(Moves.to_unicode("\n"))
+            self.info_buf.write(to_unicode(str_template))
+            self.info_buf.write(to_unicode("\n"))
 
 
 class TestFinalStatsReporter(BZTestCase):

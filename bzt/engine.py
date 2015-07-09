@@ -34,7 +34,8 @@ from json import encoder
 from yaml.representer import SafeRepresenter
 
 from bzt import ManualShutdown, NormalShutdown, get_configs_dir
-from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_int, Moves
+from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_int
+from bzt.moves import ConfigParser, iteritems, string_types, text_type, PY2, UserDict
 
 
 class Engine(object):
@@ -526,7 +527,7 @@ class Configuration(BetterDict):
                 return json.loads(fds.read()), self.JSON
             elif first_line.startswith('['):
                 self.log.debug("Reading %s as INI", filename)
-                parser = Moves.ConfigParser.SafeConfigParser()
+                parser = ConfigParser.SafeConfigParser()
                 parser.read(filename)
                 res = []
                 parser.add_section("BZT")
@@ -575,7 +576,7 @@ class Configuration(BetterDict):
         """
         if isinstance(obj, dict):
             result = ''
-            for key, val in Moves.iteritems(obj):
+            for key, val in iteritems(obj):
                 result += cls.__dict_to_overrides(val, '%s.%s' % (path, key))
             return result
         elif isinstance(obj, list):
@@ -653,7 +654,7 @@ class Configuration(BetterDict):
                 pointer = pointer.get(part)
         self.__ensure_list_capacity(pointer, parts[-1])
         self.log.debug("Applying: %s[%s]=%s", pointer, parts[-1], value)
-        if isinstance(parts[-1], Moves.string_types) and parts[-1][0] == '^':
+        if isinstance(parts[-1], string_types) and parts[-1][0] == '^':
             del pointer[parts[-1][1:]]
         else:
             if value.isdigit():
@@ -681,8 +682,8 @@ class Configuration(BetterDict):
 
 yaml.add_representer(Configuration, SafeRepresenter.represent_dict)
 yaml.add_representer(BetterDict, SafeRepresenter.represent_dict)
-if Moves.PY2:
-    yaml.add_representer(Moves.text_type, SafeRepresenter.represent_unicode)
+if PY2:
+    yaml.add_representer(text_type, SafeRepresenter.represent_unicode)
 
 # dirty hack from http://stackoverflow.com/questions/1447287/format-floats-with-standard-json-module
 encoder.FLOAT_REPR = lambda o: format(o, '.3g')
@@ -843,7 +844,7 @@ class ScenarioExecutor(EngineModule):
         """
         if self.__scenario is None:
             scenario = self.execution.get('scenario', {})
-            if isinstance(scenario, Moves.string_types):
+            if isinstance(scenario, string_types):
                 scenarios = self.engine.config.get("scenarios")
                 if scenario not in scenarios:
                     raise ValueError("Scenario not found in scenarios: %s" % scenario)
@@ -914,7 +915,7 @@ class Reporter(EngineModule):
         self.parameters = BetterDict()
 
 
-class Scenario(Moves.UserDict, object):
+class Scenario(UserDict, object):
     """
     Test scenario entity
     """

@@ -2,9 +2,9 @@ import logging
 import tempfile
 
 from bzt.engine import Configuration
-from bzt.utils import BetterDict, Moves
+from bzt.utils import BetterDict
 from tests import BZTestCase, __dir__
-
+from bzt.moves import to_unicode
 
 class TestConfiguration(BZTestCase):
     def test_load(self):
@@ -69,7 +69,7 @@ class TestConfiguration(BZTestCase):
         obj = Configuration()
         obj.merge({
             "str": "text",
-            "uc": Moves.to_unicode("ucstring")
+            "uc": to_unicode("ucstring")
         })
         fname = tempfile.mkstemp()[1]
         obj.dump(fname, Configuration.YAML)

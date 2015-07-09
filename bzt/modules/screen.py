@@ -22,7 +22,7 @@ import platform
 import math
 
 from urwid import BaseScreen
-from bzt.utils import Moves
+from bzt.moves import TkMoved, Text, Tkinter, tkFont, text_type, iteritems
 
 from bzt import ManualShutdown
 
@@ -88,7 +88,7 @@ class GUIScreen(BaseScreen):
 
     def _start(self):
         super(GUIScreen, self)._start()
-        self.root = Moves.TkMoved()
+        self.root = TkMoved()
         self.root.geometry("%sx%s" % (self.size[0] * 7, self.size[1] * 15))
         self.root.bind("<Configure>", self.resize)
         if platform.system() == 'Windows':
@@ -97,10 +97,10 @@ class GUIScreen(BaseScreen):
             self.root.bind("<Control-4>", self.change_font)
             self.root.bind("<Control-5>", self.change_font)
         self.root.protocol("WM_DELETE_WINDOW", self.closed_window)
-        self.text = Moves.Text(self.root, font="TkFixedFont", wrap=Moves.Tkinter.NONE, state=Moves.Tkinter.DISABLED,
-                               background="black", foreground="light gray")
-        self.text.pack(side=Moves.Tkinter.LEFT, fill=Moves.Tkinter.BOTH, expand=Moves.Tkinter.YES)
-        self.font = Moves.tkFont(self.root, self.text.cget("font"))
+        self.text = Text(self.root, font="TkFixedFont", wrap=Tkinter.NONE, state=Tkinter.DISABLED,
+                         background="black", foreground="light gray")
+        self.text.pack(side=Tkinter.LEFT, fill=Tkinter.BOTH, expand=Tkinter.YES)
+        self.font = tkFont(self.root, self.text.cget("font"))
         self.text.config(font=self.font)
         self.__prepare_tags()
 
@@ -154,26 +154,26 @@ class GUIScreen(BaseScreen):
             raise ManualShutdown("GUI window was closed")
 
         # enable changes
-        self.text.config(state=Moves.Tkinter.NORMAL)
-        self.text.delete("1.0", Moves.Tkinter.END)
+        self.text.config(state=Tkinter.NORMAL)
+        self.text.delete("1.0", Tkinter.END)
 
         for idx, row in enumerate(canvas.content()):
             pos = 0
             for part in row:
                 txt = part[2]
-                if isinstance(txt, Moves.text_type):
+                if isinstance(txt, text_type):
                     strlen = len(txt)
                 else:
                     strlen = len(txt.decode('utf8'))
-                self.text.insert(Moves.Tkinter.END, txt)
+                self.text.insert(Tkinter.END, txt)
                 if part[0] is not None:
                     self.text.tag_add(part[0], "%s.%s" % (idx + 1, pos), "%s.%s" % (idx + 1, pos + strlen))
                 pos += strlen
 
-            self.text.insert(Moves.Tkinter.END, "\n")
+            self.text.insert(Tkinter.END, "\n")
 
         # disable changes
-        self.text.config(state=Moves.Tkinter.DISABLED)
+        self.text.config(state=Tkinter.DISABLED)
         self.root.update()
 
     def __translate_tcl_color(self, style):
@@ -189,7 +189,7 @@ class GUIScreen(BaseScreen):
             return style
 
     def __prepare_tags(self):
-        for name, style in Moves.iteritems(self._palette):
+        for name, style in iteritems(self._palette):
             # NOTE: not sure which index use, used [0]
             bgc = self.__translate_tcl_color(style[0].background)
             fgc = self.__translate_tcl_color(style[0].foreground)

@@ -12,7 +12,8 @@ import urwid
 
 from collections import Counter
 from bzt.engine import ScenarioExecutor, Scenario
-from bzt.utils import RequiredTool, shell_exec, shutdown_process, BetterDict, JavaVM, Moves
+from bzt.utils import RequiredTool, shell_exec, shutdown_process, BetterDict, JavaVM
+from bzt.moves import string_types, text_type
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider
 
@@ -84,7 +85,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
         if it's folder or single script
         :return:
         """
-        if not isinstance(script_path, Moves.string_types) and not isinstance(script_path, Moves.text_type):
+        if not isinstance(script_path, string_types) and not isinstance(script_path, text_type):
             raise RuntimeError("Nothing to test, no files were provided in scenario")
         script_path_is_directory = False
         test_files = []

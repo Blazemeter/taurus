@@ -27,7 +27,7 @@ import bzt
 from logging import StreamHandler
 from itertools import groupby
 from datetime import datetime
-from bzt.utils import Moves
+from bzt.moves import StringIO
 
 from urwid.decoration import Padding
 from urwid.display_common import BaseScreen
@@ -385,7 +385,7 @@ class DummyScreen(BaseScreen):
         logging.info("Screen %sx%s chars:\n%s", size[0], size[1], data)
 
 
-class StringIONotifying(Moves.StringIO, object):
+class StringIONotifying(StringIO, object):
     """
     StringIO extension that will call listener on every flush
     Note that by using it as logging stream there must be no logging
@@ -399,7 +399,7 @@ class StringIONotifying(Moves.StringIO, object):
 
         :type self: StringIO
         """
-        Moves.StringIO.__init__(self)
+        StringIO.__init__(self)
         self.listener = listener
 
     def flush(self):
@@ -407,7 +407,7 @@ class StringIONotifying(Moves.StringIO, object):
 
         :type self: StringIONotifying or StringIO
         """
-        Moves.StringIO.flush(self)
+        StringIO.flush(self)
         self.listener()
 
 

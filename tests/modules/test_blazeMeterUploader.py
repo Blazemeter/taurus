@@ -117,10 +117,10 @@ class TestBlazeMeterClientUnicode(BZTestCase):
         blazemeter_client.address = "http://127.0.0.1:58000"
         blazemeter_client.active_session_id = "ffff"
         self.token = "faketoken"
-        normal_urlopen = bzt.modules.blazemeter.Moves.urlopen
-        bzt.modules.blazemeter.Moves.urlopen = staticmethod(dummy_urlopen)
+        normal_urlopen = bzt.modules.blazemeter.urlopen
+        bzt.modules.blazemeter.urlopen = dummy_urlopen
         blazemeter_client.upload_file("tests/data/unicode_file")
-        bzt.modules.blazemeter.Moves.urlopen = normal_urlopen
+        bzt.modules.blazemeter.urlopen = normal_urlopen
 
 
 class DummyHttpResponse():

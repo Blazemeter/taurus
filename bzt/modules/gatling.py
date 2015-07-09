@@ -27,8 +27,9 @@ import tempfile
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.utils import unzip, download_progress_hook, humanize_time, shell_exec, ensure_is_dict, RequiredTool, JavaVM, \
-    Moves, shutdown_process
+    shutdown_process
 from bzt.modules.console import WidgetProvider
+from bzt.moves import FancyURLopener
 
 EXE_SUFFIX = ".bat" if platform.system() == 'Windows' else ".sh"
 
@@ -443,7 +444,7 @@ class Gatling(RequiredTool):
         self.log.info("Will try to install Gatling into %s", dest)
 
         # download gatling
-        downloader = Moves.FancyURLopener()
+        downloader = FancyURLopener()
         gatling_zip_file = tempfile.NamedTemporaryFile(suffix=".zip", delete=True)
 
         self.download_link = self.download_link.format(version=self.version)

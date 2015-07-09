@@ -37,8 +37,9 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.console import WidgetProvider
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.utils import shell_exec, ensure_is_dict, humanize_time, dehumanize_time, BetterDict, \
-    guess_csv_dialect, unzip, download_progress_hook, RequiredTool, JavaVM, Moves, shutdown_process
+    guess_csv_dialect, unzip, download_progress_hook, RequiredTool, JavaVM, shutdown_process
 
+from bzt.moves import iteritems, text_type, string_types, urlsplit, StringIO, FancyURLopener
 try:
     from lxml import etree
 except ImportError:
@@ -451,7 +452,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :return:
         """
         with open(file_path, 'w') as fds:
-            for key, val in Moves.iteritems(params):
+            for key, val in iteritems(params):
                 fds.write("%s=%s\n" % (key, val))
 
     def get_widget(self):
@@ -558,7 +559,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         data_sources = scenario.data.get('data-sources')
         if data_sources:
             for data_source in data_sources:
-                if isinstance(data_source, Moves.text_type):
+                if isinstance(data_source, text_type):
                     post_body_files.append(data_source)
 
         requests = scenario.data.get("requests")
@@ -616,7 +617,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         if 'set-prop' in modifs:
             items = modifs['set-prop']
-            for path, text in Moves.iteritems(items):
+            for path, text in iteritems(items):
                 parts = path.split('>')
                 if len(parts) < 2:
                     raise ValueError("Property selector must have at least 2 levels")
@@ -815,7 +816,7 @@ class JMX(object):
         value = etree.Element("value")
         value.set("class", "SampleSaveConfiguration")
 
-        for key, val in Moves.iteritems(flags):
+        for key, val in iteritems(flags):
             value.append(JMX._flag(key, val))
         obj_prop = etree.Element("objProp")
         obj_prop.append(name)
@@ -931,7 +932,7 @@ class JMX(object):
 
         args = JMX._get_arguments_panel("HTTPsampler.Arguments")
 
-        if isinstance(body, Moves.string_types):
+        if isinstance(body, string_types):
             proxy.append(JMX._bool_prop("HTTPSampler.postBodyRaw", True))
             coll_prop = JMX._collection_prop("Arguments.arguments")
             header = JMX._element_prop("elementProp", "HTTPArgument")
@@ -1192,7 +1193,7 @@ class JMX(object):
         mgr = etree.Element("HeaderManager", guiclass="HeaderPanel", testclass="HeaderManager", testname="Headers")
 
         coll_prop = etree.Element("collectionProp", name="HeaderManager.headers")
-        for hname, hval in Moves.iteritems(hdict):
+        for hname, hval in iteritems(hdict):
             header = etree.Element("elementProp", name="", elementType="Header")
             header.append(JMX._string_prop("Header.name", hname))
             header.append(JMX._string_prop("Header.value", hval))
@@ -1242,7 +1243,7 @@ class JMX(object):
                                testclass="Arguments", testname="user_defined")
         cfg.append(params)
         if default_address:
-            parsed_url = Moves.urlsplit(default_address)
+            parsed_url = urlsplit(default_address)
             if parsed_url.scheme:
                 cfg.append(JMX._string_prop("HTTPSampler.protocol", parsed_url.scheme))
             if parsed_url.hostname:
@@ -1507,7 +1508,7 @@ class JTLReader(ResultsReader):
             else:
                 data = {}
 
-            for label, label_data in Moves.iteritems(point[DataPoint.CURRENT]):
+            for label, label_data in iteritems(point[DataPoint.CURRENT]):
                 if label in data:
                     label_data[KPISet.ERRORS] = data[label]
                 else:
@@ -1522,7 +1523,7 @@ class IncrementalCSVReader(csv.DictReader, object):
     """
 
     def __init__(self, parent_logger, filename):
-        self.buffer = Moves.StringIO()
+        self.buffer = StringIO()
         super(IncrementalCSVReader, self).__init__(self.buffer, [])
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.indexes = {}
@@ -1677,7 +1678,7 @@ class JTLErrorsReader(object):
             if t_stamp > max_ts:
                 break
             labels = self.buffer.pop(t_stamp)
-            for label, label_data in Moves.iteritems(labels):
+            for label, label_data in iteritems(labels):
                 res = result.get(label, [])
                 for err_item in label_data:
                     KPISet.inc_list(res, ('msg', err_item['msg']), err_item)
@@ -1986,7 +1987,7 @@ class JMeter(RequiredTool):
 
         self.log.info("Will try to install JMeter into %s", dest)
 
-        downloader = Moves.FancyURLopener()
+        downloader = FancyURLopener()
         jmeter_dist = tempfile.NamedTemporaryFile(suffix=".zip", delete=True)
         self.download_link = self.download_link.format(version=self.version)
         self.log.info("Downloading %s", self.download_link)
@@ -2059,7 +2060,7 @@ class JMeterPlugins(RequiredTool):
             plugin_dist = tempfile.NamedTemporaryFile(suffix=".zip", delete=True, prefix=set_name)
             plugin_download_link = self.download_link.format(plugin=set_name)
             self.log.info("Downloading %s", plugin_download_link)
-            downloader = Moves.FancyURLopener()
+            downloader = FancyURLopener()
             try:
                 downloader.retrieve(plugin_download_link, plugin_dist.name, download_progress_hook)
             except BaseException as exc:

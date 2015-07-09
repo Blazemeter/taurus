@@ -24,8 +24,9 @@ import urwid
 from bzt import AutomatedShutdown
 from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.aggregator import KPISet, DataPoint
-from bzt.utils import load_class, dehumanize_time, Moves
+from bzt.utils import load_class, dehumanize_time
 from bzt.modules.console import WidgetProvider
+from bzt.moves import string_types, viewvalues
 
 class PassFailStatus(Reporter, AggregatorListener, WidgetProvider):
     """
@@ -40,7 +41,7 @@ class PassFailStatus(Reporter, AggregatorListener, WidgetProvider):
     def prepare(self):
         super(PassFailStatus, self).prepare()
         for idx, crit_config in enumerate(self.parameters.get("criterias", [])):
-            if isinstance(crit_config, Moves.string_types):
+            if isinstance(crit_config, string_types):
                 crit_config = FailCriteria.string_to_config(crit_config)
                 self.parameters['criterias'][idx] = crit_config
             crit = load_class(crit_config.get('type', FailCriteria.__module__ + "." + FailCriteria.__name__))
@@ -340,7 +341,7 @@ class FailCriteria(object):
                 continue
             break
 
-        return Moves.viewvalues(self.agg_buffer)
+        return viewvalues(self.agg_buffer)
 
 
 class PassFailWidget(urwid.Pile):

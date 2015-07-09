@@ -17,11 +17,11 @@ limitations under the License.
 """
 import os
 from datetime import datetime
-from bzt.utils import Moves
 
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.passfail import PassFailStatus
+from bzt.moves import urlparse
 
 try:
     from lxml import etree
@@ -172,7 +172,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         """
 
         # split url on domain resource, protocol, etc
-        parsed_url = Moves.urlparse(url)
+        parsed_url = urlparse(url)
         # remove dots from url and join all pieces on dot
         # small fix needed - better do not use blank pieces
         if parsed_url.scheme:
