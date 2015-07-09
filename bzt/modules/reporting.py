@@ -16,6 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import os
+import time
 from datetime import datetime
 from bzt.modules.moves import urlparse
 
@@ -40,6 +41,11 @@ class FinalStatus(Reporter, AggregatorListener):
     def __init__(self):
         super(FinalStatus, self).__init__()
         self.last_sec = None
+        self.start_time = None
+        self.end_time = None
+
+    def prepare(self):
+        self.start_time = time.time()
 
     def aggregated_second(self, data):
         """
@@ -54,6 +60,8 @@ class FinalStatus(Reporter, AggregatorListener):
         Log basic stats
         """
         super(FinalStatus, self).post_process()
+
+        self.end_time = time.time()
 
         if self.last_sec:
             summary_kpi = self.last_sec[DataPoint.CUMULATIVE][""]
@@ -104,11 +112,9 @@ class FinalStatus(Reporter, AggregatorListener):
         """
         asks executors start_time and end_time, provides time delta
         """
-        min_start_time = min(executor.start_time for executor in self.engine.provisioning.executors)
-        max_end_time = max(executor.end_time for executor in self.engine.provisioning.executors)
 
-        date_start = datetime.fromtimestamp(int(min_start_time))
-        date_end = datetime.fromtimestamp(int(max_end_time))
+        date_start = datetime.fromtimestamp(int(self.start_time))
+        date_end = datetime.fromtimestamp(int(self.end_time))
         self.log.info("Test duration: %s", date_end - date_start)
 
 
