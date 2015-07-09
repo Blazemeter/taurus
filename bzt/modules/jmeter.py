@@ -353,7 +353,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         step_time = int(round(float(load.ramp_up) / load.steps))
         step_shaper = jmx.get_rps_shaper()
 
-        for step in range(1, load.steps + 1):
+        for step in range(1, int(load.steps + 1)):
             step_load = step * step_rps
             if step != load.steps:
                 jmx.add_rps_shaper_schedule(step_shaper, step_load, step_load, step_time)
