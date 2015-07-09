@@ -1,7 +1,7 @@
+# pylint: skip-file
 import sys
 import types
 import operator
-
 
 PY2 = sys.version_info[0] == 2
 PY3 = sys.version_info[0] == 3
@@ -14,8 +14,10 @@ if PY2:
     text_type = unicode
     binary_type = str
 
+
     def iteritems(dictionary, **kw):
         return iter(dictionary.iteritems(**kw))
+
 
     urlopen = __import__("urllib2", fromlist=("urlopen")).urlopen
     urlencode = __import__("urllib", fromlist=("urlencode")).urlencode
@@ -40,8 +42,10 @@ if PY2:
 
     StringIO = BytesIO = __import__("StringIO", fromlist=("StringIO")).StringIO
 
+
     def to_bytes(string):
         return string
+
 
     def to_unicode(string):
         return unicode(string.replace(r'\\', r'\\\\'), "unicode_escape")
@@ -53,8 +57,10 @@ else:
     text_type = str
     binary_type = bytes
 
+
     def iteritems(dictionary, **kw):
         return iter(dictionary.items(**kw))
+
 
     urlopen = __import__("urllib.request", fromlist=("urlopen")).urlopen
     urlencode = __import__("urllib.parse", fromlist=("urlencode")).urlencode
@@ -82,8 +88,10 @@ else:
     StringIO = _io.StringIO
     BytesIO = _io.BytesIO
 
+
     def to_bytes(string):
         return string.encode("latin-1")
+
 
     def to_unicode(string):
         return string
