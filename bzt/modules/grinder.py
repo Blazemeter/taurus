@@ -17,7 +17,6 @@ limitations under the License.
 """
 import os
 import time
-import signal
 import subprocess
 import re
 import shutil
@@ -27,7 +26,7 @@ import tempfile
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.utils import shell_exec
-from bzt.utils import unzip, download_progress_hook, humanize_time, RequiredTool, JavaVM, Moves
+from bzt.utils import unzip, download_progress_hook, humanize_time, RequiredTool, JavaVM, Moves, shutdown_process
 from bzt.modules.console import WidgetProvider
 
 
@@ -219,18 +218,12 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         If tool is still running - let's stop it.
         """
-        while self.process and self.process.poll() is None:
-            self.log.info("Terminating Grinder PID: %s", self.process.pid)
-            time.sleep(1)
-            try:
-                os.killpg(self.process.pid, signal.SIGTERM)
-            except OSError as exc:
-                self.log.debug("Failed to terminate: %s", exc)
+        shutdown_process(self.process, self.log)
 
-            if self.stdout_file:
-                self.stdout_file.close()
-            if self.stderr_file:
-                self.stderr_file.close()
+        if self.stdout_file:
+            self.stdout_file.close()
+        if self.stderr_file:
+            self.stderr_file.close()
 
         if self.start_time:
             self.end_time = time.time()
@@ -255,7 +248,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def run_checklist(self):
 
-        grinder_path = self.settings.get("path", "~/.bzt/grinder-taurus/lib/grinder.jar" )
+        grinder_path = self.settings.get("path", "~/.bzt/grinder-taurus/lib/grinder.jar")
         grinder_path = os.path.abspath(os.path.expanduser(grinder_path))
         self.settings["path"] = grinder_path
         required_tools = []

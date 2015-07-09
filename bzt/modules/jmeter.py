@@ -21,14 +21,12 @@ import os
 import platform
 import subprocess
 import time
-import signal
 import traceback
 import logging
 import shutil
 from collections import Counter, namedtuple
 from distutils.version import LooseVersion
 from math import ceil
-import psutil
 import tempfile
 
 from lxml.etree import XMLSyntaxError
@@ -39,7 +37,7 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.console import WidgetProvider
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.utils import shell_exec, ensure_is_dict, humanize_time, dehumanize_time, BetterDict, \
-    guess_csv_dialect, unzip, download_progress_hook, RequiredTool, JavaVM, Moves
+    guess_csv_dialect, unzip, download_progress_hook, RequiredTool, JavaVM, Moves, shutdown_process
 
 try:
     from lxml import etree
@@ -180,23 +178,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         If JMeter is still running - let's stop it.
         """
         # TODO: print JMeter's stdout/stderr on empty JTL
-        while self.process and self.process.poll() is None:
-            # TODO: find a way to have graceful shutdown, then kill
-            self.log.info("Terminating jmeter PID: %s", self.process.pid)
-            time.sleep(1)
-            try:
-                if platform.system() == 'Windows':
-                    cur_pids = psutil.get_pid_list()
-                    if self.process.pid in cur_pids:
-                        jm_proc = psutil.Process(self.process.pid)
-                        for child_proc in jm_proc.get_children(recursive=True):
-                            self.log.debug("Terminating child process: %d", child_proc.pid)
-                            child_proc.send_signal(signal.SIGTERM)
-                        os.kill(self.process.pid, signal.SIGTERM)
-                else:
-                    os.killpg(self.process.pid, signal.SIGTERM)
-            except OSError as exc:
-                self.log.debug("Failed to terminate jmeter: %s", exc)
+        shutdown_process(self.process, self.log)
 
         if self.start_time:
             self.end_time = time.time()
@@ -657,7 +639,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def run_checklist(self):
         """
-
+        check tools
         """
         required_tools = []
         required_tools.append(JavaVM("", "", self.log))
@@ -679,7 +661,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             if not tool.check_if_installed():
                 self.log.info("Installing %s", tool.tool_name)
                 tool.install()
-
 
 
 class JMeterJTLLoaderExecutor(ScenarioExecutor):
@@ -1981,6 +1962,7 @@ class JMeter(RequiredTool):
     """
     JMeter tool
     """
+
     def __init__(self, tool_path, download_link, parent_logger, jmeter_version):
         super(JMeter, self).__init__("JMeter", tool_path, download_link)
         self.log = parent_logger.getChild(self.__class__.__name__)
@@ -2049,17 +2031,19 @@ class JMeter(RequiredTool):
             os.remove(os.path.join(path, old_lib.vstring))
             self.log.debug("Old jar removed %s", old_lib.vstring)
 
+
 class JMeterPlugins(RequiredTool):
     """
     JMeter plugins
     """
+
     def __init__(self, tool_path, download_link, parent_logger):
         super(JMeterPlugins, self).__init__("JMeterPlugins", tool_path, download_link)
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.plugins = ["Standard", "Extras", "ExtrasLibs", "WebDriver"]
 
     def check_if_installed(self):
-        plugin_folder = os.path.join(os.path.dirname(os.path.dirname(self.tool_path)), "lib","ext")
+        plugin_folder = os.path.join(os.path.dirname(os.path.dirname(self.tool_path)), "lib", "ext")
         if os.path.exists(plugin_folder):
             listed_files = os.listdir(plugin_folder)
             for plugin in self.plugins:

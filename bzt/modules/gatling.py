@@ -18,7 +18,6 @@ limitations under the License.
 import os
 import re
 import time
-import signal
 import subprocess
 import platform
 import shutil
@@ -27,7 +26,8 @@ import tempfile
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
-from bzt.utils import unzip, download_progress_hook, humanize_time, shell_exec, ensure_is_dict, RequiredTool, JavaVM, Moves
+from bzt.utils import unzip, download_progress_hook, humanize_time, shell_exec, ensure_is_dict, RequiredTool, JavaVM, \
+    Moves, shutdown_process
 from bzt.modules.console import WidgetProvider
 
 EXE_SUFFIX = ".bat" if platform.system() == 'Windows' else ".sh"
@@ -142,18 +142,12 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         If tool is still running - let's stop it.
         """
-        while self.process and self.process.poll() is None:
-            self.log.info("Terminating Gatling PID: %s", self.process.pid)
-            time.sleep(1)
-            try:
-                os.killpg(self.process.pid, signal.SIGTERM)
-            except OSError as exc:
-                self.log.debug("Failed to terminate: %s", exc)
+        shutdown_process(self.process, self.log)
 
-            if self.stdout_file:
-                self.stdout_file.close()
-            if self.stderr_file:
-                self.stderr_file.close()
+        if self.stdout_file:
+            self.stdout_file.close()
+        if self.stderr_file:
+            self.stderr_file.close()
 
         if self.start_time:
             self.end_time = time.time()
@@ -427,6 +421,7 @@ class Gatling(RequiredTool):
     """
     Gatling tool
     """
+
     def __init__(self, tool_path, download_link, parent_logger, version):
         super(Gatling, self).__init__("Gatling", tool_path, download_link)
         self.log = parent_logger.getChild(self.__class__.__name__)

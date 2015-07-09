@@ -432,39 +432,39 @@ class SeleniumDataReader(ResultsReader):
                 self.test_buffer = TestSample()
                 self.trace_buff = ""
                 self.err_message_buff = ""
-                self.test_buffer.T_STAMP = line[12:]
+                self.test_buffer.t_stamp = line[12:]
             elif line.startswith("--MODULE:"):
-                self.test_buffer.MODULE = line[9:]
+                self.test_buffer.module = line[9:]
             elif line.startswith("--RUN:"):
-                self.test_buffer.TEST_NAME = line[6:]
+                self.test_buffer.test_name = line[6:]
             elif line.startswith("--RESULT:"):
-                self.test_buffer.RESULT = line[10:]
+                self.test_buffer.result = line[10:]
             elif line.startswith("--TRACE:"):
                 self.trace_buff = line[8:]
             elif line.startswith("--MESSAGE:"):
                 self.err_message_buff = line[9:]
             elif line.startswith("--TIME:"):
                 self.summary['total'] += 1
-                self.test_buffer.TIME = line[7:]
-                self.test_buffer.TRACE = self.trace_buff
-                self.test_buffer.MESSAGE = self.err_message_buff
+                self.test_buffer.time = line[7:]
+                self.test_buffer.trace = self.trace_buff
+                self.test_buffer.message = self.err_message_buff
 
-                r_code = self.err_codes[self.test_buffer.RESULT]
+                r_code = self.err_codes[self.test_buffer.result]
                 concur = 1
                 conn_time = 0
                 latency = 0
 
-                if self.test_buffer.TRACE or self.test_buffer.MESSAGE:
+                if self.test_buffer.trace or self.test_buffer.message:
                     self.summary["fail"] += 1
-                    if not self.test_buffer.MESSAGE:
-                        error = self.test_buffer.TRACE
+                    if not self.test_buffer.message:
+                        error = self.test_buffer.trace
                     else:
-                        error = self.test_buffer.MESSAGE + "\n" + self.test_buffer.TRACE
+                        error = self.test_buffer.message + "\n" + self.test_buffer.trace
                 else:
                     self.summary["pass"] += 1
                     error = None
-                yield int(self.test_buffer.T_STAMP) / 1000.0, self.test_buffer.TEST_NAME, concur, \
-                      int(self.test_buffer.TIME) / 1000.0, conn_time, latency, r_code, error, self.test_buffer.MODULE
+                yield int(self.test_buffer.t_stamp) / 1000.0, self.test_buffer.test_name, concur, \
+                      int(self.test_buffer.time) / 1000.0, conn_time, latency, r_code, error, self.test_buffer.module
             else:
                 if not self.err_message_buff:
                     self.trace_buff += line
@@ -472,7 +472,7 @@ class SeleniumDataReader(ResultsReader):
                     self.err_message_buff += line
 
     def get_state(self):
-        return self.test_buffer.TEST_NAME
+        return self.test_buffer.test_name
 
     def __open_fds(self):
         """
@@ -496,13 +496,13 @@ class SeleniumDataReader(ResultsReader):
 
 class TestSample(object):
     def __init__(self):
-        self.T_STAMP = ""
-        self.MODULE = ""
-        self.TEST_NAME = ""
-        self.RESULT = ""
-        self.TRACE = ""
-        self.MESSAGE = ""
-        self.TIME = ""
+        self.t_stamp = ""
+        self.module = ""
+        self.test_name = ""
+        self.result = ""
+        self.trace = ""
+        self.message = ""
+        self.time = ""
 
 
 class SeleniumWidget(urwid.Pile):

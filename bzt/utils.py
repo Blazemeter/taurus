@@ -39,12 +39,15 @@ from collections import defaultdict, Counter
 from subprocess import PIPE
 from psutil import Popen
 
+
 class Moves(object):
     """
     six.moves
     """
     PY2 = sys.version_info[0] == 2
     PY3 = sys.version_info[0] == 3
+
+    _known_methods = {}
 
     if PY2:
 
@@ -58,26 +61,40 @@ class Moves(object):
         def iteritems(dictionary, **kw):
             return iter(dictionary.iteritems(**kw))
 
-        Request = __import__("urllib2", fromlist=("Request")).Request
-        _urlopen = __import__("urllib2", fromlist=("urlopen")).urlopen
-        ProxyHandler = __import__("urllib2", fromlist=("ProxyHandler")).ProxyHandler
-        build_opener = __import__("urllib2", fromlist=("build_opener")).build_opener
-        install_opener = __import__("urllib2", fromlist=("install_opener")).install_opener
-        HTTPError = __import__("urllib2", fromlist=("HTTPError")).HTTPError
-        _urlencode = __import__("urllib", fromlist=("urlencode")).urlencode
+        _known_methods["urlopen"] = __import__("urllib2", fromlist=("urlopen")).urlopen
+        _known_methods["urlencode"] = __import__("urllib", fromlist=("urlencode")).urlencode
+        _known_methods["urlsplit"] = __import__("urlparse", fromlist=("urlsplit")).urlsplit
+        _known_methods["urlparse"] = __import__("urlparse", fromlist=("urlparse")).urlparse
+        _known_methods["build_opener"] = __import__("urllib2", fromlist=("build_opener")).build_opener
+        _known_methods["install_opener"] = __import__("urllib2", fromlist=("install_opener")).install_opener
+
+        @staticmethod
+        def urlopen(*args, **kargs):
+            return Moves._known_methods["urlopen"](*args, **kargs)
 
         @staticmethod
         def urlencode(*args, **kargs):
-            return Moves._urlencode(*args, **kargs)
-
-
-        _urlsplit = __import__("urlparse", fromlist=("urlsplit")).urlsplit
+            return Moves._known_methods["urlencode"](*args, **kargs)
 
         @staticmethod
         def urlsplit(*args, **kargs):
-            return Moves._urlsplit(*args, **kargs)
+            return Moves._known_methods["urlsplit"](*args, **kargs)
 
-        _urlparse = __import__("urlparse", fromlist=("urlparse")).urlparse
+        @staticmethod
+        def urlparse(*args, **kargs):
+            return Moves._known_methods["urlparse"](*args, **kargs)
+
+        @staticmethod
+        def build_opener(*args, **kargs):
+            return Moves._known_methods["build_opener"](*args, **kargs)
+
+        @staticmethod
+        def install_opener(*args, **kargs):
+            return Moves._known_methods["install_opener"](*args, **kargs)
+
+        Request = __import__("urllib2", fromlist=("Request")).Request
+        ProxyHandler = __import__("urllib2", fromlist=("ProxyHandler")).ProxyHandler
+        HTTPError = __import__("urllib2", fromlist=("HTTPError")).HTTPError
         FancyURLopener = __import__("urllib", fromlist=("FancyURLopener")).FancyURLopener
         URLopener = __import__("urllib", fromlist=("URLopener")).URLopener
         ConfigParser = __import__("ConfigParser")
@@ -110,15 +127,40 @@ class Moves(object):
         def iteritems(dictionary, **kw):
             return iter(dictionary.items(**kw))
 
+        _known_methods["urlopen"] = __import__("urllib.request", fromlist=("urlopen")).urlopen
+        _known_methods["urlencode"] = __import__("urllib.parse", fromlist=("urlencode")).urlencode
+        _known_methods["urlsplit"] = __import__("urllib.parse", fromlist=("urlsplit")).urlsplit
+        _known_methods["urlparse"] = __import__("urllib.parse", fromlist=("urlparse")).urlparse
+        _known_methods["build_opener"] = __import__("urllib.request", fromlist=("urlopen")).build_opener
+        _known_methods["install_opener"] = __import__("urllib.request", fromlist=("install_opener")).install_opener
+
+        @staticmethod
+        def urlopen(*args, **kargs):
+            return Moves._known_methods["urlopen"](*args, **kargs)
+
+        @staticmethod
+        def urlencode(*args, **kargs):
+            return Moves._known_methods["urlencode"](*args, **kargs)
+
+        @staticmethod
+        def urlsplit(*args, **kargs):
+            return Moves._known_methods["urlsplit"](*args, **kargs)
+
+        @staticmethod
+        def urlparse(*args, **kargs):
+            return Moves._known_methods["urlparse"](*args, **kargs)
+
+        @staticmethod
+        def build_opener(*args, **kargs):
+            return Moves._known_methods["build_opener"](*args, **kargs)
+
+        @staticmethod
+        def install_opener(*args, **kargs):
+            return Moves._known_methods["install_opener"](*args, **kargs)
+
         Request = __import__("urllib.request", fromlist=("Request")).Request
-        urlopen = __import__("urllib.request", fromlist=("urlopen")).urlopen
         ProxyHandler = __import__("urllib.request", fromlist=("ProxyHandler")).ProxyHandler
-        build_opener = __import__("urllib.request", fromlist=("urlopen")).build_opener
-        install_opener = __import__("urllib.request", fromlist=("install_opener")).install_opener
         HTTPError = __import__("urllib.error", fromlist=("HTTPError")).HTTPError
-        _urlencode = __import__("urllib.parse", fromlist=("urlencode")).urlencode
-        _urlsplit = __import__("urllib.parse", fromlist=("urlsplit")).urlsplit
-        _urlparse = __import__("urllib.parse", fromlist=("urlparse")).urlparse
         FancyURLopener = __import__("urllib.request", fromlist=("FancyURLopener")).FancyURLopener
         URLopener = __import__("urllib.request", fromlist=("URLopener")).URLopener
         Tkinter = __import__("tkinter")
@@ -142,8 +184,6 @@ class Moves(object):
         @staticmethod
         def to_unicode(string):
             return string
-
-
 
 
 def run_once(func):
@@ -693,6 +733,7 @@ def is_int(str_val):
     except ValueError:
         return False
 
+
 def shutdown_process(process_obj, log_obj):
     while process_obj and process_obj.poll() is None:
         # TODO: find a way to have graceful shutdown, then kill
@@ -711,9 +752,6 @@ def shutdown_process(process_obj, log_obj):
                 os.killpg(process_obj.pid, signal.SIGTERM)
         except OSError as exc:
             log_obj.debug("Failed to terminate process: %s", exc)
-
-
-
 
 
 class RequiredTool(object):
@@ -746,6 +784,7 @@ class RequiredTool(object):
                 raise RuntimeError("Unable to run %s after installation!" % self.tool_name)
         except BaseException as exc:
             raise exc
+
 
 class JavaVM(RequiredTool):
     def __init__(self, tool_path, download_link, parent_logger):
