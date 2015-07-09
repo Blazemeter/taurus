@@ -219,16 +219,10 @@ class TestFinalStatsReporter(BZTestCase):
         Test duration report
         :return:
         """
-        executor_obj = JMeterExecutor()
-        executor_obj.engine = EngineEmul()
-        executor_obj.engine.provisioning = Provisioning()
-        executor_obj.engine.provisioning.executors.append(executor_obj)
-        executor_obj.start_time = time.time()
-        executor_obj.end_time = executor_obj.start_time + 120005
-
         obj = FinalStatus()
         obj.parameters = BetterDict()
-        obj.engine = executor_obj.engine
         obj.log = logger_mock()
+        obj.prepare()
+        obj.start_time -= 120005
         obj.post_process()
         self.assertEqual("Test duration: 1 day, 9:20:05\n", obj.log.info_buf.getvalue())
