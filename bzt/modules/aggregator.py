@@ -22,9 +22,8 @@ import math
 import re
 from collections import Counter
 
-from bzt.utils import BetterDict
+from bzt.utils import BetterDict, Moves
 from bzt.engine import EngineModule
-from bzt.modules.moves import iteritems
 
 
 class KPISet(BetterDict):
@@ -74,7 +73,7 @@ class KPISet(BetterDict):
         mycopy.sum_rt = self.sum_rt
         mycopy.sum_lt = self.sum_lt
         mycopy.sum_cn = self.sum_cn
-        for key, val in iteritems(self):
+        for key, val in Moves.iteritems(self):
             mycopy[key] = copy.deepcopy(val, memo)
         return mycopy
 
@@ -210,7 +209,7 @@ class KPISet(BetterDict):
         :rtype: KPISet
         """
         inst = KPISet()
-        for key, val in iteritems(obj):
+        for key, val in Moves.iteritems(obj):
             inst[key] = val
         inst.sum_cn = obj[inst.AVG_CONN_TIME] * obj[inst.SAMPLE_COUNT]
         inst.sum_lt = obj[inst.AVG_LATENCY] * obj[inst.SAMPLE_COUNT]
@@ -296,7 +295,7 @@ class DataPoint(BetterDict):
         :param sid: int
         :return:
         """
-        for label, val in iteritems(src):
+        for label, val in Moves.iteritems(src):
             dest = dst.get(label, KPISet(self.perc_levels))
             if not isinstance(val, KPISet):
                 val = KPISet.from_dict(val)
@@ -355,7 +354,7 @@ class ResultsProvider(object):
         :param current: KPISet
         :return:
         """
-        for label, data in iteritems(current):
+        for label, data in Moves.iteritems(current):
             cumul = self.cumulative.get(label, KPISet(self.track_percentiles))
             cumul.merge_kpis(data)
 

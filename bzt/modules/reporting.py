@@ -17,7 +17,7 @@ limitations under the License.
 """
 import os
 from datetime import datetime
-from bzt.modules.moves import urlparse
+from bzt.utils import Moves
 
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.engine import Reporter, AggregatorListener
@@ -172,7 +172,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         """
 
         # split url on domain resource, protocol, etc
-        parsed_url = urlparse(url)
+        parsed_url = Moves.urlparse(url)
         # remove dots from url and join all pieces on dot
         # small fix needed - better do not use blank pieces
         if parsed_url.scheme:

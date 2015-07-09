@@ -20,18 +20,14 @@ import re
 import time
 import signal
 import subprocess
-import traceback
 import platform
 import shutil
 import urwid
-
-from subprocess import CalledProcessError
-from bzt.modules.moves import FancyURLopener
+import tempfile
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
-from bzt.utils import shell_exec, ensure_is_dict
-from bzt.utils import unzip, download_progress_hook, humanize_time
+from bzt.utils import unzip, download_progress_hook, humanize_time, shell_exec, ensure_is_dict, RequiredTool, JavaVM, Moves
 from bzt.modules.console import WidgetProvider
 
 EXE_SUFFIX = ".bat" if platform.system() == 'Windows' else ".sh"
@@ -64,7 +60,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         scenario = self.get_scenario()
 
-        self.__check_gatling()
+        self.run_checklist()
 
         if Scenario.SCRIPT in scenario:
             self.script = self.engine.find_file(scenario[Scenario.SCRIPT])
@@ -163,73 +159,22 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.end_time = time.time()
             self.log.debug("Gatling worked for %s seconds", self.end_time - self.start_time)
 
-    def __gatling(self, gatling_full_path):
-        """Check if Gatling installed"""
-
-        self.log.debug("Trying Gatling: %s", gatling_full_path)
-        gatling_output = subprocess.check_output([gatling_full_path, '--help'], stderr=subprocess.STDOUT)
-        self.log.debug("Gatling check: %s", gatling_output)
-
-    def __check_gatling(self):
-        """
-        Checks if Gatling is available, otherwise download and install it.
-        """
-        # NOTE: file extension should be in config
+    def run_checklist(self):
+        required_tools = []
+        required_tools.append(JavaVM("", "", self.log))
         gatling_path = self.settings.get("path", "~/.bzt/gatling-taurus/bin/gatling" + EXE_SUFFIX)
         gatling_path = os.path.abspath(os.path.expanduser(gatling_path))
         self.settings["path"] = gatling_path
+        gatling_version = self.settings.get("version", GatlingExecutor.VERSION)
+        required_tools.append(Gatling(gatling_path, GatlingExecutor.DOWNLOAD_LINK, self.log, gatling_version))
 
-        try:
-            self.__gatling(gatling_path)
-            return
-        except (OSError, CalledProcessError):
-            self.log.debug("Failed to run Gatling: %s", traceback.format_exc())
-            try:
-                jout = subprocess.check_output(["java", '-version'], stderr=subprocess.STDOUT)
-                self.log.debug("Java check: %s", jout)
-            except BaseException:
-                self.log.warning("Failed to run java: %s", traceback.format_exc())
-                raise RuntimeError("The 'java' is not operable or not available. Consider installing it")
+        self.check_tools(required_tools)
 
-            self.__install_gatling(gatling_path)
-            self.__gatling(self.settings['path'])
-
-    def __install_gatling(self, gatling_path):
-        """
-        Installs Gatling.
-        Gatling version and download link may be set in config:
-        "download-link":"http://domain/resource-{version}.zip"
-        "version":"1.2.3"
-        """
-        dest = os.path.dirname(os.path.dirname(os.path.expanduser(gatling_path)))  # ../..
-        dest = os.path.abspath(dest)
-
-        try:
-            self.__gatling(gatling_path)
-            return gatling_path
-        except OSError:
-            self.log.info("Will try to install Gatling into %s", dest)
-
-        # download gatling
-        downloader = FancyURLopener()
-        gatling_zip_path = self.engine.create_artifact("gatling-dist", ".zip")
-        version = self.settings.get("version", GatlingExecutor.VERSION)
-        download_link = self.settings.get("download-link", GatlingExecutor.DOWNLOAD_LINK)
-        download_link = download_link.format(version=version)
-        self.log.info("Downloading %s", download_link)
-        # TODO: check archive checksum/hash before unzip and run
-
-        try:
-            downloader.retrieve(download_link, gatling_zip_path, download_progress_hook)
-        except BaseException as exc:
-            self.log.error("Error while downloading %s", download_link)
-            raise exc
-
-        self.log.info("Unzipping %s", gatling_zip_path)
-        unzip(gatling_zip_path, dest, 'gatling-charts-highcharts-bundle-' + version)
-        os.remove(gatling_zip_path)
-        os.chmod(os.path.expanduser(gatling_path), 0o755)
-        self.log.info("Installed Gatling successfully")
+    def check_tools(self, required_tools):
+        for tool in required_tools:
+            if not tool.check_if_installed():
+                self.log.info("Installing %s", tool.tool_name)
+                tool.install()
 
     def get_widget(self):
         if not self.widget:
@@ -476,3 +421,51 @@ class GatlingWidget(urwid.Pile):
                 self.progress.set_completion(elapsed)
 
         self._invalidate()
+
+
+class Gatling(RequiredTool):
+    """
+    Gatling tool
+    """
+    def __init__(self, tool_path, download_link, parent_logger, version):
+        super(Gatling, self).__init__("Gatling", tool_path, download_link)
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.version = version
+
+    def check_if_installed(self):
+        self.log.debug("Trying Gatling: %s", self.tool_path)
+        try:
+            gatling_output = subprocess.check_output([self.tool_path, '--help'], stderr=subprocess.STDOUT)
+            self.log.debug("Gatling check: %s", gatling_output)
+            return True
+        except OSError:
+            self.log.debug("Gatling check failed.")
+            return False
+
+    def install(self):
+        dest = os.path.dirname(os.path.dirname(os.path.expanduser(self.tool_path)))
+        dest = os.path.abspath(dest)
+        self.log.info("Will try to install Gatling into %s", dest)
+
+        # download gatling
+        downloader = Moves.FancyURLopener()
+        gatling_zip_file = tempfile.NamedTemporaryFile(suffix=".zip", delete=True)
+
+        self.download_link = self.download_link.format(version=self.version)
+        self.log.info("Downloading %s", self.download_link)
+        # TODO: check archive checksum/hash before unzip and run
+
+        try:
+            downloader.retrieve(self.download_link, gatling_zip_file.name, download_progress_hook)
+        except BaseException as exc:
+            self.log.error("Error while downloading %s", self.download_link)
+            raise exc
+
+        self.log.info("Unzipping %s", gatling_zip_file.name)
+        unzip(gatling_zip_file.name, dest, 'gatling-charts-highcharts-bundle-' + self.version)
+        gatling_zip_file.close()
+        os.chmod(os.path.expanduser(self.tool_path), 0o755)
+        self.log.info("Installed Gatling successfully")
+
+        if not self.check_if_installed():
+            raise RuntimeError("Unable to run %s after installation!" % self.tool_name)

@@ -12,8 +12,7 @@ import urwid
 
 from collections import Counter
 from bzt.engine import ScenarioExecutor, Scenario
-from bzt.modules.moves import FancyURLopener, string_types, text_type
-from bzt.utils import download_progress_hook, shell_exec, shutdown_process, BetterDict
+from bzt.utils import RequiredTool, shell_exec, shutdown_process, BetterDict, JavaVM, Moves
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider
 
@@ -85,7 +84,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
         if it's folder or single script
         :return:
         """
-        if not isinstance(script_path, string_types) and not isinstance(script_path, text_type):
+        if not isinstance(script_path, Moves.string_types) and not isinstance(script_path, Moves.text_type):
             raise RuntimeError("Nothing to test, no files were provided in scenario")
         script_path_is_directory = False
         test_files = []
@@ -524,38 +523,6 @@ class SeleniumWidget(urwid.Pile):
         self._invalidate()
 
 
-class RequiredTool(object):
-    """
-    Abstract required tool
-    """
-
-    def __init__(self, tool_name, tool_path, download_link):
-        self.tool_name = tool_name
-        self.tool_path = tool_path
-        self.download_link = download_link
-        self.already_installed = False
-
-    def check_if_installed(self):
-        if os.path.exists(self.tool_path):
-            self.already_installed = True
-            return True
-        return False
-
-    def install(self):
-        try:
-            if not os.path.exists(os.path.dirname(self.tool_path)):
-                os.makedirs(os.path.dirname(self.tool_path))
-            downloader = FancyURLopener()
-            downloader.retrieve(self.download_link, self.tool_path, download_progress_hook)
-
-            if self.check_if_installed():
-                return self.tool_path
-            else:
-                raise RuntimeError("Unable to run %s after installation!" % self.tool_name)
-        except BaseException as exc:
-            raise exc
-
-
 class SeleniumServerJar(RequiredTool):
     def __init__(self, tool_path, download_link, parent_logger):
         super(SeleniumServerJar, self).__init__("Selenium server", tool_path, download_link)
@@ -577,24 +544,6 @@ class SeleniumServerJar(RequiredTool):
 class JUnitJar(RequiredTool):
     def __init__(self, tool_path, download_link):
         super(JUnitJar, self).__init__("JUnit", tool_path, download_link)
-
-
-class JavaVM(RequiredTool):
-    def __init__(self, tool_path, download_link, parent_logger):
-        super(JavaVM, self).__init__("JavaVM", tool_path, download_link)
-        self.log = parent_logger.getChild(self.__class__.__name__)
-
-    def check_if_installed(self):
-        try:
-            output = subprocess.check_output(["java", '-version'], stderr=subprocess.STDOUT)
-            self.log.debug("%s output: %s", self.tool_name, output)
-            return True
-        except BaseException:
-            raise RuntimeError("The %s is not operable or not available. Consider installing it" % self.tool_name)
-
-    def install(self):
-        raise NotImplementedError()
-
 
 class JavaC(RequiredTool):
     def __init__(self, tool_path, download_link, parent_logger):

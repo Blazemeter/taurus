@@ -25,14 +25,11 @@ import time
 import webbrowser
 import zipfile
 
-from bzt.modules.moves import Request, urlopen, ProxyHandler, build_opener, install_opener, HTTPError, urlencode, \
-    urlsplit, BytesIO, text_type, iteritems
-
 from bzt import ManualShutdown
 from bzt.engine import Reporter, AggregatorListener, Provisioning
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.jmeter import JMeterExecutor
-from bzt.utils import to_json, dehumanize_time, MultiPartForm
+from bzt.utils import to_json, dehumanize_time, MultiPartForm, Moves
 
 
 class BlazeMeterUploader(Reporter, AggregatorListener):
@@ -64,16 +61,16 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         proxy_settings = self.engine.config.get("settings").get("proxy")
         if proxy_settings:
             if proxy_settings.get("address"):
-                proxy_url = urlsplit(proxy_settings.get("address"))
+                proxy_url = Moves.urlsplit(proxy_settings.get("address"))
                 username = proxy_settings.get("username")
                 pwd = proxy_settings.get("password")
                 if username and pwd:
                     proxy_uri = "%s://%s:%s@%s" % (proxy_url.scheme, username, pwd, proxy_url.netloc)
                 else:
                     proxy_uri = "%s://%s" % (proxy_url.scheme, proxy_url.netloc)
-                proxy_handler = ProxyHandler({"https": proxy_uri, "http": proxy_uri})
-                opener = build_opener(proxy_handler)
-                install_opener(opener)
+                proxy_handler = Moves.ProxyHandler({"https": proxy_uri, "http": proxy_uri})
+                opener = Moves.build_opener(proxy_handler)
+                Moves.install_opener(opener)
 
         if not token:
             self.log.warning("No BlazeMeter API key provided, will upload anonymously")
@@ -90,7 +87,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
                 self.client.ping()  # to check connectivity and auth
                 if token:
                     self.test_id = self.client.test_by_name(test_name, {"type": "external"})
-            except HTTPError:
+            except Moves.HTTPError:
                 self.log.error("Cannot reach online results storage, maybe the address/token is wrong")
                 raise
 
@@ -118,7 +115,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         Compress all files in artifacts dir to single zipfile
         :return: BytesIO
         """
-        mfile = BytesIO()
+        mfile = Moves.BytesIO()
         with zipfile.ZipFile(mfile, mode='w', compression=zipfile.ZIP_DEFLATED, allowZip64=True) as zfh:
             for handler in self.engine.log.parent.handlers:
                 if isinstance(handler, logging.FileHandler):
@@ -250,12 +247,12 @@ class BlazeMeterClient(object):
         self.log.debug("Request: %s %s %s", method if method else 'GET', url,
                        data[:self.logger_limit] if data else None)
         # .encode("utf-8") is probably better
-        data = data.encode() if isinstance(data, text_type) else data
-        request = Request(url, data, headers)
+        data = data.encode() if isinstance(data, Moves.text_type) else data
+        request = Moves.Request(url, data, headers)
         if method:
             request.get_method = lambda: method
 
-        response = urlopen(request, timeout=self.timeout)
+        response = Moves.urlopen(request, timeout=self.timeout)
 
         if checker:
             checker(response)
@@ -276,7 +273,7 @@ class BlazeMeterClient(object):
         :return:
         """
         self.log.info("Initiating data feeding...")
-        data = urlencode({})
+        data = Moves.urlencode({})
 
         if self.token:
             url = self.address + "/api/latest/tests/%s/start-external" % test_id
@@ -304,7 +301,7 @@ class BlazeMeterClient(object):
         :return:
         """
         self.log.info("Initiating Cloud test...")
-        data = urlencode({})
+        data = Moves.urlencode({})
 
         url = self.address + "/api/latest/tests/%s/start" % test_id
 
@@ -380,7 +377,7 @@ class BlazeMeterClient(object):
             self.first_ts = min(self.first_ts, sec[DataPoint.TIMESTAMP])
             self.last_ts = max(self.last_ts, sec[DataPoint.TIMESTAMP])
 
-            for lbl, item in iteritems(sec[DataPoint.CURRENT]):
+            for lbl, item in Moves.iteritems(sec[DataPoint.CURRENT]):
                 if lbl == '':
                     label = "ALL"
                 else:
@@ -397,7 +394,7 @@ class BlazeMeterClient(object):
                     data.append(json_item)
 
                 interval_item = self.__interval_json(item, sec)
-                for r_code, cnt in iteritems(item[KPISet.RESP_CODES]):
+                for r_code, cnt in Moves.iteritems(item[KPISet.RESP_CODES]):
                     interval_item['rc'].append({"n": cnt, "rc": r_code})
 
                 json_item['intervals'].append(interval_item)
@@ -548,7 +545,7 @@ class BlazeMeterClient(object):
             return
 
         errors = self.__errors_skel(recent[DataPoint.TIMESTAMP], self.active_session_id, self.test_id, self.user_id)
-        for label, label_data in iteritems(recent[DataPoint.CUMULATIVE]):
+        for label, label_data in Moves.iteritems(recent[DataPoint.CUMULATIVE]):
             if not label_data[KPISet.ERRORS]:
                 continue
 

@@ -28,14 +28,122 @@ import mimetypes
 import itertools
 import zipfile
 import sys
+import types
+import operator
 import time
 import psutil
 import signal
+import subprocess
 
-from bzt.modules.moves import string_types, iteritems, viewvalues, binary_type, text_type, b, integer_types
 from collections import defaultdict, Counter
 from subprocess import PIPE
 from psutil import Popen
+
+class Moves(object):
+    """
+    six.moves
+    """
+    PY2 = sys.version_info[0] == 2
+    PY3 = sys.version_info[0] == 3
+
+    if PY2:
+
+        string_types = basestring,
+        integer_types = (int, long)
+        class_types = (type, types.ClassType)
+        text_type = unicode
+        binary_type = str
+
+        @staticmethod
+        def iteritems(dictionary, **kw):
+            return iter(dictionary.iteritems(**kw))
+
+        Request = __import__("urllib2", fromlist=("Request")).Request
+        _urlopen = __import__("urllib2", fromlist=("urlopen")).urlopen
+        ProxyHandler = __import__("urllib2", fromlist=("ProxyHandler")).ProxyHandler
+        build_opener = __import__("urllib2", fromlist=("build_opener")).build_opener
+        install_opener = __import__("urllib2", fromlist=("install_opener")).install_opener
+        HTTPError = __import__("urllib2", fromlist=("HTTPError")).HTTPError
+        _urlencode = __import__("urllib", fromlist=("urlencode")).urlencode
+
+        @staticmethod
+        def urlencode(*args, **kargs):
+            return Moves._urlencode(*args, **kargs)
+
+
+        _urlsplit = __import__("urlparse", fromlist=("urlsplit")).urlsplit
+
+        @staticmethod
+        def urlsplit(*args, **kargs):
+            return Moves._urlsplit(*args, **kargs)
+
+        _urlparse = __import__("urlparse", fromlist=("urlparse")).urlparse
+        FancyURLopener = __import__("urllib", fromlist=("FancyURLopener")).FancyURLopener
+        URLopener = __import__("urllib", fromlist=("URLopener")).URLopener
+        ConfigParser = __import__("ConfigParser")
+        Tkinter = __import__("Tkinter")
+        TkMoved = Tkinter.Tk
+        Text = Tkinter.Text
+        tkFont = __import__("tkFont", fromlist=("Font")).Font
+        UserDict = __import__("UserDict").UserDict
+
+        viewvalues = operator.methodcaller("viewvalues")
+
+        StringIO = BytesIO = __import__("StringIO", fromlist=("StringIO")).StringIO
+
+        @staticmethod
+        def to_bytes(string):
+            return string
+
+        @staticmethod
+        def to_unicode(string):
+            return unicode(string.replace(r'\\', r'\\\\'), "unicode_escape")
+
+    else:
+        string_types = str,
+        integer_types = int,
+        class_types = type,
+        text_type = str
+        binary_type = bytes
+
+        @staticmethod
+        def iteritems(dictionary, **kw):
+            return iter(dictionary.items(**kw))
+
+        Request = __import__("urllib.request", fromlist=("Request")).Request
+        urlopen = __import__("urllib.request", fromlist=("urlopen")).urlopen
+        ProxyHandler = __import__("urllib.request", fromlist=("ProxyHandler")).ProxyHandler
+        build_opener = __import__("urllib.request", fromlist=("urlopen")).build_opener
+        install_opener = __import__("urllib.request", fromlist=("install_opener")).install_opener
+        HTTPError = __import__("urllib.error", fromlist=("HTTPError")).HTTPError
+        _urlencode = __import__("urllib.parse", fromlist=("urlencode")).urlencode
+        _urlsplit = __import__("urllib.parse", fromlist=("urlsplit")).urlsplit
+        _urlparse = __import__("urllib.parse", fromlist=("urlparse")).urlparse
+        FancyURLopener = __import__("urllib.request", fromlist=("FancyURLopener")).FancyURLopener
+        URLopener = __import__("urllib.request", fromlist=("URLopener")).URLopener
+        Tkinter = __import__("tkinter")
+        _Tkinter = __import__("tkinter", fromlist=("Tk", "Text"))
+        TkMoved = _Tkinter.Tk
+        Text = _Tkinter.Text
+        tkFont = __import__("tkinter.font", fromlist=("Font")).Font
+        ConfigParser = __import__("configparser")
+        UserDict = __import__("collections", fromlist=("UserDict")).UserDict
+
+        viewvalues = operator.methodcaller("values")
+
+        _io = __import__("io", fromlist=("StringIO", "BytesIO"))
+        StringIO = _io.StringIO
+        BytesIO = _io.BytesIO
+
+        @staticmethod
+        def to_bytes(string):
+            return string.encode("latin-1")
+
+        @staticmethod
+        def to_unicode(string):
+            return string
+
+
 
 
 def run_once(func):
@@ -116,7 +224,7 @@ class BetterDict(defaultdict):
             default = BetterDict()
 
         value = self.setdefault(key, default)
-        if isinstance(value, string_types):
+        if isinstance(value, Moves.string_types):
             if isinstance(value, str):  # this is a trick for python v2/v3 compatibility
                 return value
             else:
@@ -134,7 +242,7 @@ class BetterDict(defaultdict):
         if not isinstance(src, dict):
             raise ValueError("Loaded object is not dict: %s" % src)
 
-        for key, val in iteritems(src):
+        for key, val in Moves.iteritems(src):
             if len(key) and key[0] == '~':  # overwrite flag
                 if key[1:] in self:
                     self.pop(key[1:])
@@ -195,7 +303,7 @@ class BetterDict(defaultdict):
         """
         if isinstance(obj, dict):
             visitor(obj)
-            for val in viewvalues(obj):
+            for val in Moves.viewvalues(obj):
                 cls.traverse(val, visitor)
         elif isinstance(obj, list):
             for val in obj:
@@ -214,7 +322,7 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE):
     :return:
     """
 
-    if isinstance(args, string_types):
+    if isinstance(args, Moves.string_types):
         args = shlex.split(args)
     logging.getLogger(__name__).debug("Executing shell: %s", args)
     if platform.system() == 'Windows':
@@ -259,7 +367,7 @@ def dict_key(dictnr, value):
     :type value: type
     :return: :raise KeyError:
     """
-    for key, val in iteritems(dictnr):
+    for key, val in Moves.iteritems(dictnr):
         if val == value:
             return key
     raise KeyError("Value not found in dict: %s" % value)
@@ -364,15 +472,15 @@ class MultiPartForm(object):
         result_list = []
         for item in self.__convert_to_list():
             # if (8-bit str (2.7) or bytes (3.x), then no processing, just add, else - encode)
-            if isinstance(item, binary_type):
+            if isinstance(item, Moves.binary_type):
                 result_list.append(item)
-            elif isinstance(item, text_type):
+            elif isinstance(item, Moves.text_type):
                 result_list.append(item.encode())
             else:
                 raise BaseException
 
-        res_bytes = b("\r\n").join(result_list)
-        res_bytes += b("\r\n")
+        res_bytes = Moves.to_bytes("\r\n").join(result_list)
+        res_bytes += Moves.to_bytes("\r\n")
         return res_bytes
         # return b'\r\n'.join(x.encode() if isinstance(x, str) else x for x in self.__convert_to_list())
 
@@ -399,7 +507,7 @@ class ComplexEncoder(json.JSONEncoder):
     """
     Magic class to help serialize in JSON any object.
     """
-    TYPES = [dict, list, tuple, text_type, string_types, integer_types, float, bool, type(None)]
+    TYPES = [dict, list, tuple, Moves.text_type, Moves.string_types, Moves.integer_types, float, bool, type(None)]
 
     def default(self, obj):
         """
@@ -411,7 +519,7 @@ class ComplexEncoder(json.JSONEncoder):
 
         if self.__dumpable(obj):
             res = {}
-            for key, val in iteritems(obj.__dict__):
+            for key, val in Moves.iteritems(obj.__dict__):
                 if not self.__dumpable(val):
                     # logging.debug("Filtered out: %s.%s", key, val)
                     pass
@@ -603,3 +711,54 @@ def shutdown_process(process_obj, log_obj):
                 os.killpg(process_obj.pid, signal.SIGTERM)
         except OSError as exc:
             log_obj.debug("Failed to terminate process: %s", exc)
+
+
+
+
+
+class RequiredTool(object):
+    """
+    Abstract required tool
+    """
+
+    def __init__(self, tool_name, tool_path, download_link):
+        self.tool_name = tool_name
+        self.tool_path = tool_path
+        self.download_link = download_link
+        self.already_installed = False
+
+    def check_if_installed(self):
+        if os.path.exists(self.tool_path):
+            self.already_installed = True
+            return True
+        return False
+
+    def install(self):
+        try:
+            if not os.path.exists(os.path.dirname(self.tool_path)):
+                os.makedirs(os.path.dirname(self.tool_path))
+            downloader = Moves.FancyURLopener()
+            downloader.retrieve(self.download_link, self.tool_path, download_progress_hook)
+
+            if self.check_if_installed():
+                return self.tool_path
+            else:
+                raise RuntimeError("Unable to run %s after installation!" % self.tool_name)
+        except BaseException as exc:
+            raise exc
+
+class JavaVM(RequiredTool):
+    def __init__(self, tool_path, download_link, parent_logger):
+        super(JavaVM, self).__init__("JavaVM", tool_path, download_link)
+        self.log = parent_logger.getChild(self.__class__.__name__)
+
+    def check_if_installed(self):
+        try:
+            output = subprocess.check_output(["java", '-version'], stderr=subprocess.STDOUT)
+            self.log.debug("%s output: %s", self.tool_name, output)
+            return True
+        except BaseException:
+            raise RuntimeError("The %s is not operable or not available. Consider installing it" % self.tool_name)
+
+    def install(self):
+        raise NotImplementedError()
