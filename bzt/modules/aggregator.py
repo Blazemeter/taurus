@@ -24,7 +24,7 @@ from collections import Counter
 
 from bzt.utils import BetterDict
 from bzt.engine import EngineModule
-from bzt.modules.moves import iteritems
+from bzt.moves import iteritems
 
 
 class KPISet(BetterDict):

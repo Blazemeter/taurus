@@ -27,7 +27,7 @@ import bzt
 from logging import StreamHandler
 from itertools import groupby
 from datetime import datetime
-from bzt.modules.moves import StringIO
+from bzt.moves import StringIO
 
 from urwid.decoration import Padding
 from urwid.display_common import BaseScreen

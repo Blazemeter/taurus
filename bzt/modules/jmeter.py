@@ -21,15 +21,13 @@ import os
 import platform
 import subprocess
 import time
-import signal
 import traceback
 import logging
 import shutil
 from collections import Counter, namedtuple
-from subprocess import CalledProcessError
 from distutils.version import LooseVersion
 from math import ceil
-import psutil
+import tempfile
 
 from lxml.etree import XMLSyntaxError
 import urwid
@@ -39,8 +37,9 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.console import WidgetProvider
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.utils import shell_exec, ensure_is_dict, humanize_time, dehumanize_time, BetterDict, \
-    guess_csv_dialect, unzip, download_progress_hook
+    guess_csv_dialect, unzip, download_progress_hook, RequiredTool, JavaVM, shutdown_process
 
+from bzt.moves import iteritems, text_type, string_types, urlsplit, StringIO, FancyURLopener
 try:
     from lxml import etree
 except ImportError:
@@ -48,8 +47,6 @@ except ImportError:
         import cElementTree as etree
     except ImportError:
         import elementtree.ElementTree as etree
-
-from bzt.modules.moves import URLopener, urlsplit, iteritems, text_type, string_types, StringIO
 
 EXE_SUFFIX = ".bat" if platform.system() == 'Windows' else ""
 
@@ -89,7 +86,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         self.jmeter_log = self.engine.create_artifact("jmeter", ".log")
 
-        self.__check_jmeter()
+        self.run_checklist()
         self.distributed_servers = self.execution.get('distributed', self.distributed_servers)
         scenario = self.get_scenario()
         self.resource_files()
@@ -182,23 +179,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         If JMeter is still running - let's stop it.
         """
         # TODO: print JMeter's stdout/stderr on empty JTL
-        while self.process and self.process.poll() is None:
-            # TODO: find a way to have graceful shutdown, then kill
-            self.log.info("Terminating jmeter PID: %s", self.process.pid)
-            time.sleep(1)
-            try:
-                if platform.system() == 'Windows':
-                    cur_pids = psutil.get_pid_list()
-                    if self.process.pid in cur_pids:
-                        jm_proc = psutil.Process(self.process.pid)
-                        for child_proc in jm_proc.get_children(recursive=True):
-                            self.log.debug("Terminating child process: %d", child_proc.pid)
-                            child_proc.send_signal(signal.SIGTERM)
-                        os.kill(self.process.pid, signal.SIGTERM)
-                else:
-                    os.killpg(self.process.pid, signal.SIGTERM)
-            except OSError as exc:
-                self.log.debug("Failed to terminate jmeter: %s", exc)
+        shutdown_process(self.process, self.log)
 
         if self.start_time:
             self.end_time = time.time()
@@ -657,120 +638,30 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                     jmx.set_enabled("[testname='%s']" % candidate.get('testname'),
                                     True if action == 'enable' else False)
 
-    def __jmeter_check(self, jmeter):
+    def run_checklist(self):
         """
-        Try to execute JMeter
+        check tools
         """
-        self.log.debug("Trying jmeter: %s > %s", jmeter, self.jmeter_log)
-        jmout = subprocess.check_output([jmeter, '-j', self.jmeter_log, '--version'], stderr=subprocess.STDOUT)
-        self.log.debug("JMeter check: %s", jmout)
+        required_tools = []
+        required_tools.append(JavaVM("", "", self.log))
 
-    def __check_jmeter(self):
-        """
-        Checks if JMeter is available, otherwise download and install it.
-        """
-        jmeter = self.settings.get("path", "~/.bzt/jmeter-taurus/bin/jmeter" + EXE_SUFFIX)
-        jmeter = os.path.abspath(os.path.expanduser(jmeter))
-        self.settings['path'] = jmeter  # set back after expanding ~
-
-        try:
-            self.__jmeter_check(jmeter)
-            return
-        except (OSError, CalledProcessError):
-            self.log.debug("Failed to run JMeter: %s", traceback.format_exc())
-            try:
-                jout = subprocess.check_output(["java", '-version'], stderr=subprocess.STDOUT)
-                self.log.debug("Java check: %s", jout)
-            except BaseException:
-                self.log.warning("Failed to run java: %s", traceback.format_exc())
-                raise RuntimeError("The 'java' is not operable or not available. Consider installing it")
-            self.settings['path'] = self.__install_jmeter(jmeter)
-            self.__jmeter_check(self.settings['path'])
-
-    def __install_jmeter(self, path):
-        """
-        Installs JMeter and plugins.
-        JMeter version, download links (templates) for JMeter and plugins may be set in config:
-        for JMeter: "download-link":"http://domain/resource-{version}.zip"
-        for plugins: "plugins-download-link": "http://domain/resource-{plugins}.zip"
-        JMeter version: "version":"1.2.3"
-        """
-        # normalize path
-        dest = os.path.dirname(os.path.dirname(os.path.expanduser(path)))
-
-        if not dest:
-            dest = "jmeter-taurus"
-        dest = os.path.abspath(dest)
-        jmeter = os.path.join(dest, "bin", "jmeter" + EXE_SUFFIX)
-        try:
-            self.__jmeter_check(jmeter)
-            return jmeter
-        except OSError:
-            self.log.info("Will try to install JMeter into %s", dest)
-
-        downloader = URLopener()
-        jmeter_dist = self.engine.create_artifact("jmeter-dist", ".zip")
-        jmeter_download_link = self.settings.get("download-link", JMeterExecutor.JMETER_DOWNLOAD_LINK)
+        jmeter_path = self.settings.get("path", "~/.bzt/jmeter-taurus/bin/jmeter" + EXE_SUFFIX)
+        jmeter_path = os.path.abspath(os.path.expanduser(jmeter_path))
+        self.settings["path"] = jmeter_path
         jmeter_version = self.settings.get("version", JMeterExecutor.JMETER_VER)
-        jmeter_download_link = jmeter_download_link.format(version=jmeter_version)
-        self.log.info("Downloading %s", jmeter_download_link)
 
-        try:
-            downloader.retrieve(jmeter_download_link, jmeter_dist, download_progress_hook)
-        except BaseException as exc:
-            self.log.error("Error while downloading %s", jmeter_download_link)
-            raise exc
+        plugin_download_link = self.settings.get("plugins-download-link", JMeterExecutor.PLUGINS_DOWNLOAD_TPL)
 
-        self.log.info("Unzipping %s to %s", jmeter_dist, dest)
-        unzip(jmeter_dist, dest, 'apache-jmeter-' + jmeter_version)
-        # NOTE: should we remove this file in test environment? or not?
-        os.remove(jmeter_dist)
+        required_tools.append(JMeter(jmeter_path, JMeterExecutor.JMETER_DOWNLOAD_LINK, self.log, jmeter_version))
+        required_tools.append(JMeterPlugins(jmeter_path, plugin_download_link, self.log))
 
-        # set exec permissions
-        os.chmod(jmeter, 0o755)
-        # NOTE: other files like shutdown.sh might also be needed later
-        # install plugins
-        for set_name in ("Standard", "Extras", "ExtrasLibs", "WebDriver"):
-            plugin_dist = self.engine.create_artifact("jmeter-plugin-%s" % set_name, ".zip")
-            plugin_download_link = self.settings.get("plugins-download-link", JMeterExecutor.PLUGINS_DOWNLOAD_TPL)
-            plugin_download_link = plugin_download_link.format(plugin=set_name)
-            self.log.info("Downloading %s", plugin_download_link)
-            # TODO: fix socket timeout timer (tcp connection timeout too long)
-            try:
-                downloader.retrieve(plugin_download_link, plugin_dist, download_progress_hook)
-            except BaseException as exc:
-                self.log.error("Error while downloading %s", plugin_download_link)
-                raise exc
+        self.check_tools(required_tools)
 
-            self.log.info("Unzipping %s", plugin_dist)
-            unzip(plugin_dist, dest)
-            os.remove(plugin_dist)
-
-        self.__remove_old_jar_versions(os.path.join(dest, 'lib'))
-
-        self.log.info("Installed JMeter and Plugins successfully")
-        return jmeter
-
-    def __remove_old_jar_versions(self, path):
-        """
-        Remove old jars
-        """
-        jarlib = namedtuple("jarlib", ("file_name", "lib_name"))
-        jars = [fname for fname in os.listdir(path) if '-' in fname and os.path.isfile(os.path.join(path, fname))]
-        jar_libs = [jarlib(file_name=jar, lib_name='-'.join(jar.split('-')[:-1])) for jar in jars]
-
-        duplicated_libraries = []
-        for jar_lib_obj in jar_libs:
-            similar_packages = [LooseVersion(_jarlib.file_name) for _jarlib in
-                                [lib for lib in jar_libs if lib.lib_name == jar_lib_obj.lib_name]]
-            if len(similar_packages) > 1:
-                right_version = max(similar_packages)
-                similar_packages.remove(right_version)
-                duplicated_libraries.extend([lib for lib in similar_packages if lib not in duplicated_libraries])
-
-        for old_lib in duplicated_libraries:
-            os.remove(os.path.join(path, old_lib.vstring))
-            self.log.debug("Old jar removed %s", old_lib.vstring)
+    def check_tools(self, required_tools):
+        for tool in required_tools:
+            if not tool.check_if_installed():
+                self.log.info("Installing %s", tool.tool_name)
+                tool.install()
 
 
 class JMeterJTLLoaderExecutor(ScenarioExecutor):
@@ -2066,3 +1957,116 @@ class JMeterScenarioBuilder(JMX):
         with open(path) as fhd:
             header = fhd.read(4096)  # 4KB is enough for header
             return guess_csv_dialect(header).delimiter
+
+
+class JMeter(RequiredTool):
+    """
+    JMeter tool
+    """
+
+    def __init__(self, tool_path, download_link, parent_logger, jmeter_version):
+        super(JMeter, self).__init__("JMeter", tool_path, download_link)
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.version = jmeter_version
+
+    def check_if_installed(self):
+        self.log.debug("Trying jmeter: %s", self.tool_path)
+        try:
+            jmlog = tempfile.NamedTemporaryFile(prefix="jmeter", suffix="log")
+            jmout = subprocess.check_output([self.tool_path, '-j', jmlog.name, '--version'], stderr=subprocess.STDOUT)
+            self.log.debug("JMeter check: %s", jmout)
+            jmlog.close()
+            return True
+        except OSError:
+            self.log.debug("JMeter check failed.")
+            return False
+
+    def install(self):
+        dest = os.path.dirname(os.path.dirname(os.path.expanduser(self.tool_path)))
+        dest = os.path.abspath(dest)
+
+        self.log.info("Will try to install JMeter into %s", dest)
+
+        downloader = FancyURLopener()
+        jmeter_dist = tempfile.NamedTemporaryFile(suffix=".zip", delete=True)
+        self.download_link = self.download_link.format(version=self.version)
+        self.log.info("Downloading %s", self.download_link)
+
+        try:
+            downloader.retrieve(self.download_link, jmeter_dist.name, download_progress_hook)
+        except BaseException as exc:
+            self.log.error("Error while downloading %s", self.download_link)
+            raise exc
+
+        self.log.info("Unzipping %s to %s", jmeter_dist.name, dest)
+        unzip(jmeter_dist.name, dest, 'apache-jmeter-' + self.version)
+
+        # set exec permissions
+        os.chmod(self.tool_path, 0o755)
+        jmeter_dist.close()
+
+        if self.check_if_installed():
+            self.remove_old_jar_versions(os.path.join(dest, 'lib'))
+            return self.tool_path
+        else:
+            raise RuntimeError("Unable to run %s after installation!" % self.tool_name)
+
+    def remove_old_jar_versions(self, path):
+        """
+        Remove old jars
+        """
+        jarlib = namedtuple("jarlib", ("file_name", "lib_name"))
+        jars = [fname for fname in os.listdir(path) if '-' in fname and os.path.isfile(os.path.join(path, fname))]
+        jar_libs = [jarlib(file_name=jar, lib_name='-'.join(jar.split('-')[:-1])) for jar in jars]
+
+        duplicated_libraries = []
+        for jar_lib_obj in jar_libs:
+            similar_packages = [LooseVersion(_jarlib.file_name) for _jarlib in
+                                [lib for lib in jar_libs if lib.lib_name == jar_lib_obj.lib_name]]
+            if len(similar_packages) > 1:
+                right_version = max(similar_packages)
+                similar_packages.remove(right_version)
+                duplicated_libraries.extend([lib for lib in similar_packages if lib not in duplicated_libraries])
+
+        for old_lib in duplicated_libraries:
+            os.remove(os.path.join(path, old_lib.vstring))
+            self.log.debug("Old jar removed %s", old_lib.vstring)
+
+
+class JMeterPlugins(RequiredTool):
+    """
+    JMeter plugins
+    """
+
+    def __init__(self, tool_path, download_link, parent_logger):
+        super(JMeterPlugins, self).__init__("JMeterPlugins", tool_path, download_link)
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.plugins = ["Standard", "Extras", "ExtrasLibs", "WebDriver"]
+
+    def check_if_installed(self):
+        plugin_folder = os.path.join(os.path.dirname(os.path.dirname(self.tool_path)), "lib", "ext")
+        if os.path.exists(plugin_folder):
+            listed_files = os.listdir(plugin_folder)
+            for plugin in self.plugins:
+                if "JMeterPlugins-%s.jar" % plugin not in listed_files:
+                    return False
+            return True
+        else:
+            return False
+
+    def install(self):
+        dest = os.path.dirname(os.path.dirname(os.path.expanduser(self.tool_path)))
+        for set_name in ("Standard", "Extras", "ExtrasLibs", "WebDriver"):
+            plugin_dist = tempfile.NamedTemporaryFile(suffix=".zip", delete=True, prefix=set_name)
+            plugin_download_link = self.download_link.format(plugin=set_name)
+            self.log.info("Downloading %s", plugin_download_link)
+            downloader = FancyURLopener()
+            try:
+                downloader.retrieve(plugin_download_link, plugin_dist.name, download_progress_hook)
+            except BaseException as exc:
+                self.log.error("Error while downloading %s", plugin_download_link)
+                raise exc
+
+            self.log.info("Unzipping %s", plugin_dist.name)
+            unzip(plugin_dist.name, dest)
+            plugin_dist.close()

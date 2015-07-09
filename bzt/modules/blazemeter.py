@@ -25,14 +25,13 @@ import time
 import webbrowser
 import zipfile
 
-from bzt.modules.moves import Request, urlopen, ProxyHandler, build_opener, install_opener, HTTPError, urlencode, \
-    urlsplit, BytesIO, text_type, iteritems
-
 from bzt import ManualShutdown
 from bzt.engine import Reporter, AggregatorListener, Provisioning
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.jmeter import JMeterExecutor
 from bzt.utils import to_json, dehumanize_time, MultiPartForm
+from bzt.moves import urlsplit, ProxyHandler, build_opener, install_opener, HTTPError, BytesIO, text_type, Request, \
+    urlopen, urlencode, iteritems
 
 
 class BlazeMeterUploader(Reporter, AggregatorListener):

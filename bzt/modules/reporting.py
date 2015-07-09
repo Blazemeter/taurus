@@ -18,11 +18,11 @@ limitations under the License.
 import os
 import time
 from datetime import datetime
-from bzt.modules.moves import urlparse
 
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.passfail import PassFailStatus
+from bzt.moves import urlparse
 
 try:
     from lxml import etree
