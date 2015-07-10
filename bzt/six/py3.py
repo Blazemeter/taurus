@@ -38,6 +38,7 @@ StringIO = io.StringIO
 BytesIO = io.BytesIO
 
 parse = urllib.parse
+request = urllib.request
 """
 urlopen = urllib.request.urlopen
 urlencode = __import__("urllib.parse", fromlist="urlencode").urlencode
@@ -47,7 +48,7 @@ build_opener = __import__("urllib.request", fromlist="urlopen").build_opener
 install_opener = __import__("urllib.request", fromlist="install_opener").install_opener
 
 Request = __import__("urllib.request", fromlist="Request").Request
-ProxyHandler = __import__("urllib.request", fromlist="ProxyHandler").ProxyHandler
+ProxyHandler = __import__("", fromlist="ProxyHandler").ProxyHandler
 HTTPError = __import__("urllib.error", fromlist="HTTPError").HTTPError
 FancyURLopener = __import__("urllib.request", fromlist="FancyURLopener").FancyURLopener
 URLopener = __import__("urllib.request", fromlist="URLopener").URLopener

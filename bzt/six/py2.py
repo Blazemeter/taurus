@@ -16,6 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import types
+import urllib2
 import urlparse
 import operator
 import ConfigParser
@@ -40,6 +41,7 @@ BytesIO = StringIO.StringIO
 StringIO = StringIO.StringIO
 
 parse = urlparse
+request = urllib2
 """
 urlopen = urllib2.urlopen
 urlencode = urllib.urlencode

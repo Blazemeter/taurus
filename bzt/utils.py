@@ -37,8 +37,7 @@ from subprocess import PIPE
 import psutil
 from psutil import Popen
 
-from bzt.six import string_types, iteritems, viewvalues, binary_type, text_type, b, integer_types, \
-    FancyURLopener
+from bzt.six import string_types, iteritems, viewvalues, binary_type, text_type, b, integer_types, request
 
 
 def run_once(func):
@@ -630,7 +629,7 @@ class RequiredTool(object):
         try:
             if not os.path.exists(os.path.dirname(self.tool_path)):
                 os.makedirs(os.path.dirname(self.tool_path))
-            downloader = FancyURLopener()
+            downloader = request.FancyURLopener()
             downloader.retrieve(self.download_link, self.tool_path, download_progress_hook)
 
             if self.check_if_installed():
