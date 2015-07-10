@@ -21,15 +21,16 @@ import time
 import subprocess
 import platform
 import shutil
-import urwid
 import tempfile
+
+import urwid
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.utils import unzip, download_progress_hook, humanize_time, shell_exec, ensure_is_dict, RequiredTool, JavaVM, \
     shutdown_process
 from bzt.modules.console import WidgetProvider
-from bzt.moves import FancyURLopener
+from bzt.six import FancyURLopener
 
 EXE_SUFFIX = ".bat" if platform.system() == 'Windows' else ".sh"
 

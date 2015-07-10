@@ -29,14 +29,15 @@ import itertools
 import zipfile
 import sys
 import time
-import psutil
 import signal
 import subprocess
-
 from collections import defaultdict, Counter
 from subprocess import PIPE
+
+import psutil
 from psutil import Popen
-from bzt.moves import string_types, iteritems, viewvalues, binary_type, text_type, to_bytes, integer_types, \
+
+from bzt.six import string_types, iteritems, viewvalues, binary_type, text_type, b, integer_types, \
     FancyURLopener
 
 
@@ -373,8 +374,8 @@ class MultiPartForm(object):
             else:
                 raise BaseException
 
-        res_bytes = to_bytes("\r\n").join(result_list)
-        res_bytes += to_bytes("\r\n")
+        res_bytes = b("\r\n").join(result_list)
+        res_bytes += b("\r\n")
         return res_bytes
         # return b'\r\n'.join(x.encode() if isinstance(x, str) else x for x in self.__convert_to_list())
 

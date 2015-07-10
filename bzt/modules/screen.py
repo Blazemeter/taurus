@@ -17,13 +17,14 @@ limitations under the License.
 
 import logging
 import re
-import urwid
 import platform
 import math
 
-from urwid import BaseScreen
-from bzt.moves import TkMoved, Text, Tkinter, tkFont, text_type, iteritems
+import urwid
 
+from urwid import BaseScreen
+
+from bzt.six import Text, tkFont, text_type, iteritems, tkinter
 from bzt import ManualShutdown
 
 
@@ -88,7 +89,7 @@ class GUIScreen(BaseScreen):
 
     def _start(self):
         super(GUIScreen, self)._start()
-        self.root = TkMoved()
+        self.root = tkinter.Tk()
         self.root.geometry("%sx%s" % (self.size[0] * 7, self.size[1] * 15))
         self.root.bind("<Configure>", self.resize)
         if platform.system() == 'Windows':
@@ -97,9 +98,9 @@ class GUIScreen(BaseScreen):
             self.root.bind("<Control-4>", self.change_font)
             self.root.bind("<Control-5>", self.change_font)
         self.root.protocol("WM_DELETE_WINDOW", self.closed_window)
-        self.text = Text(self.root, font="TkFixedFont", wrap=Tkinter.NONE, state=Tkinter.DISABLED,
+        self.text = Text(self.root, font="TkFixedFont", wrap=tkinter.NONE, state=tkinter.DISABLED,
                          background="black", foreground="light gray")
-        self.text.pack(side=Tkinter.LEFT, fill=Tkinter.BOTH, expand=Tkinter.YES)
+        self.text.pack(side=tkinter.LEFT, fill=tkinter.BOTH, expand=tkinter.YES)
         self.font = tkFont(self.root, self.text.cget("font"))
         self.text.config(font=self.font)
         self.__prepare_tags()
@@ -154,8 +155,8 @@ class GUIScreen(BaseScreen):
             raise ManualShutdown("GUI window was closed")
 
         # enable changes
-        self.text.config(state=Tkinter.NORMAL)
-        self.text.delete("1.0", Tkinter.END)
+        self.text.config(state=tkinter.NORMAL)
+        self.text.delete("1.0", tkinter.END)
 
         for idx, row in enumerate(canvas.content()):
             pos = 0
@@ -165,15 +166,15 @@ class GUIScreen(BaseScreen):
                     strlen = len(txt)
                 else:
                     strlen = len(txt.decode('utf8'))
-                self.text.insert(Tkinter.END, txt)
+                self.text.insert(tkinter.END, txt)
                 if part[0] is not None:
                     self.text.tag_add(part[0], "%s.%s" % (idx + 1, pos), "%s.%s" % (idx + 1, pos + strlen))
                 pos += strlen
 
-            self.text.insert(Tkinter.END, "\n")
+            self.text.insert(tkinter.END, "\n")
 
         # disable changes
-        self.text.config(state=Tkinter.DISABLED)
+        self.text.config(state=tkinter.DISABLED)
         self.root.update()
 
     def __translate_tcl_color(self, style):

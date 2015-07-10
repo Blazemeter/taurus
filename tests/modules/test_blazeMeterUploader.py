@@ -1,11 +1,11 @@
 import logging
 import os
 import shutil
-from tests import BZTestCase, random_datapoint
+from io import BytesIO
 
+from tests import BZTestCase, random_datapoint
 from bzt.modules.blazemeter import BlazeMeterUploader, BlazeMeterClient
 from tests.mocks import EngineEmul
-from io import BytesIO
 import bzt.modules.blazemeter
 
 

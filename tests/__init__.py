@@ -7,6 +7,7 @@ import tempfile
 from unittest.case import TestCase
 from random import random
 import sys
+
 import colorlog
 
 sys.path.insert(1, os.path.dirname(os.path.dirname(colorlog.__file__)))

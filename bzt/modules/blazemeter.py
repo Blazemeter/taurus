@@ -30,8 +30,7 @@ from bzt.engine import Reporter, AggregatorListener, Provisioning
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.jmeter import JMeterExecutor
 from bzt.utils import to_json, dehumanize_time, MultiPartForm
-from bzt.moves import urlsplit, ProxyHandler, build_opener, install_opener, HTTPError, BytesIO, text_type, Request, \
-    urlopen, urlencode, iteritems
+from bzt.six import parse, ProxyHandler, build_opener, install_opener, HTTPError, BytesIO, text_type, Request, iteritems
 
 
 class BlazeMeterUploader(Reporter, AggregatorListener):
@@ -63,7 +62,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         proxy_settings = self.engine.config.get("settings").get("proxy")
         if proxy_settings:
             if proxy_settings.get("address"):
-                proxy_url = urlsplit(proxy_settings.get("address"))
+                proxy_url = parse.urlsplit(proxy_settings.get("address"))
                 username = proxy_settings.get("username")
                 pwd = proxy_settings.get("password")
                 if username and pwd:

@@ -19,6 +19,7 @@ from collections import OrderedDict
 import fnmatch
 import logging
 import re
+
 import urwid
 
 from bzt import AutomatedShutdown
@@ -26,7 +27,8 @@ from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.aggregator import KPISet, DataPoint
 from bzt.utils import load_class, dehumanize_time
 from bzt.modules.console import WidgetProvider
-from bzt.moves import string_types, viewvalues
+from bzt.six import string_types, viewvalues
+
 
 class PassFailStatus(Reporter, AggregatorListener, WidgetProvider):
     """

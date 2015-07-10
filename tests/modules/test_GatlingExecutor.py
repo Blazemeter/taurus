@@ -1,11 +1,11 @@
 import shutil
 import os
+import re
 
 from tests import setup_test_logging, BZTestCase, __dir__
 from bzt.modules.gatling import GatlingExecutor
 from tests.mocks import EngineEmul
 from bzt.utils import BetterDict
-import re
 
 setup_test_logging()
 

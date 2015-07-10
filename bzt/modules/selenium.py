@@ -2,18 +2,18 @@
 Module holds selenium stuff
 """
 from abc import abstractmethod
-
 import os
 import time
 import shutil
 import sys
 import subprocess
+from collections import Counter
+
 import urwid
 
-from collections import Counter
 from bzt.engine import ScenarioExecutor, Scenario
 from bzt.utils import RequiredTool, shell_exec, shutdown_process, BetterDict, JavaVM
-from bzt.moves import string_types, text_type
+from bzt.six import string_types, text_type
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider
 

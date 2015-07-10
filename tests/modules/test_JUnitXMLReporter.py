@@ -1,11 +1,12 @@
+from collections import Counter, defaultdict
+import tempfile
+
 from tests import BZTestCase, setup_test_logging
 from tests.mocks import EngineEmul
 from bzt.modules.reporting import JUnitXMLReporter
 from bzt.utils import BetterDict
-from collections import Counter, defaultdict
 from bzt.modules.passfail import PassFailStatus, FailCriteria
 from bzt.modules.aggregator import DataPoint, KPISet
-import tempfile
 
 try:
     from lxml import etree

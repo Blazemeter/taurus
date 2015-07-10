@@ -4,7 +4,6 @@ import time
 from urwid.canvas import Canvas
 
 from bzt.modules.console import TaurusConsole
-
 from bzt.modules.screen import GUIScreen
 
 

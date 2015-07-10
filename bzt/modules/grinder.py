@@ -20,14 +20,15 @@ import time
 import subprocess
 import re
 import shutil
-import urwid
 import tempfile
+
+import urwid
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.utils import shell_exec
 from bzt.utils import unzip, download_progress_hook, humanize_time, RequiredTool, JavaVM, shutdown_process
-from bzt.moves import iteritems, FancyURLopener
+from bzt.six import iteritems, FancyURLopener
 from bzt.modules.console import WidgetProvider
 
 

@@ -21,12 +21,12 @@ import platform
 import sys
 import tempfile
 import traceback
-import bzt
-
-from colorlog import ColoredFormatter
 from logging import Formatter
 from optparse import OptionParser, BadOptionError, Option
 
+from colorlog import ColoredFormatter
+
+import bzt
 from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown
 from bzt.engine import Engine, Configuration
 from bzt.utils import run_once

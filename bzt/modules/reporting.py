@@ -22,7 +22,7 @@ from datetime import datetime
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.passfail import PassFailStatus
-from bzt.moves import urlparse
+from bzt.six import urlparse
 
 try:
     from lxml import etree
