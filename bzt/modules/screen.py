@@ -24,7 +24,7 @@ import urwid
 
 from urwid import BaseScreen
 
-from bzt.six import Text, tkFont, text_type, iteritems, tkinter
+from bzt.six import Text, tkfont, text_type, iteritems, tkinter
 from bzt import ManualShutdown
 
 
@@ -101,7 +101,7 @@ class GUIScreen(BaseScreen):
         self.text = Text(self.root, font="TkFixedFont", wrap=tkinter.NONE, state=tkinter.DISABLED,
                          background="black", foreground="light gray")
         self.text.pack(side=tkinter.LEFT, fill=tkinter.BOTH, expand=tkinter.YES)
-        self.font = tkFont(self.root, self.text.cget("font"))
+        self.font = tkfont.Font(self.root, self.text.cget("font"))
         self.text.config(font=self.font)
         self.__prepare_tags()
 
