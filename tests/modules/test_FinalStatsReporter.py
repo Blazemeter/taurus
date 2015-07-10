@@ -5,7 +5,6 @@ from tests import BZTestCase
 from tests.mocks import EngineEmul
 from bzt.modules.reporting import FinalStatus
 from bzt.utils import BetterDict
-from bzt.six import to_unicode
 from bzt.modules.aggregator import DataPoint, KPISet
 
 

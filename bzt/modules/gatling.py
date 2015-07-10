@@ -30,7 +30,6 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.utils import unzip, download_progress_hook, humanize_time, shell_exec, ensure_is_dict, RequiredTool, JavaVM, \
     shutdown_process
 from bzt.modules.console import WidgetProvider
-from bzt.six import FancyURLopener
 
 EXE_SUFFIX = ".bat" if platform.system() == 'Windows' else ".sh"
 

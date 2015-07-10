@@ -30,7 +30,7 @@ from bzt.engine import Reporter, AggregatorListener, Provisioning
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.jmeter import JMeterExecutor
 from bzt.utils import to_json, dehumanize_time, MultiPartForm
-from bzt.six import parse, ProxyHandler, build_opener, install_opener, HTTPError, BytesIO, text_type, Request, iteritems
+from bzt.six import parse, BytesIO, text_type, iteritems, request
 
 
 class BlazeMeterUploader(Reporter, AggregatorListener):
@@ -69,9 +69,9 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
                     proxy_uri = "%s://%s:%s@%s" % (proxy_url.scheme, username, pwd, proxy_url.netloc)
                 else:
                     proxy_uri = "%s://%s" % (proxy_url.scheme, proxy_url.netloc)
-                proxy_handler = ProxyHandler({"https": proxy_uri, "http": proxy_uri})
-                opener = build_opener(proxy_handler)
-                install_opener(opener)
+                proxy_handler = request.ProxyHandler({"https": proxy_uri, "http": proxy_uri})
+                opener = request.build_opener(proxy_handler)
+                request.install_opener(opener)
 
         if not token:
             self.log.warning("No BlazeMeter API key provided, will upload anonymously")
@@ -88,7 +88,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
                 self.client.ping()  # to check connectivity and auth
                 if token:
                     self.test_id = self.client.test_by_name(test_name, {"type": "external"})
-            except HTTPError:
+            except request.HTTPError:
                 self.log.error("Cannot reach online results storage, maybe the address/token is wrong")
                 raise
 
@@ -249,11 +249,11 @@ class BlazeMeterClient(object):
                        data[:self.logger_limit] if data else None)
         # .encode("utf-8") is probably better
         data = data.encode() if isinstance(data, text_type) else data
-        request = Request(url, data, headers)
+        req = request.Request(url, data, headers)
         if method:
-            request.get_method = lambda: method
+            req.get_method = lambda: method
 
-        response = urlopen(request, timeout=self.timeout)
+        response = request.urlopen(req, timeout=self.timeout)
 
         if checker:
             checker(response)
@@ -274,7 +274,7 @@ class BlazeMeterClient(object):
         :return:
         """
         self.log.info("Initiating data feeding...")
-        data = urlencode({})
+        data = parse.urlencode({})
 
         if self.token:
             url = self.address + "/api/latest/tests/%s/start-external" % test_id
@@ -302,7 +302,7 @@ class BlazeMeterClient(object):
         :return:
         """
         self.log.info("Initiating Cloud test...")
-        data = urlencode({})
+        data = parse.urlencode({})
 
         url = self.address + "/api/latest/tests/%s/start" % test_id
 

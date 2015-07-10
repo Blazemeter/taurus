@@ -39,7 +39,7 @@ from bzt.modules.console import WidgetProvider
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.utils import shell_exec, ensure_is_dict, humanize_time, dehumanize_time, BetterDict, \
     guess_csv_dialect, unzip, download_progress_hook, RequiredTool, JavaVM, shutdown_process
-from bzt.six import iteritems, text_type, string_types, urlsplit, StringIO, FancyURLopener
+from bzt.six import iteritems, text_type, string_types, StringIO, parse
 
 try:
     from lxml import etree
@@ -1244,7 +1244,7 @@ class JMX(object):
                                testclass="Arguments", testname="user_defined")
         cfg.append(params)
         if default_address:
-            parsed_url = urlsplit(default_address)
+            parsed_url = parse.urlsplit(default_address)
             if parsed_url.scheme:
                 cfg.append(JMX._string_prop("HTTPSampler.protocol", parsed_url.scheme))
             if parsed_url.hostname:
