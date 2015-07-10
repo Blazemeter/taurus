@@ -16,6 +16,7 @@ from bzt.utils import RequiredTool, shell_exec, shutdown_process, BetterDict, Ja
 from bzt.moves import string_types, text_type
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider
+from bzt.modules.jmeter import JTLReader
 
 
 class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
@@ -386,114 +387,122 @@ class NoseTester(AbstractTestRunner):
                                   stderr=nose_err)
 
 
-class SeleniumDataReader(ResultsReader):
-    """
-    Read KPI from data log
-    """
 
+class SeleniumDataReader(JTLReader):
     def __init__(self, filename, parent_logger):
-        super(SeleniumDataReader, self).__init__()
-        self.log = parent_logger.getChild(self.__class__.__name__)
-        self.filename = filename
-        self.fds = None
-        self.partial_buffer = ""
-        self.test_buffer = TestSample()
-        self.offset = 0
-        self.trace_buff = ""
-        self.err_message_buff = ""
-        self.err_codes = {"OK": "200", "SKIPPED": "300", "FAILED": "404", "ERROR": "500"}
+        super(SeleniumDataReader, self).__init__(filename, parent_logger, None)
         self.summary = Counter({"total": 0, "pass": 0, "fail": 0})
-
-    def _read(self, last_pass=False):
-        """
-        :param last_pass:
-        """
-
-        while not self.fds and not self.__open_fds():
-            self.log.debug("No data to start reading yet...")
-            yield None
-
-        self.log.debug("Reading selenium results")
-        self.fds.seek(self.offset)  # without this we have a stuck reads on Mac
-        if last_pass:
-            lines = self.fds.readlines()  # unlimited
-        else:
-            lines = self.fds.readlines(1024 * 1024)  # 1MB limit to read
-        self.offset = self.fds.tell()
-        for line in lines:
-            if not line.endswith("\n"):
-                self.partial_buffer += line
-                continue
-
-            line = "%s%s" % (self.partial_buffer, line)
-            self.partial_buffer = ""
-            line = line.strip("\n")
-            # TODO: Optimise it
-            if line.startswith("--TIMESTAMP:"):
-                self.test_buffer = TestSample()
-                self.trace_buff = ""
-                self.err_message_buff = ""
-                self.test_buffer.t_stamp = line[12:]
-            elif line.startswith("--MODULE:"):
-                self.test_buffer.module = line[9:]
-            elif line.startswith("--RUN:"):
-                self.test_buffer.test_name = line[6:]
-            elif line.startswith("--RESULT:"):
-                self.test_buffer.result = line[10:]
-            elif line.startswith("--TRACE:"):
-                self.trace_buff = line[8:]
-            elif line.startswith("--MESSAGE:"):
-                self.err_message_buff = line[9:]
-            elif line.startswith("--TIME:"):
-                self.summary['total'] += 1
-                self.test_buffer.time = line[7:]
-                self.test_buffer.trace = self.trace_buff
-                self.test_buffer.message = self.err_message_buff
-
-                r_code = self.err_codes[self.test_buffer.result]
-                concur = 1
-                conn_time = 0
-                latency = 0
-
-                if self.test_buffer.trace or self.test_buffer.message:
-                    self.summary["fail"] += 1
-                    if not self.test_buffer.message:
-                        error = self.test_buffer.trace
-                    else:
-                        error = self.test_buffer.message + "\n" + self.test_buffer.trace
-                else:
-                    self.summary["pass"] += 1
-                    error = None
-                yield int(self.test_buffer.t_stamp) / 1000.0, self.test_buffer.test_name, concur, \
-                      int(self.test_buffer.time) / 1000.0, conn_time, latency, r_code, error, self.test_buffer.module
-            else:
-                if not self.err_message_buff:
-                    self.trace_buff += line
-                else:
-                    self.err_message_buff += line
-
     def get_state(self):
-        return self.test_buffer.test_name
+        return "testname"
 
-    def __open_fds(self):
-        """
-        opens results.txt
-        """
-        if not os.path.isfile(self.filename):
-            self.log.debug("File not appeared yet")
-            return False
-
-        if not os.path.getsize(self.filename):
-            self.log.debug("File is empty: %s", self.filename)
-            return False
-
-        self.fds = open(self.filename)
-        return True
-
-    def __del__(self):
-        if self.fds:
-            self.fds.close()
-
+# class SeleniumDataReader(ResultsReader):
+#     """
+#     Read KPI from data log
+#     """
+#
+#     def __init__(self, filename, parent_logger):
+#         super(SeleniumDataReader, self).__init__()
+#         self.log = parent_logger.getChild(self.__class__.__name__)
+#         self.filename = filename
+#         self.fds = None
+#         self.partial_buffer = ""
+#         self.test_buffer = TestSample()
+#         self.offset = 0
+#         self.trace_buff = ""
+#         self.err_message_buff = ""
+#         self.err_codes = {"OK": "200", "SKIPPED": "300", "FAILED": "404", "ERROR": "500"}
+#         self.summary = Counter({"total": 0, "pass": 0, "fail": 0})
+#
+#     def _read(self, last_pass=False):
+#         """
+#         :param last_pass:
+#         """
+#
+#         while not self.fds and not self.__open_fds():
+#             self.log.debug("No data to start reading yet...")
+#             yield None
+#
+#         self.log.debug("Reading selenium results")
+#         self.fds.seek(self.offset)  # without this we have a stuck reads on Mac
+#         if last_pass:
+#             lines = self.fds.readlines()  # unlimited
+#         else:
+#             lines = self.fds.readlines(1024 * 1024)  # 1MB limit to read
+#         self.offset = self.fds.tell()
+#         for line in lines:
+#             if not line.endswith("\n"):
+#                 self.partial_buffer += line
+#                 continue
+#
+#             line = "%s%s" % (self.partial_buffer, line)
+#             self.partial_buffer = ""
+#             line = line.strip("\n")
+#             # TODO: Optimise it
+#             if line.startswith("--TIMESTAMP:"):
+#                 self.test_buffer = TestSample()
+#                 self.trace_buff = ""
+#                 self.err_message_buff = ""
+#                 self.test_buffer.t_stamp = line[12:]
+#             elif line.startswith("--MODULE:"):
+#                 self.test_buffer.module = line[9:]
+#             elif line.startswith("--RUN:"):
+#                 self.test_buffer.test_name = line[6:]
+#             elif line.startswith("--RESULT:"):
+#                 self.test_buffer.result = line[10:]
+#             elif line.startswith("--TRACE:"):
+#                 self.trace_buff = line[8:]
+#             elif line.startswith("--MESSAGE:"):
+#                 self.err_message_buff = line[9:]
+#             elif line.startswith("--TIME:"):
+#                 self.summary['total'] += 1
+#                 self.test_buffer.time = line[7:]
+#                 self.test_buffer.trace = self.trace_buff
+#                 self.test_buffer.message = self.err_message_buff
+#
+#                 r_code = self.err_codes[self.test_buffer.result]
+#                 concur = 1
+#                 conn_time = 0
+#                 latency = 0
+#
+#                 if self.test_buffer.trace or self.test_buffer.message:
+#                     self.summary["fail"] += 1
+#                     if not self.test_buffer.message:
+#                         error = self.test_buffer.trace
+#                     else:
+#                         error = self.test_buffer.message + "\n" + self.test_buffer.trace
+#                 else:
+#                     self.summary["pass"] += 1
+#                     error = None
+#                 yield int(self.test_buffer.t_stamp) / 1000.0, self.test_buffer.test_name, concur, \
+#                       int(self.test_buffer.time) / 1000.0, conn_time, latency, r_code, error, self.test_buffer.module
+#             else:
+#                 if not self.err_message_buff:
+#                     self.trace_buff += line
+#                 else:
+#                     self.err_message_buff += line
+#
+#     def get_state(self):
+#         return self.test_buffer.test_name
+#
+#     def __open_fds(self):
+#         """
+#         opens results.txt
+#         """
+#         if not os.path.isfile(self.filename):
+#             self.log.debug("File not appeared yet")
+#             return False
+#
+#         if not os.path.getsize(self.filename):
+#             self.log.debug("File is empty: %s", self.filename)
+#             return False
+#
+#         self.fds = open(self.filename)
+#         return True
+#
+#     def __del__(self):
+#         if self.fds:
+#             self.fds.close()
+#
 
 class TestSample(object):
     def __init__(self):

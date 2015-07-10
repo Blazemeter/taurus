@@ -4,6 +4,7 @@ from nose.plugins import Plugin
 from nose import run
 import traceback
 import sys
+import csv
 
 
 class TaurusNosePlugin(Plugin):
@@ -20,6 +21,10 @@ class TaurusNosePlugin(Plugin):
         self._module_name = None
         self.output_file = output_file
         self.test_count = 0
+        self.csv_writer = None
+        self.jtl_dict = None
+        self.jtl_header = ["timeStamp", "elapsed", "label", "responseCode", "responseMessage", "threadName", "success",
+                         "grpThreads", "allThreads", "Latency", "Connect"]
 
     def report_error(self, err):
         exc_type, value, tb = err
@@ -34,8 +39,9 @@ class TaurusNosePlugin(Plugin):
         :param err:
         :return:
         """
-        self.stream.write("--RESULT: ERROR\n")
-        self.stream.flush()
+        # self.stream.write("--RESULT: ERROR\n")
+        # self.stream.flush()
+        self.jtl_dict["responseCode"] = 500
         self._trace = self.report_error(err)
 
     def addFailure(self, test, err, capt=None, tbinfo=None):
@@ -46,8 +52,9 @@ class TaurusNosePlugin(Plugin):
 
         :return:
         """
-        self.stream.write("--RESULT: FAILED\n")
-        self.stream.flush()
+        self.jtl_dict["responseCode"] = 404
+        # self.stream.write("--RESULT: FAILED\n")
+        # self.stream.flush()
         self._trace = self.report_error(err)
 
     def addSkip(self, test):
@@ -56,8 +63,9 @@ class TaurusNosePlugin(Plugin):
         :param test:
         :return:
         """
-        self.stream.write("--RESULT: SKIPPED\n")
-        self.stream.flush()
+        # self.stream.write("--RESULT: SKIPPED\n")
+        # self.stream.flush()
+        self.jtl_dict["responseCode"] = 300
 
     def addSuccess(self, test, capt=None):
         """
@@ -65,8 +73,12 @@ class TaurusNosePlugin(Plugin):
         :param test:
         :return:
         """
-        self.stream.write("--RESULT: OK\n")
-        self.stream.flush()
+        # self.stream.write("--RESULT: OK\n")
+        # self.stream.flush()
+        self.jtl_dict["responseCode"] = 200
+        self.jtl_dict["success"] = "true"
+        self.jtl_dict["responseMessage"] = "OK"
+
 
     def begin(self):
         """
@@ -74,8 +86,11 @@ class TaurusNosePlugin(Plugin):
         open descriptor here
         :return:
         """
-        self._module_name = ""
         self.stream = open(self.output_file, "wt")
+        self.csv_writer = csv.DictWriter(self.stream, delimiter=',', fieldnames=self.jtl_header)
+        self.csv_writer.writeheader()
+        self._module_name = ""
+
 
     def finalize(self, result):
         """
@@ -98,11 +113,23 @@ class TaurusNosePlugin(Plugin):
             self._module_name = str(test.__module__)
         self._trace = ""
         self._time = time()
-        self.stream.write("--TIMESTAMP: %d\n" % (1000 * self._time))
-        self.stream.write("--MODULE: %s\n" % self._module_name)
-        self.stream.write("--RUN: %s\n" % test)
-        self.stream.flush()
+        self.jtl_dict = {}.fromkeys(self.jtl_header, 0)
+        self.jtl_dict["timeStamp"] = int(1000 * self._time)
+        self.jtl_dict["label"] = self._module_name
+        self.jtl_dict["threadName"] = test
+        self.jtl_dict["grpThreads"] = 1
+        self.jtl_dict["allThreads"] = 1
+        self.jtl_dict["Latency"] = 0
+        self.jtl_dict["Connect"] = 0
+        self.jtl_dict["success"] = "false"
+
+        # self.stream.write("--TIMESTAMP: %d\n" % (1000 * self._time))
+        # self.stream.write("--MODULE: %s\n" % self._module_name)
+        # self.stream.write("--RUN: %s\n" % test)
+        # self.stream.flush()
         self.test_count += 1
+        # sys.stdout.write("test")
+        # sys.stderr.write("test")
 
     def stopTest(self, test):
         """
@@ -110,11 +137,18 @@ class TaurusNosePlugin(Plugin):
         :param test:
         :return:
         """
+
         if self._trace:
-            self.stream.write(self._trace)
-            self.stream.flush()
-        self.stream.write("--TIME: %d\n" % (1000 * (time() - self._time)))
+            self.jtl_dict["responseMessage"] = self._trace
+            # self.stream.write(self._trace)
+            # self.stream.flush()
+
+        self.jtl_dict["elapsed"] = int(1000 * (time() - self._time))
+        self.csv_writer.writerow(self.jtl_dict)
         self.stream.flush()
+
+        #self.stream.write("--TIME: %d\n" % (1000 * (time() - self._time)))
+        # self.stream.flush()
 
     def setOutputStream(self, stream):
 
