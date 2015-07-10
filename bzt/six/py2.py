@@ -43,16 +43,17 @@ StringIO = StringIO.StringIO
 
 parse = urlparse
 request = urllib
-"""
+
 urlopen = urllib2.urlopen
 urlencode = urllib.urlencode
-urlsplit = urlparse.urlsplit
-urlparse = urlparse.urlparse
 build_opener = urllib2.build_opener
 install_opener = urllib2.install_opener
-
-Request = urllib2.Request
 ProxyHandler = urllib2.ProxyHandler
+Request = urllib2.Request
+"""
+urlsplit = urlparse.urlsplit
+urlparse = urlparse.urlparse
+
 HTTPError = urllib2.HTTPError
 FancyURLopener = urllib.FancyURLopener
 URLopener = urllib.URLopener

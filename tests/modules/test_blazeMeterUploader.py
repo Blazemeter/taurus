@@ -110,7 +110,6 @@ class TestBlazeMeterClientUnicode(BZTestCase):
     def test_unicode_request(self):
         """
         test UnicodeDecodeError in BlazeMeterClient._request()
-
         """
 
         blazemeter_client = BlazeMeterClient(logging.getLogger(''))

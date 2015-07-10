@@ -30,7 +30,8 @@ from bzt.engine import Reporter, AggregatorListener, Provisioning
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.jmeter import JMeterExecutor
 from bzt.utils import to_json, dehumanize_time, MultiPartForm
-from bzt.six import parse, BytesIO, text_type, iteritems, request
+from bzt.six import parse, BytesIO, text_type, iteritems, request, ProxyHandler, urlencode, Request, urlopen, \
+    build_opener, install_opener
 
 
 class BlazeMeterUploader(Reporter, AggregatorListener):
@@ -69,9 +70,9 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
                     proxy_uri = "%s://%s:%s@%s" % (proxy_url.scheme, username, pwd, proxy_url.netloc)
                 else:
                     proxy_uri = "%s://%s" % (proxy_url.scheme, proxy_url.netloc)
-                proxy_handler = request.ProxyHandler({"https": proxy_uri, "http": proxy_uri})
-                opener = request.build_opener(proxy_handler)
-                request.install_opener(opener)
+                proxy_handler = ProxyHandler({"https": proxy_uri, "http": proxy_uri})
+                opener = build_opener(proxy_handler)
+                install_opener(opener)
 
         if not token:
             self.log.warning("No BlazeMeter API key provided, will upload anonymously")
@@ -249,11 +250,11 @@ class BlazeMeterClient(object):
                        data[:self.logger_limit] if data else None)
         # .encode("utf-8") is probably better
         data = data.encode() if isinstance(data, text_type) else data
-        req = request.Request(url, data, headers)
+        req = Request(url, data, headers)
         if method:
             req.get_method = lambda: method
 
-        response = request.urlopen(req, timeout=self.timeout)
+        response = urlopen(req, timeout=self.timeout)
 
         if checker:
             checker(response)
@@ -274,7 +275,7 @@ class BlazeMeterClient(object):
         :return:
         """
         self.log.info("Initiating data feeding...")
-        data = parse.urlencode({})
+        data = urlencode({})
 
         if self.token:
             url = self.address + "/api/latest/tests/%s/start-external" % test_id
