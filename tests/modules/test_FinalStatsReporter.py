@@ -1,5 +1,6 @@
 from io import StringIO
 from collections import Counter, defaultdict
+from bzt import six
 
 from tests import BZTestCase
 from tests.mocks import EngineEmul
@@ -14,11 +15,11 @@ class logger_mock(object):
 
     def info(self, str_template, *args):
         if args:
-            self.info_buf.write(to_unicode(str_template % args))
-            self.info_buf.write(to_unicode("\n"))
+            self.info_buf.write(six.u(str_template % args))
+            self.info_buf.write(six.u("\n"))
         else:
-            self.info_buf.write(to_unicode(str_template))
-            self.info_buf.write(to_unicode("\n"))
+            self.info_buf.write(six.u(str_template))
+            self.info_buf.write(six.u("\n"))
 
 
 class TestFinalStatsReporter(BZTestCase):

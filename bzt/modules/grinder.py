@@ -28,7 +28,7 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.utils import shell_exec
 from bzt.utils import unzip, download_progress_hook, humanize_time, RequiredTool, JavaVM, shutdown_process
-from bzt.six import iteritems
+from bzt.six import iteritems, request
 from bzt.modules.console import WidgetProvider
 
 
@@ -150,8 +150,6 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.__write_scenario_props(fds, scenario)
             self.__write_bzt_props(fds)
 
-        # modify file path in script
-
         with open(self.properties_file, 'rt') as fds:
             prop_contents = fds.read()
         resource_files, modified_contents = self.__get_res_files_from_script(prop_contents)
@@ -159,7 +157,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             with open(self.properties_file, 'wt') as fds:
                 fds.write(modified_contents)
 
-        # FIXME: multi-grinder executions have different names
+        # TODO: multi-grinder executions to have different names
         self.kpi_file = os.path.join(self.engine.artifacts_dir, "grinder-bzt-kpi.log")
 
         self.reader = DataLogReader(self.kpi_file, self.log)
@@ -298,7 +296,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     def __cp_res_files_to_artifacts_dir(self, resource_files_list):
         """
 
-        :param file_list:
+        :param resource_files_list:
         :return:
         """
         for resource_file in resource_files_list:
@@ -483,7 +481,7 @@ class Grinder(RequiredTool):
         dest = os.path.dirname(os.path.dirname(os.path.expanduser(self.tool_path)))
         dest = os.path.abspath(dest)
 
-        downloader = FancyURLopener()
+        downloader = request.FancyURLopener()
         grinder_zip_file = tempfile.NamedTemporaryFile(suffix=".zip", delete=True)
         self.download_link = self.download_link.format(version=self.version)
         self.log.info("Downloading %s", self.download_link)

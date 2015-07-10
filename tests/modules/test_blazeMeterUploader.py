@@ -123,7 +123,7 @@ class TestBlazeMeterClientUnicode(BZTestCase):
         bzt.modules.blazemeter.urlopen = normal_urlopen
 
 
-class DummyHttpResponse():
+class DummyHttpResponse(object):
     def __init__(self):
         self.fake_socket = BytesIO()
         self.fake_socket.write(open("tests/data/unicode_file", 'rb').read())
