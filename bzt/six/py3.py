@@ -22,6 +22,7 @@ import urllib
 
 import tkinter
 import configparser
+from tkinter import font
 
 string_types = str,
 integer_types = int,
@@ -31,28 +32,26 @@ binary_type = bytes
 
 configparser = configparser
 tkinter = tkinter
-tkfont = tkinter.font
+tkfont = font
 UserDict = collections.UserDict
 
 StringIO = io.StringIO
 BytesIO = io.BytesIO
 
+request = urllib
 parse = urllib.parse
-request = urllib.request
-"""
-urlopen = urllib.request.urlopen
-urlencode = __import__("urllib.parse", fromlist="urlencode").urlencode
-urlsplit = __import__("urllib.parse", fromlist="urlsplit").urlsplit
-urlparse = __import__("urllib.parse", fromlist="urlparse").urlparse
-build_opener = __import__("urllib.request", fromlist="urlopen").build_opener
-install_opener = __import__("urllib.request", fromlist="install_opener").install_opener
+urlopen = request.urlopen
+urlencode = parse.urlencode
+build_opener = request.build_opener
+install_opener = request.install_opener
+ProxyHandler = request.ProxyHandler
+Request = request.Request
 
-Request = __import__("urllib.request", fromlist="Request").Request
-ProxyHandler = __import__("", fromlist="ProxyHandler").ProxyHandler
-HTTPError = __import__("urllib.error", fromlist="HTTPError").HTTPError
-FancyURLopener = __import__("urllib.request", fromlist="FancyURLopener").FancyURLopener
-URLopener = __import__("urllib.request", fromlist="URLopener").URLopener
-"""
+viewvalues = operator.methodcaller("values")
+
+
+def iteritems(dictionary, **kw):
+    return iter(dictionary.items(**kw))
 
 
 def b(string):
@@ -61,10 +60,3 @@ def b(string):
 
 def u(string):
     return string
-
-
-def iteritems(dictionary, **kw):
-    return iter(dictionary.items(**kw))
-
-
-viewvalues = operator.methodcaller("values")
