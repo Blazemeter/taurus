@@ -25,6 +25,7 @@ import Tkinter
 import tkFont
 import UserDict
 import StringIO
+import collections
 
 string_types = basestring,
 integer_types = (int, long)
@@ -49,6 +50,7 @@ build_opener = urllib2.build_opener
 install_opener = urllib2.install_opener
 ProxyHandler = urllib2.ProxyHandler
 Request = urllib2.Request
+Iterator = collections.Iterator
 
 viewvalues = operator.methodcaller("viewvalues")
 
