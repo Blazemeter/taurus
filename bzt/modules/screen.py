@@ -24,7 +24,7 @@ import urwid
 
 from urwid import BaseScreen
 
-from bzt.six import Text, tkfont, text_type, iteritems, tkinter
+from bzt.six import tkfont, text_type, iteritems, tkinter
 from bzt import ManualShutdown
 
 
@@ -98,7 +98,7 @@ class GUIScreen(BaseScreen):
             self.root.bind("<Control-4>", self.change_font)
             self.root.bind("<Control-5>", self.change_font)
         self.root.protocol("WM_DELETE_WINDOW", self.closed_window)
-        self.text = Text(self.root, font="TkFixedFont", wrap=tkinter.NONE, state=tkinter.DISABLED,
+        self.text = tkinter.Text(self.root, font="TkFixedFont", wrap=tkinter.NONE, state=tkinter.DISABLED,
                          background="black", foreground="light gray")
         self.text.pack(side=tkinter.LEFT, fill=tkinter.BOTH, expand=tkinter.YES)
         self.font = tkfont.Font(self.root, self.text.cget("font"))

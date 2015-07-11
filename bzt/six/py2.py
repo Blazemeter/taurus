@@ -37,7 +37,7 @@ tkinter = Tkinter
 Tk = Tkinter.Tk
 Text = Tkinter.Text
 tkfont = tkFont
-UserDict = UserDict
+UserDict = UserDict.UserDict
 BytesIO = StringIO.StringIO
 StringIO = StringIO.StringIO
 

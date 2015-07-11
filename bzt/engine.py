@@ -915,7 +915,7 @@ class Reporter(EngineModule):
         self.parameters = BetterDict()
 
 
-class Scenario(UserDict.UserDict, object):
+class Scenario(UserDict, object):
     """
     Test scenario entity
     """

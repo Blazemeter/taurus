@@ -38,7 +38,7 @@ UserDict = collections.UserDict
 StringIO = io.StringIO
 BytesIO = io.BytesIO
 
-request = urllib
+request = urllib.request
 parse = urllib.parse
 urlopen = request.urlopen
 urlencode = parse.urlencode
