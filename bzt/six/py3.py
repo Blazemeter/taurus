@@ -46,7 +46,6 @@ build_opener = request.build_opener
 install_opener = request.install_opener
 ProxyHandler = request.ProxyHandler
 Request = request.Request
-Iterator = collections.abc.Iterator
 
 viewvalues = operator.methodcaller("values")
 

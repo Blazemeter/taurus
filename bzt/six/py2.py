@@ -50,7 +50,6 @@ build_opener = urllib2.build_opener
 install_opener = urllib2.install_opener
 ProxyHandler = urllib2.ProxyHandler
 Request = urllib2.Request
-Iterator = collections.Iterator
 
 viewvalues = operator.methodcaller("viewvalues")
 
