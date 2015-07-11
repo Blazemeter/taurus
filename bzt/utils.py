@@ -29,15 +29,15 @@ import itertools
 import zipfile
 import sys
 import time
-import psutil
 import signal
 import subprocess
-
 from collections import defaultdict, Counter
 from subprocess import PIPE
+
+import psutil
 from psutil import Popen
-from bzt.moves import string_types, iteritems, viewvalues, binary_type, text_type, to_bytes, integer_types, \
-    FancyURLopener
+
+from bzt.six import string_types, iteritems, viewvalues, binary_type, text_type, b, integer_types, request
 
 
 def run_once(func):
@@ -373,8 +373,8 @@ class MultiPartForm(object):
             else:
                 raise BaseException
 
-        res_bytes = to_bytes("\r\n").join(result_list)
-        res_bytes += to_bytes("\r\n")
+        res_bytes = b("\r\n").join(result_list)
+        res_bytes += b("\r\n")
         return res_bytes
         # return b'\r\n'.join(x.encode() if isinstance(x, str) else x for x in self.__convert_to_list())
 
@@ -629,7 +629,7 @@ class RequiredTool(object):
         try:
             if not os.path.exists(os.path.dirname(self.tool_path)):
                 os.makedirs(os.path.dirname(self.tool_path))
-            downloader = FancyURLopener()
+            downloader = request.FancyURLopener()
             downloader.retrieve(self.download_link, self.tool_path, download_progress_hook)
 
             if self.check_if_installed():

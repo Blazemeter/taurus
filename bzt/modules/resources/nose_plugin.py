@@ -1,9 +1,9 @@
 from time import time
+import traceback
+import sys
 
 from nose.plugins import Plugin
 from nose import run
-import traceback
-import sys
 
 
 class TaurusNosePlugin(Plugin):
@@ -118,7 +118,7 @@ class TaurusNosePlugin(Plugin):
 
     def setOutputStream(self, stream):
 
-        class dummy:
+        class Dummy(object):
             def write(self, *arg):
                 pass
 
@@ -128,12 +128,12 @@ class TaurusNosePlugin(Plugin):
             def flush(self, *arg):
                 pass
 
-        return dummy()
+        return Dummy()
 
 
 if __name__ == "__main__":
-    output_file = sys.argv[1]
+    _output_file = sys.argv[1]
     test_path = sys.argv[2:]
     argv = [__file__, '-v']
     argv.extend(test_path)
-    run(addplugins=[TaurusNosePlugin(output_file)], argv=argv + ['--with-nose_plugin'])
+    run(addplugins=[TaurusNosePlugin(_output_file)], argv=argv + ['--with-nose_plugin'])

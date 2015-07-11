@@ -31,6 +31,7 @@ import tempfile
 
 from lxml.etree import XMLSyntaxError
 import urwid
+
 from cssselect import GenericTranslator
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
@@ -38,8 +39,8 @@ from bzt.modules.console import WidgetProvider
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.utils import shell_exec, ensure_is_dict, humanize_time, dehumanize_time, BetterDict, \
     guess_csv_dialect, unzip, download_progress_hook, RequiredTool, JavaVM, shutdown_process
+from bzt.six import iteritems, text_type, string_types, StringIO, parse, request
 
-from bzt.moves import iteritems, text_type, string_types, urlsplit, StringIO, FancyURLopener
 try:
     from lxml import etree
 except ImportError:
@@ -1243,7 +1244,7 @@ class JMX(object):
                                testclass="Arguments", testname="user_defined")
         cfg.append(params)
         if default_address:
-            parsed_url = urlsplit(default_address)
+            parsed_url = parse.urlsplit(default_address)
             if parsed_url.scheme:
                 cfg.append(JMX._string_prop("HTTPSampler.protocol", parsed_url.scheme))
             if parsed_url.hostname:
@@ -1987,7 +1988,7 @@ class JMeter(RequiredTool):
 
         self.log.info("Will try to install JMeter into %s", dest)
 
-        downloader = FancyURLopener()
+        downloader = request.FancyURLopener()
         jmeter_dist = tempfile.NamedTemporaryFile(suffix=".zip", delete=True)
         self.download_link = self.download_link.format(version=self.version)
         self.log.info("Downloading %s", self.download_link)
@@ -2060,7 +2061,7 @@ class JMeterPlugins(RequiredTool):
             plugin_dist = tempfile.NamedTemporaryFile(suffix=".zip", delete=True, prefix=set_name)
             plugin_download_link = self.download_link.format(plugin=set_name)
             self.log.info("Downloading %s", plugin_download_link)
-            downloader = FancyURLopener()
+            downloader = request.FancyURLopener()
             try:
                 downloader.retrieve(plugin_download_link, plugin_dist.name, download_progress_hook)
             except BaseException as exc:

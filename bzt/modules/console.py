@@ -22,12 +22,9 @@ import traceback
 import math
 import copy
 import platform
-import bzt
-
 from logging import StreamHandler
 from itertools import groupby
 from datetime import datetime
-from bzt.moves import StringIO
 
 from urwid.decoration import Padding
 from urwid.display_common import BaseScreen
@@ -38,6 +35,8 @@ from urwid.graphics import BigText
 from urwid.listbox import SimpleListWalker
 from urwid.widget import Divider
 
+import bzt
+from bzt.six import StringIO
 from bzt.modules.provisioning import Local
 from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.aggregator import DataPoint, KPISet

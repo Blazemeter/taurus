@@ -1,14 +1,13 @@
 from io import StringIO
+from collections import Counter, defaultdict
+from bzt import six
+
 from tests import BZTestCase
 from tests.mocks import EngineEmul
 from bzt.modules.reporting import FinalStatus
-from bzt.modules.jmeter import JMeterExecutor
 from bzt.utils import BetterDict
-from bzt.moves import to_unicode
-from collections import Counter, defaultdict
 from bzt.modules.aggregator import DataPoint, KPISet
-import time
-from bzt.engine import Provisioning
+
 
 class logger_mock(object):
     def __init__(self):
@@ -16,11 +15,11 @@ class logger_mock(object):
 
     def info(self, str_template, *args):
         if args:
-            self.info_buf.write(to_unicode(str_template % args))
-            self.info_buf.write(to_unicode("\n"))
+            self.info_buf.write(six.u(str_template % args))
+            self.info_buf.write(six.u("\n"))
         else:
-            self.info_buf.write(to_unicode(str_template))
-            self.info_buf.write(to_unicode("\n"))
+            self.info_buf.write(six.u(str_template))
+            self.info_buf.write(six.u("\n"))
 
 
 class TestFinalStatsReporter(BZTestCase):
@@ -29,7 +28,7 @@ class TestFinalStatsReporter(BZTestCase):
         obj.engine = EngineEmul
         obj.parameters = BetterDict()
         obj.log = logger_mock()
-        obj.parameters.merge({"failed-labels": True, "percentiles": False, "summary": False, "test-duration":False})
+        obj.parameters.merge({"failed-labels": True, "percentiles": False, "summary": False, "test-duration": False})
 
         datapoint = DataPoint(None, None)
         cumul_data = datapoint[DataPoint.CUMULATIVE]
@@ -139,7 +138,7 @@ class TestFinalStatsReporter(BZTestCase):
         obj.engine = EngineEmul
         obj.parameters = BetterDict()
         obj.log = logger_mock()
-        obj.parameters.merge({"failed-labels": False, "percentiles": True, "summary": False, "test-duration":False})
+        obj.parameters.merge({"failed-labels": False, "percentiles": True, "summary": False, "test-duration": False})
 
         datapoint = DataPoint(None, None)
 
@@ -183,7 +182,7 @@ class TestFinalStatsReporter(BZTestCase):
         obj.engine = EngineEmul
         obj.parameters = BetterDict()
         obj.log = logger_mock()
-        obj.parameters.merge({"failed-labels": False, "percentiles": False, "summary": True, "test-duration":False})
+        obj.parameters.merge({"failed-labels": False, "percentiles": False, "summary": True, "test-duration": False})
 
         datapoint = DataPoint(None, None)
 
