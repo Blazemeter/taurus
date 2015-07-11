@@ -99,7 +99,7 @@ class GUIScreen(BaseScreen):
             self.root.bind("<Control-5>", self.change_font)
         self.root.protocol("WM_DELETE_WINDOW", self.closed_window)
         self.text = tkinter.Text(self.root, font="TkFixedFont", wrap=tkinter.NONE, state=tkinter.DISABLED,
-                         background="black", foreground="light gray")
+                                 background="black", foreground="light gray")
         self.text.pack(side=tkinter.LEFT, fill=tkinter.BOTH, expand=tkinter.YES)
         self.font = tkfont.Font(self.root, self.text.cget("font"))
         self.text.config(font=self.font)

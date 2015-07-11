@@ -546,6 +546,7 @@ class JUnitJar(RequiredTool):
     def __init__(self, tool_path, download_link):
         super(JUnitJar, self).__init__("JUnit", tool_path, download_link)
 
+
 class JavaC(RequiredTool):
     def __init__(self, tool_path, download_link, parent_logger):
         super(JavaC, self).__init__("JavaC", tool_path, download_link)

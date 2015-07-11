@@ -241,8 +241,8 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         with open(script, 'w') as fds:
             with open(tpl) as tds:
                 fds.write(tds.read())
-            for request in self.get_scenario().get_requests():
-                line = '\t\trequest.%s("%s")\n' % (request.method, request.url)
+            for req in self.get_scenario().get_requests():
+                line = '\t\trequest.%s("%s")\n' % (req.method, req.url)
                 fds.write(line)
         return script
 
