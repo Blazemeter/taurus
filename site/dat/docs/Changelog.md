@@ -1,7 +1,7 @@
 # Changelog
 
 ## 0.3.2 (next)
-
+  - use progressbar for download progress indicators
 
 ## 0.3.1
   - fixed python3 installation issue (progressbar33 now used instead of progressbar)

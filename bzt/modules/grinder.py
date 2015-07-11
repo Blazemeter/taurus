@@ -26,8 +26,8 @@ import urwid
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
-from bzt.utils import shell_exec
-from bzt.utils import unzip, download_progress_hook, humanize_time, RequiredTool, JavaVM, shutdown_process
+from bzt.utils import shell_exec, ProgressBarContext
+from bzt.utils import unzip, humanize_time, RequiredTool, JavaVM, shutdown_process
 from bzt.six import iteritems, request
 from bzt.modules.console import WidgetProvider
 
@@ -486,11 +486,12 @@ class Grinder(RequiredTool):
         self.download_link = self.download_link.format(version=self.version)
         self.log.info("Downloading %s", self.download_link)
 
-        try:
-            downloader.retrieve(self.download_link, grinder_zip_file.name, download_progress_hook)
-        except BaseException as exc:
-            self.log.error("Error while downloading %s", self.download_link)
-            raise exc
+        with ProgressBarContext() as pbar:
+            try:
+                downloader.retrieve(self.download_link, grinder_zip_file.name, pbar.download_callback)
+            except BaseException as exc:
+                self.log.error("Error while downloading %s", self.download_link)
+                raise exc
 
         self.log.info("Unzipping %s", grinder_zip_file.name)
         unzip(grinder_zip_file.name, dest, 'grinder-' + self.version)

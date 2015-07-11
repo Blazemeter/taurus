@@ -31,14 +31,13 @@ import tempfile
 
 from lxml.etree import XMLSyntaxError
 import urwid
-
 from cssselect import GenericTranslator
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.console import WidgetProvider
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.utils import shell_exec, ensure_is_dict, humanize_time, dehumanize_time, BetterDict, \
-    guess_csv_dialect, unzip, download_progress_hook, RequiredTool, JavaVM, shutdown_process
+    guess_csv_dialect, unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext
 from bzt.six import iteritems, text_type, string_types, StringIO, parse, request
 
 try:
@@ -1993,11 +1992,12 @@ class JMeter(RequiredTool):
         self.download_link = self.download_link.format(version=self.version)
         self.log.info("Downloading %s", self.download_link)
 
-        try:
-            downloader.retrieve(self.download_link, jmeter_dist.name, download_progress_hook)
-        except BaseException as exc:
-            self.log.error("Error while downloading %s", self.download_link)
-            raise exc
+        with ProgressBarContext() as pbar:
+            try:
+                downloader.retrieve(self.download_link, jmeter_dist.name, pbar.download_callback)
+            except BaseException as exc:
+                self.log.error("Error while downloading %s", self.download_link)
+                raise exc
 
         self.log.info("Unzipping %s to %s", jmeter_dist.name, dest)
         unzip(jmeter_dist.name, dest, 'apache-jmeter-' + self.version)
@@ -2062,11 +2062,12 @@ class JMeterPlugins(RequiredTool):
             plugin_download_link = self.download_link.format(plugin=set_name)
             self.log.info("Downloading %s", plugin_download_link)
             downloader = request.FancyURLopener()
-            try:
-                downloader.retrieve(plugin_download_link, plugin_dist.name, download_progress_hook)
-            except BaseException as exc:
-                self.log.error("Error while downloading %s", plugin_download_link)
-                raise exc
+            with ProgressBarContext() as pbar:
+                try:
+                    downloader.retrieve(plugin_download_link, plugin_dist.name, pbar.download_callback)
+                except BaseException as exc:
+                    self.log.error("Error while downloading %s", plugin_download_link)
+                    raise exc
 
             self.log.info("Unzipping %s", plugin_dist.name)
             unzip(plugin_dist.name, dest)
