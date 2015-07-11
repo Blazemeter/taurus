@@ -30,7 +30,6 @@ from json import encoder
 
 import psutil
 import yaml
-
 from yaml.representer import SafeRepresenter
 
 from bzt import ManualShutdown, NormalShutdown, get_configs_dir

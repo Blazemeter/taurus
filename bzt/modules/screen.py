@@ -21,7 +21,6 @@ import platform
 import math
 
 import urwid
-
 from urwid import BaseScreen
 
 from bzt.six import tkfont, text_type, iteritems, tkinter
