@@ -4,10 +4,11 @@ Created on Mar 23, 2015
 @author: Coeurl
 '''
 
-from tests import setup_test_logging, BZTestCase, __dir__
-from bzt.modules.grinder import GrinderExecutor
 import shutil
 import os
+
+from tests import setup_test_logging, BZTestCase, __dir__
+from bzt.modules.grinder import GrinderExecutor
 from tests.mocks import EngineEmul
 from bzt.utils import BetterDict
 

@@ -1,11 +1,11 @@
 import logging
 import os
 import shutil
-from tests import BZTestCase, random_datapoint
+from io import BytesIO
 
+from tests import BZTestCase, random_datapoint
 from bzt.modules.blazemeter import BlazeMeterUploader, BlazeMeterClient
 from tests.mocks import EngineEmul
-from io import BytesIO
 import bzt.modules.blazemeter
 
 
@@ -110,7 +110,6 @@ class TestBlazeMeterClientUnicode(BZTestCase):
     def test_unicode_request(self):
         """
         test UnicodeDecodeError in BlazeMeterClient._request()
-
         """
 
         blazemeter_client = BlazeMeterClient(logging.getLogger(''))
@@ -123,7 +122,7 @@ class TestBlazeMeterClientUnicode(BZTestCase):
         bzt.modules.blazemeter.urlopen = normal_urlopen
 
 
-class DummyHttpResponse():
+class DummyHttpResponse(object):
     def __init__(self):
         self.fake_socket = BytesIO()
         self.fake_socket.write(open("tests/data/unicode_file", 'rb').read())

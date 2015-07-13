@@ -29,15 +29,16 @@ import itertools
 import zipfile
 import sys
 import time
-import psutil
 import signal
 import subprocess
-
 from collections import defaultdict, Counter
 from subprocess import PIPE
+
+from progressbar import ProgressBar, Percentage, Bar, ETA
+import psutil
 from psutil import Popen
-from bzt.moves import string_types, iteritems, viewvalues, binary_type, text_type, to_bytes, integer_types, \
-    FancyURLopener
+
+from bzt.six import string_types, iteritems, viewvalues, binary_type, text_type, b, integer_types, request
 
 
 def run_once(func):
@@ -373,8 +374,8 @@ class MultiPartForm(object):
             else:
                 raise BaseException
 
-        res_bytes = to_bytes("\r\n").join(result_list)
-        res_bytes += to_bytes("\r\n")
+        res_bytes = b("\r\n").join(result_list)
+        res_bytes += b("\r\n")
         return res_bytes
         # return b'\r\n'.join(x.encode() if isinstance(x, str) else x for x in self.__convert_to_list())
 
@@ -526,32 +527,6 @@ def unzip(source_filename, dest_dir, rel_path=None):
             zfd.extract(member, dest_dir)
 
 
-def download_progress_hook(blocknum, blocksize, totalsize):
-    """
-    displays download progress, invoked by UrlOpener() or it's subclasses.
-    mocked as tests.mocks.download_progress_mock
-    :return:
-    """
-    if not callable(getattr(sys.stdout, 'isatty')):
-        return
-
-    if not sys.stdout.isatty():
-        return
-
-    readsofar = blocknum * blocksize
-    if totalsize > 0:
-        percent = readsofar * 100 / totalsize
-        # TODO: fix bug when downloaded size < totalsize at 100%.
-        # or just skip downloaded output
-        progress_str = "\r%5.1f%% %*d of %d" % (
-            percent, len(str(totalsize)), readsofar, totalsize)
-        sys.stdout.write(progress_str)
-        if readsofar >= totalsize:  # near the end
-            sys.stderr.write("\n")
-    else:
-        sys.stdout.write("read %d\n" % (readsofar,))
-
-
 def make_boundary(text=None):
     """
     Generate boundary id
@@ -626,18 +601,19 @@ class RequiredTool(object):
         return False
 
     def install(self):
-        try:
-            if not os.path.exists(os.path.dirname(self.tool_path)):
-                os.makedirs(os.path.dirname(self.tool_path))
-            downloader = FancyURLopener()
-            downloader.retrieve(self.download_link, self.tool_path, download_progress_hook)
+        with ProgressBarContext() as pbar:
+            try:
+                if not os.path.exists(os.path.dirname(self.tool_path)):
+                    os.makedirs(os.path.dirname(self.tool_path))
+                downloader = request.FancyURLopener()
+                downloader.retrieve(self.download_link, self.tool_path, pbar.download_callback)
 
-            if self.check_if_installed():
-                return self.tool_path
-            else:
-                raise RuntimeError("Unable to run %s after installation!" % self.tool_name)
-        except BaseException as exc:
-            raise exc
+                if self.check_if_installed():
+                    return self.tool_path
+                else:
+                    raise RuntimeError("Unable to run %s after installation!" % self.tool_name)
+            except BaseException as exc:
+                raise exc
 
 
 class JavaVM(RequiredTool):
@@ -655,3 +631,29 @@ class JavaVM(RequiredTool):
 
     def install(self):
         raise NotImplementedError()
+
+
+class ProgressBarContext(ProgressBar):
+    def __init__(self, maxval=0):
+        widgets = [Percentage(), ' ', Bar(marker='>'), ' ', ETA()]
+        super(ProgressBarContext, self).__init__(widgets=widgets, maxval=maxval, fd=sys.stdout)
+
+    def __enter__(self):
+        if not sys.stdout.isatty():
+            logging.debug("No progressbar for non-tty output: %s", sys.stdout)
+
+        self.start()
+        return self
+
+    def update(self, value=None):
+        if sys.stdout.isatty():
+            super(ProgressBarContext, self).update(value)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if sys.stdout.isatty():
+            self.finish()
+
+    def download_callback(self, block_count, blocksize, totalsize):
+        self.maxval = totalsize
+        progress = block_count * blocksize
+        self.update(progress if progress <= totalsize else totalsize)

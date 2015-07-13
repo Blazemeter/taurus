@@ -21,15 +21,16 @@ import time
 import subprocess
 import platform
 import shutil
-import urwid
 import tempfile
+
+import urwid
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
-from bzt.utils import unzip, download_progress_hook, humanize_time, shell_exec, ensure_is_dict, RequiredTool, JavaVM, \
-    shutdown_process
+from bzt.six import request
+from bzt.utils import unzip, humanize_time, shell_exec, ensure_is_dict, RequiredTool, JavaVM, \
+    shutdown_process, ProgressBarContext
 from bzt.modules.console import WidgetProvider
-from bzt.moves import FancyURLopener
 
 EXE_SUFFIX = ".bat" if platform.system() == 'Windows' else ".sh"
 
@@ -444,18 +445,19 @@ class Gatling(RequiredTool):
         self.log.info("Will try to install Gatling into %s", dest)
 
         # download gatling
-        downloader = FancyURLopener()
+        downloader = request.FancyURLopener()
         gatling_zip_file = tempfile.NamedTemporaryFile(suffix=".zip", delete=True)
 
         self.download_link = self.download_link.format(version=self.version)
         self.log.info("Downloading %s", self.download_link)
         # TODO: check archive checksum/hash before unzip and run
 
-        try:
-            downloader.retrieve(self.download_link, gatling_zip_file.name, download_progress_hook)
-        except BaseException as exc:
-            self.log.error("Error while downloading %s", self.download_link)
-            raise exc
+        with ProgressBarContext() as pbar:
+            try:
+                downloader.retrieve(self.download_link, gatling_zip_file.name, pbar.download_callback)
+            except BaseException as exc:
+                self.log.error("Error while downloading %s", self.download_link)
+                raise exc
 
         self.log.info("Unzipping %s", gatling_zip_file.name)
         unzip(gatling_zip_file.name, dest, 'gatling-charts-highcharts-bundle-' + self.version)

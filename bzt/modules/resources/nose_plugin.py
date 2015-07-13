@@ -147,8 +147,8 @@ class TaurusNosePlugin(Plugin):
 
 
 if __name__ == "__main__":
-    output_file = sys.argv[1]
+    _output_file = sys.argv[1]
     test_path = sys.argv[2:]
     argv = [__file__, '-v']
     argv.extend(test_path)
-    run(addplugins=[TaurusNosePlugin(output_file)], argv=argv + ['--with-nose_plugin'] + ['--nocapture'])
+    run(addplugins=[TaurusNosePlugin(_output_file)], argv=argv + ['--with-nose_plugin'] + ['--nocapture'])

@@ -16,7 +16,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 from abc import abstractmethod
-
 import copy
 import datetime
 import json
@@ -26,16 +25,16 @@ import shutil
 import tempfile
 import time
 import traceback
-import psutil
-import yaml
-
 from collections import namedtuple, defaultdict
 from json import encoder
+
+import psutil
+import yaml
 from yaml.representer import SafeRepresenter
 
 from bzt import ManualShutdown, NormalShutdown, get_configs_dir
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_int
-from bzt.moves import ConfigParser, iteritems, string_types, text_type, PY2, UserDict
+from bzt.six import iteritems, string_types, text_type, PY2, UserDict, configparser
 
 
 class Engine(object):
@@ -527,7 +526,7 @@ class Configuration(BetterDict):
                 return json.loads(fds.read()), self.JSON
             elif first_line.startswith('['):
                 self.log.debug("Reading %s as INI", filename)
-                parser = ConfigParser.SafeConfigParser()
+                parser = configparser.SafeConfigParser()
                 parser.read(filename)
                 res = []
                 parser.add_section("BZT")
