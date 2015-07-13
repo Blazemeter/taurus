@@ -31,7 +31,9 @@ import tempfile
 
 from lxml.etree import XMLSyntaxError
 import urwid
+
 from cssselect import GenericTranslator
+from bzt import six
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.console import WidgetProvider
@@ -41,7 +43,7 @@ from bzt.utils import shell_exec, ensure_is_dict, humanize_time, dehumanize_time
 from bzt.six import iteritems, text_type, string_types, StringIO, parse, request
 
 try:
-    from lxml import etree, etree, etree
+    from lxml import etree
 except ImportError:
     try:
         import cElementTree as etree
@@ -997,7 +999,10 @@ class JMX(object):
         :return:
         """
         res = etree.Element("stringProp", name=name)
-        res.text = str(value)
+        if not isinstance(value, six.string_types):
+            value = str(value)
+
+        res.text = value
         return res
 
     @staticmethod
