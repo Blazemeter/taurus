@@ -1445,6 +1445,11 @@ class JMX(object):
         for item in items:
             item.text = text
 
+    @staticmethod
+    def _get_simple_controller(name):
+        return etree.Element("GenericController", guiclass="LogicControllerGui", testclass="GenericController",
+                             testname=name)
+
 
 class JTLReader(ResultsReader):
     """
