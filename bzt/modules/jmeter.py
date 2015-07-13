@@ -41,7 +41,7 @@ from bzt.utils import shell_exec, ensure_is_dict, humanize_time, dehumanize_time
 from bzt.six import iteritems, text_type, string_types, StringIO, parse, request
 
 try:
-    from lxml import etree
+    from lxml import etree, etree, etree
 except ImportError:
     try:
         import cElementTree as etree
@@ -1049,7 +1049,7 @@ class JMX(object):
         :return:
         """
         trg = etree.Element("ThreadGroup", guiclass="ThreadGroupGui",
-                            testclass="ThreadGroup", testname="TG")
+                            testclass="ThreadGroup", testname="ThreadGroup")
         loop = etree.Element("elementProp",
                              name="ThreadGroup.main_controller",
                              elementType="LoopController",
@@ -1449,6 +1449,14 @@ class JMX(object):
     def _get_simple_controller(name):
         return etree.Element("GenericController", guiclass="LogicControllerGui", testclass="GenericController",
                              testname=name)
+
+    def _add_results_tree(self):
+        dbg_tree = etree.Element("ResultCollector",
+                                 testname="View Results Tree",
+                                 testclass="ResultCollector",
+                                 guiclass="ViewResultsFullVisualizer")
+        self.append(self.TEST_PLAN_SEL, dbg_tree)
+        self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
 
 
 class JTLReader(ResultsReader):
@@ -1925,7 +1933,7 @@ class JMeterScenarioBuilder(JMX):
         self.append(self.TEST_PLAN_SEL, etree.Element("hashTree", type="tg"))  # arbitrary trick with our own attribute
 
         self.__add_requests()
-        self.__add_results_tree()
+        self._add_results_tree()
 
     def save(self, filename):
         """
@@ -1936,14 +1944,6 @@ class JMeterScenarioBuilder(JMX):
         # NOTE: bad design, as repetitive save will duplicate stuff
         self.__generate()
         super(JMeterScenarioBuilder, self).save(filename)
-
-    def __add_results_tree(self):
-        dbg_tree = etree.Element("ResultCollector",
-                                 testname="View Results Tree",
-                                 testclass="ResultCollector",
-                                 guiclass="ViewResultsFullVisualizer")
-        self.append(self.TEST_PLAN_SEL, dbg_tree)
-        self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
 
     def __add_datasources(self):
         sources = self.scenario.get("data-sources", [])
