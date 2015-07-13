@@ -6,6 +6,7 @@ import os
 import shutil
 import yaml
 import time
+import csv
 
 setup_test_logging()
 
@@ -428,8 +429,9 @@ class TestSeleniumStuff(BZTestCase):
             time.sleep(1)
         obj.shutdown()
         with open(obj.kpi_file) as kpi_fds:
-            contents = kpi_fds.read()
-        self.assertEqual(contents.count("--TIME:"), 2)
+            reader = csv.reader(kpi_fds)
+            rows = list(reader)
+        self.assertEqual(len(rows), 3)
 
     def test_samples_count_testcase(self):
         """
@@ -448,8 +450,9 @@ class TestSeleniumStuff(BZTestCase):
             time.sleep(1)
         obj.shutdown()
         with open(obj.kpi_file) as kpi_fds:
-            contents = kpi_fds.read()
-        self.assertEqual(contents.count("--TIME:"), 2)
+            reader = csv.reader(kpi_fds)
+            rows = list(reader)
+        self.assertEqual(len(rows), 3)
 
     def test_no_test_in_name(self):
         """
@@ -468,5 +471,6 @@ class TestSeleniumStuff(BZTestCase):
             time.sleep(1)
         obj.shutdown()
         with open(obj.kpi_file) as kpi_fds:
-            contents = kpi_fds.read()
-        self.assertEqual(contents.count("--TIME:"), 2)
+            reader = csv.reader(kpi_fds)
+            rows = list(reader)
+        self.assertEqual(len(rows), 3)

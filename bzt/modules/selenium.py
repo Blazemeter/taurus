@@ -14,7 +14,7 @@ from collections import Counter
 from bzt.engine import ScenarioExecutor, Scenario
 from bzt.utils import RequiredTool, shell_exec, shutdown_process, BetterDict, JavaVM
 from bzt.moves import string_types, text_type
-from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
+from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.console import WidgetProvider
 from bzt.modules.jmeter import JTLReader
 
@@ -75,8 +75,11 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
                 shutil.copy2(scenario.get("script"), runner_working_dir)
 
         self.runner = self.runner(runner_config, scenario, self.log)
-        self.runner.prepare()
-        self.reader = SeleniumDataReader(self.kpi_file, self.log)
+
+        runner_std_out = self.engine.create_artifact("runner_out", ".txt")
+        runner_std_err = self.engine.create_artifact("runner_err", ".txt")
+        self.runner.prepare(runner_std_out, runner_std_err)
+        self.reader = SeleniumDataReader(self.kpi_file, self.log, runner_std_out)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
@@ -120,8 +123,8 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
         :return:
         """
         if self.widget:
-            cur_state = self.reader.get_state()
-            self.widget.update(cur_state, self.reader.summary)
+            cur_test, summary = self.reader.get_state()
+            self.widget.update(cur_test, summary)
 
         return self.runner.is_finished()
 
@@ -165,7 +168,7 @@ class AbstractTestRunner(object):
         self.is_failed = False
 
     @abstractmethod
-    def prepare(self):
+    def prepare(self, file_std_out, file_std_err):
         pass
 
     @abstractmethod
@@ -218,7 +221,7 @@ class JunitTester(AbstractTestRunner):
         self.base_class_path = [self.selenium_server_jar_path, self.junit_path, self.junit_listener_path]
         self.base_class_path.extend(self.scenario.get("additional-classpath", []))
 
-    def prepare(self):
+    def prepare(self, std_out, std_err):
         """
         run checklist, make jar.
         """
@@ -226,6 +229,11 @@ class JunitTester(AbstractTestRunner):
 
         if self.settings.get("script-type", None) == ".java":
             self.compile_scripts()
+
+        std_out_desc = open(std_out, "wt")
+        std_err_desc = open(std_err, "wt")
+        self.opened_descriptors["std_err"] = std_err_desc
+        self.opened_descriptors["std_out"] = std_out_desc
 
     def run_checklist(self):
         """
@@ -331,18 +339,9 @@ class JunitTester(AbstractTestRunner):
         junit_command_line.extend(jar_list)
         junit_command_line.extend([self.report_file])
 
-        junit_out_path = os.path.join(self.artifacts_dir, "junit_out")
-        junit_err_path = os.path.join(self.artifacts_dir, "junit_err")
-
-        junit_out = open(junit_out_path, 'ab')
-        junit_err = open(junit_err_path, 'ab')
-
-        self.opened_descriptors["std_out"] = junit_out
-        self.opened_descriptors["std_err"] = junit_err
-
         self.process = shell_exec(junit_command_line, cwd=self.artifacts_dir,
-                                  stdout=junit_out,
-                                  stderr=junit_err)
+                                  stdout=self.opened_descriptors["std_out"],
+                                  stderr=self.opened_descriptors["std_err"])
 
 
 class NoseTester(AbstractTestRunner):
@@ -355,8 +354,12 @@ class NoseTester(AbstractTestRunner):
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.plugin_path = os.path.join(os.path.dirname(__file__), "resources", "nose_plugin.py")
 
-    def prepare(self):
+    def prepare(self, std_out, std_err):
         self.run_checklist()
+        std_out_desc = open(std_out, "wt")
+        std_err_desc = open(std_err, "wt")
+        self.opened_descriptors["std_err"] = std_err_desc
+        self.opened_descriptors["std_out"] = std_out_desc
 
     def run_checklist(self):
         """
@@ -376,143 +379,28 @@ class NoseTester(AbstractTestRunner):
         """
         executable = self.settings.get("interpreter", sys.executable)
         nose_command_line = [executable, self.plugin_path, self.report_file, self.working_dir]
-        nose_out = open(os.path.join(self.artifacts_dir, "nose_out"), 'ab')
-        nose_err = open(os.path.join(self.artifacts_dir, "nose_err"), 'ab')
-
-        self.opened_descriptors["std_out"] = nose_out
-        self.opened_descriptors["std_err"] = nose_err
 
         self.process = shell_exec(nose_command_line, cwd=self.artifacts_dir,
-                                  stdout=nose_out,
-                                  stderr=nose_err)
-
+                                  stdout=self.opened_descriptors["std_out"],
+                                  stderr=self.opened_descriptors["std_err"])
 
 
 class SeleniumDataReader(JTLReader):
-    def __init__(self, filename, parent_logger):
+    def __init__(self, filename, parent_logger, runner_output):
         super(SeleniumDataReader, self).__init__(filename, parent_logger, None)
+        self.runner_output = runner_output
         self.summary = Counter({"total": 0, "pass": 0, "fail": 0})
+        self.position = 0
+
     def get_state(self):
-        return "testname"
-
-# class SeleniumDataReader(ResultsReader):
-#     """
-#     Read KPI from data log
-#     """
-#
-#     def __init__(self, filename, parent_logger):
-#         super(SeleniumDataReader, self).__init__()
-#         self.log = parent_logger.getChild(self.__class__.__name__)
-#         self.filename = filename
-#         self.fds = None
-#         self.partial_buffer = ""
-#         self.test_buffer = TestSample()
-#         self.offset = 0
-#         self.trace_buff = ""
-#         self.err_message_buff = ""
-#         self.err_codes = {"OK": "200", "SKIPPED": "300", "FAILED": "404", "ERROR": "500"}
-#         self.summary = Counter({"total": 0, "pass": 0, "fail": 0})
-#
-#     def _read(self, last_pass=False):
-#         """
-#         :param last_pass:
-#         """
-#
-#         while not self.fds and not self.__open_fds():
-#             self.log.debug("No data to start reading yet...")
-#             yield None
-#
-#         self.log.debug("Reading selenium results")
-#         self.fds.seek(self.offset)  # without this we have a stuck reads on Mac
-#         if last_pass:
-#             lines = self.fds.readlines()  # unlimited
-#         else:
-#             lines = self.fds.readlines(1024 * 1024)  # 1MB limit to read
-#         self.offset = self.fds.tell()
-#         for line in lines:
-#             if not line.endswith("\n"):
-#                 self.partial_buffer += line
-#                 continue
-#
-#             line = "%s%s" % (self.partial_buffer, line)
-#             self.partial_buffer = ""
-#             line = line.strip("\n")
-#             # TODO: Optimise it
-#             if line.startswith("--TIMESTAMP:"):
-#                 self.test_buffer = TestSample()
-#                 self.trace_buff = ""
-#                 self.err_message_buff = ""
-#                 self.test_buffer.t_stamp = line[12:]
-#             elif line.startswith("--MODULE:"):
-#                 self.test_buffer.module = line[9:]
-#             elif line.startswith("--RUN:"):
-#                 self.test_buffer.test_name = line[6:]
-#             elif line.startswith("--RESULT:"):
-#                 self.test_buffer.result = line[10:]
-#             elif line.startswith("--TRACE:"):
-#                 self.trace_buff = line[8:]
-#             elif line.startswith("--MESSAGE:"):
-#                 self.err_message_buff = line[9:]
-#             elif line.startswith("--TIME:"):
-#                 self.summary['total'] += 1
-#                 self.test_buffer.time = line[7:]
-#                 self.test_buffer.trace = self.trace_buff
-#                 self.test_buffer.message = self.err_message_buff
-#
-#                 r_code = self.err_codes[self.test_buffer.result]
-#                 concur = 1
-#                 conn_time = 0
-#                 latency = 0
-#
-#                 if self.test_buffer.trace or self.test_buffer.message:
-#                     self.summary["fail"] += 1
-#                     if not self.test_buffer.message:
-#                         error = self.test_buffer.trace
-#                     else:
-#                         error = self.test_buffer.message + "\n" + self.test_buffer.trace
-#                 else:
-#                     self.summary["pass"] += 1
-#                     error = None
-#                 yield int(self.test_buffer.t_stamp) / 1000.0, self.test_buffer.test_name, concur, \
-#                       int(self.test_buffer.time) / 1000.0, conn_time, latency, r_code, error, self.test_buffer.module
-#             else:
-#                 if not self.err_message_buff:
-#                     self.trace_buff += line
-#                 else:
-#                     self.err_message_buff += line
-#
-#     def get_state(self):
-#         return self.test_buffer.test_name
-#
-#     def __open_fds(self):
-#         """
-#         opens results.txt
-#         """
-#         if not os.path.isfile(self.filename):
-#             self.log.debug("File not appeared yet")
-#             return False
-#
-#         if not os.path.getsize(self.filename):
-#             self.log.debug("File is empty: %s", self.filename)
-#             return False
-#
-#         self.fds = open(self.filename)
-#         return True
-#
-#     def __del__(self):
-#         if self.fds:
-#             self.fds.close()
-#
-
-class TestSample(object):
-    def __init__(self):
-        self.t_stamp = ""
-        self.module = ""
-        self.test_name = ""
-        self.result = ""
-        self.trace = ""
-        self.message = ""
-        self.time = ""
+        with open(self.runner_output, "rt") as fds:
+            fds.seek(self.position)
+            line = fds.readline()
+            self.log.debug(line)
+            if line:
+                return line.split(",")
+            else:
+                return ["No data received yet"] * 2
 
 
 class SeleniumWidget(urwid.Pile):
@@ -528,8 +416,7 @@ class SeleniumWidget(urwid.Pile):
 
     def update(self, cur_test, reader_summary):
         self.current_test.set_text(cur_test)
-        self.summary_stats.set_text(
-            "Total:%d Pass:%d Fail:%d" % (reader_summary['total'], reader_summary['pass'], reader_summary['fail']))
+        self.summary_stats.set_text(reader_summary)
         self._invalidate()
 
 
@@ -554,6 +441,7 @@ class SeleniumServerJar(RequiredTool):
 class JUnitJar(RequiredTool):
     def __init__(self, tool_path, download_link):
         super(JUnitJar, self).__init__("JUnit", tool_path, download_link)
+
 
 class JavaC(RequiredTool):
     def __init__(self, tool_path, download_link, parent_logger):

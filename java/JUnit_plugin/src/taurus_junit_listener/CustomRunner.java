@@ -1,6 +1,7 @@
 package taurus_junit_listener;
 
 import org.junit.runner.JUnitCore;
+
 import junit.framework.TestCase;
 import taurus_junit_listener.CustomListener;
 
@@ -13,7 +14,6 @@ import java.util.jar.JarFile;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
-import java.util.Arrays;
 
 
 public class CustomRunner {
@@ -61,11 +61,11 @@ public class CustomRunner {
 			}
 			jarFile.close();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
+			System.exit(1);
 		} catch (ClassNotFoundException e1) {
-			// TODO Auto-generated catch block
 			e1.printStackTrace();
+			System.exit(1);
 		}
 		}
 	
@@ -75,11 +75,16 @@ public class CustomRunner {
 		System.exit(1);
 	}
 	else{
-		System.out.println(Arrays.toString(class_names.toArray()));
+		//System.out.println(Arrays.toString(class_names.toArray()));
 		
 	JUnitCore runner = new JUnitCore();
 	CustomListener custom_listener = new CustomListener();
-	custom_listener.reporter = new Reporter(args[args.length-1]);
+	try {
+		custom_listener.reporter = new JTLReporter(args[args.length-1]);
+	} catch (Exception e) {
+		e.printStackTrace();
+		System.exit(1);
+	}
 	runner.addListener(custom_listener);
 	runner.run(test_classes.toArray(new Class[test_classes.size()]));
 		}
