@@ -270,6 +270,7 @@ class TestSeleniumJUnitRunner(BZTestCase):
         try:
             while not obj.check():
                 time.sleep(1)
+            self.fail()
         except BaseException as exc:
             self.assertEqual(exc.args[0], "Test runner JunitTester has failed: There is nothing to test.")
         obj.shutdown()
@@ -368,8 +369,9 @@ class TestSeleniumNoseRunner(BZTestCase):
         try:
             while not obj.check():
                 time.sleep(1)
-        except BaseException as exc:
-            self.assertEqual(exc.args[0], "Test runner NoseTester has failed: Nothing to test.")
+            self.fail()
+        except RuntimeError as exc:
+            self.assertIn("Nothing to test.", exc.args[0])
         obj.shutdown()
 
 

@@ -62,10 +62,8 @@ public class CustomRunner {
 			jarFile.close();
 		} catch (IOException e) {
 			e.printStackTrace();
-			System.exit(1);
 		} catch (ClassNotFoundException e1) {
 			e1.printStackTrace();
-			System.exit(1);
 		}
 		}
 	
@@ -83,7 +81,6 @@ public class CustomRunner {
 		custom_listener.reporter = new JTLReporter(args[args.length-1]);
 	} catch (Exception e) {
 		e.printStackTrace();
-		System.exit(1);
 	}
 	runner.addListener(custom_listener);
 	runner.run(test_classes.toArray(new Class[test_classes.size()]));
