@@ -635,7 +635,7 @@ class JavaVM(RequiredTool):
 
 class ProgressBarContext(ProgressBar):
     def __init__(self, maxval=0):
-        widgets = [Percentage(), ' ', Bar(marker='>'), ' ', ETA()]
+        widgets = [Percentage(), ' ', Bar(marker='=', left='[', right=']'), ' ', ETA()]
         super(ProgressBarContext, self).__init__(widgets=widgets, maxval=maxval, fd=sys.stdout)
 
     def __enter__(self):
