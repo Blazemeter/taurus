@@ -1,7 +1,12 @@
 # Changelog
 
-## 0.3.2 (next)
+## 0.3.3 (next)
+
+
+## 0.3.2
   - use progressbar for download progress indicators
+  - fix issue with unicode XML on Mac
+  - use JTL format in Selenium results
 
 ## 0.3.1
   - fixed python3 installation issue (progressbar33 now used instead of progressbar)
