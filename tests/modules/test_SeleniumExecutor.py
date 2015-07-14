@@ -170,7 +170,7 @@ class TestSeleniumJUnitRunner(BZTestCase):
         self.assertEqual(len(java_files), 0)
         self.assertEqual(len(class_files), 0)
         self.assertEqual(len(jars), 1)
-        self.assertTrue(os.path.exists(obj.runner.report_file))
+        self.assertTrue(os.path.exists(obj.runner.settings.get("report-file")))
 
     def test_selenium_startup_shutdown_jar_folder(self):
         """
@@ -196,7 +196,7 @@ class TestSeleniumJUnitRunner(BZTestCase):
         self.assertEqual(len(java_files), 0)
         self.assertEqual(len(class_files), 0)
         self.assertEqual(len(jars), 2)
-        self.assertTrue(os.path.exists(obj.runner.report_file))
+        self.assertTrue(os.path.exists(obj.runner.settings.get("report-file")))
 
     def test_selenium_startup_shutdown_java_single(self):
         """
@@ -225,7 +225,7 @@ class TestSeleniumJUnitRunner(BZTestCase):
         self.assertEqual(1, len(class_files))
         self.assertEqual(1, len(jars))
         self.assertTrue(os.path.exists(os.path.join(obj.runner.working_dir, "compiled.jar")))
-        self.assertTrue(os.path.exists(obj.runner.report_file))
+        self.assertTrue(os.path.exists(obj.runner.settings.get("report-file")))
 
     def test_selenium_startup_shutdown_java_folder(self):
         """
@@ -252,7 +252,7 @@ class TestSeleniumJUnitRunner(BZTestCase):
         self.assertEqual(2, len(class_files))
         self.assertEqual(1, len(jars))
         self.assertTrue(os.path.exists(os.path.join(obj.runner.working_dir, "compiled.jar")))
-        self.assertTrue(os.path.exists(obj.runner.report_file))
+        self.assertTrue(os.path.exists(obj.runner.settings.get("report-file")))
 
     def test_not_junit(self):
         """
@@ -272,7 +272,7 @@ class TestSeleniumJUnitRunner(BZTestCase):
                 time.sleep(1)
             self.fail()
         except BaseException as exc:
-            self.assertEqual(exc.args[0], "Test runner JunitTester has failed: There is nothing to test.")
+            self.assertIn("Nothing to test", exc.args[0])
         obj.shutdown()
 
 
@@ -329,7 +329,7 @@ class TestSeleniumNoseRunner(BZTestCase):
         prepared_files = os.listdir(obj.runner.working_dir)
         python_files = [file for file in prepared_files if file.endswith(".py")]
         self.assertEqual(1, len(python_files))
-        self.assertTrue(os.path.exists(obj.runner.report_file))
+        self.assertTrue(os.path.exists(obj.runner.settings.get("report-file")))
 
     def test_selenium_startup_shutdown_python_folder(self):
         """
@@ -351,7 +351,7 @@ class TestSeleniumNoseRunner(BZTestCase):
         prepared_files = os.listdir(obj.runner.working_dir)
         python_files = [file for file in prepared_files if file.endswith(".py")]
         self.assertEqual(2, len(python_files))
-        self.assertTrue(os.path.exists(obj.runner.report_file))
+        self.assertTrue(os.path.exists(obj.runner.settings.get("report-file")))
 
     def runner_fail_no_test_found(self):
         """
