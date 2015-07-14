@@ -65,6 +65,8 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
         runner_config.get("artifacts-dir", self.engine.artifacts_dir)
         runner_config.get("working-dir", runner_working_dir)
         runner_config.get("report-file", self.kpi_file)
+        runner_config.get("std_out", self.engine.create_artifact("runner_out", ".log"))
+        runner_config.get("std_err", self.engine.create_artifact("runner_err", ".log"))
 
         if Scenario.SCRIPT in scenario:
             if script_is_folder:
@@ -74,10 +76,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
                 shutil.copy2(scenario.get("script"), runner_working_dir)
 
         self.runner = self.runner(runner_config, scenario, self.log)
-
-        runner_std_out = self.engine.create_artifact("runner_out", ".log")
-        runner_std_err = self.engine.create_artifact("runner_err", ".log")
-        self.runner.prepare(runner_std_out, runner_std_err)
+        self.runner.prepare()
         self.reader = JTLReader(self.kpi_file, self.log, None)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
@@ -144,7 +143,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
 
     def get_widget(self):
         if not self.widget:
-            self.widget = SeleniumWidget(self.get_scenario().get("script"), self.runner.report_files["std_out"])
+            self.widget = SeleniumWidget(self.get_scenario().get("script"), self.runner.settings.get("std_out"))
         return self.widget
 
 
@@ -158,7 +157,6 @@ class AbstractTestRunner(object):
         self.settings = settings
         self.required_tools = []
         self.scenario = scenario
-        self.report_files = {"report":None, "std_out":None, "std_err":None}
         self.artifacts_dir = self.settings.get("artifacts-dir")
         self.working_dir = self.settings.get("working-dir")
         self.log = None
@@ -166,7 +164,7 @@ class AbstractTestRunner(object):
         self.is_failed = False
 
     @abstractmethod
-    def prepare(self, file_std_out, file_std_err):
+    def prepare(self):
         pass
 
     @abstractmethod
@@ -182,7 +180,7 @@ class AbstractTestRunner(object):
         if ret_code is not None:
             if ret_code != 0:
                 self.log.debug("Test runner exit code: %s", ret_code)
-                with open(self.report_files["std_err"].name) as fds:
+                with open(self.settings.get("std_err")) as fds:
                     std_err = fds.read()
                 self.is_failed = True
                 raise RuntimeError("Test runner %s has failed: %s" % (self.__class__.__name__, std_err.strip()))
@@ -220,7 +218,7 @@ class JunitTester(AbstractTestRunner):
         self.base_class_path = [self.selenium_server_jar_path, self.junit_path, self.junit_listener_path]
         self.base_class_path.extend(self.scenario.get("additional-classpath", []))
 
-    def prepare(self, std_out, std_err):
+    def prepare(self):
         """
         run checklist, make jar.
         """
@@ -228,10 +226,6 @@ class JunitTester(AbstractTestRunner):
 
         if self.settings.get("script-type", None) == ".java":
             self.compile_scripts()
-
-        self.report_files["report"] = self.settings.get("report-file")
-        self.report_files["std_err"] = std_err
-        self.report_files["std_out"] = std_out
 
     def run_checklist(self):
         """
@@ -336,9 +330,9 @@ class JunitTester(AbstractTestRunner):
                               "taurus_junit_listener.CustomRunner"]
         junit_command_line.extend(jar_list)
 
-        junit_command_line.extend([self.report_files["std_out"]])
-        junit_command_line.extend([self.report_files["std_err"]])
-        junit_command_line.extend([self.report_files["report"]])
+        junit_command_line.extend([self.settings.get("std_out")])
+        junit_command_line.extend([self.settings.get("std_err")])
+        junit_command_line.extend([self.settings.get("report-file")])
 
         self.process = shell_exec(junit_command_line, cwd=self.artifacts_dir)
 
@@ -353,12 +347,8 @@ class NoseTester(AbstractTestRunner):
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.plugin_path = os.path.join(os.path.dirname(__file__), "resources", "nose_plugin.py")
 
-    def prepare(self, std_out, std_err):
+    def prepare(self):
         self.run_checklist()
-
-        self.report_files["report"] = self.settings.get("report-file")
-        self.report_files["std_err"] = std_err
-        self.report_files["std_out"] = std_out
 
     def run_checklist(self):
         """
@@ -377,11 +367,11 @@ class NoseTester(AbstractTestRunner):
         run python tests
         """
         executable = self.settings.get("interpreter", sys.executable)
-        nose_command_line = [executable, self.plugin_path, self.report_files["report"], self.working_dir]
+        nose_command_line = [executable, self.plugin_path, self.settings.get("report-file"), self.working_dir]
 
-        std_out = open(self.report_files["std_out"], "wt")
+        std_out = open(self.settings.get("std_out"), "wt")
         self.opened_descriptors.append(std_out)
-        std_err = open(self.report_files["std_err"], "wt")
+        std_err = open(self.settings.get("std_err"), "wt")
         self.opened_descriptors.append(std_err)
 
         self.process = shell_exec(nose_command_line, cwd=self.artifacts_dir,
