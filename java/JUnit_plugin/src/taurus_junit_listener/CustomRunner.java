@@ -5,7 +5,10 @@ import org.junit.runner.JUnitCore;
 import junit.framework.TestCase;
 import taurus_junit_listener.CustomListener;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -14,9 +17,11 @@ import java.util.jar.JarFile;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.logging.Logger;
 
 
 public class CustomRunner {
+	
 	
 	public static boolean has_annotations(Class<?> c){
 		for (Method method : c.getDeclaredMethods()){
@@ -30,11 +35,26 @@ public class CustomRunner {
 	public static void main(String[] args) {
 	//Open Jar files in args, scan them, load test classes, run test suite
 	//Last item in args is a report filename
+	//redirect stderr to file
+	try {
+		PrintStream stderr = new PrintStream(args[args.length-2]);
+		System.setErr(stderr);
+	} catch (FileNotFoundException e2) {
+		// TODO Auto-generated catch block
+		e2.printStackTrace();
+	}
+	try {
+		PrintStream stdout = new PrintStream(args[args.length-3]);
+		System.setOut(stdout);
+	} catch (FileNotFoundException e2) {
+		// TODO Auto-generated catch block
+		e2.printStackTrace();
+	}
 	
 	List<Class<?>> test_classes = new ArrayList<Class<?>>(); //List of loaded classes
 	List<String> class_names = new ArrayList<String>(); 
-	String[] jar_pathes = new String[args.length -1];
-	System.arraycopy(args, 0, jar_pathes, 0, args.length-1);
+	String[] jar_pathes = new String[args.length-3];
+	System.arraycopy(args, 0, jar_pathes, 0, args.length-3);
 	
 	for (String jar_path : jar_pathes) {	
 		try {
@@ -69,21 +89,21 @@ public class CustomRunner {
 	
 	if (test_classes.isEmpty())
 	{
-		System.err.println("There is nothing to test.");
-		System.exit(1);
+		throw new RuntimeException("Nothing to test");
+		//System.exit(1);
 	}
 	else{
 		//System.out.println(Arrays.toString(class_names.toArray()));
 		
-	JUnitCore runner = new JUnitCore();
-	CustomListener custom_listener = new CustomListener();
-	try {
-		custom_listener.reporter = new JTLReporter(args[args.length-1]);
-	} catch (Exception e) {
-		e.printStackTrace();
-	}
-	runner.addListener(custom_listener);
-	runner.run(test_classes.toArray(new Class[test_classes.size()]));
+		JUnitCore runner = new JUnitCore();
+		CustomListener custom_listener = new CustomListener();
+		try {
+			custom_listener.reporter = new JTLReporter(args[args.length-1]);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		runner.addListener(custom_listener);
+		runner.run(test_classes.toArray(new Class[test_classes.size()]));
 		}
 	}
 

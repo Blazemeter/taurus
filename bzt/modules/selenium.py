@@ -144,7 +144,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
 
     def get_widget(self):
         if not self.widget:
-            self.widget = SeleniumWidget(self.get_scenario().get("script"), self.runner.opened_descriptors["std_out"].name)
+            self.widget = SeleniumWidget(self.get_scenario().get("script"), self.runner.opened_descriptors["std_out"])
         return self.widget
 
 
@@ -229,10 +229,8 @@ class JunitTester(AbstractTestRunner):
         if self.settings.get("script-type", None) == ".java":
             self.compile_scripts()
 
-        std_out_desc = open(std_out, "wt")
-        std_err_desc = open(std_err, "wt")
-        self.opened_descriptors["std_err"] = std_err_desc
-        self.opened_descriptors["std_out"] = std_out_desc
+        self.opened_descriptors["std_err"] = std_err
+        self.opened_descriptors["std_out"] = std_out
 
     def run_checklist(self):
         """
@@ -336,11 +334,18 @@ class JunitTester(AbstractTestRunner):
         junit_command_line = ["java", "-cp", os.pathsep.join(self.base_class_path),
                               "taurus_junit_listener.CustomRunner"]
         junit_command_line.extend(jar_list)
+
+        junit_command_line.extend([self.opened_descriptors["std_out"]])
+        junit_command_line.extend([self.opened_descriptors["std_err"]])
         junit_command_line.extend([self.report_file])
 
-        self.process = shell_exec(junit_command_line, cwd=self.artifacts_dir,
-                                  stdout=self.opened_descriptors["std_out"],
-                                  stderr=self.opened_descriptors["std_err"])
+        std_out_desc = open(self.opened_descriptors["std_out"], "wt")
+        std_err_desc = open(self.opened_descriptors["std_err"],  "wt")
+
+        self.opened_descriptors["std_out"] = std_out_desc
+        self.opened_descriptors["std_err"] = std_err_desc
+
+        self.process = shell_exec(junit_command_line, cwd=self.artifacts_dir)
 
 
 class NoseTester(AbstractTestRunner):
