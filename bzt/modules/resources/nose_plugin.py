@@ -1,10 +1,17 @@
 from time import time
-import traceback
-import sys
 
 from nose.plugins import Plugin
 from nose import run
+import traceback
+import sys
+import csv
+import re
 
+JTL_HEADER = ["timeStamp", "elapsed", "label", "responseCode", "responseMessage", "threadName", "success",
+                           "grpThreads", "allThreads", "Latency", "Connect"]
+
+SEARCH_PATTERNS = {"file": re.compile(r'\((.*?)\.'), "class": re.compile(r'\.(.*?)\)'),
+                                "method": re.compile(r'(.*?)\ ')}
 
 class TaurusNosePlugin(Plugin):
     """
@@ -20,6 +27,9 @@ class TaurusNosePlugin(Plugin):
         self._module_name = None
         self.output_file = output_file
         self.test_count = 0
+        self.success = 0
+        self.csv_writer = None
+        self.jtl_dict = None
 
     def report_error(self, err):
         exc_type, value, tb = err
@@ -34,8 +44,7 @@ class TaurusNosePlugin(Plugin):
         :param err:
         :return:
         """
-        self.stream.write("--RESULT: ERROR\n")
-        self.stream.flush()
+        self.jtl_dict["responseCode"] = 500
         self._trace = self.report_error(err)
 
     def addFailure(self, test, err, capt=None, tbinfo=None):
@@ -46,8 +55,7 @@ class TaurusNosePlugin(Plugin):
 
         :return:
         """
-        self.stream.write("--RESULT: FAILED\n")
-        self.stream.flush()
+        self.jtl_dict["responseCode"] = 404
         self._trace = self.report_error(err)
 
     def addSkip(self, test):
@@ -56,8 +64,7 @@ class TaurusNosePlugin(Plugin):
         :param test:
         :return:
         """
-        self.stream.write("--RESULT: SKIPPED\n")
-        self.stream.flush()
+        self.jtl_dict["responseCode"] = 300
 
     def addSuccess(self, test, capt=None):
         """
@@ -65,8 +72,10 @@ class TaurusNosePlugin(Plugin):
         :param test:
         :return:
         """
-        self.stream.write("--RESULT: OK\n")
-        self.stream.flush()
+        self.jtl_dict["responseCode"] = 200
+        self.jtl_dict["success"] = "true"
+        self.jtl_dict["responseMessage"] = "OK"
+        self.success += 1
 
     def begin(self):
         """
@@ -74,8 +83,10 @@ class TaurusNosePlugin(Plugin):
         open descriptor here
         :return:
         """
+        self.out_stream = open(self.output_file, "wt")
+        self.csv_writer = csv.DictWriter(self.out_stream, delimiter=',', fieldnames=JTL_HEADER)
+        self.csv_writer.writeheader()
         self._module_name = ""
-        self.stream = open(self.output_file, "wt")
 
     def finalize(self, result):
         """
@@ -83,10 +94,9 @@ class TaurusNosePlugin(Plugin):
         :param result:
         :return:
         """
-        self.stream.close()
+        self.out_stream.close()
         if not self.test_count:
-            sys.stderr.write("Nothing to test.")
-            sys.exit(1)
+            raise RuntimeError("Nothing to test.")
 
     def startTest(self, test):
         """
@@ -94,15 +104,32 @@ class TaurusNosePlugin(Plugin):
         :param test:
         :return:
         """
-        if self._module_name != str(test.__module__):
-            self._module_name = str(test.__module__)
+        full_test_name = str(test)
+
+        file_name = SEARCH_PATTERNS["file"].findall(full_test_name)
+        file_name = file_name[0] if file_name else ""
+
+        class_name = SEARCH_PATTERNS["file"].findall(full_test_name)
+        class_name = class_name[0] if class_name else ""
+
+        method_name = SEARCH_PATTERNS["method"].findall(full_test_name)
+        method_name = method_name[0] if method_name else ""
+
+        if self._module_name != file_name + "." + class_name:
+            self._module_name = file_name + "." + class_name
         self._trace = ""
         self._time = time()
-        self.stream.write("--TIMESTAMP: %d\n" % (1000 * self._time))
-        self.stream.write("--MODULE: %s\n" % self._module_name)
-        self.stream.write("--RUN: %s\n" % test)
-        self.stream.flush()
-        self.test_count += 1
+        self.jtl_dict = {}.fromkeys(JTL_HEADER, 0)
+        self.jtl_dict["timeStamp"] = int(1000 * self._time)
+        self.jtl_dict["label"] = method_name
+        self.jtl_dict["threadName"] = self._module_name
+        self.jtl_dict["grpThreads"] = 1
+        self.jtl_dict["allThreads"] = 1
+        self.jtl_dict["success"] = "false"
+
+        report_pattern = "%s.%s,Total:%d Pass:%d Failed:%d\n"
+        sys.stdout.write(report_pattern % (
+            class_name, method_name, self.test_count + 1, self.success, self.test_count - self.success))
 
     def stopTest(self, test):
         """
@@ -110,25 +137,13 @@ class TaurusNosePlugin(Plugin):
         :param test:
         :return:
         """
+        self.test_count += 1
         if self._trace:
-            self.stream.write(self._trace)
-            self.stream.flush()
-        self.stream.write("--TIME: %d\n" % (1000 * (time() - self._time)))
-        self.stream.flush()
+            self.jtl_dict["responseMessage"] = self._trace
 
-    def setOutputStream(self, stream):
-
-        class Dummy(object):
-            def write(self, *arg):
-                pass
-
-            def writeln(self, *arg):
-                pass
-
-            def flush(self, *arg):
-                pass
-
-        return Dummy()
+        self.jtl_dict["elapsed"] = int(1000 * (time() - self._time))
+        self.csv_writer.writerow(self.jtl_dict)
+        self.out_stream.flush()
 
 
 if __name__ == "__main__":
@@ -136,4 +151,4 @@ if __name__ == "__main__":
     test_path = sys.argv[2:]
     argv = [__file__, '-v']
     argv.extend(test_path)
-    run(addplugins=[TaurusNosePlugin(_output_file)], argv=argv + ['--with-nose_plugin'])
+    run(addplugins=[TaurusNosePlugin(_output_file)], argv=argv + ['--with-nose_plugin'] + ['--nocapture'])

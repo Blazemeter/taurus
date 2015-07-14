@@ -4,12 +4,5 @@ execution:
   scenario:
     script: "tests/selenium/java/"
 
-modules:
-  selenium:
-    selenium-tools:
-      junit:
-        path: "~/selenium-taurus/tools/junit/junit.jar"
-        selenium-server: "~/selenium-taurus/selenium-server.jar"
-
 reporting:
   - module: junit-xml

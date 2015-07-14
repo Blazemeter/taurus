@@ -1,13 +1,12 @@
-import os
-import shutil
-import time
-
-import yaml
-
 from tests import setup_test_logging, BZTestCase, __dir__
 from bzt.modules.selenium import SeleniumExecutor
 from tests.mocks import EngineEmul
 from bzt.utils import BetterDict
+import os
+import shutil
+import yaml
+import time
+import csv
 
 setup_test_logging()
 
@@ -271,6 +270,7 @@ class TestSeleniumJUnitRunner(BZTestCase):
         try:
             while not obj.check():
                 time.sleep(1)
+            self.fail()
         except BaseException as exc:
             self.assertEqual(exc.args[0], "Test runner JunitTester has failed: There is nothing to test.")
         obj.shutdown()
@@ -369,8 +369,9 @@ class TestSeleniumNoseRunner(BZTestCase):
         try:
             while not obj.check():
                 time.sleep(1)
-        except BaseException as exc:
-            self.assertEqual(exc.args[0], "Test runner NoseTester has failed: Nothing to test.")
+            self.fail()
+        except RuntimeError as exc:
+            self.assertIn("Nothing to test.", exc.args[0])
         obj.shutdown()
 
 
@@ -430,8 +431,9 @@ class TestSeleniumStuff(BZTestCase):
             time.sleep(1)
         obj.shutdown()
         with open(obj.kpi_file) as kpi_fds:
-            contents = kpi_fds.read()
-        self.assertEqual(contents.count("--TIME:"), 2)
+            reader = csv.reader(kpi_fds)
+            rows = list(reader)
+        self.assertEqual(len(rows), 3)
 
     def test_samples_count_testcase(self):
         """
@@ -450,8 +452,9 @@ class TestSeleniumStuff(BZTestCase):
             time.sleep(1)
         obj.shutdown()
         with open(obj.kpi_file) as kpi_fds:
-            contents = kpi_fds.read()
-        self.assertEqual(contents.count("--TIME:"), 2)
+            reader = csv.reader(kpi_fds)
+            rows = list(reader)
+        self.assertEqual(len(rows), 3)
 
     def test_no_test_in_name(self):
         """
@@ -470,5 +473,6 @@ class TestSeleniumStuff(BZTestCase):
             time.sleep(1)
         obj.shutdown()
         with open(obj.kpi_file) as kpi_fds:
-            contents = kpi_fds.read()
-        self.assertEqual(contents.count("--TIME:"), 2)
+            reader = csv.reader(kpi_fds)
+            rows = list(reader)
+        self.assertEqual(len(rows), 3)
