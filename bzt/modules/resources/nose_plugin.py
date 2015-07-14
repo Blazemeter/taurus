@@ -7,6 +7,11 @@ import sys
 import csv
 import re
 
+JTL_HEADER = ["timeStamp", "elapsed", "label", "responseCode", "responseMessage", "threadName", "success",
+                           "grpThreads", "allThreads", "Latency", "Connect"]
+
+SEARCH_PATTERNS = {"file": re.compile(r'\((.*?)\.'), "class": re.compile(r'\.(.*?)\)'),
+                                "method": re.compile(r'(.*?)\ ')}
 
 class TaurusNosePlugin(Plugin):
     """
@@ -25,10 +30,6 @@ class TaurusNosePlugin(Plugin):
         self.success = 0
         self.csv_writer = None
         self.jtl_dict = None
-        self.jtl_header = ["timeStamp", "elapsed", "label", "responseCode", "responseMessage", "threadName", "success",
-                           "grpThreads", "allThreads", "Latency", "Connect"]
-        self.search_patterns = {"file": re.compile(r'\((.*?)\.'), "class": re.compile(r'\.(.*?)\)'),
-                                "method": re.compile(r'(.*?)\ ')}
 
     def report_error(self, err):
         exc_type, value, tb = err
@@ -83,7 +84,7 @@ class TaurusNosePlugin(Plugin):
         :return:
         """
         self.out_stream = open(self.output_file, "wt")
-        self.csv_writer = csv.DictWriter(self.out_stream, delimiter=',', fieldnames=self.jtl_header)
+        self.csv_writer = csv.DictWriter(self.out_stream, delimiter=',', fieldnames=JTL_HEADER)
         self.csv_writer.writeheader()
         self._module_name = ""
 
@@ -95,8 +96,7 @@ class TaurusNosePlugin(Plugin):
         """
         self.out_stream.close()
         if not self.test_count:
-            sys.stderr.write("Nothing to test.")
-            sys.exit(1)
+            raise RuntimeError("Nothing to test.")
 
     def startTest(self, test):
         """
@@ -106,20 +106,20 @@ class TaurusNosePlugin(Plugin):
         """
         full_test_name = str(test)
 
-        file_name = self.search_patterns["file"].findall(full_test_name)
+        file_name = SEARCH_PATTERNS["file"].findall(full_test_name)
         file_name = file_name[0] if file_name else ""
 
-        class_name = self.search_patterns["file"].findall(full_test_name)
+        class_name = SEARCH_PATTERNS["file"].findall(full_test_name)
         class_name = class_name[0] if class_name else ""
 
-        method_name = self.search_patterns["method"].findall(full_test_name)
+        method_name = SEARCH_PATTERNS["method"].findall(full_test_name)
         method_name = method_name[0] if method_name else ""
 
         if self._module_name != file_name + "." + class_name:
             self._module_name = file_name + "." + class_name
         self._trace = ""
         self._time = time()
-        self.jtl_dict = {}.fromkeys(self.jtl_header, 0)
+        self.jtl_dict = {}.fromkeys(JTL_HEADER, 0)
         self.jtl_dict["timeStamp"] = int(1000 * self._time)
         self.jtl_dict["label"] = method_name
         self.jtl_dict["threadName"] = self._module_name

@@ -79,7 +79,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
         runner_std_out = self.engine.create_artifact("runner_out", ".log")
         runner_std_err = self.engine.create_artifact("runner_err", ".log")
         self.runner.prepare(runner_std_out, runner_std_err)
-        self.reader = SeleniumDataReader(self.kpi_file, self.log, runner_std_out)
+        self.reader = JTLReader(self.kpi_file, self.log, None)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
@@ -123,8 +123,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
         :return:
         """
         if self.widget:
-            cur_test, summary = self.reader.get_state()
-            self.widget.update(cur_test, summary)
+            self.widget.update()
 
         return self.runner.is_finished()
 
@@ -146,7 +145,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
 
     def get_widget(self):
         if not self.widget:
-            self.widget = SeleniumWidget(self.get_scenario().get("script"))
+            self.widget = SeleniumWidget(self.get_scenario().get("script"), self.runner.opened_descriptors["std_out"].name)
         return self.widget
 
 
@@ -386,40 +385,31 @@ class NoseTester(AbstractTestRunner):
                                   stderr=self.opened_descriptors["std_err"])
 
 
-class SeleniumDataReader(JTLReader):
-    def __init__(self, filename, parent_logger, runner_output):
-        super(SeleniumDataReader, self).__init__(filename, parent_logger, None)
-        self.runner_output = runner_output
-        self.summary = Counter({"total": 0, "pass": 0, "fail": 0})
-        self.position = 0
-
-    def get_state(self):
-        with open(self.runner_output, "rt") as fds:
-            fds.seek(self.position)
-            line = fds.readline()
-            self.log.debug(line)
-            if line:
-                return line.split(",")
-            else:
-                return ["No data received yet"] * 2
-
-
 class SeleniumWidget(urwid.Pile):
-    def __init__(self, script):
+    def __init__(self, script, runner_output):
         widgets = []
         self.script_name = urwid.Text("Tests: %s" % script)
         self.summary_stats = urwid.Text("")
         self.current_test = urwid.Text("")
+        self.runner_output = runner_output
+        self.position = 0
         widgets.append(self.script_name)
         widgets.append(self.summary_stats)
         widgets.append(self.current_test)
         super(SeleniumWidget, self).__init__(widgets)
 
-    def update(self, cur_test, reader_summary):
+    def update(self):
+        with open(self.runner_output, "rt") as fds:
+            fds.seek(self.position)
+            line = fds.readline()
+
+            if line and "," in line:
+                cur_test, reader_summary = line.split(",")
+            else:
+                cur_test, reader_summary = ["No data received yet"] * 2
         self.current_test.set_text(cur_test)
         self.summary_stats.set_text(reader_summary)
         self._invalidate()
-
 
 class SeleniumServerJar(RequiredTool):
     def __init__(self, tool_path, download_link, parent_logger):
