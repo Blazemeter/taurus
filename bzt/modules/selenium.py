@@ -10,7 +10,6 @@ import sys
 import subprocess
 import urwid
 
-from collections import Counter
 from bzt.engine import ScenarioExecutor, Scenario
 from bzt.utils import RequiredTool, shell_exec, shutdown_process, BetterDict, JavaVM
 from bzt.six import string_types, text_type
@@ -399,14 +398,15 @@ class SeleniumWidget(urwid.Pile):
         super(SeleniumWidget, self).__init__(widgets)
 
     def update(self):
-        with open(self.runner_output, "rt") as fds:
-            fds.seek(self.position)
-            line = fds.readline()
+        cur_test, reader_summary = ["No data received yet"] * 2
+        if os.path.exists(self.runner_output):
+            with open(self.runner_output, "rt") as fds:
+                fds.seek(self.position)
+                line = fds.readline()
 
-            if line and "," in line:
-                cur_test, reader_summary = line.split(",")
-            else:
-                cur_test, reader_summary = ["No data received yet"] * 2
+                if line and "," in line:
+                    cur_test, reader_summary = line.split(",")
+
         self.current_test.set_text(cur_test)
         self.summary_stats.set_text(reader_summary)
         self._invalidate()
