@@ -144,7 +144,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
 
     def get_widget(self):
         if not self.widget:
-            self.widget = SeleniumWidget(self.get_scenario().get("script"), self.runner.opened_descriptors["std_out"])
+            self.widget = SeleniumWidget(self.get_scenario().get("script"), self.runner.report_files["std_out"])
         return self.widget
 
 
@@ -158,11 +158,11 @@ class AbstractTestRunner(object):
         self.settings = settings
         self.required_tools = []
         self.scenario = scenario
-        self.report_file = self.settings.get("report-file")
+        self.report_files = {"report":None, "std_out":None, "std_err":None}
         self.artifacts_dir = self.settings.get("artifacts-dir")
         self.working_dir = self.settings.get("working-dir")
         self.log = None
-        self.opened_descriptors = {"std_err": None, "std_out": None}
+        self.opened_descriptors = []
         self.is_failed = False
 
     @abstractmethod
@@ -182,7 +182,7 @@ class AbstractTestRunner(object):
         if ret_code is not None:
             if ret_code != 0:
                 self.log.debug("Test runner exit code: %s", ret_code)
-                with open(self.opened_descriptors["std_err"].name) as fds:
+                with open(self.report_files["std_err"].name) as fds:
                     std_err = fds.read()
                 self.is_failed = True
                 raise RuntimeError("Test runner %s has failed: %s" % (self.__class__.__name__, std_err.strip()))
@@ -197,9 +197,9 @@ class AbstractTestRunner(object):
 
     def shutdown(self):
         shutdown_process(self.process, self.log)
-        for desc in self.opened_descriptors.values():
+        for desc in self.opened_descriptors:
             desc.close()
-        self.opened_descriptors = {}
+        self.opened_descriptors = []
 
 
 class JunitTester(AbstractTestRunner):
@@ -229,8 +229,9 @@ class JunitTester(AbstractTestRunner):
         if self.settings.get("script-type", None) == ".java":
             self.compile_scripts()
 
-        self.opened_descriptors["std_err"] = std_err
-        self.opened_descriptors["std_out"] = std_out
+        self.report_files["report"] = self.settings.get("report-file")
+        self.report_files["std_err"] = std_err
+        self.report_files["std_out"] = std_out
 
     def run_checklist(self):
         """
@@ -335,15 +336,9 @@ class JunitTester(AbstractTestRunner):
                               "taurus_junit_listener.CustomRunner"]
         junit_command_line.extend(jar_list)
 
-        junit_command_line.extend([self.opened_descriptors["std_out"]])
-        junit_command_line.extend([self.opened_descriptors["std_err"]])
-        junit_command_line.extend([self.report_file])
-
-        std_out_desc = open(self.opened_descriptors["std_out"], "wt")
-        std_err_desc = open(self.opened_descriptors["std_err"],  "wt")
-
-        self.opened_descriptors["std_out"] = std_out_desc
-        self.opened_descriptors["std_err"] = std_err_desc
+        junit_command_line.extend([self.report_files["std_out"]])
+        junit_command_line.extend([self.report_files["std_err"]])
+        junit_command_line.extend([self.report_files["report"]])
 
         self.process = shell_exec(junit_command_line, cwd=self.artifacts_dir)
 
@@ -360,10 +355,10 @@ class NoseTester(AbstractTestRunner):
 
     def prepare(self, std_out, std_err):
         self.run_checklist()
-        std_out_desc = open(std_out, "wt")
-        std_err_desc = open(std_err, "wt")
-        self.opened_descriptors["std_err"] = std_err_desc
-        self.opened_descriptors["std_out"] = std_out_desc
+
+        self.report_files["report"] = self.settings.get("report-file")
+        self.report_files["std_err"] = std_err
+        self.report_files["std_out"] = std_out
 
     def run_checklist(self):
         """
@@ -382,11 +377,16 @@ class NoseTester(AbstractTestRunner):
         run python tests
         """
         executable = self.settings.get("interpreter", sys.executable)
-        nose_command_line = [executable, self.plugin_path, self.report_file, self.working_dir]
+        nose_command_line = [executable, self.plugin_path, self.report_files["report"], self.working_dir]
+
+        std_out = open(self.report_files["std_out"], "wt")
+        self.opened_descriptors.append(std_out)
+        std_err = open(self.report_files["std_err"], "wt")
+        self.opened_descriptors.append(std_err)
 
         self.process = shell_exec(nose_command_line, cwd=self.artifacts_dir,
-                                  stdout=self.opened_descriptors["std_out"],
-                                  stderr=self.opened_descriptors["std_err"])
+                                  stdout=std_out,
+                                  stderr=std_err)
 
 
 class SeleniumWidget(urwid.Pile):
