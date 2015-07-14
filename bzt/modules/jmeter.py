@@ -1657,7 +1657,7 @@ class JTLErrorsReader(object):
         if not self.fds:
             if os.path.exists(self.filename):
                 self.log.debug("Opening %s", self.filename)
-                self.fds = open(self.filename)  # NOTE: maybe we have the same mac problem with seek() needed
+                self.fds = open(self.filename, 'rb')  # NOTE: maybe we have the same mac problem with seek() needed
             else:
                 self.log.debug("File not exists: %s", self.filename)
                 return
