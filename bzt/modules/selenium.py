@@ -48,7 +48,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
         3) create runner instance, prepare runner
         """
         scenario = self.get_scenario()
-        self.kpi_file = self.engine.create_artifact("selenium_tests_report", ".txt")
+        self.kpi_file = self.engine.create_artifact("selenium_tests_report", ".csv")
         script_type, script_is_folder = self.detect_script_type(scenario.get("script"))
         runner_config = BetterDict()
 
@@ -76,8 +76,8 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
 
         self.runner = self.runner(runner_config, scenario, self.log)
 
-        runner_std_out = self.engine.create_artifact("runner_out", ".txt")
-        runner_std_err = self.engine.create_artifact("runner_err", ".txt")
+        runner_std_out = self.engine.create_artifact("runner_out", ".log")
+        runner_std_err = self.engine.create_artifact("runner_err", ".log")
         self.runner.prepare(runner_std_out, runner_std_err)
         self.reader = SeleniumDataReader(self.kpi_file, self.log, runner_std_out)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
