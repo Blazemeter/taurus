@@ -38,7 +38,7 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
         :return:
         """
         dummy_installation_path = ABS_PATH("/../../build/tmp/selenium-taurus")
-        base_link = "file://" + ABS_PATH("/../data/")
+        base_link = "file:///" + ABS_PATH("/../data/")
 
         shutil.rmtree(os.path.dirname(dummy_installation_path), ignore_errors=True)
 
