@@ -1,6 +1,8 @@
+**/target/
+*.iml
+**/.idea/
 /site/img/docs
 /site/dat/eg_globals.xml
-/.idea/
 /build/
 /dist/
 /*.egg-info/
@@ -14,4 +16,3 @@
 /site/vendor
 /site/img/design
 /site/dat/tmp
-/site/.idea

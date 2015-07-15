@@ -1,7 +1,10 @@
-package taurus_junit_listener;
+package taurusjunit;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class JTLReporter {
@@ -9,11 +12,20 @@ public class JTLReporter {
     public static final String HEADER = "timeStamp,elapsed,label,responseCode,responseMessage,threadName,success,grpThreads,allThreads,Latency,Connect\n";
     private static final String jtl_record_pattern = "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n";
     private FileWriter out_stream;
-    private Logger log = Logger.getLogger(CustomListener.class.getName());
+    private static final Logger log = Logger.getLogger(CustomListener.class.getName());
 
-    public JTLReporter(String file_name) throws Exception {
-        out_stream = new FileWriter(new File(file_name));
-        out_stream.write(HEADER);
+    static {
+        log.addHandler(new ConsoleHandler());
+        log.setLevel(Level.FINER);
+    }
+
+    public JTLReporter(String file_name) {
+        try {
+            out_stream = new FileWriter(new File(file_name));
+            out_stream.write(HEADER);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to open file " + file_name, e);
+        }
         log.info("created, header");
     }
 

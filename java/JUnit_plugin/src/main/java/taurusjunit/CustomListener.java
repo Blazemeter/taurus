@@ -1,15 +1,13 @@
-package taurus_junit_listener;
+package taurusjunit;
 
 import org.junit.runner.Description;
 import org.junit.runner.Result;
 import org.junit.runner.notification.Failure;
 import org.junit.runner.notification.RunListener;
 
-import java.lang.System;
+import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.logging.Handler;
-import java.util.logging.ConsoleHandler;
 
 public class CustomListener extends RunListener {
     private String success;
@@ -21,23 +19,22 @@ public class CustomListener extends RunListener {
     private int success_tests = 0;
     private static final String log_pattern = "%s.%s,Total:%d Pass:%d Failed:%d\n";
     private int responseCode;
-    private Logger log = Logger.getLogger(CustomListener.class.getName());
+    private static final Logger log = Logger.getLogger(CustomListener.class.getName());
+
+    static {
+        log.addHandler(new ConsoleHandler());
+        log.setLevel(Level.FINER);
+    }
 
     public void testRunStarted(Description description) {
-        log.setUseParentHandlers(false);
-        log.setLevel(Level.FINER);
-        Handler hnd = new ConsoleHandler();
-        hnd.setLevel(Level.FINER);
-        log.addHandler(hnd);
     }
 
     public void testRunFinished(Result result) throws java.lang.Exception {
         if (total_tests == 0) {
-            System.err.println("total_tests = 0");
-            //throw new RuntimeException("total_tests = 0.");
+            log.info("total_tests = 0");
         }
-        System.err.println("result was successful? " + result.wasSuccessful());
-        System.err.println("result run count " + result.getRunCount());
+        log.info("result was successful? " + result.wasSuccessful());
+        log.info("result run count " + result.getRunCount());
         reporter.close();
 
     }
@@ -49,7 +46,8 @@ public class CustomListener extends RunListener {
         message = "";
         timestamp = System.currentTimeMillis();
         responseCode = 200;
-        System.out.printf(log_pattern, description.getClassName(), description.getMethodName(), total_tests + 1, success_tests, total_tests - success_tests);
+        String line = String.format(log_pattern, description.getClassName(), description.getMethodName(), total_tests + 1, success_tests, total_tests - success_tests);
+        log.info(line);
         log.info(String.format("after started %s", description.getDisplayName()));
     }
 
@@ -60,7 +58,7 @@ public class CustomListener extends RunListener {
         String threadName = description.getClassName() + "." + description.getMethodName();
         log.info(String.format("finished %s", description.getDisplayName()));
 
-        if (success == "true") {
+        if (success.equals("true")) {
             responseMessage = "OK";
             success = "true";
             success_tests += 1;
@@ -68,7 +66,6 @@ public class CustomListener extends RunListener {
 
             if (message == null) {
                 log.warning("null message");
-                System.err.print("");
                 message = "";
             }
             log.info(trace);
@@ -88,14 +85,10 @@ public class CustomListener extends RunListener {
         success = "false";
         trace = failure.getTrace();
         message = failure.getMessage();
-        if (message == null) {
-
-        }
         responseCode = 500;
     }
 
     public void testAssumptionFailure(Failure failure) {
-
         responseCode = 400;
         message = failure.getMessage();
     }

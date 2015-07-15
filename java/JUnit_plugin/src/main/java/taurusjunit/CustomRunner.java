@@ -1,9 +1,8 @@
-package taurus_junit_listener;
+package taurusjunit;
 
 import junit.framework.TestCase;
 import org.junit.runner.JUnitCore;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.lang.reflect.Method;
@@ -14,11 +13,17 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class CustomRunner {
+    private static final Logger log = Logger.getLogger(CustomListener.class.getName());
 
-
-    private static final PrintStream err = System.err;
+    static {
+        log.addHandler(new ConsoleHandler());
+        log.setLevel(Level.FINER);
+    }
 
     public static boolean has_annotations(Class<?> c) {
         for (Method method : c.getDeclaredMethods()) {
@@ -30,7 +35,7 @@ public class CustomRunner {
         return false;
     }
 
-    public static void main(String[] args) throws FileNotFoundException {
+    public static void main(String[] args) throws Exception {
         //Open Jar files in args, scan them, load test classes, run test suite
         //Last item in args is a report filename
         //redirect stderr to file
@@ -46,11 +51,7 @@ public class CustomRunner {
         } else {
             JUnitCore runner = new JUnitCore();
             CustomListener custom_listener = new CustomListener();
-            try {
-                custom_listener.reporter = new JTLReporter(args[args.length - 1]);
-            } catch (Exception e) {
-                e.printStackTrace(err);
-            }
+            custom_listener.reporter = new JTLReporter(args[args.length - 1]);
 
             runner.addListener(custom_listener);
             runner.run(test_classes.toArray(new Class[test_classes.size()]));
@@ -58,8 +59,7 @@ public class CustomRunner {
     }
 
     private static List<Class<?>> getClasses(String[] args) {
-        List<Class<?>> test_classes = new ArrayList<Class<?>>(); //List of loaded classes
-        List<String> class_names = new ArrayList<String>();
+        List<Class<?>> test_classes = new ArrayList<>(); //List of loaded classes
         String[] jar_paths = new String[args.length - 3];
         System.arraycopy(args, 0, jar_paths, 0, args.length - 3);
 
@@ -77,26 +77,21 @@ public class CustomRunner {
                         continue;
                     }
 
-                    String className = jar_entry.getName().substring(0, jar_entry.getName().length() - 6); //-6 == len(".class")
+                    String className = jar_entry.getName().substring(0, jar_entry.getName().length() - ".class".length());
                     className = className.replace('/', '.');
 
                     Class<?> c = cl.loadClass(className);
-                    err.println("TestCase.class.isAssignableFrom(" + c.getCanonicalName() + ") = " + TestCase.class.isAssignableFrom(c));
-                    err.println("has_annotations(" + c.getCanonicalName() + ") = " + has_annotations(c));
+                    log.info("TestCase.class.isAssignableFrom(" + c.getCanonicalName() + ") = " + TestCase.class.isAssignableFrom(c));
+                    log.info("has_annotations(" + c.getCanonicalName() + ") = " + has_annotations(c));
 
                     if (TestCase.class.isAssignableFrom(c) || has_annotations(c)) {
                         test_classes.add(c);
-                        err.println("class added to tests: " + c.getCanonicalName());
-                        class_names.add(className);
+                        log.info("class added to tests: " + c.getCanonicalName());
                     }
                 }
                 jarFile.close();
-            } catch (IOException e) {
-                err.println(jar_path);
-                e.printStackTrace(err);
-            } catch (ClassNotFoundException e1) {
-                err.println(jar_path);
-                e1.printStackTrace(err);
+            } catch (IOException | ClassNotFoundException e) {
+                log.warning("Failed to add " + jar_path + "\n" + Utils.getStackTrace(e));
             }
         }
         return test_classes;
