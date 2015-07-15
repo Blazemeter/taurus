@@ -1983,7 +1983,8 @@ class JMeter(RequiredTool):
         self.log.debug("Trying jmeter: %s", self.tool_path)
         try:
             jmlog = tempfile.NamedTemporaryFile(prefix="jmeter", suffix="log", delete=False)
-            jmout = subprocess.check_output([self.tool_path, '-j', jmlog.name, '--version'], stderr=subprocess.STDOUT)
+            jm_proc = shell_exec([self.tool_path, '-j', jmlog.name, '--version'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            jmout = jm_proc.communicate()
             self.log.debug("JMeter check: %s", jmout)
             jmlog.close()
             os.remove(jmlog.name)
@@ -2070,7 +2071,7 @@ class JMeterPlugins(RequiredTool):
     def install(self):
         dest = os.path.dirname(os.path.dirname(os.path.expanduser(self.tool_path)))
         for set_name in ("Standard", "Extras", "ExtrasLibs", "WebDriver"):
-            plugin_dist = tempfile.NamedTemporaryFile(suffix=".zip", delete=True, prefix=set_name)
+            plugin_dist = tempfile.NamedTemporaryFile(suffix=".zip", delete=False, prefix=set_name)
             plugin_download_link = self.download_link.format(plugin=set_name)
             self.log.info("Downloading %s", plugin_download_link)
             downloader = request.FancyURLopener()
@@ -2084,3 +2085,4 @@ class JMeterPlugins(RequiredTool):
             self.log.info("Unzipping %s", plugin_dist.name)
             unzip(plugin_dist.name, dest)
             plugin_dist.close()
+            os.remove(plugin_dist.name)

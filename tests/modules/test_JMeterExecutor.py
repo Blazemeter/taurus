@@ -152,8 +152,6 @@ class TestJMeterExecutor(BZTestCase):
 
         self.assertTrue(os.path.exists(path))
 
-        obj.prepare()
-
         JMeterExecutor.JMETER_DOWNLOAD_LINK = jmeter_link
         JMeterExecutor.PLUGINS_DOWNLOAD_TPL = plugins_link
         JMeterExecutor.JMETER_VER = jmeter_ver
