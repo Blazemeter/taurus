@@ -16,13 +16,6 @@ from bzt.modules.jmeter import JMeterExecutor, JMX, JTLErrorsReader, JTLReader, 
 from tests.mocks import EngineEmul, ResultChecker
 from bzt.utils import BetterDict
 
-try:
-    from lxml import etree
-except ImportError:
-    try:
-        import cElementTree as etree
-    except ImportError:
-        import elementtree.ElementTree as etree
 
 setup_test_logging()
 
