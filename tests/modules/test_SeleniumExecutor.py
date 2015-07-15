@@ -25,7 +25,7 @@ class TestSeleniumJUnitRunner(BZTestCase):
         :return:
         """
         dummy_installation_path = os.path.abspath(__dir__() + "/../../build/tmp/selenium-taurus")
-        base_link = "file://" + __dir__() + "/../data/"
+        base_link = "file:///" + __dir__() + "/../data/"
 
         shutil.rmtree(os.path.dirname(dummy_installation_path), ignore_errors=True)
 
