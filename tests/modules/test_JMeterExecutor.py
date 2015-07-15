@@ -15,7 +15,7 @@ from bzt.engine import Provisioning
 from bzt.modules.jmeter import JMeterExecutor, JMX, JTLErrorsReader, JTLReader, JMeterJTLLoaderExecutor
 from tests.mocks import EngineEmul, ResultChecker
 from bzt.utils import BetterDict
-
+from bzt.six import etree
 
 setup_test_logging()
 
@@ -613,3 +613,15 @@ class TestJMeterExecutor(BZTestCase):
             self.fail()
         except RuntimeError as exc:
             self.assertEqual(exc.args[0], "Nothing to test, no requests were provided in scenario")
+
+    def test_variable_csv_file(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({"scenario": {"script": __dir__() + "/../jmx/variable_csv.jmx"}})
+        obj.prepare()
+        artifacts = os.listdir(obj.engine.artifacts_dir)
+        self.assertEqual(len(artifacts), 3)  # minus jmeter.log
+        target_jmx = os.path.join(obj.engine.artifacts_dir, "modified_variable_csv.jmx.jmx")
+        with open(target_jmx) as fds:
+            jmx = fds.read()
+            self.assertIn('<stringProp name="filename">${root}/csvfile.csv</stringProp>', jmx)
