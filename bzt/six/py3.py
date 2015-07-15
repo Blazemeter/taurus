@@ -21,6 +21,7 @@ import io
 import operator
 import collections
 import urllib
+import urllib.error
 
 import tkinter
 import configparser
@@ -48,6 +49,7 @@ build_opener = request.build_opener
 install_opener = request.install_opener
 ProxyHandler = request.ProxyHandler
 Request = request.Request
+HTTPError = urllib.error.HTTPError
 
 viewvalues = operator.methodcaller("values")
 

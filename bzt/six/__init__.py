@@ -25,3 +25,11 @@ if PY2:
     from bzt.six.py2 import *
 else:
     from bzt.six.py3 import *
+
+try:
+    from lxml import etree
+except ImportError:
+    try:
+        import cElementTree as etree
+    except ImportError:
+        import elementtree.ElementTree as etree

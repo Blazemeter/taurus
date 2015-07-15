@@ -7,14 +7,7 @@ from bzt.modules.reporting import JUnitXMLReporter
 from bzt.utils import BetterDict
 from bzt.modules.passfail import PassFailStatus, FailCriteria
 from bzt.modules.aggregator import DataPoint, KPISet
-
-try:
-    from lxml import etree
-except ImportError:
-    try:
-        import cElementTree as etree
-    except ImportError:
-        import elementtree.ElementTree as etree
+from bzt.six import etree
 
 import os
 

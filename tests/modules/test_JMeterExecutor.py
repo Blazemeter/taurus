@@ -15,14 +15,7 @@ from bzt.engine import Provisioning
 from bzt.modules.jmeter import JMeterExecutor, JMX, JTLErrorsReader, JTLReader, JMeterJTLLoaderExecutor
 from tests.mocks import EngineEmul, ResultChecker
 from bzt.utils import BetterDict
-
-try:
-    from lxml import etree
-except ImportError:
-    try:
-        import cElementTree as etree
-    except ImportError:
-        import elementtree.ElementTree as etree
+from bzt.six import etree
 
 setup_test_logging()
 
@@ -130,8 +123,8 @@ class TestJMeterExecutor(BZTestCase):
         jmeter_ver = JMeterExecutor.JMETER_VER
         plugins_link = JMeterExecutor.PLUGINS_DOWNLOAD_TPL
 
-        JMeterExecutor.JMETER_DOWNLOAD_LINK = "file://" + __dir__() + "/../data/jmeter-dist-{version}.zip"
-        JMeterExecutor.PLUGINS_DOWNLOAD_TPL = "file://" + __dir__() + "/../data/jmeter-plugins-{plugin}.zip"
+        JMeterExecutor.JMETER_DOWNLOAD_LINK = "file:///" + __dir__() + "/../data/jmeter-dist-{version}.zip"
+        JMeterExecutor.PLUGINS_DOWNLOAD_TPL = "file:///" + __dir__() + "/../data/JMeterPlugins-{plugin}-1.3.0.zip"
         JMeterExecutor.JMETER_VER = '2.13'
 
         self.assertFalse(os.path.exists(path))
@@ -151,6 +144,13 @@ class TestJMeterExecutor(BZTestCase):
             self.assertNotIn(old_jar, jars)
 
         self.assertTrue(os.path.exists(path))
+
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.settings.merge({"path": path})
+
+        obj.execution = BetterDict()
+        obj.execution.merge({"scenario": {"requests": ["http://localhost"]}})
 
         obj.prepare()
 
@@ -620,3 +620,15 @@ class TestJMeterExecutor(BZTestCase):
             self.fail()
         except RuntimeError as exc:
             self.assertEqual(exc.args[0], "Nothing to test, no requests were provided in scenario")
+
+    def test_variable_csv_file(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({"scenario": {"script": __dir__() + "/../jmx/variable_csv.jmx"}})
+        obj.prepare()
+        artifacts = os.listdir(obj.engine.artifacts_dir)
+        self.assertEqual(len(artifacts), 3)  # minus jmeter.log
+        target_jmx = os.path.join(obj.engine.artifacts_dir, "modified_variable_csv.jmx.jmx")
+        with open(target_jmx) as fds:
+            jmx = fds.read()
+            self.assertIn('<stringProp name="filename">${root}/csvfile.csv</stringProp>', jmx)
