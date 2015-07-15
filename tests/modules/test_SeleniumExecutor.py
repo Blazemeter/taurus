@@ -48,11 +48,17 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
         junit_link = SeleniumExecutor.JUNIT_DOWNLOAD_LINK
         SeleniumExecutor.JUNIT_DOWNLOAD_LINK = base_link + "/junit-4.12.jar"
 
+        hamcrest_link = SeleniumExecutor.HAMCREST_DOWNLOAD_LINK
+        SeleniumExecutor.HAMCREST_DOWNLOAD_LINK = base_link + "/hamcrest-core-1.3.jar"
+
         self.assertFalse(os.path.exists(dummy_installation_path))
+
         obj = SeleniumExecutor()
         obj.engine = self.engine_obj
         obj.settings.merge({"selenium-tools": {
             "junit": {"selenium-server": os.path.join(dummy_installation_path, "selenium-server.jar")}}})
+        obj.settings.merge({"selenium-tools": {
+            "junit": {"hamcrest-core": os.path.join(dummy_installation_path, "tools", "junit", "hamcrest-core.jar")}}})
         obj.settings.merge({"selenium-tools": {
             "junit": {"path": os.path.join(dummy_installation_path, "tools", "junit", "junit.jar")}}})
 
@@ -61,9 +67,10 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
         obj.prepare()
         self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "selenium-server.jar")))
         self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "tools", "junit", "junit.jar")))
-
+        self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "tools", "junit", "hamcrest-core.jar")))
         SeleniumExecutor.SELENIUM_DOWNLOAD_LINK = selenium_server_link
         SeleniumExecutor.JUNIT_DOWNLOAD_LINK = junit_link
+        SeleniumExecutor.HAMCREST_DOWNLOAD_LINK = hamcrest_link
 
     def test_prepare_java_single(self):
         """
