@@ -28,7 +28,6 @@ from collections import Counter, namedtuple
 from distutils.version import LooseVersion
 from math import ceil
 import tempfile
-import re
 
 from lxml.etree import XMLSyntaxError
 import urwid
