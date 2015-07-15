@@ -8,6 +8,7 @@ import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.jar.JarEntry;
@@ -43,7 +44,9 @@ public class CustomRunner {
             custom_listener.reporter = new JTLReporter(args[0]);
 
             runner.addListener(custom_listener);
-            runner.run(test_classes.toArray(new Class[test_classes.size()]));
+            Class[] classes = test_classes.toArray(new Class[test_classes.size()]);
+            log.info("Running with classes: " + Arrays.toString(classes));
+            runner.run(classes);
         }
     }
 

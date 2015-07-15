@@ -22,11 +22,11 @@ public class CustomListener extends RunListener {
     private static final Logger log = Logger.getLogger(CustomListener.class.getName());
 
     static {
-        log.addHandler(new ConsoleHandler());
         log.setLevel(Level.FINER);
     }
 
     public void testRunStarted(Description description) {
+        log.info("Started: " + description);
     }
 
     public void testRunFinished(Result result) throws java.lang.Exception {

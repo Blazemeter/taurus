@@ -15,7 +15,6 @@ public class JTLReporter {
     private static final Logger log = Logger.getLogger(CustomListener.class.getName());
 
     static {
-        log.addHandler(new ConsoleHandler());
         log.setLevel(Level.FINER);
     }
 
