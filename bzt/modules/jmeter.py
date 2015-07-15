@@ -1998,7 +1998,7 @@ class JMeter(RequiredTool):
         self.log.info("Will try to install JMeter into %s", dest)
 
         downloader = request.FancyURLopener()
-        jmeter_dist = tempfile.NamedTemporaryFile(suffix=".zip", delete=True)
+        jmeter_dist = tempfile.NamedTemporaryFile(suffix=".zip", delete=False)  # delete=False because of Windows
         self.download_link = self.download_link.format(version=self.version)
         self.log.info("Downloading %s", self.download_link)
 
@@ -2015,6 +2015,7 @@ class JMeter(RequiredTool):
         # set exec permissions
         os.chmod(self.tool_path, 0o755)
         jmeter_dist.close()
+        os.remove(jmeter_dist)
 
         if self.check_if_installed():
             self.remove_old_jar_versions(os.path.join(dest, 'lib'))
