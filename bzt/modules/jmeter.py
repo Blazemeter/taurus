@@ -647,7 +647,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         required_tools = []
         required_tools.append(JavaVM("", "", self.log))
 
-        jmeter_path = self.settings.get("path", "~/.bzt/jmeter-taurus/bin/jmeter" + EXE_SUFFIX)
+        jmeter_path = self.settings.get("path", "~/.bzt/jmeter-taurus/bin/jmeter") + EXE_SUFFIX
         jmeter_path = os.path.abspath(os.path.expanduser(jmeter_path))
         self.settings["path"] = jmeter_path
         jmeter_version = self.settings.get("version", JMeterExecutor.JMETER_VER)
@@ -1982,10 +1982,11 @@ class JMeter(RequiredTool):
     def check_if_installed(self):
         self.log.debug("Trying jmeter: %s", self.tool_path)
         try:
-            jmlog = tempfile.NamedTemporaryFile(prefix="jmeter", suffix="log")
+            jmlog = tempfile.NamedTemporaryFile(prefix="jmeter", suffix="log", delete=False)
             jmout = subprocess.check_output([self.tool_path, '-j', jmlog.name, '--version'], stderr=subprocess.STDOUT)
             self.log.debug("JMeter check: %s", jmout)
             jmlog.close()
+            os.remove(jmlog.name)
             return True
         except OSError:
             self.log.debug("JMeter check failed.")
@@ -2015,7 +2016,7 @@ class JMeter(RequiredTool):
         # set exec permissions
         os.chmod(self.tool_path, 0o755)
         jmeter_dist.close()
-        os.remove(jmeter_dist)
+        os.remove(jmeter_dist.name)
 
         if self.check_if_installed():
             self.remove_old_jar_versions(os.path.join(dest, 'lib'))
