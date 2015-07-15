@@ -131,7 +131,7 @@ class TestJMeterExecutor(BZTestCase):
         plugins_link = JMeterExecutor.PLUGINS_DOWNLOAD_TPL
 
         JMeterExecutor.JMETER_DOWNLOAD_LINK = "file:///" + __dir__() + "/../data/jmeter-dist-{version}.zip"
-        JMeterExecutor.PLUGINS_DOWNLOAD_TPL = "file:///" + __dir__() + "/../data/jmeter-plugins-{plugin}.zip"
+        JMeterExecutor.PLUGINS_DOWNLOAD_TPL = "file:///" + __dir__() + "/../data/JMeterPlugins-{plugin}-1.3.0.zip"
         JMeterExecutor.JMETER_VER = '2.13'
 
         self.assertFalse(os.path.exists(path))
@@ -151,6 +151,15 @@ class TestJMeterExecutor(BZTestCase):
             self.assertNotIn(old_jar, jars)
 
         self.assertTrue(os.path.exists(path))
+
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.settings.merge({"path": path})
+
+        obj.execution = BetterDict()
+        obj.execution.merge({"scenario": {"requests": ["http://localhost"]}})
+
+        obj.prepare()
 
         JMeterExecutor.JMETER_DOWNLOAD_LINK = jmeter_link
         JMeterExecutor.PLUGINS_DOWNLOAD_TPL = plugins_link
