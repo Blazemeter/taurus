@@ -1,7 +1,8 @@
 # Changelog
 
 ## 0.3.3 (next)
-
+  - fixed tools check/installation on windows
+  - fixed resource files gathering issue
 
 ## 0.3.2
   - use progressbar for download progress indicators
