@@ -482,7 +482,7 @@ class Grinder(RequiredTool):
         dest = os.path.abspath(dest)
 
         downloader = request.FancyURLopener()
-        grinder_zip_file = tempfile.NamedTemporaryFile(suffix=".zip", delete=True)
+        grinder_zip_file = tempfile.NamedTemporaryFile(suffix=".zip", delete=False)
         self.download_link = self.download_link.format(version=self.version)
         self.log.info("Downloading %s", self.download_link)
 
@@ -496,6 +496,7 @@ class Grinder(RequiredTool):
         self.log.info("Unzipping %s", grinder_zip_file.name)
         unzip(grinder_zip_file.name, dest, 'grinder-' + self.version)
         grinder_zip_file.close()
+        os.remove(grinder_zip_file.name)
 
         self.log.info("Installed grinder successfully")
         if not self.check_if_installed():

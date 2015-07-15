@@ -398,7 +398,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.__cp_res_files_to_artifacts_dir(resource_files_from_jmx)
         self.__cp_res_files_to_artifacts_dir(resource_files_from_requests)
         if resource_files_from_jmx and not self.distributed_servers:
-            JMeterExecutor.__modify_resources_paths_in_jmx(jmx.tree, resource_files_from_jmx)
+            self.__modify_resources_paths_in_jmx(jmx.tree, resource_files_from_jmx)
 
     def __get_modified_jmx(self, original, load):
         """
@@ -513,8 +513,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             else:
                 self.log.warning("File not found: %s", resource_file)
 
-    @staticmethod
-    def __modify_resources_paths_in_jmx(jmx, file_list):
+    def __modify_resources_paths_in_jmx(self, jmx, file_list):
         """
         Modify resource files paths in jmx etree
 
@@ -523,9 +522,12 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :return:
         """
         for file_path in file_list:
-            file_path_elements = jmx.xpath('//stringProp[text()="%s"]' % file_path)
-            for file_path_element in file_path_elements:
-                file_path_element.text = os.path.basename(file_path)
+            if os.path.exists(file_path):
+                file_path_elements = jmx.xpath('//stringProp[text()="%s"]' % file_path)
+                for file_path_element in file_path_elements:
+                    file_path_element.text = os.path.basename(file_path)
+            else:
+                self.log.warning("File not found: %s", file_path)
 
     @staticmethod
     def __get_resource_files_from_jmx(jmx):
@@ -647,7 +649,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         required_tools = []
         required_tools.append(JavaVM("", "", self.log))
 
-        jmeter_path = self.settings.get("path", "~/.bzt/jmeter-taurus/bin/jmeter" + EXE_SUFFIX)
+        jmeter_path = self.settings.get("path", "~/.bzt/jmeter-taurus/bin/jmeter") + EXE_SUFFIX
         jmeter_path = os.path.abspath(os.path.expanduser(jmeter_path))
         self.settings["path"] = jmeter_path
         jmeter_version = self.settings.get("version", JMeterExecutor.JMETER_VER)
@@ -1982,10 +1984,12 @@ class JMeter(RequiredTool):
     def check_if_installed(self):
         self.log.debug("Trying jmeter: %s", self.tool_path)
         try:
-            jmlog = tempfile.NamedTemporaryFile(prefix="jmeter", suffix="log")
-            jmout = subprocess.check_output([self.tool_path, '-j', jmlog.name, '--version'], stderr=subprocess.STDOUT)
+            jmlog = tempfile.NamedTemporaryFile(prefix="jmeter", suffix="log", delete=False)
+            jm_proc = shell_exec([self.tool_path, '-j', jmlog.name, '--version'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            jmout = jm_proc.communicate()
             self.log.debug("JMeter check: %s", jmout)
             jmlog.close()
+            os.remove(jmlog.name)
             return True
         except OSError:
             self.log.debug("JMeter check failed.")
@@ -1998,7 +2002,7 @@ class JMeter(RequiredTool):
         self.log.info("Will try to install JMeter into %s", dest)
 
         downloader = request.FancyURLopener()
-        jmeter_dist = tempfile.NamedTemporaryFile(suffix=".zip", delete=True)
+        jmeter_dist = tempfile.NamedTemporaryFile(suffix=".zip", delete=False)  # delete=False because of Windows
         self.download_link = self.download_link.format(version=self.version)
         self.log.info("Downloading %s", self.download_link)
 
@@ -2015,6 +2019,7 @@ class JMeter(RequiredTool):
         # set exec permissions
         os.chmod(self.tool_path, 0o755)
         jmeter_dist.close()
+        os.remove(jmeter_dist.name)
 
         if self.check_if_installed():
             self.remove_old_jar_versions(os.path.join(dest, 'lib'))
@@ -2068,7 +2073,7 @@ class JMeterPlugins(RequiredTool):
     def install(self):
         dest = os.path.dirname(os.path.dirname(os.path.expanduser(self.tool_path)))
         for set_name in ("Standard", "Extras", "ExtrasLibs", "WebDriver"):
-            plugin_dist = tempfile.NamedTemporaryFile(suffix=".zip", delete=True, prefix=set_name)
+            plugin_dist = tempfile.NamedTemporaryFile(suffix=".zip", delete=False, prefix=set_name)
             plugin_download_link = self.download_link.format(plugin=set_name)
             self.log.info("Downloading %s", plugin_download_link)
             downloader = request.FancyURLopener()
@@ -2082,3 +2087,4 @@ class JMeterPlugins(RequiredTool):
             self.log.info("Unzipping %s", plugin_dist.name)
             unzip(plugin_dist.name, dest)
             plugin_dist.close()
+            os.remove(plugin_dist.name)

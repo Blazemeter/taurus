@@ -29,6 +29,8 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
     JUNIT_DOWNLOAD_LINK = "http://search.maven.org/remotecontent?filepath=junit/junit/{version}/junit-{version}.jar"
     JUNIT_VERSION = "4.12"
 
+    HAMCREST_DOWNLOAD_LINK = "https://hamcrest.googlecode.com/files/hamcrest-core-1.3.jar"
+
     SUPPORTED_TYPES = [".py", ".jar", ".java"]
 
     def __init__(self):
@@ -211,11 +213,13 @@ class JunitTester(AbstractTestRunner):
         path_lambda = lambda key, val: os.path.abspath(os.path.expanduser(self.settings.get(key, val)))
 
         self.junit_path = path_lambda("path", "~/.bzt/selenium-taurus/tools/junit/junit.jar")
+        self.hamcrest_path = path_lambda("hamcrest-core", "~/.bzt/selenium-taurus/tools/junit/hamcrest-core.jar")
         self.selenium_server_jar_path = path_lambda("selenium-server", "~/.bzt/selenium-taurus/selenium-server.jar")
         self.junit_listener_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "resources",
                                                 "taurus_junit.jar")
 
-        self.base_class_path = [self.selenium_server_jar_path, self.junit_path, self.junit_listener_path]
+        self.base_class_path = [self.selenium_server_jar_path, self.junit_path, self.junit_listener_path,
+                                self.hamcrest_path]
         self.base_class_path.extend(self.scenario.get("additional-classpath", []))
 
     def prepare(self):
@@ -244,6 +248,7 @@ class JunitTester(AbstractTestRunner):
                                                          version=SeleniumExecutor.SELENIUM_VERSION), self.log))
         self.required_tools.append(JUnitJar(self.junit_path, SeleniumExecutor.JUNIT_DOWNLOAD_LINK.format(
             version=SeleniumExecutor.JUNIT_VERSION)))
+        self.required_tools.append(HamcrestJar(self.hamcrest_path, SeleniumExecutor.HAMCREST_DOWNLOAD_LINK))
         self.required_tools.append(JUnitListenerJar(self.junit_listener_path, ""))
 
         self.check_tools()
@@ -406,6 +411,7 @@ class SeleniumWidget(urwid.Pile):
         self.summary_stats.set_text(reader_summary)
         self._invalidate()
 
+
 class SeleniumServerJar(RequiredTool):
     def __init__(self, tool_path, download_link, parent_logger):
         super(SeleniumServerJar, self).__init__("Selenium server", tool_path, download_link)
@@ -427,6 +433,11 @@ class SeleniumServerJar(RequiredTool):
 class JUnitJar(RequiredTool):
     def __init__(self, tool_path, download_link):
         super(JUnitJar, self).__init__("JUnit", tool_path, download_link)
+
+
+class HamcrestJar(RequiredTool):
+    def __init__(self, tool_path, download_link):
+        super(HamcrestJar, self).__init__("HamcrestJar", tool_path, download_link)
 
 
 class JavaC(RequiredTool):

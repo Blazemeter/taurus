@@ -3,7 +3,7 @@ import os
 import re
 
 from tests import setup_test_logging, BZTestCase, __dir__
-from bzt.modules.gatling import GatlingExecutor
+from bzt.modules.gatling import GatlingExecutor, EXE_SUFFIX
 from tests.mocks import EngineEmul
 from bzt.utils import BetterDict
 
@@ -12,14 +12,14 @@ setup_test_logging()
 
 class TestGatlingExecutor(BZTestCase):
     def test_install_Gatling(self):
-        path = os.path.abspath(__dir__() + "/../../build/tmp/gatling-taurus/bin/gatling.sh")
+        path = os.path.abspath(__dir__() + "/../../build/tmp/gatling-taurus/bin/gatling" + EXE_SUFFIX)
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
 
         # backup download link and version
         gatling_link = GatlingExecutor.DOWNLOAD_LINK
         gatling_ver = GatlingExecutor.VERSION
 
-        GatlingExecutor.DOWNLOAD_LINK = "file://" + __dir__() + "/../data/gatling-dist-{version}_{version}.zip"
+        GatlingExecutor.DOWNLOAD_LINK = "file:///" + __dir__() + "/../data/gatling-dist-{version}_{version}.zip"
         GatlingExecutor.VERSION = '2.1.4'
 
         self.assertFalse(os.path.exists(path))

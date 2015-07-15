@@ -432,7 +432,8 @@ class Gatling(RequiredTool):
     def check_if_installed(self):
         self.log.debug("Trying Gatling: %s", self.tool_path)
         try:
-            gatling_output = subprocess.check_output([self.tool_path, '--help'], stderr=subprocess.STDOUT)
+            gatling_proc = shell_exec([self.tool_path, '--help'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            gatling_output = gatling_proc.communicate()
             self.log.debug("Gatling check: %s", gatling_output)
             return True
         except OSError:
@@ -446,7 +447,7 @@ class Gatling(RequiredTool):
 
         # download gatling
         downloader = request.FancyURLopener()
-        gatling_zip_file = tempfile.NamedTemporaryFile(suffix=".zip", delete=True)
+        gatling_zip_file = tempfile.NamedTemporaryFile(suffix=".zip", delete=False)
 
         self.download_link = self.download_link.format(version=self.version)
         self.log.info("Downloading %s", self.download_link)
@@ -462,6 +463,7 @@ class Gatling(RequiredTool):
         self.log.info("Unzipping %s", gatling_zip_file.name)
         unzip(gatling_zip_file.name, dest, 'gatling-charts-highcharts-bundle-' + self.version)
         gatling_zip_file.close()
+        os.remove(gatling_zip_file.name)
         os.chmod(os.path.expanduser(self.tool_path), 0o755)
         self.log.info("Installed Gatling successfully")
 

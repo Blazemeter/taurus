@@ -22,7 +22,7 @@ class TestGrinderExecutor(BZTestCase):
 
         grinder_link = GrinderExecutor.DOWNLOAD_LINK
         grinder_version = GrinderExecutor.VERSION
-        GrinderExecutor.DOWNLOAD_LINK = "file://" + __dir__() + "/../data/grinder-{version}_{version}-binary.zip"
+        GrinderExecutor.DOWNLOAD_LINK = "file:///" + __dir__() + "/../data/grinder-{version}_{version}-binary.zip"
         GrinderExecutor.VERSION = "3.11"
 
         self.assertFalse(os.path.exists(path))

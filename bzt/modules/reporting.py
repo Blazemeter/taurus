@@ -22,15 +22,7 @@ from datetime import datetime
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.passfail import PassFailStatus
-from bzt.six import parse
-
-try:
-    from lxml import etree
-except ImportError:
-    try:
-        import cElementTree as etree
-    except ImportError:
-        import elementtree.ElementTree as etree
+from bzt.six import parse, etree
 
 
 class FinalStatus(Reporter, AggregatorListener):
@@ -64,7 +56,7 @@ class FinalStatus(Reporter, AggregatorListener):
         self.end_time = time.time()
 
         if self.parameters.get("test-duration", True):
-                self.__report_duration()
+            self.__report_duration()
 
         if self.last_sec:
             summary_kpi = self.last_sec[DataPoint.CUMULATIVE][""]

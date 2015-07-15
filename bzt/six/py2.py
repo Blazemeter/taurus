@@ -52,6 +52,7 @@ build_opener = urllib2.build_opener
 install_opener = urllib2.install_opener
 ProxyHandler = urllib2.ProxyHandler
 Request = urllib2.Request
+HTTPError = urllib2.HTTPError
 
 viewvalues = operator.methodcaller("viewvalues")
 
