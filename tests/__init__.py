@@ -101,6 +101,14 @@ def local_paths_config():
             },
             "gatling": {
                 "path": dirname + "/../build/gatling/bin/gatling.sh",
+            },
+            "selenium": {
+                "selenium-tools": {
+                    "junit": {
+                        "path": dirname + "/../build/selenium/tools/junit/junit.jar",
+                        "selenium-server": dirname + "/../build/selenium/selenium-server.jar"
+                    }
+                }
             }
         }
     }

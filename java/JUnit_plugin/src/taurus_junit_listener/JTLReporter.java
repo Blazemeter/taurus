@@ -18,15 +18,12 @@ public class JTLReporter {
 	}
 	
 	public void report(long timestamp, long elapsed, String label, int responseCode, String responseMessage, String threadName, String success) throws Exception{
-		log.info("writing report");
 		String fmt_msg = String.format(jtl_record_pattern, timestamp, elapsed, label, responseCode, responseMessage, threadName, success, 1, 1, 0, 0);
 		out_stream.write(fmt_msg);
 		out_stream.flush();
-		log.info("reported.");
 	}
 	public void close() throws Exception{
-		log.info("closing report file");
 		out_stream.close();
-		log.info("closed.");
+		log.info("reporter stream closed.");
 	}
 }

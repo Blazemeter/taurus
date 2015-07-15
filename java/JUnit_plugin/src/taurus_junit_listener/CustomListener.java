@@ -33,7 +33,14 @@ public class CustomListener extends RunListener{
 	
 	public void testRunFinished(Result result) throws java.lang.Exception
 	{
+		if (total_tests == 0){
+			System.err.println("total_tests = 0");
+			//throw new RuntimeException("total_tests = 0.");
+		}
+		System.err.println("result was successful? " + result.wasSuccessful());
+		System.err.println("result run count " + result.getRunCount());
 		reporter.close();
+		
 	}
 	
 	public void testStarted(Description description) throws Exception

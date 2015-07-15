@@ -1,12 +1,9 @@
 package taurus_junit_listener;
 
 import org.junit.runner.JUnitCore;
-
 import junit.framework.TestCase;
 import taurus_junit_listener.CustomListener;
-
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.lang.reflect.Method;
@@ -17,8 +14,6 @@ import java.util.jar.JarFile;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
-import java.util.logging.Logger;
-
 
 public class CustomRunner {
 	
@@ -74,15 +69,21 @@ public class CustomRunner {
 			    className = className.replace('/', '.');
 			    
 			    Class<?> c = cl.loadClass(className);
+			    System.err.println("TestCase.class.isAssignableFrom("+ c.getCanonicalName() + ") == " + TestCase.class.isAssignableFrom(c));
+			    System.err.println("has_annotations("+ c.getCanonicalName() + ") == " + has_annotations(c));
+			    
 			    if (TestCase.class.isAssignableFrom(c) || has_annotations(c)){ 
 			    	test_classes.add(c);
+			    	System.err.println("class added to tests: " + c.getCanonicalName());
 			    	class_names.add(className);
 				}	
 			}
 			jarFile.close();
 		} catch (IOException e) {
+			System.err.println(jar_path);
 			e.printStackTrace();
 		} catch (ClassNotFoundException e1) {
+			System.err.println(jar_path);
 			e1.printStackTrace();
 		}
 		}
@@ -93,8 +94,6 @@ public class CustomRunner {
 		//System.exit(1);
 	}
 	else{
-		//System.out.println(Arrays.toString(class_names.toArray()));
-		
 		JUnitCore runner = new JUnitCore();
 		CustomListener custom_listener = new CustomListener();
 		try {
@@ -102,6 +101,7 @@ public class CustomRunner {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		
 		runner.addListener(custom_listener);
 		runner.run(test_classes.toArray(new Class[test_classes.size()]));
 		}
