@@ -399,7 +399,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.__cp_res_files_to_artifacts_dir(resource_files_from_jmx)
         self.__cp_res_files_to_artifacts_dir(resource_files_from_requests)
         if resource_files_from_jmx and not self.distributed_servers:
-            JMeterExecutor.__modify_resources_paths_in_jmx(jmx.tree, resource_files_from_jmx)
+            self.__modify_resources_paths_in_jmx(jmx.tree, resource_files_from_jmx)
 
     def __get_modified_jmx(self, original, load):
         """
@@ -514,8 +514,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             else:
                 self.log.warning("File not found: %s", resource_file)
 
-    @staticmethod
-    def __modify_resources_paths_in_jmx(jmx, file_list):
+    def __modify_resources_paths_in_jmx(self, jmx, file_list):
         """
         Modify resource files paths in jmx etree
 
@@ -523,12 +522,13 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :param file_list: list
         :return:
         """
-        var_pattern = re.compile('\$\{.*?\}')
         for file_path in file_list:
-            if not var_pattern.findall(file_path):
+            if os.path.exists(file_path):
                 file_path_elements = jmx.xpath('//stringProp[text()="%s"]' % file_path)
                 for file_path_element in file_path_elements:
                     file_path_element.text = os.path.basename(file_path)
+            else:
+                self.log.warning("File not found: %s", file_path)
 
     @staticmethod
     def __get_resource_files_from_jmx(jmx):
