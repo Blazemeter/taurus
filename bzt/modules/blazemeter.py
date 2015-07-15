@@ -30,7 +30,7 @@ from bzt.engine import Reporter, AggregatorListener, Provisioning
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.jmeter import JMeterExecutor
 from bzt.utils import to_json, dehumanize_time, MultiPartForm
-from bzt.six import parse, BytesIO, text_type, iteritems, request, ProxyHandler, urlencode, Request, urlopen, \
+from bzt.six import parse, BytesIO, text_type, iteritems, HTTPError, ProxyHandler, urlencode, Request, urlopen, \
     build_opener, install_opener
 
 
@@ -89,7 +89,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
                 self.client.ping()  # to check connectivity and auth
                 if token:
                     self.test_id = self.client.test_by_name(test_name, {"type": "external"})
-            except request.HTTPError:
+            except HTTPError:
                 self.log.error("Cannot reach online results storage, maybe the address/token is wrong")
                 raise
 
