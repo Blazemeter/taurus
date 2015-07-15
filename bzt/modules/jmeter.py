@@ -28,6 +28,7 @@ from collections import Counter, namedtuple
 from distutils.version import LooseVersion
 from math import ceil
 import tempfile
+import re
 
 from lxml.etree import XMLSyntaxError
 import urwid
@@ -522,10 +523,12 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :param file_list: list
         :return:
         """
+        var_pattern = re.compile('\$\{.*?\}')
         for file_path in file_list:
-            file_path_elements = jmx.xpath('//stringProp[text()="%s"]' % file_path)
-            for file_path_element in file_path_elements:
-                file_path_element.text = os.path.basename(file_path)
+            if not var_pattern.findall(file_path):
+                file_path_elements = jmx.xpath('//stringProp[text()="%s"]' % file_path)
+                for file_path_element in file_path_elements:
+                    file_path_element.text = os.path.basename(file_path)
 
     @staticmethod
     def __get_resource_files_from_jmx(jmx):
