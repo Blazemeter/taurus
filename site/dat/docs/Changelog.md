@@ -1,6 +1,8 @@
 # Changelog
 
-## 0.3.3 (next)
+## 0.3.4 (next)
+
+## 0.3.3
   - fixed tools check/installation on windows
   - fixed resource files gathering issue
 
