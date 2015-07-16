@@ -17,7 +17,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class CustomRunner {
-    private static final Logger log = Logger.getLogger(CustomListener.class.getName());
+    private static final Logger log = Logger.getLogger(CustomRunner.class.getName());
 
     static {
         log.setLevel(Level.FINER);
@@ -29,23 +29,21 @@ public class CustomRunner {
             throw new IllegalArgumentException("Usage requires at least 2 params");
         }
         //Open Jar files in args, scan them, load test classes, run test suite
-        //Last item in args is a report filename
+        //Last item in args is a writeSample filename
         //redirect stderr to file
 
         String[] jar_paths = new String[args.length - 1];
         System.arraycopy(args, 1, jar_paths, 0, args.length - 1);
         List<Class<?>> test_classes = getClasses(jar_paths);
+        Class[] classes = test_classes.toArray(new Class[test_classes.size()]);
 
         if (test_classes.isEmpty()) {
             throw new RuntimeException("Nothing to test");
         } else {
-            JUnitCore runner = new JUnitCore();
-            CustomListener custom_listener = new CustomListener();
-            custom_listener.reporter = new JTLReporter(args[0]);
-
-            runner.addListener(custom_listener);
-            Class[] classes = test_classes.toArray(new Class[test_classes.size()]);
             log.info("Running with classes: " + Arrays.toString(classes));
+            CustomListener custom_listener = new CustomListener(new JTLReporter(args[0]));
+            JUnitCore runner = new JUnitCore();
+            runner.addListener(custom_listener);
             runner.run(classes);
         }
     }

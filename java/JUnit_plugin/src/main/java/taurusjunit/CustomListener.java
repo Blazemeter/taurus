@@ -8,12 +8,16 @@ import org.junit.runner.notification.RunListener;
 import java.util.logging.Logger;
 
 public class CustomListener extends RunListener {
-    private long started = 0;
 
-
-    public JTLReporter reporter;
     private static final Logger log = Logger.getLogger(CustomListener.class.getName());
     private Sample pendingSample;
+    private JTLReporter reporter;
+    private long started = 0;
+
+    public CustomListener(JTLReporter jtlReporter) {
+        super();
+        reporter = jtlReporter;
+    }
 
     public void testRunStarted(Description description) {
         log.info("Run Started: " + description);
@@ -36,7 +40,7 @@ public class CustomListener extends RunListener {
         pendingSample.setElapsed(System.currentTimeMillis() - started);
         pendingSample.setLabel(description.getMethodName());
         pendingSample.setThreadName(description.getClassName() + "." + description.getMethodName());
-        reporter.report(pendingSample);
+        reporter.writeSample(pendingSample);
         pendingSample = null;
     }
 
@@ -47,14 +51,16 @@ public class CustomListener extends RunListener {
         Sample sample;
         if (pendingSample == null) {
             sample = new Sample();
-        } else sample = pendingSample;
+        } else {
+            sample = pendingSample;
+        }
         sample.setSuccess(false);
         sample.setTrace(failure.getTrace());
         sample.setMessage(failure.getMessage());
         sample.setResponseCode(500);
 
         if (pendingSample == null) {
-            reporter.report(sample);
+            reporter.writeSample(sample);
         }
     }
 

@@ -14,6 +14,11 @@ public class Sample {
         return success;
     }
 
+    @Override
+    public String toString() {
+        return timestamp + " " + responseCode + " " + message;
+    }
+
     public void setSuccess(boolean success) {
         this.success = success;
     }
@@ -35,7 +40,7 @@ public class Sample {
     }
 
     public void setMessage(String message) {
-        this.message = message;
+        this.message = message == null ? "" : message;
     }
 
     public void setResponseCode(int responseCode) {
@@ -59,7 +64,7 @@ public class Sample {
     }
 
     public String getResponseMessage() {
-        return "\""+message.replace('\n', '\t').replace('"', '\'')+"\""; // FIXME: not very good until we have separate error file
+        return "\"" + message.replace('\n', '\t').replace('"', '\'') + "\""; // FIXME: not very good until we have separate error file
     }
 
     public String getThreadName() {

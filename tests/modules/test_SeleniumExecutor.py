@@ -495,8 +495,9 @@ class TestSeleniumStuff(SeleniumTestCase):
         obj = SeleniumExecutor()
         obj.engine = self.engine_obj
         obj.settings = self.selenium_config
-        obj.engine.config.merge(
-            {"execution": {"executor": "selenium", "scenario": {"script": "tests/selenium/invalid/selenium1.java"}}})
+        obj.engine.config.merge({"execution": {
+            "executor": "selenium", "scenario": {"script": "tests/selenium/invalid/selenium1.java"}}
+        })
         obj.execution = obj.engine.config['execution']
         obj.prepare()
         obj.startup()
