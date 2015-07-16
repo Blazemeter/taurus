@@ -29,6 +29,8 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
     JUNIT_DOWNLOAD_LINK = "http://search.maven.org/remotecontent?filepath=junit/junit/{version}/junit-{version}.jar"
     JUNIT_VERSION = "4.12"
 
+    HAMCREST_DOWNLOAD_LINK = "https://hamcrest.googlecode.com/files/hamcrest-core-1.3.jar"
+
     SUPPORTED_TYPES = [".py", ".jar", ".java"]
 
     def __init__(self):
@@ -65,6 +67,8 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
         runner_config.get("artifacts-dir", self.engine.artifacts_dir)
         runner_config.get("working-dir", runner_working_dir)
         runner_config.get("report-file", self.kpi_file)
+        runner_config.get("stdout", self.engine.create_artifact("junit", ".out"))
+        runner_config.get("stderr", self.engine.create_artifact("junit", ".err"))
 
         if Scenario.SCRIPT in scenario:
             if script_is_folder:
@@ -74,10 +78,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
                 shutil.copy2(scenario.get("script"), runner_working_dir)
 
         self.runner = self.runner(runner_config, scenario, self.log)
-
-        runner_std_out = self.engine.create_artifact("runner_out", ".log")
-        runner_std_err = self.engine.create_artifact("runner_err", ".log")
-        self.runner.prepare(runner_std_out, runner_std_err)
+        self.runner.prepare()
         self.reader = JTLReader(self.kpi_file, self.log, None)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
@@ -144,7 +145,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
 
     def get_widget(self):
         if not self.widget:
-            self.widget = SeleniumWidget(self.get_scenario().get("script"), self.runner.opened_descriptors["std_out"].name)
+            self.widget = SeleniumWidget(self.get_scenario().get("script"), self.runner.settings.get("stdout"))
         return self.widget
 
 
@@ -158,15 +159,14 @@ class AbstractTestRunner(object):
         self.settings = settings
         self.required_tools = []
         self.scenario = scenario
-        self.report_file = self.settings.get("report-file")
         self.artifacts_dir = self.settings.get("artifacts-dir")
         self.working_dir = self.settings.get("working-dir")
         self.log = None
-        self.opened_descriptors = {"std_err": None, "std_out": None}
+        self.opened_descriptors = []
         self.is_failed = False
 
     @abstractmethod
-    def prepare(self, file_std_out, file_std_err):
+    def prepare(self):
         pass
 
     @abstractmethod
@@ -182,7 +182,7 @@ class AbstractTestRunner(object):
         if ret_code is not None:
             if ret_code != 0:
                 self.log.debug("Test runner exit code: %s", ret_code)
-                with open(self.opened_descriptors["std_err"].name) as fds:
+                with open(self.settings.get("stderr")) as fds:
                     std_err = fds.read()
                 self.is_failed = True
                 raise RuntimeError("Test runner %s has failed: %s" % (self.__class__.__name__, std_err.strip()))
@@ -197,9 +197,9 @@ class AbstractTestRunner(object):
 
     def shutdown(self):
         shutdown_process(self.process, self.log)
-        for desc in self.opened_descriptors.values():
+        for desc in self.opened_descriptors:
             desc.close()
-        self.opened_descriptors = {}
+        self.opened_descriptors = []
 
 
 class JunitTester(AbstractTestRunner):
@@ -213,14 +213,16 @@ class JunitTester(AbstractTestRunner):
         path_lambda = lambda key, val: os.path.abspath(os.path.expanduser(self.settings.get(key, val)))
 
         self.junit_path = path_lambda("path", "~/.bzt/selenium-taurus/tools/junit/junit.jar")
+        self.hamcrest_path = path_lambda("hamcrest-core", "~/.bzt/selenium-taurus/tools/junit/hamcrest-core.jar")
         self.selenium_server_jar_path = path_lambda("selenium-server", "~/.bzt/selenium-taurus/selenium-server.jar")
         self.junit_listener_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "resources",
-                                                "taurus_junit.jar")
+                                                "taurus-junit-1.0.jar")
 
-        self.base_class_path = [self.selenium_server_jar_path, self.junit_path, self.junit_listener_path]
+        self.base_class_path = [self.selenium_server_jar_path, self.junit_path, self.junit_listener_path,
+                                self.hamcrest_path]
         self.base_class_path.extend(self.scenario.get("additional-classpath", []))
 
-    def prepare(self, std_out, std_err):
+    def prepare(self):
         """
         run checklist, make jar.
         """
@@ -228,11 +230,6 @@ class JunitTester(AbstractTestRunner):
 
         if self.settings.get("script-type", None) == ".java":
             self.compile_scripts()
-
-        std_out_desc = open(std_out, "wt")
-        std_err_desc = open(std_err, "wt")
-        self.opened_descriptors["std_err"] = std_err_desc
-        self.opened_descriptors["std_out"] = std_out_desc
 
     def run_checklist(self):
         """
@@ -251,6 +248,7 @@ class JunitTester(AbstractTestRunner):
                                                          version=SeleniumExecutor.SELENIUM_VERSION), self.log))
         self.required_tools.append(JUnitJar(self.junit_path, SeleniumExecutor.JUNIT_DOWNLOAD_LINK.format(
             version=SeleniumExecutor.JUNIT_VERSION)))
+        self.required_tools.append(HamcrestJar(self.hamcrest_path, SeleniumExecutor.HAMCREST_DOWNLOAD_LINK))
         self.required_tools.append(JUnitListenerJar(self.junit_listener_path, ""))
 
         self.check_tools()
@@ -271,8 +269,8 @@ class JunitTester(AbstractTestRunner):
         compile_cl = ["javac", "-cp", os.pathsep.join(self.base_class_path)]
         compile_cl.extend(java_files)
 
-        with open(os.path.join(self.artifacts_dir, "javac_out"), 'ab') as javac_out:
-            with open(os.path.join(self.artifacts_dir, "javac_err"), 'ab') as javac_err:
+        with open(os.path.join(self.artifacts_dir, "javac.out"), 'ab') as javac_out:
+            with open(os.path.join(self.artifacts_dir, "javac.err"), 'ab') as javac_err:
                 self.process = shell_exec(compile_cl, cwd=self.working_dir, stdout=javac_out, stderr=javac_err)
                 ret_code = self.process.poll()
 
@@ -297,8 +295,8 @@ class JunitTester(AbstractTestRunner):
         """
         self.log.debug("Making .jar started")
 
-        with open(os.path.join(self.artifacts_dir, "jar_out"), 'ab') as jar_out:
-            with open(os.path.join(self.artifacts_dir, "jar_err"), 'ab') as jar_err:
+        with open(os.path.join(self.artifacts_dir, "jar.out"), 'ab') as jar_out:
+            with open(os.path.join(self.artifacts_dir, "jar.err"), 'ab') as jar_err:
                 class_files = [java_file for java_file in os.listdir(self.working_dir) if java_file.endswith(".class")]
                 jar_name = self.settings.get("jar-name", "compiled.jar")
                 if class_files:
@@ -333,14 +331,19 @@ class JunitTester(AbstractTestRunner):
         jar_list = [os.path.join(self.working_dir, jar) for jar in os.listdir(self.working_dir) if jar.endswith(".jar")]
         self.base_class_path.extend(jar_list)
 
-        junit_command_line = ["java", "-cp", os.pathsep.join(self.base_class_path),
-                              "taurus_junit_listener.CustomRunner"]
+        junit_command_line = ["java", "-cp", os.pathsep.join(self.base_class_path), "taurusjunit.CustomRunner"]
+
+        junit_command_line.extend([self.settings.get("report-file")])
         junit_command_line.extend(jar_list)
-        junit_command_line.extend([self.report_file])
+
+        std_out = open(self.settings.get("stdout"), "wt")
+        self.opened_descriptors.append(std_out)
+        std_err = open(self.settings.get("stderr"), "wt")
+        self.opened_descriptors.append(std_err)
 
         self.process = shell_exec(junit_command_line, cwd=self.artifacts_dir,
-                                  stdout=self.opened_descriptors["std_out"],
-                                  stderr=self.opened_descriptors["std_err"])
+                                  stdout=std_out,
+                                  stderr=std_err)
 
 
 class NoseTester(AbstractTestRunner):
@@ -353,12 +356,8 @@ class NoseTester(AbstractTestRunner):
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.plugin_path = os.path.join(os.path.dirname(__file__), "resources", "nose_plugin.py")
 
-    def prepare(self, std_out, std_err):
+    def prepare(self):
         self.run_checklist()
-        std_out_desc = open(std_out, "wt")
-        std_err_desc = open(std_err, "wt")
-        self.opened_descriptors["std_err"] = std_err_desc
-        self.opened_descriptors["std_out"] = std_out_desc
 
     def run_checklist(self):
         """
@@ -377,11 +376,16 @@ class NoseTester(AbstractTestRunner):
         run python tests
         """
         executable = self.settings.get("interpreter", sys.executable)
-        nose_command_line = [executable, self.plugin_path, self.report_file, self.working_dir]
+        nose_command_line = [executable, self.plugin_path, self.settings.get("report-file"), self.working_dir]
+
+        std_out = open(self.settings.get("stdout"), "wt")
+        self.opened_descriptors.append(std_out)
+        std_err = open(self.settings.get("stderr"), "wt")
+        self.opened_descriptors.append(std_err)
 
         self.process = shell_exec(nose_command_line, cwd=self.artifacts_dir,
-                                  stdout=self.opened_descriptors["std_out"],
-                                  stderr=self.opened_descriptors["std_err"])
+                                  stdout=std_out,
+                                  stderr=std_err)
 
 
 class SeleniumWidget(urwid.Pile):
@@ -411,6 +415,7 @@ class SeleniumWidget(urwid.Pile):
         self.summary_stats.set_text(reader_summary)
         self._invalidate()
 
+
 class SeleniumServerJar(RequiredTool):
     def __init__(self, tool_path, download_link, parent_logger):
         super(SeleniumServerJar, self).__init__("Selenium server", tool_path, download_link)
@@ -432,6 +437,11 @@ class SeleniumServerJar(RequiredTool):
 class JUnitJar(RequiredTool):
     def __init__(self, tool_path, download_link):
         super(JUnitJar, self).__init__("JUnit", tool_path, download_link)
+
+
+class HamcrestJar(RequiredTool):
+    def __init__(self, tool_path, download_link):
+        super(HamcrestJar, self).__init__("HamcrestJar", tool_path, download_link)
 
 
 class JavaC(RequiredTool):
