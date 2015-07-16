@@ -47,6 +47,7 @@ public class CustomListener extends RunListener {
         timestamp = System.currentTimeMillis();
         responseCode = 200;
         String line = String.format(log_pattern, description.getClassName(), description.getMethodName(), total_tests + 1, success_tests, total_tests - success_tests);
+        System.out.println(line);
         log.info(line);
         log.info(String.format("after started %s", description.getDisplayName()));
     }

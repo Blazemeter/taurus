@@ -332,14 +332,24 @@ class JunitTester(AbstractTestRunner):
         self.base_class_path.extend(jar_list)
 
         junit_command_line = ["java", "-cp", os.pathsep.join(self.base_class_path),
-                              "taurus_junit_listener.CustomRunner"]
+                              "main.java.taurusjunit.CustomRunner"]
+
+        junit_command_line.extend([self.settings.get("report-file")])
         junit_command_line.extend(jar_list)
 
-        junit_command_line.extend([self.settings.get("std_out")])
-        junit_command_line.extend([self.settings.get("std_err")])
-        junit_command_line.extend([self.settings.get("report-file")])
 
-        self.process = shell_exec(junit_command_line, cwd=self.artifacts_dir)
+        std_out = open(self.settings.get("std_out"), "wt")
+        self.opened_descriptors.append(std_out)
+        std_err = open(self.settings.get("std_err"), "wt")
+        self.opened_descriptors.append(std_err)
+
+        # junit_command_line.extend([self.settings.get("std_out")])
+        # junit_command_line.extend([self.settings.get("std_err")])
+
+
+        self.process = shell_exec(junit_command_line, cwd=self.artifacts_dir,
+                                  stdout=std_out,
+                                  stderr=std_err)
 
 
 class NoseTester(AbstractTestRunner):
