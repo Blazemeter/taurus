@@ -650,7 +650,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         required_tools.append(JavaVM("", "", self.log))
 
         jmeter_path = self.settings.get("path", "~/.bzt/jmeter-taurus/bin/jmeter")
-        if EXE_SUFFIX and not jmeter_path.lower().endswith(EXE_SUFFIX): jmeter_path += EXE_SUFFIX
+        if EXE_SUFFIX and not jmeter_path.lower().endswith(EXE_SUFFIX):
+            jmeter_path += EXE_SUFFIX
         jmeter_path = os.path.abspath(os.path.expanduser(jmeter_path))
         self.settings["path"] = jmeter_path
         jmeter_version = self.settings.get("version", JMeterExecutor.JMETER_VER)
