@@ -67,8 +67,8 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
         runner_config.get("artifacts-dir", self.engine.artifacts_dir)
         runner_config.get("working-dir", runner_working_dir)
         runner_config.get("report-file", self.kpi_file)
-        runner_config.get("std_out", self.engine.create_artifact("runner_out", ".log"))
-        runner_config.get("std_err", self.engine.create_artifact("runner_err", ".log"))
+        runner_config.get("stdout", self.engine.create_artifact("junit", ".out"))
+        runner_config.get("stderr", self.engine.create_artifact("junit", ".err"))
 
         if Scenario.SCRIPT in scenario:
             if script_is_folder:
@@ -269,8 +269,8 @@ class JunitTester(AbstractTestRunner):
         compile_cl = ["javac", "-cp", os.pathsep.join(self.base_class_path)]
         compile_cl.extend(java_files)
 
-        with open(os.path.join(self.artifacts_dir, "javac_out"), 'ab') as javac_out:
-            with open(os.path.join(self.artifacts_dir, "javac_err"), 'ab') as javac_err:
+        with open(os.path.join(self.artifacts_dir, "javac.out"), 'ab') as javac_out:
+            with open(os.path.join(self.artifacts_dir, "javac.err"), 'ab') as javac_err:
                 self.process = shell_exec(compile_cl, cwd=self.working_dir, stdout=javac_out, stderr=javac_err)
                 ret_code = self.process.poll()
 
@@ -295,8 +295,8 @@ class JunitTester(AbstractTestRunner):
         """
         self.log.debug("Making .jar started")
 
-        with open(os.path.join(self.artifacts_dir, "jar_out"), 'ab') as jar_out:
-            with open(os.path.join(self.artifacts_dir, "jar_err"), 'ab') as jar_err:
+        with open(os.path.join(self.artifacts_dir, "jar.out"), 'ab') as jar_out:
+            with open(os.path.join(self.artifacts_dir, "jar.err"), 'ab') as jar_err:
                 class_files = [java_file for java_file in os.listdir(self.working_dir) if java_file.endswith(".class")]
                 jar_name = self.settings.get("jar-name", "compiled.jar")
                 if class_files:
@@ -331,7 +331,7 @@ class JunitTester(AbstractTestRunner):
         jar_list = [os.path.join(self.working_dir, jar) for jar in os.listdir(self.working_dir) if jar.endswith(".jar")]
         self.base_class_path.extend(jar_list)
 
-        junit_command_line = ["java", "-cp", os.pathsep.join(self.base_class_path),"taurusjunit.CustomRunner"]
+        junit_command_line = ["java", "-cp", os.pathsep.join(self.base_class_path), "taurusjunit.CustomRunner"]
 
         junit_command_line.extend([self.settings.get("report-file")])
         junit_command_line.extend(jar_list)

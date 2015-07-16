@@ -42,7 +42,7 @@ public class CustomListener extends RunListener {
 
 
     public void testFailure(Failure failure) throws java.lang.Exception {
-        log.info(String.format("failed %s", failure.toString()));
+        log.severe(String.format("failed %s", failure.toString()));
 
         Sample sample;
         if (pendingSample == null) {
@@ -59,14 +59,14 @@ public class CustomListener extends RunListener {
     }
 
     public void testAssumptionFailure(Failure failure) {
-        log.info(String.format("failed assert %s", failure.getDescription()));
+        log.warning(String.format("failed assert %s", failure.getDescription()));
         pendingSample.setSuccess(false);
         pendingSample.setMessage(failure.getMessage());
         pendingSample.setResponseCode(400);
     }
 
     public void testIgnored(Description description) throws java.lang.Exception {
-        log.info(String.format("ignored %s", description.getDisplayName()));
+        log.warning(String.format("ignored %s", description.getDisplayName()));
         pendingSample.setSuccess(false);
         pendingSample.setMessage(description.getDisplayName());
         pendingSample.setResponseCode(300);
