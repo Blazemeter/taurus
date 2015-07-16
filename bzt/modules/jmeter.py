@@ -1871,9 +1871,9 @@ class JMeterScenarioBuilder(JMX):
 
         css_jquery_extors = request.config.get("extract-css-jquery", BetterDict())
         for varname in css_jquery_extors:
-            cfg = ensure_is_dict(css_jquery_extors, varname, "refname")
+            cfg = ensure_is_dict(css_jquery_extors, varname, "expression")
             children.append(
-                JMX._get_jquerycss_extractor(varname, cfg.get('expression', ''), cfg.get('attribute'),
+                JMX._get_jquerycss_extractor(varname, cfg['expression'], cfg.get('attribute', ""),
                                              cfg.get('match-no', 0), cfg.get('default', 'NOT_FOUND')))
             children.append(etree.Element("hashTree"))
 

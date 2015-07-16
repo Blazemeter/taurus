@@ -28,6 +28,16 @@
               "default": "NO-JSON"
             }
           },
+          "extract-css-jquery": {
+            "name1": "input[name~=my_input]",
+            "name2": {
+              "refname": "jmeterSessConf",
+              "expression": "input[name=JMeter]",
+              "attribute": "value",
+              "match-no": 1,
+              "default": "NV_JMETER"
+            }
+          },
           "assert": [
             "contains_this_regexp",
             {
