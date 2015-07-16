@@ -337,15 +337,10 @@ class JunitTester(AbstractTestRunner):
         junit_command_line.extend([self.settings.get("report-file")])
         junit_command_line.extend(jar_list)
 
-
         std_out = open(self.settings.get("std_out"), "wt")
         self.opened_descriptors.append(std_out)
         std_err = open(self.settings.get("std_err"), "wt")
         self.opened_descriptors.append(std_err)
-
-        # junit_command_line.extend([self.settings.get("std_out")])
-        # junit_command_line.extend([self.settings.get("std_err")])
-
 
         self.process = shell_exec(junit_command_line, cwd=self.artifacts_dir,
                                   stdout=std_out,
