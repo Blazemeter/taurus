@@ -216,7 +216,7 @@ class JunitTester(AbstractTestRunner):
         self.hamcrest_path = path_lambda("hamcrest-core", "~/.bzt/selenium-taurus/tools/junit/hamcrest-core.jar")
         self.selenium_server_jar_path = path_lambda("selenium-server", "~/.bzt/selenium-taurus/selenium-server.jar")
         self.junit_listener_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "resources",
-                                                "taurus_junit.jar")
+                                                "taurus-junit-1.0.jar")
 
         self.base_class_path = [self.selenium_server_jar_path, self.junit_path, self.junit_listener_path,
                                 self.hamcrest_path]
