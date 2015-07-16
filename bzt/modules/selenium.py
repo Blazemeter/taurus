@@ -145,7 +145,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
 
     def get_widget(self):
         if not self.widget:
-            self.widget = SeleniumWidget(self.get_scenario().get("script"), self.runner.settings.get("std_out"))
+            self.widget = SeleniumWidget(self.get_scenario().get("script"), self.runner.settings.get("stdout"))
         return self.widget
 
 
@@ -182,7 +182,7 @@ class AbstractTestRunner(object):
         if ret_code is not None:
             if ret_code != 0:
                 self.log.debug("Test runner exit code: %s", ret_code)
-                with open(self.settings.get("std_err")) as fds:
+                with open(self.settings.get("stderr")) as fds:
                     std_err = fds.read()
                 self.is_failed = True
                 raise RuntimeError("Test runner %s has failed: %s" % (self.__class__.__name__, std_err.strip()))
@@ -336,9 +336,9 @@ class JunitTester(AbstractTestRunner):
         junit_command_line.extend([self.settings.get("report-file")])
         junit_command_line.extend(jar_list)
 
-        std_out = open(self.settings.get("std_out"), "wt")
+        std_out = open(self.settings.get("stdout"), "wt")
         self.opened_descriptors.append(std_out)
-        std_err = open(self.settings.get("std_err"), "wt")
+        std_err = open(self.settings.get("stderr"), "wt")
         self.opened_descriptors.append(std_err)
 
         self.process = shell_exec(junit_command_line, cwd=self.artifacts_dir,
@@ -378,9 +378,9 @@ class NoseTester(AbstractTestRunner):
         executable = self.settings.get("interpreter", sys.executable)
         nose_command_line = [executable, self.plugin_path, self.settings.get("report-file"), self.working_dir]
 
-        std_out = open(self.settings.get("std_out"), "wt")
+        std_out = open(self.settings.get("stdout"), "wt")
         self.opened_descriptors.append(std_out)
-        std_err = open(self.settings.get("std_err"), "wt")
+        std_err = open(self.settings.get("stderr"), "wt")
         self.opened_descriptors.append(std_err)
 
         self.process = shell_exec(nose_command_line, cwd=self.artifacts_dir,
