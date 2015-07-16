@@ -2,6 +2,7 @@
 
 ## 0.3.5 (next)
   - fix Selenium executor logging
+  - added CSS/JQuery extractor support in scenarios generated from requests option.
 
 ## 0.3.4
   - fixed JMeter path bug on windows
