@@ -109,7 +109,6 @@
         </div>
     </div>
 </div>
-</div>
 <!-- /container -->
 
 <div class="container">
@@ -142,7 +141,8 @@
 <footer>
     <div class="container">
      <span>
-         &copy; 2014-{"Y"|date} <a href="http://blazemeter.com">BlazeMeter Inc.</a>
+         &copy; 2014-{"Y"|date} <a href="http://blazemeter.com"><img src="/img/blazemeter-mini.png"
+                                                                     alt="BlazeMeter Inc."/></a>
      </span>
     <span>
         Licensed under <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache 2.0 License</a>

@@ -25,6 +25,11 @@ footer a:link, footer a:visited, footer a:hover {
     color: #dcaf41
 }
 
+footer img {
+    margin-bottom: 3px;
+    margin-left: 3px;
+}
+
 a:link, a:visited {
     color: #78a2d8;
 }
