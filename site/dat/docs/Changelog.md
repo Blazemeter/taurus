@@ -1,8 +1,12 @@
 # Changelog
 
-## 0.3.5 (next)
+## 0.3.6 (next)
+
+
+## 0.3.5
   - fix Selenium executor logging
   - added CSS/JQuery extractor support in scenarios generated from requests option.
+  - fixed JMeter installation path issue one more time
 
 ## 0.3.4
   - fixed JMeter path bug on windows
