@@ -1,7 +1,8 @@
 # Changelog
 
 ## 0.3.4 (next)
-
+  - fixed JMeter path bug on windows
+  
 ## 0.3.3
   - fixed tools check/installation on windows
   - fixed resource files gathering issue
