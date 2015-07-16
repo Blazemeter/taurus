@@ -218,7 +218,7 @@ scenarios:
 
 ### Extractors
 
-Extractors are the objects that attached to request to take a piece of the response and use it in following requests. The concept is based on JMeter's extractors. Right now, two types of the extractors are supported: by regular expression and by JSONPath expression. To specify extractors in shorthand form, use following config:
+Extractors are the objects that attached to request to take a piece of the response and use it in following requests. The concept is based on JMeter's extractors. Right now, three types of the extractors are supported: by regular expression, by JSONPath expression and by CSS/JQuery selectors. To specify extractors in shorthand form, use following config:
 
 ```yaml
 ---
