@@ -103,14 +103,12 @@
                             class="fa fa-github fa-2x"></i><span> fork me on </span><b>GitHub</b></a></div>
         </div>
 
-        <div class="row site-header">
-            <div class="col-md-3 logo"><img src="/img/codename-taurus.png" alt="Codename: Taurus"/></div>
-            <div class="col-md-9">
-                <span class="purpose">Automation-friendly framework for Continuous Testing</span>
-                <span class="motto"><i><b>T</b>est <b>au</b>tomation <b>ru</b>nning <b>s</b>moothly!</i></span>
-            </div>
+        <div class="site-header">
+            <span class="logo"><img src="/img/codename-taurus.png" alt="Codename: Taurus"/></span>
+            <span class="purpose">Automation-friendly framework for Continuous Testing</span>
         </div>
     </div>
+</div>
 </div>
 <!-- /container -->
 
@@ -142,12 +140,15 @@
 
 
 <footer>
+    <div class="container">
      <span>
          &copy; 2014-{"Y"|date} <a href="http://blazemeter.com">BlazeMeter Inc.</a>
      </span>
     <span>
         Licensed under <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache 2.0 License</a>
     </span>
+    </div>
+
     <!-- Latest compiled and minified JavaScript -->
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
 

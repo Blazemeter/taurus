@@ -30,7 +30,7 @@ a:link, a:visited {
 }
 
 nav {
-    margin: 1em 0;
+    margin: 1em 0 0.5em;
 }
 
 .nav-pills > li.active > a, .nav-pills > li.active > a:focus, .nav-pills > li.active > a:hover {
@@ -40,6 +40,10 @@ nav {
 .site-header {
     padding: 0 0 1em;
 }
+.site-header div {
+    height: 60px;
+    vertical-align: middle;
+}
 
 .site-header div > * {
     vertical-align: middle;
@@ -47,13 +51,12 @@ nav {
 
 .site-header .purpose {
     text-align: left;
-    float: left;
+    margin-left: 0.5em;
 }
 
 .site-header .motto {
     font-size: 0.9em;
-    text-align: right;
-    float: right;
+    display: none;
 }
 
 hr {
@@ -154,7 +157,7 @@ table.wiki pre.yaml .sy1 {
 }
 
 table.wiki pre.yaml .co1 {
-    color: silver;
+    color: #999;
 }
 
 table.wiki a.anchorLink {
