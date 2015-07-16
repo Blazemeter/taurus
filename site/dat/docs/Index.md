@@ -1,5 +1,7 @@
 # Taurus Tool Documentation
 
+----
+
 ## User Manual
  1. [Installation and Upgrade](Installation.md)
  1. [Command-Line Tool](CommandLine.md)
