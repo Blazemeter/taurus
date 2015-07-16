@@ -1,7 +1,7 @@
 # Changelog
 
 ## 0.3.5 (next)
-
+  - fix Selenium executor logging
 
 ## 0.3.4
   - fixed JMeter path bug on windows
