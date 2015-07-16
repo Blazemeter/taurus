@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 {assign var=i value='!i'}{assign var=a value='!a'}{assign var=p value='!p'}{assign var=c value='!c'}
-{PWE->getStaticHref assign="IMG_HREF"}
 {URL->getFullCount assign=urlFullCount}
 <html lang="en">
 <head>
@@ -41,9 +40,9 @@
             {include file='../img/taurus.css'}
         </style>
     {else}
-        <link rel="stylesheet" href="{$IMG_HREF}/taurus.css"/>
+        <link rel="stylesheet" href="/img/taurus.css"/>
     {/if}
-    <link rel="stylesheet" href="{$IMG_HREF}/font-awesome-4.3.0/css/font-awesome.min.css"/>
+    <link rel="stylesheet" href="/img/font-awesome-4.3.0/css/font-awesome.min.css"/>
 
 </head>
 
@@ -104,7 +103,13 @@
                             class="fa fa-github fa-2x"></i><span> fork me on </span><b>GitHub</b></a></div>
         </div>
 
-
+        <div class="row site-header">
+            <div class="col-md-3 logo"><img src="/img/codename-taurus.png" alt="Codename: Taurus"/></div>
+            <div class="col-md-9">
+                <span class="purpose">Automation-friendly framework for Continuous Testing</span>
+                <span class="motto"><i><b>T</b>est <b>au</b>tomation <b>ru</b>nning <b>s</b>moothly!</i></span>
+            </div>
+        </div>
     </div>
 </div>
 <!-- /container -->

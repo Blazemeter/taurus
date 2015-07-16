@@ -29,8 +29,31 @@ a:link, a:visited {
     color: #78a2d8;
 }
 
+nav {
+    margin: 1em 0;
+}
+
 .nav-pills > li.active > a, .nav-pills > li.active > a:focus, .nav-pills > li.active > a:hover {
     background-color: #78a2d8;
+}
+
+.site-header {
+    padding: 0 0 1em;
+}
+
+.site-header div > * {
+    vertical-align: middle;
+}
+
+.site-header .purpose {
+    text-align: left;
+    float: left;
+}
+
+.site-header .motto {
+    font-size: 0.9em;
+    text-align: right;
+    float: right;
 }
 
 hr {
