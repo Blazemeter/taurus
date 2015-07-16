@@ -1,6 +1,9 @@
 # Changelog
 
-## 0.3.4 (next)
+## 0.3.5 (next)
+
+
+## 0.3.4
   - fixed JMeter path bug on windows
   
 ## 0.3.3
