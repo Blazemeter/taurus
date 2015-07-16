@@ -632,3 +632,26 @@ class TestJMeterExecutor(BZTestCase):
         with open(target_jmx) as fds:
             jmx = fds.read()
             self.assertIn('<stringProp name="filename">${root}/csvfile.csv</stringProp>', jmx)
+
+    def test_css_jquery_extractor(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = json.loads(open("tests/json/get-post.json").read())
+        obj.execution = obj.engine.config['execution']
+        obj.prepare()
+        target_jmx = os.path.join(obj.engine.artifacts_dir, "requests.jmx")
+        modified_xml_tree = etree.fromstring(open(target_jmx, "rb").read())
+        jq_css_extractors = modified_xml_tree.findall(".//HtmlExtractor")
+        self.assertEqual(2, len(jq_css_extractors))
+        simplified_extractor = modified_xml_tree.find(".//HtmlExtractor[@testname='Get name1']")
+        self.assertEqual(simplified_extractor.find(".//stringProp[@name='HtmlExtractor.refname']").text, "name1")
+        self.assertEqual(simplified_extractor.find(".//stringProp[@name='HtmlExtractor.expr']").text, "input[name~=my_input]")
+        self.assertEqual(simplified_extractor.find(".//stringProp[@name='HtmlExtractor.attribute']").text, None)
+        self.assertEqual(simplified_extractor.find(".//stringProp[@name='HtmlExtractor.match_number']").text, "0")
+        self.assertEqual(simplified_extractor.find(".//stringProp[@name='HtmlExtractor.default']").text, "NOT_FOUND")
+        full_form_extractor = modified_xml_tree.find(".//HtmlExtractor[@testname='Get name2']")
+        self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.refname']").text, "name2")
+        self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.expr']").text, "input[name=JMeter]")
+        self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.attribute']").text, "value")
+        self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.match_number']").text, "1")
+        self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.default']").text, "NV_JMETER")

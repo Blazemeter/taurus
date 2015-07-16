@@ -218,7 +218,7 @@ scenarios:
 
 ### Extractors
 
-Extractors are the objects that attached to request to take a piece of the response and use it in following requests. The concept is based on JMeter's extractors. Right now, two types of the extractors are supported: by regular expression and by JSONPath expression. To specify extractors in shorthand form, use following config:
+Extractors are the objects that attached to request to take a piece of the response and use it in following requests. The concept is based on JMeter's extractors. Right now, three types of the extractors are supported: by regular expression, by JSONPath expression and by CSS/JQuery selectors. To specify extractors in shorthand form, use following config:
 
 ```yaml
 ---
@@ -231,6 +231,8 @@ scenarios:
         extract-jsonpath: # dictionary under it has form <var name>: <JSONPath expression>
           varname: $.jsonpath[0].expression
       - http://blazedemo.com/${varname}/${page_title}  # that's how we use those variables
+        extract-css-jquery: # dictionary under it has form <var name>: <CSS/JQuery selector>
+          extractor1: input[name~=my_input]
 ```
 
 The full form for extractors is:
@@ -251,7 +253,13 @@ scenarios:
           varname:
             jsonpath: $.jsonpath[0]  # jsonpath expression
             default: NOT_FOUND  # default value to use when jsonpath not found
-      - http://blazedemo.com/${varname}/${page_title}  
+      - http://blazedemo.com/${varname}/${page_title}
+        extract-css-jquery:
+          extractor2:
+            expression: input[name=JMeter]
+            attribute: value
+            match-no: 1
+            default: NOT_FOUND
 ```
 
 ### Assertions
