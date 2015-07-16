@@ -1,0 +1,6 @@
+---
+scenarios:
+  get-requests:  
+    requests:
+      - http://localhost/1
+      - http://localhost/2

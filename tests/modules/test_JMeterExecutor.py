@@ -632,3 +632,12 @@ class TestJMeterExecutor(BZTestCase):
         with open(target_jmx) as fds:
             jmx = fds.read()
             self.assertIn('<stringProp name="filename">${root}/csvfile.csv</stringProp>', jmx)
+
+    def test_css_jquery_extractor(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = BetterDict()
+        obj.engine.config.merge(yaml.load(open("tests/yaml/css_jquery_extractor.yml").read()))
+        obj.settings.merge(obj.engine.config.get("modules").get("jmeter"))
+        # obj.execution = obj.engine.config['execution']
+        obj.prepare()

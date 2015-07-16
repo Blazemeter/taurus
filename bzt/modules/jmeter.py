@@ -1869,6 +1869,14 @@ class JMeterScenarioBuilder(JMX):
             children.append(JMX._get_json_extractor(varname, cfg['jsonpath'], cfg.get('default', 'NOT_FOUND')))
             children.append(etree.Element("hashTree"))
 
+        css_jquery_extors = request.config.get("extract-css-jquery", BetterDict())
+        for varname in css_jquery_extors:
+            cfg = ensure_is_dict(css_jquery_extors, varname, "refname")
+            children.append(
+                JMX._get_jquerycss_extractor(varname, cfg.get('expression', ''), cfg.get('attribute'),
+                                             cfg.get('match-no', 0), cfg.get('default', 'NOT_FOUND')))
+            children.append(etree.Element("hashTree"))
+
     def __add_assertions(self, children, request):
         assertions = request.config.get("assert", [])
         for idx, assertion in enumerate(assertions):
@@ -1985,7 +1993,8 @@ class JMeter(RequiredTool):
         self.log.debug("Trying jmeter: %s", self.tool_path)
         try:
             jmlog = tempfile.NamedTemporaryFile(prefix="jmeter", suffix="log", delete=False)
-            jm_proc = shell_exec([self.tool_path, '-j', jmlog.name, '--version'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            jm_proc = shell_exec([self.tool_path, '-j', jmlog.name, '--version'], stdout=subprocess.PIPE,
+                                 stderr=subprocess.STDOUT)
             jmout = jm_proc.communicate()
             self.log.debug("JMeter check: %s", jmout)
             jmlog.close()
