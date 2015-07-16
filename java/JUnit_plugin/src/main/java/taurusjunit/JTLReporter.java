@@ -3,8 +3,6 @@ package taurusjunit;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.logging.ConsoleHandler;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class JTLReporter {
@@ -13,10 +11,6 @@ public class JTLReporter {
     private static final String jtl_record_pattern = "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n";
     private FileWriter out_stream;
     private static final Logger log = Logger.getLogger(CustomListener.class.getName());
-
-    static {
-        log.setLevel(Level.FINER);
-    }
 
     public JTLReporter(String file_name) {
         try {
@@ -28,8 +22,10 @@ public class JTLReporter {
         log.info("created, header");
     }
 
-    public void report(long timestamp, long elapsed, String label, int responseCode, String responseMessage, String threadName, String success) throws Exception {
-        String fmt_msg = String.format(jtl_record_pattern, timestamp, elapsed, label, responseCode, responseMessage, threadName, success, 1, 1, 0, 0);
+    public void report(Sample sample) throws Exception {
+        String fmt_msg = String.format(jtl_record_pattern, sample.getTimestamp(), sample.getElapsed(),
+                sample.getLabel(), sample.getResponseCode(), sample.getResponseMessage(), sample.getThreadName(),
+                sample.isSuccessful() ? "true" : "false", 1, 1, 0, 0);
         out_stream.write(fmt_msg);
         out_stream.flush();
     }
