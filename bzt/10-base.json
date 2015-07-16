@@ -36,6 +36,7 @@
       "selenium-tools": {
        "junit": {
          "path": "~/.bzt/selenium-taurus/tools/junit/junit.jar",
+         "hamcrest-core": "~/.bzt/selenium-taurus/tools/junit/hamcrest-core.jar",
          "selenium-server": "~/.bzt/selenium-taurus/selenium-server.jar",
          "jar-name": "compiled.jar",
          "working-dir": "classes"
