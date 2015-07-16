@@ -331,8 +331,7 @@ class JunitTester(AbstractTestRunner):
         jar_list = [os.path.join(self.working_dir, jar) for jar in os.listdir(self.working_dir) if jar.endswith(".jar")]
         self.base_class_path.extend(jar_list)
 
-        junit_command_line = ["java", "-cp", os.pathsep.join(self.base_class_path),
-                              "main.java.taurusjunit.CustomRunner"]
+        junit_command_line = ["java", "-cp", os.pathsep.join(self.base_class_path),"taurusjunit.CustomRunner"]
 
         junit_command_line.extend([self.settings.get("report-file")])
         junit_command_line.extend(jar_list)
