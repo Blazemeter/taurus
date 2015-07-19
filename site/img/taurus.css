@@ -40,6 +40,7 @@ nav {
 
 .nav-pills > li.active > a, .nav-pills > li.active > a:focus, .nav-pills > li.active > a:hover {
     background-color: #78a2d8;
+    font-size: 1.1em;
 }
 
 .site-header {
@@ -66,7 +67,7 @@ nav {
 
 hr {
     border-top-color: #dcb045;
-    margin-right: 5em;
+    margin-right: -1em;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -106,7 +107,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .topmost .position a.nohl {
-    color: black;
+    color: #565866;
     text-decoration: underline;
 }
 
@@ -134,6 +135,10 @@ table.wiki pre {
     padding: 1em;
     overflow: hidden;
     font-size: 0.8em;
+}
+
+table.wiki ol, table.wiki ul {
+    line-height: 1.7;
 }
 
 table.wiki .sidebar {

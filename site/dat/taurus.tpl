@@ -89,10 +89,10 @@
                             {foreach $bcrumbs as $item}
                                 {if $item.selected}
                                     &gt;
-                                    <b><a class="hl" href="{$item.$a.link}">{$item.$a.title}</a></b>
+                                    <a class="hl" href="{$item.$a.link}">{$item.$a.title}</a>
                                 {else}
                                     &gt;
-                                    <b><a href="{$item.$a.link}">{$item.$a.title}</a></b>
+                                    <a href="{$item.$a.link}">{$item.$a.title}</a>
                                 {/if}
                             {/foreach}
                         {/if}
