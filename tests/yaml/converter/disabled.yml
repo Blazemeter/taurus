@@ -1,0 +1,15 @@
+execution:
+  scenario: ThreadGroup
+scenarios:
+  ThreadGroup:
+    requests:
+    - url: http://10.0.0.1/
+      body: one-two
+      label: http://10.0.0.1/
+      method: GET
+    - url: http://127.0.0.1/
+      body:
+        param1: value1
+        param2: value2
+      label: http://127.0.0.1/
+      method: GET
