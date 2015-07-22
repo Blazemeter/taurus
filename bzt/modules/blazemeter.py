@@ -64,6 +64,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         if proxy_settings:
             if proxy_settings.get("address"):
                 proxy_url = parse.urlsplit(proxy_settings.get("address"))
+                self.log.debug("Using proxy settings: %s", proxy_url)
                 username = proxy_settings.get("username")
                 pwd = proxy_settings.get("password")
                 if username and pwd:
