@@ -165,7 +165,7 @@ class KPISet(BetterDict):
             self[self.AVG_LATENCY] = self.sum_lt / self[self.SAMPLE_COUNT]
             self[self.AVG_RESP_TIME] = self.sum_rt / self[self.SAMPLE_COUNT]
 
-        if self._concurrencies:
+        if len(self._concurrencies):
             self[self.CONCURRENCY] = sum(self._concurrencies.values())
 
         perc, stdev = self.__perc_and_stdev(self[self.RESP_TIMES], self.perc_levels, self[self.AVG_RESP_TIME])
@@ -194,7 +194,8 @@ class KPISet(BetterDict):
         self[self.SUCCESSES] += src[self.SUCCESSES]
         self[self.FAILURES] += src[self.FAILURES]
         # NOTE: should it be average? mind the timestamp gaps
-        self._concurrencies[sid] = src[self.CONCURRENCY]
+        if src[self.CONCURRENCY]:
+            self._concurrencies[sid] = src[self.CONCURRENCY]
 
         self[self.RESP_TIMES].update(src[self.RESP_TIMES])
         self[self.RESP_CODES].update(src[self.RESP_CODES])
