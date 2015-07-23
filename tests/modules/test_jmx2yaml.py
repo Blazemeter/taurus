@@ -5,6 +5,7 @@ from io import StringIO
 import yaml
 import os
 
+
 class logger_mock(object):
     def __init__(self):
         self.info_buff = StringIO()
@@ -34,7 +35,6 @@ class logger_mock(object):
 
 
 class TestConverter(BZTestCase):
-
     def tearDown(self):
         if os.path.exists("build/tmp.yml"):
             os.remove("build/tmp.yml")
@@ -115,8 +115,8 @@ class TestConverter(BZTestCase):
         obj.log.debug(obj.scenario)
         obj.dump_yaml("build/tmp.yml")
         yml = yaml.load(open("build/tmp.yml").read())
-        tg_one = yml.get("scenarios").get("Thread Group one")
-        tg_two = yml.get("scenarios").get("Thread Group two")
+        tg_one = yml.get("scenarios").get('Thread Group one')
+        tg_two = yml.get("scenarios").get('Thread Group two')
         cache_first_tg = tg_one.get("store-cache")
         cache_second_tg = tg_two.get("store-cache")
         cookie_first_tg = tg_one.get("store-cookie")
@@ -136,8 +136,8 @@ class TestConverter(BZTestCase):
         obj.log.debug(obj.scenario)
         obj.dump_yaml("build/tmp.yml")
         yml = yaml.load(open("build/tmp.yml").read())
-        tg_one = yml.get("scenarios").get("Thread Group one")
-        tg_two = yml.get("scenarios").get("Thread Group two")
+        tg_one = yml.get("scenarios").get('Thread Group one')
+        tg_two = yml.get("scenarios").get('Thread Group two')
         request_tg_two = tg_two.get("requests")[0]
         tg_one_timer = tg_one.get("think-time")
         tg_two_timer = tg_two.get("think-time")
@@ -153,8 +153,8 @@ class TestConverter(BZTestCase):
         obj.log.debug(obj.scenario)
         obj.dump_yaml("build/tmp.yml")
         yml = yaml.load(open("build/tmp.yml").read())
-        tg_one = yml.get("scenarios").get("Thread Group one")
-        tg_two = yml.get("scenarios").get("Thread Group two")
+        tg_one = yml.get("scenarios").get('Thread Group one')
+        tg_two = yml.get("scenarios").get('Thread Group two')
         self.assertEqual(tg_one.get("default-address"), "https://127.0.0.2/")
         self.assertEqual(tg_two.get("default-address"), "http://127.0.0.3:2582/resources/")
         self.assertEqual(tg_one.get("timeout"), "500ms")
@@ -163,6 +163,44 @@ class TestConverter(BZTestCase):
         self.assertEqual(tg_two.get("retrieve-resources"), True)
         self.assertEqual(tg_one.get("concurrent-pool-size"), 5)
         self.assertEqual(tg_two.get("concurrent-pool-size"), 10)
+
+    def test_copy_global_request_assertions(self):
+        obj = Converter()
+        obj.convert("tests/yaml/converter/assertions.jmx")
+        obj.log.debug(obj.scenario)
+        obj.dump_yaml("build/tmp.yml")
+        yml = yaml.load(open("build/tmp.yml").read())
+        tg_one = yml.get("scenarios").get("tg1")
+        tg_two = yml.get("scenarios").get("tg2")
+        tg_one_assertions = tg_one.get("assert")
+        self.assertEqual(len(tg_one_assertions), 2)  # global assertion + tg assertion
+        tg_two_assertions = tg_two.get("assert")
+        self.assertEqual(len(tg_two_assertions), 1) # global only assertion
+        tg_one_req_one_assertion = tg_one.get("requests")[0].get("assert")[0]
+        expected = {'subject':'headers', 'contains':["tg1httpreq1", "tg1httpreq12"], "not":False, 'regexp':True}
+        self.assertEqual(tg_one_req_one_assertion, expected)
+        tg_one_assertion = tg_one.get("assert")[0]
+        expected = {'subject':'body', 'contains':["tg1body_text_not_contains"], "not":True, 'regexp':True}
+        self.assertEqual(tg_one_assertion, expected)
+
+    def test_copy_global_json_assertions(self):
+        obj = Converter()
+        obj.convert("tests/yaml/converter/assertions.jmx")
+        obj.log.debug(obj.scenario)
+        obj.dump_yaml("build/tmp.yml")
+        yml = yaml.load(open("build/tmp.yml").read())
+        tg_one = yml.get("scenarios").get("tg1")
+        tg_two = yml.get("scenarios").get("tg2")
+        tg_one_assertions = tg_one.get("assert-jsonpath")
+        self.assertEqual(len(tg_one_assertions), 1)  # global assertion + tg assertion
+        tg_two_assertions = tg_two.get("assert-jsonpath")
+        self.assertEqual(len(tg_two_assertions), 1) # global only assertion
+        tg_one_req_one_jp = tg_one.get("requests")[0].get("assert-jsonpath", [])  # no assertions
+        self.assertEqual(len(tg_one_req_one_jp), 0)
+        tg_two_req_one_jp = tg_two.get("requests")[0].get("assert-jsonpath", [])
+        self.assertEqual(len(tg_two_req_one_jp), 1)
+        expected = {"expect-null": False, "expected-value": None, "invert": False, "jsonpath": '$(":input")', "validate": False}
+        self.assertEqual(expected, tg_two_req_one_jp[0])
 
     def test_two_tg(self):
         obj = Converter()

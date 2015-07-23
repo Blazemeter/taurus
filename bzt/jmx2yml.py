@@ -7,6 +7,7 @@ import traceback
 import yaml
 from optparse import OptionParser, BadOptionError, Option
 from copy import deepcopy
+from collections import namedtuple
 # from collections import OrderedDict
 
 KNOWN_TAGS = ["hashTree", "jmeterTestPlan", "TestPlan", "ResultCollector",
@@ -91,21 +92,43 @@ class Converter(object):
 
     def get_concurrency(self, element):
         """
-        concurrency option in tg
+        concurrency option in tg execution settings
         :return:
         """
-        concurrency = self.get_string_prop(element, 'ThreadGroup.num_threads')
-        return 1 if not concurrency else int(concurrency)
+        concurrency = self.get_option_string_with_default(element, 'ThreadGroup.num_threads', "concurrency", 1)
+        return concurrency
 
-    def request_get_url(self, http_sampler_element):
+    def get_ramp_up(self, element):
         """
-        Converts to dict
+        ramp_up option in tg settings
+        :param element:
         :return:
         """
-        sampler_dict = self.convert_etree_to_dict(http_sampler_element,
-                                                  {"protocol": "HTTPSampler.protocol", "domain": "HTTPSampler.domain"})
-        url = "http" + "://" + sampler_dict["domain"] + "/"
-        return url
+        ramp_up = self.get_option_string_with_default(element, 'ThreadGroup.ramp_time', "ramp-up", 1)
+        return ramp_up
+
+    def get_iterations(self, element):
+        """
+        hold-for option in tg execution settings
+        :param element:
+        :return:
+        """
+        controller_element = element.find('.//elementProp')
+        iterations = self.get_option_string_with_default(controller_element, 'LoopController.loops', "iterations", 1)
+        return iterations
+
+    def get_option_string_with_default(self, element, prop_name, opt_name, default):
+        """
+
+        :param element:
+        :return: dict
+        """
+        result = {}
+        if element is not None:
+            prop_vaulue = self.get_string_prop(element, prop_name)
+            if prop_vaulue and int(prop_vaulue) != default:
+                result[opt_name] = int(prop_vaulue)
+        return result
 
     def get_request_body(self, http_sampler_element):
         """
@@ -228,25 +251,71 @@ class Converter(object):
             http_defaults = [element for element in hashtree.iterchildren() if element.tag == "ConfigTestElement"]
             if http_defaults:
                 http_defaults = http_defaults[0]
+                url_info = self.extract_url_info(http_defaults)
+                if url_info:
+                    default_address = self.make_url(url_info)
+                    if default_address:
+                        request_defaults["default-address"] = default_address
+                if url_info.timeout: request_defaults["timeout"] = url_info.timeout + "ms"
+                if url_info.retrieve_resources is not None: request_defaults[
+                    "retrieve-resources"] = url_info.retrieve_resources
+                # TODO: Chick if retrieve_resources enabled then set concurrency
+                if url_info.retrieve_concurrency: request_defaults["concurrent-pool-size"] = int(
+                    url_info.retrieve_concurrency)
+        return request_defaults
 
-                domain = self.get_string_prop(http_defaults, 'HTTPSampler.domain')
-                port = self.get_string_prop(http_defaults, 'HTTPSampler.port')
-                timeout = self.get_string_prop(http_defaults, 'HTTPSampler.connect_timeout')
-                protocol = self.get_string_prop(http_defaults, 'HTTPSampler.protocol')
-                path = self.get_string_prop(http_defaults, 'HTTPSampler.path')
-                retrieve_resources = self.get_bool_prop(http_defaults, 'HTTPSampler.image_parser')
-                retrieve_concurrency = self.get_string_prop(http_defaults, 'HTTPSampler.concurrentPool')
+    def make_url(self, url_info):
+        """
 
-                if not path: path = "/"
-                port = "" if not port or port == "80" else ":" + port
-                if domain and protocol:
-                    request_defaults["default-address"] = protocol + "://" + domain + port + path
-                if timeout: request_defaults["timeout"] = timeout + "ms"
-                if retrieve_resources is not None: request_defaults["retrieve-resources"] = retrieve_resources
-                if retrieve_concurrency: request_defaults["concurrent-pool-size"] = int(retrieve_concurrency)
+        :return: string
+        """
+        path = "/" if not url_info.path else url_info.path
+        port = "" if not url_info.port or url_info.port == "80" else ":" + url_info.port
+        protocol = "http" if not url_info.protocol else url_info.protocol
+        if url_info.domain:
+            return protocol + "://" + url_info.domain + port + path
+        return ""
 
-                return request_defaults
-        return {}
+    def extract_url_info(self, element):
+        """
+        extracts domain, port, etc from element
+        :return:
+        """
+        http_sampler_info = namedtuple("http_sampler_info",
+                                       ["domain", "port", "timeout", "protocol", "path", "method", "retrieve_resources",
+                                        "retrieve_concurrency"])
+        if element is not None:
+            domain = self.get_string_prop(element, 'HTTPSampler.domain')
+            port = self.get_string_prop(element, 'HTTPSampler.port')
+            timeout = self.get_string_prop(element, 'HTTPSampler.connect_timeout')
+            protocol = self.get_string_prop(element, 'HTTPSampler.protocol')
+            path = self.get_string_prop(element, 'HTTPSampler.path')
+            retrieve_resources = self.get_bool_prop(element, 'HTTPSampler.image_parser')
+            retrieve_concurrency = self.get_string_prop(element, 'HTTPSampler.concurrentPool')
+            method = self.get_string_prop(element, 'HTTPSampler.method')
+            url_info = http_sampler_info(domain, port, timeout, protocol, path, method, retrieve_resources,
+                                         retrieve_concurrency)
+            return url_info
+        self.log.warning("Url info failed, element is None.")
+        return None
+
+    def get_request_base(self, element):
+        """
+        Converts to dict
+        :return:
+        """
+        base_settings = {}
+        url_info = self.extract_url_info(element)
+        if url_info is not None:
+            full_url = self.make_url(url_info)
+            if full_url:
+                base_settings["url"] = full_url
+            if url_info.method:
+                base_settings["method"] = url_info.method
+        if element.get("testname"):
+            base_settings["label"] = element.get("testname")
+
+        return base_settings
 
     def get_data_sources(self, element):
         """
@@ -254,17 +323,11 @@ class Converter(object):
         :param element:
         :return: list of dicts
         """
-        self.log.debug("element %s", element.get("testname"))
         data_sources = []
         hashtree = element.getnext()
-
-        self.log.debug("children of element %s: %s", element.get("testname"), list(element.iterchildren()))
-        self.log.debug("children of ht element %s: %s", hashtree.get("testname"), list(hashtree.iterchildren()))
-
         if hashtree is not None and hashtree.tag == "hashTree":
             data_sources_elements = [element for element in hashtree.iterchildren() if
                                      element.tag == "CSVDataSet"]  # hashtree.findall(".//CSVDataSet")
-            self.log.debug("datasource elements %s", data_sources_elements)
             # data_sources_elements = [element for element in hashtree.findall(".//CSVDataSet") if self.get_depth(element) == depth]
             # data_sources_elements = hashtree.findall(".//CSVDataSet")
             for data_source in data_sources_elements:
@@ -408,11 +471,10 @@ class Converter(object):
 
         json_path_extractors = {}
 
-        request_hashtree = http_request_element.getnext()
-        if request_hashtree is not None and request_hashtree.tag == "hashTree":
-            extractor_elements = request_hashtree.findall(
-                ".//com.atlantbh.jmeter.plugins.jsonutils.jsonpathextractor.JSONPathExtractor")
-
+        hashtree = http_request_element.getnext()
+        if hashtree is not None and hashtree.tag == "hashTree":
+            property_pattern = ".//com.atlantbh.jmeter.plugins.jsonutils.jsonpathextractor.JSONPathExtractor"
+            extractor_elements = [element for element in hashtree.iterchildren() if element.tag == property_pattern]
             for extractor_element in extractor_elements:
                 json_path_extractor = {}
 
@@ -473,10 +535,11 @@ class Converter(object):
         subjects = {"Assertion.response_data": "body", "Assertion.response_headers": "headers",
                     "Assertion.response_code": "http-code"}
         test_types = {'6': (True, True), '2': (True, False), '20': (False, True),
-                      '16': (False, False)}  # (is_regexp, is_inverted) TODO: check logic
-        request_hashtree = http_request_element.getnext()
-        if request_hashtree is not None and request_hashtree.tag == "hashTree":
-            response_assertion_elements = request_hashtree.findall(".//ResponseAssertion")
+                      '16': (False, False)}  # (is_regexp, is_inverted)
+        hashtree = http_request_element.getnext()
+        if hashtree is not None and hashtree.tag == "hashTree":
+            response_assertion_elements = [element for element in hashtree.iterchildren() if
+                                     element.tag == "ResponseAssertion"]
 
             for response_assertion_element in response_assertion_elements:
                 response_assertion = {}
@@ -501,7 +564,7 @@ class Converter(object):
                 test_field_prop = self.get_string_prop(response_assertion_element, 'Assertion.test_field')
 
                 if test_field_prop:
-                    test_subject = subjects.get(test_field_prop)
+                    test_subject = subjects.get(test_field_prop, "body")
                 else:
                     self.log.warning("No test subject provided in %s, skipping", response_assertion_element.tag)
                     continue
@@ -535,10 +598,10 @@ class Converter(object):
         """
         json_path_assertions = []
 
-        request_hashtree = http_request_element.getnext()
-        if request_hashtree is not None and request_hashtree.tag == "hashTree":
-            json_path_assertion_elements = request_hashtree.findall(
-                ".//com.atlantbh.jmeter.plugins.jsonutils.jsonpathassertion.JSONPathAssertion")
+        hashtree = http_request_element.getnext()
+        if hashtree is not None and hashtree.tag == "hashTree":
+            pattern = "com.atlantbh.jmeter.plugins.jsonutils.jsonpathassertion.JSONPathAssertion"
+            json_path_assertion_elements = [element for element in hashtree.iterchildren() if element.tag == pattern]
 
             for json_path_assertion_element in json_path_assertion_elements:
                 json_path_assertion = {}
@@ -582,79 +645,94 @@ class Converter(object):
         Get all thread groups from jmx, convert to dict.
         :return: dict
         """
-        default_tg_settings = {"store-cookie": False, "store-cache": False, "use-dns-cache-mgr": False}
         # testplan_dict = {"scenarios": {}, "execution": {"scenario": []}}
         testplan_dict = {"scenarios": {}, "execution": []}
-        summ_concurrency = 0
-        # self.update_execution_settings(testplan_dict)
 
         self.log.debug("Processing thread groups...")
-        tg_elements = self.tree.findall(".//ThreadGroup")
+        tg_etree_elements = self.tree.findall(".//ThreadGroup")
         self.get_global_objects()
-        global_tg_settings = self.get_global_tg_settings()
-        if tg_elements:
-            self.log.debug("Total thread groups: %d", len(tg_elements))
 
-            for tg_element in tg_elements:
+        if tg_etree_elements:
+            self.log.debug("Total thread groups: %d", len(tg_etree_elements))
 
-                ht_element = tg_element.getnext()
-                self.log.debug("children of tg element %s: %s", tg_element.get("testname"),
-                               list(tg_element.iterdescendants()))
-                self.log.debug("children of ht element %s: %s", ht_element.get("testname"),
-                               list(ht_element.iterdescendants()))
-                urls = []
-                tg_requests = {"requests": urls}
-                tg_dict = {tg_element.get("testname"): tg_requests}
-                summ_concurrency += self.get_concurrency(tg_element)
-                data_srcs = self.get_data_sources(tg_element)
-                headers = self.get_headers(tg_element)
-                store_cache = self.get_store_cache(tg_element)
-                store_cookie = self.get_store_cookie(tg_element)
-                dns_mgr = self.get_dns_mgr(tg_element)
-                c_timer = self.get_constant_timer(tg_element)
-                request_defaults = self.get_http_request_defaults(tg_element)
-                self.log.debug("sources, %s", data_srcs)
-                tg_requests.update(default_tg_settings)
-                tg_requests.update(data_srcs)
-                tg_requests.update(headers)
-                tg_requests.update(store_cache)
-                tg_requests.update(store_cookie)
-                tg_requests.update(dns_mgr)
+            for tg_etree_element in tg_etree_elements:
 
-                self.apply_global_tg_settings(global_tg_settings, tg_requests)
-                tg_requests.update(request_defaults)
-                tg_requests.update(c_timer)
+                tg_scenario_settings = self.get_tg_scenario_settings(tg_etree_element)
 
+                tg_name = tg_etree_element.get("testname")
+                if not tg_name: tg_name = str(tg_etree_element.__hash__())
+                tg_execution_settings = {"scenario": tg_name}
+                ht_element = tg_etree_element.getnext()
                 if ht_element.tag == "hashTree":
-                    # tg_requests.update(default_tg_settings)
-
                     request_elements = ht_element.findall(".//HTTPSamplerProxy")
                     self.log.debug("Total http samplers in tg groups: %d", len(request_elements))
+
                     for request_element in request_elements:
-                        self.log.debug("Processing HTTPSamplerProxy %s in tg %s", tg_element.get("testname"),
-                                       request_element.get("testname"))
+                        request_config = self.get_request_settings(request_element)
+                        tg_scenario_settings["requests"].append(request_config)
 
-                        request_config = {}
-                        request_config.update({"url": self.request_get_url(request_element)})
-                        request_config.update(self.get_request(request_element))
-                        request_config.update({"label": request_config["url"]})
-                        request_config.update(self.get_request_body(request_element))
-
-                        request_config.update(self.get_headers(request_element))
-                        request_config.update(self.get_constant_timer(request_element))
-                        request_config.update(self.get_request_timeout(request_element))
-                        request_config.update(self.get_extractors(request_element))
-                        request_config.update(self.get_assertions(request_element))
-
-                        urls.append(request_config)
-
-                testplan_dict["scenarios"].update(tg_dict)
-                testplan_dict["execution"].append({"scenario": tg_element.get("testname")})
+                tg_scenario_dict = {tg_name: tg_scenario_settings}
+                td_executions_dict = {"scenario": tg_name}
+                td_executions_dict.update(self.get_tg_execution_settings(tg_etree_element))
+                testplan_dict["scenarios"].update(tg_scenario_dict)
+                testplan_dict["execution"].append(td_executions_dict)
                 # testplan_dict["execution"]["scenario"].append(tg_element.get("testname"))
             # testplan_dict["execution"]["concurency"] = summ_concurrency
             self.scenario = testplan_dict
         else:
             self.log.warning("No thread groups was found!")
+
+    def get_request_settings(self, request_element):
+        """
+        Gets all possible request settings
+        :param request_element:
+        :return: dict
+        """
+        request_config = {}
+        request_config.update(self.get_request_base(request_element))
+        request_config.update(self.get_request_body(request_element))
+        request_config.update(self.get_headers(request_element))
+        request_config.update(self.get_constant_timer(request_element))
+        request_config.update(self.get_request_timeout(request_element))
+        request_config.update(self.get_extractors(request_element))
+        request_config.update(self.get_assertions(request_element))
+        return request_config
+
+    def get_tg_scenario_settings(self, tg_etree_element):
+        """
+        Gets all possible tg settings and applies global overrides
+        :param tg_etree_element:
+        :return:
+        """
+        default_tg_settings = {"store-cookie": False, "store-cache": False, "use-dns-cache-mgr": False}
+        global_tg_settings = self.get_global_tg_settings()
+        tg_settings = {"requests": []}
+        tg_settings.update(default_tg_settings)
+        tg_settings.update(self.get_data_sources(tg_etree_element))
+        tg_settings.update(self.get_headers(tg_etree_element))
+        tg_settings.update(self.get_store_cache(tg_etree_element))
+        tg_settings.update(self.get_store_cookie(tg_etree_element))
+        tg_settings.update(self.get_dns_mgr(tg_etree_element))
+        tg_settings.update(self.get_assertions(tg_etree_element))
+        # apply global test plan settings:
+        self.apply_global_tg_settings(global_tg_settings, tg_settings)
+        # those settings override global:
+
+        tg_settings.update(self.get_constant_timer(tg_etree_element))
+        tg_settings.update(self.get_http_request_defaults(tg_etree_element))
+        return tg_settings
+
+    def get_tg_execution_settings(self, tg_etree_element):
+        """
+        Gets execution settings
+        :param tg_etree_element:
+        :return: dict
+        """
+        execution_settings = {}
+        execution_settings.update(self.get_concurrency(tg_etree_element))
+        execution_settings.update(self.get_ramp_up(tg_etree_element))
+        execution_settings.update(self.get_iterations(tg_etree_element))
+        return execution_settings
 
     def get_global_objects(self):
         """
@@ -681,6 +759,7 @@ class Converter(object):
         glob_dns_mgr = self.get_dns_mgr(testplan_element)
         glob_c_timer = self.get_constant_timer(testplan_element)
         glob_request_defaults = self.get_http_request_defaults(testplan_element)
+        glob_assertions = self.get_assertions(testplan_element)
         default_tg_settings.update(glob_headers)
         default_tg_settings.update(glob_data_sources)
         default_tg_settings.update(glob_store_cache)
@@ -688,6 +767,7 @@ class Converter(object):
         default_tg_settings.update(glob_dns_mgr)
         default_tg_settings.update(glob_c_timer)
         default_tg_settings.update(glob_request_defaults)
+        default_tg_settings.update(glob_assertions)
 
         return default_tg_settings
 
@@ -711,15 +791,6 @@ class Converter(object):
                     if override:
                         tg_dict[default_key] = defaults[default_key]
 
-    def get_request(self, element):
-        """
-        returns request dict
-        :param element:
-        :return:
-        """
-        fields = {"method": "HTTPSampler.method"}
-        return self.convert_etree_to_dict(element, fields)
-
     def convert(self, file_path):
         """
         Converts all
@@ -730,7 +801,7 @@ class Converter(object):
             self.clean_disabled_elements(self.tree)
             self.clean_jmx_tree(self.tree)
             self.get_thread_groups()
-            # self.dump_yaml("/tmp/disabled.yaml")
+            self.dump_yaml(file_path + ".yml")
 
     def check_if_disabled(self, element):
         """
@@ -791,7 +862,8 @@ class Converter(object):
 
     def dump_yaml(self, file_path):
         with open(file_path, "wt") as fds:
-            yaml.dump(self.scenario, fds, default_flow_style=False, )
+            yaml.dump(self.scenario, fds, default_flow_style=False, explicit_start=True)
+
 
 def main():
     usage = "Usage: jmx2yml [input jmx file]"
