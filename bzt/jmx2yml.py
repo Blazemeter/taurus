@@ -730,7 +730,7 @@ class Converter(object):
             self.clean_disabled_elements(self.tree)
             self.clean_jmx_tree(self.tree)
             self.get_thread_groups()
-            self.dump_yaml("/home/alex/tmp/disabled.yaml")
+            # self.dump_yaml("/tmp/disabled.yaml")
 
     def check_if_disabled(self, element):
         """
