@@ -1,4 +1,5 @@
 from tests import BZTestCase
+import bzt.jmx2yml
 from bzt.jmx2yml import Converter
 from bzt.six import etree, u
 from io import StringIO
@@ -35,6 +36,10 @@ class logger_mock(object):
 
 
 class TestConverter(BZTestCase):
+
+    def setUp(self):
+        bzt.jmx2yml.TEST = True
+
     def tearDown(self):
         if os.path.exists("build/tmp.yml"):
             os.remove("build/tmp.yml")
@@ -48,8 +53,8 @@ class TestConverter(BZTestCase):
         except:
             self.fail()
 
-        self.assertIn("Loading jmx file", obj.log.debug_buff.getvalue())
-        self.assertEqual("", obj.log.info_buff.getvalue())
+        self.assertIn("Loading jmx file", obj.log.info_buff.getvalue())
+        self.assertEqual("", obj.log.debug_buff.getvalue())
         self.assertEqual("", obj.log.err_buff.getvalue())
 
         try:
@@ -59,17 +64,17 @@ class TestConverter(BZTestCase):
         except:
             self.fail()
 
-        self.assertIn("Loading jmx file", obj.log.debug_buff.getvalue())
+        self.assertIn("Loading jmx file", obj.log.info_buff.getvalue())
         self.assertIn("does not exist", obj.log.err_buff.getvalue())
-        self.assertEqual("", obj.log.info_buff.getvalue())
+        self.assertEqual("", obj.log.debug_buff.getvalue())
 
         try:
             obj = Converter()
             obj.log = logger_mock()
             obj.load_jmx("tests/jmx/broken.jmx")
-            self.assertIn("Loading jmx file", obj.log.debug_buff.getvalue())
+            self.assertIn("Loading jmx file", obj.log.info_buff.getvalue())
             self.assertIn("Error while loading jmx file", obj.log.err_buff.getvalue())
-            self.assertEqual("", obj.log.info_buff.getvalue())
+            self.assertEqual("", obj.log.debug_buff.getvalue())
         except:
             self.fail()
 
@@ -175,12 +180,12 @@ class TestConverter(BZTestCase):
         tg_one_assertions = tg_one.get("assert")
         self.assertEqual(len(tg_one_assertions), 2)  # global assertion + tg assertion
         tg_two_assertions = tg_two.get("assert")
-        self.assertEqual(len(tg_two_assertions), 1) # global only assertion
+        self.assertEqual(len(tg_two_assertions), 1)  # global only assertion
         tg_one_req_one_assertion = tg_one.get("requests")[0].get("assert")[0]
-        expected = {'subject':'headers', 'contains':["tg1httpreq1", "tg1httpreq12"], "not":False, 'regexp':True}
+        expected = {'subject': 'headers', 'contains': ["tg1httpreq1", "tg1httpreq12"], "not": False, 'regexp': True}
         self.assertEqual(tg_one_req_one_assertion, expected)
         tg_one_assertion = tg_one.get("assert")[0]
-        expected = {'subject':'body', 'contains':["tg1body_text_not_contains"], "not":True, 'regexp':True}
+        expected = {'subject': 'body', 'contains': ["tg1body_text_not_contains"], "not": True, 'regexp': True}
         self.assertEqual(tg_one_assertion, expected)
 
     def test_copy_global_json_assertions(self):
@@ -194,20 +199,80 @@ class TestConverter(BZTestCase):
         tg_one_assertions = tg_one.get("assert-jsonpath")
         self.assertEqual(len(tg_one_assertions), 1)  # global assertion + tg assertion
         tg_two_assertions = tg_two.get("assert-jsonpath")
-        self.assertEqual(len(tg_two_assertions), 1) # global only assertion
+        self.assertEqual(len(tg_two_assertions), 1)  # global only assertion
         tg_one_req_one_jp = tg_one.get("requests")[0].get("assert-jsonpath", [])  # no assertions
         self.assertEqual(len(tg_one_req_one_jp), 0)
         tg_two_req_one_jp = tg_two.get("requests")[0].get("assert-jsonpath", [])
         self.assertEqual(len(tg_two_req_one_jp), 1)
-        expected = {"expect-null": False, "expected-value": None, "invert": False, "jsonpath": '$(":input")', "validate": False}
+        expected = {"expect-null": True, "invert": True, "jsonpath": '$(":input")', "validate": True}
         self.assertEqual(expected, tg_two_req_one_jp[0])
+        #  test concurrency, ramp-up, iterations in execution
+        tg_one_exec = yml.get("execution")[0]
+        tg_two_exec = yml.get("execution")[1]
+        tg_three_exec = yml.get("execution")[2]
+        self.assertEqual(tg_one_exec.get("concurrency"), 10)
+        self.assertEqual(tg_two_exec.get("concurrency"), 15)
+        self.assertEqual(tg_three_exec.get("concurrency"), None)
+        self.assertEqual(tg_one_exec.get("ramp-up"), 10)
+        self.assertEqual(tg_two_exec.get("ramp-up"), None)
+        self.assertEqual(tg_three_exec.get("ramp-up"), 2)
+        self.assertEqual(tg_one_exec.get("iterations"), None)
+        self.assertEqual(tg_two_exec.get("iterations"), None)
+        self.assertEqual(tg_three_exec.get("iterations"), 100)
 
-    def test_two_tg(self):
+    # def test_execution_throughput_hold_for(self):
+    #     obj = Converter()
+    #     obj.convert("tests/yaml/converter/assertions.jmx")
+    #     obj.log.debug(obj.scenario)
+    #     obj.dump_yaml("build/tmp.yml")
+    #     yml = yaml.load(open("build/tmp.yml").read())
+
+    def test_extractors(self):
+        obj = Converter()
+        obj.convert("tests/yaml/converter/extractors.jmx")
+        obj.log.debug(obj.scenario)
+        obj.dump_yaml("build/tmp.yml")
+        yml = yaml.load(open("build/tmp.yml").read())
+        tg_one = yml.get("scenarios").get("tg1")
+        tg_two = yml.get("scenarios").get("tg2")
+        tg_three = yml.get("scenarios").get("tg3")
+        tg_one_extractors = tg_one.get("extract-regexp")
+        tg_two_extractors = tg_two.get("extract-regexp")
+        self.assertEqual(len(tg_one_extractors), 1)  # global
+        self.assertEqual(len(tg_two_extractors), 1)  # global + local - ignored
+        tg_one_req_exr = tg_one.get("requests")[0].get("extract-regexp", {})
+        self.assertEqual(len(tg_one_req_exr), 2)
+        expected = {'template':1, 'match-no':1, 'regexp':'*tg1hr1', 'default':'default'}
+        self.assertEqual(expected, tg_one_req_exr.get("test_tg1hr1"))
+        # test extract-jsonpath
+        tg_one_extractors = tg_one.get("extract-jsonpath")
+        tg_two_extractors = tg_two.get("extract-jsonpath")
+        self.assertEqual(len(tg_one_extractors), 3)  # 2x global + local
+        self.assertEqual(len(tg_two_extractors), 2)  # 2x global
+        tg_three_req_exr = tg_three.get("requests")[0].get("extract-jsonpath", {})
+        self.assertEqual(len(tg_three_req_exr), 1)  # 1x local
+
+    def test_request_body(self):
+        obj = Converter()
+        obj.convert("tests/yaml/converter/extractors.jmx")
+        obj.log.debug(obj.scenario)
+        obj.dump_yaml("build/tmp.yml")
+        yml = yaml.load(open("build/tmp.yml").read())
+        tg_one = yml.get("scenarios").get("tg1")
+        tg_two = yml.get("scenarios").get("tg2")
+        tg_one_req_one_body = tg_one.get("requests")[0].get("body")
+        self.assertEqual(tg_one_req_one_body, "body-string")
+        tg_one_req_one_body = tg_one.get("requests")[1].get("body")
+        self.assertEqual(tg_one_req_one_body, {"body_param1": "value1", "body_param2": "value2"})
+        tg_two_req_one_body = tg_two.get("requests")[0].get("body")
+        self.assertEqual(tg_two_req_one_body, None)
+
+    def test_all(self):
         obj = Converter()
         obj.convert("tests/yaml/converter/disabled.jmx")
         obj.log.debug(obj.scenario)
         obj.dump_yaml("build/tmp.yml")
-        yml = yaml.load(open("build/tmp.yml").read())
+        yml = yaml.load(open("tests/yaml/converter/disabled.yml").read())
         # with open("tmp/result.jmx", 'wb') as fds:
         #     fds.write(etree.tostring(obj.tree, pretty_print=True, xml_declaration=True))
         self.assertEqual(obj.scenario, yml)

@@ -1,3 +1,4 @@
+---
 execution:
 - scenario: First Thread Group
 - scenario: Second Thread Group
@@ -10,10 +11,8 @@ scenarios:
       recycle: true
     headers:
       global_header: global_value
-      header1: value1
       tg1: v1
       tg2: v2
-    keepalive: false
     requests:
     - assert:
       - contains:
@@ -27,9 +26,9 @@ scenarios:
         expected-value: '*'
         invert: false
         jsonpath: $.
-        validate: false
+        validate: true
       body: one-two
-      label: http://10.0.0.1/
+      label: First HTTP Request
       method: GET
       url: http://10.0.0.1/
     - assert:
@@ -51,15 +50,14 @@ scenarios:
           match-no: 0
           regexp: '*'
           template: 1
-      label: http://8.8.8.8/
+      label: request with params
       method: GET
       url: http://8.8.8.8/
-    - label: http://127.0.0.1/
+    - label: with headers
       method: GET
       url: http://127.0.0.1/
     - assert-jsonpath:
       - expect-null: false
-        expected-value: null
         invert: false
         jsonpath: $.
         validate: false
@@ -71,15 +69,14 @@ scenarios:
           template: 1
       headers:
         header1: value1
-      label: http://192.168.0.1/
+      label: HTTP Request
       method: GET
       think-time: 500ms
       timeout: 200ms
       url: http://192.168.0.1/
-    retrieve-resources: false
     store-cache: false
     store-cookie: false
-    use-dns-cache-mgr: false
+    use-dns-cache-mgr: true
   Second Thread Group:
     data-sources:
     - delimiter: ','
@@ -88,10 +85,6 @@ scenarios:
       recycle: true
     headers:
       global_header: global_value
-      header1: value1
-      tg1: v1
-      tg2: v2
-    keepalive: false
     requests:
     - assert:
       - contains:
@@ -99,10 +92,9 @@ scenarios:
         not: true
         regexp: true
         subject: body
-      label: http://192.168.0.2/
+      label: request
       method: GET
       url: http://192.168.0.2/
-    retrieve-resources: false
     store-cache: false
     store-cookie: false
-    use-dns-cache-mgr: false
+    use-dns-cache-mgr: true

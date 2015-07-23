@@ -5,10 +5,10 @@ import bzt
 from bzt.six import etree
 import traceback
 import yaml
-from optparse import OptionParser, BadOptionError, Option
+from optparse import OptionParser
 from copy import deepcopy
 from collections import namedtuple
-# from collections import OrderedDict
+from cssselect import GenericTranslator
 
 KNOWN_TAGS = ["hashTree", "jmeterTestPlan", "TestPlan", "ResultCollector",
               "HTTPSamplerProxy",
@@ -31,6 +31,8 @@ KNOWN_TAGS = ["hashTree", "jmeterTestPlan", "TestPlan", "ResultCollector",
               "GenericController",
               "ResultCollector"]
 
+TEST = False
+
 
 class Converter(object):
     def __init__(self):
@@ -47,10 +49,8 @@ class Converter(object):
         Load jmx file as lxml etree
         :return:
         """
-        self.log.debug('Loading jmx file %s', file_path)
-
+        self.log.info('Loading jmx file %s', file_path)
         file_path = os.path.abspath(os.path.expanduser(file_path))
-
         if os.path.exists(file_path):
             try:
                 self.tree = etree.fromstring(open(file_path, "rb").read())
@@ -74,7 +74,7 @@ class Converter(object):
             elif prop_element.text.lower() == 'false':
                 return False
         else:
-            self.log.warning("boolProp %s was not found in %s element!", prop_name, element.tag)
+            self.log.debug("boolProp %s was not found in %s element!", prop_name, element.tag)
             return None
 
     def get_string_prop(self, element, prop_name, default=None):
@@ -88,6 +88,7 @@ class Converter(object):
         if prop_element is not None and prop_element.text:
             return prop_element.text
         else:
+            self.log.debug("stringProp %s was not found in %s element!", prop_name, element.tag)
             return default
 
     def get_concurrency(self, element):
@@ -96,6 +97,7 @@ class Converter(object):
         :return:
         """
         concurrency = self.get_option_string_with_default(element, 'ThreadGroup.num_threads', "concurrency", 1)
+        self.log.debug('Got %s for concurrency in %s (%s)', concurrency, element.tag, element.get("testname"))
         return concurrency
 
     def get_ramp_up(self, element):
@@ -105,6 +107,7 @@ class Converter(object):
         :return:
         """
         ramp_up = self.get_option_string_with_default(element, 'ThreadGroup.ramp_time', "ramp-up", 1)
+        self.log.debug('Got %s for rampup in %s (%s)', ramp_up, element.tag, element.get("testname"))
         return ramp_up
 
     def get_iterations(self, element):
@@ -115,11 +118,11 @@ class Converter(object):
         """
         controller_element = element.find('.//elementProp')
         iterations = self.get_option_string_with_default(controller_element, 'LoopController.loops', "iterations", 1)
+        self.log.debug('Got %s for iterations in %s (%s)', iterations, element.tag, element.get("testname"))
         return iterations
 
     def get_option_string_with_default(self, element, prop_name, opt_name, default):
         """
-
         :param element:
         :return: dict
         """
@@ -130,30 +133,31 @@ class Converter(object):
                 result[opt_name] = int(prop_vaulue)
         return result
 
-    def get_request_body(self, http_sampler_element):
+    def get_request_body(self, element):
         """
         Get body params from sampler
-        :param http_sampler_element:
+        :param element:
         :return: dict
         """
-        # raw_body = http_sampler_element.find(".//boolProp[@name='HTTPSampler.postBodyRaw']")
-        raw_body = self.get_bool_prop(http_sampler_element, 'HTTPSampler.postBodyRaw')
+
+        raw_body = self.get_bool_prop(element, 'HTTPSampler.postBodyRaw')
         if raw_body:
-            http_args_element = http_sampler_element.find(".//elementProp").find(".//collectionProp").find(
-                ".//elementProp")
-            body = self.get_string_prop(http_args_element,
-                                        'Argument.value')  # http_args_element.find(".//stringProp[@name='Argument.value']").text
+            xpath = GenericTranslator().css_to_xpath("elementProp>collectionProp>elementProp")
+            http_args_element = element.xpath(xpath)[0]
+            body = self.get_string_prop(http_args_element, 'Argument.value')
             if body:
+                self.log.debug('Got %s for body in %s (%s)', body, element.tag, element.get("name"))
                 return {"body": body}
             else:
                 return {}
         else:
             body_params = {}
-            http_args_collection = http_sampler_element.find(".//elementProp").find(".//collectionProp").findall(
-                ".//elementProp")
+            xpath = GenericTranslator().css_to_xpath("elementProp>collectionProp>elementProp")
+            http_args_collection = element.xpath(xpath)
             for element in http_args_collection:
                 body_params[element.get("name")] = self.get_string_prop(element, 'Argument.value')
             if body_params:
+                self.log.debug('Got %s for body in %s (%s)', body_params, element.tag, element.get("name"))
                 return {"body": body_params}
             else:
                 return {}
@@ -164,10 +168,9 @@ class Converter(object):
         :return:
         """
         headers = {}
-        element_hashtree = element.getnext()
-        if element_hashtree is not None and element_hashtree.tag == "hashTree":
-            headers_elements = [element for element in element_hashtree.iterchildren() if
-                                element.tag == "HeaderManager"]  # element_hashtree.findall(".//HeaderManager")
+        hashtree = element.getnext()
+        if hashtree is not None and hashtree.tag == "hashTree":
+            headers_elements = [element for element in hashtree.iterchildren() if element.tag == "HeaderManager"]
             for headers_element in headers_elements:
                 if headers_element is not None:
                     for header in headers_element.find(".//collectionProp").findall(".//elementProp"):
@@ -176,6 +179,7 @@ class Converter(object):
                         if header_name and header_value:
                             headers[header_name] = header_value
         if headers:
+            self.log.debug('Got %s for headers in %s (%s)', headers, element.tag, element.get("testname"))
             return {"headers": headers}
         else:
             return headers
@@ -190,6 +194,7 @@ class Converter(object):
         if hashtree is not None and hashtree.tag == "hashTree":
             cache_managers = [element for element in hashtree.iterchildren() if element.tag == "CacheManager"]
             if cache_managers:
+                self.log.debug('Got %s for cache_managers in %s (%s)', True, element.tag, element.get("testname"))
                 return {"store-cache": True}
         return {}
 
@@ -203,6 +208,7 @@ class Converter(object):
         if hashtree is not None and hashtree.tag == "hashTree":
             cookie_managers = [element for element in hashtree.iterchildren() if element.tag == "CookieManager"]
             if cookie_managers:
+                self.log.debug('Got %s for cookie_managers in %s (%s)', True, element.tag, element.get("testname"))
                 return {"store-cookie": True}
         return {}
 
@@ -214,8 +220,9 @@ class Converter(object):
         """
         hashtree = element.getnext()
         if hashtree is not None and hashtree.tag == "hashTree":
-            cookie_managers = [element for element in hashtree.iterchildren() if element.tag == "DNSCacheManager"]
-            if cookie_managers:
+            dns_managers = [element for element in hashtree.iterchildren() if element.tag == "DNSCacheManager"]
+            if dns_managers:
+                self.log.debug('Got %s for dns_managers in %s (%s)', True, element.tag, element.get("testname"))
                 return {"use-dns-cache-mgr": True}
         return {}
 
@@ -233,6 +240,7 @@ class Converter(object):
                 timer_delay = self.get_string_prop(timer_element[0], 'ConstantTimer.delay')
                 if timer_delay:
                     timer = {"think-time": timer_delay + "ms"}
+                    self.log.debug('Got %s for timer in %s (%s)', timer_delay, element.tag, element.get("testname"))
         return timer
 
     def get_http_request_defaults(self, element):
@@ -257,16 +265,16 @@ class Converter(object):
                     if default_address:
                         request_defaults["default-address"] = default_address
                 if url_info.timeout: request_defaults["timeout"] = url_info.timeout + "ms"
-                if url_info.retrieve_resources is not None: request_defaults[
-                    "retrieve-resources"] = url_info.retrieve_resources
-                # TODO: Chick if retrieve_resources enabled then set concurrency
-                if url_info.retrieve_concurrency: request_defaults["concurrent-pool-size"] = int(
-                    url_info.retrieve_concurrency)
+                if url_info.retrieve_resources is not None:
+                    request_defaults["retrieve-resources"] = url_info.retrieve_resources
+                    if url_info.retrieve_resources:
+                        if url_info.retrieve_concurrency:
+                            request_defaults["concurrent-pool-size"] = int(url_info.retrieve_concurrency)
+        self.log.debug('Got %s for request-defaults in %s (%s)', request_defaults, element.tag, element.get("testname"))
         return request_defaults
 
     def make_url(self, url_info):
         """
-
         :return: string
         """
         path = "/" if not url_info.path else url_info.path
@@ -296,12 +304,11 @@ class Converter(object):
             url_info = http_sampler_info(domain, port, timeout, protocol, path, method, retrieve_resources,
                                          retrieve_concurrency)
             return url_info
-        self.log.warning("Url info failed, element is None.")
         return None
 
     def get_request_base(self, element):
         """
-        Converts to dict
+        Base request settings
         :return:
         """
         base_settings = {}
@@ -314,7 +321,7 @@ class Converter(object):
                 base_settings["method"] = url_info.method
         if element.get("testname"):
             base_settings["label"] = element.get("testname")
-
+        self.log.debug('Got %s for base settings in %s (%s)', base_settings, element.tag, element.get("testname"))
         return base_settings
 
     def get_data_sources(self, element):
@@ -326,49 +333,38 @@ class Converter(object):
         data_sources = []
         hashtree = element.getnext()
         if hashtree is not None and hashtree.tag == "hashTree":
-            data_sources_elements = [element for element in hashtree.iterchildren() if
-                                     element.tag == "CSVDataSet"]  # hashtree.findall(".//CSVDataSet")
-            # data_sources_elements = [element for element in hashtree.findall(".//CSVDataSet") if self.get_depth(element) == depth]
-            # data_sources_elements = hashtree.findall(".//CSVDataSet")
+            data_sources_elements = [element for element in hashtree.iterchildren() if element.tag == "CSVDataSet"]
             for data_source in data_sources_elements:
-                # self.log.debug(self.get_depth(data_source))
                 self.log.debug("datasource file: %s", data_source.get("testname"))
-                # if self.get_depth(data_source) != depth:
-                #     continue
                 if data_source is not None:
                     data_source_dict = {}
-
                     f_name_prop = self.get_string_prop(data_source, 'filename')
-
                     if f_name_prop:
                         data_source_dict["path"] = f_name_prop
                     else:
                         self.log.warning("File name was not set in %s, skipping", data_source.tag)
                         continue
-
                     delimiter_prop = self.get_string_prop(data_source, 'delimiter')
                     if delimiter_prop:
                         data_source_dict["delimiter"] = delimiter_prop
                     else:
                         self.log.warning("Delimiter was not set in %s, using default - ','", data_source.tag)
                         data_source_dict["delimiter"] = ","
-
                     quoted_prop = self.get_bool_prop(data_source, 'quotedData')
                     if quoted_prop is not None:
                         data_source_dict["quoted"] = quoted_prop
                     else:
                         self.log.warning("Quoted property was not set in %s, using default False", data_source.tag)
                         data_source_dict["quoted"] = False
-
                     loop_prop = self.get_bool_prop(data_source, 'recycle')
                     if loop_prop is not None:
                         data_source_dict["recycle"] = loop_prop
                     else:
                         self.log.warning("Loop property was not set in %s, using default False", data_source.tag)
                         data_source_dict["recycle"] = False
-
                     data_sources.append(data_source_dict)
         if data_sources:
+            self.log.debug('Got %s for data_sources in %s (%s)', data_sources, element.tag, element.get("testname"))
             return {"data-sources": data_sources}
         else:
             return {}
@@ -377,44 +373,42 @@ class Converter(object):
         timeout = {}
         timeout_prop = self.get_string_prop(element, 'HTTPSampler.connect_timeout')
         if timeout_prop:
+            self.log.debug('Got %s for request timeout in %s (%s)', timeout_prop, element.tag, element.get("testname"))
             timeout = {"timeout": timeout_prop + "ms"}
         return timeout
 
-    def get_extractors(self, http_request_element):
+    def get_extractors(self, element):
         """
-        Gets
-        :param http_request_element:
+        Gets jsonpath and regexp extractors
+        :param element:
         :return:
         """
         extractors = {}
-        regexp_extractors = self.get_regexp_extractor(http_request_element)
+        regexp_extractors = self.get_regexp_extractor(element)
         if regexp_extractors: extractors.update({"extract-regexp": regexp_extractors})
-        jsonpath_extractors = self.get_json_path_extractors(http_request_element)
+        jsonpath_extractors = self.get_json_path_extractors(element)
         if jsonpath_extractors: extractors.update({"extract-jsonpath": jsonpath_extractors})
+        self.log.debug('Got %s for extractors in %s (%s)', extractors, element.tag, element.get("testname"))
         return extractors
 
-    def get_regexp_extractor(self, http_request_element):
+    def get_regexp_extractor(self, element):
         """
         extract-regexp option
-        :param http_request_element:
+        :param element:
         :return:
         """
         regexp_extractors = {}
-        request_hashtree = http_request_element.getnext()
-        if request_hashtree is not None and request_hashtree.tag == "hashTree":
-            extractor_elements = request_hashtree.findall(".//RegexExtractor")
-
+        hashtree = element.getnext()
+        if hashtree is not None and hashtree.tag == "hashTree":
+            extractor_elements = [element for element in hashtree.iterchildren() if element.tag == "RegexExtractor"]
             for extractor_element in extractor_elements:
                 regexp_extractor = {}
-
                 if extractor_element is not None:
-                    refname_prop = self.get_string_prop(extractor_element, 'RegexExtractor.refname')
+                    refname = self.get_string_prop(extractor_element, 'RegexExtractor.refname')
 
-                    if refname_prop is not None:
+                    if refname:
                         extractor_props = {}
-
                         regexp_prop = self.get_string_prop(extractor_element, 'RegexExtractor.regex')
-
                         if regexp_prop:
                             extractor_props["regexp"] = regexp_prop
                         else:
@@ -429,13 +423,12 @@ class Converter(object):
                             self.log.warning("No default value found in %s", extractor_element.tag)
                             extractor_props["default"] = ""
 
-                        match_no_prop = self.get_string_prop(extractor_element,
-                                                             'RegexExtractor.RegexExtractor.match_number')
+                        match_no_prop = self.get_string_prop(extractor_element, 'RegexExtractor.match_number')
 
                         if match_no_prop:
                             extractor_props["match-no"] = int(match_no_prop)
                         else:
-                            self.log.warning("No match number found in %s", extractor_element.tag)
+                            self.log.warning("No match number found in %s, using 0 as default", extractor_element.tag)
                             extractor_props["match-no"] = 0
 
                         template_prop = self.get_string_prop(extractor_element, 'RegexExtractor.template')
@@ -443,47 +436,36 @@ class Converter(object):
                         if template_prop:
                             extractor_props["template"] = int(template_prop)
                         else:
-                            self.log.warning("No template property found in %s", extractor_element.tag)
+                            self.log.warning("No template property found in %s, using 1 as default", extractor_element.tag)
                             extractor_props["template"] = 1
 
-                        if refname_prop:
-                            refname = refname_prop
-                        else:
-                            self.log.warning("No refname property found in %s, generating", extractor_element.tag)
-                            refname = str(refname_prop.__hash__())
-
                         regexp_extractor.update({refname: extractor_props})
-
                     else:
                         self.log.warning("refname property element not found in %s skipping", extractor_element.tag)
                         continue
-
                 regexp_extractors.update(regexp_extractor)
 
         return regexp_extractors
 
-    def get_json_path_extractors(self, http_request_element):
+    def get_json_path_extractors(self, element):
         """
         extract-jsonpath option
-        :param http_request_element:
+        :param element:
         :return:
         """
 
         json_path_extractors = {}
 
-        hashtree = http_request_element.getnext()
+        hashtree = element.getnext()
         if hashtree is not None and hashtree.tag == "hashTree":
-            property_pattern = ".//com.atlantbh.jmeter.plugins.jsonutils.jsonpathextractor.JSONPathExtractor"
+            property_pattern = "com.atlantbh.jmeter.plugins.jsonutils.jsonpathextractor.JSONPathExtractor"
             extractor_elements = [element for element in hashtree.iterchildren() if element.tag == property_pattern]
             for extractor_element in extractor_elements:
                 json_path_extractor = {}
-
                 if extractor_element is not None:
-                    varname_prop = self.get_string_prop(extractor_element, 'VAR')
-
-                    if varname_prop is not None:
+                    varname = self.get_string_prop(extractor_element, 'VAR')
+                    if varname:
                         extractor_props = {}
-
                         jsonpath_prop = self.get_string_prop(extractor_element, 'JSONPATH')
 
                         if jsonpath_prop:
@@ -500,67 +482,63 @@ class Converter(object):
                             self.log.warning("No default value found in %s", extractor_element.tag)
                             extractor_props["default"] = ""
 
-                        if varname_prop:
-                            varname = varname_prop
-                        else:
-                            self.log.warning("Not found varname in %s, generating", extractor_element.tag)
-                            varname = str(varname_prop.__hash__())
-
                         json_path_extractor.update({varname: extractor_props})
+
+                    else:
+                        self.log.warning("Not found varname in %s, skipping", extractor_element.tag)
+                        continue
+
                 json_path_extractors.update(json_path_extractor)
 
         return json_path_extractors
 
-    def get_assertions(self, http_request_element):
+    def get_assertions(self, element):
         """
         assertions:
         assert, assert-jsonpath
-        :param http_request_element:
+        :param element:
         :return:
         """
         assertions = {}
-        simple_assertions = self.get_response_assertions(http_request_element)
+        simple_assertions = self.get_response_assertions(element)
         if simple_assertions: assertions.update({"assert": simple_assertions})
-        jsonpath_assertions = self.get_jsonpath_assertions(http_request_element)
+        jsonpath_assertions = self.get_jsonpath_assertions(element)
         if jsonpath_assertions: assertions.update({"assert-jsonpath": jsonpath_assertions})
+        self.log.debug('Got %s for assertions in %s (%s)', assertions, element.tag, element.get("testname"))
         return assertions
 
-    def get_response_assertions(self, http_request_element):
+    def get_response_assertions(self, element):
         """
-        list of dicts
-        :param http_request_element:
-        :return: dict
+        :param element:
+        :return: list of dicts
         """
         response_assertions = []
         subjects = {"Assertion.response_data": "body", "Assertion.response_headers": "headers",
                     "Assertion.response_code": "http-code"}
         test_types = {'6': (True, True), '2': (True, False), '20': (False, True),
                       '16': (False, False)}  # (is_regexp, is_inverted)
-        hashtree = http_request_element.getnext()
+        hashtree = element.getnext()
+
         if hashtree is not None and hashtree.tag == "hashTree":
-            response_assertion_elements = [element for element in hashtree.iterchildren() if
-                                     element.tag == "ResponseAssertion"]
+            response_assertion_elements = [element for element in hashtree.iterchildren() if element.tag == "ResponseAssertion"]
 
             for response_assertion_element in response_assertion_elements:
                 response_assertion = {}
-                assertion_collection = response_assertion_element.find(
-                    ".//collectionProp[@name='Asserion.test_strings']")
+                assertion_collection = response_assertion_element.find(".//collectionProp[@name='Asserion.test_strings']")
 
                 if assertion_collection is None:
                     self.log.warning("Collection not found in %s, skipping", response_assertion_element.tag)
                     continue
-
                 test_string_props = assertion_collection.findall(".//stringProp")
                 test_strings = []
                 for string_prop in test_string_props:
                     if string_prop is not None and string_prop.text:
                         test_strings.append(string_prop.text)
+
                 if not test_strings:
                     self.log.warning("No test strings in %s, skipping", response_assertion_element.tag)
                     continue
-
                 response_assertion["contains"] = test_strings
-
                 test_field_prop = self.get_string_prop(response_assertion_element, 'Assertion.test_field')
 
                 if test_field_prop:
@@ -568,14 +546,11 @@ class Converter(object):
                 else:
                     self.log.warning("No test subject provided in %s, skipping", response_assertion_element.tag)
                     continue
-
                 response_assertion["subject"] = test_subject
-
                 test_type_element = response_assertion_element.find(".//*[@name='Assertion.test_type']")
 
                 if test_type_element is not None and test_type_element.text:
                     test_type = test_types.get(test_type_element.text)
-
                     if test_type:
                         is_regexp, is_inverted = test_type
                         response_assertion["regexp"] = is_regexp
@@ -586,26 +561,23 @@ class Converter(object):
                 else:
                     self.log.warning("No test subject provided in %s, skipping", response_assertion_element.tag)
                     continue
-
                 response_assertions.append(response_assertion)
         return response_assertions
 
-    def get_jsonpath_assertions(self, http_request_element):
+    def get_jsonpath_assertions(self, element):
         """
         assert-jsonpath option
-        :param http_request_element:
+        :param element:
         :return: list of dicts
         """
         json_path_assertions = []
+        hashtree = element.getnext()
 
-        hashtree = http_request_element.getnext()
         if hashtree is not None and hashtree.tag == "hashTree":
             pattern = "com.atlantbh.jmeter.plugins.jsonutils.jsonpathassertion.JSONPathAssertion"
             json_path_assertion_elements = [element for element in hashtree.iterchildren() if element.tag == pattern]
-
             for json_path_assertion_element in json_path_assertion_elements:
                 json_path_assertion = {}
-
                 json_path_element = self.get_string_prop(json_path_assertion_element, 'JSON_PATH')
 
                 if json_path_element:
@@ -616,31 +588,20 @@ class Converter(object):
 
                 expected_vaule_element = self.get_string_prop(json_path_assertion_element, 'EXPECTED_VALUE')
 
-                if expected_vaule_element is not None and expected_vaule_element:
+                if expected_vaule_element:
                     json_path_assertion["expected-value"] = expected_vaule_element
-                else:
-                    json_path_assertion["expected-value"] = None
 
-                # TODO: expand, use default values
-                json_path_assertion["validate"] = False
-                json_path_assertion["expect-null"] = False
-                json_path_assertion["invert"] = False
-
+                validate_element = self.get_bool_prop(json_path_assertion_element, 'JSONVALIDATION')
+                json_path_assertion["validate"] = validate_element if validate_element else False
+                expect_null_element = self.get_bool_prop(json_path_assertion_element, 'EXPECT_NULL')
+                json_path_assertion["expect-null"] = expect_null_element if expect_null_element else False
+                invert_elem = self.get_bool_prop(json_path_assertion_element, 'INVERT')
+                json_path_assertion["invert"] = invert_elem if invert_elem else False
                 json_path_assertions.append(json_path_assertion)
 
         return json_path_assertions
 
-    def convert_etree_to_dict(self, etree_element, params):
-        result_dict = {}
-        for param, value in params.items():
-            val = etree_element.find("*[@name=" + "'" + value + "'" + "]").text
-            if val:
-                result_dict[param] = val
-                # else:
-                #     result_dict[param] = ""
-        return result_dict
-
-    def get_thread_groups(self):
+    def make_test_plan(self):
         """
         Get all thread groups from jmx, convert to dict.
         :return: dict
@@ -656,28 +617,27 @@ class Converter(object):
             self.log.debug("Total thread groups: %d", len(tg_etree_elements))
 
             for tg_etree_element in tg_etree_elements:
-
+                self.log.debug("Processing thread group... %s", tg_etree_element.get("testname"))
                 tg_scenario_settings = self.get_tg_scenario_settings(tg_etree_element)
-
                 tg_name = tg_etree_element.get("testname")
+
                 if not tg_name: tg_name = str(tg_etree_element.__hash__())
-                tg_execution_settings = {"scenario": tg_name}
                 ht_element = tg_etree_element.getnext()
+
                 if ht_element.tag == "hashTree":
                     request_elements = ht_element.findall(".//HTTPSamplerProxy")
                     self.log.debug("Total http samplers in tg groups: %d", len(request_elements))
-
                     for request_element in request_elements:
+                        self.log.debug("Processing request... %s", request_element.get("testname"))
                         request_config = self.get_request_settings(request_element)
                         tg_scenario_settings["requests"].append(request_config)
-
+                        self.log.debug("Done processing request %s", request_element.get("testname"))
                 tg_scenario_dict = {tg_name: tg_scenario_settings}
                 td_executions_dict = {"scenario": tg_name}
                 td_executions_dict.update(self.get_tg_execution_settings(tg_etree_element))
                 testplan_dict["scenarios"].update(tg_scenario_dict)
                 testplan_dict["execution"].append(td_executions_dict)
-                # testplan_dict["execution"]["scenario"].append(tg_element.get("testname"))
-            # testplan_dict["execution"]["concurency"] = summ_concurrency
+                self.log.debug("Done processing thread group %s", tg_etree_element.get("testname"))
             self.scenario = testplan_dict
         else:
             self.log.warning("No thread groups was found!")
@@ -713,11 +673,11 @@ class Converter(object):
         tg_settings.update(self.get_store_cache(tg_etree_element))
         tg_settings.update(self.get_store_cookie(tg_etree_element))
         tg_settings.update(self.get_dns_mgr(tg_etree_element))
+        tg_settings.update(self.get_extractors(tg_etree_element))
         tg_settings.update(self.get_assertions(tg_etree_element))
         # apply global test plan settings:
         self.apply_global_tg_settings(global_tg_settings, tg_settings)
-        # those settings override global:
-
+        # those settings will override global:
         tg_settings.update(self.get_constant_timer(tg_etree_element))
         tg_settings.update(self.get_http_request_defaults(tg_etree_element))
         return tg_settings
@@ -739,7 +699,6 @@ class Converter(object):
         list of global objects in test plan
         :return:
         """
-
         self.global_objects = []
         ht_object = self.tree.find(".//hashTree").find(".//TestPlan").getnext()
         for obj in ht_object.iterchildren():
@@ -752,29 +711,20 @@ class Converter(object):
         """
         default_tg_settings = {}
         testplan_element = self.tree.find(".//TestPlan")
-        glob_headers = self.get_headers(testplan_element)
-        glob_data_sources = self.get_data_sources(testplan_element)
-        glob_store_cache = self.get_store_cache(testplan_element)
-        glob_store_cookie = self.get_store_cookie(testplan_element)
-        glob_dns_mgr = self.get_dns_mgr(testplan_element)
-        glob_c_timer = self.get_constant_timer(testplan_element)
-        glob_request_defaults = self.get_http_request_defaults(testplan_element)
-        glob_assertions = self.get_assertions(testplan_element)
-        default_tg_settings.update(glob_headers)
-        default_tg_settings.update(glob_data_sources)
-        default_tg_settings.update(glob_store_cache)
-        default_tg_settings.update(glob_store_cookie)
-        default_tg_settings.update(glob_dns_mgr)
-        default_tg_settings.update(glob_c_timer)
-        default_tg_settings.update(glob_request_defaults)
-        default_tg_settings.update(glob_assertions)
-
+        default_tg_settings.update(self.get_headers(testplan_element))
+        default_tg_settings.update(self.get_data_sources(testplan_element))
+        default_tg_settings.update(self.get_store_cache(testplan_element))
+        default_tg_settings.update(self.get_store_cookie(testplan_element))
+        default_tg_settings.update(self.get_dns_mgr(testplan_element))
+        default_tg_settings.update(self.get_constant_timer(testplan_element))
+        default_tg_settings.update(self.get_http_request_defaults(testplan_element))
+        default_tg_settings.update(self.get_extractors(testplan_element))
+        default_tg_settings.update(self.get_assertions(testplan_element))
         return default_tg_settings
 
     def apply_global_tg_settings(self, defaults, tg_dict, override=True):
         for default_key, default_value in defaults.items():
             if isinstance(default_value, list):
-                # tmp = defaults[default].copy()
                 if default_key in tg_dict.keys():
                     tg_dict[default_key].extend(deepcopy(default_value))
                 else:
@@ -800,27 +750,9 @@ class Converter(object):
         if self.jmx_file:
             self.clean_disabled_elements(self.tree)
             self.clean_jmx_tree(self.tree)
-            self.get_thread_groups()
-            self.dump_yaml(file_path + ".yml")
-
-    def check_if_disabled(self, element):
-        """
-        Returns True if any parent element is disabled
-        :return:
-        """
-        parent_disabled = False
-        parent = element.getparent()
-
-        while parent is not None:
-            if parent.get('enabled') == 'false':
-                parent_disabled = True
-                break
-            parent = parent.getparent()
-
-        return parent_disabled
-
-    def get_depth(self, element):
-        return len([ancestor for ancestor in element.iterancestors()])
+            self.make_test_plan()
+            if not TEST:
+                self.dump_yaml(file_path + ".yml")
 
     def remove_element(self, element):
         sibling = element.getnext()
@@ -831,39 +763,42 @@ class Converter(object):
         element.getparent().remove(element)
 
     def clean_disabled_elements(self, element):
-
+        """
+        Removes all disabled elements
+        :param element:
+        :return:
+        """
         for subelement in element.iter():
-            # self.log.debug("subelement %s %s %s %d %s", subelement.tag, subelement.get("name", ""),
-            #                subelement.get("testclass", ""), self.get_depth(subelement), subelement.text)
             if subelement.tag.endswith("prop"):
                 continue
             if subelement.get("enabled") == 'false':
-                self.log.debug("Removing disabled element %s, %s", element.tag, element.get("name"))
+                self.log.debug("Removing disabled element %s, %s", element.tag, element.get("testname"))
                 self.remove_element(subelement)
                 self.clean_disabled_elements(element)
                 return
 
     def clean_jmx_tree(self, element):
         """
-        Purge disabled and unknown elements from etree
+        Removes all unknown elements
         :return:
         """
         for subelement in element.iter():
-            # self.log.debug("subelement %s %s %s %d %s", subelement.tag, subelement.get("name", ""),
-            #                    subelement.get("testclass", ""), self.get_depth(subelement), subelement.text)
             if subelement.tag.lower().endswith("prop"):
                 continue
-
             if subelement.tag not in KNOWN_TAGS:
-                self.log.debug("Removing unknown element: %s", subelement.tag)
+                self.log.debug("Removing unknown element: %s, %s", subelement.tag, subelement.get("testname"))
                 self.remove_element(subelement)
                 self.clean_jmx_tree(element)
                 return
 
     def dump_yaml(self, file_path):
+        """
+        Dumps test plan as yml file
+        :param file_path:
+        :return:
+        """
         with open(file_path, "wt") as fds:
             yaml.dump(self.scenario, fds, default_flow_style=False, explicit_start=True)
-
 
 def main():
     usage = "Usage: jmx2yml [input jmx file]"
