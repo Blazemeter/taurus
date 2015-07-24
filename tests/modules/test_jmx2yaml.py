@@ -47,9 +47,9 @@ class TestConverter(BZTestCase):
     def setUp(self):
         bzt.jmx2yml.TEST = True
 
-    def tearDown(self):
-        if os.path.exists("build/tmp.yml"):
-            os.remove("build/tmp.yml")
+    # def tearDown(self):
+    #     if os.path.exists("build/tmp.yml"):
+    #         os.remove("build/tmp.yml")
 
     def test_load_jmx_file(self):
 
@@ -237,9 +237,9 @@ class TestConverter(BZTestCase):
         self.assertEqual(tg_one_exec.get("concurrency"), 10)
         self.assertEqual(tg_two_exec.get("concurrency"), 15)
         self.assertEqual(tg_three_exec.get("concurrency"), None)
-        self.assertEqual(tg_one_exec.get("ramp-up"), 10)
+        self.assertEqual(tg_one_exec.get("ramp-up"), '10s')
         self.assertEqual(tg_two_exec.get("ramp-up"), None)
-        self.assertEqual(tg_three_exec.get("ramp-up"), 2)
+        self.assertEqual(tg_three_exec.get("ramp-up"), '2s')
         self.assertEqual(tg_one_exec.get("iterations"), None)
         self.assertEqual(tg_two_exec.get("iterations"), None)
         self.assertEqual(tg_three_exec.get("iterations"), 100)
@@ -291,10 +291,29 @@ class TestConverter(BZTestCase):
         tg_two_req_one_body = tg_two.get("requests")[0].get("body")
         self.assertEqual(tg_two_req_one_body, None)
 
+    def test_duration_throughput(self):
+        obj = Converter(FakeOptions())
+        obj.convert("tests/yaml/converter/duration.jmx")
+        obj.log.debug(obj.scenario)
+        obj.dump_yaml("build/tmp.yml")
+        yml = yaml.load(open("build/tmp.yml").read())
+        tg_one = yml.get("execution")[0]
+        tg_two = yml.get("execution")[1]
+        tg_three = yml.get("execution")[2]
+        self.assertEqual("10s", tg_one.get("ramp-up"))
+        self.assertEqual(None, tg_one.get("hold-for"))
+        self.assertEqual("10s", tg_one.get("ramp-up"))
+        self.assertEqual(100, tg_one.get("throughput"))
+        self.assertEqual("10s", tg_two.get("ramp-up"))
+        self.assertEqual("20s", tg_two.get("hold-for"))
+        self.assertEqual(20, tg_two.get("throughput"))
+        self.assertEqual(None, tg_three.get("ramp-up"))
+        self.assertEqual("40s", tg_three.get("hold-for"))
+        self.assertEqual(100, tg_three.get("throughput"))
+
     def test_all(self):
         obj = Converter(FakeOptions())
         obj.convert("tests/yaml/converter/disabled.jmx")
-        obj.log.debug(obj.scenario)
         obj.dump_yaml("build/tmp.yml")
         yml = yaml.load(open("tests/yaml/converter/disabled.yml").read())
         self.assertEqual(obj.scenario, yml)

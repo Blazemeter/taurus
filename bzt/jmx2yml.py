@@ -47,7 +47,7 @@ class Converter(object):
         self.jmx_file = None
         self.global_objects = []
         self.scenario = {"execution": None, "scenarios": None}
-        self.tree = None
+        self.tree = []
 
     def load_jmx(self, file_path):
         """
@@ -117,7 +117,7 @@ class Converter(object):
 
     def get_iterations(self, element):
         """
-        hold-for option in tg execution settings
+        iteration option in tg execution settings
         :param element:
         :return:
         """
@@ -125,6 +125,52 @@ class Converter(object):
         iterations = self.get_option_string_with_default(controller_element, 'LoopController.loops', "iterations", 1)
         self.log.debug('Got %s for iterations in %s (%s)', iterations, element.tag, element.get("testname"))
         return iterations
+
+    def get_duration(self, tg_element):
+        """
+        get hold_for and ramp_up from tg element.
+        :param tg_element:
+        :return:
+        """
+        result = {}
+        ramp_up = self.get_ramp_up(tg_element)
+        if self.get_bool_prop(tg_element, 'ThreadGroup.scheduler'):
+            duration_element = tg_element.find("*[@name='ThreadGroup.duration']")
+            if duration_element is not None and duration_element.text and duration_element.text.isdigit():
+                    duration = int(duration_element.text)
+                    if ramp_up:
+                        result.update({"hold-for": str(duration - ramp_up["ramp-up"]) + "s"})
+                    else:
+                        result.update({"hold-for": str(duration) + "s"})
+        if ramp_up:
+            ramp_up["ramp-up"] = str(ramp_up["ramp-up"]) + "s"
+            result.update(ramp_up)
+        self.log.debug('Got %s for duration in %s (%s)', result, tg_element.tag, tg_element.get("testname"))
+        return result
+
+    def get_throughput(self, element):
+        """
+        Gets throughput from variable throughput timer
+        :param element:
+        :return:
+        """
+        result = {}
+        hashtree = element.getnext()
+        if hashtree is not None and hashtree.tag == "hashTree":
+            property_pattern = "kg.apc.jmeter.timers.VariableThroughputTimer"
+            timer_elements = [element for element in hashtree.iterchildren() if element.tag == property_pattern]
+            if timer_elements:
+                load_profile = timer_elements[0].find(".//collectionProp[@name='load_profile']")
+                if load_profile is not None:
+                    col_props = load_profile.findall(".//collectionProp")
+                    if col_props:
+                        col_prop = col_props[-1]
+                        st_prop = col_prop.findall(".//stringProp")
+                        throughput = st_prop[-2].text
+                        if throughput and throughput.isdigit():
+                            result["throughput"] = int(throughput)
+                            self.log.debug('Got %s for throughput in %s (%s)', throughput, element.tag, element.get("testname"))
+        return result
 
     def get_option_string_with_default(self, element, prop_name, opt_name, default):
         """
@@ -134,7 +180,7 @@ class Converter(object):
         result = {}
         if element is not None:
             prop_vaulue = self.get_string_prop(element, prop_name)
-            if prop_vaulue and int(prop_vaulue) != default:
+            if prop_vaulue and prop_vaulue.isdigit() and int(prop_vaulue) != default:
                 result[opt_name] = int(prop_vaulue)
         return result
 
@@ -273,7 +319,7 @@ class Converter(object):
                 if url_info.retrieve_resources is not None:
                     request_defaults["retrieve-resources"] = url_info.retrieve_resources
                     if url_info.retrieve_resources:
-                        if url_info.retrieve_concurrency:
+                        if url_info.retrieve_concurrency and url_info.retrieve_concurrency.isdigit():
                             request_defaults["concurrent-pool-size"] = int(url_info.retrieve_concurrency)
         self.log.debug('Got %s for request-defaults in %s (%s)', request_defaults, element.tag, element.get("testname"))
         return request_defaults
@@ -648,7 +694,8 @@ class Converter(object):
                 self.log.debug("Done processing thread group %s", tg_etree_element.get("testname"))
             self.scenario = testplan_dict
         else:
-            self.log.warning("No thread groups was found!")
+            self.log.error("No thread groups was found!")
+            raise RuntimeError("No thread groups was found in JMX file!")
 
     def get_request_settings(self, request_element):
         """
@@ -673,7 +720,7 @@ class Converter(object):
         :return:
         """
         default_tg_settings = {"store-cookie": False, "store-cache": False, "use-dns-cache-mgr": False}
-        global_tg_settings = self.get_global_tg_settings()
+        global_tg_settings = self.get_global_tg_scenario_settings()
         tg_settings = {"requests": []}
         tg_settings.update(default_tg_settings)
         tg_settings.update(self.get_data_sources(tg_etree_element))
@@ -696,10 +743,14 @@ class Converter(object):
         :param tg_etree_element:
         :return: dict
         """
+        global_execution_settings = self.get_global_tg_execution_settings()
         execution_settings = {}
+        self.apply_global_tg_settings(global_execution_settings, execution_settings)
         execution_settings.update(self.get_concurrency(tg_etree_element))
-        execution_settings.update(self.get_ramp_up(tg_etree_element))
         execution_settings.update(self.get_iterations(tg_etree_element))
+        execution_settings.update(self.get_duration(tg_etree_element))
+        execution_settings.update(self.get_throughput(tg_etree_element))
+
         return execution_settings
 
     def get_global_objects(self):
@@ -713,7 +764,7 @@ class Converter(object):
             if obj.tag != 'hashTree' and obj.tag != 'ThreadGroup':
                 self.global_objects.append(obj)
 
-    def get_global_tg_settings(self):
+    def get_global_tg_scenario_settings(self):
         """
         :return: dict
         """
@@ -728,6 +779,15 @@ class Converter(object):
         default_tg_settings.update(self.get_http_request_defaults(testplan_element))
         default_tg_settings.update(self.get_extractors(testplan_element))
         default_tg_settings.update(self.get_assertions(testplan_element))
+        return default_tg_settings
+
+    def get_global_tg_execution_settings(self):
+        """
+        :return: dict
+        """
+        default_tg_settings = {}
+        testplan_element = self.tree.find(".//TestPlan")
+        default_tg_settings.update(self.get_throughput(testplan_element))
         return default_tg_settings
 
     def apply_global_tg_settings(self, defaults, tg_dict, override=True):
@@ -756,9 +816,13 @@ class Converter(object):
         """
         self.load_jmx(file_path)
         if self.jmx_file:
-            self.clean_disabled_elements(self.tree)
-            self.clean_jmx_tree(self.tree)
-            self.make_test_plan()
+            try:
+                self.clean_disabled_elements(self.tree)
+                self.clean_jmx_tree(self.tree)
+                self.make_test_plan()
+            except BaseException:
+                self.log.error("Error while processing jmx file: %s \n%s", self.jmx_file, traceback.format_exc())
+                sys.exit(1)
             if self.options.dump_jmx:
                 self.dump_cleaned_jmx(self.options.dump_jmx)
             if not TEST:
@@ -786,7 +850,7 @@ class Converter(object):
             if subelement.tag.endswith("prop"):
                 continue
             if subelement.get("enabled") == 'false':
-                self.log.debug("Removing disabled element %s, %s", element.tag, element.get("testname"))
+                self.log.debug("Removing disabled element %s (%s)", subelement.tag, subelement.get("testname"))
                 self.remove_element(subelement)
                 self.clean_disabled_elements(element)
                 return
@@ -800,7 +864,7 @@ class Converter(object):
             if subelement.tag.lower().endswith("prop"):
                 continue
             if subelement.tag not in KNOWN_TAGS:
-                self.log.debug("Removing unknown element: %s, %s", subelement.tag, subelement.get("testname"))
+                self.log.debug("Removing unknown element: %s (%s)", subelement.tag, subelement.get("testname"))
                 self.remove_element(subelement)
                 self.clean_jmx_tree(element)
                 return
