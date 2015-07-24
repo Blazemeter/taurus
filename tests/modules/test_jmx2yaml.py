@@ -5,6 +5,7 @@ from bzt.six import etree, u
 from io import StringIO
 import yaml
 import os
+import tempfile
 
 
 class logger_mock(object):
@@ -29,11 +30,17 @@ class logger_mock(object):
         self.write_log(self.err_buff, str_template, *args)
 
     def warning(self, str_template, *args):
-        self.write_log(self.err_buff, str_template, *args)
+        self.write_log(self.warn_buff, str_template, *args)
 
     def debug(self, str_template, *args):
         self.write_log(self.debug_buff, str_template, *args)
 
+class FakeOptions(object):
+    def __init__(self, no_dump=False, verbose=True, file_name=None, dump_jmx=False):
+        self.no_dump = no_dump
+        self.verbose = verbose
+        self.file_name = file_name
+        self.dump_jmx = dump_jmx
 
 class TestConverter(BZTestCase):
 
@@ -47,7 +54,7 @@ class TestConverter(BZTestCase):
     def test_load_jmx_file(self):
 
         try:
-            obj = Converter()
+            obj = Converter(FakeOptions())
             obj.log = logger_mock()
             obj.load_jmx("tests/jmx/http.jmx")
         except:
@@ -58,7 +65,7 @@ class TestConverter(BZTestCase):
         self.assertEqual("", obj.log.err_buff.getvalue())
 
         try:
-            obj = Converter()
+            obj = Converter(FakeOptions())
             obj.log = logger_mock()
             obj.load_jmx("tests/jmx/notfound.jmx")
         except:
@@ -69,24 +76,41 @@ class TestConverter(BZTestCase):
         self.assertEqual("", obj.log.debug_buff.getvalue())
 
         try:
-            obj = Converter()
+            obj = Converter(FakeOptions())
             obj.log = logger_mock()
             obj.load_jmx("tests/jmx/broken.jmx")
-            self.assertIn("Loading jmx file", obj.log.info_buff.getvalue())
-            self.assertIn("Error while loading jmx file", obj.log.err_buff.getvalue())
-            self.assertEqual("", obj.log.debug_buff.getvalue())
         except:
             self.fail()
 
+        self.assertIn("Loading jmx file", obj.log.info_buff.getvalue())
+        self.assertIn("Error while loading jmx file", obj.log.err_buff.getvalue())
+        self.assertEqual("", obj.log.debug_buff.getvalue())
+
+        try:
+            obj = Converter(FakeOptions())
+            obj.log = logger_mock()
+            obj.convert("tests/jmx/http.jmx")
+            with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
+                pass
+            obj.dump_yaml(tmp_file.name)
+            os.remove(tmp_file.name)
+        except:
+            self.fail()
+
+        self.assertIn("Loading jmx file", obj.log.info_buff.getvalue())
+        self.assertIn("Done processing, result saved in", obj.log.info_buff.getvalue())
+        self.assertIn("already exists and will be overwritten", obj.log.warn_buff.getvalue())
+        self.assertIn("unknown element", obj.log.debug_buff.getvalue())
+
     def test_clean_disabled_jmx(self):
-        obj = Converter()
+        obj = Converter(FakeOptions())
         obj.load_jmx("tests/yaml/converter/disabled.jmx")
         obj.clean_disabled_elements(obj.tree)
         disabled_elements = [element for element in obj.tree.iter() if element.get("enabled") == "false"]
         self.assertEquals(0, len(disabled_elements))
 
     def test_copy_global_csv_dataset(self):
-        obj = Converter()
+        obj = Converter(FakeOptions())
         obj.convert("tests/yaml/converter/global_copy.jmx")
         obj.log.debug(obj.scenario)
         obj.dump_yaml("build/tmp.yml")
@@ -104,7 +128,7 @@ class TestConverter(BZTestCase):
         self.assertEqual(len(local_csv_tg_two), 0)
 
     def test_copy_global_headers(self):
-        obj = Converter()
+        obj = Converter(FakeOptions())
         obj.convert("tests/yaml/converter/global_copy.jmx")
         obj.log.debug(obj.scenario)
         obj.dump_yaml("build/tmp.yml")
@@ -115,7 +139,7 @@ class TestConverter(BZTestCase):
         self.assertEqual(len(headers_second_tg), 2)
 
     def test_cache_cookie_dns_overrides(self):
-        obj = Converter()
+        obj = Converter(FakeOptions())
         obj.convert("tests/yaml/converter/global_copy.jmx")
         obj.log.debug(obj.scenario)
         obj.dump_yaml("build/tmp.yml")
@@ -136,7 +160,7 @@ class TestConverter(BZTestCase):
         self.assertEqual(dns_cache_mgr_second_tg, True)
 
     def test_think_time_overrides(self):
-        obj = Converter()
+        obj = Converter(FakeOptions())
         obj.convert("tests/yaml/converter/global_copy.jmx")
         obj.log.debug(obj.scenario)
         obj.dump_yaml("build/tmp.yml")
@@ -153,7 +177,7 @@ class TestConverter(BZTestCase):
         self.assertEqual(req_timer, "100ms")
 
     def test_request_defaults(self):
-        obj = Converter()
+        obj = Converter(FakeOptions())
         obj.convert("tests/yaml/converter/global_copy.jmx")
         obj.log.debug(obj.scenario)
         obj.dump_yaml("build/tmp.yml")
@@ -170,7 +194,7 @@ class TestConverter(BZTestCase):
         self.assertEqual(tg_two.get("concurrent-pool-size"), 10)
 
     def test_copy_global_request_assertions(self):
-        obj = Converter()
+        obj = Converter(FakeOptions())
         obj.convert("tests/yaml/converter/assertions.jmx")
         obj.log.debug(obj.scenario)
         obj.dump_yaml("build/tmp.yml")
@@ -189,7 +213,7 @@ class TestConverter(BZTestCase):
         self.assertEqual(tg_one_assertion, expected)
 
     def test_copy_global_json_assertions(self):
-        obj = Converter()
+        obj = Converter(FakeOptions())
         obj.convert("tests/yaml/converter/assertions.jmx")
         obj.log.debug(obj.scenario)
         obj.dump_yaml("build/tmp.yml")
@@ -228,7 +252,7 @@ class TestConverter(BZTestCase):
     #     yml = yaml.load(open("build/tmp.yml").read())
 
     def test_extractors(self):
-        obj = Converter()
+        obj = Converter(FakeOptions())
         obj.convert("tests/yaml/converter/extractors.jmx")
         obj.log.debug(obj.scenario)
         obj.dump_yaml("build/tmp.yml")
@@ -242,7 +266,7 @@ class TestConverter(BZTestCase):
         self.assertEqual(len(tg_two_extractors), 1)  # global + local - ignored
         tg_one_req_exr = tg_one.get("requests")[0].get("extract-regexp", {})
         self.assertEqual(len(tg_one_req_exr), 2)
-        expected = {'template':1, 'match-no':1, 'regexp':'*tg1hr1', 'default':'default'}
+        expected = {'template':'1', 'match-no':1, 'regexp':'*tg1hr1', 'default':'default'}
         self.assertEqual(expected, tg_one_req_exr.get("test_tg1hr1"))
         # test extract-jsonpath
         tg_one_extractors = tg_one.get("extract-jsonpath")
@@ -253,7 +277,7 @@ class TestConverter(BZTestCase):
         self.assertEqual(len(tg_three_req_exr), 1)  # 1x local
 
     def test_request_body(self):
-        obj = Converter()
+        obj = Converter(FakeOptions())
         obj.convert("tests/yaml/converter/extractors.jmx")
         obj.log.debug(obj.scenario)
         obj.dump_yaml("build/tmp.yml")
@@ -268,11 +292,9 @@ class TestConverter(BZTestCase):
         self.assertEqual(tg_two_req_one_body, None)
 
     def test_all(self):
-        obj = Converter()
+        obj = Converter(FakeOptions())
         obj.convert("tests/yaml/converter/disabled.jmx")
         obj.log.debug(obj.scenario)
         obj.dump_yaml("build/tmp.yml")
         yml = yaml.load(open("tests/yaml/converter/disabled.yml").read())
-        # with open("tmp/result.jmx", 'wb') as fds:
-        #     fds.write(etree.tostring(obj.tree, pretty_print=True, xml_declaration=True))
         self.assertEqual(obj.scenario, yml)

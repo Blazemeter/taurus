@@ -1,7 +1,6 @@
 #! /usr/bin/env python
 import logging
 import os
-import bzt
 from bzt.six import etree
 import traceback
 import yaml
@@ -9,6 +8,7 @@ from optparse import OptionParser
 from copy import deepcopy
 from collections import namedtuple
 from cssselect import GenericTranslator
+import sys
 
 KNOWN_TAGS = ["hashTree", "jmeterTestPlan", "TestPlan", "ResultCollector",
               "HTTPSamplerProxy",
@@ -35,14 +35,19 @@ TEST = False
 
 
 class Converter(object):
-    def __init__(self):
+    def __init__(self, options):
         logging.basicConfig()
         self.log = logging.getLogger(self.__class__.__name__)
-        self.log.setLevel('DEBUG')
+        self.options = options
+        if self.options.verbose:
+            self.log.setLevel('DEBUG')
+        else:
+            self.log.setLevel('INFO')
         self.xml_tree = None
         self.jmx_file = None
         self.global_objects = []
         self.scenario = {"execution": None, "scenarios": None}
+        self.tree = None
 
     def load_jmx(self, file_path):
         """
@@ -425,7 +430,7 @@ class Converter(object):
 
                         match_no_prop = self.get_string_prop(extractor_element, 'RegexExtractor.match_number')
 
-                        if match_no_prop:
+                        if match_no_prop and match_no_prop.isdigit():
                             extractor_props["match-no"] = int(match_no_prop)
                         else:
                             self.log.warning("No match number found in %s, using 0 as default", extractor_element.tag)
@@ -434,10 +439,11 @@ class Converter(object):
                         template_prop = self.get_string_prop(extractor_element, 'RegexExtractor.template')
 
                         if template_prop:
-                            extractor_props["template"] = int(template_prop)
+                            extractor_props["template"] = template_prop
                         else:
-                            self.log.warning("No template property found in %s, using 1 as default", extractor_element.tag)
-                            extractor_props["template"] = 1
+                            self.log.warning("No template property found in %s, using $0$ as default",
+                                             extractor_element.tag)
+                            extractor_props["template"] = '$0$'
 
                         regexp_extractor.update({refname: extractor_props})
                     else:
@@ -520,11 +526,13 @@ class Converter(object):
         hashtree = element.getnext()
 
         if hashtree is not None and hashtree.tag == "hashTree":
-            response_assertion_elements = [element for element in hashtree.iterchildren() if element.tag == "ResponseAssertion"]
+            response_assertion_elements = [element for element in hashtree.iterchildren() if
+                                           element.tag == "ResponseAssertion"]
 
             for response_assertion_element in response_assertion_elements:
                 response_assertion = {}
-                assertion_collection = response_assertion_element.find(".//collectionProp[@name='Asserion.test_strings']")
+                assertion_collection = response_assertion_element.find(
+                    ".//collectionProp[@name='Asserion.test_strings']")
 
                 if assertion_collection is None:
                     self.log.warning("Collection not found in %s, skipping", response_assertion_element.tag)
@@ -751,8 +759,14 @@ class Converter(object):
             self.clean_disabled_elements(self.tree)
             self.clean_jmx_tree(self.tree)
             self.make_test_plan()
+            if self.options.dump_jmx:
+                self.dump_cleaned_jmx(self.options.dump_jmx)
             if not TEST:
-                self.dump_yaml(file_path + ".yml")
+                if self.options.file_name:
+                    file_name = self.options.file_name
+                else:
+                    file_name = file_path + ".yml"
+                self.dump_yaml(file_name)
 
     def remove_element(self, element):
         sibling = element.getnext()
@@ -797,16 +811,45 @@ class Converter(object):
         :param file_path:
         :return:
         """
+        if not self.options.no_dump:
+            if os.path.exists(file_path):
+                self.log.warning("%s already exists and will be overwritten", file_path)
+            with open(file_path, "wt") as fds:
+                yaml.dump(self.scenario, fds, default_flow_style=False, explicit_start=True)
+            self.log.info("Done processing, result saved in %s", file_path)
+        else:
+            yaml.dump(self.scenario, sys.stdout, default_flow_style=False, explicit_start=True)
+
+    def dump_cleaned_jmx(self, file_path):
+        """
+        Dumps cleaned jmx tree
+        :param file_path:
+        :return:
+        """
+        if os.path.exists(file_path):
+            self.log.warning("%s already exists and will be overwritten", file_path)
         with open(file_path, "wt") as fds:
-            yaml.dump(self.scenario, fds, default_flow_style=False, explicit_start=True)
+            fds.write(etree.tostring(self.tree, pretty_print=True, xml_declaration=True))
+        self.log.info("Cleaned JMX saved in %s", file_path)
+
 
 def main():
-    usage = "Usage: jmx2yml [input jmx file]"
+    usage = "Usage: jmx2yml [input jmx file] [options]"
     parser = OptionParser(usage=usage, prog="jmx2yml")
-    parser.add_option('-v', '--verbose', help="Prints all logging messages to console")
+    parser.add_option('-v', '--verbose', action='store_true', default=False,
+                      help="Prints all logging messages to console")
+    parser.add_option('-o', '--out', dest="file_name",
+                      help="Set output .yml file name, by default input file name + .yml is used")
+    parser.add_option('-d', '--dump-jmx', action='store', dest='dump_jmx', default=False,
+                      help="Dumps processed JMX to file")
+    parser.add_option('-n', '--no-dump', action='store_true', default=False, dest='no_dump',
+                      help="display result into stdout")
     parsed_options, args = parser.parse_args()
-    converter = Converter()
-    converter.convert(args[0])
+    if len(args) > 0:
+        converter = Converter(parsed_options)
+        converter.convert(args[0])
+    else:
+        sys.stdout.write(usage + "\n")
 
 
 if __name__ == "__main__":
