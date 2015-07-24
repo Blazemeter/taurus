@@ -47,9 +47,9 @@ class TestConverter(BZTestCase):
     def setUp(self):
         bzt.jmx2yml.TEST = True
 
-    # def tearDown(self):
-    #     if os.path.exists("build/tmp.yml"):
-    #         os.remove("build/tmp.yml")
+    def tearDown(self):
+        if os.path.exists("build/tmp.yml"):
+            os.remove("build/tmp.yml")
 
     def test_load_jmx_file(self):
 
