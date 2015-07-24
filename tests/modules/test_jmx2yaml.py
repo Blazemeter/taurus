@@ -100,7 +100,7 @@ class TestConverter(BZTestCase):
         self.assertIn("Loading jmx file", obj.log.info_buff.getvalue())
         self.assertIn("Done processing, result saved in", obj.log.info_buff.getvalue())
         self.assertIn("already exists and will be overwritten", obj.log.warn_buff.getvalue())
-        self.assertIn("unknown element", obj.log.debug_buff.getvalue())
+        self.assertIn("unknown element", obj.log.warn_buff.getvalue())
 
     def test_clean_disabled_jmx(self):
         obj = Converter(FakeOptions())

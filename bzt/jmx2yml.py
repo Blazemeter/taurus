@@ -47,7 +47,7 @@ class Converter(object):
         self.jmx_file = None
         self.global_objects = []
         self.scenario = {"execution": None, "scenarios": None}
-        self.tree = []
+        self.tree = None
 
     def load_jmx(self, file_path):
         """
