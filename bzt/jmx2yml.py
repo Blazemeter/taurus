@@ -137,11 +137,11 @@ class Converter(object):
         if self.get_bool_prop(tg_element, 'ThreadGroup.scheduler'):
             duration_element = tg_element.find("*[@name='ThreadGroup.duration']")
             if duration_element is not None and duration_element.text and duration_element.text.isdigit():
-                    duration = int(duration_element.text)
-                    if ramp_up:
-                        result.update({"hold-for": str(duration - ramp_up["ramp-up"]) + "s"})
-                    else:
-                        result.update({"hold-for": str(duration) + "s"})
+                duration = int(duration_element.text)
+                if ramp_up:
+                    result.update({"hold-for": str(duration - ramp_up["ramp-up"]) + "s"})
+                else:
+                    result.update({"hold-for": str(duration) + "s"})
         if ramp_up:
             ramp_up["ramp-up"] = str(ramp_up["ramp-up"]) + "s"
             result.update(ramp_up)
@@ -315,7 +315,8 @@ class Converter(object):
                     default_address = self.make_url(url_info)
                     if default_address:
                         request_defaults["default-address"] = default_address
-                if url_info.timeout: request_defaults["timeout"] = url_info.timeout + "ms"
+                if url_info.timeout:
+                    request_defaults["timeout"] = url_info.timeout + "ms"
                 if url_info.retrieve_resources is not None:
                     request_defaults["retrieve-resources"] = url_info.retrieve_resources
                     if url_info.retrieve_resources:
@@ -436,9 +437,11 @@ class Converter(object):
         """
         extractors = {}
         regexp_extractors = self.get_regexp_extractor(element)
-        if regexp_extractors: extractors.update({"extract-regexp": regexp_extractors})
+        if regexp_extractors:
+            extractors.update({"extract-regexp": regexp_extractors})
         jsonpath_extractors = self.get_json_path_extractors(element)
-        if jsonpath_extractors: extractors.update({"extract-jsonpath": jsonpath_extractors})
+        if jsonpath_extractors:
+            extractors.update({"extract-jsonpath": jsonpath_extractors})
         self.log.debug('Got %s for extractors in %s (%s)', extractors, element.tag, element.get("testname"))
         return extractors
 
@@ -553,9 +556,11 @@ class Converter(object):
         """
         assertions = {}
         simple_assertions = self.get_response_assertions(element)
-        if simple_assertions: assertions.update({"assert": simple_assertions})
+        if simple_assertions:
+            assertions.update({"assert": simple_assertions})
         jsonpath_assertions = self.get_jsonpath_assertions(element)
-        if jsonpath_assertions: assertions.update({"assert-jsonpath": jsonpath_assertions})
+        if jsonpath_assertions:
+            assertions.update({"assert-jsonpath": jsonpath_assertions})
         self.log.debug('Got %s for assertions in %s (%s)', assertions, element.tag, element.get("testname"))
         return assertions
 
@@ -675,7 +680,8 @@ class Converter(object):
                 tg_scenario_settings = self.get_tg_scenario_settings(tg_etree_element)
                 tg_name = tg_etree_element.get("testname")
 
-                if not tg_name: tg_name = str(tg_etree_element.__hash__())
+                if not tg_name:
+                    tg_name = str(tg_etree_element.__hash__())
                 ht_element = tg_etree_element.getnext()
 
                 if ht_element.tag == "hashTree":
@@ -743,7 +749,7 @@ class Converter(object):
         :param tg_etree_element:
         :return: dict
         """
-        global_execution_settings = self.get_global_tg_execution_settings()
+        global_execution_settings = self.get_global_tg_execution()
         execution_settings = {}
         self.apply_global_tg_settings(global_execution_settings, execution_settings)
         execution_settings.update(self.get_concurrency(tg_etree_element))
@@ -781,7 +787,7 @@ class Converter(object):
         default_tg_settings.update(self.get_assertions(testplan_element))
         return default_tg_settings
 
-    def get_global_tg_execution_settings(self):
+    def get_global_tg_execution(self):
         """
         :return: dict
         """
@@ -850,7 +856,7 @@ class Converter(object):
             if subelement.tag.endswith("prop"):
                 continue
             if subelement.get("enabled") == 'false':
-                self.log.debug("Removing disabled element %s (%s)", subelement.tag, subelement.get("testname"))
+                self.log.info("Removing disabled element %s (%s)", subelement.tag, subelement.get("testname"))
                 self.remove_element(subelement)
                 self.clean_disabled_elements(element)
                 return
@@ -864,7 +870,7 @@ class Converter(object):
             if subelement.tag.lower().endswith("prop"):
                 continue
             if subelement.tag not in KNOWN_TAGS:
-                self.log.debug("Removing unknown element: %s (%s)", subelement.tag, subelement.get("testname"))
+                self.log.warning("Removing unknown element: %s (%s)", subelement.tag, subelement.get("testname"))
                 self.remove_element(subelement)
                 self.clean_jmx_tree(element)
                 return
