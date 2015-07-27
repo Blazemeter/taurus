@@ -1,6 +1,9 @@
 # Taurus Tool Documentation
 
+----
+
 ## User Manual
+ 1. [Introduction](Introduction.md)
  1. [Installation and Upgrade](Installation.md)
  1. [Command-Line Tool](CommandLine.md)
  1. [Configuration Files Syntax](ConfigSyntax.md)

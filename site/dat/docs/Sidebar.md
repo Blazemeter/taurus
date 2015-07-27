@@ -1,4 +1,4 @@
-##### Quick links:
+#### Quick Links:
 
 [Educational Videos](Videos)
 

@@ -36,3 +36,14 @@ Then get [PHP composer](https://getcomposer.org/download/), go to `site` dir and
 
 # Dev Artifacts
 [Code Coverage Report](/coverage/)
+
+## Python Egg Snapshots
+
+Download and install it like this:
+```bash
+pip install bzt-150.tar.gz
+```
+
+----
+
+<downloads-dir:snapshots>

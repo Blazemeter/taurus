@@ -1,81 +1,131 @@
 body {
-    background-color: white;
-    font-size: 12pt;
+    color: #565866;
+    background-color: #f9f9f9;
     font-family: 'Open Sans', sans-serif;
+    font-size: 16px;
 }
 
-.menu1 {
-    border-top: 0.5em solid #f7f7f7;
+.header {
+    background-color: #f1f1f1;
 }
 
-.menu1 td {
-    font-size: 1em;
-    background: #f7f7f7;
-    padding: 0.4em 1em;
-    border-bottom: 1px solid #d6d6d6;
+footer {
+    color: white;
+    background-color: #565866;
+    margin-top: 2em;
+    font-size: 0.8em;
+    padding: 1em 3em 3em;
 }
 
-.menu1 td.hl {
-    background: white none;
-    border: 1px solid #d6d6d6;
-    border-bottom: none;
+footer span {
+    margin-right: 2em;
 }
 
-a.hl, .hl a, .hl {
-    color: black;
-    text-decoration: none;
+footer a:link, footer a:visited, footer a:hover {
+    color: #dcaf41
 }
 
-table.breadcrumbs td {
-    border-bottom: 1px solid #f0f0f0;
+footer img {
+    margin-bottom: 3px;
+    margin-left: 3px;
 }
 
-table.breadcrumbs {
-    position: fixed;
-    z-index: 999;
+a:link, a:visited {
+    color: #78a2d8;
 }
 
-#toppanel {
-    padding-top: 1.2em;
+nav {
+    margin: 1em 0 0.5em;
 }
 
-td.logo {
-    padding: 0.4em;
+.nav-pills > li.active > a, .nav-pills > li.active > a:focus, .nav-pills > li.active > a:hover {
+    background-color: #78a2d8;
+    font-size: 1.1em;
 }
 
-td.logo img {
-    display: none;
+.site-header {
+    padding: 0 0 1em;
 }
-
-td.header_title {
-    white-space: nowrap;
-    font-weight: normal;
-    width: 100%;
-    font-size: 1.4em;
-    color: #666;
-}
-
-td.header_right {
+.site-header div {
+    height: 60px;
     vertical-align: middle;
 }
 
-.main td.root {
-    border: none;
-    background-color: transparent;
-    padding: 5px 10px;
+.site-header div > * {
+    vertical-align: middle;
 }
 
-h1, h2, h3, h4 {
-    color: black;
+.site-header .purpose {
+    text-align: left;
+    margin-left: 0.5em;
 }
 
-td.footer {
-    border-top: 2px solid #ccc;
+.site-header .motto {
+    font-size: 0.9em;
+    display: none;
+}
+
+hr {
+    border-top-color: #dcb045;
+    margin-right: -1em;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-weight: bold;
+}
+
+/* POSITION INFO */
+.topmost {
+    padding: 0.5em 0;
+}
+
+.topmost .fork {
+    text-align: right;
+}
+
+.topmost .fork a * {
+    vertical-align: middle;
+}
+
+.topmost .fork a:link, .topmost .fork a:visited, .topmost .fork a:hover {
+    color: #565866;
+    text-decoration: none;
+    font-size: 0.8em;
+}
+
+.topmost .fork a i {
+    font-size: 2em;
+    vertical-align: bottom;
+}
+
+.topmost .fork a b {
+    font-size: 1.3em;
+}
+
+.topmost .position {
+    font-size: 0.7em;
+}
+
+.topmost .position a.nohl {
+    color: #565866;
+    text-decoration: underline;
 }
 
 /* WIKI */
+table.wiki {
+    width: 100%;
+}
+
+table.wiki td {
+    vertical-align: top;
+}
+
+table.wiki tbody tr td:first-child {
+    padding-right: 3em;
+}
+
 table.wiki pre, table.wiki tt {
-    background-color: #EEE;
+    background-color: #DDD;
     font-size: 1em;
     padding: 0 0.25em;
     border-radius: 0.25em;
@@ -87,10 +137,15 @@ table.wiki pre {
     font-size: 0.8em;
 }
 
+table.wiki ol, table.wiki ul {
+    line-height: 1.7;
+}
+
 table.wiki .sidebar {
+    background-color: #f3f5f8;
+    border-radius: 0.3em;
     white-space: nowrap;
-    padding-left: 1em;
-    border-left: 2px solid #ccc;
+    padding: 2em;
 }
 
 table.wiki .sidebar sup, table.wiki .sidebar font {
@@ -104,8 +159,7 @@ table.wiki .toc-list {
 }
 
 table.wiki .toc-list1 {
-    padding-bottom: 1em;
-    border-bottom: 2px dotted #ccc;
+    padding-bottom: 3em;
 }
 
 table.wiki pre.yaml .sy1 {
@@ -113,7 +167,7 @@ table.wiki pre.yaml .sy1 {
 }
 
 table.wiki pre.yaml .co1 {
-    color: silver;
+    color: #999;
 }
 
 table.wiki a.anchorLink {
@@ -133,4 +187,33 @@ table.wiki img {
     position: fixed;
     top: 2em;
     display: block;
+}
+
+/* DOWNLOADS */
+.file_download {
+    display: block;
+    border: 1px dotted silver;
+    margin: 1em 0em;
+    padding: 0.5em;
+    background-color: #EEE;
+}
+
+.file_download a {
+}
+
+.file_download i {
+}
+
+.file_download b {
+
+}
+
+.file_download .filesize, .file_download .filedate {
+    color: gray;
+    font-weight: bold;
+}
+
+.file_download .count {
+    color: gray;
+    float:right;
 }
