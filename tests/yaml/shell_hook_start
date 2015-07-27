@@ -1,0 +1,17 @@
+execution:
+- ramp-up: 10s
+  scenario: tg1
+  scenario:
+    requests:
+      - http://localhost/1
+settings:
+shell-hooks:
+  - first_hook: "export TEST=1"
+  - second_hook:
+    command: "cmd.exe -k && netstat -anb 1"
+    stage: shutdown
+    start-stage: p
+    shutdown-stage: post shutdown
+    block: no
+    stop-on-fail: yes
+    shutdown: force

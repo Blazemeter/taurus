@@ -35,7 +35,7 @@ from yaml.representer import SafeRepresenter
 from bzt import ManualShutdown, NormalShutdown, get_configs_dir
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_int
 from bzt.six import iteritems, string_types, text_type, PY2, UserDict, configparser
-
+from bzt.modules.shell_exec import ShellExecutor
 
 class Engine(object):
     """
@@ -69,6 +69,7 @@ class Engine(object):
         self.__disk_counters = None
         self.__net_counters = None
         self.__counters_ts = None
+        self.shell_executor = ShellExecutor()
 
     def configure(self, user_configs):
         """
@@ -79,6 +80,7 @@ class Engine(object):
         dump = self.create_artifact("effective", "")  # FIXME: not good since this file not exists
         self.config.set_dump_file(dump)
         self.__load_configs(user_configs)
+        self.shell_executor.configure(self.config.get("settings").get("shell-hooks"))
 
     def prepare(self):
         """
@@ -86,6 +88,8 @@ class Engine(object):
         downstream EngineModule instances
         """
         self.log.info("Preparing...")
+
+        self.shell_executor.stage = "prepare"
         self.__prepare_provisioning()
         self.__prepare_reporters()
 
@@ -93,6 +97,7 @@ class Engine(object):
         self.check_interval = dehumanize_time(interval)
 
         self.config.dump()
+        self.shell_executor.stage = "post-prepare"
 
     def run(self):
         """
@@ -100,6 +105,7 @@ class Engine(object):
         calls `shutdown` in any case
         """
         self.log.info("Starting...")
+        self.shell_executor.stage = "startup"
         try:
             if self.aggregator:
                 self.aggregator.startup()
@@ -109,6 +115,7 @@ class Engine(object):
 
             self.provisioning.startup()
             self.config.dump()
+            self.shell_executor.stage = "post-startup"
             self._wait()
         except NormalShutdown as exc:
             self.log.debug("Normal shutdown called: %s", traceback.format_exc())
@@ -146,6 +153,7 @@ class Engine(object):
         :return:
         """
         self.log.info("Shutting down...")
+        self.shell_executor.stage = "shutdown"
         try:
             self.provisioning.shutdown()
             self.aggregator.shutdown()
