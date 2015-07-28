@@ -1,4 +1,4 @@
-# Command-Line Tool
+# Command-Line Tools
 
 Command-line tool is named `bzt` and invoked like `bzt <options> [configs]`. Possible options are:
 
@@ -8,6 +8,20 @@ Command-line tool is named `bzt` and invoked like `bzt <options> [configs]`. Pos
   - `-l LOG, --log=LOG` - change log file location, by default is `bzt.log` in current directory
   - `-d DATADIR, --datadir=DATADIR` - change base directory for the artifact directories, by default it is current directory
   - `-o OPTION, --option=OPTION` override some of config settings from command line, may be used multiple times
+
+Another command-line tool is named jmx2yaml and used to convert simple JMX scripts to bzt configuration file in YAML format. Only few JMX elements are supported. Possible options are:
+
+  - `-h, --help` - show help message and exit
+  - `-q, --quiet` - only errors printed to console
+  - `-v, --verbose` - prints all logging messages to console
+  - `-n, --no-dump` - prints result to console
+  - `-o FILE_NAME, --out=FILE_NAME` - change output file name, by default is input file name + `.yml` in current directory
+  - `-d DUMP_JMX, --dump-jmx=DUMP_JMX` - dumps modified JMX into file ()
+
+Usage:
+`jmx2yaml sample.jmx`
+`jmx2yaml sample.jmx -q -n` 
+`jmx2yaml sample.jmx -v -n -o out.yml -d modified.jmx` 
 
 ## Configuration Files Processing
 Taurus tool consumes configuration files as input format (start learning its syntax [here](ConfigSyntax.md)), it automatically detects YAML and JSON formats. Internally, all configuration files are merged into single configuration object (see merged.config artifact), and each following config overrides/appends previous. There are some special config locations that allows having per-machine and per-user configs, that will be loaded for every tool run. In general, configs load sequence is:
