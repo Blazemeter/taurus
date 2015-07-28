@@ -60,7 +60,7 @@ setup(
     entry_points={
         'console_scripts': [
             'bzt=bzt.cli:main',
-            'jmx2yml=bzt.jmx2yml:main'
+            'jmx2yaml=bzt.jmx2yaml:main'
         ],
     },
     include_package_data=True,
