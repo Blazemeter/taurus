@@ -18,7 +18,7 @@ To upgrade it, open Command Prompt and type `pip install --upgrade bzt`, then hi
 Instructions are tested on Ubuntu 14.04 (Trusty) minimal install, but should work on other distributions with corresponding packages and libs. You will need python 2.7 or higher and Java installed.
 
 ```bash
-sudo apt-get install python default-jre-headless python-pip python-dev libxml2-dev libxslt-dev zlib1g-dev
+sudo apt-get install python default-jre-headless python-tk python-pip python-dev libxml2-dev libxslt-dev zlib1g-dev
 sudo pip install bzt
 ```
 
