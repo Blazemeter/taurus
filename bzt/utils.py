@@ -205,7 +205,7 @@ class BetterDict(defaultdict):
                 cls.traverse(val, visitor)
 
 
-def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE):
+def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False):
     """
     Wrapper for subprocess starting
 
@@ -221,10 +221,10 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE):
         args = shlex.split(args)
     logging.getLogger(__name__).debug("Executing shell: %s", args)
     if platform.system() == 'Windows':
-        return Popen(args, stdout=stdout, stderr=stderr, stdin=stdin, bufsize=0, cwd=cwd)
+        return Popen(args, stdout=stdout, stderr=stderr, stdin=stdin, bufsize=0, cwd=cwd, shell=shell)
     else:
         return Popen(args, stdout=stdout, stderr=stderr, stdin=stdin, bufsize=0,
-                     preexec_fn=os.setpgrp, close_fds=True, cwd=cwd)
+                     preexec_fn=os.setpgrp, close_fds=True, cwd=cwd, shell=shell)
 
 
 def ensure_is_dict(container, key, default_key=None):
@@ -563,7 +563,7 @@ def is_int(str_val):
         return False
 
 
-def shutdown_process(process_obj, log_obj):
+def shutdown_process(process_obj, log_obj, Force=True):
     while process_obj and process_obj.poll() is None:
         # TODO: find a way to have graceful shutdown, then kill
         log_obj.info("Terminating process PID: %s", process_obj.pid)

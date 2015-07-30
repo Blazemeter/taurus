@@ -1,125 +1,126 @@
-"""
----
-settings:
-  shell_hooks:
-  - do some preparations: export TEST=1
-  - check our server:
-    stage: check
-    command: our_check_script.bash
+import shlex
+from bzt.utils import shell_exec, shutdown_process, ensure_is_dict, BetterDict
+from bzt.engine import ScenarioExecutor
+import time
+import tempfile
+import os
+from bzt import ManualShutdown
 
 
-
-shell_hooks:
-- shell_hook_one: "cmd.exe"
-- shell_hook_two:
-  command: "cmd.exe -k && netstat -anb 1"
-  post-stage:true
-  block: yes
-- shell_hook_three:
-  command: "cmd.exe -k && netstat -anb 1"
-  stage: shutdown
-  start-stage: pre process
-  shutdown-stage: post shutdown
-  block: no
-  stop-on-fail: yes
-  shutdown: force
-
-
-command
-blocking: yes/no
-stages: prepare, startup, shutdown, check, post_process
-post-stage: true/false
-stop-on-fail: yes/no
-shutdown:force/grace
-stdout: my_shell_out.txt
-stderr: my_shell_err.txt
-
-
-"""
-
-from bzt.utils import shell_exec
-from bzt.engine import EngineModule
-
-class ShellExecutor(EngineModule):
+class ShellExecutor(ScenarioExecutor):
     def __init__(self):
         super(ShellExecutor, self).__init__()
-        self.shells = []
-        self._stage = None
-        self.possible_stages = ["prepare", "post-prepare",
-                                "startup", "post-startup",
-                                "check", "post-check",
-                                "postprocess", "post-postprocess",
-                                "shutdown", "post-shutdown"]
-
-    def add_shell(self, shell_config):
-        """
-        Create shell, add it to self.shells
-        """
-        pass
-
-    def configure(self, config):
-        """
-        Parse config, create shell objects
-        :param config:
-        :return:
-        """
-        if config:
-            for shell_config in config:
-                shell = Shell(shell_config)
-                self.shells.append(shell)
-        else:
-            self.log.debug("No shell hooks configured")
-
-    @property
-    def stage(self, stage):
-        return self._stage
-
-    @stage.setter
-    def stage(self, stage):
-        if stage not in self.possible_stages:
-            self.log.error("Unknown stage")
-        else:
-            self._stage = stage
-            self.log.debug("Stage changed to %s", stage)
-            self.poll_shells(stage)
-
-    def poll_shells(self, pre_stage):
-        for shell in self.shells:
-            shell.poll()
-
-    def shutdown(self):
-        pass
-
-
-
-class Shell(object):
-    def __init__(self, config):
-        self.config = config
+        self.tasks = []
 
     def prepare(self):
         """
-        Parse config, apply config
+        Configure Tasks
         :return:
         """
-        pass
+        tasks = self.get_scenario().get("tasks")
+        for task_config in tasks:
+            self.tasks.append(Task(task_config, self.log))
+        self.check_tasks("prepare")
+
+    def startup(self):
+        """
+        :return:
+        """
+        self.check_tasks("startup")
+
+    def check(self):
+        """
+        If any tasks in check stage -
+        :return:
+        """
+        return True
+
+    def shutdown(self):
+        """
+        should forcefully kill all tasks at end
+        :return:
+        """
+        self.check_tasks("shutdown")
+
+    def check_tasks(self, cur_stage):
+        self.log.debug("Checking tasks, stage: %s", cur_stage)
+        for task in self.tasks:
+            if task.config.get("start-stage") == cur_stage:
+                task.startup()
+
+        for task in self.tasks:
+            if task.config.get("block") and not task.is_finished():
+                while not task.is_finished():
+                    self.log.debug("Waiting for tasks to complete...")
+                    time.sleep(1)
+
+        for task in self.tasks:
+            if task.config.get("stop-stage") == cur_stage:
+                self.log.debug("shutting task down, stop_stage, %d", task.process.pid)
+                task.shutdown()
+
+
+class Task(object):
+    def __init__(self, config, parent_log):
+        self.log = None
+        self.config = config
+        self.process = None
+        self.stdout = None
+        self.stderr = None
+        self.is_failed = False
+        self.prepare(parent_log)
+
+    def prepare(self, parent_log):
+        """
+        Parse config, apply config, merge with defaults
+        :return:
+        """
+
+        self.log = parent_log.getChild(self.__class__.__name__)
+        default_config = {"start-stage": "prepare", "block": False, "force-shutdown": True, "stop-stage": "shutdown",
+                          "stop-on-fail": False}
+        default_config.update(self.config)
+        self.config = default_config
 
     def startup(self):
         """
         Run task
         :return:
         """
-        pass
+        task_cmd = " ".join(shlex.split(self.config.get("command")))
+        # self.log.debug("Task command line %s", task_cmd)
+        with tempfile.NamedTemporaryFile(prefix="task_out", delete=False) as self.stdout, tempfile.NamedTemporaryFile(
+                prefix="task_out", delete=False) as self.stderr:
+            self.process = shell_exec(task_cmd, cwd="/tmp", stdout=self.stdout, stderr=self.stderr, shell=True)
+        self.log.debug("Task PID: %d", self.process.pid)
+
+    def is_finished(self):
+        ret_code = self.process.poll()
+        if ret_code is not None:
+            with open(self.stderr.name) as fds_stderr, open(self.stdout.name) as fds_stdout:
+                self.log.debug("Task stdout:\n %s", fds_stdout.read())
+                self.log.debug("Task stderr:\n %s", fds_stderr.read())
+            if ret_code != 0:
+                self.log.debug("Task exit code: %s", ret_code)
+                self.is_failed = True
+                if self.config.get("stop-on-fail"):
+                    self.log.error("Task failed, shutting down.")
+                    raise ManualShutdown
+            return True
+        self.stderr.flush()
+        self.stdout.flush()
+        return False
 
     def shutdown(self, force=True):
         """
-        Shutdown
+        Shutdown force/grace
         :return:
         """
-        pass
+        if not self.is_finished():
+            self.log.info("shutting task down")
+            shutdown_process(self.process, self.log)
+        else:
+            self.log.info("Task already completed")
 
-    def check(self):
-        """
-        check if running
-        :return:
-        """
-        pass
+        os.remove(self.stderr.name)
+        os.remove(self.stdout.name)
