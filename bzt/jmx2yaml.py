@@ -997,11 +997,15 @@ def main():
     parsed_options, args = parser.parse_args()
     if len(args) > 0:
         tool = JMX2YAML(parsed_options, args[0])
+        code = 0
         try:
             tool.process()
         except BaseException as exc:
             logging.error("Exception: %s", exc)
             logging.debug("Exception: %s", traceback.format_exc())
+            code = 1
+
+        exit(code)
     else:
         sys.stdout.write(usage + "\n")
 
