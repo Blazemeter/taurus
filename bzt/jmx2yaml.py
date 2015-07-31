@@ -25,6 +25,7 @@ from cssselect import GenericTranslator
 import sys
 from bzt.modules.jmeter import JMX
 from bzt.utils import to_json
+from bzt.cli import CLI
 
 KNOWN_TAGS = ["hashTree", "jmeterTestPlan", "TestPlan", "ResultCollector",
               "HTTPSamplerProxy",
@@ -905,7 +906,6 @@ class Exporter(object):
                 self._to_yaml(jmx_as_dict, file_name)
             elif export_format == "json":
                 self._to_json(jmx_as_dict, file_name)
-            self.log.info("Done processing, result saved in %s", file_name)
         else:
             if export_format == "yml":
                 self._to_yaml(jmx_as_dict, None)
@@ -942,13 +942,8 @@ class JMX2YAML(object):
         self.file_to_convert = file_name
 
     def setup_logging(self):
-        logging.basicConfig()
-        if not self.options.quiet:
-            if self.options.verbose:
-                self.log.setLevel('DEBUG')
-            else:
-                self.log.setLevel('INFO')
-        else:
+        CLI.setup_logging(self.options)
+        if self.options.quiet:
             logging.disable(logging.WARNING)
 
     def process(self):
@@ -998,6 +993,7 @@ def main():
                       help="Do not display any log messages")
     parser.add_option('-j', '--json', action='store_true', default=False, dest='json',
                       help="Use JSON format")
+    parser.add_option('-l', '--log', action='store', default=False, help="Log file location")
     parsed_options, args = parser.parse_args()
     if len(args) > 0:
         tool = JMX2YAML(parsed_options, args[0])
