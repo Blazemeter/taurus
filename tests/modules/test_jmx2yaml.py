@@ -41,13 +41,14 @@ class logger_mock(object):
         return self
 
 class FakeOptions(object):
-    def __init__(self, no_dump=False, verbose=True, file_name=None, dump_jmx=False, quiet=False, json=False):
+    def __init__(self, no_dump=False, verbose=True, file_name=None, dump_jmx=False, quiet=False, json=False, log=False):
         self.no_dump = no_dump
         self.verbose = verbose
         self.file_name = file_name
         self.dump_jmx = dump_jmx
         self.quiet = quiet
         self.json = json
+        self.log = log
 
 
 class TestConverter(BZTestCase):
