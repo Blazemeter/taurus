@@ -1,3 +1,5 @@
+from logging import Handler
+import logging
 from tests import BZTestCase
 from bzt.jmx2yaml import JMX2YAML
 from bzt.six import u
@@ -7,12 +9,28 @@ import os
 import tempfile
 
 
-class logger_mock(object):
+class RecordingHandler(Handler):
     def __init__(self):
+        super(RecordingHandler, self).__init__()
         self.info_buff = StringIO()
         self.err_buff = StringIO()
         self.debug_buff = StringIO()
         self.warn_buff = StringIO()
+
+    def emit(self, record):
+        """
+
+        :type record: logging.LogRecord
+        :return:
+        """
+        if record.levelno == logging.INFO:
+            self.write_log(self.info_buff, record.msg, *record.args)
+        elif record.levelno == logging.ERROR:
+            self.write_log(self.err_buff, record.msg, *record.args)
+        elif record.levelno == logging.WARN:
+            self.write_log(self.warn_buff, record.msg, *record.args)
+        elif record.levelno == logging.DEBUG:
+            self.write_log(self.debug_buff, record.msg, *record.args)
 
     def write_log(self, buff, str_template, *args):
         if args:
@@ -22,23 +40,6 @@ class logger_mock(object):
             buff.write(u(str_template))
             buff.write(u("\n"))
 
-    def info(self, str_template, *args):
-        self.write_log(self.info_buff, str_template, *args)
-
-    def error(self, str_template, *args):
-        self.write_log(self.err_buff, str_template, *args)
-
-    def warning(self, str_template, *args):
-        self.write_log(self.warn_buff, str_template, *args)
-
-    def debug(self, str_template, *args):
-        self.write_log(self.debug_buff, str_template, *args)
-
-    def setLevel(self, level):
-        pass
-
-    def getChild(self, *args):
-        return self
 
 class FakeOptions(object):
     def __init__(self, no_dump=False, verbose=True, file_name=None, dump_jmx=False, quiet=False, json=False, log=False):
@@ -58,65 +59,66 @@ class TestConverter(BZTestCase):
 
     def test_load_jmx_file(self):
 
-        try:
-            obj = JMX2YAML(FakeOptions(), "tests/jmx/http.jmx")
-            obj.log = logger_mock()
-            obj.process()
-        except:
-            self.fail()
+        log_recorder = RecordingHandler()
+        obj = JMX2YAML(FakeOptions(), "tests/jmx/http.jmx")
+        obj.log.addHandler(log_recorder)
+        obj.process()
 
-        self.assertIn("Loading jmx file", obj.log.info_buff.getvalue())
-        self.assertNotEqual("", obj.log.debug_buff.getvalue())
-        self.assertEqual("", obj.log.err_buff.getvalue())
+        self.assertIn("Loading jmx file", log_recorder.info_buff.getvalue())
+        self.assertNotEqual("", log_recorder.debug_buff.getvalue())
+        self.assertEqual("", log_recorder.err_buff.getvalue())
 
+        log_recorder = RecordingHandler()
         try:
             obj = JMX2YAML(FakeOptions(), "tests/jmx/notfound.jmx")
-            obj.log = logger_mock()
+            obj.log.addHandler(log_recorder)
             obj.process()
             self.fail()
         except BaseException as exc:
             self.assertIn("File does not exist", exc.args[0])
 
-        self.assertIn("Loading jmx file", obj.log.info_buff.getvalue())
-        self.assertIn("does not exist", obj.log.err_buff.getvalue())
-        self.assertEqual("", obj.log.debug_buff.getvalue())
+        self.assertIn("Loading jmx file", log_recorder.info_buff.getvalue())
+        self.assertIn("does not exist", log_recorder.err_buff.getvalue())
+        self.assertEqual("", log_recorder.debug_buff.getvalue())
 
+        log_recorder = RecordingHandler()
         try:
             obj = JMX2YAML(FakeOptions(), "tests/jmx/broken.jmx")
-            obj.log = logger_mock()
+            obj.log.addHandler(log_recorder)
             obj.process()
             self.fail()
         except BaseException as exc:
             self.assertIn("XML parsing failed", exc.args[0])
 
-        self.assertIn("Loading jmx file", obj.log.info_buff.getvalue())
-        self.assertIn("Error while processing jmx file", obj.log.err_buff.getvalue())
-        self.assertIn("XML parsing error", obj.log.debug_buff.getvalue())
+        self.assertIn("Loading jmx file", log_recorder.info_buff.getvalue())
+        self.assertIn("Error while processing jmx file", log_recorder.err_buff.getvalue())
+        self.assertIn("XML parsing error", log_recorder.debug_buff.getvalue())
 
+        log_recorder = RecordingHandler()
         try:
             with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
                 pass
             obj = JMX2YAML(FakeOptions(file_name=tmp_file.name), "tests/jmx/http.jmx")
-            obj.log = logger_mock()
+            obj.log.addHandler(log_recorder)
             obj.process()
             os.remove(tmp_file.name)
         except:
             self.fail()
 
-        self.assertIn("Loading jmx file", obj.log.info_buff.getvalue())
-        self.assertIn("Done processing, result saved in", obj.log.info_buff.getvalue())
-        self.assertIn("already exists and will be overwritten", obj.log.warn_buff.getvalue())
-        self.assertIn("Removing unknown element", obj.converter.log.warn_buff.getvalue())
+        self.assertIn("Loading jmx file", log_recorder.info_buff.getvalue())
+        self.assertIn("Done processing, result saved in", log_recorder.info_buff.getvalue())
+        self.assertIn("Removing unknown element", log_recorder.warn_buff.getvalue())
 
     def test_export_clean_jmx(self):
         with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
             pass
         obj = JMX2YAML(FakeOptions(dump_jmx=tmp_file.name, no_dump=True), "tests/yaml/converter/disabled.jmx")
-        obj.log = logger_mock()
+        log_recorder = RecordingHandler()
+        obj.log.addHandler(log_recorder)
         obj.process()
         os.remove(tmp_file.name)
-        self.assertIn("Loading jmx file", obj.log.info_buff.getvalue())
-        self.assertIn("already exists and will be overwritten", obj.log.warn_buff.getvalue())
+        self.assertIn("Loading jmx file", log_recorder.info_buff.getvalue())
+        self.assertIn("already exists and will be overwritten", log_recorder.warn_buff.getvalue())
 
     def test_not_jmx(self):
         obj = JMX2YAML(FakeOptions(file_name="build/tmp.yml"), "tests/jmx/not-jmx.xml")
@@ -129,7 +131,8 @@ class TestConverter(BZTestCase):
     def test_clean_disabled_jmx(self):
         obj = JMX2YAML(FakeOptions(file_name="build/tmp.yml"), "tests/yaml/converter/disabled.jmx")
         obj.process()
-        disabled_elements = [element for element in obj.converter.dialect.tree.iter() if element.get("enabled") == "false"]
+        disabled_elements = [element for element in obj.converter.dialect.tree.iter() if
+                             element.get("enabled") == "false"]
         self.assertEquals(0, len(disabled_elements))
 
     def test_copy_global_csv_dataset(self):
