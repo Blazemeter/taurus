@@ -1,6 +1,6 @@
-# Command-Line Tool jmx2yaml
+# Convert Existing JMX File into Taurus YAML
 
-Command-line tool named jmx2yaml is used to convert simple JMX scripts to bzt configuration file. Only few JMX elements are supported. Possible options are:
+Command-line tool named `jmx2yaml` is used to convert simple JMX scripts into Taurus configuration file. Tool options are:
 
   - `-h, --help` - show help message and exit
   - `-q, --quiet` - only errors printed to console
@@ -14,3 +14,5 @@ Usage:
   - `jmx2yaml sample.jmx`
   - `jmx2yaml sample.jmx -q -n -j` 
   - `jmx2yaml sample.jmx -v -o out.yml -d modified.jmx` 
+  
+Make note that only flat JMX structure is supported. Several Thread Groups will be transformed into several executions. 

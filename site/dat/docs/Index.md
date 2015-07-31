@@ -13,8 +13,8 @@
     1. [Gatling Executor](Gatling.md)
     1. [Grinder Executor](Grinder.md)
     1. [Reporting and Results Processing](Reporting.md)
+ 1. [JMX to YAML converter](JMX2YAML.md)
  1. [Troubleshooting, Support and Feedback](https://groups.google.com/forum/#!forum/codename-taurus)
- 1. [JMX to YAML converter](Jmx2yaml.md)
 
 ## Developer Documentation
 
