@@ -661,7 +661,7 @@ class JMXasDict(JMX):
 
         return json_path_assertions
 
-    def _process_tg(self, tg_etree_element):
+    def process_tg(self, tg_etree_element):
         """
         Get execution and scenario settings for TG
         :param tg_etree_element:
@@ -713,7 +713,7 @@ class JMXasDict(JMX):
         :return:
         """
         default_tg_settings = {"store-cookie": False, "store-cache": False, "use-dns-cache-mgr": False}
-        global_tg_settings = self._get_global_tg_scenario_settings()
+        global_tg_settings = self._get_global_tg_scenario()
         tg_settings = {"requests": []}
         tg_settings.update(default_tg_settings)
         tg_settings.update(self._get_data_sources(tg_etree_element))
@@ -760,7 +760,7 @@ class JMXasDict(JMX):
             if obj.tag != 'hashTree' and obj.tag != 'ThreadGroup':
                 self.global_objects.append(obj)
 
-    def _get_global_tg_scenario_settings(self):
+    def _get_global_tg_scenario(self):
         """
         :return: dict
         """
@@ -866,7 +866,7 @@ class Converter(object):
             self.log.debug("Total thread groups: %d", len(tg_etree_elements))
 
             for tg_etree_element in tg_etree_elements:
-                td_executions_dict, tg_scenario_dict = self.dialect._process_tg(tg_etree_element)
+                td_executions_dict, tg_scenario_dict = self.dialect.process_tg(tg_etree_element)
                 base_script["scenarios"].update(tg_scenario_dict)
                 base_script["execution"].append(td_executions_dict)
                 self.log.debug("Done processing thread group %s", tg_etree_element.get("testname"))
@@ -888,10 +888,12 @@ class Converter(object):
                 self.dialect.save(dump_jmx)
                 self.log.info("Cleaned JMX saved in %s", dump_jmx)
 
+
 class Exporter(object):
     """
     Export results as yml
     """
+
     def __init__(self, log):
         self.log = log.getChild(self.__class__.__name__)
 
@@ -905,10 +907,10 @@ class Exporter(object):
                 self._to_json(jmx_as_dict, file_name)
             self.log.info("Done processing, result saved in %s", file_name)
         else:
-            if export_format == "yaml":
+            if export_format == "yml":
                 self._to_yaml(jmx_as_dict, None)
             elif export_format == "json":
-                 self._to_json(jmx_as_dict, None)
+                self._to_json(jmx_as_dict, None)
 
     def _to_yaml(self, jmx_as_dict, file_name):
         if file_name:
@@ -923,6 +925,8 @@ class Exporter(object):
                 fds.write(to_json(jmx_as_dict))
         else:
             sys.stdout.write(to_json(jmx_as_dict))
+            sys.stdout.write("\n")
+
 
 class JMX2YAML(object):
     """
