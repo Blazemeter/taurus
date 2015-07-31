@@ -980,7 +980,7 @@ class JMX2YAML(object):
 
 def main():
     usage = "Usage: jmx2yaml [input jmx file] [options]"
-    parser = OptionParser(usage=usage, prog="jmx2yml")
+    parser = OptionParser(usage=usage, prog="jmx2yaml")
     parser.add_option('-v', '--verbose', action='store_true', default=False,
                       help="Prints all logging messages to console")
     parser.add_option('-o', '--out', dest="file_name",
