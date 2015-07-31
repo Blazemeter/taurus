@@ -23,6 +23,7 @@ from copy import deepcopy
 from collections import namedtuple
 from cssselect import GenericTranslator
 import sys
+from bzt.engine import Configuration
 from bzt.modules.jmeter import JMX
 from bzt.utils import to_json
 from bzt.cli import CLI
@@ -329,6 +330,7 @@ class JMXasDict(JMX):
 
     def _make_url(self, url_info):
         """
+        :type url_info: urllib.ParseResults
         :return: string
         """
         path = "/" if not url_info.path else url_info.path
@@ -890,44 +892,6 @@ class Converter(object):
                 self.log.info("Cleaned JMX saved in %s", dump_jmx)
 
 
-class Exporter(object):
-    """
-    Export results as yml
-    """
-
-    def __init__(self, log):
-        self.log = log.getChild(self.__class__.__name__)
-
-    def export(self, jmx_as_dict, export_format, file_name=None):
-        if file_name:
-            if os.path.exists(file_name):
-                self.log.warning("%s already exists and will be overwritten", file_name)
-            if export_format == "yml":
-                self._to_yaml(jmx_as_dict, file_name)
-            elif export_format == "json":
-                self._to_json(jmx_as_dict, file_name)
-        else:
-            if export_format == "yml":
-                self._to_yaml(jmx_as_dict, None)
-            elif export_format == "json":
-                self._to_json(jmx_as_dict, None)
-
-    def _to_yaml(self, jmx_as_dict, file_name):
-        if file_name:
-            with open(file_name, "wt") as fds:
-                yaml.dump(jmx_as_dict, fds, default_flow_style=False, explicit_start=True)
-        else:
-            yaml.dump(jmx_as_dict, sys.stdout, default_flow_style=False, explicit_start=True)
-
-    def _to_json(self, jmx_as_dict, file_name=None):
-        if file_name:
-            with open(file_name, "wt") as fds:
-                fds.write(to_json(jmx_as_dict))
-        else:
-            sys.stdout.write(to_json(jmx_as_dict))
-            sys.stdout.write("\n")
-
-
 class JMX2YAML(object):
     """
     Controller
@@ -938,7 +902,6 @@ class JMX2YAML(object):
         self.options = options
         self.setup_logging()
         self.converter = None
-        self.exporter = None
         self.file_to_convert = file_name
 
     def setup_logging(self):
@@ -951,7 +914,7 @@ class JMX2YAML(object):
         Process file
         :return:
         """
-        output_format = "json" if self.options.json else "yml"
+        output_format = Configuration.JSON if self.options.json else Configuration.YAML
 
         self.log.info('Loading jmx file %s', self.file_to_convert)
         self.file_to_convert = os.path.abspath(os.path.expanduser(self.file_to_convert))
@@ -964,18 +927,17 @@ class JMX2YAML(object):
         except BaseException:
             self.log.error("Error while processing jmx file: %s", self.file_to_convert)
             raise
-        self.exporter = Exporter(self.log)
 
-        if self.options.no_dump:
-            self.exporter.export(jmx_as_dict, output_format)
+        exporter = Configuration()
+        exporter.merge(jmx_as_dict)
 
+        if self.options.file_name:
+            file_name = self.options.file_name
         else:
-            if self.options.file_name:
-                file_name = self.options.file_name
-            else:
-                file_name = self.file_to_convert + "." + output_format
-            self.exporter.export(jmx_as_dict, output_format, file_name)
-            self.log.info("Done processing, result saved in %s", file_name)
+            file_name = self.file_to_convert + "." + output_format.lower()
+
+        exporter.dump(file_name, output_format)
+        self.log.info("Done processing, result saved in %s", file_name)
 
 
 def main():
@@ -987,8 +949,6 @@ def main():
                       help="Set output .yml file name, by default input file name + .yml is used")
     parser.add_option('-d', '--dump-jmx', action='store', dest='dump_jmx', default=False,
                       help="Dumps processed JMX to file")
-    parser.add_option('-n', '--no-dump', action='store_true', default=False, dest='no_dump',
-                      help="display result into stdout")
     parser.add_option('-q', '--quiet', action='store_true', default=False, dest='quiet',
                       help="Do not display any log messages")
     parser.add_option('-j', '--json', action='store_true', default=False, dest='json',
