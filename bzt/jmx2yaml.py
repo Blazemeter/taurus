@@ -16,7 +16,6 @@ limitations under the License.
 """
 import logging
 import os
-from bzt.six import etree
 import traceback
 import yaml
 from optparse import OptionParser
@@ -25,6 +24,7 @@ from collections import namedtuple
 from cssselect import GenericTranslator
 import sys
 from bzt.modules.jmeter import JMX
+from bzt.utils import to_json
 
 KNOWN_TAGS = ["hashTree", "jmeterTestPlan", "TestPlan", "ResultCollector",
               "HTTPSamplerProxy",
@@ -48,49 +48,22 @@ KNOWN_TAGS = ["hashTree", "jmeterTestPlan", "TestPlan", "ResultCollector",
               "ResultCollector"]
 
 
-class YML(JMX):
+class JMXasDict(JMX):
+    """
+    Model
+    """
+
     def __init__(self, log):
-        super(YML, self).__init__(None)
+        super(JMXasDict, self).__init__()
         self.log = log.getChild(self.__class__.__name__)
         self.global_objects = []
         self.scenario = {"execution": None, "scenarios": None}
 
-    def load(self, str_jmx):
-        try:
-            self.tree = etree.fromstring(str_jmx)
-        except BaseException as exc:
-            self.log.debug("XML parsing error: %s", traceback.format_exc())
-            raise RuntimeError("XML parsing failed: %s" % exc)
-
-    def generate_yaml_script(self):
-        """
-        Get all thread groups from jmx, convert to dict.
-        :return: dict
-        """
-
+    def load(self, original):
+        super(JMXasDict, self).load(original)
         self._clean_disabled_elements(self.tree)
         self._clean_jmx_tree(self.tree)
-
-        base_script = {"scenarios": {}, "execution": []}
-
-        self.log.debug("Processing thread groups...")
-        tg_etree_elements = self.tree.findall(".//ThreadGroup")
-        if not tg_etree_elements:
-            raise RuntimeError("No thread groups found!")
         self._get_global_objects()
-
-        if tg_etree_elements:
-            self.log.debug("Total thread groups: %d", len(tg_etree_elements))
-
-            for tg_etree_element in tg_etree_elements:
-                td_executions_dict, tg_scenario_dict = self._process_tg(tg_etree_element)
-                base_script["scenarios"].update(tg_scenario_dict)
-                base_script["execution"].append(td_executions_dict)
-                self.log.debug("Done processing thread group %s", tg_etree_element.get("testname"))
-            return base_script
-        else:
-            self.log.error("No thread groups was found!")
-            raise RuntimeError("No thread groups was found in JMX file!")
 
     def _get_bool_prop(self, element, prop_name):
         """
@@ -869,14 +842,100 @@ class YML(JMX):
 
 
 class Converter(object):
-    def __init__(self, options, file_to_convert):
+    """
+    View
+    """
 
-        self.options = options
-        self.file_to_convert = file_to_convert
+    def __init__(self, log):
+        self.log = log.getChild(self.__class__.__name__)
+        self.dialect = JMXasDict(self.log)
+
+    def convert(self, file_to_convert, dump_modified_jmx_to=None):
+        """
+        Get all thread groups from jmx, convert to dict.
+        :return: dict
+        """
+        self.dialect.load(file_to_convert)
+        base_script = {"scenarios": {}, "execution": []}
+        self.log.debug("Processing thread groups...")
+        tg_etree_elements = self.dialect.tree.findall(".//ThreadGroup")
+        if not tg_etree_elements:
+            raise RuntimeError("No thread groups found!")
+
+        if tg_etree_elements:
+            self.log.debug("Total thread groups: %d", len(tg_etree_elements))
+
+            for tg_etree_element in tg_etree_elements:
+                td_executions_dict, tg_scenario_dict = self.dialect._process_tg(tg_etree_element)
+                base_script["scenarios"].update(tg_scenario_dict)
+                base_script["execution"].append(td_executions_dict)
+                self.log.debug("Done processing thread group %s", tg_etree_element.get("testname"))
+
+            if dump_modified_jmx_to:
+                self._dump_modified_jmx(dump_modified_jmx_to)
+            return base_script
+        else:
+            self.log.error("No thread groups was found!")
+            raise RuntimeError("No thread groups was found in JMX file!")
+
+    def _dump_modified_jmx(self, dump_jmx):
+        """
+        Dump modified JMX from dialect object
+        """
+        if dump_jmx:
+            if os.path.exists(dump_jmx):
+                self.log.warning("%s already exists and will be overwritten", dump_jmx)
+                self.dialect.save(dump_jmx)
+                self.log.info("Cleaned JMX saved in %s", dump_jmx)
+
+class Exporter(object):
+    """
+    Export results as yml
+    """
+    def __init__(self, log):
+        self.log = log.getChild(self.__class__.__name__)
+
+    def export(self, jmx_as_dict, export_format, file_name=None):
+        if file_name:
+            if os.path.exists(file_name):
+                self.log.warning("%s already exists and will be overwritten", file_name)
+            if export_format == "yml":
+                self._to_yaml(jmx_as_dict, file_name)
+            elif export_format == "json":
+                self._to_json(jmx_as_dict, file_name)
+            self.log.info("Done processing, result saved in %s", file_name)
+        else:
+            if export_format == "yaml":
+                self._to_yaml(jmx_as_dict, None)
+            elif export_format == "json":
+                 self._to_json(jmx_as_dict, None)
+
+    def _to_yaml(self, jmx_as_dict, file_name):
+        if file_name:
+            with open(file_name, "wt") as fds:
+                yaml.dump(jmx_as_dict, fds, default_flow_style=False, explicit_start=True)
+        else:
+            yaml.dump(jmx_as_dict, sys.stdout, default_flow_style=False, explicit_start=True)
+
+    def _to_json(self, jmx_as_dict, file_name=None):
+        if file_name:
+            with open(file_name, "wt") as fds:
+                fds.write(to_json(jmx_as_dict))
+        else:
+            sys.stdout.write(to_json(jmx_as_dict))
+
+class JMX2YAML(object):
+    """
+    Controller
+    """
+
+    def __init__(self, options, file_name):
         self.log = logging.getLogger(self.__class__.__name__)
+        self.options = options
         self.setup_logging()
-        self.script_as_dict = None
-        self.converter = YML(self.log)
+        self.converter = None
+        self.exporter = None
+        self.file_to_convert = file_name
 
     def setup_logging(self):
         logging.basicConfig()
@@ -888,75 +947,40 @@ class Converter(object):
         else:
             logging.disable(logging.WARNING)
 
-    def convert(self):
+    def process(self):
         """
-        Converts all
+        Process file
         :return:
         """
-        try:
-            self.load_jmx()
-        except BaseException:
-            self.log.error("Error while loading jmx file")
-            raise
+        output_format = "json" if self.options.json else "yml"
 
+        self.log.info('Loading jmx file %s', self.file_to_convert)
+        self.file_to_convert = os.path.abspath(os.path.expanduser(self.file_to_convert))
+        if not os.path.exists(self.file_to_convert):
+            self.log.error("File %s does not exist", self.file_to_convert)
+            raise RuntimeError("File does not exist")
+        self.converter = Converter(self.log)
         try:
-            self.script_as_dict = self.converter.generate_yaml_script()
-            self.dump_yaml()
+            jmx_as_dict = self.converter.convert(self.file_to_convert, self.options.dump_jmx)
         except BaseException:
             self.log.error("Error while processing jmx file: %s", self.file_to_convert)
             raise
+        self.exporter = Exporter(self.log)
 
-        if self.options.dump_jmx:
-            self.dump_cleaned_jmx(self.options.dump_jmx)
+        if self.options.no_dump:
+            self.exporter.export(jmx_as_dict, output_format)
 
-    def load_jmx(self):
-        """
-        Loads JMX file
-        """
-        self.log.info('Loading jmx file %s', self.file_to_convert)
-        self.file_to_convert = os.path.abspath(os.path.expanduser(self.file_to_convert))
-
-        if os.path.exists(self.file_to_convert):
-            with open(self.file_to_convert, 'rb') as fds:
-                self.converter.load(fds.read())
         else:
-            self.log.error("File %s does not exist", self.file_to_convert)
-            raise RuntimeError("File does not exist")
-
-    def dump_yaml(self):
-        """
-        Dumps test plan as yml file
-        :param file_path:
-        :return:
-        """
-        if not self.options.no_dump:
             if self.options.file_name:
                 file_name = self.options.file_name
             else:
-                file_name = self.file_to_convert + ".yml"
-            if os.path.exists(file_name):
-                self.log.warning("%s already exists and will be overwritten", file_name)
-            with open(file_name, "wt") as fds:
-                yaml.dump(self.script_as_dict, fds, default_flow_style=False, explicit_start=True)
+                file_name = self.file_to_convert + "." + output_format
+            self.exporter.export(jmx_as_dict, output_format, file_name)
             self.log.info("Done processing, result saved in %s", file_name)
-        else:
-            yaml.dump(self.script_as_dict, sys.stdout, default_flow_style=False, explicit_start=True)
-
-    def dump_cleaned_jmx(self, file_path):
-        """
-        Dumps cleaned jmx tree
-        :param file_path:
-        :return:
-        """
-        if os.path.exists(file_path):
-            self.log.warning("%s already exists and will be overwritten", file_path)
-        with open(file_path, "wb") as fds:
-            fds.write(etree.tostring(self.converter.tree, pretty_print=True, xml_declaration=True))
-        self.log.info("Cleaned JMX saved in %s", file_path)
 
 
 def main():
-    usage = "Usage: jmx2yml [input jmx file] [options]"
+    usage = "Usage: jmx2yaml [input jmx file] [options]"
     parser = OptionParser(usage=usage, prog="jmx2yml")
     parser.add_option('-v', '--verbose', action='store_true', default=False,
                       help="Prints all logging messages to console")
@@ -968,11 +992,13 @@ def main():
                       help="display result into stdout")
     parser.add_option('-q', '--quiet', action='store_true', default=False, dest='quiet',
                       help="Do not display any log messages")
+    parser.add_option('-j', '--json', action='store_true', default=False, dest='json',
+                      help="Use JSON format")
     parsed_options, args = parser.parse_args()
     if len(args) > 0:
-        converter = Converter(parsed_options, args[0])
+        tool = JMX2YAML(parsed_options, args[0])
         try:
-            converter.convert()
+            tool.process()
         except BaseException as exc:
             logging.error("Exception: %s", exc)
             logging.debug("Exception: %s", traceback.format_exc())
