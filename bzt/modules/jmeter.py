@@ -40,15 +40,7 @@ from bzt.modules.console import WidgetProvider
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.utils import shell_exec, ensure_is_dict, humanize_time, dehumanize_time, BetterDict, \
     guess_csv_dialect, unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext
-from bzt.six import iteritems, text_type, string_types, StringIO, parse, request
-
-try:
-    from lxml import etree
-except ImportError:
-    try:
-        import cElementTree as etree
-    except ImportError:
-        import elementtree.ElementTree as etree
+from bzt.six import iteritems, text_type, string_types, StringIO, parse, request, etree
 
 EXE_SUFFIX = ".bat" if platform.system() == 'Windows' else ""
 

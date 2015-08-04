@@ -22,6 +22,8 @@ import operator
 import collections
 import urllib
 import urllib.error
+import urllib.request
+import urllib.parse
 
 import tkinter
 import configparser

@@ -790,6 +790,9 @@ class Provisioning(EngineModule):
         if not isinstance(executions, list):
             executions = [executions]
 
+        if not executions:
+            raise ValueError("No execution is configured")
+
         for execution in executions:
             executor = execution.get("executor", default_executor)
             if not executor:

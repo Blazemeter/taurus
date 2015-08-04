@@ -10,11 +10,11 @@
 
 # Release Process
  - Modify Changelog.md and README.md
- - Set correct version, commit
+ - Set correct version in `bzt/__init__.py`, commit
  - Create git tag
  - git push, including tag
- - Upload tp PyPi: `./make-docs.sh && python ./setup.py clean sdist upload upload_docs --upload-dir=build/docs`
- - generate and upload docs (TODO)
+ - Upload to PyPi: `python ./setup.py clean sdist upload`
+ - site is update automatically by Jenkins
  
 # Deploying Project Website
  
@@ -36,3 +36,14 @@ Then get [PHP composer](https://getcomposer.org/download/), go to `site` dir and
 
 # Dev Artifacts
 [Code Coverage Report](/coverage/)
+
+## Python Egg Snapshots
+
+Download and install it like this:
+```bash
+pip install bzt-150.tar.gz
+```
+
+----
+
+<downloads-dir:snapshots>

@@ -188,3 +188,32 @@ table.wiki img {
     top: 2em;
     display: block;
 }
+
+/* DOWNLOADS */
+.file_download {
+    display: block;
+    border: 1px dotted silver;
+    margin: 1em 0em;
+    padding: 0.5em;
+    background-color: #EEE;
+}
+
+.file_download a {
+}
+
+.file_download i {
+}
+
+.file_download b {
+
+}
+
+.file_download .filesize, .file_download .filedate {
+    color: gray;
+    font-weight: bold;
+}
+
+.file_download .count {
+    color: gray;
+    float:right;
+}
