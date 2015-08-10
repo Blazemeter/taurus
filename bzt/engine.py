@@ -652,7 +652,7 @@ class Configuration(BetterDict):
             else:
                 pointer = pointer.get(part)
         self.__ensure_list_capacity(pointer, parts[-1])
-        self.log.debug("Applying: %s[%s]=%s", pointer, parts[-1], value)
+        self.log.debug("Applying: %s[%s]=%s", self.masq_sensitive(copy.deepcopy(pointer)), parts[-1], value)
         if isinstance(parts[-1], string_types) and parts[-1][0] == '^':
             del pointer[parts[-1][1:]]
         else:
