@@ -303,8 +303,8 @@ class BlazeMeterClient(object):
         :type test_id: str
         :return:
         """
-        self.log.info("Initiating Cloud test...")
-        data = parse.urlencode({})
+        self.log.info("Initiating cloud test...")
+        data = urlencode({})
 
         url = self.address + "/api/latest/tests/%s/start" % test_id
 
@@ -330,7 +330,7 @@ class BlazeMeterClient(object):
                 data = {"signature": self.data_signature, "testId": self.test_id, "sessionId": self.active_session_id}
                 self._request(url % self.active_session_id, json.dumps(data))
 
-    def test_by_name(self, name, configuration):
+    def test_by_name(self, name, configuration, taurus_config, resource_files):
         """
 
         :type name: str
@@ -344,16 +344,26 @@ class BlazeMeterClient(object):
                 test_id = test['id']
 
         if not test_id:
+            self.log.debug("Creating new test")
             url = self.address + '/api/latest/tests'
             data = {"name": name, "configuration": configuration}
             hdr = {"Content-Type": " application/json"}
             resp = self._request(url, json.dumps(data), headers=hdr)
             test_id = resp['result']['id']
-        elif configuration['type'] == 'taurus':  # FIXME: this is weird way to code
-            url = '%s/api/latest/tests/%s' % (self.address, test_id)
-            data = {"id": test_id, "name": name, "configuration": configuration}
-            hdr = {"Content-Type": " application/json"}
-            resp = self._request(url, json.dumps(data), headers=hdr, method='PUT')
+
+        if configuration['type'] == 'taurus':  # FIXME: this is weird way to code
+            self.log.debug("Uploading files into the test")
+            url = '%s/api/latest/tests/%s/files' % (self.address, test_id)
+
+            body = MultiPartForm()
+
+            body.add_file_as_string('script', 'taurus.json', to_json(taurus_config))
+
+            for rfile in resource_files:
+                body.add_file('files[]', rfile)
+
+            hdr = {"Content-Type": body.get_content_type()}
+            response = self._request(url, body.form_as_bytes(), headers=hdr)
 
         self.log.debug("Using test ID: %s", test_id)
         return test_id
@@ -632,23 +642,27 @@ class CloudProvisioning(Provisioning):
         self.client.timeout = self.settings.get("timeout", self.client.timeout)
 
         if not self.client.token:
-            raise ValueError("You must provide API token to use Cloud provisioning")
+            raise ValueError("You must provide API token to use cloud provisioning")
 
         config = copy.deepcopy(self.engine.config)
         config.pop(Provisioning.PROV)
 
         bza_plugin = {
             "type": "taurus",
-            "serversCount": 0,
             "plugins": {
                 "taurus": {
-                    "scenario": config
+                    "filename": ""
                 }
             }
         }
 
         test_name = self.settings.get("test-name", "Taurus Test")
-        self.test_id = self.client.test_by_name(test_name, bza_plugin)
+
+        rfiles = []
+        for executor in self.executors:
+            rfiles += executor.get_resource_files()
+
+        self.test_id = self.client.test_by_name(test_name, bza_plugin, config, rfiles)
 
     def startup(self):
         super(CloudProvisioning, self).startup()
