@@ -73,7 +73,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
                     proxy_uri = "%s://%s" % (proxy_url.scheme, proxy_url.netloc)
                 proxy_handler = ProxyHandler({"https": proxy_uri, "http": proxy_uri})
                 opener = build_opener(proxy_handler)
-                install_opener(opener)
+                install_opener(opener)  # TODO: as it is global, move it to Engine?
 
         if not token:
             self.log.warning("No BlazeMeter API key provided, will upload anonymously")
@@ -89,7 +89,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
             try:
                 self.client.ping()  # to check connectivity and auth
                 if token:
-                    self.test_id = self.client.test_by_name(test_name, {"type": "external"})
+                    self.test_id = self.client.test_by_name(test_name, {"type": "external"}, self.engine.config, [])
             except HTTPError:
                 self.log.error("Cannot reach online results storage, maybe the address/token is wrong")
                 raise
@@ -324,7 +324,7 @@ class BlazeMeterClient(object):
         else:
             self.log.info("Ending data feeding...")
             if self.token:
-                url = self.address + "/api/latest/sessions/%s/terminate"
+                url = self.address + "/api/latest/masters/%s/terminate"
                 self._request(url % self.active_session_id)
             else:
                 url = self.address + "/api/latest/sessions/%s/terminateExternal"
@@ -623,6 +623,10 @@ class BlazeMeterClient(object):
         sess = self._request(self.address + '/api/latest/sessions/%s' % session_id)
         return sess['result']
 
+    def get_master(self, master_id):
+        sess = self._request(self.address + '/api/latest/masters/%s' % master_id)
+        return sess['result']
+
 
 class CloudProvisioning(Provisioning):
     """
@@ -640,7 +644,7 @@ class CloudProvisioning(Provisioning):
         # TODO: go to "blazemeter" section for these settings by default
         self.client.address = self.settings.get("address", self.client.address)
         self.client.token = self.settings.get("token", self.client.token)
-        self.client.timeout = self.settings.get("timeout", self.client.timeout)
+        self.client.timeout = dehumanize_time(self.settings.get("timeout", self.client.timeout))
 
         if not self.client.token:
             raise ValueError("You must provide API token to use cloud provisioning")
@@ -652,7 +656,7 @@ class CloudProvisioning(Provisioning):
             "type": "taurus",
             "plugins": {
                 "taurus": {
-                    "filename": "" # without this line it does not work
+                    "filename": ""  # without this line it does not work
                 }
             }
         }
@@ -671,13 +675,13 @@ class CloudProvisioning(Provisioning):
         self.log.info("Started cloud test: %s", url)
 
     def check(self):
-        sess = self.client.get_session(self.client.active_session_id)
-        self.log.debug("Test status: %s", sess['status'])
-        if 'statusCode' in sess and sess['statusCode'] > 100:
-            self.log.info("Test was stopped in the cloud: %s", sess['status'])
+        master = self.client.get_master(self.client.active_session_id)
+        if 'statusCode' in master and master['statusCode'] > 100:
+            self.log.info("Test was stopped in the cloud: %s", master['status'])
             self.client.active_session_id = None
             return True
-        return False
+
+        return super(CloudProvisioning, self).check()
 
     def shutdown(self):
         self.client.end_online()
