@@ -33,7 +33,7 @@ class FinalStatus(Reporter, AggregatorListener):
     def __init__(self):
         super(FinalStatus, self).__init__()
         self.last_sec = None
-        self.start_time = None
+        self.start_time = time.time()
         self.end_time = None
 
     def prepare(self):
