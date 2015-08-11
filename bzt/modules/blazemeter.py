@@ -310,7 +310,8 @@ class BlazeMeterClient(object):
 
         resp = self._request(url, data)
 
-        self.active_session_id = str(resp['result']['sessionsId'][0])
+        self.log.debug("Response: %s", resp['result'])
+        self.active_session_id = str(resp['result']['id'])
         self.results_url = self.address + '/app/#reports/%s' % self.active_session_id
         return self.results_url
 
@@ -651,7 +652,7 @@ class CloudProvisioning(Provisioning):
             "type": "taurus",
             "plugins": {
                 "taurus": {
-                    "filename": ""
+                    "filename": "" # without this line it does not work
                 }
             }
         }
