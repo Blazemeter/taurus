@@ -30,8 +30,7 @@ from bzt.engine import Reporter, AggregatorListener, Provisioning
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.jmeter import JMeterExecutor
 from bzt.utils import to_json, dehumanize_time, MultiPartForm
-from bzt.six import parse, BytesIO, text_type, iteritems, HTTPError, ProxyHandler, urlencode, Request, urlopen, \
-    build_opener, install_opener
+from bzt.six import parse, BytesIO, text_type, iteritems, HTTPError, urlencode, Request, urlopen
 
 
 class BlazeMeterUploader(Reporter, AggregatorListener):
