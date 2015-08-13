@@ -485,19 +485,18 @@ class Engine(object):
 
     def _set_up_proxy(self):
         proxy_settings = self.config.get("settings").get("proxy")
-        if proxy_settings:
-            if proxy_settings.get("address"):
-                proxy_url = parse.urlsplit(proxy_settings.get("address"))
-                self.log.debug("Using proxy settings: %s", proxy_url)
-                username = proxy_settings.get("username")
-                pwd = proxy_settings.get("password")
-                if username and pwd:
-                    proxy_uri = "%s://%s:%s@%s" % (proxy_url.scheme, username, pwd, proxy_url.netloc)
-                else:
-                    proxy_uri = "%s://%s" % (proxy_url.scheme, proxy_url.netloc)
-                proxy_handler = ProxyHandler({"https": proxy_uri, "http": proxy_uri})
-                opener = build_opener(proxy_handler)
-                install_opener(opener)
+        if proxy_settings and proxy_settings.get("address"):
+            proxy_url = parse.urlsplit(proxy_settings.get("address"))
+            self.log.debug("Using proxy settings: %s", proxy_url)
+            username = proxy_settings.get("username")
+            pwd = proxy_settings.get("password")
+            if username and pwd:
+                proxy_uri = "%s://%s:%s@%s" % (proxy_url.scheme, username, pwd, proxy_url.netloc)
+            else:
+                proxy_uri = "%s://%s" % (proxy_url.scheme, proxy_url.netloc)
+            proxy_handler = ProxyHandler({"https": proxy_uri, "http": proxy_uri})
+            opener = build_opener(proxy_handler)
+            install_opener(opener)
 
 
 class Configuration(BetterDict):
