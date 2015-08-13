@@ -101,6 +101,7 @@ settings:
     address: http://127.0.0.1:8080  # proxy server address
     username: user  # username and password used if authentication is configured on proxy server
     password: 12345
+  check-updates: true  # check for newer version of Taurus on startup
 ``` 
 
 

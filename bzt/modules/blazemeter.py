@@ -60,21 +60,6 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         self.send_interval = dehumanize_time(self.settings.get("send-interval", self.send_interval))
         self.browser_open = self.settings.get("browser-open", self.browser_open)
         token = self.settings.get("token", "")
-        proxy_settings = self.engine.config.get("settings").get("proxy")
-        if proxy_settings:
-            if proxy_settings.get("address"):
-                proxy_url = parse.urlsplit(proxy_settings.get("address"))
-                self.log.debug("Using proxy settings: %s", proxy_url)
-                username = proxy_settings.get("username")
-                pwd = proxy_settings.get("password")
-                if username and pwd:
-                    proxy_uri = "%s://%s:%s@%s" % (proxy_url.scheme, username, pwd, proxy_url.netloc)
-                else:
-                    proxy_uri = "%s://%s" % (proxy_url.scheme, proxy_url.netloc)
-                proxy_handler = ProxyHandler({"https": proxy_uri, "http": proxy_uri})
-                opener = build_opener(proxy_handler)
-                install_opener(opener)
-
         if not token:
             self.log.warning("No BlazeMeter API key provided, will upload anonymously")
         self.client.token = token
