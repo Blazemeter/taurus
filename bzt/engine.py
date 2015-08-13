@@ -180,6 +180,7 @@ class Engine(object):
         Do post-run analysis and processing for the results.
         """
         self.log.info("Post-processing...")
+        # :type exception: BaseException
         exception = None
         try:
             for module in [self.provisioning, self.aggregator] + self.reporters:
@@ -518,7 +519,7 @@ class Engine(object):
                 else:
                     self.log.debug("Installation is up-to-date")
 
-            except:
+            except BaseException:
                 self.log.debug("Failed to check for updates: %s", traceback.format_exc())
                 self.log.debug("Failed to check for updates")
 
@@ -546,8 +547,7 @@ class Configuration(BetterDict):
         """
         self.log.debug("Configs: %s", configs)
         for config_file in configs:
-            config, fmt = self.__read_file(config_file)
-            config = config
+            config = self.__read_file(config_file)[0]
 
             if isinstance(config, list):
                 self.__apply_overrides(config)
