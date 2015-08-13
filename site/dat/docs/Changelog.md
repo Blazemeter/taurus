@@ -1,6 +1,8 @@
 # Changelog
 
-## 0.3.6 (next)
+## 0.3.7
+
+## 0.3.6
   - added jmx2yaml tool
   - added updates check capability
 
