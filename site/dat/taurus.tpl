@@ -33,7 +33,7 @@
 
     <meta name="keywords" content="{$node.$i.keywords|default:$node.$i.keywords}"/>
     <meta name="description" content="{$node.$i.description|default:$node.$i.description}"/>
-    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" href="/img/favicon.png">
     <script type='text/javascript' src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
     {if $smarty.server.SERVER_ADDR==$smarty.server.REMOTE_ADDR}
         <style type='text/css'>
