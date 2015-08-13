@@ -42,11 +42,11 @@ class InstallWithHook(install, object):
             os.makedirs(dirname)
 
         src = os.path.join(os.path.dirname(__file__), "bzt", "10-base.json")
-        sys.stdout.write("[%s] Copying %s to %s\n" % (bzt.VERSION, src, dirname))
+        sys.stdout.write("Copying %s to %s\n" % (src, dirname))
         shutil.copy(src, dirname + os.path.sep)
 
         sys.stdout.write("Generating install-id\n")
-        with open(os.path.join(dirname)) as fhd:
+        with open(os.path.join(dirname, '99-installID.yml'), 'w') as fhd:
             fhd.write("---\ninstall-id: %s" % uuid.uuid4())
 
 
@@ -56,7 +56,11 @@ setup(
     description='Taurus Tool for Continuous Testing',
     author='Andrey Pokhilko',
     author_email='andrey@blazemeter.com',
-    url='https://github.com/Blazemeter/taurus/',
+    url='http://gettaurus.org/',
+    download_url='http://gettaurus.org/docs/DeveloperGuide/#Python-Egg-Snapshots',
+    license='Apache 2.0',
+    platform='any',
+    docs_url='http://gettaurus.org/',
 
     install_requires=[
         'pyyaml', 'psutil', 'colorlog', 'colorama', 'lxml >= 3.4.2', 'cssselect', 'urwid', 'six', 'nose',
@@ -72,5 +76,5 @@ setup(
     package_data={
         "bzt": [],
     },
-    cmdclass=dict(install=InstallWithHook)
+    cmdclass={"install": InstallWithHook}
 )
