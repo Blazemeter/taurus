@@ -35,7 +35,8 @@ from yaml.representer import SafeRepresenter
 from bzt import ManualShutdown, NormalShutdown, get_configs_dir
 import bzt
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_int
-from bzt.six import iteritems, string_types, text_type, PY2, UserDict, configparser
+from bzt.six import iteritems, string_types, text_type, PY2, UserDict, configparser, parse, ProxyHandler, build_opener, \
+    install_opener
 
 
 class Engine(object):
@@ -81,6 +82,7 @@ class Engine(object):
         self.config.set_dump_file(dump)
         self.__load_configs(user_configs)
         self.config.merge({"version": bzt.VERSION})
+        self._set_up_proxy()
         self._check_updates()
 
     def prepare(self):
@@ -477,6 +479,25 @@ class Engine(object):
 
         self.__counters_ts = now
         return rx_bytes, tx_bytes, dru, dwu
+
+    def _check_updates(self):
+        pass
+
+    def _set_up_proxy(self):
+        proxy_settings = self.config.get("settings").get("proxy")
+        if proxy_settings:
+            if proxy_settings.get("address"):
+                proxy_url = parse.urlsplit(proxy_settings.get("address"))
+                self.log.debug("Using proxy settings: %s", proxy_url)
+                username = proxy_settings.get("username")
+                pwd = proxy_settings.get("password")
+                if username and pwd:
+                    proxy_uri = "%s://%s:%s@%s" % (proxy_url.scheme, username, pwd, proxy_url.netloc)
+                else:
+                    proxy_uri = "%s://%s" % (proxy_url.scheme, proxy_url.netloc)
+                proxy_handler = ProxyHandler({"https": proxy_uri, "http": proxy_uri})
+                opener = build_opener(proxy_handler)
+                install_opener(opener)
 
 
 class Configuration(BetterDict):
