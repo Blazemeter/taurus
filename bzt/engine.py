@@ -500,7 +500,7 @@ class Engine(object):
         if self.config.get("settings").get("check-updates", True):
             try:
                 params = (bzt.VERSION, self.config.get("install-id", ""))
-                req = "http://localhost:8002/updates/?version=%s&installID=%s" % params  # FIXME: set it to real host
+                req = "http://gettaurus.org/updates/?version=%s&installID=%s" % params
                 self.log.debug("Requesting updates info: %s", req)
                 response = urlopen(req, timeout=1)
                 resp = response.read()
@@ -546,7 +546,8 @@ class Configuration(BetterDict):
         """
         self.log.debug("Configs: %s", configs)
         for config_file in configs:
-            config = self.__read_file(config_file)[0]
+            config, fmt = self.__read_file(config_file)
+            config = config
 
             if isinstance(config, list):
                 self.__apply_overrides(config)
@@ -557,7 +558,7 @@ class Configuration(BetterDict):
         """
         Read and parse config file
         :param filename: str
-        :return: dict, str
+        :return: list
         """
         with open(filename) as fds:
             first_line = "#"
