@@ -33,6 +33,7 @@ import yaml
 from yaml.representer import SafeRepresenter
 
 from bzt import ManualShutdown, NormalShutdown, get_configs_dir
+import bzt
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_int
 from bzt.six import iteritems, string_types, text_type, PY2, UserDict, configparser
 
@@ -79,6 +80,8 @@ class Engine(object):
         dump = self.create_artifact("effective", "")  # FIXME: not good since this file not exists
         self.config.set_dump_file(dump)
         self.__load_configs(user_configs)
+        self.config.merge({"version": bzt.VERSION})
+        self._check_updates()
 
     def prepare(self):
         """
