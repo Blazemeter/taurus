@@ -18,6 +18,7 @@ limitations under the License.
 from abc import abstractmethod
 import copy
 import datetime
+from distutils.version import StrictVersion
 import json
 import logging
 import os
@@ -36,7 +37,7 @@ from bzt import ManualShutdown, NormalShutdown, get_configs_dir
 import bzt
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_int
 from bzt.six import iteritems, string_types, text_type, PY2, UserDict, configparser, parse, ProxyHandler, build_opener, \
-    install_opener
+    install_opener, urlopen
 
 
 class Engine(object):
@@ -480,9 +481,6 @@ class Engine(object):
         self.__counters_ts = now
         return rx_bytes, tx_bytes, dru, dwu
 
-    def _check_updates(self):
-        pass
-
     def _set_up_proxy(self):
         proxy_settings = self.config.get("settings").get("proxy")
         if proxy_settings and proxy_settings.get("address"):
@@ -497,6 +495,29 @@ class Engine(object):
             proxy_handler = ProxyHandler({"https": proxy_uri, "http": proxy_uri})
             opener = build_opener(proxy_handler)
             install_opener(opener)
+
+    def _check_updates(self):
+        try:
+            params = (bzt.VERSION, self.config.get("install-id", ""))
+            req = "http://localhost:8002/updates/?version=%s&installID=%s" % params  # FIXME: set it to real host
+            self.log.debug("Requesting updates info: %s", req)
+            response = urlopen(req, timeout=1)
+            resp = response.read()
+
+            if not isinstance(resp, str):
+                resp = resp.decode()
+
+            self.log.debug("Result: %s", resp)
+
+            data = json.loads(resp)
+            mine = StrictVersion(bzt.VERSION)
+            latest = StrictVersion(data['latest'])
+            if mine < latest or data['needsUpgrade']:
+                self.log.warning("There is newer version of Taurus %s available, consider upgrading", latest)
+
+        except:
+            self.log.debug("Failed to check for updates: %s", traceback.format_exc())
+            self.log.warning("Failed to check for updates")
 
 
 class Configuration(BetterDict):
