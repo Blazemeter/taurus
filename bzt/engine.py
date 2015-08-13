@@ -18,7 +18,7 @@ limitations under the License.
 from abc import abstractmethod
 import copy
 import datetime
-from distutils.version import StrictVersion
+from distutils.version import LooseVersion
 import json
 import logging
 import os
@@ -497,27 +497,30 @@ class Engine(object):
             install_opener(opener)
 
     def _check_updates(self):
-        try:
-            params = (bzt.VERSION, self.config.get("install-id", ""))
-            req = "http://localhost:8002/updates/?version=%s&installID=%s" % params  # FIXME: set it to real host
-            self.log.debug("Requesting updates info: %s", req)
-            response = urlopen(req, timeout=1)
-            resp = response.read()
+        if self.config.get("settings").get("check-updates", True):
+            try:
+                params = (bzt.VERSION, self.config.get("install-id", ""))
+                req = "http://localhost:8002/updates/?version=%s&installID=%s" % params  # FIXME: set it to real host
+                self.log.debug("Requesting updates info: %s", req)
+                response = urlopen(req, timeout=1)
+                resp = response.read()
 
-            if not isinstance(resp, str):
-                resp = resp.decode()
+                if not isinstance(resp, str):
+                    resp = resp.decode()
 
-            self.log.debug("Result: %s", resp)
+                self.log.debug("Result: %s", resp)
 
-            data = json.loads(resp)
-            mine = StrictVersion(bzt.VERSION)
-            latest = StrictVersion(data['latest'])
-            if mine < latest or data['needsUpgrade']:
-                self.log.warning("There is newer version of Taurus %s available, consider upgrading", latest)
+                data = json.loads(resp)
+                mine = LooseVersion(bzt.VERSION)
+                latest = LooseVersion(data['latest'])
+                if mine < latest or data['needsUpgrade']:
+                    self.log.warning("There is newer version of Taurus %s available, consider upgrading", latest)
+                else:
+                    self.log.debug("Installation is up-to-date")
 
-        except:
-            self.log.debug("Failed to check for updates: %s", traceback.format_exc())
-            self.log.warning("Failed to check for updates")
+            except:
+                self.log.debug("Failed to check for updates: %s", traceback.format_exc())
+                self.log.debug("Failed to check for updates")
 
 
 class Configuration(BetterDict):

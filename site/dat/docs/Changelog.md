@@ -2,6 +2,7 @@
 
 ## 0.3.6 (next)
   - added jmx2yaml tool
+  - added updates check capability
 
 ## 0.3.5
   - fix Selenium executor logging
