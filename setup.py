@@ -18,6 +18,7 @@ import shutil
 import sys
 from setuptools import setup
 from setuptools.command.install import install
+import uuid
 
 import bzt
 
@@ -43,6 +44,10 @@ class InstallWithHook(install, object):
         src = os.path.join(os.path.dirname(__file__), "bzt", "10-base.json")
         sys.stdout.write("[%s] Copying %s to %s\n" % (bzt.VERSION, src, dirname))
         shutil.copy(src, dirname + os.path.sep)
+
+        sys.stdout.write("Generating install-id\n")
+        with open(os.path.join(dirname)) as fhd:
+            fhd.write("---\ninstall-id: %s" % uuid.uuid4())
 
 
 setup(
