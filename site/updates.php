@@ -11,7 +11,7 @@ class UpdateChecker extends \PWE\Modules\PWEModule implements \PWE\Modules\Outpu
             "latest" => $latest,
             "needsUpgrade" => version_compare($latest, $_REQUEST['version'], '>')
         );
-        \PWE\Core\PWELogger::warn("Check update: %s %s %s", $_REQUEST['version'], $resp['latest'], $resp['needsUpgrade'], $_REQUEST['installID']);
+        \PWE\Core\PWELogger::warn("Check update: %s %s %s %s", $_REQUEST['version'], $resp['latest'], $resp['needsUpgrade'], $_REQUEST['installID']);
 
         $smarty = $this->PWE->getSmarty();
         $smarty->setTemplateFile(__DIR__ . '/dat/json.tpl');
