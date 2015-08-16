@@ -952,7 +952,7 @@ class ScenarioExecutor(EngineModule):
         return files_list
 
     def __repr__(self):
-        return "%s" % self.execution.get("executor", None)
+        return "%s-%s" % (self.execution.get("executor", None), id(self))
 
 
 class Reporter(EngineModule):
