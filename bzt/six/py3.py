@@ -16,6 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 # pylint: skip-file
+from http import server
 
 import io
 import operator
@@ -28,9 +29,8 @@ import urllib.parse
 import tkinter
 import configparser
 from tkinter import font
-import BaseHTTPServer
-import socketserver
 
+BaseHTTPServer = server
 string_types = str,
 integer_types = int,
 class_types = type,
