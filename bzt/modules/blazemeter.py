@@ -685,3 +685,15 @@ class CloudProvisioning(Provisioning):
 
     def shutdown(self):
         self.client.end_online()
+
+
+class BlazeMeterClientEmul(BlazeMeterClient):
+    def __init__(self, parent_logger):
+        super(BlazeMeterClientEmul, self).__init__(parent_logger)
+        self.results = []
+
+    def _request(self, url, data=None, headers=None, checker=None):
+        self.log.debug("Request %s: %s", url, data)
+        res = self.results.pop(0)
+        self.log.debug("Response: %s", res)
+        return res
