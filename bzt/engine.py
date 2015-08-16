@@ -951,6 +951,9 @@ class ScenarioExecutor(EngineModule):
             files_list.extend(self.resource_files())
         return files_list
 
+    def __repr__(self):
+        return "%s" % self.execution.get("executor", None)
+
 
 class Reporter(EngineModule):
     """
