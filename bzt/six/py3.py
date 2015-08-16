@@ -28,6 +28,8 @@ import urllib.parse
 import tkinter
 import configparser
 from tkinter import font
+import BaseHTTPServer
+import socketserver
 
 string_types = str,
 integer_types = int,

@@ -28,6 +28,9 @@ import tkFont
 import UserDict
 import StringIO
 import collections
+import BaseHTTPServer
+import socketserver
+
 
 string_types = basestring,
 integer_types = (int, long)
