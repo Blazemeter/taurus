@@ -71,8 +71,12 @@ def random_datapoint(n):
     overall[KPISet.AVG_CONN_TIME] = overall[KPISet.AVG_RESP_TIME] / 3.0
     overall[KPISet.AVG_LATENCY] = 2.0 * overall[KPISet.AVG_RESP_TIME] / 3.0
 
+    overall.sum_rt = overall[KPISet.AVG_RESP_TIME] * overall[KPISet.SAMPLE_COUNT]
+    overall.sum_cn = overall[KPISet.AVG_CONN_TIME] * overall[KPISet.SAMPLE_COUNT]
+    overall.sum_lt = overall[KPISet.AVG_LATENCY] * overall[KPISet.SAMPLE_COUNT]
     cumul = point[DataPoint.CUMULATIVE].get('', KPISet())
-    cumul.merge(overall)
+    cumul.merge_kpis(overall)
+    cumul.recalculate()
 
     point.recalculate()
 
