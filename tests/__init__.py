@@ -10,7 +10,9 @@ from random import random
 from bzt.cli import CLI
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.utils import run_once
-
+from logging import Handler
+from io import StringIO
+from bzt.six import u
 
 @run_once
 def setup_test_logging():
@@ -116,3 +118,34 @@ def local_paths_config():
     with open(fname, 'w') as fds:
         fds.write(jstring)
     return fname
+
+class RecordingHandler(Handler):
+    def __init__(self):
+        super(RecordingHandler, self).__init__()
+        self.info_buff = StringIO()
+        self.err_buff = StringIO()
+        self.debug_buff = StringIO()
+        self.warn_buff = StringIO()
+
+    def emit(self, record):
+        """
+
+        :type record: logging.LogRecord
+        :return:
+        """
+        if record.levelno == logging.INFO:
+            self.write_log(self.info_buff, record.msg, *record.args)
+        elif record.levelno == logging.ERROR:
+            self.write_log(self.err_buff, record.msg, *record.args)
+        elif record.levelno == logging.WARN:
+            self.write_log(self.warn_buff, record.msg, *record.args)
+        elif record.levelno == logging.DEBUG:
+            self.write_log(self.debug_buff, record.msg, *record.args)
+
+    def write_log(self, buff, str_template, *args):
+        if args:
+            buff.write(u(str_template % args))
+            buff.write(u("\n"))
+        else:
+            buff.write(u(str_template))
+            buff.write(u("\n"))

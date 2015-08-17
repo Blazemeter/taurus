@@ -3,23 +3,24 @@ execution:
   executor: "shell-executor"
   scenario:
     tasks:
-    - label: task-one
-      command: sleep 5
-      block: true
-      start-stage: prepare
-      stop-stage: prepare
-      force-shutdown: false
-      stop-on-fail: false
-    - label: task-three
-      command: "ld"
-      block: false
-      start-stage: shutdown
-      stop-stage: shutdown
-      force-shutdown: true
-      stop-on-fail: false
-    - label: task-two
-      start-stage: prepare
-      stop-stage: shutdown
-      command: "echo test"
+    - my-task: sleep 4
+    - task-one:
+       command: sleep 5
+       block: true
+       start-stage: prepare
+       stop-stage: prepare
+       force-shutdown: false
+       stop-on-fail: false
+    - task-three:
+       command: "ld"
+       block: false
+       start-stage: shutdown
+       stop-stage: shutdown
+       force-shutdown: true
+       stop-on-fail: false
+    - task-two:
+       start-stage: prepare
+       stop-stage: shutdown
+       command: "echo test"
 
 
