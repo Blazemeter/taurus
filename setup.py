@@ -46,8 +46,10 @@ class InstallWithHook(install, object):
         shutil.copy(src, dirname + os.path.sep)
 
         sys.stdout.write("Generating install-id\n")
-        with open(os.path.join(dirname, '99-installID.yml'), 'w') as fhd:
-            fhd.write("---\ninstall-id: %s" % uuid.uuid4())
+        install_id = os.path.join(dirname, '99-installID.yml')
+        if not os.path.exists(install_id):
+            with open(install_id, 'w') as fhd:
+                fhd.write("---\ninstall-id: %s" % uuid.uuid4())
 
 
 setup(
