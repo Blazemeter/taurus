@@ -570,10 +570,10 @@ def shutdown_process(process_obj, log_obj):
         time.sleep(1)
         try:
             if platform.system() == 'Windows':
-                cur_pids = psutil.get_pid_list()
+                cur_pids = psutil.pids()
                 if process_obj.pid in cur_pids:
                     jm_proc = psutil.Process(process_obj.pid)
-                    for child_proc in jm_proc.get_children(recursive=True):
+                    for child_proc in jm_proc.children(recursive=True):
                         log_obj.debug("Terminating child process: %d", child_proc.pid)
                         child_proc.send_signal(signal.SIGTERM)
                     os.kill(process_obj.pid, signal.SIGTERM)
