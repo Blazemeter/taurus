@@ -30,7 +30,7 @@ from bzt.engine import Reporter, AggregatorListener, Provisioning
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.jmeter import JMeterExecutor
 from bzt.utils import to_json, dehumanize_time, MultiPartForm
-from bzt.six import parse, BytesIO, text_type, iteritems, HTTPError, urlencode, Request, urlopen
+from bzt.six import BytesIO, text_type, iteritems, HTTPError, urlencode, Request, urlopen
 
 
 class BlazeMeterUploader(Reporter, AggregatorListener):
@@ -308,7 +308,7 @@ class BlazeMeterClient(object):
         else:
             self.log.info("Ending data feeding...")
             if self.token:
-                url = self.address + "/api/latest/masters/%s/terminate"
+                url = self.address + "/api/latest/sessions/%s/terminate"
                 self._request(url % self.active_session_id)
             else:
                 url = self.address + "/api/latest/sessions/%s/terminateExternal"
