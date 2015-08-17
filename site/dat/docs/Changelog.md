@@ -1,6 +1,7 @@
 # Changelog
 
 ## 0.3.7
+  - fail criteria without timeframe is checked at the end of the test
 
 ## 0.3.6
   - added jmx2yaml tool

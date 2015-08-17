@@ -101,3 +101,23 @@ class TestPassFailStatus(BZTestCase):
             except KeyboardInterrupt:
                 pass
             start_time += 1
+
+    def test_prepare_label_issue(self):
+        # https://groups.google.com/forum/?utm_medium=email&utm_source=footer#!msg/codename-taurus/PWjU7xVucZ0/WkjUAbE1EwAJ
+        obj = PassFailStatus()
+        obj.parameters = {"criterias": ["avg-rt of spaced label>10ms"]}
+        obj.prepare()
+        self.assertGreater(len(obj.criterias), 0)
+
+        for n in range(0, 10):
+            point = random_datapoint(n)
+            point[DataPoint.CUMULATIVE]['spaced label'] = point[DataPoint.CUMULATIVE]['']
+            point[DataPoint.CURRENT]['spaced label'] = point[DataPoint.CURRENT]['']
+            obj.aggregated_second(point)
+            obj.check()
+
+        try:
+            obj.post_process()
+            self.fail()
+        except AutomatedShutdown:
+            pass
