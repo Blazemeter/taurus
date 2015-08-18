@@ -22,7 +22,8 @@ from datetime import datetime
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.passfail import PassFailStatus
-from bzt.six import parse, etree, StringIO
+from bzt.modules.blazemeter import BlazeMeterUploader
+from bzt.six import parse, etree
 from tempfile import NamedTemporaryFile
 
 
@@ -161,46 +162,37 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
             # data-source pass-fail
             elif test_data_source == "pass-fail":
                 root_xml_element = self.__process_pass_fail()
-                self.__save_report(root_xml_element)
+                self.save_report(root_xml_element, self.report_file_path)
 
     def process_sample_labels(self):
 
-        with NamedTemporaryFile(suffix=".xml", delete=False, dir=self.engine.artifacts_dir) as tmp_xml_file:
+        with NamedTemporaryFile(suffix=".xml", delete=False, dir=self.engine.artifacts_dir, mode='wt') as tmp_xml_file:
 
             _kpiset = self.last_second[DataPoint.CUMULATIVE]
             summary_kpiset = _kpiset[""]
             xml_writer = JUnitXMLWriter(tmp_xml_file)
-            self.write_summary_report(xml_writer, summary_kpiset)
 
-            # testcase_template = '  <testcase classname="{classname}" name="{name}" time="0">\n'
-            # err_template = '    <error message="{message}" type="{type}">'
-
+            report_url, test_name = self.get_bza_report_info()
+            class_name = "bzt"
+            if test_name:
+                class_name = test_name
+            self.write_summary_report(xml_writer, summary_kpiset, report_url)
             for key in sorted(_kpiset.keys()):
                 if key != "":  # if label is not blank
-                    class_name, resource_name = JUnitXMLReporter.__convert_label_name(key)
-                    # test_case = testcase_template.format(classname=class_name, name=resource_name)
-                    xml_writer.add_testcase(close=False, classname=class_name, name=resource_name)
-                    # tmp_xml_file.write(test_case)
-
+                    xml_writer.add_testcase(close=False, classname=class_name, name=key)
                     if _kpiset[key][KPISet.ERRORS]:
                         for er_dict in _kpiset[key][KPISet.ERRORS]:
                             err_message = str(er_dict["rc"])
                             err_type = str(er_dict["msg"])
                             err_desc = "total errors of this type:" + str(er_dict["cnt"])
-                            # err = err_template.format(message=err_message, type=err_type)
                             xml_writer.add_error(close=False, message=err_message, type=err_type)
-                            # tmp_xml_file.write(err)
                             xml_writer.raw_write(err_desc)
                             xml_writer.close_element()
-
-                            # tmp_xml_file.write("</error>\n")
-                    # tmp_xml_file.write("  </testcase>\n")
                     xml_writer.close_element()
-            # tmp_xml_file.write("</testsuite>")
             xml_writer.close_element()
         return tmp_xml_file.name
 
-    def write_summary_report(self, xml_writer, summary_kpiset):
+    def write_summary_report(self, xml_writer, summary_kpiset, report_url):
         """
         writes testcase class_name="summary"
         :return: tmp xml filename
@@ -209,33 +201,21 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         succ = str(summary_kpiset[KPISet.SUCCESSES])
         throughput = str(summary_kpiset[KPISet.SAMPLE_COUNT])
         fail = str(summary_kpiset[KPISet.FAILURES])
-
-        # testsuite_template = "<testsuite failures='{failures}' name='{test_name}' skip='0' tests='{tests}'>\n"
-        # tmp_xml_file.write(testsuite_template.format(failures=fail, test_name="sample_labels", tests=throughput))
-
-        xml_writer.add_testsuite(close=False, failures=fail, name='sample_labels', skip='0', tests=throughput)
-
-        # summary_test_case_template = '  <testcase classname="bzt" name="summary_report">\n'
-        # tmp_xml_file.write(summary_test_case_template)
-
+        xml_writer.add_testsuite(close=False, name='sample_labels', package="bzt")
         xml_writer.add_testcase(close=False, classname="bzt", name="summary_report")
-
-        # errors_report_template = '    <error message="error statistics:" type="http error">\n'
-        # tmp_xml_file.write(errors_report_template)
-
-        xml_writer.add_error(close=False, message="error statistics:", type="http error")
-
+        xml_writer.add_skipped()
+        xml_writer.add_system_out(close=False)
         errors_count = str(self.count_errors(summary_kpiset))
-
         summary_report_template = "Success: {success}, Sample count: {throughput}, " \
                                   "Failures: {fail}, Errors: {errors}\n"
         summary_report = summary_report_template.format(success=succ, throughput=throughput, fail=fail,
                                                         errors=errors_count)
         xml_writer.raw_write(summary_report)
+        if report_url:
+            xml_writer.raw_write(report_url)
 
         self.write_errors(xml_writer, summary_kpiset)
-        xml_writer.close_element()
-        xml_writer.close_element()
+        xml_writer.close_element(2)
 
     def count_errors(self, summary_kpi_set):
         """
@@ -243,13 +223,27 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         :return:
         """
         err_counter = 0  # used in summary report (summary report)
-
         for error in summary_kpi_set[KPISet.ERRORS]:
             # enumerate urls and count errors (from Counter object)
             for _url, _err_count in error["urls"].items():
                 err_counter += _err_count
 
         return err_counter
+
+    def get_bza_report_info(self):
+        """
+        :return: url, test
+        """
+        report_url = ""
+        test_id = ""
+        bza_reporters = [_x for _x in self.engine.reporters if isinstance(_x, BlazeMeterUploader)]
+        if bza_reporters:
+            bza_reporter = bza_reporters[-1]
+            if bza_reporter.client.results_url:
+                report_url = "bza report link:%s\n" % bza_reporter.client.results_url
+            if bza_reporter.client.test_id:
+                test_id = bza_reporter.parameters.get("test")
+        return report_url, test_id
 
     def write_errors(self, xml_writer, summary_kpi_set):
         """
@@ -258,35 +252,26 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         """
         err_template = "Error code: {rc}, Message: {msg}, count: {cnt}\n"
         url_err_template = "URL: {url}, Error count {cnt}\n"
-        urls_err_string = ""
         for error in summary_kpi_set[KPISet.ERRORS]:
             xml_writer.raw_write(err_template.format(rc=error['rc'], msg=error['msg'], cnt=error['cnt']))
             for _url, _err_count in error["urls"].items():
-                urls_err_string += url_err_template.format(url=_url, cnt=str(_err_count))
-                xml_writer.raw_write(urls_err_string)
+                xml_writer.raw_write(url_err_template.format(url=_url, cnt=str(_err_count)))
 
     @staticmethod
-    def __convert_label_name(url):
+    def __convert_label_name(url, test_id):
         """
         http://some.address/path/resource?query -> http.some_address.path.resource.query
         :param url:
         :return: string
         """
-
         # split url on domain resource, protocol, etc
-        parsed_url = parse.urlparse(url)
         # remove dots from url and join all pieces on dot
         # small fix needed - better do not use blank pieces
-        if parsed_url.scheme:
-            class_name = parsed_url.scheme + "." + parsed_url.netloc.replace(".", "_")
-            resource_name = ".".join([parsed_url.path.replace(".", "_"),
-                                      parsed_url.params.replace(".", "_"),
-                                      parsed_url.query.replace(".", "_"),
-                                      parsed_url.fragment.replace(".", "_")])
-        else:
-            class_name = url
-            resource_name = url
-        return class_name, resource_name
+        class_name = "bzt"
+        if test_id:
+            class_name = test_id
+        test_name = url
+        return class_name, test_name
 
     # def __save_report(self, root_node):
     #     """
@@ -312,7 +297,6 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
 
     def save_report(self, tmp_name, orig_name):
         """
-
         :param tmp_name:
         :param orig_name:
         :return:
@@ -321,9 +305,11 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
 
     def __process_pass_fail(self):
         """
-
         :return: etree xml root element
         """
+
+        conditions = {">":"&gt;", ">=":"&gt;=", "<":"&lt;", "<=":"&lt;=", "=":"=", "==":"="}
+
         pass_fail_objects = [_x for _x in self.engine.reporters if isinstance(_x, PassFailStatus)]
         fail_criterias = []
         for pf_obj in pass_fail_objects:
@@ -334,29 +320,35 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         failures = [x for x in fail_criterias if x.is_triggered and x.fail]
         total_failed = str(len(failures))
         tests_count = str(len(fail_criterias))
-        root_xml_element = etree.Element("testsuite", name="taurus_junitxml_pass_fail", tests=tests_count,
-                                         failures=total_failed, skip="0")
-        for fc_obj in fail_criterias:
-            if fc_obj.config['label']:
-                data = (fc_obj.config['subject'], fc_obj.config['label'],
-                        fc_obj.config['condition'], fc_obj.config['threshold'])
-                tpl = "%s of %s%s%s"
-            else:
-                data = (fc_obj.config['subject'], fc_obj.config['condition'], fc_obj.config['threshold'])
-                tpl = "%s%s%s"
+        with NamedTemporaryFile(suffix=".xml", delete=False, dir=self.engine.artifacts_dir, mode='wt') as tmp_xml_file:
+            xml_writer = JUnitXMLWriter(tmp_xml_file)
+            xml_writer.add_testsuite(close=False, name='junitxml_pass_fail', package="bzt", tests=tests_count,
+                                             failures=total_failed, skip="0")
+            report_url, test_name = self.get_bza_report_info()
+            classname = "bzt"
+            if test_name:
+                classname = test_name
+            for fc_obj in fail_criterias:
+                if fc_obj.config['label']:
+                    data = (fc_obj.config['subject'], fc_obj.config['label'],
+                            conditions.get(fc_obj.config['condition']), fc_obj.config['threshold'])
+                    tpl = "%s of %s%s%s"
+                else:
+                    data = (fc_obj.config['subject'], conditions.get(fc_obj.config['condition']), fc_obj.config['threshold'])
+                    tpl = "%s%s%s"
 
-            if fc_obj.config['timeframe']:
-                tpl += " for %s"
-                data += (fc_obj.config['timeframe'],)
-            classname = tpl % data
+                if fc_obj.config['timeframe']:
+                    tpl += " for %s"
+                    data += (fc_obj.config['timeframe'],)
 
-            fc_xml_element = etree.SubElement(root_xml_element, "testcase", classname=classname, name="")
-            if fc_obj.is_triggered and fc_obj.fail:
-                # NOTE: we can add error description im err_element.text()
-                etree.SubElement(fc_xml_element, "error", type="pass/fail criteria triggered", message="")
+                disp_name = tpl % data
 
-        # FIXME: minor fix criteria representation in report
-        return root_xml_element
+                xml_writer.add_testcase(close=False, classname=classname, name=disp_name)
+                if fc_obj.is_triggered and fc_obj.fail:
+                    xml_writer.add_error(close=True, type="pass/fail criteria triggered")
+                xml_writer.close_element()
+            xml_writer.close_element()
+        return tmp_xml_file.name
 
 
 class JUnitXMLWriter(object):
@@ -397,9 +389,17 @@ class JUnitXMLWriter(object):
     def add_error(self, close=True, **kwargs):
         self.add_element("error", close=close, **kwargs)
 
-    def close_element(self):
+    def add_system_out(self, close=True, **kwargs):
+        self.add_element("system-out", close=close, **kwargs)
+
+    def add_skipped(self, close=True, **kwargs):
+        self.add_element("skipped", close=close, **kwargs)
+
+    def close_element(self, count=1):
         if self.endings:
-            self.fds.write(self.endings.pop())
+            while count > 0:
+                self.fds.write(self.endings.pop())
+                count -= 1
 
     def write_header(self):
         self.fds.write("<?xml version='1.0' encoding='UTF-8'?>\n")
