@@ -23,6 +23,7 @@ from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.passfail import PassFailStatus
 from bzt.six import parse, etree
+from tempfile import NamedTemporaryFile
 
 
 class FinalStatus(Reporter, AggregatorListener):
@@ -120,7 +121,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
 
     def __init__(self):
         super(JUnitXMLReporter, self).__init__()
-        self.report_file_path = "junit.xml"
+        self.report_file_path = None
         self.last_second = None
 
     def prepare(self):
@@ -154,12 +155,132 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         if self.last_second:
             # data-source sample-labels
             if test_data_source == "sample-labels":
-                root_xml_element = self.__process_sample_labels()
-                self.__save_report(root_xml_element)
+                tmp_file_name = self.process_sample_labels()
+                # root_xml_element = self.__process_sample_labels()
+                self.save_report(tmp_file_name, self.report_file_path)
             # data-source pass-fail
             elif test_data_source == "pass-fail":
                 root_xml_element = self.__process_pass_fail()
                 self.__save_report(root_xml_element)
+
+    def process_sample_labels(self):
+
+        with NamedTemporaryFile(suffix=".xml", delete=False, dir=self.engine.artifacts_dir) as tmp_xml_file:
+
+            _kpiset = self.last_second[DataPoint.CUMULATIVE]
+            summary_kpiset = _kpiset[""]
+            self.write_summary_report(tmp_xml_file, summary_kpiset)
+            testcase_template = '  <testcase classname="{classname}" name="{name}" time="0">\n'
+            err_template = '    <error message="{message}" type="{type}">'
+
+            for key in sorted(_kpiset.keys()):
+                if key != "":   # if label is not blank
+                    class_name, resource_name = JUnitXMLReporter.__convert_label_name(key)
+                    # generate <testcase> subelement
+
+                    test_case = testcase_template.format(classname=class_name, name=resource_name)
+                    # test_case = etree.SubElement(root_xml_element, "testcase", classname=class_name,
+                    #                              name=resource_name, time="0")
+                    # if any errors in label report, generate <error> subelement with error description
+
+                    tmp_xml_file.write(testcase_template)
+
+                    if _kpiset[key][KPISet.ERRORS]:
+                        for er_dict in _kpiset[key][KPISet.ERRORS]:
+                            err_message = str(er_dict["rc"])
+                            err_type = str(er_dict["msg"])
+                            err_desc = "total errors of this type:" + str(er_dict["cnt"])
+                            err = err_template.format(message=err_message, type=err_type)
+                            tmp_xml_file.write(err)
+                            tmp_xml_file.write(err_desc)
+                            tmp_xml_file.write("</error>\n")
+
+                            # etree.SubElement(test_case, "error", type=err_type,
+                            #                  message=err_message).text = err_desc
+
+                    tmp_xml_file.write("  </testcase>\n")
+            tmp_xml_file.write("</testsuite>")
+        return tmp_xml_file.name
+
+    def write_summary_report(self, tmp_xml_file, summary_kpiset):
+        """
+        writes testcase class_name="summary"
+        :return: tmp xml filename
+        """
+        tmp_xml_file.write("<?xml version='1.0' encoding='UTF-8'?>\n")
+
+        succ = str(summary_kpiset[KPISet.SUCCESSES])
+        throughput = str(summary_kpiset[KPISet.SAMPLE_COUNT])
+        fail = str(summary_kpiset[KPISet.FAILURES])
+
+        testsuite_template = "<testsuite failures='{failures}' name='{test_name}' skip='0' tests='{tests}'>\n"
+        tmp_xml_file.write(testsuite_template.format(failures=fail, test_name="sample_labels", tests=throughput))
+
+        summary_test_case_template = '  <testcase class_name="summary" name="summary_report">\n'
+        tmp_xml_file.write(summary_test_case_template)
+
+        errors_report_template = '    <error message="error statistics:" type="http error">\n'
+        tmp_xml_file.write(errors_report_template)
+
+        errors_count = str(self.count_errors(summary_kpiset))
+
+        summary_report_template = "Success: {success}, Sample count: {throughput}, " \
+                                  "Failures: {fail}, Errors: {errors}\n"
+        summary_report = summary_report_template.format(success=succ, throughput=throughput, fail=fail,
+                                                        errors=errors_count)
+        tmp_xml_file.write(summary_report)
+
+        self.write_errors(tmp_xml_file, summary_kpiset)
+        # summary_report += error_report
+
+        # generate xml root element <testsuite>
+
+
+        # root_xml_element = etree.Element("testsuite", name="taurus_sample-labels", tests=throughput,
+        #                                  failures=fail, skip="0")
+
+
+        # summary_test_case = etree.SubElement(root_xml_element, "testcase", class_name="summary",
+        #                                      name="summary_report")
+
+
+        # etree.SubElement(summary_test_case, "error", type="http error",
+        #                  message="error statistics:").text = summary_report
+
+
+        tmp_xml_file.write("    </error>\n")
+        tmp_xml_file.write("  </testcase>\n")
+
+        return tmp_xml_file.name
+
+    def count_errors(self, summary_kpi_set):
+        """
+        Returns overall errors count
+        :return:
+        """
+        err_counter = 0  # used in summary report (summary report)
+
+        for error in summary_kpi_set[KPISet.ERRORS]:
+            # enumerate urls and count errors (from Counter object)
+            for _url, _err_count in error["urls"].items():
+                err_counter += _err_count
+
+        return err_counter
+
+    def write_errors(self, tmp_xml_file, summary_kpi_set):
+        """
+        Writes error descriptions in summary_report
+        :return:
+        """
+        err_template = "Error code: {rc}, Message: {msg}, count: {cnt}\n"
+        url_err_template = "URL: {url}, Error count {cnt}\n"
+        urls_err_string = ""
+        for error in summary_kpi_set[KPISet.ERRORS]:
+            tmp_xml_file.write(err_template.format(rc=error['rc'], msg=error['msg'], cnt=error['cnt']))
+            for _url, _err_count in error["urls"].items():
+                urls_err_string += url_err_template.format(url=_url, cnt=str(_err_count))
+                tmp_xml_file.write(urls_err_string)
+
 
     @staticmethod
     def __convert_label_name(url):
@@ -184,27 +305,36 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
             resource_name = ""
         return class_name, resource_name
 
-    def __save_report(self, root_node):
+    # def __save_report(self, root_node):
+    #     """
+    #     :param root_node:
+    #     :return:
+    #     """
+    #     try:
+    #         if os.path.exists(self.report_file_path):
+    #             self.log.warning("File %s already exists, will be overwritten", self.report_file_path)
+    #         else:
+    #             dirname = os.path.dirname(self.report_file_path)
+    #             if dirname and not os.path.exists(dirname):
+    #                 os.makedirs(dirname)
+    #
+    #         etree_obj = etree.ElementTree(root_node)
+    #         self.log.info("Writing JUnit XML report into: %s", self.report_file_path)
+    #         with open(self.report_file_path, 'wb') as _fds:
+    #             etree_obj.write(_fds, xml_declaration=True, encoding="UTF-8", pretty_print=True)
+    #
+    #     except BaseException:
+    #         self.log.error("Cannot create file %s", self.report_file_path)
+    #         raise
+
+    def save_report(self, tmp_name, orig_name):
         """
-        :param root_node:
+
+        :param tmp_name:
+        :param orig_name:
         :return:
         """
-        try:
-            if os.path.exists(self.report_file_path):
-                self.log.warning("File %s already exists, will be overwritten", self.report_file_path)
-            else:
-                dirname = os.path.dirname(self.report_file_path)
-                if dirname and not os.path.exists(dirname):
-                    os.makedirs(dirname)
-
-            etree_obj = etree.ElementTree(root_node)
-            self.log.info("Writing JUnit XML report into: %s", self.report_file_path)
-            with open(self.report_file_path, 'wb') as _fds:
-                etree_obj.write(_fds, xml_declaration=True, encoding="UTF-8", pretty_print=True)
-
-        except BaseException:
-            self.log.error("Cannot create file %s", self.report_file_path)
-            raise
+        os.rename(tmp_name, orig_name)
 
     @staticmethod
     def __make_summary_error_report(summary_kpi_set):
@@ -228,60 +358,59 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
 
         return str(err_counter), error_report
 
-    def __make_xml_header(self, summary_kpi_set):
-        """
-        get summary KPI, generate root_xml_element and summary report for erros.
-        used in __process_sample_labels
-        :return:
-        etree xml root node
-        """
-        summary_report_template = "Success: {success}, Sample count: {throughput}, " \
-                                  "Failures: {fail}, Errors: {errors}\n"
-        succ = str(summary_kpi_set[KPISet.SUCCESSES])
-        throughput = str(summary_kpi_set[KPISet.SAMPLE_COUNT])
-        fail = str(summary_kpi_set[KPISet.FAILURES])
-        errors, error_report = JUnitXMLReporter.__make_summary_error_report(summary_kpi_set)
-        summary_report = summary_report_template.format(success=succ, throughput=throughput, fail=fail,
-                                                        errors=errors)
-        summary_report += error_report
-
-        # generate xml root element <testsuite>
-        root_xml_element = etree.Element("testsuite", name="taurus_sample-labels", tests=throughput,
-                                         failures=fail, skip="0")
-        summary_test_case = etree.SubElement(root_xml_element, "testcase", class_name="summary",
-                                             name="summary_report")
-        etree.SubElement(summary_test_case, "error", type="http error",
-                         message="error statistics:").text = summary_report
-
-        return root_xml_element
-
-    def __process_sample_labels(self):
-        """
-
-        :return: etree xml root element
-        """
-        root_xml_element = None
-        # _kpiset - cumulative test data, type: KPISet
-        _kpiset = self.last_second[DataPoint.CUMULATIVE]
-        # enumerate all sample-labels, blank url is a summary data
-        for key in sorted(_kpiset.keys()):
-            if key == "":
-                summary_kpiset = _kpiset[key]
-                root_xml_element = self.__make_xml_header(summary_kpiset)
-            else:  # if label is not blank
-                class_name, resource_name = JUnitXMLReporter.__convert_label_name(key)
-                # generate <testcase> subelement
-                test_case = etree.SubElement(root_xml_element, "testcase", classname=class_name,
-                                             name=resource_name, time="0")
-                # if any errors in label report, generate <error> subelement with error description
-                if _kpiset[key][KPISet.ERRORS]:
-                    for er_dict in _kpiset[key][KPISet.ERRORS]:
-                        err_message = str(er_dict["rc"])
-                        err_type = str(er_dict["msg"])
-                        err_desc = "total errors of this type:" + str(er_dict["cnt"])
-                        etree.SubElement(test_case, "error", type=err_type,
-                                         message=err_message).text = err_desc
-        return root_xml_element
+    # def __make_xml_header(self, summary_kpi_set):
+    #     """
+    #     get summary KPI, generate root_xml_element and summary report for erros.
+    #     used in __process_sample_labels
+    #     :return:
+    #     etree xml root node
+    #     """
+    #     summary_report_template = "Success: {success}, Sample count: {throughput}, " \
+    #                               "Failures: {fail}, Errors: {errors}\n"
+    #     succ = str(summary_kpi_set[KPISet.SUCCESSES])
+    #     throughput = str(summary_kpi_set[KPISet.SAMPLE_COUNT])
+    #     fail = str(summary_kpi_set[KPISet.FAILURES])
+    #     errors, error_report = JUnitXMLReporter.__make_summary_error_report(summary_kpi_set)
+    #     summary_report = summary_report_template.format(success=succ, throughput=throughput, fail=fail,
+    #                                                     errors=errors)
+    #     summary_report += error_report
+    #
+    #     # generate xml root element <testsuite>
+    #     root_xml_element = etree.Element("testsuite", name="taurus_sample-labels", tests=throughput,
+    #                                      failures=fail, skip="0")
+    #     summary_test_case = etree.SubElement(root_xml_element, "testcase", class_name="summary",
+    #                                          name="summary_report")
+    #     etree.SubElement(summary_test_case, "error", type="http error",
+    #                      message="error statistics:").text = summary_report
+    #
+    #     return root_xml_element
+    #
+    # def __process_sample_labels(self):
+    #     """
+    #     :return: etree xml root element
+    #     """
+    #     root_xml_element = None
+    #     # _kpiset - cumulative test data, type: KPISet
+    #     _kpiset = self.last_second[DataPoint.CUMULATIVE]
+    #     # enumerate all sample-labels, blank url is a summary data
+    #     for key in sorted(_kpiset.keys()):
+    #         if key == "":
+    #             summary_kpiset = _kpiset[key]
+    #             root_xml_element = self.__make_xml_header(summary_kpiset)
+    #         else:  # if label is not blank
+    #             class_name, resource_name = JUnitXMLReporter.__convert_label_name(key)
+    #             # generate <testcase> subelement
+    #             test_case = etree.SubElement(root_xml_element, "testcase", classname=class_name,
+    #                                          name=resource_name, time="0")
+    #             # if any errors in label report, generate <error> subelement with error description
+    #             if _kpiset[key][KPISet.ERRORS]:
+    #                 for er_dict in _kpiset[key][KPISet.ERRORS]:
+    #                     err_message = str(er_dict["rc"])
+    #                     err_type = str(er_dict["msg"])
+    #                     err_desc = "total errors of this type:" + str(er_dict["cnt"])
+    #                     etree.SubElement(test_case, "error", type=err_type,
+    #                                      message=err_message).text = err_desc
+    #     return root_xml_element
 
     def __process_pass_fail(self):
         """
