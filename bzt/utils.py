@@ -626,7 +626,8 @@ class JavaVM(RequiredTool):
             output = subprocess.check_output(["java", '-version'], stderr=subprocess.STDOUT)
             self.log.debug("%s output: %s", self.tool_name, output)
             return True
-        except BaseException:
+        except BaseException as exc:
+            self.log.debug("Failed to start Java: %s", exc)
             raise RuntimeError("The %s is not operable or not available. Consider installing it" % self.tool_name)
 
     def install(self):

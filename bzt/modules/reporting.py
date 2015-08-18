@@ -23,7 +23,7 @@ from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.passfail import PassFailStatus
 from bzt.modules.blazemeter import BlazeMeterUploader
-from bzt.six import parse, etree
+from bzt.six import iteritems
 from tempfile import NamedTemporaryFile
 
 
@@ -157,25 +157,21 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
             # data-source sample-labels
             if test_data_source == "sample-labels":
                 tmp_file_name = self.process_sample_labels()
-                # root_xml_element = self.__process_sample_labels()
-                self.save_report(tmp_file_name, self.report_file_path)
             # data-source pass-fail
             elif test_data_source == "pass-fail":
-                root_xml_element = self.__process_pass_fail()
-                self.save_report(root_xml_element, self.report_file_path)
+                tmp_file_name = self.__process_pass_fail()
+
+            self.save_report(tmp_file_name, self.report_file_path)
 
     def process_sample_labels(self):
 
         with NamedTemporaryFile(suffix=".xml", delete=False, dir=self.engine.artifacts_dir, mode='wt') as tmp_xml_file:
-
             _kpiset = self.last_second[DataPoint.CUMULATIVE]
             summary_kpiset = _kpiset[""]
             xml_writer = JUnitXMLWriter(tmp_xml_file)
-
             report_url, test_name = self.get_bza_report_info()
-            class_name = "bzt"
-            if test_name:
-                class_name = test_name
+            class_name = "bzt" if not test_name else test_name
+
             self.write_summary_report(xml_writer, summary_kpiset, report_url)
             for key in sorted(_kpiset.keys()):
                 if key != "":  # if label is not blank
@@ -197,10 +193,10 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         writes testcase class_name="summary"
         :return: tmp xml filename
         """
-
         succ = str(summary_kpiset[KPISet.SUCCESSES])
         throughput = str(summary_kpiset[KPISet.SAMPLE_COUNT])
         fail = str(summary_kpiset[KPISet.FAILURES])
+
         xml_writer.add_testsuite(close=False, name='sample_labels', package="bzt")
         xml_writer.add_testcase(close=False, classname="bzt", name="summary_report")
         xml_writer.add_skipped()
@@ -225,9 +221,8 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         err_counter = 0  # used in summary report (summary report)
         for error in summary_kpi_set[KPISet.ERRORS]:
             # enumerate urls and count errors (from Counter object)
-            for _url, _err_count in error["urls"].items():
+            for _url, _err_count in iteritems(error["urls"]):
                 err_counter += _err_count
-
         return err_counter
 
     def get_bza_report_info(self):
@@ -257,58 +252,25 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
             for _url, _err_count in error["urls"].items():
                 xml_writer.raw_write(url_err_template.format(url=_url, cnt=str(_err_count)))
 
-    @staticmethod
-    def __convert_label_name(url, test_id):
-        """
-        http://some.address/path/resource?query -> http.some_address.path.resource.query
-        :param url:
-        :return: string
-        """
-        # split url on domain resource, protocol, etc
-        # remove dots from url and join all pieces on dot
-        # small fix needed - better do not use blank pieces
-        class_name = "bzt"
-        if test_id:
-            class_name = test_id
-        test_name = url
-        return class_name, test_name
-
-    # def __save_report(self, root_node):
-    #     """
-    #     :param root_node:
-    #     :return:
-    #     """
-    #     try:
-    #         if os.path.exists(self.report_file_path):
-    #             self.log.warning("File %s already exists, will be overwritten", self.report_file_path)
-    #         else:
-    #             dirname = os.path.dirname(self.report_file_path)
-    #             if dirname and not os.path.exists(dirname):
-    #                 os.makedirs(dirname)
-    #
-    #         etree_obj = etree.ElementTree(root_node)
-    #         self.log.info("Writing JUnit XML report into: %s", self.report_file_path)
-    #         with open(self.report_file_path, 'wb') as _fds:
-    #             etree_obj.write(_fds, xml_declaration=True, encoding="UTF-8", pretty_print=True)
-    #
-    #     except BaseException:
-    #         self.log.error("Cannot create file %s", self.report_file_path)
-    #         raise
-
     def save_report(self, tmp_name, orig_name):
         """
         :param tmp_name:
         :param orig_name:
         :return:
         """
-        os.rename(tmp_name, orig_name)
+        try:
+            os.rename(tmp_name, orig_name)
+            self.log.info("Writing JUnit XML report into: %s", self.report_file_path)
+        except BaseException:
+            self.log.error("Cannot create file %s", self.report_file_path)
+            raise
 
     def __process_pass_fail(self):
         """
         :return: etree xml root element
         """
 
-        conditions = {">":"&gt;", ">=":"&gt;=", "<":"&lt;", "<=":"&lt;=", "=":"=", "==":"="}
+        conditions = {">": "&gt;", ">=": "&gt;=", "<": "&lt;", "<=": "&lt;=", "=": "=", "==": "="}
 
         pass_fail_objects = [_x for _x in self.engine.reporters if isinstance(_x, PassFailStatus)]
         fail_criterias = []
@@ -323,7 +285,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         with NamedTemporaryFile(suffix=".xml", delete=False, dir=self.engine.artifacts_dir, mode='wt') as tmp_xml_file:
             xml_writer = JUnitXMLWriter(tmp_xml_file)
             xml_writer.add_testsuite(close=False, name='junitxml_pass_fail', package="bzt", tests=tests_count,
-                                             failures=total_failed, skip="0")
+                                     failures=total_failed, skip="0")
             report_url, test_name = self.get_bza_report_info()
             classname = "bzt"
             if test_name:
@@ -334,7 +296,8 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
                             conditions.get(fc_obj.config['condition']), fc_obj.config['threshold'])
                     tpl = "%s of %s%s%s"
                 else:
-                    data = (fc_obj.config['subject'], conditions.get(fc_obj.config['condition']), fc_obj.config['threshold'])
+                    data = (
+                    fc_obj.config['subject'], conditions.get(fc_obj.config['condition']), fc_obj.config['threshold'])
                     tpl = "%s%s%s"
 
                 if fc_obj.config['timeframe']:
