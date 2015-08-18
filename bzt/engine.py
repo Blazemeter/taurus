@@ -107,14 +107,7 @@ class Engine(object):
         """
         self.log.info("Starting...")
         try:
-            if self.aggregator:
-                self.aggregator.startup()
-
-            for module in self.reporters:
-                module.startup()
-
-            self.provisioning.startup()
-            self.config.dump()
+            self._startup()
             self._wait()
         except NormalShutdown as exc:
             self.log.debug("Normal shutdown called: %s", traceback.format_exc())
@@ -124,6 +117,14 @@ class Engine(object):
             raise
         finally:
             self._shutdown()
+
+    def _startup(self):
+        if self.aggregator:
+            self.aggregator.startup()
+        for module in self.reporters:
+            module.startup()
+        self.provisioning.startup()
+        self.config.dump()
 
     def _wait(self):
         """
