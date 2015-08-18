@@ -55,6 +55,7 @@ Request = request.Request
 HTTPError = urllib.error.HTTPError
 BaseHTTPServer = server
 socketserver = socketserver
+SimpleHTTPRequestHandler = BaseHTTPServer.SimpleHTTPRequestHandler
 
 viewvalues = operator.methodcaller("values")
 
