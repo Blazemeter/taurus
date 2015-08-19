@@ -218,8 +218,8 @@ class TestJUnitXML(BZTestCase):
         self.assertEqual('testsuite', xml_tree.tag)
         self.assertEqual(3, len(xml_tree.getchildren()))
         self.assertEqual('testcase', xml_tree.getchildren()[0].tag)
-        self.assertEqual('skipped', xml_tree.getchildren()[0].getchildren()[0].tag)
-        self.assertEqual('error', xml_tree.getchildren()[1].getchildren()[0].tag)
+        self.assertEqual('error', xml_tree.getchildren()[0].getchildren()[0].tag)
+        self.assertEqual('error', xml_tree.getchildren()[0].getchildren()[0].tag)
         self.assertListEqual(['sample_labels', "bzt"], xml_tree.values())
 
     def test_xml_format_passfail(self):

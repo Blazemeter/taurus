@@ -251,10 +251,8 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         root_xml_element = etree.Element("testsuite", name='bzt_pass_fail', package="bzt")
 
         bza_report_info = self.get_bza_report_info()
-        report_urls = [info_item[0] for info_item in bza_report_info]
-
-        bza_report_info = self.get_bza_report_info()
         classname = bza_report_info[0][1] if bza_report_info else "bzt-" + str(self.__hash__())
+        report_urls = [info_item[0] for info_item in bza_report_info]
 
         for fc_obj in fail_criterias:
             if fc_obj.config['label']:
