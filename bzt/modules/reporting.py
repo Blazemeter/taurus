@@ -18,13 +18,13 @@ limitations under the License.
 import os
 import time
 from datetime import datetime
+from tempfile import NamedTemporaryFile
 
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.passfail import PassFailStatus
 from bzt.modules.blazemeter import BlazeMeterUploader
 from bzt.six import iteritems
-from tempfile import NamedTemporaryFile
 
 
 class FinalStatus(Reporter, AggregatorListener):
@@ -160,11 +160,12 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
             # data-source pass-fail
             elif test_data_source == "pass-fail":
                 tmp_file_name = self.__process_pass_fail()
+            else:
+                raise ValueError("Unsupported data source: %s" % test_data_source)
 
             self.save_report(tmp_file_name, self.report_file_path)
 
     def process_sample_labels(self):
-
         with NamedTemporaryFile(suffix=".xml", delete=False, dir=self.engine.artifacts_dir, mode='wt') as tmp_xml_file:
             _kpiset = self.last_second[DataPoint.CUMULATIVE]
             summary_kpiset = _kpiset[""]
@@ -174,17 +175,19 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
 
             self.write_summary_report(xml_writer, summary_kpiset, report_url)
             for key in sorted(_kpiset.keys()):
-                if key != "":  # if label is not blank
-                    xml_writer.add_testcase(close=False, classname=class_name, name=key)
-                    if _kpiset[key][KPISet.ERRORS]:
-                        for er_dict in _kpiset[key][KPISet.ERRORS]:
-                            err_message = str(er_dict["rc"])
-                            err_type = str(er_dict["msg"])
-                            err_desc = "total errors of this type:" + str(er_dict["cnt"])
-                            xml_writer.add_error(close=False, message=err_message, type=err_type)
-                            xml_writer.raw_write(err_desc)
-                            xml_writer.close_element()
-                    xml_writer.close_element()
+                if key == "":  # if label is not blank
+                    continue
+
+                xml_writer.add_testcase(close=False, classname=class_name, name=key)
+                if _kpiset[key][KPISet.ERRORS]:
+                    for er_dict in _kpiset[key][KPISet.ERRORS]:
+                        err_message = str(er_dict["rc"])
+                        err_type = str(er_dict["msg"])
+                        err_desc = "total errors of this type:" + str(er_dict["cnt"])
+                        xml_writer.add_error(close=False, message=err_message, type=err_type)
+                        xml_writer.raw_write(err_desc)
+                        xml_writer.close_element()
+                xml_writer.close_element()
             xml_writer.close_element()
         return tmp_xml_file.name
 
@@ -233,9 +236,9 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         test_id = ""
         bza_reporters = [_x for _x in self.engine.reporters if isinstance(_x, BlazeMeterUploader)]
         if bza_reporters:
-            bza_reporter = bza_reporters[-1]
+            bza_reporter = bza_reporters[0]
             if bza_reporter.client.results_url:
-                report_url = "bza report link:%s\n" % bza_reporter.client.results_url
+                report_url = "BlazeMeter report link: %s\n" % bza_reporter.client.results_url
             if bza_reporter.client.test_id:
                 test_id = bza_reporter.parameters.get("test")
         return report_url, test_id
@@ -297,7 +300,8 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
                     tpl = "%s of %s%s%s"
                 else:
                     data = (
-                    fc_obj.config['subject'], conditions.get(fc_obj.config['condition']), fc_obj.config['threshold'])
+                        fc_obj.config['subject'], conditions.get(fc_obj.config['condition']),
+                        fc_obj.config['threshold'])
                     tpl = "%s%s%s"
 
                 if fc_obj.config['timeframe']:
