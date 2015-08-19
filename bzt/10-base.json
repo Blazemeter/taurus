@@ -78,7 +78,8 @@
       "class": "bzt.modules.passfail.PassFailStatus"
     },
     "junit-xml": {
-      "class": "bzt.modules.reporting.JUnitXMLReporter"
+      "class": "bzt.modules.reporting.JUnitXMLReporter",
+      "max-urls": 20
     }
   },
   "settings": {
