@@ -176,13 +176,10 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         """
         _kpiset = self.last_second[DataPoint.CUMULATIVE]
         summary_kpiset = _kpiset[""]
-
         root_xml_element = etree.Element("testsuite", name="sample_labels", package="bzt")
-
         bza_report_info = self.get_bza_report_info()
         class_name = bza_report_info[0][1] if bza_report_info else "bzt"  # [(url, test_name), (url, test_name), ...]
         report_urls = [info_item[0] for info_item in bza_report_info]
-
         root_xml_element.append(self.make_summary_report(summary_kpiset, report_urls))
 
         for key in sorted(_kpiset.keys()):
@@ -190,7 +187,6 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
                 continue
 
             test_case_etree_element = etree.Element("testcase", classname=class_name, name=key)
-            # xml_writer.add_testcase(close=False, classname=class_name, name=key)
             if _kpiset[key][KPISet.ERRORS]:
                 for er_dict in _kpiset[key][KPISet.ERRORS]:
                     err_message = str(er_dict["rc"])
@@ -199,7 +195,9 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
                     err_etree_element = etree.Element("error", message=err_message, type=err_type)
                     err_etree_element.text = err_desc
                     test_case_etree_element.append(err_etree_element)
+
             root_xml_element.append(test_case_etree_element)
+
         return root_xml_element
 
     def make_summary_report(self, summary_kpiset, report_urls):
@@ -222,9 +220,8 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         summary_report = summary_report_template.format(success=succ, throughput=throughput, fail=fail,
                                                         errors=errors_count)
         if report_urls:
-            report_url_template = "Blazemeter report: %s\n"
             for report_url in report_urls:
-                summary_report += report_url_template % report_url
+                summary_report += report_url
 
         summary_report += self.get_urls_errors(summary_kpiset)
         system_out_element.text = summary_report
@@ -251,12 +248,13 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         for bza_reporter in bza_reporters:
             report_url = None
             test_name = None
-            # bza_reporter = bza_reporters[0]
+
             if bza_reporter.client.results_url:
                 report_url = "BlazeMeter report link: %s\n" % bza_reporter.client.results_url
             if bza_reporter.client.test_id:
                 test_name = bza_reporter.parameters.get("test", None)
             result.append((report_url, test_name))
+
         if len(result) > 1:
             self.log.warning("More then one blazemeter reporter found")
         return result
@@ -270,25 +268,12 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         err_template = "Error code: {rc}, Message: {msg}, count: {cnt}\n"
         url_err_template = "URL: {url}, Error count {cnt}\n"
         for count, error in enumerate(summary_kpi_set[KPISet.ERRORS]):
-            if count > self.settings.get("max-urls"):
+            if count > self.max_urls:
                 break
             summary_errors_report.write(err_template.format(rc=error['rc'], msg=error['msg'], cnt=error['cnt']))
             for _url, _err_count in iteritems(error["urls"]):
                 summary_errors_report.write(url_err_template.format(url=_url, cnt=str(_err_count)))
         return summary_errors_report.getvalue()
-
-    def __save_report(self, tmp_name, orig_name):
-        """
-        :param tmp_name:
-        :param orig_name:
-        :return:
-        """
-        try:
-            os.rename(tmp_name, orig_name)
-            self.log.info("Writing JUnit XML report into: %s", orig_name)
-        except BaseException:
-            self.log.error("Cannot create file %s", orig_name)
-            raise
 
     def save_report(self, root_node):
         """
@@ -325,10 +310,8 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         root_xml_element = etree.Element("testsuite", name='bzt_pass_fail', package="bzt")
 
         bza_report_info = self.get_bza_report_info()
-        test_name = bza_report_info[0][1] if bza_report_info else None  # [(url, test_name), (url, test_name), ...]
-        classname = "bzt"
-        if test_name:
-            classname = test_name
+        classname = bza_report_info[0][1] if bza_report_info else "bzt"  # [(url, test_name), (url, test_name), ...]
+
         for fc_obj in fail_criterias:
             if fc_obj.config['label']:
                 data = (fc_obj.config['subject'], fc_obj.config['label'],
