@@ -107,14 +107,7 @@ class Engine(object):
         """
         self.log.info("Starting...")
         try:
-            if self.aggregator:
-                self.aggregator.startup()
-
-            for module in self.reporters:
-                module.startup()
-
-            self.provisioning.startup()
-            self.config.dump()
+            self._startup()
             self._wait()
         except NormalShutdown as exc:
             self.log.debug("Normal shutdown called: %s", traceback.format_exc())
@@ -125,6 +118,14 @@ class Engine(object):
         finally:
             self._shutdown()
 
+    def _startup(self):
+        if self.aggregator:
+            self.aggregator.startup()
+        for module in self.reporters:
+            module.startup()
+        self.provisioning.startup()
+        self.config.dump()
+
     def _wait(self):
         """
         Wait modules for finish
@@ -132,8 +133,7 @@ class Engine(object):
         """
         self.log.info("Waiting for finish...")
         prev = time.time()
-        while not self.provisioning.check() \
-                and not self.aggregator.check() \
+        while not self.provisioning.check() and not self.aggregator.check() \
                 and not EngineModule.check_modules_list(self.reporters):
             now = time.time()
             diff = now - prev
@@ -950,6 +950,9 @@ class ScenarioExecutor(EngineModule):
         if isinstance(self, FileLister):
             files_list.extend(self.resource_files())
         return files_list
+
+    def __repr__(self):
+        return "%s-%s" % (self.execution.get("executor", None), id(self))
 
 
 class Reporter(EngineModule):

@@ -46,8 +46,10 @@ class InstallWithHook(install, object):
         shutil.copy(src, dirname + os.path.sep)
 
         sys.stdout.write("Generating install-id\n")
-        with open(os.path.join(dirname, '99-installID.yml'), 'w') as fhd:
-            fhd.write("---\ninstall-id: %s" % uuid.uuid4())
+        install_id = os.path.join(dirname, '99-installID.yml')
+        if not os.path.exists(install_id):
+            with open(install_id, 'w') as fhd:
+                fhd.write("---\ninstall-id: %s" % uuid.uuid4())
 
 
 setup(
@@ -63,7 +65,7 @@ setup(
     docs_url='http://gettaurus.org/',
 
     install_requires=[
-        'pyyaml', 'psutil', 'colorlog', 'colorama', 'lxml >= 3.4.2', 'cssselect', 'urwid', 'six', 'nose',
+        'pyyaml', 'psutil > 3', 'colorlog', 'colorama', 'lxml >= 3.4.2', 'cssselect', 'urwid', 'six', 'nose',
         'selenium', 'progressbar33'],
     packages=['bzt', 'bzt.six', 'bzt.modules', 'bzt.modules.resources'],
     entry_points={

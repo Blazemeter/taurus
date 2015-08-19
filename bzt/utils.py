@@ -33,6 +33,7 @@ import signal
 import subprocess
 from collections import defaultdict, Counter
 from subprocess import PIPE
+from io import IOBase
 
 from progressbar import ProgressBar, Percentage, Bar, ETA
 import psutil
@@ -119,6 +120,9 @@ class BetterDict(defaultdict):
             default = BetterDict()
 
         value = self.setdefault(key, default)
+        if value == default and isinstance(value, BaseException):
+            raise value
+
         if isinstance(value, string_types):
             if isinstance(value, str):  # this is a trick for python v2/v3 compatibility
                 return value
@@ -216,6 +220,13 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE):
     :type args: basestring or list
     :return:
     """
+    if stdout and not isinstance(stdout, int) and not isinstance(stdout, file):
+        logging.warning("stdout is not IOBase: %s", stdout)
+        stdout = None
+
+    if stderr and not isinstance(stderr, int) and not isinstance(stderr, file):
+        logging.warning("stderr is not IOBase: %s", stderr)
+        stderr = None
 
     if isinstance(args, string_types):
         args = shlex.split(args)
