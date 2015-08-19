@@ -33,6 +33,7 @@ import signal
 import subprocess
 from collections import defaultdict, Counter
 from subprocess import PIPE
+from io import IOBase
 
 from progressbar import ProgressBar, Percentage, Bar, ETA
 import psutil
@@ -219,6 +220,13 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE):
     :type args: basestring or list
     :return:
     """
+    if stdout and not isinstance(stdout, IOBase):
+        logging.warning("stdout is not IOBase: %s", stdout)
+        stdout = None
+
+    if stderr and not isinstance(stderr, IOBase):
+        logging.warning("stderr is not IOBase: %s", stderr)
+        stderr = None
 
     if isinstance(args, string_types):
         args = shlex.split(args)
