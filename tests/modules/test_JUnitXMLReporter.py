@@ -216,7 +216,7 @@ class TestJUnitXML(BZTestCase):
 
         xml_tree = etree.fromstring(f_contents)
         self.assertEqual('testsuite', xml_tree.tag)
-        self.assertEqual(4, len(xml_tree.getchildren()))
+        self.assertEqual(3, len(xml_tree.getchildren()))
         self.assertEqual('testcase', xml_tree.getchildren()[0].tag)
         self.assertEqual('skipped', xml_tree.getchildren()[0].getchildren()[0].tag)
         self.assertEqual('error', xml_tree.getchildren()[1].getchildren()[0].tag)
