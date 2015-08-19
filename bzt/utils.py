@@ -220,11 +220,11 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE):
     :type args: basestring or list
     :return:
     """
-    if stdout and not isinstance(stdout, IOBase):
+    if stdout and not isinstance(stdout, int) and not isinstance(stdout, IOBase):
         logging.warning("stdout is not IOBase: %s", stdout)
         stdout = None
 
-    if stderr and not isinstance(stderr, IOBase):
+    if stderr and not isinstance(stderr, int) and not isinstance(stderr, IOBase):
         logging.warning("stderr is not IOBase: %s", stderr)
         stderr = None
 
