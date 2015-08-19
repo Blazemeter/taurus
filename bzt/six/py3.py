@@ -16,18 +16,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 # pylint: skip-file
-
 import io
 import operator
 import collections
 import urllib
+
 import urllib.error
 import urllib.request
 import urllib.parse
-
 import tkinter
 import configparser
 from tkinter import font
+from http import server
+import socketserver
 
 string_types = str,
 integer_types = int,
@@ -52,6 +53,9 @@ install_opener = request.install_opener
 ProxyHandler = request.ProxyHandler
 Request = request.Request
 HTTPError = urllib.error.HTTPError
+BaseHTTPServer = server
+socketserver = socketserver
+SimpleHTTPRequestHandler = BaseHTTPServer.SimpleHTTPRequestHandler
 
 viewvalues = operator.methodcaller("values")
 

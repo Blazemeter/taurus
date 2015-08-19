@@ -119,6 +119,9 @@ class BetterDict(defaultdict):
             default = BetterDict()
 
         value = self.setdefault(key, default)
+        if value == default and isinstance(value, BaseException):
+            raise value
+
         if isinstance(value, string_types):
             if isinstance(value, str):  # this is a trick for python v2/v3 compatibility
                 return value

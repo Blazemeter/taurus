@@ -188,6 +188,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         self.__dump_saved_log()
 
     def __detect_console_logger(self):
+        # FIXME: with server mode this breaks server logging
         logger = self.log
         while logger:
             for handler in logger.handlers[:]:

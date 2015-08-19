@@ -4,7 +4,7 @@ import shutil
 from io import BytesIO
 
 from tests import BZTestCase, random_datapoint, __dir__
-from bzt.modules.blazemeter import BlazeMeterUploader, BlazeMeterClient
+from bzt.modules.blazemeter import BlazeMeterUploader, BlazeMeterClient, BlazeMeterClientEmul
 from tests.mocks import EngineEmul
 import bzt.modules.blazemeter
 
@@ -53,17 +53,6 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.address = "https://a.blazemeter.com"
         obj.ping()
 
-
-class BlazeMeterClientEmul(BlazeMeterClient):
-    def __init__(self, parent_logger):
-        super(BlazeMeterClientEmul, self).__init__(parent_logger)
-        self.results = []
-
-    def _request(self, url, data=None, headers=None, checker=None):
-        self.log.debug("Request %s: %s", url, data)
-        res = self.results.pop(0)
-        self.log.debug("Response: %s", res)
-        return res
 
 
 class TestBlazeMeterClientUnicode(BZTestCase):
