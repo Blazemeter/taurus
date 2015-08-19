@@ -4,7 +4,7 @@
   - fail criteria without timeframe is checked at the end of the test
   - fixed shutdown on windows
   - fixed label names in junitxml reports
-  - blazemeter report url added in summary report
+  - blazemeter report url added to every testcase in junitxml reports
 
 ## 0.3.6
   - added jmx2yaml tool

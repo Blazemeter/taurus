@@ -123,7 +123,6 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         super(JUnitXMLReporter, self).__init__()
         self.report_file_path = "xunit.xml"
         self.last_second = None
-        self.max_urls = self.settings.get("max-urls", 20)
 
     def prepare(self):
         """
@@ -131,10 +130,6 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         report filename from parameters
         :return:
         """
-
-        if self.max_urls > 50:
-            self.log.warning("Limiting urls count in summary report to 50")
-            self.max_urls = 50
 
         filename = self.parameters.get("filename", None)
         if filename:
@@ -175,18 +170,19 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         :return: NamedTemporaryFile.name
         """
         _kpiset = self.last_second[DataPoint.CUMULATIVE]
-        summary_kpiset = _kpiset[""]
         root_xml_element = etree.Element("testsuite", name="sample_labels", package="bzt")
         bza_report_info = self.get_bza_report_info()
-        class_name = bza_report_info[0][1] if bza_report_info else "bzt"  # [(url, test_name), (url, test_name), ...]
+        class_name = bza_report_info[0][1] if bza_report_info else "bzt-" + str(self.__hash__())
         report_urls = [info_item[0] for info_item in bza_report_info]
-        root_xml_element.append(self.make_summary_report(summary_kpiset, report_urls))
 
         for key in sorted(_kpiset.keys()):
             if key == "":  # if label is not blank
                 continue
 
             test_case_etree_element = etree.Element("testcase", classname=class_name, name=key)
+            if report_urls:
+                system_out_etree = etree.SubElement(test_case_etree_element, "system-out")
+                system_out_etree.text = "".join(report_urls)
             if _kpiset[key][KPISet.ERRORS]:
                 for er_dict in _kpiset[key][KPISet.ERRORS]:
                     err_message = str(er_dict["rc"])
@@ -199,45 +195,6 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
             root_xml_element.append(test_case_etree_element)
 
         return root_xml_element
-
-    def make_summary_report(self, summary_kpiset, report_urls):
-        """
-        generates testcase classname="summary"
-        :return: etree testcase element
-        """
-
-        succ = str(summary_kpiset[KPISet.SUCCESSES])
-        throughput = str(summary_kpiset[KPISet.SAMPLE_COUNT])
-        fail = str(summary_kpiset[KPISet.FAILURES])
-
-        testcase_element = etree.Element("testcase", classname="bzt", name="summary_report")
-        testcase_element.append(etree.Element("skipped"))
-        system_out_element = etree.Element("system-out")
-
-        errors_count = str(self.count_errors(summary_kpiset))
-        summary_report_template = "Success: {success}, Sample count: {throughput}, " \
-                                  "Failures: {fail}, Errors: {errors}\n"
-        summary_report = summary_report_template.format(success=succ, throughput=throughput, fail=fail,
-                                                        errors=errors_count)
-        if report_urls:
-            for report_url in report_urls:
-                summary_report += report_url
-
-        summary_report += self.get_urls_errors(summary_kpiset)
-        system_out_element.text = summary_report
-        testcase_element.append(system_out_element)
-        return testcase_element
-
-    def count_errors(self, summary_kpi_set):
-        """
-        Returns overall errors count
-        :return:
-        """
-        err_counter = 0  # used in summary report
-        for error in summary_kpi_set[KPISet.ERRORS]:
-            for _url, _err_count in iteritems(error["urls"]):
-                err_counter += _err_count
-        return err_counter
 
     def get_bza_report_info(self):
         """
@@ -258,22 +215,6 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         if len(result) > 1:
             self.log.warning("More then one blazemeter reporter found")
         return result
-
-    def get_urls_errors(self, summary_kpi_set):
-        """
-        Writes error descriptions in summary_report
-        :return: string
-        """
-        summary_errors_report = StringIO()
-        err_template = "Error code: {rc}, Message: {msg}, count: {cnt}\n"
-        url_err_template = "URL: {url}, Error count {cnt}\n"
-        for count, error in enumerate(summary_kpi_set[KPISet.ERRORS]):
-            if count > self.max_urls:
-                break
-            summary_errors_report.write(err_template.format(rc=error['rc'], msg=error['msg'], cnt=error['cnt']))
-            for _url, _err_count in iteritems(error["urls"]):
-                summary_errors_report.write(url_err_template.format(url=_url, cnt=str(_err_count)))
-        return summary_errors_report.getvalue()
 
     def save_report(self, root_node):
         """
@@ -309,14 +250,11 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
                     fail_criterias.append(_fc)
         root_xml_element = etree.Element("testsuite", name='bzt_pass_fail', package="bzt")
 
-        _kpiset = self.last_second[DataPoint.CUMULATIVE]
-        summary_kpiset = _kpiset[""]
         bza_report_info = self.get_bza_report_info()
         report_urls = [info_item[0] for info_item in bza_report_info]
-        root_xml_element.append(self.make_summary_report(summary_kpiset, report_urls))
 
         bza_report_info = self.get_bza_report_info()
-        classname = bza_report_info[0][1] if bza_report_info else "bzt"  # [(url, test_name), (url, test_name), ...]
+        classname = bza_report_info[0][1] if bza_report_info else "bzt-" + str(self.__hash__())
 
         for fc_obj in fail_criterias:
             if fc_obj.config['label']:
@@ -335,6 +273,9 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
             disp_name = tpl % data
 
             testcase_etree = etree.Element("testcase", classname=classname, name=disp_name)
+            if report_urls:
+                system_out_etree = etree.SubElement(testcase_etree, "system-out")
+                system_out_etree.text = "".join(report_urls)
             if fc_obj.is_triggered and fc_obj.fail:
                 etree.SubElement(testcase_etree, "error", type="pass/fail criteria triggered", message="")
             root_xml_element.append(testcase_etree)
