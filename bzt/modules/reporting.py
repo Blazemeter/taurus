@@ -167,7 +167,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
 
     def process_sample_labels(self):
         """
-        :return: NamedTemporaryFile.name
+        :return: etree element
         """
         _kpiset = self.last_second[DataPoint.CUMULATIVE]
         root_xml_element = etree.Element("testsuite", name="sample_labels", package="bzt")
@@ -240,7 +240,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
 
     def process_pass_fail(self):
         """
-        :return: NamedTemporaryFile.name
+        :return: etree element
         """
         pass_fail_objects = [_x for _x in self.engine.reporters if isinstance(_x, PassFailStatus)]
         fail_criterias = []
