@@ -122,7 +122,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
 
     def __init__(self):
         super(JUnitXMLReporter, self).__init__()
-        self.report_file_path = None
+        self.report_file_path = "xunit.xml"
         self.last_second = None
 
     def prepare(self):
@@ -154,17 +154,16 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         test_data_source = self.parameters.get("data-source", "sample-labels")
 
         if self.last_second:
-            # data-source sample-labels
-            if test_data_source == "sample-labels":
+            if test_data_source == "pass-fail":
+                tmp_file_name = self.process_pass_fail()
+            else:
                 tmp_file_name = self.process_sample_labels()
-            # data-source pass-fail
-            elif test_data_source == "pass-fail":
-                tmp_file_name = self.__process_pass_fail()
-
             self.save_report(tmp_file_name, self.report_file_path)
 
     def process_sample_labels(self):
-
+        """
+        :return: NamedTemporaryFile.name
+        """
         with NamedTemporaryFile(suffix=".xml", delete=False, dir=self.engine.artifacts_dir, mode='wt') as tmp_xml_file:
             _kpiset = self.last_second[DataPoint.CUMULATIVE]
             summary_kpiset = _kpiset[""]
@@ -174,7 +173,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
 
             self.write_summary_report(xml_writer, summary_kpiset, report_url)
             for key in sorted(_kpiset.keys()):
-                if key != "":  # if label is not blank
+                if key != "":
                     xml_writer.add_testcase(close=False, classname=class_name, name=key)
                     if _kpiset[key][KPISet.ERRORS]:
                         for er_dict in _kpiset[key][KPISet.ERRORS]:
@@ -190,8 +189,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
 
     def write_summary_report(self, xml_writer, summary_kpiset, report_url):
         """
-        writes testcase class_name="summary"
-        :return: tmp xml filename
+        :return:
         """
         succ = str(summary_kpiset[KPISet.SUCCESSES])
         throughput = str(summary_kpiset[KPISet.SAMPLE_COUNT])
@@ -218,9 +216,8 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         Returns overall errors count
         :return:
         """
-        err_counter = 0  # used in summary report (summary report)
+        err_counter = 0  # used in summary report
         for error in summary_kpi_set[KPISet.ERRORS]:
-            # enumerate urls and count errors (from Counter object)
             for _url, _err_count in iteritems(error["urls"]):
                 err_counter += _err_count
         return err_counter
@@ -230,15 +227,15 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         :return: url, test
         """
         report_url = ""
-        test_id = ""
+        test_name = ""
         bza_reporters = [_x for _x in self.engine.reporters if isinstance(_x, BlazeMeterUploader)]
         if bza_reporters:
             bza_reporter = bza_reporters[-1]
             if bza_reporter.client.results_url:
                 report_url = "bza report link:%s\n" % bza_reporter.client.results_url
             if bza_reporter.client.test_id:
-                test_id = bza_reporter.parameters.get("test")
-        return report_url, test_id
+                test_name = bza_reporter.parameters.get("test")
+        return report_url, test_name
 
     def write_errors(self, xml_writer, summary_kpi_set):
         """
@@ -249,7 +246,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         url_err_template = "URL: {url}, Error count {cnt}\n"
         for error in summary_kpi_set[KPISet.ERRORS]:
             xml_writer.raw_write(err_template.format(rc=error['rc'], msg=error['msg'], cnt=error['cnt']))
-            for _url, _err_count in error["urls"].items():
+            for _url, _err_count in iteritems(error["urls"]):
                 xml_writer.raw_write(url_err_template.format(url=_url, cnt=str(_err_count)))
 
     def save_report(self, tmp_name, orig_name):
@@ -260,16 +257,15 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         """
         try:
             os.rename(tmp_name, orig_name)
-            self.log.info("Writing JUnit XML report into: %s", self.report_file_path)
+            self.log.info("Writing JUnit XML report into: %s", orig_name)
         except BaseException:
-            self.log.error("Cannot create file %s", self.report_file_path)
+            self.log.error("Cannot create file %s", orig_name)
             raise
 
-    def __process_pass_fail(self):
+    def process_pass_fail(self):
         """
-        :return: etree xml root element
+        :return: NamedTemporaryFile.name
         """
-
         conditions = {">": "&gt;", ">=": "&gt;=", "<": "&lt;", "<=": "&lt;=", "=": "=", "==": "="}
 
         pass_fail_objects = [_x for _x in self.engine.reporters if isinstance(_x, PassFailStatus)]
