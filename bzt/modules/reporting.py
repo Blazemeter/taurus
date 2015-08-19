@@ -316,7 +316,6 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         """
         :return: NamedTemporaryFile.name
         """
-
         pass_fail_objects = [_x for _x in self.engine.reporters if isinstance(_x, PassFailStatus)]
         fail_criterias = []
         for pf_obj in pass_fail_objects:
@@ -324,6 +323,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
                 for _fc in pf_obj.criterias:
                     fail_criterias.append(_fc)
         root_xml_element = etree.Element("testsuite", name='bzt_pass_fail', package="bzt")
+
         bza_report_info = self.get_bza_report_info()
         test_name = bza_report_info[0][1] if bza_report_info else None  # [(url, test_name), (url, test_name), ...]
         classname = "bzt"
@@ -347,7 +347,6 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
 
             testcase_etree = etree.Element("testcase", classname=classname, name=disp_name)
             if fc_obj.is_triggered and fc_obj.fail:
-                err_etree_element = etree.Element(testcase_etree, "error", type="pass/fail criteria triggered")
-                testcase_etree.append(err_etree_element)
+                etree.SubElement(testcase_etree, "error", type="pass/fail criteria triggered", message="")
             root_xml_element.append(testcase_etree)
         return root_xml_element

@@ -220,8 +220,7 @@ class TestJUnitXML(BZTestCase):
         self.assertEqual('testcase', xml_tree.getchildren()[0].tag)
         self.assertEqual('skipped', xml_tree.getchildren()[0].getchildren()[0].tag)
         self.assertEqual('error', xml_tree.getchildren()[1].getchildren()[0].tag)
-        # self.assertListEqual(['29656', 'taurus_sample-labels', '0', '59314'], xml_tree.values())
-        # self.assertListEqual(['sample_labels', "bzt"], xml_tree.values())
+        self.assertListEqual(['sample_labels', "bzt"], xml_tree.values())
 
     def test_xml_format_passfail(self):
         obj = JUnitXMLReporter()
@@ -272,4 +271,3 @@ class TestJUnitXML(BZTestCase):
         self.assertEqual('testcase', xml_tree.getchildren()[0].tag)
         self.assertEqual('error', xml_tree.getchildren()[0].getchildren()[0].tag)
         self.assertEqual('error', xml_tree.getchildren()[2].getchildren()[0].tag)
-        # self.assertListEqual(['2', 'taurus_junitxml_pass_fail', '0', '4'], xml_tree.values())
