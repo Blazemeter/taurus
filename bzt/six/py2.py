@@ -27,7 +27,8 @@ import Tkinter
 import tkFont
 import UserDict
 import StringIO
-import collections
+import BaseHTTPServer
+import SocketServer as socketserver
 
 string_types = basestring,
 integer_types = (int, long)
@@ -53,6 +54,9 @@ install_opener = urllib2.install_opener
 ProxyHandler = urllib2.ProxyHandler
 Request = urllib2.Request
 HTTPError = urllib2.HTTPError
+BaseHTTPServer = BaseHTTPServer
+socketserver = socketserver
+SimpleHTTPRequestHandler = BaseHTTPServer.BaseHTTPRequestHandler
 
 viewvalues = operator.methodcaller("viewvalues")
 
