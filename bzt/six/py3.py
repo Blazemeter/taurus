@@ -20,6 +20,7 @@ import io
 import operator
 import collections
 import urllib
+from io import IOBase
 
 import urllib.error
 import urllib.request
@@ -35,6 +36,7 @@ integer_types = int,
 class_types = type,
 text_type = str
 binary_type = bytes
+file_type = IOBase
 
 configparser = configparser
 tkinter = tkinter

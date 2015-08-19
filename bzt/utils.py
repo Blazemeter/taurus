@@ -33,13 +33,12 @@ import signal
 import subprocess
 from collections import defaultdict, Counter
 from subprocess import PIPE
-from io import IOBase
 
 from progressbar import ProgressBar, Percentage, Bar, ETA
 import psutil
 from psutil import Popen
 
-from bzt.six import string_types, iteritems, viewvalues, binary_type, text_type, b, integer_types, request
+from bzt.six import string_types, iteritems, viewvalues, binary_type, text_type, b, integer_types, request, file_type
 
 
 def run_once(func):
@@ -220,11 +219,11 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE):
     :type args: basestring or list
     :return:
     """
-    if stdout and not isinstance(stdout, int) and not isinstance(stdout, file):
+    if stdout and not isinstance(stdout, int) and not isinstance(stdout, file_type):
         logging.warning("stdout is not IOBase: %s", stdout)
         stdout = None
 
-    if stderr and not isinstance(stderr, int) and not isinstance(stderr, file):
+    if stderr and not isinstance(stderr, int) and not isinstance(stderr, file_type):
         logging.warning("stderr is not IOBase: %s", stderr)
         stderr = None
 
