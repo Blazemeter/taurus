@@ -259,34 +259,7 @@ class TestJUnitXML(BZTestCase):
 
         obj.parameters.merge({"filename": path_from_config, "data-source": "pass-fail"})
         obj.prepare()
-
-        datapoint = DataPoint(None, None)
-
-        cumul_data = KPISet.from_dict(
-            {KPISet.AVG_CONN_TIME: 7.890211417203362e-06,
-             KPISet.RESP_TIMES: Counter(
-                 {0.0: 32160, 0.001: 24919, 0.002: 1049, 0.003: 630, 0.004: 224, 0.005: 125,
-                  0.006: 73, 0.007: 46, 0.008: 32, 0.009: 20, 0.011: 8, 0.01: 8, 0.017: 3,
-                  0.016: 3, 0.014: 3, 0.013: 3, 0.04: 2, 0.012: 2, 0.079: 1, 0.081: 1,
-                  0.019: 1, 0.015: 1}),
-             KPISet.ERRORS: [{'msg': 'Forbidden', 'cnt': 7373, 'type': 0,
-                              'urls': Counter({'http://192.168.25.8/': 7373}), KPISet.RESP_CODES: '403'}],
-             KPISet.STDEV_RESP_TIME: 0.04947974228872108,
-             KPISet.AVG_LATENCY: 0.0002825639815220692,
-             KPISet.RESP_CODES: Counter({'304': 29656, '403': 29656, '200': 2}),
-             KPISet.PERCENTILES: defaultdict(None, {'95.0': 0.001, '0.0': 0.0, '99.9': 0.008, '90.0': 0.001,
-                                                    '100.0': 0.081, '99.0': 0.003, '50.0': 0.0}),
-             KPISet.SUCCESSES: 29658,
-             KPISet.SAMPLE_COUNT: 59314,
-             KPISet.CONCURRENCY: 0,
-             KPISet.AVG_RESP_TIME: 0.0005440536804127192,
-             KPISet.FAILURES: 29656})
-
-        datapoint[DataPoint.CUMULATIVE][""] = cumul_data
-
-        obj.aggregated_second(datapoint)
-
-        obj.last_second = datapoint
+        obj.last_second = DataPoint(None, None)
         obj.post_process()
 
         with open(obj.report_file_path, 'rb') as fds:
@@ -294,7 +267,7 @@ class TestJUnitXML(BZTestCase):
 
         xml_tree = etree.fromstring(f_contents)
         self.assertEqual('testsuite', xml_tree.tag)
-        self.assertEqual(5, len(xml_tree.getchildren()))  # + summary
+        self.assertEqual(4, len(xml_tree.getchildren()))
         self.assertEqual('testcase', xml_tree.getchildren()[0].tag)
-        self.assertEqual('skipped', xml_tree.getchildren()[0].getchildren()[0].tag)
-        self.assertEqual('error', xml_tree.getchildren()[3].getchildren()[0].tag)
+        self.assertEqual('error', xml_tree.getchildren()[0].getchildren()[0].tag)
+        self.assertEqual('error', xml_tree.getchildren()[2].getchildren()[0].tag)

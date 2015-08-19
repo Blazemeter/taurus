@@ -23,7 +23,7 @@ from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.passfail import PassFailStatus
 from bzt.modules.blazemeter import BlazeMeterUploader
-from bzt.six import iteritems, etree, StringIO
+from bzt.six import etree
 
 
 class FinalStatus(Reporter, AggregatorListener):
