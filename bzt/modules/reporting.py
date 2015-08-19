@@ -299,9 +299,8 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
                             conditions.get(fc_obj.config['condition']), fc_obj.config['threshold'])
                     tpl = "%s of %s%s%s"
                 else:
-                    data = (
-                        fc_obj.config['subject'], conditions.get(fc_obj.config['condition']),
-                        fc_obj.config['threshold'])
+                    data = (fc_obj.config['subject'], conditions.get(fc_obj.config['condition']),
+                            fc_obj.config['threshold'])
                     tpl = "%s%s%s"
 
                 if fc_obj.config['timeframe']:
