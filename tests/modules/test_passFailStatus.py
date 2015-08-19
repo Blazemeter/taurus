@@ -116,6 +116,8 @@ class TestPassFailStatus(BZTestCase):
             obj.aggregated_second(point)
             obj.check()
 
+        obj.shutdown()
+
         try:
             obj.post_process()
             self.fail()
