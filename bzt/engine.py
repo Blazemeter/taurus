@@ -369,7 +369,7 @@ class Engine(object):
         machine_dir = get_configs_dir()
         if os.path.isdir(machine_dir):
             self.log.debug("Reading machine configs from: %s", machine_dir)
-            for cfile in os.listdir(machine_dir):
+            for cfile in sorted(os.listdir(machine_dir)):
                 fname = os.path.join(machine_dir, cfile)
                 if os.path.isfile(fname):
                     base_configs.append(fname)
@@ -500,7 +500,7 @@ class Engine(object):
     def _check_updates(self):
         if self.config.get("settings").get("check-updates", True):
             try:
-                params = (bzt.VERSION, self.config.get("install-id", ""))
+                params = (bzt.VERSION, self.config.get("install-id", "N/A"))
                 req = "http://gettaurus.org/updates/?version=%s&installID=%s" % params
                 self.log.debug("Requesting updates info: %s", req)
                 response = urlopen(req, timeout=1)
