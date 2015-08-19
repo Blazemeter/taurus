@@ -309,6 +309,12 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
                     fail_criterias.append(_fc)
         root_xml_element = etree.Element("testsuite", name='bzt_pass_fail', package="bzt")
 
+        _kpiset = self.last_second[DataPoint.CUMULATIVE]
+        summary_kpiset = _kpiset[""]
+        bza_report_info = self.get_bza_report_info()
+        report_urls = [info_item[0] for info_item in bza_report_info]
+        root_xml_element.append(self.make_summary_report(summary_kpiset, report_urls))
+
         bza_report_info = self.get_bza_report_info()
         classname = bza_report_info[0][1] if bza_report_info else "bzt"  # [(url, test_name), (url, test_name), ...]
 
