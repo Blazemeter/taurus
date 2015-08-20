@@ -227,6 +227,17 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE):
                      preexec_fn=os.setpgrp, close_fds=True, cwd=cwd)
 
 
+def shell_exec_improved(args, cwd=None, stdout=PIPE, stderr=PIPE):
+    """
+    shell exec with redirect output
+    :param args:
+    :param cwd:
+    :param stdout:
+    :param stderr:
+    :return:
+    """
+    pass
+
 def ensure_is_dict(container, key, default_key=None):
     """
     Ensure that dict item is dict, convert if needed
