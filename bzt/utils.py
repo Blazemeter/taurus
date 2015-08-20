@@ -670,6 +670,7 @@ class ProgressBarContext(ProgressBar):
         progress = block_count * blocksize
         self.update(progress if progress <= totalsize else totalsize)
 
+
 class JarCleaner(object):
     def __init__(self, parent_logger):
         self.log = parent_logger.getChild(self.__class__.__name__)
