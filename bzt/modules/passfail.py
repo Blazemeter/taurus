@@ -39,6 +39,7 @@ class PassFailStatus(Reporter, AggregatorListener, WidgetProvider):
         super(PassFailStatus, self).__init__()
         self.criterias = []
         self.widget = None
+        self.last_datapoint = None
 
     def prepare(self):
         super(PassFailStatus, self).prepare()
@@ -49,11 +50,21 @@ class PassFailStatus(Reporter, AggregatorListener, WidgetProvider):
             crit = load_class(crit_config.get('type', FailCriteria.__module__ + "." + FailCriteria.__name__))
             self.criterias.append(crit(crit_config))
 
+    def shutdown(self):
+        for crit in self.criterias:
+            if crit.selector == DataPoint.CUMULATIVE:
+                if self.last_datapoint:
+                    crit.aggregated_second(self.last_datapoint)
+
     def post_process(self):
         super(PassFailStatus, self).post_process()
         for crit in self.criterias:
-            if crit.is_triggered and not crit.stop and crit.fail:
-                raise AutomatedShutdown("%s" % crit)
+            if crit.selector == DataPoint.CUMULATIVE:
+                if crit.is_triggered and crit.fail:
+                    raise AutomatedShutdown("%s" % crit)
+            else:
+                if crit.is_triggered and not crit.stop and crit.fail:
+                    raise AutomatedShutdown("%s" % crit)
 
     def check(self):
         """
@@ -74,8 +85,10 @@ class PassFailStatus(Reporter, AggregatorListener, WidgetProvider):
 
         :type data: bzt.modules.aggregator.DataPoint
         """
+        self.last_datapoint = data
         for crit in self.criterias:
-            crit.aggregated_second(data)
+            if crit.selector != DataPoint.CUMULATIVE:
+                crit.aggregated_second(data)
 
     def get_widget(self):
         """
@@ -167,19 +180,17 @@ class FailCriteria(object):
         """
         part = data[self.selector]
         if self.label not in part:
+            logging.debug("No label %s in %s", self.label, part.keys())
             return
         value = self.agg_logic(data[DataPoint.TIMESTAMP], self.get_value(part[self.label]))
 
         state = self.condition(value, self.threshold)
-        if not state:
+        if state:
+            self.__count(data)
+        else:
             self.counting = 0
             if not self.is_triggered:
                 self.started = None
-
-            if self.selector == DataPoint.CUMULATIVE:
-                self.is_triggered = False
-        else:
-            self.__count(data)
 
         logging.debug("%s %s: %s", data[DataPoint.TIMESTAMP], self, state)
 
@@ -274,7 +285,7 @@ class FailCriteria(object):
             "condition": None,
             "threshold": None,
             "logic": "for",
-            "timeframe": -1,
+            "timeframe": 0,
             "label": "",
             "stop": True,
             "fail": True
@@ -308,8 +319,8 @@ class FailCriteria(object):
             if not act_match:
                 raise ValueError("Criteria string is mailformed in its action part: %s" % action_str)
             action_groups = act_match.groups()
-            res["stop"] = action_groups[0] == "stop"
-            res["fail"] = action_groups[2] == "failed"
+            res["stop"] = action_groups[0] != "continue"
+            res["fail"] = action_groups[2] is None or action_groups[2] == "failed"
 
         return res
 
@@ -366,7 +377,10 @@ class PassFailWidget(urwid.Pile):
         """
         result = []
         for failing_criteria in self.failing_criteria:
-            percent = failing_criteria.counting / failing_criteria.window
+            if failing_criteria.window:
+                percent = failing_criteria.counting / failing_criteria.window
+            else:
+                percent = 1
             color = 'stat-txt'
             if 0.5 <= percent < 0.8:
                 color = 'pf-3'

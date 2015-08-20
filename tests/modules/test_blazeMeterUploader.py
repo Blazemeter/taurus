@@ -3,8 +3,8 @@ import os
 import shutil
 from io import BytesIO
 
-from tests import BZTestCase, random_datapoint
-from bzt.modules.blazemeter import BlazeMeterUploader, BlazeMeterClient
+from tests import BZTestCase, random_datapoint, __dir__
+from bzt.modules.blazemeter import BlazeMeterUploader, BlazeMeterClient, BlazeMeterClientEmul
 from tests.mocks import EngineEmul
 import bzt.modules.blazemeter
 
@@ -53,57 +53,6 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.address = "https://a.blazemeter.com"
         obj.ping()
 
-    def test_proxy(self):
-        client = BlazeMeterClientEmul(logging.getLogger(''))
-        client.results.append({"marker": "ping", 'result': {}})
-        client.results.append({"marker": "tests", 'result': {}})
-        client.results.append({"marker": "test-create", 'result': {'id': 'unittest1'}})
-        obj = BlazeMeterUploader()
-        obj.settings['token'] = '123'
-        obj.settings['browser-open'] = 'none'
-        obj.engine = EngineEmul()
-        obj.engine.config.merge(
-            {"settings": {'proxy': {"username": "user", "password": "password", "address": "http://127.0.0.1:8080"}}})
-        obj.client = client
-        try:
-            from urllib2 import _opener
-        except ImportError:
-            from urllib.request import _opener
-        old_opener = _opener
-        obj.prepare()
-        try:
-            from urllib2 import _opener
-        except ImportError:
-            from urllib.request import _opener
-        new_opener = _opener
-        self.assertNotEqual(old_opener, new_opener)  # test if opener installed
-        obj = BlazeMeterUploader()
-        obj.settings['token'] = '123'
-        obj.settings['browser-open'] = 'none'
-        obj.engine = EngineEmul()
-        client.results.append({"marker": "ping", 'result': {}})
-        client.results.append({"marker": "tests", 'result': {}})
-        client.results.append({"marker": "test-create", 'result': {'id': 'unittest1'}})
-        obj.client = client
-        try:
-            from urllib2 import _opener
-        except ImportError:
-            from urllib.request import _opener
-        _opener = None
-        obj.prepare()
-        self.assertIsNone(_opener)
-
-
-class BlazeMeterClientEmul(BlazeMeterClient):
-    def __init__(self, parent_logger):
-        super(BlazeMeterClientEmul, self).__init__(parent_logger)
-        self.results = []
-
-    def _request(self, url, data=None, headers=None, checker=None):
-        self.log.debug("Request %s: %s", url, data)
-        res = self.results.pop(0)
-        self.log.debug("Response: %s", res)
-        return res
 
 
 class TestBlazeMeterClientUnicode(BZTestCase):
@@ -118,14 +67,14 @@ class TestBlazeMeterClientUnicode(BZTestCase):
         self.token = "faketoken"
         normal_urlopen = bzt.modules.blazemeter.urlopen
         bzt.modules.blazemeter.urlopen = dummy_urlopen
-        blazemeter_client.upload_file("tests/data/unicode_file")
+        blazemeter_client.upload_file(__dir__() + "/../data/unicode_file")
         bzt.modules.blazemeter.urlopen = normal_urlopen
 
 
 class DummyHttpResponse(object):
     def __init__(self):
         self.fake_socket = BytesIO()
-        self.fake_socket.write(open("tests/data/unicode_file", 'rb').read())
+        self.fake_socket.write(open(__dir__() + "/../data/unicode_file", 'rb').read())
 
     def read(self):
         self.fake_socket.seek(0)

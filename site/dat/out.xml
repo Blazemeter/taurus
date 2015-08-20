@@ -17,4 +17,6 @@
     <url link="support" menu="1" title="Support Forums"
          class="PWE\Modules\RedirectAccepted\RedirectAccepted"
          base="http://groups.google.com/forum/#!forum/codename-taurus" accept="1"/>
+
+    <url link="updates" title="Updates Information" class="Taurus\UpdateChecker" template="empty.tpl"/>
 </url>

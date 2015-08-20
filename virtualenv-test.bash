@@ -5,7 +5,7 @@ virtualenv --clear build
 source build/bin/activate
 
 # install depends
-pip install colorlog pyyaml psutil lxml cssselect nose urwid coverage six pylint progressbar33
+pip install --upgrade colorlog pyyaml psutil lxml cssselect nose urwid coverage six pylint progressbar33
 
 pylint -d R0903,R0904,C0301,C0302,C0111,E1103,R0201,R0902,W0511,F0401,E0611,R0801 -f parseable bzt > build/pylint.out || echo
 
@@ -19,8 +19,10 @@ source build/bin/activate
 
 # run installation test
 cd build # cd is to make it not find bzt package from sources
-pip -v install ../dist/bzt-*.tar.gz
+pip install --upgrade ../dist/bzt-*.tar.gz
 cd ..
+
+echo '{"install-id": "UnitTest"}' > build/etc/bzt.d/99-zinstallID.json
 
 # run functional tests
 bzt -o execution.scenario.script=tests/jmx/dummy.jmx -d build/test -o modules.jmeter.path=build/jmeter/bin/jmeter

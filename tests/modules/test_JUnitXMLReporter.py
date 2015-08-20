@@ -216,11 +216,11 @@ class TestJUnitXML(BZTestCase):
 
         xml_tree = etree.fromstring(f_contents)
         self.assertEqual('testsuite', xml_tree.tag)
-        self.assertEqual(4, len(xml_tree.getchildren()))
+        self.assertEqual(3, len(xml_tree.getchildren()))
         self.assertEqual('testcase', xml_tree.getchildren()[0].tag)
         self.assertEqual('error', xml_tree.getchildren()[0].getchildren()[0].tag)
-        self.assertEqual('error', xml_tree.getchildren()[1].getchildren()[0].tag)
-        self.assertListEqual(['29656', 'taurus_sample-labels', '0', '59314'], xml_tree.values())
+        self.assertEqual('error', xml_tree.getchildren()[0].getchildren()[0].tag)
+        self.assertListEqual(['sample_labels', "bzt"], xml_tree.values())
 
     def test_xml_format_passfail(self):
         obj = JUnitXMLReporter()
@@ -238,10 +238,10 @@ class TestJUnitXML(BZTestCase):
         pass_fail2 = PassFailStatus()
 
         fc2_triggered = FailCriteria({'stop': True, 'label': 'Sample 2 Triggered', 'fail': True, 'timeframe': -1,
-                                      'threshold': '150ms', 'condition': '<', 'subject': 'avg-rt'})
+                                      'threshold': '150ms', 'condition': '<=', 'subject': 'avg-rt'})
 
         fc2_not_triggered = FailCriteria({'stop': True, 'label': 'Sample 2 Not Triggered', 'fail': True,
-                                          'timeframe': -1, 'threshold': '300ms', 'condition': '>', 'subject': 'avg-rt'})
+                                          'timeframe': -1, 'threshold': '300ms', 'condition': '=', 'subject': 'avg-rt'})
 
         pass_fail1.criterias.append(fc1_triggered)
         pass_fail1.criterias.append(fc1_not_triggered)
@@ -271,4 +271,3 @@ class TestJUnitXML(BZTestCase):
         self.assertEqual('testcase', xml_tree.getchildren()[0].tag)
         self.assertEqual('error', xml_tree.getchildren()[0].getchildren()[0].tag)
         self.assertEqual('error', xml_tree.getchildren()[2].getchildren()[0].tag)
-        self.assertListEqual(['2', 'taurus_junitxml_pass_fail', '0', '4'], xml_tree.values())

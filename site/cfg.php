@@ -20,3 +20,5 @@ if ($_SERVER['SERVER_ADDR'] == $_SERVER['REMOTE_ADDR']) {
 $PWECore->setRootDirectory(__DIR__);
 $PWECore->setXMLDirectory($PWECore->getDataDirectory());
 $PWECore->setTempDirectory($tempdir);
+
+require_once __DIR__."/updates.php";

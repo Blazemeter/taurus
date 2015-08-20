@@ -38,7 +38,7 @@ from progressbar import ProgressBar, Percentage, Bar, ETA
 import psutil
 from psutil import Popen
 
-from bzt.six import string_types, iteritems, viewvalues, binary_type, text_type, b, integer_types, request
+from bzt.six import string_types, iteritems, viewvalues, binary_type, text_type, b, integer_types, request, file_type
 
 
 def run_once(func):
@@ -119,6 +119,9 @@ class BetterDict(defaultdict):
             default = BetterDict()
 
         value = self.setdefault(key, default)
+        if value == default and isinstance(value, BaseException):
+            raise value
+
         if isinstance(value, string_types):
             if isinstance(value, str):  # this is a trick for python v2/v3 compatibility
                 return value
@@ -216,6 +219,13 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE):
     :type args: basestring or list
     :return:
     """
+    if stdout and not isinstance(stdout, int) and not isinstance(stdout, file_type):
+        logging.warning("stdout is not IOBase: %s", stdout)
+        stdout = None
+
+    if stderr and not isinstance(stderr, int) and not isinstance(stderr, file_type):
+        logging.warning("stderr is not IOBase: %s", stderr)
+        stderr = None
 
     if isinstance(args, string_types):
         args = shlex.split(args)
@@ -581,10 +591,10 @@ def shutdown_process(process_obj, log_obj, Force=True):
         time.sleep(1)
         try:
             if platform.system() == 'Windows':
-                cur_pids = psutil.get_pid_list()
+                cur_pids = psutil.pids()
                 if process_obj.pid in cur_pids:
                     jm_proc = psutil.Process(process_obj.pid)
-                    for child_proc in jm_proc.get_children(recursive=True):
+                    for child_proc in jm_proc.children(recursive=True):
                         log_obj.debug("Terminating child process: %d", child_proc.pid)
                         child_proc.send_signal(signal.SIGTERM)
                     os.kill(process_obj.pid, signal.SIGTERM)
@@ -637,7 +647,8 @@ class JavaVM(RequiredTool):
             output = subprocess.check_output(["java", '-version'], stderr=subprocess.STDOUT)
             self.log.debug("%s output: %s", self.tool_name, output)
             return True
-        except BaseException:
+        except BaseException as exc:
+            self.log.debug("Failed to start Java: %s", exc)
             raise RuntimeError("The %s is not operable or not available. Consider installing it" % self.tool_name)
 
     def install(self):

@@ -1,7 +1,16 @@
 # Changelog
 
-## 0.3.6 (next)
+## 0.3.8 (next)
+
+## 0.3.7
+  - fail criteria without timeframe is checked at the end of the test
+  - fixed shutdown on windows
+  - fixed label names in junitxml reports
+  - blazemeter report url added to every testcase in junitxml reports
+
+## 0.3.6
   - added jmx2yaml tool
+  - added updates check capability
 
 ## 0.3.5
   - fix Selenium executor logging
