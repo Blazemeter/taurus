@@ -31,8 +31,7 @@ import sys
 import time
 import signal
 import subprocess
-from collections import defaultdict, Counter, namedtuple
-from distutils.version import LooseVersion
+from collections import defaultdict, Counter
 from subprocess import PIPE
 
 from progressbar import ProgressBar, Percentage, Bar, ETA
@@ -669,30 +668,3 @@ class ProgressBarContext(ProgressBar):
         self.maxval = totalsize
         progress = block_count * blocksize
         self.update(progress if progress <= totalsize else totalsize)
-
-
-class JarCleaner(object):
-    def __init__(self, parent_logger):
-        self.log = parent_logger.getChild(self.__class__.__name__)
-
-    def clean(self, path):
-        """
-        Remove old jars
-        """
-        self.log.debug("Removing old jars from %s", path)
-        jarlib = namedtuple("jarlib", ("file_name", "lib_name"))
-        jars = [fname for fname in os.listdir(path) if '-' in fname and os.path.isfile(os.path.join(path, fname))]
-        jar_libs = [jarlib(file_name=jar, lib_name='-'.join(jar.split('-')[:-1])) for jar in jars]
-
-        duplicated_libraries = []
-        for jar_lib_obj in jar_libs:
-            similar_packages = [LooseVersion(_jarlib.file_name) for _jarlib in
-                                [lib for lib in jar_libs if lib.lib_name == jar_lib_obj.lib_name]]
-            if len(similar_packages) > 1:
-                right_version = max(similar_packages)
-                similar_packages.remove(right_version)
-                duplicated_libraries.extend([lib for lib in similar_packages if lib not in duplicated_libraries])
-
-        for old_lib in duplicated_libraries:
-            os.remove(os.path.join(path, old_lib.vstring))
-            self.log.debug("Old jar removed %s", old_lib.vstring)
