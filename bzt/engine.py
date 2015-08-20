@@ -135,7 +135,10 @@ class Engine(object):
         """
         self.log.info("Waiting for finish...")
         prev = time.time()
-        modules = [self.provisioning, self.aggregator] + self.services + self.reporters
+        modules = [self.provisioning]
+        if self.aggregator:
+            modules.append(self.aggregator)
+        modules += self.services + self.reporters
         while not EngineModule.check_modules_list(modules):
             now = time.time()
             diff = now - prev
