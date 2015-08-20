@@ -94,9 +94,9 @@ class Engine(object):
         downstream EngineModule instances
         """
         self.log.info("Preparing...")
-        self.__prepare_provisioning()
         self.__prepare_services()
         self.__prepare_aggregator()
+        self.__prepare_provisioning()
         self.__prepare_reporters()
 
         interval = self.config.get("settings").get("check-interval", self.check_interval)
@@ -316,6 +316,9 @@ class Engine(object):
         self.log.debug("Module config: %s %s", alias, acopy)
 
         clsname = settings.get('class', None)
+        if clsname is None:
+            raise ValueError("Class name not found in module settings: %s" % settings)
+
         try:
             self.modules[alias] = load_class(clsname)
             if not issubclass(self.modules[alias], EngineModule):
