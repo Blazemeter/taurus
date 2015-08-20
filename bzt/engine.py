@@ -45,6 +45,7 @@ class Engine(object):
     Core entity of the technology, used to coordinate whole process
 
     :type reporters: list[Reporter]
+    :type services: list[EngineModule]
     :type log: logging.Logger
     :type aggregator: bzt.modules.aggregator.ConsolidatingAggregator
     :type stopping_reason: BaseException
@@ -55,6 +56,7 @@ class Engine(object):
 
         :type parent_logger: logging.Logger
         """
+        self.services = []
         self.__artifacts = []
         self.reporters = []
         self.file_search_path = None
@@ -93,6 +95,8 @@ class Engine(object):
         """
         self.log.info("Preparing...")
         self.__prepare_provisioning()
+        self.__prepare_services()
+        self.__prepare_aggregator()
         self.__prepare_reporters()
 
         interval = self.config.get("settings").get("check-interval", self.check_interval)
@@ -119,11 +123,9 @@ class Engine(object):
             self._shutdown()
 
     def _startup(self):
-        if self.aggregator:
-            self.aggregator.startup()
-        for module in self.reporters:
-            module.startup()
-        self.provisioning.startup()
+        modules = self.services + [self.aggregator] + self.reporters + [self.provisioning]
+        for _module in modules:
+            _module.startup()
         self.config.dump()
 
     def _wait(self):
@@ -133,8 +135,8 @@ class Engine(object):
         """
         self.log.info("Waiting for finish...")
         prev = time.time()
-        while not self.provisioning.check() and not self.aggregator.check() \
-                and not EngineModule.check_modules_list(self.reporters):
+        modules = [self.provisioning, self.aggregator] + self.services + self.reporters
+        while not EngineModule.check_modules_list(modules):
             now = time.time()
             diff = now - prev
             delay = self.check_interval - diff
@@ -153,11 +155,11 @@ class Engine(object):
         """
         self.log.info("Shutting down...")
         try:
-            self.provisioning.shutdown()
-            self.aggregator.shutdown()
-
             exception = None
-            for module in self.reporters:
+            modules = [self.provisioning, self.aggregator]
+            modules += self.reporters
+            modules += self.services
+            for module in modules:
                 try:
                     module.shutdown()
                 except BaseException as exc:
@@ -166,8 +168,8 @@ class Engine(object):
                     if not exception:
                         exception = exc
 
-                if exception:
-                    raise exception
+            if exception:
+                raise exception
         except BaseException as exc:
             self.log.error("Error while shutting down: %s", traceback.format_exc())
             self.stopping_reason = exc if not self.stopping_reason else self.stopping_reason
@@ -183,7 +185,9 @@ class Engine(object):
         # :type exception: BaseException
         exception = None
         try:
-            for module in [self.provisioning, self.aggregator] + self.reporters:
+            modules = [self.provisioning, self.aggregator] + self.reporters
+            modules += self.services
+            for module in modules:
                 try:
                     module.post_process()
                 except KeyboardInterrupt as exc:
@@ -396,21 +400,17 @@ class Engine(object):
     def __prepare_provisioning(self):
         """
         Instantiate provisioning class
-        :return:
         """
         cls = self.config.get(Provisioning.PROV, "")
         if not cls:
             raise ValueError("Please configure provisioning settings")
         self.provisioning = self.instantiate_module(cls)
-        self.__prepare_aggregator()
         self.provisioning.prepare()
 
     def __prepare_reporters(self):
         """
         Instantiate reporters, then prepare them in case they would like to interact
-        :return:
         """
-        # instantiate reporters
         reporting = self.config.get(Reporter.REP, [])
         for index, reporter in enumerate(reporting):
             reporter = ensure_is_dict(reporting, index, "module")
@@ -419,10 +419,26 @@ class Engine(object):
             instance.parameters = reporter
             if isinstance(instance, AggregatorListener):
                 self.aggregator.add_listener(instance)  # NOTE: bad design, add_listener method is unknown
+            assert isinstance(instance, Reporter)
             self.reporters.append(instance)
 
         # prepare reporters
         for module in self.reporters:
+            module.prepare()
+
+    def __prepare_services(self):
+        """
+        Instantiate service modules, then prepare them
+        """
+        services = self.config.get("services", [])
+        for index, config in enumerate(services):
+            config = ensure_is_dict(services, index, "module")
+            cls = config.get('module', '')
+            instance = self.instantiate_module(cls)
+            instance.parameters = config
+            self.services.append(instance)
+
+        for module in self.services:
             module.prepare()
 
     def __prepare_aggregator(self):
