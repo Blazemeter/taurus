@@ -1,6 +1,7 @@
 # Changelog
 
 ## 0.3.8 (next)
+  - fixed bug when old jars were not removed during JMeter installation
   - implement "services" top-level config section
 
 ## 0.3.7

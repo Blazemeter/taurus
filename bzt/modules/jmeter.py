@@ -25,7 +25,6 @@ import traceback
 import logging
 import shutil
 from collections import Counter, namedtuple
-from distutils.version import LooseVersion
 from math import ceil
 import tempfile
 
@@ -41,6 +40,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataP
 from bzt.utils import shell_exec, ensure_is_dict, humanize_time, dehumanize_time, BetterDict, \
     guess_csv_dialect, unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext
 from bzt.six import iteritems, text_type, string_types, StringIO, parse, request, etree
+from distutils.version import LooseVersion
 
 EXE_SUFFIX = ".bat" if platform.system() == 'Windows' else ""
 
@@ -2025,31 +2025,9 @@ class JMeter(RequiredTool):
         os.remove(jmeter_dist.name)
 
         if self.check_if_installed():
-            self.remove_old_jar_versions(os.path.join(dest, 'lib'))
             return self.tool_path
         else:
             raise RuntimeError("Unable to run %s after installation!" % self.tool_name)
-
-    def remove_old_jar_versions(self, path):
-        """
-        Remove old jars
-        """
-        jarlib = namedtuple("jarlib", ("file_name", "lib_name"))
-        jars = [fname for fname in os.listdir(path) if '-' in fname and os.path.isfile(os.path.join(path, fname))]
-        jar_libs = [jarlib(file_name=jar, lib_name='-'.join(jar.split('-')[:-1])) for jar in jars]
-
-        duplicated_libraries = []
-        for jar_lib_obj in jar_libs:
-            similar_packages = [LooseVersion(_jarlib.file_name) for _jarlib in
-                                [lib for lib in jar_libs if lib.lib_name == jar_lib_obj.lib_name]]
-            if len(similar_packages) > 1:
-                right_version = max(similar_packages)
-                similar_packages.remove(right_version)
-                duplicated_libraries.extend([lib for lib in similar_packages if lib not in duplicated_libraries])
-
-        for old_lib in duplicated_libraries:
-            os.remove(os.path.join(path, old_lib.vstring))
-            self.log.debug("Old jar removed %s", old_lib.vstring)
 
 
 class JMeterPlugins(RequiredTool):
@@ -2091,3 +2069,32 @@ class JMeterPlugins(RequiredTool):
             unzip(plugin_dist.name, dest)
             plugin_dist.close()
             os.remove(plugin_dist.name)
+        cleaner = JarCleaner(self.log)
+        cleaner.clean(os.path.join(dest, 'lib'))
+
+
+class JarCleaner(object):
+    def __init__(self, parent_logger):
+        self.log = parent_logger.getChild(self.__class__.__name__)
+
+    def clean(self, path):
+        """
+        Remove old jars
+        """
+        self.log.debug("Removing old jars from %s", path)
+        jarlib = namedtuple("jarlib", ("file_name", "lib_name"))
+        jars = [fname for fname in os.listdir(path) if '-' in fname and os.path.isfile(os.path.join(path, fname))]
+        jar_libs = [jarlib(file_name=jar, lib_name='-'.join(jar.split('-')[:-1])) for jar in jars]
+
+        duplicated_libraries = []
+        for jar_lib_obj in jar_libs:
+            similar_packages = [LooseVersion(_jarlib.file_name) for _jarlib in
+                                [lib for lib in jar_libs if lib.lib_name == jar_lib_obj.lib_name]]
+            if len(similar_packages) > 1:
+                right_version = max(similar_packages)
+                similar_packages.remove(right_version)
+                duplicated_libraries.extend([lib for lib in similar_packages if lib not in duplicated_libraries])
+
+        for old_lib in duplicated_libraries:
+            os.remove(os.path.join(path, old_lib.vstring))
+            self.log.debug("Old jar removed %s", old_lib.vstring)
