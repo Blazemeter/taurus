@@ -31,7 +31,7 @@
       "class": "bzt.modules.gatling.GatlingExecutor",
       "path": "~/.bzt/gatling-taurus/bin/gatling.sh"
     },
-    "shell-executor":
+    "shellexec":
     {
       "class": "bzt.modules.shell_exec.ShellExecutor"
     },

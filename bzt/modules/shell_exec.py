@@ -16,7 +16,7 @@ limitations under the License.
 """
 
 from bzt.utils import shell_exec, shutdown_process, ensure_is_dict, BetterDict
-from bzt.engine import ScenarioExecutor
+from bzt.engine import EngineModule
 import time
 import tempfile
 import shutil
@@ -24,8 +24,7 @@ import os
 from bzt import AutomatedShutdown
 
 
-
-class ShellExecutor(ScenarioExecutor):
+class ShellExecutor(EngineModule):
     def __init__(self):
         super(ShellExecutor, self).__init__()
         self.task_list = []
@@ -35,7 +34,7 @@ class ShellExecutor(ScenarioExecutor):
         Configure Tasks
         :return:
         """
-        tasks = self.get_scenario().get("tasks")
+        tasks = self.settings
         for task_config in tasks:
             try:
                 self.task_list.append(Task(task_config, self.log, self.engine.artifacts_dir))
@@ -66,7 +65,7 @@ class ShellExecutor(ScenarioExecutor):
         """
         self.process_stage("shutdown")
         if self.task_list:
-            self.log.warning("Some no-blocking tasks was not completed before shutdown!")
+            self.log.warning("Some non-blocking tasks were not completed before shutdown!")
 
     def _start_tasks(self, cur_stage):
         self.log.debug("Stage: %s, starting tasks...", cur_stage)
@@ -131,14 +130,15 @@ class Task(object):
 
         stages = ["prepare", "startup", "check", "postprocess", "shutdown"]
         possible_keys = ["start-stage", "stop-stage", "block", "stop-on-fail", "label", "command", "out", "err"]
-        default_config = {"start-stage": "prepare", "stop-stage": "shutdown", "block": False, "stop-on-fail": False}
-        default_config.update(self.config)
-        self.config = default_config
 
         # check keys in config
         for key in self.config.keys():
             if key not in possible_keys:
                 self.log.warning("Ignoring unknown option %s in task config! %s", key, self.config)
+
+        default_config = {"start-stage": "prepare", "stop-stage": "shutdown", "block": False, "stop-on-fail": False}
+        default_config.update(self.config)
+        self.config = default_config
 
         if self.config["start-stage"] not in stages or self.config["stop-stage"] not in stages:
             self.log.error("Invalid stage name in task config!")
@@ -169,12 +169,13 @@ class Task(object):
         with tempfile.NamedTemporaryFile(prefix=prefix_name,
                                          suffix=".out",
                                          delete=False,
-                                         dir=self.working_dir) as self.stdout,\
+                                         dir=self.working_dir) as self.stdout, \
                 tempfile.NamedTemporaryFile(prefix=prefix_name,
                                             suffix=".err",
                                             delete=False,
                                             dir=self.working_dir) as self.stderr:
-            self.process = shell_exec(task_cmd, cwd=self.working_dir, stdout=self.stdout, stderr=self.stderr ,shell=True)
+            self.process = shell_exec(task_cmd, cwd=self.working_dir, stdout=self.stdout, stderr=self.stderr,
+                                      shell=False)
         self.log.debug("Task started %s, process PID: %d", task_cmd, self.process.pid)
 
     def is_finished(self):
@@ -218,7 +219,7 @@ class Task(object):
 
         try:
             if out_option:
-                shutil.move(self.stdout.name, os.path.join(self.working_dir,out_option))
+                shutil.move(self.stdout.name, os.path.join(self.working_dir, out_option))
                 self.log.info("Task output was saved in:%s", out_option)
             else:
                 os.remove(self.stdout.name)
@@ -227,7 +228,7 @@ class Task(object):
 
         try:
             if err_option:
-                shutil.move(self.stderr.name, os.path.join(self.working_dir,err_option))
+                shutil.move(self.stderr.name, os.path.join(self.working_dir, err_option))
                 self.log.info("Task stderr was saved in:%s", err_option)
             else:
                 os.remove(self.stderr.name)
