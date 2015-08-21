@@ -27,9 +27,7 @@ class TestBlockingTasks(TestShellExec):
         obj = ShellExecutor()
         obj.engine = self.engine_obj
         obj.settings = self.shell_executor_config
-        task = {"label": "blocking,prepare,prepare,no-stop", "command": "sleep 2", "block": True,
-                "start-stage": "prepare",
-                "stop-stage": "prepare", "force-shutdown": False, "stop-on-fail": False}
+        task = {"command": "sleep 2", "block": True, "stop-stage":"prepare"}
         self.tasks.append(task)
         obj.engine.config.merge(self.baseconfig)
         obj.execution = obj.engine.config['execution']
@@ -50,9 +48,7 @@ class TestBlockingTasks(TestShellExec):
         obj = ShellExecutor()
         obj.engine = self.engine_obj
         obj.settings = self.shell_executor_config
-        task = {"label": "blocking,prepare,shutdown,no-stop", "command": "sleep 2", "block": True,
-                "start-stage": "prepare",
-                "stop-stage": "shutdown", "force-shutdown": False, "stop-on-fail": False}
+        task = {"command": "sleep 2", "block": True, "stop-stage": "shutdown"}
         self.tasks.append(task)
         obj.engine.config.merge(self.baseconfig)
         obj.execution = obj.engine.config['execution']
@@ -73,9 +69,7 @@ class TestBlockingTasks(TestShellExec):
         obj = ShellExecutor()
         obj.engine = self.engine_obj
         obj.settings = self.shell_executor_config
-        task = {"label": "task one", "command": "echo hello", "block": True,
-                "start-stage": "prepare",
-                "stop-stage": "check", "force-shutdown": False, "stop-on-fail": False}
+        task = {"command": "echo hello", "block": True, "stop-stage": "check"}
         self.tasks.append(task)
         obj.engine.config.merge(self.baseconfig)
         obj.execution = obj.engine.config['execution']
@@ -180,9 +174,7 @@ class TestNonBlockingTasks(TestShellExec):
         obj = ShellExecutor()
         obj.engine = self.engine_obj
         obj.settings = self.shell_executor_config
-        task = {"command": "echo hello", "block": False,
-                "start-stage": "prepare",
-                "stop-stage": "check", "force-shutdown": False, "stop-on-fail": False}
+        task = {"command": "echo hello", "block": False, "stop-stage": "check", "out":"out.txt"}
         blocking_task = {"command": "sleep 1", "block": True}
         self.tasks.append(task)
         self.tasks.append(blocking_task)
@@ -284,13 +276,22 @@ class TestTasksConfigs(TestShellExec):
 
         self.assertIn("Invalid stage name in task config!", log_recorder.err_buff.getvalue())
 
-        #
-        #     def test_shell_exec(self):
-        #         """
-        #
-        #         :return:
-        #         """
-        #         l = "ls > /tmp/ll.txt"
-        #         x = shell_exec(l, shell=True)
-        #         c = x.communicate()
-        #         print(c)
+    def test_shell_exec(self):
+        """
+
+        :return:
+        """
+
+        obj = ShellExecutor()
+        obj.engine = self.engine_obj
+        log_recorder = RecordingHandler()
+        obj.log.addHandler(log_recorder)
+        obj.settings = self.shell_executor_config
+        command = "echo 1 > /tmp/text1.txt && sleep 5" # "&& sleep 1 && echo 2> {artifacts_dir}/text1.txt && echo <2"
+        task = {"command": command.format(artifacts_dir=obj.engine.artifacts_dir), "block": True, "stop-stage":"prepare", "label":"test shell"}
+        self.tasks.append(task)
+        obj.engine.config.merge(self.baseconfig)
+        obj.execution = obj.engine.config['execution']
+        obj.settings.merge(obj.engine.config.get("modules").get("shell-executor"))
+
+        obj.prepare()

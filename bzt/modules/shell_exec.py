@@ -19,8 +19,10 @@ from bzt.utils import shell_exec, shutdown_process, ensure_is_dict, BetterDict
 from bzt.engine import ScenarioExecutor
 import time
 import tempfile
+import shutil
 import os
 from bzt import AutomatedShutdown
+
 
 
 class ShellExecutor(ScenarioExecutor):
@@ -36,7 +38,7 @@ class ShellExecutor(ScenarioExecutor):
         tasks = self.get_scenario().get("tasks")
         for task_config in tasks:
             try:
-                self.task_list.append(Task(task_config, self.log))
+                self.task_list.append(Task(task_config, self.log, self.engine.artifacts_dir))
                 self.log.debug("Added task: %s", str(task_config))  # RecordingHandler fails if not str()
             except ValueError:
                 self.log.warning("Ignoring wrong task config: %s", str(task_config))
@@ -64,7 +66,7 @@ class ShellExecutor(ScenarioExecutor):
         """
         self.process_stage("shutdown")
         if self.task_list:
-            self.log.warning("Some no-blocking tasks was not completed before shutdown")
+            self.log.warning("Some no-blocking tasks was not completed before shutdown!")
 
     def _start_tasks(self, cur_stage):
         self.log.debug("Stage: %s, starting tasks...", cur_stage)
@@ -83,18 +85,11 @@ class ShellExecutor(ScenarioExecutor):
         for task in self.task_list:
             if task.config.get("stop-stage") == cur_stage:
                 self.log.debug("Attempting to shutdown task: %s, stage: %s, PID: %d", task, cur_stage, task.process.pid)
-                task.shutdown()  # TODO: implement graceful shutdown with check
+                task.shutdown()  # TODO: implement graceful shutdown with check and timeout
                 self.log.debug("Removing task %s from task list %s", task, self.task_list)
                 self.task_list.remove(task)
                 self.log.debug("Modified task list: %s", self.task_list)
         self.log.debug("Tasks shutdown completed (if any)")
-
-    # def _remove_completed_tasks(self):
-    #     self.log.debug("checking for completed tasks")
-    #     for task in self.task_list:
-    #         if task.config.get("block") and task.is_finished():
-    #             task.shutdown()
-    #             self.task_list.remove(task)
 
     def _wait_blocking_tasks_to_complete(self, cur_stage):
         self.log.debug("Waiting for blocking tasks (if any)")
@@ -110,14 +105,13 @@ class ShellExecutor(ScenarioExecutor):
         self._wait_blocking_tasks_to_complete(cur_stage)
         self._shutdown_tasks(cur_stage)
 
-        # self._remove_completed_tasks()
-
 
 class Task(object):
-    def __init__(self, config, parent_log):
+    def __init__(self, config, parent_log, working_dir):
         self.log = None
         self.config = config
         self.process = None
+        self.working_dir = working_dir
         self.stdout = None
         self.stderr = None
         self.is_failed = False
@@ -136,10 +130,8 @@ class Task(object):
         """
 
         stages = ["prepare", "startup", "check", "postprocess", "shutdown"]
-        blocks = force_shutdown = stop_on_fail = [True, False]
-        possible_keys = ["start-stage", "stop-stage", "block", "force-shutdown", "stop-on-fail", "label", "command"]
-        default_config = {"start-stage": "prepare", "block": False, "force-shutdown": True, "stop-stage": "shutdown",
-                          "stop-on-fail": False}
+        possible_keys = ["start-stage", "stop-stage", "block", "stop-on-fail", "label", "command", "out", "err"]
+        default_config = {"start-stage": "prepare", "stop-stage": "shutdown", "block": False, "stop-on-fail": False}
         default_config.update(self.config)
         self.config = default_config
 
@@ -152,8 +144,7 @@ class Task(object):
             self.log.error("Invalid stage name in task config!")
             raise ValueError
 
-        if self.config["block"] not in blocks or self.config["force-shutdown"] not in force_shutdown or self.config[
-            "stop-on-fail"] not in stop_on_fail:
+        if self.config["block"] not in [True, False] or self.config["stop-on-fail"] not in [True, False]:
             raise ValueError
 
         if not self.config.get("command"):
@@ -170,11 +161,20 @@ class Task(object):
         :return:
         """
         task_cmd = self.config.get("command")
+
         self.log.debug("Starting task: %s", task_cmd)
 
-        with tempfile.NamedTemporaryFile(prefix="task_out", delete=False) as self.stdout, tempfile.NamedTemporaryFile(
-                prefix="task_err", delete=False) as self.stderr:
-            self.process = shell_exec(task_cmd, cwd="/tmp", stdout=self.stdout, stderr=self.stderr)
+        prefix_name = "task_" + str(self.__hash__())
+
+        with tempfile.NamedTemporaryFile(prefix=prefix_name,
+                                         suffix=".out",
+                                         delete=False,
+                                         dir=self.working_dir) as self.stdout,\
+                tempfile.NamedTemporaryFile(prefix=prefix_name,
+                                            suffix=".err",
+                                            delete=False,
+                                            dir=self.working_dir) as self.stderr:
+            self.process = shell_exec(task_cmd, cwd=self.working_dir, stdout=self.stdout, stderr=self.stderr ,shell=True)
         self.log.debug("Task started %s, process PID: %d", task_cmd, self.process.pid)
 
     def is_finished(self):
@@ -194,7 +194,7 @@ class Task(object):
         self.log.debug('Task: %s was not finished yet', self)
         return False
 
-    def shutdown(self, force=True):
+    def shutdown(self):
         """
         Shutdown force/grace
         :return:
@@ -205,14 +205,40 @@ class Task(object):
         else:
             self.log.debug("Task %s already completed, no shutdown needed", self)
         with open(self.stderr.name) as fds_stderr, open(self.stdout.name) as fds_stdout:
-            self.log.debug("Task %s stdout:\n %s", self, fds_stdout.read())
-            self.log.debug("Task %s stderr:\n %s", self, fds_stderr.read())
-        # TODO: print contents and/or move them to artifacts
-        os.remove(self.stderr.name)
-        os.remove(self.stdout.name)
+            out = fds_stdout.read()
+            err = fds_stderr.read()
+
+        if out:
+            self.log.debug("Task %s stdout:\n %s", self, out)
+        if err:
+            self.log.error("Task %s stderr:\n %s", self, err)
+
+        out_option = self.config.get("out")
+        err_option = self.config.get("err")
+
+        try:
+            if out_option:
+                shutil.move(self.stdout.name, os.path.join(self.working_dir,out_option))
+                self.log.info("Task output was saved in:%s", out_option)
+            else:
+                os.remove(self.stdout.name)
+        except:
+            self.log.error("Task output was saved in:%s", self.stdout.name)
+
+        try:
+            if err_option:
+                shutil.move(self.stderr.name, os.path.join(self.working_dir,err_option))
+                self.log.info("Task stderr was saved in:%s", err_option)
+            else:
+                os.remove(self.stderr.name)
+        except:
+            self.log.error("Task stderr was saved in:%s", self.stderr.name)
 
     def __str__(self):
-        return self.config.get("command")  # TODO: use label from config, not command
+        if self.config.get("label"):
+            return self.config.get("label")
+        else:
+            return self.config.get("command")
 
     def __repr__(self):
         return str(self.config)

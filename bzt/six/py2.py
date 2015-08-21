@@ -29,6 +29,7 @@ import UserDict
 import StringIO
 import BaseHTTPServer
 import SocketServer as socketserver
+import tempfile
 
 string_types = basestring,
 integer_types = (int, long)
@@ -36,6 +37,7 @@ class_types = (type, types.ClassType)
 text_type = unicode
 binary_type = str
 file_type=file
+temp_file_wrapper = tempfile._TemporaryFileWrapper
 
 configparser = ConfigParser
 tkinter = Tkinter
