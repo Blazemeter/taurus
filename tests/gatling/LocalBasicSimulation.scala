@@ -22,7 +22,7 @@ class BasicSimulation extends Simulation {
 1          .bodyPart(RawFileBodyPart("file", "tests/data/unicode_file").contentType("application/binary").fileName("unicode_file")).asMultipartForm
 2          .body(RawFileBody("tests/json/dummy.json"))
 3          .body(ELFileBody("tests/json/includes.json"))
-4          .body(RawFileBodyPart("tests/json/local.json"))
+4          .body(RawFileBodyPart("tests/json/get-post.json"))
 5          .body(RawFileBodyPart("file_name", "tests/json/passfail.json"))
 6          .body(ELFileBodyPart("tests/json/mock_start_err.json"))
 7          .body(ELFileBodyPart("file_name", "tests/json/throughput.json"))

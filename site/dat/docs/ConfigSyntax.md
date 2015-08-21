@@ -4,6 +4,7 @@ Configuration dictionary has several top-level keys:
 
  - `[execution](ExecutionSettings.md)` - main section, declares tools to be executed during run, scenarios to use, etc
  - `[reporting](Reporting.md)` - analysis and reporting settings, list of reporting modules to process results 
+ - `[services](Services.md)` - service modules configuration 
  - `scenarios` - dictionary of scenario specifications with aliases, to be referred from executions
  - `[modules](#Modules-Settings)` - list of classes to load and their respective settings
  - `[settings](#Top-Level-Settings)` - some top-level settings for the tool

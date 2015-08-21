@@ -1,6 +1,7 @@
 # Changelog
 
 ## 0.3.8 (next)
+  - implement "services" top-level config section
 
 ## 0.3.7
   - fail criteria without timeframe is checked at the end of the test
