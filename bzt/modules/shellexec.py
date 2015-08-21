@@ -38,9 +38,10 @@ class ShellExecutor(EngineModule):
         for task_config in tasks:
             try:
                 self.task_list.append(Task(task_config, self.log, self.engine.artifacts_dir))
-                self.log.debug("Added task: %s", str(task_config))  # RecordingHandler fails if not str()
-            except ValueError:
-                self.log.warning("Ignoring wrong task config: %s", str(task_config))
+                self.log.debug("Added task: %s", str(task_config))
+            except ValueError as exc:
+                self.log.error("Wrong task config: %s, %s", task_config, exc)
+                raise
         self.process_stage("prepare")
 
     def startup(self):
@@ -51,55 +52,55 @@ class ShellExecutor(EngineModule):
 
     def check(self):
         """
-        If any tasks in check stage -
         :return:
         """
         self.process_stage("check")
-        # self._remove_completed_tasks()
         return True
 
     def shutdown(self):
         """
-        should forcefully kill all tasks at end
         :return:
         """
         self.process_stage("shutdown")
+
+    def post_process(self):
+        self.process_stage("post-process")
         if self.task_list:
-            self.log.warning("Some non-blocking tasks were not completed before shutdown!")
+            self.log.warning("Some tasks were not stopped properly!")
 
     def _start_tasks(self, cur_stage):
-        self.log.debug("Stage: %s, starting tasks...", cur_stage)
-        for task in self.task_list:
-            if task.config.get("start-stage") == cur_stage:
+        tasks = [task for task in self.task_list if task.config.get("start-stage") == cur_stage]
+        if tasks:
+            self.log.debug("Stage: %s, starting tasks...", cur_stage)
+            for task in tasks:
                 try:
                     task.startup()
-                except BaseException as exc:  # FIXME: Should we just ignore failed task? Or it's better to fail on prepare stage and ignore on others?
-                    self.log.error("Exception while starting task: %s", exc)
-                    self.log.error("Removing task: %s from task list!", task)
-                    self.task_list.remove(task)
-        self.log.debug("Tasks started (if any)")
+                except BaseException as exc:
+                    self.log.error("Exception while starting task: %s, %s", task, exc)
+                    raise
+            self.log.debug("Stage: %s, done starting tasks", cur_stage)
 
     def _shutdown_tasks(self, cur_stage):
-        self.log.debug("Shutting down tasks on stage: %s", cur_stage)
-        for task in self.task_list:
-            if task.config.get("stop-stage") == cur_stage:
-                self.log.debug("Attempting to shutdown task: %s, stage: %s, PID: %d", task, cur_stage, task.process.pid)
+        tasks = [task for task in self.task_list if task.config.get("start-stage") == cur_stage]
+        if tasks:
+            self.log.debug("Stage: %s, shutting down tasks...", cur_stage)
+            for task in tasks:
                 task.shutdown()  # TODO: implement graceful shutdown with check and timeout
-                self.log.debug("Removing task %s from task list %s", task, self.task_list)
+                self.log.debug("Removing completed task %s from task list", task)
                 self.task_list.remove(task)
-                self.log.debug("Modified task list: %s", self.task_list)
-        self.log.debug("Tasks shutdown completed (if any)")
+            self.log.debug("Stage: %s, tasks shutdown completed", cur_stage)
 
     def _wait_blocking_tasks_to_complete(self, cur_stage):
-        self.log.debug("Waiting for blocking tasks (if any)")
-        for task in self.task_list:
-            if task.config.get("start-stage") == cur_stage and task.config.get("block"):
+        tasks = [task for task in self.task_list if
+                 task.config.get("block") and task.config.get("start-stage") == cur_stage]
+        if tasks:
+            self.log.debug("Stage: %s, waiting for blocking tasks...", cur_stage)
+            for task in tasks:
                 while not task.is_finished():
-                    self.log.debug("Waiting for blocking task: %s, stage: %s...", task, cur_stage)
+                    self.log.debug("Stage: %s, waiting for blocking task: %s...", cur_stage, task)
                     time.sleep(1)
 
     def process_stage(self, cur_stage):
-        self.log.debug("Processing tasks, stage: %s", cur_stage)
         self._start_tasks(cur_stage)
         self._wait_blocking_tasks_to_complete(cur_stage)
         self._shutdown_tasks(cur_stage)
@@ -107,14 +108,12 @@ class ShellExecutor(EngineModule):
 
 class Task(object):
     def __init__(self, config, parent_log, working_dir):
-        self.log = None
+        self.log = parent_log.getChild(self.__class__.__name__)
         self.config = config
         self.process = None
         self.working_dir = working_dir
         self.stdout = None
         self.stderr = None
-        self.is_failed = False
-        self.log = parent_log.getChild(self.__class__.__name__)
         self.prepare()
 
     def prepare(self):
@@ -128,7 +127,7 @@ class Task(object):
         :return:
         """
 
-        stages = ["prepare", "startup", "check", "postprocess", "shutdown"]
+        stages = ["prepare", "startup", "check", "post-process", "shutdown"]
         possible_keys = ["start-stage", "stop-stage", "block", "stop-on-fail", "label", "command", "out", "err"]
 
         # check keys in config
@@ -136,24 +135,25 @@ class Task(object):
             if key not in possible_keys:
                 self.log.warning("Ignoring unknown option %s in task config! %s", key, self.config)
 
-        default_config = {"start-stage": "prepare", "stop-stage": "shutdown", "block": False, "stop-on-fail": False}
+        default_config = {"start-stage": "prepare", "stop-stage": "post-process", "block": False, "stop-on-fail": False}
         default_config.update(self.config)
         self.config = default_config
 
         if self.config["start-stage"] not in stages or self.config["stop-stage"] not in stages:
             self.log.error("Invalid stage name in task config!")
-            raise ValueError
+            raise ValueError("Invalid stage name in task config!")
 
         if self.config["block"] not in [True, False] or self.config["stop-on-fail"] not in [True, False]:
-            raise ValueError
+            self.log.error("Block: True/False, False by default")
+            raise ValueError("Invalid block option value")
 
         if not self.config.get("command"):
             self.log.error("No command in task config!")
-            raise ValueError
+            raise ValueError("No command in task config!")
 
         if self.config["start-stage"] == "startup" and self.config["block"]:
             self.log.error("Blocking tasks are not allowed on startup stage!")
-            raise ValueError
+            raise ValueError("Blocking tasks are not allowed on startup stage!")
 
     def startup(self):
         """
@@ -161,9 +161,7 @@ class Task(object):
         :return:
         """
         task_cmd = self.config.get("command")
-
-        self.log.debug("Starting task: %s", task_cmd)
-
+        self.log.debug("Starting task: %s", self)
         prefix_name = "task_" + str(self.__hash__())
 
         with tempfile.NamedTemporaryFile(prefix=prefix_name,
@@ -175,23 +173,19 @@ class Task(object):
                                             delete=False,
                                             dir=self.working_dir) as self.stderr:
             self.process = shell_exec(task_cmd, cwd=self.working_dir, stdout=self.stdout, stderr=self.stderr,
-                                      shell=False)
-        self.log.debug("Task started %s, process PID: %d", task_cmd, self.process.pid)
+                                      shell=True)
+        self.log.debug("Task started: %s, PID: %d", self, self.process.pid)
 
     def is_finished(self):
         ret_code = self.process.poll()
         if ret_code is not None:
             if ret_code != 0:
                 self.log.debug("Task: %s exit code: %s", self, ret_code)
-                self.is_failed = True
-
                 if self.config.get("stop-on-fail"):
                     self.log.error("Task: %s failed with stop-on-fail option, shutting down", self)
                     raise AutomatedShutdown
             self.log.info('Task: %s was finished', self)
             return True
-        # self.stderr.flush()
-        # self.stdout.flush()
         self.log.debug('Task: %s was not finished yet', self)
         return False
 
@@ -208,32 +202,28 @@ class Task(object):
         with open(self.stderr.name) as fds_stderr, open(self.stdout.name) as fds_stdout:
             out = fds_stdout.read()
             err = fds_stderr.read()
-
         if out:
             self.log.debug("Task %s stdout:\n %s", self, out)
         if err:
             self.log.error("Task %s stderr:\n %s", self, err)
-
         out_option = self.config.get("out")
         err_option = self.config.get("err")
-
         try:
             if out_option:
                 shutil.move(self.stdout.name, os.path.join(self.working_dir, out_option))
-                self.log.info("Task output was saved in:%s", out_option)
+                self.log.info("Task %s output was saved in:%s", self, out_option)
             else:
                 os.remove(self.stdout.name)
         except:
-            self.log.error("Task output was saved in:%s", self.stdout.name)
-
+            self.log.error("Task %s output was saved in:%s", self, self.stdout.name)
         try:
             if err_option:
                 shutil.move(self.stderr.name, os.path.join(self.working_dir, err_option))
-                self.log.info("Task stderr was saved in:%s", err_option)
+                self.log.info("Task %s stderr was saved in:%s", self, err_option)
             else:
                 os.remove(self.stderr.name)
         except:
-            self.log.error("Task stderr was saved in:%s", self.stderr.name)
+            self.log.error("Task %s stderr was saved in:%s", self, self.stderr.name)
 
     def __str__(self):
         if self.config.get("label"):
