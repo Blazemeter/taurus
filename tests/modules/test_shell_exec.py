@@ -1,7 +1,7 @@
 import os
 from tests import setup_test_logging, BZTestCase, RecordingHandler
 from tests.mocks import EngineEmul
-from bzt.modules.shell_exec import ShellExecutor
+from bzt.modules.shellexec import ShellExecutor
 from bzt import AutomatedShutdown
 import yaml
 
@@ -101,15 +101,16 @@ class TestTasksConfigs(TaskTestCase):
         task = {"invalid": "invalid", "command": "sleep 10", "block": False,
                 "start-stage": "prepare",
                 "stop-stage": "shutdown", "force-shutdown": True, "stop-on-fail": False}
-        self.obj.settings.append = [task]
+        self.obj.settings = [task]
         self.obj.prepare()
+        self.obj.shutdown()
         self.assertIn("Ignoring unknown option", self.log_recorder.warn_buff.getvalue())
 
     def test_wrong_stage(self):
         task = {"invalid": "invalid", "command": "sleep 10", "block": False,
                 "start-stage": "prepare",
                 "stop-stage": "shutTdown", "force-shutdown": True, "stop-on-fail": False}
-        self.obj.settings.append = [task]
+        self.obj.settings = [task]
         self.obj.prepare()
 
         # try:

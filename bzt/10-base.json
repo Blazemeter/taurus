@@ -33,7 +33,7 @@
     },
     "shellexec":
     {
-      "class": "bzt.modules.shell_exec.ShellExecutor"
+      "class": "bzt.modules.shellexec.ShellExecutor"
     },
     "selenium": {
       "class": "bzt.modules.selenium.SeleniumExecutor",
