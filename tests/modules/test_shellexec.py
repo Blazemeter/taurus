@@ -14,6 +14,9 @@ class TaskTestCase(BZTestCase):
         self.log_recorder = RecordingHandler()
         self.obj.log.addHandler(self.log_recorder)
 
+    def tearDown(self):
+        self.obj.log.removeHandler(self.log_recorder)
+
 class TestBlockingTasks(TaskTestCase):
 
     def test_task_prepare_prepare(self):

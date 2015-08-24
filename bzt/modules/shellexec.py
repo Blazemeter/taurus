@@ -35,8 +35,10 @@ class ShellExecutor(EngineModule):
         :return:
         """
         tasks = self.settings
-        for task_config in tasks:
+        for num, task_config in enumerate(tasks):
+            # task_config = ensure_is_dict(self.settings, num, "command")
             try:
+
                 self.task_list.append(Task(task_config, self.log, self.engine.artifacts_dir))
                 self.log.debug("Added task: %s", str(task_config))
             except ValueError as exc:
