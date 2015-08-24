@@ -2,10 +2,11 @@
 services:
   shellexec:
     prepare:
-    - command: 'pwd'
-      label: 'mytask'
-    - command: 'pwd'
-      label: 'some_label'
+    - command: echo test
+      label: test echo
+      out: test.out
+    - command: sleep 1
+      label: sleep_one
+      block: true
     shutdown:
-    - label: 'pwd'
-      command: 'pwd'
+    - command: pwd

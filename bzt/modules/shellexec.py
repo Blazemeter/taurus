@@ -39,7 +39,7 @@ class ShellExecutor(EngineModule):
             for stage_task in self.settings.get(stage):
                 stage_task["start-stage"] = stage
                 try:
-                    self.task_list.append(Task(stage_task, self.log, self.engine.artifacts_dir, stage))
+                    self.task_list.append(Task(stage_task, self.log, self.engine.artifacts_dir))
                     self.log.debug("Added task: %s", str(stage_task))
                 except ValueError as exc:
                     self.log.error("Wrong task config: %s, %s", stage_task, exc)
@@ -109,7 +109,7 @@ class ShellExecutor(EngineModule):
 
 
 class Task(object):
-    def __init__(self, config, parent_log, working_dir, start_stage):
+    def __init__(self, config, parent_log, working_dir):
         self.log = parent_log.getChild(self.__class__.__name__)
         self.config = config
         self.process = None

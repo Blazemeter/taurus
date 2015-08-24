@@ -85,7 +85,7 @@ class TestNonBlockingTasks(TaskTestCase):
 
     # def test_task_start_error(self):
     #     task = {"label": "task one", "command": "nothing", "block": False}
-    #     self.obj.settings = [task]
+    #     self.obj.settings = {"prepare": [task]}
     #     self.obj.prepare()
     #     self.obj.shutdown()
     #     self.assertIn("Exception while starting task", self.log_recorder.err_buff.getvalue())
@@ -137,10 +137,8 @@ class TestTasksConfigs(TaskTestCase):
             self.assertTrue(os.path.exists(out_file))
 
     def test_config(self):
-        obj = ShellExecutor()
-        obj.engine = EngineEmul()
-        obj.engine.config.merge(yaml.load(open("tests/yaml/shell_hook_start").read()))
-        obj.settings = obj.engine.config.get("services").get("shellexec")
-        obj.prepare()
-        obj.check()
-        obj.shutdown()
+        self.obj.engine.config.merge(yaml.load(open("tests/yaml/shell_hook_start").read()))
+        self.obj.settings = self.obj.engine.config.get("services").get("shellexec")
+        self.obj.prepare()
+        self.obj.check()
+        self.obj.shutdown()

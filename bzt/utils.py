@@ -33,7 +33,6 @@ import signal
 import subprocess
 from collections import defaultdict, Counter
 from subprocess import PIPE
-from tempfile import _TemporaryFileWrapper
 
 from progressbar import ProgressBar, Percentage, Bar, ETA
 import psutil
@@ -221,12 +220,10 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False
     :return:
     """
     if stdout and not isinstance(stdout, int) and not isinstance(stdout, file_type):
-            # and not isinstance(stdout, _TemporaryFileWrapper):
         logging.warning("stdout is not IOBase: %s", stdout)
         stdout = None
 
-    if stderr and not isinstance(stderr, int) and not isinstance(stderr, file_type) \
-            and not isinstance(stderr, _TemporaryFileWrapper):
+    if stderr and not isinstance(stderr, int) and not isinstance(stderr, file_type):
         logging.warning("stderr is not IOBase: %s", stderr)
         stderr = None
 
