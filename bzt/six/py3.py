@@ -38,7 +38,6 @@ class_types = type,
 text_type = str
 binary_type = bytes
 file_type = IOBase
-temp_file_wrapper = tempfile._TemporaryFileWrapper
 
 configparser = configparser
 tkinter = tkinter

@@ -1,13 +1,11 @@
 ---
 services:
   shellexec:
-  - task_one:
-    command: 'ls -la'
-    block: true
-    out: out.txt
-  - task_two:
-    command: 'sleep 1'
-    start-stage: prepare
-    stop-stage: shutdown
-    block: false
-#  - task_three: 'pwd'
+    prepare:
+    - command: 'pwd'
+      label: 'mytask'
+    - command: 'pwd'
+      label: 'some_label'
+    shutdown:
+    - label: 'pwd'
+      command: 'pwd'

@@ -33,13 +33,13 @@ import signal
 import subprocess
 from collections import defaultdict, Counter
 from subprocess import PIPE
+from tempfile import _TemporaryFileWrapper
 
 from progressbar import ProgressBar, Percentage, Bar, ETA
 import psutil
 from psutil import Popen
 
-from bzt.six import string_types, iteritems, viewvalues, binary_type, text_type, b, integer_types, request, file_type, \
-    temp_file_wrapper
+from bzt.six import string_types, iteritems, viewvalues, binary_type, text_type, b, integer_types, request, file_type
 
 
 def run_once(func):
@@ -220,20 +220,18 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False
     :type args: basestring or list
     :return:
     """
-    if stdout and not isinstance(stdout, int) and not isinstance(stdout, file_type) and not isinstance(stdout,
-                                                                                                       temp_file_wrapper):
+    if stdout and not isinstance(stdout, int) and not isinstance(stdout, file_type):
+            # and not isinstance(stdout, _TemporaryFileWrapper):
         logging.warning("stdout is not IOBase: %s", stdout)
         stdout = None
 
-    if stderr and not isinstance(stderr, int) and not isinstance(stderr, file_type) and not isinstance(stderr,
-                                                                                                       temp_file_wrapper):
+    if stderr and not isinstance(stderr, int) and not isinstance(stderr, file_type) \
+            and not isinstance(stderr, _TemporaryFileWrapper):
         logging.warning("stderr is not IOBase: %s", stderr)
         stderr = None
 
-    if isinstance(args, string_types):
+    if isinstance(args, string_types) and not shell:
         args = shlex.split(args)
-        if shell:
-            args = ' '.join(args)
     logging.getLogger(__name__).debug("Executing shell: %s", args)
     if platform.system() == 'Windows':
         return Popen(args, stdout=stdout, stderr=stderr, stdin=stdin, bufsize=0, cwd=cwd, shell=shell)

@@ -15,14 +15,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from bzt.utils import shell_exec, shutdown_process, ensure_is_dict, BetterDict
+from bzt.utils import shell_exec, shutdown_process
 from bzt.engine import EngineModule
 import time
-import tempfile
-import shutil
 import os
 from bzt import AutomatedShutdown
 
+POSSIBLE_STAGES = ["prepare", "startup", "check", "post-process", "shutdown"]
 
 class ShellExecutor(EngineModule):
     def __init__(self):
@@ -34,16 +33,17 @@ class ShellExecutor(EngineModule):
         Configure Tasks
         :return:
         """
-        tasks = self.settings
-        for num, task_config in enumerate(tasks):
-            # task_config = ensure_is_dict(self.settings, num, "command")
-            try:
-
-                self.task_list.append(Task(task_config, self.log, self.engine.artifacts_dir))
-                self.log.debug("Added task: %s", str(task_config))
-            except ValueError as exc:
-                self.log.error("Wrong task config: %s, %s", task_config, exc)
-                raise
+        for stage in self.settings:
+            if stage not in POSSIBLE_STAGES:
+                raise ValueError("Wrong stage name in shellexec config!")
+            for stage_task in self.settings.get(stage):
+                stage_task["start-stage"] = stage
+                try:
+                    self.task_list.append(Task(stage_task, self.log, self.engine.artifacts_dir, stage))
+                    self.log.debug("Added task: %s", str(stage_task))
+                except ValueError as exc:
+                    self.log.error("Wrong task config: %s, %s", stage_task, exc)
+                    raise
         self.process_stage("prepare")
 
     def startup(self):
@@ -109,7 +109,7 @@ class ShellExecutor(EngineModule):
 
 
 class Task(object):
-    def __init__(self, config, parent_log, working_dir):
+    def __init__(self, config, parent_log, working_dir, start_stage):
         self.log = parent_log.getChild(self.__class__.__name__)
         self.config = config
         self.process = None
@@ -129,19 +129,18 @@ class Task(object):
         :return:
         """
 
-        stages = ["prepare", "startup", "check", "post-process", "shutdown"]
         possible_keys = ["start-stage", "stop-stage", "block", "stop-on-fail", "label", "command", "out", "err"]
 
         # check keys in config
-        for key in self.config.keys():
+        for key in self.config:
             if key not in possible_keys:
                 self.log.warning("Ignoring unknown option %s in task config! %s", key, self.config)
 
-        default_config = {"start-stage": "prepare", "stop-stage": "post-process", "block": False, "stop-on-fail": False}
+        default_config = {"stop-stage": "post-process", "block": False, "stop-on-fail": False}
         default_config.update(self.config)
         self.config = default_config
 
-        if self.config["start-stage"] not in stages or self.config["stop-stage"] not in stages:
+        if self.config["stop-stage"] not in POSSIBLE_STAGES:
             self.log.error("Invalid stage name in task config!")
             raise ValueError("Invalid stage name in task config!")
 
@@ -164,16 +163,13 @@ class Task(object):
         """
         task_cmd = self.config.get("command")
         self.log.debug("Starting task: %s", self)
-        prefix_name = "task_" + str(self.__hash__())
+        label = self.config.get("label")
+        prefix_name = label if label else "task_" + str(self.__hash__())
+        out_option = self.config.get("out", prefix_name + ".out")
+        err_option = self.config.get("err", prefix_name + ".err")
 
-        with tempfile.NamedTemporaryFile(prefix=prefix_name,
-                                         suffix=".out",
-                                         delete=False,
-                                         dir=self.working_dir) as self.stdout, \
-                tempfile.NamedTemporaryFile(prefix=prefix_name,
-                                            suffix=".err",
-                                            delete=False,
-                                            dir=self.working_dir) as self.stderr:
+        with open(os.path.join(self.working_dir, out_option), 'wt') as self.stdout, \
+             open(os.path.join(self.working_dir, err_option), 'wt') as self.stderr:
             self.process = shell_exec(task_cmd, cwd=self.working_dir, stdout=self.stdout, stderr=self.stderr,
                                       shell=True)
         self.log.debug("Task started: %s, PID: %d", self, self.process.pid)
@@ -208,24 +204,6 @@ class Task(object):
             self.log.debug("Task %s stdout:\n %s", self, out)
         if err:
             self.log.error("Task %s stderr:\n %s", self, err)
-        out_option = self.config.get("out")
-        err_option = self.config.get("err")
-        try:
-            if out_option:
-                shutil.move(self.stdout.name, os.path.join(self.working_dir, out_option))
-                self.log.info("Task %s output was saved in:%s", self, out_option)
-            else:
-                os.remove(self.stdout.name)
-        except:
-            self.log.error("Task %s output was saved in:%s", self, self.stdout.name)
-        try:
-            if err_option:
-                shutil.move(self.stderr.name, os.path.join(self.working_dir, err_option))
-                self.log.info("Task %s stderr was saved in:%s", self, err_option)
-            else:
-                os.remove(self.stderr.name)
-        except:
-            self.log.error("Task %s stderr was saved in:%s", self, self.stderr.name)
 
     def __str__(self):
         if self.config.get("label"):
