@@ -92,7 +92,7 @@ class ShellExecutor(EngineModule):
                 self.task_list.remove(task)
             self.log.debug("Stage: %s, tasks shutdown completed", cur_stage)
 
-    def _wait_blocking_tasks_to_complete(self, cur_stage):
+    def _wait_blocking_tasks(self, cur_stage):
         tasks = [task for task in self.task_list if
                  task.config.get("block") and task.config.get("start-stage") == cur_stage]
         if tasks:
@@ -104,7 +104,7 @@ class ShellExecutor(EngineModule):
 
     def process_stage(self, cur_stage):
         self._start_tasks(cur_stage)
-        self._wait_blocking_tasks_to_complete(cur_stage)
+        self._wait_blocking_tasks(cur_stage)
         self._shutdown_tasks(cur_stage)
 
 

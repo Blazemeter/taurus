@@ -30,9 +30,9 @@ services:
 Full task configuration sample:
 ```yaml
 ---
-- command: echo 1 > /tmp/1.txt && sleep 1 && echo "done" > /tmp/done.txt && dmesg | grep pci  # task command
+- command: echo 1 > /tmp/1.txt && sleep 1 && dmesg | grep pci  # task command
   label: sample task  # task label, if not set, command will be used as label
-  block: true  # wait for task completion or continue, default false. Blocking tasks are not allowed on startup stage.
+  block: true  # wait for task completion or continue, default false. 
   stop-stage: prepare  # stage name to shutdown task, post-process by default
   stop-on-fail: false  # shutdown tests if command return code != 0
   out: /tmp/taskout.txt  # set file name for task stdout
@@ -44,4 +44,6 @@ Minimum task configuration sample:
 ---
 - command: 'ls -la'
 ```
-Nonblocking tasks will be shut down forcefully on "stop-stage" if they were not finished yet.
+Notes:
+ - Blocking tasks are not allowed on startup stage.
+ - Nonblocking tasks will be shut down forcefully on "stop-stage" if they were not finished yet.

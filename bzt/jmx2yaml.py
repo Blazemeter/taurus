@@ -17,7 +17,6 @@ limitations under the License.
 import logging
 import os
 import traceback
-import yaml
 from optparse import OptionParser
 from copy import deepcopy
 from collections import namedtuple
@@ -25,7 +24,6 @@ from cssselect import GenericTranslator
 import sys
 from bzt.engine import Configuration
 from bzt.modules.jmeter import JMX
-from bzt.utils import to_json
 from bzt.cli import CLI
 
 KNOWN_TAGS = ["hashTree", "jmeterTestPlan", "TestPlan", "ResultCollector",
