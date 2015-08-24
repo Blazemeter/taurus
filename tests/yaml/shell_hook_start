@@ -10,4 +10,4 @@ services:
     start-stage: prepare
     stop-stage: shutdown
     block: false
-  - task_three: 'pwd'
+#  - task_three: 'pwd'
