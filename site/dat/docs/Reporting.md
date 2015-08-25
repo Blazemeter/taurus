@@ -158,13 +158,14 @@ modules:
 
 It is highly recommended to place the token setting in your personal [per-user config](CommandLine.md#configuration-files-processing) `~/.bzt-rc` to prevent it from being logged and collected in artifacts.
 
-Now you can use `-report` command-line switch, or you can set BlazeMeter reporting as part of your config, the `test` option specifies test name to use:
+Now you can use `-report` command-line switch, or you can set BlazeMeter reporting as part of your config, the `test` option specifies test name to use, `project` names group of tests:
 
 ```yaml
 ---
 reporting:
   - module: blazemeter
     test: Taurus Demo
+    project: Taurus Tests Group
 ```
 
 Advanced settings:

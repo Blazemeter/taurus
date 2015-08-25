@@ -2,6 +2,7 @@ import logging
 import os
 import shutil
 from io import BytesIO
+import time
 
 from tests import BZTestCase, random_datapoint, __dir__
 from bzt.modules.blazemeter import BlazeMeterUploader, BlazeMeterClient, BlazeMeterClientEmul
@@ -13,6 +14,17 @@ class TestBlazeMeterUploader(BZTestCase):
     def test_check(self):
         client = BlazeMeterClientEmul(logging.getLogger(''))
         client.results.append({"marker": "ping", 'result': {}})
+        client.results.append({"marker": "projects", 'result': []})
+
+        client.results.append({"marker": "project-create", 'result': {
+            "id": time.time(),
+            "name": "boo",
+            "userId": time.time(),
+            "description": None,
+            "created": time.time(),
+            "updated": time.time(),
+            "organizationId": None
+        }})
         client.results.append({"marker": "tests", 'result': {}})
         client.results.append({"marker": "test-create", 'result': {'id': 'unittest1'}})
         client.results.append(
@@ -27,6 +39,7 @@ class TestBlazeMeterUploader(BZTestCase):
         client.results.append({"marker": "terminate", 'result': {'session': {}}})
 
         obj = BlazeMeterUploader()
+        obj.parameters['project'] = 'Proj name'
         obj.settings['token'] = '123'
         obj.settings['browser-open'] = 'none'
         obj.engine = EngineEmul()
@@ -52,7 +65,6 @@ class TestBlazeMeterUploader(BZTestCase):
         obj = BlazeMeterClient(logging.getLogger(''))
         obj.address = "https://a.blazemeter.com"
         obj.ping()
-
 
 
 class TestBlazeMeterClientUnicode(BZTestCase):
