@@ -84,7 +84,7 @@ reporting:
  - module: fail-criteria
    criterias:
    - avg-rt of Sample Label>150ms for 10s, stop as failed
-   - hits of Sample Label>150ms for 10s, stop as failed
+   - fail of Sample Label>50% for 10s, stop as failed
 ```
 
 The above example use short form for criteria, its general format is `subject of label{condition}threshold {logic} timeframe, action as status`, where:
@@ -130,6 +130,22 @@ reporting:
                 # 'within' means take sum/avg of all values within interval
     fail: true  # optional, default is true
     stop: true  # optional, default is true
+```
+
+### Custom Messages for Criteria
+
+By default, Taurus uses criteria string to present it in messages. If you want to change the message, you can do one of:
+ - set `message` field for full form of criteria
+ - set message by prepending it to criteria string, like this: `My message: avg-rt>10s`
+ - use dictionary instead of array to specify message and criteria, like this:
+ 
+```yaml
+---
+reporting:
+ - module: fail-criteria
+   criterias:
+     My Message: avg-rt of Sample Label>150ms for 10s, stop as failed
+     Sample Label fails too much: fail of Sample Label>50% for 10s, stop as failed
 ```
 
 

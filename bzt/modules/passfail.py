@@ -27,7 +27,7 @@ from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.aggregator import KPISet, DataPoint
 from bzt.utils import load_class, dehumanize_time
 from bzt.modules.console import WidgetProvider
-from bzt.six import string_types, viewvalues
+from bzt.six import string_types, viewvalues, iteritems
 
 
 class PassFailStatus(Reporter, AggregatorListener, WidgetProvider):
@@ -43,12 +43,22 @@ class PassFailStatus(Reporter, AggregatorListener, WidgetProvider):
 
     def prepare(self):
         super(PassFailStatus, self).prepare()
-        for idx, crit_config in enumerate(self.parameters.get("criterias", [])):
+        criteria = self.parameters.get("criterias", [])
+        if isinstance(criteria, dict):
+            crit_iter = iteritems(criteria)
+        else:
+            crit_iter = enumerate(criteria)
+
+        for idx, crit_config in crit_iter:
             if isinstance(crit_config, string_types):
                 crit_config = FailCriteria.string_to_config(crit_config)
                 self.parameters['criterias'][idx] = crit_config
             crit = load_class(crit_config.get('type', FailCriteria.__module__ + "." + FailCriteria.__name__))
-            self.criterias.append(crit(crit_config))
+            crit_instance = crit(crit_config)
+            assert isinstance(crit_instance, FailCriteria)
+            if isinstance(idx, string_types):
+                crit_instance.message = idx
+            self.criterias.append(crit_instance)
 
     def shutdown(self):
         for crit in self.criterias:
@@ -136,6 +146,7 @@ class FailCriteria(object):
         self.threshold = dehumanize_time(config['threshold'])
         self.stop = config['stop']
         self.fail = config['fail']
+        self.message = config.get('message', None)
 
         frame = dehumanize_time(config['timeframe'])
         self.window = frame
@@ -156,13 +167,16 @@ class FailCriteria(object):
         else:
             state = "Alert"
 
-        data = (state,
-                self.config['subject'],
-                self.config['condition'],
-                self.config['threshold'],
-                self.config.get('logic', 'for'),
-                self.counting)
-        return "%s: %s%s%s %s %s sec" % data
+        if self.message is not None:
+            return "%s: %s" % (state, self.message)
+        else:
+            data = (state,
+                    self.config['subject'],
+                    self.config['condition'],
+                    self.config['threshold'],
+                    self.config.get('logic', 'for'),
+                    self.counting)
+            return "%s: %s%s%s %s %s sec" % data
 
     def __count(self, data):
         self.ended = data[DataPoint.TIMESTAMP]
@@ -288,14 +302,19 @@ class FailCriteria(object):
             "timeframe": 0,
             "label": "",
             "stop": True,
-            "fail": True
+            "fail": True,
+            "message": None,
         }
 
-        crit_parts = crit_config.split(',')
-        crit_str = crit_parts[0]
-        if len(crit_parts) > 1:
-            action_str = crit_parts[1]
+        if ':' in crit_config:
+            res['message'] = crit_config[:crit_config.index(':')].strip()
+            crit_config = crit_config[crit_config.index(':') + 1:].strip()
+
+        if ',' in crit_config:
+            crit_str = crit_config[:crit_config.index(',')].strip()
+            action_str = crit_config[crit_config.index(',') + 1:].strip()
         else:
+            crit_str = crit_config
             action_str = ""
 
         crit_pat = re.compile(r"([\w\?-]+)(\s*of\s*([\S ]+))?([<>=]+)(\S+)(\s+(for|within)\s+(\S+))?")
