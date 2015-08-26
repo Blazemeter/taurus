@@ -31,6 +31,10 @@
       "class": "bzt.modules.gatling.GatlingExecutor",
       "path": "~/.bzt/gatling-taurus/bin/gatling.sh"
     },
+    "shellexec":
+    {
+      "class": "bzt.modules.shellexec.ShellExecutor"
+    },
     "selenium": {
       "class": "bzt.modules.selenium.SeleniumExecutor",
       "selenium-tools": {

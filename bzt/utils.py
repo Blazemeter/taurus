@@ -208,7 +208,7 @@ class BetterDict(defaultdict):
                 cls.traverse(val, visitor)
 
 
-def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE):
+def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False):
     """
     Wrapper for subprocess starting
 
@@ -227,14 +227,14 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE):
         logging.warning("stderr is not IOBase: %s", stderr)
         stderr = None
 
-    if isinstance(args, string_types):
+    if isinstance(args, string_types) and not shell:
         args = shlex.split(args)
     logging.getLogger(__name__).debug("Executing shell: %s", args)
     if platform.system() == 'Windows':
-        return Popen(args, stdout=stdout, stderr=stderr, stdin=stdin, bufsize=0, cwd=cwd)
+        return Popen(args, stdout=stdout, stderr=stderr, stdin=stdin, bufsize=0, cwd=cwd, shell=shell)
     else:
         return Popen(args, stdout=stdout, stderr=stderr, stdin=stdin, bufsize=0,
-                     preexec_fn=os.setpgrp, close_fds=True, cwd=cwd)
+                     preexec_fn=os.setpgrp, close_fds=True, cwd=cwd, shell=shell)
 
 
 def ensure_is_dict(container, key, default_key=None):
