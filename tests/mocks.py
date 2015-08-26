@@ -221,9 +221,8 @@ class RecordingHandler(Handler):
             self.write_log(self.debug_buff, record.msg, *record.args)
 
     def write_log(self, buff, str_template, *args):
+        str_template += "\n"
         if args:
             buff.write(u(str_template % args))
-            buff.write(u("\n"))
         else:
             buff.write(u(str_template))
-            buff.write(u("\n"))
