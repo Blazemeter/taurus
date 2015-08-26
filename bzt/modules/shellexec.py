@@ -95,7 +95,7 @@ class Task(object):
         self.working_dir = working_dir
         self.command = config.get("command", ValueError("Parameter is required: command"))
         self.is_background = config.get("background", False)
-        self.ignore_failure = config.get("ignore-failure", True)
+        self.ignore_failure = config.get("ignore-failure", False)
         self.err = config.get("out", subprocess.PIPE)
         self.out = config.get("err", subprocess.PIPE)
         self.process = None

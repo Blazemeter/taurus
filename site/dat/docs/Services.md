@@ -16,16 +16,19 @@ Sample configuration:
 ---
 services:
   - module: shellexec
-    prepare:  # stage names: [prepare, startup, check]
-    - command: /folder/file | grep anything  # task definition
-      ignore-failure: False
-    - sleep 1  # second task definition (shorthand)
+    prepare:  
+      - mkdir /tmp/test
     startup:
-     - command: echo startup stage
-       background: True
+      - echo 1 > /tmp/test
+      - echo 2 > /tmp/test
+    shutdown:
+      - cat /tmp/test2 
+    post-process:
+      - rm /tmp/test1
+      - rm /tmp/test2
 execution:
-- scenario: tg1
-  hold-for: 10s
+  - scenario: tg1
+    hold-for: 10s
 scenarios:
   tg1:
     requests:
@@ -39,10 +42,10 @@ Extended task configuration sample:
 ---
 services:
   - module: shellexec
-    prepare:
+    prepare: # stage names: [prepare, startup, check]
     - command: echo 1 > /tmp/1.txt && sleep 1 && dmesg | grep pci  # task command
-      background: true  # wait for task completion or continue, false by default. 
-      ignore-failure: true  # true by default, otherwise will shutdown tests if command return code != 0, 
+      background: true  # wait for task completion or send it to background, false by default. 
+      ignore-failure: true  # false by default, otherwise will shutdown tests if command return code != 0, 
       out: taskout.txt  # set file name for task stdout
       err: taskerr.txt  # set file name for task stderr
 ```
@@ -59,5 +62,5 @@ services:
 ```
 Notes:
  - Non-background tasks are not allowed on startup stage.
- - Background tasks will be shut down forcefully on opposite stages (see [Lifecycle](Lifecycle.md)) if they were not finished yet.
+ - Background tasks will be shut down forcefully on mirror stages (see [Lifecycle](Lifecycle.md)) if they were not finished yet.
  - Background tasks on Check stage will not start until same previous task completed.

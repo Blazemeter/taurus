@@ -16,12 +16,12 @@ Common tasks:
  - Instantiate objects
  - Check if any additional software must be downloaded and installed
 
-Opposite stage: Post-process
+Mirror stage: Post-process
 
 ## Startup stage
 Start test executors ASAP. Long/heavy tasks are not allowed here.
 
-Opposite stage: Shutdown
+Mirror stage: Shutdown
 
 ## Check stage
 Check if executors/modules have finished
@@ -33,9 +33,9 @@ Common tasks:
 ## Shutdown stage
 Shutdown executors/modules
 
-Opposite stage: Startup
+Mirror stage: Startup
 
 ## Post-process
-Process/save results
+Process/save results, do long post-test analysis
 
-Opposite stage: Prepare
+Mirror stage: Prepare
