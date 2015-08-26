@@ -147,6 +147,7 @@ class Task(object):
 
             self.log.debug("Task: %s was finished with exit code: %s", self, self.ret_code)
             if not self.ignore_failure:
+                self.log.warning("Output for %s:\n%s", self, stdout)
                 raise CalledProcessError(self.ret_code, self)
             return True
         self.log.debug('Task: %s is not finished yet', self)
