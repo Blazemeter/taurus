@@ -125,26 +125,36 @@ class FinalStatus(Reporter, AggregatorListener):
             tree.write(fhd, pretty_print=True, encoding="UTF-8", xml_declaration=True)
 
     def __get_xml_summary(self, label, kpiset):
-        elem = etree.Element("SampleLabel", label=label)
+        elem = etree.Element("Group", label=label)
         for kpi_name, kpi_val in iteritems(kpiset):
-            if kpi_name in ('errors',):
+            if kpi_name in ('errors', 'rt'):
                 continue
 
-            elem.append(self.__get_kpi_xml(kpi_name, kpi_val))
+            if isinstance(kpi_val, dict):
+                for param_name, param_val in iteritems(kpi_val):
+                    elem.append(self.__get_kpi_xml(kpi_name, param_val, param_name))
+            else:
+                elem.append(self.__get_kpi_xml(kpi_name, kpi_val))
 
         return elem
 
-    def __get_kpi_xml(self, kpi_name, kpi_val):
+    def __get_kpi_xml(self, kpi_name, kpi_val, param=None):
         kpi = etree.Element("KPI", name=kpi_name)
-        if isinstance(kpi_val, float):
-            kpi.text = '%.5f' % kpi_val
-        elif isinstance(kpi_val, int):
-            kpi.text = '%d' % kpi_val
-        elif isinstance(kpi_val, string_types):
-            kpi.text = kpi_val
-        else:
-            raise ValueError("Unhandled kpi type for %s: %s" % (kpi_name, type(kpi_val)))
+        kpi.text = self.__val_to_str(kpi_val)
+
+        if param is not None:
+            kpi.attrib['param'] = self.__val_to_str(param)
         return kpi
+
+    def __val_to_str(self, kpi_val):
+        if isinstance(kpi_val, float):
+            return '%.5f' % kpi_val
+        elif isinstance(kpi_val, int):
+            return '%d' % kpi_val
+        elif isinstance(kpi_val, string_types):
+            return kpi_val
+        else:
+            raise ValueError("Unhandled kpi type: %s" % type(kpi_val))
 
 
 class JUnitXMLReporter(Reporter, AggregatorListener):
