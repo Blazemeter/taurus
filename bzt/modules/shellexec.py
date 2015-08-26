@@ -99,7 +99,7 @@ class ShellExecutor(EngineModule):
                     task.shutdown()
 
     def _shutdown_background_tasks(self, target_stage):
-        self.log.debug("Stage: %s, shutting down tasks...", target_stage)
+        self.log.debug("Shutting down tasks, stage: %s", target_stage)
         for task in self.tasks[target_stage]:
             if task.is_background and task.process:
                 task.shutdown()
