@@ -1,46 +1,10 @@
-from logging import Handler
-import logging
-from io import StringIO
 import tempfile
 
 import yaml
 
 from tests import BZTestCase
 from bzt.jmx2yaml import JMX2YAML
-from bzt.six import u
-from tests.mocks import EngineEmul
-
-
-class RecordingHandler(Handler):
-    def __init__(self):
-        super(RecordingHandler, self).__init__()
-        self.info_buff = StringIO()
-        self.err_buff = StringIO()
-        self.debug_buff = StringIO()
-        self.warn_buff = StringIO()
-
-    def emit(self, record):
-        """
-
-        :type record: logging.LogRecord
-        :return:
-        """
-        if record.levelno == logging.INFO:
-            self.write_log(self.info_buff, record.msg, *record.args)
-        elif record.levelno == logging.ERROR:
-            self.write_log(self.err_buff, record.msg, *record.args)
-        elif record.levelno == logging.WARN:
-            self.write_log(self.warn_buff, record.msg, *record.args)
-        elif record.levelno == logging.DEBUG:
-            self.write_log(self.debug_buff, record.msg, *record.args)
-
-    def write_log(self, buff, str_template, *args):
-        if args:
-            buff.write(u(str_template % args))
-            buff.write(u("\n"))
-        else:
-            buff.write(u(str_template))
-            buff.write(u("\n"))
+from tests.mocks import EngineEmul, RecordingHandler
 
 
 class FakeOptions(object):
