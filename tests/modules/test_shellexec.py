@@ -108,7 +108,7 @@ class TestTasksConfigs(TaskTestCase):
         out_file = os.path.join(self.obj.engine.artifacts_dir, 'out.txt')
         err_file = os.path.join(self.obj.engine.artifacts_dir, 'err.txt')
         with NamedTemporaryFile() as file1, NamedTemporaryFile() as file2:
-            command = "echo 1 > {file1} && sleep 1 && echo 2 > {file2} && dmesg | grep pci"
+            command = "echo 1 > {file1} && sleep 1 && echo 2 > {file2}"
             task = {"command": command.format(file1=file1.name, file2=file2.name), "out": out_file, "err": err_file}
             self.obj.parameters.merge({"prepare": [task]})
             self.obj.prepare()
