@@ -113,11 +113,12 @@ class Task(object):
 
         kwargs = {
             'args': self.command,
-            'stdout': self.out,
-            'stderr': self.err,
+            'stdout': open(self.out, 'wb') if self.out != subprocess.PIPE else self.out,
+            'stderr': open(self.err, 'wb') if self.err != subprocess.PIPE else self.err,
             'cwd': self.working_dir,
             'shell': True
         }
+        # FIXME: shouldn't we bother closing opened descriptors?
         if platform.system() != 'Windows':
             kwargs['preexec_fn'] = os.setpgrp
             kwargs['close_fds'] = True
@@ -132,18 +133,18 @@ class Task(object):
             self.process = None
 
     def check(self):
-        if not self.process:
+        if not self.process or self.ret_code is not None:
             return
-
-        stdout, stderr = self.process.communicate()
-        if stdout:
-            self.log.debug("Output for %s:\n%s", self, stdout)
-
-        if stderr:
-            self.log.warning("Errors for %s:\n%s", self, stderr)
 
         self.ret_code = self.process.poll()
         if self.ret_code is not None:
+            stdout, stderr = self.process.communicate()
+            if stdout:
+                self.log.debug("Output for %s:\n%s", self, stdout)
+
+            if stderr:
+                self.log.warning("Errors for %s:\n%s", self, stderr)
+
             self.log.debug("Task: %s was finished with exit code: %s", self, self.ret_code)
             if not self.ignore_failure:
                 raise CalledProcessError(self.ret_code, self)

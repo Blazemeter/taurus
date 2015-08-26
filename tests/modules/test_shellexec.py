@@ -8,7 +8,6 @@ import yaml
 from tests import setup_test_logging, BZTestCase, __dir__
 from tests.mocks import EngineEmul, RecordingHandler
 from bzt.modules.shellexec import ShellExecutor
-from bzt import AutomatedShutdown
 from bzt.utils import BetterDict
 
 setup_test_logging()
@@ -86,12 +85,13 @@ class TestNonBlockingTasks(TaskTestCase):
         self.obj.parameters.merge({"prepare": [task, blocking_task]})
         try:
             self.obj.prepare()
+            self.obj.post_process()
             self.fail()
-        except AutomatedShutdown:
+        except CalledProcessError:
             pass
 
     def test_background_task_check_stage(self):
-        task = {"command": "sleep 2 && pwd", "background": True}
+        task = {"command": "sleep 5 && pwd", "background": True}
         self.obj.parameters.merge({"prepare": [task]})
         self.obj.prepare()
         self.obj.startup()
@@ -100,13 +100,13 @@ class TestNonBlockingTasks(TaskTestCase):
             time.sleep(1)
         self.obj.shutdown()
         self.obj.post_process()
-        self.assertIn("Task: sleep 2 && pwd was not finished yet", self.log_recorder.debug_buff.getvalue())
+        self.assertIn("Task: sleep 5 && pwd is not finished yet", self.log_recorder.debug_buff.getvalue())
 
 
 class TestTasksConfigs(TaskTestCase):
     def test_shell_exec(self):
         out_file = os.path.join(self.obj.engine.artifacts_dir, 'out.txt')
-        err_file = 'err.txt'
+        err_file = os.path.join(self.obj.engine.artifacts_dir, 'err.txt')
         with NamedTemporaryFile() as file1, NamedTemporaryFile() as file2:
             command = "echo 1 > {file1} && sleep 1 && echo 2 > {file2} && dmesg | grep pci"
             task = {"command": command.format(file1=file1.name, file2=file2.name), "out": out_file, "err": err_file}
