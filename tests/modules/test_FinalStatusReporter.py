@@ -1,35 +1,14 @@
-from io import StringIO
 from collections import Counter, defaultdict
-from bzt import six
 
 from tests import BZTestCase
-from tests.mocks import EngineEmul
+from tests.mocks import EngineEmul, RecordingHandler
 from bzt.modules.reporting import FinalStatus
 from bzt.utils import BetterDict
 from bzt.modules.aggregator import DataPoint, KPISet
 
 
-class logger_mock(object):
-    def __init__(self):
-        self.info_buf = StringIO()
-
-    def info(self, str_template, *args):
-        if args:
-            self.info_buf.write(six.u(str_template % args))
-            self.info_buf.write(six.u("\n"))
-        else:
-            self.info_buf.write(six.u(str_template))
-            self.info_buf.write(six.u("\n"))
-
-
-class TestFinalStatsReporter(BZTestCase):
+class TestFinalStatusReporter(BZTestCase):
     def test_log_messages_failed_labels(self):
-        obj = FinalStatus()
-        obj.engine = EngineEmul
-        obj.parameters = BetterDict()
-        obj.log = logger_mock()
-        obj.parameters.merge({"failed-labels": True, "percentiles": False, "summary": False, "test-duration": False})
-
         datapoint = DataPoint(None, None)
         cumul_data = datapoint[DataPoint.CUMULATIVE]
 
@@ -129,15 +108,23 @@ class TestFinalStatsReporter(BZTestCase):
              KPISet.AVG_RESP_TIME: 0.0005164542450603551,
              KPISet.FAILURES: 0})
 
-        obj.last_sec = datapoint
+        obj = FinalStatus()
+        obj.engine = EngineEmul
+        obj.parameters = BetterDict()
+        log_recorder = RecordingHandler()
+        obj.log.addHandler(log_recorder)
+        obj.parameters.merge({"failed-labels": True, "percentiles": False, "summary": False, "test-duration": False})
+
+        obj.aggregated_second(datapoint)
         obj.post_process()
-        self.assertEqual("29656 failed samples: http://192.168.1.1/anotherquery\n", obj.log.info_buf.getvalue())
+        self.assertEqual("29656 failed samples: http://192.168.1.1/anotherquery\n", log_recorder.info_buff.getvalue())
 
     def test_log_messages_percentiles(self):
         obj = FinalStatus()
         obj.engine = EngineEmul
         obj.parameters = BetterDict()
-        obj.log = logger_mock()
+        log_recorder = RecordingHandler()
+        obj.log.addHandler(log_recorder)
         obj.parameters.merge({"failed-labels": False, "percentiles": True, "summary": False, "test-duration": False})
 
         datapoint = DataPoint(None, None)
@@ -163,7 +150,7 @@ class TestFinalStatsReporter(BZTestCase):
              KPISet.FAILURES: 29656})
 
         datapoint[DataPoint.CUMULATIVE][""] = cumul_data
-        obj.last_sec = datapoint
+        obj.aggregated_second(datapoint)
 
         obj.post_process()
         target_output = ("Average times: total 0.001, latency 0.000, connect 0.000\n"
@@ -175,13 +162,14 @@ class TestFinalStatsReporter(BZTestCase):
                          "Percentile 99.9%: 0.008\n"
                          "Percentile 100.0%: 0.081\n"
                          )
-        self.assertEqual(target_output, obj.log.info_buf.getvalue())
+        self.assertEqual(target_output, log_recorder.info_buff.getvalue())
 
     def test_log_messages_samples_count(self):
         obj = FinalStatus()
         obj.engine = EngineEmul
         obj.parameters = BetterDict()
-        obj.log = logger_mock()
+        log_recorder = RecordingHandler()
+        obj.log.addHandler(log_recorder)
         obj.parameters.merge({"failed-labels": False, "percentiles": False, "summary": True, "test-duration": False})
 
         datapoint = DataPoint(None, None)
@@ -207,11 +195,11 @@ class TestFinalStatsReporter(BZTestCase):
              KPISet.FAILURES: 29656})
 
         datapoint[DataPoint.CUMULATIVE][""] = cumul_data
-        obj.last_sec = datapoint
+        obj.aggregated_second(datapoint)
 
         obj.post_process()
 
-        self.assertEqual("Samples count: 59314, 50.00% failures\n", obj.log.info_buf.getvalue())
+        self.assertEqual("Samples count: 59314, 50.00% failures\n", log_recorder.info_buff.getvalue())
 
     def test_log_messages_duration(self):
         """
@@ -220,8 +208,9 @@ class TestFinalStatsReporter(BZTestCase):
         """
         obj = FinalStatus()
         obj.parameters = BetterDict()
-        obj.log = logger_mock()
+        log_recorder = RecordingHandler()
+        obj.log.addHandler(log_recorder)
         obj.prepare()
         obj.start_time -= 120005
         obj.post_process()
-        self.assertEqual("Test duration: 1 day, 9:20:05\n", obj.log.info_buf.getvalue())
+        self.assertEqual("Test duration: 1 day, 9:20:05\n", log_recorder.info_buff.getvalue())
