@@ -45,9 +45,14 @@ reporting:
       summary: true  # overall samples count and percent of failures
       percentiles: true  # display average times and percentiles
       failed-labels: false  # provides list of sample labels with failures
-      test-duration: true  # provides test duration 
+      test-duration: true  # provides test duration
+      dump-xml: filename to export data in XML format
+      dump-csv: filename to export data in CSV format
 ```
 
+### Dump Summary for Jenkins Plot Plugin
+
+Two options `dump-csv` and `dump-xml`
 
 ## Console Screen
 
