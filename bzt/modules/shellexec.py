@@ -22,6 +22,7 @@ from bzt import AutomatedShutdown
 from shutil import move
 from tempfile import NamedTemporaryFile
 from bzt.utils import ensure_is_dict
+from bzt.six import string_types
 
 
 class ShellExecutor(EngineModule):
@@ -35,7 +36,7 @@ class ShellExecutor(EngineModule):
         :return:
         """
         for stage in self.tasks.keys():
-            if self.parameters.get(stage, []) and isinstance(self.parameters.get(stage), str):  # ensure is list
+            if self.parameters.get(stage, []) and isinstance(self.parameters.get(stage), string_types):  # ensure is list
                 self.parameters[stage] = [self.parameters.get(stage)]
 
             for index, stage_task in enumerate(self.parameters[stage]):
@@ -63,11 +64,11 @@ class ShellExecutor(EngineModule):
 
     def shutdown(self):
         self._check_background_tasks()
+        self._shutdown_background_tasks("check")
         self._shutdown_background_tasks("startup")
 
     def post_process(self):
         self._check_background_tasks()
-        self._shutdown_background_tasks("check")
         self._shutdown_background_tasks("prepare")
 
     def _start_tasks(self, cur_stage):
