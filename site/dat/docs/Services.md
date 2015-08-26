@@ -15,26 +15,31 @@ Sample configuration:
 ```yaml
 ---
 services:
-  shellexec:
-    prepare:  # stage names: [prepare, startup, check, shutdown, post-process]
-    - command: 'pwd'  # task definition
-      label: sample task
-    - command: 'pwd'  # second task definition
-      label: sample task label
-    shutdown:
-    - label: sleep  # task definition
-      command: sleep 1
-    - command: pwd > /tmp/pwd.txt
+  - module: shellexec
+    prepare:  # stage names: [prepare, startup, check]
+    - command: /folder/file | grep anything  # task definition
+      ignore-failure: False
+    - sleep 1  # second task definition (shorthand)
+    startup:
+     - command: echo startup stage
+       background: True
+execution:
+- scenario: tg1
+  hold-for: 10s
+scenarios:
+  tg1:
+    requests:
+    - label: HTTP Request
+      method: GET
+      url: http://127.0.0.1/
 ```
 
 Full task configuration sample:
 ```yaml
 ---
 - command: echo 1 > /tmp/1.txt && sleep 1 && dmesg | grep pci  # task command
-  label: sample task  # task label, if not set, command will be used as label
-  block: true  # wait for task completion or continue, default false. 
-  stop-stage: prepare  # stage name to shutdown task, post-process by default
-  stop-on-fail: false  # shutdown tests if command return code != 0
+  background: true  # wait for task completion or continue, false by default. 
+  ignore-failure: true  # true by default, otherwise will shutdown tests if command return code != 0, 
   out: /tmp/taskout.txt  # set file name for task stdout
   err: /tmp/taskerr.txt  # set file name for task stderr
 ```
@@ -42,8 +47,13 @@ Full task configuration sample:
 Minimum task configuration sample:
 ```yaml
 ---
-- command: 'ls -la'
+services:
+  - module: shellexec
+    prepare: ls -la
+    startup:
+    - pwd
+    - echo something
 ```
 Notes:
- - Blocking tasks are not allowed on startup stage.
- - Nonblocking tasks will be shut down forcefully on "stop-stage" if they were not finished yet.
+ - Nonbackground tasks are not allowed on startup stage.
+ - Background tasks will be shut down forcefully on opposite stages (see [Lifecycle](Lifecycle.md)) if they were not finished yet.

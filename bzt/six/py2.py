@@ -29,7 +29,6 @@ import UserDict
 import StringIO
 import BaseHTTPServer
 import SocketServer as socketserver
-import tempfile
 
 string_types = basestring,
 integer_types = (int, long)

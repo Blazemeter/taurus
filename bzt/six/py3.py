@@ -30,7 +30,6 @@ import configparser
 from tkinter import font
 from http import server
 import socketserver
-import tempfile
 
 string_types = str,
 integer_types = int,

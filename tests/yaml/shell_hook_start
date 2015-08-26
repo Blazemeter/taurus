@@ -1,12 +1,10 @@
 ---
 services:
-  shellexec:
-    prepare:
-    - command: echo test
-      label: test echo
-      out: test.out
-    - command: sleep 1
-      label: sleep_one
-      block: true
-    shutdown:
-    - command: pwd
+  - module: shellexec
+    startup:
+     - command: sleep 10 && echo 111
+       background: True
+    check:
+     - command: dmesg | grep nvidia
+       ignore-failure: True
+     - pwd
