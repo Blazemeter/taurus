@@ -1,6 +1,6 @@
 import os
-from tests import setup_test_logging, BZTestCase, RecordingHandler
-from tests.mocks import EngineEmul
+from tests import setup_test_logging, BZTestCase
+from tests.mocks import EngineEmul, RecordingHandler
 from bzt.modules.shellexec import ShellExecutor
 from bzt import AutomatedShutdown
 import yaml
