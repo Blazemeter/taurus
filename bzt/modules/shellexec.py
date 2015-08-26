@@ -59,7 +59,6 @@ class ShellExecutor(EngineModule):
         self._check_background_tasks()
 
     def check(self):
-
         self._start_tasks("check")
         self._check_background_tasks()
         return super(ShellExecutor, self).check()
@@ -74,19 +73,15 @@ class ShellExecutor(EngineModule):
         self._shutdown_background_tasks("prepare")
 
     def _start_tasks(self, cur_stage):
-        if cur_stage != "check":
-            for task in self.tasks[cur_stage]:
+        for task in self.tasks[cur_stage]:
+            if not task.is_background:
                 task.start()
-        else:
-            for task in self.tasks[cur_stage]:
-                if not task.is_background:
+            else:
+                if not task.process:
                     task.start()
                 else:
-                    if not task.process:
-                        task.start()
-                    else:
-                        self.log.warning("This task is already running: %s", task)
-                        task.poll()
+                    self.log.warning("This task is already running: %s", task)
+                    task.poll()
 
     def _check_background_tasks(self):
         """
