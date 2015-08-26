@@ -52,6 +52,7 @@ class TestBlockingTasks(TaskTestCase):
 
     def test_task_stop_on_fail(self):
         task = {"command": "python -m nosuchmodule", "ignore-failure": False}
+
         self.obj.parameters.merge({"prepare": [task]})
         try:
             self.obj.prepare()

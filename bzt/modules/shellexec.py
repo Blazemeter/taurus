@@ -36,7 +36,8 @@ class ShellExecutor(EngineModule):
         :return:
         """
         for stage in self.tasks.keys():
-            if self.parameters.get(stage, []) and isinstance(self.parameters.get(stage), string_types):  # ensure is list
+            if self.parameters.get(stage, []) and isinstance(self.parameters.get(stage),
+                                                             string_types):  # ensure is list
                 self.parameters[stage] = [self.parameters.get(stage)]
 
             for index, stage_task_config in enumerate(self.parameters[stage]):
@@ -83,12 +84,9 @@ class ShellExecutor(EngineModule):
                 else:
                     if not task.process:
                         task.start()
-                        continue
-                    if task.process and task.is_finished():
-                        task.shutdown()
-                        task.start()
                     else:
                         self.log.warning("This task is already running: %s", task)
+                        task.poll()
 
     def _check_background_tasks(self):
         """
@@ -97,8 +95,8 @@ class ShellExecutor(EngineModule):
         """
         for stage in self.tasks.keys():
             for task in self.tasks[stage]:
-                if task.is_background and task.process and task.is_finished():
-                    task.shutdown()
+                if task.is_background and task.process:
+                    task.poll()
 
     def _shutdown_background_tasks(self, target_stage):
         self.log.debug("Shutting down tasks, stage: %s", target_stage)
@@ -126,6 +124,7 @@ class Task(object):
         Start task
         :return:
         """
+        self.finished = False
         self.log.debug("Starting task: %s", self)
         with NamedTemporaryFile(delete=False) as self.stdout, NamedTemporaryFile(delete=False) as self.stderr:
             self.process = task_exec(self.command, cwd=self.working_dir, stdout=self.stdout, stderr=self.stderr)
@@ -133,14 +132,15 @@ class Task(object):
 
         if not self.is_background:  # wait for completion if not background
             self.process.wait()
-            self.shutdown()  # provide output
+            self.poll()  # provide output
 
-    def is_finished(self):
+    def poll(self):
         ret_code = self.process.poll()
         if ret_code is not None:
             if ret_code != 0:
                 self.failed = True
             self.log.debug("Task: %s was finished with exit code: %s", self, ret_code)
+            self.shutdown()
             return True
         self.log.debug('Task: %s was not finished yet', self)
         return False
@@ -151,9 +151,10 @@ class Task(object):
         else provide output
         :return:
         """
-        if not self.is_finished():
+        if self.process:
             self.log.info("Background task %s was not completed, shutting it down", self)
             shutdown_process(self.process, self.log)
+
         self.process = None
         with open(self.stderr.name) as fds_stderr, open(self.stdout.name) as fds_stdout:
             out = fds_stdout.read()
