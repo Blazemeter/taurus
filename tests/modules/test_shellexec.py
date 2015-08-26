@@ -1,4 +1,5 @@
 import os
+from subprocess import CalledProcessError
 from tempfile import NamedTemporaryFile
 import time
 
@@ -27,21 +28,11 @@ class TaskTestCase(BZTestCase):
 
 class TestBlockingTasks(TaskTestCase):
     def test_task_prepare(self):
-        task = "sleep 1 && echo 123"
+        task = "dir .. && cd .."
         self.obj.parameters.merge({"prepare": [task]})
         self.obj.prepare()
         self.obj.startup()
         self.obj.shutdown()
-        self.assertIn("Task sleep 1 && echo 123 stdout:\n 123", self.log_recorder.info_buff.getvalue())
-
-    def test_nonbackground_startup(self):
-        task = "echo hello"
-        self.obj.parameters.merge({"startup": [task]})
-        try:
-            self.obj.prepare()
-            self.fail()
-        except ValueError:
-            pass
 
     def test_nonbackground_prepare(self):
         task = {"command": "echo hello", "background": True}
@@ -58,7 +49,7 @@ class TestBlockingTasks(TaskTestCase):
         try:
             self.obj.prepare()
             self.fail()
-        except AutomatedShutdown:
+        except CalledProcessError:
             pass
 
 
@@ -86,7 +77,7 @@ class TestNonBlockingTasks(TaskTestCase):
         self.obj.prepare()
         self.obj.check()
         self.obj.shutdown()
-        self.assertIn("Task echo hello stdout:\n hello", self.log_recorder.info_buff.getvalue())
+        self.assertIn("Output for echo hello:\nhello", self.log_recorder.debug_buff.getvalue())
 
     def test_background_task_stop_on_fail(self):
         task = {"command": "python -m nosuchmodule", "background": True, "ignore-failure": False}

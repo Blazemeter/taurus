@@ -137,10 +137,10 @@ class Task(object):
 
         stdout, stderr = self.process.communicate()
         if stdout:
-            self.log.debug("Output for %s: %s", self, stdout)
+            self.log.debug("Output for %s:\n%s", self, stdout)
 
         if stderr:
-            self.log.debug("Errors for %s: %s", self, stderr)
+            self.log.warning("Errors for %s:\n%s", self, stderr)
 
         self.ret_code = self.process.poll()
         if self.ret_code is not None:
