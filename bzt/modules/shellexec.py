@@ -14,8 +14,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-from io import TextIOBase
-import logging
 import os
 import platform
 import subprocess
@@ -23,7 +21,6 @@ from subprocess import CalledProcessError
 
 from bzt.utils import shutdown_process
 from bzt.engine import EngineModule
-from bzt import AutomatedShutdown
 from bzt.utils import ensure_is_dict
 
 
@@ -89,14 +86,18 @@ class ShellExecutor(EngineModule):
 
 
 class Task(object):
+    """
+    :type process: subprocess.Popen
+    """
+
     def __init__(self, config, parent_log, working_dir):
         self.log = parent_log.getChild(self.__class__.__name__)
         self.working_dir = working_dir
         self.command = config.get("command", ValueError("Parameter is required: command"))
         self.is_background = config.get("background", False)
         self.ignore_failure = config.get("ignore-failure", True)
-        self.err = config.get("out", LoggingFileOutput(self.log, logging.DEBUG))
-        self.out = config.get("err", LoggingFileOutput(self.log, logging.INFO))
+        self.err = config.get("out", subprocess.PIPE)
+        self.out = config.get("err", subprocess.PIPE)
         self.process = None
         self.ret_code = None
 
@@ -122,18 +123,24 @@ class Task(object):
             kwargs['close_fds'] = True
 
         self.log.debug("Starting task: %s", self)
+        self.process = subprocess.Popen(**kwargs)
         if self.is_background:
-            self.process = subprocess.Popen(**kwargs)
             self.log.debug("Task started, PID: %d", self.process.pid)
-        elif self.ignore_failure:
-            rc = subprocess.call(**kwargs)
-            self.log.debug("Command finished, exit code is %s", rc)
         else:
-            subprocess.check_call(**kwargs)
+            self.process.wait()
+            self.check()
+            self.process = None
 
     def check(self):
-        if self.ret_code is not None or not self.is_background:
-            return  # all is done before or it's non-bg job
+        if not self.process:
+            return
+
+        stdout, stderr = self.process.communicate()
+        if stdout:
+            self.log.debug("Output for %s: %s", self, stdout)
+
+        if stderr:
+            self.log.debug("Errors for %s: %s", self, stderr)
 
         self.ret_code = self.process.poll()
         if self.ret_code is not None:
@@ -152,30 +159,10 @@ class Task(object):
         """
         self.check()
 
-        if not self.check():
+        if self.ret_code is None:
             self.log.info("Background task %s was not completed, shutting it down", self)
             shutdown_process(self.process, self.log)
         self.process = None
 
-        if self.ret_code and not self.ignore_failure:
-            self.log.error("Task %s failed with ignore-failure = False, terminating", self)
-            raise AutomatedShutdown
-
     def __repr__(self):
         return self.command
-
-
-class LoggingFileOutput(TextIOBase):
-    def __init__(self, log, level):
-        """
-        :type log: logging.Logger
-        """
-        super(LoggingFileOutput, self).__init__()
-        self.log = log
-        self.level = level
-
-    def write(self, *args, **kwargs):
-        self.log.log(self.level, "%s %s", args, kwargs)
-
-    def fileno(self, *args, **kwargs):
-        return 0
