@@ -34,14 +34,17 @@ scenarios:
       url: http://127.0.0.1/
 ```
 
-Full task configuration sample:
+Extended task configuration sample:
 ```yaml
 ---
-- command: echo 1 > /tmp/1.txt && sleep 1 && dmesg | grep pci  # task command
-  background: true  # wait for task completion or continue, false by default. 
-  ignore-failure: true  # true by default, otherwise will shutdown tests if command return code != 0, 
-  out: /tmp/taskout.txt  # set file name for task stdout
-  err: /tmp/taskerr.txt  # set file name for task stderr
+services:
+  - module: shellexec
+    prepare:
+    - command: echo 1 > /tmp/1.txt && sleep 1 && dmesg | grep pci  # task command
+    background: true  # wait for task completion or continue, false by default. 
+    ignore-failure: true  # true by default, otherwise will shutdown tests if command return code != 0, 
+    out: taskout.txt  # set file name for task stdout
+    err: taskerr.txt  # set file name for task stderr
 ```
 
 Minimum task configuration sample:
@@ -55,5 +58,6 @@ services:
     - echo something
 ```
 Notes:
- - Nonbackground tasks are not allowed on startup stage.
+ - Non-background tasks are not allowed on startup stage.
  - Background tasks will be shut down forcefully on opposite stages (see [Lifecycle](Lifecycle.md)) if they were not finished yet.
+ - Background tasks on Check stage will not start until same previous task completed.

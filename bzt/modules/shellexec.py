@@ -86,7 +86,7 @@ class ShellExecutor(EngineModule):
                         task.shutdown()
                         task.start()
                     else:
-                        self.log.warning("This task is already running %s", task)
+                        self.log.warning("This task is already running: %s", task)
 
     def _check_background_tasks(self):
         """
@@ -127,7 +127,7 @@ class Task(object):
         self.log.debug("Starting task: %s", self)
         with NamedTemporaryFile(delete=False) as self.stdout, NamedTemporaryFile(delete=False) as self.stderr:
             self.process = task_exec(self.command, cwd=self.working_dir, stdout=self.stdout, stderr=self.stderr)
-        self.log.info("Task started: %s, PID: %d", self, self.process.pid)
+        self.log.debug("Task started: %s, PID: %d", self, self.process.pid)
 
         if not self.is_background:  # wait for completion if not background
             self.process.wait()
@@ -150,7 +150,7 @@ class Task(object):
         :return:
         """
         if not self.is_finished():
-            self.log.info("Task %s was not completed, shutting it down", self)
+            self.log.info("Background task %s was not completed, shutting it down", self)
             shutdown_process(self.process, self.log)
         self.process = None
         with open(self.stderr.name) as fds_stderr, open(self.stdout.name) as fds_stdout:
@@ -163,17 +163,21 @@ class Task(object):
             self.log.error("Task %s stderr:\n %s", self, err)
 
         if self.out_file:
-            move(self.stdout.name, os.path.join(self.working_dir, self.out_file))
+            if not os.path.dirname(self.out_file):
+                self.out_file = os.path.join(self.working_dir, self.out_file)
+            move(self.stdout.name, self.out_file)
         else:
             os.remove(self.stdout.name)
 
         if self.err_file:
-            move(self.stderr.name, os.path.join(self.working_dir, self.stderr))
+            if not os.path.dirname(self.err_file):
+                self.err_file = os.path.join(self.working_dir, self.err_file)
+            move(self.stderr.name, self.err_file)
         else:
             os.remove(self.stderr.name)
 
         if self.failed and not self.ignore_failure:
-            self.log.error("Task %s failed with ignore-failure = False", self)
+            self.log.error("Task %s failed with ignore-failure = False, terminating", self)
             raise AutomatedShutdown
 
     def __repr__(self):
