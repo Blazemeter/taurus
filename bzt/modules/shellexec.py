@@ -39,14 +39,15 @@ class ShellExecutor(EngineModule):
             if self.parameters.get(stage, []) and isinstance(self.parameters.get(stage), string_types):  # ensure is list
                 self.parameters[stage] = [self.parameters.get(stage)]
 
-            for index, stage_task in enumerate(self.parameters[stage]):
-                stage_task = ensure_is_dict(self.parameters[stage], index, "command")
+            for index, stage_task_config in enumerate(self.parameters[stage]):
+                stage_task_config = ensure_is_dict(self.parameters[stage], index, "command")
+                stage_task = Task(stage_task_config, self.log, self.engine.artifacts_dir)
 
-                if stage == 'startup' and not stage_task.get('background', False):
-                    self.log.error("Only background tasks are allowed on startup stage %s", stage_task.get("command"))
+                if stage == 'startup' and not stage_task.is_background:
+                    self.log.error("Only background tasks are allowed on startup stage %s", stage_task.command)
                     raise ValueError
 
-                self.tasks[stage].append(Task(self.parameters[stage][index], self.log, self.engine.artifacts_dir))
+                self.tasks[stage].append(stage_task)
                 self.log.debug("Added task: %s, stage: %s", stage_task, stage)
 
         self._start_tasks("prepare")
