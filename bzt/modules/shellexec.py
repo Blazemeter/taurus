@@ -113,8 +113,8 @@ class Task(object):
 
         kwargs = {
             'args': self.command,
-            'stdout': open(self.out, 'wb') if self.out != subprocess.PIPE else self.out,
-            'stderr': open(self.err, 'wb') if self.err != subprocess.PIPE else self.err,
+            'stdout': open(self.out, 'wt') if self.out != subprocess.PIPE else self.out,
+            'stderr': open(self.err, 'wt') if self.err != subprocess.PIPE else self.err,
             'cwd': self.working_dir,
             'shell': True
         }
