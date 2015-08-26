@@ -77,7 +77,7 @@ class TestNonBlockingTasks(TaskTestCase):
         self.obj.prepare()
         self.obj.check()
         self.obj.shutdown()
-        self.assertIn("Output for echo hello:\nhello", self.log_recorder.debug_buff.getvalue())
+        self.assertIn("Output for echo hello:\n", self.log_recorder.debug_buff.getvalue())
 
     def test_background_task_stop_on_fail(self):
         task = {"command": "python -m nosuchmodule", "background": True, "ignore-failure": False}
