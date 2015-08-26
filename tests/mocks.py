@@ -1,11 +1,14 @@
 """ test """
+from io import StringIO
 import logging
+from logging import Handler
 import os
 import tempfile
 import sys
 import random
 
 from bzt.engine import Engine, Configuration, FileLister
+from bzt.six import u
 from bzt.utils import load_class
 from bzt.engine import Provisioning, ScenarioExecutor, Reporter, AggregatorListener
 from bzt.modules.aggregator import ResultsReader
@@ -192,3 +195,34 @@ class ResultChecker(AggregatorListener):
 
     def aggregated_second(self, data):
         self.callback(data)
+
+
+class RecordingHandler(Handler):
+    def __init__(self):
+        super(RecordingHandler, self).__init__()
+        self.info_buff = StringIO()
+        self.err_buff = StringIO()
+        self.debug_buff = StringIO()
+        self.warn_buff = StringIO()
+
+    def emit(self, record):
+        """
+
+        :type record: logging.LogRecord
+        :return:
+        """
+        if record.levelno == logging.INFO:
+            self.write_log(self.info_buff, record.msg, *record.args)
+        elif record.levelno == logging.ERROR:
+            self.write_log(self.err_buff, record.msg, *record.args)
+        elif record.levelno == logging.WARN:
+            self.write_log(self.warn_buff, record.msg, *record.args)
+        elif record.levelno == logging.DEBUG:
+            self.write_log(self.debug_buff, record.msg, *record.args)
+
+    def write_log(self, buff, str_template, *args):
+        str_template += "\n"
+        if args:
+            buff.write(u(str_template % args))
+        else:
+            buff.write(u(str_template))

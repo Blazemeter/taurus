@@ -20,8 +20,10 @@ import traceback
 from optparse import OptionParser
 from copy import deepcopy
 from collections import namedtuple
-from cssselect import GenericTranslator
 import sys
+
+from cssselect import GenericTranslator
+
 from bzt.engine import Configuration
 from bzt.modules.jmeter import JMX
 from bzt.cli import CLI
@@ -918,7 +920,7 @@ class JMX2YAML(object):
         self.file_to_convert = os.path.abspath(os.path.expanduser(self.file_to_convert))
         if not os.path.exists(self.file_to_convert):
             self.log.error("File %s does not exist", self.file_to_convert)
-            raise RuntimeError("File does not exist")
+            raise RuntimeError("File does not exist: %s" % self.file_to_convert)
         self.converter = Converter(self.log)
         try:
             jmx_as_dict = self.converter.convert(self.file_to_convert, self.options.dump_jmx)

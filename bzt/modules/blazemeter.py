@@ -69,14 +69,26 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         self.client.data_signature = self.parameters.get("signature", None)
 
         if not self.client.test_id:
-            test_name = self.parameters.get("test", "Taurus Test")  # TODO: provide a way to put datetime into test name
             try:
                 self.client.ping()  # to check connectivity and auth
-                if token:
-                    self.test_id = self.client.test_by_name(test_name, {"type": "external"}, self.engine.config, [])
             except HTTPError:
                 self.log.error("Cannot reach online results storage, maybe the address/token is wrong")
                 raise
+
+            self.__get_test_id(token)
+
+    def __get_test_id(self, token):
+        if not token:
+            return
+
+        proj_name = self.parameters.get("project", None)
+        if proj_name is not None:
+            proj_id = self.client.project_by_name(proj_name)
+        else:
+            proj_id = None
+
+        test_name = self.parameters.get("test", "Taurus Test")
+        self.test_id = self.client.test_by_name(test_name, {"type": "external"}, self.engine.config, [], proj_id)
 
     def startup(self):
         """
@@ -231,8 +243,12 @@ class BlazeMeterClient(object):
             headers = {}
         if self.token:
             headers["X-API-Key"] = self.token
-        self.log.debug("Request: %s %s %s", method if method else 'GET', url,
-                       data[:self.logger_limit] if data else None)
+
+        log_method = 'GET' if data is None else 'POST'
+        if method:
+            log_method = method
+
+        self.log.debug("Request: %s %s %s", log_method, url, data[:self.logger_limit] if data else None)
         # .encode("utf-8") is probably better
         data = data.encode() if isinstance(data, text_type) else data
         req = Request(url, data, headers)
@@ -315,7 +331,19 @@ class BlazeMeterClient(object):
                 data = {"signature": self.data_signature, "testId": self.test_id, "sessionId": self.active_session_id}
                 self._request(url % self.active_session_id, json.dumps(data))
 
-    def test_by_name(self, name, configuration, taurus_config, resource_files):
+    def project_by_name(self, proj_name):
+        """
+        :type proj_name: str
+        :rtype: int
+        """
+        projects = self.get_projects()
+        for project in projects:
+            if project['name'] == proj_name:
+                return project['id']
+
+        return self.create_project(proj_name)
+
+    def test_by_name(self, name, configuration, taurus_config, resource_files, proj_id):
         """
 
         :type name: str
@@ -326,12 +354,13 @@ class BlazeMeterClient(object):
         for test in tests:
             self.log.debug("Test: %s", test)
             if "name" in test and test['name'] == name and test['configuration']['type'] == configuration['type']:
-                test_id = test['id']
+                if not proj_id or proj_id == test['projectId']:
+                    test_id = test['id']
 
         if not test_id:
             self.log.debug("Creating new test")
             url = self.address + '/api/latest/tests'
-            data = {"name": name, "configuration": configuration}
+            data = {"name": name, "projectId": proj_id, "configuration": configuration}
             hdr = {"Content-Type": " application/json"}
             resp = self._request(url, json.dumps(data), headers=hdr)
             test_id = resp['result']['id']
@@ -611,6 +640,15 @@ class BlazeMeterClient(object):
         sess = self._request(self.address + '/api/latest/masters/%s' % master_id)
         return sess['result']
 
+    def get_projects(self):
+        data = self._request(self.address + '/api/latest/projects')
+        return data['result']
+
+    def create_project(self, proj_name):
+        hdr = {"Content-Type": "application/json"}
+        data = self._request(self.address + '/api/latest/projects', to_json({"name": proj_name}), headers=hdr)
+        return data['result']['id']
+
 
 class CloudProvisioning(Provisioning):
     """
@@ -651,7 +689,7 @@ class CloudProvisioning(Provisioning):
         for executor in self.executors:
             rfiles += executor.get_resource_files()
 
-        self.test_id = self.client.test_by_name(test_name, bza_plugin, config, rfiles)
+        self.test_id = self.client.test_by_name(test_name, bza_plugin, config, rfiles, None)  # FIXME: set project id
 
     def startup(self):
         super(CloudProvisioning, self).startup()
@@ -676,7 +714,7 @@ class BlazeMeterClientEmul(BlazeMeterClient):
         super(BlazeMeterClientEmul, self).__init__(parent_logger)
         self.results = []
 
-    def _request(self, url, data=None, headers=None, checker=None):
+    def _request(self, url, data=None, headers=None, checker=None, method=None):
         self.log.debug("Request %s: %s", url, data)
         res = self.results.pop(0)
         self.log.debug("Response: %s", res)

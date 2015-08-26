@@ -4,7 +4,8 @@ import tempfile
 import yaml
 from tests import BZTestCase, RecordingHandler
 from bzt.jmx2yaml import JMX2YAML
-from tests.mocks import EngineEmul
+from tests.mocks import EngineEmul, RecordingHandler
+
 
 class FakeOptions(object):
     def __init__(self, verbose=True, file_name=None, dump_jmx=False, quiet=False, json=False, log=False):
@@ -29,12 +30,13 @@ class TestConverter(BZTestCase):
         self.assertIn("Loading jmx file", log_recorder.info_buff.getvalue())
         self.assertNotEqual("", log_recorder.debug_buff.getvalue())
         self.assertEqual("", log_recorder.err_buff.getvalue())
+        obj.log.removeHandler(log_recorder)
 
     def test_loadjmx2(self):
         log_recorder = RecordingHandler()
+        obj = JMX2YAML(FakeOptions(), "tests/jmx/notfound.jmx")
+        obj.log.addHandler(log_recorder)
         try:
-            obj = JMX2YAML(FakeOptions(), "tests/jmx/notfound.jmx")
-            obj.log.addHandler(log_recorder)
             obj.process()
             self.fail()
         except BaseException as exc:
@@ -42,12 +44,13 @@ class TestConverter(BZTestCase):
         self.assertIn("Loading jmx file", log_recorder.info_buff.getvalue())
         self.assertIn("does not exist", log_recorder.err_buff.getvalue())
         self.assertEqual("", log_recorder.debug_buff.getvalue())
+        obj.log.removeHandler(log_recorder)
 
     def test_loadjmx3(self):
         log_recorder = RecordingHandler()
+        obj = JMX2YAML(FakeOptions(), "tests/jmx/broken.jmx")
+        obj.log.addHandler(log_recorder)
         try:
-            obj = JMX2YAML(FakeOptions(), "tests/jmx/broken.jmx")
-            obj.log.addHandler(log_recorder)
             obj.process()
             self.fail()
         except BaseException as exc:
@@ -55,6 +58,7 @@ class TestConverter(BZTestCase):
         self.assertIn("Loading jmx file", log_recorder.info_buff.getvalue())
         self.assertIn("Error while processing jmx file", log_recorder.err_buff.getvalue())
         self.assertIn("XML parsing error", log_recorder.debug_buff.getvalue())
+        obj.log.removeHandler(log_recorder)
 
     def test_loadjmx4(self):
         log_recorder = RecordingHandler()
@@ -62,9 +66,10 @@ class TestConverter(BZTestCase):
             obj = JMX2YAML(FakeOptions(file_name=tmp_file.name), "tests/jmx/http.jmx")
             obj.log.addHandler(log_recorder)
             obj.process()
-        self.assertIn("Loading jmx file", log_recorder.info_buff.getvalue())
-        self.assertIn("Done processing, result saved in", log_recorder.info_buff.getvalue())
-        self.assertIn("Removing unknown element", log_recorder.warn_buff.getvalue())
+            self.assertIn("Loading jmx file", log_recorder.info_buff.getvalue())
+            self.assertIn("Done processing, result saved in", log_recorder.info_buff.getvalue())
+            self.assertIn("Removing unknown element", log_recorder.warn_buff.getvalue())
+            obj.log.removeHandler(log_recorder)
 
     def test_export_clean_jmx(self):
         with tempfile.NamedTemporaryFile() as tmp_jmx:
@@ -74,8 +79,9 @@ class TestConverter(BZTestCase):
             obj.log.addHandler(log_recorder)
             obj.process()
 
-        self.assertIn("Loading jmx file", log_recorder.info_buff.getvalue())
-        self.assertIn("already exists and will be overwritten", log_recorder.warn_buff.getvalue())
+            self.assertIn("Loading jmx file", log_recorder.info_buff.getvalue())
+            self.assertIn("already exists and will be overwritten", log_recorder.warn_buff.getvalue())
+            obj.log.removeHandler(log_recorder)
 
     def test_not_jmx(self):
         obj = JMX2YAML(FakeOptions(file_name=self.temp_yaml()), "tests/jmx/not-jmx.xml")

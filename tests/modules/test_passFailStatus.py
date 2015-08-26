@@ -123,3 +123,10 @@ class TestPassFailStatus(BZTestCase):
             self.fail()
         except AutomatedShutdown:
             pass
+
+    def test_named_criteria(self):
+        obj = PassFailStatus()
+        obj.parameters = {"criterias": {"named criteria": "avg-rt of spaced label>10ms"}}
+        obj.prepare()
+        self.assertGreater(len(obj.criterias), 0)
+        self.assertEquals(obj.criterias[0].message, "named criteria")

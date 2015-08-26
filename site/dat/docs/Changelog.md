@@ -2,6 +2,8 @@
 
 ## 0.3.8 (next)
   - fixed bug when old jars were not removed during JMeter installation
+  - add `project` to BlazeMeter report config, allowing to sort tests by projects
+  - allow `message` for pass/fail criteria to improve readability
   - implement "services" top-level config section
   - implemented shellhook service
 
