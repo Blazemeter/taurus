@@ -23,7 +23,7 @@ from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.passfail import PassFailStatus
 from bzt.modules.blazemeter import BlazeMeterUploader
-from bzt.six import etree
+from bzt.six import etree, iteritems, string_types
 
 
 class FinalStatus(Reporter, AggregatorListener):
@@ -70,6 +70,9 @@ class FinalStatus(Reporter, AggregatorListener):
             if self.parameters.get("failed-labels", False):
                 self.__report_failed_labels(self.last_sec[DataPoint.CUMULATIVE])
 
+            if self.parameters.get("dump-xml", None):
+                self.__dump_xml(self.parameters.get("dump-xml"))
+
     def __report_samples_count(self, summary_kpi_set):
         """
         reports samples count
@@ -109,6 +112,39 @@ class FinalStatus(Reporter, AggregatorListener):
         date_start = datetime.fromtimestamp(int(self.start_time))
         date_end = datetime.fromtimestamp(int(self.end_time))
         self.log.info("Test duration: %s", date_end - date_start)
+
+    def __dump_xml(self, filename):
+        self.log.info("Dumping final status as XML: %s", filename)
+        root = etree.Element("FinalStatus")
+        if self.last_sec:
+            for label, kpiset in iteritems(self.last_sec[DataPoint.CUMULATIVE]):
+                root.append(self.__get_xml_summary(label, kpiset))
+
+        with open(filename, 'wb') as fhd:
+            tree = etree.ElementTree(root)
+            tree.write(fhd, pretty_print=True, encoding="UTF-8", xml_declaration=True)
+
+    def __get_xml_summary(self, label, kpiset):
+        elem = etree.Element("SampleLabel", label=label)
+        for kpi_name, kpi_val in iteritems(kpiset):
+            if kpi_name in ('errors',):
+                continue
+
+            elem.append(self.__get_kpi_xml(kpi_name, kpi_val))
+
+        return elem
+
+    def __get_kpi_xml(self, kpi_name, kpi_val):
+        kpi = etree.Element("KPI", name=kpi_name)
+        if isinstance(kpi_val, float):
+            kpi.text = '%.5f' % kpi_val
+        elif isinstance(kpi_val, int):
+            kpi.text = '%d' % kpi_val
+        elif isinstance(kpi_val, string_types):
+            kpi.text = kpi_val
+        else:
+            raise ValueError("Unhandled kpi type for %s: %s" % (kpi_name, type(kpi_val)))
+        return kpi
 
 
 class JUnitXMLReporter(Reporter, AggregatorListener):
