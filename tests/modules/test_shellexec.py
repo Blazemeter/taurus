@@ -1,12 +1,14 @@
 import os
-from tests import setup_test_logging, BZTestCase
+from tempfile import NamedTemporaryFile
+import time
+
+import yaml
+
+from tests import setup_test_logging, BZTestCase, __dir__
 from tests.mocks import EngineEmul, RecordingHandler
 from bzt.modules.shellexec import ShellExecutor
 from bzt import AutomatedShutdown
-import yaml
-from tempfile import NamedTemporaryFile
 from bzt.utils import BetterDict
-import time
 
 setup_test_logging()
 
@@ -66,7 +68,8 @@ class TestNonBlockingTasks(TaskTestCase):
         self.obj.parameters.merge({"prepare": [task]})
         self.obj.prepare()
         self.obj.post_process()
-        self.assertIn("Background task sleep 10 was not completed, shutting it down", self.log_recorder.info_buff.getvalue())
+        self.assertIn("Background task sleep 10 was not completed, shutting it down",
+                      self.log_recorder.info_buff.getvalue())
 
     def test_background_task_completed(self):
         task = {"command": "sleep 1", "background": True}
@@ -107,6 +110,7 @@ class TestNonBlockingTasks(TaskTestCase):
         self.obj.post_process()
         self.assertIn("Task: sleep 2 && pwd was not finished yet", self.log_recorder.debug_buff.getvalue())
 
+
 class TestTasksConfigs(TaskTestCase):
     def test_shell_exec(self):
         out_file = os.path.join(self.obj.engine.artifacts_dir, 'out.txt')
@@ -122,7 +126,7 @@ class TestTasksConfigs(TaskTestCase):
             self.assertTrue(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, err_file)))
 
     def test_config(self):
-        self.obj.engine.config.merge(yaml.load(open("tests/yaml/shell_hook_start").read()))
+        self.obj.engine.config.merge(yaml.load(open(__dir__() + "/../yaml/shell_hook_start").read()))
         self.obj.parameters = self.obj.engine.config.get("services")[0]
         self.obj.prepare()
         self.obj.startup()

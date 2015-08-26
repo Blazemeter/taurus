@@ -236,22 +236,6 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False
         return Popen(args, stdout=stdout, stderr=stderr, stdin=stdin, bufsize=0,
                      preexec_fn=os.setpgrp, close_fds=True, cwd=cwd, shell=shell)
 
-def task_exec(cmd, stdout=PIPE, stderr=PIPE, cwd=None):
-    """
-    Wrapper for task starting (see shellexec.py)
-    :param cmd:
-    :param stdout:
-    :param stderr:
-    :param cwd:
-    :return:
-    """
-
-    logging.getLogger(__name__).debug("Executing command line: %s", cmd)
-    if platform.system() == 'Windows':
-        return Popen(cmd, stdout=stdout, stderr=stderr, stdin=PIPE, bufsize=0, cwd=cwd, shell=True)
-    else:
-        return Popen(cmd, stdout=stdout, stderr=stderr, stdin=PIPE, bufsize=0,
-                     preexec_fn=os.setpgrp, close_fds=True, cwd=cwd, shell=True)
 
 def ensure_is_dict(container, key, default_key=None):
     """

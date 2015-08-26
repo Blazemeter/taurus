@@ -14,134 +14,134 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-
-from bzt.utils import task_exec, shutdown_process
-from bzt.engine import EngineModule
+from io import TextIOBase
+import logging
 import os
+import platform
+import subprocess
+from subprocess import CalledProcessError
+
+from bzt.utils import shutdown_process
+from bzt.engine import EngineModule
 from bzt import AutomatedShutdown
-from shutil import move
-from tempfile import NamedTemporaryFile
 from bzt.utils import ensure_is_dict
-from bzt.six import string_types
 
 
 class ShellExecutor(EngineModule):
     def __init__(self):
         super(ShellExecutor, self).__init__()
-        self.tasks = {"prepare": [], "startup": [], "check": []}
+        self.prepare_tasks = []
+        self.startup_tasks = []
+        self.check_tasks = []
+        self.shutdown_tasks = []
+        self.postprocess_tasks = []
+
+    def _load_tasks(self, stage, container):
+        if not isinstance(self.parameters.get(stage, []), list):
+            self.parameters[stage] = [self.parameters[stage]]
+
+        for index, stage_task in enumerate(self.parameters[stage]):
+            stage_task = ensure_is_dict(self.parameters[stage], index, "command")
+            container.append(Task(self.parameters[stage][index], self.log, self.engine.artifacts_dir))
+            self.log.debug("Added task: %s, stage: %s", stage_task, stage)
 
     def prepare(self):
         """
         Configure Tasks
         :return:
         """
-        for stage in self.tasks.keys():
-            if self.parameters.get(stage, []) and isinstance(self.parameters.get(stage), string_types):  # ensure is list
-                self.parameters[stage] = [self.parameters.get(stage)]
+        self._load_tasks('prepare', self.prepare_tasks)
+        self._load_tasks('startup', self.startup_tasks)
+        self._load_tasks('check', self.check_tasks)
+        self._load_tasks('shutdown', self.shutdown_tasks)
+        self._load_tasks('post-process', self.postprocess_tasks)
 
-            for index, stage_task in enumerate(self.parameters[stage]):
-                stage_task = ensure_is_dict(self.parameters[stage], index, "command")
-
-                if stage == 'startup' and not stage_task.get('background', False):
-                    self.log.error("Only background tasks are allowed on startup stage %s", stage_task.get("command"))
-                    raise ValueError
-
-                self.tasks[stage].append(Task(self.parameters[stage][index], self.log, self.engine.artifacts_dir))
-                self.log.debug("Added task: %s, stage: %s", stage_task, stage)
-
-        self._start_tasks("prepare")
-        self._check_background_tasks()
+        for task in self.prepare_tasks:
+            task.start()
 
     def startup(self):
-        self._start_tasks("startup")
-        self._check_background_tasks()
+        for task in self.startup_tasks:
+            task.start()
 
     def check(self):
+        for task in self.check_tasks:
+            task.start()
 
-        self._start_tasks("check")
-        self._check_background_tasks()
+        for task in self.prepare_tasks + self.startup_tasks + self.check_tasks:
+            task.check()
+
         return super(ShellExecutor, self).check()
 
     def shutdown(self):
-        self._check_background_tasks()
-        self._shutdown_background_tasks("check")
-        self._shutdown_background_tasks("startup")
+        for task in self.check_tasks + self.startup_tasks:
+            task.shutdown()
+
+        for task in self.shutdown_tasks:
+            task.start()
 
     def post_process(self):
-        self._check_background_tasks()
-        self._shutdown_background_tasks("prepare")
+        for task in self.shutdown_tasks + self.check_tasks + self.startup_tasks + self.prepare_tasks:
+            task.shutdown()
 
-    def _start_tasks(self, cur_stage):
-        if cur_stage != "check":
-            for task in self.tasks[cur_stage]:
-                task.start()
-        else:
-            for task in self.tasks[cur_stage]:
-                if not task.is_background:
-                    task.start()
-                else:
-                    if not task.process:
-                        task.start()
-                        continue
-                    if task.process and task.is_finished():
-                        task.shutdown()
-                        task.start()
-                    else:
-                        self.log.warning("This task is already running: %s", task)
-
-    def _check_background_tasks(self):
-        """
-        check all background tasks if task was finished
-        :return:
-        """
-        for stage in self.tasks.keys():
-            for task in self.tasks[stage]:
-                if task.is_background and task.process and task.is_finished():
-                    task.shutdown()
-
-    def _shutdown_background_tasks(self, target_stage):
-        self.log.debug("Shutting down tasks, stage: %s", target_stage)
-        for task in self.tasks[target_stage]:
-            if task.is_background and task.process:
-                task.shutdown()
+        for task in self.postprocess_tasks:
+            task.start()
+            task.shutdown()
 
 
 class Task(object):
     def __init__(self, config, parent_log, working_dir):
         self.log = parent_log.getChild(self.__class__.__name__)
         self.working_dir = working_dir
-        self.command = config.get("command")
+        self.command = config.get("command", ValueError("Parameter is required: command"))
         self.is_background = config.get("background", False)
         self.ignore_failure = config.get("ignore-failure", True)
-        self.out_file = config.get("out", None)
-        self.err_file = config.get("err", None)
-        self.stderr = None
-        self.stdout = None
+        self.err = config.get("out", LoggingFileOutput(self.log, logging.DEBUG))
+        self.out = config.get("err", LoggingFileOutput(self.log, logging.INFO))
         self.process = None
-        self.failed = False
+        self.ret_code = None
 
     def start(self):
         """
         Start task
         :return:
         """
+        if self.process:
+            self.check()
+            self.log.info("Process still running: %s", self)
+            return
+
+        kwargs = {
+            'args': self.command,
+            'stdout': self.out,
+            'stderr': self.err,
+            'cwd': self.working_dir,
+            'shell': True
+        }
+        if platform.system() != 'Windows':
+            kwargs['preexec_fn'] = os.setpgrp
+            kwargs['close_fds'] = True
+
         self.log.debug("Starting task: %s", self)
-        with NamedTemporaryFile(delete=False) as self.stdout, NamedTemporaryFile(delete=False) as self.stderr:
-            self.process = task_exec(self.command, cwd=self.working_dir, stdout=self.stdout, stderr=self.stderr)
-        self.log.debug("Task started: %s, PID: %d", self, self.process.pid)
+        if self.is_background:
+            self.process = subprocess.Popen(**kwargs)
+            self.log.debug("Task started, PID: %d", self.process.pid)
+        elif self.ignore_failure:
+            rc = subprocess.call(**kwargs)
+            self.log.debug("Command finished, exit code is %s", rc)
+        else:
+            subprocess.check_call(**kwargs)
 
-        if not self.is_background:  # wait for completion if not background
-            self.process.wait()
-            self.shutdown()  # provide output
+    def check(self):
+        if self.ret_code is not None or not self.is_background:
+            return  # all is done before or it's non-bg job
 
-    def is_finished(self):
-        ret_code = self.process.poll()
-        if ret_code is not None:
-            if ret_code != 0:
-                self.failed = True
-            self.log.debug("Task: %s was finished with exit code: %s", self, ret_code)
+        self.ret_code = self.process.poll()
+        if self.ret_code is not None:
+            self.log.debug("Task: %s was finished with exit code: %s", self, self.ret_code)
+            if not self.ignore_failure:
+                raise CalledProcessError(self.ret_code, self)
             return True
-        self.log.debug('Task: %s was not finished yet', self)
+        self.log.debug('Task: %s is not finished yet', self)
         return False
 
     def shutdown(self):
@@ -150,36 +150,32 @@ class Task(object):
         else provide output
         :return:
         """
-        if not self.is_finished():
+        self.check()
+
+        if not self.check():
             self.log.info("Background task %s was not completed, shutting it down", self)
             shutdown_process(self.process, self.log)
         self.process = None
-        with open(self.stderr.name) as fds_stderr, open(self.stdout.name) as fds_stdout:
-            out = fds_stdout.read()
-            err = fds_stderr.read()
 
-        if out:
-            self.log.info("Task %s stdout:\n %s", self, out)
-        if err:
-            self.log.error("Task %s stderr:\n %s", self, err)
-
-        if self.out_file:
-            if not os.path.dirname(self.out_file):
-                self.out_file = os.path.join(self.working_dir, self.out_file)
-            move(self.stdout.name, self.out_file)
-        else:
-            os.remove(self.stdout.name)
-
-        if self.err_file:
-            if not os.path.dirname(self.err_file):
-                self.err_file = os.path.join(self.working_dir, self.err_file)
-            move(self.stderr.name, self.err_file)
-        else:
-            os.remove(self.stderr.name)
-
-        if self.failed and not self.ignore_failure:
+        if self.ret_code and not self.ignore_failure:
             self.log.error("Task %s failed with ignore-failure = False, terminating", self)
             raise AutomatedShutdown
 
     def __repr__(self):
         return self.command
+
+
+class LoggingFileOutput(TextIOBase):
+    def __init__(self, log, level):
+        """
+        :type log: logging.Logger
+        """
+        super(LoggingFileOutput, self).__init__()
+        self.log = log
+        self.level = level
+
+    def write(self, *args, **kwargs):
+        self.log.log(self.level, "%s %s", args, kwargs)
+
+    def fileno(self, *args, **kwargs):
+        return 0
