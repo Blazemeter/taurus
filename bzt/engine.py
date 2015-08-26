@@ -770,6 +770,7 @@ class EngineModule(object):
         self.log = logging.getLogger('')
         self.engine = None
         self.settings = BetterDict()
+        self.parameters = BetterDict()
 
     def prepare(self):
         """
@@ -984,10 +985,6 @@ class Reporter(EngineModule):
     """
 
     REP = "reporting"
-
-    def __init__(self):
-        super(Reporter, self).__init__()
-        self.parameters = BetterDict()
 
 
 class Scenario(UserDict, object):
