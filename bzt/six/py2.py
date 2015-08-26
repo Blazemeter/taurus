@@ -71,4 +71,7 @@ def b(string):
 
 
 def u(string):
-    return unicode(string.replace(r'\\', r'\\\\'), "unicode_escape")
+    if not isinstance(string, unicode):
+        return unicode(string.replace(r'\\', r'\\\\'), "unicode_escape")
+    else:
+        return string
