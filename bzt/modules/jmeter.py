@@ -110,7 +110,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         props.merge(props_local)
         props['user.classpath'] = self.engine.artifacts_dir.replace(os.path.sep, "/")  # replace to avoid Windows issue
         if props:
-            self.log.debug("Additional properties: %s", str(props))
+            self.log.debug("Additional properties: %s", props)
             props_file = self.engine.create_artifact("jmeter-bzt", ".properties")
             JMeterExecutor.__write_props_to_file(props_file, props)
             self.properties_file = props_file
