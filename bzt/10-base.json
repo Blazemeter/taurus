@@ -17,8 +17,7 @@
         "summariser.name": "",
         "mode": "Stripped"
       },
-      "path": "~/.bzt/jmeter-taurus/bin/jmeter",
-      "shutdown-port": 4445
+      "path": "~/.bzt/jmeter-taurus/bin/jmeter"
     },
     "jtl-loader": "bzt.modules.jmeter.JMeterJTLLoaderExecutor",
     "grinder": {
