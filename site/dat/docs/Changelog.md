@@ -1,9 +1,8 @@
 # Changelog
-## Next version
-  - implemented graceful shutdown for JMeter
-  
+
 ## 0.3.9 (next)
  - allow dumping final stats in Jenkins-consumable format
+ - implemented graceful shutdown for JMeter
 
 ## 0.3.8
   - fixed bug when old jars were not removed during JMeter installation

@@ -246,10 +246,13 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         try:
+            self.log.debug("Checking if port %d is free", port_num)
             udp_sock.bind(("localhost", port_num))
             udp_sock.close()
+            self.log.debug("Port %d is free", port_num)
             return True
         except socket.error:
+            self.log.debug("Port %d is busy", port_num)
             return False
 
     @staticmethod
