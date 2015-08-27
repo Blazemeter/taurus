@@ -64,7 +64,7 @@
         </HTTPSamplerProxy>
         <hashTree/>
         <BSFSampler guiclass="TestBeanGUI" testclass="BSFSampler" testname="BSF Sampler" enabled="false">
-          <stringProp name="filename">tests/json/local.json</stringProp>
+          <stringProp name="filename">tests/json/get-post.json</stringProp>
           <stringProp name="parameters"></stringProp>
           <stringProp name="script"></stringProp>
           <stringProp name="scriptLanguage"></stringProp>

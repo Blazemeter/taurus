@@ -1,10 +1,14 @@
 # Changelog
 
-## 0.3.8 (next)
+## 0.3.9 (next)
+ - allow dumping final stats in Jenkins-consumable format
+
+## 0.3.8
   - fixed bug when old jars were not removed during JMeter installation
   - add `project` to BlazeMeter report config, allowing to sort tests by projects
   - allow `message` for pass/fail criteria to improve readability
-  - allow dumping final stats in Jenkins-consumable format
+  - implement "services" top-level config section
+  - implemented shellhook service
 
 ## 0.3.7
   - fail criteria without timeframe is checked at the end of the test
