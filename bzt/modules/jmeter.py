@@ -111,8 +111,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if self.distributed_servers:
             if self.settings.get("gui", False):
                 props_local.merge({"remote_hosts": ",".join(self.distributed_servers)})
-        props_local.merge({"jmeterengine.nongui.port":self.management_port})
-        props_local.merge({"jmeterengine.nongui.maxport":self.management_port})
+        props_local.merge({"jmeterengine.nongui.port": self.management_port})
+        props_local.merge({"jmeterengine.nongui.maxport": self.management_port})
         props.merge(props_local)
         props['user.classpath'] = self.engine.artifacts_dir.replace(os.path.sep, "/")  # replace to avoid Windows issue
         if props:
@@ -184,12 +184,15 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         If JMeter is still running - let's stop it.
         """
-
         self.remote_shutdown()
-        time.sleep(10)
+        time.sleep(5)
 
-        # TODO: print JMeter's stdout/stderr on empty JTL
-        shutdown_process(self.process, self.log)
+        ret_code = self.process.poll()
+        if not ret_code:
+            # TODO: print JMeter's stdout/stderr on empty JTL
+            shutdown_process(self.process, self.log)
+        else:
+            self.log.debug("JMeter stopped gracefully, ret_code: %s", ret_code)
 
         if self.start_time:
             self.end_time = time.time()
@@ -202,11 +205,11 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def remote_shutdown(self):
         udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        udp_sock.sendto(b"Shutdown", ("127.0.0.1", self.management_port))
-        self.log.debug("Shutdown command sent")
-        time.sleep(10)
-        udp_sock.sendto(b"StopTestNow", ("127.0.0.1", self.management_port))
-        self.log.debug("StopTestNow command sent")
+        udp_sock.sendto(b"Shutdown", ("localhost", self.management_port))
+        self.log.debug("Shutdown command sent on udp port %d", self.management_port)
+        time.sleep(5)
+        udp_sock.sendto(b"StopTestNow", ("localhost", self.management_port))
+        self.log.debug("StopTestNow command sent on udp port %d", self.management_port)
 
     @staticmethod
     def __apply_ramp_up(jmx, ramp_up):
