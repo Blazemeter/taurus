@@ -27,20 +27,21 @@ import shutil
 from collections import Counter, namedtuple
 from math import ceil
 import tempfile
+import socket
+from distutils.version import LooseVersion
 
 from lxml.etree import XMLSyntaxError
 import urwid
 
 from cssselect import GenericTranslator
-from bzt import six
 
+from bzt import six
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.console import WidgetProvider
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.utils import shell_exec, ensure_is_dict, humanize_time, dehumanize_time, BetterDict, \
     guess_csv_dialect, unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext
 from bzt.six import iteritems, text_type, string_types, StringIO, parse, request, etree
-from distutils.version import LooseVersion
 
 EXE_SUFFIX = ".bat" if platform.system() == 'Windows' else ""
 
@@ -52,6 +53,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     JMETER_DOWNLOAD_LINK = "http://apache.claz.org/jmeter/binaries/apache-jmeter-{version}.zip"
     JMETER_VER = "2.13"
     PLUGINS_DOWNLOAD_TPL = "http://jmeter-plugins.org/files/JMeterPlugins-{plugin}-1.3.0.zip"
+    UDP_PORT_NUMBER = None
 
     def __init__(self):
         super(JMeterExecutor, self).__init__()
@@ -68,6 +70,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.retcode = None
         self.widget = None
         self.distributed_servers = []
+        self.management_port = None
 
     def prepare(self):
         """
@@ -79,7 +82,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :raise ValueError:
         """
         self.jmeter_log = self.engine.create_artifact("jmeter", ".log")
-
+        self.set_remote_port()
         self.run_checklist()
         self.distributed_servers = self.execution.get('distributed', self.distributed_servers)
         scenario = self.get_scenario()
@@ -101,6 +104,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         props_local = scenario.get("properties")
         if self.distributed_servers and self.settings.get("gui", False):
             props_local.merge({"remote_hosts": ",".join(self.distributed_servers)})
+        props_local.update({"jmeterengine.nongui.port": self.management_port})
+        props_local.update({"jmeterengine.nongui.maxport": self.management_port})
         props.merge(props_local)
         props['user.classpath'] = self.engine.artifacts_dir.replace(os.path.sep, "/")  # replace to avoid Windows issue
         if props:
@@ -172,8 +177,26 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         If JMeter is still running - let's stop it.
         """
-        # TODO: print JMeter's stdout/stderr on empty JTL
-        shutdown_process(self.process, self.log)
+        max_attempts = 5
+        if self._process_stopped(1):
+            return
+
+        try:
+            udp_sock = socket.socket(type=socket.SOCK_DGRAM)
+
+            self.log.debug("Sending Shutdown command on udp port %d", self.management_port)
+            udp_sock.sendto(b"Shutdown", ("localhost", self.management_port))
+            if self._process_stopped(max_attempts):
+                return
+
+            self.log.debug("Sending StopTestNow command on udp port %d", self.management_port)
+            udp_sock.sendto(b"StopTestNow", ("localhost", self.management_port))
+            if self._process_stopped(max_attempts):
+                return
+        finally:
+            if not self._process_stopped(1):
+                self.log.warning("JMeter process is still alive, killing it")
+                shutdown_process(self.process, self.log)
 
         if self.start_time:
             self.end_time = time.time()
@@ -183,6 +206,52 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             if not os.path.exists(self.kpi_jtl) or not os.path.getsize(self.kpi_jtl):
                 msg = "Empty results JTL, most likely JMeter failed: %s"
                 raise RuntimeWarning(msg % self.kpi_jtl)
+
+    def _process_stopped(self, cycles):
+        while cycles > 0:
+            cycles -= 1
+            if self.process and self.process.poll() is None:
+                time.sleep(self.engine.check_interval)
+            else:
+                return True
+        return False
+
+    def set_remote_port(self):
+        """
+        set management udp port
+        :return:
+        """
+
+        if not JMeterExecutor.UDP_PORT_NUMBER:
+            JMeterExecutor.UDP_PORT_NUMBER = self.settings.get("shutdown-port", 4445)
+        else:
+            JMeterExecutor.UDP_PORT_NUMBER += 1
+
+        while not self.port_is_free(JMeterExecutor.UDP_PORT_NUMBER):
+            self.log.debug("Port %d is busy, trying next one", JMeterExecutor.UDP_PORT_NUMBER)
+            if JMeterExecutor.UDP_PORT_NUMBER == 65535:
+                self.log.error("No free ports for management interface")
+                raise RuntimeError
+            else:
+                JMeterExecutor.UDP_PORT_NUMBER += 1
+
+        self.management_port = JMeterExecutor.UDP_PORT_NUMBER
+        self.log.debug("Using port %d for management", self.management_port)
+
+    def port_is_free(self, port_num):
+        """
+        :return: Bool
+        """
+        udp_sock = socket.socket(type=socket.SOCK_DGRAM)
+        try:
+            self.log.debug("Checking if port %d is free", port_num)
+            udp_sock.bind(("localhost", port_num))
+            udp_sock.close()
+            self.log.debug("Port %d is free", port_num)
+            return True
+        except socket.error:
+            self.log.debug("Port %d is busy", port_num)
+            return False
 
     @staticmethod
     def __apply_ramp_up(jmx, ramp_up):

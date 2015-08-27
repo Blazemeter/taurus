@@ -660,3 +660,21 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.match_number']").text, "1")
         self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.default']").text, "NV_JMETER")
         obj.log.removeHandler(handler)
+
+    def test_shutdown_soft(self):
+        obj = JMeterExecutor()
+        log_recorder = RecordingHandler()
+        obj.log.addHandler(log_recorder)
+        obj.engine = EngineEmul()
+        obj.execution = BetterDict()
+        obj.execution.merge({"scenario": {"script": "tests/jmx/dummy.jmx"}})
+        try:
+            obj.prepare()
+            obj.startup()
+            time.sleep(1)
+            obj.shutdown()
+        except:
+            self.fail()
+        finally:
+            obj.log.removeHandler(log_recorder)
+        self.assertIn("JMeter stopped gracefully wia Shutdown command", log_recorder.debug_buff.getvalue())
