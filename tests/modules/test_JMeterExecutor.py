@@ -677,4 +677,4 @@ class TestJMeterExecutor(BZTestCase):
             self.fail()
         finally:
             obj.log.removeHandler(log_recorder)
-        self.assertIn("JMeter stopped gracefully wia Shutdown command", log_recorder.debug_buff.getvalue())
+        self.assertIn("JMeter stopped on Shutdown command", log_recorder.debug_buff.getvalue())

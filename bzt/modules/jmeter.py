@@ -82,7 +82,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :raise ValueError:
         """
         self.jmeter_log = self.engine.create_artifact("jmeter", ".log")
-        self.set_remote_port()
+        self._set_remote_port()
         self.run_checklist()
         self.distributed_servers = self.execution.get('distributed', self.distributed_servers)
         scenario = self.get_scenario()
@@ -187,11 +187,13 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.log.debug("Sending Shutdown command on udp port %d", self.management_port)
             udp_sock.sendto(b"Shutdown", ("localhost", self.management_port))
             if self._process_stopped(max_attempts):
+                self.log.debug("JMeter stopped on Shutdown command")
                 return
 
             self.log.debug("Sending StopTestNow command on udp port %d", self.management_port)
             udp_sock.sendto(b"StopTestNow", ("localhost", self.management_port))
             if self._process_stopped(max_attempts):
+                self.log.debug("JMeter stopped on StopTestNow command")
                 return
         finally:
             if not self._process_stopped(1):
@@ -216,7 +218,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 return True
         return False
 
-    def set_remote_port(self):
+    def _set_remote_port(self):
         """
         set management udp port
         :return:
@@ -227,7 +229,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         else:
             JMeterExecutor.UDP_PORT_NUMBER += 1
 
-        while not self.port_is_free(JMeterExecutor.UDP_PORT_NUMBER):
+        while not self.__port_is_free(JMeterExecutor.UDP_PORT_NUMBER):
             self.log.debug("Port %d is busy, trying next one", JMeterExecutor.UDP_PORT_NUMBER)
             if JMeterExecutor.UDP_PORT_NUMBER == 65535:
                 self.log.error("No free ports for management interface")
@@ -238,7 +240,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.management_port = JMeterExecutor.UDP_PORT_NUMBER
         self.log.debug("Using port %d for management", self.management_port)
 
-    def port_is_free(self, port_num):
+    def __port_is_free(self, port_num):
         """
         :return: Bool
         """
