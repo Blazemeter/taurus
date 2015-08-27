@@ -13,7 +13,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet
 from tests import setup_test_logging, BZTestCase, __dir__
 from bzt.engine import Provisioning
 from bzt.modules.jmeter import JMeterExecutor, JMX, JTLErrorsReader, JTLReader, JMeterJTLLoaderExecutor
-from tests.mocks import EngineEmul, ResultChecker
+from tests.mocks import EngineEmul, ResultChecker, RecordingHandler
 from bzt.utils import BetterDict
 from bzt.six import etree
 
@@ -655,3 +655,22 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.attribute']").text, "value")
         self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.match_number']").text, "1")
         self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.default']").text, "NV_JMETER")
+
+    def test_shutdown_soft(self):
+        obj = JMeterExecutor()
+        log_recorder = RecordingHandler()
+        obj.log.addHandler(log_recorder)
+        obj.engine = EngineEmul()
+        obj.execution = BetterDict()
+        obj.execution.merge({"scenario": {"script": "tests/jmx/dummy.jmx"}})
+        try:
+            obj.prepare()
+            obj.startup()
+            time.sleep(1)
+            obj.shutdown()
+        except:
+            self.fail()
+        finally:
+            obj.log.removeHandler(log_recorder)
+        self.assertIn("JMeter stopped gracefully wia Shutdown command", log_recorder.debug_buff.getvalue())
+

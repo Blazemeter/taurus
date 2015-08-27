@@ -1,5 +1,7 @@
 # Changelog
-
+## Next version
+  - implemented graceful shutdown for JMeter
+  
 ## 0.3.8
   - fixed bug when old jars were not removed during JMeter installation
   - add `project` to BlazeMeter report config, allowing to sort tests by projects

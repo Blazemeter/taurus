@@ -82,13 +82,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :raise ValueError:
         """
         self.jmeter_log = self.engine.create_artifact("jmeter", ".log")
-
-        if not JMeterExecutor.UDP_PORT_NUMBER:
-            JMeterExecutor.UDP_PORT_NUMBER = self.settings.get("shutdown-port", 4445)
-        else:
-            JMeterExecutor.UDP_PORT_NUMBER += 1
-        self.management_port = JMeterExecutor.UDP_PORT_NUMBER
-
+        self.set_remote_port()
         self.run_checklist()
         self.distributed_servers = self.execution.get('distributed', self.distributed_servers)
         scenario = self.get_scenario()
@@ -111,12 +105,12 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if self.distributed_servers:
             if self.settings.get("gui", False):
                 props_local.merge({"remote_hosts": ",".join(self.distributed_servers)})
-        props_local.merge({"jmeterengine.nongui.port": self.management_port})
-        props_local.merge({"jmeterengine.nongui.maxport": self.management_port})
+        props_local.update({"jmeterengine.nongui.port": self.management_port})
+        props_local.update({"jmeterengine.nongui.maxport": self.management_port})
         props.merge(props_local)
         props['user.classpath'] = self.engine.artifacts_dir.replace(os.path.sep, "/")  # replace to avoid Windows issue
         if props:
-            self.log.debug("Additional properties: %s", props)
+            self.log.debug("Additional properties: %s", str(props))
             props_file = self.engine.create_artifact("jmeter-bzt", ".properties")
             JMeterExecutor.__write_props_to_file(props_file, props)
             self.properties_file = props_file
@@ -184,15 +178,27 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         If JMeter is still running - let's stop it.
         """
-        self.remote_shutdown()
-        time.sleep(5)
+        if self.process and self.process.poll() is None:
+            try:
+                self.log.debug("Sending Shutdown command on udp port %d", self.management_port)
+                udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                udp_sock.sendto(b"Shutdown", ("localhost", self.management_port))
+                max_attempts = 5
 
-        ret_code = self.process.poll()
-        if not ret_code:
-            # TODO: print JMeter's stdout/stderr on empty JTL
-            shutdown_process(self.process, self.log)
-        else:
-            self.log.debug("JMeter stopped gracefully, ret_code: %s", ret_code)
+                if not self._process_stopped(max_attempts):
+                    self.log.debug("Sending StopTestNow command on udp port %d", self.management_port)
+                    udp_sock.sendto(b"StopTestNow", ("localhost", self.management_port))
+
+                    if not self._process_stopped(max_attempts):
+                        self.log.debug("Unable to stop JMeter gracefully, killing it now")
+                        shutdown_process(self.process, self.log)
+                    else:
+                        self.log.debug("JMeter stopped gracefully wia StopTestNow command")
+                else:
+                    self.log.debug("JMeter stopped gracefully wia Shutdown command")
+            except socket.error as exc:
+                self.log.warning("Error while trying to shutdown JMeter gracefully, killing it now %s", exc)
+                shutdown_process(self.process, self.log)
 
         if self.start_time:
             self.end_time = time.time()
@@ -203,13 +209,48 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 msg = "Empty results JTL, most likely JMeter failed: %s"
                 raise RuntimeWarning(msg % self.kpi_jtl)
 
-    def remote_shutdown(self):
+    def _process_stopped(self, cycles):
+        while cycles > 0:
+            if self.process.poll() is None:
+                time.sleep(self.engine.check_interval)
+            else:
+                return True
+            cycles -= 1
+        return False
+
+    def set_remote_port(self):
+        """
+        set management udp port
+        :return:
+        """
+
+        if not JMeterExecutor.UDP_PORT_NUMBER:
+            JMeterExecutor.UDP_PORT_NUMBER = self.settings.get("shutdown-port", 4445)
+        else:
+            JMeterExecutor.UDP_PORT_NUMBER += 1
+
+        while not self.port_is_free(JMeterExecutor.UDP_PORT_NUMBER):
+            self.log.debug("Port %d is busy, trying next one", JMeterExecutor.UDP_PORT_NUMBER)
+            if JMeterExecutor.UDP_PORT_NUMBER == 65535:
+                self.log.error("No free ports for management interface")
+                raise RuntimeError
+            else:
+                JMeterExecutor.UDP_PORT_NUMBER += 1
+
+        self.management_port = JMeterExecutor.UDP_PORT_NUMBER
+        self.log.debug("Using port %d for management", self.management_port)
+
+    def port_is_free(self, port_num):
+        """
+        :return: Bool
+        """
         udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        udp_sock.sendto(b"Shutdown", ("localhost", self.management_port))
-        self.log.debug("Shutdown command sent on udp port %d", self.management_port)
-        time.sleep(5)
-        udp_sock.sendto(b"StopTestNow", ("localhost", self.management_port))
-        self.log.debug("StopTestNow command sent on udp port %d", self.management_port)
+        try:
+            udp_sock.bind(("localhost", port_num))
+            udp_sock.close()
+            return True
+        except socket.error:
+            return False
 
     @staticmethod
     def __apply_ramp_up(jmx, ramp_up):
