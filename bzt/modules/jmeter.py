@@ -2016,8 +2016,8 @@ class JMeter(RequiredTool):
             jmlog = tempfile.NamedTemporaryFile(prefix="jmeter", suffix="log", delete=False)
             jm_proc = shell_exec([self.tool_path, '-j', jmlog.name, '--version'], stdout=subprocess.PIPE,
                                  stderr=subprocess.STDOUT)
-            jmout = jm_proc.communicate()
-            self.log.debug("JMeter check: %s", jmout)
+            jmout, jmerr = jm_proc.communicate()
+            self.log.debug("JMeter check: %s / %s", jmout, jmerr)
             jmlog.close()
             os.remove(jmlog.name)
             return True

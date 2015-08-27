@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.9 (next)
+ - allow dumping final stats in Jenkins-consumable format
+
 ## 0.3.8
   - fixed bug when old jars were not removed during JMeter installation
   - add `project` to BlazeMeter report config, allowing to sort tests by projects

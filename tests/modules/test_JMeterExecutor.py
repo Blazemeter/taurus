@@ -13,7 +13,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet
 from tests import setup_test_logging, BZTestCase, __dir__
 from bzt.engine import Provisioning
 from bzt.modules.jmeter import JMeterExecutor, JMX, JTLErrorsReader, JTLReader, JMeterJTLLoaderExecutor
-from tests.mocks import EngineEmul, ResultChecker
+from tests.mocks import EngineEmul, ResultChecker, RecordingHandler
 from bzt.utils import BetterDict
 from bzt.six import etree
 
@@ -635,8 +635,10 @@ class TestJMeterExecutor(BZTestCase):
 
     def test_css_jquery_extractor(self):
         obj = JMeterExecutor()
+        handler = RecordingHandler()
+        obj.log.addHandler(handler)
         obj.engine = EngineEmul()
-        obj.engine.config = json.loads(open("tests/json/get-post.json").read())
+        obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
         obj.execution = obj.engine.config['execution']
         obj.prepare()
         target_jmx = os.path.join(obj.engine.artifacts_dir, "requests.jmx")
@@ -645,13 +647,16 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(2, len(jq_css_extractors))
         simplified_extractor = modified_xml_tree.find(".//HtmlExtractor[@testname='Get name1']")
         self.assertEqual(simplified_extractor.find(".//stringProp[@name='HtmlExtractor.refname']").text, "name1")
-        self.assertEqual(simplified_extractor.find(".//stringProp[@name='HtmlExtractor.expr']").text, "input[name~=my_input]")
+        self.assertEqual(simplified_extractor.find(".//stringProp[@name='HtmlExtractor.expr']").text,
+                         "input[name~=my_input]")
         self.assertEqual(simplified_extractor.find(".//stringProp[@name='HtmlExtractor.attribute']").text, None)
         self.assertEqual(simplified_extractor.find(".//stringProp[@name='HtmlExtractor.match_number']").text, "0")
         self.assertEqual(simplified_extractor.find(".//stringProp[@name='HtmlExtractor.default']").text, "NOT_FOUND")
         full_form_extractor = modified_xml_tree.find(".//HtmlExtractor[@testname='Get name2']")
         self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.refname']").text, "name2")
-        self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.expr']").text, "input[name=JMeter]")
+        self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.expr']").text,
+                         "input[name=JMeter]")
         self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.attribute']").text, "value")
         self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.match_number']").text, "1")
         self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.default']").text, "NV_JMETER")
+        obj.log.removeHandler(handler)
