@@ -52,7 +52,7 @@ reporting:
 
 ### Dump Summary for Jenkins Plot Plugin
 
-Two options `dump-csv` and `dump-xml`
+Two options `dump-csv` and `dump-xml` allows to export final cumulative stats into files that can be used by [Jenkins Plot Plugin](https://wiki.jenkins-ci.org/display/JENKINS/Plot+Plugin) to plot historical data inside Jenkins. Prefer CSV as it is much easier to use with Plot Plugin. XML format also can be used with other tools to automate results processing.
 
 ## Console Screen
 
