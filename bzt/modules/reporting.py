@@ -15,6 +15,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import copy
+import csv
 import os
 import time
 from datetime import datetime
@@ -23,7 +25,7 @@ from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.passfail import PassFailStatus
 from bzt.modules.blazemeter import BlazeMeterUploader
-from bzt.six import etree
+from bzt.six import etree, iteritems, string_types
 
 
 class FinalStatus(Reporter, AggregatorListener):
@@ -70,6 +72,12 @@ class FinalStatus(Reporter, AggregatorListener):
             if self.parameters.get("failed-labels", False):
                 self.__report_failed_labels(self.last_sec[DataPoint.CUMULATIVE])
 
+            if self.parameters.get("dump-xml", None):
+                self.__dump_xml(self.parameters.get("dump-xml"))
+
+            if self.parameters.get("dump-csv", None):
+                self.__dump_csv(self.parameters.get("dump-csv"))
+
     def __report_samples_count(self, summary_kpi_set):
         """
         reports samples count
@@ -109,6 +117,86 @@ class FinalStatus(Reporter, AggregatorListener):
         date_start = datetime.fromtimestamp(int(self.start_time))
         date_end = datetime.fromtimestamp(int(self.end_time))
         self.log.info("Test duration: %s", date_end - date_start)
+
+    def __dump_xml(self, filename):
+        self.log.info("Dumping final status as XML: %s", filename)
+        root = etree.Element("FinalStatus")
+        if self.last_sec:
+            for label, kpiset in iteritems(self.last_sec[DataPoint.CUMULATIVE]):
+                root.append(self.__get_xml_summary(label, kpiset))
+
+        with open(filename, 'wb') as fhd:
+            tree = etree.ElementTree(root)
+            tree.write(fhd, pretty_print=True, encoding="UTF-8", xml_declaration=True)
+
+    def __get_xml_summary(self, label, kpiset):
+        elem = etree.Element("Group", label=label)
+        for kpi_name, kpi_val in iteritems(kpiset):
+            if kpi_name in ('errors', 'rt'):
+                continue
+
+            if isinstance(kpi_val, dict):
+                for param_name, param_val in iteritems(kpi_val):
+                    elem.append(self.__get_kpi_xml(kpi_name, param_val, param_name))
+            else:
+                elem.append(self.__get_kpi_xml(kpi_name, kpi_val))
+
+        return elem
+
+    def __get_kpi_xml(self, kpi_name, kpi_val, param=None):
+        kpi = etree.Element(kpi_name)
+        kpi.attrib['value'] = self.__val_to_str(kpi_val)
+        elm_name = etree.Element("name")
+        elm_name.text = kpi_name
+        if param is not None:
+            kpi.attrib['param'] = self.__val_to_str(param)
+            elm_name.text += "/" + param
+
+        kpi.append(elm_name)
+
+        elm_value = etree.Element("value")
+        elm_value.text = self.__val_to_str(kpi_val)
+        kpi.append(elm_value)
+
+        return kpi
+
+    def __val_to_str(self, kpi_val):
+        if isinstance(kpi_val, float):
+            return '%.5f' % kpi_val
+        elif isinstance(kpi_val, int):
+            return '%d' % kpi_val
+        elif isinstance(kpi_val, string_types):
+            return kpi_val
+        else:
+            raise ValueError("Unhandled kpi type: %s" % type(kpi_val))
+
+    def __dump_csv(self, filename):
+        self.log.info("Dumping final status as CSV: %s", filename)
+        # FIXME: what if there's no last_sec
+        with open(filename, 'wb') as fhd:
+            writer = csv.DictWriter(fhd, self.__get_csv_dict('', self.last_sec[DataPoint.CUMULATIVE]['']).keys())
+            writer.writeheader()
+            for label, kpiset in iteritems(self.last_sec[DataPoint.CUMULATIVE]):
+                writer.writerow(self.__get_csv_dict(label, kpiset))
+
+    def __get_csv_dict(self, label, kpiset):
+        res = copy.deepcopy(kpiset)
+        for level, val in iteritems(kpiset[KPISet.PERCENTILES]):
+            res['perc_%s' % level] = val
+
+        for rc, val in iteritems(kpiset[KPISet.RESP_CODES]):
+            res['rc_%s' % rc] = val
+
+        for key in res:
+            if isinstance(res[key], float):
+                res[key] = "%.5f" % res[key]
+
+        del res['errors']
+        del res['rt']
+        del res['rc']
+        del res['perc']
+        res['label'] = label
+        return res
 
 
 class JUnitXMLReporter(Reporter, AggregatorListener):

@@ -1,6 +1,7 @@
 from collections import Counter
+import time
 
-from tests import BZTestCase
+from tests import BZTestCase, random_datapoint
 from tests.mocks import EngineEmul, RecordingHandler
 from bzt.modules.reporting import FinalStatus
 from bzt.utils import BetterDict
@@ -72,21 +73,20 @@ class TestFinalStatusReporter(BZTestCase):
         self.assertEqual("Test duration: 1 day, 9:20:05\n", log_recorder.info_buff.getvalue())
         obj.log.removeHandler(log_recorder)
 
-    """
-    def test_dump_xml(self):
+    def test_dump(self):
         obj = FinalStatus()
         obj.engine = EngineEmul()
         obj.parameters = BetterDict()
         log_recorder = RecordingHandler()
         obj.log.addHandler(log_recorder)
         obj.parameters.merge({
-            "dump-xml": obj.engine.create_artifact("status", ".xml")
+            "dump-xml": obj.engine.create_artifact("status", ".xml"),
+            "dump-csv": obj.engine.create_artifact("status", ".csv")
         })
 
-        obj.aggregated_second(self.__get_datapoint())
+        obj.aggregated_second(random_datapoint(time.time()))
         obj.post_process()
         self.assertIn("XML", log_recorder.info_buff.getvalue())
-    """
 
     def __get_datapoint(self):
         datapoint = DataPoint(None, None)
