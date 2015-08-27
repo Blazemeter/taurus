@@ -18,7 +18,7 @@
         "mode": "Stripped"
       },
       "path": "~/.bzt/jmeter-taurus/bin/jmeter",
-      "init-port": 4445
+      "shutdown-port": 4445
     },
     "jtl-loader": "bzt.modules.jmeter.JMeterJTLLoaderExecutor",
     "grinder": {
