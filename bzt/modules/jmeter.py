@@ -28,20 +28,20 @@ from collections import Counter, namedtuple
 from math import ceil
 import tempfile
 import socket
+from distutils.version import LooseVersion
 
 from lxml.etree import XMLSyntaxError
 import urwid
 
 from cssselect import GenericTranslator
-from bzt import six
 
+from bzt import six
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.console import WidgetProvider
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.utils import shell_exec, ensure_is_dict, humanize_time, dehumanize_time, BetterDict, \
     guess_csv_dialect, unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext
 from bzt.six import iteritems, text_type, string_types, StringIO, parse, request, etree
-from distutils.version import LooseVersion
 
 EXE_SUFFIX = ".bat" if platform.system() == 'Windows' else ""
 
@@ -102,15 +102,14 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         sys_props = self.settings.get("system-properties")
         props = self.settings.get("properties")
         props_local = scenario.get("properties")
-        if self.distributed_servers:
-            if self.settings.get("gui", False):
-                props_local.merge({"remote_hosts": ",".join(self.distributed_servers)})
+        if self.distributed_servers and self.settings.get("gui", False):
+            props_local.merge({"remote_hosts": ",".join(self.distributed_servers)})
         props_local.update({"jmeterengine.nongui.port": self.management_port})
         props_local.update({"jmeterengine.nongui.maxport": self.management_port})
         props.merge(props_local)
         props['user.classpath'] = self.engine.artifacts_dir.replace(os.path.sep, "/")  # replace to avoid Windows issue
         if props:
-            self.log.debug("Additional properties: %s", str(props))
+            self.log.debug("Additional properties: %s", props)
             props_file = self.engine.create_artifact("jmeter-bzt", ".properties")
             JMeterExecutor.__write_props_to_file(props_file, props)
             self.properties_file = props_file
@@ -178,26 +177,27 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         If JMeter is still running - let's stop it.
         """
-        if self.process and self.process.poll() is None:
-            try:
-                self.log.debug("Sending Shutdown command on udp port %d", self.management_port)
-                udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                udp_sock.sendto(b"Shutdown", ("localhost", self.management_port))
-                max_attempts = 5
+        max_attempts = 5
+        if self._process_stopped(1):
+            return
 
-                if not self._process_stopped(max_attempts):
-                    self.log.debug("Sending StopTestNow command on udp port %d", self.management_port)
-                    udp_sock.sendto(b"StopTestNow", ("localhost", self.management_port))
+        try:
+            self.log.debug("Sending Shutdown command on udp port %d", self.management_port)
+            udp_sock = socket.socket(type=socket.SOCK_DGRAM)
+            udp_sock.sendto(b"Shutdown", ("localhost", self.management_port))
 
-                    if not self._process_stopped(max_attempts):
-                        self.log.debug("Unable to stop JMeter gracefully, killing it now")
-                        shutdown_process(self.process, self.log)
-                    else:
-                        self.log.debug("JMeter stopped gracefully wia StopTestNow command")
-                else:
-                    self.log.debug("JMeter stopped gracefully wia Shutdown command")
-            except socket.error as exc:
-                self.log.warning("Error while trying to shutdown JMeter gracefully, killing it now %s", exc)
+            if self._process_stopped(max_attempts):
+                return
+
+            self.log.debug("Sending StopTestNow command on udp port %d", self.management_port)
+            udp_sock.sendto(b"StopTestNow", ("localhost", self.management_port))
+
+            if not self._process_stopped(max_attempts):
+                self.log.debug("Unable to stop JMeter gracefully, killing it now")
+                shutdown_process(self.process, self.log)
+        finally:
+            if not self._process_stopped(1):
+                self.log.warning("JMeter process still alive, killing it")
                 shutdown_process(self.process, self.log)
 
         if self.start_time:
@@ -211,11 +211,11 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def _process_stopped(self, cycles):
         while cycles > 0:
-            if self.process.poll() is None:
+            cycles -= 1
+            if self.process and self.process.poll() is None:
                 time.sleep(self.engine.check_interval)
             else:
                 return True
-            cycles -= 1
         return False
 
     def set_remote_port(self):
