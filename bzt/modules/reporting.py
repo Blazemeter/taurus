@@ -173,7 +173,7 @@ class FinalStatus(Reporter, AggregatorListener):
     def __dump_csv(self, filename):
         self.log.info("Dumping final status as CSV: %s", filename)
         # FIXME: what if there's no last_sec
-        with open(filename, 'wb') as fhd:
+        with open(filename, 'wt') as fhd:
             writer = csv.DictWriter(fhd, self.__get_csv_dict('', self.last_sec[DataPoint.CUMULATIVE]['']).keys())
             writer.writeheader()
             for label, kpiset in iteritems(self.last_sec[DataPoint.CUMULATIVE]):
@@ -319,7 +319,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
 
             etree_obj = etree.ElementTree(root_node)
             self.log.info("Writing JUnit XML report into: %s", self.report_file_path)
-            with open(self.report_file_path, 'wb') as _fds:
+            with open(self.report_file_path, 'wt') as _fds:
                 etree_obj.write(_fds, xml_declaration=True, encoding="UTF-8", pretty_print=True)
 
         except BaseException:
