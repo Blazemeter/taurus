@@ -27,6 +27,7 @@ import shutil
 from collections import Counter, namedtuple
 from math import ceil
 import tempfile
+import socket
 
 from lxml.etree import XMLSyntaxError
 import urwid
@@ -52,6 +53,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     JMETER_DOWNLOAD_LINK = "http://apache.claz.org/jmeter/binaries/apache-jmeter-{version}.zip"
     JMETER_VER = "2.13"
     PLUGINS_DOWNLOAD_TPL = "http://jmeter-plugins.org/files/JMeterPlugins-{plugin}-1.3.0.zip"
+    UDP_PORT_NUMBER = None
 
     def __init__(self):
         super(JMeterExecutor, self).__init__()
@@ -68,6 +70,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.retcode = None
         self.widget = None
         self.distributed_servers = []
+        self.management_port = None
 
     def prepare(self):
         """
@@ -79,6 +82,12 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :raise ValueError:
         """
         self.jmeter_log = self.engine.create_artifact("jmeter", ".log")
+
+        if not JMeterExecutor.UDP_PORT_NUMBER:
+            JMeterExecutor.UDP_PORT_NUMBER = self.settings.get("init-port", 4445)
+        else:
+            JMeterExecutor.UDP_PORT_NUMBER += 1
+        self.management_port = JMeterExecutor.UDP_PORT_NUMBER
 
         self.run_checklist()
         self.distributed_servers = self.execution.get('distributed', self.distributed_servers)
@@ -99,8 +108,12 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         sys_props = self.settings.get("system-properties")
         props = self.settings.get("properties")
         props_local = scenario.get("properties")
-        if self.distributed_servers and self.settings.get("gui", False):
-            props_local.merge({"remote_hosts": ",".join(self.distributed_servers)})
+        if self.distributed_servers:
+            if self.settings.get("gui", False):
+                props_local.merge({"remote_hosts": ",".join(self.distributed_servers)})
+            else:
+                props_local.merge({"jmeterengine.nongui.port":self.management_port})
+                props_local.merge({"jmeterengine.nongui.maxport":self.management_port})
         props.merge(props_local)
         props['user.classpath'] = self.engine.artifacts_dir.replace(os.path.sep, "/")  # replace to avoid Windows issue
         if props:
@@ -172,6 +185,11 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         If JMeter is still running - let's stop it.
         """
+
+        if self.distributed_servers and not self.settings.get("gui", False):
+            self.remote_shutdown()
+            time.sleep(10)
+
         # TODO: print JMeter's stdout/stderr on empty JTL
         shutdown_process(self.process, self.log)
 
@@ -183,6 +201,14 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             if not os.path.exists(self.kpi_jtl) or not os.path.getsize(self.kpi_jtl):
                 msg = "Empty results JTL, most likely JMeter failed: %s"
                 raise RuntimeWarning(msg % self.kpi_jtl)
+
+    def remote_shutdown(self):
+        udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        udp_sock.sendto(b"Shutdown", ("localhost", self.management_port))
+        self.log.debug("Shutdown command sent")
+        time.sleep(10)
+        udp_sock.sendto(b"StopTestNow", ("localhost", self.management_port))
+        self.log.debug("StopTestNow command sent")
 
     @staticmethod
     def __apply_ramp_up(jmx, ramp_up):
