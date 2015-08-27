@@ -242,7 +242,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         :return: Bool
         """
-        udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        udp_sock = socket.socket(type=socket.SOCK_DGRAM)
         try:
             self.log.debug("Checking if port %d is free", port_num)
             udp_sock.bind(("localhost", port_num))
