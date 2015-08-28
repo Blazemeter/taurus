@@ -1,0 +1,1279 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testResults version="1.2">
+<sample t="51" lt="3" ct="1" ts="1440785666575" s="false" lb="tc3" rc="" rm="message" tn="Thread Group 1-1" dt="" de="" by="12172" ng="1" na="1">
+</sample>
+<sample t="619" lt="0" ct="0" ts="1440785666677" s="false" lb="tc1" rc="200" rm="Number of samples in transaction : 4, number of failing samples : 4" tn="Thread Group 1-1" dt="" de="" by="31881" ng="1" na="1">
+  <assertionResult>
+    <name>tc_assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+  <httpSample t="207" lt="102" ct="63" ts="1440785666520" s="false" lb="tc2r1" rc="200" rm="OK" tn="Thread Group 1-1" dt="text" de="utf-8" by="5613" ng="1" na="1">
+    <assertionResult>
+      <name>tc_assertion</name>
+      <failure>false</failure>
+      <error>false</error>
+    </assertionResult>
+    <assertionResult>
+      <name>tc_assertion</name>
+      <failure>false</failure>
+      <error>false</error>
+    </assertionResult>
+    <httpSample t="102" lt="102" ct="63" ts="1440785666415" s="true" lb="http://127.0.0.1:8000/" rc="302" rm="FOUND" tn="Thread Group 1-1" dt="text" de="utf-8" by="175" ng="1" na="1">
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/</java.net.URL>
+    </httpSample>
+    <httpSample t="3" lt="3" ct="0" ts="1440785666419" s="true" lb="http://127.0.0.1:8000/rnr/" rc="200" rm="OK" tn="Thread Group 1-1" dt="text" de="utf-8" by="4461" ng="1" na="1">
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/rnr/</java.net.URL>
+    </httpSample>
+    <httpSample t="5" lt="5" ct="1" ts="1440785666506" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap.min.css" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="247" ng="1" na="1">
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap.min.css</java.net.URL>
+    </httpSample>
+    <httpSample t="4" lt="4" ct="0" ts="1440785666511" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap-theme.min.css" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="253" ng="1" na="1">
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap-theme.min.css</java.net.URL>
+    </httpSample>
+    <httpSample t="4" lt="4" ct="1" ts="1440785666515" s="false" lb="http://127.0.0.1:8000/static/external/jquery/jquery.js" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="232" ng="1" na="1">
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/jquery/jquery.js</java.net.URL>
+    </httpSample>
+    <httpSample t="5" lt="4" ct="1" ts="1440785666520" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/js/bootstrap.min.js" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="245" ng="1" na="1">
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/js/bootstrap.min.js</java.net.URL>
+    </httpSample>
+    <java.net.URL>http://127.0.0.1:8000/rnr/</java.net.URL>
+  </httpSample>
+  <httpSample t="51" lt="3" ct="1" ts="1440785666575" s="false" lb="tc3r1" rc="200" rm="OK" tn="Thread Group 1-1" dt="text" de="utf-8" by="12172" ng="1" na="1">
+    <assertionResult>
+      <name>tc_assertion</name>
+      <failure>false</failure>
+      <error>false</error>
+    </assertionResult>
+    <assertionResult>
+      <name>tc_assertion</name>
+      <failure>false</failure>
+      <error>false</error>
+    </assertionResult>
+    <httpSample t="3" lt="3" ct="1" ts="1440785666527" s="true" lb="http://127.0.0.1:8000/rnr/clients" rc="301" rm="MOVED PERMANENTLY" tn="Thread Group 1-1" dt="text" de="utf-8" by="195" ng="1" na="1">
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/rnr/clients</java.net.URL>
+    </httpSample>
+    <httpSample t="4" lt="4" ct="1" ts="1440785666531" s="true" lb="http://127.0.0.1:8000/rnr/clients/" rc="200" rm="OK" tn="Thread Group 1-1" dt="text" de="utf-8" by="10295" ng="1" na="1">
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/rnr/clients/</java.net.URL>
+    </httpSample>
+    <httpSample t="4" lt="4" ct="0" ts="1440785666545" s="false" lb="http://127.0.0.1:8000/static/external/jquery/jquery.js" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="232" ng="1" na="1">
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/jquery/jquery.js</java.net.URL>
+    </httpSample>
+    <httpSample t="4" lt="4" ct="0" ts="1440785666550" s="false" lb="http://127.0.0.1:8000/static/clients.js" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="217" ng="1" na="1">
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/clients.js</java.net.URL>
+    </httpSample>
+    <httpSample t="5" lt="4" ct="1" ts="1440785666555" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/js/bootstrap.min.js" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="245" ng="1" na="1">
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/js/bootstrap.min.js</java.net.URL>
+    </httpSample>
+    <httpSample t="4" lt="4" ct="1" ts="1440785666559" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/js/bootstrap-table.js" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="247" ng="1" na="1">
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/js/bootstrap-table.js</java.net.URL>
+    </httpSample>
+    <httpSample t="6" lt="5" ct="1" ts="1440785666565" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap.css" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="243" ng="1" na="1">
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap.css</java.net.URL>
+    </httpSample>
+    <httpSample t="4" lt="4" ct="0" ts="1440785666569" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap-theme.css" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="249" ng="1" na="1">
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap-theme.css</java.net.URL>
+    </httpSample>
+    <httpSample t="6" lt="6" ct="2" ts="1440785666575" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap-table.css" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="249" ng="1" na="1">
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap-table.css</java.net.URL>
+    </httpSample>
+    <java.net.URL>http://127.0.0.1:8000/rnr/clients/</java.net.URL>
+  </httpSample>
+  <httpSample t="40" lt="10" ct="1" ts="1440785666623" s="false" lb="tc1r1" rc="200" rm="OK" tn="Thread Group 1-1" dt="text" de="utf-8" by="5438" ng="1" na="1">
+    <assertionResult>
+      <name>main_triggered</name>
+      <failure>true</failure>
+      <error>false</error>
+      <failureMessage>Test failed: code expected to match /404/</failureMessage>
+    </assertionResult>
+    <assertionResult>
+      <name>main_not_triggered</name>
+      <failure>false</failure>
+      <error>false</error>
+    </assertionResult>
+    <assertionResult>
+      <name>tc_assertion</name>
+      <failure>false</failure>
+      <error>false</error>
+    </assertionResult>
+    <assertionResult>
+      <name>tc_assertion</name>
+      <failure>false</failure>
+      <error>false</error>
+    </assertionResult>
+    <httpSample t="10" lt="10" ct="1" ts="1440785666593" s="false" lb="http://127.0.0.1:8000/rnr/" rc="200" rm="OK" tn="Thread Group 1-1" dt="text" de="utf-8" by="4461" ng="1" na="1">
+      <assertionResult>
+        <name>main_triggered</name>
+        <failure>true</failure>
+        <error>false</error>
+        <failureMessage>Test failed: code expected to match /404/</failureMessage>
+      </assertionResult>
+      <assertionResult>
+        <name>main_not_triggered</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/rnr/</java.net.URL>
+    </httpSample>
+    <httpSample t="5" lt="5" ct="1" ts="1440785666604" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap.min.css" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="247" ng="1" na="1">
+      <assertionResult>
+        <name>main_triggered</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <assertionResult>
+        <name>main_not_triggered</name>
+        <failure>true</failure>
+        <error>false</error>
+        <failureMessage>Test failed: code expected not to match /404/</failureMessage>
+      </assertionResult>
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap.min.css</java.net.URL>
+    </httpSample>
+    <httpSample t="8" lt="8" ct="1" ts="1440785666612" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap-theme.min.css" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="253" ng="1" na="1">
+      <assertionResult>
+        <name>main_triggered</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <assertionResult>
+        <name>main_not_triggered</name>
+        <failure>true</failure>
+        <error>false</error>
+        <failureMessage>Test failed: code expected not to match /404/</failureMessage>
+      </assertionResult>
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap-theme.min.css</java.net.URL>
+    </httpSample>
+    <httpSample t="4" lt="3" ct="0" ts="1440785666616" s="false" lb="http://127.0.0.1:8000/static/external/jquery/jquery.js" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="232" ng="1" na="1">
+      <assertionResult>
+        <name>main_triggered</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <assertionResult>
+        <name>main_not_triggered</name>
+        <failure>true</failure>
+        <error>false</error>
+        <failureMessage>Test failed: code expected not to match /404/</failureMessage>
+      </assertionResult>
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/jquery/jquery.js</java.net.URL>
+    </httpSample>
+    <httpSample t="7" lt="6" ct="1" ts="1440785666623" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/js/bootstrap.min.js" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="245" ng="1" na="1">
+      <assertionResult>
+        <name>main_triggered</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <assertionResult>
+        <name>main_not_triggered</name>
+        <failure>true</failure>
+        <error>false</error>
+        <failureMessage>Test failed: code expected not to match /404/</failureMessage>
+      </assertionResult>
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/js/bootstrap.min.js</java.net.URL>
+    </httpSample>
+    <java.net.URL>http://127.0.0.1:8000/rnr/</java.net.URL>
+  </httpSample>
+  <httpSample t="53" lt="4" ct="0" ts="1440785666677" s="false" lb="tc1r2" rc="200" rm="OK" tn="Thread Group 1-1" dt="text" de="utf-8" by="8658" ng="1" na="1">
+    <assertionResult>
+      <name>main_triggered</name>
+      <failure>true</failure>
+      <error>false</error>
+      <failureMessage>Test failed: code expected to match /404/</failureMessage>
+    </assertionResult>
+    <assertionResult>
+      <name>tc_assertion</name>
+      <failure>false</failure>
+      <error>false</error>
+    </assertionResult>
+    <assertionResult>
+      <name>tc_assertion</name>
+      <failure>false</failure>
+      <error>false</error>
+    </assertionResult>
+    <httpSample t="4" lt="4" ct="0" ts="1440785666628" s="false" lb="http://127.0.0.1:8000/rnr/dictionary" rc="301" rm="MOVED PERMANENTLY" tn="Thread Group 1-1" dt="text" de="utf-8" by="198" ng="1" na="1">
+      <assertionResult>
+        <name>main_triggered</name>
+        <failure>true</failure>
+        <error>false</error>
+        <failureMessage>Test failed: code expected to match /404/</failureMessage>
+      </assertionResult>
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+
+      <java.net.URL>http://127.0.0.1:8000/rnr/dictionary</java.net.URL>
+    </httpSample>
+    <httpSample t="7" lt="7" ct="1" ts="1440785666635" s="false" lb="http://127.0.0.1:8000/rnr/dictionary/" rc="200" rm="OK" tn="Thread Group 1-1" dt="text" de="utf-8" by="6559" ng="1" na="1">
+      <assertionResult>
+        <name>main_triggered</name>
+        <failure>true</failure>
+        <error>false</error>
+        <failureMessage>Test failed: code expected to match /404/</failureMessage>
+      </assertionResult>
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/rnr/dictionary/</java.net.URL>
+    </httpSample>
+    <httpSample t="7" lt="7" ct="0" ts="1440785666644" s="false" lb="http://127.0.0.1:8000/static/external/jquery/jquery.js" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="232" ng="1" na="1">
+      <assertionResult>
+        <name>main_triggered</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/jquery/jquery.js</java.net.URL>
+    </httpSample>
+    <httpSample t="5" lt="4" ct="1" ts="1440785666649" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/js/bootstrap-table.js" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="247" ng="1" na="1">
+      <assertionResult>
+        <name>main_triggered</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/js/bootstrap-table.js</java.net.URL>
+    </httpSample>
+    <httpSample t="4" lt="4" ct="0" ts="1440785666653" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/js/bootstrap.min.js" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="245" ng="1" na="1">
+      <assertionResult>
+        <name>main_triggered</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/js/bootstrap.min.js</java.net.URL>
+    </httpSample>
+    <httpSample t="7" lt="7" ct="4" ts="1440785666660" s="false" lb="http://127.0.0.1:8000/static/dictionary.js" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="220" ng="1" na="1">
+      <assertionResult>
+        <name>main_triggered</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/dictionary.js</java.net.URL>
+    </httpSample>
+    <httpSample t="5" lt="4" ct="1" ts="1440785666665" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap.min.css" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="247" ng="1" na="1">
+      <assertionResult>
+        <name>main_triggered</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap.min.css</java.net.URL>
+    </httpSample>
+    <httpSample t="5" lt="5" ct="1" ts="1440785666670" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap-theme.min.css" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="253" ng="1" na="1">
+      <assertionResult>
+        <name>main_triggered</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap-theme.min.css</java.net.URL>
+    </httpSample>
+    <httpSample t="3" lt="3" ct="0" ts="1440785666673" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap-table.css" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="249" ng="1" na="1">
+      <assertionResult>
+        <name>main_triggered</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap-table.css</java.net.URL>
+    </httpSample>
+    <httpSample t="4" lt="4" ct="1" ts="1440785666677" s="false" lb="http://127.0.0.1:8000/img.jpeg" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="208" ng="1" na="1">
+      <assertionResult>
+        <name>main_triggered</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/img.jpeg</java.net.URL>
+    </httpSample>
+    <java.net.URL>http://127.0.0.1:8000/rnr/dictionary/</java.net.URL>
+  </httpSample>
+</sample>
+<sample t="43" lt="2" ct="0" ts="1440785666783" s="false" lb="tc3" rc="" rm="second message" tn="Thread Group 1-1" dt="" de="" by="12172" ng="1" na="1">
+</sample>
+<sample t="139" lt="0" ct="0" ts="1440785666855" s="false" lb="tc4" rc="200" rm="Number of samples in transaction : 4, number of failing samples : 4" tn="Thread Group 1-1" dt="" de="" by="31881" ng="1" na="1">
+  <assertionResult>
+    <name>tc_assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+  <httpSample t="23" lt="3" ct="1" ts="1440785666739" s="false" lb="tc2r1" rc="200" rm="OK" tn="Thread Group 1-1" dt="text" de="utf-8" by="5613" ng="1" na="1">
+    <assertionResult>
+      <name>tc_assertion</name>
+      <failure>false</failure>
+      <error>false</error>
+    </assertionResult>
+    <assertionResult>
+      <name>tc_assertion</name>
+      <failure>false</failure>
+      <error>false</error>
+    </assertionResult>
+    <httpSample t="3" lt="3" ct="1" ts="1440785666719" s="true" lb="http://127.0.0.1:8000/" rc="200" rm="OK" tn="Thread Group 1-1" dt="text" de="utf-8" by="175" ng="1" na="1">
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/</java.net.URL>
+    </httpSample>
+    <httpSample t="5" lt="3" ct="1" ts="1440785666724" s="true" lb="http://127.0.0.1:8000/rnr/" rc="200" rm="OK" tn="Thread Group 1-1" dt="text" de="utf-8" by="4461" ng="1" na="1">
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/rnr/</java.net.URL>
+    </httpSample>
+    <httpSample t="5" lt="5" ct="1" ts="1440785666730" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap.min.css" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="247" ng="1" na="1">
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap.min.css</java.net.URL>
+    </httpSample>
+    <httpSample t="3" lt="3" ct="1" ts="1440785666733" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap-theme.min.css" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="253" ng="1" na="1">
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap-theme.min.css</java.net.URL>
+    </httpSample>
+    <httpSample t="3" lt="3" ct="0" ts="1440785666736" s="false" lb="http://127.0.0.1:8000/static/external/jquery/jquery.js" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="232" ng="1" na="1">
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/jquery/jquery.js</java.net.URL>
+    </httpSample>
+    <httpSample t="3" lt="3" ct="1" ts="1440785666739" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/js/bootstrap.min.js" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="245" ng="1" na="1">
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/js/bootstrap.min.js</java.net.URL>
+    </httpSample>
+    <java.net.URL>http://127.0.0.1:8000/rnr/</java.net.URL>
+  </httpSample>
+  <httpSample t="43" lt="2" ct="0" ts="1440785666783" s="false" lb="tc3r1" rc="200" rm="OK" tn="Thread Group 1-1" dt="text" de="utf-8" by="12172" ng="1" na="1">
+    <assertionResult>
+      <name>tc_assertion</name>
+      <failure>false</failure>
+      <error>false</error>
+    </assertionResult>
+    <assertionResult>
+      <name>tc_assertion</name>
+      <failure>false</failure>
+      <error>false</error>
+    </assertionResult>
+    <httpSample t="2" lt="2" ct="0" ts="1440785666742" s="true" lb="http://127.0.0.1:8000/rnr/clients" rc="301" rm="MOVED PERMANENTLY" tn="Thread Group 1-1" dt="text" de="utf-8" by="195" ng="1" na="1">
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/rnr/clients</java.net.URL>
+    </httpSample>
+    <httpSample t="5" lt="5" ct="1" ts="1440785666747" s="true" lb="http://127.0.0.1:8000/rnr/clients/" rc="200" rm="OK" tn="Thread Group 1-1" dt="text" de="utf-8" by="10295" ng="1" na="1">
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/rnr/clients/</java.net.URL>
+    </httpSample>
+    <httpSample t="4" lt="4" ct="0" ts="1440785666757" s="false" lb="http://127.0.0.1:8000/static/external/jquery/jquery.js" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="232" ng="1" na="1">
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/jquery/jquery.js</java.net.URL>
+    </httpSample>
+    <httpSample t="5" lt="5" ct="1" ts="1440785666762" s="false" lb="http://127.0.0.1:8000/static/clients.js" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="217" ng="1" na="1">
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/clients.js</java.net.URL>
+    </httpSample>
+    <httpSample t="5" lt="4" ct="1" ts="1440785666767" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/js/bootstrap.min.js" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="245" ng="1" na="1">
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/js/bootstrap.min.js</java.net.URL>
+    </httpSample>
+    <httpSample t="4" lt="4" ct="1" ts="1440785666771" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/js/bootstrap-table.js" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="247" ng="1" na="1">
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/js/bootstrap-table.js</java.net.URL>
+    </httpSample>
+    <httpSample t="5" lt="5" ct="1" ts="1440785666776" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap.css" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="243" ng="1" na="1">
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap.css</java.net.URL>
+    </httpSample>
+    <httpSample t="4" lt="4" ct="1" ts="1440785666780" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap-theme.css" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="249" ng="1" na="1">
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap-theme.css</java.net.URL>
+    </httpSample>
+    <httpSample t="3" lt="3" ct="1" ts="1440785666783" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap-table.css" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="249" ng="1" na="1">
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap-table.css</java.net.URL>
+    </httpSample>
+    <java.net.URL>http://127.0.0.1:8000/rnr/clients/</java.net.URL>
+  </httpSample>
+  <httpSample t="27" lt="5" ct="1" ts="1440785666811" s="false" lb="tc1r1" rc="200" rm="OK" tn="Thread Group 1-1" dt="text" de="utf-8" by="5438" ng="1" na="1">
+    <assertionResult>
+      <name>main_triggered</name>
+      <failure>true</failure>
+      <error>false</error>
+      <failureMessage>Test failed: code expected to match /404/</failureMessage>
+    </assertionResult>
+    <assertionResult>
+      <name>main_not_triggered</name>
+      <failure>false</failure>
+      <error>false</error>
+    </assertionResult>
+    <assertionResult>
+      <name>tc_assertion</name>
+      <failure>false</failure>
+      <error>false</error>
+    </assertionResult>
+    <assertionResult>
+      <name>tc_assertion</name>
+      <failure>false</failure>
+      <error>false</error>
+    </assertionResult>
+    <httpSample t="6" lt="5" ct="1" ts="1440785666790" s="false" lb="http://127.0.0.1:8000/rnr/" rc="200" rm="OK" tn="Thread Group 1-1" dt="text" de="utf-8" by="4461" ng="1" na="1">
+      <assertionResult>
+        <name>main_triggered</name>
+        <failure>true</failure>
+        <error>false</error>
+        <failureMessage>Test failed: code expected to match /404/</failureMessage>
+      </assertionResult>
+      <assertionResult>
+        <name>main_not_triggered</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/rnr/</java.net.URL>
+    </httpSample>
+    <httpSample t="5" lt="5" ct="1" ts="1440785666796" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap.min.css" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="247" ng="1" na="1">
+      <assertionResult>
+        <name>main_triggered</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <assertionResult>
+        <name>main_not_triggered</name>
+        <failure>true</failure>
+        <error>false</error>
+        <failureMessage>Test failed: code expected not to match /404/</failureMessage>
+      </assertionResult>
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap.min.css</java.net.URL>
+    </httpSample>
+    <httpSample t="6" lt="6" ct="1" ts="1440785666802" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap-theme.min.css" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="253" ng="1" na="1">
+      <assertionResult>
+        <name>main_triggered</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <assertionResult>
+        <name>main_not_triggered</name>
+        <failure>true</failure>
+        <error>false</error>
+        <failureMessage>Test failed: code expected not to match /404/</failureMessage>
+      </assertionResult>
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap-theme.min.css</java.net.URL>
+    </httpSample>
+    <httpSample t="5" lt="5" ct="1" ts="1440785666807" s="false" lb="http://127.0.0.1:8000/static/external/jquery/jquery.js" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="232" ng="1" na="1">
+      <assertionResult>
+        <name>main_triggered</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <assertionResult>
+        <name>main_not_triggered</name>
+        <failure>true</failure>
+        <error>false</error>
+        <failureMessage>Test failed: code expected not to match /404/</failureMessage>
+      </assertionResult>
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/jquery/jquery.js</java.net.URL>
+    </httpSample>
+    <httpSample t="4" lt="4" ct="1" ts="1440785666811" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/js/bootstrap.min.js" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="245" ng="1" na="1">
+      <assertionResult>
+        <name>main_triggered</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <assertionResult>
+        <name>main_not_triggered</name>
+        <failure>true</failure>
+        <error>false</error>
+        <failureMessage>Test failed: code expected not to match /404/</failureMessage>
+      </assertionResult>
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/js/bootstrap.min.js</java.net.URL>
+    </httpSample>
+    <java.net.URL>http://127.0.0.1:8000/rnr/</java.net.URL>
+  </httpSample>
+  <httpSample t="43" lt="2" ct="0" ts="1440785666855" s="false" lb="tc1r2" rc="200" rm="OK" tn="Thread Group 1-1" dt="text" de="utf-8" by="8658" ng="1" na="1">
+    <assertionResult>
+      <name>main_triggered</name>
+      <failure>true</failure>
+      <error>false</error>
+      <failureMessage>Test failed: code expected to match /404/</failureMessage>
+    </assertionResult>
+    <assertionResult>
+      <name>tc_assertion</name>
+      <failure>false</failure>
+      <error>false</error>
+    </assertionResult>
+    <assertionResult>
+      <name>tc_assertion</name>
+      <failure>false</failure>
+      <error>false</error>
+    </assertionResult>
+    <httpSample t="2" lt="2" ct="0" ts="1440785666814" s="false" lb="http://127.0.0.1:8000/rnr/dictionary" rc="301" rm="MOVED PERMANENTLY" tn="Thread Group 1-1" dt="text" de="utf-8" by="198" ng="1" na="1">
+      <assertionResult>
+        <name>main_triggered</name>
+        <failure>true</failure>
+        <error>false</error>
+        <failureMessage>Test failed: code expected to match /404/</failureMessage>
+      </assertionResult>
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/rnr/dictionary</java.net.URL>
+    </httpSample>
+    <httpSample t="3" lt="3" ct="0" ts="1440785666818" s="false" lb="http://127.0.0.1:8000/rnr/dictionary/" rc="200" rm="OK" tn="Thread Group 1-1" dt="text" de="utf-8" by="6559" ng="1" na="1">
+      <assertionResult>
+        <name>main_triggered</name>
+        <failure>true</failure>
+        <error>false</error>
+        <failureMessage>Test failed: code expected to match /404/</failureMessage>
+      </assertionResult>
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/rnr/dictionary/</java.net.URL>
+    </httpSample>
+    <httpSample t="4" lt="4" ct="1" ts="1440785666823" s="false" lb="http://127.0.0.1:8000/static/external/jquery/jquery.js" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="232" ng="1" na="1">
+      <assertionResult>
+        <name>main_triggered</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/jquery/jquery.js</java.net.URL>
+    </httpSample>
+    <httpSample t="4" lt="4" ct="1" ts="1440785666827" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/js/bootstrap-table.js" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="247" ng="1" na="1">
+      <assertionResult>
+        <name>main_triggered</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/js/bootstrap-table.js</java.net.URL>
+    </httpSample>
+    <httpSample t="8" lt="8" ct="1" ts="1440785666835" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/js/bootstrap.min.js" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="245" ng="1" na="1">
+      <assertionResult>
+        <name>main_triggered</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/js/bootstrap.min.js</java.net.URL>
+    </httpSample>
+    <httpSample t="5" lt="5" ct="0" ts="1440785666840" s="false" lb="http://127.0.0.1:8000/static/dictionary.js" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="220" ng="1" na="1">
+      <assertionResult>
+        <name>main_triggered</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/dictionary.js</java.net.URL>
+    </httpSample>
+    <httpSample t="4" lt="4" ct="0" ts="1440785666844" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap.min.css" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="247" ng="1" na="1">
+      <assertionResult>
+        <name>main_triggered</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap.min.css</java.net.URL>
+    </httpSample>
+    <httpSample t="3" lt="3" ct="0" ts="1440785666847" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap-theme.min.css" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="253" ng="1" na="1">
+      <assertionResult>
+        <name>main_triggered</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap-theme.min.css</java.net.URL>
+    </httpSample>
+    <httpSample t="5" lt="5" ct="1" ts="1440785666852" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap-table.css" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="249" ng="1" na="1">
+      <assertionResult>
+        <name>main_triggered</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap-table.css</java.net.URL>
+    </httpSample>
+    <httpSample t="3" lt="3" ct="1" ts="1440785666855" s="false" lb="http://127.0.0.1:8000/img.jpeg" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="208" ng="1" na="1">
+      <assertionResult>
+        <name>main_triggered</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/img.jpeg</java.net.URL>
+    </httpSample>
+    <java.net.URL>http://127.0.0.1:8000/rnr/dictionary/</java.net.URL>
+  </httpSample>
+</sample>
+<sample t="139" lt="0" ct="0" ts="1440785666855" s="false" lb="tc5" rc="200" rm="Number of samples in transaction : 4, number of failing samples : 4" tn="Thread Group 1-1" dt="" de="" by="31881" ng="1" na="1">
+  <assertionResult>
+    <name>tc_assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+  <httpSample t="23" lt="3" ct="1" ts="1440785666739" s="false" lb="tc2r1" rc="200" rm="OK" tn="Thread Group 1-1" dt="text" de="utf-8" by="5613" ng="1" na="1">
+    <assertionResult>
+      <name>tc_assertion</name>
+      <failure>false</failure>
+      <error>false</error>
+    </assertionResult>
+    <assertionResult>
+      <name>tc_assertion</name>
+      <failure>false</failure>
+      <error>false</error>
+    </assertionResult>
+    <httpSample t="3" lt="3" ct="1" ts="1440785666719" s="true" lb="http://127.0.0.1:8000/" rc="200" rm="OK" tn="Thread Group 1-1" dt="text" de="utf-8" by="175" ng="1" na="1">
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/</java.net.URL>
+    </httpSample>
+    <httpSample t="5" lt="3" ct="1" ts="1440785666724" s="true" lb="http://127.0.0.1:8000/rnr/" rc="200" rm="OK" tn="Thread Group 1-1" dt="text" de="utf-8" by="4461" ng="1" na="1">
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/rnr/</java.net.URL>
+    </httpSample>
+    <httpSample t="5" lt="5" ct="1" ts="1440785666730" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap.min.css" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="247" ng="1" na="1">
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>true</failure>
+        <error>false</error>
+        <failureMessage>Failed</failureMessage>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap.min.css</java.net.URL>
+    </httpSample>
+    <httpSample t="3" lt="3" ct="1" ts="1440785666733" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap-theme.min.css" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="253" ng="1" na="1">
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap-theme.min.css</java.net.URL>
+    </httpSample>
+    <httpSample t="3" lt="3" ct="0" ts="1440785666736" s="false" lb="http://127.0.0.1:8000/static/external/jquery/jquery.js" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="232" ng="1" na="1">
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/jquery/jquery.js</java.net.URL>
+    </httpSample>
+    <httpSample t="3" lt="3" ct="1" ts="1440785666739" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/js/bootstrap.min.js" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="245" ng="1" na="1">
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/js/bootstrap.min.js</java.net.URL>
+    </httpSample>
+    <java.net.URL>http://127.0.0.1:8000/rnr/</java.net.URL>
+  </httpSample>
+  <httpSample t="43" lt="2" ct="0" ts="1440785666783" s="false" lb="tc3r1" rc="200" rm="OK" tn="Thread Group 1-1" dt="text" de="utf-8" by="12172" ng="1" na="1">
+    <assertionResult>
+      <name>tc_assertion</name>
+      <failure>false</failure>
+      <error>false</error>
+    </assertionResult>
+    <assertionResult>
+      <name>tc_assertion</name>
+      <failure>false</failure>
+      <error>false</error>
+    </assertionResult>
+    <httpSample t="2" lt="2" ct="0" ts="1440785666742" s="true" lb="http://127.0.0.1:8000/rnr/clients" rc="301" rm="MOVED PERMANENTLY" tn="Thread Group 1-1" dt="text" de="utf-8" by="195" ng="1" na="1">
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/rnr/clients</java.net.URL>
+    </httpSample>
+    <httpSample t="5" lt="5" ct="1" ts="1440785666747" s="true" lb="http://127.0.0.1:8000/rnr/clients/" rc="200" rm="OK" tn="Thread Group 1-1" dt="text" de="utf-8" by="10295" ng="1" na="1">
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/rnr/clients/</java.net.URL>
+    </httpSample>
+    <httpSample t="4" lt="4" ct="0" ts="1440785666757" s="false" lb="http://127.0.0.1:8000/static/external/jquery/jquery.js" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="232" ng="1" na="1">
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/jquery/jquery.js</java.net.URL>
+    </httpSample>
+    <httpSample t="5" lt="5" ct="1" ts="1440785666762" s="false" lb="http://127.0.0.1:8000/static/clients.js" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="217" ng="1" na="1">
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/clients.js</java.net.URL>
+    </httpSample>
+    <httpSample t="5" lt="4" ct="1" ts="1440785666767" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/js/bootstrap.min.js" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="245" ng="1" na="1">
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/js/bootstrap.min.js</java.net.URL>
+    </httpSample>
+    <httpSample t="4" lt="4" ct="1" ts="1440785666771" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/js/bootstrap-table.js" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="247" ng="1" na="1">
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/js/bootstrap-table.js</java.net.URL>
+    </httpSample>
+    <httpSample t="5" lt="5" ct="1" ts="1440785666776" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap.css" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="243" ng="1" na="1">
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap.css</java.net.URL>
+    </httpSample>
+    <httpSample t="4" lt="4" ct="1" ts="1440785666780" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap-theme.css" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="249" ng="1" na="1">
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap-theme.css</java.net.URL>
+    </httpSample>
+    <httpSample t="3" lt="3" ct="1" ts="1440785666783" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap-table.css" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="249" ng="1" na="1">
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap-table.css</java.net.URL>
+    </httpSample>
+    <java.net.URL>http://127.0.0.1:8000/rnr/clients/</java.net.URL>
+  </httpSample>
+  <httpSample t="27" lt="5" ct="1" ts="1440785666811" s="false" lb="tc1r1" rc="200" rm="OK" tn="Thread Group 1-1" dt="text" de="utf-8" by="5438" ng="1" na="1">
+    <assertionResult>
+      <name>main_triggered</name>
+      <failure>true</failure>
+      <error>false</error>
+      <failureMessage>Test failed: code expected to match /404/</failureMessage>
+    </assertionResult>
+    <assertionResult>
+      <name>main_not_triggered</name>
+      <failure>false</failure>
+      <error>false</error>
+    </assertionResult>
+    <assertionResult>
+      <name>tc_assertion</name>
+      <failure>false</failure>
+      <error>false</error>
+    </assertionResult>
+    <assertionResult>
+      <name>tc_assertion</name>
+      <failure>false</failure>
+      <error>false</error>
+    </assertionResult>
+    <httpSample t="6" lt="5" ct="1" ts="1440785666790" s="false" lb="http://127.0.0.1:8000/rnr/" rc="200" rm="OK" tn="Thread Group 1-1" dt="text" de="utf-8" by="4461" ng="1" na="1">
+      <assertionResult>
+        <name>main_triggered</name>
+        <failure>true</failure>
+        <error>false</error>
+        <failureMessage>Test failed: code expected to match /404/</failureMessage>
+      </assertionResult>
+      <assertionResult>
+        <name>main_not_triggered</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/rnr/</java.net.URL>
+    </httpSample>
+    <httpSample t="5" lt="5" ct="1" ts="1440785666796" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap.min.css" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="247" ng="1" na="1">
+      <assertionResult>
+        <name>main_triggered</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <assertionResult>
+        <name>main_not_triggered</name>
+        <failure>true</failure>
+        <error>false</error>
+        <failureMessage>Test failed: code expected not to match /404/</failureMessage>
+      </assertionResult>
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap.min.css</java.net.URL>
+    </httpSample>
+    <httpSample t="6" lt="6" ct="1" ts="1440785666802" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap-theme.min.css" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="253" ng="1" na="1">
+      <assertionResult>
+        <name>main_triggered</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <assertionResult>
+        <name>main_not_triggered</name>
+        <failure>true</failure>
+        <error>false</error>
+        <failureMessage>Test failed: code expected not to match /404/</failureMessage>
+      </assertionResult>
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap-theme.min.css</java.net.URL>
+    </httpSample>
+    <httpSample t="5" lt="5" ct="1" ts="1440785666807" s="false" lb="http://127.0.0.1:8000/static/external/jquery/jquery.js" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="232" ng="1" na="1">
+      <assertionResult>
+        <name>main_triggered</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <assertionResult>
+        <name>main_not_triggered</name>
+        <failure>true</failure>
+        <error>false</error>
+        <failureMessage>Test failed: code expected not to match /404/</failureMessage>
+      </assertionResult>
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/jquery/jquery.js</java.net.URL>
+    </httpSample>
+    <httpSample t="4" lt="4" ct="1" ts="1440785666811" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/js/bootstrap.min.js" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="245" ng="1" na="1">
+      <assertionResult>
+        <name>main_triggered</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <assertionResult>
+        <name>main_not_triggered</name>
+        <failure>true</failure>
+        <error>false</error>
+        <failureMessage>Test failed: code expected not to match /404/</failureMessage>
+      </assertionResult>
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/js/bootstrap.min.js</java.net.URL>
+    </httpSample>
+    <java.net.URL>http://127.0.0.1:8000/rnr/</java.net.URL>
+  </httpSample>
+  <httpSample t="43" lt="2" ct="0" ts="1440785666855" s="false" lb="tc1r2" rc="200" rm="OK" tn="Thread Group 1-1" dt="text" de="utf-8" by="8658" ng="1" na="1">
+    <assertionResult>
+      <name>main_triggered</name>
+      <failure>true</failure>
+      <error>false</error>
+      <failureMessage>Test failed: code expected to match /404/</failureMessage>
+    </assertionResult>
+    <assertionResult>
+      <name>tc_assertion</name>
+      <failure>false</failure>
+      <error>false</error>
+    </assertionResult>
+    <assertionResult>
+      <name>tc_assertion</name>
+      <failure>false</failure>
+      <error>false</error>
+    </assertionResult>
+    <httpSample t="2" lt="2" ct="0" ts="1440785666814" s="false" lb="http://127.0.0.1:8000/rnr/dictionary" rc="301" rm="MOVED PERMANENTLY" tn="Thread Group 1-1" dt="text" de="utf-8" by="198" ng="1" na="1">
+      <assertionResult>
+        <name>main_triggered</name>
+        <failure>true</failure>
+        <error>false</error>
+        <failureMessage>Test failed: code expected to match /404/</failureMessage>
+      </assertionResult>
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/rnr/dictionary</java.net.URL>
+    </httpSample>
+    <httpSample t="3" lt="3" ct="0" ts="1440785666818" s="false" lb="http://127.0.0.1:8000/rnr/dictionary/" rc="200" rm="OK" tn="Thread Group 1-1" dt="text" de="utf-8" by="6559" ng="1" na="1">
+      <assertionResult>
+        <name>main_triggered</name>
+        <failure>true</failure>
+        <error>false</error>
+        <failureMessage>Test failed: code expected to match /404/</failureMessage>
+      </assertionResult>
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/rnr/dictionary/</java.net.URL>
+    </httpSample>
+    <httpSample t="4" lt="4" ct="1" ts="1440785666823" s="false" lb="http://127.0.0.1:8000/static/external/jquery/jquery.js" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="232" ng="1" na="1">
+      <assertionResult>
+        <name>main_triggered</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/jquery/jquery.js</java.net.URL>
+    </httpSample>
+    <httpSample t="4" lt="4" ct="1" ts="1440785666827" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/js/bootstrap-table.js" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="247" ng="1" na="1">
+      <assertionResult>
+        <name>main_triggered</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/js/bootstrap-table.js</java.net.URL>
+    </httpSample>
+    <httpSample t="8" lt="8" ct="1" ts="1440785666835" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/js/bootstrap.min.js" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="245" ng="1" na="1">
+      <assertionResult>
+        <name>main_triggered</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/js/bootstrap.min.js</java.net.URL>
+    </httpSample>
+    <httpSample t="5" lt="5" ct="0" ts="1440785666840" s="false" lb="http://127.0.0.1:8000/static/dictionary.js" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="220" ng="1" na="1">
+      <assertionResult>
+        <name>main_triggered</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/dictionary.js</java.net.URL>
+    </httpSample>
+    <httpSample t="4" lt="4" ct="0" ts="1440785666844" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap.min.css" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="247" ng="1" na="1">
+      <assertionResult>
+        <name>main_triggered</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap.min.css</java.net.URL>
+    </httpSample>
+    <httpSample t="3" lt="3" ct="0" ts="1440785666847" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap-theme.min.css" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="253" ng="1" na="1">
+      <assertionResult>
+        <name>main_triggered</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap-theme.min.css</java.net.URL>
+    </httpSample>
+    <httpSample t="5" lt="5" ct="1" ts="1440785666852" s="false" lb="http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap-table.css" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="249" ng="1" na="1">
+      <assertionResult>
+        <name>main_triggered</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/static/external/bootstrap/css/bootstrap-table.css</java.net.URL>
+    </httpSample>
+    <httpSample t="3" lt="3" ct="1" ts="1440785666855" s="false" lb="http://127.0.0.1:8000/img.jpeg" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="208" ng="1" na="1">
+      <assertionResult>
+        <name>main_triggered</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <assertionResult>
+        <name>tc_assertion</name>
+        <failure>false</failure>
+        <error>false</error>
+      </assertionResult>
+      <java.net.URL>http://127.0.0.1:8000/img.jpeg</java.net.URL>
+    </httpSample>
+    <java.net.URL>http://127.0.0.1:8000/rnr/dictionary/</java.net.URL>
+  </httpSample>
+</sample>
+
+</testResults>
