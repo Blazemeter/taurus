@@ -687,7 +687,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(values.get('HTTP Request')[0].get("msg"), "Test failed")
 
     def test_embedded_resources_fail_child_no_assert(self):
-        obj = JTLErrorsReader(__dir__() + "/../data/resource-errors-noassert.jtl", logging.getLogger(''))
+        obj = JTLErrorsReader(__dir__() + "/../data/resource-errors-child-no-assert.jtl", logging.getLogger(''))
         obj.read_file(True)
         values = obj.get_data(sys.maxsize)
         self.assertEqual(values.get('')[0].get("msg"), "NOT FOUND")

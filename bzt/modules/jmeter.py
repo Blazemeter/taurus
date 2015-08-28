@@ -1780,13 +1780,13 @@ class JTLErrorsReader(object):
         else:
             url = Counter()
         errtype = KPISet.ERRTYPE_ERROR
-
-        if self.__has_failed_assertion(elem):
+        elem_assertion = self.__get_assertion_element(elem)
+        if elem_assertion is not None and self.__assertion_is_failed(elem_assertion):
             errtype = KPISet.ERRTYPE_ASSERT
-            assertion_msg = self.__get_assertion_message(elem)
+            assertion_msg = self.__get_assertion_message(elem_assertion)
             message = assertion_msg if assertion_msg else elem.get("rm")
         else:
-            message = self.get_resp_message_from_children(elem)
+            message = self.get_resp_msg_from_embedded(elem)
         err_item = KPISet.error_item_skel(message, r_code, 1, errtype, url)
         KPISet.inc_list(self.buffer.get(t_stamp).get(label, []), ("msg", message), err_item)
         KPISet.inc_list(self.buffer.get(t_stamp).get('', []), ("msg", message), err_item)
@@ -1811,7 +1811,7 @@ class JTLErrorsReader(object):
         KPISet.inc_list(self.buffer.get(t_stamp).get(label, []), ("msg", message), err_item)
         KPISet.inc_list(self.buffer.get(t_stamp).get('', []), ("msg", message), err_item)
 
-    def get_resp_message_from_children(self, http_sample_elem):
+    def get_resp_msg_from_embedded(self, http_sample_elem):
         """
         process embedded http_samples, return message
         """
@@ -1824,8 +1824,9 @@ class JTLErrorsReader(object):
     def __get_child_fail_message(self, http_sample_elem):
         children = [element for element in http_sample_elem.iterchildren() if element.tag == "httpSample"]
         for child in children:
-            if self.__has_failed_assertion(child):
-                child_assertion_message = self.__get_assertion_message(child)
+            assertion_msg = self.__get_assertion_element(child)
+            if assertion_msg is not None and self.__assertion_is_failed(assertion_msg):
+                child_assertion_message = self.__get_assertion_message(assertion_msg)
                 if child_assertion_message:
                     return child_assertion_message
                 else:
@@ -1833,29 +1834,32 @@ class JTLErrorsReader(object):
             else:
                 if child.get('s') == "false":
                     return child.get('rm')
-        return http_sample_elem.get("rm")
 
-    def __has_failed_assertion(self, http_sample_elem):
-        """
-        Returns true/false
-        """
-        messages = [element for element in http_sample_elem.iterchildren() if element.tag == "assertionResult"]
-        if messages:
-            failed = messages[0].find("failure")
-            error = messages[0].find("error")
-            if failed.text == "true" or error.text == "true":
-                return True
-        return False
-
-    def __get_assertion_message(self, http_sample_elem):
+    def __get_assertion_message(self, assertion_element):
         """
         Returns response message if no failureMessage found
         """
-        messages = [element for element in http_sample_elem.iterchildren() if element.tag == "assertionResult"]
-        if messages:
-            failure_message_elem = messages[0].find("failureMessage")
-            if failure_message_elem is not None:
-                return failure_message_elem.text
+        failure_message_elem = assertion_element.find("failureMessage")
+        if failure_message_elem is not None:
+            return failure_message_elem.text
+
+    def __get_assertion_element(self, http_sample_elem):
+        """
+        returns etree Element
+        """
+        assertions = [element for element in http_sample_elem.iterchildren() if element.tag == "assertionResult"]
+        if assertions:
+            return assertions[0]
+
+    def __assertion_is_failed(self, assertion_element):
+        """
+        returns True if assertion failed
+        """
+        failed = assertion_element.find("failure")
+        error = assertion_element.find("error")
+        if failed.text == "true" or error.text == "true":
+            return True
+        return False
 
     def __get_child(self, elem, tag):
         for child in elem:
