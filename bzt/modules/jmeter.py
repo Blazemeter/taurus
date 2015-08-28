@@ -1781,8 +1781,8 @@ class JTLErrorsReader(object):
             url = Counter()
         errtype = KPISet.ERRTYPE_ERROR
 
-        assert_msg, assert_failed = self.__get_assertion_msg_and_state(elem)
-        if assert_failed:
+        failed_assertion = self.__get_failed_assertion(elem)
+        if failed_assertion:
             errtype = KPISet.ERRTYPE_ASSERT
 
         message = self.get_message(elem)
@@ -1815,8 +1815,10 @@ class JTLErrorsReader(object):
         """
         Both TC and HTTP sampler
         """
-        assertion_message, assert_failed = self.__get_assertion_msg_and_state(element)
-        if assert_failed:
+
+        failed_assertion = self.__get_failed_assertion(element)
+        if failed_assertion:
+            assertion_message = self.__get_assertion_message(failed_assertion)
             if assertion_message:
                 return assertion_message
             else:
@@ -1840,15 +1842,14 @@ class JTLErrorsReader(object):
         if failure_message_elem is not None:
             return failure_message_elem.text
 
-    def __get_assertion_msg_and_state(self, http_sample_elem):
+    def __get_failed_assertion(self, element):
         """
-        returns etree Element
+        Returns first failed assertion, or None
         """
-        assertions = [element for element in http_sample_elem.iterchildren() if element.tag == "assertionResult"]
+        assertions = [elem for elem in element.iterchildren() if elem.tag == "assertionResult"]
         for assertion in assertions:
             if self.__assertion_is_failed(assertion):
-                return self.__get_assertion_message(assertion), True
-        return None, False
+                return assertion
 
     def __assertion_is_failed(self, assertion_element):
         """
