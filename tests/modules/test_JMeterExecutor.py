@@ -678,3 +678,17 @@ class TestJMeterExecutor(BZTestCase):
         finally:
             obj.log.removeHandler(log_recorder)
         self.assertIn("JMeter stopped on Shutdown command", log_recorder.debug_buff.getvalue())
+
+    def test_embedded_resources_fail_assert(self):
+        obj = JTLErrorsReader(__dir__() + "/../data/resource-errors.jtl", logging.getLogger(''))
+        obj.read_file(True)
+        values = obj.get_data(sys.maxsize)
+        self.assertEqual(values.get('')[0].get("msg"), "Test failed: code expected to contain /404/")
+        self.assertEqual(values.get('HTTP Request')[0].get("msg"), "Test failed: code expected to contain /404/")
+
+    def test_embedded_resources_fail_noassert(self):
+        obj = JTLErrorsReader(__dir__() + "/../data/resource-errors-noassert.jtl", logging.getLogger(''))
+        obj.read_file(True)
+        values = obj.get_data(sys.maxsize)
+        self.assertEqual(values.get('')[0].get("msg"), "NOT FOUND")
+        self.assertEqual(values.get('HTTP Request')[0].get("msg"), "NOT FOUND")
