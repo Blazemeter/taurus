@@ -1780,10 +1780,10 @@ class JTLErrorsReader(object):
         else:
             url = Counter()
         errtype = KPISet.ERRTYPE_ERROR
-        massert = [element for element in elem.iterchildren() if element.tag == "assertionResult"]
-        if len(massert):
+        massert = self.__get_assertion_message(elem)
+        if massert:
             errtype = KPISet.ERRTYPE_ASSERT
-            message = massert[0].find("failureMessage").text
+            message = massert
         else:
             message = self.get_resp_message(elem)
         err_item = KPISet.error_item_skel(message, r_code, 1, errtype, url)
@@ -1814,8 +1814,7 @@ class JTLErrorsReader(object):
         """
         process embedded http_samples, return message
         """
-        sampler_rc = http_sample_elem.get('rc')
-        if sampler_rc and sampler_rc[0] == "2" and http_sample_elem.get('s') == "false":  # and has responseData?
+        if http_sample_elem.get('rc')[0] == "2" and http_sample_elem.get('s') == "false":
             first_child_fail_msg = self.__get_child_fail_message(http_sample_elem)
             if first_child_fail_msg:
                 return first_child_fail_msg
@@ -1824,11 +1823,23 @@ class JTLErrorsReader(object):
     def __get_child_fail_message(self, http_sample_elem):
         children = [element for element in http_sample_elem.iterchildren() if element.tag == "httpSample"]
         for child in children:
-            child_assertion_message = [element for element in child.iterchildren() if element.tag == "assertionResult"]
+            child_assertion_message = self.__get_assertion_message(child)
             if child_assertion_message:
-                return child_assertion_message[0].find("failureMessage").text
+                return child_assertion_message
             if child.get('s') == "false":
                 return child.get('rm')
+
+    def __get_assertion_message(self, http_sample_elem):
+        """
+        Returns response message if no failureMessage found
+        """
+        messages = [element for element in http_sample_elem.iterchildren() if element.tag == "assertionResult"]
+        if messages:
+            failure_message_elem = messages[0].find("failureMessage")
+            if failure_message_elem is not None:
+                return failure_message_elem.text
+            else:
+                return http_sample_elem.get('rm')
 
     def __get_child(self, elem, tag):
         for child in elem:
