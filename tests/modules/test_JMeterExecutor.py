@@ -679,16 +679,25 @@ class TestJMeterExecutor(BZTestCase):
             obj.log.removeHandler(log_recorder)
         self.assertIn("JMeter stopped on Shutdown command", log_recorder.debug_buff.getvalue())
 
-    def test_embedded_resources_fail_assert(self):
-        obj = JTLErrorsReader(__dir__() + "/../data/resource-errors.jtl", logging.getLogger(''))
+    def test_embedded_resources_main_sample_fail_assert(self):
+        obj = JTLErrorsReader(__dir__() + "/../data/resource-errors-main-assert.jtl", logging.getLogger(''))
         obj.read_file(True)
         values = obj.get_data(sys.maxsize)
-        self.assertEqual(values.get('')[0].get("msg"), "Test failed: code expected to contain /404/")
-        self.assertEqual(values.get('HTTP Request')[0].get("msg"), "Test failed: code expected to contain /404/")
+        self.assertEqual(values.get('')[0].get("msg"), "Test failed")
+        self.assertEqual(values.get('HTTP Request')[0].get("msg"), "Test failed")
 
-    def test_embedded_resources_fail_noassert(self):
+    def test_embedded_resources_fail_child_no_assert(self):
         obj = JTLErrorsReader(__dir__() + "/../data/resource-errors-noassert.jtl", logging.getLogger(''))
         obj.read_file(True)
         values = obj.get_data(sys.maxsize)
         self.assertEqual(values.get('')[0].get("msg"), "NOT FOUND")
         self.assertEqual(values.get('HTTP Request')[0].get("msg"), "NOT FOUND")
+
+    def test_embedded_resources_fail_child_assert(self):
+        obj = JTLErrorsReader(__dir__() + "/../data/resource-errors-child-assert.jtl", logging.getLogger(''))
+        obj.read_file(True)
+        values = obj.get_data(sys.maxsize)
+        self.assertEqual(values.get('')[0].get("msg"), "subsample assertion error")
+        self.assertEqual(values.get('')[1].get("msg"), "NOT FOUND")
+        self.assertEqual(values.get('HTTP Request')[0].get("msg"), "subsample assertion error")
+        self.assertEqual(values.get('HTTP Request')[1].get("msg"), "NOT FOUND")

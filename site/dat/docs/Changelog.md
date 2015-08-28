@@ -3,6 +3,7 @@
 ## 0.3.9 (next)
  - allow dumping final stats in Jenkins-consumable format
  - implemented graceful shutdown for JMeter
+ - for sample that failed because of embedded resources, actual error message used instead of "OK"
 
 ## 0.3.8
   - fixed bug when old jars were not removed during JMeter installation

@@ -1780,12 +1780,13 @@ class JTLErrorsReader(object):
         else:
             url = Counter()
         errtype = KPISet.ERRTYPE_ERROR
-        massert = self.__get_assertion_message(elem)
-        if massert:
+
+        if self.__has_failed_assertion(elem):
             errtype = KPISet.ERRTYPE_ASSERT
-            message = massert
+            assertion_msg = self.__get_assertion_message(elem)
+            message = assertion_msg if assertion_msg else elem.get("rm")
         else:
-            message = self.get_resp_message(elem)
+            message = self.get_resp_message_from_children(elem)
         err_item = KPISet.error_item_skel(message, r_code, 1, errtype, url)
         KPISet.inc_list(self.buffer.get(t_stamp).get(label, []), ("msg", message), err_item)
         KPISet.inc_list(self.buffer.get(t_stamp).get('', []), ("msg", message), err_item)
@@ -1810,7 +1811,7 @@ class JTLErrorsReader(object):
         KPISet.inc_list(self.buffer.get(t_stamp).get(label, []), ("msg", message), err_item)
         KPISet.inc_list(self.buffer.get(t_stamp).get('', []), ("msg", message), err_item)
 
-    def get_resp_message(self, http_sample_elem):
+    def get_resp_message_from_children(self, http_sample_elem):
         """
         process embedded http_samples, return message
         """
@@ -1823,11 +1824,28 @@ class JTLErrorsReader(object):
     def __get_child_fail_message(self, http_sample_elem):
         children = [element for element in http_sample_elem.iterchildren() if element.tag == "httpSample"]
         for child in children:
-            child_assertion_message = self.__get_assertion_message(child)
-            if child_assertion_message:
-                return child_assertion_message
-            if child.get('s') == "false":
-                return child.get('rm')
+            if self.__has_failed_assertion(child):
+                child_assertion_message = self.__get_assertion_message(child)
+                if child_assertion_message:
+                    return child_assertion_message
+                else:
+                    return child.get('rm')
+            else:
+                if child.get('s') == "false":
+                    return child.get('rm')
+        return http_sample_elem.get("rm")
+
+    def __has_failed_assertion(self, http_sample_elem):
+        """
+        Returns true/false
+        """
+        messages = [element for element in http_sample_elem.iterchildren() if element.tag == "assertionResult"]
+        if messages:
+            failed = messages[0].find("failure")
+            error = messages[0].find("error")
+            if failed.text == "true" or error.text == "true":
+                return True
+        return False
 
     def __get_assertion_message(self, http_sample_elem):
         """
@@ -1838,8 +1856,6 @@ class JTLErrorsReader(object):
             failure_message_elem = messages[0].find("failureMessage")
             if failure_message_elem is not None:
                 return failure_message_elem.text
-            else:
-                return http_sample_elem.get('rm')
 
     def __get_child(self, elem, tag):
         for child in elem:

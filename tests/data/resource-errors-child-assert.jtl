@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testResults version="1.2">
+<httpSample t="419" lt="179" ct="105" ts="1440764640297" s="false" lb="HTTP Request" rc="200" rm="OK" tn="Thread Group 1-1" dt="text" de="utf-8" by="8460" ng="1" na="1">
+  <httpSample t="180" lt="179" ct="105" ts="1440764640058" s="true" lb="http://127.0.0.1:8000/rnr/dictionary/" rc="200" rm="OK" tn="Thread Group 1-1" dt="text" de="utf-8" by="6559" ng="1" na="1">
+    <assertionResult>
+      <name>Response Assertion</name>
+      <failure>false</failure>
+      <error>false</error>
+    </assertionResult>
+    <responseHeader class="java.lang.String">HTTP/1.0 200 OK
+Date: Fri, 28 Aug 2015 12:24:00 GMT
+Server: WSGIServer/0.1 Python/2.7.10
+Content-Type: text/html; charset=utf-8
+Set-Cookie: lang=en; expires=Sat, 27-Aug-2016 12:24:00 GMT; Max-Age=31536000; Path=/
+</responseHeader>
+    <requestHeader class="java.lang.String">Connection: keep-alive
+Host: 127.0.0.1:8000
+User-Agent: Apache-HttpClient/4.5 (Java/1.8.0_51)
+</requestHeader>
+    <responseData class="java.lang.String">&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;/html&gt;</responseData>
+    <cookies class="java.lang.String"></cookies>
+    <method class="java.lang.String">GET</method>
+    <queryString class="java.lang.String"></queryString>
+    <java.net.URL>http://127.0.0.1:8000/rnr/dictionary/</java.net.URL>
+  </httpSample>
+  <httpSample t="11" lt="10" ct="1" ts="1440764640156" s="false" lb="http://127.0.0.1:8000/static/external/jquery/jquery.js" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="232" ng="1" na="1">
+    <assertionResult>
+      <name>Response Assertion</name>
+      <failure>true</failure>
+      <error>false</error>
+      <failureMessage>subsample assertion error</failureMessage>
+    </assertionResult>
+    <responseHeader class="java.lang.String">HTTP/1.0 404 NOT FOUND
+Date: Fri, 28 Aug 2015 12:24:00 GMT
+Server: WSGIServer/0.1 Python/2.7.10
+Content-Type: text/html
+</responseHeader>
+    <requestHeader class="java.lang.String">Connection: keep-alive
+Host: 127.0.0.1:8000
+User-Agent: Apache-HttpClient/4.5 (Java/1.8.0_51)
+</requestHeader>
+    <responseData class="java.lang.String">&lt;h1&gt;Not Found&lt;/h1&gt;&lt;p&gt;The requested URL /static/external/jquery/jquery.js was not found on this server.&lt;/p&gt;</responseData>
+    <cookies class="java.lang.String"></cookies>
+    <method class="java.lang.String">GET</method>
+    <queryString class="java.lang.String"></queryString>
+    <java.net.URL>http://127.0.0.1:8000/static/external/jquery/jquery.js</java.net.URL>
+  </httpSample>
+  <responseHeader class="java.lang.String">HTTP/1.0 200 OK
+Date: Fri, 28 Aug 2015 12:24:00 GMT
+Server: WSGIServer/0.1 Python/2.7.10
+Content-Type: text/html; charset=utf-8
+Set-Cookie: lang=en; expires=Sat, 27-Aug-2016 12:24:00 GMT; Max-Age=31536000; Path=/
+</responseHeader>
+  <requestHeader class="java.lang.String">Connection: keep-alive
+Host: 127.0.0.1:8000
+User-Agent: Apache-HttpClient/4.5 (Java/1.8.0_51)
+</requestHeader>
+  <responseData class="java.lang.String">&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;/html&gt;</responseData>
+    <cookies class="java.lang.String"></cookies>
+    <method class="java.lang.String">GET</method>
+    <queryString class="java.lang.String"></queryString>
+    <java.net.URL>http://127.0.0.1:8000/rnr/dictionary/</java.net.URL>
+  </httpSample>
+<httpSample t="419" lt="179" ct="105" ts="1440764640297" s="false" lb="HTTP Request" rc="200" rm="OK" tn="Thread Group 1-1" dt="text" de="utf-8" by="8460" ng="1" na="1">
+  <httpSample t="180" lt="179" ct="105" ts="1440764640058" s="true" lb="http://127.0.0.1:8000/rnr/dictionary/" rc="200" rm="OK" tn="Thread Group 1-1" dt="text" de="utf-8" by="6559" ng="1" na="1">
+    <assertionResult>
+      <name>Response Assertion</name>
+      <failure>false</failure>
+      <error>false</error>
+    </assertionResult>
+    <responseHeader class="java.lang.String">HTTP/1.0 200 OK
+Date: Fri, 28 Aug 2015 12:24:00 GMT
+Server: WSGIServer/0.1 Python/2.7.10
+Content-Type: text/html; charset=utf-8
+Set-Cookie: lang=en; expires=Sat, 27-Aug-2016 12:24:00 GMT; Max-Age=31536000; Path=/
+</responseHeader>
+    <requestHeader class="java.lang.String">Connection: keep-alive
+Host: 127.0.0.1:8000
+User-Agent: Apache-HttpClient/4.5 (Java/1.8.0_51)
+</requestHeader>
+    <responseData class="java.lang.String">&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;/html&gt;</responseData>
+    <cookies class="java.lang.String"></cookies>
+    <method class="java.lang.String">GET</method>
+    <queryString class="java.lang.String"></queryString>
+    <java.net.URL>http://127.0.0.1:8000/rnr/dictionary/</java.net.URL>
+  </httpSample>
+  <httpSample t="11" lt="10" ct="1" ts="1440764640156" s="false" lb="http://127.0.0.1:8000/static/external/jquery/jquery.js" rc="404" rm="NOT FOUND" tn="Thread Group 1-1" dt="text" de="" by="232" ng="1" na="1">
+    <assertionResult>
+      <name>Response Assertion</name>
+      <failure>true</failure>
+      <error>false</error>
+    </assertionResult>
+    <responseHeader class="java.lang.String">HTTP/1.0 404 NOT FOUND
+Date: Fri, 28 Aug 2015 12:24:00 GMT
+Server: WSGIServer/0.1 Python/2.7.10
+Content-Type: text/html
+</responseHeader>
+    <requestHeader class="java.lang.String">Connection: keep-alive
+Host: 127.0.0.1:8000
+User-Agent: Apache-HttpClient/4.5 (Java/1.8.0_51)
+</requestHeader>
+    <responseData class="java.lang.String">&lt;h1&gt;Not Found&lt;/h1&gt;&lt;p&gt;The requested URL /static/external/jquery/jquery.js was not found on this server.&lt;/p&gt;</responseData>
+    <cookies class="java.lang.String"></cookies>
+    <method class="java.lang.String">GET</method>
+    <queryString class="java.lang.String"></queryString>
+    <java.net.URL>http://127.0.0.1:8000/static/external/jquery/jquery.js</java.net.URL>
+  </httpSample>
+  <responseHeader class="java.lang.String">HTTP/1.0 200 OK
+Date: Fri, 28 Aug 2015 12:24:00 GMT
+Server: WSGIServer/0.1 Python/2.7.10
+Content-Type: text/html; charset=utf-8
+Set-Cookie: lang=en; expires=Sat, 27-Aug-2016 12:24:00 GMT; Max-Age=31536000; Path=/
+</responseHeader>
+  <requestHeader class="java.lang.String">Connection: keep-alive
+Host: 127.0.0.1:8000
+User-Agent: Apache-HttpClient/4.5 (Java/1.8.0_51)
+</requestHeader>
+  <responseData class="java.lang.String">&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;/html&gt;</responseData>
+    <cookies class="java.lang.String"></cookies>
+    <method class="java.lang.String">GET</method>
+    <queryString class="java.lang.String"></queryString>
+    <java.net.URL>http://127.0.0.1:8000/rnr/dictionary/</java.net.URL>
+  </httpSample>
+</testResults>
