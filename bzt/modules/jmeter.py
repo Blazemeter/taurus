@@ -1785,8 +1785,7 @@ class JTLErrorsReader(object):
         if failed_assertion:
             errtype = KPISet.ERRTYPE_ASSERT
 
-        message = self.get_message(elem)
-
+        message = self.get_failure_message(elem)
         err_item = KPISet.error_item_skel(message, r_code, 1, errtype, url)
         KPISet.inc_list(self.buffer.get(t_stamp).get(label, []), ("msg", message), err_item)
         KPISet.inc_list(self.buffer.get(t_stamp).get('', []), ("msg", message), err_item)
@@ -1811,9 +1810,9 @@ class JTLErrorsReader(object):
         KPISet.inc_list(self.buffer.get(t_stamp).get(label, []), ("msg", message), err_item)
         KPISet.inc_list(self.buffer.get(t_stamp).get('', []), ("msg", message), err_item)
 
-    def get_message(self, element):
+    def get_failure_message(self, element):
         """
-        Both TC and HTTP sampler
+        Returns failure message
         """
 
         failed_assertion = self.__get_failed_assertion(element)
@@ -1828,7 +1827,7 @@ class JTLErrorsReader(object):
             if element.get('s') == "false":
                 children = [elem for elem in element.iterchildren() if elem.tag == "httpSample"]
                 for child in children:
-                    child_message = self.get_message(child)
+                    child_message = self.get_failure_message(child)
                     if child_message:
                         return child_message
         else:
@@ -1836,7 +1835,7 @@ class JTLErrorsReader(object):
 
     def __get_assertion_message(self, assertion_element):
         """
-        Returns response message if no failureMessage found
+        Returns assertion failureMessage if "failureMessage" element exists
         """
         failure_message_elem = assertion_element.find("failureMessage")
         if failure_message_elem is not None:
