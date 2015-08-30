@@ -10,9 +10,9 @@
          files_base="/" download_link="/.."
          syntax="PWE\Modules\SimpleWiki\GitHubMarkdownSyntax\Config"/>
 
-    <url link="support" menu="1" title="Support Forums"
+    <url link="support" menu="1" title="Support Forums" accept="1"
          class="PWE\Modules\RedirectAccepted\RedirectAccepted"
-         base="http://groups.google.com/forum/#!forum/codename-taurus" accept="1"/>
+         base="http://groups.google.com/forum/#!forum/codename-taurus"/>
 
     <url link="updates" title="Updates Information" class="Taurus\UpdateChecker" template="empty.tpl"/>
 
