@@ -104,7 +104,7 @@
         </div>
 
         <div class="site-header">
-            <span class="logo"><img src="/img/codename-taurus.png" alt="Codename: Taurus"/></span>
+            <span class="logo"><a href="/"><img src="/img/codename-taurus.png" alt="Codename: Taurus"/></a></span>
             <span class="purpose">Automation-friendly framework for Continuous Testing</span>
         </div>
     </div>

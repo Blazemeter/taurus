@@ -43,9 +43,15 @@ nav {
     font-size: 1.1em;
 }
 
+.nav > li > a {
+    margin-left: -15px;
+    margin-right: 15px;
+}
+
 .site-header {
     padding: 0 0 1em;
 }
+
 .site-header div {
     height: 60px;
     vertical-align: middle;
@@ -193,7 +199,7 @@ table.wiki img {
 .file_download {
     display: block;
     border: 1px dotted silver;
-    margin: 1em 0em;
+    margin: 1em 0;
     padding: 0.5em;
     background-color: #EEE;
 }
@@ -215,5 +221,41 @@ table.wiki img {
 
 .file_download .count {
     color: gray;
-    float:right;
+    float: right;
+}
+
+/* homepage */
+
+#homepage pre {
+    background-color: #000;
+    color: white;
+    font-weight: normal;
+    font-family: monospace;
+}
+
+#homepage .row pre {
+    max-height: 30em;
+    min-height: 30em;
+    overflow: auto;
+}
+
+#homepage .centered {
+    text-align: center;
+}
+
+#homepage .centered img {
+    width: 75%;
+    margin-top: 1em;
+}
+
+#homepage span {
+    font-size: larger;
+}
+
+#homepage hr {
+    margin-right: auto;
+}
+
+#homepage h2 {
+    margin-top: 1em;
 }
