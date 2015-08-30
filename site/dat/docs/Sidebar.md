@@ -10,6 +10,4 @@
 
 [Reporting](Reporting)
 
-[Scenario Building](ScenarioBuilding)
-
 [Support and Feedback](https://groups.google.com/forum/#!forum/codename-taurus)
