@@ -15,4 +15,8 @@
          base="http://groups.google.com/forum/#!forum/codename-taurus" accept="1"/>
 
     <url link="updates" title="Updates Information" class="Taurus\UpdateChecker" template="empty.tpl"/>
+
+    <url template="empty.tpl" link="sample-scripts" accept="1" class="PWE\Modules\SimpleWiki\SimpleWiki"
+         layout_tpl="dat/empty.tpl" wiki_dir="sample-scripts" wiki_file_ext="md"
+         syntax="PWE\Modules\SimpleWiki\GitHubMarkdownSyntax\Config"/>
 </url>

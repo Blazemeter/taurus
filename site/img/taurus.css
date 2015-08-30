@@ -231,6 +231,7 @@ table.wiki img {
     color: white;
     font-weight: normal;
     font-family: monospace;
+    font-size: 1em;
 }
 
 #homepage .row pre {
@@ -248,7 +249,7 @@ table.wiki img {
     margin-top: 1em;
 }
 
-#homepage span {
+#homepage .centered span {
     font-size: larger;
 }
 
@@ -258,4 +259,8 @@ table.wiki img {
 
 #homepage h2 {
     margin-top: 1em;
+}
+
+#sample_chooser a {
+    cursor: pointer;
 }

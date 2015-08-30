@@ -20,14 +20,14 @@
 
     <div class="row">
         <div class="col-md-3">
-            <ul>
-                <li>quick_test.yml</li>
-                <li>multiple_in_parallel.yml</li>
+            <ul id="sample_chooser">
+                <li><a>quick_test.yml</a></li>
+                <li><a>existing_jmeter_script.yml</a></li>
+                <li><a>complex_yaml_script.yml</a></li>
             </ul>
 
         </div>
-        <div class="col-md-9">
-            <pre>code</pre>
+        <div class="col-md-9" id="code_sample">
         </div>
     </div>
 
@@ -35,7 +35,7 @@
 
 
     <h2>Step 3: Run The Test</h2>
-    <pre>bzt taurus.yml</pre>
+    <pre id="runit"></pre>
     <small class="pull-right"><a href="/docs/ExecutionSettings/">More about running it...</a></small>
 
 
@@ -44,5 +44,19 @@
     Read from the docs how to get <a>interactive reports</a>, create <a>complex scenarios</a>,
     set <a>failure criteria</a>. We also have some <a>educational videos</a> for easy learning.
     Feel free to ask questions on our <a>support forums</a>.
-
 </div>
+
+
+<script type="text/javascript">
+    $(document).ready(function () {
+        $("#sample_chooser").find("li").click(function () {
+            var fname = $(this).text();
+            $.get("/sample-scripts/" + fname).done(function (data) {
+                $("#code_sample").html(data);
+                $("#runit").text("bzt " + fname);
+            });
+        });
+
+        $("#sample_chooser").find("li")[0].click();
+    });
+</script>
