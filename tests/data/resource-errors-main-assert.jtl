@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testResults version="1.2">
+<httpSample t="393" lt="161" ct="92" ts="1440765970635" s="false" lb="HTTP Request" rc="200" rm="OK" tn="Thread Group 1-1" dt="text" de="utf-8" by="8460" ng="1" na="1">
+  <assertionResult>
+    <name>Response Assertion</name>
+    <failure>true</failure>
+    <error>false</error>
+    <failureMessage>Test failed</failureMessage>
+  </assertionResult>
+  <java.net.URL>http://127.0.0.1:8000/rnr/dictionary/</java.net.URL>
+</httpSample>
+</testResults>

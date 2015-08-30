@@ -1773,7 +1773,6 @@ class JTLErrorsReader(object):
     def __extract_standard(self, elem):
         t_stamp = int(elem.get("ts")) / 1000
         label = elem.get("lb")
-        message = elem.get("rm")
         r_code = elem.get("rc")
         urls = elem.xpath(self.url_xpath)
         if urls:
@@ -1781,10 +1780,12 @@ class JTLErrorsReader(object):
         else:
             url = Counter()
         errtype = KPISet.ERRTYPE_ERROR
-        massert = elem.xpath(self.assertionMessage)
-        if len(massert):
+
+        failed_assertion = self.__get_failed_assertion(elem)
+        if failed_assertion:
             errtype = KPISet.ERRTYPE_ASSERT
-            message = massert[0].text
+
+        message = self.get_failure_message(elem)
         err_item = KPISet.error_item_skel(message, r_code, 1, errtype, url)
         KPISet.inc_list(self.buffer.get(t_stamp).get(label, []), ("msg", message), err_item)
         KPISet.inc_list(self.buffer.get(t_stamp).get('', []), ("msg", message), err_item)
@@ -1808,6 +1809,56 @@ class JTLErrorsReader(object):
         err_item = KPISet.error_item_skel(message, r_code, 1, errtype, url)
         KPISet.inc_list(self.buffer.get(t_stamp).get(label, []), ("msg", message), err_item)
         KPISet.inc_list(self.buffer.get(t_stamp).get('', []), ("msg", message), err_item)
+
+    def get_failure_message(self, element):
+        """
+        Returns failure message
+        """
+
+        failed_assertion = self.__get_failed_assertion(element)
+        if failed_assertion:
+            assertion_message = self.__get_assertion_message(failed_assertion)
+            if assertion_message:
+                return assertion_message
+            else:
+                return element.get('rm')
+        r_code = element.get('rc')
+        if r_code and r_code.startswith("2"):
+            if element.get('s') == "false":
+                children = [elem for elem in element.iterchildren() if elem.tag == "httpSample"]
+                for child in children:
+                    child_message = self.get_failure_message(child)
+                    if child_message:
+                        return child_message
+        else:
+            return element.get('rm')
+
+    def __get_assertion_message(self, assertion_element):
+        """
+        Returns assertion failureMessage if "failureMessage" element exists
+        """
+        failure_message_elem = assertion_element.find("failureMessage")
+        if failure_message_elem is not None:
+            return failure_message_elem.text
+
+    def __get_failed_assertion(self, element):
+        """
+        Returns first failed assertion, or None
+        """
+        assertions = [elem for elem in element.iterchildren() if elem.tag == "assertionResult"]
+        for assertion in assertions:
+            if self.__assertion_is_failed(assertion):
+                return assertion
+
+    def __assertion_is_failed(self, assertion_element):
+        """
+        returns True if assertion failed
+        """
+        failed = assertion_element.find("failure")
+        error = assertion_element.find("error")
+        if failed.text == "true" or error.text == "true":
+            return True
+        return False
 
     def __get_child(self, elem, tag):
         for child in elem:
