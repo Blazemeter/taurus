@@ -34,14 +34,17 @@ if __name__ == '__main__':
     with open(fname, 'wt') as fhd:
         writer = csv.DictWriter(fhd, getrec(None, None, None, None).keys())
         writer.writeheader()
+        fhd.flush()
 
 
         def on_request_success(request_type, name, response_time, response_length):
             writer.writerow(getrec(request_type, name, response_time, response_length))
+            fhd.flush()
 
 
         def on_request_failure(request_type, name, response_time, exception):
             writer.writerow(getrec(request_type, name, response_time, 0, exception))
+            fhd.flush()
 
 
         events.request_success += on_request_success
