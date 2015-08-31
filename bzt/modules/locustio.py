@@ -16,7 +16,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import os
+from subprocess import STDOUT
 import sys
+import math
 
 from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator
@@ -30,6 +32,7 @@ class LocustIOExecutor(ScenarioExecutor):
         self.locustfile = None
         self.kpi_jtl = None
         self.process = None
+        self.__devnull = None
 
     def prepare(self):
         # TODO: check that locust installed and tell how to install it if not present
@@ -37,6 +40,7 @@ class LocustIOExecutor(ScenarioExecutor):
         self.locustfile = scenario.get("script", ValueError("Please specify locusfile in 'script' option"))
         if not os.path.exists(self.locustfile):
             raise ValueError("Locust file not found: %s" % self.locustfile)
+        self.engine.existing_artifact(self.locustfile)
 
         self.kpi_jtl = self.engine.create_artifact("kpi", ".jtl")
         reader = JTLReader(self.kpi_jtl, self.log, None)
@@ -52,16 +56,23 @@ class LocustIOExecutor(ScenarioExecutor):
         args += ['-f', self.locustfile]
         args += ['--logfile=%s' % self.engine.create_artifact("locust", ".log")]
         args += ["--no-web", "--only-summary", ]
-        args += ["--clients=%s" % load.concurrency, "--hatch-rate=%s" % hatch, ]
+        args += ["--clients=%d" % load.concurrency, "--hatch-rate=%d" % math.ceil(hatch), ]
         if load.iterations:
-            args.append("--num-request=%s" % load.iterations)
-        self.process = shell_exec(args, stderr=None, cwd=self.engine.artifacts_dir, env={"JTL": self.kpi_jtl})
+            args.append("--num-request=%d" % load.iterations)
+
+        host = self.get_scenario().get("default-address", None)
+        if host:
+            args.append("--host=%s" % host)
+
+        self.__devnull = open(self.engine.create_artifact("locust", ".out"), 'w')
+        self.process = shell_exec(args, stderr=STDOUT, stdout=self.__devnull,
+                                  cwd=self.engine.artifacts_dir, env={"JTL": self.kpi_jtl})
 
     def check(self):
         retcode = self.process.poll()
         if retcode is not None:
+            self.log.info("Locust exit code: %s", retcode)
             if retcode != 0:
-                self.log.info("Locust exit code: %s", retcode)
                 raise RuntimeError("Locust exited with non-zero code")
 
             return True
@@ -70,3 +81,4 @@ class LocustIOExecutor(ScenarioExecutor):
 
     def shutdown(self):
         shutdown_process(self.process, self.log)
+        self.__devnull.close()

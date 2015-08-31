@@ -14,6 +14,7 @@ class TestLocustIOExecutor(BZTestCase):
             "concurrency": 1,
             "iterations": 10,
             "scenario": {
+                "default-address": "http://blazedemo.com",
                 "script": __dir__() + "/../locust/simple.py"
             }
         })

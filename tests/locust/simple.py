@@ -21,4 +21,3 @@ class WebsiteUser(HttpLocust):
     task_set = WebsiteTasks
     min_wait = 100
     max_wait = 1500
-    host = "http://blazedemo.com/"
