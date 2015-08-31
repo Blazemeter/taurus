@@ -81,13 +81,13 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         if not token:
             return
 
-        proj_name = self.parameters.get("project", None)
+        proj_name = self.parameters.get("project", self.settings.get("project", None))
         if proj_name is not None:
             proj_id = self.client.project_by_name(proj_name)
         else:
             proj_id = None
 
-        test_name = self.parameters.get("test", "Taurus Test")
+        test_name = self.parameters.get("test", self.settings.get("test", "Taurus Test"))
         self.test_id = self.client.test_by_name(test_name, {"type": "external"}, self.engine.config, [], proj_id)
 
     def startup(self):
@@ -97,8 +97,9 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         super(BlazeMeterUploader, self).startup()
 
         if not self.client.active_session_id:
+            sess_name = self.parameters.get("report-name", self.settings.get("report-name", None))
             try:
-                url = self.client.start_online(self.test_id)
+                url = self.client.start_online(self.test_id, sess_name)
                 self.log.info("Started data feeding: %s", url)
                 if self.browser_open in ('start', 'both'):
                     webbrowser.open(url)
@@ -268,7 +269,7 @@ class BlazeMeterClient(object):
         self.log.debug("Response: %s", resp[:self.logger_limit] if resp else None)
         return json.loads(resp) if len(resp) else {}
 
-    def start_online(self, test_id):
+    def start_online(self, test_id, session_name):
         """
         Start online test
 
@@ -291,6 +292,10 @@ class BlazeMeterClient(object):
         self.user_id = str(resp['result']['session']['userId'])
         if self.token:
             self.results_url = self.address + '/app/#reports/%s' % self.active_session_id
+            if session_name:
+                url = self.address + "/api/latest/sessions/%s" % self.active_session_id
+                self._request(url, to_json({"name": session_name}),
+                              headers={"Content-Type": "application/json"}, method='PATCH')
         else:
             self.test_id = resp['result']['session']['testId']
             self.results_url = resp['result']['publicTokenUrl']
