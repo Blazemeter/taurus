@@ -1782,7 +1782,7 @@ class JTLErrorsReader(object):
         errtype = KPISet.ERRTYPE_ERROR
 
         failed_assertion = self.__get_failed_assertion(elem)
-        if failed_assertion:
+        if failed_assertion is not None:
             errtype = KPISet.ERRTYPE_ASSERT
 
         message = self.get_failure_message(elem)
@@ -1816,7 +1816,7 @@ class JTLErrorsReader(object):
         """
 
         failed_assertion = self.__get_failed_assertion(element)
-        if failed_assertion:
+        if failed_assertion is not None:
             assertion_message = self.__get_assertion_message(failed_assertion)
             if assertion_message:
                 return assertion_message
