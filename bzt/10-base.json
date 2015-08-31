@@ -31,22 +31,21 @@
       "class": "bzt.modules.gatling.GatlingExecutor",
       "path": "~/.bzt/gatling-taurus/bin/gatling.sh"
     },
-    "shellexec":
-    {
+    "shellexec": {
       "class": "bzt.modules.shellexec.ShellExecutor"
     },
     "selenium": {
       "class": "bzt.modules.selenium.SeleniumExecutor",
       "selenium-tools": {
-       "junit": {
-         "path": "~/.bzt/selenium-taurus/tools/junit/junit.jar",
-         "hamcrest-core": "~/.bzt/selenium-taurus/tools/junit/hamcrest-core.jar",
-         "selenium-server": "~/.bzt/selenium-taurus/selenium-server.jar",
-         "jar-name": "compiled.jar",
-         "working-dir": "classes"
-       },
-        "nose":{
-         "working-dir": "classes"
+        "junit": {
+          "path": "~/.bzt/selenium-taurus/tools/junit/junit.jar",
+          "hamcrest-core": "~/.bzt/selenium-taurus/tools/junit/hamcrest-core.jar",
+          "selenium-server": "~/.bzt/selenium-taurus/selenium-server.jar",
+          "jar-name": "compiled.jar",
+          "working-dir": "classes"
+        },
+        "nose": {
+          "working-dir": "classes"
         }
       }
     },
@@ -83,6 +82,9 @@
     },
     "junit-xml": {
       "class": "bzt.modules.reporting.JUnitXMLReporter"
+    },
+    "locust": {
+      "class": "bzt.modules.locustio.LocustIOExecutor"
     }
   },
   "settings": {
