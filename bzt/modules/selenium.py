@@ -2,12 +2,12 @@
 Module holds selenium stuff
 """
 from abc import abstractmethod
-
 import os
 import time
 import shutil
 import sys
 import subprocess
+
 import urwid
 
 from bzt.engine import ScenarioExecutor, Scenario
@@ -215,7 +215,7 @@ class JunitTester(AbstractTestRunner):
         self.junit_path = path_lambda("path", "~/.bzt/selenium-taurus/tools/junit/junit.jar")
         self.hamcrest_path = path_lambda("hamcrest-core", "~/.bzt/selenium-taurus/tools/junit/hamcrest-core.jar")
         self.selenium_server_jar_path = path_lambda("selenium-server", "~/.bzt/selenium-taurus/selenium-server.jar")
-        self.junit_listener_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "resources",
+        self.junit_listener_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), os.pardir, "resources",
                                                 "taurus-junit-1.0.jar")
 
         self.base_class_path = [self.selenium_server_jar_path, self.junit_path, self.junit_listener_path,
@@ -354,7 +354,7 @@ class NoseTester(AbstractTestRunner):
     def __init__(self, nose_config, scenario, parent_logger):
         super(NoseTester, self).__init__(nose_config, scenario)
         self.log = parent_logger.getChild(self.__class__.__name__)
-        self.plugin_path = os.path.join(os.path.dirname(__file__), "resources", "nose_plugin.py")
+        self.plugin_path = os.path.join(os.path.dirname(__file__), os.pardir, "resources", "nose_plugin.py")
 
     def prepare(self):
         self.run_checklist()

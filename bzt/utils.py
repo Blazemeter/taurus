@@ -208,7 +208,7 @@ class BetterDict(defaultdict):
                 cls.traverse(val, visitor)
 
 
-def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False):
+def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False, env=None):
     """
     Wrapper for subprocess starting
 
@@ -231,10 +231,10 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False
         args = shlex.split(args)
     logging.getLogger(__name__).debug("Executing shell: %s", args)
     if platform.system() == 'Windows':
-        return Popen(args, stdout=stdout, stderr=stderr, stdin=stdin, bufsize=0, cwd=cwd, shell=shell)
+        return Popen(args, stdout=stdout, stderr=stderr, stdin=stdin, bufsize=0, cwd=cwd, shell=shell, env=env)
     else:
         return Popen(args, stdout=stdout, stderr=stderr, stdin=stdin, bufsize=0,
-                     preexec_fn=os.setpgrp, close_fds=True, cwd=cwd, shell=shell)
+                     preexec_fn=os.setpgrp, close_fds=True, cwd=cwd, shell=shell, env=env)
 
 
 def ensure_is_dict(container, key, default_key=None):

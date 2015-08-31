@@ -4,6 +4,7 @@
  - allow dumping final stats in Jenkins-consumable format
  - implemented graceful shutdown for JMeter
  - for sample that failed because of embedded resources, actual error message used instead of "OK"
+ - support Locust.io load generator
 
 ## 0.3.8
   - fixed bug when old jars were not removed during JMeter installation

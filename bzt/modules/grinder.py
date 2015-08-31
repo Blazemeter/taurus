@@ -168,8 +168,9 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         Should start the tool as fast as possible.
         """
-        cmdline = ["java", "-classpath",
-                   os.path.dirname(__file__) + os.path.pathsep + os.path.realpath(self.settings.get("path"))]
+        classpath = os.path.join(os.path.dirname(__file__), os.pardir, 'resources')
+        classpath += os.path.pathsep + os.path.realpath(self.settings.get("path"))
+        cmdline = ["java", "-classpath", classpath]
         cmdline += ["net.grinder.Grinder", self.properties_file]
 
         self.start_time = time.time()
@@ -236,7 +237,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :return: script
         """
         script = self.engine.create_artifact("requests", ".py")
-        tpl = os.path.join(os.path.dirname(__file__), "grinder-requests.tpl")
+        tpl = os.path.join(os.path.dirname(__file__), os.pardir, 'resources', "grinder-requests.tpl")
         self.log.debug("Generating grinder scenario: %s", tpl)
         with open(script, 'w') as fds:
             with open(tpl) as tds:
