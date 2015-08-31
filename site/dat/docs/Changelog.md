@@ -1,6 +1,8 @@
 # Changelog
 
-## 0.3.9 (next)
+## 0.4.1 (next)
+
+## 0.4.0
  - allow dumping final stats in Jenkins-consumable format
  - implemented graceful shutdown for JMeter
  - for sample that failed because of embedded resources, actual error message used instead of "OK"

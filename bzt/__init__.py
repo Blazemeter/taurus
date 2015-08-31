@@ -18,7 +18,7 @@ import os
 import sys
 import signal
 
-VERSION = "0.3.8.1"
+VERSION = "0.4.0"
 
 
 def signal_handler(sig, frame):
@@ -27,6 +27,7 @@ def signal_handler(sig, frame):
     :param frame:
     :param sig:
     """
+    del sig, frame
     raise ManualShutdown()
 
 
@@ -38,6 +39,7 @@ class RCProvider(object):
     """
     Abstract return code provider
     """
+
     @abstractmethod
     def get_rc(self):
         """

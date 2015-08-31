@@ -294,7 +294,7 @@ class BlazeMeterClient(object):
             self.results_url = self.address + '/app/#reports/%s' % self.active_session_id
             if session_name:
                 url = self.address + "/api/latest/sessions/%s" % self.active_session_id
-                self._request(url, to_json({"name": session_name}),
+                self._request(url, to_json({"name": str(session_name)}),
                               headers={"Content-Type": "application/json"}, method='PATCH')
         else:
             self.test_id = resp['result']['session']['testId']
@@ -651,7 +651,7 @@ class BlazeMeterClient(object):
 
     def create_project(self, proj_name):
         hdr = {"Content-Type": "application/json"}
-        data = self._request(self.address + '/api/latest/projects', to_json({"name": proj_name}), headers=hdr)
+        data = self._request(self.address + '/api/latest/projects', to_json({"name": str(proj_name)}), headers=hdr)
         return data['result']['id']
 
 
