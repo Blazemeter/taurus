@@ -2,6 +2,7 @@
 import csv
 import os
 import time
+from requests.exceptions import HTTPError
 
 from locust import main, events
 
@@ -13,14 +14,18 @@ if not fname:
 def getrec(request_type, name, response_time, response_length, exc=None):
     rc = '200' if exc is None else '500'
     rm = 'OK' if exc is None else '%s' % exc
+    if isinstance(exc, HTTPError):
+        rc = exc.message[:exc.message.index(' ')]
+        rm = exc.message[exc.message.index(':') + 2:]
+
     return {
-        'ts': "%d" % time.time(),
+        'timeStamp': "%d" % time.time(),
         'label': name,
         'method': request_type,
         'elapsed': response_time,
         'bytes': response_length,  # NOTE: not sure if the field name is right
-        'rc': rc,
-        'rm': rm,
+        'responseCode': rc,
+        'responseMessage': rm,
         'success': 'true' if exc is None else 'false'
     }
 
