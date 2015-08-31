@@ -168,6 +168,14 @@ table.wiki .toc-list1 {
     padding-bottom: 3em;
 }
 
+table.wiki pre.python .sy0 {
+    color: gray;
+}
+
+table.wiki pre.python .kw1 {
+    color: maroon;
+}
+
 table.wiki pre.yaml .sy1 {
     color: gray;
 }

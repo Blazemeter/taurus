@@ -80,6 +80,7 @@ Taurus tool may use different underlying tools as executors for scenarios. Curre
   - [Selenium](Selenium.md), executor type `selenium`
   - [Gatling](Gatling.md), executor type `gatling`
   - [Grinder](Grinder.md), executor type `grinder`
+  - [Locust](Locust.md), executor type `locust`
 
 Default executor is `jmeter` and can be changed under [general settings](ConfigSyntax.md#top-level-settings) section.
 ```yaml
