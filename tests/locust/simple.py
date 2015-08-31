@@ -19,5 +19,5 @@ class WebsiteTasks(TaskSet):
 
 class WebsiteUser(HttpLocust):
     task_set = WebsiteTasks
-    min_wait = 5000
-    max_wait = 15000
+    min_wait = 100
+    max_wait = 1500
