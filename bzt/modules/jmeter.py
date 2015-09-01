@@ -1787,6 +1787,8 @@ class JTLErrorsReader(object):
             errtype = KPISet.ERRTYPE_ASSERT
 
         message = self.get_failure_message(elem)
+        if message is None:
+            message = elem.get('rm')
         err_item = KPISet.error_item_skel(message, r_code, 1, errtype, url)
         KPISet.inc_list(self.buffer.get(t_stamp).get(label, []), ("msg", message), err_item)
         KPISet.inc_list(self.buffer.get(t_stamp).get('', []), ("msg", message), err_item)
