@@ -2,6 +2,7 @@
 
 ## 0.4.1 (next)
  - fix Locust.io search paths
+ - `generalize-labels` default value changed to `false`
 
 ## 0.4.0
  - allow dumping final stats in Jenkins-consumable format

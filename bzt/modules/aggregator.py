@@ -399,7 +399,7 @@ class ResultsReader(ResultsProvider):
 
     def __init__(self, perc_levels=()):
         super(ResultsReader, self).__init__()
-        self.generalize_labels = True
+        self.generalize_labels = False
         self.ignored_labels = []
         self.log = logging.getLogger(self.__class__.__name__)
         self.buffer = {}
@@ -514,7 +514,7 @@ class ConsolidatingAggregator(EngineModule, ResultsProvider):
     def __init__(self):
         EngineModule.__init__(self)
         ResultsProvider.__init__(self)
-        self.generalize_labels = True
+        self.generalize_labels = False
         self.ignored_labels = []
         self.underlings = []
         self.buffer = BetterDict()
