@@ -52,6 +52,6 @@ class TestLocustIOExecutor(BZTestCase):
         obj.startup()
         obj.get_widget()
         obj.check()
-        self.assertEqual(obj.widget.dur, 30)
+        self.assertEqual(obj.widget.duration, 30)
         self.assertTrue(obj.widget.script_name_widget.text.endswith("simple.py"))
         obj.shutdown()
