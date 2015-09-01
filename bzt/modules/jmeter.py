@@ -182,19 +182,20 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             return
 
         try:
-            udp_sock = socket.socket(type=socket.SOCK_DGRAM)
+            if not self.settings.get("gui", False):
+                udp_sock = socket.socket(type=socket.SOCK_DGRAM)
 
-            self.log.debug("Sending Shutdown command on udp port %d", self.management_port)
-            udp_sock.sendto(b"Shutdown", ("localhost", self.management_port))
-            if self._process_stopped(max_attempts):
-                self.log.debug("JMeter stopped on Shutdown command")
-                return
+                self.log.info("Sending Shutdown command to JMeter on port %d...", self.management_port)
+                udp_sock.sendto(b"Shutdown", ("localhost", self.management_port))
+                if self._process_stopped(max_attempts):
+                    self.log.debug("JMeter stopped on Shutdown command")
+                    return
 
-            self.log.debug("Sending StopTestNow command on udp port %d", self.management_port)
-            udp_sock.sendto(b"StopTestNow", ("localhost", self.management_port))
-            if self._process_stopped(max_attempts):
-                self.log.debug("JMeter stopped on StopTestNow command")
-                return
+                self.log.info("Sending StopTestNow command to JMeter on port %d...", self.management_port)
+                udp_sock.sendto(b"StopTestNow", ("localhost", self.management_port))
+                if self._process_stopped(max_attempts):
+                    self.log.debug("JMeter stopped on StopTestNow command")
+                    return
         finally:
             if not self._process_stopped(1):
                 self.log.warning("JMeter process is still alive, killing it")
