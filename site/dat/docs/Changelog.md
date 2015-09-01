@@ -1,6 +1,7 @@
 # Changelog
 
 ## 0.4.1 (next)
+ - fix Locust.io search paths
 
 ## 0.4.0
  - allow dumping final stats in Jenkins-consumable format

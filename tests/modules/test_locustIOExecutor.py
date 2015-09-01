@@ -35,6 +35,9 @@ class TestLocustIOExecutor(BZTestCase):
         obj.post_process()
 
     def test_locust_widget(self):
+        if six.PY3:
+            logging.warning("No locust available for python 3")
+
         obj = LocustIOExecutor()
         obj.engine = EngineEmul()
         obj.engine.config['provisioning'] = 'local'
