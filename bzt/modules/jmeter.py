@@ -136,7 +136,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             cmdline += ["-j", os.path.abspath(self.jmeter_log)]
 
         if self.properties_file:
-            cmdline += ["-p", os.path.abspath(self.properties_file)]
+            cmdline += ["-q", os.path.abspath(self.properties_file)]
 
         if self.sys_properties_file:
             cmdline += ["-S", os.path.abspath(self.sys_properties_file)]
