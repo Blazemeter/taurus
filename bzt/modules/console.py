@@ -22,6 +22,7 @@ import traceback
 import math
 import copy
 import platform
+import time
 from logging import StreamHandler
 from itertools import groupby
 from datetime import datetime
@@ -29,7 +30,7 @@ from datetime import datetime
 from urwid.decoration import Padding
 from urwid.display_common import BaseScreen
 from urwid import Text, Pile, WEIGHT, Filler, Columns, Widget, \
-    CanvasCombine, LineBox, ListBox, RIGHT, CENTER, BOTTOM, CLIP, GIVEN
+    CanvasCombine, LineBox, ListBox, RIGHT, CENTER, BOTTOM, CLIP, GIVEN, ProgressBar
 from urwid.font import Thin6x6Font
 from urwid.graphics import BigText
 from urwid.listbox import SimpleListWalker
@@ -40,6 +41,7 @@ from bzt.six import StringIO
 from bzt.modules.provisioning import Local
 from bzt.engine import Reporter, AggregatorListener
 from bzt.modules.aggregator import DataPoint, KPISet
+from bzt.utils import humanize_time
 
 if platform.system() == 'Windows':
     from bzt.modules.screen import GUIScreen as Screen  # curses unavailable on windows
@@ -1070,10 +1072,44 @@ class SidebarWidget(Pile):
     Progress sidebar widget
     """
 
-    def __init__(self, executor):
+    def __init__(self, executor, script_name=None):
         self.executor = executor
-        self.dur = executor.get_load().duration
+        self.duration = self.executor.get_load().duration
         self.widgets = []
 
-    def add_widget(self, widget):
-        self.widgets.append(widget)
+        if script_name is not None:
+            self.script_name_widget = Text("Script: %s" % script_name)
+            self.widgets.append(self.script_name_widget)
+
+        if self.duration is not None and self.duration !=0:
+            self.progress = ProgressBar('pb-en', 'pb-dis', done=self.duration)
+        else:
+            self.progress = Text("Running...")
+        self.widgets.append(self.progress)
+
+        self.elapsed = Text("Elapsed: N/A")
+        self.eta = Text("ETA: N/A", align=RIGHT)
+        self.widgets.append(Columns([self.elapsed, self.eta]))
+        super(SidebarWidget, self).__init__(self.widgets)
+
+    def update(self):
+        """
+        Refresh widget values
+        """
+        if self.executor.start_time is not None:
+            elapsed = time.time() - self.executor.start_time
+            self.elapsed.set_text("Elapsed: %s" % humanize_time(elapsed))
+
+            if self.duration:
+                eta = self.duration - elapsed
+                if eta >= 0:
+                    self.eta.set_text("ETA: %s" % humanize_time(eta))
+                else:
+                    over = elapsed - self.duration
+                    self.eta.set_text("Overtime: %s" % humanize_time(over))
+            else:
+                self.eta.set_text("")
+
+            if isinstance(self.progress, ProgressBar):
+                self.progress.set_completion(elapsed)
+        self._invalidate()

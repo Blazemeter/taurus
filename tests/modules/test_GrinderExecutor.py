@@ -49,7 +49,7 @@ class TestGrinderExecutor(BZTestCase):
         obj.execution.merge({"scenario": {"script": "tests/grinder/helloworld.py"}})
         obj.prepare()
         obj.get_widget()
-        self.assertEqual(obj.widget.script_name.text, "Script: helloworld.py")
+        self.assertEqual(obj.widget.script_name_widget.text, "Script: helloworld.py")
 
     def test_resource_files_collection_remote(self):
         obj = GrinderExecutor()

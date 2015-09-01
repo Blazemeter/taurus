@@ -34,7 +34,7 @@ class TestLocustIOExecutor(BZTestCase):
         obj.shutdown()
         obj.post_process()
 
-    def test_widget(self):
+    def test_locust_widget(self):
         obj = LocustIOExecutor()
         obj.engine = EngineEmul()
         obj.engine.config['provisioning'] = 'local'
@@ -53,5 +53,5 @@ class TestLocustIOExecutor(BZTestCase):
         obj.get_widget()
         obj.check()
         self.assertEqual(obj.widget.dur, 30)
-        self.assertTrue(obj.widget.script.text.endswith("simple.py"))
+        self.assertTrue(obj.widget.script_name_widget.text.endswith("simple.py"))
         obj.shutdown()

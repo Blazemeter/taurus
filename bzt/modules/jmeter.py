@@ -16,30 +16,28 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import csv
-import fnmatch
-import os
 import platform
 import subprocess
 import time
 import traceback
 import logging
-import shutil
-from collections import Counter, namedtuple
 from math import ceil
-import tempfile
 import socket
-import urwid
 from distutils.version import LooseVersion
 
+import fnmatch
+import os
+import shutil
+from collections import Counter, namedtuple
+import tempfile
 from lxml.etree import XMLSyntaxError
-
 from cssselect import GenericTranslator
 
 from bzt import six
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
-from bzt.utils import shell_exec, ensure_is_dict, humanize_time, dehumanize_time, BetterDict, \
+from bzt.utils import shell_exec, ensure_is_dict, dehumanize_time, BetterDict, \
     guess_csv_dialect, unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext
 from bzt.six import iteritems, text_type, string_types, StringIO, parse, request, etree
 
@@ -528,7 +526,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :return:
         """
         if not self.widget:
-            self.widget = JMeterWidget(self)
+            script_name = os.path.basename(self.original_jmx) if self.original_jmx is not None else None
+            self.widget = SidebarWidget(self, script_name)
         return self.widget
 
     def resource_files(self):
@@ -1867,54 +1866,6 @@ class JTLErrorsReader(object):
         for child in elem:
             if child.tag == tag:
                 return child.text
-
-
-class JMeterWidget(SidebarWidget):
-    """
-    Progress sidebar widget
-
-    :type executor: bzt.modules.jmeter.JMeterExecutor
-    """
-
-    def __init__(self, executor):
-
-        widgets = []
-        if self.executor.original_jmx:
-            self.script_name = urwid.Text("Script: %s" % os.path.basename(self.executor.original_jmx))
-            widgets.append(self.script_name)
-
-        if self.dur:
-            self.progress = urwid.ProgressBar('pb-en', 'pb-dis', done=self.dur)
-        else:
-            self.progress = urwid.Text("Running...")
-        widgets.append(self.progress)
-        self.elapsed = urwid.Text("Elapsed: N/A")
-        self.eta = urwid.Text("ETA: N/A", align=urwid.RIGHT)
-        widgets.append(urwid.Columns([self.elapsed, self.eta]))
-        super(JMeterWidget, self).__init__(executor)
-
-    def update(self):
-        """
-        Refresh widget values
-        """
-        if self.executor.start_time:
-            elapsed = time.time() - self.executor.start_time
-            self.elapsed.set_text("Elapsed: %s" % humanize_time(elapsed))
-
-            if self.dur:
-                eta = self.dur - elapsed
-                if eta >= 0:
-                    self.eta.set_text("ETA: %s" % humanize_time(eta))
-                else:
-                    over = elapsed - self.dur
-                    self.eta.set_text("Overtime: %s" % humanize_time(over))
-            else:
-                self.eta.set_text("")
-
-            if isinstance(self.progress, urwid.ProgressBar):
-                self.progress.set_completion(elapsed)
-
-        self._invalidate()
 
 
 class JMeterScenarioBuilder(JMX):

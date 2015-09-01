@@ -43,7 +43,7 @@ class TestGatlingExecutor(BZTestCase):
         obj.execution.merge({"scenario": {"script": "tests/gatling/BasicSimulation.scala"}})
         obj.prepare()
         obj.get_widget()
-        self.assertEqual(obj.widget.script_name.text, "Script: BasicSimulation.scala")
+        self.assertEqual(obj.widget.script_name_widget.text, "Script: BasicSimulation.scala")
 
     def __check_path_resource_files(self, scala_script_path):
         with open(scala_script_path, 'rt') as fds:

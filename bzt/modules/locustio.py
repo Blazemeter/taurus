@@ -15,18 +15,19 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import os
 from subprocess import STDOUT
 import sys
 import math
-import urwid
 import time
+
+import os
 
 from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.jmeter import JTLReader
-from bzt.utils import shutdown_process, shell_exec, humanize_time
-from bzt.modules.console import WidgetProvider
+from bzt.utils import shutdown_process, shell_exec
+from bzt.modules.console import WidgetProvider, SidebarWidget
+
 
 class LocustIOExecutor(ScenarioExecutor, WidgetProvider):
     def __init__(self):
@@ -52,6 +53,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider):
             self.engine.aggregator.add_underling(reader)
 
     def startup(self):
+        self.start_time = time.time()
         load = self.get_load()
         hatch = load.concurrency / load.ramp_up if load.ramp_up else load.concurrency
 
@@ -79,7 +81,8 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider):
         :return:
         """
         if not self.widget:
-            self.widget = LocustWidget(self)
+            script_name = os.path.basename(self.locustfile) if self.locustfile else None
+            self.widget = SidebarWidget(self, script_name)
         return self.widget
 
     def check(self):
@@ -100,54 +103,3 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider):
     def shutdown(self):
         shutdown_process(self.process, self.log)
         self.__devnull.close()
-
-
-
-class LocustWidget(urwid.Pile):
-    """
-    Progress sidebar widget
-
-    :type executor: bzt.modules.locustio.LocustIOExecutor
-    """
-
-    def __init__(self, executor):
-        self.executor = executor
-        widgets = []
-        self.dur = self.executor.get_load().duration
-
-        self.script = urwid.Text(
-            "Script: %s" % self.executor.locustfile)
-        widgets.append(self.script)
-
-        if self.dur:
-            self.progress = urwid.ProgressBar('pb-en', 'pb-dis', done=self.dur)
-        else:
-            self.progress = urwid.Text("Running...")
-
-        widgets.append(self.progress)
-        self.elapsed = urwid.Text("Elapsed: N/A")
-        self.eta = urwid.Text("ETA: N/A", align=urwid.RIGHT)
-        widgets.append(urwid.Columns([self.elapsed, self.eta]))
-        super(LocustWidget, self).__init__(widgets)
-
-    def update(self):
-        """
-        Refresh widget values
-        """
-        if self.executor.start_time:
-            elapsed = time.time() - self.executor.start_time
-            self.elapsed.set_text("Elapsed: %s" % humanize_time(elapsed))
-
-            if self.dur:
-                eta = self.dur - elapsed
-                if eta >= 0:
-                    self.eta.set_text("ETA: %s" % humanize_time(eta))
-                else:
-                    over = elapsed - self.dur
-                    self.eta.set_text("Overtime: %s" % humanize_time(over))
-            else:
-                self.eta.set_text("")
-
-            if isinstance(self.progress, urwid.ProgressBar):
-                self.progress.set_completion(elapsed)
-        self._invalidate()
