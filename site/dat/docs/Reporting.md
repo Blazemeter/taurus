@@ -185,6 +185,7 @@ Now you can use `-report` command-line switch, or you can set BlazeMeter reporti
 ---
 reporting:
   - module: blazemeter
+    report-name: Jenkins Build 1
     test: Taurus Demo
     project: Taurus Tests Group
 ```
@@ -201,8 +202,17 @@ modules:
                          # can be "start", "end", "both", "none"
     send-interval: 30s   # send data each n-th second
     timeout: 5  # connect and request timeout for BlazeMeter API
+    
+    # following instructions will have effect when no per-reporter settings
+    report-name: My Next Test
+    test: Taurus Test
+    project: My Local Tests
 ```
 
+Note how easy is to set report settings from command line, i.e. from inside Jenkins build step:
+```bash
+bzt mytest.yml -o modules.blazemeter.report-name="Jenkins Build ${BUILD_NUMBER}"
+```
 
 ## JUnit XML Reporter
 

@@ -71,8 +71,9 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider):
             args.append("--host=%s" % host)
 
         self.__devnull = open(self.engine.create_artifact("locust", ".out"), 'w')
+        env = {"JTL": self.kpi_jtl, "PYTHONPATH": self.engine.artifacts_dir}
         self.process = shell_exec(args, stderr=STDOUT, stdout=self.__devnull,
-                                  cwd=self.engine.artifacts_dir, env={"JTL": self.kpi_jtl})
+                                  cwd=self.engine.artifacts_dir, env=env)
 
     def get_widget(self):
         """

@@ -22,6 +22,25 @@ However, users are encouraged to use array notation always to leverage the array
 
 There are load profile and scenario settings that are common for all execution types, and each executor type can also have its own settings.
 
+## Executor Types
+
+Taurus tool may use different underlying tools as executors for scenarios. Currently supported tools are:
+ 
+  - [JMeter](JMeter.md), executor type `jmeter`
+  - [Selenium](Selenium.md), executor type `selenium`
+  - [Gatling](Gatling.md), executor type `gatling`
+  - [Grinder](Grinder.md), executor type `grinder`
+  - [Locust](Locust.md), executor type `locust`
+
+Default executor is `jmeter` and can be changed under [general settings](ConfigSyntax.md#top-level-settings) section.
+```yaml
+---
+settings:
+  default-executor: jmeter
+```
+
+You may contribute your efforts in supporting requests-scenarios for your favorite tool by discussing this on [project forums](https://groups.google.com/forum/#!forum/codename-taurus).
+
 ## Load Profile
 
 Execution has several options to set load profile settings. Support for options is specific to executor type. Available settings are:
@@ -72,21 +91,6 @@ execution:
 ```
 
 
-## Executor Types
+## Additional Files
 
-Taurus tool may use different underlying tools as executors for scenarios. Currently supported tools are:
- 
-  - [JMeter](JMeter.md), executor type `jmeter`
-  - [Selenium](Selenium.md), executor type `selenium`
-  - [Gatling](Gatling.md), executor type `gatling`
-  - [Grinder](Grinder.md), executor type `grinder`
-  - [Locust](Locust.md), executor type `locust`
-
-Default executor is `jmeter` and can be changed under [general settings](ConfigSyntax.md#top-level-settings) section.
-```yaml
----
-settings:
-  default-executor: jmeter
-```
-
-You may contribute your efforts in supporting requests-scenarios for your favorite tool by discussing this on [project forums](https://groups.google.com/forum/#!forum/codename-taurus).
+When your execution requires additional files (e.g. JARs, certificates etc). you may use `files` option of execution and list paths for files there.

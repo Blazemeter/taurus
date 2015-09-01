@@ -1,10 +1,14 @@
 # Changelog
 
-## 0.3.9 (next)
+## 0.4.1 (next)
+
+## 0.4.0
  - allow dumping final stats in Jenkins-consumable format
  - implemented graceful shutdown for JMeter
  - for sample that failed because of embedded resources, actual error message used instead of "OK"
  - support Locust.io load generator
+ - allow setting the `report-name` for blazemeter report
+ - allow easy setting report/test/project options for blazemeter module
 
 ## 0.3.8
   - fixed bug when old jars were not removed during JMeter installation
