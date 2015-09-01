@@ -19,13 +19,15 @@ from subprocess import STDOUT
 import sys
 import math
 import time
+
 import os
 
 from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.jmeter import JTLReader
-from bzt.utils import shutdown_process, shell_exec
+from bzt.utils import shutdown_process, shell_exec, RequiredTool
 from bzt.modules.console import WidgetProvider, SidebarWidget
+from bzt.six import PY3
 
 
 class LocustIOExecutor(ScenarioExecutor, WidgetProvider):
@@ -40,6 +42,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider):
 
     def prepare(self):
         # TODO: check that locust installed and tell how to install it if not present
+        self.run_checklist()
         scenario = self.get_scenario()
         self.locustfile = scenario.get("script", ValueError("Please specify locusfile in 'script' option"))
         if not os.path.exists(self.locustfile):
@@ -105,3 +108,36 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider):
     def shutdown(self):
         shutdown_process(self.process, self.log)
         self.__devnull.close()
+
+    def run_checklist(self):
+        """
+        check tools
+        """
+        required_tools = []
+        required_tools.append(LocustIO(self.log))
+        self.check_tools(required_tools)
+
+    def check_tools(self, required_tools):
+        for tool in required_tools:
+            if not tool.check_if_installed():
+                self.log.info("Installing %s", tool.tool_name)
+                tool.install()
+
+class LocustIO(RequiredTool):
+    def __init__(self, parent_logger):
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        super(LocustIO, self).__init__("LocustIO", "", "")
+
+    def check_if_installed(self):
+        if PY3:
+            raise ValueError("LocustIO is not currently compatible with Python 3.x")
+        try:
+            import locust
+            self.already_installed = True
+        except ImportError:
+            self.log.error("LocustIO is not installed, see http://docs.locust.io/en/latest/installation.html")
+            return False
+        return True
+
+    def install(self):
+        raise NotImplementedError()
