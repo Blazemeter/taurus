@@ -1594,14 +1594,11 @@ class JTLReader(ResultsReader):
         for point in super(JTLReader, self)._calculate_datapoints(final_pass):
             if self.errors_reader:
                 data = self.errors_reader.get_data(point[DataPoint.TIMESTAMP])
-            else:
-                data = {}
-
-            for label, label_data in iteritems(point[DataPoint.CURRENT]):
-                if label in data:
-                    label_data[KPISet.ERRORS] = data[label]
-                else:
-                    label_data[KPISet.ERRORS] = {}
+                for label, label_data in iteritems(point[DataPoint.CURRENT]):
+                    if label in data:
+                        label_data[KPISet.ERRORS] = data[label]
+                    else:
+                        label_data[KPISet.ERRORS] = {}
 
             yield point
 

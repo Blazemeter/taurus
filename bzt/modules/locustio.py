@@ -55,10 +55,10 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider):
         self.start_time = time.time()
         load = self.get_load()
         hatch = load.concurrency / load.ramp_up if load.ramp_up else load.concurrency
-
+        wrapper = os.path.join(os.path.dirname(__file__), os.pardir, "resources", "locustio-taurus-wrapper.py")
         args = [sys.executable, ]
-        args += [os.path.join(os.path.dirname(__file__), os.pardir, "resources", "locustio-taurus-wrapper.py"), ]
-        args += ['-f', self.locustfile]
+        args += [os.path.realpath(wrapper), ]
+        args += ['-f', os.path.realpath(self.locustfile)]
         args += ['--logfile=%s' % self.engine.create_artifact("locust", ".log")]
         args += ["--no-web", "--only-summary", ]
         args += ["--clients=%d" % load.concurrency, "--hatch-rate=%d" % math.ceil(hatch), ]
@@ -70,9 +70,8 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider):
             args.append("--host=%s" % host)
 
         self.__devnull = open(self.engine.create_artifact("locust", ".out"), 'w')
-        env = {"JTL": self.kpi_jtl, "PYTHONPATH": self.engine.artifacts_dir}
-        self.process = shell_exec(args, stderr=STDOUT, stdout=self.__devnull,
-                                  cwd=self.engine.artifacts_dir, env=env)
+        env = {"JTL": self.kpi_jtl, "PYTHONPATH": self.engine.artifacts_dir + os.pathsep + os.getcwd()}
+        self.process = shell_exec(args, stderr=STDOUT, stdout=self.__devnull, env=env)
 
     def get_widget(self):
         """
