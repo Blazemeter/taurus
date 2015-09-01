@@ -24,13 +24,14 @@ import logging
 from math import ceil
 import socket
 from distutils.version import LooseVersion
-
 import fnmatch
 import os
 import shutil
 from collections import Counter, namedtuple
 import tempfile
+
 from lxml.etree import XMLSyntaxError
+
 from cssselect import GenericTranslator
 
 from bzt import six
@@ -526,8 +527,11 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :return:
         """
         if not self.widget:
-            script_name = os.path.basename(self.original_jmx) if self.original_jmx is not None else None
-            self.widget = SidebarWidget(self, script_name)
+            if self.original_jmx is not None:
+                label = "Script: %s" % os.path.basename(self.original_jmx)
+            else:
+                label = None
+            self.widget = SidebarWidget(self, label)
         return self.widget
 
     def resource_files(self):

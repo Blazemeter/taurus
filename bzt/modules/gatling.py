@@ -172,8 +172,11 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def get_widget(self):
         if not self.widget:
-            script_name = os.path.basename(self.script) if self.script else None
-            self.widget = SidebarWidget(self, script_name)
+            if self.script is not None:
+                label = "Script: %s" % os.path.basename(self.script)
+            else:
+                label = None
+            self.widget = SidebarWidget(self, label)
         return self.widget
 
     def resource_files(self):
@@ -368,6 +371,7 @@ class DataLogReader(ResultsReader):
 
         self.fds = open(self.filename)
         return True
+
 
 class Gatling(RequiredTool):
     """

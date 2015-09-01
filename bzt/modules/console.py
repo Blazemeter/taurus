@@ -1072,19 +1072,17 @@ class SidebarWidget(Pile):
     Progress sidebar widget
     """
 
-    def __init__(self, executor, script_name=None, additional_widgets=None):
+    def __init__(self, executor, label=None, additional_widgets=()):
         self.executor = executor
         self.duration = self.executor.get_load().duration
         self.widgets = []
         self.additional_widgets = additional_widgets
-        if self.additional_widgets:
-            self.widgets.extend(self.additional_widgets)
+        self.widgets.extend(self.additional_widgets)
 
-        if script_name is not None:
-            self.script_name_widget = Text("Script: %s" % script_name)
-            self.widgets.append(self.script_name_widget)
+        if label is not None:
+            self.widgets.append(Text(label))
 
-        if self.duration is not None and self.duration !=0:
+        if self.duration is not None and self.duration != 0:
             self.progress = ProgressBar('pb-en', 'pb-dis', done=self.duration)
         else:
             self.progress = Text("Running...")

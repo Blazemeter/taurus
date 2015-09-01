@@ -19,7 +19,6 @@ from subprocess import STDOUT
 import sys
 import math
 import time
-
 import os
 
 from bzt.engine import ScenarioExecutor
@@ -82,8 +81,11 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider):
         :return:
         """
         if not self.widget:
-            script_name = os.path.basename(self.locustfile) if self.locustfile else None
-            self.widget = SidebarWidget(self, script_name)
+            if self.locustfile is not None:
+                label = "Script: %s" % os.path.basename(self.locustfile)
+            else:
+                label = None
+            self.widget = SidebarWidget(self, label)
         return self.widget
 
     def check(self):
