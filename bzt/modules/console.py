@@ -1063,3 +1063,17 @@ class WidgetProvider(object):
         :rtype: urwid.Widget
         """
         pass
+
+
+class SidebarWidget(Pile):
+    """
+    Progress sidebar widget
+    """
+
+    def __init__(self, executor):
+        self.executor = executor
+        self.dur = executor.get_load().duration
+        self.widgets = []
+
+    def add_widget(self, widget):
+        self.widgets.append(widget)

@@ -717,3 +717,10 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(values.get('tc3')[1].get("msg"), "second message")
         self.assertEqual(values.get('tc4')[0].get("msg"), "NOT FOUND")
         self.assertEqual(values.get('tc5')[0].get("msg"), "Failed")
+
+    def test_embedded_resources_no_fail(self):
+        obj = JTLErrorsReader(__dir__() + "/../data/resource-errors-no-errors.jtl", logging.getLogger(''))
+        obj.read_file(True)
+        values = obj.get_data(sys.maxsize)
+        self.assertEqual(values.get('')[0].get("msg"), "OK")
+        self.assertEqual(values.get('HTTP Request')[0].get("msg"), "OK")

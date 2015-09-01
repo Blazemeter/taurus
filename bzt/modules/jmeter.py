@@ -28,16 +28,16 @@ from collections import Counter, namedtuple
 from math import ceil
 import tempfile
 import socket
+import urwid
 from distutils.version import LooseVersion
 
 from lxml.etree import XMLSyntaxError
-import urwid
 
 from cssselect import GenericTranslator
 
 from bzt import six
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
-from bzt.modules.console import WidgetProvider
+from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.utils import shell_exec, ensure_is_dict, humanize_time, dehumanize_time, BetterDict, \
     guess_csv_dialect, unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext
@@ -1787,6 +1787,8 @@ class JTLErrorsReader(object):
             errtype = KPISet.ERRTYPE_ASSERT
 
         message = self.get_failure_message(elem)
+        if message is None:
+            message = elem.get('rm')
         err_item = KPISet.error_item_skel(message, r_code, 1, errtype, url)
         KPISet.inc_list(self.buffer.get(t_stamp).get(label, []), ("msg", message), err_item)
         KPISet.inc_list(self.buffer.get(t_stamp).get('', []), ("msg", message), err_item)
@@ -1867,7 +1869,7 @@ class JTLErrorsReader(object):
                 return child.text
 
 
-class JMeterWidget(urwid.Pile):
+class JMeterWidget(SidebarWidget):
     """
     Progress sidebar widget
 
@@ -1875,8 +1877,7 @@ class JMeterWidget(urwid.Pile):
     """
 
     def __init__(self, executor):
-        self.executor = executor
-        self.dur = executor.get_load().duration
+
         widgets = []
         if self.executor.original_jmx:
             self.script_name = urwid.Text("Script: %s" % os.path.basename(self.executor.original_jmx))
@@ -1890,7 +1891,7 @@ class JMeterWidget(urwid.Pile):
         self.elapsed = urwid.Text("Elapsed: N/A")
         self.eta = urwid.Text("ETA: N/A", align=urwid.RIGHT)
         widgets.append(urwid.Columns([self.elapsed, self.eta]))
-        super(JMeterWidget, self).__init__(widgets)
+        super(JMeterWidget, self).__init__(executor)
 
     def update(self):
         """
