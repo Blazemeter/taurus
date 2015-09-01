@@ -36,14 +36,13 @@ class TestGatlingExecutor(BZTestCase):
         GatlingExecutor.DOWNLOAD_LINK = gatling_link
         GatlingExecutor.VERSION = gatling_ver
 
-
     def test_gatling_widget(self):
         obj = GatlingExecutor()
         obj.engine = EngineEmul()
-        obj.execution.merge({"scenario": {"script": "tests/gatling/BasicSimulation.scala"}})
+        obj.execution.merge({"scenario": {"script": __dir__() + "/../gatling/BasicSimulation.scala"}})
         obj.prepare()
         obj.get_widget()
-        self.assertEqual(obj.widget.script_name_widget.text, "Script: BasicSimulation.scala")
+        self.assertEqual(obj.widget.widgets[0].text, "Script: BasicSimulation.scala")
 
     def __check_path_resource_files(self, scala_script_path):
         with open(scala_script_path, 'rt') as fds:
@@ -66,11 +65,10 @@ class TestGatlingExecutor(BZTestCase):
                 file_path = re.compile('\".*?\"').findall(param_list[param_index])[0].strip('"')
                 self.assertEqual("", os.path.dirname(file_path))
 
-
     def test_resource_files_collection_remote(self):
         obj = GatlingExecutor()
         obj.engine = EngineEmul()
-        obj.execution.merge({"scenario": {"script": "tests/gatling/LocalBasicSimulation.scala"}})
+        obj.execution.merge({"scenario": {"script": __dir__() + "/../gatling/LocalBasicSimulation.scala"}})
         res_files = obj.resource_files()
         artifacts = os.listdir(obj.engine.artifacts_dir)
         self.assertEqual(len(res_files), 15)  # file "gatling_" will be not found
@@ -80,7 +78,7 @@ class TestGatlingExecutor(BZTestCase):
     def test_resource_files_collection_local(self):
         obj = GatlingExecutor()
         obj.engine = EngineEmul()
-        obj.execution.merge({"scenario": {"script": "tests/gatling/LocalBasicSimulation.scala"}})
+        obj.execution.merge({"scenario": {"script": __dir__() + "/../gatling/LocalBasicSimulation.scala"}})
         obj.prepare()
         artifacts = os.listdir(obj.engine.artifacts_dir)
         self.assertEqual(len(artifacts), 13)

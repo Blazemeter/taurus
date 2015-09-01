@@ -250,9 +250,8 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         grinder_path = self.settings.get("path", "~/.bzt/grinder-taurus/lib/grinder.jar")
         grinder_path = os.path.abspath(os.path.expanduser(grinder_path))
         self.settings["path"] = grinder_path
-        required_tools = []
-        required_tools.append(JavaVM("", "", self.log))
-        required_tools.append(Grinder(grinder_path, GrinderExecutor.DOWNLOAD_LINK, self.log, GrinderExecutor.VERSION))
+        required_tools = [JavaVM("", "", self.log),
+                          Grinder(grinder_path, GrinderExecutor.DOWNLOAD_LINK, self.log, GrinderExecutor.VERSION)]
 
         self.check_tools(required_tools)
 
