@@ -28,7 +28,7 @@ from bzt.modules.jmeter import JTLReader
 from bzt.utils import shutdown_process, shell_exec, RequiredTool
 from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.six import PY3
-
+from imp import find_module
 
 class LocustIOExecutor(ScenarioExecutor, WidgetProvider):
     def __init__(self):
@@ -132,7 +132,7 @@ class LocustIO(RequiredTool):
         if PY3:
             raise ValueError("LocustIO is not currently compatible with Python 3.x")
         try:
-            import locust
+            find_module("locust")
             self.already_installed = True
         except ImportError:
             self.log.error("LocustIO is not installed, see http://docs.locust.io/en/latest/installation.html")
@@ -140,4 +140,4 @@ class LocustIO(RequiredTool):
         return True
 
     def install(self):
-        raise NotImplementedError()
+        raise RuntimeError("Unable to locate locustio package. Please install it like this: pip install locustio")
