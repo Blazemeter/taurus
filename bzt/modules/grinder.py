@@ -15,21 +15,20 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import os
 import time
 import subprocess
+
+import os
 import re
 import shutil
 import tempfile
 
-import urwid
-
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.utils import shell_exec, ProgressBarContext
-from bzt.utils import unzip, humanize_time, RequiredTool, JavaVM, shutdown_process
+from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process
 from bzt.six import iteritems, request
-from bzt.modules.console import WidgetProvider
+from bzt.modules.console import WidgetProvider, SidebarWidget
 
 
 class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
@@ -266,7 +265,8 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def get_widget(self):
         if not self.widget:
-            self.widget = GrinderWidget(self)
+            script_name = os.path.basename(self.script) if self.script else None
+            self.widget = SidebarWidget(self, script_name)
         return self.widget
 
     def resource_files(self):
@@ -410,54 +410,6 @@ class DataLogReader(ResultsReader):
         for _ix, field in enumerate(header):
             self.idx[field.strip()] = _ix
         return True
-
-
-class GrinderWidget(urwid.Pile):
-    """
-    Progress sidebar widget
-
-    :type executor: bzt.modules.grinder.GrinderExecutor
-    """
-
-    def __init__(self, executor):
-        self.executor = executor
-        self.dur = executor.get_load().duration
-        widgets = []
-        if self.executor.script:
-            self.script_name = urwid.Text("Script: %s" % os.path.basename(self.executor.script))
-            widgets.append(self.script_name)
-        if self.dur:
-            self.progress = urwid.ProgressBar('pb-en', 'pb-dis', done=self.dur)
-        else:
-            self.progress = urwid.Text("Running...")
-        widgets.append(self.progress)
-        self.elapsed = urwid.Text("Elapsed: N/A")
-        self.eta = urwid.Text("ETA: N/A", align=urwid.RIGHT)
-        widgets.append(urwid.Columns([self.elapsed, self.eta]))
-        super(GrinderWidget, self).__init__(widgets)
-
-    def update(self):
-        """
-        Refresh widget values
-        """
-        if self.executor.start_time:
-            elapsed = time.time() - self.executor.start_time
-            self.elapsed.set_text("Elapsed: %s" % humanize_time(elapsed))
-
-            if self.dur:
-                eta = self.dur - elapsed
-                if eta >= 0:
-                    self.eta.set_text("ETA: %s" % humanize_time(eta))
-                else:
-                    over = elapsed - self.dur
-                    self.eta.set_text("Overtime: %s" % humanize_time(over))
-            else:
-                self.eta.set_text("")
-
-            if isinstance(self.progress, urwid.ProgressBar):
-                self.progress.set_completion(elapsed)
-
-        self._invalidate()
 
 
 class Grinder(RequiredTool):

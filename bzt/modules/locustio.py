@@ -15,24 +15,29 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import os
 from subprocess import STDOUT
 import sys
 import math
+import time
+
+import os
 
 from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.jmeter import JTLReader
 from bzt.utils import shutdown_process, shell_exec
+from bzt.modules.console import WidgetProvider, SidebarWidget
 
 
-class LocustIOExecutor(ScenarioExecutor):
+class LocustIOExecutor(ScenarioExecutor, WidgetProvider):
     def __init__(self):
         super(LocustIOExecutor, self).__init__()
         self.locustfile = None
         self.kpi_jtl = None
         self.process = None
         self.__devnull = None
+        self.widget = None
+        self.start_time = None
 
     def prepare(self):
         # TODO: check that locust installed and tell how to install it if not present
@@ -48,6 +53,7 @@ class LocustIOExecutor(ScenarioExecutor):
             self.engine.aggregator.add_underling(reader)
 
     def startup(self):
+        self.start_time = time.time()
         load = self.get_load()
         hatch = load.concurrency / load.ramp_up if load.ramp_up else load.concurrency
 
@@ -69,7 +75,22 @@ class LocustIOExecutor(ScenarioExecutor):
         self.process = shell_exec(args, stderr=STDOUT, stdout=self.__devnull,
                                   cwd=self.engine.artifacts_dir, env=env)
 
+    def get_widget(self):
+        """
+        Add progress widget to console screen sidebar
+
+        :return:
+        """
+        if not self.widget:
+            script_name = os.path.basename(self.locustfile) if self.locustfile else None
+            self.widget = SidebarWidget(self, script_name)
+        return self.widget
+
     def check(self):
+
+        if self.widget:
+            self.widget.update()
+
         retcode = self.process.poll()
         if retcode is not None:
             self.log.info("Locust exit code: %s", retcode)
