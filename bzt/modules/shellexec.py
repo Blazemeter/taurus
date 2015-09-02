@@ -96,8 +96,8 @@ class Task(object):
         self.command = config.get("command", ValueError("Parameter is required: command"))
         self.is_background = config.get("background", False)
         self.ignore_failure = config.get("ignore-failure", False)
-        self.err = config.get("out", subprocess.PIPE)
-        self.out = config.get("err", subprocess.PIPE)
+        self.err = config.get("err", subprocess.PIPE)
+        self.out = config.get("out", subprocess.PIPE)
         self.process = None
         self.ret_code = None
 
@@ -137,21 +137,23 @@ class Task(object):
             return
 
         self.ret_code = self.process.poll()
-        if self.ret_code is not None:
-            stdout, stderr = self.process.communicate()
-            if stdout and self.out == subprocess.PIPE:
-                self.log.debug("Output for %s:\n%s", self, stdout)
+        if self.ret_code is None:
+            self.log.debug('Task: %s is not finished yet', self)
+            return False
 
-            if stderr and self.err == subprocess.PIPE:
-                self.log.warning("Errors for %s:\n%s", self, stderr)
+        stdout, stderr = self.process.communicate()
+        if stdout and (self.out == subprocess.PIPE):
+            self.log.debug("Output for %s:\n%s", self, stdout)
 
-            self.log.debug("Task: %s was finished with exit code: %s", self, self.ret_code)
-            if not self.ignore_failure and self.ret_code != 0:
+        if stderr and (self.err == subprocess.PIPE):
+            self.log.warning("Errors for %s:\n%s", self, stderr)
+
+        self.log.debug("Task was finished with exit code %s: %s", self.ret_code, self)
+        if not self.ignore_failure and self.ret_code != 0:
+            if self.out != subprocess.PIPE:
                 self.log.warning("Output for %s:\n%s", self, stdout)
-                raise CalledProcessError(self.ret_code, self)
-            return True
-        self.log.debug('Task: %s is not finished yet', self)
-        return False
+            raise CalledProcessError(self.ret_code, self)
+        return True
 
     def shutdown(self):
         """
@@ -162,7 +164,7 @@ class Task(object):
         self.check()
 
         if self.ret_code is None:
-            self.log.info("Background task %s was not completed, shutting it down", self)
+            self.log.info("Background task was not completed, shutting it down: %s", self)
             shutdown_process(self.process, self.log)
         self.process = None
 
