@@ -117,11 +117,10 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider):
         self.check_tools(required_tools)
 
     def check_tools(self, required_tools):
-        if self.engine.config.get('provisioning', "") != 'test':
-            for tool in required_tools:
-                if not tool.check_if_installed():
-                    self.log.info("Installing %s", tool.tool_name)
-                    tool.install()
+        for tool in required_tools:
+            if not tool.check_if_installed():
+                self.log.info("Installing %s", tool.tool_name)
+                tool.install()
 
 class LocustIO(RequiredTool):
     def __init__(self, parent_logger):
@@ -129,8 +128,6 @@ class LocustIO(RequiredTool):
         super(LocustIO, self).__init__("LocustIO", "", "")
 
     def check_if_installed(self):
-        if PY3:
-            raise RuntimeError("LocustIO is not currently compatible with Python 3.x")
         try:
             find_module("locust")
             self.already_installed = True
@@ -140,4 +137,6 @@ class LocustIO(RequiredTool):
         return True
 
     def install(self):
+        if PY3:
+            raise RuntimeError("LocustIO is not currently compatible with Python 3.x")
         raise RuntimeError("Unable to locate locustio package. Please install it like this: pip install locustio")
