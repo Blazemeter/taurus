@@ -574,10 +574,12 @@ def is_int(str_val):
 
 
 def shutdown_process(process_obj, log_obj):
+    count = 60
     while process_obj and process_obj.poll() is None:
-        # TODO: find a way to have graceful shutdown, then kill
         log_obj.info("Terminating process PID: %s", process_obj.pid)
         time.sleep(1)
+        count -= 1
+        kill_signal = signal.SIGTERM if count > 0 else signal.SIGKILL
         try:
             if platform.system() == 'Windows':
                 cur_pids = psutil.pids()
@@ -585,10 +587,10 @@ def shutdown_process(process_obj, log_obj):
                     jm_proc = psutil.Process(process_obj.pid)
                     for child_proc in jm_proc.children(recursive=True):
                         log_obj.debug("Terminating child process: %d", child_proc.pid)
-                        child_proc.send_signal(signal.SIGTERM)
-                    os.kill(process_obj.pid, signal.SIGTERM)
+                        child_proc.send_signal(kill_signal)
+                    os.kill(process_obj.pid, kill_signal)
             else:
-                os.killpg(process_obj.pid, signal.SIGTERM)
+                os.killpg(process_obj.pid, kill_signal)
         except OSError as exc:
             log_obj.debug("Failed to terminate process: %s", exc)
 
