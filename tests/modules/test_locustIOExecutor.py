@@ -14,7 +14,7 @@ class TestLocustIOExecutor(BZTestCase):
 
         obj = LocustIOExecutor()
         obj.engine = EngineEmul()
-        obj.engine.config['provisioning'] = 'local'
+        obj.engine.config['provisioning'] = 'test'
         obj.execution.merge({
             "concurrency": 1,
             "iterations": 10,
@@ -24,9 +24,9 @@ class TestLocustIOExecutor(BZTestCase):
             }
         })
 
+        obj.prepare()
+        obj.startup()
         try:
-            obj.prepare()
-            obj.startup()
             while not obj.check():
                 time.sleep(obj.engine.check_interval)
         except RuntimeError:  # FIXME: not good, but what to do?
@@ -37,7 +37,7 @@ class TestLocustIOExecutor(BZTestCase):
     def test_locust_widget(self):
         obj = LocustIOExecutor()
         obj.engine = EngineEmul()
-        obj.engine.config['provisioning'] = 'local'
+        obj.engine.config['provisioning'] = 'test'
         obj.execution.merge({
             "concurrency": 1,
             "iterations": 10,
@@ -47,11 +47,11 @@ class TestLocustIOExecutor(BZTestCase):
                 "script": __dir__() + "/../locust/simple.py"
             }
         })
-        if not six.PY3:
-            obj.prepare()
-            obj.startup()
-            obj.get_widget()
-            obj.check()
-            self.assertEqual(obj.widget.duration, 30)
-            self.assertTrue(obj.widget.widgets[0].text.endswith("simple.py"))
-            obj.shutdown()
+
+        obj.prepare()
+        obj.startup()
+        obj.get_widget()
+        obj.check()
+        self.assertEqual(obj.widget.duration, 30)
+        self.assertTrue(obj.widget.widgets[0].text.endswith("simple.py"))
+        obj.shutdown()

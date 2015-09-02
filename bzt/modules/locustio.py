@@ -117,10 +117,11 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider):
         self.check_tools(required_tools)
 
     def check_tools(self, required_tools):
-        for tool in required_tools:
-            if not tool.check_if_installed():
-                self.log.info("Installing %s", tool.tool_name)
-                tool.install()
+        if self.engine.config.get('provisioning') != 'test':
+            for tool in required_tools:
+                if not tool.check_if_installed():
+                    self.log.info("Installing %s", tool.tool_name)
+                    tool.install()
 
 class LocustIO(RequiredTool):
     def __init__(self, parent_logger):
