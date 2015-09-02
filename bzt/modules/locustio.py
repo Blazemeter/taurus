@@ -22,7 +22,7 @@ import time
 import os
 
 from bzt.engine import ScenarioExecutor
-from bzt.modules.aggregator import ConsolidatingAggregator
+from bzt.modules.aggregator import ConsolidatingAggregator, ResultsProvider
 from bzt.modules.jmeter import JTLReader
 from bzt.utils import shutdown_process, shell_exec
 from bzt.modules.console import WidgetProvider, SidebarWidget
@@ -34,20 +34,28 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider):
         self.locustfile = None
         self.kpi_jtl = None
         self.process = None
-        self.__devnull = None
+        self.__out = None
         self.widget = None
         self.start_time = None
+        self.is_master = False
+        self.slaves_ldjson = None
 
     def prepare(self):
         # TODO: check that locust installed and tell how to install it if not present
         scenario = self.get_scenario()
         self.locustfile = scenario.get("script", ValueError("Please specify locusfile in 'script' option"))
+        self.is_master = self.execution.get("master", self.is_master)
         if not os.path.exists(self.locustfile):
             raise ValueError("Locust file not found: %s" % self.locustfile)
         self.engine.existing_artifact(self.locustfile)
 
-        self.kpi_jtl = self.engine.create_artifact("kpi", ".jtl")
-        reader = JTLReader(self.kpi_jtl, self.log, None)
+        if self.is_master:
+            self.slaves_ldjson = self.engine.create_artifact("locust-slaves", ".ldjson")
+            reader = SlavesReader(self.slaves_ldjson, self.log)
+        else:
+            self.kpi_jtl = self.engine.create_artifact("kpi", ".jtl")
+            reader = JTLReader(self.kpi_jtl, self.log, None)
+
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(reader)
 
@@ -65,13 +73,20 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider):
         if load.iterations:
             args.append("--num-request=%d" % load.iterations)
 
+        if self.is_master:
+            args.append("--master")
+
         host = self.get_scenario().get("default-address", None)
         if host:
             args.append("--host=%s" % host)
 
-        self.__devnull = open(self.engine.create_artifact("locust", ".out"), 'w')
-        env = {"JTL": self.kpi_jtl, "PYTHONPATH": self.engine.artifacts_dir + os.pathsep + os.getcwd()}
-        self.process = shell_exec(args, stderr=STDOUT, stdout=self.__devnull, env=env)
+        self.__out = open(self.engine.create_artifact("locust", ".out"), 'w')
+        env = {
+            "JTL": self.kpi_jtl,
+            "SLAVES_LDJSON": self.slaves_ldjson,
+            "PYTHONPATH": self.engine.artifacts_dir + os.pathsep + os.getcwd()
+        }
+        self.process = shell_exec(args, stderr=STDOUT, stdout=self.__out, env=env)
 
     def get_widget(self):
         """
@@ -104,4 +119,10 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider):
 
     def shutdown(self):
         shutdown_process(self.process, self.log)
-        self.__devnull.close()
+        if self.__out:
+            self.__out.close()
+
+
+class SlavesReader(ResultsProvider):
+    def _calculate_datapoints(self, final_pass=False):
+        pass

@@ -1,10 +1,13 @@
 #! /usr/bin/env python2
 import csv
+import json
+import logging
 import os
 import time
 from requests.exceptions import HTTPError
 
 from locust import main, events, runners
+from locust.stats import StatsEntry
 
 fname = os.environ.get("JTL")
 if not fname:
@@ -51,8 +54,22 @@ if __name__ == '__main__':
             fhd.flush()
 
 
+        def on_slave_report(client_id, data):
+            logging.info("Data from %s: %s", client_id, json.dumps(data))
+            for stats_data in data["stats"]:
+                entry = StatsEntry.unserialize(stats_data)
+                logging.info("Request: %s", json.dumps(stats_data))
+                #for _x in range(0, entry.num_requests):
+                #    writer.writerow(getrec(entry.method, entry.name, entry.avg_response_time, entry.avg_content_length))
+                fhd.flush()
+
+            for error_key, error in data["errors"].iteritems():
+                logging.info("Error: %s %s", error_key, error)
+
+
         events.request_success += on_request_success
         events.request_failure += on_request_failure
+        events.slave_report += on_slave_report
 
         main.main()
         fhd.flush()
