@@ -39,7 +39,7 @@ class ShellExecutor(EngineModule):
 
         for index, stage_task in enumerate(self.parameters[stage]):
             stage_task = ensure_is_dict(self.parameters[stage], index, "command")
-            container.append(Task(self.parameters[stage][index], self.log, self.engine.artifacts_dir))
+            container.append(Task(self.parameters[stage][index], self.log, os.getcwd()))
             self.log.debug("Added task: %s, stage: %s", stage_task, stage)
 
     def prepare(self):
@@ -139,10 +139,10 @@ class Task(object):
         self.ret_code = self.process.poll()
         if self.ret_code is not None:
             stdout, stderr = self.process.communicate()
-            if stdout:
+            if stdout and self.out == subprocess.PIPE:
                 self.log.debug("Output for %s:\n%s", self, stdout)
 
-            if stderr:
+            if stderr and self.err == subprocess.PIPE:
                 self.log.warning("Errors for %s:\n%s", self, stderr)
 
             self.log.debug("Task: %s was finished with exit code: %s", self, self.ret_code)
