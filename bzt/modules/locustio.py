@@ -41,7 +41,6 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider):
         self.start_time = None
 
     def prepare(self):
-        # TODO: check that locust installed and tell how to install it if not present
         self.run_checklist()
         scenario = self.get_scenario()
         self.locustfile = scenario.get("script", ValueError("Please specify locusfile in 'script' option"))
@@ -130,7 +129,7 @@ class LocustIO(RequiredTool):
 
     def check_if_installed(self):
         if PY3:
-            raise ValueError("LocustIO is not currently compatible with Python 3.x")
+            raise RuntimeError("LocustIO is not currently compatible with Python 3.x")
         try:
             find_module("locust")
             self.already_installed = True
