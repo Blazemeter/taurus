@@ -30,6 +30,7 @@ from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.six import PY3
 from imp import find_module
 
+
 class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     def __init__(self):
         super(LocustIOExecutor, self).__init__()
@@ -102,9 +103,6 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         return False
 
     def resource_files(self):
-        """
-        Get list of resource files, copy resource files to artifacts dir, modify jmx
-        """
         if not self.locustfile:
             self.locustfile = self.get_locust_file()
         shutil.copy2(self.locustfile, self.engine.artifacts_dir)
@@ -134,6 +132,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             if not tool.check_if_installed():
                 self.log.info("Installing %s", tool.tool_name)
                 tool.install()
+
 
 class LocustIO(RequiredTool):
     def __init__(self, parent_logger):

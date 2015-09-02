@@ -6,6 +6,7 @@ from bzt.modules.locustio import LocustIOExecutor
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul
 import sys
+import os
 
 
 class TestLocustIOExecutor(BZTestCase):
@@ -75,3 +76,4 @@ class TestLocustIOExecutor(BZTestCase):
         })
         resource_files = obj.resource_files()
         self.assertEqual(1, len(resource_files))
+        self.assertEqual(1, len(os.listdir(obj.engine.artifacts_dir)))
