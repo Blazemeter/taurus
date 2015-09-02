@@ -20,12 +20,14 @@ import sys
 import math
 import time
 import os
+from imp import find_module
 
 from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsProvider
 from bzt.modules.jmeter import JTLReader
-from bzt.utils import shutdown_process, shell_exec
+from bzt.utils import shutdown_process, shell_exec, RequiredTool
 from bzt.modules.console import WidgetProvider, SidebarWidget
+from bzt.six import PY3
 
 
 class LocustIOExecutor(ScenarioExecutor, WidgetProvider):
@@ -41,7 +43,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider):
         self.slaves_ldjson = None
 
     def prepare(self):
-        # TODO: check that locust installed and tell how to install it if not present
+        self.__check_installed()
         scenario = self.get_scenario()
         self.locustfile = scenario.get("script", ValueError("Please specify locusfile in 'script' option"))
         self.is_master = self.execution.get("master", self.is_master)
@@ -58,6 +60,12 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider):
 
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(reader)
+
+    def __check_installed(self):
+        tool = LocustIO(self.log)
+        if not tool.check_if_installed():
+            self.log.info("Installing %s", tool.tool_name)
+            tool.install()
 
     def startup(self):
         self.start_time = time.time()
@@ -123,6 +131,30 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider):
             self.__out.close()
 
 
+class LocustIO(RequiredTool):
+    def __init__(self, parent_logger):
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        super(LocustIO, self).__init__("LocustIO", "", "")
+
+    def check_if_installed(self):
+        try:
+            find_module("locust")
+            self.already_installed = True
+        except ImportError:
+            self.log.error("LocustIO is not installed, see http://docs.locust.io/en/latest/installation.html")
+            return False
+        return True
+
+    def install(self):
+        if PY3:
+            raise RuntimeError("LocustIO is not currently compatible with Python 3.x")
+        raise RuntimeError("Unable to locate locustio package. Please install it like this: pip install locustio")
+
+
 class SlavesReader(ResultsProvider):
+    def __init__(self, filename, parent_logger):
+        super(SlavesReader, self).__init__()
+        self.log = parent_logger.getChild(self.__class__.__name__)
+
     def _calculate_datapoints(self, final_pass=False):
         pass

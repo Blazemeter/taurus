@@ -5,9 +5,13 @@ from bzt import six
 from bzt.modules.locustio import LocustIOExecutor
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul
+import sys
 
 
 class TestLocustIOExecutor(BZTestCase):
+    def setUp(self):
+        sys.path.append(__dir__() + "/../locust/")
+
     def test_simple(self):
         if six.PY3:
             logging.warning("No locust available for python 3")
