@@ -70,11 +70,11 @@ class ShellExecutor(EngineModule):
         return super(ShellExecutor, self).check()
 
     def shutdown(self):
-        for task in self.check_tasks + self.startup_tasks:
-            task.shutdown()
-
         for task in self.shutdown_tasks:
             task.start()
+
+        for task in self.check_tasks + self.startup_tasks:
+            task.shutdown()
 
     def post_process(self):
         for task in self.shutdown_tasks + self.check_tasks + self.startup_tasks + self.prepare_tasks:
