@@ -106,7 +106,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if not self.locustfile:
             self.locustfile = self.get_locust_file()
         shutil.copy2(self.locustfile, self.engine.artifacts_dir)
-        return [self.locustfile]
+        return [os.path.basename(self.locustfile)]
 
     def get_locust_file(self):
         scenario = self.get_scenario()
