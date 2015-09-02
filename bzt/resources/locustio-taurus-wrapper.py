@@ -1,17 +1,11 @@
 #! /usr/bin/env python2
 import csv
 import json
-import logging
 import os
 import time
 from requests.exceptions import HTTPError
 
 from locust import main, events, runners
-from locust.stats import StatsEntry
-
-fname = os.environ.get("JTL")
-if not fname:
-    raise ValueError("Please specify JTL environment variable")
 
 
 def getrec(request_type, name, response_time, response_length, exc=None):
@@ -38,10 +32,22 @@ def getrec(request_type, name, response_time, response_length, exc=None):
 
 
 if __name__ == '__main__':
+    if os.getenv("SLAVES_LDJSON"):
+        fname = os.getenv("SLAVES_LDJSON")
+        is_csv = False
+    elif os.getenv("JTL"):
+        fname = os.getenv("JTL")
+        is_csv = True
+    else:
+        raise ValueError("Please specify JTL or SLAVES_LDJSON environment variable")
+
     with open(fname, 'wt') as fhd:
-        writer = csv.DictWriter(fhd, getrec(None, None, None, None).keys())
-        writer.writeheader()
-        fhd.flush()
+        if is_csv:
+            writer = csv.DictWriter(fhd, getrec(None, None, None, None).keys())
+            writer.writeheader()
+            fhd.flush()
+        else:
+            writer = None  # FIXME: bad code design, have zero object for it
 
 
         def on_request_success(request_type, name, response_time, response_length):
@@ -55,16 +61,10 @@ if __name__ == '__main__':
 
 
         def on_slave_report(client_id, data):
-            logging.info("Data from %s: %s", client_id, json.dumps(data))
-            for stats_data in data["stats"]:
-                entry = StatsEntry.unserialize(stats_data)
-                logging.info("Request: %s", json.dumps(stats_data))
-                #for _x in range(0, entry.num_requests):
-                #    writer.writerow(getrec(entry.method, entry.name, entry.avg_response_time, entry.avg_content_length))
+            if data['stats'] or data['errors']:
+                data['client_id'] = client_id
+                fhd.write("%s\n" % json.dumps(data))
                 fhd.flush()
-
-            for error_key, error in data["errors"].iteritems():
-                logging.info("Error: %s %s", error_key, error)
 
 
         events.request_success += on_request_success

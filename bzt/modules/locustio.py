@@ -64,7 +64,6 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider):
     def __check_installed(self):
         tool = LocustIO(self.log)
         if not tool.check_if_installed():
-            self.log.info("Installing %s", tool.tool_name)
             tool.install()
 
     def startup(self):
@@ -72,9 +71,14 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider):
         load = self.get_load()
         hatch = load.concurrency / load.ramp_up if load.ramp_up else load.concurrency
         wrapper = os.path.join(os.path.dirname(__file__), os.pardir, "resources", "locustio-taurus-wrapper.py")
-        args = [sys.executable, ]
-        args += [os.path.realpath(wrapper), ]
-        args += ['-f', os.path.realpath(self.locustfile)]
+
+        env = {
+            "PYTHONPATH": self.engine.artifacts_dir + os.pathsep + os.getcwd()
+        }
+        if os.getenv("PYTHONPATH"):
+            env['PYTHONPATH'] = os.getenv("PYTHONPATH") + os.pathsep + env['PYTHONPATH']
+
+        args = [sys.executable, os.path.realpath(wrapper), '-f', os.path.realpath(self.locustfile)]
         args += ['--logfile=%s' % self.engine.create_artifact("locust", ".log")]
         args += ["--no-web", "--only-summary", ]
         args += ["--clients=%d" % load.concurrency, "--hatch-rate=%d" % math.ceil(hatch), ]
@@ -83,17 +87,15 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider):
 
         if self.is_master:
             args.append("--master")
+            env["SLAVES_LDJSON"] = self.slaves_ldjson
+        else:
+            env["JTL"] = self.kpi_jtl
 
         host = self.get_scenario().get("default-address", None)
         if host:
             args.append("--host=%s" % host)
 
         self.__out = open(self.engine.create_artifact("locust", ".out"), 'w')
-        env = {
-            "JTL": self.kpi_jtl,
-            "SLAVES_LDJSON": self.slaves_ldjson,
-            "PYTHONPATH": self.engine.artifacts_dir + os.pathsep + os.getcwd()
-        }
         self.process = shell_exec(args, stderr=STDOUT, stdout=self.__out, env=env)
 
     def get_widget(self):
@@ -157,4 +159,4 @@ class SlavesReader(ResultsProvider):
         self.log = parent_logger.getChild(self.__class__.__name__)
 
     def _calculate_datapoints(self, final_pass=False):
-        pass
+        return []
