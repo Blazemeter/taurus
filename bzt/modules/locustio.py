@@ -117,7 +117,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider):
         self.check_tools(required_tools)
 
     def check_tools(self, required_tools):
-        if self.engine.config.get('provisioning') != 'test':
+        if self.engine.config.get('provisioning', "") != 'test':
             for tool in required_tools:
                 if not tool.check_if_installed():
                     self.log.info("Installing %s", tool.tool_name)
