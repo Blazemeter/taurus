@@ -305,6 +305,31 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
             self.assertIn("Nothing to test", exc.args[0])
         obj.shutdown()
 
+    def test_resource_files_collection_remote_java(self):
+        obj = SeleniumExecutor()
+        obj.engine = self.engine_obj
+        obj.settings = self.selenium_config
+        obj.engine.config.merge(yaml.load(open("tests/yaml/selenium_executor_java.yml").read()))
+        obj.engine.config.merge({"provisioning": "local"})
+        obj.execution = obj.engine.config['execution']
+        obj.settings.merge(obj.engine.config.get("modules").get("selenium"))
+
+        res_files = obj.resource_files()
+        res_artifacts = os.listdir(os.path.join(obj.engine.artifacts_dir, res_files))
+        self.assertEqual(len(res_artifacts), 2)
+
+    def test_resource_files_collection_remote_jar(self):
+        obj = SeleniumExecutor()
+        obj.engine = self.engine_obj
+        obj.settings = self.selenium_config
+        obj.engine.config.merge(yaml.load(open("tests/yaml/selenium_executor_jar.yml").read()))
+        obj.engine.config.merge({"provisioning": "local"})
+        obj.execution = obj.engine.config['execution']
+        obj.settings.merge(obj.engine.config.get("modules").get("selenium"))
+
+        res_files = obj.resource_files()
+        res_artifacts = os.listdir(os.path.join(obj.engine.artifacts_dir, res_files))
+        self.assertEqual(len(res_artifacts), 2)
 
 class TestSeleniumNoseRunner(BZTestCase):
     def test_selenium_prepare_python_single(self):
@@ -403,6 +428,17 @@ class TestSeleniumNoseRunner(BZTestCase):
         except RuntimeError as exc:
             self.assertIn("Nothing to test.", exc.args[0])
         obj.shutdown()
+
+    def test_resource_files_collection_remote_nose(self):
+        obj = SeleniumExecutor()
+        obj.engine = EngineEmul()
+        obj.execution = BetterDict()
+        obj.execution.merge({"scenario": {"script": ABS_PATH("/../../tests/selenium/python/")}})
+        obj.settings.merge(obj.engine.config.get("modules").get("selenium"))
+
+        res_files = obj.resource_files()
+        res_artifacts = os.listdir(os.path.join(obj.engine.artifacts_dir, res_files))
+        self.assertEqual(len(res_artifacts), 2)
 
 
 class TestSeleniumStuff(SeleniumTestCase):
@@ -508,3 +544,4 @@ class TestSeleniumStuff(SeleniumTestCase):
             reader = csv.reader(kpi_fds)
             rows = list(reader)
         self.assertEqual(len(rows), 3)
+
