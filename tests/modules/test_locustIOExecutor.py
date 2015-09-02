@@ -1,11 +1,11 @@
 import logging
 import time
+import sys
 
 from bzt import six
-from bzt.modules.locustio import LocustIOExecutor
+from bzt.modules.locustio import LocustIOExecutor, SlavesReader
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul
-import sys
 
 
 class TestLocustIOExecutor(BZTestCase):
@@ -89,3 +89,8 @@ class TestLocustIOExecutor(BZTestCase):
         obj.check()
         obj.shutdown()
         obj.post_process()
+
+    def test_locust_slave_results(self):
+        obj = SlavesReader(__dir__() + "/../locust/locust-slaves.ldjson", logging.getLogger(""))
+        points = [x for x in obj.datapoints(True)]
+        self.assertEquals(14, len(points))

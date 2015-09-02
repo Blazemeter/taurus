@@ -41,12 +41,17 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider):
         self.start_time = None
         self.is_master = False
         self.slaves_ldjson = None
+        self.expected_slaves = 0
 
     def prepare(self):
         self.__check_installed()
         scenario = self.get_scenario()
         self.locustfile = scenario.get("script", ValueError("Please specify locusfile in 'script' option"))
         self.is_master = self.execution.get("master", self.is_master)
+        if self.is_master:
+            slaves = self.execution.get("slaves", ValueError("Slaves count required when starting in master mode"))
+            self.expected_slaves = int(slaves)
+
         if not os.path.exists(self.locustfile):
             raise ValueError("Locust file not found: %s" % self.locustfile)
         self.engine.existing_artifact(self.locustfile)
@@ -86,7 +91,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider):
             args.append("--num-request=%d" % load.iterations)
 
         if self.is_master:
-            args.append("--master")
+            args.extend(["--master", '--expect-slaves=%s' % self.expected_slaves])
             env["SLAVES_LDJSON"] = self.slaves_ldjson
         else:
             env["JTL"] = self.kpi_jtl
