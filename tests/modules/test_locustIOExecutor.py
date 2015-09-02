@@ -76,4 +76,3 @@ class TestLocustIOExecutor(BZTestCase):
         })
         resource_files = obj.resource_files()
         self.assertEqual(1, len(resource_files))
-        self.assertEqual(1, len(os.listdir(obj.engine.artifacts_dir)))

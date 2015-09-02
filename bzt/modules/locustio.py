@@ -19,7 +19,6 @@ from subprocess import STDOUT
 import sys
 import math
 import time
-import shutil
 import os
 
 from bzt.engine import ScenarioExecutor, FileLister
@@ -105,7 +104,6 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     def resource_files(self):
         if not self.locustfile:
             self.locustfile = self.get_locust_file()
-        shutil.copy2(self.locustfile, self.engine.artifacts_dir)
         return [os.path.basename(self.locustfile)]
 
     def get_locust_file(self):
