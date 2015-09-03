@@ -19,10 +19,9 @@ from subprocess import STDOUT
 import sys
 import math
 import time
-
 import os
 
-from bzt.engine import ScenarioExecutor
+from bzt.engine import ScenarioExecutor, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.jmeter import JTLReader
 from bzt.utils import shutdown_process, shell_exec, RequiredTool
@@ -30,7 +29,8 @@ from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.six import PY3
 from imp import find_module
 
-class LocustIOExecutor(ScenarioExecutor, WidgetProvider):
+
+class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     def __init__(self):
         super(LocustIOExecutor, self).__init__()
         self.locustfile = None
@@ -42,10 +42,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider):
 
     def prepare(self):
         self.run_checklist()
-        scenario = self.get_scenario()
-        self.locustfile = scenario.get("script", ValueError("Please specify locusfile in 'script' option"))
-        if not os.path.exists(self.locustfile):
-            raise ValueError("Locust file not found: %s" % self.locustfile)
+        self.locustfile = self.get_locust_file()
         self.engine.existing_artifact(self.locustfile)
 
         self.kpi_jtl = self.engine.create_artifact("kpi", ".jtl")
@@ -104,6 +101,18 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider):
 
         return False
 
+    def resource_files(self):
+        if not self.locustfile:
+            self.locustfile = self.get_locust_file()
+        return [os.path.basename(self.locustfile)]
+
+    def get_locust_file(self):
+        scenario = self.get_scenario()
+        locustfile = scenario.get("script", ValueError("Please specify locusfile in 'script' option"))
+        if not os.path.exists(locustfile):
+            raise ValueError("Locust file not found: %s" % locustfile)
+        return locustfile
+
     def shutdown(self):
         shutdown_process(self.process, self.log)
         self.__devnull.close()
@@ -121,6 +130,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider):
             if not tool.check_if_installed():
                 self.log.info("Installing %s", tool.tool_name)
                 tool.install()
+
 
 class LocustIO(RequiredTool):
     def __init__(self, parent_logger):
