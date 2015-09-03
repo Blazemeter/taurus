@@ -39,7 +39,7 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.utils import shell_exec, ensure_is_dict, dehumanize_time, BetterDict, \
-    guess_csv_dialect, unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext
+    guess_csv_dialect, unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
 from bzt.six import iteritems, text_type, string_types, StringIO, parse, request, etree
 
 EXE_SUFFIX = ".bat" if platform.system() == 'Windows' else ""
@@ -716,6 +716,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         required_tools = []
         required_tools.append(JavaVM("", "", self.log))
+        required_tools.append(TclLibrary(self.log))
 
         jmeter_path = self.settings.get("path", "~/.bzt/jmeter-taurus/bin/jmeter")
         if EXE_SUFFIX and not jmeter_path.lower().endswith(EXE_SUFFIX):
