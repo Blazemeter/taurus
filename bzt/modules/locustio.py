@@ -15,6 +15,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import json
 from subprocess import STDOUT
 import sys
 import math
@@ -58,7 +59,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider):
 
         if self.is_master:
             self.slaves_ldjson = self.engine.create_artifact("locust-slaves", ".ldjson")
-            reader = SlavesReader(self.slaves_ldjson, self.log)
+            reader = SlavesReader(self.slaves_ldjson, self.expected_slaves, self.log)
         else:
             self.kpi_jtl = self.engine.create_artifact("kpi", ".jtl")
             reader = JTLReader(self.kpi_jtl, self.log, None)
@@ -159,9 +160,48 @@ class LocustIO(RequiredTool):
 
 
 class SlavesReader(ResultsProvider):
-    def __init__(self, filename, parent_logger):
+    def __init__(self, filename, num_slaves, parent_logger):
+        """
+        :type filename: str
+        :type num_slaves: int
+        :type parent_logger: logging.Logger
+        """
         super(SlavesReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
+        self.filename = filename
+        self.join_buffer = {}
+        self.num_slaves = num_slaves
+        self.fds = None
+        self.read_buffer = ""
 
     def _calculate_datapoints(self, final_pass=False):
+        if not self.fds:
+            self.__open_file()
+
+        if self.fds:
+            self.read_buffer += self.fds.read(1024 * 1024)
+            while "\n" in self.read_buffer:
+                _line = self.read_buffer[:self.read_buffer.index("\n") + 1]
+                self.read_buffer = self.read_buffer[len(_line):]
+                self.fill_join_buffer(json.loads(_line))
+
         return []
+
+    def __del__(self):
+        if self.fds:
+            self.fds.close()
+
+    def __open_file(self):
+        if os.path.exists(self.filename):
+            self.log.debug("Opening %s", self.filename)
+            self.fds = open(self.filename, 'rb')
+        else:
+            self.log.debug("File not exists: %s", self.filename)
+
+    def fill_join_buffer(self, data):
+        self.log.debug("Got slave data: %s", data)
+        for stats_item in data['stats']:
+            for ts in stats_item['num_reqs_per_sec'].keys():
+                if ts not in self.join_buffer:
+                    self.join_buffer[ts] = {}
+                self.join_buffer[ts][data['client_id']] = data
