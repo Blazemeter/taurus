@@ -10,7 +10,7 @@ import subprocess
 
 import urwid
 
-from bzt.engine import ScenarioExecutor, Scenario
+from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.utils import RequiredTool, shell_exec, shutdown_process, BetterDict, JavaVM
 from bzt.six import string_types, text_type
 from bzt.modules.aggregator import ConsolidatingAggregator
@@ -18,7 +18,7 @@ from bzt.modules.console import WidgetProvider
 from bzt.modules.jmeter import JTLReader
 
 
-class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
+class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     """
     Selenium executor
     """
@@ -41,6 +41,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
         self.widget = None
         self.reader = None
         self.kpi_file = None
+        self.runner_working_dir = None
 
     def prepare(self):
         """
@@ -50,7 +51,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
         """
         scenario = self.get_scenario()
         self.kpi_file = self.engine.create_artifact("selenium_tests_report", ".csv")
-        script_type, script_is_folder = self.detect_script_type(scenario.get("script"))
+        script_type = self.detect_script_type(scenario.get("script"))
         runner_config = BetterDict()
 
         if script_type == ".py":
@@ -62,26 +63,35 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
             runner_config = self.settings.get("selenium-tools").get("junit")
 
         runner_config["script-type"] = script_type
-        runner_working_dir = self.engine.create_artifact(runner_config.get("working-dir", "classes"), "")
-        runner_config["working-dir"] = runner_working_dir
+        self.runner_working_dir = self.engine.create_artifact(runner_config.get("working-dir", "classes"), "")
+        runner_config["working-dir"] = self.runner_working_dir
         runner_config.get("artifacts-dir", self.engine.artifacts_dir)
-        runner_config.get("working-dir", runner_working_dir)
+        runner_config.get("working-dir", self.runner_working_dir)
         runner_config.get("report-file", self.kpi_file)
         runner_config.get("stdout", self.engine.create_artifact("junit", ".out"))
         runner_config.get("stderr", self.engine.create_artifact("junit", ".err"))
 
-        if Scenario.SCRIPT in scenario:
-            if script_is_folder:
-                shutil.copytree(scenario.get("script"), runner_working_dir)
-            else:
-                os.makedirs(runner_working_dir)
-                shutil.copy2(scenario.get("script"), runner_working_dir)
+        self._cp_resource_files(self.runner_working_dir)
 
         self.runner = self.runner(runner_config, scenario, self.log)
         self.runner.prepare()
         self.reader = JTLReader(self.kpi_file, self.log, None)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
+
+    def _cp_resource_files(self, runner_working_dir):
+        """
+        :return:
+        """
+        scenario = self.get_scenario()
+        script = scenario.get("script")
+
+        if Scenario.SCRIPT in self.get_scenario():
+            if os.path.isdir(script):
+                shutil.copytree(script, runner_working_dir)
+            else:
+                os.makedirs(runner_working_dir)
+                shutil.copy2(script, runner_working_dir)
 
     def detect_script_type(self, script_path):
         """
@@ -91,7 +101,6 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
         """
         if not isinstance(script_path, string_types) and not isinstance(script_path, text_type):
             raise RuntimeError("Nothing to test, no files were provided in scenario")
-        script_path_is_directory = False
         test_files = []
         for dir_entry in os.walk(script_path):
             if dir_entry[2]:
@@ -101,13 +110,12 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
 
         if os.path.isdir(script_path):
             file_ext = os.path.splitext(test_files[0])[1].lower()
-            script_path_is_directory = True
         else:
             file_ext = os.path.splitext(script_path)[1]
 
         if file_ext not in SeleniumExecutor.SUPPORTED_TYPES:
             raise RuntimeError("Supported tests types %s was not found" % SeleniumExecutor.SUPPORTED_TYPES)
-        return file_ext, script_path_is_directory
+        return file_ext
 
     def startup(self):
         """
@@ -148,6 +156,23 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider):
             self.widget = SeleniumWidget(self.get_scenario().get("script"), self.runner.settings.get("stdout"))
         return self.widget
 
+    def resource_files(self):
+        scenario = self.get_scenario()
+        script = scenario.get("script")
+        script_type = self.detect_script_type(script)
+
+        if script_type == ".py":
+            runner_config = self.settings.get("selenium-tools").get("nose")
+
+        elif script_type == ".jar" or script_type == ".java":
+            runner_config = self.settings.get("selenium-tools").get("junit")
+
+        if self.runner_working_dir is None:
+            self.runner_working_dir = self.engine.create_artifact(runner_config.get("working-dir", "classes"), "")
+
+        self._cp_resource_files(self.runner_working_dir)
+
+        return os.path.basename(self.runner_working_dir)
 
 class AbstractTestRunner(object):
     """
