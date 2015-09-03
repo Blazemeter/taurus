@@ -17,14 +17,22 @@ limitations under the License.
 """
 # pylint: skip-file
 
+import platform
+
+if platform.system() != 'Windows':
+    from bzt.six.fake_modules import Tkinter
+    from bzt.six.fake_modules import tkFont
+else:
+    import Tkinter
+    import tkFont
+
 import types
 import urllib
 import urllib2
 import urlparse
 import operator
 import ConfigParser
-import Tkinter
-import tkFont
+
 import UserDict
 import StringIO
 import BaseHTTPServer

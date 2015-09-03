@@ -16,6 +16,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 # pylint: skip-file
+
+import platform
+
+if platform.system() != 'Windows':
+    from bzt.six.fake_modules import tkinter
+    from bzt.six.fake_modules.tkinter import font
+else:
+    import tkinter
+    from tkinter import font
+
 import io
 import operator
 import collections
@@ -25,9 +35,8 @@ from io import IOBase
 import urllib.error
 import urllib.request
 import urllib.parse
-import tkinter
 import configparser
-from tkinter import font
+
 from http import server
 import socketserver
 
