@@ -93,4 +93,4 @@ class TestLocustIOExecutor(BZTestCase):
     def test_locust_slave_results(self):
         obj = SlavesReader(__dir__() + "/../locust/locust-slaves.ldjson", 2, logging.getLogger(""))
         points = [x for x in obj.datapoints(True)]
-        self.assertEquals(14, len(points))
+        self.assertEquals(107, len(points))

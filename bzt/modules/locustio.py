@@ -24,7 +24,7 @@ import os
 from imp import find_module
 
 from bzt.engine import ScenarioExecutor
-from bzt.modules.aggregator import ConsolidatingAggregator, ResultsProvider
+from bzt.modules.aggregator import ConsolidatingAggregator, ResultsProvider, DataPoint
 from bzt.modules.jmeter import JTLReader
 from bzt.utils import shutdown_process, shell_exec, RequiredTool
 from bzt.modules.console import WidgetProvider, SidebarWidget
@@ -194,6 +194,8 @@ class SlavesReader(ResultsProvider):
             if int(key) <= max_full_ts:
                 sec_data = self.join_buffer.pop(key)
                 self.log.debug("Processing complete second: %s", key)
+                point = DataPoint(int(key))
+                yield point
 
     def get_max_full_ts(self):
         max_full_ts = None
