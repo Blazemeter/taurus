@@ -78,9 +78,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider):
         hatch = load.concurrency / load.ramp_up if load.ramp_up else load.concurrency
         wrapper = os.path.join(os.path.dirname(__file__), os.pardir, "resources", "locustio-taurus-wrapper.py")
 
-        env = {
-            "PYTHONPATH": self.engine.artifacts_dir + os.pathsep + os.getcwd()
-        }
+        env = {"PYTHONPATH": self.engine.artifacts_dir + os.pathsep + os.getcwd()}
         if os.getenv("PYTHONPATH"):
             env['PYTHONPATH'] = os.getenv("PYTHONPATH") + os.pathsep + env['PYTHONPATH']
 
@@ -185,7 +183,24 @@ class SlavesReader(ResultsProvider):
                 self.read_buffer = self.read_buffer[len(_line):]
                 self.fill_join_buffer(json.loads(_line))
 
-        return []
+        max_full_ts = self.get_max_full_ts()
+
+        if max_full_ts is not None:
+            for point in self.merge_datapoints(max_full_ts):
+                yield point
+
+    def merge_datapoints(self, max_full_ts):
+        for key in sorted(self.join_buffer.keys(), key=lambda x: int(x)):
+            if int(key) <= max_full_ts:
+                sec_data = self.join_buffer.pop(key)
+                self.log.debug("Processing complete second: %s", key)
+
+    def get_max_full_ts(self):
+        max_full_ts = None
+        for key in sorted(self.join_buffer.keys(), key=lambda x: int(x)):
+            if len(key) >= self.num_slaves:
+                max_full_ts = int(key)
+        return max_full_ts
 
     def __del__(self):
         if self.fds:
