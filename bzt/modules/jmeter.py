@@ -1566,7 +1566,7 @@ class JTLReader(ResultsReader):
             label = row["label"]
             if self.is_distributed:
                 concur = int(row["grpThreads"])
-                trname = row["threadName"][:row["threadName"].rfind(' ')]
+                trname = row["threadName"][:row["threadName"].rfind('-')]
             else:
                 concur = int(row["allThreads"])
                 trname = ''
