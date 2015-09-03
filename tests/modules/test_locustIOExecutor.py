@@ -6,6 +6,7 @@ from bzt import six
 from bzt.modules.locustio import LocustIOExecutor, SlavesReader
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul
+import os
 
 
 class TestLocustIOExecutor(BZTestCase):
@@ -94,3 +95,19 @@ class TestLocustIOExecutor(BZTestCase):
         obj = SlavesReader(__dir__() + "/../locust/locust-slaves.ldjson", 2, logging.getLogger(""))
         points = [x for x in obj.datapoints(True)]
         self.assertEquals(107, len(points))
+
+    def test_locust_resource_files(self):
+        obj = LocustIOExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config['provisioning'] = 'local'
+        obj.execution.merge({
+            "concurrency": 1,
+            "iterations": 10,
+            "hold-for": 30,
+            "scenario": {
+                "default-address": "http://blazedemo.com",
+                "script": __dir__() + "/../locust/simple.py"
+            }
+        })
+        resource_files = obj.resource_files()
+        self.assertEqual(1, len(resource_files))

@@ -23,7 +23,7 @@ import time
 import os
 from imp import find_module
 
-from bzt.engine import ScenarioExecutor
+from bzt.engine import ScenarioExecutor, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsProvider, DataPoint
 from bzt.modules.jmeter import JTLReader
 from bzt.utils import shutdown_process, shell_exec, RequiredTool
@@ -31,7 +31,7 @@ from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.six import PY3
 
 
-class LocustIOExecutor(ScenarioExecutor, WidgetProvider):
+class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     def __init__(self):
         super(LocustIOExecutor, self).__init__()
         self.locustfile = None
@@ -46,15 +46,12 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider):
 
     def prepare(self):
         self.__check_installed()
-        scenario = self.get_scenario()
-        self.locustfile = scenario.get("script", ValueError("Please specify locusfile in 'script' option"))
+        self.locustfile = self.get_locust_file()
         self.is_master = self.execution.get("master", self.is_master)
         if self.is_master:
             slaves = self.execution.get("slaves", ValueError("Slaves count required when starting in master mode"))
             self.expected_slaves = int(slaves)
 
-        if not os.path.exists(self.locustfile):
-            raise ValueError("Locust file not found: %s" % self.locustfile)
         self.engine.existing_artifact(self.locustfile)
 
         if self.is_master:
@@ -130,6 +127,18 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider):
             return True
 
         return False
+
+    def resource_files(self):
+        if not self.locustfile:
+            self.locustfile = self.get_locust_file()
+        return [os.path.basename(self.locustfile)]
+
+    def get_locust_file(self):
+        scenario = self.get_scenario()
+        locustfile = scenario.get("script", ValueError("Please specify locusfile in 'script' option"))
+        if not os.path.exists(locustfile):
+            raise ValueError("Locust file not found: %s" % locustfile)
+        return locustfile
 
     def shutdown(self):
         shutdown_process(self.process, self.log)

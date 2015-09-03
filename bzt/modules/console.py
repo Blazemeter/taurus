@@ -14,19 +14,19 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-from abc import abstractmethod
-import re
 import sys
 import logging
 import traceback
 import math
-import copy
 import platform
 import time
 from logging import StreamHandler
 from itertools import groupby
 from datetime import datetime
 
+from abc import abstractmethod
+import re
+import copy
 from urwid.decoration import Padding
 from urwid.display_common import BaseScreen
 from urwid import Text, Pile, WEIGHT, Filler, Columns, Widget, \
@@ -607,6 +607,7 @@ class CumulativeStats(LineBox):
 
     def __init__(self):
         self.data = DataPoint(0)
+        self._start_time = None
         self.percentiles = PercentilesList(DataPoint.CUMULATIVE)
         self.avg_times = AvgTimesList(DataPoint.CUMULATIVE)
         self.rcodes = RCodesList(DataPoint.CUMULATIVE)
@@ -619,8 +620,7 @@ class CumulativeStats(LineBox):
             self.labels_pile
         ])
         padded = Padding(original_widget, align=CENTER)
-        super(CumulativeStats, self).__init__(padded,
-                                              "Cumulative Stats")
+        super(CumulativeStats, self).__init__(padded, " Cumulative Stats ")
 
     def add_data(self, data):
         """
@@ -633,6 +633,13 @@ class CumulativeStats(LineBox):
         self.avg_times.add_data(data)
         self.rcodes.add_data(data)
         self.labels_pile.add_data(data)
+
+        if not self._start_time:
+            self._start_time = data.get('ts')
+        duration = humanize_time(time.time() - self._start_time)
+
+        self.title_widget.set_text(" Cumulative Stats after %s " % duration)
+
 
 
 class PercentilesList(ListBox):
@@ -699,7 +706,6 @@ class AvgTimesList(ListBox):
                  align=RIGHT))
         self.body.append(Text(("stat-txt", "~Receive: %.3f" % recv),
                               align=RIGHT))
-
 
 class LabelsPile(Pile):
     """
