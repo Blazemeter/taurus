@@ -59,7 +59,7 @@ class TestNonBlockingTasks(TaskTestCase):
         self.obj.parameters.merge({"prepare": [task]})
         self.obj.prepare()
         self.obj.post_process()
-        self.assertIn("Background task sleep 10 was not completed, shutting it down",
+        self.assertIn("Background task was not completed, shutting it down: sleep 10",
                       self.log_recorder.info_buff.getvalue())
 
     def test_background_task_completed(self):
@@ -68,7 +68,7 @@ class TestNonBlockingTasks(TaskTestCase):
         self.obj.parameters.merge({"prepare": [task, blocking_task]})
         self.obj.prepare()
         self.obj.post_process()
-        self.assertIn("Task: sleep 1 was finished with exit code: 0", self.log_recorder.debug_buff.getvalue())
+        self.assertIn("Task was finished with exit code 0: sleep 1", self.log_recorder.debug_buff.getvalue())
 
     def test_background_task_output(self):
         task = {"command": "echo hello", "background": True}

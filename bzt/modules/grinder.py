@@ -17,6 +17,7 @@ limitations under the License.
 """
 import time
 import subprocess
+
 import os
 import re
 import shutil
@@ -25,7 +26,7 @@ import tempfile
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.utils import shell_exec, ProgressBarContext
-from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process
+from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, TclLibrary
 from bzt.six import iteritems, request
 from bzt.modules.console import WidgetProvider, SidebarWidget
 
@@ -246,12 +247,13 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         return script
 
     def run_checklist(self):
-
         grinder_path = self.settings.get("path", "~/.bzt/grinder-taurus/lib/grinder.jar")
         grinder_path = os.path.abspath(os.path.expanduser(grinder_path))
         self.settings["path"] = grinder_path
-        required_tools = [JavaVM("", "", self.log),
-                          Grinder(grinder_path, GrinderExecutor.DOWNLOAD_LINK, self.log, GrinderExecutor.VERSION)]
+        required_tools = []
+        required_tools.append(TclLibrary(self.log))
+        required_tools.append(JavaVM("", "", self.log))
+        required_tools.append(Grinder(grinder_path, GrinderExecutor.DOWNLOAD_LINK, self.log, GrinderExecutor.VERSION))
 
         self.check_tools(required_tools)
 

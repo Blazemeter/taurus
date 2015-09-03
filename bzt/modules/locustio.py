@@ -24,7 +24,7 @@ import os
 from bzt.engine import ScenarioExecutor, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.jmeter import JTLReader
-from bzt.utils import shutdown_process, shell_exec, RequiredTool
+from bzt.utils import shutdown_process, shell_exec, RequiredTool, TclLibrary
 from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.six import PY3
 from imp import find_module
@@ -122,6 +122,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         check tools
         """
         required_tools = []
+        required_tools.append(TclLibrary(self.log))
         required_tools.append(LocustIO(self.log))
         self.check_tools(required_tools)
 
