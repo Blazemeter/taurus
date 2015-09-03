@@ -24,7 +24,7 @@ import os
 from imp import find_module
 
 from bzt.engine import ScenarioExecutor, FileLister
-from bzt.modules.aggregator import ConsolidatingAggregator, ResultsProvider, DataPoint
+from bzt.modules.aggregator import ConsolidatingAggregator, ResultsProvider, DataPoint, KPISet
 from bzt.modules.jmeter import JTLReader
 from bzt.utils import shutdown_process, shell_exec, RequiredTool
 from bzt.modules.console import WidgetProvider, SidebarWidget
@@ -114,7 +114,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         return self.widget
 
     def check(self):
-
+        # TODO: when we're in master mode and get no results and exceeded duration - shut down then
         if self.widget:
             self.widget.update()
 
@@ -204,6 +204,9 @@ class SlavesReader(ResultsProvider):
                 sec_data = self.join_buffer.pop(key)
                 self.log.debug("Processing complete second: %s", key)
                 point = DataPoint(int(key))
+                for item in sec_data.values():
+                    point.merge_point(self.point_from_locust(key, item))
+                point.recalculate()
                 yield point
 
     def get_max_full_ts(self):
@@ -231,3 +234,27 @@ class SlavesReader(ResultsProvider):
                 if ts not in self.join_buffer:
                     self.join_buffer[ts] = {}
                 self.join_buffer[ts][data['client_id']] = data
+
+    def point_from_locust(self, ts, data):
+        """
+        :type ts: str
+        :type data: dict
+        :rtype: DataPoint
+        """
+        point = DataPoint(int(ts))
+        overall = KPISet()
+        for item in data['stats']:
+            if ts not in item['num_reqs_per_sec']:
+                continue
+
+            kpiset = KPISet()
+            kpiset[KPISet.SAMPLE_COUNT] = item['num_reqs_per_sec'][ts]
+            kpiset[KPISet.CONCURRENCY] = data['user_count']
+            if item['num_requests']:
+                kpiset[KPISet.AVG_RESP_TIME] = item['total_response_time'] / item['num_requests']
+            point[DataPoint.CURRENT][item['name']] = kpiset
+            overall.merge_kpis(kpiset)
+
+        point[DataPoint.CURRENT][''] = overall
+        point.recalculate()
+        return point

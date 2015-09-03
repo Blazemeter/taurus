@@ -282,6 +282,11 @@ class DataPoint(BetterDict):
     SUBRESULTS = "subresults"
 
     def __init__(self, ts, perc_levels=()):
+        """
+
+        :type ts: int
+        :type perc_levels: list[float]
+        """
         super(DataPoint, self).__init__()
         self.perc_levels = perc_levels
         self[self.SOURCE_ID] = None
