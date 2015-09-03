@@ -28,7 +28,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsProvider, Dat
 from bzt.modules.jmeter import JTLReader
 from bzt.utils import shutdown_process, shell_exec, RequiredTool
 from bzt.modules.console import WidgetProvider, SidebarWidget
-from bzt.six import PY3
+from bzt.six import PY3, iteritems
 
 
 class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
@@ -204,8 +204,8 @@ class SlavesReader(ResultsProvider):
                 sec_data = self.join_buffer.pop(key)
                 self.log.debug("Processing complete second: %s", key)
                 point = DataPoint(int(key))
-                for item in sec_data.values():
-                    point.merge_point(self.point_from_locust(key, item))
+                for sid, item in iteritems(sec_data):
+                    point.merge_point(self.point_from_locust(key, sid, item))
                 point.recalculate()
                 yield point
 
@@ -235,13 +235,14 @@ class SlavesReader(ResultsProvider):
                     self.join_buffer[ts] = {}
                 self.join_buffer[ts][data['client_id']] = data
 
-    def point_from_locust(self, ts, data):
+    def point_from_locust(self, ts, sid, data):
         """
         :type ts: str
         :type data: dict
         :rtype: DataPoint
         """
         point = DataPoint(int(ts))
+        point[DataPoint.SOURCE_ID] = sid
         overall = KPISet()
         for item in data['stats']:
             if ts not in item['num_reqs_per_sec']:
@@ -251,7 +252,8 @@ class SlavesReader(ResultsProvider):
             kpiset[KPISet.SAMPLE_COUNT] = item['num_reqs_per_sec'][ts]
             kpiset[KPISet.CONCURRENCY] = data['user_count']
             if item['num_requests']:
-                kpiset[KPISet.AVG_RESP_TIME] = item['total_response_time'] / item['num_requests']
+                avg_rt = (item['total_response_time'] / 1000.0) / item['num_requests']
+                kpiset.sum_rt = item['num_reqs_per_sec'][ts] * avg_rt
             point[DataPoint.CURRENT][item['name']] = kpiset
             overall.merge_kpis(kpiset)
 
