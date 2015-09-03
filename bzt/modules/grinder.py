@@ -247,11 +247,11 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         return script
 
     def run_checklist(self):
-        required_tools = []
-        required_tools.append(TclLibrary(self.log))
         grinder_path = self.settings.get("path", "~/.bzt/grinder-taurus/lib/grinder.jar")
         grinder_path = os.path.abspath(os.path.expanduser(grinder_path))
         self.settings["path"] = grinder_path
+        required_tools = []
+        required_tools.append(TclLibrary(self.log))
         required_tools.append(JavaVM("", "", self.log))
         required_tools.append(Grinder(grinder_path, GrinderExecutor.DOWNLOAD_LINK, self.log, GrinderExecutor.VERSION))
 
