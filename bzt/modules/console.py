@@ -607,14 +607,13 @@ class CumulativeStats(LineBox):
 
     def __init__(self):
         self.data = DataPoint(0)
+        self._start_time = None
         self.percentiles = PercentilesList(DataPoint.CUMULATIVE)
         self.avg_times = AvgTimesList(DataPoint.CUMULATIVE)
         self.rcodes = RCodesList(DataPoint.CUMULATIVE)
-        self.test_duration = TestDuration()
         self.labels_pile = LabelsPile(DataPoint.CUMULATIVE)
         original_widget = Pile([
             Columns([
-                self.test_duration,
                 self.avg_times,
                 self.percentiles,
                 self.rcodes], dividechars=1),
@@ -631,11 +630,17 @@ class CumulativeStats(LineBox):
         :type data: bzt.modules.aggregator.DataPoint
         """
         self.data = data
-        self.test_duration.add_data(data)
         self.percentiles.add_data(data)
         self.avg_times.add_data(data)
         self.rcodes.add_data(data)
         self.labels_pile.add_data(data)
+
+        if not self._start_time:
+            self._start_time = data.get('ts')
+        duration = humanize_time(time.time() - self._start_time)
+
+        self.title_widget.set_text("Cumulative Stats after %s" % duration)
+
 
 
 class PercentilesList(ListBox):
@@ -702,27 +707,6 @@ class AvgTimesList(ListBox):
                  align=RIGHT))
         self.body.append(Text(("stat-txt", "~Receive: %.3f" % recv),
                               align=RIGHT))
-
-class TestDuration(ListBox):
-    """
-    Test duration block
-    """
-
-    def __init__(self):
-        super(TestDuration, self).__init__(SimpleListWalker([]))
-        self._start_time = None
-
-    def add_data(self, data):
-        while len(self.body):
-            self.body.pop(0)
-
-        if not self._start_time:
-            self._start_time = data.get('ts')
-        self.body.append(Text(("stat-hdr", " Test duration: "), align=LEFT))
-
-        duration = humanize_time(time.time() - self._start_time)
-        self.body.append(Text(("stat-txt", " %s " % duration), align=LEFT))
-
 
 class LabelsPile(Pile):
     """
