@@ -1,2 +1,0 @@
-Tk = None
-Text = None

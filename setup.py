@@ -67,7 +67,7 @@ setup(
     install_requires=[
         'pyyaml', 'psutil > 3', 'colorlog', 'colorama', 'lxml >= 3.4.2', 'cssselect', 'urwid', 'six', 'nose',
         'selenium', 'progressbar33'],
-    packages=['bzt', 'bzt.six', 'bzt.six.fake_modules', 'bzt.modules', 'bzt.resources'],
+    packages=['bzt', 'bzt.six', 'bzt.modules', 'bzt.resources'],
     entry_points={
         'console_scripts': [
             'bzt=bzt.cli:main',

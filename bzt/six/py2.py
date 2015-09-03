@@ -17,15 +17,6 @@ limitations under the License.
 """
 # pylint: skip-file
 
-import platform
-
-if platform.system() != 'Windows':
-    from bzt.six.fake_modules import Tkinter
-    from bzt.six.fake_modules import tkFont
-else:
-    import Tkinter
-    import tkFont
-
 import types
 import urllib
 import urllib2
@@ -46,10 +37,6 @@ binary_type = str
 file_type = file
 
 configparser = ConfigParser
-tkinter = Tkinter
-Tk = Tkinter.Tk
-Text = Tkinter.Text
-tkfont = tkFont
 UserDict = UserDict.UserDict
 BytesIO = StringIO.StringIO
 StringIO = StringIO.StringIO
