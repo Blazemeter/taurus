@@ -30,7 +30,7 @@ import copy
 from urwid.decoration import Padding
 from urwid.display_common import BaseScreen
 from urwid import Text, Pile, WEIGHT, Filler, Columns, Widget, \
-    CanvasCombine, LineBox, ListBox, RIGHT, LEFT, CENTER, BOTTOM, CLIP, GIVEN, ProgressBar
+    CanvasCombine, LineBox, ListBox, RIGHT, CENTER, BOTTOM, CLIP, GIVEN, ProgressBar
 from urwid.font import Thin6x6Font
 from urwid.graphics import BigText
 from urwid.listbox import SimpleListWalker
