@@ -14,19 +14,19 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-from abc import abstractmethod
-import re
 import sys
 import logging
 import traceback
 import math
-import copy
 import platform
 import time
 from logging import StreamHandler
 from itertools import groupby
 from datetime import datetime
 
+from abc import abstractmethod
+import re
+import copy
 from urwid.decoration import Padding
 from urwid.display_common import BaseScreen
 from urwid import Text, Pile, WEIGHT, Filler, Columns, Widget, \
@@ -721,9 +721,7 @@ class TestDuration(ListBox):
         self.body.append(Text(("stat-hdr", " Test duration: "), align=LEFT))
 
         duration = humanize_time(time.time() - self._start_time)
-        self.body.append(
-            Text(("stat-txt", " %s " % duration),
-                 align=LEFT))
+        self.body.append(Text(("stat-txt", " %s " % duration), align=LEFT))
 
 
 class LabelsPile(Pile):
