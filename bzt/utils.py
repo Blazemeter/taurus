@@ -670,3 +670,55 @@ class ProgressBarContext(ProgressBar):
         self.maxval = totalsize
         progress = block_count * blocksize
         self.update(progress if progress <= totalsize else totalsize)
+
+
+class TclLibrary(RequiredTool):
+    ENV_NAME = "TCL_LIBRARY"
+    INIT_TCL = "init.tcl"
+    FOLDER = "tcl"
+
+    def __init__(self, parent_logger):
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        super(TclLibrary, self).__init__("Python Tcl library environment variable", "","")
+
+    def check_if_installed(self):
+        """
+        Check if tcl is available
+        :return:
+        """
+        if platform.system() == 'Windows':
+            self.log.debug("Checking if %s variable is present in environment", TclLibrary.ENV_NAME)
+            if not os.environ.get(TclLibrary.ENV_NAME, None):
+                self.log.debug("%s environment variable is not present", TclLibrary.ENV_NAME)
+                return False
+            else:
+                self.log.debug("%s environment variable is present", TclLibrary.ENV_NAME)
+                return True
+        else:
+            self.log.debug("We don't need to check tcl library on this platform")
+            return True
+
+    def _find_tcl_dir(self):
+        lib_dirs = [os.path.dirname(_x) for _x in sys.path if _x.lower().endswith('lib')]
+        for lib_dir in lib_dirs:
+            base_dir = os.path.join(lib_dir, TclLibrary.FOLDER)
+            if os.path.exists(base_dir):
+                for root,_dirs,files in os.walk(base_dir):
+                    if TclLibrary.INIT_TCL in files:
+                        return root
+
+    def _set_env_variable(self, value):
+        self.log.debug("Setting environment %s=%s", TclLibrary.ENV_NAME, value)
+        os.environ[TclLibrary.ENV_NAME] = value
+
+    def install(self):
+        """
+        :return:
+        """
+        tcl_dir = self._find_tcl_dir()
+        if tcl_dir:
+            self.log.debug("Tcl directory was found: %s", tcl_dir)
+            self._set_env_variable(tcl_dir)
+
+        if not self.check_if_installed():
+            self.log.warning("No Tcl library was found")
