@@ -178,7 +178,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         If JMeter is still running - let's stop it.
         """
-        max_attempts = 5
+        max_attempts = self.settings.get("shutdown-wait", 5)
         if self._process_stopped(1):
             return
 

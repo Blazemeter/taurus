@@ -87,6 +87,9 @@ modules:
                                       # to thread names, true by default
 ```
 
+## Shutdown Delay
+By default, Taurus tries to call graceful JMeter shutdown by using its UDP shutdown port (this works only for non-GUI). There is option to wait for JMeter to exit before killing it forcefully, called `shutdown-wait`. Bu default, its value is 5 seconds.
+
 ## Modifications for Existing Scripts
 
 JMeter executor allows you to apply some modifications to the JMX file before running JMeter (this affects both existing JMXes and generated from requests):
