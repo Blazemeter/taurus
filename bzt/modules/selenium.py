@@ -18,7 +18,6 @@ from bzt.modules.console import WidgetProvider
 from bzt.modules.jmeter import JTLReader
 
 
-
 class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     """
     Selenium executor
@@ -56,7 +55,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             if self.scenario.get("requests"):
                 self.scenario["script"] = self.__tests_from_requests()
             else:
-                raise RuntimeError
+                raise RuntimeError("Nothing to test, no requests were provided in scenario")
         self.kpi_file = self.engine.create_artifact("selenium_tests_report", ".csv")
         script_type = self.detect_script_type(self.scenario.get("script"))
         runner_config = BetterDict()
@@ -163,6 +162,8 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         return self.widget
 
     def resource_files(self):
+        if not self.scenario:
+            self.scenario = self.get_scenario()
         script = self.scenario.get("script")
         script_type = self.detect_script_type(script)
 
@@ -578,7 +579,7 @@ class SeleniumScriptBuilder(NoseTest):
         return setup_method_def
 
     def gen_test_method(self, request):
-        test_method = self.gen_method_definition("test_method"+str(request.__hash__()), ["self"])
+        test_method = self.gen_method_definition("test_method"+str(abs(request.__hash__())), ["self"])
         test_method.append(self.gen_method_statement("self.driver.get('%s')" % request))
         return test_method
 
