@@ -105,6 +105,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             props_local.merge({"remote_hosts": ",".join(self.distributed_servers)})
         props_local.update({"jmeterengine.nongui.port": self.management_port})
         props_local.update({"jmeterengine.nongui.maxport": self.management_port})
+        props_local.update({"jmeter.save.saveservice.timestamp_format": "ms"})
         props.merge(props_local)
         props['user.classpath'] = self.engine.artifacts_dir.replace(os.path.sep, "/")  # replace to avoid Windows issue
         if props:
@@ -1566,7 +1567,7 @@ class JTLReader(ResultsReader):
             label = row["label"]
             if self.is_distributed:
                 concur = int(row["grpThreads"])
-                trname = row["threadName"][:row["threadName"].rfind(' ')]
+                trname = row["threadName"][:row["threadName"].rfind('-')]
             else:
                 concur = int(row["allThreads"])
                 trname = ''
