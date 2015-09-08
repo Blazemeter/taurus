@@ -5,6 +5,8 @@
  - `generalize-labels` default value changed to `false`
  - fix JMeter properties not read from jmeter files
  - force JMeter to use epoch timestamp format for CSV files
+ - Allow setting project ID instead of name, fail on project name clash
+ - parameterize JMeter graceful shutdown time
 
 ## 0.4.0
  - allow dumping final stats in Jenkins-consumable format
