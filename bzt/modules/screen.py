@@ -19,13 +19,17 @@ import logging
 import re
 import platform
 import math
-
 import urwid
 from urwid import BaseScreen
-
-from bzt.six import tkfont, text_type, iteritems, tkinter
+from bzt.six import text_type, iteritems, PY2
 from bzt import ManualShutdown
 
+if PY2:
+    import tkFont as tkfont
+    import Tkinter as tkinter
+else:
+    import tkinter as tkinter
+    from tkinter import font as tkfont
 
 class DummyScreen(BaseScreen):
     """

@@ -16,6 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 # pylint: skip-file
+
 import io
 import operator
 import collections
@@ -25,9 +26,8 @@ from io import IOBase
 import urllib.error
 import urllib.request
 import urllib.parse
-import tkinter
 import configparser
-from tkinter import font
+
 from http import server
 import socketserver
 
@@ -39,8 +39,6 @@ binary_type = bytes
 file_type = IOBase
 
 configparser = configparser
-tkinter = tkinter
-tkfont = font
 UserDict = collections.UserDict
 
 StringIO = io.StringIO

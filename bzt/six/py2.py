@@ -23,8 +23,7 @@ import urllib2
 import urlparse
 import operator
 import ConfigParser
-import Tkinter
-import tkFont
+
 import UserDict
 import StringIO
 import BaseHTTPServer
@@ -38,10 +37,6 @@ binary_type = str
 file_type = file
 
 configparser = ConfigParser
-tkinter = Tkinter
-Tk = Tkinter.Tk
-Text = Tkinter.Text
-tkfont = tkFont
 UserDict = UserDict.UserDict
 BytesIO = StringIO.StringIO
 StringIO = StringIO.StringIO
