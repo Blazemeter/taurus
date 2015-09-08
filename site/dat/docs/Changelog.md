@@ -5,6 +5,7 @@
  - `generalize-labels` default value changed to `false`
  - fix JMeter properties not read from jmeter files
  - force JMeter to use epoch timestamp format for CSV files
+ - selenium script from requests format
 
 ## 0.4.0
  - allow dumping final stats in Jenkins-consumable format

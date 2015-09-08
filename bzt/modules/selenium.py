@@ -188,6 +188,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         nose_test.save(filename)
         return filename
 
+
 class AbstractTestRunner(object):
     """
     Abstract test runner
@@ -550,6 +551,7 @@ from selenium.common.exceptions import NoAlertPresentException"""
         statement_elem.text = statement
         return statement_elem
 
+
 class SeleniumScriptBuilder(NoseTest):
     def __init__(self, scenario):
         super(SeleniumScriptBuilder, self).__init__()
@@ -579,7 +581,7 @@ class SeleniumScriptBuilder(NoseTest):
         return setup_method_def
 
     def gen_test_method(self, request):
-        test_method = self.gen_method_definition("test_method"+str(abs(request.__hash__())), ["self"])
+        test_method = self.gen_method_definition("test_method" + str(abs(request.__hash__())), ["self"])
         test_method.append(self.gen_method_statement("self.driver.get('%s')" % request))
         return test_method
 
@@ -593,4 +595,4 @@ class SeleniumScriptBuilder(NoseTest):
             for child in self.root.iter():
                 if child.text:
                     indent = int(child.get('indent', "0"))
-                    fds.write(" "* indent + child.text + "\n")
+                    fds.write(" " * indent + child.text + "\n")
