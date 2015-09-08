@@ -12,10 +12,11 @@ import urwid
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.utils import RequiredTool, shell_exec, shutdown_process, BetterDict, JavaVM, TclLibrary
-from bzt.six import string_types, text_type
+from bzt.six import string_types, text_type, etree
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.console import WidgetProvider
 from bzt.modules.jmeter import JTLReader
+
 
 
 class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
@@ -42,6 +43,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.reader = None
         self.kpi_file = None
         self.runner_working_dir = None
+        self.scenario = None
 
     def prepare(self):
         """
@@ -49,9 +51,14 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         2) detect script type
         3) create runner instance, prepare runner
         """
-        scenario = self.get_scenario()
+        self.scenario = self.get_scenario()
+        if "requests" in self.scenario:
+            if self.scenario.get("requests"):
+                self.scenario["script"] = self.__tests_from_requests()
+            else:
+                raise RuntimeError
         self.kpi_file = self.engine.create_artifact("selenium_tests_report", ".csv")
-        script_type = self.detect_script_type(scenario.get("script"))
+        script_type = self.detect_script_type(self.scenario.get("script"))
         runner_config = BetterDict()
 
         if script_type == ".py":
@@ -73,7 +80,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         self._cp_resource_files(self.runner_working_dir)
 
-        self.runner = self.runner(runner_config, scenario, self.log)
+        self.runner = self.runner(runner_config, self.scenario, self.log)
         self.runner.prepare()
         self.reader = JTLReader(self.kpi_file, self.log, None)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
@@ -83,10 +90,9 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         :return:
         """
-        scenario = self.get_scenario()
-        script = scenario.get("script")
+        script = self.scenario.get("script")
 
-        if Scenario.SCRIPT in self.get_scenario():
+        if Scenario.SCRIPT in self.scenario:
             if os.path.isdir(script):
                 shutil.copytree(script, runner_working_dir)
             else:
@@ -153,12 +159,11 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def get_widget(self):
         if not self.widget:
-            self.widget = SeleniumWidget(self.get_scenario().get("script"), self.runner.settings.get("stdout"))
+            self.widget = SeleniumWidget(self.scenario.get("script"), self.runner.settings.get("stdout"))
         return self.widget
 
     def resource_files(self):
-        scenario = self.get_scenario()
-        script = scenario.get("script")
+        script = self.scenario.get("script")
         script_type = self.detect_script_type(script)
 
         if script_type == ".py":
@@ -173,6 +178,14 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self._cp_resource_files(self.runner_working_dir)
 
         return os.path.basename(self.runner_working_dir)
+
+    def __tests_from_requests(self):
+        filename = self.engine.create_artifact("test_requests", ".py")
+        nose_test = SeleniumScriptBuilder(self.scenario)
+        nose_test.scenario = self.scenario
+        nose_test.gen_test_case()
+        nose_test.save(filename)
+        return filename
 
 class AbstractTestRunner(object):
     """
@@ -502,3 +515,81 @@ class TaurusNosePlugin(RequiredTool):
 
     def install(self):
         raise NotImplementedError()
+
+
+class NoseTest(object):
+    IMPORTS = """import unittest
+from selenium import webdriver
+from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoAlertPresentException"""
+
+    def __init__(self):
+        self.root = etree.Element("NoseTest")
+        self.tree = etree.ElementTree(self.root)
+
+    def add_imports(self):
+        imports = etree.Element("imports")
+        imports.text = NoseTest.IMPORTS
+        return imports
+
+    def gen_class_definition(self, class_name, inherits_from, indent="0"):
+        def_tmpl = "class {class_name}({inherits_from}):"
+        class_def_element = etree.Element("class_definition", indent=indent)
+        class_def_element.text = def_tmpl.format(class_name=class_name, inherits_from="".join(inherits_from))
+        return class_def_element
+
+    def gen_method_definition(self, method_name, params, indent="4"):
+        def_tmpl = "def {method_name}({params}):"
+        method_def_element = etree.Element("method_definition", indent=indent)
+        method_def_element.text = def_tmpl.format(method_name=method_name, params=",".join(params))
+        return method_def_element
+
+    def gen_method_statement(self, statement, indent="8"):
+        statement_elem = etree.Element("statement", indent=indent)
+        statement_elem.text = statement
+        return statement_elem
+
+class SeleniumScriptBuilder(NoseTest):
+    def __init__(self, scenario):
+        super(SeleniumScriptBuilder, self).__init__()
+        self.scenario = scenario
+
+    def gen_test_case(self):
+        imports = self.add_imports()
+        self.root.append(imports)
+        test_class = self.gen_class_definition("TestRequests", ["unittest.TestCase"])
+        self.root.append(test_class)
+        test_class.append(self.gen_setup_method())
+        requests = self.scenario.get("requests")
+
+        if isinstance(requests, str):
+            requests = [requests]
+
+        for request in requests:
+            if isinstance(request, dict):
+                request = request.get("url")
+            test_class.append(self.gen_test_method(request))
+        test_class.append(self.gen_teardown_method())
+
+    def gen_setup_method(self):
+        setup_method_def = self.gen_method_definition("setUp", ["self"])
+        setup_method_def.append(self.gen_method_statement("self.driver=webdriver.Firefox()"))
+        setup_method_def.append(self.gen_method_statement("self.driver.implicitly_wait(30)"))
+        return setup_method_def
+
+    def gen_test_method(self, request):
+        test_method = self.gen_method_definition("test_method"+str(request.__hash__()), ["self"])
+        test_method.append(self.gen_method_statement("self.driver.get('%s')" % request))
+        return test_method
+
+    def gen_teardown_method(self):
+        tear_down_method_def = self.gen_method_definition("tearDown", ["self"])
+        tear_down_method_def.append(self.gen_method_statement("self.driver.quit()"))
+        return tear_down_method_def
+
+    def save(self, filename):
+        with open(filename, 'wt') as fds:
+            for child in self.root.iter():
+                if child.text:
+                    indent = int(child.get('indent', "0"))
+                    fds.write(" "* indent + child.text + "\n")

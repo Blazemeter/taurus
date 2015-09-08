@@ -545,3 +545,18 @@ class TestSeleniumStuff(SeleniumTestCase):
             rows = list(reader)
         self.assertEqual(len(rows), 3)
 
+    def test_requests(self):
+
+        obj = SeleniumExecutor()
+        obj.engine = self.engine_obj
+        obj.settings = self.selenium_config
+        obj.engine.config.merge(yaml.load(open("tests/yaml/selenium_executor_requests.yml").read()))
+        obj.engine.config.merge({"provisioning": "local"})
+        obj.execution = obj.engine.config['execution']
+
+        obj.settings.merge(obj.engine.config.get("modules").get("selenium"))
+        obj.prepare()
+        obj.startup()
+        while not obj.check():
+            time.sleep(1)
+        obj.shutdown()
