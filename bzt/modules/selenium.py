@@ -11,7 +11,7 @@ import subprocess
 import urwid
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
-from bzt.utils import RequiredTool, shell_exec, shutdown_process, BetterDict, JavaVM
+from bzt.utils import RequiredTool, shell_exec, shutdown_process, BetterDict, JavaVM, TclLibrary
 from bzt.six import string_types, text_type
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.console import WidgetProvider
@@ -267,6 +267,8 @@ class JunitTester(AbstractTestRunner):
 
         if self.settings.get("script_type", None) == ".java":
             self.required_tools.append(JavaC("", "", self.log))
+
+        self.required_tools.append(TclLibrary(self.log))
         self.required_tools.append(JavaVM("", "", self.log))
         self.required_tools.append(SeleniumServerJar(self.selenium_server_jar_path,
                                                      SeleniumExecutor.SELENIUM_DOWNLOAD_LINK.format(
@@ -391,8 +393,8 @@ class NoseTester(AbstractTestRunner):
         if sys.version >= '3':
             self.log.warn("You are using python3, make sure that your scripts are able to run in python3!")
 
-        self.required_tools.append(
-            TaurusNosePlugin(self.plugin_path, ""))
+        self.required_tools.append(TclLibrary(self.log))
+        self.required_tools.append(TaurusNosePlugin(self.plugin_path, ""))
 
         self.check_tools()
 

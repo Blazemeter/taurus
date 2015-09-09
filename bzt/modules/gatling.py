@@ -27,7 +27,7 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.six import request
 from bzt.utils import unzip, shell_exec, ensure_is_dict, RequiredTool, JavaVM, \
-    shutdown_process, ProgressBarContext
+    shutdown_process, ProgressBarContext, TclLibrary
 from bzt.modules.console import WidgetProvider, SidebarWidget
 
 EXE_SUFFIX = ".bat" if platform.system() == 'Windows' else ".sh"
@@ -155,6 +155,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def run_checklist(self):
         required_tools = []
+        required_tools.append(TclLibrary(self.log))
         required_tools.append(JavaVM("", "", self.log))
         gatling_path = self.settings.get("path", "~/.bzt/gatling-taurus/bin/gatling" + EXE_SUFFIX)
         gatling_path = os.path.abspath(os.path.expanduser(gatling_path))

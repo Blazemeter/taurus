@@ -39,7 +39,7 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.utils import shell_exec, ensure_is_dict, dehumanize_time, BetterDict, \
-    guess_csv_dialect, unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext
+    guess_csv_dialect, unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
 from bzt.six import iteritems, text_type, string_types, StringIO, parse, request, etree
 
 EXE_SUFFIX = ".bat" if platform.system() == 'Windows' else ""
@@ -105,6 +105,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             props_local.merge({"remote_hosts": ",".join(self.distributed_servers)})
         props_local.update({"jmeterengine.nongui.port": self.management_port})
         props_local.update({"jmeterengine.nongui.maxport": self.management_port})
+        props_local.update({"jmeter.save.saveservice.timestamp_format": "ms"})
         props.merge(props_local)
         props['user.classpath'] = self.engine.artifacts_dir.replace(os.path.sep, "/")  # replace to avoid Windows issue
         if props:
@@ -177,7 +178,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         If JMeter is still running - let's stop it.
         """
-        max_attempts = 5
+        max_attempts = self.settings.get("shutdown-wait", 5)
         if self._process_stopped(1):
             return
 
@@ -716,6 +717,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         required_tools = []
         required_tools.append(JavaVM("", "", self.log))
+        required_tools.append(TclLibrary(self.log))
 
         jmeter_path = self.settings.get("path", "~/.bzt/jmeter-taurus/bin/jmeter")
         if EXE_SUFFIX and not jmeter_path.lower().endswith(EXE_SUFFIX):
@@ -1565,7 +1567,7 @@ class JTLReader(ResultsReader):
             label = row["label"]
             if self.is_distributed:
                 concur = int(row["grpThreads"])
-                trname = row["threadName"][:row["threadName"].rfind(' ')]
+                trname = row["threadName"][:row["threadName"].rfind('-')]
             else:
                 concur = int(row["allThreads"])
                 trname = ''

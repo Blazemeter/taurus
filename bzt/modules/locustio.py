@@ -26,7 +26,7 @@ from imp import find_module
 from bzt.engine import ScenarioExecutor, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsProvider, DataPoint, KPISet
 from bzt.modules.jmeter import JTLReader
-from bzt.utils import shutdown_process, shell_exec, RequiredTool
+from bzt.utils import shutdown_process, shell_exec, RequiredTool, TclLibrary
 from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.six import PY3, iteritems
 
@@ -144,6 +144,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         shutdown_process(self.process, self.log)
         if self.__out:
             self.__out.close()
+        required_tools.append(TclLibrary(self.log))
 
 
 class LocustIO(RequiredTool):

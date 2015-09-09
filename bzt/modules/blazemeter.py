@@ -82,7 +82,10 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
             return
 
         proj_name = self.parameters.get("project", self.settings.get("project", None))
-        if proj_name is not None:
+        if isinstance(proj_name, (int, float)):
+            proj_id = int(proj_name)
+            self.log.debug("Treating project name as ID: %s", proj_id)
+        elif proj_name is not None:
             proj_id = self.client.project_by_name(proj_name)
         else:
             proj_id = None
@@ -342,11 +345,19 @@ class BlazeMeterClient(object):
         :rtype: int
         """
         projects = self.get_projects()
+        matching = []
         for project in projects:
             if project['name'] == proj_name:
-                return project['id']
+                matching.append(project['id'])
 
-        return self.create_project(proj_name)
+        if len(matching) > 1:
+            self.log.warning("Several projects IDs matched with '%s': %s", proj_name, matching)
+            raise ValueError("Project name is ambiguous, please use project ID instead of name to distinguish it")
+        elif len(matching) == 1:
+            return matching[0]
+        else:
+            self.log.info("Creating project '%s'...", proj_name)
+            return self.create_project(proj_name)
 
     def test_by_name(self, name, configuration, taurus_config, resource_files, proj_id):
         """
@@ -358,9 +369,11 @@ class BlazeMeterClient(object):
         test_id = None
         for test in tests:
             self.log.debug("Test: %s", test)
-            if "name" in test and test['name'] == name and test['configuration']['type'] == configuration['type']:
-                if not proj_id or proj_id == test['projectId']:
-                    test_id = test['id']
+            if "name" in test and test['name'] == name:
+                if test['configuration']['type'] == configuration['type']:
+                    if not proj_id or proj_id == test['projectId']:
+                        test_id = test['id']
+                        self.log.debug("Matched: %s", test)
 
         if not test_id:
             self.log.debug("Creating new test")
@@ -653,6 +666,10 @@ class BlazeMeterClient(object):
         hdr = {"Content-Type": "application/json"}
         data = self._request(self.address + '/api/latest/projects', to_json({"name": str(proj_name)}), headers=hdr)
         return data['result']['id']
+
+    def get_user_info(self):
+        sess = self._request(self.address + '/api/latest/user')
+        return sess['result']
 
 
 class CloudProvisioning(Provisioning):
