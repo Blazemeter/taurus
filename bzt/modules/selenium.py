@@ -568,7 +568,7 @@ class SeleniumScriptBuilder(NoseTest):
         test_class.append(self.gen_setup_method())
         requests = self.scenario.get("requests")
 
-        if isinstance(requests, str):
+        if isinstance(requests, string_types):
             requests = [requests]
 
         for key, val in enumerate(requests):
@@ -611,7 +611,7 @@ class SeleniumScriptBuilder(NoseTest):
         self.log.debug("Generating assertion, config: %s", assertion_config)
         assertion_elements = []
 
-        if isinstance(assertion_config, str):
+        if isinstance(assertion_config, string_types):
             assertion_config = {"contains": [assertion_config]}
 
         for val in assertion_config["contains"]:
