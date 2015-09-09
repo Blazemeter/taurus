@@ -654,6 +654,10 @@ class BlazeMeterClient(object):
         data = self._request(self.address + '/api/latest/projects', to_json({"name": str(proj_name)}), headers=hdr)
         return data['result']['id']
 
+    def get_user_info(self):
+        sess = self._request(self.address + '/api/latest/user')
+        return sess['result']
+
 
 class CloudProvisioning(Provisioning):
     """
