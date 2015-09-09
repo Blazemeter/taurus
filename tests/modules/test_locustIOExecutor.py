@@ -76,6 +76,7 @@ class TestLocustIOExecutor(BZTestCase):
             "iterations": 10,
             "hold-for": 30,
             "master": True,
+            "slaves": 1,
             "scenario": {
                 "default-address": "http://blazedemo.com",
                 "script": __dir__() + "/../locust/simple.py"

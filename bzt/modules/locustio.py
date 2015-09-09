@@ -144,7 +144,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         shutdown_process(self.process, self.log)
         if self.__out:
             self.__out.close()
-        required_tools.append(TclLibrary(self.log))
+            self.__out.close()
 
 
 class LocustIO(RequiredTool):
