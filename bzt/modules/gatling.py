@@ -39,7 +39,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     """
     DOWNLOAD_LINK = "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle" \
                     "/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip"
-    VERSION = "2.1.4"
+    VERSION = "2.1.7"
 
     def __init__(self):
         super(GatlingExecutor, self).__init__()
