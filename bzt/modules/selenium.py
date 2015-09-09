@@ -524,7 +524,8 @@ import re
 from time import sleep
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
-from selenium.common.exceptions import NoAlertPresentException"""
+from selenium.common.exceptions import NoAlertPresentException
+"""
 
     def __init__(self):
         self.root = etree.Element("NoseTest")
@@ -566,41 +567,34 @@ class SeleniumScriptBuilder(NoseTest):
         test_class = self.gen_class_definition("TestRequests", ["unittest.TestCase"])
         self.root.append(test_class)
         test_class.append(self.gen_setup_method())
-        requests = self.scenario.get("requests")
-
-        if isinstance(requests, string_types):
-            requests = [requests]
-
-        for key, val in enumerate(requests):
-            ensure_is_dict(requests, key, "url")
-
+        requests = self.scenario.get_requests()
         test_method = self.gen_test_method()
         test_class.append(test_method)
         scenario_timeout = self.scenario.get("timeout", 30)
 
         for request in requests:
-            url = request.get("url")
-            req_timeout = request.get("timeout", None)
-            test_method.append(self.gen_comment("start request: %s" % url))
 
-            if req_timeout is not None:
-                test_method.append(self.gen_impl_wait(req_timeout))
+            test_method.append(self.gen_comment("start request: %s" % request.url))
 
-            test_method.append(self.gen_method_statement("self.driver.get('%s')" % url))
-            think_time = request.get("think-time", self.scenario.get("think-time", None))
+            if request.timeout is not None:
+                test_method.append(self.gen_impl_wait(request.timeout))
+
+            test_method.append(self.gen_method_statement("self.driver.get('%s')" % request.url))
+            think_time = request.think_time if request.think_time else self.scenario.get("think-time", None)
 
             if think_time is not None:
                 test_method.append(self.gen_method_statement("sleep(%s)" % dehumanize_time(think_time)))
 
-            if "assert" in request:
+            if "assert" in request.config:
                 test_method.append(self.__gen_assert_page())
-                for assert_config in request.get("assert"):
+                for assert_config in request.config.get("assert"):
                     test_method.extend(self.gen_assertion(assert_config))
 
-            if req_timeout is not None:
+            if request.timeout is not None:
                 test_method.append(self.gen_impl_wait(scenario_timeout))
 
-            test_method.append(self.gen_comment("end request: %s" % url))
+            test_method.append(self.gen_comment("end request: %s" % request.url))
+            test_method.append(self.__gen_new_line())
         test_class.append(self.gen_teardown_method())
 
     def gen_setup_method(self):
@@ -613,6 +607,7 @@ class SeleniumScriptBuilder(NoseTest):
         setup_method_def.append(self.gen_method_statement("self.driver=webdriver.%s()" % browser))
         scenario_timeout = self.scenario.get("timeout", 30)
         setup_method_def.append(self.gen_impl_wait(scenario_timeout))
+        setup_method_def.append(self.__gen_new_line())
         return setup_method_def
 
     def gen_impl_wait(self, timeout):
@@ -656,12 +651,15 @@ class SeleniumScriptBuilder(NoseTest):
                 assertion_elements.append(self.gen_method_statement('%s("%s", body)' % (assert_method, val)))
         return assertion_elements
 
+    def __gen_new_line(self, indent="8"):
+        return self.gen_method_statement("", indent=indent)
+
     def __gen_assert_page(self):
         return self.gen_method_statement("body = self.driver.page_source")
 
     def save(self, filename):
         with open(filename, 'wt') as fds:
             for child in self.root.iter():
-                if child.text:
+                if child.text is not None:
                     indent = int(child.get('indent', "0"))
                     fds.write(" " * indent + child.text + "\n")
