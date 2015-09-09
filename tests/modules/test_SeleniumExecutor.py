@@ -562,5 +562,5 @@ class TestSeleniumStuff(SeleniumTestCase):
         obj.shutdown()
         with open(os.path.join(obj.engine.artifacts_dir, "junit.err")) as fds:
             contents = fds.read()
-            self.assertEqual(3, contents.count("ok"))
+            self.assertEqual(1, contents.count("ok"))
             self.assertEqual(1, contents.count("OK"))

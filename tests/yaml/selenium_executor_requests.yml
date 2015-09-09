@@ -4,6 +4,7 @@ execution:
   scenario:
     browser: Firefox
     timeout: 10
+    think-time: 1s500ms
     requests:
     - url: "http://demo.blazemeter.com/"
       assert:
@@ -23,6 +24,8 @@ execution:
         regexp: true
         not: true
     - url: "http://demo.blazemeter.com/"
+      think-time: 1s
+      timeout: 2
       assert:
       - Customers
       - www

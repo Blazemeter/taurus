@@ -85,3 +85,31 @@ modules:
 reporting:
   - module: junit-xml
 ```
+
+## Requests Scenario
+Selenium executor partially supports building scenario from [requests] (ScenarioBuilding.md).
+Supported features:
+  - select browser
+  - set timeout/think-time both on scenario/request levels
+  - assertions (only on body subject)
+  - request method GET (only)
+
+Sample request scenario
+```yaml
+---
+execution:
+  executor: "selenium"
+  scenario:
+    browser: Firefox  # available browsers are: ["Firefox", "Chrome", "Ie", "Opera"]
+    timeout: 10  #  global scenario timeout for connecting, receiving results, 30 seconds by default
+    think-time: 1s500ms  # global scenario delay between each request
+    requests:
+    - url: "http://demo.blazemeter.com/"  # url to open, only get method is supported
+      assert:
+      - contains:
+        - blazemeter  # list of search patterns
+        - Trusted
+        subject: body # only body subject supported
+        regexp: false  # treat string as regular expression
+        not: false  # inverse assertion condition
+```

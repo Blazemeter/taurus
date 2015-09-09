@@ -523,6 +523,7 @@ class TaurusNosePlugin(RequiredTool):
 class NoseTest(object):
     IMPORTS = """import unittest
 import re
+from time import sleep
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import NoAlertPresentException"""
@@ -575,12 +576,33 @@ class SeleniumScriptBuilder(NoseTest):
         for key, val in enumerate(requests):
             ensure_is_dict(requests, key, "url")
 
+        test_method = self.gen_test_method()
+        test_class.append(test_method)
+        scenario_timeout = self.scenario.get("timeout", 30)
+
         for request in requests:
-            test_class.append(self.gen_test_method(request.get("url")))
+            url = request.get("url")
+            req_timeout = request.get("timeout", None)
+            test_method.append(self.gen_comment("start request: %s" % url))
+
+            if req_timeout is not None:
+                test_method.append(self.gen_impl_wait(req_timeout))
+
+            test_method.append(self.gen_method_statement("self.driver.get('%s')" % url))
+            think_time = request.get("think-time", self.scenario.get("think-time", None))
+
+            if think_time is not None:
+                test_method.append(self.gen_method_statement("sleep(%s)" % dehumanize_time(think_time)))
+
             if "assert" in request:
-                test_class.append(self.__gen_assert_page())
+                test_method.append(self.__gen_assert_page())
                 for assert_config in request.get("assert"):
-                    test_class.extend(self.gen_assertion(assert_config))
+                    test_method.extend(self.gen_assertion(assert_config))
+
+            if req_timeout is not None:
+                test_method.append(self.gen_impl_wait(scenario_timeout))
+
+            test_method.append(self.gen_comment("end request: %s" % url))
         test_class.append(self.gen_teardown_method())
 
     def gen_setup_method(self):
@@ -591,15 +613,19 @@ class SeleniumScriptBuilder(NoseTest):
             raise ValueError("Unsupported browser name")
         setup_method_def = self.gen_method_definition("setUp", ["self"])
         setup_method_def.append(self.gen_method_statement("self.driver=webdriver.%s()" % browser))
-        timeout = self.scenario.get("timeout", 30)
-        setup_method_def.append(self.gen_method_statement("self.driver.implicitly_wait(%s)" % dehumanize_time(timeout)))
+        scenario_timeout = self.scenario.get("timeout", 30)
+        setup_method_def.append(self.gen_impl_wait(scenario_timeout))
         return setup_method_def
 
-    def gen_test_method(self, request):
-        method_name = "".join([choice(string.ascii_lowercase) for _x in range(0,17)])
-        self.log.debug("Generating test method %s", method_name)
-        test_method = self.gen_method_definition("test_method_" + method_name, ["self"])
-        test_method.append(self.gen_method_statement("self.driver.get('%s')" % request))
+    def gen_impl_wait(self, timeout):
+        return self.gen_method_statement("self.driver.implicitly_wait(%s)" % dehumanize_time(timeout))
+
+    def gen_comment(self, comment):
+        return self.gen_method_statement("# %s" % comment)
+
+    def gen_test_method(self):
+        self.log.debug("Generating test method")
+        test_method = self.gen_method_definition("test_method", ["self"])
         return test_method
 
     def gen_teardown_method(self):
