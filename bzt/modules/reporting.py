@@ -82,8 +82,9 @@ class FinalStatus(Reporter, AggregatorListener):
         """
         reports samples count
         """
-        err_rate = 100 * summary_kpi_set[KPISet.FAILURES] / float(summary_kpi_set[KPISet.SAMPLE_COUNT])
-        self.log.info("Samples count: %s, %.2f%% failures", summary_kpi_set[KPISet.SAMPLE_COUNT], err_rate)
+        if summary_kpi_set[KPISet.SAMPLE_COUNT]:
+            err_rate = 100 * summary_kpi_set[KPISet.FAILURES] / float(summary_kpi_set[KPISet.SAMPLE_COUNT])
+            self.log.info("Samples count: %s, %.2f%% failures", summary_kpi_set[KPISet.SAMPLE_COUNT], err_rate)
 
     def __report_percentiles(self, summary_kpi_set):
         """

@@ -620,8 +620,7 @@ class CumulativeStats(LineBox):
             self.labels_pile
         ])
         padded = Padding(original_widget, align=CENTER)
-        super(CumulativeStats, self).__init__(padded,
-                                              "Cumulative Stats")
+        super(CumulativeStats, self).__init__(padded, " Cumulative Stats ")
 
     def add_data(self, data):
         """
@@ -639,7 +638,7 @@ class CumulativeStats(LineBox):
             self._start_time = data.get('ts')
         duration = humanize_time(time.time() - self._start_time)
 
-        self.title_widget.set_text("Cumulative Stats after %s" % duration)
+        self.title_widget.set_text(" Cumulative Stats after %s " % duration)
 
 
 

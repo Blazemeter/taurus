@@ -1,14 +1,11 @@
 #! /usr/bin/env python2
 import csv
+import json
 import os
 import time
 from requests.exceptions import HTTPError
 
 from locust import main, events, runners
-
-fname = os.environ.get("JTL")
-if not fname:
-    raise ValueError("Please specify JTL environment variable")
 
 
 def getrec(request_type, name, response_time, response_length, exc=None):
@@ -35,10 +32,22 @@ def getrec(request_type, name, response_time, response_length, exc=None):
 
 
 if __name__ == '__main__':
+    if os.getenv("SLAVES_LDJSON"):
+        fname = os.getenv("SLAVES_LDJSON")
+        is_csv = False
+    elif os.getenv("JTL"):
+        fname = os.getenv("JTL")
+        is_csv = True
+    else:
+        raise ValueError("Please specify JTL or SLAVES_LDJSON environment variable")
+
     with open(fname, 'wt') as fhd:
-        writer = csv.DictWriter(fhd, getrec(None, None, None, None).keys())
-        writer.writeheader()
-        fhd.flush()
+        if is_csv:
+            writer = csv.DictWriter(fhd, getrec(None, None, None, None).keys())
+            writer.writeheader()
+            fhd.flush()
+        else:
+            writer = None  # FIXME: bad code design, have zero object for it
 
 
         def on_request_success(request_type, name, response_time, response_length):
@@ -51,8 +60,16 @@ if __name__ == '__main__':
             fhd.flush()
 
 
+        def on_slave_report(client_id, data):
+            if data['stats'] or data['errors']:
+                data['client_id'] = client_id
+                fhd.write("%s\n" % json.dumps(data))
+                fhd.flush()
+
+
         events.request_success += on_request_success
         events.request_failure += on_request_failure
+        events.slave_report += on_slave_report
 
         main.main()
         fhd.flush()
