@@ -1201,7 +1201,7 @@ class JMX(object):
         """
 
         udv_element = etree.Element("Arguments", guiclass="ArgumentsPanel", testclass="Arguments",
-                                    testname="my_defined_vars")
+                                    testname="Variables from Taurus")
         udv_collection_prop = JMX._collection_prop("Arguments.arguments")
 
         for var_name, var_value in udv_dict.items():
