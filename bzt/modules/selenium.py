@@ -8,7 +8,8 @@ import shutil
 import sys
 import subprocess
 import urwid
-
+import string
+from random import choice
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.utils import RequiredTool, shell_exec, shutdown_process, BetterDict, JavaVM, TclLibrary, ensure_is_dict, \
     dehumanize_time
@@ -595,7 +596,7 @@ class SeleniumScriptBuilder(NoseTest):
         return setup_method_def
 
     def gen_test_method(self, request):
-        method_name = str(time.time()).replace(".", "_")
+        method_name = "".join([choice(string.ascii_lowercase) for _x in range(0,17)])
         self.log.debug("Generating test method %s", method_name)
         test_method = self.gen_method_definition("test_method_" + method_name, ["self"])
         test_method.append(self.gen_method_statement("self.driver.get('%s')" % request))

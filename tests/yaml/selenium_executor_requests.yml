@@ -3,7 +3,7 @@ execution:
   executor: "selenium"
   scenario:
     browser: Firefox
-    timeout: 500ms
+    timeout: 10
     requests:
     - url: "http://demo.blazemeter.com/"
       assert:
