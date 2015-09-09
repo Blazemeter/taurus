@@ -10,7 +10,8 @@ import subprocess
 import urwid
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
-from bzt.utils import RequiredTool, shell_exec, shutdown_process, BetterDict, JavaVM, TclLibrary, ensure_is_dict
+from bzt.utils import RequiredTool, shell_exec, shutdown_process, BetterDict, JavaVM, TclLibrary, ensure_is_dict, \
+    dehumanize_time
 from bzt.six import string_types, text_type, etree
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.console import WidgetProvider
@@ -520,6 +521,7 @@ class TaurusNosePlugin(RequiredTool):
 
 class NoseTest(object):
     IMPORTS = """import unittest
+import re
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import NoAlertPresentException"""
@@ -582,9 +584,14 @@ class SeleniumScriptBuilder(NoseTest):
 
     def gen_setup_method(self):
         self.log.debug("Generating setUp test method")
+        browsers = ["Firefox", "Chrome", "Ie", "Opera"]
+        browser = self.scenario.get("browser", "Firefox")
+        if browser not in browsers:
+            raise ValueError("Unsupported browser name")
         setup_method_def = self.gen_method_definition("setUp", ["self"])
-        setup_method_def.append(self.gen_method_statement("self.driver=webdriver.Firefox()"))
-        setup_method_def.append(self.gen_method_statement("self.driver.implicitly_wait(30)"))
+        setup_method_def.append(self.gen_method_statement("self.driver=webdriver.%s()" % browser))
+        timeout = self.scenario.get("timeout", 30)
+        setup_method_def.append(self.gen_method_statement("self.driver.implicitly_wait(%s)" % dehumanize_time(timeout)))
         return setup_method_def
 
     def gen_test_method(self, request):
@@ -609,11 +616,19 @@ class SeleniumScriptBuilder(NoseTest):
 
         for val in assertion_config["contains"]:
             regexp = assertion_config.get("regexp", True)
-            reverse = assertion_config.get("not", True)
+            reverse = assertion_config.get("not", False)
             subject = assertion_config.get("subject", "body")
             if subject != "body":
                 raise ValueError("Only 'body' subject supported ")
-            assertion_elements.append(self.gen_method_statement('self.assertIn("%s", body)' % val))
+
+            if regexp:
+                assert_method = "self.assertEqual" if reverse else "self.assertNotEqual"
+                assertion_elements.append(self.gen_method_statement('re_pattern = re.compile("%s")' % val))
+                assertion_elements.append(
+                    self.gen_method_statement('%s(0, len(re.findall(re_pattern, body)))' % assert_method))
+            else:
+                assert_method = "self.assertNotIn" if reverse else "self.assertIn"
+                assertion_elements.append(self.gen_method_statement('%s("%s", body)' % (assert_method, val)))
         return assertion_elements
 
     def __gen_assert_page(self):

@@ -2,6 +2,8 @@
 execution:
   executor: "selenium"
   scenario:
+    browser: Firefox
+    timeout: 500ms
     requests:
     - url: "http://demo.blazemeter.com/"
       assert:
@@ -9,13 +11,19 @@ execution:
         - blazemeter
         - Trusted
         subject: body
-        regexp: true
+        regexp: false
         not: false
       - contains:
         - Scalable
         - Testing
+        regexp: true
+        not: false
+      - contains:
+        - NOTPRESENT
+        regexp: true
+        not: true
     - url: "http://demo.blazemeter.com/"
       assert:
-      - Platform
-      - NOTPRESENTHERE
+      - Customers
+      - www
     - url: "http://demo.blazemeter.com/"
