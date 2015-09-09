@@ -7,11 +7,10 @@ import time
 import shutil
 import sys
 import subprocess
-
 import urwid
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
-from bzt.utils import RequiredTool, shell_exec, shutdown_process, BetterDict, JavaVM, TclLibrary
+from bzt.utils import RequiredTool, shell_exec, shutdown_process, BetterDict, JavaVM, TclLibrary, ensure_is_dict
 from bzt.six import string_types, text_type, etree
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.console import WidgetProvider
@@ -182,7 +181,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def __tests_from_requests(self):
         filename = self.engine.create_artifact("test_requests", ".py")
-        nose_test = SeleniumScriptBuilder(self.scenario)
+        nose_test = SeleniumScriptBuilder(self.scenario, self.log)
         nose_test.scenario = self.scenario
         nose_test.gen_test_case()
         nose_test.save(filename)
@@ -553,11 +552,13 @@ from selenium.common.exceptions import NoAlertPresentException"""
 
 
 class SeleniumScriptBuilder(NoseTest):
-    def __init__(self, scenario):
+    def __init__(self, scenario, parent_logger):
         super(SeleniumScriptBuilder, self).__init__()
+        self.log = parent_logger.getChild(self.__class__.__name__)
         self.scenario = scenario
 
     def gen_test_case(self):
+        self.log.debug("Generating Test Case test method")
         imports = self.add_imports()
         self.root.append(imports)
         test_class = self.gen_class_definition("TestRequests", ["unittest.TestCase"])
@@ -568,27 +569,55 @@ class SeleniumScriptBuilder(NoseTest):
         if isinstance(requests, str):
             requests = [requests]
 
+        for key, val in enumerate(requests):
+            ensure_is_dict(requests, key, "url")
+
         for request in requests:
-            if isinstance(request, dict):
-                request = request.get("url")
-            test_class.append(self.gen_test_method(request))
+            test_class.append(self.gen_test_method(request.get("url")))
+            if "assert" in request:
+                test_class.append(self.__gen_assert_page())
+                for assert_config in request.get("assert"):
+                    test_class.extend(self.gen_assertion(assert_config))
         test_class.append(self.gen_teardown_method())
 
     def gen_setup_method(self):
+        self.log.debug("Generating setUp test method")
         setup_method_def = self.gen_method_definition("setUp", ["self"])
         setup_method_def.append(self.gen_method_statement("self.driver=webdriver.Firefox()"))
         setup_method_def.append(self.gen_method_statement("self.driver.implicitly_wait(30)"))
         return setup_method_def
 
     def gen_test_method(self, request):
-        test_method = self.gen_method_definition("test_method" + str(abs(request.__hash__())), ["self"])
+        method_name = str(time.time()).replace(".", "_")
+        self.log.debug("Generating test method %s", method_name)
+        test_method = self.gen_method_definition("test_method_" + method_name, ["self"])
         test_method.append(self.gen_method_statement("self.driver.get('%s')" % request))
         return test_method
 
     def gen_teardown_method(self):
+        self.log.debug("Generating tearDown test method")
         tear_down_method_def = self.gen_method_definition("tearDown", ["self"])
         tear_down_method_def.append(self.gen_method_statement("self.driver.quit()"))
         return tear_down_method_def
+
+    def gen_assertion(self, assertion_config):
+        self.log.debug("Generating assertion, config: %s", assertion_config)
+        assertion_elements = []
+
+        if isinstance(assertion_config, str):
+            assertion_config = {"contains": [assertion_config]}
+
+        for val in assertion_config["contains"]:
+            regexp = assertion_config.get("regexp", True)
+            reverse = assertion_config.get("not", True)
+            subject = assertion_config.get("subject", "body")
+            if subject != "body":
+                raise ValueError("Only 'body' subject supported ")
+            assertion_elements.append(self.gen_method_statement('self.assertIn("%s", body)' % val))
+        return assertion_elements
+
+    def __gen_assert_page(self):
+        return self.gen_method_statement("body = self.driver.page_source")
 
     def save(self, filename):
         with open(filename, 'wt') as fds:

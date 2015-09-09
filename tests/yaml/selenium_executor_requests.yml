@@ -3,5 +3,19 @@ execution:
   executor: "selenium"
   scenario:
     requests:
-    - url: "http://127.0.0.1"
-    - url: "http://127.0.0.2"
+    - url: "http://demo.blazemeter.com/"
+      assert:
+      - contains:
+        - blazemeter
+        - Trusted
+        subject: body
+        regexp: true
+        not: false
+      - contains:
+        - Scalable
+        - Testing
+    - url: "http://demo.blazemeter.com/"
+      assert:
+      - Platform
+      - NOTPRESENTHERE
+    - url: "http://demo.blazemeter.com/"
