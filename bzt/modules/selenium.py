@@ -8,8 +8,6 @@ import shutil
 import sys
 import subprocess
 import urwid
-import string
-from random import choice
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.utils import RequiredTool, shell_exec, shutdown_process, BetterDict, JavaVM, TclLibrary, ensure_is_dict, \
     dehumanize_time

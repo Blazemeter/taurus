@@ -87,11 +87,11 @@ reporting:
 ```
 
 ## Requests Scenario
-Selenium executor partially supports building scenario from [requests] (ScenarioBuilding.md).
+Selenium executor partially supports building scenario from [requests] (http://gettaurus.org/docs/ScenarioBuilding/).
 Supported features:
   - select browser
-  - set timeout/think-time both on scenario/request levels
-  - assertions (only on body subject)
+  - set timeout/think-time on both scenario/request levels
+  - assertions (only requested page source inspected)
   - request method GET (only)
 
 Sample request scenario
