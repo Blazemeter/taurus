@@ -168,7 +168,7 @@ The official policy for BlazeMeter reports uploaded from Taurus, is that anonymo
 
 ### Personalized Usage
 
-If you want the results to be stored in your existing BlazeMeter account, you'll need to specify the reporting settings in your configuration file.Get the API token from BlazeMeter.com (find it under your [Settings => API Key](https://a.blazemeter.com/app/#settings/api-key)) and put it into `token` option:
+If you want the results to be stored in your existing BlazeMeter account, you'll need to specify the reporting settings in your configuration file. Get the API token from BlazeMeter.com (find it under your [Settings => API Key](https://a.blazemeter.com/app/#settings/api-key)) and put it into `token` option:
 
 ```yaml
 ---
