@@ -694,9 +694,11 @@ class CloudProvisioning(Provisioning):
         self.client = BlazeMeterClient(self.log)
         self.test_id = None
         self.__last_master_status = None
+        self.browser_open = 'start'
 
     def prepare(self):
         super(CloudProvisioning, self).prepare()
+        self.browser_open = self.settings.get("browser-open", self.browser_open)
 
         # TODO: go to "blazemeter" section for these settings by default?
         self.client.address = self.settings.get("address", self.client.address)
@@ -758,8 +760,11 @@ class CloudProvisioning(Provisioning):
 
     def startup(self):
         super(CloudProvisioning, self).startup()
-        url = self.client.start_taurus(self.test_id)
-        self.log.info("Started cloud test: %s", url)
+        self.client.start_taurus(self.test_id)
+        self.log.info("Started cloud test: %s", self.client.results_url)
+        if self.client.results_url:
+            if self.browser_open in ('start', 'both'):
+                webbrowser.open(self.client.results_url)
 
     def check(self):
         # TODO: throttle down requests
@@ -777,6 +782,9 @@ class CloudProvisioning(Provisioning):
 
     def shutdown(self):
         self.client.end_master(self.client.active_session_id)
+        if self.client.results_url:
+            if self.browser_open in ('end', 'both'):
+                webbrowser.open(self.client.results_url)
 
     def weight_locations(self, locations, load, available_locations):
         total = float(sum(locations.values()))

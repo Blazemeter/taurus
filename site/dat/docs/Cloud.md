@@ -18,3 +18,5 @@ modules:
 weighted vs absolute vs no concurrency set
 list of available locations is at https://a.blazemeter.com/api/latest/user
 logic to get default location
+provision-keyed concurrency
+browser-open
