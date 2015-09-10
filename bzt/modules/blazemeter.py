@@ -340,13 +340,10 @@ class BlazeMeterClient(object):
                 data = {"signature": self.data_signature, "testId": self.test_id, "sessionId": self.active_session_id}
                 self._request(url % self.active_session_id, json.dumps(data))
 
-    def end_cloud_test(self):
-        if not self.active_session_id:
-            self.log.debug("Feeding not started, so not stopping")
-        else:
-            self.log.info("Ending cloud test...")
-            url = self.address + "/api/latest/masters/%s/terminate"
-            self._request(url % self.active_session_id)
+    def end_master(self, master_id):
+        self.log.info("Ending cloud test...")
+        url = self.address + "/api/latest/masters/%s/terminate"
+        self._request(url % master_id)
 
     def project_by_name(self, proj_name):
         """
@@ -667,6 +664,10 @@ class BlazeMeterClient(object):
         sess = self._request(self.address + '/api/latest/masters/%s' % master_id)
         return sess['result']
 
+    def get_master_status(self, master_id):
+        sess = self._request(self.address + '/api/latest/masters/%s/status' % master_id)
+        return sess['result']
+
     def get_projects(self):
         data = self._request(self.address + '/api/latest/projects')
         return data['result']
@@ -759,7 +760,7 @@ class CloudProvisioning(Provisioning):
         self.log.info("Started cloud test: %s", url)
 
     def check(self):
-        master = self.client.get_master(self.client.active_session_id)
+        master = self.client.get_master_status(self.client.active_session_id)
         if 'statusCode' in master and master['statusCode'] > 100:
             self.log.info("Test was stopped in the cloud: %s", master['status'])
             self.client.active_session_id = None
@@ -768,7 +769,7 @@ class CloudProvisioning(Provisioning):
         return super(CloudProvisioning, self).check()
 
     def shutdown(self):
-        self.client.end_cloud_test()
+        self.client.end_master(self.client.active_session_id)
 
     def weight_locations(self, locations, load, available_locations):
         total = float(sum(locations.values()))
