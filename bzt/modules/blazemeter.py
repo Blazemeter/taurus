@@ -24,6 +24,7 @@ import traceback
 import time
 import webbrowser
 import zipfile
+import math
 
 from bzt import ManualShutdown
 from bzt.engine import Reporter, AggregatorListener, Provisioning
@@ -697,11 +698,8 @@ class CloudProvisioning(Provisioning):
         user_info = self.client.get_user_info()
         available_locations = {str(x['id']): x for x in user_info['locations']}
 
-        rfiles = []
         for executor in self.executors:
-            locations = executor.execution.get(self.LOC, BetterDict())
-            if not locations:
-                locations.merge({"default": 1})
+            locations = self._get_locations(available_locations, executor)
 
             for location in locations.keys():
                 if location not in available_locations:
@@ -709,14 +707,24 @@ class CloudProvisioning(Provisioning):
                     raise ValueError("Invalid location requested: %s" % location)
 
             if executor.parameters.get("locations-weighted", True):
-                self.weight_locations(locations, executor.get_load())
-
-            rfiles += executor.get_resource_files()
+                self.weight_locations(locations, executor.get_load(), available_locations)
 
         config = copy.deepcopy(self.engine.config)
         if Provisioning.PROV in config:
             config.pop(Provisioning.PROV)
 
+        rfiles = self.__get_rfiles()
+        bza_plugin = self.__get_bza_test_config()
+        test_name = self.settings.get("test-name", "Taurus Test")
+        self.test_id = self.client.test_by_name(test_name, bza_plugin, config, rfiles, None)  # FIXME: set project id
+
+    def __get_rfiles(self):
+        rfiles = []
+        for executor in self.executors:
+            rfiles += executor.get_resource_files()
+        return rfiles
+
+    def __get_bza_test_config(self):
         bza_plugin = {
             "type": "taurus",
             "plugins": {
@@ -725,9 +733,17 @@ class CloudProvisioning(Provisioning):
                 }
             }
         }
+        return bza_plugin
 
-        test_name = self.settings.get("test-name", "Taurus Test")
-        self.test_id = self.client.test_by_name(test_name, bza_plugin, config, rfiles, None)  # FIXME: set project id
+    def _get_locations(self, available_locations, executor):
+        locations = executor.execution.get(self.LOC, BetterDict())
+        if not locations:
+            for location in available_locations:
+                if location['sandbox']:
+                    locations.merge({location['id']: 1})
+        if not locations:
+            raise ValueError("No sandbox location available, please specify locations manually")
+        return locations
 
     def startup(self):
         super(CloudProvisioning, self).startup()
@@ -746,8 +762,17 @@ class CloudProvisioning(Provisioning):
     def shutdown(self):
         self.client.end_online()
 
-    def weight_locations(self, locations, load):
-        total = sum(locations.values())
+    def weight_locations(self, locations, load, available_locations):
+        total = float(sum(locations.values()))
+        for loc_name, share in iteritems(locations):
+            loc_info = available_locations[loc_name]
+            limits = loc_info['limits']
+
+            if load.duration > limits['duration']:
+                msg = "Test duration %s exceeds limit %s for location %s"
+                self.log.warning(msg, load.duration, limits['duration'], loc_name)
+
+            locations[loc_name] = int(math.ceil(load.concurrency * share / total / limits['threadsPerEngine']))
 
 
 class BlazeMeterClientEmul(BlazeMeterClient):

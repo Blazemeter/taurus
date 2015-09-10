@@ -12,6 +12,7 @@ class TestCloudProvisioning(BZTestCase):
         obj.engine.config.merge({
             "execution": {
                 "executor": "mock",
+                "concurrency": 5500,
                 "locations": {
                     "us-east-1": 1,
                     "us-west": 2
@@ -19,7 +20,8 @@ class TestCloudProvisioning(BZTestCase):
             },
             "modules": {
                 "mock": ModuleMock.__module__ + "." + ModuleMock.__name__
-            }
+            },
+            "provisioning": "mock"
         })
         obj.parameters = obj.engine.config['execution']
 
@@ -34,6 +36,9 @@ class TestCloudProvisioning(BZTestCase):
         client.results.append({})  # terminate
 
         obj.prepare()
+        self.assertEquals(2, obj.executors[0].execution['locations']['us-east-1'])
+        self.assertEquals(4, obj.executors[0].execution['locations']['us-west'])
+
         obj.startup()
         obj.check()
         obj.shutdown()
