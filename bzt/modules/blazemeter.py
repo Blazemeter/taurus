@@ -341,9 +341,10 @@ class BlazeMeterClient(object):
                 self._request(url % self.active_session_id, json.dumps(data))
 
     def end_master(self, master_id):
-        self.log.info("Ending cloud test...")
-        url = self.address + "/api/latest/masters/%s/terminate"
-        self._request(url % master_id)
+        if master_id:
+            self.log.info("Ending cloud test...")
+            url = self.address + "/api/latest/masters/%s/terminate"
+            self._request(url % master_id)
 
     def project_by_name(self, proj_name):
         """
@@ -692,6 +693,7 @@ class CloudProvisioning(Provisioning):
         super(CloudProvisioning, self).__init__()
         self.client = BlazeMeterClient(self.log)
         self.test_id = None
+        self.__last_master_status = None
 
     def prepare(self):
         super(CloudProvisioning, self).prepare()
@@ -760,8 +762,13 @@ class CloudProvisioning(Provisioning):
         self.log.info("Started cloud test: %s", url)
 
     def check(self):
+        # TODO: throttle down requests
         master = self.client.get_master_status(self.client.active_session_id)
-        if 'statusCode' in master and master['statusCode'] > 100:
+        if "status" in master and master['status'] != self.__last_master_status:
+            self.__last_master_status = master['status']
+            self.log.info("Cloud test status: %s", self.__last_master_status)
+
+        if 'progress' in master and master['progress'] > 100:
             self.log.info("Test was stopped in the cloud: %s", master['status'])
             self.client.active_session_id = None
             return True
