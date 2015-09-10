@@ -29,7 +29,7 @@ from bzt import ManualShutdown
 from bzt.engine import Reporter, AggregatorListener, Provisioning
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.jmeter import JMeterExecutor
-from bzt.utils import to_json, dehumanize_time, MultiPartForm
+from bzt.utils import to_json, dehumanize_time, MultiPartForm, BetterDict
 from bzt.six import BytesIO, text_type, iteritems, HTTPError, urlencode, Request, urlopen
 
 
@@ -668,14 +668,15 @@ class BlazeMeterClient(object):
         return data['result']['id']
 
     def get_user_info(self):
-        sess = self._request(self.address + '/api/latest/user')
-        return sess['result']
+        res = self._request(self.address + '/api/latest/user')
+        return res
 
 
 class CloudProvisioning(Provisioning):
     """
     :type client: BlazeMeterClient
     """
+    LOC = "locations"
 
     def __init__(self):
         super(CloudProvisioning, self).__init__()
@@ -685,7 +686,7 @@ class CloudProvisioning(Provisioning):
     def prepare(self):
         super(CloudProvisioning, self).prepare()
 
-        # TODO: go to "blazemeter" section for these settings by default
+        # TODO: go to "blazemeter" section for these settings by default?
         self.client.address = self.settings.get("address", self.client.address)
         self.client.token = self.settings.get("token", self.client.token)
         self.client.timeout = dehumanize_time(self.settings.get("timeout", self.client.timeout))
@@ -693,8 +694,28 @@ class CloudProvisioning(Provisioning):
         if not self.client.token:
             raise ValueError("You must provide API token to use cloud provisioning")
 
+        user_info = self.client.get_user_info()
+        available_locations = {str(x['id']): x for x in user_info['locations']}
+
+        rfiles = []
+        for executor in self.executors:
+            locations = executor.execution.get(self.LOC, BetterDict())
+            if not locations:
+                locations.merge({"default": 1})
+
+            for location in locations.keys():
+                if location not in available_locations:
+                    self.log.info("List of supported locations: %s", available_locations.keys())
+                    raise ValueError("Invalid location requested: %s" % location)
+
+            if executor.parameters.get("locations-weighted", True):
+                self.weight_locations(locations, executor.get_load())
+
+            rfiles += executor.get_resource_files()
+
         config = copy.deepcopy(self.engine.config)
-        config.pop(Provisioning.PROV)
+        if Provisioning.PROV in config:
+            config.pop(Provisioning.PROV)
 
         bza_plugin = {
             "type": "taurus",
@@ -706,11 +727,6 @@ class CloudProvisioning(Provisioning):
         }
 
         test_name = self.settings.get("test-name", "Taurus Test")
-
-        rfiles = []
-        for executor in self.executors:
-            rfiles += executor.get_resource_files()
-
         self.test_id = self.client.test_by_name(test_name, bza_plugin, config, rfiles, None)  # FIXME: set project id
 
     def startup(self):
@@ -729,6 +745,9 @@ class CloudProvisioning(Provisioning):
 
     def shutdown(self):
         self.client.end_online()
+
+    def weight_locations(self, locations, load):
+        total = sum(locations.values())
 
 
 class BlazeMeterClientEmul(BlazeMeterClient):

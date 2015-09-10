@@ -11,12 +11,17 @@ class TestCloudProvisioning(BZTestCase):
         obj.engine = EngineEmul()
         obj.engine.config.merge({
             "execution": {
-                "executor": "mock"
+                "executor": "mock",
+                "locations": {
+                    "us-east-1": 1,
+                    "us-west": 2
+                }
             },
             "modules": {
                 "mock": ModuleMock.__module__ + "." + ModuleMock.__name__
             }
         })
+        obj.parameters = obj.engine.config['execution']
 
         obj.settings["token"] = "FakeToken"
         obj.client = client = BlazeMeterClientEmul(obj.log)
