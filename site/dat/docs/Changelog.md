@@ -2,6 +2,7 @@
 
 ## 0.4.2 (next)
  - bump up gatling version to 2.1.7
+ - selenium script from requests format
 
 ## 0.4.1
  - fix Locust.io search paths

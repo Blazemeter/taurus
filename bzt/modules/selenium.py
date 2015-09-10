@@ -7,12 +7,11 @@ import time
 import shutil
 import sys
 import subprocess
-
 import urwid
-
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
-from bzt.utils import RequiredTool, shell_exec, shutdown_process, BetterDict, JavaVM, TclLibrary
-from bzt.six import string_types, text_type
+from bzt.utils import RequiredTool, shell_exec, shutdown_process, BetterDict, JavaVM, TclLibrary, ensure_is_dict, \
+    dehumanize_time
+from bzt.six import string_types, text_type, etree
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.console import WidgetProvider
 from bzt.modules.jmeter import JTLReader
@@ -42,6 +41,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.reader = None
         self.kpi_file = None
         self.runner_working_dir = None
+        self.scenario = None
 
     def prepare(self):
         """
@@ -49,9 +49,14 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         2) detect script type
         3) create runner instance, prepare runner
         """
-        scenario = self.get_scenario()
+        self.scenario = self.get_scenario()
+        if "requests" in self.scenario:
+            if self.scenario.get("requests"):
+                self.scenario["script"] = self.__tests_from_requests()
+            else:
+                raise RuntimeError("Nothing to test, no requests were provided in scenario")
         self.kpi_file = self.engine.create_artifact("selenium_tests_report", ".csv")
-        script_type = self.detect_script_type(scenario.get("script"))
+        script_type = self.detect_script_type(self.scenario.get("script"))
         runner_config = BetterDict()
 
         if script_type == ".py":
@@ -73,7 +78,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         self._cp_resource_files(self.runner_working_dir)
 
-        self.runner = self.runner(runner_config, scenario, self.log)
+        self.runner = self.runner(runner_config, self.scenario, self.log)
         self.runner.prepare()
         self.reader = JTLReader(self.kpi_file, self.log, None)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
@@ -83,10 +88,9 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         :return:
         """
-        scenario = self.get_scenario()
-        script = scenario.get("script")
+        script = self.scenario.get("script")
 
-        if Scenario.SCRIPT in self.get_scenario():
+        if Scenario.SCRIPT in self.scenario:
             if os.path.isdir(script):
                 shutil.copytree(script, runner_working_dir)
             else:
@@ -153,12 +157,13 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def get_widget(self):
         if not self.widget:
-            self.widget = SeleniumWidget(self.get_scenario().get("script"), self.runner.settings.get("stdout"))
+            self.widget = SeleniumWidget(self.scenario.get("script"), self.runner.settings.get("stdout"))
         return self.widget
 
     def resource_files(self):
-        scenario = self.get_scenario()
-        script = scenario.get("script")
+        if not self.scenario:
+            self.scenario = self.get_scenario()
+        script = self.scenario.get("script")
         script_type = self.detect_script_type(script)
 
         if script_type == ".py":
@@ -173,6 +178,15 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self._cp_resource_files(self.runner_working_dir)
 
         return os.path.basename(self.runner_working_dir)
+
+    def __tests_from_requests(self):
+        filename = self.engine.create_artifact("test_requests", ".py")
+        nose_test = SeleniumScriptBuilder(self.scenario, self.log)
+        nose_test.scenario = self.scenario
+        nose_test.gen_test_case()
+        nose_test.save(filename)
+        return filename
+
 
 class AbstractTestRunner(object):
     """
@@ -502,3 +516,150 @@ class TaurusNosePlugin(RequiredTool):
 
     def install(self):
         raise NotImplementedError()
+
+
+class NoseTest(object):
+    IMPORTS = """import unittest
+import re
+from time import sleep
+from selenium import webdriver
+from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoAlertPresentException
+"""
+
+    def __init__(self):
+        self.root = etree.Element("NoseTest")
+        self.tree = etree.ElementTree(self.root)
+
+    def add_imports(self):
+        imports = etree.Element("imports")
+        imports.text = NoseTest.IMPORTS
+        return imports
+
+    def gen_class_definition(self, class_name, inherits_from, indent="0"):
+        def_tmpl = "class {class_name}({inherits_from}):"
+        class_def_element = etree.Element("class_definition", indent=indent)
+        class_def_element.text = def_tmpl.format(class_name=class_name, inherits_from="".join(inherits_from))
+        return class_def_element
+
+    def gen_method_definition(self, method_name, params, indent="4"):
+        def_tmpl = "def {method_name}({params}):"
+        method_def_element = etree.Element("method_definition", indent=indent)
+        method_def_element.text = def_tmpl.format(method_name=method_name, params=",".join(params))
+        return method_def_element
+
+    def gen_method_statement(self, statement, indent="8"):
+        statement_elem = etree.Element("statement", indent=indent)
+        statement_elem.text = statement
+        return statement_elem
+
+
+class SeleniumScriptBuilder(NoseTest):
+    def __init__(self, scenario, parent_logger):
+        super(SeleniumScriptBuilder, self).__init__()
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.scenario = scenario
+
+    def gen_test_case(self):
+        self.log.debug("Generating Test Case test method")
+        imports = self.add_imports()
+        self.root.append(imports)
+        test_class = self.gen_class_definition("TestRequests", ["unittest.TestCase"])
+        self.root.append(test_class)
+        test_class.append(self.gen_setup_method())
+        requests = self.scenario.get_requests()
+        test_method = self.gen_test_method()
+        test_class.append(test_method)
+        scenario_timeout = self.scenario.get("timeout", 30)
+
+        for request in requests:
+
+            test_method.append(self.gen_comment("start request: %s" % request.url))
+
+            if request.timeout is not None:
+                test_method.append(self.gen_impl_wait(request.timeout))
+
+            test_method.append(self.gen_method_statement("self.driver.get('%s')" % request.url))
+            think_time = request.think_time if request.think_time else self.scenario.get("think-time", None)
+
+            if think_time is not None:
+                test_method.append(self.gen_method_statement("sleep(%s)" % dehumanize_time(think_time)))
+
+            if "assert" in request.config:
+                test_method.append(self.__gen_assert_page())
+                for assert_config in request.config.get("assert"):
+                    test_method.extend(self.gen_assertion(assert_config))
+
+            if request.timeout is not None:
+                test_method.append(self.gen_impl_wait(scenario_timeout))
+
+            test_method.append(self.gen_comment("end request: %s" % request.url))
+            test_method.append(self.__gen_new_line())
+        test_class.append(self.gen_teardown_method())
+
+    def gen_setup_method(self):
+        self.log.debug("Generating setUp test method")
+        browsers = ["Firefox", "Chrome", "Ie", "Opera"]
+        browser = self.scenario.get("browser", "Firefox")
+        if browser not in browsers:
+            raise ValueError("Unsupported browser name")
+        setup_method_def = self.gen_method_definition("setUp", ["self"])
+        setup_method_def.append(self.gen_method_statement("self.driver=webdriver.%s()" % browser))
+        scenario_timeout = self.scenario.get("timeout", 30)
+        setup_method_def.append(self.gen_impl_wait(scenario_timeout))
+        setup_method_def.append(self.__gen_new_line())
+        return setup_method_def
+
+    def gen_impl_wait(self, timeout):
+        return self.gen_method_statement("self.driver.implicitly_wait(%s)" % dehumanize_time(timeout))
+
+    def gen_comment(self, comment):
+        return self.gen_method_statement("# %s" % comment)
+
+    def gen_test_method(self):
+        self.log.debug("Generating test method")
+        test_method = self.gen_method_definition("test_method", ["self"])
+        return test_method
+
+    def gen_teardown_method(self):
+        self.log.debug("Generating tearDown test method")
+        tear_down_method_def = self.gen_method_definition("tearDown", ["self"])
+        tear_down_method_def.append(self.gen_method_statement("self.driver.quit()"))
+        return tear_down_method_def
+
+    def gen_assertion(self, assertion_config):
+        self.log.debug("Generating assertion, config: %s", assertion_config)
+        assertion_elements = []
+
+        if isinstance(assertion_config, string_types):
+            assertion_config = {"contains": [assertion_config]}
+
+        for val in assertion_config["contains"]:
+            regexp = assertion_config.get("regexp", True)
+            reverse = assertion_config.get("not", False)
+            subject = assertion_config.get("subject", "body")
+            if subject != "body":
+                raise ValueError("Only 'body' subject supported ")
+
+            if regexp:
+                assert_method = "self.assertEqual" if reverse else "self.assertNotEqual"
+                assertion_elements.append(self.gen_method_statement('re_pattern = re.compile("%s")' % val))
+                assertion_elements.append(
+                    self.gen_method_statement('%s(0, len(re.findall(re_pattern, body)))' % assert_method))
+            else:
+                assert_method = "self.assertNotIn" if reverse else "self.assertIn"
+                assertion_elements.append(self.gen_method_statement('%s("%s", body)' % (assert_method, val)))
+        return assertion_elements
+
+    def __gen_new_line(self, indent="8"):
+        return self.gen_method_statement("", indent=indent)
+
+    def __gen_assert_page(self):
+        return self.gen_method_statement("body = self.driver.page_source")
+
+    def save(self, filename):
+        with open(filename, 'wt') as fds:
+            for child in self.root.iter():
+                if child.text is not None:
+                    indent = int(child.get('indent', "0"))
+                    fds.write(" " * indent + child.text + "\n")
