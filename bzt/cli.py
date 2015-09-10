@@ -29,6 +29,7 @@ from colorlog import ColoredFormatter
 import bzt
 from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown
 from bzt.engine import Engine, Configuration
+from bzt.six import HTTPError
 from bzt.utils import run_once
 
 
@@ -154,6 +155,8 @@ class CLI(object):
             elif isinstance(exc, AutomatedShutdown):
                 self.log.info("Automated shutdown")
             else:
+                if isinstance(exc, HTTPError):
+                    self.log.warning("Response from %s: %s", exc.geturl(), exc.read())
                 self.log.error("Exception: %s", exc)
             self.log.warning("Please wait for graceful shutdown...")
             exit_code = 1
