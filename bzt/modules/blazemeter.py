@@ -340,6 +340,14 @@ class BlazeMeterClient(object):
                 data = {"signature": self.data_signature, "testId": self.test_id, "sessionId": self.active_session_id}
                 self._request(url % self.active_session_id, json.dumps(data))
 
+    def end_cloud_test(self):
+        if not self.active_session_id:
+            self.log.debug("Feeding not started, so not stopping")
+        else:
+            self.log.info("Ending cloud test...")
+            url = self.address + "/api/latest/masters/%s/terminate"
+            self._request(url % self.active_session_id)
+
     def project_by_name(self, proj_name):
         """
         :type proj_name: str
@@ -738,7 +746,7 @@ class CloudProvisioning(Provisioning):
     def _get_locations(self, available_locations, executor):
         locations = executor.execution.get(self.LOC, BetterDict())
         if not locations:
-            for location in available_locations:
+            for location in available_locations.values():
                 if location['sandbox']:
                     locations.merge({location['id']: 1})
         if not locations:
@@ -760,7 +768,7 @@ class CloudProvisioning(Provisioning):
         return super(CloudProvisioning, self).check()
 
     def shutdown(self):
-        self.client.end_online()
+        self.client.end_cloud_test()
 
     def weight_locations(self, locations, load, available_locations):
         total = float(sum(locations.values()))
@@ -768,11 +776,14 @@ class CloudProvisioning(Provisioning):
             loc_info = available_locations[loc_name]
             limits = loc_info['limits']
 
-            if load.duration > limits['duration']:
+            if load.duration > limits['duration'] * 60:
                 msg = "Test duration %s exceeds limit %s for location %s"
-                self.log.warning(msg, load.duration, limits['duration'], loc_name)
+                self.log.warning(msg, load.duration, limits['duration'] * 60, loc_name)
 
-            locations[loc_name] = int(math.ceil(load.concurrency * share / total / limits['threadsPerEngine']))
+            if load.concurrency:
+                locations[loc_name] = int(math.ceil(load.concurrency * share / total / limits['threadsPerEngine']))
+            else:
+                locations[loc_name] = 1
 
 
 class BlazeMeterClientEmul(BlazeMeterClient):
