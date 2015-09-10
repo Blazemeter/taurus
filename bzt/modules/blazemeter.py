@@ -711,7 +711,7 @@ class CloudProvisioning(Provisioning):
 
             for location in locations.keys():
                 if location not in available_locations:
-                    self.log.info("List of supported locations: %s", available_locations.keys())
+                    self.log.warning("List of supported locations for you is: %s", sorted(available_locations.keys()))
                     raise ValueError("Invalid location requested: %s" % location)
 
             if executor.parameters.get("locations-weighted", True):
