@@ -46,7 +46,7 @@ class CLI(object):
         self.setup_logging(options)
         self.log = logging.getLogger('')
         self.log.info("Taurus CLI Tool v%s", bzt.VERSION)
-        logging.debug("Command-line options: %s", self.options)
+        self.log.debug("Command-line options: %s", self.options)
         self.engine = Engine(self.log)
         self.engine.artifacts_base_dir = self.options.datadir
 
@@ -132,7 +132,7 @@ class CLI(object):
             overrides = self.__get_config_overrides()
             configs.extend(overrides)
 
-            logging.info("Starting with configs: %s", configs)
+            self.log.info("Starting with configs: %s", configs)
             self.engine.configure(configs)
 
             # apply aliases
