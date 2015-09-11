@@ -268,12 +268,12 @@ class Engine(object):
         :type move: bool
         """
         self.log.debug("Add existing artifact (move=%s): %s", move, filename)
+        if self.artifacts_dir is None:
+            self.log.warning("Artifacts dir has not been set, will not copy %s", filename)
+            return
+
         newname = os.path.join(self.artifacts_dir, os.path.basename(filename))
         self.__artifacts.append(newname)
-
-        if self.artifacts_dir is None:
-            self.log.warning("Artifacts dir has not been set, will not copy artifact")
-            return
 
         if os.path.realpath(filename) == os.path.realpath(newname):
             self.log.debug("No need to copy %s", filename)
@@ -615,10 +615,9 @@ class Configuration(BetterDict):
                 return json.loads(fds.read()), self.JSON
             elif first_line.startswith('['):
                 self.log.debug("Reading %s as INI", filename)
-                parser = configparser.SafeConfigParser()
+                parser = configparser.RawConfigParser()
                 parser.read(filename)
                 res = []
-                parser.add_section("BZT")
                 for option in parser.options("BZT"):
                     res.append((option, parser.get("BZT", option)))
                 return res, self.INI
@@ -648,7 +647,7 @@ class Configuration(BetterDict):
                             explicit_start=True, canonical=False)
             fds.write(yml)
         elif fmt == self.INI:
-            fds.write("[DEFAULT]\n")
+            fds.write("[DEFAULT]\n")  # TODO: switch to write it with ConfigParser like done in CLI
             fds.write(self.__dict_to_overrides(self))
         else:
             raise ValueError("Unknown dump format: %s" % fmt)

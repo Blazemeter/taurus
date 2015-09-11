@@ -14,7 +14,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-
 import logging
 import os
 import platform
@@ -29,7 +28,7 @@ from colorlog import ColoredFormatter
 import bzt
 from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown
 from bzt.engine import Engine, Configuration
-from bzt.six import HTTPError
+from bzt.six import HTTPError, configparser
 from bzt.utils import run_once
 
 
@@ -199,9 +198,13 @@ class CLI(object):
             fname = fds.name
             fds.close()
             with open(fname, 'w') as fds:
-                fds.write("[DEFAULT]\n")
+                writer = configparser.ConfigParser()
+                writer.add_section("BZT")
                 for option in self.options.option:
-                    fds.write(option + "\n")
+                    name = option[:option.index('=')]
+                    value = option[option.index('=') + 1:]
+                    writer.set("BZT", name, value)
+                writer.write(fds)
             return [fname]
         else:
             return []
