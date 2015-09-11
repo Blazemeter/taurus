@@ -25,6 +25,7 @@ from optparse import OptionParser, BadOptionError, Option
 
 from colorlog import ColoredFormatter
 
+import six
 import bzt
 from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown
 from bzt.engine import Engine, Configuration
@@ -198,7 +199,10 @@ class CLI(object):
             fname = fds.name
             fds.close()
             with open(fname, 'w') as fds:
-                writer = configparser.ConfigParser()
+                if six.PY3:  # I'm so tired of this shit :-(
+                    writer = configparser.ConfigParser(interpolation=None)
+                else:
+                    writer = configparser.ConfigParser()
                 writer.add_section("BZT")
                 for option in self.options.option:
                     name = option[:option.index('=')]
