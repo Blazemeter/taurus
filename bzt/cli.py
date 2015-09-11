@@ -178,7 +178,11 @@ class CLI(object):
             exit_code = self.engine.stopping_reason.get_rc()
 
         self.log.info("Artifacts dir: %s", self.engine.artifacts_dir)
-        self.log.info("Done performing with code: %s", exit_code)
+        if exit_code:
+            self.log.warning("Done performing with code: %s", exit_code)
+        else:
+            self.log.info("Done performing with code: %s", exit_code)
+
         self.__close_log()
 
         return exit_code
