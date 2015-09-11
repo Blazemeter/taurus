@@ -83,7 +83,7 @@ class TaurusNosePlugin(Plugin):
         open descriptor here
         :return:
         """
-        self.error_writer = JTLErrorWriter(self.output_file + "err")
+        self.error_writer = JTLErrorWriter(self.output_file + ".err")
         self.out_stream = open(self.output_file, "wt")
         self.csv_writer = csv.DictWriter(self.out_stream, delimiter=',', fieldnames=JTL_HEADER)
         self.csv_writer.writeheader()

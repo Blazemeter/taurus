@@ -41,7 +41,7 @@ public class CustomRunner {
             throw new RuntimeException("Nothing to test");
         } else {
             log.info("Running with classes: " + Arrays.toString(classes));
-            CustomListener custom_listener = new CustomListener(new JTLReporter(args[0]));
+            CustomListener custom_listener = new CustomListener(new JTLReporter(args[0]), new JTLErrorReporter(args[0] + ".err"));
             JUnitCore runner = new JUnitCore();
             runner.addListener(custom_listener);
             runner.run(classes);

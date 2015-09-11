@@ -57,8 +57,8 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             else:
                 raise RuntimeError("Nothing to test, no requests were provided in scenario")
         self.kpi_file = self.engine.create_artifact("selenium_tests_report", ".csv")
-        self.err_jtl = self.kpi_file + "err"
-        script_type = self.detect_script_type(scenario.get("script"))
+        self.err_jtl = self.kpi_file + ".err"  #  TODO: Replace with parameters in test runner
+        script_type = self.detect_script_type(self.scenario.get("script"))
         runner_config = BetterDict()
 
         if script_type == ".py":

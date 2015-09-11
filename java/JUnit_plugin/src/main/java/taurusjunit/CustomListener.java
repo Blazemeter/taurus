@@ -12,11 +12,13 @@ public class CustomListener extends RunListener {
     private static final Logger log = Logger.getLogger(CustomListener.class.getName());
     private Sample pendingSample;
     private JTLReporter reporter;
+    private JTLErrorReporter err_reporter;
     private long started = 0;
 
-    public CustomListener(JTLReporter jtlReporter) {
+    public CustomListener(JTLReporter jtlReporter, JTLErrorReporter jtlErrorReporter) {
         super();
         reporter = jtlReporter;
+        err_reporter = jtlErrorReporter;
     }
 
     public void testRunStarted(Description description) {
@@ -26,6 +28,7 @@ public class CustomListener extends RunListener {
     public void testRunFinished(Result result) throws java.lang.Exception {
         log.info("Run Finished, successful=" + result.wasSuccessful() + ", run count=" + result.getRunCount());
         reporter.close();
+        err_reporter.save();
     }
 
     public void testStarted(Description description) throws Exception {
@@ -36,7 +39,6 @@ public class CustomListener extends RunListener {
 
     public void testFinished(Description description) throws java.lang.Exception {
         log.info(String.format("finished %s", description.getDisplayName()));
-
         pendingSample.setElapsed(System.currentTimeMillis() - started);
         pendingSample.setLabel(description.getMethodName());
         pendingSample.setThreadName(description.getClassName() + "." + description.getMethodName());
@@ -58,7 +60,8 @@ public class CustomListener extends RunListener {
         sample.setTrace(failure.getTrace());
         sample.setMessage(failure.getMessage());
         sample.setResponseCode(500);
-
+        err_reporter.add_sample(sample);
+        
         if (pendingSample == null) {
             reporter.writeSample(sample);
         }
@@ -69,6 +72,7 @@ public class CustomListener extends RunListener {
         pendingSample.setSuccess(false);
         pendingSample.setMessage(failure.getMessage());
         pendingSample.setResponseCode(400);
+        err_reporter.add_sample(pendingSample);
     }
 
     public void testIgnored(Description description) throws java.lang.Exception {
@@ -76,6 +80,7 @@ public class CustomListener extends RunListener {
         pendingSample.setSuccess(false);
         pendingSample.setMessage(description.getDisplayName());
         pendingSample.setResponseCode(300);
+        err_reporter.add_sample(pendingSample);
     }
 
 }
