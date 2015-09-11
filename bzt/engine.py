@@ -23,7 +23,6 @@ import json
 import logging
 import os
 import shutil
-import tempfile
 import time
 import traceback
 from collections import namedtuple, defaultdict
@@ -79,11 +78,18 @@ class Engine(object):
         Load configuration files
         """
         self.log.info("Configuring...")
-        # self._create_artifacts_dir()
-        # dump = self.create_artifact("effective", "")  # FIXME: not good since this file not exists
-        # self.config.set_dump_file(dump)
         self._load_base_configs()
-        self._load_user_configs(user_configs)
+        merged_config = self._load_user_configs(user_configs)
+        self._create_artifacts_dir()
+        dump = self.create_artifact("effective", "")  # FIXME: not good since this file not exists
+        self.config.set_dump_file(dump)
+        self.config.dump()
+
+        merged_config.dump(self.create_artifact("merged", ".yml"), Configuration.YAML)
+        merged_config.dump(self.create_artifact("merged", ".json"), Configuration.JSON)
+        for config in user_configs:
+            self.existing_artifact(config)
+
         self._load_included_configs()
         self.config.merge({"version": bzt.VERSION})
         self._set_up_proxy()
@@ -265,6 +271,10 @@ class Engine(object):
         newname = os.path.join(self.artifacts_dir, os.path.basename(filename))
         self.__artifacts.append(newname)
 
+        if self.artifacts_dir is None:
+            self.log.warning("Artifacts dir has not been set, will not copy artifact")
+            return
+
         if os.path.realpath(filename) == os.path.realpath(newname):
             self.log.debug("No need to copy %s", filename)
             return
@@ -283,17 +293,16 @@ class Engine(object):
     def _create_artifacts_dir(self):
         """
         Create directory for artifacts, directory name based on datetime.now()
-        :return:
         """
-        if not self.artifacts_dir:
-            date_str = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S.")
-            if not os.path.isdir(self.artifacts_base_dir):
-                os.makedirs(self.artifacts_base_dir)
-            self.artifacts_dir = tempfile.mkdtemp(prefix=date_str, dir=os.path.expanduser(self.artifacts_base_dir))
-        else:
+        if self.artifacts_dir:
             self.artifacts_dir = os.path.expanduser(self.artifacts_dir)
+        else:
+            default = "%Y-%m-%d_%H-%M-%S.%f"
+            artifacts_dir = self.config.get("settings").get("artifacts-dir", default)
+            self.artifacts_dir = datetime.datetime.now().strftime(artifacts_dir)
+            self.artifacts_dir = os.path.expanduser(self.artifacts_dir)
+            self.artifacts_dir = os.path.abspath(self.artifacts_dir)
 
-        self.artifacts_dir = os.path.abspath(self.artifacts_dir)
         self.log.info("Artifacts dir: %s", self.artifacts_dir)
 
         if not os.path.isdir(self.artifacts_dir):
@@ -366,8 +375,9 @@ class Engine(object):
         elif self.file_search_paths:
             for dirname in self.file_search_paths:
                 location = os.path.join(dirname, os.path.basename(filename))
-                self.log.warning("Guessed location from search paths for file %s: %s", filename, location)
-                return location
+                if os.path.isfile(location):
+                    self.log.warning("Guessed location from search paths for file %s: %s", filename, location)
+                    return location
         else:
             return filename
 
@@ -398,12 +408,9 @@ class Engine(object):
         user_config = Configuration()
         user_config.load(user_configs, self.__config_loaded)
         self.config.merge(user_config)
-        user_config.dump(self.create_artifact("merged", ".yml"), Configuration.YAML)
-        user_config.dump(self.create_artifact("merged", ".json"), Configuration.JSON)
         return user_config
 
     def __config_loaded(self, config):
-        self.existing_artifact(config)
         self.file_search_paths.append(os.path.dirname(os.path.realpath(config)))
 
     def __prepare_provisioning(self):
@@ -551,6 +558,7 @@ class Engine(object):
     def _load_included_configs(self):
         for config in self.config.get("included-configs", []):
             fname = os.path.abspath(self.find_file(config))
+            self.existing_artifact(fname)
             self.config.load([fname])
 
 
