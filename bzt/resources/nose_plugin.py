@@ -6,12 +6,16 @@ import traceback
 import sys
 import csv
 import re
+from bzt.six import etree
+
+JTL_ERR_ATRS = ["t", "lt", "ct", "ts", "s", "lb", "rc", "rm", "tn", "dt", "de", "by", "ng", "na"]
 
 JTL_HEADER = ["timeStamp", "elapsed", "label", "responseCode", "responseMessage", "threadName", "success",
-                           "grpThreads", "allThreads", "Latency", "Connect"]
+              "grpThreads", "allThreads", "Latency", "Connect"]
 
 SEARCH_PATTERNS = {"file": re.compile(r'\((.*?)\.'), "class": re.compile(r'\.(.*?)\)'),
-                                "method": re.compile(r'(.*?)\ ')}
+                   "method": re.compile(r'(.*?)\ ')}
+
 
 class TaurusNosePlugin(Plugin):
     """
@@ -23,19 +27,15 @@ class TaurusNosePlugin(Plugin):
 
     def __init__(self, output_file):
         super(TaurusNosePlugin, self).__init__()
-        self._trace = None
+        # self._trace = None
         self._module_name = None
         self.output_file = output_file
         self.test_count = 0
         self.success = 0
         self.csv_writer = None
         self.jtl_dict = None
-
-    def report_error(self, err):
-        exc_type, value, tb = err
-        trace = "--TRACE:" + "".join(traceback.format_tb(tb))
-        errmsg = "--MESSAGE:" + "".join(traceback.format_exception_only(exc_type, value))
-        return trace + "\n" + errmsg
+        self.error_writer = None
+        self.last_err = None
 
     def addError(self, test, err, capt=None):
         """
@@ -44,8 +44,8 @@ class TaurusNosePlugin(Plugin):
         :param err:
         :return:
         """
-        self.jtl_dict["responseCode"] = 500
-        self._trace = self.report_error(err)
+        self.jtl_dict["responseCode"] = "500"
+        self.last_err = err
 
     def addFailure(self, test, err, capt=None, tbinfo=None):
         """
@@ -55,8 +55,8 @@ class TaurusNosePlugin(Plugin):
 
         :return:
         """
-        self.jtl_dict["responseCode"] = 404
-        self._trace = self.report_error(err)
+        self.jtl_dict["responseCode"] = "404"
+        self.last_err = err
 
     def addSkip(self, test):
         """
@@ -64,7 +64,7 @@ class TaurusNosePlugin(Plugin):
         :param test:
         :return:
         """
-        self.jtl_dict["responseCode"] = 300
+        self.jtl_dict["responseCode"] = "300"
 
     def addSuccess(self, test, capt=None):
         """
@@ -72,7 +72,7 @@ class TaurusNosePlugin(Plugin):
         :param test:
         :return:
         """
-        self.jtl_dict["responseCode"] = 200
+        self.jtl_dict["responseCode"] = "200"
         self.jtl_dict["success"] = "true"
         self.jtl_dict["responseMessage"] = "OK"
         self.success += 1
@@ -83,6 +83,7 @@ class TaurusNosePlugin(Plugin):
         open descriptor here
         :return:
         """
+        self.error_writer = JTLErrorWriter(self.output_file + "err")
         self.out_stream = open(self.output_file, "wt")
         self.csv_writer = csv.DictWriter(self.out_stream, delimiter=',', fieldnames=JTL_HEADER)
         self.csv_writer.writeheader()
@@ -94,6 +95,7 @@ class TaurusNosePlugin(Plugin):
         :param result:
         :return:
         """
+        self.error_writer.save()
         self.out_stream.close()
         if not self.test_count:
             raise RuntimeError("Nothing to test.")
@@ -117,7 +119,7 @@ class TaurusNosePlugin(Plugin):
 
         if self._module_name != file_name + "." + class_name:
             self._module_name = file_name + "." + class_name
-        self._trace = ""
+        self.last_err = None
         self._time = time()
         self.jtl_dict = {}.fromkeys(JTL_HEADER, 0)
         self.jtl_dict["timeStamp"] = int(1000 * self._time)
@@ -138,12 +140,103 @@ class TaurusNosePlugin(Plugin):
         :return:
         """
         self.test_count += 1
-        if self._trace:
-            self.jtl_dict["responseMessage"] = self._trace
+        self.jtl_dict["elapsed"] = str(int(1000 * (time() - self._time)))
 
-        self.jtl_dict["elapsed"] = int(1000 * (time() - self._time))
+        if self.last_err is not None:
+            exc_type_name = self.last_err[0].__name__
+            trace = "".join(traceback.format_tb(self.last_err[2])) + "\n" + self.last_err[1]
+            self.jtl_dict["responseMessage"] = exc_type_name
+
+            sample = {}.fromkeys(JTL_ERR_ATRS)
+            sample["t"] = self.jtl_dict["elapsed"]
+            sample["lt"] = str(self.jtl_dict["Latency"])
+            sample["ct"] = str(self.jtl_dict["Connect"])
+            sample["ts"] = str(self.jtl_dict["timeStamp"])
+            sample["s"] = self.jtl_dict["success"]
+            sample["lb"] = self.jtl_dict["label"]
+            sample["rc"] = self.jtl_dict["responseCode"]
+            sample["rm"] = exc_type_name
+            sample["tn"] = self.jtl_dict["threadName"]
+            sample["dt"] = "text"
+            sample["de"] = ""
+            sample["by"] = str(len(trace))
+            sample["ng"] = "1"
+            sample["na"] = "1"
+
+            self.error_writer.add_sample(sample, self.jtl_dict["label"], trace)
+
         self.csv_writer.writerow(self.jtl_dict)
         self.out_stream.flush()
+
+
+class JTLErrorWriter(object):
+    def __init__(self, out_file):
+        self.out_file = out_file
+        self.root = etree.Element("testResults", version="1.2")
+        self.tree = etree.ElementTree(self.root)
+
+    def add_sample(self, sample, url, resp_data):
+        new_sample = self.gen_httpSample(sample, url, resp_data)
+        self.root.append(new_sample)
+
+    def gen_httpSample(self, sample, url, resp_data):
+        """
+
+        :param params: namedtuple httpSample
+        :return:
+        """
+        sample_element = etree.Element("httpSample", **sample)
+        sample_element.append(self.gen_resp_header())
+        sample_element.append(self.gen_req_header())
+        sample_element.append(self.gen_resp_data(resp_data))
+        sample_element.append(self.gen_cookies())
+        sample_element.append(self.gen_method())
+        sample_element.append(self.gen_queryString())
+        sample_element.append(self.gen_url(url))
+        return sample_element
+
+    def __open_file(self):
+        self.fds = open(self.out_file, 'wt')
+
+    def gen_resp_header(self):
+        resp_header = etree.Element("responseHeader")
+        resp_header.set("class", "java.lang.String")
+        return resp_header
+
+    def gen_req_header(self):
+        resp_header = etree.Element("requestHeader")
+        resp_header.set("class", "java.lang.String")
+        return resp_header
+
+    def gen_resp_data(self, data):
+        resp_data = etree.Element("responseData")
+        resp_data.set("class", "java.lang.String")
+        resp_data.text = data
+        return resp_data
+
+    def gen_cookies(self):
+        cookies = etree.Element("cookies")
+        cookies.set("class", "java.lang.String")
+        return cookies
+
+    def gen_method(self):
+        method = etree.Element("method")
+        method.set("class", "java.lang.String")
+        return method
+
+    def gen_queryString(self):
+        queryString = etree.Element("queryString")
+        queryString.set("class", "java.lang.String")
+        return queryString
+
+    def gen_url(self, url):
+        url_element = etree.Element("java.net.URL")
+        url_element.text = url
+        return url_element
+
+    def save(self):  # TODO: use incremental writer
+        with open(self.out_file, "wb") as fhd:
+            self.tree.write(fhd, pretty_print=True, encoding="UTF-8", xml_declaration=True)
 
 
 if __name__ == "__main__":

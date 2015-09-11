@@ -41,6 +41,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.widget = None
         self.reader = None
         self.kpi_file = None
+        self.err_jtl = None
         self.runner_working_dir = None
 
     def prepare(self):
@@ -51,6 +52,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         scenario = self.get_scenario()
         self.kpi_file = self.engine.create_artifact("selenium_tests_report", ".csv")
+        self.err_jtl = self.kpi_file + "err"
         script_type = self.detect_script_type(scenario.get("script"))
         runner_config = BetterDict()
 
@@ -75,7 +77,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         self.runner = self.runner(runner_config, scenario, self.log)
         self.runner.prepare()
-        self.reader = JTLReader(self.kpi_file, self.log, None)
+        self.reader = JTLReader(self.kpi_file, self.log, self.err_jtl)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
