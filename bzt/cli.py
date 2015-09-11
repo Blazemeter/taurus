@@ -49,7 +49,6 @@ class CLI(object):
         logging.debug("Command-line options: %s", self.options)
         self.engine = Engine(self.log)
         self.engine.artifacts_base_dir = self.options.datadir
-        self.engine.file_search_path = os.getcwd()
 
     @staticmethod
     @run_once

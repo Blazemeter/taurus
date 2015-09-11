@@ -37,7 +37,7 @@ from bzt import ManualShutdown, NormalShutdown, get_configs_dir
 import bzt
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_int
 from bzt.six import iteritems, string_types, text_type, PY2, UserDict, configparser, parse, ProxyHandler, build_opener, \
-    install_opener, urlopen
+    install_opener, urlopen, request
 
 
 class Engine(object):
@@ -56,11 +56,10 @@ class Engine(object):
 
         :type parent_logger: logging.Logger
         """
-        self._config_locations = []
+        self.file_search_paths = []
         self.services = []
         self.__artifacts = []
         self.reporters = []
-        self.file_search_path = None
         self.artifacts_base_dir = os.getcwd()
         self.artifacts_dir = None
         self.log = parent_logger.getChild(self.__class__.__name__)
@@ -349,25 +348,27 @@ class Engine(object):
 
         return instance
 
-    def find_file(self, filename):
+    def find_file(self, filename):  # TODO: use it everywhere when it makes sense
         """
         Try to find file in search_path if it was specified. Helps finding files
-        in non-CLI environments
-
-        :param filename:
-        :return: :raise IOError:
+        in non-CLI environments or relative to config path
         """
         if os.path.isfile(filename):
             return filename
-        elif self.file_search_path:
-            location = os.path.join(self.file_search_path, os.path.basename(filename))
-            self.log.warning("Guessed location for file %s: %s", filename, location)
-            return location
+        elif self.file_search_paths:
+            for dirname in self.file_search_paths:
+                location = os.path.join(dirname, os.path.basename(filename))
+                self.log.warning("Guessed location from search paths for file %s: %s", filename, location)
+                return location
+        elif filename.lower().startswith("http://") or filename.lower().startswith("https://"):
+            downloader = request.FancyURLopener()
+            dest = self.create_artifact("downloaded", ".file")  # TODO: make it smart to get name from URL if possible
+            downloader.retrieve(filename, dest)
+            return dest
         else:
-            raise IOError("File not found: %s" % filename)
+            return filename
 
     def _load_base_configs(self):
-        # prepare base configs
         base_configs = []
         machine_dir = get_configs_dir()  # can't refactor machine_dir out - see setup.py
         if os.path.isdir(machine_dir):
@@ -387,17 +388,20 @@ class Engine(object):
         self.config.load(base_configs)
 
     def _load_user_configs(self, user_configs):
-        for fname in user_configs:
-            self.existing_artifact(fname)
-        for config in user_configs:
-            self._config_locations.append(os.path.dirname(os.path.realpath(config)))
-
-        # load user configs
+        """
+        :type user_configs: list[str]
+        :rtype: Configuration
+        """
         user_config = Configuration()
-        user_config.load(user_configs)
+        user_config.load(user_configs, self.__config_loaded)
         user_config.dump(self.create_artifact("merged", ".yml"), Configuration.YAML)
         user_config.dump(self.create_artifact("merged", ".json"), Configuration.JSON)
         self.config.merge(user_config)
+        return user_config
+
+    def __config_loaded(self, config):
+        self.existing_artifact(config)
+        self.file_search_paths.append(os.path.dirname(os.path.realpath(config)))
 
     def __prepare_provisioning(self):
         """
@@ -573,7 +577,7 @@ class Configuration(BetterDict):
                 self.merge(config)
 
             if callback is not None:
-                callback(config)
+                callback(config_file)
 
     def __read_file(self, filename):
         """
