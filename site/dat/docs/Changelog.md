@@ -1,6 +1,9 @@
 # Changelog
 
-## 0.4.2 (next)
+## 0.4.3 (next)
+
+
+## 0.4.2
  - bump up Gatling version to 2.1.7
  - selenium script from requests format
  - change file search algo to use paths relative to config locations
