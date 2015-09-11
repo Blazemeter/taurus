@@ -6,7 +6,7 @@
  - change file search algo to use paths relative to config locations
  - allow having script files relative to config locations
  - allow having `included-configs` instruction
- - allow setting path to artifacts from `settings` in config, deprecate --data-dir CLI option
+ - allow setting path to artifacts from `settings` in config, deprecate `--data-dir` CLI option
 
 ## 0.4.1
  - fix Locust.io search paths
