@@ -19,7 +19,7 @@ import logging
 import os
 import platform
 import sys
-import tempfile
+from tempfile import NamedTemporaryFile
 import traceback
 from logging import Formatter
 from optparse import OptionParser, BadOptionError, Option
@@ -48,7 +48,6 @@ class CLI(object):
         self.log.info("Taurus CLI Tool v%s", bzt.VERSION)
         self.log.debug("Command-line options: %s", self.options)
         self.engine = Engine(self.log)
-        self.engine.artifacts_base_dir = self.options.datadir
 
     @staticmethod
     @run_once
@@ -195,7 +194,9 @@ class CLI(object):
 
         if self.options.option:
             self.log.debug("Adding overrides: %s", self.options.option)
-            fds, fname = tempfile.mkstemp(".ini", "overrides_", dir=self.engine.artifacts_base_dir)
+
+            fds = NamedTemporaryFile(prefix="overrides_", suffix=".ini")
+            fname = fds.name
             os.close(fds)
             with open(fname, 'w') as fds:
                 fds.write("[DEFAULT]\n")
@@ -221,7 +222,8 @@ class CLI(object):
 
         if jmxes:
             self.log.debug("Adding JMX shorthand config for: %s", jmxes)
-            fds, fname = tempfile.mkstemp(".json", "jmxes_", dir=self.engine.artifacts_base_dir)
+            fds = NamedTemporaryFile(prefix="jmxses_", suffix=".json")
+            fname = fds.name
             os.close(fds)
 
             config = Configuration()

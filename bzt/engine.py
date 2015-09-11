@@ -60,7 +60,7 @@ class Engine(object):
         self.services = []
         self.__artifacts = []
         self.reporters = []
-        self.artifacts_base_dir = os.getcwd()
+        #self.artifacts_base_dir = os.getcwd()
         self.artifacts_dir = None
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.config = Configuration()
@@ -80,9 +80,9 @@ class Engine(object):
         Load configuration files
         """
         self.log.info("Configuring...")
-        self._create_artifacts_dir()
-        dump = self.create_artifact("effective", "")  # FIXME: not good since this file not exists
-        self.config.set_dump_file(dump)
+        #self._create_artifacts_dir()
+        #dump = self.create_artifact("effective", "")  # FIXME: not good since this file not exists
+        #self.config.set_dump_file(dump)
         self._load_base_configs()
         self._load_user_configs(user_configs)
         self._load_included_configs()
@@ -137,7 +137,9 @@ class Engine(object):
         """
         self.log.info("Waiting for finish...")
         prev = time.time()
-        modules = [self.provisioning]
+        modules = []
+        if self.provisioning:
+            modules.append(self.provisioning)
         if self.aggregator:
             modules.append(self.aggregator)
         modules += self.services + self.reporters
@@ -473,7 +475,7 @@ class Engine(object):
         rx_bytes, tx_bytes, dru, dwu = self.__get_resource_stats()
         # TODO: measure and report check loop utilization
         return stats(
-            cpu=psutil.cpu_percent(interval=None),
+            cpu=psutil.cpu_percent(),
             disk_usage=psutil.disk_usage(self.artifacts_dir).percent,
             mem_usage=psutil.virtual_memory().percent,
             rx=rx_bytes, tx=tx_bytes, dru=dru, dwu=dwu
@@ -1050,24 +1052,24 @@ class Scenario(UserDict, object):
         scenario = self
         requests = scenario.get("requests", [])
         for key in range(len(requests)):
-            request = ensure_is_dict(requests, key, "url")
+            req = ensure_is_dict(requests, key, "url")
             res = namedtuple("HTTPReq",
                              ('url', 'label', 'method', 'headers', 'timeout', 'think_time', 'config', "body"))
-            url = request["url"]
-            label = request.get("label", url)
-            method = request.get("method", "GET")
-            headers = request.get("headers", {})
-            timeout = request.get("timeout", None)
-            think_time = request.get("think-time", None)
+            url = req["url"]
+            label = req.get("label", url)
+            method = req.get("method", "GET")
+            headers = req.get("headers", {})
+            timeout = req.get("timeout", None)
+            think_time = req.get("think-time", None)
 
             body = None
-            bodyfile = request.get("body-file", None)
+            bodyfile = req.get("body-file", None)
             if bodyfile:
                 with open(bodyfile) as fhd:
                     body = fhd.read()
-            body = request.get("body", body)
+            body = req.get("body", body)
 
-            yield res(config=request, label=label,
+            yield res(config=req, label=label,
                       url=url, method=method, headers=headers,
                       timeout=timeout, think_time=think_time, body=body)
 

@@ -16,7 +16,6 @@ class SeleniumTestCase(BZTestCase):
     def setUp(self):
         super(SeleniumTestCase, self).setUp()
         self.engine_obj = EngineEmul()
-        self.engine_obj.artifacts_base_dir = ABS_PATH("/../../build/test")
         self.paths = [ABS_PATH("/../../bzt/10-base.json"), local_paths_config()]
         self.engine_obj.configure(self.paths)
         self.selenium_config = self.engine_obj.config["modules"]["selenium"]

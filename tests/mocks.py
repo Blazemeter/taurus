@@ -27,7 +27,7 @@ class EngineEmul(Engine):
 
     def __init__(self):
         Engine.__init__(self, logging.getLogger(''))
-        self.artifacts_base_dir = os.path.dirname(__file__) + "/../build/test"
+        self.artifacts_dir = os.path.dirname(__file__) + "/../build/test/%s" % id(self)
         self._create_artifacts_dir()
 
         self.finalize_exc = None

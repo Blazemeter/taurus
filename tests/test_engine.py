@@ -10,7 +10,6 @@ class TestEngine(BZTestCase):
     def setUp(self):
         super(TestEngine, self).setUp()
         self.obj = EngineEmul()
-        self.obj.artifacts_base_dir = tempfile.gettempdir() + "/bzt"
         self.paths = local_paths_config()
 
     def test_jmx(self):
