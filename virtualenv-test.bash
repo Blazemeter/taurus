@@ -25,7 +25,7 @@ cd ..
 echo '{"install-id": "UnitTest"}' > build/etc/bzt.d/99-zinstallID.json
 
 # run functional tests
-bzt -o execution.scenario.script=tests/jmx/dummy.jmx -d build/test -o modules.jmeter.path=build/jmeter/bin/jmeter
-bzt -d build/test tests/json/jmeter_minimal.json -o modules.jmeter.path=build/jmeter/bin/jmeter
-bzt -d build/test tests/json/get-post.json -o modules.jmeter.path=build/jmeter/bin/jmeter
+bzt -o execution.scenario.script=tests/jmx/dummy.jmx -o settings.artifacts-dir="build/test/%Y-%m-%d_%H-%M-%S.%f" -o modules.jmeter.path=build/jmeter/bin/jmeter
+bzt tests/json/jmeter_minimal.json -o settings.artifacts-dir="build/test/%Y-%m-%d_%H-%M-%S.%f" -o modules.jmeter.path=build/jmeter/bin/jmeter
+bzt tests/json/get-post.json -o settings.artifacts-dir="build/test/%Y-%m-%d_%H-%M-%S.%f" -o modules.jmeter.path=build/jmeter/bin/jmeter
 
