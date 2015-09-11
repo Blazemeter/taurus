@@ -60,7 +60,6 @@ class Engine(object):
         self.services = []
         self.__artifacts = []
         self.reporters = []
-        #self.artifacts_base_dir = os.getcwd()
         self.artifacts_dir = None
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.config = Configuration()
@@ -80,9 +79,9 @@ class Engine(object):
         Load configuration files
         """
         self.log.info("Configuring...")
-        #self._create_artifacts_dir()
-        #dump = self.create_artifact("effective", "")  # FIXME: not good since this file not exists
-        #self.config.set_dump_file(dump)
+        # self._create_artifacts_dir()
+        # dump = self.create_artifact("effective", "")  # FIXME: not good since this file not exists
+        # self.config.set_dump_file(dump)
         self._load_base_configs()
         self._load_user_configs(user_configs)
         self._load_included_configs()
@@ -398,9 +397,9 @@ class Engine(object):
         """
         user_config = Configuration()
         user_config.load(user_configs, self.__config_loaded)
+        self.config.merge(user_config)
         user_config.dump(self.create_artifact("merged", ".yml"), Configuration.YAML)
         user_config.dump(self.create_artifact("merged", ".json"), Configuration.JSON)
-        self.config.merge(user_config)
         return user_config
 
     def __config_loaded(self, config):

@@ -197,7 +197,7 @@ class CLI(object):
 
             fds = NamedTemporaryFile(prefix="overrides_", suffix=".ini")
             fname = fds.name
-            os.close(fds)
+            fds.close()
             with open(fname, 'w') as fds:
                 fds.write("[DEFAULT]\n")
                 for option in self.options.option:
@@ -224,7 +224,7 @@ class CLI(object):
             self.log.debug("Adding JMX shorthand config for: %s", jmxes)
             fds = NamedTemporaryFile(prefix="jmxses_", suffix=".json")
             fname = fds.name
-            os.close(fds)
+            fds.close()
 
             config = Configuration()
 
@@ -288,8 +288,6 @@ def main():
     usage = "Usage: bzt [options] [configs] [-aliases]"
     dsc = "BlazeMeter Taurus Tool v%s, the configuration-driven test running engine" % bzt.VERSION
     parser = OptionParserWithAliases(usage=usage, description=dsc, prog="bzt")
-    parser.add_option('-d', '--datadir', action='store', default=".",
-                      help="Artifacts base dir")
     parser.add_option('-l', '--log', action='store', default="bzt.log",
                       help="Log file location")
     parser.add_option('-o', '--option', action='append',
