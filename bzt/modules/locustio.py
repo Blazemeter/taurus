@@ -26,7 +26,7 @@ from imp import find_module
 from bzt.engine import ScenarioExecutor, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsProvider, DataPoint, KPISet
 from bzt.modules.jmeter import JTLReader
-from bzt.utils import shutdown_process, shell_exec, RequiredTool, TclLibrary
+from bzt.utils import shutdown_process, shell_exec, RequiredTool
 from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.six import PY3, iteritems
 
@@ -136,6 +136,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     def get_locust_file(self):
         scenario = self.get_scenario()
         locustfile = scenario.get("script", ValueError("Please specify locusfile in 'script' option"))
+        locustfile = self.engine.find_file(locustfile)
         if not os.path.exists(locustfile):
             raise ValueError("Locust file not found: %s" % locustfile)
         return locustfile

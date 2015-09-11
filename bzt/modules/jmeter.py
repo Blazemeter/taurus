@@ -308,7 +308,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             group.xpath(dur_xpath)[0].text = str(int(duration))
             loops_element = group.find(".//elementProp[@name='ThreadGroup.main_controller']")
             loops_loop_count = loops_element.find("*[@name='LoopController.loops']")
-            loops_loop_count.getparent().replace(loops_loop_count, JMX._int_prop("LoopController.loops", -1))
+            loops_loop_count.getparent().replace(loops_loop_count, JMX.int_prop("LoopController.loops", -1))
 
     @staticmethod
     def __apply_iterations(jmx, iterations):
@@ -715,9 +715,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         check tools
         """
-        required_tools = []
-        required_tools.append(JavaVM("", "", self.log))
-        required_tools.append(TclLibrary(self.log))
+        required_tools = [JavaVM("", "", self.log), TclLibrary(self.log)]
 
         jmeter_path = self.settings.get("path", "~/.bzt/jmeter-taurus/bin/jmeter")
         if EXE_SUFFIX and not jmeter_path.lower().endswith(EXE_SUFFIX):
@@ -1106,7 +1104,7 @@ class JMX(object):
         return res
 
     @staticmethod
-    def _int_prop(name, value):
+    def int_prop(name, value):
         """
         JMX int property
         :param name:
@@ -1243,7 +1241,7 @@ class JMX(object):
                                         guiclass="LoopControlPanel", testclass="LoopController",
                                         testname="Loop Controller", enabled="true")
         loop_controller.append(JMX._bool_prop("LoopController.continue_forever", False))
-        loop_controller.append(JMX._int_prop("LoopController.loops", -1))
+        loop_controller.append(JMX.int_prop("LoopController.loops", -1))
 
         stepping_thread_group.append(loop_controller)
         return stepping_thread_group
@@ -1915,10 +1913,10 @@ class JMeterScenarioBuilder(JMX):
                                                                 retrieve_resources, concurrent_pool_size))
         self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
 
-    def __add_think_time(self, children, request):
+    def __add_think_time(self, children, req):
         global_ttime = self.scenario.get("think-time", None)
-        if request.think_time is not None:
-            ttime = int(1000 * dehumanize_time(request.think_time))
+        if req.think_time is not None:
+            ttime = int(1000 * dehumanize_time(req.think_time))
         elif global_ttime is not None:
             ttime = int(1000 * dehumanize_time(global_ttime))
         else:
@@ -1927,8 +1925,8 @@ class JMeterScenarioBuilder(JMX):
             children.append(JMX._get_constant_timer(ttime))
             children.append(etree.Element("hashTree"))
 
-    def __add_extractors(self, children, request):
-        extractors = request.config.get("extract-regexp", BetterDict())
+    def __add_extractors(self, children, req):
+        extractors = req.config.get("extract-regexp", BetterDict())
         for varname in extractors:
             cfg = ensure_is_dict(extractors, varname, "regexp")
             extractor = JMX._get_extractor(varname, cfg['regexp'], '$%s$' % cfg.get('template', 1),
@@ -1936,13 +1934,13 @@ class JMeterScenarioBuilder(JMX):
             children.append(extractor)
             children.append(etree.Element("hashTree"))
 
-        jextractors = request.config.get("extract-jsonpath", BetterDict())
+        jextractors = req.config.get("extract-jsonpath", BetterDict())
         for varname in jextractors:
             cfg = ensure_is_dict(jextractors, varname, "jsonpath")
             children.append(JMX._get_json_extractor(varname, cfg['jsonpath'], cfg.get('default', 'NOT_FOUND')))
             children.append(etree.Element("hashTree"))
 
-        css_jquery_extors = request.config.get("extract-css-jquery", BetterDict())
+        css_jquery_extors = req.config.get("extract-css-jquery", BetterDict())
         for varname in css_jquery_extors:
             cfg = ensure_is_dict(css_jquery_extors, varname, "expression")
             children.append(
@@ -1950,8 +1948,8 @@ class JMeterScenarioBuilder(JMX):
                                              cfg.get('match-no', 0), cfg.get('default', 'NOT_FOUND')))
             children.append(etree.Element("hashTree"))
 
-    def __add_assertions(self, children, request):
-        assertions = request.config.get("assert", [])
+    def __add_assertions(self, children, req):
+        assertions = req.config.get("assert", [])
         for idx, assertion in enumerate(assertions):
             assertion = ensure_is_dict(assertions, idx, "contains")
             if not isinstance(assertion['contains'], list):
@@ -1962,7 +1960,7 @@ class JMeterScenarioBuilder(JMX):
                                                     assertion.get('not', False)))
             children.append(etree.Element("hashTree"))
 
-        jpath_assertions = request.config.get("assert-jsonpath", [])
+        jpath_assertions = req.config.get("assert-jsonpath", [])
         for idx, assertion in enumerate(jpath_assertions):
             assertion = ensure_is_dict(jpath_assertions, idx, "jsonpath")
 
@@ -1979,33 +1977,33 @@ class JMeterScenarioBuilder(JMX):
         global_timeout = self.scenario.get("timeout", None)
         global_keepalive = self.scenario.get("keepalive", True)
 
-        for request in self.scenario.get_requests():
-            if request.timeout is not None:
-                timeout = int(1000 * dehumanize_time(request.timeout))
+        for req in self.scenario.get_requests():
+            if req.timeout is not None:
+                timeout = int(1000 * dehumanize_time(req.timeout))
             elif global_timeout is not None:
                 timeout = int(1000 * dehumanize_time(global_timeout))
             else:
                 timeout = None
 
-            http = JMX._get_http_request(request.url, request.label, request.method, timeout, request.body,
+            http = JMX._get_http_request(req.url, req.label, req.method, timeout, req.body,
                                          global_keepalive)
             self.append(self.THR_GROUP_SEL, http)
 
             children = etree.Element("hashTree")
             self.append(self.THR_GROUP_SEL, children)
-            if request.headers:
-                children.append(JMX._get_header_mgr(request.headers))
+            if req.headers:
+                children.append(JMX._get_header_mgr(req.headers))
                 children.append(etree.Element("hashTree"))
 
-            self.__add_think_time(children, request)
+            self.__add_think_time(children, req)
 
-            self.__add_assertions(children, request)
+            self.__add_assertions(children, req)
 
             if timeout is not None:
                 children.append(JMX._get_dur_assertion(timeout))
                 children.append(etree.Element("hashTree"))
 
-            self.__add_extractors(children, request)
+            self.__add_extractors(children, req)
 
     def __generate(self):
         """
@@ -2066,8 +2064,7 @@ class JMeter(RequiredTool):
         self.log.debug("Trying jmeter: %s", self.tool_path)
         try:
             jmlog = tempfile.NamedTemporaryFile(prefix="jmeter", suffix="log", delete=False)
-            jm_proc = shell_exec([self.tool_path, '-j', jmlog.name, '--version'], stdout=subprocess.PIPE,
-                                 stderr=subprocess.STDOUT)
+            jm_proc = shell_exec([self.tool_path, '-j', jmlog.name, '--version'], stderr=subprocess.STDOUT)
             jmout, jmerr = jm_proc.communicate()
             self.log.debug("JMeter check: %s / %s", jmout, jmerr)
             jmlog.close()
