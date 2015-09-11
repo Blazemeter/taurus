@@ -218,7 +218,6 @@ class CLI(object):
         Generate json file with execution, executor and scenario settings
         :type configs: list
         :return: list
-
         """
 
         jmxes = []
@@ -229,7 +228,7 @@ class CLI(object):
 
         if jmxes:
             self.log.debug("Adding JMX shorthand config for: %s", jmxes)
-            fds = NamedTemporaryFile(prefix="jmxses_", suffix=".json")
+            fds = NamedTemporaryFile(prefix="jmx_", suffix=".json")
             fname = fds.name
             fds.close()
 
