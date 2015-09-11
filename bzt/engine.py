@@ -56,6 +56,7 @@ class Engine(object):
 
         :type parent_logger: logging.Logger
         """
+        self._config_locations = []
         self.services = []
         self.__artifacts = []
         self.reporters = []
@@ -83,7 +84,8 @@ class Engine(object):
         self._create_artifacts_dir()
         dump = self.create_artifact("effective", "")  # FIXME: not good since this file not exists
         self.config.set_dump_file(dump)
-        self.__load_configs(user_configs)
+        self._load_base_configs()
+        self._load_user_configs(user_configs)
         self.config.merge({"version": bzt.VERSION})
         self._set_up_proxy()
         self._check_updates()
@@ -364,19 +366,10 @@ class Engine(object):
         else:
             raise IOError("File not found: %s" % filename)
 
-    def __load_configs(self, user_configs):
-        """
-
-        :param user_configs: list of config files
-        :return:
-        """
-        for fname in user_configs:
-            self.existing_artifact(fname)
-
+    def _load_base_configs(self):
         # prepare base configs
         base_configs = []
-        # can't refactor machine_dir out - see setup.py
-        machine_dir = get_configs_dir()
+        machine_dir = get_configs_dir()  # can't refactor machine_dir out - see setup.py
         if os.path.isdir(machine_dir):
             self.log.debug("Reading machine configs from: %s", machine_dir)
             for cfile in sorted(os.listdir(machine_dir)):
@@ -385,22 +378,25 @@ class Engine(object):
                     base_configs.append(fname)
         else:
             self.log.info("No machine configs dir: %s", machine_dir)
-
         user_file = os.path.expanduser(os.path.join('~', ".bzt-rc"))
         if os.path.isfile(user_file):
             self.log.debug("Adding personal config: %s", user_file)
             base_configs.append(user_file)
         else:
             self.log.info("No personal config: %s", user_file)
+        self.config.load(base_configs)
+
+    def _load_user_configs(self, user_configs):
+        for fname in user_configs:
+            self.existing_artifact(fname)
+        for config in user_configs:
+            self._config_locations.append(os.path.dirname(os.path.realpath(config)))
 
         # load user configs
         user_config = Configuration()
         user_config.load(user_configs)
         user_config.dump(self.create_artifact("merged", ".yml"), Configuration.YAML)
         user_config.dump(self.create_artifact("merged", ".json"), Configuration.JSON)
-
-        # load base and merge user into it
-        self.config.load(base_configs)
         self.config.merge(user_config)
 
     def __prepare_provisioning(self):
@@ -561,7 +557,7 @@ class Configuration(BetterDict):
         self.log = logging.getLogger('')
         self.dump_filename = None
 
-    def load(self, configs):
+    def load(self, configs, callback=None):
         """
         Load and merge JSON/YAML files into current dict
 
@@ -575,6 +571,9 @@ class Configuration(BetterDict):
                 self.__apply_overrides(config)
             else:
                 self.merge(config)
+
+            if callback is not None:
+                callback(config)
 
     def __read_file(self, filename):
         """
