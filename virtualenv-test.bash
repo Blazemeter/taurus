@@ -5,7 +5,7 @@ virtualenv --clear build
 source build/bin/activate
 
 # install depends
-pip install --upgrade colorlog pyyaml psutil lxml cssselect nose urwid coverage six pylint progressbar33 locustio
+pip install --upgrade colorlog pyyaml psutil lxml cssselect nose urwid coverage six pylint selenium progressbar33 locustio
 
 pylint -d R0903,R0904,C0301,C0302,C0111,E1103,R0201,R0902,W0511,F0401,E0611,R0801 -f parseable bzt > build/pylint.out || echo
 
@@ -29,4 +29,3 @@ bzt -o execution.scenario.script=tests/jmx/dummy.jmx -d build/test -o modules.jm
 bzt -d build/test tests/json/jmeter_minimal.json -o modules.jmeter.path=build/jmeter/bin/jmeter
 bzt -d build/test tests/json/get-post.json -o modules.jmeter.path=build/jmeter/bin/jmeter
 
-deactivate

@@ -24,12 +24,13 @@ import traceback
 import time
 import webbrowser
 import zipfile
+import math
 
 from bzt import ManualShutdown
 from bzt.engine import Reporter, AggregatorListener, Provisioning
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.jmeter import JMeterExecutor
-from bzt.utils import to_json, dehumanize_time, MultiPartForm
+from bzt.utils import to_json, dehumanize_time, MultiPartForm, BetterDict
 from bzt.six import BytesIO, text_type, iteritems, HTTPError, urlencode, Request, urlopen
 
 
@@ -338,6 +339,12 @@ class BlazeMeterClient(object):
                 url = self.address + "/api/latest/sessions/%s/terminateExternal"
                 data = {"signature": self.data_signature, "testId": self.test_id, "sessionId": self.active_session_id}
                 self._request(url % self.active_session_id, json.dumps(data))
+
+    def end_master(self, master_id):
+        if master_id:
+            self.log.info("Ending cloud test...")
+            url = self.address + "/api/latest/masters/%s/terminate"
+            self._request(url % master_id)
 
     def project_by_name(self, proj_name):
         """
@@ -658,6 +665,10 @@ class BlazeMeterClient(object):
         sess = self._request(self.address + '/api/latest/masters/%s' % master_id)
         return sess['result']
 
+    def get_master_status(self, master_id):
+        sess = self._request(self.address + '/api/latest/masters/%s/status' % master_id)
+        return sess['result']
+
     def get_projects(self):
         data = self._request(self.address + '/api/latest/projects')
         return data['result']
@@ -668,24 +679,28 @@ class BlazeMeterClient(object):
         return data['result']['id']
 
     def get_user_info(self):
-        sess = self._request(self.address + '/api/latest/user')
-        return sess['result']
+        res = self._request(self.address + '/api/latest/user')
+        return res
 
 
 class CloudProvisioning(Provisioning):
     """
     :type client: BlazeMeterClient
     """
+    LOC = "locations"
 
     def __init__(self):
         super(CloudProvisioning, self).__init__()
         self.client = BlazeMeterClient(self.log)
         self.test_id = None
+        self.__last_master_status = None
+        self.browser_open = 'start'
 
     def prepare(self):
         super(CloudProvisioning, self).prepare()
+        self.browser_open = self.settings.get("browser-open", self.browser_open)
 
-        # TODO: go to "blazemeter" section for these settings by default
+        # TODO: go to "blazemeter" section for these settings by default?
         self.client.address = self.settings.get("address", self.client.address)
         self.client.token = self.settings.get("token", self.client.token)
         self.client.timeout = dehumanize_time(self.settings.get("timeout", self.client.timeout))
@@ -693,9 +708,36 @@ class CloudProvisioning(Provisioning):
         if not self.client.token:
             raise ValueError("You must provide API token to use cloud provisioning")
 
-        config = copy.deepcopy(self.engine.config)
-        config.pop(Provisioning.PROV)
+        user_info = self.client.get_user_info()
+        available_locations = {str(x['id']): x for x in user_info['locations']}
 
+        for executor in self.executors:
+            locations = self._get_locations(available_locations, executor)
+
+            for location in locations.keys():
+                if location not in available_locations:
+                    self.log.warning("List of supported locations for you is: %s", sorted(available_locations.keys()))
+                    raise ValueError("Invalid location requested: %s" % location)
+
+            if executor.parameters.get("locations-weighted", True):
+                self.weight_locations(locations, executor.get_load(), available_locations)
+
+        config = copy.deepcopy(self.engine.config)
+        if Provisioning.PROV in config:
+            config.pop(Provisioning.PROV)
+
+        rfiles = self.__get_rfiles()
+        bza_plugin = self.__get_bza_test_config()
+        test_name = self.settings.get("test-name", "Taurus Test")
+        self.test_id = self.client.test_by_name(test_name, bza_plugin, config, rfiles, None)  # FIXME: set project id
+
+    def __get_rfiles(self):
+        rfiles = []
+        for executor in self.executors:
+            rfiles += executor.get_resource_files()
+        return rfiles
+
+    def __get_bza_test_config(self):
         bza_plugin = {
             "type": "taurus",
             "plugins": {
@@ -704,23 +746,34 @@ class CloudProvisioning(Provisioning):
                 }
             }
         }
+        return bza_plugin
 
-        test_name = self.settings.get("test-name", "Taurus Test")
-
-        rfiles = []
-        for executor in self.executors:
-            rfiles += executor.get_resource_files()
-
-        self.test_id = self.client.test_by_name(test_name, bza_plugin, config, rfiles, None)  # FIXME: set project id
+    def _get_locations(self, available_locations, executor):
+        locations = executor.execution.get(self.LOC, BetterDict())
+        if not locations:
+            for location in available_locations.values():
+                if location['sandbox']:
+                    locations.merge({location['id']: 1})
+        if not locations:
+            raise ValueError("No sandbox location available, please specify locations manually")
+        return locations
 
     def startup(self):
         super(CloudProvisioning, self).startup()
-        url = self.client.start_taurus(self.test_id)
-        self.log.info("Started cloud test: %s", url)
+        self.client.start_taurus(self.test_id)
+        self.log.info("Started cloud test: %s", self.client.results_url)
+        if self.client.results_url:
+            if self.browser_open in ('start', 'both'):
+                webbrowser.open(self.client.results_url)
 
     def check(self):
-        master = self.client.get_master(self.client.active_session_id)
-        if 'statusCode' in master and master['statusCode'] > 100:
+        # TODO: throttle down requests
+        master = self.client.get_master_status(self.client.active_session_id)
+        if "status" in master and master['status'] != self.__last_master_status:
+            self.__last_master_status = master['status']
+            self.log.info("Cloud test status: %s", self.__last_master_status)
+
+        if 'progress' in master and master['progress'] > 100:
             self.log.info("Test was stopped in the cloud: %s", master['status'])
             self.client.active_session_id = None
             return True
@@ -728,7 +781,25 @@ class CloudProvisioning(Provisioning):
         return super(CloudProvisioning, self).check()
 
     def shutdown(self):
-        self.client.end_online()
+        self.client.end_master(self.client.active_session_id)
+        if self.client.results_url:
+            if self.browser_open in ('end', 'both'):
+                webbrowser.open(self.client.results_url)
+
+    def weight_locations(self, locations, load, available_locations):
+        total = float(sum(locations.values()))
+        for loc_name, share in iteritems(locations):
+            loc_info = available_locations[loc_name]
+            limits = loc_info['limits']
+
+            if load.duration > limits['duration'] * 60:
+                msg = "Test duration %s exceeds limit %s for location %s"
+                self.log.warning(msg, load.duration, limits['duration'] * 60, loc_name)
+
+            if load.concurrency:
+                locations[loc_name] = int(math.ceil(load.concurrency * share / total / limits['threadsPerEngine']))
+            else:
+                locations[loc_name] = 1
 
 
 class BlazeMeterClientEmul(BlazeMeterClient):

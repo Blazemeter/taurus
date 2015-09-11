@@ -224,7 +224,7 @@ class SlavesReader(ResultsProvider):
     def __open_file(self):
         if os.path.exists(self.filename):
             self.log.debug("Opening %s", self.filename)
-            self.fds = open(self.filename, 'rb')
+            self.fds = open(self.filename, 'rt')
         else:
             self.log.debug("File not exists: %s", self.filename)
 

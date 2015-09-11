@@ -96,6 +96,9 @@ class TestLocustIOExecutor(BZTestCase):
         obj.post_process()
 
     def test_locust_slave_results(self):
+        if six.PY3:
+            logging.warning("No locust available for python 3")
+
         obj = SlavesReader(__dir__() + "/../locust/locust-slaves.ldjson", 2, logging.getLogger(""))
         points = [x for x in obj.datapoints(True)]
         self.assertEquals(107, len(points))
@@ -103,6 +106,9 @@ class TestLocustIOExecutor(BZTestCase):
             self.assertGreater(point[DataPoint.CURRENT][''][KPISet.AVG_RESP_TIME], 0)
 
     def test_locust_resource_files(self):
+        if six.PY3:
+            logging.warning("No locust available for python 3")
+
         obj = LocustIOExecutor()
         obj.engine = EngineEmul()
         obj.engine.config['provisioning'] = 'local'

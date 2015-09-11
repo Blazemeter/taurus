@@ -15,6 +15,8 @@ Tried on Windows 7 and Windows XP:
 To upgrade it, open Command Prompt and type `pip install --upgrade bzt`, then hit `Enter`
 
 ## Linux
+
+### Ubuntu
 Instructions are tested on Ubuntu 14.04 (Trusty) minimal install, but should work on other distributions with corresponding packages and libs. You will need python 2.7 or higher and Java installed.
 
 ```bash
@@ -26,6 +28,46 @@ Upgrading to latest is as simple as this:
 
 ```bash
 sudo pip install --upgrade bzt
+```
+
+### CentOS
+
+Use `uname -a` to verify the system if it's 32 bit or 64 bit machine. [http://www.tecmint.com/enable-rpmforge-repository/](http://www.tecmint.com/enable-rpmforge-repository/)
+
+Get corresponding EPEL (Extra Package for Enterprise Linux) for CentOS (Community Enterprise OS) 7, and enable it.
+
+```bash
+wget http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-5.noarch.rpm
+sudo rpm -ivh epel-release-7-5.noarch.rpm
+
+[http://www.tecmint.com/how-to-enable-epel-repository-for-rhel-centos-6-5/](http://www.tecmint.com/how-to-enable-epel-repository-for-rhel-centos-6-5/)
+
+Optional Step: Verify EPEL repository
+
+```bash
+sudo yum repolist
+```
+For example, this has a line like this `epel/x86_64           Extra Packages for Enterprise Linux 7 - x86_64`
+
+Install python-pip
+
+```bash
+sudo yum -y install python-pip
+```
+[http://www.cyberciti.biz/faq/debian-ubuntu-centos-rhel-linux-install-pipclient/](http://www.cyberciti.biz/faq/debian-ubuntu-centos-rhel-linux-install-pipclient/)
+
+Install corresponding libraries for CentOS
+
+```bash
+sudo yum install java-1.7.0-openjdk-headless.x86_64 python-devel.x86_64 libxml2-devel.x86_64 libxslt-devel.x86_64 zlib.x86_64 gcc.x86_64
+```
+
+You could search by 'yum search xxxxx' where 'xxxxx' represents the name of the library.
+
+Install Taurus:
+
+```bash
+sudo pip install bzt
 ```
 
 ## Mac OS
