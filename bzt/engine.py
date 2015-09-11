@@ -85,6 +85,7 @@ class Engine(object):
         self.config.set_dump_file(dump)
         self._load_base_configs()
         self._load_user_configs(user_configs)
+        self._load_included_configs()
         self.config.merge({"version": bzt.VERSION})
         self._set_up_proxy()
         self._check_updates()
@@ -355,16 +356,17 @@ class Engine(object):
         """
         if os.path.isfile(filename):
             return filename
+        elif filename.lower().startswith("http://") or filename.lower().startswith("https://"):
+            downloader = request.FancyURLopener()
+            dest = self.create_artifact("downloaded", ".file")  # TODO: make it smart to get name from URL if possible
+            self.log.info("Downloading %s into %s", filename, dest)
+            downloader.retrieve(filename, dest)
+            return dest
         elif self.file_search_paths:
             for dirname in self.file_search_paths:
                 location = os.path.join(dirname, os.path.basename(filename))
                 self.log.warning("Guessed location from search paths for file %s: %s", filename, location)
                 return location
-        elif filename.lower().startswith("http://") or filename.lower().startswith("https://"):
-            downloader = request.FancyURLopener()
-            dest = self.create_artifact("downloaded", ".file")  # TODO: make it smart to get name from URL if possible
-            downloader.retrieve(filename, dest)
-            return dest
         else:
             return filename
 
@@ -544,6 +546,11 @@ class Engine(object):
             except BaseException:
                 self.log.debug("Failed to check for updates: %s", traceback.format_exc())
                 self.log.debug("Failed to check for updates")
+
+    def _load_included_configs(self):
+        for config in self.config.get("included-configs", []):
+            fname = os.path.abspath(self.find_file(config))
+            self.config.load([fname])
 
 
 class Configuration(BetterDict):
