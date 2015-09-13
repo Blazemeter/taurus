@@ -23,10 +23,10 @@ import time
 from logging import StreamHandler
 from itertools import groupby
 from datetime import datetime
-
 from abc import abstractmethod
 import re
 import copy
+
 from urwid.decoration import Padding
 from urwid.display_common import BaseScreen
 from urwid import Text, Pile, WEIGHT, Filler, Columns, Widget, \
@@ -52,16 +52,18 @@ else:
 class ConsoleStatusReporter(Reporter, AggregatorListener):
     """
     Class to show process status on the console
+    :type logger_handlers: list[logging.StreamHandler]
     """
     # NOTE: maybe should use separate thread for screen re-painting
     def __init__(self):
         super(ConsoleStatusReporter, self).__init__()
-        self.data_started = False
-        self.logger_handler = None
-        self.orig_stream = None
-        self.screen_size = (140, 35)
-        self.disabled = False
+        self.__streams_redirected = False
+        self.logger_handlers = []
+        self.orig_streams = {}
         self.temp_stream = StringIONotifying(self.log_updated)
+        self.screen_size = (140, 35)
+        self.data_started = False
+        self.disabled = False
         self.console = None
         self.screen = DummyScreen(self.screen_size[0], self.screen_size[1])
 
@@ -76,8 +78,6 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
 
         if sys.stdout.isatty():
             self.screen = Screen()
-            if platform.system() != 'Windows':
-                self.__detect_console_logger()
         else:
             cols = self.settings.get('dummy-cols', self.screen_size[0])
             rows = self.settings.get('dummy-rows', self.screen_size[1])
@@ -113,13 +113,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         :return:
         """
         if self.data_started and not self.screen.started:
-            if self.logger_handler:
-                self.orig_stream = self.logger_handler.stream
-                self.log.debug("Overriding logging stream")
-                self.logger_handler.stream = self.temp_stream
-            else:
-                self.log.info("Did not mute console logging")
-
+            self.__redirect_streams()
             self.screen.start()
             self.log.info("Waiting for finish...")
 
@@ -160,20 +154,6 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
 
         self.data_started = True
 
-    def __dump_saved_log(self):
-        """
-        Dump data from background logging buffer to orig_stream
-        """
-        if self.logger_handler and self.orig_stream:
-            # dump what we have in our background logging stream
-            self.logger_handler.stream = self.orig_stream
-            self.temp_stream.seek(0)
-            self.orig_stream.write(self.temp_stream.getvalue())
-            self.log.debug("Restored logging stream")
-            self.logger_handler = None
-        else:
-            self.log.debug("No logger_handler or orig_stream was detected")
-
     def shutdown(self):
         """
         Stop showing the screen
@@ -190,20 +170,55 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         self.__dump_saved_log()
 
     def __detect_console_logger(self):
-        # FIXME: with server mode this breaks server logging
         logger = self.log
         while logger:
             for handler in logger.handlers[:]:
                 if isinstance(handler, StreamHandler):
                     if handler.stream in (sys.stdout, sys.stderr):
-                        # NOTE: assumed that we have only one stream handler
-                        self.logger_handler = handler
-                        break
+                        self.logger_handlers.append(handler)
 
             if logger.root == logger:
                 break
             else:
                 logger = logger.root
+
+    def __redirect_streams(self):
+        if self.__streams_redirected:
+            return
+
+        if sys.stdout.isatty():
+            if platform.system() != 'Windows':
+                self.__detect_console_logger()
+
+        if self.data_started and not self.screen.started:
+            if self.orig_streams:
+                raise RuntimeError("Orig streams already set")
+            elif self.logger_handlers and not self.orig_streams:
+                self.log.debug("Overriding logging streams")
+                for handler in self.logger_handlers:
+                    self.orig_streams[handler] = handler.stream
+                    handler.stream = self.temp_stream
+                self.log.debug("Redirected logging streams, %s/%s", self.logger_handlers, self.orig_streams)
+                self.__streams_redirected = True
+            else:
+                self.log.info("Did not mute console logging")
+
+    def __dump_saved_log(self):
+        """
+        Dump data from background logging buffer to orig_stream
+        """
+        if self.logger_handlers and self.orig_streams:
+            # dump what we have in our background logging stream
+            self.log.debug("Restoring logging streams, %s/%s", self.logger_handlers, self.orig_streams)
+            for handler in self.logger_handlers[:]:
+                handler.stream = self.orig_streams[handler]
+                self.temp_stream.seek(0)
+                handler.stream.write(self.temp_stream.getvalue())
+                self.logger_handlers.remove(handler)
+                self.orig_streams.pop(handler)
+            self.temp_stream.truncate(0)
+        else:
+            self.log.debug("No logger_handler or orig_stream was detected")
 
     def __repaint(self):
         if self.screen.started:
@@ -500,6 +515,7 @@ class StackedGraph(Widget):
         :type size: tuple
         :return:
         """
+        del focus
         self.last_size = size
         matrix = self.__get_matrix(size[0], size[1])
 
@@ -641,7 +657,6 @@ class CumulativeStats(LineBox):
         self.title_widget.set_text(" Cumulative Stats after %s " % duration)
 
 
-
 class PercentilesList(ListBox):
     """
     Percentile list
@@ -707,6 +722,7 @@ class AvgTimesList(ListBox):
         self.body.append(Text(("stat-txt", "~Receive: %.3f" % recv),
                               align=RIGHT))
 
+
 class LabelsPile(Pile):
     """
     Label stats and error descriptions
@@ -732,7 +748,7 @@ class LabelsPile(Pile):
         """
         labels_height = self.label_columns.get_height() + 1
         self.contents[0] = (self.contents[0][0], (GIVEN, labels_height))
-        return super(LabelsPile, self).render(size, False)
+        return super(LabelsPile, self).render(size)
 
 
 class LabelStatsTable(Columns):
@@ -782,7 +798,7 @@ class LabelStatsTable(Columns):
             self.contents[0] = (self.contents[0][0], (GIVEN, label_names_width, False))
         else:
             self.contents[0] = (self.contents[0][0], (GIVEN, max_width - stat_table_max_width, False))
-        return super(LabelStatsTable, self).render(size, focus=False)
+        return super(LabelStatsTable, self).render(size)
 
     def get_height(self):
         """
@@ -833,7 +849,7 @@ class StatsTable(Columns):
         """
         hits_size = self.hits.get_width()
         self.contents[0] = (self.contents[0][0], (GIVEN, hits_size, False))
-        return super(StatsTable, self).render(size, focus=False)
+        return super(StatsTable, self).render(size)
 
 
 class StatsColumn(ListBox):
@@ -843,6 +859,7 @@ class StatsColumn(ListBox):
 
     def __init__(self, *args, **kargs):
         super(StatsColumn, self).__init__(*args, **kargs)
+        self.header = None
 
     def flush_data(self):
         """
