@@ -352,11 +352,11 @@ class Engine(object):
         """
         classobj = self.__load_module(alias)
         instance = classobj()
-        instance.log = self.log.getChild(classobj.__name__)
+        assert isinstance(instance, EngineModule)
+        instance.log = self.log.getChild(alias)
         instance.engine = self
         settings = self.config.get("modules")
         instance.settings = settings.get(alias)
-
         return instance
 
     def find_file(self, filename):  # TODO: use it everywhere when it makes sense
