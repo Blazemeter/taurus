@@ -17,6 +17,7 @@ limitations under the License.
 import logging
 import os
 import platform
+from select import select
 import sys
 from tempfile import NamedTemporaryFile
 import traceback
@@ -307,11 +308,13 @@ def main():
 
     executor = CLI(parsed_options)
 
-    stdin = sys.stdin.read()
-    if stdin:
-        with NamedTemporaryFile(prefix="stdin_", suffix=".config", delete=False) as fhd:
-            fhd.write(stdin)
-            parsed_configs.append(fhd.name)
+    readable, writeable, exceptional = select([sys.stdin], [], [], 0.1)
+    for stream in readable:
+        stdin = stream.read()
+        if stdin:
+            with NamedTemporaryFile(prefix="stdin_", suffix=".config", delete=False) as fhd:
+                fhd.write(stdin)
+                parsed_configs.append(fhd.name)
 
     try:
         code = executor.perform(parsed_configs)
