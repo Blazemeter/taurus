@@ -22,13 +22,9 @@ class TestMonitoring(BZTestCase):
         obj.add_listener(listener)
         obj.startup()
 
-        obj.check()
-        time.sleep(1)
-        obj.check()
-        time.sleep(1)
-        obj.check()
-        time.sleep(1)
-        obj.check()
+        for _ in range(1, 10):
+            obj.check()
+            time.sleep(1)
 
         obj.shutdown()
         obj.post_process()

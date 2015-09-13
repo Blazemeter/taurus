@@ -4,6 +4,7 @@
 from abc import abstractmethod
 import socket
 import select
+import time
 
 from urwid import Pile
 
@@ -15,6 +16,7 @@ from bzt.six import iteritems
 class Monitoring(EngineModule, WidgetProvider):
     """
     :type clients: list[ServerAgentClient]
+    :type listeners: list[MonitoringListener]
     """
 
     def __init__(self):
@@ -43,10 +45,12 @@ class Monitoring(EngineModule, WidgetProvider):
         super(Monitoring, self).startup()
 
     def check(self):
+        results = []
         for client in self.clients:
-            client.get_data()
-        # get mon data
-        # notify listeners
+            results.extend(client.get_data())
+
+        for listener in self.listeners:
+            listener.monitoring_data(results)
         return super(Monitoring, self).check()
 
     def shutdown(self):
@@ -78,11 +82,14 @@ class ServerAgentClient(object):
         :type parent_logger: logging.Logger
         """
         super(ServerAgentClient, self).__init__()
+        self.host_label = config.get("host-label")
         self._partial_buffer = ""
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.address = address
         self.port = int(port) if port is not None else 4444
-        self._metrics_command = "\t".join([x for x in config['metrics']])
+        metrics = config.get('metrics', ValueError("Metrics list required"))
+        self._result_fields = [x for x in metrics]
+        self._metrics_command = "\t".join([x for x in metrics])
         self.socket = socket.socket()
 
     def connect(self):
@@ -97,8 +104,11 @@ class ServerAgentClient(object):
             raise
 
     def disconnect(self):
-        self.socket.send("exit\n")
-        self.socket.close()
+        self.log.debug("Closing connection with %s:%s", self.address, self.port)
+        try:
+            self.socket.send("exit\n")
+        finally:
+            self.socket.close()
 
     def start(self):
         command = "metrics:%s\n" % self._metrics_command
@@ -107,14 +117,27 @@ class ServerAgentClient(object):
         self.socket.setblocking(False)
 
     def get_data(self):
+        """
+        :rtype: list[dict]
+        """
         readable, writable, errored = select.select([self.socket], [self.socket], [self.socket], 0)
         self.log.debug("Stream states: %s / %s / %s", readable, writable, errored)
-        for _sock in errored:
+        for _ in errored:
             self.log.warning("Failed to get monitoring data from %s:%s", self.address, self.port)
 
+        source = self.host_label if self.host_label else '%s:%s' % (self.address, self.port)
+
+        res = []
         for _sock in readable:
             self._partial_buffer += _sock.recv(1024)
             while "\n" in self._partial_buffer:
                 line = self._partial_buffer[:self._partial_buffer.index("\n")]
                 self._partial_buffer = self._partial_buffer[self._partial_buffer.index("\n") + 1:]
                 self.log.debug("Data line: %s", line)
+                values = line.split("\t")
+                item = {x: values.pop(0) for x in self._result_fields}
+                item['ts'] = int(time.time())
+                item['source'] = source
+                res.append(item)
+
+        return res
