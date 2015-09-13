@@ -7,6 +7,12 @@ from tests import BZTestCase
 class TestMonitoring(BZTestCase):
     def test_simple(self):
         obj = Monitoring()
+        obj.parameters.merge({
+            "127.0.0.1:4444": {
+                
+            }
+        })
+
         obj.prepare()
         listener = LoggingMonListener()
         obj.add_listener(listener)
