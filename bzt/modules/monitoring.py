@@ -63,17 +63,15 @@ class Monitoring(EngineModule, WidgetProvider):
         super(Monitoring, self).post_process()
 
     def get_widget(self):
-        return MonitoringWidget([])
+        widget = MonitoringWidget()
+        self.add_listener(widget)
+        return widget
 
 
 class MonitoringListener(object):
     @abstractmethod
     def monitoring_data(self, data):
         pass
-
-
-class MonitoringWidget(Pile):
-    pass
 
 
 class ServerAgentClient(object):
@@ -141,3 +139,11 @@ class ServerAgentClient(object):
                 res.append(item)
 
         return res
+
+
+class MonitoringWidget(Pile, MonitoringListener):
+    def __init__(self):
+        super(MonitoringWidget, self).__init__([])
+
+    def monitoring_data(self, data):
+        pass
