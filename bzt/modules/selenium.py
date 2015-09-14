@@ -57,7 +57,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             else:
                 raise RuntimeError("Nothing to test, no requests were provided in scenario")
         self.kpi_file = self.engine.create_artifact("selenium_tests_report", ".csv")
-        self.err_jtl = self.kpi_file + ".err"  #  TODO: Replace with parameters in test runner
+        self.err_jtl = self.engine.create_artifact("selenium_tests_err", ".xml")
         script_type = self.detect_script_type(self.scenario.get("script"))
         runner_config = BetterDict()
 
@@ -75,6 +75,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         runner_config.get("artifacts-dir", self.engine.artifacts_dir)
         runner_config.get("working-dir", self.runner_working_dir)
         runner_config.get("report-file", self.kpi_file)
+        runner_config.get("err-file", self.err_jtl)
         runner_config.get("stdout", self.engine.create_artifact("junit", ".out"))
         runner_config.get("stderr", self.engine.create_artifact("junit", ".err"))
 
@@ -419,7 +420,8 @@ class NoseTester(AbstractTestRunner):
         run python tests
         """
         executable = self.settings.get("interpreter", sys.executable)
-        nose_command_line = [executable, self.plugin_path, self.settings.get("report-file"), self.working_dir]
+        nose_command_line = [executable, self.plugin_path, self.settings.get("report-file"),
+                             self.settings.get("err-file"), self.working_dir]
 
         std_out = open(self.settings.get("stdout"), "wt")
         self.opened_descriptors.append(std_out)

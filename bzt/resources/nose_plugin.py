@@ -6,6 +6,7 @@ import traceback
 import sys
 import csv
 import re
+
 try:
     from lxml import etree
 except ImportError:
@@ -31,11 +32,11 @@ class TaurusNosePlugin(Plugin):
     name = 'nose_plugin'
     enabled = True
 
-    def __init__(self, output_file):
+    def __init__(self, output_file, err_file):
         super(TaurusNosePlugin, self).__init__()
-        # self._trace = None
         self._module_name = None
         self.output_file = output_file
+        self.err_file = err_file
         self.test_count = 0
         self.success = 0
         self.csv_writer = None
@@ -89,9 +90,12 @@ class TaurusNosePlugin(Plugin):
         open descriptor here
         :return:
         """
-        self.error_writer = JTLErrorWriter(self.output_file + ".err")
         self.out_stream = open(self.output_file, "wt")
         self.csv_writer = csv.DictWriter(self.out_stream, delimiter=',', fieldnames=JTL_HEADER)
+
+        self.err_stream = open(self.err_file, "wb")
+        self.error_writer = JTLErrorWriter(self.err_stream)
+
         self.csv_writer.writeheader()
         self._module_name = ""
 
@@ -101,8 +105,9 @@ class TaurusNosePlugin(Plugin):
         :param result:
         :return:
         """
-        self.error_writer.save()
+        self.error_writer.close()
         self.out_stream.close()
+        self.err_stream.close()
         if not self.test_count:
             raise RuntimeError("Nothing to test.")
 
@@ -176,18 +181,17 @@ class TaurusNosePlugin(Plugin):
 
 
 class JTLErrorWriter(object):
-    def __init__(self, out_file):
-        self.out_file = out_file
-        self.root = etree.Element("testResults", version="1.2")
-        self.tree = etree.ElementTree(self.root)
+    def __init__(self, fds):
+        self.out_file_fds = fds
+        self.xml_writer = write_element(self.out_file_fds)
+        next(self.xml_writer)
 
     def add_sample(self, sample, url, resp_data):
         new_sample = self.gen_httpSample(sample, url, resp_data)
-        self.root.append(new_sample)
+        self.xml_writer.send(new_sample)
 
     def gen_httpSample(self, sample, url, resp_data):
         """
-
         :param params: namedtuple httpSample
         :return:
         """
@@ -200,9 +204,6 @@ class JTLErrorWriter(object):
         sample_element.append(self.gen_queryString())
         sample_element.append(self.gen_url(url))
         return sample_element
-
-    def __open_file(self):
-        self.fds = open(self.out_file, 'wt')
 
     def gen_resp_header(self):
         resp_header = etree.Element("responseHeader")
@@ -240,14 +241,26 @@ class JTLErrorWriter(object):
         url_element.text = url
         return url_element
 
-    def save(self):  # TODO: use incremental writer
-        with open(self.out_file, "wb") as fhd:
-            self.tree.write(fhd, pretty_print=True, encoding="UTF-8", xml_declaration=True)
+    def close(self):
+        self.xml_writer.close()
+
+def write_element(fds):
+    with etree.xmlfile(fds, buffered=False, encoding="UTF-8") as xf:
+        xf.write_declaration()
+        with xf.element('testResults', version="1.2"):
+            try:
+                while True:
+                    el = (yield)
+                    xf.write(el)
+                    xf.flush()
+            except GeneratorExit:
+                pass
 
 
 if __name__ == "__main__":
     _output_file = sys.argv[1]
-    test_path = sys.argv[2:]
+    _err_file = sys.argv[2]
+    test_path = sys.argv[3:]
     argv = [__file__, '-v']
     argv.extend(test_path)
-    run(addplugins=[TaurusNosePlugin(_output_file)], argv=argv + ['--with-nose_plugin'] + ['--nocapture'])
+    run(addplugins=[TaurusNosePlugin(_output_file, _err_file)], argv=argv + ['--with-nose_plugin'] + ['--nocapture'])
