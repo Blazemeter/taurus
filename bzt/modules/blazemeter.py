@@ -48,6 +48,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         self.test_id = ""
         self.kpi_buffer = []
         self.send_interval = 30
+        self.sess_name = None
 
     def prepare(self):
         """
@@ -78,6 +79,10 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
 
             self.__get_test_id(token)
 
+        self.sess_name = self.parameters.get("report-name", self.settings.get("report-name", self.sess_name))
+        if self.sess_name == 'ask' and sys.stdin.isatty():
+            self.sess_name = raw_input("Please enter report-name: ")
+
     def __get_test_id(self, token):
         if not token:
             return
@@ -101,9 +106,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         super(BlazeMeterUploader, self).startup()
 
         if not self.client.active_session_id:
-            sess_name = self.parameters.get("report-name", self.settings.get("report-name", None))
             try:
-                url = self.client.start_online(self.test_id, sess_name)
+                url = self.client.start_online(self.test_id, self.sess_name)
                 self.log.info("Started data feeding: %s", url)
                 if self.browser_open in ('start', 'both'):
                     webbrowser.open(url)

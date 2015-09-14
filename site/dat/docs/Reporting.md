@@ -204,7 +204,7 @@ modules:
     timeout: 5  # connect and request timeout for BlazeMeter API
     
     # following instructions will have effect when no per-reporter settings
-    report-name: My Next Test
+    report-name: My Next Test  # if you will use value 'ask', it will ask it from command line
     test: Taurus Test
     project: My Local Tests
 ```
