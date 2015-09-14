@@ -378,6 +378,7 @@ class JunitTester(AbstractTestRunner):
         junit_command_line = ["java", "-cp", os.pathsep.join(self.base_class_path), "taurusjunit.CustomRunner"]
 
         junit_command_line.extend([self.settings.get("report-file")])
+        junit_command_line.extend([self.settings.get("err-file")])
         junit_command_line.extend(jar_list)
 
         std_out = open(self.settings.get("stdout"), "wt")

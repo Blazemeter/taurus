@@ -25,15 +25,15 @@ public class CustomRunner {
 
     public static void main(String[] args) throws Exception {
         log.info("Starting");
-        if (args.length < 2) {
-            throw new IllegalArgumentException("Usage requires at least 2 params");
+        if (args.length < 3) {
+            throw new IllegalArgumentException("Usage requires at least 3 params");
         }
         //Open Jar files in args, scan them, load test classes, run test suite
         //Last item in args is a writeSample filename
         //redirect stderr to file
 
-        String[] jar_paths = new String[args.length - 1];
-        System.arraycopy(args, 1, jar_paths, 0, args.length - 1);
+        String[] jar_paths = new String[args.length - 2];
+        System.arraycopy(args, 2, jar_paths, 0, args.length - 2);
         List<Class<?>> test_classes = getClasses(jar_paths);
         Class[] classes = test_classes.toArray(new Class[test_classes.size()]);
 
@@ -41,7 +41,7 @@ public class CustomRunner {
             throw new RuntimeException("Nothing to test");
         } else {
             log.info("Running with classes: " + Arrays.toString(classes));
-            CustomListener custom_listener = new CustomListener(new JTLReporter(args[0]), new JTLErrorReporter(args[0] + ".err"));
+            CustomListener custom_listener = new CustomListener(new JTLReporter(args[0]), new JTLErrorReporter(args[1]));
             JUnitCore runner = new JUnitCore();
             runner.addListener(custom_listener);
             runner.run(classes);

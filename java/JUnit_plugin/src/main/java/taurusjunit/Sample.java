@@ -7,8 +7,8 @@ public class Sample {
     private int responseCode = 200;
     private long elapsed = 0;
     private final long timestamp = System.currentTimeMillis();
-    private String label;
-    private String threadName;
+    private String label = "";
+    private String threadName = "";
 
     public boolean isSuccessful() {
         return success;
@@ -61,6 +61,10 @@ public class Sample {
 
     public int getResponseCode() {
         return responseCode;
+    }
+    
+    public String getTrace() {
+        return trace;
     }
 
     public String getResponseMessage() {

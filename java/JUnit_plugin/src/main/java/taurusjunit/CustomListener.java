@@ -35,12 +35,12 @@ public class CustomListener extends RunListener {
         log.info(String.format("started %s", description.getDisplayName()));
         started = System.currentTimeMillis();
         pendingSample = new Sample();
+        pendingSample.setLabel(description.getMethodName());
     }
 
     public void testFinished(Description description) throws java.lang.Exception {
         log.info(String.format("finished %s", description.getDisplayName()));
         pendingSample.setElapsed(System.currentTimeMillis() - started);
-        pendingSample.setLabel(description.getMethodName());
         pendingSample.setThreadName(description.getClassName() + "." + description.getMethodName());
         reporter.writeSample(pendingSample);
         pendingSample = null;
@@ -57,8 +57,8 @@ public class CustomListener extends RunListener {
             sample = pendingSample;
         }
         sample.setSuccess(false);
-        sample.setTrace(failure.getTrace());
-        sample.setMessage(failure.getMessage());
+        sample.setTrace(failure.getMessage());
+        sample.setMessage(failure.getException().toString());
         sample.setResponseCode(500);
         err_reporter.add_sample(sample);
         
@@ -70,7 +70,8 @@ public class CustomListener extends RunListener {
     public void testAssumptionFailure(Failure failure) {
         log.warning(String.format("failed assert %s", failure.getDescription()));
         pendingSample.setSuccess(false);
-        pendingSample.setMessage(failure.getMessage());
+        pendingSample.setTrace(failure.getMessage());
+        pendingSample.setMessage(failure.getException().getClass().getName());
         pendingSample.setResponseCode(400);
         err_reporter.add_sample(pendingSample);
     }
