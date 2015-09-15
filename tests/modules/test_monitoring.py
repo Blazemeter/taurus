@@ -48,7 +48,7 @@ class TestMonitoring(BZTestCase):
         obj.shutdown()
         obj.post_process()
 
-        self.assertEquals("test\nmetrics:cpu\tdisks\nexit\n", obj.clients[0].socket.sent_data)
+        self.assertEquals("test\ninterval:1\nmetrics:cpu\tdisks\nexit\n", obj.clients[0].socket.sent_data)
 
 
 class LoggingMonListener(MonitoringListener):

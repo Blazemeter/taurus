@@ -11,6 +11,7 @@ from bzt.engine import EngineModule
 from bzt.modules.console import WidgetProvider
 from bzt.modules.passfail import FailCriteria
 from bzt.six import iteritems
+from bzt.utils import dehumanize_time
 
 
 class Monitoring(EngineModule, WidgetProvider):
@@ -95,6 +96,7 @@ class ServerAgentClient(object):
         self._metrics_command = "\t".join([x for x in metrics])
         self.socket = socket.socket()
         self.select = select.select
+        self.interval = int(dehumanize_time(config.get("interval", 1)))
 
     def connect(self):
         try:
@@ -117,6 +119,7 @@ class ServerAgentClient(object):
             self.socket.close()
 
     def start(self):
+        self.socket.send("interval:%s\n" % self.interval if self.interval > 0 else 1)
         command = "metrics:%s\n" % self._metrics_command
         self.log.debug("Sending metrics command: %s", command)
         self.socket.send(command)
