@@ -119,39 +119,21 @@ class FailCriteria(object):
     def __init__(self, config, owner):
         self.owner = owner
         self.config = config
-
-        self.stop = config.get('stop', True)
-        self.fail = config.get('fail', True)
-        self.message = config.get('message', None)
-
-        self.counting = 0
-        self.is_candidate = False
-        self.is_triggered = False
-        self.started = None
-        self.ended = None
-
         self.agg_buffer = OrderedDict()
         self.percentage = str(config['threshold']).endswith('%')
         self.get_value = self._get_field_functor(config['subject'], self.percentage)
         self.agg_logic = self._get_aggregator_functor(config.get('logic', 'for'), config['subject'])
         self.condition = self._get_condition_functor(config['condition'])
         self.threshold = dehumanize_time(config['threshold'])
-
+        self.stop = config.get('stop', True)
+        self.fail = config.get('fail', True)
+        self.message = config.get('message', None)
         self.window = dehumanize_time(config['timeframe'])
-
-    def check(self):
-        """
-        Interrupt the execution if desired condition occured
-
-        :return: :raise AutomatedShutdown:
-        """
-        if self.stop and self.is_triggered:
-            if self.fail:
-                logging.info("Pass/Fail criteria triggered shutdown: %s", self)
-                raise AutomatedShutdown("%s" % self)
-            else:
-                return True
-        return False
+        self.counting = 0
+        self.is_candidate = False
+        self.is_triggered = False
+        self.started = None
+        self.ended = None
 
     def __repr__(self):
         if self.is_triggered:
@@ -173,14 +155,6 @@ class FailCriteria(object):
                     self.counting)
             return "%s: %s%s%s %s %s sec" % data
 
-    def _count(self, tstmp):
-        self.ended = tstmp
-        self.counting += 1
-        if self.counting >= self.window:
-            if not self.is_triggered:
-                logging.warning("%s", self)
-            self.is_triggered = True
-
     def process_criteria_logic(self, tstmp, get_value):
         value = self.agg_logic(tstmp, get_value)
 
@@ -193,6 +167,24 @@ class FailCriteria(object):
                 self.started = None
 
         logging.debug("%s %s: %s", tstmp, self, state)
+
+    def check(self):
+        """
+        Interrupt the execution if desired condition occured
+
+        :return: :raise AutomatedShutdown:
+        """
+        if self.stop and self.is_triggered:
+            if self.fail:
+                logging.info("Pass/Fail criteria triggered shutdown: %s", self)
+                raise AutomatedShutdown("%s" % self)
+            else:
+                return True
+        return False
+
+    @abstractmethod
+    def _get_field_functor(self, param, percentage):
+        pass
 
     def _get_condition_functor(self, cond):
         if cond == '=' or cond == '==':
@@ -207,6 +199,14 @@ class FailCriteria(object):
             return lambda x, y: x <= y
         else:
             raise ValueError("Unsupported fail criteria condition: %s" % cond)
+
+    def _get_aggregator_functor(self, logic, subject):
+        if logic == 'for':
+            return lambda tstmp, value: value
+        elif logic == 'within':
+            return self._within_aggregator_avg  # FIXME: having simple average for percented values is a bit wrong
+        else:
+            raise ValueError("Unsupported window logic: %s", logic)
 
     def _get_windowed_points(self, tstmp, value):
         self.agg_buffer[tstmp] = value
@@ -225,17 +225,13 @@ class FailCriteria(object):
         points = self._get_windowed_points(tstmp, value)
         return sum(points) / len(points)
 
-    def _get_aggregator_functor(self, logic, subject):
-        if logic == 'for':
-            return lambda tstmp, value: value
-        elif logic == 'within':
-            return self._within_aggregator_avg  # FIXME: having simple average for percented values is a bit wrong
-        else:
-            raise ValueError("Unsupported window logic: %s", logic)
-
-    @abstractmethod
-    def _get_field_functor(self, param, percentage):
-        pass
+    def _count(self, tstmp):
+        self.ended = tstmp
+        self.counting += 1
+        if self.counting >= self.window:
+            if not self.is_triggered:
+                logging.warning("%s", self)
+            self.is_triggered = True
 
 
 class DataCriteria(FailCriteria):
