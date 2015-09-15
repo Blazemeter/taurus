@@ -57,8 +57,8 @@ class LoggingMonListener(MonitoringListener):
 
 
 class ServerAgentClientEmul(ServerAgentClient):
-    def __init__(self, parent_logger, address, port, config):
-        super(ServerAgentClientEmul, self).__init__(parent_logger, address, port, config)
+    def __init__(self, parent_logger, label, config):
+        super(ServerAgentClientEmul, self).__init__(parent_logger, label, config)
         self.socket = SocketEmul()
         self.socket.recv_data = "Yep\n"
         self.select = self.select_emul

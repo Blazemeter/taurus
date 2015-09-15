@@ -31,13 +31,8 @@ class Monitoring(EngineModule, WidgetProvider):
         self.listeners.append(listener)
 
     def prepare(self):
-        for address, config in iteritems(self.parameters.get("server-agents")):
-            if ':' in address:
-                port = address[address.index(":") + 1:]
-                address = address[:address.index(":")]
-            else:
-                port = None
-            client = self.server_agent_class(self.log, address, port, config)
+        for label, config in iteritems(self.parameters.get("server-agents")):
+            client = self.server_agent_class(self.log, label, config)
             client.connect()
             self.clients.append(client)
 
@@ -78,7 +73,7 @@ class MonitoringListener(object):
 
 
 class ServerAgentClient(object):
-    def __init__(self, parent_logger, address, port, config):
+    def __init__(self, parent_logger, label, config):
         """
         :type parent_logger: logging.Logger
         :type address: str
@@ -86,13 +81,18 @@ class ServerAgentClient(object):
         :type config: dict
         """
         super(ServerAgentClient, self).__init__()
-        self.host_label = config.get("host-label", "%s:%s" % (address, port) if port else address)
+        self.host_label = label
+        self.address = config.get("address", label)
+        if ':' in self.address:
+            self.port = int(self.address[self.address.index(":") + 1:])
+            self.address = self.address[:self.address.index(":")]
+        else:
+            self.port = 4444
+
         self._partial_buffer = ""
         self.log = parent_logger.getChild(self.__class__.__name__)
-        self.address = address
-        self.port = int(port) if port is not None else 4444
         metrics = config.get('metrics', ValueError("Metrics list required"))
-        self._result_fields = [x for x in metrics]
+        self._result_fields = [x for x in metrics]  # TODO: handle more complex metric specifications and labeling
         self._metrics_command = "\t".join([x for x in metrics])
         self.socket = socket.socket()
         self.select = select.select
