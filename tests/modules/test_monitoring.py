@@ -1,4 +1,5 @@
 import logging
+import random
 import time
 
 from bzt.modules.monitoring import Monitoring, MonitoringListener, MonitoringCriteria, ServerAgentClient
@@ -39,6 +40,7 @@ class TestMonitoring(BZTestCase):
         obj.startup()
 
         for _ in range(1, 10):
+            obj.clients[0].socket.recv_data += "%s\t%s\n" % (random.random(), random.random())
             obj.check()
             logging.debug("Criteria state: %s", criteria)
             time.sleep(1)
@@ -59,3 +61,7 @@ class ServerAgentClientEmul(ServerAgentClient):
         super(ServerAgentClientEmul, self).__init__(parent_logger, address, port, config)
         self.socket = SocketEmul()
         self.socket.recv_data = "Yep\n"
+        self.select = self.select_emul
+
+    def select_emul(self, reads, writes, excepts, timeout):
+        return reads, writes, []

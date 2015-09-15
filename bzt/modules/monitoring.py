@@ -94,6 +94,7 @@ class ServerAgentClient(object):
         self._result_fields = [x for x in metrics]
         self._metrics_command = "\t".join([x for x in metrics])
         self.socket = socket.socket()
+        self.select = select.select
 
     def connect(self):
         try:
@@ -125,7 +126,7 @@ class ServerAgentClient(object):
         """
         :rtype: list[dict]
         """
-        readable, writable, errored = select.select([self.socket], [self.socket], [self.socket], 0)
+        readable, writable, errored = self.select([self.socket], [self.socket], [self.socket], 0)
         self.log.debug("Stream states: %s / %s / %s", readable, writable, errored)
         for _ in errored:
             self.log.warning("Failed to get monitoring data from %s:%s", self.address, self.port)
