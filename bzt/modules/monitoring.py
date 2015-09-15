@@ -159,9 +159,9 @@ class MonitoringWidget(Pile, MonitoringListener):
                 if key not in ("source", "ts"):
                     color = ''
                     if key in self.host_metrics[item['source']]:
-                        if self.host_metrics[item['source']][key][0] > item[key]:
+                        if self.host_metrics[item['source']][key][0] < item[key]:
                             color = 'warmer'
-                        elif self.host_metrics[item['source']][key][0] < item[key]:
+                        elif self.host_metrics[item['source']][key][0] > item[key]:
                             color = 'colder'
 
                     self.host_metrics[item['source']][key] = (item[key], color)
