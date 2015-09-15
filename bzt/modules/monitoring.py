@@ -1,6 +1,7 @@
 """ Monitoring service subsystem """
 from abc import abstractmethod
 from collections import OrderedDict
+import logging
 import socket
 import select
 import time
@@ -28,7 +29,7 @@ class Monitoring(EngineModule, WidgetProvider):
         self.listeners.append(listener)
 
     def prepare(self):
-        for address, config in iteritems(self.parameters):
+        for address, config in iteritems(self.parameters.get("server-agents")):
             if ':' in address:
                 port = address[address.index(":") + 1:]
                 address = address[:address.index(":")]
@@ -105,6 +106,8 @@ class ServerAgentClient(object):
         self.log.debug("Closing connection with %s:%s", self.address, self.port)
         try:
             self.socket.send("exit\n")
+        except BaseException as exc:
+            self.log.warning("Error during disconnecting from agent: %s", exc)
         finally:
             self.socket.close()
 
@@ -133,7 +136,7 @@ class ServerAgentClient(object):
                 self._partial_buffer = self._partial_buffer[self._partial_buffer.index("\n") + 1:]
                 self.log.debug("Data line: %s", line)
                 values = line.split("\t")
-                item = {x: values.pop(0) for x in self._result_fields}
+                item = {x: float(values.pop(0)) for x in self._result_fields}
                 item['ts'] = int(time.time())
                 item['source'] = source
                 res.append(item)
@@ -144,9 +147,8 @@ class ServerAgentClient(object):
 class MonitoringWidget(Pile, MonitoringListener):
     def __init__(self):
         self.host_metrics = OrderedDict()
-        title = Text("Monitoring:")
         self.display = Text("")
-        super(MonitoringWidget, self).__init__([title, self.display])
+        super(MonitoringWidget, self).__init__([self.display])
 
     def monitoring_data(self, data):
         for item in data:
@@ -155,11 +157,25 @@ class MonitoringWidget(Pile, MonitoringListener):
 
             for key in sorted(item.keys()):
                 if key not in ("source", "ts"):
-                    self.host_metrics[item['source']][key] = item[key]
+                    color = ''
+                    if key in self.host_metrics[item['source']]:
+                        if self.host_metrics[item['source']][key][0] > item[key]:
+                            color = 'warmer'
+                        elif self.host_metrics[item['source']][key][0] < item[key]:
+                            color = 'colder'
 
-        text = ""
+                    self.host_metrics[item['source']][key] = (item[key], color)
+
+        text = []
         for host, metrics in iteritems(self.host_metrics):
-            text += "  %s\n" % host
+            text.append(('stat-hdr', " %s \n" % host))
+
+            maxwidth = max([len(key) for key in metrics.keys()])
+
             for metric, value in iteritems(metrics):
-                text += "    %s: %s\n" % (metric, value)
+                values = (' ' * (maxwidth - len(metric)), metric, value[0])
+                text.append((value[1], "  %s%s: %.3f\n" % values))
+
+        logging.debug("Markup: %s", text)
         self.display.set_text(text)
+        self._invalidate()

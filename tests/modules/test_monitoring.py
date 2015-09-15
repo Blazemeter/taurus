@@ -9,11 +9,13 @@ class TestMonitoring(BZTestCase):
     def test_simple(self):
         obj = Monitoring()
         obj.parameters.merge({
-            "127.0.0.1:4444": {
-                "metrics": [
-                    "cpu",
-                    "disks"
-                ]
+            "server-agents": {
+                "127.0.0.1:4444": {
+                    "metrics": [
+                        "cpu",
+                        "disks"
+                    ]
+                }
             }
         })
 
