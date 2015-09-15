@@ -35,6 +35,7 @@ class TaurusNosePlugin(Plugin):
     def __init__(self, output_file, err_file):
         super(TaurusNosePlugin, self).__init__()
         self._module_name = None
+        self._method_name = None
         self.output_file = output_file
         self.err_file = err_file
         self.test_count = 0
@@ -122,7 +123,7 @@ class TaurusNosePlugin(Plugin):
         file_name = SEARCH_PATTERNS["file"].findall(full_test_name)
         file_name = file_name[0] if file_name else ""
 
-        class_name = SEARCH_PATTERNS["file"].findall(full_test_name)
+        class_name = SEARCH_PATTERNS["class"].findall(full_test_name)
         class_name = class_name[0] if class_name else ""
 
         method_name = SEARCH_PATTERNS["method"].findall(full_test_name)
@@ -130,19 +131,17 @@ class TaurusNosePlugin(Plugin):
 
         if self._module_name != file_name + "." + class_name:
             self._module_name = file_name + "." + class_name
+
+        self._method_name = method_name
         self.last_err = None
         self._time = time()
         self.jtl_dict = {}.fromkeys(JTL_HEADER, 0)
         self.jtl_dict["timeStamp"] = int(1000 * self._time)
-        self.jtl_dict["label"] = method_name
+        self.jtl_dict["label"] = self._method_name
         self.jtl_dict["threadName"] = self._module_name
         self.jtl_dict["grpThreads"] = 1
         self.jtl_dict["allThreads"] = 1
         self.jtl_dict["success"] = "false"
-
-        report_pattern = "%s.%s,Total:%d Pass:%d Failed:%d\n"
-        sys.stdout.write(report_pattern % (
-            class_name, method_name, self.test_count + 1, self.success, self.test_count - self.success))
 
     def stopTest(self, test):
         """
@@ -177,6 +176,11 @@ class TaurusNosePlugin(Plugin):
             self.error_writer.add_sample(sample, self.jtl_dict["label"], trace)
 
         self.csv_writer.writerow(self.jtl_dict)
+
+        report_pattern = "%s.%s,Total:%d Pass:%d Failed:%d\n"
+        sys.stdout.write(report_pattern % (
+            self._module_name, self._method_name, self.test_count, self.success, self.test_count - self.success))
+
         self.out_stream.flush()
 
 

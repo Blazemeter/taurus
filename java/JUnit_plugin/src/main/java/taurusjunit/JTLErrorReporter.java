@@ -7,9 +7,6 @@ import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 
-import java.io.FileOutputStream;
-
-
 public class JTLErrorReporter {
 	
 	private static final Logger log = Logger.getLogger(JTLReporter.class.getName());
@@ -17,38 +14,19 @@ public class JTLErrorReporter {
 	private XMLOutputFactory xof = XMLOutputFactory.newInstance();
 	private XMLStreamWriter xsw = null;
 	
-	//private DocumentBuilderFactory dcFactory = DocumentBuilderFactory.newInstance();
-	//private DocumentBuilder dBuilder;
-	//private Document doc;
-	//private Element root;
-	
 	public JTLErrorReporter(String path) {
         log.info("JTLErr file: " + path);
         this.path = path;
         try {
         	xsw = xof.createXMLStreamWriter(new FileOutputStream(this.path));
-			/*dBuilder = dcFactory.newDocumentBuilder();
-			doc = dBuilder.newDocument();
-	        root = doc.createElement("testResults");
-	    	root.setAttribute("version", "1.2");
-	    	doc.appendChild(root);*/
         	xsw.writeStartDocument("UTF-8", "1.0");
         	xsw.writeStartElement("testResults");
         	xsw.writeAttribute("version", "1.2");
         	xsw.flush();
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			log.severe(e.getMessage());
 		}   
     }
-	
-	
-	//public void add_sample(Sample sample) {
-	//	log.info("Adding sample to error reporter");
-	//	Element sample_elem = gen_httpSample(sample);
-	//	log.info("sample " + sample_elem.toString());
-	//	root.appendChild(sample_elem);
-	//}
 	
 	public void add_sample(Sample sample) {
 		log.info("Adding sample to error reporter");
@@ -80,7 +58,6 @@ public class JTLErrorReporter {
 		xsw.writeEndElement();
 		xsw.flush();
 		} catch (XMLStreamException e) {
-			// TODO Auto-generated catch block
 			log.severe(e.getMessage());
 		}
 	}
@@ -92,7 +69,6 @@ public class JTLErrorReporter {
 			xsw.writeAttribute("class", "java.lang.String");
 			xsw.writeEndElement();
 		} catch (XMLStreamException e) {
-			// TODO Auto-generated catch block
 			log.severe(e.getMessage());
 		}
 		
@@ -104,7 +80,6 @@ public class JTLErrorReporter {
 			xsw.writeAttribute("class", "java.lang.String");
 			xsw.writeEndElement();
 		} catch (XMLStreamException e) {
-			// TODO Auto-generated catch block
 			log.severe(e.getMessage());
 		}
 		
@@ -117,7 +92,6 @@ public class JTLErrorReporter {
 			xsw.writeCharacters(data);
 			xsw.writeEndElement();
 		} catch (XMLStreamException e) {
-			// TODO Auto-generated catch block
 			log.severe(e.getMessage());
 		}
 		
@@ -129,7 +103,6 @@ public class JTLErrorReporter {
 			xsw.writeAttribute("class", "java.lang.String");
 			xsw.writeEndElement();
 		} catch (XMLStreamException e) {
-			// TODO Auto-generated catch block
 			log.severe(e.getMessage());
 		}
 		
@@ -141,7 +114,6 @@ public class JTLErrorReporter {
 			xsw.writeAttribute("class", "java.lang.String");
 			xsw.writeEndElement();
 		} catch (XMLStreamException e) {
-			// TODO Auto-generated catch block
 			log.severe(e.getMessage());
 		}
 		
@@ -153,7 +125,6 @@ public class JTLErrorReporter {
 			xsw.writeAttribute("class", "java.lang.String");
 			xsw.writeEndElement();
 		} catch (XMLStreamException e) {
-			// TODO Auto-generated catch block
 			log.severe(e.getMessage());
 		}
 		
@@ -165,7 +136,6 @@ public class JTLErrorReporter {
 			xsw.writeAttribute("class", "java.lang.String");
 			xsw.writeEndElement();
 		} catch (XMLStreamException e) {
-			// TODO Auto-generated catch block
 			log.severe(e.getMessage());
 		}
 		

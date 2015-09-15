@@ -441,7 +441,6 @@ class SeleniumWidget(urwid.Pile):
         self.summary_stats = urwid.Text("")
         self.current_test = urwid.Text("")
         self.runner_output = runner_output
-        self.position = 0
         widgets.append(self.script_name)
         widgets.append(self.summary_stats)
         widgets.append(self.current_test)
@@ -451,11 +450,11 @@ class SeleniumWidget(urwid.Pile):
         cur_test, reader_summary = ["No data received yet"] * 2
         if os.path.exists(self.runner_output):
             with open(self.runner_output, "rt") as fds:
-                fds.seek(self.position)
-                line = fds.readline()
-
-                if line and "," in line:
-                    cur_test, reader_summary = line.split(",")
+                lines = fds.readlines()
+                if lines:
+                    line = lines[-1]
+                    if line and "," in line:
+                        cur_test, reader_summary = line.split(",")
 
         self.current_test.set_text(cur_test)
         self.summary_stats.set_text(reader_summary)
