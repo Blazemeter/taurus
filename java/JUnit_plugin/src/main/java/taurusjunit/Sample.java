@@ -36,7 +36,11 @@ public class Sample {
     }
 
     public void setTrace(String trace) {
-        this.trace = trace;
+        this.trace = trace == null ? "" : trace;
+    }
+    
+    public String getTrace() {
+        return trace;
     }
 
     public void setMessage(String message) {
@@ -62,13 +66,9 @@ public class Sample {
     public int getResponseCode() {
         return responseCode;
     }
-    
-    public String getTrace() {
-        return trace;
-    }
 
     public String getResponseMessage() {
-        return "\"" + message.replace('\n', '\t').replace('"', '\'') + "\""; // FIXME: not very good until we have separate error file
+        return message;
     }
 
     public String getThreadName() {

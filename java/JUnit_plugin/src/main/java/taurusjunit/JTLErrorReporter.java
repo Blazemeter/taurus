@@ -171,7 +171,7 @@ public class JTLErrorReporter {
 		
 	}
 	
-	public void save(){
+	public void close(){
 		try{
 			xsw.writeEndElement();
 			xsw.writeEndDocument();
