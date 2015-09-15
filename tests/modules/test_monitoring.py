@@ -1,13 +1,15 @@
 import logging
 import time
 
-from bzt.modules.monitoring import Monitoring, MonitoringListener
+from bzt.modules.monitoring import Monitoring, MonitoringListener, MonitoringCriteria
 from tests import BZTestCase
+from tests.mocks import EngineEmul
 
 
 class TestMonitoring(BZTestCase):
     def test_simple(self):
         obj = Monitoring()
+        obj.engine = EngineEmul()
         obj.parameters.merge({
             "server-agents": {
                 "127.0.0.1:4444": {
@@ -19,10 +21,17 @@ class TestMonitoring(BZTestCase):
             }
         })
 
-        obj.prepare()
         listener = LoggingMonListener()
         obj.add_listener(listener)
-        obj.add_listener(obj.get_widget())
+
+        widget = obj.get_widget()
+        obj.add_listener(widget)
+
+        criteria = MonitoringCriteria({"threshold": 5, "subject": "cpu"}, obj)
+        obj.add_listener(criteria)
+
+        obj.prepare()
+
         obj.startup()
 
         for _ in range(1, 10):

@@ -10,6 +10,7 @@ from urwid import Pile, Text
 
 from bzt.engine import EngineModule
 from bzt.modules.console import WidgetProvider
+from bzt.modules.passfail import FailCriteria
 from bzt.six import iteritems
 
 
@@ -179,3 +180,14 @@ class MonitoringWidget(Pile, MonitoringListener):
         logging.debug("Markup: %s", text)
         self.display.set_text(text)
         self._invalidate()
+
+
+class MonitoringCriteria(MonitoringListener, FailCriteria):
+    def __init__(self, config, owner):
+        super(MonitoringCriteria, self).__init__(config, owner)
+        for service in self.owner.engine.services:
+            if isinstance(service, Monitoring):
+                service.add_listener(self)
+
+    def monitoring_data(self, data):
+        pass

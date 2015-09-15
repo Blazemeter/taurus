@@ -51,10 +51,10 @@ class PassFailStatus(Reporter, AggregatorListener, WidgetProvider):
 
         for idx, crit_config in crit_iter:
             if isinstance(crit_config, string_types):
-                crit_config = FailCriteria.string_to_config(crit_config)
+                crit_config = DataCriteria.string_to_config(crit_config)
                 self.parameters['criterias'][idx] = crit_config
-            crit = load_class(crit_config.get('type', FailCriteria.__module__ + "." + FailCriteria.__name__))
-            crit_instance = crit(crit_config)
+            crit = load_class(crit_config.get('type', DataCriteria.__module__ + "." + DataCriteria.__name__))
+            crit_instance = crit(crit_config, self)
             assert isinstance(crit_instance, FailCriteria)
             if isinstance(idx, string_types):
                 crit_instance.message = idx
@@ -62,19 +62,21 @@ class PassFailStatus(Reporter, AggregatorListener, WidgetProvider):
 
     def shutdown(self):
         for crit in self.criterias:
-            if crit.selector == DataPoint.CUMULATIVE:
-                if self.last_datapoint:
-                    crit.aggregated_second(self.last_datapoint)
+            if isinstance(crit, DataCriteria):
+                if crit.selector == DataPoint.CUMULATIVE:
+                    if self.last_datapoint:
+                        crit.aggregated_second(self.last_datapoint)
 
     def post_process(self):
         super(PassFailStatus, self).post_process()
         for crit in self.criterias:
-            if crit.selector == DataPoint.CUMULATIVE:
-                if crit.is_triggered and crit.fail:
-                    raise AutomatedShutdown("%s" % crit)
-            else:
-                if crit.is_triggered and not crit.stop and crit.fail:
-                    raise AutomatedShutdown("%s" % crit)
+            if isinstance(crit, DataCriteria):
+                if crit.selector == DataPoint.CUMULATIVE:
+                    if crit.is_triggered and crit.fail:
+                        raise AutomatedShutdown("%s" % crit)
+                else:
+                    if crit.is_triggered and not crit.stop and crit.fail:
+                        raise AutomatedShutdown("%s" % crit)
 
     def check(self):
         """
@@ -97,8 +99,9 @@ class PassFailStatus(Reporter, AggregatorListener, WidgetProvider):
         """
         self.last_datapoint = data
         for crit in self.criterias:
-            if crit.selector != DataPoint.CUMULATIVE:
-                crit.aggregated_second(data)
+            if isinstance(crit, DataCriteria):
+                if crit.selector != DataPoint.CUMULATIVE:
+                    crit.aggregated_second(data)
 
     def get_widget(self):
         """
@@ -112,6 +115,36 @@ class PassFailStatus(Reporter, AggregatorListener, WidgetProvider):
 
 
 class FailCriteria(object):
+    def __init__(self, config, owner):
+        self.owner = owner
+        self.config = config
+
+        self.stop = config.get('stop', True)
+        self.fail = config.get('fail', True)
+        self.message = config.get('message', None)
+
+        self.counting = 0
+        self.is_candidate = False
+        self.is_triggered = False
+        self.started = None
+        self.ended = None
+
+    def check(self):
+        """
+        Interrupt the execution if desired condition occured
+
+        :return: :raise AutomatedShutdown:
+        """
+        if self.stop and self.is_triggered:
+            if self.fail:
+                logging.info("Pass/Fail criteria triggered shutdown: %s", self)
+                raise AutomatedShutdown("%s" % self)
+            else:
+                return True
+        return False
+
+
+class DataCriteria(FailCriteria):
     """
     + response codes (masks for codes)
     + average times (full, latency, conn)
@@ -132,31 +165,22 @@ class FailCriteria(object):
     and trigger countdown for windowed
 
     :type config: dict
+    :type owner: bzt.engine.EngineModule
     """
 
-    def __init__(self, config):
-        super(FailCriteria, self).__init__()
+    def __init__(self, config, owner):
+        super(DataCriteria, self).__init__(config, owner)
         self.agg_buffer = OrderedDict()
-        self.config = config
         self.percentage = str(config['threshold']).endswith('%')
         self.get_value = self.__get_field_functor(config['subject'], self.percentage)
         self.agg_logic = self.__get_aggregator_functor(config.get('logic', 'for'), config['subject'])
         self.condition = self.__get_condition_functor(config['condition'])
         self.label = config.get('label', '')
         self.threshold = dehumanize_time(config['threshold'])
-        self.stop = config['stop']
-        self.fail = config['fail']
-        self.message = config.get('message', None)
 
         frame = dehumanize_time(config['timeframe'])
         self.window = frame
         self.selector = DataPoint.CURRENT if frame > 0 else DataPoint.CUMULATIVE
-
-        self.counting = 0
-        self.is_candidate = False
-        self.is_triggered = False
-        self.started = None
-        self.ended = None
 
     def __repr__(self):
         if self.is_triggered:
@@ -207,20 +231,6 @@ class FailCriteria(object):
                 self.started = None
 
         logging.debug("%s %s: %s", data[DataPoint.TIMESTAMP], self, state)
-
-    def check(self):
-        """
-        Interrupt the execution if desired condition occured
-
-        :return: :raise AutomatedShutdown:
-        """
-        if self.stop and self.is_triggered:
-            if self.fail:
-                logging.info("Pass/Fail criteria triggered shutdown: %s", self)
-                raise AutomatedShutdown("%s" % self)
-            else:
-                return True
-        return False
 
     def __get_field_functor(self, subject, percentage):
         if subject == 'avg-rt':
