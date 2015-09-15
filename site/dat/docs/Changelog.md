@@ -3,6 +3,7 @@
 ## 0.4.3 (next)
  - allow passing config as stdin to CLI like `./generate-config.sh | bzt`
  - allow having `report-name=ask` for BlazeMeter reporter
+ - selenium test runners now using xml jtl for errors
 
 ## 0.4.2
  - bump up Gatling version to 2.1.7
