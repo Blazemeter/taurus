@@ -1,12 +1,11 @@
 """ Monitoring service subsystem """
-# sidebar widget
-# write to file?
 from abc import abstractmethod
+from collections import OrderedDict
 import socket
 import select
 import time
 
-from urwid import Pile
+from urwid import Pile, Text
 
 from bzt.engine import EngineModule
 from bzt.modules.console import WidgetProvider
@@ -49,8 +48,9 @@ class Monitoring(EngineModule, WidgetProvider):
         for client in self.clients:
             results.extend(client.get_data())
 
-        for listener in self.listeners:
-            listener.monitoring_data(results)
+        if results:
+            for listener in self.listeners:
+                listener.monitoring_data(results)
         return super(Monitoring, self).check()
 
     def shutdown(self):
@@ -143,7 +143,23 @@ class ServerAgentClient(object):
 
 class MonitoringWidget(Pile, MonitoringListener):
     def __init__(self):
-        super(MonitoringWidget, self).__init__([])
+        self.host_metrics = OrderedDict()
+        title = Text("Monitoring:")
+        self.display = Text("")
+        super(MonitoringWidget, self).__init__([title, self.display])
 
     def monitoring_data(self, data):
-        pass
+        for item in data:
+            if item['source'] not in self.host_metrics:
+                self.host_metrics[item['source']] = OrderedDict()
+
+            for key in sorted(item.keys()):
+                if key not in ("source", "ts"):
+                    self.host_metrics[item['source']][key] = item[key]
+
+        text = ""
+        for host, metrics in iteritems(self.host_metrics):
+            text += "  %s\n" % host
+            for metric, value in iteritems(metrics):
+                text += "    %s: %s\n" % (metric, value)
+        self.display.set_text(text)

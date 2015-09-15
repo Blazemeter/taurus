@@ -20,6 +20,7 @@ class TestMonitoring(BZTestCase):
         obj.prepare()
         listener = LoggingMonListener()
         obj.add_listener(listener)
+        obj.add_listener(obj.get_widget())
         obj.startup()
 
         for _ in range(1, 10):
