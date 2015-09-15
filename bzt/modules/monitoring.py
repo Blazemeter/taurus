@@ -1,7 +1,6 @@
 """ Monitoring service subsystem """
 from abc import abstractmethod
 from collections import OrderedDict
-import logging
 import socket
 import select
 import time
@@ -177,17 +176,30 @@ class MonitoringWidget(Pile, MonitoringListener):
                 values = (' ' * (maxwidth - len(metric)), metric, value[0])
                 text.append((value[1], "  %s%s: %.3f\n" % values))
 
-        logging.debug("Markup: %s", text)
         self.display.set_text(text)
         self._invalidate()
 
 
 class MonitoringCriteria(MonitoringListener, FailCriteria):
     def __init__(self, config, owner):
+        """
+        :type config: bzt.utils.BetterDict
+        :type owner: EngineModule
+        """
         super(MonitoringCriteria, self).__init__(config, owner)
         for service in self.owner.engine.services:
             if isinstance(service, Monitoring):
                 service.add_listener(self)
 
     def monitoring_data(self, data):
-        pass
+        for item in data:
+            val = self.get_value(item)
+            if val is not None:
+                self.process_criteria_logic(item['ts'], val)
+
+    def _get_field_functor(self, subject, percentage):
+        if '/' not in subject:
+            raise ValueError("Wrong syntax for monitoring criteria subject")
+        host = subject[:subject.index('/')]
+        metric = subject[subject.index('/') + 1:]
+        return lambda x: (x[metric] if x['source'] == host and metric in x else None)

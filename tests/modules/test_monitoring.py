@@ -2,6 +2,7 @@ import logging
 import time
 
 from bzt.modules.monitoring import Monitoring, MonitoringListener, MonitoringCriteria
+from bzt.utils import BetterDict
 from tests import BZTestCase
 from tests.mocks import EngineEmul
 
@@ -27,7 +28,9 @@ class TestMonitoring(BZTestCase):
         widget = obj.get_widget()
         obj.add_listener(widget)
 
-        criteria = MonitoringCriteria({"threshold": 5, "subject": "cpu"}, obj)
+        crit_conf = BetterDict()
+        crit_conf.merge({"threshold": 5, "subject": "127.0.0.1:4444/cpu"})
+        criteria = MonitoringCriteria(crit_conf, obj)
         obj.add_listener(criteria)
 
         obj.prepare()
@@ -36,6 +39,7 @@ class TestMonitoring(BZTestCase):
 
         for _ in range(1, 10):
             obj.check()
+            logging.debug("Criteria state: %s", criteria)
             time.sleep(1)
 
         obj.shutdown()

@@ -123,12 +123,12 @@ class FailCriteria(object):
         self.percentage = str(config['threshold']).endswith('%')
         self.get_value = self._get_field_functor(config['subject'], self.percentage)
         self.agg_logic = self._get_aggregator_functor(config.get('logic', 'for'), config['subject'])
-        self.condition = self._get_condition_functor(config['condition'])
+        self.condition = self._get_condition_functor(config.get('condition', '>'))
         self.threshold = dehumanize_time(config['threshold'])
         self.stop = config.get('stop', True)
         self.fail = config.get('fail', True)
         self.message = config.get('message', None)
-        self.window = dehumanize_time(config['timeframe'])
+        self.window = dehumanize_time(config.get('timeframe', 0))
         self.counting = 0
         self.is_candidate = False
         self.is_triggered = False
@@ -142,7 +142,7 @@ class FailCriteria(object):
             else:
                 state = "Notice"
         else:
-            state = "Alert"
+            state = "OK"
 
         if self.message is not None:
             return "%s: %s" % (state, self.message)
@@ -183,7 +183,7 @@ class FailCriteria(object):
         return False
 
     @abstractmethod
-    def _get_field_functor(self, param, percentage):
+    def _get_field_functor(self, subject, percentage):
         pass
 
     def _get_condition_functor(self, cond):
