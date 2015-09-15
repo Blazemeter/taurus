@@ -16,6 +16,15 @@ class TestCanvas(Canvas):
         for val in self.value:
             yield val
 
+    def rows(self):
+        pass
+
+    def content_delta(self):
+        pass
+
+    def cols(self):
+        pass
+
 
 class TestGUIScreen(TestCase):
     def test_draw_screen(self):

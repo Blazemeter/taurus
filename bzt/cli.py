@@ -14,22 +14,23 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-
 import logging
 import os
 import platform
+from select import select
 import sys
-import tempfile
+from tempfile import NamedTemporaryFile
 import traceback
 from logging import Formatter
 from optparse import OptionParser, BadOptionError, Option
 
 from colorlog import ColoredFormatter
 
+import six
 import bzt
 from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown
 from bzt.engine import Engine, Configuration
-from bzt.six import HTTPError
+from bzt.six import HTTPError, configparser
 from bzt.utils import run_once
 
 
@@ -46,10 +47,8 @@ class CLI(object):
         self.setup_logging(options)
         self.log = logging.getLogger('')
         self.log.info("Taurus CLI Tool v%s", bzt.VERSION)
-        logging.debug("Command-line options: %s", self.options)
+        self.log.debug("Command-line options: %s", self.options)
         self.engine = Engine(self.log)
-        self.engine.artifacts_base_dir = self.options.datadir
-        self.engine.file_search_path = os.getcwd()
 
     @staticmethod
     @run_once
@@ -133,7 +132,7 @@ class CLI(object):
             overrides = self.__get_config_overrides()
             configs.extend(overrides)
 
-            logging.info("Starting with configs: %s", configs)
+            self.log.info("Starting with configs: %s", configs)
             self.engine.configure(configs)
 
             # apply aliases
@@ -179,7 +178,11 @@ class CLI(object):
             exit_code = self.engine.stopping_reason.get_rc()
 
         self.log.info("Artifacts dir: %s", self.engine.artifacts_dir)
-        self.log.info("Done performing with code: %s", exit_code)
+        if exit_code:
+            self.log.warning("Done performing with code: %s", exit_code)
+        else:
+            self.log.info("Done performing with code: %s", exit_code)
+
         self.__close_log()
 
         return exit_code
@@ -192,12 +195,21 @@ class CLI(object):
 
         if self.options.option:
             self.log.debug("Adding overrides: %s", self.options.option)
-            fds, fname = tempfile.mkstemp(".ini", "overrides_", dir=self.engine.artifacts_base_dir)
-            os.close(fds)
+
+            fds = NamedTemporaryFile(prefix="overrides_", suffix=".ini")
+            fname = fds.name
+            fds.close()
             with open(fname, 'w') as fds:
-                fds.write("[DEFAULT]\n")
+                if six.PY3:  # I'm so tired of this shit :-(
+                    writer = configparser.ConfigParser(interpolation=None)
+                else:
+                    writer = configparser.ConfigParser()
+                writer.add_section("BZT")
                 for option in self.options.option:
-                    fds.write(option + "\n")
+                    name = option[:option.index('=')]
+                    value = option[option.index('=') + 1:]
+                    writer.set("BZT", name, value)
+                writer.write(fds)
             return [fname]
         else:
             return []
@@ -207,7 +219,6 @@ class CLI(object):
         Generate json file with execution, executor and scenario settings
         :type configs: list
         :return: list
-
         """
 
         jmxes = []
@@ -218,8 +229,9 @@ class CLI(object):
 
         if jmxes:
             self.log.debug("Adding JMX shorthand config for: %s", jmxes)
-            fds, fname = tempfile.mkstemp(".json", "jmxes_", dir=self.engine.artifacts_base_dir)
-            os.close(fds)
+            fds = NamedTemporaryFile(prefix="jmx_", suffix=".json")
+            fname = fds.name
+            fds.close()
 
             config = Configuration()
 
@@ -283,8 +295,6 @@ def main():
     usage = "Usage: bzt [options] [configs] [-aliases]"
     dsc = "BlazeMeter Taurus Tool v%s, the configuration-driven test running engine" % bzt.VERSION
     parser = OptionParserWithAliases(usage=usage, description=dsc, prog="bzt")
-    parser.add_option('-d', '--datadir', action='store', default=".",
-                      help="Artifacts base dir")
     parser.add_option('-l', '--log', action='store', default="bzt.log",
                       help="Log file location")
     parser.add_option('-o', '--option', action='append',
@@ -297,6 +307,14 @@ def main():
     parsed_options, parsed_configs = parser.parse_args()
 
     executor = CLI(parsed_options)
+
+    readable, writeable, exceptional = select([sys.stdin], [], [], 0.1)
+    for stream in readable:
+        stdin = stream.read()
+        if stdin:
+            with NamedTemporaryFile(prefix="stdin_", suffix=".config", delete=False) as fhd:
+                fhd.write(stdin)
+                parsed_configs.append(fhd.name)
 
     try:
         code = executor.perform(parsed_configs)

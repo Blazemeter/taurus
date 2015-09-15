@@ -9,7 +9,7 @@ Configuration dictionary has several top-level keys:
  - `[modules](#Modules-Settings)` - list of classes to load and their respective settings
  - `[settings](#Top-Level-Settings)` - some top-level settings for the tool
  - `provisioning` - advanced option, allows using resources other than local to have distributed high-load test, available if you have corresponding provider installed and configured
- 
+ - `[included-configs](#Included-Configs)` - this section allows to merge additional config files
  
 Example for config that touches all sections:
 
@@ -85,6 +85,7 @@ modules
 
 Available settings are:
 
+ - `artifacts-dir` - path template where to save artifact files, uses [strftime template syntax](http://strftime.org/)
  - `check-interval` - polling interval that used by engine after startup and until shutdown to determine if test is need to be stopped 
  - `aggregator` - module alias for top-level [results aggregator](Reporting.md#results-reading-and-aggregating-facility) to be used for collecting results and passing it to reporters
  - `default-executor` - module alias for executor that will be used by default for [executions](ExecutionSettings)
@@ -95,6 +96,7 @@ See default settings below:
 ```yaml
 ---
 settings:
+  artifacts-dir: # path where to save artifacts, default is %Y-%m-%d_%H-%M-%S.%f
   aggregator: consolidator
   default-executor: jmeter
   check-interval: 1
@@ -198,4 +200,15 @@ chmod +x myscript.yml
 Now you are able to start this file on its own:
 ```bash
 ./myscript.yml -o execution.hold-for=5m
+```
+
+## Included Configs
+
+After all config files loaded, Taurus will also merge into resulting configuration any `included-configs` from the list. Example syntax piece:
+
+```yaml
+---
+included-configs:  # it must be a list of string values
+  - additional-local-file.yml  # to add local file just set its path
+  - http://central.host/mystorage/remote.yml  # you can also download config from http/https location
 ```

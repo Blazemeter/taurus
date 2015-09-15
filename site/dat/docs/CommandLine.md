@@ -6,7 +6,6 @@ Command-line tool is named `bzt` and invoked like `bzt <options> [configs]`. Pos
   - `-q, --quiet` - only errors and warnings printed to console
   - `-v, --verbose` - prints all logging messages to console (sometimes _a lot_)
   - `-l LOG, --log=LOG` - change log file location, by default is `bzt.log` in current directory
-  - `-d DATADIR, --datadir=DATADIR` - change base directory for the artifact directories, by default it is current directory
   - `-o OPTION, --option=OPTION` override some of config settings from command line, may be used multiple times
 
 ## Configuration Files Processing
@@ -15,9 +14,11 @@ Taurus tool consumes configuration files as input format (start learning its syn
   1. `/etc/bzt.d` directory, contains per-machine configs, its contents are first in the configs list
   1. `~/.bzt-rc` file, contained in user's home directory (holds per-user preferences) is added to list after per-machine configs
   1. all command-line passed configs (like `bzt config-1.yml config-2.json`) are added to list after per-user config
+  1. any data passed to stdin (like `./generate-config.sh | bzt`) is written to temporary file and that file is added to configs list
   1. all JMX shorthand configs generated and added to list (to support `bzt my-existing.jmx` launching)
   1. all command-line option overrides (like `bzt -o execution.0.scenario=my-test`) are placed into temporary file and added to the end of the list
   1. files list is loaded according to the [merge rules](ConfigSyntax.md#multiple-files-merging-rules)
+  1. [included configs]() loaded and merged
   1. [aliases](#aliases) applied
 
 Note that per-user config will not be copied into artifact directories, so those files are recommended to put API keys and tokens to improve security. Also it is convenient place to set paths to tools and your favorite preferences.

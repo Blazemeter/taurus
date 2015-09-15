@@ -23,7 +23,6 @@ import json
 import logging
 import os
 import shutil
-import tempfile
 import time
 import traceback
 from collections import namedtuple, defaultdict
@@ -37,7 +36,7 @@ from bzt import ManualShutdown, NormalShutdown, get_configs_dir
 import bzt
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_int
 from bzt.six import iteritems, string_types, text_type, PY2, UserDict, configparser, parse, ProxyHandler, build_opener, \
-    install_opener, urlopen
+    install_opener, urlopen, request
 
 
 class Engine(object):
@@ -56,11 +55,10 @@ class Engine(object):
 
         :type parent_logger: logging.Logger
         """
+        self.file_search_paths = []
         self.services = []
         self.__artifacts = []
         self.reporters = []
-        self.file_search_path = None
-        self.artifacts_base_dir = os.getcwd()
         self.artifacts_dir = None
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.config = Configuration()
@@ -80,10 +78,19 @@ class Engine(object):
         Load configuration files
         """
         self.log.info("Configuring...")
+        self._load_base_configs()
+        merged_config = self._load_user_configs(user_configs)
         self._create_artifacts_dir()
         dump = self.create_artifact("effective", "")  # FIXME: not good since this file not exists
         self.config.set_dump_file(dump)
-        self.__load_configs(user_configs)
+        self.config.dump()
+
+        merged_config.dump(self.create_artifact("merged", ".yml"), Configuration.YAML)
+        merged_config.dump(self.create_artifact("merged", ".json"), Configuration.JSON)
+        for config in user_configs:
+            self.existing_artifact(config)
+
+        self._load_included_configs()
         self.config.merge({"version": bzt.VERSION})
         self._set_up_proxy()
         self._check_updates()
@@ -135,7 +142,9 @@ class Engine(object):
         """
         self.log.info("Waiting for finish...")
         prev = time.time()
-        modules = [self.provisioning]
+        modules = []
+        if self.provisioning:
+            modules.append(self.provisioning)
         if self.aggregator:
             modules.append(self.aggregator)
         modules += self.services + self.reporters
@@ -259,6 +268,10 @@ class Engine(object):
         :type move: bool
         """
         self.log.debug("Add existing artifact (move=%s): %s", move, filename)
+        if self.artifacts_dir is None:
+            self.log.warning("Artifacts dir has not been set, will not copy %s", filename)
+            return
+
         newname = os.path.join(self.artifacts_dir, os.path.basename(filename))
         self.__artifacts.append(newname)
 
@@ -280,17 +293,16 @@ class Engine(object):
     def _create_artifacts_dir(self):
         """
         Create directory for artifacts, directory name based on datetime.now()
-        :return:
         """
-        if not self.artifacts_dir:
-            date_str = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S.")
-            if not os.path.isdir(self.artifacts_base_dir):
-                os.makedirs(self.artifacts_base_dir)
-            self.artifacts_dir = tempfile.mkdtemp(prefix=date_str, dir=os.path.expanduser(self.artifacts_base_dir))
-        else:
+        if self.artifacts_dir:
             self.artifacts_dir = os.path.expanduser(self.artifacts_dir)
+        else:
+            default = "%Y-%m-%d_%H-%M-%S.%f"
+            artifacts_dir = self.config.get("settings").get("artifacts-dir", default)
+            self.artifacts_dir = datetime.datetime.now().strftime(artifacts_dir)
+            self.artifacts_dir = os.path.expanduser(self.artifacts_dir)
+            self.artifacts_dir = os.path.abspath(self.artifacts_dir)
 
-        self.artifacts_dir = os.path.abspath(self.artifacts_dir)
         self.log.info("Artifacts dir: %s", self.artifacts_dir)
 
         if not os.path.isdir(self.artifacts_dir):
@@ -307,6 +319,7 @@ class Engine(object):
 
         mod_conf = self.config.get('modules')
         if alias not in mod_conf:
+            self.log.info("Possible module aliases: %s", [str(x) for x in sorted(mod_conf.keys())])
             raise ValueError("Module alias '%s' not found in module settings" % alias)
 
         settings = ensure_is_dict(mod_conf, alias, "class")
@@ -340,43 +353,38 @@ class Engine(object):
         """
         classobj = self.__load_module(alias)
         instance = classobj()
-        instance.log = self.log.getChild(classobj.__name__)
+        assert isinstance(instance, EngineModule)
+        instance.log = self.log.getChild(alias)
         instance.engine = self
         settings = self.config.get("modules")
         instance.settings = settings.get(alias)
-
         return instance
 
-    def find_file(self, filename):
+    def find_file(self, filename):  # TODO: use it everywhere when it makes sense
         """
         Try to find file in search_path if it was specified. Helps finding files
-        in non-CLI environments
-
-        :param filename:
-        :return: :raise IOError:
+        in non-CLI environments or relative to config path
         """
         if os.path.isfile(filename):
             return filename
-        elif self.file_search_path:
-            location = os.path.join(self.file_search_path, os.path.basename(filename))
-            self.log.warning("Guessed location for file %s: %s", filename, location)
-            return location
+        elif filename.lower().startswith("http://") or filename.lower().startswith("https://"):
+            downloader = request.FancyURLopener()
+            dest = self.create_artifact("downloaded", ".file")  # TODO: make it smart to get name from URL if possible
+            self.log.info("Downloading %s into %s", filename, dest)
+            downloader.retrieve(filename, dest)
+            return dest
+        elif self.file_search_paths:
+            for dirname in self.file_search_paths:
+                location = os.path.join(dirname, os.path.basename(filename))
+                if os.path.isfile(location):
+                    self.log.warning("Guessed location from search paths for file %s: %s", filename, location)
+                    return location
         else:
-            raise IOError("File not found: %s" % filename)
+            return filename
 
-    def __load_configs(self, user_configs):
-        """
-
-        :param user_configs: list of config files
-        :return:
-        """
-        for fname in user_configs:
-            self.existing_artifact(fname)
-
-        # prepare base configs
+    def _load_base_configs(self):
         base_configs = []
-        # can't refactor machine_dir out - see setup.py
-        machine_dir = get_configs_dir()
+        machine_dir = get_configs_dir()  # can't refactor machine_dir out - see setup.py
         if os.path.isdir(machine_dir):
             self.log.debug("Reading machine configs from: %s", machine_dir)
             for cfile in sorted(os.listdir(machine_dir)):
@@ -385,23 +393,26 @@ class Engine(object):
                     base_configs.append(fname)
         else:
             self.log.info("No machine configs dir: %s", machine_dir)
-
         user_file = os.path.expanduser(os.path.join('~', ".bzt-rc"))
         if os.path.isfile(user_file):
             self.log.debug("Adding personal config: %s", user_file)
             base_configs.append(user_file)
         else:
             self.log.info("No personal config: %s", user_file)
-
-        # load user configs
-        user_config = Configuration()
-        user_config.load(user_configs)
-        user_config.dump(self.create_artifact("merged", ".yml"), Configuration.YAML)
-        user_config.dump(self.create_artifact("merged", ".json"), Configuration.JSON)
-
-        # load base and merge user into it
         self.config.load(base_configs)
+
+    def _load_user_configs(self, user_configs):
+        """
+        :type user_configs: list[str]
+        :rtype: Configuration
+        """
+        user_config = Configuration()
+        user_config.load(user_configs, self.__config_loaded)
         self.config.merge(user_config)
+        return user_config
+
+    def __config_loaded(self, config):
+        self.file_search_paths.append(os.path.dirname(os.path.realpath(config)))
 
     def __prepare_provisioning(self):
         """
@@ -471,7 +482,7 @@ class Engine(object):
         rx_bytes, tx_bytes, dru, dwu = self.__get_resource_stats()
         # TODO: measure and report check loop utilization
         return stats(
-            cpu=psutil.cpu_percent(interval=None),
+            cpu=psutil.cpu_percent(),
             disk_usage=psutil.disk_usage(self.artifacts_dir).percent,
             mem_usage=psutil.virtual_memory().percent,
             rx=rx_bytes, tx=tx_bytes, dru=dru, dwu=dwu
@@ -545,6 +556,12 @@ class Engine(object):
                 self.log.debug("Failed to check for updates: %s", traceback.format_exc())
                 self.log.debug("Failed to check for updates")
 
+    def _load_included_configs(self):
+        for config in self.config.get("included-configs", []):
+            fname = os.path.abspath(self.find_file(config))
+            self.existing_artifact(fname)
+            self.config.load([fname])
+
 
 class Configuration(BetterDict):
     """
@@ -561,7 +578,7 @@ class Configuration(BetterDict):
         self.log = logging.getLogger('')
         self.dump_filename = None
 
-    def load(self, configs):
+    def load(self, configs, callback=None):
         """
         Load and merge JSON/YAML files into current dict
 
@@ -575,6 +592,9 @@ class Configuration(BetterDict):
                 self.__apply_overrides(config)
             else:
                 self.merge(config)
+
+            if callback is not None:
+                callback(config_file)
 
     def __read_file(self, filename):
         """
@@ -596,10 +616,9 @@ class Configuration(BetterDict):
                 return json.loads(fds.read()), self.JSON
             elif first_line.startswith('['):
                 self.log.debug("Reading %s as INI", filename)
-                parser = configparser.SafeConfigParser()
+                parser = configparser.RawConfigParser()
                 parser.read(filename)
                 res = []
-                parser.add_section("BZT")
                 for option in parser.options("BZT"):
                     res.append((option, parser.get("BZT", option)))
                 return res, self.INI
@@ -629,7 +648,7 @@ class Configuration(BetterDict):
                             explicit_start=True, canonical=False)
             fds.write(yml)
         elif fmt == self.INI:
-            fds.write("[DEFAULT]\n")
+            fds.write("[DEFAULT]\n")  # TODO: switch to write it with ConfigParser like done in CLI
             fds.write(self.__dict_to_overrides(self))
         else:
             raise ValueError("Unknown dump format: %s" % fmt)
@@ -1040,24 +1059,24 @@ class Scenario(UserDict, object):
         scenario = self
         requests = scenario.get("requests", [])
         for key in range(len(requests)):
-            request = ensure_is_dict(requests, key, "url")
+            req = ensure_is_dict(requests, key, "url")
             res = namedtuple("HTTPReq",
                              ('url', 'label', 'method', 'headers', 'timeout', 'think_time', 'config', "body"))
-            url = request["url"]
-            label = request.get("label", url)
-            method = request.get("method", "GET")
-            headers = request.get("headers", {})
-            timeout = request.get("timeout", None)
-            think_time = request.get("think-time", None)
+            url = req["url"]
+            label = req.get("label", url)
+            method = req.get("method", "GET")
+            headers = req.get("headers", {})
+            timeout = req.get("timeout", None)
+            think_time = req.get("think-time", None)
 
             body = None
-            bodyfile = request.get("body-file", None)
+            bodyfile = req.get("body-file", None)
             if bodyfile:
                 with open(bodyfile) as fhd:
                     body = fhd.read()
-            body = request.get("body", body)
+            body = req.get("body", body)
 
-            yield res(config=request, label=label,
+            yield res(config=req, label=label,
                       url=url, method=method, headers=headers,
                       timeout=timeout, think_time=think_time, body=body)
 

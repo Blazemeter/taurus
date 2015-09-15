@@ -25,6 +25,7 @@ class TestCLI(BZTestCase):
         self.option.append("test.subkey5.-1=value")
         self.option.append("modules.mock=" + ModuleMock.__module__ + "." + ModuleMock.__name__)
         self.option.append("provisioning=mock")
+        self.option.append("settings.artifacts-dir=build/test/%Y-%m-%d_%H-%M-%S.%f")
         self.option.append("test.subkey2.0.sskey=value")
         self.option.append("test.subkey.0=value")
         ret = self.obj.perform([])
