@@ -85,6 +85,9 @@
     },
     "locust": {
       "class": "bzt.modules.locustio.LocustIOExecutor"
+    },
+    "monitoring": {
+      "class": "bzt.modules.monitoring.Monitoring"
     }
   },
   "settings": {
