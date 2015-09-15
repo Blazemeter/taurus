@@ -64,3 +64,13 @@ Notes:
  - Non-background tasks are not allowed on startup stage.
  - Background tasks will be shut down forcefully on mirror stages (see [Lifecycle](Lifecycle.md)) if they were not finished yet.
  - Background tasks on Check stage will not start until same previous task completed.
+ 
+## Resource Monitoring Service
+ 
+ - service
+ 
+### Sidebar Widget
+ - widget
+ 
+### Monitoring-Based Failure Criteria 
+ - fail criteria
