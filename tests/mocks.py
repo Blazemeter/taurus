@@ -1,4 +1,6 @@
 """ test """
+from IN import AF_INET
+from _socket import SOCK_STREAM
 from io import StringIO
 import logging
 from logging import Handler
@@ -226,3 +228,31 @@ class RecordingHandler(Handler):
             buff.write(u(str_template % args))
         else:
             buff.write(u(str_template))
+
+
+class SocketEmul(object):
+    def __init__(self, family=AF_INET, atype=SOCK_STREAM, proto=0, _sock=None):
+        self.recv_data = ""
+        self.sent_data = ""
+
+    def connect(self, address):
+        logging.debug("Emulated connect to %s", address)
+
+    def recv(self, buf_size, flags=None):
+        data = self.recv_data[:buf_size]
+        self.recv_data = self.recv_data[buf_size + 1:]
+        logging.debug("Emulated recv: %s", data)
+        return data
+
+    def send(self, data, flags=None):
+        self.sent_data += data
+        logging.debug("Emulated send: %s", data)
+
+    def setblocking(self, state):
+        logging.debug("Emulate setblocking=%s", state)
+
+    def fileno(self):
+        return 0
+
+    def close(self):
+        logging.debug("Emulated close")

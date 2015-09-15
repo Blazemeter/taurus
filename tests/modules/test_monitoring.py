@@ -1,15 +1,16 @@
 import logging
 import time
 
-from bzt.modules.monitoring import Monitoring, MonitoringListener, MonitoringCriteria
+from bzt.modules.monitoring import Monitoring, MonitoringListener, MonitoringCriteria, ServerAgentClient
 from bzt.utils import BetterDict
 from tests import BZTestCase
-from tests.mocks import EngineEmul
+from tests.mocks import EngineEmul, SocketEmul
 
 
 class TestMonitoring(BZTestCase):
     def test_simple(self):
         obj = Monitoring()
+        obj.server_agent_class = ServerAgentClientEmul
         obj.engine = EngineEmul()
         obj.parameters.merge({
             "server-agents": {
@@ -49,3 +50,10 @@ class TestMonitoring(BZTestCase):
 class LoggingMonListener(MonitoringListener):
     def monitoring_data(self, data):
         logging.debug("Data: %s", data)
+
+
+class ServerAgentClientEmul(ServerAgentClient):
+    def __init__(self, parent_logger, address, port, config):
+        super(ServerAgentClientEmul, self).__init__(parent_logger, address, port, config)
+        self.socket = SocketEmul()
+        self.socket.recv_data = "Yep\n"

@@ -23,6 +23,7 @@ class Monitoring(EngineModule, WidgetProvider):
         super(Monitoring, self).__init__()
         self.listeners = []
         self.clients = []
+        self.server_agent_class = ServerAgentClient
 
     def add_listener(self, listener):
         assert isinstance(listener, MonitoringListener)
@@ -35,7 +36,7 @@ class Monitoring(EngineModule, WidgetProvider):
                 address = address[:address.index(":")]
             else:
                 port = None
-            client = ServerAgentClient(self.log, address, port, config)
+            client = self.server_agent_class(self.log, address, port, config)
             client.connect()
             self.clients.append(client)
 
@@ -79,6 +80,9 @@ class ServerAgentClient(object):
     def __init__(self, parent_logger, address, port, config):
         """
         :type parent_logger: logging.Logger
+        :type address: str
+        :type port: int
+        :type config: dict
         """
         super(ServerAgentClient, self).__init__()
         self.host_label = config.get("host-label", "%s:%s" % (address, port) if port else address)
