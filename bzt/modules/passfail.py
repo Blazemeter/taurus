@@ -15,6 +15,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+from abc import abstractmethod
 from collections import OrderedDict
 import fnmatch
 import logging
@@ -51,10 +52,10 @@ class PassFailStatus(Reporter, AggregatorListener, WidgetProvider):
 
         for idx, crit_config in crit_iter:
             if isinstance(crit_config, string_types):
-                crit_config = FailCriteria.string_to_config(crit_config)
+                crit_config = DataCriteria.string_to_config(crit_config)
                 self.parameters['criterias'][idx] = crit_config
-            crit = load_class(crit_config.get('type', FailCriteria.__module__ + "." + FailCriteria.__name__))
-            crit_instance = crit(crit_config)
+            crit = load_class(crit_config.get('class', DataCriteria.__module__ + "." + DataCriteria.__name__))
+            crit_instance = crit(crit_config, self)
             assert isinstance(crit_instance, FailCriteria)
             if isinstance(idx, string_types):
                 crit_instance.message = idx
@@ -62,19 +63,21 @@ class PassFailStatus(Reporter, AggregatorListener, WidgetProvider):
 
     def shutdown(self):
         for crit in self.criterias:
-            if crit.selector == DataPoint.CUMULATIVE:
-                if self.last_datapoint:
-                    crit.aggregated_second(self.last_datapoint)
+            if isinstance(crit, DataCriteria):
+                if crit.selector == DataPoint.CUMULATIVE:
+                    if self.last_datapoint:
+                        crit.aggregated_second(self.last_datapoint)
 
     def post_process(self):
         super(PassFailStatus, self).post_process()
         for crit in self.criterias:
-            if crit.selector == DataPoint.CUMULATIVE:
-                if crit.is_triggered and crit.fail:
-                    raise AutomatedShutdown("%s" % crit)
-            else:
-                if crit.is_triggered and not crit.stop and crit.fail:
-                    raise AutomatedShutdown("%s" % crit)
+            if isinstance(crit, DataCriteria):
+                if crit.selector == DataPoint.CUMULATIVE:
+                    if crit.is_triggered and crit.fail:
+                        raise AutomatedShutdown("%s" % crit)
+                else:
+                    if crit.is_triggered and not crit.stop and crit.fail:
+                        raise AutomatedShutdown("%s" % crit)
 
     def check(self):
         """
@@ -97,8 +100,9 @@ class PassFailStatus(Reporter, AggregatorListener, WidgetProvider):
         """
         self.last_datapoint = data
         for crit in self.criterias:
-            if crit.selector != DataPoint.CUMULATIVE:
-                crit.aggregated_second(data)
+            if isinstance(crit, DataCriteria):
+                if crit.selector != DataPoint.CUMULATIVE:
+                    crit.aggregated_second(data)
 
     def get_widget(self):
         """
@@ -112,46 +116,19 @@ class PassFailStatus(Reporter, AggregatorListener, WidgetProvider):
 
 
 class FailCriteria(object):
-    """
-    + response codes (masks for codes)
-    + average times (full, latency, conn)
-    + percentiles
-    errors?
-    resource metrics (engine overload)
-    duration (less or more than expected)
-    errors in tools log?
-
-    + overall and by label => label
-    + stop test and not (what to do then??) => stop
-    + cumulative and last / instant or windowed => window size
-    steady and threshold
-    negate condition
-
-    + percentage and absolute count => criteria-specific
-    a way to inform other modules about the reason and mark the moment of start counting
-    and trigger countdown for windowed
-
-    :type config: dict
-    """
-
-    def __init__(self, config):
-        super(FailCriteria, self).__init__()
-        self.agg_buffer = OrderedDict()
+    def __init__(self, config, owner):
+        self.owner = owner
         self.config = config
+        self.agg_buffer = OrderedDict()
         self.percentage = str(config['threshold']).endswith('%')
-        self.get_value = self.__get_field_functor(config['subject'], self.percentage)
-        self.agg_logic = self.__get_aggregator_functor(config.get('logic', 'for'), config['subject'])
-        self.condition = self.__get_condition_functor(config['condition'])
-        self.label = config.get('label', '')
+        self.get_value = self._get_field_functor(config['subject'], self.percentage)
+        self.agg_logic = self._get_aggregator_functor(config.get('logic', 'for'), config['subject'])
+        self.condition = self._get_condition_functor(config.get('condition', '>'))
         self.threshold = dehumanize_time(config['threshold'])
-        self.stop = config['stop']
-        self.fail = config['fail']
+        self.stop = config.get('stop', True)
+        self.fail = config.get('fail', True)
         self.message = config.get('message', None)
-
-        frame = dehumanize_time(config['timeframe'])
-        self.window = frame
-        self.selector = DataPoint.CURRENT if frame > 0 else DataPoint.CUMULATIVE
-
+        self.window = dehumanize_time(config.get('timeframe', 0))
         self.counting = 0
         self.is_candidate = False
         self.is_triggered = False
@@ -178,35 +155,18 @@ class FailCriteria(object):
                     self.counting)
             return "%s: %s%s%s %s %s sec" % data
 
-    def __count(self, data):
-        self.ended = data[DataPoint.TIMESTAMP]
-        self.counting += 1
-        if self.counting >= self.window:
-            if not self.is_triggered:
-                logging.warning("%s", self)
-            self.is_triggered = True
-
-    def aggregated_second(self, data):
-        """
-        Main criteria logic contained here
-
-        :type data: bzt.modules.aggregator.DataPoint
-        """
-        part = data[self.selector]
-        if self.label not in part:
-            logging.debug("No label %s in %s", self.label, part.keys())
-            return
-        value = self.agg_logic(data[DataPoint.TIMESTAMP], self.get_value(part[self.label]))
+    def process_criteria_logic(self, tstmp, get_value):
+        value = self.agg_logic(tstmp, get_value)
 
         state = self.condition(value, self.threshold)
         if state:
-            self.__count(data)
+            self._count(tstmp)
         else:
             self.counting = 0
             if not self.is_triggered:
                 self.started = None
 
-        logging.debug("%s %s: %s", data[DataPoint.TIMESTAMP], self, state)
+        logging.debug("%s %s: %s", tstmp, self, state)
 
     def check(self):
         """
@@ -222,7 +182,94 @@ class FailCriteria(object):
                 return True
         return False
 
-    def __get_field_functor(self, subject, percentage):
+    @abstractmethod
+    def _get_field_functor(self, subject, percentage):
+        pass
+
+    def _get_condition_functor(self, cond):
+        if cond == '=' or cond == '==':
+            return lambda x, y: x == y
+        elif cond == '>':
+            return lambda x, y: x > y
+        elif cond == '>=':
+            return lambda x, y: x >= y
+        elif cond == '<':
+            return lambda x, y: x < y
+        elif cond == '<=':
+            return lambda x, y: x <= y
+        else:
+            raise ValueError("Unsupported fail criteria condition: %s" % cond)
+
+    def _get_aggregator_functor(self, logic, subject):
+        if logic == 'for':
+            return lambda tstmp, value: value
+        elif logic == 'within':
+            return self._within_aggregator_avg  # FIXME: having simple average for percented values is a bit wrong
+        else:
+            raise ValueError("Unsupported window logic: %s", logic)
+
+    def _get_windowed_points(self, tstmp, value):
+        self.agg_buffer[tstmp] = value
+        for tstmp_old in self.agg_buffer.keys():
+            if tstmp_old <= tstmp - self.window:
+                del self.agg_buffer[tstmp_old]
+                continue
+            break
+
+        return viewvalues(self.agg_buffer)
+
+    def _within_aggregator_sum(self, tstmp, value):
+        return sum(self._get_windowed_points(tstmp, value))
+
+    def _within_aggregator_avg(self, tstmp, value):
+        points = self._get_windowed_points(tstmp, value)
+        return sum(points) / len(points)
+
+    def _count(self, tstmp):
+        self.ended = tstmp
+        self.counting += 1
+        if self.counting >= self.window:
+            if not self.is_triggered:
+                logging.warning("%s", self)
+            self.is_triggered = True
+
+
+class DataCriteria(FailCriteria):
+    """
+    errors?
+    duration (less or more than expected)
+    errors in tools log?
+
+    steady and threshold
+    negate condition
+
+    a way to inform other modules about the reason and mark the moment of start counting
+    and trigger countdown for windowed
+
+    :type config: dict
+    :type owner: bzt.engine.EngineModule
+    """
+
+    def __init__(self, config, owner):
+        super(DataCriteria, self).__init__(config, owner)
+        self.label = config.get('label', '')
+        self.selector = DataPoint.CURRENT if self.window > 0 else DataPoint.CUMULATIVE
+
+    def aggregated_second(self, data):
+        """
+        Main criteria logic contained here
+
+        :type data: bzt.modules.aggregator.DataPoint
+        """
+        part = data[self.selector]
+        if self.label not in part:
+            logging.debug("No label %s in %s", self.label, part.keys())
+            return
+
+        get_value = self.get_value(part[self.label])
+        self.process_criteria_logic(data[DataPoint.TIMESTAMP], get_value)
+
+    def _get_field_functor(self, subject, percentage):
         if subject == 'avg-rt':
             if percentage:
                 raise ValueError("Percentage threshold is not applicable for %s" % subject)
@@ -271,19 +318,12 @@ class FailCriteria(object):
         else:
             raise ValueError("Unsupported fail criteria subject: %s" % subject)
 
-    def __get_condition_functor(self, cond):
-        if cond == '=' or cond == '==':
-            return lambda x, y: x == y
-        elif cond == '>':
-            return lambda x, y: x > y
-        elif cond == '>=':
-            return lambda x, y: x >= y
-        elif cond == '<':
-            return lambda x, y: x < y
-        elif cond == '<=':
-            return lambda x, y: x <= y
-        else:
-            raise ValueError("Unsupported fail criteria condition: %s" % cond)
+    def _get_aggregator_functor(self, logic, subj):
+        if logic == 'within' and not self.percentage:
+            if subj in ('hits',) or subj.startswith('succ') or subj.startswith('fail') or subj.startswith('rc'):
+                return self._within_aggregator_sum
+
+        return super(DataCriteria, self)._get_aggregator_functor(logic, subj)
 
     @staticmethod
     def string_to_config(crit_config):
@@ -342,38 +382,6 @@ class FailCriteria(object):
             res["fail"] = action_groups[2] is None or action_groups[2] == "failed"
 
         return res
-
-    def __get_aggregator_functor(self, logic, subject):
-        if logic == 'for':
-            return lambda tstmp, value: value
-        elif logic == 'within':
-            if not self.percentage \
-                    and (subject in ('hits',)
-                         or subject.startswith('succ')
-                         or subject.startswith('fail')
-                         or subject.startswith('rc')):
-                return self.__within_aggregator_sum
-            else:
-                return self.__within_aggregator_avg  # FIXME: having simple average for percented values is a bit wrong
-        else:
-            raise ValueError("Unsupported window logic: %s", logic)
-
-    def __within_aggregator_sum(self, tstmp, value):
-        return sum(self.__get_windowed_points(tstmp, value))
-
-    def __within_aggregator_avg(self, tstmp, value):
-        points = self.__get_windowed_points(tstmp, value)
-        return sum(points) / len(points)
-
-    def __get_windowed_points(self, tstmp, value):
-        self.agg_buffer[tstmp] = value
-        for tstmp_old in self.agg_buffer.keys():
-            if tstmp_old <= tstmp - self.window:
-                del self.agg_buffer[tstmp_old]
-                continue
-            break
-
-        return viewvalues(self.agg_buffer)
 
 
 class PassFailWidget(urwid.Pile):

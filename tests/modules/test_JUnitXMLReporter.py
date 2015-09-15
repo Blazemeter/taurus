@@ -1,15 +1,14 @@
 from collections import Counter, defaultdict
 import tempfile
+import os
 
 from tests import BZTestCase, setup_test_logging
 from tests.mocks import EngineEmul
 from bzt.modules.reporting import JUnitXMLReporter
 from bzt.utils import BetterDict
-from bzt.modules.passfail import PassFailStatus, FailCriteria
+from bzt.modules.passfail import PassFailStatus, DataCriteria
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.six import etree
-
-import os
 
 setup_test_logging()
 
@@ -229,19 +228,22 @@ class TestJUnitXML(BZTestCase):
 
         pass_fail1 = PassFailStatus()
 
-        fc1_triggered = FailCriteria({'stop': True, 'label': 'Sample 1 Triggered', 'fail': True,
-                                      'timeframe': -1, 'threshold': '150ms', 'condition': '<', 'subject': 'avg-rt'})
+        fc1_triggered = DataCriteria({'stop': True, 'label': 'Sample 1 Triggered', 'fail': True,
+                                      'timeframe': -1, 'threshold': '150ms', 'condition': '<', 'subject': 'avg-rt'},
+                                     pass_fail1)
 
-        fc1_not_triggered = FailCriteria({'stop': True, 'label': 'Sample 1 Not Triggered', 'fail': True,
-                                          'timeframe': -1, 'threshold': '300ms', 'condition': '>', 'subject': 'avg-rt'})
+        fc1_not_triggered = DataCriteria({'stop': True, 'label': 'Sample 1 Not Triggered', 'fail': True,
+                                          'timeframe': -1, 'threshold': '300ms', 'condition': '>', 'subject': 'avg-rt'},
+                                         pass_fail1)
 
         pass_fail2 = PassFailStatus()
 
-        fc2_triggered = FailCriteria({'stop': True, 'label': 'Sample 2 Triggered', 'fail': True, 'timeframe': -1,
-                                      'threshold': '150ms', 'condition': '<=', 'subject': 'avg-rt'})
+        fc2_triggered = DataCriteria({'stop': True, 'label': 'Sample 2 Triggered', 'fail': True, 'timeframe': -1,
+                                      'threshold': '150ms', 'condition': '<=', 'subject': 'avg-rt'}, pass_fail1)
 
-        fc2_not_triggered = FailCriteria({'stop': True, 'label': 'Sample 2 Not Triggered', 'fail': True,
-                                          'timeframe': -1, 'threshold': '300ms', 'condition': '=', 'subject': 'avg-rt'})
+        fc2_not_triggered = DataCriteria({'stop': True, 'label': 'Sample 2 Not Triggered', 'fail': True,
+                                          'timeframe': -1, 'threshold': '300ms', 'condition': '=', 'subject': 'avg-rt'},
+                                         pass_fail1)
 
         pass_fail1.criterias.append(fc1_triggered)
         pass_fail1.criterias.append(fc1_not_triggered)
@@ -259,7 +261,7 @@ class TestJUnitXML(BZTestCase):
 
         obj.parameters.merge({"filename": path_from_config, "data-source": "pass-fail"})
         obj.prepare()
-        obj.last_second = DataPoint(None, None)
+        obj.last_second = DataPoint(0)
         obj.post_process()
 
         with open(obj.report_file_path, 'rb') as fds:
