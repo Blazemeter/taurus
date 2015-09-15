@@ -9,8 +9,7 @@ import sys
 import subprocess
 import urwid
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
-from bzt.utils import RequiredTool, shell_exec, shutdown_process, BetterDict, JavaVM, TclLibrary, ensure_is_dict, \
-    dehumanize_time
+from bzt.utils import RequiredTool, shell_exec, shutdown_process, BetterDict, JavaVM, TclLibrary, dehumanize_time
 from bzt.six import string_types, text_type, etree
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.console import WidgetProvider
@@ -40,6 +39,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.widget = None
         self.reader = None
         self.kpi_file = None
+        self.err_jtl = None
         self.runner_working_dir = None
         self.scenario = None
 
@@ -56,6 +56,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             else:
                 raise RuntimeError("Nothing to test, no requests were provided in scenario")
         self.kpi_file = self.engine.create_artifact("selenium_tests_report", ".csv")
+        self.err_jtl = self.engine.create_artifact("selenium_tests_err", ".xml")
         script_type = self.detect_script_type(self.scenario.get("script"))
         runner_config = BetterDict()
 
@@ -73,6 +74,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         runner_config.get("artifacts-dir", self.engine.artifacts_dir)
         runner_config.get("working-dir", self.runner_working_dir)
         runner_config.get("report-file", self.kpi_file)
+        runner_config.get("err-file", self.err_jtl)
         runner_config.get("stdout", self.engine.create_artifact("junit", ".out"))
         runner_config.get("stderr", self.engine.create_artifact("junit", ".err"))
 
@@ -80,7 +82,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         self.runner = self.runner(runner_config, self.scenario, self.log)
         self.runner.prepare()
-        self.reader = JTLReader(self.kpi_file, self.log, None)
+        self.reader = JTLReader(self.kpi_file, self.log, self.err_jtl)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
@@ -375,6 +377,7 @@ class JunitTester(AbstractTestRunner):
         junit_command_line = ["java", "-cp", os.pathsep.join(self.base_class_path), "taurusjunit.CustomRunner"]
 
         junit_command_line.extend([self.settings.get("report-file")])
+        junit_command_line.extend([self.settings.get("err-file")])
         junit_command_line.extend(jar_list)
 
         std_out = open(self.settings.get("stdout"), "wt")
@@ -417,7 +420,8 @@ class NoseTester(AbstractTestRunner):
         run python tests
         """
         executable = self.settings.get("interpreter", sys.executable)
-        nose_command_line = [executable, self.plugin_path, self.settings.get("report-file"), self.working_dir]
+        nose_command_line = [executable, self.plugin_path, self.settings.get("report-file"),
+                             self.settings.get("err-file"), self.working_dir]
 
         std_out = open(self.settings.get("stdout"), "wt")
         self.opened_descriptors.append(std_out)
@@ -436,7 +440,6 @@ class SeleniumWidget(urwid.Pile):
         self.summary_stats = urwid.Text("")
         self.current_test = urwid.Text("")
         self.runner_output = runner_output
-        self.position = 0
         widgets.append(self.script_name)
         widgets.append(self.summary_stats)
         widgets.append(self.current_test)
@@ -446,11 +449,11 @@ class SeleniumWidget(urwid.Pile):
         cur_test, reader_summary = ["No data received yet"] * 2
         if os.path.exists(self.runner_output):
             with open(self.runner_output, "rt") as fds:
-                fds.seek(self.position)
-                line = fds.readline()
-
-                if line and "," in line:
-                    cur_test, reader_summary = line.split(",")
+                lines = fds.readlines()
+                if lines:
+                    line = lines[-1]
+                    if line and "," in line:
+                        cur_test, reader_summary = line.split(",")
 
         self.current_test.set_text(cur_test)
         self.summary_stats.set_text(reader_summary)
