@@ -81,7 +81,7 @@ class ServerAgentClient(object):
         :type parent_logger: logging.Logger
         """
         super(ServerAgentClient, self).__init__()
-        self.host_label = config.get("host-label")
+        self.host_label = config.get("host-label", "%s:%s" % (address, port) if port else address)
         self._partial_buffer = ""
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.address = address

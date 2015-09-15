@@ -54,7 +54,7 @@ class PassFailStatus(Reporter, AggregatorListener, WidgetProvider):
             if isinstance(crit_config, string_types):
                 crit_config = DataCriteria.string_to_config(crit_config)
                 self.parameters['criterias'][idx] = crit_config
-            crit = load_class(crit_config.get('type', DataCriteria.__module__ + "." + DataCriteria.__name__))
+            crit = load_class(crit_config.get('class', DataCriteria.__module__ + "." + DataCriteria.__name__))
             crit_instance = crit(crit_config, self)
             assert isinstance(crit_instance, FailCriteria)
             if isinstance(idx, string_types):
@@ -142,7 +142,7 @@ class FailCriteria(object):
             else:
                 state = "Notice"
         else:
-            state = "OK"
+            state = "Alert"
 
         if self.message is not None:
             return "%s: %s" % (state, self.message)
