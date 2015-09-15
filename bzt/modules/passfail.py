@@ -416,6 +416,7 @@ class PassFailWidget(urwid.Pile):
         updates widget text
         :return:
         """
+        self.text_widget.set_text("")
         self.failing_criteria = [x for x in self.pass_fail_reporter.criterias if x.counting > 0]
         if self.failing_criteria:
             widget_text = self.__prepare_colors()
