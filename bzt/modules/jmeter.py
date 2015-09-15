@@ -1843,7 +1843,11 @@ class JTLErrorsReader(object):
         """
         failure_message_elem = assertion_element.find("failureMessage")
         if failure_message_elem is not None:
-            return failure_message_elem.text
+            msg = failure_message_elem.text
+            if msg.startswith("The operation lasted too long"):
+                msg = "The operation lasted too long"
+
+            return msg
 
     def __get_failed_assertion(self, element):
         """

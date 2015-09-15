@@ -319,6 +319,7 @@ class Engine(object):
 
         mod_conf = self.config.get('modules')
         if alias not in mod_conf:
+            self.log.info("Possible module aliases: %s", [str(x) for x in sorted(mod_conf.keys())])
             raise ValueError("Module alias '%s' not found in module settings" % alias)
 
         settings = ensure_is_dict(mod_conf, alias, "class")

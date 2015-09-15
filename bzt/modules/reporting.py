@@ -15,6 +15,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+from collections import OrderedDict
 import copy
 import csv
 import os
@@ -181,7 +182,12 @@ class FinalStatus(Reporter, AggregatorListener):
                 writer.writerow(self.__get_csv_dict(label, kpiset))
 
     def __get_csv_dict(self, label, kpiset):
-        res = copy.deepcopy(kpiset)
+        kpi_copy = copy.deepcopy(kpiset)
+        # sort label
+        res = OrderedDict()
+        for key in sorted(kpi_copy.keys()):
+            res[key] = kpi_copy[key]
+
         for level, val in iteritems(kpiset[KPISet.PERCENTILES]):
             res['perc_%s' % level] = val
 
