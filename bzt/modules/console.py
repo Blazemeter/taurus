@@ -85,7 +85,8 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
 
         widgets = []
         if isinstance(self.engine.provisioning, Local):
-            modules = self.engine.provisioning.executors
+            modules = []  # must create new list to not alter existing
+            modules += self.engine.provisioning.executors
             modules += self.engine.reporters
             modules += self.engine.services
             for executor in modules:
