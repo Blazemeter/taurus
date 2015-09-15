@@ -679,7 +679,7 @@ class TclLibrary(RequiredTool):
 
     def __init__(self, parent_logger):
         self.log = parent_logger.getChild(self.__class__.__name__)
-        super(TclLibrary, self).__init__("Python Tcl library environment variable", "","")
+        super(TclLibrary, self).__init__("Python Tcl library environment variable", "", "")
 
     def check_if_installed(self):
         """
@@ -703,7 +703,7 @@ class TclLibrary(RequiredTool):
         for lib_dir in lib_dirs:
             base_dir = os.path.join(lib_dir, TclLibrary.FOLDER)
             if os.path.exists(base_dir):
-                for root,_dirs,files in os.walk(base_dir):
+                for root, _dirs, files in os.walk(base_dir):
                     if TclLibrary.INIT_TCL in files:
                         return root
 
