@@ -4,6 +4,7 @@
  - allow passing config as stdin to CLI like `./generate-config.sh | bzt`
  - allow having `report-name=ask` for BlazeMeter reporter
  - selenium test runners now using xml jtl for errors
+ - console graph max height resets on data scroll
  - resource monitoring service implemented
 
 ## 0.4.2

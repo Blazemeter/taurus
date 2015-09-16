@@ -21,7 +21,8 @@ import math
 import platform
 import time
 from logging import StreamHandler
-from itertools import groupby
+from itertools import groupby, islice, chain
+from collections import deque
 from datetime import datetime
 from abc import abstractmethod
 import re
@@ -488,15 +489,16 @@ class StackedGraph(Widget):
     def __init__(self, colors):
         super(StackedGraph, self).__init__()
         self.last_size = (0, 0)
-        self.data = []
+        self.data = deque(maxlen=120)
         self.max = 0.0
         self.colors = colors
         self.chars = ' .o@'
+        self._left_border = lambda: 0 if self.last_size[0] > len(self.data) else len(self.data) - self.last_size[0]
 
     def __get_matrix(self, cols, rows):
         aspect = max(self.max, 0.0000001) / float(rows)
         matrix = []
-        for point in self.data[-cols:]:
+        for point in islice(self.data, self._left_border(), len(self.data)):
             line = ''
             for idx, num in enumerate(point):
                 chunk = str(idx + 1) * int(math.ceil(num / aspect))
@@ -541,8 +543,7 @@ class StackedGraph(Widget):
         """
         if not isinstance(value, (list, tuple)):
             value = (value,)
-
-        self.max = max(self.max, max(value))
+        self.max = max(chain(value, chain.from_iterable(islice(self.data, self._left_border(), len(self.data)))))
         self.data.append(value)
         # self.set_data(self.data, max(self.max, 0.0000001))
         # self.set_title(self.caption % self.max)
