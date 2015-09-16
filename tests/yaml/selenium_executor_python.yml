@@ -1,8 +1,0 @@
----
-execution:
-  executor: "selenium"
-  scenario:
-    script: "tests/selenium/python/"
-
-reporting:
-  - module: junit-xml

@@ -1,6 +1,4 @@
 """ unit test """
-import tempfile
-
 from bzt.utils import BetterDict
 from tests import BZTestCase, __dir__, local_paths_config
 from tests.mocks import EngineEmul

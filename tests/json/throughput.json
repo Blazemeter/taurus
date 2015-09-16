@@ -1,8 +1,0 @@
-{
-  "execution": {
-    "scenario": "JMX Scenario",
-    "throughput": 500,
-    "ramp-up": 120,
-    "hold-for": 300
-  }
-}

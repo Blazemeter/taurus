@@ -1,9 +1,0 @@
----
-execution: 
-  concurrency: 20
-  ramp-up: 1m
-  hold-for: 2m
-  throughput: 10
-  scenario: 
-    script: tests/jmx/http.jmx
-
