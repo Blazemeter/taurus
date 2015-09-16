@@ -52,8 +52,8 @@
           <boolProp name="HTTPSampler.DO_MULTIPART_POST">false</boolProp>
           <elementProp name="HTTPsampler.Files" elementType="HTTPFileArgs">
             <collectionProp name="HTTPFileArgs.files">
-              <elementProp name="tests/json/dummy.json" elementType="HTTPFileArg">
-                <stringProp name="File.path">tests/json/dummy.json</stringProp>
+              <elementProp name="tests/json/grinder.json" elementType="HTTPFileArg">
+                <stringProp name="File.path">tests/json/grinder.json</stringProp>
                 <stringProp name="File.paramname"></stringProp>
                 <stringProp name="File.mimetype"></stringProp>
               </elementProp>

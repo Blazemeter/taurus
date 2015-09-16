@@ -1,8 +1,0 @@
-{
-  "execution": {
-    "executor": "dummy"
-  },
-  "modules": {
-    "dummy": "bzt.modules.DummyExecutor"
-  }
-}
