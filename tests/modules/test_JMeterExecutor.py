@@ -162,7 +162,7 @@ class TestJMeterExecutor(BZTestCase):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
         obj.engine.config = BetterDict()
-        obj.engine.config.merge(yaml.load(open("tests/yaml/think-time-bug.yml").read()))
+        obj.engine.config.merge({'execution': {'ramp-up': '1m', 'hold-for': '1m30s', 'concurrency': 10, 'scenario': {'think-time': 0.75, 'requests': ['http://blazedemo.com/', 'http://blazedemo.com/vacation.html']}}})
         obj.execution = obj.engine.config['execution']
         obj.prepare()
         result = open(obj.modified_jmx).read()
@@ -278,7 +278,7 @@ class TestJMeterExecutor(BZTestCase):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
         obj.engine.config = BetterDict()
-        obj.engine.config.merge(yaml.load(open("tests/yaml/throughput_constant.yml").read()))
+        obj.engine.config.merge({'execution': {'concurrency': 200, 'throughput': 100, 'hold-for': '1m', 'scenario': {'script': 'tests/jmx/http.jmx'}}})
         obj.engine.config.merge({"provisioning": "local"})
         obj.execution = obj.engine.config['execution']
         obj.prepare()
@@ -296,7 +296,7 @@ class TestJMeterExecutor(BZTestCase):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
         obj.engine.config = BetterDict()
-        obj.engine.config.merge(yaml.load(open("tests/yaml/throughput_ramp_up.yml").read()))
+        obj.engine.config.merge({'execution': {'ramp-up': '1m', 'throughput': 10, 'hold-for': '2m', 'concurrency': 20, 'scenario': {'script': 'tests/jmx/http.jmx'}}})
         obj.engine.config.merge({"provisioning": "local"})
         obj.execution = obj.engine.config['execution']
         obj.prepare()
@@ -327,7 +327,7 @@ class TestJMeterExecutor(BZTestCase):
     def test_user_def_vars_override(self):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
-        obj.engine.config.merge(yaml.load(open("tests/yaml/user_def_vars.yml").read()))
+        obj.engine.config.merge({'execution': {'concurrency': 200, 'throughput': 100, 'hold-for': '1m', 'scenario': {'variables': {'my_var': 'http://demo.blazemeter.com/api/user', 'myvar2': 'val2'}, 'properties': {'log_level.jmeter': 'DEBUG'}, 'script': 'tests/jmx/http.jmx'}}})
         obj.execution = obj.engine.config['execution']
         obj.prepare()
         xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
@@ -420,7 +420,7 @@ class TestJMeterExecutor(BZTestCase):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
         obj.engine.config = BetterDict()
-        obj.engine.config.merge(yaml.load(open("tests/yaml/dns_mgr_script.yml").read()))
+        obj.engine.config.merge({'execution': {'ramp-up': 10, 'throughput': 2, 'hold-for': 20, 'concurrency': 5, 'scenario': {'think-time': '0.75s', 'script': 'tests/jmx/http.jmx'}}, 'modules': {'jmeter': {'system-properties': {'any_prop': 'true'}, 'properties': {'log_level.jmeter': 'WARN', 'log_level.jmeter.threads': 'DEBUG', 'my-hostname': 'www.pre-test.com'}}}})
         obj.engine.config.merge({"provisioning": "local"})
         obj.execution = obj.engine.config['execution']
         obj.settings.merge(obj.engine.config.get("modules").get("jmeter"))
@@ -441,7 +441,7 @@ class TestJMeterExecutor(BZTestCase):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
         obj.engine.config = BetterDict()
-        obj.engine.config.merge(yaml.load(open("tests/yaml/stepping_ramp_up.yml").read()))
+        obj.engine.config.merge({'execution': {'steps': 5, 'concurrency': 170, 'scenario': {'script': 'tests/jmx/stepping_ramp_up.jmx'}, 'ramp-up': '1m', 'distributed': ['127.0.0.1'], 'hold-for': '2m'}})
         obj.engine.config.merge({"provisioning": "local"})
         obj.execution = obj.engine.config['execution']
         obj.prepare()
@@ -469,7 +469,7 @@ class TestJMeterExecutor(BZTestCase):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
         obj.engine.config = BetterDict()
-        obj.engine.config.merge(yaml.load(open("tests/yaml/stepping_ramp_up.yml").read()))
+        obj.engine.config.merge({'execution': {'steps': 5, 'concurrency': 170, 'scenario': {'script': 'tests/jmx/stepping_ramp_up.jmx'}, 'ramp-up': '1m', 'distributed': ['127.0.0.1'], 'hold-for': '2m'}})
         obj.engine.config.merge({"provisioning": "local"})
         obj.execution = obj.engine.config['execution']
         obj.execution['concurrency'] = 100  # from 170 to 100
@@ -496,7 +496,7 @@ class TestJMeterExecutor(BZTestCase):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
         obj.engine.config = BetterDict()
-        obj.engine.config.merge(yaml.load(open("tests/yaml/stepping_ramp_up.yml").read()))
+        obj.engine.config.merge({'execution': {'steps': 5, 'concurrency': 170, 'scenario': {'script': 'tests/jmx/stepping_ramp_up.jmx'}, 'ramp-up': '1m', 'distributed': ['127.0.0.1'], 'hold-for': '2m'}})
         obj.engine.config.merge({"provisioning": "local"})
         obj.execution = obj.engine.config['execution']
         obj.execution['throughput'] = 100
@@ -607,11 +607,11 @@ class TestJMeterExecutor(BZTestCase):
             contents = prop_file.read()
         self.assertIn("remote_hosts=127.0.0.1,127.0.0.2", contents)
 
-    def test_empty_requests(self):
+    def test_empty_requests(self): #https://groups.google.com/forum/#!topic/codename-taurus/iaT6O2UhfBE
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
         obj.engine.config = BetterDict()
-        obj.engine.config.merge(yaml.load(open("tests/yaml/startup_no_requests.yml").read()))
+        obj.engine.config.merge({'execution': {'ramp-up': '10s', 'requests': ['http://blazedemo.com/', 'http://blazedemo.com/vacation.html'], 'hold-for': '30s', 'concurrency': 5, 'scenario': {'think-time': 0.75}}})
         obj.settings.merge(obj.engine.config.get("modules").get("jmeter"))
         obj.execution = obj.engine.config['execution']
 

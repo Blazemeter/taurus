@@ -118,7 +118,7 @@ class TestTasksConfigs(TaskTestCase):
             self.assertTrue(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, err_file)))
 
     def test_config(self):
-        self.obj.engine.config.merge(yaml.load(open(__dir__() + "/../yaml/shell_hook_start").read()))
+        self.obj.engine.config.merge({'services': [{'startup': [{'command': 'sleep 10 && echo 111', 'background': True}], 'check': [{'command': 'dmesg | grep nvidia', 'ignore-failure': True}, 'pwd'], 'module': 'shellexec'}]})
         self.obj.parameters = self.obj.engine.config.get("services")[0]
         self.obj.prepare()
         self.obj.startup()
