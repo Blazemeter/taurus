@@ -26,9 +26,8 @@ from optparse import OptionParser, BadOptionError, Option
 
 from colorlog import ColoredFormatter
 
-import six
 import bzt
-from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown
+from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown, six
 from bzt.engine import Engine, Configuration
 from bzt.six import HTTPError, configparser
 from bzt.utils import run_once
@@ -308,7 +307,7 @@ def main():
 
     executor = CLI(parsed_options)
 
-    readable, writeable, exceptional = select([sys.stdin], [], [], 0.1)
+    readable = select([sys.stdin], [], [], 0.1)[0]
     for stream in readable:
         stdin = stream.read()
         if stdin:

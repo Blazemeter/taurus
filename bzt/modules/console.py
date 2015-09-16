@@ -86,12 +86,13 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
 
         widgets = []
         if isinstance(self.engine.provisioning, Local):
-            for executor in self.engine.provisioning.executors:
+            modules = []  # must create new list to not alter existing
+            modules += self.engine.provisioning.executors
+            modules += self.engine.reporters
+            modules += self.engine.services
+            for executor in modules:
                 if isinstance(executor, WidgetProvider):
                     widgets.append(executor.get_widget())
-            for reporter in self.engine.reporters:
-                if isinstance(reporter, WidgetProvider):
-                    widgets.append(reporter.get_widget())
 
         self.console = TaurusConsole(widgets)
         self.screen.register_palette(self.console.palette)
@@ -305,6 +306,8 @@ class TaurusConsole(Columns):
         ('pf-3', 'yellow', ''),
         ('pf-4', 'light red', ''),
         ('pf-5', 'black', 'dark red'),
+        ('warmer', 'yellow', ''),
+        ('colder', 'dark cyan', ''),
     ]
 
     def __init__(self, sidebar_widgets):
@@ -1035,12 +1038,10 @@ class RCodesList(ListBox):
                 style = 'stat-5xx'
             else:
                 style = "stat-nonhttp"
-            self.body.append(
-                Text((style, "%s:  %.2f%% (%s)" % dat), align=RIGHT))
+            self.body.append(Text((style, "%s:  %.2f%% (%s)" % dat), align=RIGHT))
 
         dat = (100, overall[KPISet.SAMPLE_COUNT])
-        self.body.append(
-            Text(('stat-txt', "All: %.2f%% (%s)" % dat), align=RIGHT))
+        self.body.append(Text(('stat-txt', "All: %.2f%% (%s)" % dat), align=RIGHT))
 
 
 class TaurusLogo(Pile):

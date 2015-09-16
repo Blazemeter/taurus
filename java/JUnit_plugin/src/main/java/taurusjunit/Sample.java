@@ -7,8 +7,8 @@ public class Sample {
     private int responseCode = 200;
     private long elapsed = 0;
     private final long timestamp = System.currentTimeMillis();
-    private String label;
-    private String threadName;
+    private String label = "";
+    private String threadName = "";
 
     public boolean isSuccessful() {
         return success;
@@ -36,7 +36,11 @@ public class Sample {
     }
 
     public void setTrace(String trace) {
-        this.trace = trace;
+        this.trace = trace == null ? "" : trace;
+    }
+    
+    public String getTrace() {
+        return trace;
     }
 
     public void setMessage(String message) {
@@ -64,7 +68,7 @@ public class Sample {
     }
 
     public String getResponseMessage() {
-        return "\"" + message.replace('\n', '\t').replace('"', '\'') + "\""; // FIXME: not very good until we have separate error file
+        return message;
     }
 
     public String getThreadName() {
