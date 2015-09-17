@@ -76,8 +76,6 @@ class ServerAgentClient(object):
     def __init__(self, parent_logger, label, config):
         """
         :type parent_logger: logging.Logger
-        :type address: str
-        :type port: int
         :type config: dict
         """
         super(ServerAgentClient, self).__init__()

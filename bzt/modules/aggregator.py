@@ -515,7 +515,7 @@ class ConsolidatingAggregator(EngineModule, ResultsProvider):
 
     :type underlings: list[bzt.modules.aggregator.ResultsProvider]
     """
-    # FIXME: it was oscillating with remote test of 100 servers
+    # TODO: switch to underling-count-based completeness criteria
     def __init__(self):
         EngineModule.__init__(self)
         ResultsProvider.__init__(self)
