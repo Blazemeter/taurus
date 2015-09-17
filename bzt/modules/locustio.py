@@ -43,6 +43,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.is_master = False
         self.slaves_ldjson = None
         self.expected_slaves = 0
+        self.reader = None
 
     def prepare(self):
         self.__check_installed()
@@ -56,13 +57,13 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         if self.is_master:
             self.slaves_ldjson = self.engine.create_artifact("locust-slaves", ".ldjson")
-            reader = SlavesReader(self.slaves_ldjson, self.expected_slaves, self.log)
+            self.reader = SlavesReader(self.slaves_ldjson, self.expected_slaves, self.log)
         else:
             self.kpi_jtl = self.engine.create_artifact("kpi", ".jtl")
-            reader = JTLReader(self.kpi_jtl, self.log, None)
+            self.reader = JTLReader(self.kpi_jtl, self.log, None)
 
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
-            self.engine.aggregator.add_underling(reader)
+            self.engine.aggregator.add_underling(self.reader)
 
     def __check_installed(self):
         tool = LocustIO(self.log)
@@ -146,6 +147,10 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if self.__out:
             self.__out.close()
             self.__out.close()
+
+    def post_process(self):
+        if (self.is_master and not self.reader.cumulative) or (not self.is_master and not self.reader.buffer):
+            raise RuntimeWarning("Empty results, most likely Locust failed")
 
 
 class LocustIO(RequiredTool):

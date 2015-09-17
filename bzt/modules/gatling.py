@@ -109,13 +109,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.process = shell_exec(cmdline, cwd=self.engine.artifacts_dir, stdout=self.stdout_file,
                                   stderr=self.stderr_file)
 
-    def post_process(self):
-        """
-        Save data log as artifact
-        """
-        if self.reader.filename:
-            self.engine.existing_artifact(self.reader.filename)
-
     def check(self):
         """
         Checks if tool is still running. Also checks if resulting logs contains
@@ -152,6 +145,15 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if self.start_time:
             self.end_time = time.time()
             self.log.debug("Gatling worked for %s seconds", self.end_time - self.start_time)
+
+    def post_process(self):
+        """
+        Save data log as artifact
+        """
+        if self.reader.filename:
+            self.engine.existing_artifact(self.reader.filename)
+        if not self.reader.buffer:
+            raise RuntimeWarning("Empty results, most likely Gatling failed")
 
     def run_checklist(self):
         required_tools = []

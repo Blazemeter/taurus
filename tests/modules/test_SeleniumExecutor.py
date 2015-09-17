@@ -575,3 +575,15 @@ class TestSeleniumStuff(SeleniumTestCase):
             contents = fds.read()
             self.assertEqual(1, contents.count("ok"))
             self.assertEqual(1, contents.count("OK"))
+
+    def test_fail_on_zero_results(self):
+        obj = SeleniumExecutor()
+        obj.engine = self.engine_obj
+        obj.settings = self.selenium_config
+        obj.engine.config.merge(yaml.load(open("tests/yaml/selenium_executor_requests.yml").read()))
+        obj.engine.config.merge({"provisioning": "local"})
+        obj.execution = obj.engine.config['execution']
+
+        obj.settings.merge(obj.engine.config.get("modules").get("selenium"))
+        obj.prepare()
+        self.assertRaises(RuntimeWarning, obj.post_process)

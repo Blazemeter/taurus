@@ -85,3 +85,10 @@ class TestGrinderExecutor(BZTestCase):
         artifacts = os.listdir(obj.engine.artifacts_dir)
         self.assertEqual(len(res_files), 2)
         self.assertEqual(len(artifacts), 2)
+
+    def test_fail_on_zero_results(self):
+        obj = GrinderExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({"scenario": {"script": __dir__() + "/../grinder/helloworld.py"}})
+        obj.prepare()
+        self.assertRaises(RuntimeWarning, obj.post_process)

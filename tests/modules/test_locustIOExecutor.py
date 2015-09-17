@@ -37,7 +37,7 @@ class TestLocustIOExecutor(BZTestCase):
         except RuntimeError:  # FIXME: not good, but what to do?
             pass
         obj.shutdown()
-        obj.post_process()
+        self.assertRaises(RuntimeWarning, obj.post_process)
 
     def test_locust_widget(self):
         if six.PY3:
@@ -93,7 +93,7 @@ class TestLocustIOExecutor(BZTestCase):
         except RuntimeError:
             logging.warning("Do you use patched locust for non-GUI master?")
         obj.shutdown()
-        obj.post_process()
+        self.assertRaises(RuntimeWarning, obj.post_process)
 
     def test_locust_slave_results(self):
         if six.PY3:
@@ -123,3 +123,22 @@ class TestLocustIOExecutor(BZTestCase):
         })
         resource_files = obj.resource_files()
         self.assertEqual(1, len(resource_files))
+
+    def test_fail_on_zero_results(self):
+        if six.PY3:
+            logging.warning("No locust available for python 3")
+
+        obj = LocustIOExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config['provisioning'] = 'local'
+        obj.execution.merge({
+            "concurrency": 1,
+            "iterations": 10,
+            "hold-for": 30,
+            "scenario": {
+                "default-address": "http://blazedemo.com",
+                "script": __dir__() + "/../locust/simple.py"
+            }
+        })
+        obj.prepare()
+        self.assertRaises(RuntimeWarning, obj.post_process)
