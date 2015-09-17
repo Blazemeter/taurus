@@ -207,13 +207,6 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             return True
         return False
 
-    def post_process(self):
-        """
-        Collect data file artifact
-        """
-        if self.kpi_file:
-            self.engine.existing_artifact(self.kpi_file)
-
     def shutdown(self):
         """
         If tool is still running - let's stop it.
@@ -229,6 +222,15 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.end_time = time.time()
             self.log.debug("Grinder worked for %s seconds",
                            self.end_time - self.start_time)
+
+    def post_process(self):
+        """
+        Collect data file artifact
+        """
+        if self.kpi_file:
+            self.engine.existing_artifact(self.kpi_file)
+        if not self.reader.buffer:
+            raise RuntimeWarning("Empty results, most likely Grinder failed")
 
     def __scenario_from_requests(self):
         """
