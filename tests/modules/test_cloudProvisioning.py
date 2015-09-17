@@ -46,7 +46,8 @@ class TestCloudProvisioning(BZTestCase):
         obj.startup()
         obj.check()
         widget.render((200,), False)
-        self.assertEquals("Cloud test #None\n mock machines:\n  us-east-1: 2\n  us-west: 4\n", widget.text.get_text())
+        txt = widget.text.get_text()[0]
+        self.assertTrue(txt.endswith("\n  mock machines:\n    us-east-1: 2\n    us-west: 4\n"))
         obj.shutdown()
         obj.post_process()
 
