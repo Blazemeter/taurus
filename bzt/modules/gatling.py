@@ -115,6 +115,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         if self.reader.filename:
             self.engine.existing_artifact(self.reader.filename)
+        self._check_if_zero_results()
 
     def check(self):
         """
@@ -152,8 +153,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if self.start_time:
             self.end_time = time.time()
             self.log.debug("Gatling worked for %s seconds", self.end_time - self.start_time)
-
-        self._check_if_zero_results()
 
     def _check_if_zero_results(self):
         """

@@ -181,7 +181,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         max_attempts = self.settings.get("shutdown-wait", 5)
         if self._process_stopped(1):
-            self._check_if_zero_results()
             return
 
         try:
@@ -208,6 +207,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.end_time = time.time()
             self.log.debug("JMeter worked for %s seconds", self.end_time - self.start_time)
 
+    def post_process(self):
         self._check_if_zero_results()
 
     def _process_stopped(self, cycles):

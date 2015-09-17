@@ -755,4 +755,4 @@ class TestJMeterExecutor(BZTestCase):
         obj.execution = BetterDict()
         obj.execution.merge({"scenario": {"script": "tests/jmx/dummy.jmx"}})
         obj.prepare()
-        self.assertRaises(RuntimeWarning, obj.shutdown)
+        self.assertRaises(RuntimeWarning, obj.post_process)

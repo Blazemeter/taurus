@@ -152,6 +152,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.end_time = time.time()
             self.log.debug("Selenium tests ran for %s seconds", self.end_time - self.start_time)
 
+    def post_process(self):
         if not self.runner.is_failed:
             self._check_if_zero_results()
 

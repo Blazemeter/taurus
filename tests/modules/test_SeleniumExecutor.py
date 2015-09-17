@@ -586,4 +586,4 @@ class TestSeleniumStuff(SeleniumTestCase):
 
         obj.settings.merge(obj.engine.config.get("modules").get("selenium"))
         obj.prepare()
-        self.assertRaises(RuntimeWarning, obj.shutdown)
+        self.assertRaises(RuntimeWarning, obj.post_process)

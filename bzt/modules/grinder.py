@@ -213,6 +213,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         if self.kpi_file:
             self.engine.existing_artifact(self.kpi_file)
+        self._check_if_zero_results()
 
     def shutdown(self):
         """

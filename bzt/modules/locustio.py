@@ -148,6 +148,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.__out.close()
             self.__out.close()
 
+    def post_process(self):
         self._check_if_zero_results()
 
     def _check_if_zero_results(self):

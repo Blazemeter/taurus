@@ -89,4 +89,4 @@ class TestGatlingExecutor(BZTestCase):
         obj.engine = EngineEmul()
         obj.execution.merge({"scenario": {"script": __dir__() + "/../gatling/BasicSimulation.scala"}})
         obj.prepare()
-        self.assertRaises(RuntimeWarning, obj.shutdown)
+        self.assertRaises(RuntimeWarning, obj.post_process)
