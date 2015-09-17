@@ -153,15 +153,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.log.debug("Selenium tests ran for %s seconds", self.end_time - self.start_time)
 
     def post_process(self):
-        if not self.runner.is_failed:
-            self._check_if_zero_results()
-
-    def _check_if_zero_results(self):
-        """
-        Check result count
-        :return:
-        """
-        if self.reader.min_timestamp == 0:
+        if not self.reader.buffer:
             raise RuntimeWarning("Empty results, most likely Selenium failed")
 
     def get_widget(self):

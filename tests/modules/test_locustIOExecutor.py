@@ -37,6 +37,7 @@ class TestLocustIOExecutor(BZTestCase):
         except RuntimeError:  # FIXME: not good, but what to do?
             pass
         obj.shutdown()
+        obj.post_process()
 
     def test_locust_widget(self):
         if six.PY3:
@@ -92,6 +93,7 @@ class TestLocustIOExecutor(BZTestCase):
         except RuntimeError:
             logging.warning("Do you use patched locust for non-GUI master?")
         obj.shutdown()
+        obj.post_process()
 
     def test_locust_slave_results(self):
         if six.PY3:
@@ -121,7 +123,6 @@ class TestLocustIOExecutor(BZTestCase):
         })
         resource_files = obj.resource_files()
         self.assertEqual(1, len(resource_files))
-
 
     def test_fail_on_zero_results(self):
         if six.PY3:

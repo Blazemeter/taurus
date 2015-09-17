@@ -208,7 +208,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.log.debug("JMeter worked for %s seconds", self.end_time - self.start_time)
 
     def post_process(self):
-        self._check_if_zero_results()
+        if not self.reader.buffer:
+            msg = "Empty results JTL, most likely JMeter failed: %s"
+            raise RuntimeWarning(msg % self.kpi_jtl)
 
     def _process_stopped(self, cycles):
         while cycles > 0:
@@ -218,15 +220,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             else:
                 return True
         return False
-
-    def _check_if_zero_results(self):
-        """
-        Check result count
-        :return:
-        """
-        if self.reader.min_timestamp == 0:
-            msg = "Empty results JTL, most likely JMeter failed: %s"
-            raise RuntimeWarning(msg % self.kpi_jtl)
 
     def _set_remote_port(self):
         """

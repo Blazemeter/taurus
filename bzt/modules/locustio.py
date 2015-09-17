@@ -149,14 +149,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.__out.close()
 
     def post_process(self):
-        self._check_if_zero_results()
-
-    def _check_if_zero_results(self):
-        """
-        Check result count
-        :return:
-        """
-        if self.reader.min_timestamp == 0:
+        if (self.is_master and not self.reader.cumulative) or (not self.is_master and not self.reader.buffer):
             raise RuntimeWarning("Empty results, most likely Locust failed")
 
 
