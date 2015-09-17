@@ -1,6 +1,8 @@
 # Changelog
 
-## 0.4.3 (next)
+## 0.4.4 (next)
+
+## 0.4.3
  - allow passing config as stdin to CLI like `./generate-config.sh | bzt`
  - allow having `report-name=ask` for BlazeMeter reporter
  - selenium test runners now using xml jtl for errors
