@@ -28,7 +28,7 @@ import math
 
 from bzt import ManualShutdown
 from bzt.engine import Reporter, AggregatorListener, Provisioning
-from bzt.modules.aggregator import DataPoint, KPISet
+from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider
 from bzt.modules.jmeter import JMeterExecutor
 from bzt.utils import to_json, dehumanize_time, MultiPartForm, BetterDict
 from bzt.six import BytesIO, text_type, iteritems, HTTPError, urlencode, Request, urlopen
@@ -241,7 +241,7 @@ class BlazeMeterClient(object):
         self.address = "https://a.blazemeter.com"
         self.data_address = "https://data.blazemeter.com"
         self.results_url = None
-        self.active_session_id = None
+        self.active_session_id = None  # FIXME: it's not good using it for both session id and master ID
         self.data_signature = None
         self.first_ts = sys.maxsize
         self.last_ts = 0
@@ -686,15 +686,39 @@ class BlazeMeterClient(object):
         res = self._request(self.address + '/api/latest/user')
         return res
 
+    def get_kpis(self, master_id, min_ts):
+        params = [
+            ("interval", 1),
+            ("from", min_ts),
+            ("master_ids[]", master_id),
+        ]
+        for item in ('t', 'lt', 'by', 'n', 'ec', 'ts', 'na'):
+            params.append(("kpis[]", item))
+
+        labels = self.get_labels(master_id)
+        for label in labels:
+            params.append(("labels[]", label['id']))
+
+        url = self.address + "/api/latest/data/kpis?" + urlencode(params)
+        res = self._request(url)
+        return res['result']
+
+    def get_labels(self, master_id):
+        url = self.address + "/api/latest/data/labels?" + urlencode({'master_id': master_id})
+        res = self._request(url)
+        return res['result']
+
 
 class CloudProvisioning(Provisioning):
     """
     :type client: BlazeMeterClient
+    :type results_reader: ResultsFromBZA
     """
     LOC = "locations"
 
     def __init__(self):
         super(CloudProvisioning, self).__init__()
+        self.results_reader = None
         self.client = BlazeMeterClient(self.log)
         self.test_id = None
         self.__last_master_status = None
@@ -734,6 +758,10 @@ class CloudProvisioning(Provisioning):
         bza_plugin = self.__get_bza_test_config()
         test_name = self.settings.get("test-name", "Taurus Test")
         self.test_id = self.client.test_by_name(test_name, bza_plugin, config, rfiles, None)  # FIXME: set project id
+
+        if isinstance(self.engine.aggregator, ConsolidatingAggregator):
+            self.results_reader = ResultsFromBZA(self.client)
+            self.engine.aggregator.add_underling(self.results_reader)
 
     def __get_rfiles(self):
         rfiles = []
@@ -777,6 +805,9 @@ class CloudProvisioning(Provisioning):
             self.__last_master_status = master['status']
             self.log.info("Cloud test status: %s", self.__last_master_status)
 
+        if self.results_reader is not None and 'progress' in master and master['progress'] >= 100:
+            self.results_reader.master_id = self.client.active_session_id
+
         if 'progress' in master and master['progress'] > 100:
             self.log.info("Test was stopped in the cloud: %s", master['status'])
             self.client.active_session_id = None
@@ -816,3 +847,48 @@ class BlazeMeterClientEmul(BlazeMeterClient):
         res = self.results.pop(0)
         self.log.debug("Response: %s", res)
         return res
+
+
+class ResultsFromBZA(ResultsProvider):
+    """
+    :type client: BlazeMeterClient
+    """
+
+    def __init__(self, client):
+        super(ResultsFromBZA, self).__init__()
+        self.client = client
+        self.master_id = None  # must be set afterwards
+        self.min_ts = 0
+
+    def _calculate_datapoints(self, final_pass=False):
+        if self.master_id is None:
+            return
+
+        data = self.client.get_kpis(self.master_id, self.min_ts)
+        for label in data:
+            if label['kpis']:
+                label['kpis'].pop(-1)  # never take last second since it could be incomplete
+
+        timestamps = []
+        for label in data:
+            if label['label'] == 'ALL':
+                timestamps.extend([kpi['ts'] for kpi in label['kpis']])
+
+        for tstmp in timestamps:
+            point = DataPoint(tstmp)
+            for label in data:
+                for kpi in label['kpis']:
+                    if kpi['ts'] != tstmp:
+                        continue
+
+                    kpiset = KPISet()
+                    kpiset[KPISet.FAILURES] = kpi['ec']
+                    kpiset[KPISet.CONCURRENCY] = kpi['na']
+                    kpiset[KPISet.SAMPLE_COUNT] = kpi['n']
+                    kpiset.sum_rt += kpi['t_avg'] * kpi['n'] / 1000.0
+                    kpiset.sum_lt += kpi['lt_avg'] * kpi['n'] / 1000.0
+                    point[DataPoint.CURRENT]['' if label['label'] == 'ALL' else label['label']] = kpiset
+
+            point.recalculate()
+            self.min_ts = point[DataPoint.TIMESTAMP] + 1
+            yield point

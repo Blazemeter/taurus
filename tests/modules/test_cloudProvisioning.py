@@ -1,6 +1,8 @@
 import json
+import logging
 
-from bzt.modules.blazemeter import CloudProvisioning, BlazeMeterClientEmul
+from bzt.modules.aggregator import ConsolidatingAggregator
+from bzt.modules.blazemeter import CloudProvisioning, BlazeMeterClientEmul, ResultsFromBZA
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul, ModuleMock
 
@@ -24,6 +26,7 @@ class TestCloudProvisioning(BZTestCase):
             "provisioning": "mock"
         })
         obj.parameters = obj.engine.config['execution']
+        obj.engine.aggregator = ConsolidatingAggregator()
 
         obj.settings["token"] = "FakeToken"
         obj.client = client = BlazeMeterClientEmul(obj.log)
@@ -71,3 +74,90 @@ class TestCloudProvisioning(BZTestCase):
     def __get_user_info(self):
         with open(__dir__() + "/../json/blazemeter-api-user.json") as fhd:
             return json.loads(fhd.read())
+
+
+class TestResultsFromBZA(BZTestCase):
+    def test_simple(self):
+        client = BlazeMeterClientEmul(logging.getLogger())
+        client.results.append({
+            "api_version": 2,
+            "error": None,
+            "result": [
+                {
+                    "id": "ALL",
+                    "name": "ALL"
+                },
+                {
+                    "id": "e843ff89a5737891a10251cbb0db08e5",
+                    "name": "http://blazedemo.com/"
+                }
+            ]
+        })
+        client.results.append({
+            "api_version": 2,
+            "error": None,
+            "result": [
+                {
+                    "labelId": "ALL",
+                    "labelName": "ALL",
+                    "label": "ALL",
+                    "kpis": [
+                        {
+                            "n": 15,
+                            "na": 2,
+                            "ec": 0,
+                            "ts": 1442497724,
+                            "t_avg": 558,
+                            "lt_avg": 25.7,
+                            "by_avg": 0,
+                            "n_avg": 15,
+                            "ec_avg": 0
+                        },
+                        {
+                            "n": 7,
+                            "na": 4,
+                            "ec": 0,
+                            "ts": 1442497725,
+                            "t_avg": 88.1,
+                            "lt_avg": 11.9,
+                            "by_avg": 0,
+                            "n_avg": 7,
+                            "ec_avg": 0
+                        }
+                    ]
+                },
+                {
+                    "labelId": "e843ff89a5737891a10251cbb0db08e5",
+                    "labelName": "http://blazedemo.com/",
+                    "label": "http://blazedemo.com/",
+                    "kpis": [
+                        {
+                            "n": 15,
+                            "na": 2,
+                            "ec": 0,
+                            "ts": 1442497724,
+                            "t_avg": 558,
+                            "lt_avg": 25.7,
+                            "by_avg": 0,
+                            "n_avg": 15,
+                            "ec_avg": 0
+                        },
+                        {
+                            "n": 7,
+                            "na": 4,
+                            "ec": 0,
+                            "ts": 1442497725,
+                            "t_avg": 88.1,
+                            "lt_avg": 11.9,
+                            "by_avg": 0,
+                            "n_avg": 7,
+                            "ec_avg": 0
+                        }
+                    ]
+                }
+            ]
+        })
+        obj = ResultsFromBZA(client)
+        obj.master_id = "master"
+        results = [x for x in obj.datapoints(True)]
+        self.assertEquals(1, len(results))
