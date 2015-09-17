@@ -153,6 +153,16 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.end_time = time.time()
             self.log.debug("Gatling worked for %s seconds", self.end_time - self.start_time)
 
+        self._check_if_zero_results()
+
+    def _check_if_zero_results(self):
+        """
+        Check result count
+        :return:
+        """
+        if self.reader.min_timestamp == 0:
+            raise RuntimeWarning("Empty results, most likely Gatling failed")
+
     def run_checklist(self):
         required_tools = []
         required_tools.append(TclLibrary(self.log))

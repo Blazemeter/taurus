@@ -70,6 +70,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.widget = None
         self.distributed_servers = []
         self.management_port = None
+        self.reader = None
 
     def prepare(self):
         """
@@ -120,10 +121,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             JMeterExecutor.__write_props_to_file(sys_props_file, sys_props)
             self.sys_properties_file = sys_props_file
 
-        reader = JTLReader(self.kpi_jtl, self.log, self.errors_jtl)
-        reader.is_distributed = len(self.distributed_servers) > 0
+        self.reader = JTLReader(self.kpi_jtl, self.log, self.errors_jtl)
+        self.reader.is_distributed = len(self.distributed_servers) > 0
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
-            self.engine.aggregator.add_underling(reader)
+            self.engine.aggregator.add_underling(self.reader)
 
     def startup(self):
         """
@@ -180,6 +181,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         max_attempts = self.settings.get("shutdown-wait", 5)
         if self._process_stopped(1):
+            self._check_if_zero_results()
             return
 
         try:
@@ -206,10 +208,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.end_time = time.time()
             self.log.debug("JMeter worked for %s seconds", self.end_time - self.start_time)
 
-        if self.kpi_jtl:
-            if not os.path.exists(self.kpi_jtl) or not os.path.getsize(self.kpi_jtl):
-                msg = "Empty results JTL, most likely JMeter failed: %s"
-                raise RuntimeWarning(msg % self.kpi_jtl)
+        self._check_if_zero_results()
 
     def _process_stopped(self, cycles):
         while cycles > 0:
@@ -219,6 +218,15 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             else:
                 return True
         return False
+
+    def _check_if_zero_results(self):
+        """
+        Check result count
+        :return:
+        """
+        if self.reader.min_timestamp == 0:
+            msg = "Empty results JTL, most likely JMeter failed: %s"
+            raise RuntimeWarning(msg % self.kpi_jtl)
 
     def _set_remote_port(self):
         """

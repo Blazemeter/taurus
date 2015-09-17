@@ -123,3 +123,23 @@ class TestLocustIOExecutor(BZTestCase):
         })
         resource_files = obj.resource_files()
         self.assertEqual(1, len(resource_files))
+
+
+    def test_fail_on_zero_results(self):
+        if six.PY3:
+            logging.warning("No locust available for python 3")
+
+        obj = LocustIOExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config['provisioning'] = 'local'
+        obj.execution.merge({
+            "concurrency": 1,
+            "iterations": 10,
+            "hold-for": 30,
+            "scenario": {
+                "default-address": "http://blazedemo.com",
+                "script": __dir__() + "/../locust/simple.py"
+            }
+        })
+        obj.prepare()
+        self.assertRaises(RuntimeWarning, obj.shutdown)

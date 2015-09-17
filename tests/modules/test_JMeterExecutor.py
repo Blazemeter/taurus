@@ -748,3 +748,11 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(values.get('')[1].get("msg"), "failed_resource_message")
         self.assertEqual(values.get('HTTP Request')[0].get("msg"), "success_true_with_failed_embedded_resources")
         self.assertEqual(values.get('HTTP Request')[1].get("msg"), "failed_resource_message")
+
+    def test_fail_on_zero_results(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.execution = BetterDict()
+        obj.execution.merge({"scenario": {"script": "tests/jmx/dummy.jmx"}})
+        obj.prepare()
+        self.assertRaises(RuntimeWarning, obj.shutdown)

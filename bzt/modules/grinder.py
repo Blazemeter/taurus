@@ -230,6 +230,16 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.log.debug("Grinder worked for %s seconds",
                            self.end_time - self.start_time)
 
+        self._check_if_zero_results()
+
+    def _check_if_zero_results(self):
+        """
+        Check result count
+        :return:
+        """
+        if self.reader.min_timestamp == 0:
+            raise RuntimeWarning("Empty results, most likely Grinder failed")
+
     def __scenario_from_requests(self):
         """
         Generate grinder scenario from requests

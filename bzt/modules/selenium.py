@@ -152,10 +152,16 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.end_time = time.time()
             self.log.debug("Selenium tests ran for %s seconds", self.end_time - self.start_time)
 
-        if self.kpi_file:
-            if (not os.path.exists(self.kpi_file) or not os.path.getsize(self.kpi_file)) and not self.runner.is_failed:
-                msg = "Empty runner report, most likely runner failed: %s"
-                raise RuntimeWarning(msg % self.kpi_file)
+        if not self.runner.is_failed:
+            self._check_if_zero_results()
+
+    def _check_if_zero_results(self):
+        """
+        Check result count
+        :return:
+        """
+        if self.reader.min_timestamp == 0:
+            raise RuntimeWarning("Empty results, most likely Selenium failed")
 
     def get_widget(self):
         if not self.widget:

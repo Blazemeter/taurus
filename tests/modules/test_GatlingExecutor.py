@@ -83,3 +83,10 @@ class TestGatlingExecutor(BZTestCase):
         artifacts = os.listdir(obj.engine.artifacts_dir)
         self.assertEqual(len(artifacts), 12)
         self.__check_path_resource_files(os.path.join(obj.engine.artifacts_dir, "LocalBasicSimulation.scala"))
+
+    def test_fail_on_zero_results(self):
+        obj = GatlingExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({"scenario": {"script": __dir__() + "/../gatling/BasicSimulation.scala"}})
+        obj.prepare()
+        self.assertRaises(RuntimeWarning, obj.shutdown)
