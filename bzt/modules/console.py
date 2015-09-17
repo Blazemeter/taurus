@@ -86,7 +86,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
             self.screen = DummyScreen(cols, rows)
 
         widgets = []
-        modules = []  # must create new list to not alter existing
+        modules = [self.engine.provisioning]  # must create new list to not alter existing
         modules += self.engine.reporters
         modules += self.engine.services
         if isinstance(self.engine.provisioning, Local):

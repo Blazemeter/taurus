@@ -26,9 +26,12 @@ import webbrowser
 import zipfile
 import math
 
+from urwid import Pile, Text
+
 from bzt import ManualShutdown
 from bzt.engine import Reporter, AggregatorListener, Provisioning
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider
+from bzt.modules.console import WidgetProvider
 from bzt.modules.jmeter import JMeterExecutor
 from bzt.utils import to_json, dehumanize_time, MultiPartForm, BetterDict
 from bzt.six import BytesIO, text_type, iteritems, HTTPError, urlencode, Request, urlopen
@@ -709,11 +712,12 @@ class BlazeMeterClient(object):
         return res['result']
 
 
-class CloudProvisioning(Provisioning):
+class CloudProvisioning(Provisioning, WidgetProvider):
     """
     :type client: BlazeMeterClient
     :type results_reader: ResultsFromBZA
     """
+
     LOC = "locations"
 
     def __init__(self):
@@ -836,6 +840,9 @@ class CloudProvisioning(Provisioning):
             else:
                 locations[loc_name] = 1
 
+    def get_widget(self):
+        return CloudProvWidget(self)
+
 
 class BlazeMeterClientEmul(BlazeMeterClient):
     def __init__(self, parent_logger):
@@ -892,3 +899,23 @@ class ResultsFromBZA(ResultsProvider):
             point.recalculate()
             self.min_ts = point[DataPoint.TIMESTAMP] + 1
             yield point
+
+
+class CloudProvWidget(Pile):
+    def __init__(self, prov):
+        """
+        :type prov: CloudProvisioning
+        """
+        self.prov = prov
+        self.text = Text("")
+        super(CloudProvWidget, self).__init__([self.text])
+
+    def render(self, size, focus=False):
+        txt = "Cloud test #%s\n" % self.prov.client.active_session_id
+        for executor in self.prov.executors:
+            txt += "  " + executor.execution.get("executor", ValueError("Execution type is not yet defined"))
+            txt += " machines:\n"
+            for location, count in iteritems(executor.execution.get("locations")):
+                txt += "    %s: %s\n" % (location, count)
+        self.text.set_text(txt)
+        return super(CloudProvWidget, self).render(size, focus)
