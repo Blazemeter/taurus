@@ -58,6 +58,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
     # NOTE: maybe should use separate thread for screen re-painting
     def __init__(self):
         super(ConsoleStatusReporter, self).__init__()
+        self.__report_wait_logged = False
         self.__streams_redirected = False
         self.logger_handlers = []
         self.orig_streams = {}
@@ -85,14 +86,14 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
             self.screen = DummyScreen(cols, rows)
 
         widgets = []
+        modules = []  # must create new list to not alter existing
+        modules += self.engine.reporters
+        modules += self.engine.services
         if isinstance(self.engine.provisioning, Local):
-            modules = []  # must create new list to not alter existing
             modules += self.engine.provisioning.executors
-            modules += self.engine.reporters
-            modules += self.engine.services
-            for executor in modules:
-                if isinstance(executor, WidgetProvider):
-                    widgets.append(executor.get_widget())
+        for executor in modules:
+            if isinstance(executor, WidgetProvider):
+                widgets.append(executor.get_widget())
 
         self.console = TaurusConsole(widgets)
         self.screen.register_palette(self.console.palette)
@@ -101,8 +102,14 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         """
         Repaint the screen
         """
-        if self.disabled or not self.data_started:
+        if self.disabled:
             self.log.info("Test is running...")
+            return False
+
+        if not self.data_started:
+            if not self.__report_wait_logged:
+                self.log.info("Waiting to get first results...")
+                self.__report_wait_logged = True
             return False
 
         self.__start_screen()
