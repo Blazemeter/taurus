@@ -197,7 +197,7 @@ class Engine(object):
         # :type exception: BaseException
         exception = None
         try:
-            modules = [self.provisioning, self.aggregator] + self.reporters
+            modules = [self.aggregator, self.provisioning] + self.reporters
             modules += self.services
             for module in modules:
                 try:

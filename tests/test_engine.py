@@ -44,8 +44,7 @@ class TestEngine(BZTestCase):
         self.obj.configure(configs)
         self.obj.prepare()
         self.obj.run()
-        self.assertRaises(RuntimeError, self.obj.post_process)
-        # self.obj.post_process()
+        self.obj.post_process()
 
     def test_grinder(self):
         configs = [
