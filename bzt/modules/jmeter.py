@@ -2083,8 +2083,6 @@ class JMeter(RequiredTool):
         except OSError:
             self.log.debug("JMeter check failed.")
             return False
-        except ValueError:
-            raise
 
     def install(self):
         dest = os.path.dirname(os.path.dirname(os.path.expanduser(self.tool_path)))
