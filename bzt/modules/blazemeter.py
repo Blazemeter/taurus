@@ -127,7 +127,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         :return: BytesIO
         """
         mfile = BytesIO()
-        max_file_size = self.settings.get('max-size', 100) * 1048576  # 100MB
+        max_file_size = self.settings.get('artifact-upload-size-limit', 10) * 1048576  # 10MB
         with zipfile.ZipFile(mfile, mode='w', compression=zipfile.ZIP_DEFLATED, allowZip64=True) as zfh:
             for handler in self.engine.log.parent.handlers:
                 if isinstance(handler, logging.FileHandler):
@@ -139,7 +139,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
                         zfh.write(os.path.join(root, filename),
                                   os.path.join(os.path.relpath(root, self.engine.artifacts_dir), filename))
                     else:
-                        self.log.warning("File %s exceeded maximum size quota of %s", filename, max_file_size)
+                        self.log.warning("File %s exceeded maximum size quota of %s and won't be included into upload",
+                                         filename, max_file_size)
         return mfile
 
     def __upload_artifacts(self):
