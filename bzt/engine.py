@@ -368,8 +368,10 @@ class Engine(object):
         if os.path.isfile(filename):
             return filename
         elif filename.lower().startswith("http://") or filename.lower().startswith("https://"):
+            filename_from_url = os.path.basename((parse(filename).path))
+            fname, ext = os.path.splitext(filename_from_url) if filename_from_url else ('downloaded', '.file')
             downloader = request.FancyURLopener()
-            dest = self.create_artifact("downloaded", ".file")  # TODO: make it smart to get name from URL if possible
+            dest = self.create_artifact(fname, ext)
             self.log.info("Downloading %s into %s", filename, dest)
             downloader.retrieve(filename, dest)
             return dest
