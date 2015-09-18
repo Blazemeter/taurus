@@ -634,7 +634,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if data_sources:
             for data_source in data_sources:
                 if isinstance(data_source, text_type):
-                    post_body_files.append(data_source)
+                    post_body_files.append(self.engine.find_file(data_source))
 
         requests = scenario.data.get("requests")
         if requests:
@@ -643,7 +643,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                     post_body_path = req.get('body-file')
 
                     if post_body_path:
-                        post_body_files.append(post_body_path)
+                        post_body_files.append(self.engine.find_file(post_body_path))
         return post_body_files
 
     def __rename_thread_groups(self, jmx):
