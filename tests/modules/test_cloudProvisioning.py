@@ -39,11 +39,15 @@ class TestCloudProvisioning(BZTestCase):
         client.results.append({})  # terminate
 
         obj.prepare()
+        widget = obj.get_widget()
         self.assertEquals(2, obj.executors[0].execution['locations']['us-east-1'])
         self.assertEquals(4, obj.executors[0].execution['locations']['us-west'])
 
         obj.startup()
         obj.check()
+        widget.render((200,), False)
+        txt = widget.text.get_text()[0]
+        self.assertTrue(txt.endswith("\n  mock machines:\n    us-east-1: 2\n    us-west: 4\n"))
         obj.shutdown()
         obj.post_process()
 
