@@ -56,6 +56,7 @@ SimpleHTTPRequestHandler = BaseHTTPServer.BaseHTTPRequestHandler
 
 viewvalues = operator.methodcaller("viewvalues")
 
+r_input = raw_input
 
 def iteritems(dictionary, **kw):
     return iter(dictionary.iteritems(**kw))

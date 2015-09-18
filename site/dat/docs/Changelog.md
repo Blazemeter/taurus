@@ -1,6 +1,7 @@
 # Changelog
 
 ## 0.4.4 (next)
+ - limit max size of file that goes into zip for artifact upload (max-size option)
 
 ## 0.4.3
  - allow passing config as stdin to CLI like `./generate-config.sh | bzt`

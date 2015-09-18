@@ -34,7 +34,7 @@ from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, R
 from bzt.modules.console import WidgetProvider
 from bzt.modules.jmeter import JMeterExecutor
 from bzt.utils import to_json, dehumanize_time, MultiPartForm, BetterDict
-from bzt.six import BytesIO, text_type, iteritems, HTTPError, urlencode, Request, urlopen
+from bzt.six import BytesIO, text_type, iteritems, HTTPError, urlencode, Request, urlopen, r_input
 
 
 class BlazeMeterUploader(Reporter, AggregatorListener):
@@ -84,7 +84,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
 
         self.sess_name = self.parameters.get("report-name", self.settings.get("report-name", self.sess_name))
         if self.sess_name == 'ask' and sys.stdin.isatty():
-            self.sess_name = raw_input("Please enter report-name: ")
+            self.sess_name = r_input("Please enter report-name: ")
 
     def __get_test_id(self, token):
         if not token:
@@ -127,6 +127,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         :return: BytesIO
         """
         mfile = BytesIO()
+        max_file_size = self.settings.get('artifact-upload-size-limit', 10) * 1048576  # 10MB
         with zipfile.ZipFile(mfile, mode='w', compression=zipfile.ZIP_DEFLATED, allowZip64=True) as zfh:
             for handler in self.engine.log.parent.handlers:
                 if isinstance(handler, logging.FileHandler):
@@ -134,7 +135,12 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
 
             for root, _dirs, files in os.walk(self.engine.artifacts_dir):
                 for filename in files:
-                    zfh.write(os.path.join(root, filename), filename)
+                    if os.path.getsize(os.path.join(root, filename)) <= max_file_size:
+                        zfh.write(os.path.join(root, filename),
+                                  os.path.join(os.path.relpath(root, self.engine.artifacts_dir), filename))
+                    else:
+                        self.log.warning("File %s exceeded maximum size quota of %s and won't be included into upload",
+                                         filename, max_file_size)
         return mfile
 
     def __upload_artifacts(self):

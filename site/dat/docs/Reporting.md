@@ -202,6 +202,7 @@ modules:
                          # can be "start", "end", "both", "none"
     send-interval: 30s   # send data each n-th second
     timeout: 5  # connect and request timeout for BlazeMeter API
+    artifact-upload-size-limit: 5  # limit max size of file (in megabytes) that goes into zip for artifact upload, 10 by default
     
     # following instructions will have effect when no per-reporter settings
     report-name: My Next Test  # if you will use value 'ask', it will ask it from command line
