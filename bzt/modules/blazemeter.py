@@ -917,10 +917,14 @@ class CloudProvWidget(Pile):
 
     def render(self, size, focus=False):
         txt = "Cloud test #%s\n" % self.prov.client.active_session_id
+        cnt = 0
         for executor in self.prov.executors:
-            txt += "  " + executor.execution.get("executor", ValueError("Execution type is not yet defined"))
+            cnt += 1
+            name = executor.execution.get("executor", ValueError("Execution type is not yet defined"))
+            txt += "  %s. %s" % (cnt, name)
             txt += " machines:\n"
-            for location, count in iteritems(executor.execution.get("locations")):
-                txt += "    %s: %s\n" % (location, count)
+            locations = executor.execution.get("locations")
+            for location in sorted(locations.keys()):
+                txt += "    %s: %s\n" % (location, locations[location])
         self.text.set_text(txt)
         return super(CloudProvWidget, self).render(size, focus)
