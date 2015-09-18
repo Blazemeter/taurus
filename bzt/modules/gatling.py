@@ -63,7 +63,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.run_checklist()
 
         if Scenario.SCRIPT in scenario:
-            self.script = self.engine.find_file(scenario[Scenario.SCRIPT])
+            self.script = self.__get_script()
             self.engine.existing_artifact(self.script)
             with open(os.path.join(self.engine.artifacts_dir, os.path.basename(self.script)), 'rt') as fds:
                 script_contents = fds.read()
@@ -183,16 +183,17 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         return self.widget
 
     def resource_files(self):
-        script = self.__get_script()
+        if not self.script:
+            self.script = self.__get_script()
         resource_files = []
 
-        if script:
-            script_contents = open(script, 'rt').read()
+        if self.script:
+            script_contents = open(self.script, 'rt').read()
             resource_files = GatlingExecutor.__get_res_files_from_script(script_contents)
 
             if resource_files:
 
-                script_name, script_ext = os.path.splitext(script)
+                script_name, script_ext = os.path.splitext(self.script)
                 script_name = os.path.basename(script_name)
                 modified_script = self.engine.create_artifact(script_name, script_ext)
                 modified_contents = GatlingExecutor.__modify_res_paths_in_scala(script_contents, resource_files)
@@ -201,8 +202,8 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                     _fds.write(modified_contents)
                 resource_files.append(modified_script)
             else:
-                shutil.copy2(script, self.engine.artifacts_dir)
-                resource_files.append(script)
+                shutil.copy2(self.script, self.engine.artifacts_dir)
+                resource_files.append(self.script)
 
         return [os.path.basename(file_path) for file_path in resource_files]
 

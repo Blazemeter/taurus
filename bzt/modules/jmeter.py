@@ -88,7 +88,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         scenario = self.get_scenario()
         self.resource_files()
         if Scenario.SCRIPT in scenario:
-            self.original_jmx = self.__get_script()
             self.engine.existing_artifact(self.original_jmx)
         elif "requests" in scenario:
             if scenario.get("requests"):
@@ -544,16 +543,17 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         resource_files = []
         # get all resource files from requests
         files_from_requests = self.__get_res_files_from_requests()
-        script = self.__get_script()
+        if not self.original_jmx:
+            self.original_jmx = self.__get_script()
 
-        if script:
-            jmx = JMX(script)
+        if self.original_jmx:
+            jmx = JMX(self.original_jmx)
             resource_files_from_jmx = JMeterExecutor.__get_resource_files_from_jmx(jmx)
 
             if resource_files_from_jmx:
                 self.__modify_resources_paths_in_jmx(jmx.tree, resource_files_from_jmx)
 
-                script_name, script_ext = os.path.splitext(script)
+                script_name, script_ext = os.path.splitext(self.original_jmx)
                 script_name = os.path.basename(script_name)
                 # create modified jmx script in artifacts dir
                 modified_script = self.engine.create_artifact(script_name, script_ext)
@@ -564,8 +564,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         resource_files.extend(files_from_requests)
         # copy files to artifacts dir
         self.__cp_res_files_to_artifacts_dir(resource_files)
-        if script:
-            resource_files.append(script)
+        if self.original_jmx:
+            resource_files.append(self.original_jmx)
         return [os.path.basename(file_path) for file_path in resource_files]  # return list of file names
 
     def __cp_res_files_to_artifacts_dir(self, resource_files_list):
