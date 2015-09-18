@@ -459,7 +459,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
 
     def __prepare_resources(self, jmx):
-        resource_files_from_jmx = JMeterExecutor.__get_resource_files_from_jmx(jmx)
+        resource_files_from_jmx = self.__get_resource_files_from_jmx(jmx)
         resource_files_from_requests = self.__get_res_files_from_requests()
         self.__cp_res_files_to_artifacts_dir(resource_files_from_jmx)
         self.__cp_res_files_to_artifacts_dir(resource_files_from_requests)
@@ -548,7 +548,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         if script:
             jmx = JMX(script)
-            resource_files_from_jmx = JMeterExecutor.__get_resource_files_from_jmx(jmx)
+            resource_files_from_jmx = self.__get_resource_files_from_jmx(jmx)
 
             if resource_files_from_jmx:
                 self.__modify_resources_paths_in_jmx(jmx.tree, resource_files_from_jmx)
@@ -599,8 +599,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             else:
                 self.log.warning("File not found: %s", file_path)
 
-    @staticmethod
-    def __get_resource_files_from_jmx(jmx):
+    def __get_resource_files_from_jmx(self, jmx):
         """
         Get list of resource files paths from jmx scenario
         :return: (file list)
@@ -620,7 +619,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                     parent = parent.getparent()
 
                 if resource_element.text and parent_disabled is False:
-                    resource_files.append(resource_element.text)
+                    resource_files.append(self.engine.find_file(resource_element.text))
         return resource_files
 
     def __get_res_files_from_requests(self):
@@ -634,7 +633,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if data_sources:
             for data_source in data_sources:
                 if isinstance(data_source, text_type):
-                    post_body_files.append(data_source)
+                    post_body_files.append(self.engine.find_file(data_source))
 
         requests = scenario.data.get("requests")
         if requests:
@@ -643,7 +642,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                     post_body_path = req.get('body-file')
 
                     if post_body_path:
-                        post_body_files.append(post_body_path)
+                        post_body_files.append(self.engine.find_file(post_body_path))
         return post_body_files
 
     def __rename_thread_groups(self, jmx):

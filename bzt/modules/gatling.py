@@ -67,7 +67,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.engine.existing_artifact(self.script)
             with open(os.path.join(self.engine.artifacts_dir, os.path.basename(self.script)), 'rt') as fds:
                 script_contents = fds.read()
-            resource_files = GatlingExecutor.__get_res_files_from_script(script_contents)
+            resource_files = self.__get_res_files_from_script(script_contents)
             if resource_files:
                 modified_contents = GatlingExecutor.__modify_res_paths_in_scala(script_contents, resource_files)
                 with open(os.path.join(self.engine.artifacts_dir, os.path.basename(self.script)), 'wt') as fds:
@@ -188,7 +188,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         if script:
             script_contents = open(script, 'rt').read()
-            resource_files = GatlingExecutor.__get_res_files_from_script(script_contents)
+            resource_files = self.__get_res_files_from_script(script_contents)
 
             if resource_files:
 
@@ -206,8 +206,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         return [os.path.basename(file_path) for file_path in resource_files]
 
-    @staticmethod
-    def __get_res_files_from_script(script_contents):
+    def __get_res_files_from_script(self, script_contents):
         """
         Get resource files list from scala script
         :param script_contents:
@@ -230,7 +229,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 param_list = found_sample.split(",")
                 param_index = 0 if "separatedValues" in search_pattern.pattern else -1  # first or last param
                 file_path = re.compile(r'\".*?\"').findall(param_list[param_index])[0].strip('"')
-                resource_files.append(file_path)
+                resource_files.append(self.engine.find_file(file_path))
 
         return resource_files
 
