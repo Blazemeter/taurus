@@ -990,7 +990,7 @@ class ScenarioExecutor(EngineModule):
         """
         files_list = self.execution.get("files", [])
         if isinstance(self, FileLister):
-            files_list.extend(self.resource_files())
+            files_list.extend(self.resource_files())  # TODO: use find_file for all of them?
         return files_list
 
     def __repr__(self):
