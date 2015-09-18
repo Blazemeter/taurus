@@ -360,7 +360,7 @@ class Engine(object):
         instance.settings = settings.get(alias)
         return instance
 
-    def find_file(self, filename):  # TODO: use it everywhere when it makes sense
+    def find_file(self, filename):
         """
         Try to find file in search_path if it was specified. Helps finding files
         in non-CLI environments or relative to config path
@@ -368,10 +368,18 @@ class Engine(object):
         if os.path.isfile(filename):
             return filename
         elif filename.lower().startswith("http://") or filename.lower().startswith("https://"):
+            parsed_url = parse.urlparse(filename)
             downloader = request.FancyURLopener()
-            dest = self.create_artifact("downloaded", ".file")  # TODO: make it smart to get name from URL if possible
-            self.log.info("Downloading %s into %s", filename, dest)
-            downloader.retrieve(filename, dest)
+            self.log.info("Downloading %s", filename)
+            tmp_f_name, http_msg = downloader.retrieve(filename)
+            cd_header = http_msg.get('Content-Disposition', '')
+            dest = cd_header.split('filename=')[-1] if cd_header and 'filename=' in cd_header else ''
+            if not dest:
+                dest = os.path.basename(parsed_url.path)
+            fname, ext = os.path.splitext(dest) if dest else (parsed_url.hostname.replace(".", "_"), '.file')
+            dest = self.create_artifact(fname, ext)
+            self.log.debug("Moving %s to %s", tmp_f_name, dest)
+            shutil.move(tmp_f_name, dest)
             return dest
         elif self.file_search_paths:
             for dirname in self.file_search_paths:

@@ -280,7 +280,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :return:
         """
         resource_files = []
-        prop_file = self.get_scenario().get("properties-file")
+        prop_file = self.engine.find_file(self.get_scenario().get("properties-file"))
 
         if prop_file:
             prop_file_contents = open(prop_file, 'rt').read()
