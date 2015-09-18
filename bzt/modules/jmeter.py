@@ -459,7 +459,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
 
     def __prepare_resources(self, jmx):
-        resource_files_from_jmx = self.__get_resource_files_from_jmx(jmx)
+        resource_files_from_jmx = JMeterExecutor.__get_resource_files_from_jmx(jmx)
         resource_files_from_requests = self.__get_res_files_from_requests()
         self.__cp_res_files_to_artifacts_dir(resource_files_from_jmx)
         self.__cp_res_files_to_artifacts_dir(resource_files_from_requests)
@@ -548,7 +548,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         if script:
             jmx = JMX(script)
-            resource_files_from_jmx = self.__get_resource_files_from_jmx(jmx)
+            resource_files_from_jmx = JMeterExecutor.__get_resource_files_from_jmx(jmx)
 
             if resource_files_from_jmx:
                 self.__modify_resources_paths_in_jmx(jmx.tree, resource_files_from_jmx)
@@ -599,7 +599,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             else:
                 self.log.warning("File not found: %s", file_path)
 
-    def __get_resource_files_from_jmx(self, jmx):
+    @staticmethod
+    def __get_resource_files_from_jmx(jmx):
         """
         Get list of resource files paths from jmx scenario
         :return: (file list)
@@ -619,7 +620,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                     parent = parent.getparent()
 
                 if resource_element.text and parent_disabled is False:
-                    resource_files.append(self.engine.find_file(resource_element.text))
+                    resource_files.append(resource_element.text)
         return resource_files
 
     def __get_res_files_from_requests(self):
