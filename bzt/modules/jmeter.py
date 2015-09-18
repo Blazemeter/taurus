@@ -40,7 +40,7 @@ from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.utils import shell_exec, ensure_is_dict, dehumanize_time, BetterDict, \
     guess_csv_dialect, unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
-from bzt.six import iteritems, text_type, string_types, StringIO, parse, request, etree
+from bzt.six import iteritems, text_type, string_types, StringIO, parse, request, etree, binary_type
 
 EXE_SUFFIX = ".bat" if platform.system() == 'Windows' else ""
 
@@ -2074,10 +2074,17 @@ class JMeter(RequiredTool):
             self.log.debug("JMeter check: %s / %s", jmout, jmerr)
             jmlog.close()
             os.remove(jmlog.name)
+            if isinstance(jmout, binary_type):
+                jmout = jmout.decode()
+            if "is too low to run JMeter" in jmout:
+                self.log.error(jmout)
+                raise ValueError("Java version is too low to run JMeter")
             return True
         except OSError:
             self.log.debug("JMeter check failed.")
             return False
+        except ValueError:
+            raise
 
     def install(self):
         dest = os.path.dirname(os.path.dirname(os.path.expanduser(self.tool_path)))
