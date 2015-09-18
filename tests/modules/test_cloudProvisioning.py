@@ -48,7 +48,8 @@ class TestCloudProvisioning(BZTestCase):
         widget.render((200,), False)
         txt = widget.text.get_text()[0]
         logging.info("Text: '%s'", txt)
-        self.assertTrue(txt.endswith("\n  mock machines:\n    us-east-1: 2\n    us-west: 4\n"))
+        self.assertIn("us-east-1: 2", txt)
+        self.assertIn("us-west: 4", txt)
         obj.shutdown()
         obj.post_process()
 

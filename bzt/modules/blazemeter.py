@@ -912,8 +912,11 @@ class CloudProvWidget(Pile):
 
     def render(self, size, focus=False):
         txt = "Cloud test #%s\n" % self.prov.client.active_session_id
+        cnt = 0
         for executor in self.prov.executors:
-            txt += "  " + executor.execution.get("executor", ValueError("Execution type is not yet defined"))
+            cnt += 1
+            name = executor.execution.get("executor", ValueError("Execution type is not yet defined"))
+            txt += "  %s. %s" % (cnt, name)
             txt += " machines:\n"
             locations = executor.execution.get("locations")
             for location in sorted(locations.keys()):
