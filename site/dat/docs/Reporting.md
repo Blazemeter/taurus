@@ -54,6 +54,20 @@ reporting:
 
 Two options `dump-csv` and `dump-xml` allows to export final cumulative stats into files that can be used by [Jenkins Plot Plugin](https://wiki.jenkins-ci.org/display/JENKINS/Plot+Plugin) to plot historical data inside Jenkins. Prefer CSV as it is much easier to use with Plot Plugin. XML format also can be used with other tools to automate results processing.
 
+Field names with explanations:
+
+ - `label` - is the sample group for which this CSV line presents the stats. Empty label means total of all labels
+ -   `concurrency` - average number of Virtual Users
+ -   `throughput` - total count of all samples
+ -   `succ` - total count of not-failed samples   
+ -   `fail`  - total count of saved samples
+ -   `avg_rt` - average response time  
+ -   `stdev_rt` - standard deviation of response time  
+ -   `avg_ct` - average connect time if present
+ -   `avg_lt`  - average latency if present 
+ -   `rc_200` - counts for specific response codes
+ -   `perc_0.0 .. perc_100.0` - percentile levels for response time, 0 is also minimum response time, 100 is maximum
+
 ## Console Screen
 
 This reporter shows fullscreen dashboard with some KPIs and even ASCII-art graphs like this:
