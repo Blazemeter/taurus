@@ -58,7 +58,7 @@ socketserver = socketserver
 SimpleHTTPRequestHandler = BaseHTTPServer.SimpleHTTPRequestHandler
 
 viewvalues = operator.methodcaller("values")
-
+r_input = input
 
 def iteritems(dictionary, **kw):
     return iter(dictionary.items(**kw))
