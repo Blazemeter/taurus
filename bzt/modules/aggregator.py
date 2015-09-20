@@ -67,7 +67,7 @@ class KPISet(BetterDict):
         self.get(self.RESP_TIMES, Counter())
         self.get(self.RESP_CODES, Counter())
         self.get(self.PERCENTILES)
-        self._concurrencies = BetterDict()
+        self._concurrencies = BetterDict()  # NOTE: shouldn't it be Counter?
 
     def __deepcopy__(self, memo):
         mycopy = KPISet(self.perc_levels)
@@ -359,11 +359,11 @@ class ResultsProvider(object):
         """
         Merge current KPISet to cumulative
         :param current: KPISet
-        :return:
         """
         for label, data in iteritems(current):
             cumul = self.cumulative.get(label, KPISet(self.track_percentiles))
             cumul.merge_kpis(data)
+            cumul.recalculate()
 
     def datapoints(self, final_pass=False):
         """

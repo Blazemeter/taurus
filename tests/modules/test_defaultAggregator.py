@@ -29,7 +29,7 @@ class TestDefaultAggregator(BZTestCase):
         obj.add_listener(mock)
 
         for point in mock.datapoints():
-            pass
+            self.assertNotEquals(0, point[DataPoint.CUMULATIVE][''][KPISet.CONCURRENCY])
 
         mock.data.append((2, "", 1, r(), r(), r(), 200, None, ''))
         mock.data.append((2, "", 1, r(), r(), r(), 200, None, ''))
