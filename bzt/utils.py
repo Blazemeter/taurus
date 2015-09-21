@@ -707,8 +707,8 @@ class TclLibrary(RequiredTool):
     FOLDER = "tcl"
 
     def __init__(self, parent_logger):
+        super(TclLibrary, self).__init__("Python Tcl library environment variable", "")
         self.log = parent_logger.getChild(self.__class__.__name__)
-        super(TclLibrary, self).__init__("Python Tcl library environment variable", "", "")
 
     def check_if_installed(self):
         """
