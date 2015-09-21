@@ -10,9 +10,7 @@ from random import random
 from bzt.cli import CLI
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.utils import run_once
-from logging import Handler
-from io import StringIO
-from bzt.six import u
+
 
 @run_once
 def setup_test_logging():
