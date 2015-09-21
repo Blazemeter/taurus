@@ -15,20 +15,18 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import os
-import re
 import time
 import subprocess
 import platform
+
+import os
+import re
 import shutil
-import tempfile
-import socket
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
-from bzt.six import request
 from bzt.utils import unzip, shell_exec, ensure_is_dict, RequiredTool, JavaVM, \
-    shutdown_process, ProgressBarContext, TclLibrary, MirrorsManager
+    shutdown_process, TclLibrary, MirrorsManager
 from bzt.modules.console import WidgetProvider, SidebarWidget
 
 EXE_SUFFIX = ".bat" if platform.system() == 'Windows' else ".sh"
@@ -404,42 +402,13 @@ class Gatling(RequiredTool):
     def install(self):
         dest = os.path.dirname(os.path.dirname(os.path.expanduser(self.tool_path)))
         dest = os.path.abspath(dest)
-        self.log.info("Will try to install Gatling into %s", dest)
-
-        # download gatling
-        downloader = request.FancyURLopener()
-        gatling_zip_file = tempfile.NamedTemporaryFile(suffix=".zip", delete=False)
-        #
-        # self.download_link = self.download_link.format(version=self.version)
-        # self.log.info("Downloading %s", self.download_link)
-        # TODO: check archive checksum/hash before unzip and run
-
-        mirrors = self.mirror_manager.mirrors()
-        while True:
-            with ProgressBarContext() as pbar:
-                try:
-                    mirror = next(mirrors)
-                except StopIteration as exc:
-                    self.log.error("Gatling download failed: No more mirrors to try")
-                    raise exc
-                try:
-                    socket.setdefaulttimeout(5)
-                    self.log.debug("Downloading: %s", mirror)
-                    downloader.retrieve(mirror, gatling_zip_file.name, pbar.download_callback)
-                    break
-                except BaseException:
-                    self.log.error("Error while downloading %s", mirror)
-                    continue
-                finally:
-                    socket.setdefaulttimeout(None)
-
-        self.log.info("Unzipping %s", gatling_zip_file.name)
-        unzip(gatling_zip_file.name, dest, 'gatling-charts-highcharts-bundle-' + self.version)
-        gatling_zip_file.close()
-        os.remove(gatling_zip_file.name)
+        gatling_dist = super(Gatling, self).install_with_mirrors(dest, ".zip")
+        self.log.info("Unzipping %s", gatling_dist.name)
+        unzip(gatling_dist.name, dest, 'gatling-charts-highcharts-bundle-' + self.version)
+        gatling_dist.close()
+        os.remove(gatling_dist.name)
         os.chmod(os.path.expanduser(self.tool_path), 0o755)
         self.log.info("Installed Gatling successfully")
-
         if not self.check_if_installed():
             raise RuntimeError("Unable to run %s after installation!" % self.tool_name)
 
@@ -456,11 +425,11 @@ class GatlingMirrorsManager(MirrorsManager):
             a_search_pattern = re.compile(r'<a class="lead" href=".*?">Gatling bundle \(zip\)</a>')
             href_search_pattern = re.compile(r'href=".*?">')
             select_element = a_search_pattern.findall(self.page_source)
-            links = []
+
             if select_element:
                 href_elements = href_search_pattern.findall(select_element[0])
                 links = [link.strip('href=').strip('">') for link in href_elements]
-        default_link = GatlingExecutor.DOWNLOAD_LINK.format(version = self.gatling_version)
+        default_link = GatlingExecutor.DOWNLOAD_LINK.format(version=self.gatling_version)
         if default_link not in links:
             links.append(default_link)
         self.log.debug('Total mirrors: %d', len(links))

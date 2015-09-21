@@ -560,7 +560,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 # create modified jmx script in artifacts dir
                 modified_script = self.engine.create_artifact(script_name, script_ext)
                 jmx.save(modified_script)
-                script = modified_script
                 resource_files.extend(resource_files_from_jmx)
 
         resource_files.extend(files_from_requests)
@@ -2090,39 +2089,13 @@ class JMeter(RequiredTool):
     def install(self):
         dest = os.path.dirname(os.path.dirname(os.path.expanduser(self.tool_path)))
         dest = os.path.abspath(dest)
-
-        self.log.info("Will try to install JMeter into %s", dest)
-
-        downloader = request.FancyURLopener()
-        jmeter_dist = tempfile.NamedTemporaryFile(suffix=".zip", delete=False)  # delete=False because of Windows
-
-        mirrors = self.mirror_manager.mirrors()
-        while True:
-            with ProgressBarContext() as pbar:
-                try:
-                    mirror = next(mirrors)
-                except StopIteration as exc:
-                    self.log.error("JMeter download failed: No more mirrors to try")
-                    raise exc
-                try:
-                    socket.setdefaulttimeout(5)
-                    self.log.debug("Downloading: %s", mirror)
-                    downloader.retrieve(mirror, jmeter_dist.name, pbar.download_callback)
-                    break
-                except BaseException:
-                    self.log.error("Error while downloading %s", mirror)
-                    continue
-                finally:
-                    socket.setdefaulttimeout(None)
-
+        jmeter_dist = super(JMeter, self).install_with_mirrors(dest, ".zip")
         self.log.info("Unzipping %s to %s", jmeter_dist.name, dest)
         unzip(jmeter_dist.name, dest, 'apache-jmeter-' + self.version)
-
         # set exec permissions
         os.chmod(self.tool_path, 0o755)
         jmeter_dist.close()
         os.remove(jmeter_dist.name)
-
         if self.check_if_installed():
             return self.tool_path
         else:
@@ -2216,6 +2189,8 @@ class JMeterMirrorsManager(MirrorsManager):
                 option_elements = option_search_pattern.findall(select_element[0])
                 link_tail = "/jmeter/binaries/apache-jmeter-{version}.zip".format(version=self.jmeter_version)
                 links = [link.strip('<option value="').strip('">') + link_tail for link in option_elements]
-        links.append(JMeterExecutor.JMETER_DOWNLOAD_LINK.format(version=self.jmeter_version))
+        default_link = JMeterExecutor.JMETER_DOWNLOAD_LINK.format(version=self.jmeter_version)
+        if default_link not in links:
+            links.append(default_link)
         self.log.debug('Total mirrors: %d', len(links))
         return links

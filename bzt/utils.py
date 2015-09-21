@@ -31,6 +31,8 @@ import sys
 import time
 import signal
 import subprocess
+import tempfile
+import socket
 from collections import defaultdict, Counter
 from subprocess import PIPE
 
@@ -607,6 +609,7 @@ class RequiredTool(object):
         self.download_link = download_link
         self.already_installed = False
         self.mirror_manager = None
+        self.log = None
 
     def check_if_installed(self):
         if os.path.exists(self.tool_path):
@@ -628,6 +631,30 @@ class RequiredTool(object):
                     raise RuntimeError("Unable to run %s after installation!" % self.tool_name)
             except BaseException as exc:
                 raise exc
+
+    def install_with_mirrors(self, dest, suffix):
+        self.log.info("Will try to install %s into %s", self.tool_name, dest)
+        downloader = request.FancyURLopener()
+        tool_dist = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)  # delete=False because of Windows
+        mirrors = self.mirror_manager.mirrors()
+        while True:
+            with ProgressBarContext() as pbar:
+                try:
+                    mirror = next(mirrors)
+                except StopIteration as exc:
+                    self.log.error("%s download failed: No more mirrors to try", self.tool_name)
+                    raise exc
+                try:
+                    socket.setdefaulttimeout(5)
+                    self.log.debug("Downloading: %s", mirror)
+                    downloader.retrieve(mirror, tool_dist.name, pbar.download_callback)
+                    break
+                except BaseException:
+                    self.log.error("Error while downloading %s", mirror)
+                    continue
+                finally:
+                    socket.setdefaulttimeout(None)
+        return tool_dist
 
 
 class JavaVM(RequiredTool):
@@ -740,7 +767,7 @@ class MirrorsManager(object):
         self.log.debug("Retrieving mirrors from page: %s", self.base_link)
         downloader = request.FancyURLopener()
         try:
-            tmp_file, _http_msg = downloader.retrieve(self.base_link)
+            tmp_file = downloader.retrieve(self.base_link)[0]
             with open(tmp_file) as fds:
                 self.page_source = fds.read()
         except BaseException:
