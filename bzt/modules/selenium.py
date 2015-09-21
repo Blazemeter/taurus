@@ -8,9 +8,13 @@ import shutil
 import sys
 import subprocess
 import urwid
+import tempfile
+import socket
+import json
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
-from bzt.utils import RequiredTool, shell_exec, shutdown_process, BetterDict, JavaVM, TclLibrary, dehumanize_time
-from bzt.six import string_types, text_type, etree
+from bzt.utils import RequiredTool, shell_exec, shutdown_process, BetterDict, JavaVM, TclLibrary, dehumanize_time, \
+    MirrorsManager, ProgressBarContext
+from bzt.six import string_types, text_type, etree, request
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.console import WidgetProvider
 from bzt.modules.jmeter import JTLReader
@@ -26,6 +30,8 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     JUNIT_DOWNLOAD_LINK = "http://search.maven.org/remotecontent?filepath=junit/junit/{version}/junit-{version}.jar"
     JUNIT_VERSION = "4.12"
+    JUNIT_MIRRORS_SOURCE = "http://search.maven.org/solrsearch/select?q=g%3A%22junit%22%20AND%20a%3A%22junit%22%20AND%20v%3A%22{version}%22&rows=20&wt=json".format(
+        version=JUNIT_VERSION)
 
     HAMCREST_DOWNLOAD_LINK = "https://hamcrest.googlecode.com/files/hamcrest-core-1.3.jar"
 
@@ -288,8 +294,7 @@ class JunitTester(AbstractTestRunner):
         self.required_tools.append(SeleniumServerJar(self.selenium_server_jar_path,
                                                      SeleniumExecutor.SELENIUM_DOWNLOAD_LINK.format(
                                                          version=SeleniumExecutor.SELENIUM_VERSION), self.log))
-        self.required_tools.append(JUnitJar(self.junit_path, SeleniumExecutor.JUNIT_DOWNLOAD_LINK.format(
-            version=SeleniumExecutor.JUNIT_VERSION)))
+        self.required_tools.append(JUnitJar(self.junit_path, self.log, SeleniumExecutor.JUNIT_VERSION))
         self.required_tools.append(HamcrestJar(self.hamcrest_path, SeleniumExecutor.HAMCREST_DOWNLOAD_LINK))
         self.required_tools.append(JUnitListenerJar(self.junit_listener_path, ""))
 
@@ -478,8 +483,46 @@ class SeleniumServerJar(RequiredTool):
 
 
 class JUnitJar(RequiredTool):
-    def __init__(self, tool_path, download_link):
-        super(JUnitJar, self).__init__("JUnit", tool_path, download_link)
+    def __init__(self, tool_path, parent_logger, junit_version):
+        super(JUnitJar, self).__init__("JUnit", tool_path)
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.version = junit_version
+        self.mirror_manager = JUnitMirrorsManager(self.log, self.version)
+
+    def install(self):
+        dest = os.path.dirname(os.path.expanduser(self.tool_path))
+        dest = os.path.abspath(dest)
+        self.log.info("Will try to install %s into %s", self.tool_name, dest)
+        downloader = request.FancyURLopener()
+        junit_jar = tempfile.NamedTemporaryFile(suffix=".jar", delete=False)
+        mirrors = self.mirror_manager.mirrors()
+
+        while True:
+            with ProgressBarContext() as pbar:
+                try:
+                    mirror = next(mirrors)
+                except StopIteration as exc:
+                    self.log.error("%s download failed: No more mirrors to try", self.tool_name)
+                    raise exc
+                try:
+                    socket.setdefaulttimeout(5)
+                    self.log.debug("Downloading: %s", mirror)
+                    downloader.retrieve(mirror, junit_jar.name, pbar.download_callback)
+                    break
+                except BaseException:
+                    self.log.error("Error while downloading %s", mirror)
+                    continue
+                finally:
+                    socket.setdefaulttimeout(None)
+
+        self.log.info("Installing %s into %s", self.tool_name, dest)
+        junit_jar.close()
+        os.makedirs(dest)
+        shutil.move(junit_jar.name, self.tool_path)
+        self.log.info("Installed JUnit successfully")
+
+        if not self.check_if_installed():
+            raise RuntimeError("Unable to run %s after installation!" % self.tool_name)
 
 
 class HamcrestJar(RequiredTool):
@@ -665,3 +708,30 @@ class SeleniumScriptBuilder(NoseTest):
                 if child.text is not None:
                     indent = int(child.get('indent', "0"))
                     fds.write(" " * indent + child.text + "\n")
+
+
+class JUnitMirrorsManager(MirrorsManager):
+    def __init__(self, parent_logger, junit_version):
+        self.junit_version = junit_version
+        super(JUnitMirrorsManager, self).__init__(SeleniumExecutor.JUNIT_MIRRORS_SOURCE, parent_logger)
+
+    def _parse_mirrors(self):
+        links = []
+        if self.page_source is not None:
+            self.log.debug('Parsing mirrors...')
+            resp = json.loads(self.page_source)
+            objects = resp.get("response", {}).get("docs", [])
+            if objects:
+                obj = objects[0]
+                group = obj.get("g")
+                artifact = obj.get("a")
+                version = obj.get("v")
+                ext = obj.get("p")
+                link_tmpl = "http://search.maven.org/remotecontent?filepath={group}/{artifact}/{version}/{artifact}-{version}.{ext}"
+                link = link_tmpl.format(group=group, artifact=artifact, version=version, ext=ext)
+                links.append(link)
+        default_link = SeleniumExecutor.JUNIT_DOWNLOAD_LINK.format(version=self.junit_version)
+        if default_link not in links:
+            links.append(default_link)
+        self.log.debug('Total mirrors: %d', len(links))
+        return links

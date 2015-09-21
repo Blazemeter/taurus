@@ -3,7 +3,7 @@ import os
 import re
 
 from tests import setup_test_logging, BZTestCase, __dir__
-from bzt.modules.gatling import GatlingExecutor, EXE_SUFFIX
+from bzt.modules.gatling import GatlingExecutor, EXE_SUFFIX, GatlingMirrorsManager, Gatling
 from tests.mocks import EngineEmul
 from bzt.utils import BetterDict
 
@@ -18,9 +18,11 @@ class TestGatlingExecutor(BZTestCase):
         # backup download link and version
         gatling_link = GatlingExecutor.DOWNLOAD_LINK
         gatling_ver = GatlingExecutor.VERSION
+        mirrors_link = GatlingExecutor.MIRRORS_SOURCE
 
         GatlingExecutor.DOWNLOAD_LINK = "file:///" + __dir__() + "/../data/gatling-dist-{version}_{version}.zip"
         GatlingExecutor.VERSION = '2.1.4'
+        GatlingExecutor.MIRRORS_SOURCE = "file:///" + __dir__() + "/../data/unicode_file"
 
         self.assertFalse(os.path.exists(path))
         obj = GatlingExecutor()
@@ -35,6 +37,7 @@ class TestGatlingExecutor(BZTestCase):
         obj.prepare()
         GatlingExecutor.DOWNLOAD_LINK = gatling_link
         GatlingExecutor.VERSION = gatling_ver
+        GatlingExecutor.MIRRORS_SOURCE = mirrors_link
 
     def test_gatling_widget(self):
         obj = GatlingExecutor()
@@ -90,3 +93,10 @@ class TestGatlingExecutor(BZTestCase):
         obj.execution.merge({"scenario": {"script": __dir__() + "/../gatling/BasicSimulation.scala"}})
         obj.prepare()
         self.assertRaises(RuntimeWarning, obj.post_process)
+
+    def test_gatling_mirrors(self):
+        path = os.path.abspath(__dir__() + "/../../build/tmp/gatling-taurus/bin/gatling" + EXE_SUFFIX)
+        shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
+        obj = GatlingExecutor()
+        gatling_tool = Gatling(path, obj.log, GatlingExecutor.VERSION)
+        gatling_tool.install()

@@ -29,6 +29,7 @@ import os
 import shutil
 from collections import Counter, namedtuple
 import tempfile
+import re
 
 from lxml.etree import XMLSyntaxError
 
@@ -39,7 +40,7 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.utils import shell_exec, ensure_is_dict, dehumanize_time, BetterDict, \
-    guess_csv_dialect, unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
+    guess_csv_dialect, unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary, MirrorsManager
 from bzt.six import iteritems, text_type, string_types, StringIO, parse, request, etree, binary_type
 
 EXE_SUFFIX = ".bat" if platform.system() == 'Windows' else ""
@@ -49,6 +50,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     """
     JMeter executor module
     """
+    MIRRORS_SOURCE = "http://jmeter.apache.org/download_jmeter.cgi"
     JMETER_DOWNLOAD_LINK = "http://apache.claz.org/jmeter/binaries/apache-jmeter-{version}.zip"
     JMETER_VER = "2.13"
     PLUGINS_DOWNLOAD_TPL = "http://jmeter-plugins.org/files/JMeterPlugins-{plugin}-1.3.0.zip"
@@ -727,7 +729,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         plugin_download_link = self.settings.get("plugins-download-link", JMeterExecutor.PLUGINS_DOWNLOAD_TPL)
 
-        required_tools.append(JMeter(jmeter_path, JMeterExecutor.JMETER_DOWNLOAD_LINK, self.log, jmeter_version))
+        required_tools.append(JMeter(jmeter_path, self.log, jmeter_version))
         required_tools.append(JMeterPlugins(jmeter_path, plugin_download_link, self.log))
 
         self.check_tools(required_tools)
@@ -2060,10 +2062,11 @@ class JMeter(RequiredTool):
     JMeter tool
     """
 
-    def __init__(self, tool_path, download_link, parent_logger, jmeter_version):
-        super(JMeter, self).__init__("JMeter", tool_path, download_link)
+    def __init__(self, tool_path, parent_logger, jmeter_version):
+        super(JMeter, self).__init__("JMeter", tool_path)
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.version = jmeter_version
+        self.mirror_manager = JMeterMirrorsManager(self.log, self.version)
 
     def check_if_installed(self):
         self.log.debug("Trying jmeter: %s", self.tool_path)
@@ -2092,15 +2095,25 @@ class JMeter(RequiredTool):
 
         downloader = request.FancyURLopener()
         jmeter_dist = tempfile.NamedTemporaryFile(suffix=".zip", delete=False)  # delete=False because of Windows
-        self.download_link = self.download_link.format(version=self.version)
-        self.log.info("Downloading %s", self.download_link)
 
-        with ProgressBarContext() as pbar:
-            try:
-                downloader.retrieve(self.download_link, jmeter_dist.name, pbar.download_callback)
-            except BaseException as exc:
-                self.log.error("Error while downloading %s", self.download_link)
-                raise exc
+        mirrors = self.mirror_manager.mirrors()
+        while True:
+            with ProgressBarContext() as pbar:
+                try:
+                    mirror = next(mirrors)
+                except StopIteration as exc:
+                    self.log.error("JMeter download failed: No more mirrors to try")
+                    raise exc
+                try:
+                    socket.setdefaulttimeout(5)
+                    self.log.debug("Downloading: %s", mirror)
+                    downloader.retrieve(mirror, jmeter_dist.name, pbar.download_callback)
+                    break
+                except BaseException:
+                    self.log.error("Error while downloading %s", mirror)
+                    continue
+                finally:
+                    socket.setdefaulttimeout(None)
 
         self.log.info("Unzipping %s to %s", jmeter_dist.name, dest)
         unzip(jmeter_dist.name, dest, 'apache-jmeter-' + self.version)
@@ -2184,3 +2197,25 @@ class JarCleaner(object):
         for old_lib in duplicated_libraries:
             os.remove(os.path.join(path, old_lib.vstring))
             self.log.debug("Old jar removed %s", old_lib.vstring)
+
+
+class JMeterMirrorsManager(MirrorsManager):
+    def __init__(self, parent_logger, jmeter_version):
+        self.jmeter_version = jmeter_version
+        super(JMeterMirrorsManager, self).__init__(JMeterExecutor.MIRRORS_SOURCE, parent_logger)
+
+    def _parse_mirrors(self):
+        links = []
+        if self.page_source is not None:
+            self.log.debug('Parsing mirrors...')
+            select_search_pattern = re.compile(r'<select name="Preferred">.*?</select>', re.MULTILINE | re.DOTALL)
+            option_search_pattern = re.compile(r'<option value=".*?">')
+            select_element = select_search_pattern.findall(self.page_source)
+
+            if select_element:
+                option_elements = option_search_pattern.findall(select_element[0])
+                link_tail = "/jmeter/binaries/apache-jmeter-{version}.zip".format(version=self.jmeter_version)
+                links = [link.strip('<option value="').strip('">') + link_tail for link in option_elements]
+        links.append(JMeterExecutor.JMETER_DOWNLOAD_LINK.format(version=self.jmeter_version))
+        self.log.debug('Total mirrors: %d', len(links))
+        return links

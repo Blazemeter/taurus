@@ -12,7 +12,8 @@ import yaml
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet
 from tests import setup_test_logging, BZTestCase, __dir__
 from bzt.engine import Provisioning
-from bzt.modules.jmeter import JMeterExecutor, JMX, JTLErrorsReader, JTLReader, JMeterJTLLoaderExecutor
+from bzt.modules.jmeter import JMeterExecutor, JMX, JTLErrorsReader, JTLReader, JMeterJTLLoaderExecutor,\
+    JMeter
 from tests.mocks import EngineEmul, ResultChecker, RecordingHandler
 from bzt.utils import BetterDict
 from bzt.six import etree
@@ -122,7 +123,9 @@ class TestJMeterExecutor(BZTestCase):
         jmeter_link = JMeterExecutor.JMETER_DOWNLOAD_LINK
         jmeter_ver = JMeterExecutor.JMETER_VER
         plugins_link = JMeterExecutor.PLUGINS_DOWNLOAD_TPL
+        mirrors_link = JMeterExecutor.MIRRORS_SOURCE
 
+        JMeterExecutor.MIRRORS_SOURCE = "file:///" + __dir__() + "/../data/unicode_file"
         JMeterExecutor.JMETER_DOWNLOAD_LINK = "file:///" + __dir__() + "/../data/jmeter-dist-{version}.zip"
         JMeterExecutor.PLUGINS_DOWNLOAD_TPL = "file:///" + __dir__() + "/../data/JMeterPlugins-{plugin}-1.3.0.zip"
         JMeterExecutor.JMETER_VER = '2.13'
@@ -157,6 +160,7 @@ class TestJMeterExecutor(BZTestCase):
         JMeterExecutor.JMETER_DOWNLOAD_LINK = jmeter_link
         JMeterExecutor.PLUGINS_DOWNLOAD_TPL = plugins_link
         JMeterExecutor.JMETER_VER = jmeter_ver
+        JMeterExecutor.MIRRORS_SOURCE = mirrors_link
 
     def test_think_time_bug(self):
         obj = JMeterExecutor()
@@ -756,3 +760,10 @@ class TestJMeterExecutor(BZTestCase):
         obj.execution.merge({"scenario": {"script": "tests/jmx/dummy.jmx"}})
         obj.prepare()
         self.assertRaises(RuntimeWarning, obj.post_process)
+
+    def test_jmeter_mirrors(self):
+        path = os.path.abspath(__dir__() + "/../../build/tmp/jmeter-taurus/bin/jmeter")
+        shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
+        obj = JMeterExecutor()
+        objjm = JMeter(path, obj.log, JMeterExecutor.JMETER_VER)
+        objjm.install()

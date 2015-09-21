@@ -2,7 +2,7 @@ import shutil
 import os
 
 from tests import setup_test_logging, BZTestCase, __dir__
-from bzt.modules.grinder import GrinderExecutor
+from bzt.modules.grinder import GrinderExecutor, Grinder
 from tests.mocks import EngineEmul
 from bzt.utils import BetterDict
 
@@ -16,8 +16,10 @@ class TestGrinderExecutor(BZTestCase):
 
         grinder_link = GrinderExecutor.DOWNLOAD_LINK
         grinder_version = GrinderExecutor.VERSION
+        mirrors_source = GrinderExecutor.MIRRORS_SOURCE
         GrinderExecutor.DOWNLOAD_LINK = "file:///" + __dir__() + "/../data/grinder-{version}_{version}-binary.zip"
         GrinderExecutor.VERSION = "3.11"
+        GrinderExecutor.MIRRORS_SOURCE = "file:///" + __dir__() + "/../data/unicode_file"
 
         self.assertFalse(os.path.exists(path))
 
@@ -36,6 +38,7 @@ class TestGrinderExecutor(BZTestCase):
         obj.prepare()
         GrinderExecutor.DOWNLOAD_LINK = grinder_link
         GrinderExecutor.VERSION = grinder_version
+        GrinderExecutor.MIRRORS_SOURCE = mirrors_source
 
     def test_grinder_widget(self):
         obj = GrinderExecutor()
@@ -92,3 +95,10 @@ class TestGrinderExecutor(BZTestCase):
         obj.execution.merge({"scenario": {"script": __dir__() + "/../grinder/helloworld.py"}})
         obj.prepare()
         self.assertRaises(RuntimeWarning, obj.post_process)
+
+    def test_grinder_mirrors(self):
+        path = os.path.abspath(__dir__() + "/../../build/tmp/grinder-taurus/lib/grinder.jar")
+        shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
+        obj = GrinderExecutor()
+        grinder_tool = Grinder(path, obj.log, GrinderExecutor.VERSION)
+        grinder_tool.install()
