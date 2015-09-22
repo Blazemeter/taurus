@@ -191,6 +191,13 @@ class TestJMeterExecutor(BZTestCase):
 
     def __check_path_resource_files(self, jmx_file_path, exclude_jtls=False, reverse_check=False):
         xml_tree = etree.fromstring(open(jmx_file_path, "rb").read())
+        exclude_elements = ['kg.apc.jmeter.jmxmon.JMXMonCollector', 'JSR223Listener',
+                            'kg.apc.jmeter.vizualizers.CorrectedResultCollector',
+                            'kg.apc.jmeter.reporters.FlexibleFileWriter', 'BSFListener',
+                            'kg.apc.jmeter.dbmon.DbMonCollector', 'BeanShellListener', 'MailerResultCollector',
+                            'kg.apc.jmeter.perfmon.PerfMonCollector', 'ResultCollector',
+                            'kg.apc.jmeter.vizualizers.CompositeResultCollector',
+                            'kg.apc.jmeter.reporters.LoadosophiaUploader']
         search_patterns = ["File.path", "filename", "BeanShellSampler.filename"]
         for pattern in search_patterns:
             resource_elements = xml_tree.findall(".//stringProp[@name='%s']" % pattern)
@@ -198,7 +205,7 @@ class TestJMeterExecutor(BZTestCase):
                 parent = resource_element.getparent()
                 parent_disabled = False
                 while parent is not None:
-                    if parent.get('enabled') == 'false':
+                    if parent.get('enabled') == 'false' or parent.tag in exclude_elements:
                         parent_disabled = True
                         break
                     parent = parent.getparent()

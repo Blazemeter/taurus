@@ -606,6 +606,13 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :return: (file list)
         """
         resource_files = []
+        exclude_elements = ['kg.apc.jmeter.jmxmon.JMXMonCollector', 'JSR223Listener',
+                            'kg.apc.jmeter.vizualizers.CorrectedResultCollector',
+                            'kg.apc.jmeter.reporters.FlexibleFileWriter', 'BSFListener',
+                            'kg.apc.jmeter.dbmon.DbMonCollector', 'BeanShellListener', 'MailerResultCollector',
+                            'kg.apc.jmeter.perfmon.PerfMonCollector', 'ResultCollector',
+                            'kg.apc.jmeter.vizualizers.CompositeResultCollector',
+                            'kg.apc.jmeter.reporters.LoadosophiaUploader']
         search_patterns = ["File.path", "filename", "BeanShellSampler.filename"]
         for pattern in search_patterns:
             resource_elements = jmx.tree.findall(".//stringProp[@name='%s']" % pattern)
@@ -614,7 +621,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 parent = resource_element.getparent()
                 parent_disabled = False
                 while parent is not None:  # ?
-                    if parent.get('enabled') == 'false':
+                    if parent.get('enabled') == 'false' or parent.tag in exclude_elements:
                         parent_disabled = True
                         break
                     parent = parent.getparent()
