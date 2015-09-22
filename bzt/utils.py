@@ -637,25 +637,19 @@ class RequiredTool(object):
         downloader = request.FancyURLopener()
         tool_dist = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)  # delete=False because of Windows
         mirrors = self.mirror_manager.mirrors()
-        while True:
+        for mirror in mirrors:
             with ProgressBarContext() as pbar:
-                try:
-                    mirror = next(mirrors)
-                except StopIteration as exc:
-                    self.log.error("%s download failed: No more mirrors to try", self.tool_name)
-                    raise exc
                 try:
                     socket.setdefaulttimeout(5)
                     self.log.debug("Downloading: %s", mirror)
                     downloader.retrieve(mirror, tool_dist.name, pbar.download_callback)
-                    break
+                    return tool_dist
                 except BaseException:
                     self.log.error("Error while downloading %s", mirror)
                     continue
                 finally:
                     socket.setdefaulttimeout(None)
-        return tool_dist
-
+        raise RuntimeError("%s download failed: No more mirrors to try", self.tool_name)
 
 class JavaVM(RequiredTool):
     def __init__(self, tool_path, download_link, parent_logger):
