@@ -31,12 +31,15 @@ import sys
 import time
 import signal
 import subprocess
+import tempfile
+import socket
 from collections import defaultdict, Counter
 from subprocess import PIPE
 
 from progressbar import ProgressBar, Percentage, Bar, ETA
 import psutil
 from psutil import Popen
+from abc import abstractmethod
 
 from bzt.six import string_types, iteritems, viewvalues, binary_type, text_type, b, integer_types, request, file_type
 
@@ -600,11 +603,13 @@ class RequiredTool(object):
     Abstract required tool
     """
 
-    def __init__(self, tool_name, tool_path, download_link):
+    def __init__(self, tool_name, tool_path, download_link=""):
         self.tool_name = tool_name
         self.tool_path = tool_path
         self.download_link = download_link
         self.already_installed = False
+        self.mirror_manager = None
+        self.log = None
 
     def check_if_installed(self):
         if os.path.exists(self.tool_path):
@@ -627,6 +632,25 @@ class RequiredTool(object):
             except BaseException as exc:
                 raise exc
 
+    def install_with_mirrors(self, dest, suffix):
+        self.log.info("Will try to install %s into %s", self.tool_name, dest)
+        downloader = request.FancyURLopener()
+        tool_dist = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)  # delete=False because of Windows
+        mirrors = self.mirror_manager.mirrors()
+        sock_timeout = socket.getdefaulttimeout()
+        for mirror in mirrors:
+            with ProgressBarContext() as pbar:
+                try:
+                    socket.setdefaulttimeout(5)
+                    self.log.debug("Downloading: %s", mirror)
+                    downloader.retrieve(mirror, tool_dist.name, pbar.download_callback)
+                    return tool_dist
+                except BaseException:
+                    self.log.error("Error while downloading %s", mirror)
+                    continue
+                finally:
+                    socket.setdefaulttimeout(sock_timeout)
+        raise RuntimeError("%s download failed: No more mirrors to try", self.tool_name)
 
 class JavaVM(RequiredTool):
     def __init__(self, tool_path, download_link, parent_logger):
@@ -678,8 +702,8 @@ class TclLibrary(RequiredTool):
     FOLDER = "tcl"
 
     def __init__(self, parent_logger):
+        super(TclLibrary, self).__init__("Python Tcl library environment variable", "")
         self.log = parent_logger.getChild(self.__class__.__name__)
-        super(TclLibrary, self).__init__("Python Tcl library environment variable", "", "")
 
     def check_if_installed(self):
         """
@@ -722,3 +746,26 @@ class TclLibrary(RequiredTool):
 
         if not self.check_if_installed():
             self.log.warning("No Tcl library was found")
+
+
+class MirrorsManager(object):
+    def __init__(self, base_link, parent_logger):
+        self.base_link = base_link
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.page_source = None
+
+    @abstractmethod
+    def _parse_mirrors(self):
+        return []
+
+    def mirrors(self):
+        self.log.debug("Retrieving mirrors from page: %s", self.base_link)
+        downloader = request.FancyURLopener()
+        try:
+            tmp_file = downloader.retrieve(self.base_link)[0]
+            with open(tmp_file) as fds:
+                self.page_source = fds.read()
+        except BaseException:
+            self.log.error("Can't fetch %s", self.base_link)
+        mirrors = self._parse_mirrors()
+        return (mirror for mirror in mirrors)

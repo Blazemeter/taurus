@@ -15,19 +15,18 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import os
-import re
 import time
 import subprocess
 import platform
+
+import os
+import re
 import shutil
-import tempfile
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
-from bzt.six import request
 from bzt.utils import unzip, shell_exec, ensure_is_dict, RequiredTool, JavaVM, \
-    shutdown_process, ProgressBarContext, TclLibrary
+    shutdown_process, TclLibrary, MirrorsManager
 from bzt.modules.console import WidgetProvider, SidebarWidget
 
 EXE_SUFFIX = ".bat" if platform.system() == 'Windows' else ".sh"
@@ -37,6 +36,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     """
     Gatling executor module
     """
+    MIRRORS_SOURCE = "http://gatling.io/views/download.html"
     DOWNLOAD_LINK = "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle" \
                     "/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip"
     VERSION = "2.1.7"
@@ -163,7 +163,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         gatling_path = os.path.abspath(os.path.expanduser(gatling_path))
         self.settings["path"] = gatling_path
         gatling_version = self.settings.get("version", GatlingExecutor.VERSION)
-        required_tools.append(Gatling(gatling_path, GatlingExecutor.DOWNLOAD_LINK, self.log, gatling_version))
+        required_tools.append(Gatling(gatling_path, self.log, gatling_version))
 
         self.check_tools(required_tools)
 
@@ -382,10 +382,11 @@ class Gatling(RequiredTool):
     Gatling tool
     """
 
-    def __init__(self, tool_path, download_link, parent_logger, version):
-        super(Gatling, self).__init__("Gatling", tool_path, download_link)
+    def __init__(self, tool_path, parent_logger, version):
+        super(Gatling, self).__init__("Gatling", tool_path)
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.version = version
+        self.mirror_manager = GatlingMirrorsManager(self.log, self.version)
 
     def check_if_installed(self):
         self.log.debug("Trying Gatling: %s", self.tool_path)
@@ -401,29 +402,35 @@ class Gatling(RequiredTool):
     def install(self):
         dest = os.path.dirname(os.path.dirname(os.path.expanduser(self.tool_path)))
         dest = os.path.abspath(dest)
-        self.log.info("Will try to install Gatling into %s", dest)
-
-        # download gatling
-        downloader = request.FancyURLopener()
-        gatling_zip_file = tempfile.NamedTemporaryFile(suffix=".zip", delete=False)
-
-        self.download_link = self.download_link.format(version=self.version)
-        self.log.info("Downloading %s", self.download_link)
-        # TODO: check archive checksum/hash before unzip and run
-
-        with ProgressBarContext() as pbar:
-            try:
-                downloader.retrieve(self.download_link, gatling_zip_file.name, pbar.download_callback)
-            except BaseException as exc:
-                self.log.error("Error while downloading %s", self.download_link)
-                raise exc
-
-        self.log.info("Unzipping %s", gatling_zip_file.name)
-        unzip(gatling_zip_file.name, dest, 'gatling-charts-highcharts-bundle-' + self.version)
-        gatling_zip_file.close()
-        os.remove(gatling_zip_file.name)
+        gatling_dist = super(Gatling, self).install_with_mirrors(dest, ".zip")
+        self.log.info("Unzipping %s", gatling_dist.name)
+        unzip(gatling_dist.name, dest, 'gatling-charts-highcharts-bundle-' + self.version)
+        gatling_dist.close()
+        os.remove(gatling_dist.name)
         os.chmod(os.path.expanduser(self.tool_path), 0o755)
         self.log.info("Installed Gatling successfully")
-
         if not self.check_if_installed():
             raise RuntimeError("Unable to run %s after installation!" % self.tool_name)
+
+
+class GatlingMirrorsManager(MirrorsManager):
+    def __init__(self, parent_logger, gatling_version):
+        self.gatling_version = gatling_version
+        super(GatlingMirrorsManager, self).__init__(GatlingExecutor.MIRRORS_SOURCE, parent_logger)
+
+    def _parse_mirrors(self):
+        links = []
+        if self.page_source is not None:
+            self.log.debug('Parsing mirrors...')
+            a_search_pattern = re.compile(r'<a class="lead" href=".*?">Gatling bundle \(zip\)</a>')
+            href_search_pattern = re.compile(r'href=".*?">')
+            select_element = a_search_pattern.findall(self.page_source)
+
+            if select_element:
+                href_elements = href_search_pattern.findall(select_element[0])
+                links = [link.strip('href=').strip('">') for link in href_elements]
+        default_link = GatlingExecutor.DOWNLOAD_LINK.format(version=self.gatling_version)
+        if default_link not in links:
+            links.append(default_link)
+        self.log.debug('Total mirrors: %d', len(links))
+        return links

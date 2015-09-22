@@ -21,13 +21,12 @@ import subprocess
 import os
 import re
 import shutil
-import tempfile
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
-from bzt.utils import shell_exec, ProgressBarContext
+from bzt.utils import shell_exec, MirrorsManager
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, TclLibrary
-from bzt.six import iteritems, request
+from bzt.six import iteritems
 from bzt.modules.console import WidgetProvider, SidebarWidget
 
 
@@ -40,6 +39,8 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     DOWNLOAD_LINK = "http://sourceforge.net/projects/grinder/files/The%20Grinder%203/{version}" \
                     "/grinder-{version}-binary.zip/download"
     VERSION = "3.11"
+    MIRRORS_SOURCE = "http://sourceforge.net/settings/mirror_choices?projectname=grinder&filename=The%20Grinder" \
+                     "%203/{version}/grinder-{version}-binary.zip&dialog=true".format(version=VERSION)
 
     def __init__(self):
         super(GrinderExecutor, self).__init__()
@@ -255,7 +256,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         required_tools = []
         required_tools.append(TclLibrary(self.log))
         required_tools.append(JavaVM("", "", self.log))
-        required_tools.append(Grinder(grinder_path, GrinderExecutor.DOWNLOAD_LINK, self.log, GrinderExecutor.VERSION))
+        required_tools.append(Grinder(grinder_path, self.log, GrinderExecutor.VERSION))
 
         self.check_tools(required_tools)
 
@@ -418,10 +419,11 @@ class DataLogReader(ResultsReader):
 
 
 class Grinder(RequiredTool):
-    def __init__(self, tool_path, download_link, parent_logger, version):
-        super(Grinder, self).__init__("Grinder", tool_path, download_link)
+    def __init__(self, tool_path, parent_logger, version):
+        super(Grinder, self).__init__("Grinder", tool_path)
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.version = version
+        self.mirror_manager = GrinderMirrorsManager(self.log, self.version)
 
     def check_if_installed(self):
         self.log.debug("Trying grinder: %s", self.tool_path)
@@ -438,24 +440,34 @@ class Grinder(RequiredTool):
     def install(self):
         dest = os.path.dirname(os.path.dirname(os.path.expanduser(self.tool_path)))
         dest = os.path.abspath(dest)
-
-        downloader = request.FancyURLopener()
-        grinder_zip_file = tempfile.NamedTemporaryFile(suffix=".zip", delete=False)
-        self.download_link = self.download_link.format(version=self.version)
-        self.log.info("Downloading %s", self.download_link)
-
-        with ProgressBarContext() as pbar:
-            try:
-                downloader.retrieve(self.download_link, grinder_zip_file.name, pbar.download_callback)
-            except BaseException as exc:
-                self.log.error("Error while downloading %s", self.download_link)
-                raise exc
-
-        self.log.info("Unzipping %s", grinder_zip_file.name)
-        unzip(grinder_zip_file.name, dest, 'grinder-' + self.version)
-        grinder_zip_file.close()
-        os.remove(grinder_zip_file.name)
-
+        grinder_dist = super(Grinder, self).install_with_mirrors(dest, ".zip")
+        self.log.info("Unzipping %s", grinder_dist.name)
+        unzip(grinder_dist.name, dest, 'grinder-' + self.version)
+        grinder_dist.close()
+        os.remove(grinder_dist.name)
         self.log.info("Installed grinder successfully")
         if not self.check_if_installed():
             raise RuntimeError("Unable to run %s after installation!" % self.tool_name)
+
+
+class GrinderMirrorsManager(MirrorsManager):
+    def __init__(self, parent_logger, grinder_version):
+        self.grinder_version = grinder_version
+        super(GrinderMirrorsManager, self).__init__(GrinderExecutor.MIRRORS_SOURCE, parent_logger)
+
+    def _parse_mirrors(self):
+        links = []
+        if self.page_source is not None:
+            self.log.debug('Parsing mirrors...')
+            base_link = "http://sourceforge.net/projects/grinder/files/The%20Grinder%203/{version}/grinder-{version}" \
+                        "-binary.zip/download?use_mirror={mirror}"
+            li_search_pattern = re.compile(r'<li id=".*?">')
+            li_elements = li_search_pattern.findall(self.page_source)
+            if li_elements:
+                links = [base_link.format(version=self.grinder_version, mirror=link.strip('<li id="').strip('">')) for
+                         link in li_elements]
+        default_link = GrinderExecutor.DOWNLOAD_LINK.format(version=self.grinder_version)
+        if default_link not in links:
+            links.append(default_link)
+        self.log.debug('Total mirrors: %d', len(links))
+        return links

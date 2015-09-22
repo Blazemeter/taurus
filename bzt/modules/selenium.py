@@ -1,15 +1,19 @@
 """
 Module holds selenium stuff
 """
-from abc import abstractmethod
-import os
 import time
-import shutil
 import sys
 import subprocess
+import json
+
+from abc import abstractmethod
+import os
+import shutil
 import urwid
+
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
-from bzt.utils import RequiredTool, shell_exec, shutdown_process, BetterDict, JavaVM, TclLibrary, dehumanize_time
+from bzt.utils import RequiredTool, shell_exec, shutdown_process, BetterDict, JavaVM, TclLibrary, dehumanize_time, \
+    MirrorsManager
 from bzt.six import string_types, text_type, etree
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.console import WidgetProvider
@@ -26,6 +30,8 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     JUNIT_DOWNLOAD_LINK = "http://search.maven.org/remotecontent?filepath=junit/junit/{version}/junit-{version}.jar"
     JUNIT_VERSION = "4.12"
+    JUNIT_MIRRORS_SOURCE = "http://search.maven.org/solrsearch/select?q=g%3A%22junit%22%20AND%20a%3A%22junit%22%20" \
+                           "AND%20v%3A%22{version}%22&rows=20&wt=json".format(version=JUNIT_VERSION)
 
     HAMCREST_DOWNLOAD_LINK = "https://hamcrest.googlecode.com/files/hamcrest-core-1.3.jar"
 
@@ -288,8 +294,7 @@ class JunitTester(AbstractTestRunner):
         self.required_tools.append(SeleniumServerJar(self.selenium_server_jar_path,
                                                      SeleniumExecutor.SELENIUM_DOWNLOAD_LINK.format(
                                                          version=SeleniumExecutor.SELENIUM_VERSION), self.log))
-        self.required_tools.append(JUnitJar(self.junit_path, SeleniumExecutor.JUNIT_DOWNLOAD_LINK.format(
-            version=SeleniumExecutor.JUNIT_VERSION)))
+        self.required_tools.append(JUnitJar(self.junit_path, self.log, SeleniumExecutor.JUNIT_VERSION))
         self.required_tools.append(HamcrestJar(self.hamcrest_path, SeleniumExecutor.HAMCREST_DOWNLOAD_LINK))
         self.required_tools.append(JUnitListenerJar(self.junit_listener_path, ""))
 
@@ -478,8 +483,24 @@ class SeleniumServerJar(RequiredTool):
 
 
 class JUnitJar(RequiredTool):
-    def __init__(self, tool_path, download_link):
-        super(JUnitJar, self).__init__("JUnit", tool_path, download_link)
+    def __init__(self, tool_path, parent_logger, junit_version):
+        super(JUnitJar, self).__init__("JUnit", tool_path)
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.version = junit_version
+        self.mirror_manager = JUnitMirrorsManager(self.log, self.version)
+
+    def install(self):
+        dest = os.path.dirname(os.path.expanduser(self.tool_path))
+        dest = os.path.abspath(dest)
+        junit_dist = super(JUnitJar, self).install_with_mirrors(dest, ".jar")
+        self.log.info("Installing %s into %s", self.tool_name, dest)
+        junit_dist.close()
+        os.makedirs(dest)
+        shutil.move(junit_dist.name, self.tool_path)
+        self.log.info("Installed JUnit successfully")
+
+        if not self.check_if_installed():
+            raise RuntimeError("Unable to run %s after installation!" % self.tool_name)
 
 
 class HamcrestJar(RequiredTool):
@@ -574,28 +595,28 @@ class SeleniumScriptBuilder(NoseTest):
         test_class.append(test_method)
         scenario_timeout = self.scenario.get("timeout", 30)
 
-        for request in requests:
+        for req in requests:
 
-            test_method.append(self.gen_comment("start request: %s" % request.url))
+            test_method.append(self.gen_comment("start request: %s" % req.url))
 
-            if request.timeout is not None:
-                test_method.append(self.gen_impl_wait(request.timeout))
+            if req.timeout is not None:
+                test_method.append(self.gen_impl_wait(req.timeout))
 
-            test_method.append(self.gen_method_statement("self.driver.get('%s')" % request.url))
-            think_time = request.think_time if request.think_time else self.scenario.get("think-time", None)
+            test_method.append(self.gen_method_statement("self.driver.get('%s')" % req.url))
+            think_time = req.think_time if req.think_time else self.scenario.get("think-time", None)
 
             if think_time is not None:
                 test_method.append(self.gen_method_statement("sleep(%s)" % dehumanize_time(think_time)))
 
-            if "assert" in request.config:
+            if "assert" in req.config:
                 test_method.append(self.__gen_assert_page())
-                for assert_config in request.config.get("assert"):
+                for assert_config in req.config.get("assert"):
                     test_method.extend(self.gen_assertion(assert_config))
 
-            if request.timeout is not None:
+            if req.timeout is not None:
                 test_method.append(self.gen_impl_wait(scenario_timeout))
 
-            test_method.append(self.gen_comment("end request: %s" % request.url))
+            test_method.append(self.gen_comment("end request: %s" % req.url))
             test_method.append(self.__gen_new_line())
         test_class.append(self.gen_teardown_method())
 
@@ -665,3 +686,34 @@ class SeleniumScriptBuilder(NoseTest):
                 if child.text is not None:
                     indent = int(child.get('indent', "0"))
                     fds.write(" " * indent + child.text + "\n")
+
+
+class JUnitMirrorsManager(MirrorsManager):
+    def __init__(self, parent_logger, junit_version):
+        self.junit_version = junit_version
+        super(JUnitMirrorsManager, self).__init__(SeleniumExecutor.JUNIT_MIRRORS_SOURCE, parent_logger)
+
+    def _parse_mirrors(self):
+        links = []
+        if self.page_source is not None:
+            self.log.debug('Parsing mirrors...')
+            try:
+                resp = json.loads(self.page_source)
+                objects = resp.get("response", {}).get("docs", [])
+                if objects:
+                    obj = objects[0]
+                    group = obj.get("g")
+                    artifact = obj.get("a")
+                    version = obj.get("v")
+                    ext = obj.get("p")
+                    link_template = "http://search.maven.org/remotecontent?filepath={group}/{artifact}/" \
+                                    "{version}/{artifact}-{version}.{ext}"
+                    link = link_template.format(group=group, artifact=artifact, version=version, ext=ext)
+                    links.append(link)
+            except BaseException as exc:
+                self.log.error("Error while parsing mirrors %s", exc)
+        default_link = SeleniumExecutor.JUNIT_DOWNLOAD_LINK.format(version=self.junit_version)
+        if default_link not in links:
+            links.append(default_link)
+        self.log.debug('Total mirrors: %d', len(links))
+        return links

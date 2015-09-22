@@ -1,5 +1,5 @@
 from tests import setup_test_logging, BZTestCase, local_paths_config, __dir__
-from bzt.modules.selenium import SeleniumExecutor
+from bzt.modules.selenium import SeleniumExecutor, JUnitJar
 from tests.mocks import EngineEmul
 from bzt.utils import BetterDict
 import os
@@ -45,7 +45,9 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
         SeleniumExecutor.SELENIUM_DOWNLOAD_LINK = base_link + "/selenium-server-standalone-2.46.0.jar"
 
         junit_link = SeleniumExecutor.JUNIT_DOWNLOAD_LINK
+        junit_mirrors = SeleniumExecutor.JUNIT_MIRRORS_SOURCE
         SeleniumExecutor.JUNIT_DOWNLOAD_LINK = base_link + "/junit-4.12.jar"
+        SeleniumExecutor.JUNIT_MIRRORS_SOURCE = base_link + "unicode_file"
 
         hamcrest_link = SeleniumExecutor.HAMCREST_DOWNLOAD_LINK
         SeleniumExecutor.HAMCREST_DOWNLOAD_LINK = base_link + "/hamcrest-core-1.3.jar"
@@ -70,6 +72,7 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
         SeleniumExecutor.SELENIUM_DOWNLOAD_LINK = selenium_server_link
         SeleniumExecutor.JUNIT_DOWNLOAD_LINK = junit_link
         SeleniumExecutor.HAMCREST_DOWNLOAD_LINK = hamcrest_link
+        SeleniumExecutor.JUNIT_MIRRORS_SOURCE = junit_mirrors
 
     def test_prepare_java_single(self):
         """
@@ -587,3 +590,11 @@ class TestSeleniumStuff(SeleniumTestCase):
         obj.settings.merge(obj.engine.config.get("modules").get("selenium"))
         obj.prepare()
         self.assertRaises(RuntimeWarning, obj.post_process)
+
+    def test_junit_mirrors(self):
+        dummy_installation_path = ABS_PATH("/../../build/tmp/selenium-taurus")
+        shutil.rmtree(os.path.dirname(dummy_installation_path), ignore_errors=True)
+        obj = SeleniumExecutor()
+        objjm = JUnitJar(os.path.join(dummy_installation_path, "tools", "junit", "junit.jar"), obj.log,
+                         SeleniumExecutor.JUNIT_VERSION)
+        objjm.install()
