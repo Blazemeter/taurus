@@ -1521,7 +1521,7 @@ class JMX(object):
         """
         items = self.get(sel)
         for item in items:
-            item.text = text
+            item.text = str(text)
 
     @staticmethod
     def _get_simple_controller(name):
