@@ -637,6 +637,7 @@ class RequiredTool(object):
         downloader = request.FancyURLopener()
         tool_dist = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)  # delete=False because of Windows
         mirrors = self.mirror_manager.mirrors()
+        sock_timeout = socket.getdefaulttimeout()
         for mirror in mirrors:
             with ProgressBarContext() as pbar:
                 try:
@@ -648,7 +649,7 @@ class RequiredTool(object):
                     self.log.error("Error while downloading %s", mirror)
                     continue
                 finally:
-                    socket.setdefaulttimeout(None)
+                    socket.setdefaulttimeout(sock_timeout)
         raise RuntimeError("%s download failed: No more mirrors to try", self.tool_name)
 
 class JavaVM(RequiredTool):
