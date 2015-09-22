@@ -3,7 +3,8 @@
 ## 0.4.4 (next)
  - limit max size of file that goes into zip for artifact upload (max-size option)
  - fix cumulative KPIset recalculating
-
+ - files from Listeners now excluded from resources
+ 
 ## 0.4.3
  - allow passing config as stdin to CLI like `./generate-config.sh | bzt`
  - allow having `report-name=ask` for BlazeMeter reporter
