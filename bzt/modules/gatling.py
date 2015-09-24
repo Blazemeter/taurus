@@ -18,7 +18,6 @@ limitations under the License.
 import time
 import subprocess
 import platform
-
 import os
 import re
 import shutil
@@ -58,9 +57,9 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         :return:
         """
-        scenario = self.get_scenario()
+        self._check_installed()
 
-        self.run_checklist()
+        scenario = self.get_scenario()
 
         if Scenario.SCRIPT in scenario:
             self.script = self.__get_script()
@@ -77,7 +76,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         elif "requests" in scenario:
             raise NotImplementedError()  # TODO: implement script generation for gatling
         else:
-            raise ValueError("There must be a scenario file to run Gatling")
+            raise ValueError("There must be a script file to run Gatling")
 
         self.reader = DataLogReader(self.engine.artifacts_dir, self.log)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
@@ -150,24 +149,20 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         Save data log as artifact
         """
-        if self.reader.filename:
-            self.engine.existing_artifact(self.reader.filename)
-        if not self.reader.buffer:
-            raise RuntimeWarning("Empty results, most likely Gatling failed")
+        if self.reader:
+            if self.reader.filename:
+                self.engine.existing_artifact(self.reader.filename)
+            if not self.reader.buffer:
+                raise RuntimeWarning("Empty results, most likely Gatling failed")
 
-    def run_checklist(self):
-        required_tools = []
-        required_tools.append(TclLibrary(self.log))
-        required_tools.append(JavaVM("", "", self.log))
+    def _check_installed(self):
+        required_tools = [TclLibrary(self.log), JavaVM("", "", self.log)]
         gatling_path = self.settings.get("path", "~/.bzt/gatling-taurus/bin/gatling" + EXE_SUFFIX)
         gatling_path = os.path.abspath(os.path.expanduser(gatling_path))
         self.settings["path"] = gatling_path
         gatling_version = self.settings.get("version", GatlingExecutor.VERSION)
         required_tools.append(Gatling(gatling_path, self.log, gatling_version))
 
-        self.check_tools(required_tools)
-
-    def check_tools(self, required_tools):
         for tool in required_tools:
             if not tool.check_if_installed():
                 self.log.info("Installing %s", tool.tool_name)

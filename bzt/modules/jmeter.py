@@ -209,7 +209,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.log.debug("JMeter worked for %s seconds", self.end_time - self.start_time)
 
     def post_process(self):
-        if not self.reader.buffer:
+        if self.reader and not self.reader.buffer:
             msg = "Empty results JTL, most likely JMeter failed: %s"
             raise RuntimeWarning(msg % self.kpi_jtl)
 

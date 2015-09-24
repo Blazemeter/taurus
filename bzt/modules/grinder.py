@@ -17,7 +17,6 @@ limitations under the License.
 """
 import time
 import subprocess
-
 import os
 import re
 import shutil
@@ -127,13 +126,9 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         fds.write("# BZT Properies End\n")
 
     def prepare(self):
-        """
+        self._check_installed()
 
-        :return:
-        """
         scenario = self.get_scenario()
-
-        self.run_checklist()
 
         if Scenario.SCRIPT in scenario:
             self.script = self.engine.find_file(scenario[Scenario.SCRIPT])
@@ -221,8 +216,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         if self.start_time:
             self.end_time = time.time()
-            self.log.debug("Grinder worked for %s seconds",
-                           self.end_time - self.start_time)
+            self.log.debug("Grinder worked for %s seconds", self.end_time - self.start_time)
 
     def post_process(self):
         """
@@ -230,7 +224,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         if self.kpi_file:
             self.engine.existing_artifact(self.kpi_file)
-        if not self.reader.buffer:
+        if self.reader and not self.reader.buffer:
             raise RuntimeWarning("Empty results, most likely Grinder failed")
 
     def __scenario_from_requests(self):
@@ -249,18 +243,14 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 fds.write(line)
         return script
 
-    def run_checklist(self):
+    def _check_installed(self):
         grinder_path = self.settings.get("path", "~/.bzt/grinder-taurus/lib/grinder.jar")
         grinder_path = os.path.abspath(os.path.expanduser(grinder_path))
         self.settings["path"] = grinder_path
-        required_tools = []
-        required_tools.append(TclLibrary(self.log))
-        required_tools.append(JavaVM("", "", self.log))
-        required_tools.append(Grinder(grinder_path, self.log, GrinderExecutor.VERSION))
+        required_tools = [TclLibrary(self.log),
+                          JavaVM("", "", self.log),
+                          Grinder(grinder_path, self.log, GrinderExecutor.VERSION)]
 
-        self.check_tools(required_tools)
-
-    def check_tools(self, required_tools):
         for tool in required_tools:
             if not tool.check_if_installed():
                 self.log.info("Installing %s", tool.tool_name)
@@ -276,10 +266,6 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         return self.widget
 
     def resource_files(self):
-        """
-
-        :return:
-        """
         resource_files = []
         prop_file = self.engine.find_file(self.get_scenario().get("properties-file"))
 
