@@ -307,13 +307,14 @@ def main():
 
     executor = CLI(parsed_options)
 
-    readable = select([sys.stdin], [], [], 0.1)[0]
-    for stream in readable:
-        stdin = stream.read()
-        if stdin:
-            with NamedTemporaryFile(prefix="stdin_", suffix=".config", delete=False) as fhd:
-                fhd.write(stdin)
-                parsed_configs.append(fhd.name)
+    if platform.system() != 'Windows':
+        readable = select([sys.stdin], [], [], 0.1)[0]
+        for stream in readable:
+            stdin = stream.read()
+            if stdin:
+                with NamedTemporaryFile(prefix="stdin_", suffix=".config", delete=False) as fhd:
+                    fhd.write(stdin)
+                    parsed_configs.append(fhd.name)
 
     try:
         code = executor.perform(parsed_configs)
