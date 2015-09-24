@@ -27,10 +27,10 @@ from optparse import OptionParser, BadOptionError, Option
 from colorlog import ColoredFormatter
 
 import bzt
-from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown, six
+from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown
 from bzt.engine import Engine, Configuration
-from bzt.six import HTTPError, configparser
-from bzt.utils import run_once
+from bzt.six import HTTPError, string_types
+from bzt.utils import run_once, is_int, BetterDict
 
 
 class CLI(object):
@@ -128,9 +128,6 @@ class CLI(object):
             jmx_shorthands = self.__get_jmx_shorthands(configs)
             configs.extend(jmx_shorthands)
 
-            overrides = self.__get_config_overrides()
-            configs.extend(overrides)
-
             self.log.info("Starting with configs: %s", configs)
             self.engine.configure(configs)
 
@@ -140,6 +137,9 @@ class CLI(object):
                 if al_config is None:
                     raise RuntimeError("Alias '%s' is not found within configuration" % alias)
                 self.engine.config.merge(al_config)
+
+            overrider = ConfigOverrider(self.log)
+            overrider.apply_overrides(self.options.option, self.engine.config)
 
             self.engine.prepare()
             self.engine.run()
@@ -186,33 +186,6 @@ class CLI(object):
 
         return exit_code
 
-    def __get_config_overrides(self):
-        """
-        Close log handlers, move log to artifacts dir
-        :return:
-        """
-
-        if self.options.option:
-            self.log.debug("Adding overrides: %s", self.options.option)
-
-            fds = NamedTemporaryFile(prefix="overrides_", suffix=".ini")
-            fname = fds.name
-            fds.close()
-            with open(fname, 'w') as fds:
-                if six.PY3:  # I'm so tired of this shit :-(
-                    writer = configparser.ConfigParser(interpolation=None)
-                else:
-                    writer = configparser.ConfigParser()
-                writer.add_section("BZT")
-                for option in self.options.option:
-                    name = option[:option.index('=')]
-                    value = option[option.index('=') + 1:]
-                    writer.set("BZT", name, value)
-                writer.write(fds)
-            return [fname]
-        else:
-            return []
-
     def __get_jmx_shorthands(self, configs):
         """
         Generate json file with execution, executor and scenario settings
@@ -242,6 +215,84 @@ class CLI(object):
             return [fname]
         else:
             return []
+
+
+class ConfigOverrider(object):
+    def __init__(self, logger):
+        """
+        :type logger: logging.Logger
+        """
+        super(ConfigOverrider, self).__init__()
+        self.log = logger.getChild(self.__class__.__name__)
+
+    def apply_overrides(self, options, dest):
+        """
+        Apply overrides
+        :type options: list[str]
+        :type dest: BetterDict
+        """
+        for option in options:
+            name = option[:option.index('=')]
+            value = option[option.index('=') + 1:]
+            try:
+                self.__apply_single_override(dest, name, value)
+            except:
+                self.log.debug("Failed override: %s", traceback.format_exc())
+                self.log.error("Failed to apply override %s=%s", name, value)
+                raise
+
+        dest.dump()
+
+    def __apply_single_override(self, dest, name, value):
+        """
+        Apply single override
+        :type name: str
+        :type value: str
+        """
+        self.log.debug("Applying %s=%s", name, value)
+        parts = [(int(x) if is_int(x) else x) for x in name.split(".")]
+        pointer = dest
+        for index, part in enumerate(parts[:-1]):
+            self.__ensure_list_capacity(pointer, part, parts[index + 1])
+
+            if isinstance(part, int):
+                if part < 0:
+                    if isinstance(parts[index + 1], int):
+                        pointer.append([])
+                    else:
+                        pointer.append(BetterDict())
+                    pointer = pointer[-1]
+                else:
+                    pointer = pointer[part]
+            elif isinstance(parts[index + 1], int) and isinstance(pointer, dict):
+                pointer = pointer.get(part, [])
+            else:
+                pointer = pointer.get(part)
+        self.__ensure_list_capacity(pointer, parts[-1])
+        self.log.debug("Applying: [%s]=%s", parts[-1], value)
+        if isinstance(parts[-1], string_types) and parts[-1][0] == '^':
+            del pointer[parts[-1][1:]]
+        else:
+            if value.isdigit():
+                value = float(value)
+            if isinstance(pointer, list) and parts[-1] < 0:
+                pointer.append(value)
+            else:
+                pointer[parts[-1]] = value
+
+    def __ensure_list_capacity(self, pointer, part, next_part=None):
+        """
+        Extend pointer list to hold additional item
+        :type pointer: list
+        :type part: int
+        """
+        if isinstance(pointer, list) and isinstance(part, int):
+            while len(pointer) <= part:
+                self.log.debug("Len %s less than %s", len(pointer), part)
+                if isinstance(next_part, int):
+                    pointer.append([])
+                else:
+                    pointer.append(BetterDict())
 
 
 class OptionParserWithAliases(OptionParser, object):

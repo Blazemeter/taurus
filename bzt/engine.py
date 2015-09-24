@@ -34,7 +34,7 @@ from yaml.representer import SafeRepresenter
 
 from bzt import ManualShutdown, NormalShutdown, get_configs_dir
 import bzt
-from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_int
+from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time
 from bzt.six import iteritems, string_types, text_type, PY2, UserDict, configparser, parse, ProxyHandler, build_opener, \
     install_opener, urlopen, request
 
@@ -579,7 +579,6 @@ class Configuration(BetterDict):
     """
     JSON = "JSON"
     YAML = "YAML"
-    INI = "INI"
 
     def __init__(self):
         super(Configuration, self).__init__()
@@ -622,14 +621,6 @@ class Configuration(BetterDict):
             elif first_line.startswith('{'):
                 self.log.debug("Reading %s as JSON", filename)
                 return json.loads(fds.read()), self.JSON
-            elif first_line.startswith('['):
-                self.log.debug("Reading %s as INI", filename)
-                parser = configparser.RawConfigParser()
-                parser.read(filename)
-                res = []
-                for option in parser.options("BZT"):
-                    res.append((option, parser.get("BZT", option)))
-                return res, self.INI
             else:
                 raise ValueError("Cannot detect file format for %s" % filename)
 
@@ -655,33 +646,9 @@ class Configuration(BetterDict):
             yml = yaml.dump(self, default_flow_style=False,
                             explicit_start=True, canonical=False)
             fds.write(yml)
-        elif fmt == self.INI:
-            fds.write("[DEFAULT]\n")  # TODO: switch to write it with ConfigParser like done in CLI
-            fds.write(self.__dict_to_overrides(self))
         else:
             raise ValueError("Unknown dump format: %s" % fmt)
         fds.write("\n")
-
-    @classmethod
-    def __dict_to_overrides(cls, obj, path=''):
-        """
-        Converts dict into OVERRIDES format, which is properties-like format
-
-        :type path: str or unicode
-        :return:
-        """
-        if isinstance(obj, dict):
-            result = ''
-            for key, val in iteritems(obj):
-                result += cls.__dict_to_overrides(val, '%s.%s' % (path, key))
-            return result
-        elif isinstance(obj, list):
-            result = ''
-            for key, val in enumerate(obj):
-                result += cls.__dict_to_overrides(val, '%s.%s' % (path, key))
-            return result
-        else:
-            return "%s=%s\n" % (path[1:], obj)
 
     def dump(self, filename=None, fmt=None):
         """
@@ -715,65 +682,6 @@ class Configuration(BetterDict):
         for key in config.keys():
             if key in ('password', 'secret', 'token') and config[key]:
                 config[key] = '*' * 8
-
-    def __ensure_list_capacity(self, pointer, part, next_part=None):
-        """
-        Extend pointer list to hold additional item
-        :type pointer: list
-        :type part: int
-        """
-        if isinstance(pointer, list) and isinstance(part, int):
-            while len(pointer) <= part:
-                self.log.debug("Len %s less than %s", len(pointer), part)
-                if isinstance(next_part, int):
-                    pointer.append([])
-                else:
-                    pointer.append(BetterDict())
-
-    def __apply_single_override(self, name, value):
-        """
-        Apply single override
-        :type name: str
-        :type value: str
-        """
-        self.log.debug("Applying %s=%s", name, value)
-        parts = [(int(x) if is_int(x) else x) for x in name.split(".")]
-        pointer = self
-        for index, part in enumerate(parts[:-1]):
-            self.__ensure_list_capacity(pointer, part, parts[index + 1])
-
-            if isinstance(part, int):
-                pointer = pointer[part]
-            elif isinstance(parts[index + 1], int) and isinstance(pointer, dict):
-                pointer = pointer.get(part, [])
-            else:
-                pointer = pointer.get(part)
-        self.__ensure_list_capacity(pointer, parts[-1])
-        self.log.debug("Applying: [%s]=%s", parts[-1], value)
-        if isinstance(parts[-1], string_types) and parts[-1][0] == '^':
-            del pointer[parts[-1][1:]]
-        else:
-            if value.isdigit():
-                value = float(value)
-            if isinstance(pointer, list) and parts[-1] < 0:
-                pointer.append(value)
-            else:
-                pointer[parts[-1]] = value
-
-    def __apply_overrides(self, opts):
-        """
-        Apply overrides
-        :type opts: dict
-        """
-        for name, value in opts:
-            try:
-                self.__apply_single_override(name, value)
-            except:
-                self.log.debug("Failed override: %s", traceback.format_exc())
-                self.log.error("Failed to apply override %s=%s", name, value)
-                raise
-
-        self.dump()
 
 
 yaml.add_representer(Configuration, SafeRepresenter.represent_dict)

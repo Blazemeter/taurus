@@ -28,6 +28,7 @@ class TestCLI(BZTestCase):
         self.option.append("settings.artifacts-dir=build/test/%Y-%m-%d_%H-%M-%S.%f")
         self.option.append("test.subkey2.0.sskey=value")
         self.option.append("test.subkey.0=value")
+        self.option.append("execution.-1.option=value")
         ret = self.obj.perform([])
         self.assertEquals(0, ret)
 

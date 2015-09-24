@@ -28,11 +28,6 @@ class TestConfiguration(BZTestCase):
         with open(fname) as fh:
             logging.debug("YAML:\n%s", fh.read())
 
-        fname = tempfile.mkstemp()[1]
-        obj.dump(fname, Configuration.INI)
-        with open(fname) as fh:
-            logging.debug("INI:\n%s", fh.read())
-
     def test_merge(self):
         obj = Configuration()
         configs = [
