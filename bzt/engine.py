@@ -38,6 +38,8 @@ from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumaniz
 from bzt.six import iteritems, string_types, text_type, PY2, UserDict, configparser, parse, ProxyHandler, build_opener, \
     install_opener, urlopen, request
 
+SETTINGS = "settings"
+
 
 class Engine(object):
     """
@@ -106,7 +108,7 @@ class Engine(object):
         self.__prepare_provisioning()
         self.__prepare_reporters()
 
-        interval = self.config.get("settings").get("check-interval", self.check_interval)
+        interval = self.config.get(SETTINGS).get("check-interval", self.check_interval)
         self.check_interval = dehumanize_time(interval)
 
         self.config.dump()
@@ -298,7 +300,7 @@ class Engine(object):
             self.artifacts_dir = os.path.expanduser(self.artifacts_dir)
         else:
             default = "%Y-%m-%d_%H-%M-%S.%f"
-            artifacts_dir = self.config.get("settings").get("artifacts-dir", default)
+            artifacts_dir = self.config.get(SETTINGS).get("artifacts-dir", default)
             self.artifacts_dir = datetime.datetime.now().strftime(artifacts_dir)
             self.artifacts_dir = os.path.expanduser(self.artifacts_dir)
             self.artifacts_dir = os.path.abspath(self.artifacts_dir)
@@ -471,7 +473,7 @@ class Engine(object):
         Instantiate aggregators
         :return:
         """
-        cls = self.config.get("settings").get("aggregator", "")
+        cls = self.config.get(SETTINGS).get("aggregator", "")
         if not cls:
             self.log.warning("Proceeding without aggregator, no results analysis")
             self.aggregator = EngineModule()
@@ -539,7 +541,7 @@ class Engine(object):
             install_opener(opener)
 
     def _check_updates(self):
-        if self.config.get("settings").get("check-updates", True):
+        if self.config.get(SETTINGS).get("check-updates", True):
             try:
                 params = (bzt.VERSION, self.config.get("install-id", "N/A"))
                 req = "http://gettaurus.org/updates/?version=%s&installID=%s" % params
@@ -786,7 +788,7 @@ class Provisioning(EngineModule):
         and instantiating ScenarioExecutor classes for them
         """
         super(Provisioning, self).prepare()
-        esettings = self.engine.config.get("settings")
+        esettings = self.engine.config.get(SETTINGS)
         default_executor = esettings.get("default-executor", None)
 
         if ScenarioExecutor.EXEC not in self.engine.config:
