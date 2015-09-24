@@ -35,11 +35,11 @@ import tempfile
 import socket
 from collections import defaultdict, Counter
 from subprocess import PIPE
+from abc import abstractmethod
 
 from progressbar import ProgressBar, Percentage, Bar, ETA
 import psutil
 from psutil import Popen
-from abc import abstractmethod
 
 from bzt.six import string_types, iteritems, viewvalues, binary_type, text_type, b, integer_types, request, file_type
 
@@ -579,10 +579,10 @@ def is_int(str_val):
 def shutdown_process(process_obj, log_obj):
     count = 60
     while process_obj and process_obj.poll() is None:
-        log_obj.info("Terminating process PID: %s", process_obj.pid)
         time.sleep(1)
         count -= 1
         kill_signal = signal.SIGTERM if count > 0 else signal.SIGKILL
+        log_obj.info("Terminating process PID %s with signal %s (%s tries left)", process_obj.pid, kill_signal, count)
         try:
             if platform.system() == 'Windows':
                 cur_pids = psutil.pids()
@@ -651,6 +651,7 @@ class RequiredTool(object):
                 finally:
                     socket.setdefaulttimeout(sock_timeout)
         raise RuntimeError("%s download failed: No more mirrors to try", self.tool_name)
+
 
 class JavaVM(RequiredTool):
     def __init__(self, tool_path, download_link, parent_logger):
