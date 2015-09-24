@@ -138,7 +138,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         scenario = self.get_scenario()
         locustfile = scenario.get("script", ValueError("Please specify locusfile in 'script' option"))
         locustfile = self.engine.find_file(locustfile)
-        if not os.path.exists(locustfile):
+        if not locustfile or not os.path.exists(locustfile):
             raise ValueError("Locust file not found: %s" % locustfile)
         return locustfile
 
