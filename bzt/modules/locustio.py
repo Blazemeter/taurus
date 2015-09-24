@@ -155,8 +155,8 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
 class LocustIO(RequiredTool):
     def __init__(self, parent_logger):
-        self.log = parent_logger.getChild(self.__class__.__name__)
         super(LocustIO, self).__init__("LocustIO", "", "")
+        self.log = parent_logger.getChild(self.__class__.__name__)
 
     def check_if_installed(self):
         try:
