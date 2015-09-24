@@ -29,7 +29,7 @@ import math
 from urwid import Pile, Text
 
 from bzt import ManualShutdown
-from bzt.engine import Reporter, AggregatorListener, Provisioning
+from bzt.engine import Reporter, AggregatorListener, Provisioning, ScenarioExecutor, SETTINGS
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider
 from bzt.modules.console import WidgetProvider
 from bzt.modules.jmeter import JMeterExecutor
@@ -760,10 +760,7 @@ class CloudProvisioning(Provisioning, WidgetProvider):
             if executor.parameters.get("locations-weighted", True):
                 self.weight_locations(locations, executor.get_load(), available_locations)
 
-        config = copy.deepcopy(self.engine.config)
-        if Provisioning.PROV in config:
-            config.pop(Provisioning.PROV)
-
+        config = self.__get_config_for_cloud()
         rfiles = self.__get_rfiles()
         bza_plugin = self.__get_bza_test_config()
         test_name = self.settings.get("test-name", "Taurus Test")
@@ -772,6 +769,21 @@ class CloudProvisioning(Provisioning, WidgetProvider):
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.results_reader = ResultsFromBZA(self.client)
             self.engine.aggregator.add_underling(self.results_reader)
+
+    def __get_config_for_cloud(self):
+        config = copy.deepcopy(self.engine.config)
+
+        if not isinstance(config[ScenarioExecutor.EXEC], list):
+            config[ScenarioExecutor.EXEC] = [config[ScenarioExecutor.EXEC]]
+
+        provisioning = config.pop(Provisioning.PROV)
+        for execution in config[ScenarioExecutor.EXEC]:
+            execution[ScenarioExecutor.CONCURR] = execution[ScenarioExecutor.CONCURR][provisioning]
+            execution[ScenarioExecutor.THRPT] = execution[ScenarioExecutor.THRPT][provisioning]
+
+        config.pop(SETTINGS)
+
+        return config
 
     def __get_rfiles(self):
         rfiles = []
