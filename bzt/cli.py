@@ -138,8 +138,9 @@ class CLI(object):
                     raise RuntimeError("Alias '%s' is not found within configuration" % alias)
                 self.engine.config.merge(al_config)
 
-            overrider = ConfigOverrider(self.log)
-            overrider.apply_overrides(self.options.option, self.engine.config)
+            if self.options.option:
+                overrider = ConfigOverrider(self.log)
+                overrider.apply_overrides(self.options.option, self.engine.config)
 
             self.engine.prepare()
             self.engine.run()
