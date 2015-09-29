@@ -757,7 +757,7 @@ class CloudProvisioning(Provisioning, WidgetProvider):
                     self.log.warning("List of supported locations for you is: %s", sorted(available_locations.keys()))
                     raise ValueError("Invalid location requested: %s" % location)
 
-            if executor.parameters.get("locations-weighted", True):
+            if executor.execution.get("locations-weighted", True):
                 self.weight_locations(locations, executor.get_load(), available_locations)
 
         config = self.__get_config_for_cloud()
@@ -778,8 +778,8 @@ class CloudProvisioning(Provisioning, WidgetProvider):
 
         provisioning = config.pop(Provisioning.PROV)
         for execution in config[ScenarioExecutor.EXEC]:
-            execution[ScenarioExecutor.CONCURR] = execution[ScenarioExecutor.CONCURR][provisioning]
-            execution[ScenarioExecutor.THRPT] = execution[ScenarioExecutor.THRPT][provisioning]
+            execution[ScenarioExecutor.CONCURR] = execution.get(ScenarioExecutor.CONCURR).get(provisioning, None)
+            execution[ScenarioExecutor.THRPT] = execution.get(ScenarioExecutor.THRPT).get(provisioning, None)
 
         config.pop(SETTINGS)
 
