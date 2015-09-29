@@ -1,6 +1,7 @@
 # Changelog
 
 ## 0.4.5 (next)
+ - load settings applied to Stepping Thread Groups
 
 
 ## 0.4.4

@@ -34,6 +34,7 @@ import re
 from lxml.etree import XMLSyntaxError
 
 from cssselect import GenericTranslator
+from itertools import chain
 
 from bzt import six
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
@@ -260,19 +261,59 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             return False
 
     @staticmethod
-    def __apply_ramp_up(jmx, ramp_up):
+    def __apply_ramp_up(jmx, load):
         """
         Apply ramp up period in seconds to ThreadGroup.ramp_time
         :param jmx: JMX
         :param ramp_up: int ramp_up period
         :return:
         """
-        rampup_sel = "stringProp[name='ThreadGroup.ramp_time']"
-        xpath = GenericTranslator().css_to_xpath(rampup_sel)
+        ramp_up = int(load.ramp_up)
+
+
 
         for group in jmx.enabled_thread_groups():
-            prop = group.xpath(xpath)
-            prop[0].text = str(ramp_up)
+            if group.tag == 'ThreadGroup':
+                JMeterExecutor.__apply_ramp_up_tg(group, ramp_up)
+            elif group.tag == 'kg.apc.jmeter.threads.SteppingThreadGroup':
+                JMeterExecutor.__apply_ramp_up_stepping_tg(group, load)
+
+
+    @staticmethod
+    def __apply_ramp_up_tg(tg_element, ramp_up):
+        """
+        Apply ramp-up for TG
+        :param jmx:
+        :param ramp_up:
+        :return:
+        """
+        rampup_sel = "stringProp[name='ThreadGroup.ramp_time']"
+        xpath = GenericTranslator().css_to_xpath(rampup_sel)
+        prop = tg_element.xpath(xpath)
+        prop[0].text = str(ramp_up)
+
+    @staticmethod
+    def __apply_ramp_up_stepping_tg(stepping_tg_element, load):
+        """
+        Apply ramp-up to stepping TG
+        :param jmx:
+        :param duration:
+        :return:
+        """
+        concurrency_sel = GenericTranslator().css_to_xpath("[name='ThreadGroup.num_threads']")
+        st_tg_start_th_count = GenericTranslator().css_to_xpath("[name='Start users count']")
+        st_step_time = GenericTranslator().css_to_xpath("[name='Start users period']")
+
+        concurrency = int(stepping_tg_element.xpath(concurrency_sel)[0].text)
+
+        if load.ramp_up >= concurrency:
+            period_length = load.ramp_up / concurrency
+            threads_per_period = 1
+        else:
+            period_length = 1
+            threads_per_period = concurrency / load.ramp_up
+        stepping_tg_element.xpath(st_tg_start_th_count)[0].text = str(int(threads_per_period))
+        stepping_tg_element.xpath(st_step_time)[0].text = str(int(period_length))
 
     @staticmethod
     def __apply_stepping_ramp_up(jmx, load):
@@ -293,10 +334,24 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             thread_group.getparent().replace(thread_group, step_group)
 
     @staticmethod
-    def __apply_duration(jmx, duration):
+    def __apply_duration(jmx, load):
         """
         Apply duration to ThreadGroup.duration
         :param jmx: JMX
+        :param duration: int
+        :return:
+        """
+        for group in jmx.enabled_thread_groups():
+            if group.tag == 'ThreadGroup':
+                JMeterExecutor.__apply_duration_tg(group, int(load.duration))
+            elif group.tag == 'kg.apc.jmeter.threads.SteppingThreadGroup':
+                JMeterExecutor.__apply_duration_stepping_tg(group, load.ramp_up, load.duration)
+
+    @staticmethod
+    def __apply_duration_tg(th_group_element, duration):
+        """
+        Apply duration to ThreadGroup.duration
+        :param th_group_element: Etree element
         :param duration: int
         :return:
         """
@@ -304,13 +359,39 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         sched_xpath = GenericTranslator().css_to_xpath(sched_sel)
         dur_sel = "[name='ThreadGroup.duration']"
         dur_xpath = GenericTranslator().css_to_xpath(dur_sel)
+        th_group_element.xpath(sched_xpath)[0].text = 'true'
+        th_group_element.xpath(dur_xpath)[0].text = str(int(duration))
+        loops_element = th_group_element.find(".//elementProp[@name='ThreadGroup.main_controller']")
+        loops_loop_count = loops_element.find("*[@name='LoopController.loops']")
+        loops_loop_count.getparent().replace(loops_loop_count, JMX.int_prop("LoopController.loops", -1))
 
-        for group in jmx.enabled_thread_groups():
-            group.xpath(sched_xpath)[0].text = 'true'
-            group.xpath(dur_xpath)[0].text = str(int(duration))
-            loops_element = group.find(".//elementProp[@name='ThreadGroup.main_controller']")
-            loops_loop_count = loops_element.find("*[@name='LoopController.loops']")
-            loops_loop_count.getparent().replace(loops_loop_count, JMX.int_prop("LoopController.loops", -1))
+    @staticmethod
+    def __apply_duration_stepping_tg(st_tg_group_element, ramp_up, duration):
+        """
+        Apply duration to Stepping Thread Group.duration
+        hold-for calculated as duration - ramp-up
+        hold-for = 0 if calculated ramp-up > duration
+        if no ramp-up in load, ramp-up is calculated from tg elements
+        :param st_tg_group_element: Etree element
+        :param ramp_up: int
+        :param duration: int
+        :return:
+        """
+
+        st_tg_hold_for = GenericTranslator().css_to_xpath("[name='flighttime']")
+
+        if not ramp_up:
+            concurrency_sel = GenericTranslator().css_to_xpath("[name='ThreadGroup.num_threads']")
+            next_add_sel = GenericTranslator().css_to_xpath("[name='Start users count']")
+            threads_every_sel = GenericTranslator().css_to_xpath("[name='Start users period']")
+            concurrency = int(st_tg_group_element.xpath(concurrency_sel)[0].text)
+            next_add = int(st_tg_group_element.xpath(next_add_sel)[0].text)
+            threads_every = int(st_tg_group_element.xpath(threads_every_sel)[0].text)
+            ramp_up = concurrency / next_add * threads_every
+            if int(ramp_up) == ramp_up:
+                ramp_up -= threads_every
+        hold_for = duration - ramp_up if duration >= ramp_up else 0
+        st_tg_group_element.xpath(st_tg_hold_for)[0].text = str(int(hold_for))
 
     @staticmethod
     def __apply_iterations(jmx, iterations):
@@ -434,11 +515,11 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if load.concurrency:
             self.__apply_concurrency(jmx, load.concurrency)
         if load.hold or (load.ramp_up and not load.iterations):
-            JMeterExecutor.__apply_duration(jmx, int(load.duration))
+            JMeterExecutor.__apply_duration(jmx, load)
         if load.iterations:
             JMeterExecutor.__apply_iterations(jmx, int(load.iterations))
         if load.ramp_up:
-            JMeterExecutor.__apply_ramp_up(jmx, int(load.ramp_up))
+            JMeterExecutor.__apply_ramp_up(jmx, load)
             if load.steps:
                 JMeterExecutor.__apply_stepping_ramp_up(jmx, load)
         if load.throughput:
@@ -865,8 +946,9 @@ class JMX(object):
         """
         Get thread groups that are enabled
         """
+        stepping_tgroups = self.get('jmeterTestPlan>hashTree>hashTree>kg\.apc\.jmeter\.threads\.SteppingThreadGroup')
         tgroups = self.get('jmeterTestPlan>hashTree>hashTree>ThreadGroup')
-        for group in tgroups:
+        for group in chain(tgroups, stepping_tgroups):
             if group.get("enabled") != 'false':
                 yield group
 
