@@ -263,7 +263,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     @staticmethod
     def __apply_ramp_up(jmx, load):
         """
-        Apply ramp up period in seconds to ThreadGroup.ramp_time
+        Apply ramp up period in seconds to ThreadGroups
         :param jmx: JMX
         :param ramp_up: int ramp_up period
         :return:
@@ -282,7 +282,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     @staticmethod
     def __apply_ramp_up_tg(tg_element, ramp_up):
         """
-        Apply ramp-up for TG
+        Apply ramp-up to ThreadGroup element
         :param jmx:
         :param ramp_up:
         :return:
@@ -336,7 +336,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     @staticmethod
     def __apply_duration(jmx, load):
         """
-        Apply duration to ThreadGroup.duration
+        Apply duration to ThreadGroup
         :param jmx: JMX
         :param duration: int
         :return:
@@ -370,8 +370,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         Apply duration to Stepping Thread Group.duration
         hold-for calculated as duration - ramp-up
-        hold-for = 0 if calculated ramp-up > duration
         if no ramp-up in load, ramp-up is calculated from tg elements
+        hold-for = 0 if calculated ramp-up > duration
         :param st_tg_group_element: Etree element
         :param ramp_up: int
         :param duration: int
