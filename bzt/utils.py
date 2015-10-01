@@ -152,8 +152,11 @@ class BetterDict(defaultdict):
 
             if len(key) and key[0] == '^':  # eliminate flag
                 # TODO: improve logic - use val contents to see what to eliminate
-                self.pop(key[1:])
-                self.log.debug("Removed key: %s", key)
+                if key[1:] in self:
+                    self.pop(key[1:])
+                    self.log.debug("Removed key: %s", key)
+                else:
+                    self.log.debug("No key to remove: %s", key)
                 continue
 
             if isinstance(val, dict):
