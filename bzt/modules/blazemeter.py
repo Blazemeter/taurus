@@ -284,7 +284,11 @@ class BlazeMeterClient(object):
             resp = resp.decode()
 
         self.log.debug("Response: %s", resp[:self.logger_limit] if resp else None)
-        return json.loads(resp) if len(resp) else {}
+        try:
+            return json.loads(resp) if len(resp) else {}
+        except ValueError:
+            self.log.warning("Non-JSON response from API: %s", resp)
+            raise
 
     def start_online(self, test_id, session_name):
         """
