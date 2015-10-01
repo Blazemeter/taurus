@@ -295,7 +295,7 @@ class TestJMeterExecutor(BZTestCase):
         obj.engine = EngineEmul()
         obj.engine.config = BetterDict()
         obj.engine.config.merge({'execution': {'concurrency': 200, 'throughput': 100, 'hold-for': '1m',
-                                               'scenario': {'script': 'tests/jmx/http.jmx'}}})
+                                               'scenario': {'script': __dir__()+'/../jmx/http.jmx'}}})
         obj.engine.config.merge({"provisioning": "local"})
         obj.execution = obj.engine.config['execution']
         obj.prepare()
@@ -763,6 +763,7 @@ class TestJMeterExecutor(BZTestCase):
     def test_fail_on_zero_results(self):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
+        obj.engine.aggregator=ConsolidatingAggregator()
         obj.execution = BetterDict()
         obj.execution.merge({"scenario": {"script": "tests/jmx/dummy.jmx"}})
         obj.prepare()
