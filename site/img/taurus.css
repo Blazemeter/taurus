@@ -11,7 +11,7 @@ body {
 
 footer {
     color: white;
-    background-color: #565866;
+    background-color: #494961;
     margin-top: 2em;
     font-size: 0.8em;
     padding: 1em 3em 3em;
@@ -22,7 +22,7 @@ footer span {
 }
 
 footer a:link, footer a:visited, footer a:hover {
-    color: #dcaf41
+    color: #fff;
 }
 
 footer img {
@@ -72,7 +72,7 @@ nav {
 }
 
 hr {
-    border-top-color: #dcb045;
+    border-top-color: #e0e9f0;
     margin-right: -1em;
 }
 
