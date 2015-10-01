@@ -441,10 +441,10 @@ class Engine(object):
         reporting = self.config.get(Reporter.REP, [])
         for index, reporter in enumerate(reporting):
             reporter = ensure_is_dict(reporting, index, "module")
-            cls = reporter.get('module', '')
+            cls = reporter.get('module', ValueError())
             instance = self.instantiate_module(cls)
             instance.parameters = reporter
-            if isinstance(instance, AggregatorListener):
+            if isinstance(instance, AggregatorListener) and isinstance(self.aggregator, AggregatorListener):
                 self.aggregator.add_listener(instance)  # NOTE: bad design, add_listener method is unknown
             assert isinstance(instance, Reporter)
             self.reporters.append(instance)
