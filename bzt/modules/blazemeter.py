@@ -29,8 +29,8 @@ import math
 from urwid import Pile, Text
 
 from bzt import ManualShutdown
-from bzt.engine import Reporter, AggregatorListener, Provisioning, ScenarioExecutor, SETTINGS
-from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider
+from bzt.engine import Reporter, Provisioning, ScenarioExecutor, SETTINGS
+from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
 from bzt.modules.console import WidgetProvider
 from bzt.modules.jmeter import JMeterExecutor
 from bzt.utils import to_json, dehumanize_time, MultiPartForm, BetterDict
@@ -85,6 +85,9 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         self.sess_name = self.parameters.get("report-name", self.settings.get("report-name", self.sess_name))
         if self.sess_name == 'ask' and sys.stdin.isatty():
             self.sess_name = r_input("Please enter report-name: ")
+
+        if isinstance(self.engine.aggregator, ResultsProvider):
+            self.engine.aggregator.add_listener(self)
 
     def __get_test_id(self, token):
         if not token:
@@ -419,7 +422,7 @@ class BlazeMeterClient(object):
                 body.add_file('files[]', rfile)
 
             hdr = {"Content-Type": body.get_content_type()}
-            response = self._request(url, body.form_as_bytes(), headers=hdr)
+            _ = self._request(url, body.form_as_bytes(), headers=hdr)
 
         self.log.debug("Using test ID: %s", test_id)
         return test_id

@@ -613,3 +613,25 @@ class NoneAggregator(EngineModule, ResultsProvider):
 
     def _calculate_datapoints(self, final_pass=False):
         pass
+
+
+class AggregatorListener(object):
+    """
+    Mixin for listeners of aggregator data
+    """
+
+    @abstractmethod
+    def aggregated_second(self, data):
+        """
+        Notification about new data point
+
+        :param data: bzt.modules.reporting.DataPoint
+        """
+        pass
+
+    def finalize(self):
+        """
+        This method is called at the end of run
+        to close open file descriptors etc.
+        """
+        pass

@@ -22,8 +22,8 @@ import os
 import time
 from datetime import datetime
 
-from bzt.modules.aggregator import DataPoint, KPISet
-from bzt.engine import Reporter, AggregatorListener
+from bzt.modules.aggregator import DataPoint, KPISet, AggregatorListener, ResultsProvider
+from bzt.engine import Reporter
 from bzt.modules.passfail import PassFailStatus
 from bzt.modules.blazemeter import BlazeMeterUploader
 from bzt.six import etree, iteritems, string_types
@@ -42,6 +42,11 @@ class FinalStatus(Reporter, AggregatorListener):
 
     def startup(self):
         self.start_time = time.time()
+
+    def prepare(self):
+        super(FinalStatus, self).prepare()
+        if isinstance(self.engine.aggregator, ResultsProvider):
+            self.engine.aggregator.add_listener(self)
 
     def aggregated_second(self, data):
         """

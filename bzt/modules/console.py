@@ -30,8 +30,8 @@ import copy
 
 from urwid.decoration import Padding
 from urwid.display_common import BaseScreen
-from urwid import Text, Pile, WEIGHT, Filler, Columns, Widget, \
-    CanvasCombine, LineBox, ListBox, RIGHT, CENTER, BOTTOM, CLIP, GIVEN, ProgressBar
+from urwid import Text, Pile, WEIGHT, Filler, Columns, Widget, CanvasCombine, LineBox, ListBox, RIGHT, CENTER, BOTTOM, \
+    CLIP, GIVEN, ProgressBar
 from urwid.font import Thin6x6Font
 from urwid.graphics import BigText
 from urwid.listbox import SimpleListWalker
@@ -40,8 +40,8 @@ from urwid.widget import Divider
 import bzt
 from bzt.six import StringIO
 from bzt.modules.provisioning import Local
-from bzt.engine import Reporter, AggregatorListener
-from bzt.modules.aggregator import DataPoint, KPISet
+from bzt.engine import Reporter
+from bzt.modules.aggregator import DataPoint, KPISet, AggregatorListener, ResultsProvider
 from bzt.utils import humanize_time
 
 if platform.system() == 'Windows':
@@ -97,6 +97,8 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
 
         self.console = TaurusConsole(widgets)
         self.screen.register_palette(self.console.palette)
+        if isinstance(self.engine.aggregator, ResultsProvider):
+            self.engine.aggregator.add_listener(self)
 
     def check(self):
         """
@@ -437,6 +439,7 @@ class StringIONotifying(StringIO, object):
 
         :type self: StringIONotifying or StringIO
         """
+        # noinspection PyArgumentList
         StringIO.flush(self)
         self.listener()
 
@@ -1077,6 +1080,7 @@ class TaurusLogo(Pile):
         Update rotating sticks
         """
         txt = self.by_text % (self.seq[self.idx], bzt.VERSION, self.seq[self.idx])
+        # noinspection PyPropertyAccess
         self.byb.body.set_text(txt)
         self.idx += 1
         if self.idx >= len(self.seq):
@@ -1144,5 +1148,6 @@ class SidebarWidget(Pile):
                 self.eta.set_text("")
 
             if isinstance(self.progress, ProgressBar):
+                # noinspection PyUnresolvedReferences
                 self.progress.set_completion(elapsed)
         self._invalidate()

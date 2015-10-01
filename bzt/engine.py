@@ -35,7 +35,7 @@ from yaml.representer import SafeRepresenter
 from bzt import ManualShutdown, NormalShutdown, get_configs_dir
 import bzt
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time
-from bzt.six import iteritems, string_types, text_type, PY2, UserDict, configparser, parse, ProxyHandler, build_opener, \
+from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, build_opener, \
     install_opener, urlopen, request
 
 SETTINGS = "settings"
@@ -67,7 +67,7 @@ class Engine(object):
         self.config.log = self.log.getChild(Configuration.__name__)
         self.modules = {}
         self.provisioning = Provisioning()
-        self.aggregator = EngineModule()
+        self.aggregator = EngineModule()  # FIXME: have issues with non-aggregator object set here
         self.interrupted = False
         self.check_interval = 1
         self.stopping_reason = None
@@ -444,8 +444,6 @@ class Engine(object):
             cls = reporter.get('module', ValueError())
             instance = self.instantiate_module(cls)
             instance.parameters = reporter
-            if isinstance(instance, AggregatorListener) and isinstance(self.aggregator, AggregatorListener):
-                self.aggregator.add_listener(instance)  # NOTE: bad design, add_listener method is unknown
             assert isinstance(instance, Reporter)
             self.reporters.append(instance)
 
@@ -997,25 +995,3 @@ class Scenario(UserDict, object):
             yield res(config=req, label=label,
                       url=url, method=method, headers=headers,
                       timeout=timeout, think_time=think_time, body=body)
-
-
-class AggregatorListener(object):
-    """
-    Mixin for listeners of aggregator data
-    """
-
-    @abstractmethod
-    def aggregated_second(self, data):
-        """
-        Notification about new data point
-
-        :param data: bzt.modules.reporting.DataPoint
-        """
-        pass
-
-    def finalize(self):
-        """
-        This method is called at the end of run
-        to close open file descriptors etc.
-        """
-        pass
