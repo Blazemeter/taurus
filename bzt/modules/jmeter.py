@@ -122,9 +122,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             JMeterExecutor.__write_props_to_file(sys_props_file, sys_props)
             self.sys_properties_file = sys_props_file
 
-        self.reader = JTLReader(self.kpi_jtl, self.log, self.errors_jtl)
-        self.reader.is_distributed = len(self.distributed_servers) > 0
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
+            self.reader = JTLReader(self.kpi_jtl, self.log, self.errors_jtl)
+            self.reader.is_distributed = len(self.distributed_servers) > 0
             self.engine.aggregator.add_underling(self.reader)
 
     def startup(self):
