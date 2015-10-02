@@ -775,85 +775,47 @@ class TestJMeterExecutor(BZTestCase):
         objjm = JMeter(path, obj.log, JMeterExecutor.JMETER_VER)
         objjm.install()
 
-
-    def test_st_tg_duration(self):
+    def test_convert_tgroups_no_load(self):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
         obj.engine.config[Provisioning.PROV] = 'test'
         obj.execution = BetterDict()
         obj.execution.merge({
-            "concurrency": 300,
-            "ramp-up": 20,
+            "scenario": {"script": __dir__() + "/../jmx/SteppingThreadGroup.jmx"}
+        })
+        obj.prepare()
+        modified_xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        st_tg = modified_xml_tree.find(".//kg.apc.jmeter.threads.SteppingThreadGroup")
+        self.assertNotEqual(st_tg, None)
+        ul_tg = modified_xml_tree.find(".//kg.apc.jmeter.threads.UltimateThreadGroup")
+        self.assertNotEqual(ul_tg, None)
+
+
+    def test_convert_tgroups_load_modifications(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config[Provisioning.PROV] = 'test'
+        obj.execution = BetterDict()
+        obj.execution.merge({
+            "iterations": 20,
+            "ramp-up": 10,
             "hold-for": "2m",
             "scenario": {"script": __dir__() + "/../jmx/SteppingThreadGroup.jmx"}
         })
         obj.prepare()
         modified_xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
         st_tg = modified_xml_tree.find(".//kg.apc.jmeter.threads.SteppingThreadGroup")
-        next_add = st_tg.find(".//stringProp[@name='Start users count']")
-        threads_every = st_tg.find(".//stringProp[@name='Start users period']")
-        hold_for = st_tg.find(".//stringProp[@name='flighttime']")
-        self.assertEqual(next_add.text, "15")
-        self.assertEqual(threads_every.text, "1")
-        self.assertEqual(hold_for.text, "120")
+        self.assertEqual(st_tg, None)
+        ul_tg = modified_xml_tree.find(".//kg.apc.jmeter.threads.UltimateThreadGroup")
+        self.assertEqual(ul_tg, None)
 
+        converted_st_tg = modified_xml_tree.find(".//ThreadGroup[@testname='stepping tg']")
 
-    def test_st_tg_duration_cnc_less_rmp(self):
-        obj = JMeterExecutor()
-        obj.engine = EngineEmul()
-        obj.engine.config[Provisioning.PROV] = 'test'
-        obj.execution = BetterDict()
-        obj.execution.merge({
-            "concurrency": 30,
-            "ramp-up": 100,
-            "hold-for": "1m",
-            "scenario": {"script": __dir__() + "/../jmx/SteppingThreadGroup.jmx"}
-        })
-        obj.prepare()
-        modified_xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
-        st_tg = modified_xml_tree.find(".//kg.apc.jmeter.threads.SteppingThreadGroup")
-        next_add = st_tg.find(".//stringProp[@name='Start users count']")
-        threads_every = st_tg.find(".//stringProp[@name='Start users period']")
-        hold_for = st_tg.find(".//stringProp[@name='flighttime']")
-        self.assertEqual(hold_for.text, "60")
-        self.assertEqual(next_add.text, "1")
-        self.assertEqual(threads_every.text, "3")
+        loop_ctrl = converted_st_tg.find(".//elementProp[@name='ThreadGroup.main_controller']")
+        tg_loops = loop_ctrl.find(".//*[@name='LoopController.loops']")
+        tg_forever = loop_ctrl.find(".//boolProp[@name='LoopController.continue_forever']")
+        self.assertEqual(tg_loops.text, "20")
+        self.assertEqual(tg_forever.text, "false")
 
-    def test_st_tg_duration_zero_hold(self):
-        obj = JMeterExecutor()
-        obj.engine = EngineEmul()
-        obj.engine.config[Provisioning.PROV] = 'test'
-        obj.execution = BetterDict()
-        obj.execution.merge({
-            "hold-for": "1m",
-            "scenario": {"script": __dir__() + "/../jmx/SteppingThreadGroup.jmx"}
-        })
-        obj.prepare()
-        modified_xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
-        st_tg = modified_xml_tree.find(".//kg.apc.jmeter.threads.SteppingThreadGroup")
-        next_add = st_tg.find(".//stringProp[@name='Start users count']")
-        threads_every = st_tg.find(".//stringProp[@name='Start users period']")
-        hold_for = st_tg.find(".//stringProp[@name='flighttime']")
-        self.assertEqual(hold_for.text, "0")
-        self.assertEqual(next_add.text, "20")
-        self.assertEqual(threads_every.text, "20")
-
-    def test_st_tg_duration_hold(self):
-        obj = JMeterExecutor()
-        obj.engine = EngineEmul()
-        obj.engine.config[Provisioning.PROV] = 'test'
-        obj.execution = BetterDict()
-        obj.execution.merge({
-            "concurrency": 300,
-            "hold-for": "5m",
-            "scenario": {"script": __dir__() + "/../jmx/SteppingThreadGroup.jmx"}
-        })
-        obj.prepare()
-        modified_xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
-        st_tg = modified_xml_tree.find(".//kg.apc.jmeter.threads.SteppingThreadGroup")
-        next_add = st_tg.find(".//stringProp[@name='Start users count']")
-        threads_every = st_tg.find(".//stringProp[@name='Start users period']")
-        hold_for = st_tg.find(".//stringProp[@name='flighttime']")
-        self.assertEqual(hold_for.text, "20")
-        self.assertEqual(next_add.text, "20")
-        self.assertEqual(threads_every.text, "20")
+        st_tg_concurrency = converted_st_tg.find(".//stringProp[@name='ThreadGroup.num_threads']")
+        self.assertEqual(st_tg_concurrency.text, "123")
