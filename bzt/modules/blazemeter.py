@@ -332,7 +332,7 @@ class BlazeMeterClient(object):
         :type test_id: str
         :return:
         """
-        self.log.info("Initiating cloud test...")
+        self.log.info("Initiating cloud test with %s ...", self.address)
         data = urlencode({})
 
         url = self.address + "/api/latest/tests/%s/start" % test_id
