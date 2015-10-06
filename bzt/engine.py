@@ -680,8 +680,9 @@ class Configuration(BetterDict):
         Remove sensitive data from config
         """
         for key in config.keys():
-            if key in ('password', 'secret', 'token') and config[key]:
-                config[key] = '*' * 8
+            for suffix in ('password', 'secret', 'token',):
+                if key.lower().endswith(suffix) and config[key]:
+                    config[key] = '*' * 8
 
 
 yaml.add_representer(Configuration, SafeRepresenter.represent_dict)
