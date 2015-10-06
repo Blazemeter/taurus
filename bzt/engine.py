@@ -103,15 +103,18 @@ class Engine(object):
         downstream EngineModule instances
         """
         self.log.info("Preparing...")
-        self.__prepare_services()
-        self.__prepare_aggregator()
-        self.__prepare_provisioning()
-        self.__prepare_reporters()
-
         interval = self.config.get(SETTINGS).get("check-interval", self.check_interval)
         self.check_interval = dehumanize_time(interval)
 
-        self.config.dump()
+        try:
+            self.__prepare_services()
+            self.__prepare_aggregator()
+            self.__prepare_provisioning()
+            self.__prepare_reporters()
+            self.config.dump()
+        except BaseException as exc:
+            self.stopping_reason = exc if not self.stopping_reason else self.stopping_reason
+            raise
 
     def run(self):
         """
