@@ -16,6 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import csv
+from itertools import chain
 import platform
 import subprocess
 import time
@@ -363,6 +364,42 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             msg = "%s threads left undistributed due to thread group proportion"
             self.log.warning(msg, leftover)
 
+    def __convert_to_normal_tg(self, jmx, load):
+        """
+        Convert all TGs to simple ThreadGroup
+        :param jmx: JMX
+        :param load:
+        :return:
+        """
+        if load.iterations or load.concurrency or load.duration:
+            for group in jmx.enabled_thread_groups(all_types=True):
+                if group.tag != 'ThreadGroup':
+                    testname = group.get('testname')
+                    self.log.warning("Converting %s (%s) to normal ThreadGroup", group.tag, testname)
+                    group_concurrency = JMeterExecutor.__get_concurrency_from_tg(group)
+                    on_error = JMeterExecutor.__get_tg_action_on_error(group)
+                    if group_concurrency:
+                        new_group = JMX._get_thread_group(group_concurrency, 0, -1, testname, on_error)
+                    else:
+                        new_group = JMX._get_thread_group(1, 0, -1, testname, on_error)
+                    group.getparent().replace(group, new_group)
+
+    @staticmethod
+    def __get_concurrency_from_tg(thread_group):
+        """
+        :param thread_group: etree.Element
+        :return:
+        """
+        concurrency_element = thread_group.find(".//stringProp[@name='ThreadGroup.num_threads']")
+        if concurrency_element is not None:
+            return int(concurrency_element.text)
+
+    @staticmethod
+    def __get_tg_action_on_error(thread_group):
+        action = thread_group.find(".//stringProp[@name='ThreadGroup.on_sample_error']")
+        if action is not None:
+            return action.text
+
     @staticmethod
     def __add_shaper(jmx, load):
         """
@@ -431,6 +468,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 listener.set("enabled", "false")
 
     def __apply_load_settings(self, jmx, load):
+        self.__convert_to_normal_tg(jmx, load)
         if load.concurrency:
             self.__apply_concurrency(jmx, load.concurrency)
         if load.hold or (load.ramp_up and not load.iterations):
@@ -861,11 +899,17 @@ class JMX(object):
             # self.log.debug("\n%s", etree.tostring(self.tree))
             self.tree.write(fhd, pretty_print=True, encoding="UTF-8", xml_declaration=True)
 
-    def enabled_thread_groups(self):
+    def enabled_thread_groups(self, all_types=False):
         """
         Get thread groups that are enabled
         """
-        tgroups = self.get('jmeterTestPlan>hashTree>hashTree>ThreadGroup')
+        if all_types:
+            ultimate_tgroup = self.get('jmeterTestPlan>hashTree>hashTree>kg\.apc\.jmeter\.threads\.UltimateThreadGroup')
+            stepping_tgroup = self.get('jmeterTestPlan>hashTree>hashTree>kg\.apc\.jmeter\.threads\.SteppingThreadGroup')
+            tgroups = chain(ultimate_tgroup, stepping_tgroup)
+        else:
+            tgroups = self.get('jmeterTestPlan>hashTree>hashTree>ThreadGroup')
+
         for group in tgroups:
             if group.get("enabled") != 'false':
                 yield group
@@ -1125,7 +1169,7 @@ class JMX(object):
         return res
 
     @staticmethod
-    def _get_thread_group(concurrency=None, rampup=None, iterations=None):
+    def _get_thread_group(concurrency=None, rampup=None, iterations=None, testname="ThreadGroup", on_error="continue"):
         """
         Generates ThreadGroup with 1 thread and 1 loop
 
@@ -1135,7 +1179,9 @@ class JMX(object):
         :return:
         """
         trg = etree.Element("ThreadGroup", guiclass="ThreadGroupGui",
-                            testclass="ThreadGroup", testname="ThreadGroup")
+                            testclass="ThreadGroup", testname=testname)
+        if on_error is not None:
+            trg.append(JMX._string_prop("ThreadGroup.on_sample_error", on_error))
         loop = etree.Element("elementProp",
                              name="ThreadGroup.main_controller",
                              elementType="LoopController",
