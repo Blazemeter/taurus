@@ -96,7 +96,7 @@ See default settings below:
 ```yaml
 ---
 settings:
-  artifacts-dir: # path where to save artifacts, default is %Y-%m-%d_%H-%M-%S.%f
+  artifacts-dir: /tmp/%H%M%S # path where to save artifacts, default is %Y-%m-%d_%H-%M-%S.%f
   aggregator: consolidator
   default-executor: jmeter
   check-interval: 1
