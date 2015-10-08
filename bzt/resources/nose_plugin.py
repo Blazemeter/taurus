@@ -11,8 +11,10 @@ try:
     from lxml import etree
 except ImportError:
     try:
+        # noinspection PyPackageRequirements
         import cElementTree as etree
     except ImportError:
+        # noinspection PyPackageRequirements,PyPep8Naming
         import elementtree.ElementTree as etree
 
 JTL_ERR_ATRS = ["t", "lt", "ct", "ts", "s", "lb", "rc", "rm", "tn", "dt", "de", "by", "ng", "na"]
@@ -21,7 +23,7 @@ JTL_HEADER = ["timeStamp", "elapsed", "label", "responseCode", "responseMessage"
               "grpThreads", "allThreads", "Latency", "Connect"]
 
 SEARCH_PATTERNS = {"file": re.compile(r'\((.*?)\.'), "class": re.compile(r'\.(.*?)\)'),
-                   "method": re.compile(r'(.*?)\ ')}
+                   "method": re.compile(r'(.*?) ')}
 
 
 class TaurusNosePlugin(Plugin):
@@ -154,7 +156,7 @@ class TaurusNosePlugin(Plugin):
 
         if self.last_err is not None:
             exc_type_name = self.last_err[0].__name__
-            trace = "".join(traceback.format_tb(self.last_err[2])) + "\n" + self.last_err[1]
+            trace = "".join(traceback.format_tb(self.last_err[2])) + ("\n%s" % self.last_err[1])
             self.jtl_dict["responseMessage"] = exc_type_name
 
             sample = {}.fromkeys(JTL_ERR_ATRS)
@@ -247,6 +249,7 @@ class JTLErrorWriter(object):
 
     def close(self):
         self.xml_writer.close()
+
 
 def write_element(fds):
     with etree.xmlfile(fds, buffered=False, encoding="UTF-8") as xf:

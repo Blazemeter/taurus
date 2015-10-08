@@ -74,7 +74,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 self.__cp_res_files_to_artifacts_dir(resource_files)
 
         elif "requests" in scenario:
-            raise NotImplementedError()  # TODO: implement script generation for gatling
+            raise NotImplementedError("Script generating not yet implemented for Gatling")  # TODO: implement script generation for gatling
         else:
             raise ValueError("There must be a script file to run Gatling")
 
@@ -90,7 +90,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         simulation = self.get_scenario().get("simulation", "")
         if not simulation:
             # TODO: guess simulation from script file
-            raise NotImplementedError()
+            raise NotImplementedError("No simulation set")
 
         datadir = os.path.realpath(self.engine.artifacts_dir)
 
