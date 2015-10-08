@@ -33,7 +33,7 @@ from bzt.engine import Reporter, Provisioning, ScenarioExecutor, SETTINGS
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
 from bzt.modules.console import WidgetProvider
 from bzt.modules.jmeter import JMeterExecutor
-from bzt.utils import to_json, dehumanize_time, MultiPartForm, BetterDict
+from bzt.utils import to_json, dehumanize_time, MultiPartForm, BetterDict, humanize_time
 from bzt.six import BytesIO, text_type, iteritems, HTTPError, urlencode, Request, urlopen, r_input
 
 
@@ -758,6 +758,7 @@ class CloudProvisioning(Provisioning, WidgetProvider):
 
         for executor in self.executors:
             locations = self._get_locations(available_locations, executor)
+            load = executor.get_load()
 
             for location in locations.keys():
                 if location not in available_locations:
@@ -765,7 +766,11 @@ class CloudProvisioning(Provisioning, WidgetProvider):
                     raise ValueError("Invalid location requested: %s" % location)
 
             if executor.execution.get("locations-weighted", True):
-                self.weight_locations(locations, executor.get_load(), available_locations)
+                self.weight_locations(locations, load, available_locations)
+
+            for location in locations.keys():
+                self.log.info("Requesting %s machines in %s for %s",
+                              locations[location], location, humanize_time(load.duration))
 
         config = self.__get_config_for_cloud()
         rfiles = self.__get_rfiles()
@@ -844,7 +849,7 @@ class CloudProvisioning(Provisioning, WidgetProvider):
 
         return super(CloudProvisioning, self).check()
 
-    def shutdown(self):
+    def post_process(self):
         self.client.end_master(self.client.active_session_id)
         if self.client.results_url:
             if self.browser_open in ('end', 'both'):
