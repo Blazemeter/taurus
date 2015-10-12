@@ -267,9 +267,10 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def resource_files(self):
         resource_files = []
-        prop_file = self.engine.find_file(self.get_scenario().get("properties-file"))
+        prop_file = self.get_scenario().get("properties-file", None)
 
         if prop_file:
+            prop_file = self.engine.find_file(prop_file)
             prop_file_contents = open(prop_file, 'rt').read()
             resource_files, modified_contents = self.__get_res_files_from_script(prop_file_contents)
             if resource_files:
