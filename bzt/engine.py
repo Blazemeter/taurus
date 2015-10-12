@@ -392,8 +392,9 @@ class Engine(object):
                 if os.path.isfile(location):
                     self.log.warning("Guessed location from search paths for file %s: %s", filename, location)
                     return location
-        else:
-            return filename
+
+        self.log.warning("Could not find file at path: %s", filename)
+        return filename
 
     def _load_base_configs(self):
         base_configs = []
