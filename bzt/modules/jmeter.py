@@ -586,7 +586,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if not self.original_jmx:
             self.original_jmx = self.__get_script()
 
-        if self.original_jmx:
+        if self.original_jmx and os.path.exists(self.original_jmx):
             jmx = JMX(self.original_jmx)
             resource_files_from_jmx = JMeterExecutor.__get_resource_files_from_jmx(jmx)
 
