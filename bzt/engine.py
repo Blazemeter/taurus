@@ -856,7 +856,7 @@ class ScenarioExecutor(EngineModule):
         :return: DictOfDicts
         """
         if self.__scenario is None:
-            scenario = self.execution.get('scenario', BetterDict())
+            scenario = self.execution.get('scenario', ValueError("Scenario not configured properly"))
             if isinstance(scenario, string_types):
                 scenarios = self.engine.config.get("scenarios")
                 if scenario not in scenarios:
@@ -866,7 +866,7 @@ class ScenarioExecutor(EngineModule):
             elif isinstance(scenario, dict):
                 self.__scenario = Scenario(scenario)
             else:
-                raise ValueError("Scenario not configured properly: %s" % scenario)
+                raise ValueError("Unsupported type for scenario")
 
         return self.__scenario
 

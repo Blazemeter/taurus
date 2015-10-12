@@ -598,3 +598,15 @@ class TestSeleniumStuff(SeleniumTestCase):
         objjm = JUnitJar(os.path.join(dummy_installation_path, "tools", "junit", "junit.jar"), obj.log,
                          SeleniumExecutor.JUNIT_VERSION)
         objjm.install()
+
+    def test_remote_prov_requests(self):
+        obj = SeleniumExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({
+            "scenario": {
+                "requests": [
+                    "http://blazedemo.com"
+                ]
+            }
+        })
+        obj.resource_files()

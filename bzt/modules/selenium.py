@@ -56,11 +56,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         3) create runner instance, prepare runner
         """
         self.scenario = self.get_scenario()
-        if "requests" in self.scenario:
-            if self.scenario.get("requests"):
-                self.scenario["script"] = self.__tests_from_requests()
-            else:
-                raise RuntimeError("Nothing to test, no requests were provided in scenario")
+        self._verify_script()
         self.kpi_file = self.engine.create_artifact("selenium_tests_report", ".csv")
         self.err_jtl = self.engine.create_artifact("selenium_tests_err", ".xml")
         script_type = self.detect_script_type(self.scenario.get("script"))
@@ -91,6 +87,13 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.reader = JTLReader(self.kpi_file, self.log, self.err_jtl)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
+
+    def _verify_script(self):
+        if not self.scenario.get("script"):
+            if self.scenario.get("requests"):
+                self.scenario["script"] = self.__tests_from_requests()
+            else:
+                raise RuntimeError("Nothing to test, no requests were provided in scenario")
 
     def _cp_resource_files(self, runner_working_dir):
         """
@@ -170,6 +173,11 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     def resource_files(self):
         if not self.scenario:
             self.scenario = self.get_scenario()
+
+        if "script" not in self.scenario:
+            return []
+
+
         script = self.scenario.get("script")
         script_type = self.detect_script_type(script)
 
@@ -185,7 +193,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         self._cp_resource_files(self.runner_working_dir)
 
-        return os.path.basename(self.runner_working_dir)
+        return os.path.basename(self.runner_working_dir)  # FIXME: it's broken!
 
     def __tests_from_requests(self):
         filename = self.engine.create_artifact("test_requests", ".py")
