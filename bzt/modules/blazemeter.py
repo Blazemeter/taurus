@@ -410,8 +410,8 @@ class BlazeMeterClient(object):
             resp = self._request(url, json.dumps(data), headers=hdr)
             test_id = resp['result']['id']
 
-        if configuration['type'] == 'taurus':  # FIXME: this is weird way to code
-            self.log.debug("Uploading files into the test")
+        if configuration['type'] == 'taurus':  # FIXME: this is weird way to code, subclass it or something
+            self.log.debug("Uploading files into the test: %s", resource_files)
             url = '%s/api/latest/tests/%s/files' % (self.address, test_id)
 
             body = MultiPartForm()
@@ -801,6 +801,7 @@ class CloudProvisioning(Provisioning, WidgetProvider):
         rfiles = []
         for executor in self.executors:
             rfiles += executor.get_resource_files()
+        self.log.debug("All resource files are: %s", rfiles)
         return rfiles
 
     def __get_bza_test_config(self):
