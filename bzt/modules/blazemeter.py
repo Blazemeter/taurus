@@ -751,10 +751,13 @@ class CloudProvisioning(Provisioning, WidgetProvider):
         self.client.timeout = dehumanize_time(self.settings.get("timeout", self.client.timeout))
 
         if not self.client.token:
-            raise ValueError("You must provide API token to use cloud provisioning")
+            bmmod = self.engine.instantiate_module('blazemeter')
+            self.client.token = bmmod.settings.get("token")
+            if not self.client.token:
+                raise ValueError("You must provide API token to use cloud provisioning")
 
         user_info = self.client.get_user_info()
-        available_locations = {str(x['id']): x for x in user_info['locations']}
+        available_locations = {str(x['id']): x for x in user_info['locations'] if not x['id'].startswith('harbor-')}
 
         for executor in self.executors:
             locations = self._get_locations(available_locations, executor)
@@ -769,8 +772,8 @@ class CloudProvisioning(Provisioning, WidgetProvider):
                 self.weight_locations(locations, load, available_locations)
 
             for location in locations.keys():
-                self.log.info("Requesting %s machines in %s for %s",
-                              locations[location], location, humanize_time(load.duration))
+                self.log.info("Requesting %s machines for %s in %s",
+                              locations[location], humanize_time(load.duration), location)
 
         config = self.__get_config_for_cloud()
         rfiles = self.__get_rfiles()
@@ -822,6 +825,7 @@ class CloudProvisioning(Provisioning, WidgetProvider):
                 if location['sandbox']:
                     locations.merge({location['id']: 1})
         if not locations:
+            self.log.warning("List of supported locations for you is: %s", sorted(available_locations.keys()))
             raise ValueError("No sandbox location available, please specify locations manually")
         return locations
 
