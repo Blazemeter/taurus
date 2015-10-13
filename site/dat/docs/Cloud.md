@@ -37,7 +37,7 @@ Then you can just switch `provisioning` and load settings will be taken accordin
 
 ## Configuring Cloud Locations
 
-Cloud locations are specified per-execution. Specifying multiple cloud locations for execution means that its `concurrency` will be distributed among the locations. Locations is the map of location id's and their relative weights.
+Cloud locations are specified per-execution. Specifying multiple cloud locations for execution means that its `concurrency` and/or `throughput` will be distributed among the locations. Locations is the map of location id's and their relative weights. 
 
 ```yaml
 ---
@@ -47,13 +47,22 @@ execution:
       eu-east: 2
 ```
 
-weighted vs absolute vs no concurrency set
+The list of all available locations contained in [User API Call](https://a.blazemeter.com/api/latest/user) and may be specific for particular user. See `locations` block and `id` option for each location.
 
-list of available locations is at https://a.blazemeter.com/api/latest/user
+By default, Taurus will calculate machines count for each location based on their limits obtained from *User API Call*. To switch to manual machines count just set option `locations-weighted` into `false`. Exact numbers of machines for each location will be used in that case:
 
-logic to get default location
+```yaml
+---
+execution:
+  - locations:
+      eu-west: 2
+      eu-east: 7
+    locations-weighted: false
+```
 
+## Cloud Execution Notes
 
-when no duration provided
-
-Don't need and should not use `blazemeter` reporting module
+Please note that for `cloud` provisioning actual Taurus execution will be done on remote machines, so:
+  * the test will not run if your account has no enough engines allowed
+  * if you don't specify any duration for test with `hold-for` and `ramp-up` options, some default duration limit will be used
+  * you should not use `-report` commmand-line option or `blazemeter` reporter, all reports will be collected automatically by BlazeMeter
