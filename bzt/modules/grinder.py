@@ -109,9 +109,9 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         fds.write("# BZT Properies Start\n")
         fds.write("grinder.hostID=grinder-bzt\n")
-        fds.write("grinder.script=%s\n" % os.path.realpath(self.script))
+        fds.write("grinder.script=%s\n" % os.path.realpath(self.script).replace(os.path.sep, "/"))
         dirname = os.path.realpath(self.engine.artifacts_dir)
-        fds.write("grinder.logDirectory=%s\n" % dirname)
+        fds.write("grinder.logDirectory=%s\n" % dirname.replace(os.path.sep, "/"))
 
         load = self.get_load()
         if load.concurrency:
