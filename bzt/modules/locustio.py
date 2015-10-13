@@ -26,7 +26,7 @@ from imp import find_module
 from bzt.engine import ScenarioExecutor, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsProvider, DataPoint, KPISet
 from bzt.modules.jmeter import JTLReader
-from bzt.utils import shutdown_process, shell_exec, RequiredTool
+from bzt.utils import shutdown_process, shell_exec, RequiredTool, BetterDict
 from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.six import PY3, iteritems
 
@@ -76,7 +76,9 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         hatch = load.concurrency / load.ramp_up if load.ramp_up else load.concurrency
         wrapper = os.path.join(os.path.dirname(__file__), os.pardir, "resources", "locustio-taurus-wrapper.py")
 
-        env = {"PYTHONPATH": self.engine.artifacts_dir + os.pathsep + os.getcwd()}
+        env = BetterDict()
+        env.merge({k: os.environ.get(k) for k in os.environ.keys()})
+        env.merge({"PYTHONPATH": self.engine.artifacts_dir + os.pathsep + os.getcwd()})
         if os.getenv("PYTHONPATH"):
             env['PYTHONPATH'] = os.getenv("PYTHONPATH") + os.pathsep + env['PYTHONPATH']
 

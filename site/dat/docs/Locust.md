@@ -13,6 +13,7 @@ execution:
     ramp-up: 1m
     iterations: 1000
     scenario:
+      default-address: http://blazedemo.com
       script: sample.py
 ```
 
