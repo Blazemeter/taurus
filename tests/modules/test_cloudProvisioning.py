@@ -75,7 +75,7 @@ class TestCloudProvisioning(BZTestCase):
         client.results.append({})  # upload files
 
         obj.prepare()
-        self.assertEquals(1, obj.executors[0].execution['locations']['harbor-5591335d8588531f5cde3a04'])
+        self.assertEquals(1, obj.executors[0].execution['locations']['us-west-1'])
 
     def __get_user_info(self):
         with open(__dir__() + "/../json/blazemeter-api-user.json") as fhd:
