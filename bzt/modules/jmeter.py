@@ -620,7 +620,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 except BaseException:
                     self.log.warning("Cannot copy file: %s", resource_file)
             else:
-                self.log.warning("File not found: %s", resource_file)
+                if '${' not in resource_file:
+                    self.log.warning("File not found: %s", resource_file)
 
     def __modify_resources_paths_in_jmx(self, jmx, file_list):
         """
