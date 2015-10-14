@@ -5,14 +5,12 @@
 Tried on Windows 7 and Windows XP:
 
   1. Get python 2.7 from http://www.python.org/downloads and install it, don't forget to enable "Add python.exe to Path"
-  2. Get latest Java from https://www.java.com/download/ and install it
-  3. Get Microsoft Visual C++ Compiler for Python 2.7 from http://aka.ms/vcpython27 and install it
-  4. Install pip by following these directions: http://pip.readthedocs.org/en/latest/installing.html
-  5. Upgrade to the latest setuptools by running the following in a command prompt: `pip install --upgrade setuptools`
-  6. Open Command Prompt from administrative account, type `pip install bzt` and hit `Enter`
+  1. Get Microsoft Visual C++ Compiler for Python 2.7 from http://aka.ms/vcpython27 and install it
+  1. Get latest Java from https://www.java.com/download/ and install it
+  1. Open Command Prompt from administrative account, type `pip install --upgrade setuptools` and hit `Enter`
+  1. Open Command Prompt from administrative account, type `pip install bzt` and hit `Enter`
 
-
-To upgrade it, open Command Prompt and type `pip install --upgrade bzt`, then hit `Enter`
+To upgrade Taurus, open Command Prompt from administrative account and type `pip install --upgrade bzt`, then hit `Enter`
 
 ## Linux
 
