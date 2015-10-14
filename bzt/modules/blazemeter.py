@@ -29,7 +29,7 @@ import math
 from urwid import Pile, Text
 
 from bzt import ManualShutdown
-from bzt.engine import Reporter, Provisioning, ScenarioExecutor, SETTINGS
+from bzt.engine import Reporter, Provisioning, ScenarioExecutor, SETTINGS, Configuration
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
 from bzt.modules.console import WidgetProvider
 from bzt.modules.jmeter import JMeterExecutor
@@ -796,8 +796,12 @@ class CloudProvisioning(Provisioning, WidgetProvider):
             execution[ScenarioExecutor.CONCURR] = execution.get(ScenarioExecutor.CONCURR).get(provisioning, None)
             execution[ScenarioExecutor.THRPT] = execution.get(ScenarioExecutor.THRPT).get(provisioning, None)
 
-        config.pop(SETTINGS)
+        for key in config.keys():
+            if key not in ("scenarios", "execution", "included-configs", "services"):
+                config.pop(key)
 
+        assert isinstance(config, Configuration)
+        config.dump(self.engine.create_artifact("cloud", ""))
         return config
 
     def __get_rfiles(self):

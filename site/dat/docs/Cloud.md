@@ -60,9 +60,19 @@ execution:
     locations-weighted: false
 ```
 
+## Reporting Settings
+
+```yaml
+---
+modules:
+  cloud:
+    test-name: Taurus Test
+```
+
 ## Cloud Execution Notes
 
 Please note that for `cloud` provisioning actual Taurus execution will be done on remote machines, so:
   * the test will not run if your account has no enough engines allowed
   * if you don't specify any duration for test with `hold-for` and `ramp-up` options, some default duration limit will be used
   * you should not use `-report` commmand-line option or `blazemeter` reporter, all reports will be collected automatically by BlazeMeter
+  * only following config sections are passed into cloud: `scenarios`, `execution`, `included-configs`, `services`
