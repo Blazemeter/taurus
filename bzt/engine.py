@@ -420,9 +420,9 @@ class Engine(object):
         :type user_configs: list[str]
         :rtype: Configuration
         """
+        self.config.load(user_configs)
         user_config = Configuration()
         user_config.load(user_configs, self.__config_loaded)
-        self.config.merge(user_config)
         return user_config
 
     def __config_loaded(self, config):
