@@ -269,8 +269,8 @@ class DataCriteria(FailCriteria):
             logging.debug("No label %s in %s", self.label, part.keys())
             return
 
-        get_value = self.get_value(part[self.label])
-        self.process_criteria_logic(data[DataPoint.TIMESTAMP], get_value)
+        val = self.get_value(part[self.label])
+        self.process_criteria_logic(data[DataPoint.TIMESTAMP], val)
 
     def _get_field_functor(self, subject, percentage):
         if subject == 'avg-rt':

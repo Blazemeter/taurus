@@ -1,7 +1,7 @@
 {
   "reporting": [
     {
-      "module": "fail-criteria",
+      "module": "passfail",
       "criterias": [
         "concurr>=10 for 15s, stop as non-failed",
         {

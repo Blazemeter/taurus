@@ -107,8 +107,8 @@ class Engine(object):
         self.check_interval = dehumanize_time(interval)
 
         try:
-            self.__prepare_services()
             self.__prepare_aggregator()
+            self.__prepare_services()
             self.__prepare_provisioning()
             self.__prepare_reporters()
             self.config.dump()

@@ -25,7 +25,7 @@ from datetime import datetime
 from bzt.modules.aggregator import DataPoint, KPISet, AggregatorListener, ResultsProvider
 from bzt.engine import Reporter
 from bzt.modules.passfail import PassFailStatus
-from bzt.modules.blazemeter import BlazeMeterUploader
+from bzt.modules.blazemeter import BlazeMeterUploader, BlazeMeterClient
 from bzt.six import etree, iteritems, string_types
 
 
@@ -239,6 +239,9 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
                                                                 JUnitXMLReporter.REPORT_FILE_EXT)
         self.parameters["filename"] = self.report_file_path
 
+        if isinstance(self.engine.aggregator, ResultsProvider):
+            self.engine.aggregator.add_listener(self)
+
     def aggregated_second(self, data):
         """
         :param data:
@@ -253,17 +256,17 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         super(JUnitXMLReporter, self).post_process()
         test_data_source = self.parameters.get("data-source", "sample-labels")
 
-        if self.last_second:
-            # data-source sample-labels
-            if test_data_source == "sample-labels":
+        if test_data_source == "sample-labels":
+            if self.last_second:
                 root_element = self.process_sample_labels()
-            # data-source pass-fail
-            elif test_data_source == "pass-fail":
-                root_element = self.process_pass_fail()
+                self.save_report(root_element)
             else:
-                raise ValueError("Unsupported data source: %s" % test_data_source)
-
+                self.log.warning("No last second data to generate XUnit.xml")
+        elif test_data_source == "pass-fail":
+            root_element = self.process_pass_fail()
             self.save_report(root_element)
+        else:
+            raise ValueError("Unsupported data source: %s" % test_data_source)
 
     def process_sample_labels(self):
         """
@@ -303,6 +306,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         result = []
         bza_reporters = [_x for _x in self.engine.reporters if isinstance(_x, BlazeMeterUploader)]
         for bza_reporter in bza_reporters:
+            assert isinstance(bza_reporter, BlazeMeterUploader)
             report_url = None
             test_name = None
 
@@ -342,7 +346,9 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         """
         :return: etree element
         """
-        pass_fail_objects = [_x for _x in self.engine.reporters if isinstance(_x, PassFailStatus)]
+        mods = self.engine.reporters + self.engine.services  # TODO: remove it after migrating to service
+        pass_fail_objects = [_x for _x in mods if isinstance(_x, PassFailStatus)]
+        self.log.debug("Processing passfail objects: %s", pass_fail_objects)
         fail_criterias = []
         for pf_obj in pass_fail_objects:
             if pf_obj.criterias:

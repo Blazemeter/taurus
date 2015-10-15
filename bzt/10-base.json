@@ -80,6 +80,9 @@
     "fail-criteria": {
       "class": "bzt.modules.passfail.PassFailStatus"
     },
+    "passfail": {
+      "class": "bzt.modules.passfail.PassFailStatus"
+    },
     "junit-xml": {
       "class": "bzt.modules.reporting.JUnitXMLReporter"
     },
