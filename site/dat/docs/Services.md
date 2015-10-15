@@ -46,8 +46,8 @@ services:
     - command: echo 1 > /tmp/1.txt && sleep 1 && dmesg | grep pci  # task command
       background: true  # wait for task completion or send it to background, false by default. 
       ignore-failure: true  # false by default, otherwise will shutdown tests if command return code != 0, 
-      out: taskout.txt  # set file name for task stdout
-      err: taskerr.txt  # set file name for task stderr
+      out: taskout.txt  # set file name for task stdout, null to print to stdout
+      err: taskerr.txt  # set file name for task stderr, null to print to stdout
 ```
 
 Minimum task configuration sample:

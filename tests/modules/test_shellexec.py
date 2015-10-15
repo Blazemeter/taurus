@@ -52,6 +52,11 @@ class TestBlockingTasks(TaskTestCase):
         except CalledProcessError:
             pass
 
+    def test_print_out(self):
+        task = {"command": "pwd", "out": None}
+        self.obj.parameters.merge({"prepare": [task]})
+        self.obj.prepare()
+
 
 class TestNonBlockingTasks(TaskTestCase):
     def test_background_task_shutdown(self):
@@ -118,7 +123,9 @@ class TestTasksConfigs(TaskTestCase):
             self.assertTrue(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, err_file)))
 
     def test_config(self):
-        self.obj.engine.config.merge({'services': [{'startup': [{'command': 'sleep 10 && echo 111', 'background': True}], 'check': [{'command': 'dmesg | grep nvidia', 'ignore-failure': True}, 'pwd'], 'module': 'shellexec'}]})
+        self.obj.engine.config.merge({'services': [
+            {'startup': [{'command': 'sleep 10 && echo 111', 'background': True}],
+             'check': [{'command': 'dmesg | grep nvidia', 'ignore-failure': True}, 'pwd'], 'module': 'shellexec'}]})
         self.obj.parameters = self.obj.engine.config.get("services")[0]
         self.obj.prepare()
         self.obj.startup()

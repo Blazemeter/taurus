@@ -2,7 +2,7 @@
 
 ## 0.4.5 (next)
  - load settings applied to Stepping Thread Groups
-
+ - shellexec service: print to stdout/stderr when `out`/`err` options set to `null`
 
 ## 0.4.4
  - limit max size of file that goes into zip for artifact upload (max-size option)

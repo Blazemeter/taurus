@@ -111,10 +111,20 @@ class Task(object):
             self.log.info("Process still running: %s", self)
             return
 
+        if self.out is not None and self.out != subprocess.PIPE:
+            out = open(self.out, 'wt')
+        else:
+            out = self.out
+
+        if self.err is not None and self.err != subprocess.PIPE:
+            err = open(self.err, 'wt')
+        else:
+            err = self.err
+
         kwargs = {
             'args': self.command,
-            'stdout': open(self.out, 'wt') if self.out != subprocess.PIPE else self.out,
-            'stderr': open(self.err, 'wt') if self.err != subprocess.PIPE else self.err,
+            'stdout': out,
+            'stderr': err,
             'cwd': self.working_dir,
             'shell': True
         }
