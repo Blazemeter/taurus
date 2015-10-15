@@ -133,7 +133,7 @@ class Task(object):
             kwargs['preexec_fn'] = os.setpgrp
             kwargs['close_fds'] = True
 
-        self.log.debug("Starting task: %s", self)
+        self.log.info("Starting shell command: %s", self)
         self.process = subprocess.Popen(**kwargs)
         if self.is_background:
             self.log.debug("Task started, PID: %d", self.process.pid)
