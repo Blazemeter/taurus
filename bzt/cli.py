@@ -157,7 +157,7 @@ class CLI(object):
             else:
                 if isinstance(exc, HTTPError):
                     self.log.warning("Response from %s: %s", exc.geturl(), exc.read())
-                self.log.error("Exception: %s", exc)
+                self.log.error("%s: %s", type(exc).__name__, exc)
             self.log.warning("Please wait for graceful shutdown...")
             exit_code = 1
         finally:
@@ -172,7 +172,7 @@ class CLI(object):
                     exit_code = exc.get_rc()
             except BaseException as exc:
                 self.log.debug("Caught exception in finally: %s", traceback.format_exc())
-                self.log.error("Exception: %s", exc)
+                self.log.error("%s: %s", type(exc).__name__, exc)
                 exit_code = 1
 
         if isinstance(self.engine.stopping_reason, RCProvider):
@@ -273,7 +273,11 @@ class ConfigOverrider(object):
         self.__ensure_list_capacity(pointer, parts[-1])
         self.log.debug("Applying: [%s]=%s", parts[-1], value)
         if isinstance(parts[-1], string_types) and parts[-1][0] == '^':
-            del pointer[parts[-1][1:]]
+            item = parts[-1][1:]
+            if item in pointer:
+                del pointer[item]
+            else:
+                self.log.debug("No value to delete: %s", item)
         else:
             if value.isdigit():
                 value = float(value)
