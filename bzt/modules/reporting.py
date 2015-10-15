@@ -25,7 +25,7 @@ from datetime import datetime
 from bzt.modules.aggregator import DataPoint, KPISet, AggregatorListener, ResultsProvider
 from bzt.engine import Reporter
 from bzt.modules.passfail import PassFailStatus
-from bzt.modules.blazemeter import BlazeMeterUploader, BlazeMeterClient
+from bzt.modules.blazemeter import BlazeMeterUploader
 from bzt.six import etree, iteritems, string_types
 
 
@@ -196,8 +196,8 @@ class FinalStatus(Reporter, AggregatorListener):
         for level, val in iteritems(kpiset[KPISet.PERCENTILES]):
             res['perc_%s' % level] = val
 
-        for rc, val in iteritems(kpiset[KPISet.RESP_CODES]):
-            res['rc_%s' % rc] = val
+        for rcd, val in iteritems(kpiset[KPISet.RESP_CODES]):
+            res['rc_%s' % rcd] = val
 
         for key in res:
             if isinstance(res[key], float):
@@ -361,26 +361,27 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         report_urls = [info_item[0] for info_item in bza_report_info]
 
         for fc_obj in fail_criterias:
-            if fc_obj.config['label']:
-                data = (fc_obj.config['subject'], fc_obj.config['label'],
-                        fc_obj.config['condition'], fc_obj.config['threshold'])
-                tpl = "%s of %s%s%s"
-            else:
-                data = (fc_obj.config['subject'], fc_obj.config['condition'],
-                        fc_obj.config['threshold'])
-                tpl = "%s%s%s"
-
-            if fc_obj.config['timeframe']:
-                tpl += " for %s"
-                data += (fc_obj.config['timeframe'],)
-
-            disp_name = tpl % data
-
-            testcase_etree = etree.Element("testcase", classname=classname, name=disp_name)
-            if report_urls:
-                system_out_etree = etree.SubElement(testcase_etree, "system-out")
-                system_out_etree.text = "".join(report_urls)
-            if fc_obj.is_triggered and fc_obj.fail:
-                etree.SubElement(testcase_etree, "error", type="pass/fail criteria triggered", message="")
+            testcase_etree = self.__process_criteria(classname, fc_obj, report_urls)
             root_xml_element.append(testcase_etree)
         return root_xml_element
+
+    def __process_criteria(self, classname, fc_obj, report_urls):
+        if fc_obj.config['label']:
+            data = (fc_obj.config['subject'], fc_obj.config['label'],
+                    fc_obj.config['condition'], fc_obj.config['threshold'])
+            tpl = "%s of %s%s%s"
+        else:
+            data = (fc_obj.config['subject'], fc_obj.config['condition'],
+                    fc_obj.config['threshold'])
+            tpl = "%s%s%s"
+        if fc_obj.config['timeframe']:
+            tpl += " for %s"
+            data += (fc_obj.config['timeframe'],)
+        disp_name = tpl % data
+        testcase_etree = etree.Element("testcase", classname=classname, name=disp_name)
+        if report_urls:
+            system_out_etree = etree.SubElement(testcase_etree, "system-out")
+            system_out_etree.text = "".join(report_urls)
+        if fc_obj.is_triggered and fc_obj.fail:
+            etree.SubElement(testcase_etree, "error", type="pass/fail criteria triggered", message="")
+        return testcase_etree
