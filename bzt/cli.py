@@ -372,7 +372,7 @@ def main():
     try:
         code = executor.perform(parsed_configs)
     except BaseException as exc_top:
-        logging.error("Exception: %s", exc_top)
+        logging.error("%s: %s", type(exc_top).__name__, exc_top)
         logging.debug("Exception: %s", traceback.format_exc())
         code = 1
 
