@@ -28,8 +28,7 @@
       "path": "~/.bzt/grinder-taurus/lib/grinder.jar"
     },
     "gatling": {
-      "class": "bzt.modules.gatling.GatlingExecutor",
-      "path": "~/.bzt/gatling-taurus/bin/gatling.sh"
+      "class": "bzt.modules.gatling.GatlingExecutor"
     },
     "shellexec": {
       "class": "bzt.modules.shellexec.ShellExecutor"
