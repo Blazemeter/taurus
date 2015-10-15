@@ -25,6 +25,7 @@ from logging import Formatter
 from optparse import OptionParser, BadOptionError, Option
 
 from colorlog import ColoredFormatter
+import signal
 
 import bzt
 from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown
@@ -378,5 +379,17 @@ def main():
     exit(code)
 
 
+def signal_handler(sig, frame):
+    """
+    required for non-tty python runs to interrupt
+    :param frame:
+    :param sig:
+    """
+    del sig, frame
+    raise ManualShutdown()
+
+
 if __name__ == "__main__":
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
     main()

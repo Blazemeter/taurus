@@ -21,19 +21,6 @@ import signal
 VERSION = "0.4.4.2"
 
 
-def signal_handler(sig, frame):
-    """
-    required for non-tty python runs to interrupt
-    :param frame:
-    :param sig:
-    """
-    del sig, frame
-    raise ManualShutdown()
-
-
-signal.signal(signal.SIGINT, signal_handler)
-signal.signal(signal.SIGTERM, signal_handler)
-
 
 class RCProvider(object):
     """
