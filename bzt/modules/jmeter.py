@@ -101,7 +101,24 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             raise ValueError("There must be a JMX file to run JMeter")
         load = self.get_load()
         self.modified_jmx = self.__get_modified_jmx(self.original_jmx, load)
+
+        self.__set_jmeter_properties(scenario)
+        self.__set_system_properties()
+
+        if isinstance(self.engine.aggregator, ConsolidatingAggregator):
+            self.reader = JTLReader(self.kpi_jtl, self.log, self.errors_jtl)
+            self.reader.is_distributed = len(self.distributed_servers) > 0
+            self.engine.aggregator.add_underling(self.reader)
+
+    def __set_system_properties(self):
         sys_props = self.settings.get("system-properties")
+        if sys_props:
+            self.log.debug("Additional system properties %s", sys_props)
+            sys_props_file = self.engine.create_artifact("system", ".properties")
+            JMeterExecutor.__write_props_to_file(sys_props_file, sys_props)
+            self.sys_properties_file = sys_props_file
+
+    def __set_jmeter_properties(self, scenario):
         props = self.settings.get("properties")
         props_local = scenario.get("properties")
         if self.distributed_servers and self.settings.get("gui", False):
@@ -110,23 +127,16 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         props_local.update({"jmeterengine.nongui.maxport": self.management_port})
         props_local.update({"jmeter.save.saveservice.timestamp_format": "ms"})
         props.merge(props_local)
-        props['user.classpath'] = self.engine.artifacts_dir.replace(os.path.sep, "/")  # replace to avoid Windows issue
+        user_cp = self.engine.artifacts_dir
+        if 'user.classpath' in props:
+            user_cp += os.pathsep + props['user.classpath']
+
+        props['user.classpath'] = user_cp.replace(os.path.sep, "/")  # replace to avoid Windows issue
         if props:
             self.log.debug("Additional properties: %s", props)
             props_file = self.engine.create_artifact("jmeter-bzt", ".properties")
             JMeterExecutor.__write_props_to_file(props_file, props)
             self.properties_file = props_file
-
-        if sys_props:
-            self.log.debug("Additional system properties %s", sys_props)
-            sys_props_file = self.engine.create_artifact("system", ".properties")
-            JMeterExecutor.__write_props_to_file(sys_props_file, sys_props)
-            self.sys_properties_file = sys_props_file
-
-        if isinstance(self.engine.aggregator, ConsolidatingAggregator):
-            self.reader = JTLReader(self.kpi_jtl, self.log, self.errors_jtl)
-            self.reader.is_distributed = len(self.distributed_servers) > 0
-            self.engine.aggregator.add_underling(self.reader)
 
     def startup(self):
         """
