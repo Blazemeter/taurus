@@ -854,7 +854,7 @@ class CloudProvisioning(Provisioning, WidgetProvider):
         if 'progress' in master and master['progress'] > 100:
             self.log.info("Test was stopped in the cloud: %s", master['status'])
             status = self.client.get_master(self.client.active_session_id)
-            if status['note']:
+            if 'note' in status and status['note']:
                 self.log.warning("Cloud test has probably failed with message: %s", status['note'])
 
             self.client.active_session_id = None
