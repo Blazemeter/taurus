@@ -37,7 +37,7 @@ Then you can just switch `provisioning` and load settings will be taken accordin
 
 ## Configuring Cloud Locations
 
-Cloud locations are specified per-execution. Specifying multiple cloud locations for execution means that its `concurrency` and/or `throughput` will be distributed among the locations. Locations is the map of location id's and their relative weights. 
+Cloud locations are specified per-execution. Specifying multiple cloud locations for execution means that its `concurrency` and/or `throughput` will be distributed among the locations. Locations is the map of location id's and their relative weights. Relative weight determines how much value from `concurrency` and `throughput` will be put into corresponding location. 
 
 ```yaml
 ---
@@ -68,6 +68,10 @@ modules:
   cloud:
     test-name: Taurus Test
 ```
+
+## Specifying Where to Run for Shellexec Service
+
+In shellexec task config, the `run-at` parameter allows to set where commands will be executed. Surprisingly, `local` means the cloud worker will execute it, `cloud` means the controlling CLI will execute it.
 
 ## Cloud Execution Notes
 
