@@ -48,6 +48,9 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     def prepare(self):
         self.__check_installed()
         self.locustfile = self.get_locust_file()
+        if not self.locustfile or not os.path.exists(self.locustfile):
+            raise ValueError("Locust file not found: %s" % self.locustfile)
+
         self.is_master = self.execution.get("master", self.is_master)
         if self.is_master:
             slaves = self.execution.get("slaves", ValueError("Slaves count required when starting in master mode"))
@@ -133,22 +136,17 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def resource_files(self):
         if not self.locustfile:
-            self.locustfile = self.get_locust_file(False)
+            self.locustfile = self.get_locust_file()
 
         if self.locustfile:
             return [os.path.basename(self.locustfile)]
         else:
             return None
 
-    def get_locust_file(self, fail=True):
+    def get_locust_file(self):
         scenario = self.get_scenario()
         locustfile = scenario.get("script", ValueError("Please specify locusfile in 'script' option"))
         locustfile = self.engine.find_file(locustfile)
-        if not locustfile or not os.path.exists(locustfile):
-            if fail:
-                raise ValueError("Locust file not found: %s" % locustfile)
-            else:
-                self.log.warning("Locust file not found: %s", locustfile)
         return locustfile
 
     def shutdown(self):
