@@ -145,7 +145,10 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         locustfile = scenario.get("script", ValueError("Please specify locusfile in 'script' option"))
         locustfile = self.engine.find_file(locustfile)
         if not locustfile or not os.path.exists(locustfile):
-            raise ValueError("Locust file not found: %s" % locustfile)
+            if fail:
+                raise ValueError("Locust file not found: %s" % locustfile)
+            else:
+                self.log.warning("Locust file not found: %s", locustfile)
         return locustfile
 
     def shutdown(self):
