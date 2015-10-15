@@ -4,6 +4,7 @@ from tempfile import NamedTemporaryFile
 import time
 
 import yaml
+from bzt.engine import Service
 
 from tests import setup_test_logging, BZTestCase, __dir__
 from tests.mocks import EngineEmul, RecordingHandler
@@ -126,7 +127,7 @@ class TestTasksConfigs(TaskTestCase):
         self.obj.engine.config.merge({'services': [
             {'startup': [{'command': 'sleep 10 && echo 111', 'background': True}],
              'check': [{'command': 'dmesg | grep nvidia', 'ignore-failure': True}, 'pwd'], 'module': 'shellexec'}]})
-        self.obj.parameters = self.obj.engine.config.get("services")[0]
+        self.obj.parameters = self.obj.engine.config.get(Service.SERV)[0]
         self.obj.prepare()
         self.obj.startup()
         self.obj.check()

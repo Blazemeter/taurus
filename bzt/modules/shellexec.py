@@ -20,11 +20,11 @@ import subprocess
 from subprocess import CalledProcessError
 
 from bzt.utils import shutdown_process
-from bzt.engine import EngineModule, Provisioning
+from bzt.engine import EngineModule, Provisioning, Service
 from bzt.utils import ensure_is_dict
 
 
-class ShellExecutor(EngineModule):
+class ShellExecutor(Service):
     def __init__(self):
         super(ShellExecutor, self).__init__()
         self.prepare_tasks = []

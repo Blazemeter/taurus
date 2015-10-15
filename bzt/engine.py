@@ -432,7 +432,7 @@ class Engine(object):
         """
         Instantiate provisioning class
         """
-        cls = self.config.get(Provisioning.PROV, "")
+        cls = self.config.get(Provisioning.PROV, None)
         if not cls:
             raise ValueError("Please configure provisioning settings")
         self.provisioning = self.instantiate_module(cls)
@@ -459,11 +459,12 @@ class Engine(object):
         """
         Instantiate service modules, then prepare them
         """
-        services = self.config.get("services", [])
+        services = self.config.get(Service.SERV, [])
         for index, config in enumerate(services):
             config = ensure_is_dict(services, index, "module")
             cls = config.get('module', '')
             instance = self.instantiate_module(cls)
+            assert isinstance(instance, Service)
             instance.parameters = config
             self.services.append(instance)
 
@@ -925,6 +926,15 @@ class Reporter(EngineModule):
     """
 
     REP = "reporting"
+
+
+class Service(EngineModule):
+    """
+    This type of modules is responsible for
+    in-test and post-test results analysis
+    """
+
+    SERV = "services"
 
 
 class Scenario(UserDict, object):

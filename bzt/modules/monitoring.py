@@ -7,14 +7,14 @@ import time
 
 from urwid import Pile, Text
 
-from bzt.engine import EngineModule
+from bzt.engine import EngineModule, Service
 from bzt.modules.console import WidgetProvider
 from bzt.modules.passfail import FailCriteria
 from bzt.six import iteritems
 from bzt.utils import dehumanize_time
 
 
-class Monitoring(EngineModule, WidgetProvider):
+class Monitoring(Service, WidgetProvider):
     """
     :type clients: list[ServerAgentClient]
     :type listeners: list[MonitoringListener]

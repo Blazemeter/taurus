@@ -24,14 +24,14 @@ import re
 import urwid
 
 from bzt import AutomatedShutdown
-from bzt.engine import Reporter
+from bzt.engine import Reporter, Service
 from bzt.modules.aggregator import KPISet, DataPoint, AggregatorListener, ResultsProvider
 from bzt.utils import load_class, dehumanize_time
 from bzt.modules.console import WidgetProvider
 from bzt.six import string_types, viewvalues, iteritems
 
 
-class PassFailStatus(Reporter, AggregatorListener, WidgetProvider):
+class PassFailStatus(Reporter, Service, AggregatorListener, WidgetProvider):
     """
     :type criterias: list[FailCriteria]
     """
