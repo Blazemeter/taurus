@@ -19,6 +19,7 @@ class TaskTestCase(BZTestCase):
         self.obj = ShellExecutor()
         self.obj.parameters = BetterDict()
         self.obj.engine = EngineEmul()
+        self.obj.engine.config.merge({"provisioning": "local"})
         self.log_recorder = RecordingHandler()
         self.obj.log.addHandler(self.log_recorder)
 

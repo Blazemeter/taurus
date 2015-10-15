@@ -45,7 +45,7 @@ class ShellExecutor(Service):
                 container.append(Task(task_config, self.log, os.getcwd()))
                 self.log.debug("Added task: %s, stage: %s", stage_task, stage)
             else:
-                self.log.debug("Skipped task: %s")
+                self.log.debug("Skipped task: %s", task_config)
 
     def prepare(self):
         """
