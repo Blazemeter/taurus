@@ -48,6 +48,7 @@ services:
       ignore-failure: true  # false by default, otherwise will shutdown tests if command return code != 0, 
       out: taskout.txt  # set file name for task stdout, null to print to stdout
       err: taskerr.txt  # set file name for task stderr, null to print to stdout
+      run-at: local  # provisioning level to limit command usage, null to run always
 ```
 
 Minimum task configuration sample:

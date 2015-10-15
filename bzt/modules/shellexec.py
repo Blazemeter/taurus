@@ -20,7 +20,7 @@ import subprocess
 from subprocess import CalledProcessError
 
 from bzt.utils import shutdown_process
-from bzt.engine import EngineModule
+from bzt.engine import EngineModule, Provisioning
 from bzt.utils import ensure_is_dict
 
 
@@ -39,8 +39,13 @@ class ShellExecutor(EngineModule):
 
         for index, stage_task in enumerate(self.parameters[stage]):
             stage_task = ensure_is_dict(self.parameters[stage], index, "command")
-            container.append(Task(self.parameters[stage][index], self.log, os.getcwd()))
-            self.log.debug("Added task: %s, stage: %s", stage_task, stage)
+            task_config = self.parameters[stage][index]
+            run_at = task_config.get("run-at", "local")
+            if run_at == self.engine.config.get(Provisioning.PROV, None):
+                container.append(Task(task_config, self.log, os.getcwd()))
+                self.log.debug("Added task: %s, stage: %s", stage_task, stage)
+            else:
+                self.log.debug("Skipped task: %s")
 
     def prepare(self):
         """
