@@ -809,7 +809,7 @@ class CloudProvisioning(Provisioning, WidgetProvider):
         for executor in self.executors:
             rfiles += executor.get_resource_files()
         self.log.debug("All resource files are: %s", rfiles)
-        return rfiles
+        return [self.engine.find_file(x) for x in rfiles]
 
     def __get_bza_test_config(self):
         bza_plugin = {
