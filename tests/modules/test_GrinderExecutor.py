@@ -48,46 +48,12 @@ class TestGrinderExecutor(BZTestCase):
         obj.get_widget()
         self.assertEqual(obj.widget.widgets[0].text, "Script: helloworld.py")
 
-    def test_resource_files_collection_remote(self):
+    def test_resource_files_collection_basic(self):
         obj = GrinderExecutor()
         obj.engine = EngineEmul()
-        obj.execution.merge({"scenario": {"script": __dir__() + "/../grinder/helloworld.py",
-                                          "properties-file": __dir__() + "/../grinder/grinder.properties"}})
+        obj.execution.merge({"scenario": {"script": __dir__() + "/../grinder/helloworld.py"}})
         res_files = obj.resource_files()
-        artifacts = os.listdir(obj.engine.artifacts_dir)
-        self.assertEqual(len(res_files), 2)
-        self.assertEqual(len(artifacts), 2)
-
-    def test_resource_files_collection_local(self):
-        obj = GrinderExecutor()
-        obj.engine = EngineEmul()
-        obj.execution.merge({"scenario": {"script": __dir__() + "/../grinder/helloworld.py",
-                                          "properties-file": __dir__() + "/../grinder/grinder.properties"}})
-        obj.prepare()
-        artifacts = os.listdir(obj.engine.artifacts_dir)
-        self.assertEqual(len(artifacts), 2)
-
-    def test_resource_files_collection_invalid(self):
-        obj = GrinderExecutor()
-        obj.engine = EngineEmul()
-        obj.execution.merge({"scenario": {"script": __dir__() + "/../grinder/helloworld.py",
-                                          "properties-file": __dir__() + "/../grinder/grinder_invalid.properties"}})
-        res_files = obj.resource_files()
-        artifacts = os.listdir(obj.engine.artifacts_dir)
-        self.assertEqual(len(res_files), 2)
-        self.assertEqual(len(artifacts), 2)
-
-        self.assertIn("helloworld.py", open(os.path.join(obj.engine.artifacts_dir,
-                                                         "grinder_invalid.properties")).read())
-
-    def test_resource_files_collection_noscript(self):
-        obj = GrinderExecutor()
-        obj.engine = EngineEmul()
-        obj.execution.merge({"scenario": {"properties-file": __dir__() + "/../grinder/grinder.properties"}})
-        res_files = obj.resource_files()
-        artifacts = os.listdir(obj.engine.artifacts_dir)
-        self.assertEqual(len(res_files), 2)
-        self.assertEqual(len(artifacts), 2)
+        self.assertEqual(len(res_files), 1)
 
     def test_fail_on_zero_results(self):
         obj = GrinderExecutor()
