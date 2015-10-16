@@ -97,7 +97,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         # NOTE: exe_suffix already in "path"
         cmdline = [self.settings["path"]]
-        cmdline += ["-sf", datadir, "-df", datadir, " -rf ", datadir]
+        cmdline += ["-sf", datadir, "-df", datadir, "-rf ", datadir]
         cmdline += ["-on", "gatling-bzt", "-m", "-s", simulation]
 
         self.start_time = time.time()
