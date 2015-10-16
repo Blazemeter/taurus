@@ -74,7 +74,8 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 self.__cp_res_files_to_artifacts_dir(resource_files)
 
         elif "requests" in scenario:
-            raise NotImplementedError("Script generating not yet implemented for Gatling")  # TODO: implement script generation for gatling
+            raise NotImplementedError(
+                "Script generating not yet implemented for Gatling")  # TODO: implement script generation for gatling
         else:
             raise ValueError("There must be a script file to run Gatling")
 
@@ -182,12 +183,11 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.script = self.__get_script()
         resource_files = []
 
-        if self.script:
+        if self.script and os.path.exists(self.script):
             script_contents = open(self.script, 'rt').read()
             resource_files = GatlingExecutor.__get_res_files_from_script(script_contents)
 
             if resource_files:
-
                 script_name, script_ext = os.path.splitext(self.script)
                 script_name = os.path.basename(script_name)
                 modified_script = self.engine.create_artifact(script_name, script_ext)
