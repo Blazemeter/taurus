@@ -765,7 +765,8 @@ class CloudProvisioning(Provisioning):
                 for key, val in iteritems(container):
                     if val in rfiles:
                         container[key] = os.path.basename(val)
-                        self.log.info("Replaced %s with %s in %s", val, container[key], key)
+                        if container[key] != val:
+                            self.log.info("Replaced %s with %s in %s", val, container[key], key)
 
         BetterDict.traverse(config, file_replacer)
 
