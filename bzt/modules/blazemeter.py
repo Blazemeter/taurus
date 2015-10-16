@@ -725,7 +725,7 @@ class BlazeMeterClient(object):
         return res['result']
 
 
-class CloudProvisioning(Provisioning, WidgetProvider):
+class CloudProvisioning(Provisioning):
     """
     :type client: BlazeMeterClient
     :type results_reader: ResultsFromBZA
@@ -756,9 +756,30 @@ class CloudProvisioning(Provisioning, WidgetProvider):
             if not self.client.token:
                 raise ValueError("You must provide API token to use cloud provisioning")
 
+        self.__prepare_locations()
+        config = self.__get_config_for_cloud()
+        rfiles = self.__get_rfiles()
+
+        def file_replacer(container):
+            if isinstance(container, dict):
+                for key, val in iteritems(container):
+                    if val in rfiles:
+                        container[key] = os.path.basename(val)
+                        self.log.info("Replaced %s with %s in %s", val, container[key], key)
+
+        BetterDict.traverse(config, file_replacer)
+
+        bza_plugin = self.__get_bza_test_config()
+        test_name = self.settings.get("test-name", "Taurus Test")
+        self.test_id = self.client.test_by_name(test_name, bza_plugin, config, rfiles, None)  # FIXME: set project id
+
+        if isinstance(self.engine.aggregator, ConsolidatingAggregator):
+            self.results_reader = ResultsFromBZA(self.client)
+            self.engine.aggregator.add_underling(self.results_reader)
+
+    def __prepare_locations(self):
         user_info = self.client.get_user_info()
         available_locations = {str(x['id']): x for x in user_info['locations'] if not x['id'].startswith('harbor-')}
-
         for executor in self.executors:
             locations = self._get_locations(available_locations, executor)
             load = executor.get_load()
@@ -774,16 +795,6 @@ class CloudProvisioning(Provisioning, WidgetProvider):
             for location in locations.keys():
                 self.log.info("Requesting %s machines for %s in %s",
                               locations[location], humanize_time(load.duration), location)
-
-        config = self.__get_config_for_cloud()
-        rfiles = self.__get_rfiles()
-        bza_plugin = self.__get_bza_test_config()
-        test_name = self.settings.get("test-name", "Taurus Test")
-        self.test_id = self.client.test_by_name(test_name, bza_plugin, config, rfiles, None)  # FIXME: set project id
-
-        if isinstance(self.engine.aggregator, ConsolidatingAggregator):
-            self.results_reader = ResultsFromBZA(self.client)
-            self.engine.aggregator.add_underling(self.results_reader)
 
     def __get_config_for_cloud(self):
         config = copy.deepcopy(self.engine.config)

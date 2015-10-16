@@ -285,7 +285,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 shutil.copy2(prop_file, self.engine.artifacts_dir)
                 resource_files.append(prop_file)
 
-        return [os.path.basename(x) for x in resource_files]
+        return resource_files
 
     def __cp_res_files_to_artifacts_dir(self, resource_files_list):
         """

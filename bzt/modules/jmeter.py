@@ -615,7 +615,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.__cp_res_files_to_artifacts_dir(resource_files)
         if self.original_jmx:
             resource_files.append(self.original_jmx)
-        return [os.path.basename(file_path) for file_path in resource_files]  # return list of file names
+        return resource_files
 
     def __cp_res_files_to_artifacts_dir(self, resource_files_list):
         """

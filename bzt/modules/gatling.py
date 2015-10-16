@@ -95,7 +95,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         datadir = os.path.realpath(self.engine.artifacts_dir)
 
-        # NOTE: exe_suffix already in "path"
         cmdline = [self.settings["path"]]
         cmdline += ["-sf", datadir, "-df", datadir, "-rf ", datadir]
         cmdline += ["-on", "gatling-bzt", "-m", "-s", simulation]
@@ -200,7 +199,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 shutil.copy2(self.script, self.engine.artifacts_dir)
                 resource_files.append(self.script)
 
-        return [os.path.basename(file_path) for file_path in resource_files]
+        return resource_files
 
     @staticmethod
     def __get_res_files_from_script(script_contents):

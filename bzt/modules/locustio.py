@@ -138,10 +138,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if not self.locustfile:
             self.locustfile = self.get_locust_file()
 
-        if self.locustfile:
-            return [os.path.basename(self.locustfile)]
-        else:
-            return None
+        return [self.locustfile]
 
     def get_locust_file(self):
         scenario = self.get_scenario()
