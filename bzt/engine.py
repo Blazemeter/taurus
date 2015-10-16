@@ -370,6 +370,7 @@ class Engine(object):
         Try to find file in search_path if it was specified. Helps finding files
         in non-CLI environments or relative to config path
         """
+        filename = os.path.expanduser(filename)
         if os.path.isfile(filename):
             return filename
         elif filename.lower().startswith("http://") or filename.lower().startswith("https://"):
@@ -862,6 +863,7 @@ class ScenarioExecutor(EngineModule):
                 scenarios = self.engine.config.get("scenarios")
                 if scenario not in scenarios:
                     raise ValueError("Scenario not found in scenarios: %s" % scenario)
+                ensure_is_dict(scenarios, scenario, Scenario.SCRIPT)
                 scenario = scenarios.get(scenario)
                 self.__scenario = Scenario(scenario)
             elif isinstance(scenario, dict):
