@@ -66,7 +66,8 @@ execution:
 ---
 modules:
   cloud:
-    test-name: Taurus Test
+    test: Taurus Test  # test name
+    project: Project Name  # project name or id
 ```
 
 ## Specifying Where to Run for Shellexec Service

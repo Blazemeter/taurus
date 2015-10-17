@@ -80,7 +80,9 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
                 self.log.error("Cannot reach online results storage, maybe the address/token is wrong")
                 raise
 
-            self.__get_test_id(token)
+            if token:
+                finder = ProjectFinder(self.parameters, self.settings, self.client, self.engine)
+                self.test_id = finder.resolve_test_id({"type": "external"}, self.engine.config, [])
 
         self.sess_name = self.parameters.get("report-name", self.settings.get("report-name", self.sess_name))
         if self.sess_name == 'ask' and sys.stdin.isatty():
@@ -88,22 +90,6 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
 
         if isinstance(self.engine.aggregator, ResultsProvider):
             self.engine.aggregator.add_listener(self)
-
-    def __get_test_id(self, token):
-        if not token:
-            return
-
-        proj_name = self.parameters.get("project", self.settings.get("project", None))
-        if isinstance(proj_name, (int, float)):
-            proj_id = int(proj_name)
-            self.log.debug("Treating project name as ID: %s", proj_id)
-        elif proj_name is not None:
-            proj_id = self.client.project_by_name(proj_name)
-        else:
-            proj_id = None
-
-        test_name = self.parameters.get("test", self.settings.get("test", "Taurus Test"))
-        self.test_id = self.client.test_by_name(test_name, {"type": "external"}, self.engine.config, [], proj_id)
 
     def startup(self):
         """
@@ -239,6 +225,28 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         :return:
         """
         self.kpi_buffer.append(data)
+
+
+class ProjectFinder(object):
+    def __init__(self, parameters, settings, client, engine):
+        super(ProjectFinder, self).__init__()
+        self.client = client
+        self.parameters = parameters
+        self.settings = settings
+        self.engine = engine
+
+    def resolve_test_id(self, test_config, taurus_config, rfiles):
+        proj_name = self.parameters.get("project", self.settings.get("project", None))
+        if isinstance(proj_name, (int, float)):
+            proj_id = int(proj_name)
+            self.engine.log.debug("Treating project name as ID: %s", proj_id)
+        elif proj_name is not None:
+            proj_id = self.client.project_by_name(proj_name)
+        else:
+            proj_id = None
+
+        test_name = self.parameters.get("test", self.settings.get("test", "Taurus Test"))
+        return self.client.test_by_name(test_name, test_config, taurus_config, rfiles, proj_id)
 
 
 class BlazeMeterClient(object):
@@ -771,8 +779,8 @@ class CloudProvisioning(Provisioning):
         BetterDict.traverse(config, file_replacer)
 
         bza_plugin = self.__get_bza_test_config()
-        test_name = self.settings.get("test-name", "Taurus Test")
-        self.test_id = self.client.test_by_name(test_name, bza_plugin, config, rfiles, None)  # FIXME: set project id
+        finder = ProjectFinder(self.parameters, self.settings, self.client, self.engine)
+        self.test_id = finder.resolve_test_id(bza_plugin, config, rfiles)
 
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.results_reader = ResultsFromBZA(self.client)
