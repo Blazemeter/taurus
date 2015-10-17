@@ -733,7 +733,7 @@ class BlazeMeterClient(object):
         return res['result']
 
 
-class CloudProvisioning(Provisioning):
+class CloudProvisioning(Provisioning, WidgetProvider):
     """
     :type client: BlazeMeterClient
     :type results_reader: ResultsFromBZA
@@ -748,6 +748,7 @@ class CloudProvisioning(Provisioning):
         self.test_id = None
         self.__last_master_status = None
         self.browser_open = 'start'
+        self.widget = None
 
     def prepare(self):
         super(CloudProvisioning, self).prepare()
@@ -881,6 +882,7 @@ class CloudProvisioning(Provisioning):
 
             return True
 
+        self.widget.update()
         return super(CloudProvisioning, self).check()
 
     def post_process(self):
@@ -905,7 +907,8 @@ class CloudProvisioning(Provisioning):
                 locations[loc_name] = 1
 
     def get_widget(self):
-        return CloudProvWidget(self)
+        self.widget = CloudProvWidget(self)
+        return self.widget
 
 
 class BlazeMeterClientEmul(BlazeMeterClient):
@@ -974,7 +977,7 @@ class CloudProvWidget(Pile):
         self.text = Text("")
         super(CloudProvWidget, self).__init__([self.text])
 
-    def render(self, size, focus=False):
+    def update(self):
         txt = "Cloud test #%s\n" % self.prov.client.active_session_id
         cnt = 0
         for executor in self.prov.executors:
@@ -986,4 +989,3 @@ class CloudProvWidget(Pile):
             for location in sorted(locations.keys()):
                 txt += "    %s: %s\n" % (location, locations[location])
         self.text.set_text(txt)
-        return super(CloudProvWidget, self).render(size, focus)
