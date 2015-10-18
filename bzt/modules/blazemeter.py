@@ -190,8 +190,10 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         try:
             self.client.end_online()
             if self.engine.stopping_reason:
-                note = "%s: %s" % (
-                    self.engine.stopping_reason.__class__.__name__, str(self.engine.stopping_reason))
+                note = "%s: %s" % (self.engine.stopping_reason.__class__.__name__, str(self.engine.stopping_reason))
+                sess = self.client.get_session(self.client.active_session_id)
+                if 'note' in sess:
+                    note += "\n" + sess['note']
                 self.client.update_session(self.client.active_session_id, {"note": note})
         except KeyboardInterrupt:
             raise
