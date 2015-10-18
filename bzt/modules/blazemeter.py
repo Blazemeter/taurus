@@ -161,11 +161,11 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
             self.log.debug("No feeding session obtained, not uploading artifacts")
             return
 
-        if len(self.kpi_buffer):
-            self.__send_data(self.kpi_buffer, False)
-            self.kpi_buffer = []
-
         try:
+            if len(self.kpi_buffer):
+                self.__send_data(self.kpi_buffer, False)
+                self.kpi_buffer = []
+
             self.__upload_artifacts()
 
             tries = self.send_interval  # NOTE: you dirty one...
@@ -179,6 +179,9 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         finally:
             try:
                 self.client.end_online()
+                if self.engine.stopping_reason:
+                    note = "%s: %s" % (self.engine.stopping_reason.__class__.__name__, str(self.engine.stopping_reason))
+                    self.client.update_session(self.client.active_session_id, {"note": note})
             except KeyboardInterrupt:
                 raise
             except BaseException as exc:
@@ -743,6 +746,12 @@ class BlazeMeterClient(object):
         url = self.address + "/api/latest/data/labels?" + urlencode({'master_id': master_id})
         res = self._request(url)
         return res['result']
+
+    def update_session(self, active_session_id, data):
+        hdr = {"Content-Type": "application/json"}
+        data = self._request(self.address + '/api/latest/sessions/%s' % active_session_id, to_json(data),
+                             headers=hdr, method="PUT")
+        return data['result']
 
 
 class CloudProvisioning(Provisioning, WidgetProvider):
