@@ -59,6 +59,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         Read options for uploading, check that they're sane
         """
         super(BlazeMeterUploader, self).prepare()
+        self.client.logger_limit = self.settings.get("request-logging-limit", self.client.logger_limit)
         self.client.address = self.settings.get("address", self.client.address)
         self.client.data_address = self.settings.get("data-address", self.client.data_address)
         self.client.timeout = dehumanize_time(self.settings.get("timeout", self.client.timeout))
@@ -274,7 +275,7 @@ class BlazeMeterClient(object):
     """ Service client class """
 
     def __init__(self, parent_logger):
-        self.logger_limit = 512  # NOTE: provide control over it
+        self.logger_limit = 256
         self.user_id = None
         self.test_id = None
         self.log = parent_logger.getChild(self.__class__.__name__)
