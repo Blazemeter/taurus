@@ -192,7 +192,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         self._cp_resource_files(self.runner_working_dir)
 
-        return os.path.basename(self.runner_working_dir)  # FIXME: it's broken!
+        return [os.path.basename(self.runner_working_dir)]
 
     def __tests_from_requests(self):
         filename = self.engine.create_artifact("test_requests", ".py")

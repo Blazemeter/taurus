@@ -458,7 +458,7 @@ class TestSeleniumNoseRunner(BZTestCase):
         obj.settings.merge(obj.engine.config.get("modules").get("selenium"))
 
         res_files = obj.resource_files()
-        res_artifacts = os.listdir(os.path.join(obj.engine.artifacts_dir, res_files))
+        res_artifacts = os.listdir(os.path.join(obj.engine.artifacts_dir, res_files[0]))
         self.assertEqual(len(res_artifacts), 2)
 
 
@@ -473,7 +473,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         obj.engine.config = BetterDict()
         obj.engine.config.merge({"execution": {"executor": "selenium"}})
         obj.execution = obj.engine.config['execution']
-        self.assertRaises(RuntimeError, obj.prepare)
+        self.assertRaises(ValueError, obj.prepare)
 
     def test_javac_fail(self):
         """
