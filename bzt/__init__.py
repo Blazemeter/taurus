@@ -16,10 +16,8 @@ limitations under the License.
 from abc import abstractmethod
 import os
 import sys
-import signal
 
-VERSION = "0.4.4.3"
-
+VERSION = "0.4.4.4"
 
 
 class RCProvider(object):

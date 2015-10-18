@@ -176,7 +176,6 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         except IOError:
             self.log.warning("Failed artifact upload: %s", traceback.format_exc())
         finally:
-            self._last_status_check = 0
             tries = self.send_interval  # NOTE: you dirty one...
             while not self._last_status_check and tries > 0:
                 self.log.info("Waiting for ping...")
@@ -243,8 +242,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         """
         self.kpi_buffer.append(data)
 
-    def ping(self):
-        self._last_status_check = time.time()
+    def set_last_status_check(self, value):
+        self._last_status_check = value
         self.log.debug("Set last check time to: %s", self._last_status_check)
 
 
