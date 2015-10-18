@@ -177,7 +177,6 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if "script" not in self.scenario:
             return []
 
-
         script = self.scenario.get("script")
         script_type = self.detect_script_type(script)
 
