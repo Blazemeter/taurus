@@ -229,7 +229,8 @@ class Engine(object):
         if isinstance(exception, KeyboardInterrupt):
             raise exception
         elif exception:
-            raise RuntimeError("Failed post-processing, see errors above")
+            self.log.warning("Failed post-processing")
+            raise exception
 
     def __finalize(self):
         """
