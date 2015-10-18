@@ -155,7 +155,6 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         """
         Upload results if possible
         """
-        time.sleep(300)
         if not self.client.active_session_id:
             self.log.debug("No feeding session obtained, nothing to finalize")
             return
