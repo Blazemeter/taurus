@@ -176,6 +176,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         except IOError:
             self.log.warning("Failed artifact upload: %s", traceback.format_exc())
         finally:
+            self._last_status_check = self.parameters.get('forced-last-check', self._last_status_check)
             tries = self.send_interval  # NOTE: you dirty one...
             while not self._last_status_check and tries > 0:
                 self.log.info("Waiting for ping...")
