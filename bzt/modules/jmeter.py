@@ -33,7 +33,6 @@ import tempfile
 import re
 
 from lxml.etree import XMLSyntaxError
-
 from cssselect import GenericTranslator
 
 from bzt import six

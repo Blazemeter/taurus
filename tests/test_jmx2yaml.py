@@ -1,7 +1,7 @@
-
 import tempfile
 
 import yaml
+
 from tests import BZTestCase
 from bzt.jmx2yaml import JMX2YAML
 from tests.mocks import EngineEmul, RecordingHandler

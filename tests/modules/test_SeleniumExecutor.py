@@ -1,12 +1,14 @@
+import os
+import shutil
+import time
+import csv
+
+import yaml
+
 from tests import setup_test_logging, BZTestCase, local_paths_config, __dir__
 from bzt.modules.selenium import SeleniumExecutor, JUnitJar
 from tests.mocks import EngineEmul
 from bzt.utils import BetterDict
-import os
-import shutil
-import yaml
-import time
-import csv
 
 setup_test_logging()
 

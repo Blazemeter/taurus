@@ -20,7 +20,7 @@ import subprocess
 from subprocess import CalledProcessError
 
 from bzt.utils import shutdown_process
-from bzt.engine import EngineModule, Provisioning, Service
+from bzt.engine import Provisioning, Service
 from bzt.utils import ensure_is_dict
 
 

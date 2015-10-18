@@ -3,8 +3,8 @@ import csv
 import json
 import os
 import time
-from requests.exceptions import HTTPError
 
+from requests.exceptions import HTTPError
 from locust import main, events, runners
 
 

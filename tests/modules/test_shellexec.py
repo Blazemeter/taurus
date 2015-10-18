@@ -3,10 +3,8 @@ from subprocess import CalledProcessError
 from tempfile import NamedTemporaryFile
 import time
 
-import yaml
 from bzt.engine import Service
-
-from tests import setup_test_logging, BZTestCase, __dir__
+from tests import setup_test_logging, BZTestCase
 from tests.mocks import EngineEmul, RecordingHandler
 from bzt.modules.shellexec import ShellExecutor
 from bzt.utils import BetterDict

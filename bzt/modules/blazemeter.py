@@ -29,7 +29,7 @@ import math
 from urwid import Pile, Text
 
 from bzt import ManualShutdown
-from bzt.engine import Reporter, Provisioning, ScenarioExecutor, SETTINGS, Configuration, Service
+from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
 from bzt.modules.console import WidgetProvider
 from bzt.modules.jmeter import JMeterExecutor

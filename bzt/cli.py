@@ -23,9 +23,9 @@ from tempfile import NamedTemporaryFile
 import traceback
 from logging import Formatter
 from optparse import OptionParser, BadOptionError, Option
+import signal
 
 from colorlog import ColoredFormatter
-import signal
 
 import bzt
 from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown

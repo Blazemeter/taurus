@@ -27,7 +27,6 @@ import urllib.error
 import urllib.request
 import urllib.parse
 import configparser
-
 from http import server
 import socketserver
 

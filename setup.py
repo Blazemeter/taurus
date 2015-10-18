@@ -16,9 +16,10 @@ limitations under the License.
 import os
 import shutil
 import sys
+import uuid
+
 from setuptools import setup
 from setuptools.command.install import install
-import uuid
 
 import bzt
 
