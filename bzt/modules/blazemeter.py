@@ -59,7 +59,6 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         Read options for uploading, check that they're sane
         """
         super(BlazeMeterUploader, self).prepare()
-        self._last_status_check = self.settings.get('last-check', self._last_status_check)
         self.client.address = self.settings.get("address", self.client.address)
         self.client.data_address = self.settings.get("data-address", self.client.data_address)
         self.client.timeout = dehumanize_time(self.settings.get("timeout", self.client.timeout))
@@ -155,42 +154,48 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         """
         Upload results if possible
         """
-        super(BlazeMeterUploader, self).post_process()
-
         if not self.client.active_session_id:
-            self.log.debug("No feeding session obtained, not uploading artifacts")
+            self.log.debug("No feeding session obtained, nothing to finalize")
             return
 
         try:
             if len(self.kpi_buffer):
                 self.__send_data(self.kpi_buffer, False)
                 self.kpi_buffer = []
+        finally:
+            self._postproc_phase2()
 
+        if self.client.results_url:
+            if self.browser_open in ('end', 'both'):
+                webbrowser.open(self.client.results_url)
+            self.log.info("Online report link: %s", self.client.results_url)
+
+    def _postproc_phase2(self):
+        try:
             self.__upload_artifacts()
-
+        except IOError:
+            self.log.warning("Failed artifact upload: %s", traceback.format_exc())
+        finally:
+            self._last_status_check = 0
             tries = self.send_interval  # NOTE: you dirty one...
             while not self._last_status_check and tries > 0:
                 self.log.info("Waiting for ping...")
                 time.sleep(self.send_interval)
                 tries -= 1
 
-        except IOError as _:
-            self.log.warning("Failed artifact upload: %s", traceback.format_exc())
-        finally:
-            try:
-                self.client.end_online()
-                if self.engine.stopping_reason:
-                    note = "%s: %s" % (self.engine.stopping_reason.__class__.__name__, str(self.engine.stopping_reason))
-                    self.client.update_session(self.client.active_session_id, {"note": note})
-            except KeyboardInterrupt:
-                raise
-            except BaseException as exc:
-                self.log.warning("Failed to finish online: %s", exc)
+            self._postproc_phase3()
 
-        if self.client.results_url:
-            if self.browser_open in ('end', 'both'):
-                webbrowser.open(self.client.results_url)
-            self.log.info("Online report link: %s", self.client.results_url)
+    def _postproc_phase3(self):
+        try:
+            self.client.end_online()
+            if self.engine.stopping_reason:
+                note = "%s: %s" % (
+                    self.engine.stopping_reason.__class__.__name__, str(self.engine.stopping_reason))
+                self.client.update_session(self.client.active_session_id, {"note": note})
+        except KeyboardInterrupt:
+            raise
+        except BaseException as exc:
+            self.log.warning("Failed to finish online: %s", exc)
 
     def check(self):
         """
@@ -240,6 +245,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
 
     def ping(self):
         self._last_status_check = time.time()
+        self.log.debug("Set last check time to: %s", self._last_status_check)
 
 
 class ProjectFinder(object):
