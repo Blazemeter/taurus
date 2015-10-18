@@ -52,12 +52,14 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         self.kpi_buffer = []
         self.send_interval = 30
         self.sess_name = None
+        self._last_status_check = time.time()
 
     def prepare(self):
         """
         Read options for uploading, check that they're sane
         """
         super(BlazeMeterUploader, self).prepare()
+        self._last_status_check = self.settings.get('last-check', self._last_status_check)
         self.client.address = self.settings.get("address", self.client.address)
         self.client.data_address = self.settings.get("data-address", self.client.data_address)
         self.client.timeout = dehumanize_time(self.settings.get("timeout", self.client.timeout))
@@ -165,6 +167,13 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
 
         try:
             self.__upload_artifacts()
+
+            tries = self.send_interval  # NOTE: you dirty one...
+            while not self._last_status_check and tries > 0:
+                self.log.info("Waiting for ping...")
+                time.sleep(self.send_interval)
+                tries -= 1
+
         except IOError as _:
             self.log.warning("Failed artifact upload: %s", traceback.format_exc())
         finally:
@@ -225,6 +234,9 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         :return:
         """
         self.kpi_buffer.append(data)
+
+    def ping(self):
+        self._last_status_check = time.time()
 
 
 class ProjectFinder(object):
