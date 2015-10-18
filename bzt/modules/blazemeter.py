@@ -847,7 +847,7 @@ class CloudProvisioning(Provisioning, WidgetProvider):
             execution[ScenarioExecutor.CONCURR] = execution.get(ScenarioExecutor.CONCURR).get(provisioning, None)
             execution[ScenarioExecutor.THRPT] = execution.get(ScenarioExecutor.THRPT).get(provisioning, None)
 
-        for key in config.keys():
+        for key in list(config.keys()):
             if key not in ("scenarios", "execution", "included-configs", Service.SERV):
                 config.pop(key)
 
