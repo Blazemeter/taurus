@@ -5,10 +5,10 @@ import time
 import sys
 import subprocess
 import json
-
 from abc import abstractmethod
 import os
 import shutil
+
 import urwid
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
@@ -632,7 +632,7 @@ class SeleniumScriptBuilder(NoseTest):
         browsers = ["Firefox", "Chrome", "Ie", "Opera"]
         browser = self.scenario.get("browser", "Firefox")
         if browser not in browsers:
-            raise ValueError("Unsupported browser name")
+            raise ValueError("Unsupported browser name: %s" % browser)
         setup_method_def = self.gen_method_definition("setUp", ["self"])
         setup_method_def.append(self.gen_method_statement("self.driver=webdriver.%s()" % browser))
         scenario_timeout = self.scenario.get("timeout", 30)
