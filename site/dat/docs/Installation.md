@@ -10,7 +10,7 @@ Tried on Windows 7 and Windows XP:
   1. Open Command Prompt from administrative account, type `pip install --upgrade setuptools` and hit `Enter`
   1. Open Command Prompt from administrative account, type `pip install bzt` and hit `Enter`
 
-To upgrade Taurus, open Command Prompt from administrative account and type `pip install --upgrade bzt`, then hit `Enter`
+To upgrade Taurus, open Command Prompt from administrative account and type `pip install --upgrade --no-deps bzt`, then hit `Enter`
 
 ## Linux
 
@@ -25,7 +25,7 @@ sudo pip install bzt
 Upgrading to latest is as simple as this:
 
 ```bash
-sudo pip install --upgrade bzt
+sudo pip install --upgrade --no-deps bzt
 ```
 
 ### CentOS
@@ -97,5 +97,5 @@ then try installing Taurus again.
 Upgrading to latest is as simple as this:
 
 ```bash
-sudo pip install --upgrade bzt
+sudo pip install --upgrade --no-deps bzt
 ```
