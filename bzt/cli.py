@@ -156,6 +156,7 @@ class CLI(object):
                 self.log.info("Automated shutdown")
             else:
                 if isinstance(exc, HTTPError):
+                    assert isinstance(exc, HTTPError)
                     self.log.warning("Response from %s: %s", exc.geturl(), exc.read())
                 self.log.error("%s: %s", type(exc).__name__, exc)
             self.log.warning("Please wait for graceful shutdown...")
