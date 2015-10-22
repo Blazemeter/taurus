@@ -35,7 +35,6 @@ import re
 from lxml.etree import XMLSyntaxError
 from cssselect import GenericTranslator
 
-from bzt import six
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
@@ -1134,10 +1133,11 @@ class JMX(object):
         :return:
         """
         res = etree.Element("stringProp", name=name)
-        if not isinstance(value, six.string_types):
-            value = str(value)
-
-        res.text = value
+        try:
+            res.text = str(value)
+        except ValueError:
+            logging.warning("Failed to set string prop: %s=%s", name, value)
+            res.text = 'BINARY'
         return res
 
     @staticmethod
@@ -1256,21 +1256,20 @@ class JMX(object):
         shaper_collection.append(coll_prop)
 
     @staticmethod
-    def add_user_def_vars_elements(udv_dict):
+    def add_user_def_vars_elements(udv_dict, testname="Variables from Taurus"):
         """
-
-        :param udv_dict:
-        :return:
+        :type udv_dict: dict[str,str]
+        :rtype: etree.Element
         """
 
         udv_element = etree.Element("Arguments", guiclass="ArgumentsPanel", testclass="Arguments",
-                                    testname="Variables from Taurus")
+                                    testname=testname)
         udv_collection_prop = JMX._collection_prop("Arguments.arguments")
 
-        for var_name, var_value in udv_dict.items():
+        for var_name in sorted(udv_dict.keys()):
             udv_element_prop = JMX._element_prop(var_name, "Argument")
             udv_arg_name_prop = JMX._string_prop("Argument.name", var_name)
-            udv_arg_value_prop = JMX._string_prop("Argument.value", var_value)
+            udv_arg_value_prop = JMX._string_prop("Argument.value", udv_dict[var_name])
             udv_arg_desc_prop = JMX._string_prop("Argument.desc", "")
             udv_arg_meta_prop = JMX._string_prop("Argument.metadata", "=")
             udv_element_prop.append(udv_arg_name_prop)
@@ -1363,7 +1362,7 @@ class JMX(object):
         return mgr
 
     @staticmethod
-    def _get_http_defaults(default_address, timeout, retrieve_resources, concurrent_pool_size=4):
+    def _get_http_defaults(default_address=None, timeout=None, retrieve_resources=None, concurrent_pool_size=4):
         """
 
         :type timeout: int
