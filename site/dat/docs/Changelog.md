@@ -1,6 +1,8 @@
 # Changelog
 
-## 0.4.5 (next)
+## 0.4.6 (next)
+
+## 0.4.5
  - load settings applied to Stepping Thread Groups
  - shellexec service: print to stdout/stderr when `out`/`err` options set to `null`
  - JMeter: append `user.properties` instead of overriding
