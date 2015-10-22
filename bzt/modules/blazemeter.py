@@ -23,6 +23,7 @@ import sys
 import traceback
 import time
 import webbrowser
+import yaml
 import zipfile
 import math
 
@@ -448,7 +449,8 @@ class BlazeMeterClient(object):
 
             body = MultiPartForm()
 
-            body.add_file_as_string('script', 'taurus.json', to_json(taurus_config))
+            body.add_file_as_string('script', 'taurus.yml', yaml.dump(taurus_config, default_flow_style=False,
+                                                                      explicit_start=True, canonical=False))
 
             for rfile in resource_files:
                 body.add_file('files[]', rfile)
@@ -909,7 +911,6 @@ class CloudProvisioning(Provisioning, WidgetProvider):
                 self.log.warning("Cloud test has probably failed with message: %s", status['note'])
 
             self.client.active_session_id = None
-
             return True
 
         self.widget.update()
