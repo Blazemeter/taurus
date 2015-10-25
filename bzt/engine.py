@@ -27,6 +27,7 @@ import time
 import traceback
 from collections import namedtuple, defaultdict
 from json import encoder
+from types import NoneType
 
 import psutil
 import yaml
@@ -36,7 +37,7 @@ from bzt import ManualShutdown, NormalShutdown, get_configs_dir
 import bzt
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, build_opener, \
-    install_opener, urlopen, request
+    install_opener, urlopen, request, numeric_types
 
 SETTINGS = "settings"
 
@@ -903,8 +904,21 @@ class ScenarioExecutor(EngineModule):
         if duration and not iterations:
             iterations = 0  # which means infinite
 
+        if not isinstance(concurrency, numeric_types + (NoneType,)):
+            raise ValueError("Invalid concurrency value[%s]: %s" % (type(concurrency).__name__, concurrency))
+
+        if not isinstance(throughput, numeric_types + (NoneType,)):
+            raise ValueError("Invalid throughput value[%s]: %s" % (type(throughput).__name__, throughput))
+
+        if not isinstance(steps, numeric_types + (NoneType,)):
+            raise ValueError("Invalid throughput value[%s]: %s" % (type(steps).__name__, steps))
+
+        if not isinstance(iterations, numeric_types + (NoneType,)):
+            raise ValueError("Invalid throughput value[%s]: %s" % (type(iterations).__name__, iterations))
+
         res = namedtuple("LoadSpec",
                          ('concurrency', "throughput", 'ramp_up', 'hold', 'iterations', 'duration', 'steps'))
+
         return res(concurrency=concurrency, ramp_up=ramp_up,
                    throughput=throughput, hold=hold, iterations=iterations,
                    duration=duration, steps=steps)
