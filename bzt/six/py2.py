@@ -31,6 +31,7 @@ import SocketServer as socketserver
 
 string_types = basestring,
 integer_types = (int, long)
+numeric_types=(int, long, float, complex)
 class_types = (type, types.ClassType)
 text_type = unicode
 binary_type = str

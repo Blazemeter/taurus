@@ -32,6 +32,7 @@ import socketserver
 
 string_types = str,
 integer_types = int,
+numeric_types=(int, float, complex)
 class_types = type,
 text_type = str
 binary_type = bytes
