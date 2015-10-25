@@ -13,7 +13,7 @@ To access BlazeMeter cloud, Taurus would require to have API key set inside `clo
 modules:
   cloud:
     token: ******  # API key
-    timeout: 1s  # BlazeMeter API client timeout
+    timeout: 10s  # BlazeMeter API client timeout
     browser-open: start  # auto-open browser on test start/end/both/none
 ```
 
@@ -69,6 +69,22 @@ modules:
     test: Taurus Test  # test name
     project: Project Name  # project name or id
 ```
+
+## Specifying Additional Resource Files
+If you need some additional files as part of your test and Taurus fails to detect them automatically, you can attach them to execution using `files` section:
+
+```yaml
+---
+execution:
+  - locations:
+      eu-east: 1
+    scenario:
+      script: testplan.jmx
+    files:
+      - path/to/file1.csv
+      - path/to/file2.csv
+```
+
 
 ## Specifying Where to Run for Shellexec Service
 
