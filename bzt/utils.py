@@ -662,8 +662,10 @@ class JavaVM(RequiredTool):
         self.log = parent_logger.getChild(self.__class__.__name__)
 
     def check_if_installed(self):
+        cmd = ["java", '-version']
+        self.log.debug("Trying: %s", cmd)
         try:
-            output = subprocess.check_output(["java", '-version'], stderr=subprocess.STDOUT)
+            output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
             self.log.debug("%s output: %s", self.tool_name, output)
             return True
         except BaseException as exc:
