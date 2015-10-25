@@ -1,6 +1,8 @@
 # Changelog
 
 ## 0.4.6 (next)
+ - allow using Xvfb for Selenium executor
+ - don't use lynx browser when openin report links
 
 ## 0.4.5
  - load settings applied to Stepping Thread Groups

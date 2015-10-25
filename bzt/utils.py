@@ -26,6 +26,8 @@ import re
 import shlex
 import mimetypes
 import itertools
+import webbrowser
+from webbrowser import Chrome, GenericBrowser
 import zipfile
 import sys
 import time
@@ -775,3 +777,9 @@ class MirrorsManager(object):
             self.log.error("Can't fetch %s", self.base_link)
         mirrors = self._parse_mirrors()
         return (mirror for mirror in mirrors)
+
+
+def open_browser(url):
+    browser = webbrowser.get()
+    if type(browser) != GenericBrowser:
+        browser.open(url)

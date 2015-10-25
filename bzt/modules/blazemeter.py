@@ -22,7 +22,6 @@ import os
 import sys
 import traceback
 import time
-import webbrowser
 import yaml
 import zipfile
 import math
@@ -34,7 +33,7 @@ from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, 
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
 from bzt.modules.console import WidgetProvider
 from bzt.modules.jmeter import JMeterExecutor
-from bzt.utils import to_json, dehumanize_time, MultiPartForm, BetterDict, humanize_time
+from bzt.utils import to_json, dehumanize_time, MultiPartForm, BetterDict, humanize_time, open_browser
 from bzt.six import BytesIO, text_type, iteritems, HTTPError, urlencode, Request, urlopen, r_input
 
 
@@ -105,7 +104,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
                 url = self.client.start_online(self.test_id, self.sess_name)
                 self.log.info("Started data feeding: %s", url)
                 if self.browser_open in ('start', 'both'):
-                    webbrowser.open(url)
+                    open_browser(url)
             except KeyboardInterrupt:
                 raise
             except BaseException as exc:
@@ -169,7 +168,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
 
         if self.client.results_url:
             if self.browser_open in ('end', 'both'):
-                webbrowser.open(self.client.results_url)
+                open_browser(self.client.results_url)
             self.log.info("Online report link: %s", self.client.results_url)
 
     def _postproc_phase2(self):
@@ -892,7 +891,7 @@ class CloudProvisioning(Provisioning, WidgetProvider):
         self.log.info("Started cloud test: %s", self.client.results_url)
         if self.client.results_url:
             if self.browser_open in ('start', 'both'):
-                webbrowser.open(self.client.results_url)
+                open_browser(self.client.results_url)
 
     def check(self):
         # TODO: throttle down requests
@@ -920,7 +919,7 @@ class CloudProvisioning(Provisioning, WidgetProvider):
         self.client.end_master(self.client.active_session_id)
         if self.client.results_url:
             if self.browser_open in ('end', 'both'):
-                webbrowser.open(self.client.results_url)
+                open_browser(self.client.results_url)
 
     def weight_locations(self, locations, load, available_locations):
         total = float(sum(locations.values()))
