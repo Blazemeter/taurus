@@ -9,6 +9,7 @@ from abc import abstractmethod
 import os
 import shutil
 
+from pyvirtualdisplay import Display
 import urwid
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
@@ -23,6 +24,7 @@ from bzt.modules.jmeter import JTLReader
 class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     """
     Selenium executor
+    :type virtual_display: Display
     """
     SELENIUM_DOWNLOAD_LINK = "http://selenium-release.storage.googleapis.com/{version}/" \
                              "selenium-server-standalone-{version}.0.jar"
@@ -39,6 +41,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def __init__(self):
         super(SeleniumExecutor, self).__init__()
+        self.virtual_display = None
         self.start_time = None
         self.end_time = None
         self.runner = None
@@ -87,6 +90,12 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.reader = JTLReader(self.kpi_file, self.log, self.err_jtl)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
+
+        display_conf = self.settings.get("virtual-display")
+        if display_conf:
+            width = display_conf.get("width", 1024)
+            height = display_conf.get("height", 768)
+            self.virtual_display = Display(size=(width, height))
 
     def _verify_script(self):
         if not self.scenario.get("script"):
@@ -138,6 +147,10 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :return:
         """
         self.start_time = time.time()
+        if self.virtual_display:
+            msg = "Starting virtual display[%s]: %s"
+            self.log.info(msg, self.virtual_display.size, self.virtual_display.new_display_var)
+            self.virtual_display.start()
         self.runner.run_tests()
 
     def check(self):
@@ -148,6 +161,11 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if self.widget:
             self.widget.update()
 
+        if self.virtual_display and not self.virtual_display.is_alive():
+            self.log.info("Virtual display out: %s", self.virtual_display.stdout)
+            self.log.warning("Virtual display err: %s", self.virtual_display.stderr)
+            raise RuntimeError("Virtual display failed: %s" % self.virtual_display.return_code)
+
         return self.runner.is_finished()
 
     def shutdown(self):
@@ -155,7 +173,11 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         shutdown test_runner
         :return:
         """
-        self.runner.shutdown()
+        try:
+            self.runner.shutdown()
+        finally:
+            if self.virtual_display and self.virtual_display.is_alive():
+                self.virtual_display.stop()
 
         if self.start_time:
             self.end_time = time.time()
