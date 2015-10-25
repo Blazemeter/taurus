@@ -27,7 +27,6 @@ import time
 import traceback
 from collections import namedtuple, defaultdict
 from json import encoder
-from types import NoneType
 
 import psutil
 import yaml
@@ -904,16 +903,16 @@ class ScenarioExecutor(EngineModule):
         if duration and not iterations:
             iterations = 0  # which means infinite
 
-        if not isinstance(concurrency, numeric_types + (NoneType,)):
+        if not isinstance(concurrency, numeric_types + (type(None),)):
             raise ValueError("Invalid concurrency value[%s]: %s" % (type(concurrency).__name__, concurrency))
 
-        if not isinstance(throughput, numeric_types + (NoneType,)):
+        if not isinstance(throughput, numeric_types + (type(None),)):
             raise ValueError("Invalid throughput value[%s]: %s" % (type(throughput).__name__, throughput))
 
-        if not isinstance(steps, numeric_types + (NoneType,)):
+        if not isinstance(steps, numeric_types + (type(None),)):
             raise ValueError("Invalid throughput value[%s]: %s" % (type(steps).__name__, steps))
 
-        if not isinstance(iterations, numeric_types + (NoneType,)):
+        if not isinstance(iterations, numeric_types + (type(None),)):
             raise ValueError("Invalid throughput value[%s]: %s" % (type(iterations).__name__, iterations))
 
         res = namedtuple("LoadSpec",
