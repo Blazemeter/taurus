@@ -27,7 +27,7 @@ import shlex
 import mimetypes
 import itertools
 import webbrowser
-from webbrowser import Chrome, GenericBrowser
+from webbrowser import GenericBrowser
 import zipfile
 import sys
 import time
