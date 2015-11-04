@@ -25,9 +25,7 @@ import time
 import yaml
 import zipfile
 import math
-
 from urwid import Pile, Text
-
 from bzt import ManualShutdown
 from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
@@ -74,6 +72,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         self.client.test_id = self.parameters.get("test-id", None)
         self.client.user_id = self.parameters.get("user-id", None)
         self.client.data_signature = self.parameters.get("signature", None)
+        self.client.kpi_target = self.parameters.get("kpi-target", self.client.kpi_target)
 
         if not self.client.test_id:
             try:
@@ -161,7 +160,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
 
         try:
             if len(self.kpi_buffer):
-                self.__send_data(self.kpi_buffer, False)
+                self.__send_data(self.kpi_buffer, False, True)
                 self.kpi_buffer = []
         finally:
             self._postproc_phase2()
@@ -213,20 +212,19 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
                 self.kpi_buffer = []
         return super(BlazeMeterUploader, self).check()
 
-    def __send_data(self, data, do_check=True):
+    def __send_data(self, data, do_check=True, is_final=False):
         """
         :param data: list[bzt.modules.aggregator.DataPoint]
         :return:
         """
         if self.client.active_session_id:
             try:
-                self.client.send_kpi_data(data, do_check)
+                self.client.send_kpi_data(data, do_check, is_final)
             except IOError as _:
                 self.log.debug("Error sending data: %s", traceback.format_exc())
                 self.log.warning("Failed to send data, will retry in %s sec...", self.client.timeout)
                 try:
                     time.sleep(self.client.timeout)
-                    self.client.send_kpi_data(data, do_check)
                     self.log.info("Succeeded with retry")
                 except IOError as _:
                     self.log.error("Fatal error sending data: %s", traceback.format_exc())
@@ -254,6 +252,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
 class ProjectFinder(object):
     def __init__(self, parameters, settings, client, engine):
         super(ProjectFinder, self).__init__()
+        self.default_test_name = "Taurus Test"
         self.client = client
         self.parameters = parameters
         self.settings = settings
@@ -269,7 +268,7 @@ class ProjectFinder(object):
         else:
             proj_id = None
 
-        test_name = self.parameters.get("test", self.settings.get("test", "Taurus Test"))
+        test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
         return self.client.test_by_name(test_name, test_config, taurus_config, rfiles, proj_id)
 
 
@@ -277,6 +276,7 @@ class BlazeMeterClient(object):
     """ Service client class """
 
     def __init__(self, parent_logger):
+        self.kpi_target = 'labels_bulk'
         self.logger_limit = 256
         self.user_id = None
         self.test_id = None
@@ -295,7 +295,7 @@ class BlazeMeterClient(object):
         if not headers:
             headers = {}
         if self.token:
-            headers["X-API-Key"] = self.token
+            headers["X-Api-Key"] = self.token
 
         log_method = 'GET' if data is None else 'POST'
         if method:
@@ -469,7 +469,7 @@ class BlazeMeterClient(object):
         self.log.debug("Tests for user: %s", len(tests['result']))
         return tests['result']
 
-    def send_kpi_data(self, data_buffer, is_check_response=True):
+    def send_kpi_data(self, data_buffer, is_check_response=True, is_final=False):
         """
         Sends online data
 
@@ -508,11 +508,13 @@ class BlazeMeterClient(object):
                 json_item['n'] = cumul[KPISet.SAMPLE_COUNT]
                 json_item["summary"] = self.__summary_json(cumul)
 
-        data = {"labels": data}
+        data = {"labels": data, "sourceID": id(self)}
+        if is_final:
+            data['final'] = True
 
         url = self.data_address + "/submit.php?session_id=%s&signature=%s&test_id=%s&user_id=%s"
         url = url % (self.active_session_id, self.data_signature, self.test_id, self.user_id)
-        url += "&pq=0&target=labels_bulk&update=1"
+        url += "&pq=0&target=%s&update=1" % self.kpi_target
         hdr = {"Content-Type": " application/json"}
         response = self._request(url, to_json(data), headers=hdr)
 
@@ -784,6 +786,7 @@ class CloudProvisioning(Provisioning, WidgetProvider):
     def prepare(self):
         super(CloudProvisioning, self).prepare()
         self.browser_open = self.settings.get("browser-open", self.browser_open)
+        self.client.logger_limit = self.settings.get("request-logging-limit", self.client.logger_limit)
 
         # TODO: go to "blazemeter" section for these settings by default?
         self.client.address = self.settings.get("address", self.client.address)
@@ -812,6 +815,7 @@ class CloudProvisioning(Provisioning, WidgetProvider):
 
         bza_plugin = self.__get_bza_test_config()
         finder = ProjectFinder(self.parameters, self.settings, self.client, self.engine)
+        finder.default_test_name = "Taurus Cloud Test"
         self.test_id = finder.resolve_test_id(bza_plugin, config, rfiles)
 
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
