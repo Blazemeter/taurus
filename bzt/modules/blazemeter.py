@@ -159,9 +159,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
             return
 
         try:
-            if len(self.kpi_buffer):
-                self.__send_data(self.kpi_buffer, False, True)
-                self.kpi_buffer = []
+            self.__send_data(self.kpi_buffer, False, True)
+            self.kpi_buffer = []
         finally:
             self._postproc_phase2()
 
@@ -217,24 +216,29 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         :param data: list[bzt.modules.aggregator.DataPoint]
         :return:
         """
-        if self.client.active_session_id:
-            try:
-                self.client.send_kpi_data(data, do_check, is_final)
-            except IOError as _:
-                self.log.debug("Error sending data: %s", traceback.format_exc())
-                self.log.warning("Failed to send data, will retry in %s sec...", self.client.timeout)
-                try:
-                    time.sleep(self.client.timeout)
-                    self.log.info("Succeeded with retry")
-                except IOError as _:
-                    self.log.error("Fatal error sending data: %s", traceback.format_exc())
-                    self.log.warning("Will skip failed data and continue running")
+        if not self.client.active_session_id:
+            return
 
+        try:
+            self.client.send_kpi_data(data, do_check, is_final)
+        except IOError as _:
+            self.log.debug("Error sending data: %s", traceback.format_exc())
+            self.log.warning("Failed to send data, will retry in %s sec...", self.client.timeout)
             try:
-                self.client.send_error_summary(data)
-            except IOError as exc:
-                self.log.debug("Failed sending error summary: %s", traceback.format_exc())
-                self.log.warning("Failed to send error summary: %s", exc)
+                time.sleep(self.client.timeout)
+                self.log.info("Succeeded with retry")
+            except IOError as _:
+                self.log.error("Fatal error sending data: %s", traceback.format_exc())
+                self.log.warning("Will skip failed data and continue running")
+
+        if not data:
+            return
+
+        try:
+            self.client.send_error_summary(data)
+        except IOError as exc:
+            self.log.debug("Failed sending error summary: %s", traceback.format_exc())
+            self.log.warning("Failed to send error summary: %s", exc)
 
     def aggregated_second(self, data):
         """
