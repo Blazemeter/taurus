@@ -499,7 +499,7 @@ class BlazeMeterClient(object):
                         break
 
                 if not json_item:
-                    json_item = self.__label_skel(label)
+                    json_item = self.__label_skel(label, item)
                     data.append(json_item)
 
                 interval_item = self.__interval_json(item, sec)
@@ -532,7 +532,25 @@ class BlazeMeterClient(object):
                 self.log.info("Test was stopped through Web UI: %s", result['status'])
                 raise ManualShutdown("The test was interrupted through Web UI")
 
-    def __label_skel(self, name):
+    def __label_skel(self, name, kpiset):
+        """
+        :type kpiset: KPISet
+        """
+        histogram = []
+        perc_keys = kpiset[KPISet.PERCENTILES].keys()
+        perc_keys.sort(key=float)
+        self.log.debug("Perc: %s", kpiset[KPISet.PERCENTILES])
+        self.log.debug("Perc-keys: %s", perc_keys)
+        for level in range(1, 101):
+            while level > float(perc_keys[0]) and len(perc_keys) > 0:
+                perc_keys.pop(0)
+
+            assert perc_keys[0] >= level, "%s >= %s" % (perc_keys[0], level)
+            val = int(1000 * kpiset[KPISet.PERCENTILES][perc_keys[0]])
+            if histogram:
+                assert val >= histogram[- 1], "%s %s" % (val, histogram)
+            histogram.append(val)
+
         return {
             "n": None,
             "name": name,
@@ -544,7 +562,7 @@ class BlazeMeterClient(object):
             "failedEmbeddedResourcesSpilloverCount": 0,
             "otherErrorsCount": 0,
             "errors": [],
-            "percentileHistogram": [],
+            "percentileHistogram": histogram,
             "percentileHistogramLatency": [],
             "percentileHistogramBytes": [],
             "empty": False,
