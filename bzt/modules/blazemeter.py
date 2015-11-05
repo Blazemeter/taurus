@@ -318,7 +318,6 @@ class BlazeMeterClient(object):
             checker(response)
 
         resp = response.read()
-
         if not isinstance(resp, str):
             resp = resp.decode()
 
@@ -536,20 +535,7 @@ class BlazeMeterClient(object):
         """
         :type kpiset: KPISet
         """
-        histogram = []
-        perc_keys = kpiset[KPISet.PERCENTILES].keys()
-        perc_keys.sort(key=float)
-        self.log.debug("Perc: %s", kpiset[KPISet.PERCENTILES])
-        self.log.debug("Perc-keys: %s", perc_keys)
-        for level in range(1, 101):
-            while level > float(perc_keys[0]) and len(perc_keys) > 0:
-                perc_keys.pop(0)
 
-            assert perc_keys[0] >= level, "%s >= %s" % (perc_keys[0], level)
-            val = int(1000 * kpiset[KPISet.PERCENTILES][perc_keys[0]])
-            if histogram:
-                assert val >= histogram[- 1], "%s %s" % (val, histogram)
-            histogram.append(val)
 
         return {
             "n": None,
@@ -562,7 +548,7 @@ class BlazeMeterClient(object):
             "failedEmbeddedResourcesSpilloverCount": 0,
             "otherErrorsCount": 0,
             "errors": [],
-            "percentileHistogram": histogram,
+            "percentileHistogram": [],
             "percentileHistogramLatency": [],
             "percentileHistogramBytes": [],
             "empty": False,
