@@ -1,6 +1,7 @@
 import json
 import logging
 
+from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.blazemeter import CloudProvisioning, BlazeMeterClientEmul, ResultsFromBZA
 from tests import BZTestCase, __dir__
@@ -12,7 +13,7 @@ class TestCloudProvisioning(BZTestCase):
         obj = CloudProvisioning()
         obj.engine = EngineEmul()
         obj.engine.config.merge({
-            "execution": {
+            ScenarioExecutor.EXEC: {
                 "executor": "mock",
                 "concurrency": 5500,
                 "locations": {
@@ -57,7 +58,7 @@ class TestCloudProvisioning(BZTestCase):
         obj = CloudProvisioning()
         obj.engine = EngineEmul()
         obj.engine.config.merge({
-            "execution": {
+            ScenarioExecutor.EXEC: {
                 "executor": "mock",
             },
             "modules": {

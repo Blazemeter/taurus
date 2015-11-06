@@ -4,6 +4,8 @@ import os
 import time
 import urwid
 import yaml
+
+from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet, AggregatorListener
 from bzt.modules.pbench import PBenchExecutor, Scheduler
 from bzt.six import StringIO, parse
@@ -119,7 +121,7 @@ class TestPBench(BZTestCase):
         obj.settings = BetterDict()
         obj.engine.config.merge({
             "provisioning": "test",
-            "execution": [
+            ScenarioExecutor.EXEC: [
                 {
                     "throughput": 10,
                     "hold-for": 30,
@@ -197,7 +199,8 @@ class TestPBench(BZTestCase):
         obj.engine = EngineEmul()
         obj.settings = BetterDict()
         obj.engine.config = BetterDict()
-        obj.engine.config.merge({"execution": {"executor": "pbench", "scenario": {"script": "/opt/data/script.src"}}})
+        obj.engine.config.merge(
+            {ScenarioExecutor.EXEC: {"executor": "pbench", "scenario": {"script": "/opt/data/script.src"}}})
         obj.execution = obj.engine.config['execution']
         obj.settings.merge({
             "path": os.path.join(os.path.dirname(__file__), '..', "phantom.sh"),

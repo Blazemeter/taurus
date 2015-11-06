@@ -29,7 +29,7 @@ from colorlog import ColoredFormatter
 
 import bzt
 from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown
-from bzt.engine import Engine, Configuration
+from bzt.engine import Engine, Configuration, ScenarioExecutor
 from bzt.six import HTTPError, string_types
 from bzt.utils import run_once, is_int, BetterDict
 
@@ -211,7 +211,7 @@ class CLI(object):
             config = Configuration()
 
             for jmx_file in jmxes:
-                config.get("execution", []).append({"executor": "jmeter", "scenario": {"script": jmx_file}})
+                config.get(ScenarioExecutor.EXEC, []).append({"executor": "jmeter", "scenario": {"script": jmx_file}})
 
             config.dump(fname, Configuration.JSON)
 
