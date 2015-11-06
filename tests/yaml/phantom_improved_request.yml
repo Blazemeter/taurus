@@ -1,0 +1,18 @@
+---
+settings:
+  default-executor: pbench
+execution:
+- scenario: pb1
+  hold-for: 30s
+  throughput: 10
+provisioning: test
+scenarios:
+  pb1:
+    default-address: http://blazedemo.com/
+    timeout: 10s
+    requests:
+      - url: /get_with_params.html
+        method: GET
+        body:
+          get_param1: value1
+          get_param2: value2

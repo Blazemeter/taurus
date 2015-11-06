@@ -4,3 +4,4 @@ include NOTICE
 include bzt/resources/grinder-requests.tpl
 include bzt/resources/logback-worker.xml
 include bzt/resources/taurus-junit-1.0.jar
+include bzt/resources/pbench.conf

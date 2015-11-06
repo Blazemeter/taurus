@@ -1,0 +1,12 @@
+---
+settings:
+  default-executor: pbench
+execution:
+- scenario: pb1
+  hold-for: 30s
+scenarios:
+  pb1:
+    timeout: 10s
+    requests:
+      - url: http://blazedemo.com/
+      - url: https://blazedemo.com/

@@ -90,6 +90,9 @@
     },
     "monitoring": {
       "class": "bzt.modules.monitoring.Monitoring"
+    },
+    "pbench": {
+      "class": "bzt.modules.pbench.PBenchExecutor"
     }
   },
   "settings": {
