@@ -15,26 +15,30 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-from abc import abstractmethod
 import copy
 import datetime
-from distutils.version import LooseVersion
+import hashlib
 import json
 import logging
 import os
 import shutil
 import time
 import traceback
+from abc import abstractmethod
 from collections import namedtuple, defaultdict
+from distutils.version import LooseVersion
 from json import encoder
+
+import bencode
 import psutil
 import yaml
 from yaml.representer import SafeRepresenter
-from bzt import ManualShutdown, NormalShutdown, get_configs_dir
+
 import bzt
-from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time
+from bzt import ManualShutdown, NormalShutdown, get_configs_dir
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, build_opener, \
     install_opener, urlopen, request, numeric_types
+from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time
 
 SETTINGS = "settings"
 
@@ -872,8 +876,13 @@ class ScenarioExecutor(EngineModule):
             else:
                 raise ValueError("Unsupported type for scenario")
 
-        if self._label is None and self.__scenario.get(Scenario.SCRIPT, None):
-            self._label = os.path.basename(self.__scenario.get(Scenario.SCRIPT))
+        if self._label is None:
+            if self.__scenario.get(Scenario.SCRIPT, None):
+                # using script name if present
+                self._label = os.path.basename(self.__scenario.get(Scenario.SCRIPT))
+            else:
+                # last resort - a checksum of whole scenario
+                self._label = hashlib.md5(bencode.bencode(self.__scenario)).hexdigest()
 
         return self.__scenario
 
