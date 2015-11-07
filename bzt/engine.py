@@ -28,7 +28,6 @@ from abc import abstractmethod
 from collections import namedtuple, defaultdict
 from distutils.version import LooseVersion
 from json import encoder
-
 import psutil
 import yaml
 from yaml.representer import SafeRepresenter
@@ -876,9 +875,10 @@ class ScenarioExecutor(EngineModule):
                 raise ValueError("Unsupported type for scenario")
 
         if self._label is None:
-            if self.__scenario.get(Scenario.SCRIPT, None):
+            if Scenario.SCRIPT in self.__scenario:
                 # using script name if present
-                self._label = os.path.basename(self.__scenario.get(Scenario.SCRIPT))
+                error = ValueError("Wrong script in scenario")
+                self._label = os.path.basename(self.__scenario.get(Scenario.SCRIPT, error))
             else:
                 # last resort - a checksum of whole scenario
                 self._label = hashlib.md5(to_json(self.__scenario)).hexdigest()

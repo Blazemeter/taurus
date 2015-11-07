@@ -62,7 +62,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self._verify_script()
         self.kpi_file = self.engine.create_artifact("selenium_tests_report", ".csv")
         self.err_jtl = self.engine.create_artifact("selenium_tests_err", ".xml")
-        script_type = self.detect_script_type(self.scenario.get("script"))
+        script_type = self.detect_script_type(self.scenario.get(Scenario.SCRIPT))
 
         if script_type == ".py":
             self.runner = NoseTester
