@@ -8,8 +8,7 @@ sudo apt-get install software-properties-common
 sudo add-apt-repository ppa:yandex-load/main
 sudo apt-get update
 sudo apt-get install phantom phantom-ssl
-sudo pip install bztremote-1.1.tar.gz  # from http://jenkins.blazemeter.com:8080/job/taurus-server/
-sudo dpkg -i blazemeter-pbench-extras_0.0.6.1_amd64.deb  # from http://jenkins.blazemeter.com:8080/job/taurus-pbench/
+sudo dpkg -i blazemeter-pbench-extras_0.0.6.1_amd64.deb  # built from https://github.com/Blazemeter/taurus-pbench
 ```
 
 Then use it like this:
