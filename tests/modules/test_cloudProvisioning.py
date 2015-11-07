@@ -36,20 +36,15 @@ class TestCloudProvisioning(BZTestCase):
         client.results.append({})  # upload files
         client.results.append({"result": {"id": id(obj)}})  # start
         client.results.append({"result": {"id": id(obj)}})  # get master
+        client.results.append({"result": []})  # get master sessions
         client.results.append({})  # terminate
 
         obj.prepare()
-        widget = obj.get_widget()
-        self.assertEquals(2, obj.executors[0].execution['locations']['us-east-1'])
-        self.assertEquals(4, obj.executors[0].execution['locations']['us-west'])
+        self.assertEquals(1, obj.executors[0].execution['locations']['us-east-1'])
+        self.assertEquals(2, obj.executors[0].execution['locations']['us-west'])
 
         obj.startup()
         obj.check()
-        widget.render((200,), False)
-        txt = widget.text.get_text()[0]
-        logging.info("Text: '%s'", txt)
-        self.assertIn("us-east-1: 2", txt)
-        self.assertIn("us-west: 4", txt)
         obj.shutdown()
         obj.post_process()
 

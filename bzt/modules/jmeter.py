@@ -31,10 +31,8 @@ import shutil
 from collections import Counter, namedtuple
 import tempfile
 import re
-
 from lxml.etree import XMLSyntaxError
 from cssselect import GenericTranslator
-
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
@@ -88,7 +86,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.distributed_servers = self.execution.get('distributed', self.distributed_servers)
         scenario = self.get_scenario()
         self.resource_files()
-        if Scenario.SCRIPT in scenario:
+        if Scenario.SCRIPT in scenario and scenario[Scenario.SCRIPT]:
             self.engine.existing_artifact(self.original_jmx)
         elif "requests" in scenario:
             if scenario.get("requests"):
