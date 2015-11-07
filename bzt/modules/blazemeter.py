@@ -18,21 +18,24 @@ limitations under the License.
 import copy
 import json
 import logging
+import math
 import os
 import sys
-import traceback
 import time
-import yaml
+import traceback
 import zipfile
-import math
+from collections import defaultdict
+
+import yaml
 from urwid import Pile, Text
+
 from bzt import ManualShutdown
 from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
 from bzt.modules.console import WidgetProvider
 from bzt.modules.jmeter import JMeterExecutor
-from bzt.utils import to_json, dehumanize_time, MultiPartForm, BetterDict, humanize_time, open_browser
 from bzt.six import BytesIO, text_type, iteritems, HTTPError, urlencode, Request, urlopen, r_input
+from bzt.utils import to_json, dehumanize_time, MultiPartForm, BetterDict, open_browser
 
 
 class BlazeMeterUploader(Reporter, AggregatorListener):
@@ -848,12 +851,6 @@ class CloudProvisioning(Provisioning, WidgetProvider):
                     self.log.warning("List of supported locations for you is: %s", sorted(available_locations.keys()))
                     raise ValueError("Invalid location requested: %s" % location)
 
-            """
-            for location in locations.keys():
-                self.log.info("Requesting %s machines for %s in %s",
-                              locations[location], humanize_time(load.duration), location)
-            """
-
     def __get_config_for_cloud(self):
         config = copy.deepcopy(self.engine.config)
 
@@ -1031,16 +1028,24 @@ class CloudProvWidget(Pile):
             if not self._sessions:
                 return
 
-        txt = self.prov.test_name + " #%s\n" % self.prov.client.active_session_id
+        mapping = BetterDict()
         cnt = 0
         for session in self._sessions:
             try:
                 cnt += 1
-                name = session['name']
+                name_split = session['name'].split('/')
                 location = session['configuration']['location']
                 count = session['configuration']['serversCount']
-                txt += "  %s. %s" % (cnt, name)
-                txt += " machines: %s\n" % count
+                mapping.get(name_split[0]).get(name_split[1])[location] = count
             except KeyError:
                 self._sessions = None
+
+        txt = "%s #%s\n" % (self.prov.test_name, self.prov.client.active_session_id)
+        for executor, scenarios in iteritems(mapping):
+            txt += " %s" % executor
+            for scenario, locations in iteritems(scenarios):
+                txt += " %s:\n" % scenario
+                for location, count in iteritems(locations):
+                    txt += "  Agents in %s: %s\n" % (location, count)
+
         self.text.set_text(txt)

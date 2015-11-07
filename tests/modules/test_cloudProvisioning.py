@@ -1,6 +1,5 @@
 import json
 import logging
-
 from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.blazemeter import CloudProvisioning, BlazeMeterClientEmul, ResultsFromBZA
@@ -81,6 +80,35 @@ class TestCloudProvisioning(BZTestCase):
     def __get_user_info(self):
         with open(__dir__() + "/../json/blazemeter-api-user.json") as fhd:
             return json.loads(fhd.read())
+
+    def test_widget(self):
+        obj = CloudProvisioning()
+        obj.client = BlazeMeterClientEmul(logging.getLogger(''))
+        obj.client.results.append({"result": []})
+        obj.client.results.append({"result": {"sessions": [
+            {
+                "name": "executor/scenario/location",
+                "configuration": {}
+            }
+        ]}})
+
+        obj.client.results.append({"result": {"sessions": [
+            {
+                "name": "executor/scenario/location",
+                "configuration": {
+                    "location": "loc-name",
+                    "serversCount": "10"
+                }
+            }
+        ]}})
+
+        widget = obj.get_widget()
+        widget.update()
+        widget.update()
+        widget.update()
+        widget.update()
+
+        self.assertEqual("None #None\n executor scenario:\n  Agents in loc-name: 10\n", widget.text.get_text()[0])
 
 
 class TestResultsFromBZA(BZTestCase):
