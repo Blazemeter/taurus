@@ -265,8 +265,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if Scenario.SCRIPT not in scenario:
             return None
 
-        ensure_is_dict(scenario, Scenario.SCRIPT, "path")
-        fname = scenario[Scenario.SCRIPT]["path"]
+        fname = scenario[Scenario.SCRIPT]
         if fname is not None:
             return self.engine.find_file(fname)
         else:
