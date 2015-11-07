@@ -24,7 +24,6 @@ import sys
 import time
 import traceback
 import zipfile
-from collections import defaultdict
 
 import yaml
 from urwid import Pile, Text
