@@ -29,7 +29,6 @@ from collections import namedtuple, defaultdict
 from distutils.version import LooseVersion
 from json import encoder
 
-import bencode
 import psutil
 import yaml
 from yaml.representer import SafeRepresenter
@@ -882,7 +881,7 @@ class ScenarioExecutor(EngineModule):
                 self._label = os.path.basename(self.__scenario.get(Scenario.SCRIPT))
             else:
                 # last resort - a checksum of whole scenario
-                self._label = hashlib.md5(bencode.bencode(self.__scenario)).hexdigest()
+                self._label = hashlib.md5(to_json(self.__scenario)).hexdigest()
 
         return self.__scenario
 
