@@ -881,7 +881,7 @@ class ScenarioExecutor(EngineModule):
                 self._label = os.path.basename(self.__scenario.get(Scenario.SCRIPT, error))
             else:
                 # last resort - a checksum of whole scenario
-                self._label = hashlib.md5(to_json(self.__scenario)).hexdigest()
+                self._label = hashlib.md5(to_json(self.__scenario).encode()).hexdigest()
 
         return self.__scenario
 
