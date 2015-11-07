@@ -1,5 +1,4 @@
 from time import time
-
 from nose.plugins import Plugin
 from nose import run
 import traceback
@@ -46,6 +45,9 @@ class TaurusNosePlugin(Plugin):
         self.jtl_dict = None
         self.error_writer = None
         self.last_err = None
+        self.out_stream = None
+        self.err_stream = None
+        self._time = None
 
     def addError(self, test, err, capt=None):
         """
@@ -193,21 +195,17 @@ class JTLErrorWriter(object):
         next(self.xml_writer)
 
     def add_sample(self, sample, url, resp_data):
-        new_sample = self.gen_httpSample(sample, url, resp_data)
+        new_sample = self.gen_http_sample(sample, url, resp_data)
         self.xml_writer.send(new_sample)
 
-    def gen_httpSample(self, sample, url, resp_data):
-        """
-        :param params: namedtuple httpSample
-        :return:
-        """
+    def gen_http_sample(self, sample, url, resp_data):
         sample_element = etree.Element("httpSample", **sample)
         sample_element.append(self.gen_resp_header())
         sample_element.append(self.gen_req_header())
         sample_element.append(self.gen_resp_data(resp_data))
         sample_element.append(self.gen_cookies())
         sample_element.append(self.gen_method())
-        sample_element.append(self.gen_queryString())
+        sample_element.append(self.gen_query_string())
         sample_element.append(self.gen_url(url))
         return sample_element
 
@@ -237,10 +235,10 @@ class JTLErrorWriter(object):
         method.set("class", "java.lang.String")
         return method
 
-    def gen_queryString(self):
-        queryString = etree.Element("queryString")
-        queryString.set("class", "java.lang.String")
-        return queryString
+    def gen_query_string(self):
+        qstring = etree.Element("queryString")
+        qstring.set("class", "java.lang.String")
+        return qstring
 
     def gen_url(self, url):
         url_element = etree.Element("java.net.URL")
