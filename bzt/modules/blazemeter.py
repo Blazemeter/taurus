@@ -768,6 +768,10 @@ class BlazeMeterClient(object):
                              headers=hdr, method="PUT")
         return data['result']
 
+    def get_available_locations(self):
+        user_info = self.get_user_info()
+        return {str(x['id']): x for x in user_info['locations'] if not x['id'].startswith('harbor-')}
+
 
 class CloudProvisioning(Provisioning, WidgetProvider):
     """
@@ -826,11 +830,10 @@ class CloudProvisioning(Provisioning, WidgetProvider):
             self.engine.aggregator.add_underling(self.results_reader)
 
     def __prepare_locations(self):
-        user_info = self.client.get_user_info()
-        available_locations = {str(x['id']): x for x in user_info['locations'] if not x['id'].startswith('harbor-')}
+        available_locations = self.client.get_available_locations()
         for executor in self.executors:
             locations = self._get_locations(available_locations, executor)
-            # load = executor.get_load()
+            executor.get_load()  # we need it to resolve load settings into full form
 
             for location in locations.keys():
                 if location not in available_locations:
