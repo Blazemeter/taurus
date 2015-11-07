@@ -27,11 +27,9 @@ import time
 import traceback
 from collections import namedtuple, defaultdict
 from json import encoder
-
 import psutil
 import yaml
 from yaml.representer import SafeRepresenter
-
 from bzt import ManualShutdown, NormalShutdown, get_configs_dir
 import bzt
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time
@@ -851,6 +849,7 @@ class ScenarioExecutor(EngineModule):
         self.provisioning = None
         self.execution = BetterDict()
         self.__scenario = None
+        self._label = None
 
     def get_scenario(self):
         """
@@ -861,6 +860,7 @@ class ScenarioExecutor(EngineModule):
         if self.__scenario is None:
             scenario = self.execution.get('scenario', ValueError("Scenario not configured properly"))
             if isinstance(scenario, string_types):
+                self._label = scenario
                 scenarios = self.engine.config.get("scenarios")
                 if scenario not in scenarios:
                     raise ValueError("Scenario not found in scenarios: %s" % scenario)
@@ -871,6 +871,9 @@ class ScenarioExecutor(EngineModule):
                 self.__scenario = Scenario(scenario)
             else:
                 raise ValueError("Unsupported type for scenario")
+
+        if self._label is None and self.__scenario.get(Scenario.SCRIPT, None):
+            self._label = os.path.basename(self.__scenario.get(Scenario.SCRIPT))
 
         return self.__scenario
 
@@ -932,7 +935,7 @@ class ScenarioExecutor(EngineModule):
         return files_list
 
     def __repr__(self):
-        return "%s-%s" % (self.execution.get("executor", None), id(self))
+        return "%s/%s" % (self.execution.get("executor", None), self._label if self._label else id(self))
 
 
 class Reporter(EngineModule):

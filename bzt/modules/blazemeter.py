@@ -261,6 +261,7 @@ class ProjectFinder(object):
         self.parameters = parameters
         self.settings = settings
         self.engine = engine
+        self.test_name = None
 
     def resolve_test_id(self, test_config, taurus_config, rfiles):
         proj_name = self.parameters.get("project", self.settings.get("project", None))
@@ -272,8 +273,8 @@ class ProjectFinder(object):
         else:
             proj_id = None
 
-        test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
-        return self.client.test_by_name(test_name, test_config, taurus_config, rfiles, proj_id)
+        self.test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
+        return self.client.test_by_name(self.test_name, test_config, taurus_config, rfiles, proj_id)
 
 
 class BlazeMeterClient(object):
@@ -727,6 +728,10 @@ class BlazeMeterClient(object):
         sess = self._request(self.address + '/api/latest/masters/%s/status' % master_id)
         return sess['result']
 
+    def get_master_sessions(self, master_id):
+        sess = self._request(self.address + '/api/latest/masters/%s/sessions' % master_id)
+        return sess['result']['sessions'] if 'sessions' in sess['result'] else sess['result']
+
     def get_projects(self):
         data = self._request(self.address + '/api/latest/projects')
         return data['result']
@@ -786,6 +791,7 @@ class CloudProvisioning(Provisioning, WidgetProvider):
         self.results_reader = None
         self.client = BlazeMeterClient(self.log)
         self.test_id = None
+        self.test_name = None
         self.__last_master_status = None
         self.browser_open = 'start'
         self.widget = None
@@ -824,6 +830,8 @@ class CloudProvisioning(Provisioning, WidgetProvider):
         finder = ProjectFinder(self.parameters, self.settings, self.client, self.engine)
         finder.default_test_name = "Taurus Cloud Test"
         self.test_id = finder.resolve_test_id(bza_plugin, config, rfiles)
+        self.test_name = finder.test_name
+        self.widget = CloudProvWidget(self)
 
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.results_reader = ResultsFromBZA(self.client)
@@ -1014,17 +1022,25 @@ class CloudProvWidget(Pile):
         """
         self.prov = prov
         self.text = Text("")
+        self._sessions = None
         super(CloudProvWidget, self).__init__([self.text])
 
     def update(self):
-        txt = "Cloud test #%s\n" % self.prov.client.active_session_id
+        if not self._sessions:
+            self._sessions = self.prov.client.get_master_sessions(self.prov.client.active_session_id)
+            if not self._sessions:
+                return
+
+        txt = self.prov.test_name + " #%s\n" % self.prov.client.active_session_id
         cnt = 0
-        for executor in self.prov.executors:
-            cnt += 1
-            name = executor.execution.get("executor", ValueError("Execution type is not yet defined"))
-            txt += "  %s. %s" % (cnt, name)
-            txt += " machines:\n"
-            locations = executor.execution.get("locations")
-            for location in sorted(locations.keys()):
-                txt += "    %s: %s\n" % (location, locations[location])
+        for session in self._sessions:
+            try:
+                cnt += 1
+                name = session['name']
+                location = session['configuration']['location']
+                count = session['configuration']['serversCount']
+                txt += "  %s. %s" % (cnt, name)
+                txt += " machines: %s\n" % count
+            except KeyError:
+                self._sessions = None
         self.text.set_text(txt)
