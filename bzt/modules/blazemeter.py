@@ -498,7 +498,7 @@ class BlazeMeterClient(object):
                         break
 
                 if not json_item:
-                    json_item = self.__label_skel(label, item)
+                    json_item = self.__label_skel(label)
                     data.append(json_item)
 
                 interval_item = self.__interval_json(item, sec)
@@ -531,12 +531,7 @@ class BlazeMeterClient(object):
                 self.log.info("Test was stopped through Web UI: %s", result['status'])
                 raise ManualShutdown("The test was interrupted through Web UI")
 
-    def __label_skel(self, name, kpiset):
-        """
-        :type kpiset: KPISet
-        """
-
-
+    def __label_skel(self, name):
         return {
             "n": None,
             "name": name,
@@ -835,19 +830,18 @@ class CloudProvisioning(Provisioning, WidgetProvider):
         available_locations = {str(x['id']): x for x in user_info['locations'] if not x['id'].startswith('harbor-')}
         for executor in self.executors:
             locations = self._get_locations(available_locations, executor)
-            load = executor.get_load()
+            # load = executor.get_load()
 
             for location in locations.keys():
                 if location not in available_locations:
                     self.log.warning("List of supported locations for you is: %s", sorted(available_locations.keys()))
                     raise ValueError("Invalid location requested: %s" % location)
 
-            if executor.execution.get("locations-weighted", True):
-                self.weight_locations(locations, load, available_locations)
-
+            """
             for location in locations.keys():
                 self.log.info("Requesting %s machines for %s in %s",
                               locations[location], humanize_time(load.duration), location)
+            """
 
     def __get_config_for_cloud(self):
         config = copy.deepcopy(self.engine.config)
@@ -861,7 +855,7 @@ class CloudProvisioning(Provisioning, WidgetProvider):
             execution[ScenarioExecutor.THRPT] = execution.get(ScenarioExecutor.THRPT).get(provisioning, None)
 
         for key in list(config.keys()):
-            if key not in ("scenarios", "execution", "included-configs", Service.SERV):
+            if key not in ("scenarios", ScenarioExecutor.EXEC, "included-configs", Service.SERV):
                 config.pop(key)
 
         assert isinstance(config, Configuration)
