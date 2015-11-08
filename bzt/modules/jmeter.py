@@ -575,11 +575,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :return:
         """
         if not self.widget:
-            if self.original_jmx is not None:
-                label = "Script: %s" % os.path.basename(self.original_jmx)
-            else:
-                label = None
-            self.widget = SidebarWidget(self, label)
+            label = "%s" % self
+            self.widget = SidebarWidget(self, "JMeter: " + label.split('/')[1])
         return self.widget
 
     def resource_files(self):

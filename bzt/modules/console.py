@@ -27,7 +27,6 @@ from datetime import datetime
 from abc import abstractmethod
 import re
 import copy
-
 from urwid.decoration import Padding
 from urwid.display_common import BaseScreen
 from urwid import Text, Pile, WEIGHT, Filler, Columns, Widget, CanvasCombine, LineBox, ListBox, RIGHT, CENTER, BOTTOM, \
@@ -36,7 +35,6 @@ from urwid.font import Thin6x6Font
 from urwid.graphics import BigText
 from urwid.listbox import SimpleListWalker
 from urwid.widget import Divider
-
 import bzt
 from bzt.six import StringIO
 from bzt.modules.provisioning import Local
@@ -55,6 +53,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
     Class to show process status on the console
     :type logger_handlers: list[logging.StreamHandler]
     """
+
     # NOTE: maybe should use separate thread for screen re-painting
     def __init__(self):
         super(ConsoleStatusReporter, self).__init__()
@@ -1117,6 +1116,8 @@ class SidebarWidget(Pile):
 
         if label is not None:
             self.widgets.append(Text(label))
+        else:
+            self.widgets.append(Text("%s" % executor))
 
         if self.duration is not None and self.duration != 0:
             self.progress = ProgressBar('pb-en', 'pb-dis', done=self.duration)
