@@ -22,7 +22,6 @@ import math
 import time
 import os
 from imp import find_module
-
 from bzt.engine import ScenarioExecutor, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsProvider, DataPoint, KPISet
 from bzt.modules.jmeter import JTLReader
@@ -153,13 +152,14 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.__out.close()
 
     def post_process(self):
-        if (self.is_master and not self.reader.cumulative) or (not self.is_master and not self.reader.buffer):
+        if (self.is_master and not self.reader.cumulative) \
+                or (not self.is_master and self.reader and not self.reader.buffer):
             raise RuntimeWarning("Empty results, most likely Locust failed")
 
 
 class LocustIO(RequiredTool):
     def __init__(self, parent_logger):
-        super(LocustIO, self).__init__("LocustIO", "", "")
+        super(LocustIO, self).__init__("LocustIO", "")
         self.log = parent_logger.getChild(self.__class__.__name__)
 
     def check_if_installed(self):
