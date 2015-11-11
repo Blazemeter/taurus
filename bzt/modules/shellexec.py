@@ -43,7 +43,7 @@ class ShellExecutor(Service):
             run_at = task_config.get("run-at", "local")
             if run_at == self.engine.config.get(Provisioning.PROV, None):
                 container.append(Task(task_config, self.log, os.getcwd()))
-                self.log.debug("Added task: %s, stage: %s", stage_task, stage)
+                self.log.debug("Added %s task: %s", stage, stage_task)
             else:
                 self.log.debug("Skipped task: %s", task_config)
 
