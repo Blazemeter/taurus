@@ -2147,7 +2147,7 @@ class JMeter(RequiredTool):
         dest = os.path.abspath(dest)
         jmeter_dist = super(JMeter, self).install_with_mirrors(dest, ".zip")
         self.log.info("Unzipping %s to %s", jmeter_dist.name, dest)
-        unzip(jmeter_dist.name, dest, 'apache-jmeter-' + self.version)
+        unzip(jmeter_dist.name, dest, 'apache-jmeter-%s' % self.version)
         # set exec permissions
         os.chmod(self.tool_path, 0o755)
         jmeter_dist.close()
