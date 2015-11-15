@@ -7,6 +7,7 @@
  - show scenario alias in sidebar widget for JMeter
  - set `TAURUS\_ARTIFACTS\_DIR` environment variables for shellexec commands
  - add `cwd` option for shellexec tasks
+ - add `env` option for shellexec tasks
 
 ## 0.4.5
  - load settings applied to Stepping Thread Groups

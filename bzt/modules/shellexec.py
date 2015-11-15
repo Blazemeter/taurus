@@ -54,6 +54,8 @@ class ShellExecutor(Service):
 
                 env = BetterDict()
                 env.merge({k: os.environ.get(k) for k in os.environ.keys()})
+                env.merge(self.settings.get('env'))
+                env.merge(task_config.get('env'))
                 env.merge({"PYTHONPATH": working_dir})
                 if os.getenv("PYTHONPATH"):
                     env['PYTHONPATH'] = os.getenv("PYTHONPATH") + os.pathsep + env['PYTHONPATH']

@@ -128,6 +128,9 @@ services:
       run-at: local  # provisioning level to limit command usage, null to run always
       cwd: artifacts-dir  # option to change working dir for command, null to not change it
                           # special value 'artifacts-dir' will change to taurus artifacts dir
+      env:  # environment variables to set for command
+         VAR1: val1
+         VAR2: val2
 ```
 
 Minimum task configuration sample:
@@ -146,7 +149,17 @@ Notes:
  - Background tasks on Check stage will not start until same previous task completed.
  - Special environment variable `TAURUS\_ARTIFACTS\_DIR` is set for every command, containing path to current artifacts directory
  - there is module setting `default-cwd` for `shellexec` module that allows to change `cwd` default value for all tasks
+ - there is module setting `env` which contains dictionary for additional environment variables for commands
 
+```yaml
+---
+modules:
+  shellexec:
+    default-cwd: /tmp
+    env:
+      VARNAME: value
+      VARNAME2: value2
+```
  
 ## Resource Monitoring Service
 
