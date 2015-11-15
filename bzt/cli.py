@@ -24,9 +24,7 @@ import traceback
 from logging import Formatter
 from optparse import OptionParser, BadOptionError, Option
 import signal
-
 from colorlog import ColoredFormatter
-
 import bzt
 from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown
 from bzt.engine import Engine, Configuration, ScenarioExecutor
@@ -48,6 +46,8 @@ class CLI(object):
         self.log = logging.getLogger('')
         self.log.info("Taurus CLI Tool v%s", bzt.VERSION)
         self.log.debug("Command-line options: %s", self.options)
+        self.log.debug("Python: %s %s", platform.python_implementation(), platform.python_version())
+        self.log.debug("OS: %s", platform.uname())
         self.engine = Engine(self.log)
 
     @staticmethod
