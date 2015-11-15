@@ -2,9 +2,10 @@
 
 ## 0.5.0 (next)
  - allow using Xvfb for Selenium executor
- - don't use lynx browser when openin report links
+ - don't use lynx browser when opening report links
  - add PBench executor type
  - show scenario alias in sidebar widget for JMeter
+ - set `TAURUS_ARTIFACTS_DIR` environment variables for shellexec commands
 
 ## 0.4.5
  - load settings applied to Stepping Thread Groups

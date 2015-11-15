@@ -18,10 +18,11 @@ import os
 import platform
 import subprocess
 from subprocess import CalledProcessError
-
-from bzt.utils import shutdown_process
+from bzt.utils import shutdown_process, BetterDict
 from bzt.engine import Provisioning, Service
 from bzt.utils import ensure_is_dict
+
+ARTIFACTS_DIR_EVVAR = "TAURUS_ARTIFACTS_DIR"
 
 
 class ShellExecutor(Service):
@@ -38,11 +39,22 @@ class ShellExecutor(Service):
             self.parameters[stage] = [self.parameters[stage]]
 
         for index, stage_task in enumerate(self.parameters[stage]):
+
             stage_task = ensure_is_dict(self.parameters[stage], index, "command")
             task_config = self.parameters[stage][index]
             run_at = task_config.get("run-at", "local")
             if run_at == self.engine.config.get(Provisioning.PROV, None):
-                container.append(Task(task_config, self.log, os.getcwd()))
+                working_dir = os.getcwd()
+
+                env = BetterDict()
+                env.merge({k: os.environ.get(k) for k in os.environ.keys()})
+                env.merge({"PYTHONPATH": working_dir})
+                if os.getenv("PYTHONPATH"):
+                    env['PYTHONPATH'] = os.getenv("PYTHONPATH") + os.pathsep + env['PYTHONPATH']
+                env[ARTIFACTS_DIR_EVVAR] = self.engine.artifacts_dir
+
+                task = Task(task_config, self.log, working_dir, env)
+                container.append(task)
                 self.log.debug("Added %s task: %s", stage, stage_task)
             else:
                 self.log.debug("Skipped task: %s", task_config)
@@ -95,9 +107,10 @@ class Task(object):
     :type process: subprocess.Popen
     """
 
-    def __init__(self, config, parent_log, working_dir):
+    def __init__(self, config, parent_log, working_dir, env):
         self.log = parent_log.getChild(self.__class__.__name__)
         self.working_dir = working_dir
+        self.env = env
         self.command = config.get("command", ValueError("Parameter is required: command"))
         self.is_background = config.get("background", False)
         self.ignore_failure = config.get("ignore-failure", False)
@@ -131,6 +144,7 @@ class Task(object):
             'stdout': out,
             'stderr': err,
             'cwd': self.working_dir,
+            'env': self.env,
             'shell': True
         }
         # FIXME: shouldn't we bother closing opened descriptors?
