@@ -90,7 +90,7 @@ execution:
 
 In shellexec task config, the `run-at` parameter allows to set where commands will be executed. Surprisingly, `local` means the cloud worker will execute it, `cloud` means the controlling CLI will execute it.
 
-## Installing python package dependencies
+## Installing Python Package Dependencies
 
 If you need to install additional python modules via `pip`, you can do it by using `shellexec` service and running `pip install <package>` command at `prepare` stage:
 
