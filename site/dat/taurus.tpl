@@ -106,6 +106,11 @@
         <div class="site-header">
             <span class="logo"><a href="/"><img src="/img/codename-taurus.png" alt="Codename: Taurus"/></a></span>
             <span class="purpose">Automation-friendly framework for Continuous Testing</span>
+            <div class="pull-right clearfix" style="line-height: 100%">
+                <a href="https://pypi.python.org/pypi/bzt"><img src='https://img.shields.io/pypi/v/bzt.svg'/></a><br/>
+                <a href="https://pypi.python.org/pypi/bzt"><img src='https://img.shields.io/pypi/dm/bzt.svg'/></a><br/>
+                <a href="https://codecov.io/github/Blazemeter/taurus"><img src='https://codecov.io/github/Blazemeter/taurus/coverage.svg'/></a><br/>
+            </div>
         </div>
     </div>
 </div>
