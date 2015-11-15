@@ -10,11 +10,11 @@
 
 # Release Process
  - Modify Changelog.md and README.md
- - Set correct version in `bzt/__init__.py`, commit
+ - Set correct version in `bzt/\_\_init\_\_.py`, commit
  - Create git tag
  - git push, including tag
  - Upload to PyPi: `python ./setup.py clean sdist upload`
- - site is update automatically by Jenkins
+ - site is updated automatically by Jenkins
  
 # Deploying Project Website
  

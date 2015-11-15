@@ -5,7 +5,7 @@
  - don't use lynx browser when opening report links
  - add PBench executor type
  - show scenario alias in sidebar widget for JMeter
- - set `TAURUS_ARTIFACTS_DIR` environment variables for shellexec commands
+ - set `TAURUS\_ARTIFACTS\_DIR` environment variables for shellexec commands
  - add `cwd` option for shellexec tasks
 
 ## 0.4.5
