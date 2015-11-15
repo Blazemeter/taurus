@@ -1,7 +1,6 @@
 language: python
 python:
   - "2.7"
-  - "3.2"
   - "3.3"
   - "3.4"
 before_install:
@@ -9,6 +8,6 @@ before_install:
   - "sh -e /etc/init.d/xvfb start"
   - pip install codecov
 install: "pip install colorlog pyyaml psutil lxml cssselect grip urwid six selenium progressbar33 locustio pyvirtualdisplay"
-script: coverage run /usr/bin/nosetests
+script: coverage run `which nosetests`
 after_success:
   - codecov
