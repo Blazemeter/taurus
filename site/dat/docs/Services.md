@@ -126,6 +126,8 @@ services:
       out: taskout.txt  # set file name for task stdout, null to print to stdout
       err: taskerr.txt  # set file name for task stderr, null to print to stdout
       run-at: local  # provisioning level to limit command usage, null to run always
+      cwd: artifacts-dir  # option to change working dir for command, null to not change it
+                          # special value 'artifacts-dir' will change to taurus artifacts dir
 ```
 
 Minimum task configuration sample:
@@ -142,7 +144,9 @@ Notes:
  - Non-background tasks are not allowed on startup stage.
  - Background tasks will be shut down forcefully on mirror stages (see [Lifecycle](Lifecycle.md)) if they were not finished yet.
  - Background tasks on Check stage will not start until same previous task completed.
- 
+ - Special environment variable `TAURUS\_ARTIFACTS\_DIR` is set for every command, containing path to current artifacts directory
+ - there is module setting `default-cwd` for `shellexec` module that allows to change `cwd` default value for all tasks
+
  
 ## Resource Monitoring Service
 

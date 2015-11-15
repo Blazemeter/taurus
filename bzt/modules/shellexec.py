@@ -39,12 +39,18 @@ class ShellExecutor(Service):
             self.parameters[stage] = [self.parameters[stage]]
 
         for index, stage_task in enumerate(self.parameters[stage]):
-
             stage_task = ensure_is_dict(self.parameters[stage], index, "command")
             task_config = self.parameters[stage][index]
             run_at = task_config.get("run-at", "local")
+            default_cwd = self.settings.get("default-cwd", None)
             if run_at == self.engine.config.get(Provisioning.PROV, None):
-                working_dir = os.getcwd()
+                cwd = task_config.get("cwd", default_cwd)
+                if cwd is None:
+                    working_dir = os.getcwd()
+                elif cwd == 'artifacts-dir':
+                    working_dir = self.engine.artifacts_dir
+                else:
+                    working_dir = cwd
 
                 env = BetterDict()
                 env.merge({k: os.environ.get(k) for k in os.environ.keys()})
