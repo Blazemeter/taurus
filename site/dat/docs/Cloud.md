@@ -90,6 +90,35 @@ execution:
 
 In shellexec task config, the `run-at` parameter allows to set where commands will be executed. Surprisingly, `local` means the cloud worker will execute it, `cloud` means the controlling CLI will execute it.
 
+## Installing python package dependencies
+
+If you need to install additional python modules via `pip`, you can do it by using `shellexec` service and running `pip install <package>` command at `prepare` stage:
+
+```yaml
+---
+services:
+  - module: shellexec
+    prepare: 
+      - pip install cryptography  # 'cryptography' is the library from PyPi
+```
+
+You can even upload your proprietary python eggs into workers by specifying them in `files` option and then installing by shellexec:
+
+```yaml
+---
+execution:
+  - executor: locust
+    scenario: locust-scen
+    files:
+      - my-modules.zip
+      
+services:
+  - module: shellexec
+    prepare: 
+      - unzip my-modules.zip
+      - pip install -r requirements.txt
+```
+
 ## Cloud Execution Notes
 
 Please note that for `cloud` provisioning actual Taurus execution will be done on remote machines, so:
@@ -97,3 +126,5 @@ Please note that for `cloud` provisioning actual Taurus execution will be done o
   * if you don't specify any duration for test with `hold-for` and `ramp-up` options, some default duration limit will be used
   * you should not use `-report` commmand-line option or `blazemeter` reporter, all reports will be collected automatically by BlazeMeter
   * only following config sections are passed into cloud: `scenarios`, `execution`, `included-configs`, `services`
+  * `shellexec` module has `artifacts-dir` set as `default-cwd`
+  * cloud workers execute Taurus under isolated [virtualenv](https://virtualenv.readthedocs.org/en/latest/)
