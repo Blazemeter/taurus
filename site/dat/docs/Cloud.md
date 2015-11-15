@@ -119,6 +119,14 @@ services:
       - pip install -r requirements.txt
 ```
 
+## Worker Number Info
+
+There is a way to obtain worker index which can be used to coordinate distributed test data. For example, you can make sure that different workers will use different user logins or CSV file parts. To achieve that, you get some `env` variables for `shellexec` modules and some `properties` for `jmeter` module:
+
+  * `TAURUS\_INDEX\_ALL` - absolute worker index in test
+  * `TAURUS\_INDEX\_EXECUTION` - per-execution worker index
+  * `TAURUS\_INDEX\_LOCATION` - per-location worker index
+
 ## Cloud Execution Notes
 
 Please note that for `cloud` provisioning actual Taurus execution will be done on remote machines, so:
