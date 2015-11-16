@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.5.0 (next)
+## 0.5.0
  - allow using Xvfb for Selenium executor
  - don't use lynx browser when opening report links
  - add PBench executor type
