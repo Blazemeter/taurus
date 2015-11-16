@@ -24,16 +24,14 @@ import sys
 import time
 import traceback
 import zipfile
-
 import yaml
 from urwid import Pile, Text
-
 from bzt import ManualShutdown
 from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
 from bzt.modules.console import WidgetProvider
 from bzt.modules.jmeter import JMeterExecutor
-from bzt.six import BytesIO, text_type, iteritems, HTTPError, urlencode, Request, urlopen, r_input
+from bzt.six import BytesIO, text_type, iteritems, HTTPError, urlencode, Request, urlopen, r_input, URLError
 from bzt.utils import to_json, dehumanize_time, MultiPartForm, BetterDict, open_browser
 
 
@@ -908,7 +906,14 @@ class CloudProvisioning(Provisioning, WidgetProvider):
 
     def check(self):
         # TODO: throttle down requests
-        master = self.client.get_master_status(self.client.active_session_id)
+        try:
+            master = self.client.get_master_status(self.client.active_session_id)
+        except URLError:
+            self.log.warning("Failed to get test status, will retry in %s seconds...", self.client.timeout)
+            self.log.debug("Full exception: %s", traceback.format_exc())
+            time.sleep(self.client.timeout)
+            master = self.client.get_master_status(self.client.active_session_id)
+
         if "status" in master and master['status'] != self.__last_master_status:
             self.__last_master_status = master['status']
             self.log.info("Cloud test status: %s", self.__last_master_status)

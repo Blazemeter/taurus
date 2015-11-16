@@ -50,6 +50,7 @@ install_opener = urllib2.install_opener
 ProxyHandler = urllib2.ProxyHandler
 Request = urllib2.Request
 HTTPError = urllib2.HTTPError
+URLError = urllib2.URLError
 BaseHTTPServer = BaseHTTPServer
 socketserver = socketserver
 SimpleHTTPRequestHandler = BaseHTTPServer.BaseHTTPRequestHandler

@@ -53,6 +53,7 @@ install_opener = request.install_opener
 ProxyHandler = request.ProxyHandler
 Request = request.Request
 HTTPError = urllib.error.HTTPError
+URLError = urllib.error.URLError
 BaseHTTPServer = server
 socketserver = socketserver
 SimpleHTTPRequestHandler = BaseHTTPServer.SimpleHTTPRequestHandler
