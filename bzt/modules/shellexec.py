@@ -18,6 +18,8 @@ import os
 import platform
 import subprocess
 from subprocess import CalledProcessError
+
+from bzt.six import iteritems
 from bzt.utils import shutdown_process, BetterDict
 from bzt.engine import Provisioning, Service
 from bzt.utils import ensure_is_dict
@@ -60,6 +62,9 @@ class ShellExecutor(Service):
                 if os.getenv("PYTHONPATH"):
                     env['PYTHONPATH'] = os.getenv("PYTHONPATH") + os.pathsep + env['PYTHONPATH']
                 env[ARTIFACTS_DIR_EVVAR] = self.engine.artifacts_dir
+
+                for name, value in iteritems(env):
+                    env[str(name)] = str(value)
 
                 task = Task(task_config, self.log, working_dir, env)
                 container.append(task)

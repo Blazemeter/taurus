@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.1 (next)
+ - fix shellexec env variables
+
 ## 0.5.0
  - allow using Xvfb for Selenium executor
  - don't use lynx browser when opening report links

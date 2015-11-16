@@ -2,7 +2,6 @@ import os
 from subprocess import CalledProcessError
 from tempfile import NamedTemporaryFile
 import time
-
 from bzt.engine import Service
 from tests import setup_test_logging, BZTestCase
 from tests.mocks import EngineEmul, RecordingHandler
@@ -27,6 +26,7 @@ class TaskTestCase(BZTestCase):
 
 class TestBlockingTasks(TaskTestCase):
     def test_task_prepare(self):
+        self.obj.settings['env'] = {"VAR": 1}
         task = "dir .. && cd .."
         self.obj.parameters.merge({"prepare": [task]})
         self.obj.prepare()
