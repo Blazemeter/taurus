@@ -21,7 +21,7 @@ import time
 import traceback
 import subprocess
 from subprocess import CalledProcessError
-from bzt.engine import ScenarioExecutor, Provisioning
+from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ResultsReader, ConsolidatingAggregator
 from bzt.utils import shutdown_process, shell_exec, RequiredTool
 
@@ -86,11 +86,8 @@ class ABExecutor(ScenarioExecutor):
         return True
 
     def shutdown(self):
-        """
-        If tool is still running - let's stop it.
-        """
         self.log.warning("___ABExecutor.shutdown!")
-        shutdown_process(self.process, self.log)
+        #shutdown_process(self.process, self.log)
 
         if self.start_time:
             self.end_time = time.time()
@@ -114,7 +111,6 @@ class DataLogReader(ResultsReader):
         """
         if not last_pass:
             raise StopIteration
-        
         yield self.output
 
 
@@ -122,7 +118,6 @@ class AB(RequiredTool):
     """
     AB tool
     """
-
     def __init__(self, tool_path, parent_logger):
         super(AB, self).__init__("AB", tool_path)
         self.log = parent_logger.getChild(self.__class__.__name__)
