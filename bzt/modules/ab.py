@@ -21,7 +21,7 @@ import time
 import traceback
 import subprocess
 from subprocess import CalledProcessError
-from bzt.engine import ScenarioExecutor
+from bzt.engine import ScenarioExecutor, Provisioning
 from bzt.modules.aggregator import ResultsReader, ConsolidatingAggregator
 from bzt.utils import shutdown_process, shell_exec, RequiredTool
 
@@ -61,17 +61,17 @@ class ABExecutor(ScenarioExecutor):
 
         self.start_time = time.time()
 
-        concurrency = 10
-        iteration = 10
-        requests = self.get_scenario().get("requests", ["ya.ru"])
+        concurrency = self.execution.get("concurrency", 1)
+        iterations = self.execution.get("iterations", 1)
+        requests = self.get_scenario().get("requests", ["http://blazedemo.com"])
 
-        request = requests[0] + '/'  # TODO: process many requests
+        request = requests[0] + '/'  # TODO: process list of requests
 
-        cmd_line = "ab -c %s -n %s %s" % (concurrency, iteration, request)
+        cmd_line = "ab -c %s -n %s %s" % (concurrency, iterations, request)
+
         ab = shell_exec(cmd_line, stderr=subprocess.STDOUT)
         ab_out, ab_err = ab.communicate()
         ab_out = ab_out.split()
-        self.log.warning("%s" % ab_out)
         self.reader.output = [int(time.time()), request, concurrency,
                               float(self._val(ab_out, 'tests:')),
                               float(self._val(ab_out, 'tests:')),
@@ -112,18 +112,10 @@ class DataLogReader(ResultsReader):
         :param last_pass:
         :return: timestamp, label, concurrency, rt, latency, rc, error
         """
-        # while not last_pass:
-        #     yield None
-        #
-        # a = iter(((1, 'abc', 2, 3, 4, 5, 6, None, ''),
-        #           (2, 'abd', 12, 13, 14, 15, 16, None, ''),
-        #           (4, 'abe', 22, 23, 24, 25, 26, None, ''),))
-        #
-        # self.log.warning("%s" % self.output.split())
-        #
-        # while a:
-        #     yield a.next()
-        return self.output, None
+        if not last_pass:
+            raise StopIteration
+        
+        yield self.output
 
 
 class AB(RequiredTool):
