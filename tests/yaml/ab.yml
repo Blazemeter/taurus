@@ -1,0 +1,8 @@
+---
+execution: 
+  executor: ab 
+  concurrency: 11
+  iterations: 12 
+  scenario: 
+    requests: 
+      - http://blazedemo.com

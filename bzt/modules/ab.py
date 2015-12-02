@@ -71,12 +71,11 @@ class ABExecutor(ScenarioExecutor):
 
         ab = shell_exec(cmd_line, stderr=subprocess.STDOUT)
         ab_out, ab_err = ab.communicate()
-        ab_out = ab_out.split()
-        self.reader.output = [int(time.time()), request, concurrency,
-                              float(self._val(ab_out, 'tests:')),
-                              float(self._val(ab_out, 'tests:')),
-                              float(self._val(ab_out, 'tests:')),
-                              0, None, '']
+        key = 'Time taken for tests:'
+        pos = ab_out.find(key) + len(key)
+        test_time = float(ab_out[pos:pos+100].split()[0])
+
+        self.reader.output = [int(time.time()), request, concurrency, test_time, 0, 0, 0, None, '']
 
     def _val(self, outlist, key):
         return outlist[outlist.index(key) + 1]
