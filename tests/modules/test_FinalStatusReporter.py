@@ -64,6 +64,7 @@ class TestFinalStatusReporter(BZTestCase):
         :return:
         """
         obj = FinalStatus()
+        obj.engine = EngineEmul()
         obj.parameters = BetterDict()
         log_recorder = RecordingHandler()
         obj.log.addHandler(log_recorder)

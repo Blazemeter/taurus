@@ -23,12 +23,11 @@ from tempfile import NamedTemporaryFile
 import traceback
 from logging import Formatter
 from optparse import OptionParser, BadOptionError, Option
-
+import signal
 from colorlog import ColoredFormatter
-
 import bzt
 from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown
-from bzt.engine import Engine, Configuration
+from bzt.engine import Engine, Configuration, ScenarioExecutor
 from bzt.six import HTTPError, string_types
 from bzt.utils import run_once, is_int, BetterDict
 
@@ -47,6 +46,8 @@ class CLI(object):
         self.log = logging.getLogger('')
         self.log.info("Taurus CLI Tool v%s", bzt.VERSION)
         self.log.debug("Command-line options: %s", self.options)
+        self.log.debug("Python: %s %s", platform.python_implementation(), platform.python_version())
+        self.log.debug("OS: %s", platform.uname())
         self.engine = Engine(self.log)
 
     @staticmethod
@@ -155,8 +156,9 @@ class CLI(object):
                 self.log.info("Automated shutdown")
             else:
                 if isinstance(exc, HTTPError):
+                    assert isinstance(exc, HTTPError)
                     self.log.warning("Response from %s: %s", exc.geturl(), exc.read())
-                self.log.error("Exception: %s", exc)
+                self.log.error("%s: %s", type(exc).__name__, exc)
             self.log.warning("Please wait for graceful shutdown...")
             exit_code = 1
         finally:
@@ -171,7 +173,7 @@ class CLI(object):
                     exit_code = exc.get_rc()
             except BaseException as exc:
                 self.log.debug("Caught exception in finally: %s", traceback.format_exc())
-                self.log.error("Exception: %s", exc)
+                self.log.error("%s: %s", type(exc).__name__, exc)
                 exit_code = 1
 
         if isinstance(self.engine.stopping_reason, RCProvider):
@@ -209,7 +211,7 @@ class CLI(object):
             config = Configuration()
 
             for jmx_file in jmxes:
-                config.get("execution", []).append({"executor": "jmeter", "scenario": {"script": jmx_file}})
+                config.get(ScenarioExecutor.EXEC, []).append({"executor": "jmeter", "scenario": {"script": jmx_file}})
 
             config.dump(fname, Configuration.JSON)
 
@@ -272,7 +274,11 @@ class ConfigOverrider(object):
         self.__ensure_list_capacity(pointer, parts[-1])
         self.log.debug("Applying: [%s]=%s", parts[-1], value)
         if isinstance(parts[-1], string_types) and parts[-1][0] == '^':
-            del pointer[parts[-1][1:]]
+            item = parts[-1][1:]
+            if item in pointer:
+                del pointer[item]
+            else:
+                self.log.debug("No value to delete: %s", item)
         else:
             if value.isdigit():
                 value = float(value)
@@ -371,12 +377,24 @@ def main():
     try:
         code = executor.perform(parsed_configs)
     except BaseException as exc_top:
-        logging.error("Exception: %s", exc_top)
+        logging.error("%s: %s", type(exc_top).__name__, exc_top)
         logging.debug("Exception: %s", traceback.format_exc())
         code = 1
 
     exit(code)
 
 
+def signal_handler(sig, frame):
+    """
+    required for non-tty python runs to interrupt
+    :param frame:
+    :param sig:
+    """
+    del sig, frame
+    raise ManualShutdown()
+
+
 if __name__ == "__main__":
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
     main()

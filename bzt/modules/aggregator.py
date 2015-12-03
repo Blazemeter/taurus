@@ -21,7 +21,6 @@ import logging
 import math
 import re
 from collections import Counter
-
 from bzt.utils import BetterDict
 from bzt.engine import EngineModule
 from bzt.six import iteritems
@@ -295,6 +294,12 @@ class DataPoint(BetterDict):
         self[self.CURRENT] = BetterDict()
         self[self.SUBRESULTS] = []
 
+    def __deepcopy__(self, memo):
+        new = DataPoint(self[self.TIMESTAMP], self.perc_levels)
+        for key in self.keys():
+            new[key] = copy.deepcopy(self[key])
+        return new
+
     def __merge_kpis(self, src, dst, sid):
         """
         :param src: KPISet
@@ -515,6 +520,7 @@ class ConsolidatingAggregator(EngineModule, ResultsProvider):
 
     :type underlings: list[bzt.modules.aggregator.ResultsProvider]
     """
+
     # TODO: switch to underling-count-based completeness criteria
     def __init__(self):
         EngineModule.__init__(self)
@@ -612,4 +618,26 @@ class NoneAggregator(EngineModule, ResultsProvider):
         ResultsProvider.__init__(self)
 
     def _calculate_datapoints(self, final_pass=False):
+        pass
+
+
+class AggregatorListener(object):
+    """
+    Mixin for listeners of aggregator data
+    """
+
+    @abstractmethod
+    def aggregated_second(self, data):
+        """
+        Notification about new data point
+
+        :param data: bzt.modules.reporting.DataPoint
+        """
+        pass
+
+    def finalize(self):
+        """
+        This method is called at the end of run
+        to close open file descriptors etc.
+        """
         pass

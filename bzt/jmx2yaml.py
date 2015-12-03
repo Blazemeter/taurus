@@ -24,7 +24,7 @@ import sys
 
 from cssselect import GenericTranslator
 
-from bzt.engine import Configuration
+from bzt.engine import Configuration, ScenarioExecutor
 from bzt.modules.jmeter import JMX
 from bzt.cli import CLI
 
@@ -59,7 +59,7 @@ class JMXasDict(JMX):
         super(JMXasDict, self).__init__()
         self.log = log.getChild(self.__class__.__name__)
         self.global_objects = []
-        self.scenario = {"execution": None, "scenarios": None}
+        self.scenario = {ScenarioExecutor.EXEC: None, "scenarios": None}
 
     def load(self, original):
         super(JMXasDict, self).load(original)
@@ -859,7 +859,7 @@ class Converter(object):
         :return: dict
         """
         self.dialect.load(file_to_convert)
-        base_script = {"scenarios": {}, "execution": []}
+        base_script = {"scenarios": {}, ScenarioExecutor.EXEC: []}
         self.log.debug("Processing thread groups...")
         tg_etree_elements = self.dialect.tree.findall(".//ThreadGroup")
         if not tg_etree_elements:
@@ -871,7 +871,7 @@ class Converter(object):
             for tg_etree_element in tg_etree_elements:
                 td_executions_dict, tg_scenario_dict = self.dialect.process_tg(tg_etree_element)
                 base_script["scenarios"].update(tg_scenario_dict)
-                base_script["execution"].append(td_executions_dict)
+                base_script[ScenarioExecutor.EXEC].append(td_executions_dict)
                 self.log.debug("Done processing thread group %s", tg_etree_element.get("testname"))
 
             if dump_modified_jmx_to:

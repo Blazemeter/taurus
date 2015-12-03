@@ -267,9 +267,9 @@ scenarios:
 
 ### Assertions
 
-Assertions are attached to request elements and used to set fail status on the response (it is not the same as response code).
-Currently only two types of response assertions are available.
-First one checks http response code, its short form looks like this:
+Assertions are attached to request elements and used to set fail status on the response. Fail status for the responseis not the same as response code for JMeter.
+Currently two types of response assertions are available.
+First one checks http response fields, its short form looks like this:
 
 ```yaml
 ---

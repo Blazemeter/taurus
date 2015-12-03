@@ -74,7 +74,8 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 self.__cp_res_files_to_artifacts_dir(resource_files)
 
         elif "requests" in scenario:
-            raise NotImplementedError()  # TODO: implement script generation for gatling
+            raise NotImplementedError(
+                "Script generating not yet implemented for Gatling")  # TODO: implement script generation for gatling
         else:
             raise ValueError("There must be a script file to run Gatling")
 
@@ -90,13 +91,12 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         simulation = self.get_scenario().get("simulation", "")
         if not simulation:
             # TODO: guess simulation from script file
-            raise NotImplementedError()
+            raise NotImplementedError("No simulation set")
 
         datadir = os.path.realpath(self.engine.artifacts_dir)
 
-        # NOTE: exe_suffix already in "path"
         cmdline = [self.settings["path"]]
-        cmdline += ["-sf", datadir, "-df", datadir, " -rf ", datadir]
+        cmdline += ["-sf", datadir, "-df", datadir, "-rf ", datadir]
         cmdline += ["-on", "gatling-bzt", "-m", "-s", simulation]
 
         self.start_time = time.time()
@@ -182,12 +182,11 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.script = self.__get_script()
         resource_files = []
 
-        if self.script:
+        if self.script and os.path.exists(self.script):
             script_contents = open(self.script, 'rt').read()
             resource_files = GatlingExecutor.__get_res_files_from_script(script_contents)
 
             if resource_files:
-
                 script_name, script_ext = os.path.splitext(self.script)
                 script_name = os.path.basename(script_name)
                 modified_script = self.engine.create_artifact(script_name, script_ext)
@@ -200,7 +199,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 shutil.copy2(self.script, self.engine.artifacts_dir)
                 resource_files.append(self.script)
 
-        return [os.path.basename(file_path) for file_path in resource_files]
+        return resource_files
 
     @staticmethod
     def __get_res_files_from_script(script_contents):
@@ -266,8 +265,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if Scenario.SCRIPT not in scenario:
             return None
 
-        ensure_is_dict(scenario, Scenario.SCRIPT, "path")
-        fname = scenario[Scenario.SCRIPT]["path"]
+        fname = scenario[Scenario.SCRIPT]
         if fname is not None:
             return self.engine.find_file(fname)
         else:

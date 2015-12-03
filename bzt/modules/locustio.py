@@ -22,11 +22,10 @@ import math
 import time
 import os
 from imp import find_module
-
 from bzt.engine import ScenarioExecutor, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsProvider, DataPoint, KPISet
 from bzt.modules.jmeter import JTLReader
-from bzt.utils import shutdown_process, shell_exec, RequiredTool
+from bzt.utils import shutdown_process, shell_exec, RequiredTool, BetterDict
 from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.six import PY3, iteritems
 
@@ -48,6 +47,9 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     def prepare(self):
         self.__check_installed()
         self.locustfile = self.get_locust_file()
+        if not self.locustfile or not os.path.exists(self.locustfile):
+            raise ValueError("Locust file not found: %s" % self.locustfile)
+
         self.is_master = self.execution.get("master", self.is_master)
         if self.is_master:
             slaves = self.execution.get("slaves", ValueError("Slaves count required when starting in master mode"))
@@ -76,7 +78,9 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         hatch = load.concurrency / load.ramp_up if load.ramp_up else load.concurrency
         wrapper = os.path.join(os.path.dirname(__file__), os.pardir, "resources", "locustio-taurus-wrapper.py")
 
-        env = {"PYTHONPATH": self.engine.artifacts_dir + os.pathsep + os.getcwd()}
+        env = BetterDict()
+        env.merge({k: os.environ.get(k) for k in os.environ.keys()})
+        env.merge({"PYTHONPATH": self.engine.artifacts_dir + os.pathsep + os.getcwd()})
         if os.getenv("PYTHONPATH"):
             env['PYTHONPATH'] = os.getenv("PYTHONPATH") + os.pathsep + env['PYTHONPATH']
 
@@ -132,14 +136,13 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     def resource_files(self):
         if not self.locustfile:
             self.locustfile = self.get_locust_file()
-        return [os.path.basename(self.locustfile)]
+
+        return [self.locustfile]
 
     def get_locust_file(self):
         scenario = self.get_scenario()
         locustfile = scenario.get("script", ValueError("Please specify locusfile in 'script' option"))
         locustfile = self.engine.find_file(locustfile)
-        if not locustfile or not os.path.exists(locustfile):
-            raise ValueError("Locust file not found: %s" % locustfile)
         return locustfile
 
     def shutdown(self):
@@ -149,13 +152,14 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.__out.close()
 
     def post_process(self):
-        if (self.is_master and not self.reader.cumulative) or (not self.is_master and not self.reader.buffer):
+        if (self.is_master and not self.reader.cumulative) \
+                or (not self.is_master and self.reader and not self.reader.buffer):
             raise RuntimeWarning("Empty results, most likely Locust failed")
 
 
 class LocustIO(RequiredTool):
     def __init__(self, parent_logger):
-        super(LocustIO, self).__init__("LocustIO", "", "")
+        super(LocustIO, self).__init__("LocustIO", "")
         self.log = parent_logger.getChild(self.__class__.__name__)
 
     def check_if_installed(self):

@@ -3,7 +3,7 @@ import os
 import re
 
 from tests import setup_test_logging, BZTestCase, __dir__
-from bzt.modules.gatling import GatlingExecutor, EXE_SUFFIX, GatlingMirrorsManager, Gatling
+from bzt.modules.gatling import GatlingExecutor, EXE_SUFFIX, Gatling
 from tests.mocks import EngineEmul
 from bzt.utils import BetterDict
 

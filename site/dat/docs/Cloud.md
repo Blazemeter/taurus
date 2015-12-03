@@ -1,22 +1,138 @@
 # Cloud Provisioning
 
+The default mode for taurus is to use `local` provisioning, which means all the tools will be started on local machine. This is not much scalable, so there is a way to delegate actual tool execution into BlazeMeter cloud. It is done by setting `cloud` provisioning like this:
+
 ```yaml
+---
 provisioning: cloud
-execution:
-  - scenario: my-scenario
-    locations-weighted: true
-    locations:
-      eu-west: 1
-      eu-east: 2
-modules:
-  cloud:
-    address:
-    token:
-    timeout:
 ```
 
-weighted vs absolute vs no concurrency set
-list of available locations is at https://a.blazemeter.com/api/latest/user
-logic to get default location
-provision-keyed concurrency
-browser-open
+To access BlazeMeter cloud, Taurus would require to have API key set inside `cloud` module settings:
+```yaml
+---
+modules:
+  cloud:
+    token: ******  # API key
+    timeout: 10s  # BlazeMeter API client timeout
+    browser-open: start  # auto-open browser on test start/end/both/none
+```
+
+## Load Settings for Cloud
+
+By default, cloud-provisioned execution will read `concurrency` and `throughput` options normally. There's a notation that allows configuring values for `local` and `cloud` at once, to remove the need to edit load settings when switching `provisioning` during test debugging from `local` to `cloud` and back:
+
+```yaml
+---
+execution:
+  - scenario: my-scen
+    concurrency:
+      local: 5
+      cloud: 5000
+    throughput:
+      local: 100
+      cloud: 10000
+```
+
+Then you can just switch `provisioning` and load settings will be taken accordingly. For example, running `bzt config.yml -o provisioning=cloud` is an easy way to toggle on `cloud` provisioning. The `concurrency` and `througput` are always *total* value for execution, no matter how many locations will be involved.
+
+## Configuring Cloud Locations
+
+Cloud locations are specified per-execution. Specifying multiple cloud locations for execution means that its `concurrency` and/or `throughput` will be distributed among the locations. Locations is the map of location id's and their relative weights. Relative weight determines how much value from `concurrency` and `throughput` will be put into corresponding location. 
+
+```yaml
+---
+execution:
+  - locations:
+      eu-west: 1
+      eu-east: 2
+```
+
+The list of all available locations contained in [User API Call](https://a.blazemeter.com/api/latest/user) and may be specific for particular user. See `locations` block and `id` option for each location.
+
+By default, Taurus will calculate machines count for each location based on their limits obtained from *User API Call*. To switch to manual machines count just set option `locations-weighted` into `false`. Exact numbers of machines for each location will be used in that case:
+
+```yaml
+---
+execution:
+  - locations:
+      eu-west: 2
+      eu-east: 7
+    locations-weighted: false
+```
+
+## Reporting Settings
+
+```yaml
+---
+modules:
+  cloud:
+    test: Taurus Test  # test name
+    project: Project Name  # project name or id
+```
+
+## Specifying Additional Resource Files
+If you need some additional files as part of your test and Taurus fails to detect them automatically, you can attach them to execution using `files` section:
+
+```yaml
+---
+execution:
+  - locations:
+      eu-east: 1
+    scenario:
+      script: testplan.jmx
+    files:
+      - path/to/file1.csv
+      - path/to/file2.csv
+```
+
+
+## Specifying Where to Run for Shellexec Service
+
+In shellexec task config, the `run-at` parameter allows to set where commands will be executed. Surprisingly, `local` means the cloud worker will execute it, `cloud` means the controlling CLI will execute it.
+
+## Installing Python Package Dependencies
+
+If you need to install additional python modules via `pip`, you can do it by using `shellexec` service and running `pip install <package>` command at `prepare` stage:
+
+```yaml
+---
+services:
+  - module: shellexec
+    prepare: 
+      - pip install cryptography  # 'cryptography' is the library from PyPi
+```
+
+You can even upload your proprietary python eggs into workers by specifying them in `files` option and then installing by shellexec:
+
+```yaml
+---
+execution:
+  - executor: locust
+    scenario: locust-scen
+    files:
+      - my-modules.zip
+      
+services:
+  - module: shellexec
+    prepare: 
+      - unzip my-modules.zip
+      - pip install -r requirements.txt
+```
+
+## Worker Number Info
+
+There is a way to obtain worker index which can be used to coordinate distributed test data. For example, you can make sure that different workers will use different user logins or CSV file parts. To achieve that, you get some `env` variables for `shellexec` modules and some `properties` for `jmeter` module:
+
+  * `TAURUS\_INDEX\_ALL` - absolute worker index in test
+  * `TAURUS\_INDEX\_EXECUTION` - per-execution worker index
+  * `TAURUS\_INDEX\_LOCATION` - per-location worker index
+
+## Cloud Execution Notes
+
+Please note that for `cloud` provisioning actual Taurus execution will be done on remote machines, so:
+  * the test will not run if your account has no enough engines allowed
+  * if you don't specify any duration for test with `hold-for` and `ramp-up` options, some default duration limit will be used
+  * you should not use `-report` commmand-line option or `blazemeter` reporter, all reports will be collected automatically by BlazeMeter
+  * only following config sections are passed into cloud: `scenarios`, `execution`, `included-configs`, `services`
+  * `shellexec` module has `artifacts-dir` set as `default-cwd`
+  * cloud workers execute Taurus under isolated [virtualenv](https://virtualenv.readthedocs.org/en/latest/)

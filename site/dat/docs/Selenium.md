@@ -45,7 +45,7 @@ modules:
         "interpreter": "/home/user/interpreter/python"  # path to custom interpreter.
 ```
 
-## Scenario samples
+## Scenario Samples
 Minimal working scenario:
 
 ```yaml
@@ -112,4 +112,17 @@ execution:
         subject: body # only body subject supported
         regexp: false  # treat string as regular expression
         not: false  # inverse assertion condition
+```
+
+## Using Virtual Display on Linux
+
+If you want to run headless tests on Linux using virtual framebuffer (Xvfb), you can tell Taurus to run virtual display by using following config piece:
+
+```yaml
+---
+modules:
+  selenium:
+    virtual-display:
+      width: 1024
+      height: 768
 ```

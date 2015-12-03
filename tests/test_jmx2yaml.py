@@ -1,7 +1,8 @@
-
 import tempfile
 
 import yaml
+
+from bzt.engine import ScenarioExecutor
 from tests import BZTestCase
 from bzt.jmx2yaml import JMX2YAML
 from tests.mocks import EngineEmul, RecordingHandler
@@ -213,9 +214,9 @@ class TestConverter(BZTestCase):
         expected = {"expect-null": True, "invert": True, "jsonpath": '$(":input")', "validate": True}
         self.assertEqual(expected, tg_two_req_one_jp[0])
         #  test concurrency, ramp-up, iterations in execution
-        tg_one_exec = yml.get("execution")[0]
-        tg_two_exec = yml.get("execution")[1]
-        tg_three_exec = yml.get("execution")[2]
+        tg_one_exec = yml.get(ScenarioExecutor.EXEC)[0]
+        tg_two_exec = yml.get(ScenarioExecutor.EXEC)[1]
+        tg_three_exec = yml.get(ScenarioExecutor.EXEC)[2]
         self.assertEqual(tg_one_exec.get("concurrency"), 10)
         self.assertEqual(tg_two_exec.get("concurrency"), 15)
         self.assertEqual(tg_three_exec.get("concurrency"), None)
@@ -269,9 +270,9 @@ class TestConverter(BZTestCase):
         obj = JMX2YAML(FakeOptions(file_name=yml), "tests/yaml/converter/duration.jmx")
         obj.process()
         yml = yaml.load(open(yml).read())
-        tg_one = yml.get("execution")[0]
-        tg_two = yml.get("execution")[1]
-        tg_three = yml.get("execution")[2]
+        tg_one = yml.get(ScenarioExecutor.EXEC)[0]
+        tg_two = yml.get(ScenarioExecutor.EXEC)[1]
+        tg_three = yml.get(ScenarioExecutor.EXEC)[2]
         self.assertEqual("10s", tg_one.get("ramp-up"))
         self.assertEqual(None, tg_one.get("hold-for"))
         self.assertEqual("10s", tg_one.get("ramp-up"))

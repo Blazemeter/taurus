@@ -15,28 +15,28 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-from abc import abstractmethod
 import copy
 import datetime
-from distutils.version import LooseVersion
+import hashlib
 import json
 import logging
 import os
 import shutil
 import time
 import traceback
+from abc import abstractmethod
 from collections import namedtuple, defaultdict
+from distutils.version import LooseVersion
 from json import encoder
-
 import psutil
 import yaml
 from yaml.representer import SafeRepresenter
 
-from bzt import ManualShutdown, NormalShutdown, get_configs_dir
 import bzt
+from bzt import ManualShutdown, NormalShutdown, get_configs_dir
+from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, build_opener, \
+    install_opener, urlopen, request, numeric_types
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time
-from bzt.six import iteritems, string_types, text_type, PY2, UserDict, configparser, parse, ProxyHandler, build_opener, \
-    install_opener, urlopen, request
 
 SETTINGS = "settings"
 
@@ -67,7 +67,7 @@ class Engine(object):
         self.config.log = self.log.getChild(Configuration.__name__)
         self.modules = {}
         self.provisioning = Provisioning()
-        self.aggregator = EngineModule()
+        self.aggregator = EngineModule()  # FIXME: have issues with non-aggregator object set here
         self.interrupted = False
         self.check_interval = 1
         self.stopping_reason = None
@@ -103,15 +103,18 @@ class Engine(object):
         downstream EngineModule instances
         """
         self.log.info("Preparing...")
-        self.__prepare_services()
-        self.__prepare_aggregator()
-        self.__prepare_provisioning()
-        self.__prepare_reporters()
-
         interval = self.config.get(SETTINGS).get("check-interval", self.check_interval)
         self.check_interval = dehumanize_time(interval)
 
-        self.config.dump()
+        try:
+            self.__prepare_aggregator()
+            self.__prepare_services()
+            self.__prepare_provisioning()
+            self.__prepare_reporters()
+            self.config.dump()
+        except BaseException as exc:
+            self.stopping_reason = exc if not self.stopping_reason else self.stopping_reason
+            raise
 
     def run(self):
         """
@@ -226,7 +229,8 @@ class Engine(object):
         if isinstance(exception, KeyboardInterrupt):
             raise exception
         elif exception:
-            raise RuntimeError("Failed post-processing, see errors above")
+            self.log.warning("Failed post-processing")
+            raise exception
 
     def __finalize(self):
         """
@@ -367,6 +371,7 @@ class Engine(object):
         Try to find file in search_path if it was specified. Helps finding files
         in non-CLI environments or relative to config path
         """
+        filename = os.path.expanduser(filename)
         if os.path.isfile(filename):
             return filename
         elif filename.lower().startswith("http://") or filename.lower().startswith("https://"):
@@ -389,8 +394,9 @@ class Engine(object):
                 if os.path.isfile(location):
                     self.log.warning("Guessed location from search paths for file %s: %s", filename, location)
                     return location
-        else:
-            return filename
+
+        self.log.warning("Could not find file at path: %s", filename)
+        return filename
 
     def _load_base_configs(self):
         base_configs = []
@@ -416,9 +422,9 @@ class Engine(object):
         :type user_configs: list[str]
         :rtype: Configuration
         """
+        self.config.load(user_configs)
         user_config = Configuration()
         user_config.load(user_configs, self.__config_loaded)
-        self.config.merge(user_config)
         return user_config
 
     def __config_loaded(self, config):
@@ -428,7 +434,7 @@ class Engine(object):
         """
         Instantiate provisioning class
         """
-        cls = self.config.get(Provisioning.PROV, "")
+        cls = self.config.get(Provisioning.PROV, None)
         if not cls:
             raise ValueError("Please configure provisioning settings")
         self.provisioning = self.instantiate_module(cls)
@@ -441,11 +447,9 @@ class Engine(object):
         reporting = self.config.get(Reporter.REP, [])
         for index, reporter in enumerate(reporting):
             reporter = ensure_is_dict(reporting, index, "module")
-            cls = reporter.get('module', '')
+            cls = reporter.get('module', ValueError())
             instance = self.instantiate_module(cls)
             instance.parameters = reporter
-            if isinstance(instance, AggregatorListener):
-                self.aggregator.add_listener(instance)  # NOTE: bad design, add_listener method is unknown
             assert isinstance(instance, Reporter)
             self.reporters.append(instance)
 
@@ -457,11 +461,12 @@ class Engine(object):
         """
         Instantiate service modules, then prepare them
         """
-        services = self.config.get("services", [])
+        services = self.config.get(Service.SERV, [])
         for index, config in enumerate(services):
             config = ensure_is_dict(services, index, "module")
             cls = config.get('module', '')
             instance = self.instantiate_module(cls)
+            assert isinstance(instance, Service)
             instance.parameters = config
             self.services.append(instance)
 
@@ -682,8 +687,9 @@ class Configuration(BetterDict):
         Remove sensitive data from config
         """
         for key in config.keys():
-            if key in ('password', 'secret', 'token') and config[key]:
-                config[key] = '*' * 8
+            for suffix in ('password', 'secret', 'token',):
+                if key.lower().endswith(suffix) and config[key]:
+                    config[key] = '*' * 8
 
 
 yaml.add_representer(Configuration, SafeRepresenter.represent_dict)
@@ -699,7 +705,7 @@ class EngineModule(object):
     """
     Base class for any BZT engine module
 
-    :type engine: engine.Engine
+    :type engine: Engine
     :type settings: BetterDict
     """
 
@@ -845,6 +851,7 @@ class ScenarioExecutor(EngineModule):
         self.provisioning = None
         self.execution = BetterDict()
         self.__scenario = None
+        self._label = None
 
     def get_scenario(self):
         """
@@ -853,17 +860,28 @@ class ScenarioExecutor(EngineModule):
         :return: DictOfDicts
         """
         if self.__scenario is None:
-            scenario = self.execution.get('scenario', BetterDict())
+            scenario = self.execution.get('scenario', ValueError("Scenario not configured properly"))
             if isinstance(scenario, string_types):
+                self._label = scenario
                 scenarios = self.engine.config.get("scenarios")
                 if scenario not in scenarios:
                     raise ValueError("Scenario not found in scenarios: %s" % scenario)
+                ensure_is_dict(scenarios, scenario, Scenario.SCRIPT)
                 scenario = scenarios.get(scenario)
                 self.__scenario = Scenario(scenario)
             elif isinstance(scenario, dict):
                 self.__scenario = Scenario(scenario)
             else:
-                raise ValueError("Scenario not configured properly: %s" % scenario)
+                raise ValueError("Unsupported type for scenario")
+
+        if self._label is None:
+            if Scenario.SCRIPT in self.__scenario:
+                # using script name if present
+                error = ValueError("Wrong script in scenario")
+                self._label = os.path.basename(self.__scenario.get(Scenario.SCRIPT, error))
+            else:
+                # last resort - a checksum of whole scenario
+                self._label = hashlib.md5(to_json(self.__scenario).encode()).hexdigest()
 
         return self.__scenario
 
@@ -896,8 +914,21 @@ class ScenarioExecutor(EngineModule):
         if duration and not iterations:
             iterations = 0  # which means infinite
 
+        if not isinstance(concurrency, numeric_types + (type(None),)):
+            raise ValueError("Invalid concurrency value[%s]: %s" % (type(concurrency).__name__, concurrency))
+
+        if not isinstance(throughput, numeric_types + (type(None),)):
+            raise ValueError("Invalid throughput value[%s]: %s" % (type(throughput).__name__, throughput))
+
+        if not isinstance(steps, numeric_types + (type(None),)):
+            raise ValueError("Invalid throughput value[%s]: %s" % (type(steps).__name__, steps))
+
+        if not isinstance(iterations, numeric_types + (type(None),)):
+            raise ValueError("Invalid throughput value[%s]: %s" % (type(iterations).__name__, iterations))
+
         res = namedtuple("LoadSpec",
                          ('concurrency', "throughput", 'ramp_up', 'hold', 'iterations', 'duration', 'steps'))
+
         return res(concurrency=concurrency, ramp_up=ramp_up,
                    throughput=throughput, hold=hold, iterations=iterations,
                    duration=duration, steps=steps)
@@ -908,11 +939,11 @@ class ScenarioExecutor(EngineModule):
         """
         files_list = self.execution.get("files", [])
         if isinstance(self, FileLister):
-            files_list.extend(self.resource_files())  # TODO: use find_file for all of them?
+            files_list.extend(self.resource_files())
         return files_list
 
     def __repr__(self):
-        return "%s-%s" % (self.execution.get("executor", None), id(self))
+        return "%s/%s" % (self.execution.get("executor", None), self._label if self._label else id(self))
 
 
 class Reporter(EngineModule):
@@ -922,6 +953,15 @@ class Reporter(EngineModule):
     """
 
     REP = "reporting"
+
+
+class Service(EngineModule):
+    """
+    This type of modules is responsible for
+    in-test and post-test results analysis
+    """
+
+    SERV = "services"
 
 
 class Scenario(UserDict, object):
@@ -997,25 +1037,3 @@ class Scenario(UserDict, object):
             yield res(config=req, label=label,
                       url=url, method=method, headers=headers,
                       timeout=timeout, think_time=think_time, body=body)
-
-
-class AggregatorListener(object):
-    """
-    Mixin for listeners of aggregator data
-    """
-
-    @abstractmethod
-    def aggregated_second(self, data):
-        """
-        Notification about new data point
-
-        :param data: bzt.modules.reporting.DataPoint
-        """
-        pass
-
-    def finalize(self):
-        """
-        This method is called at the end of run
-        to close open file descriptors etc.
-        """
-        pass

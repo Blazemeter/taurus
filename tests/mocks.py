@@ -12,13 +12,14 @@ import random
 from bzt.engine import Engine, Configuration, FileLister
 from bzt.six import u
 from bzt.utils import load_class
-from bzt.engine import Provisioning, ScenarioExecutor, Reporter, AggregatorListener
-from bzt.modules.aggregator import ResultsReader
+from bzt.engine import Provisioning, ScenarioExecutor, Reporter
+from bzt.modules.aggregator import ResultsReader, AggregatorListener
 from tests import random_sample
 
 try:
     from exceptions import KeyboardInterrupt
 except ImportError:
+    # noinspection PyUnresolvedReferences
     from builtins import KeyboardInterrupt
 
 
@@ -83,6 +84,7 @@ class ModuleMock(ScenarioExecutor, Provisioning, Reporter, FileLister):
             for num in range(0, self.check_iterations):
                 for quan in range(0, int(random.random() * 10)):
                     reader.data.append(random_sample(num))
+            # noinspection PyUnresolvedReferences
             self.engine.aggregator.add_reader(reader)
 
         if self.prepare_exc:
@@ -186,6 +188,7 @@ class MockReader(ResultsReader, AggregatorListener):
         self.results.append(data)
 
 
+# noinspection PyUnusedLocal
 def download_progress_mock(blocknum, blocksize, totalsize):
     pass
 
@@ -231,6 +234,7 @@ class RecordingHandler(Handler):
 
 
 class SocketEmul(object):
+    # noinspection PyUnusedLocal
     def __init__(self, family=AF_INET, atype=SOCK_STREAM, proto=0, _sock=None):
         self.recv_data = ""
         self.sent_data = ""
@@ -238,12 +242,14 @@ class SocketEmul(object):
     def connect(self, address):
         logging.debug("Emulated connect to %s", address)
 
+    # noinspection PyUnusedLocal
     def recv(self, buf_size, flags=None):
         data = self.recv_data[:buf_size]
         self.recv_data = self.recv_data[buf_size + 1:]
         logging.debug("Emulated recv: %s", data)
         return data
 
+    # noinspection PyUnusedLocal
     def send(self, data, flags=None):
         self.sent_data += data
         logging.debug("Emulated send: %s", data)

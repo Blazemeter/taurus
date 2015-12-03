@@ -23,7 +23,6 @@ import urllib2
 import urlparse
 import operator
 import ConfigParser
-
 import UserDict
 import StringIO
 import BaseHTTPServer
@@ -31,6 +30,7 @@ import SocketServer as socketserver
 
 string_types = basestring,
 integer_types = (int, long)
+numeric_types = (int, long, float, complex)
 class_types = (type, types.ClassType)
 text_type = unicode
 binary_type = str
@@ -50,6 +50,7 @@ install_opener = urllib2.install_opener
 ProxyHandler = urllib2.ProxyHandler
 Request = urllib2.Request
 HTTPError = urllib2.HTTPError
+URLError = urllib2.URLError
 BaseHTTPServer = BaseHTTPServer
 socketserver = socketserver
 SimpleHTTPRequestHandler = BaseHTTPServer.BaseHTTPRequestHandler
@@ -57,6 +58,7 @@ SimpleHTTPRequestHandler = BaseHTTPServer.BaseHTTPRequestHandler
 viewvalues = operator.methodcaller("viewvalues")
 
 r_input = raw_input
+
 
 def iteritems(dictionary, **kw):
     return iter(dictionary.iteritems(**kw))

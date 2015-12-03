@@ -16,23 +16,8 @@ limitations under the License.
 from abc import abstractmethod
 import os
 import sys
-import signal
 
-VERSION = "0.4.4.1"
-
-
-def signal_handler(sig, frame):
-    """
-    required for non-tty python runs to interrupt
-    :param frame:
-    :param sig:
-    """
-    del sig, frame
-    raise ManualShutdown()
-
-
-signal.signal(signal.SIGINT, signal_handler)
-signal.signal(signal.SIGTERM, signal_handler)
+VERSION = "0.5.0"
 
 
 class RCProvider(object):
@@ -80,8 +65,10 @@ def get_configs_dir():
     Generate configs dir path on install, moved from utils due to import error
     :return: str
     """
-    path = os.getenv("VIRTUAL_ENV", "") \
-        if os.getenv("VIRTUAL_ENV", "") \
-        else os.path.splitdrive(sys.executable)[0]
+    if hasattr(sys, 'real_prefix'):
+        path = sys.prefix
+    else:
+        path = os.path.splitdrive(sys.executable)[0]
+
     path += os.path.sep + os.path.join("etc", "bzt.d")  # os.path.join does not work for some reason
     return path

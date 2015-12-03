@@ -5,14 +5,15 @@ import time
 import sys
 import subprocess
 import json
-
 from abc import abstractmethod
 import os
 import shutil
+
+from pyvirtualdisplay import Display
 import urwid
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
-from bzt.utils import RequiredTool, shell_exec, shutdown_process, BetterDict, JavaVM, TclLibrary, dehumanize_time, \
+from bzt.utils import RequiredTool, shell_exec, shutdown_process, JavaVM, TclLibrary, dehumanize_time, \
     MirrorsManager
 from bzt.six import string_types, text_type, etree
 from bzt.modules.aggregator import ConsolidatingAggregator
@@ -23,6 +24,7 @@ from bzt.modules.jmeter import JTLReader
 class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     """
     Selenium executor
+    :type virtual_display: Display
     """
     SELENIUM_DOWNLOAD_LINK = "http://selenium-release.storage.googleapis.com/{version}/" \
                              "selenium-server-standalone-{version}.0.jar"
@@ -39,6 +41,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def __init__(self):
         super(SeleniumExecutor, self).__init__()
+        self.virtual_display = None
         self.start_time = None
         self.end_time = None
         self.runner = None
@@ -56,23 +59,19 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         3) create runner instance, prepare runner
         """
         self.scenario = self.get_scenario()
-        if "requests" in self.scenario:
-            if self.scenario.get("requests"):
-                self.scenario["script"] = self.__tests_from_requests()
-            else:
-                raise RuntimeError("Nothing to test, no requests were provided in scenario")
+        self._verify_script()
         self.kpi_file = self.engine.create_artifact("selenium_tests_report", ".csv")
         self.err_jtl = self.engine.create_artifact("selenium_tests_err", ".xml")
-        script_type = self.detect_script_type(self.scenario.get("script"))
-        runner_config = BetterDict()
+        script_type = self.detect_script_type(self.scenario.get(Scenario.SCRIPT))
 
         if script_type == ".py":
             self.runner = NoseTester
             runner_config = self.settings.get("selenium-tools").get("nose")
-
         elif script_type == ".jar" or script_type == ".java":
             self.runner = JunitTester
             runner_config = self.settings.get("selenium-tools").get("junit")
+        else:
+            raise ValueError("Unsupported script type: %s" % script_type)
 
         runner_config["script-type"] = script_type
         self.runner_working_dir = self.engine.create_artifact(runner_config.get("working-dir", "classes"), "")
@@ -91,6 +90,19 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.reader = JTLReader(self.kpi_file, self.log, self.err_jtl)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
+
+        display_conf = self.settings.get("virtual-display")
+        if display_conf:
+            width = display_conf.get("width", 1024)
+            height = display_conf.get("height", 768)
+            self.virtual_display = Display(size=(width, height))
+
+    def _verify_script(self):
+        if not self.scenario.get("script"):
+            if self.scenario.get("requests"):
+                self.scenario["script"] = self.__tests_from_requests()
+            else:
+                raise RuntimeError("Nothing to test, no requests were provided in scenario")
 
     def _cp_resource_files(self, runner_working_dir):
         """
@@ -135,6 +147,10 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :return:
         """
         self.start_time = time.time()
+        if self.virtual_display:
+            msg = "Starting virtual display[%s]: %s"
+            self.log.info(msg, self.virtual_display.size, self.virtual_display.new_display_var)
+            self.virtual_display.start()
         self.runner.run_tests()
 
     def check(self):
@@ -145,6 +161,11 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if self.widget:
             self.widget.update()
 
+        if self.virtual_display and not self.virtual_display.is_alive():
+            self.log.info("Virtual display out: %s", self.virtual_display.stdout)
+            self.log.warning("Virtual display err: %s", self.virtual_display.stderr)
+            raise RuntimeError("Virtual display failed: %s" % self.virtual_display.return_code)
+
         return self.runner.is_finished()
 
     def shutdown(self):
@@ -152,14 +173,18 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         shutdown test_runner
         :return:
         """
-        self.runner.shutdown()
+        try:
+            self.runner.shutdown()
+        finally:
+            if self.virtual_display and self.virtual_display.is_alive():
+                self.virtual_display.stop()
 
         if self.start_time:
             self.end_time = time.time()
             self.log.debug("Selenium tests ran for %s seconds", self.end_time - self.start_time)
 
     def post_process(self):
-        if not self.reader.buffer:
+        if self.reader and not self.reader.buffer:
             raise RuntimeWarning("Empty results, most likely Selenium failed")
 
     def get_widget(self):
@@ -170,21 +195,26 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     def resource_files(self):
         if not self.scenario:
             self.scenario = self.get_scenario()
+
+        if "script" not in self.scenario:
+            return []
+
         script = self.scenario.get("script")
         script_type = self.detect_script_type(script)
 
         if script_type == ".py":
             runner_config = self.settings.get("selenium-tools").get("nose")
-
         elif script_type == ".jar" or script_type == ".java":
             runner_config = self.settings.get("selenium-tools").get("junit")
+        else:
+            raise ValueError("Unsupported script type: %s" % script_type)
 
         if self.runner_working_dir is None:
             self.runner_working_dir = self.engine.create_artifact(runner_config.get("working-dir", "classes"), "")
 
         self._cp_resource_files(self.runner_working_dir)
 
-        return os.path.basename(self.runner_working_dir)
+        return [os.path.basename(self.runner_working_dir)]
 
     def __tests_from_requests(self):
         filename = self.engine.create_artifact("test_requests", ".py")
@@ -285,7 +315,6 @@ class JunitTester(AbstractTestRunner):
         junit.jar
         junit_listener.jar
         """
-
         if self.settings.get("script_type", None) == ".java":
             self.required_tools.append(JavaC("", "", self.log))
 
@@ -472,7 +501,7 @@ class SeleniumServerJar(RequiredTool):
     def check_if_installed(self):
         self.log.debug("%s path: %s", self.tool_name, self.tool_path)
         selenium_launch_command = ["java", "-jar", self.tool_path, "-help"]
-        selenium_subproc = shell_exec(selenium_launch_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        selenium_subproc = shell_exec(selenium_launch_command, stderr=subprocess.STDOUT)
         output = selenium_subproc.communicate()
         self.log.debug("%s output: %s", self.tool_name, output)
         if selenium_subproc.returncode == 0:
@@ -625,7 +654,7 @@ class SeleniumScriptBuilder(NoseTest):
         browsers = ["Firefox", "Chrome", "Ie", "Opera"]
         browser = self.scenario.get("browser", "Firefox")
         if browser not in browsers:
-            raise ValueError("Unsupported browser name")
+            raise ValueError("Unsupported browser name: %s" % browser)
         setup_method_def = self.gen_method_definition("setUp", ["self"])
         setup_method_def.append(self.gen_method_statement("self.driver=webdriver.%s()" % browser))
         scenario_timeout = self.scenario.get("timeout", 30)

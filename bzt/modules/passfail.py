@@ -24,14 +24,14 @@ import re
 import urwid
 
 from bzt import AutomatedShutdown
-from bzt.engine import Reporter, AggregatorListener
-from bzt.modules.aggregator import KPISet, DataPoint
+from bzt.engine import Reporter, Service
+from bzt.modules.aggregator import KPISet, DataPoint, AggregatorListener, ResultsProvider
 from bzt.utils import load_class, dehumanize_time
 from bzt.modules.console import WidgetProvider
 from bzt.six import string_types, viewvalues, iteritems
 
 
-class PassFailStatus(Reporter, AggregatorListener, WidgetProvider):
+class PassFailStatus(Reporter, Service, AggregatorListener, WidgetProvider):
     """
     :type criterias: list[FailCriteria]
     """
@@ -60,6 +60,9 @@ class PassFailStatus(Reporter, AggregatorListener, WidgetProvider):
             if isinstance(idx, string_types):
                 crit_instance.message = idx
             self.criterias.append(crit_instance)
+
+        if isinstance(self.engine.aggregator, ResultsProvider):
+            self.engine.aggregator.add_listener(self)
 
     def shutdown(self):
         for crit in self.criterias:
@@ -266,8 +269,8 @@ class DataCriteria(FailCriteria):
             logging.debug("No label %s in %s", self.label, part.keys())
             return
 
-        get_value = self.get_value(part[self.label])
-        self.process_criteria_logic(data[DataPoint.TIMESTAMP], get_value)
+        val = self.get_value(part[self.label])
+        self.process_criteria_logic(data[DataPoint.TIMESTAMP], val)
 
     def _get_field_functor(self, subject, percentage):
         if subject == 'avg-rt':

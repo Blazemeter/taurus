@@ -1,6 +1,6 @@
 import json
 import logging
-
+from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.blazemeter import CloudProvisioning, BlazeMeterClientEmul, ResultsFromBZA
 from tests import BZTestCase, __dir__
@@ -12,7 +12,7 @@ class TestCloudProvisioning(BZTestCase):
         obj = CloudProvisioning()
         obj.engine = EngineEmul()
         obj.engine.config.merge({
-            "execution": {
+            ScenarioExecutor.EXEC: {
                 "executor": "mock",
                 "concurrency": 5500,
                 "locations": {
@@ -36,20 +36,15 @@ class TestCloudProvisioning(BZTestCase):
         client.results.append({})  # upload files
         client.results.append({"result": {"id": id(obj)}})  # start
         client.results.append({"result": {"id": id(obj)}})  # get master
+        client.results.append({"result": []})  # get master sessions
         client.results.append({})  # terminate
 
         obj.prepare()
-        widget = obj.get_widget()
-        self.assertEquals(2, obj.executors[0].execution['locations']['us-east-1'])
-        self.assertEquals(4, obj.executors[0].execution['locations']['us-west'])
+        self.assertEquals(1, obj.executors[0].execution['locations']['us-east-1'])
+        self.assertEquals(2, obj.executors[0].execution['locations']['us-west'])
 
         obj.startup()
         obj.check()
-        widget.render((200,), False)
-        txt = widget.text.get_text()[0]
-        logging.info("Text: '%s'", txt)
-        self.assertIn("us-east-1: 2", txt)
-        self.assertIn("us-west: 4", txt)
         obj.shutdown()
         obj.post_process()
 
@@ -57,7 +52,7 @@ class TestCloudProvisioning(BZTestCase):
         obj = CloudProvisioning()
         obj.engine = EngineEmul()
         obj.engine.config.merge({
-            "execution": {
+            ScenarioExecutor.EXEC: {
                 "executor": "mock",
             },
             "modules": {
@@ -75,11 +70,40 @@ class TestCloudProvisioning(BZTestCase):
         client.results.append({})  # upload files
 
         obj.prepare()
-        self.assertEquals(1, obj.executors[0].execution['locations']['harbor-5591335d8588531f5cde3a04'])
+        self.assertEquals(1, obj.executors[0].execution['locations']['us-west-1'])
 
     def __get_user_info(self):
         with open(__dir__() + "/../json/blazemeter-api-user.json") as fhd:
             return json.loads(fhd.read())
+
+    def test_widget(self):
+        obj = CloudProvisioning()
+        obj.client = BlazeMeterClientEmul(logging.getLogger(''))
+        obj.client.results.append({"result": []})
+        obj.client.results.append({"result": {"sessions": [
+            {
+                "name": "executor/scenario/location",
+                "configuration": {}
+            }
+        ]}})
+
+        obj.client.results.append({"result": {"sessions": [
+            {
+                "name": "executor/scenario/location",
+                "configuration": {
+                    "location": "loc-name",
+                    "serversCount": "10"
+                }
+            }
+        ]}})
+
+        widget = obj.get_widget()
+        widget.update()
+        widget.update()
+        widget.update()
+        widget.update()
+
+        self.assertEqual("None #None\n executor scenario:\n  Agents in loc-name: 10\n", widget.text.get_text()[0])
 
 
 class TestResultsFromBZA(BZTestCase):

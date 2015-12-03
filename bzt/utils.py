@@ -26,6 +26,8 @@ import re
 import shlex
 import mimetypes
 import itertools
+import webbrowser
+from webbrowser import GenericBrowser
 import zipfile
 import sys
 import time
@@ -152,8 +154,11 @@ class BetterDict(defaultdict):
 
             if len(key) and key[0] == '^':  # eliminate flag
                 # TODO: improve logic - use val contents to see what to eliminate
-                self.pop(key[1:])
-                self.log.debug("Removed key: %s", key)
+                if key[1:] in self:
+                    self.pop(key[1:])
+                    self.log.debug("Removed key: %s", key)
+                else:
+                    self.log.debug("No key to remove: %s", key)
                 continue
 
             if isinstance(val, dict):
@@ -659,8 +664,10 @@ class JavaVM(RequiredTool):
         self.log = parent_logger.getChild(self.__class__.__name__)
 
     def check_if_installed(self):
+        cmd = ["java", '-version']
+        self.log.debug("Trying: %s", cmd)
         try:
-            output = subprocess.check_output(["java", '-version'], stderr=subprocess.STDOUT)
+            output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
             self.log.debug("%s output: %s", self.tool_name, output)
             return True
         except BaseException as exc:
@@ -770,3 +777,9 @@ class MirrorsManager(object):
             self.log.error("Can't fetch %s", self.base_link)
         mirrors = self._parse_mirrors()
         return (mirror for mirror in mirrors)
+
+
+def open_browser(url):
+    browser = webbrowser.get()
+    if type(browser) != GenericBrowser:
+        browser.open(url)

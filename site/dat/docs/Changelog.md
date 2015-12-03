@@ -1,7 +1,23 @@
 # Changelog
 
-## 0.4.5 (next)
+## 0.5.1 (next)
+ - fix shellexec env variables
 
+## 0.5.0
+ - allow using Xvfb for Selenium executor
+ - don't use lynx browser when opening report links
+ - add PBench executor type
+ - show scenario alias in sidebar widget for JMeter
+ - set `TAURUS\_ARTIFACTS\_DIR` environment variables for shellexec commands
+ - add `cwd` option for shellexec tasks
+ - add `env` option for shellexec tasks
+
+## 0.4.5
+ - load settings applied to Stepping Thread Groups
+ - shellexec service: print to stdout/stderr when `out`/`err` options set to `null`
+ - JMeter: append `user.properties` instead of overriding
+ - move pass/fail to services
+ - set BlazeMeter session note with test error message if present
 
 ## 0.4.4
  - limit max size of file that goes into zip for artifact upload (max-size option)

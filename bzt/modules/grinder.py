@@ -109,9 +109,9 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         fds.write("# BZT Properies Start\n")
         fds.write("grinder.hostID=grinder-bzt\n")
-        fds.write("grinder.script=%s\n" % os.path.realpath(self.script))
+        fds.write("grinder.script=%s\n" % os.path.realpath(self.script).replace(os.path.sep, "/"))
         dirname = os.path.realpath(self.engine.artifacts_dir)
-        fds.write("grinder.logDirectory=%s\n" % dirname)
+        fds.write("grinder.logDirectory=%s\n" % dirname.replace(os.path.sep, "/"))
 
         load = self.get_load()
         if load.concurrency:
@@ -144,13 +144,6 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.__write_base_props(fds)
             self.__write_scenario_props(fds, scenario)
             self.__write_bzt_props(fds)
-
-        with open(self.properties_file, 'rt') as fds:
-            prop_contents = fds.read()
-        resource_files, modified_contents = self.__get_res_files_from_script(prop_contents)
-        if resource_files:
-            with open(self.properties_file, 'wt') as fds:
-                fds.write(modified_contents)
 
         # TODO: multi-grinder executions to have different names
         self.kpi_file = os.path.join(self.engine.artifacts_dir, "grinder-bzt-kpi.log")
@@ -267,24 +260,15 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def resource_files(self):
         resource_files = []
-        prop_file = self.engine.find_file(self.get_scenario().get("properties-file"))
+        script_file_path = self.get_scenario().get("script", None)
+        if script_file_path:
+            resource_files.append(script_file_path)
 
+        prop_file = self.get_scenario().get("properties-file", None)
         if prop_file:
-            prop_file_contents = open(prop_file, 'rt').read()
-            resource_files, modified_contents = self.__get_res_files_from_script(prop_file_contents)
-            if resource_files:
-                self.__cp_res_files_to_artifacts_dir(resource_files)
-                script_name, script_ext = os.path.splitext(prop_file)
-                script_name = os.path.basename(script_name)
-                modified_script = self.engine.create_artifact(script_name, script_ext)
-                with open(modified_script, 'wt') as _fds:
-                    _fds.write(modified_contents)
-                resource_files.append(modified_script)
-            else:
-                shutil.copy2(prop_file, self.engine.artifacts_dir)
-                resource_files.append(prop_file)
+            resource_files.append(prop_file)
 
-        return [os.path.basename(x) for x in resource_files]
+        return resource_files
 
     def __cp_res_files_to_artifacts_dir(self, resource_files_list):
         """
@@ -300,31 +284,6 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                     self.log.warning("Cannot copy file: %s", resource_file)
             else:
                 self.log.warning("File not found: %s", resource_file)
-
-    def __get_res_files_from_script(self, prop_file_contents):
-        """
-        if "script" in scenario:
-            add script file to resources and override script name in .prop file
-        else:
-            take script name from .prop file and add it to resources
-
-        :param prop_file_contents:
-        :return: list of resource files and contents of .prop file
-        """
-        resource_files = []
-        script_file_path = self.get_scenario().get("script")
-
-        search_pattern = re.compile(r"grinder\.script.*")
-        found_pattern = search_pattern.findall(prop_file_contents)[-1]  # take last
-        file_path_in_prop = found_pattern.split("=")[-1].strip()
-
-        if script_file_path:
-            resource_files.append(script_file_path)
-            prop_file_contents = prop_file_contents.replace(file_path_in_prop, os.path.basename(script_file_path))
-        else:
-            resource_files.append(file_path_in_prop)
-
-        return resource_files, prop_file_contents
 
 
 class DataLogReader(ResultsReader):

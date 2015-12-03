@@ -2,10 +2,8 @@ import os
 from subprocess import CalledProcessError
 from tempfile import NamedTemporaryFile
 import time
-
-import yaml
-
-from tests import setup_test_logging, BZTestCase, __dir__
+from bzt.engine import Service
+from tests import setup_test_logging, BZTestCase
 from tests.mocks import EngineEmul, RecordingHandler
 from bzt.modules.shellexec import ShellExecutor
 from bzt.utils import BetterDict
@@ -18,6 +16,7 @@ class TaskTestCase(BZTestCase):
         self.obj = ShellExecutor()
         self.obj.parameters = BetterDict()
         self.obj.engine = EngineEmul()
+        self.obj.engine.config.merge({"provisioning": "local"})
         self.log_recorder = RecordingHandler()
         self.obj.log.addHandler(self.log_recorder)
 
@@ -27,6 +26,7 @@ class TaskTestCase(BZTestCase):
 
 class TestBlockingTasks(TaskTestCase):
     def test_task_prepare(self):
+        self.obj.settings['env'] = {"VAR": 1}
         task = "dir .. && cd .."
         self.obj.parameters.merge({"prepare": [task]})
         self.obj.prepare()
@@ -51,6 +51,11 @@ class TestBlockingTasks(TaskTestCase):
             self.fail()
         except CalledProcessError:
             pass
+
+    def test_print_out(self):
+        task = {"command": "pwd", "out": None}
+        self.obj.parameters.merge({"prepare": [task]})
+        self.obj.prepare()
 
 
 class TestNonBlockingTasks(TaskTestCase):
@@ -118,8 +123,10 @@ class TestTasksConfigs(TaskTestCase):
             self.assertTrue(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, err_file)))
 
     def test_config(self):
-        self.obj.engine.config.merge({'services': [{'startup': [{'command': 'sleep 10 && echo 111', 'background': True}], 'check': [{'command': 'dmesg | grep nvidia', 'ignore-failure': True}, 'pwd'], 'module': 'shellexec'}]})
-        self.obj.parameters = self.obj.engine.config.get("services")[0]
+        self.obj.engine.config.merge({'services': [
+            {'startup': [{'command': 'sleep 10 && echo 111', 'background': True}],
+             'check': [{'command': 'dmesg | grep nvidia', 'ignore-failure': True}, 'pwd'], 'module': 'shellexec'}]})
+        self.obj.parameters = self.obj.engine.config.get(Service.SERV)[0]
         self.obj.prepare()
         self.obj.startup()
         self.obj.check()

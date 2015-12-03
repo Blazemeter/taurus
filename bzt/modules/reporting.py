@@ -22,8 +22,8 @@ import os
 import time
 from datetime import datetime
 
-from bzt.modules.aggregator import DataPoint, KPISet
-from bzt.engine import Reporter, AggregatorListener
+from bzt.modules.aggregator import DataPoint, KPISet, AggregatorListener, ResultsProvider
+from bzt.engine import Reporter
 from bzt.modules.passfail import PassFailStatus
 from bzt.modules.blazemeter import BlazeMeterUploader
 from bzt.six import etree, iteritems, string_types
@@ -42,6 +42,11 @@ class FinalStatus(Reporter, AggregatorListener):
 
     def startup(self):
         self.start_time = time.time()
+
+    def prepare(self):
+        super(FinalStatus, self).prepare()
+        if isinstance(self.engine.aggregator, ResultsProvider):
+            self.engine.aggregator.add_listener(self)
 
     def aggregated_second(self, data):
         """
@@ -191,8 +196,8 @@ class FinalStatus(Reporter, AggregatorListener):
         for level, val in iteritems(kpiset[KPISet.PERCENTILES]):
             res['perc_%s' % level] = val
 
-        for rc, val in iteritems(kpiset[KPISet.RESP_CODES]):
-            res['rc_%s' % rc] = val
+        for rcd, val in iteritems(kpiset[KPISet.RESP_CODES]):
+            res['rc_%s' % rcd] = val
 
         for key in res:
             if isinstance(res[key], float):
@@ -234,6 +239,9 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
                                                                 JUnitXMLReporter.REPORT_FILE_EXT)
         self.parameters["filename"] = self.report_file_path
 
+        if isinstance(self.engine.aggregator, ResultsProvider):
+            self.engine.aggregator.add_listener(self)
+
     def aggregated_second(self, data):
         """
         :param data:
@@ -248,17 +256,17 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         super(JUnitXMLReporter, self).post_process()
         test_data_source = self.parameters.get("data-source", "sample-labels")
 
-        if self.last_second:
-            # data-source sample-labels
-            if test_data_source == "sample-labels":
+        if test_data_source == "sample-labels":
+            if self.last_second:
                 root_element = self.process_sample_labels()
-            # data-source pass-fail
-            elif test_data_source == "pass-fail":
-                root_element = self.process_pass_fail()
+                self.save_report(root_element)
             else:
-                raise ValueError("Unsupported data source: %s" % test_data_source)
-
+                self.log.warning("No last second data to generate XUnit.xml")
+        elif test_data_source == "pass-fail":
+            root_element = self.process_pass_fail()
             self.save_report(root_element)
+        else:
+            raise ValueError("Unsupported data source: %s" % test_data_source)
 
     def process_sample_labels(self):
         """
@@ -298,6 +306,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         result = []
         bza_reporters = [_x for _x in self.engine.reporters if isinstance(_x, BlazeMeterUploader)]
         for bza_reporter in bza_reporters:
+            assert isinstance(bza_reporter, BlazeMeterUploader)
             report_url = None
             test_name = None
 
@@ -337,7 +346,9 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         """
         :return: etree element
         """
-        pass_fail_objects = [_x for _x in self.engine.reporters if isinstance(_x, PassFailStatus)]
+        mods = self.engine.reporters + self.engine.services  # TODO: remove it after migrating to service
+        pass_fail_objects = [_x for _x in mods if isinstance(_x, PassFailStatus)]
+        self.log.debug("Processing passfail objects: %s", pass_fail_objects)
         fail_criterias = []
         for pf_obj in pass_fail_objects:
             if pf_obj.criterias:
@@ -350,26 +361,27 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         report_urls = [info_item[0] for info_item in bza_report_info]
 
         for fc_obj in fail_criterias:
-            if fc_obj.config['label']:
-                data = (fc_obj.config['subject'], fc_obj.config['label'],
-                        fc_obj.config['condition'], fc_obj.config['threshold'])
-                tpl = "%s of %s%s%s"
-            else:
-                data = (fc_obj.config['subject'], fc_obj.config['condition'],
-                        fc_obj.config['threshold'])
-                tpl = "%s%s%s"
-
-            if fc_obj.config['timeframe']:
-                tpl += " for %s"
-                data += (fc_obj.config['timeframe'],)
-
-            disp_name = tpl % data
-
-            testcase_etree = etree.Element("testcase", classname=classname, name=disp_name)
-            if report_urls:
-                system_out_etree = etree.SubElement(testcase_etree, "system-out")
-                system_out_etree.text = "".join(report_urls)
-            if fc_obj.is_triggered and fc_obj.fail:
-                etree.SubElement(testcase_etree, "error", type="pass/fail criteria triggered", message="")
+            testcase_etree = self.__process_criteria(classname, fc_obj, report_urls)
             root_xml_element.append(testcase_etree)
         return root_xml_element
+
+    def __process_criteria(self, classname, fc_obj, report_urls):
+        if fc_obj.config['label']:
+            data = (fc_obj.config['subject'], fc_obj.config['label'],
+                    fc_obj.config['condition'], fc_obj.config['threshold'])
+            tpl = "%s of %s%s%s"
+        else:
+            data = (fc_obj.config['subject'], fc_obj.config['condition'],
+                    fc_obj.config['threshold'])
+            tpl = "%s%s%s"
+        if fc_obj.config['timeframe']:
+            tpl += " for %s"
+            data += (fc_obj.config['timeframe'],)
+        disp_name = tpl % data
+        testcase_etree = etree.Element("testcase", classname=classname, name=disp_name)
+        if report_urls:
+            system_out_etree = etree.SubElement(testcase_etree, "system-out")
+            system_out_etree.text = "".join(report_urls)
+        if fc_obj.is_triggered and fc_obj.fail:
+            etree.SubElement(testcase_etree, "error", type="pass/fail criteria triggered", message="")
+        return testcase_etree

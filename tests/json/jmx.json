@@ -4,23 +4,21 @@
       "name": "JMX Scenario",
       "executor": "jmeter",
       "sla": [],
-      "script": {
-        "path": "tests/jmx/dummy.jmx",
-        "modifications": [
-          {
-            "element": "Dummy Sampler",
-            "enabled": "false"
-          },
-          {
-            "element": "Thread Group",
-            "properties": {
-              "ThreadGroup.main_controller": {
-                "LoopController.loops": 10
-              }
+      "script": "tests/jmx/dummy.jmx",
+      "modifications": [
+        {
+          "element": "Dummy Sampler",
+          "enabled": "false"
+        },
+        {
+          "element": "Thread Group",
+          "properties": {
+            "ThreadGroup.main_controller": {
+              "LoopController.loops": 10
             }
           }
-        ]
-      },
+        }
+      ],
       "files": []
     }
   },

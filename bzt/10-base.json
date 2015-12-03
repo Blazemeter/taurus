@@ -28,8 +28,7 @@
       "path": "~/.bzt/grinder-taurus/lib/grinder.jar"
     },
     "gatling": {
-      "class": "bzt.modules.gatling.GatlingExecutor",
-      "path": "~/.bzt/gatling-taurus/bin/gatling.sh"
+      "class": "bzt.modules.gatling.GatlingExecutor"
     },
     "shellexec": {
       "class": "bzt.modules.shellexec.ShellExecutor"
@@ -80,6 +79,9 @@
     "fail-criteria": {
       "class": "bzt.modules.passfail.PassFailStatus"
     },
+    "passfail": {
+      "class": "bzt.modules.passfail.PassFailStatus"
+    },
     "junit-xml": {
       "class": "bzt.modules.reporting.JUnitXMLReporter"
     },
@@ -88,6 +90,9 @@
     },
     "monitoring": {
       "class": "bzt.modules.monitoring.Monitoring"
+    },
+    "pbench": {
+      "class": "bzt.modules.pbench.PBenchExecutor"
     }
   },
   "settings": {

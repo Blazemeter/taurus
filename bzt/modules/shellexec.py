@@ -19,12 +19,15 @@ import platform
 import subprocess
 from subprocess import CalledProcessError
 
-from bzt.utils import shutdown_process
-from bzt.engine import EngineModule
+from bzt.six import iteritems
+from bzt.utils import shutdown_process, BetterDict
+from bzt.engine import Provisioning, Service
 from bzt.utils import ensure_is_dict
 
+ARTIFACTS_DIR_EVVAR = "TAURUS_ARTIFACTS_DIR"
 
-class ShellExecutor(EngineModule):
+
+class ShellExecutor(Service):
     def __init__(self):
         super(ShellExecutor, self).__init__()
         self.prepare_tasks = []
@@ -39,8 +42,35 @@ class ShellExecutor(EngineModule):
 
         for index, stage_task in enumerate(self.parameters[stage]):
             stage_task = ensure_is_dict(self.parameters[stage], index, "command")
-            container.append(Task(self.parameters[stage][index], self.log, os.getcwd()))
-            self.log.debug("Added task: %s, stage: %s", stage_task, stage)
+            task_config = self.parameters[stage][index]
+            run_at = task_config.get("run-at", "local")
+            default_cwd = self.settings.get("default-cwd", None)
+            if run_at == self.engine.config.get(Provisioning.PROV, None):
+                cwd = task_config.get("cwd", default_cwd)
+                if cwd is None:
+                    working_dir = os.getcwd()
+                elif cwd == 'artifacts-dir':
+                    working_dir = self.engine.artifacts_dir
+                else:
+                    working_dir = cwd
+
+                env = BetterDict()
+                env.merge({k: os.environ.get(k) for k in os.environ.keys()})
+                env.merge(self.settings.get('env'))
+                env.merge(task_config.get('env'))
+                env.merge({"PYTHONPATH": working_dir})
+                if os.getenv("PYTHONPATH"):
+                    env['PYTHONPATH'] = os.getenv("PYTHONPATH") + os.pathsep + env['PYTHONPATH']
+                env[ARTIFACTS_DIR_EVVAR] = self.engine.artifacts_dir
+
+                for name, value in iteritems(env):
+                    env[str(name)] = str(value)
+
+                task = Task(task_config, self.log, working_dir, env)
+                container.append(task)
+                self.log.debug("Added %s task: %s", stage, stage_task)
+            else:
+                self.log.debug("Skipped task: %s", task_config)
 
     def prepare(self):
         """
@@ -90,9 +120,10 @@ class Task(object):
     :type process: subprocess.Popen
     """
 
-    def __init__(self, config, parent_log, working_dir):
+    def __init__(self, config, parent_log, working_dir, env):
         self.log = parent_log.getChild(self.__class__.__name__)
         self.working_dir = working_dir
+        self.env = env
         self.command = config.get("command", ValueError("Parameter is required: command"))
         self.is_background = config.get("background", False)
         self.ignore_failure = config.get("ignore-failure", False)
@@ -111,11 +142,22 @@ class Task(object):
             self.log.info("Process still running: %s", self)
             return
 
+        if self.out is not None and self.out != subprocess.PIPE:
+            out = open(self.out, 'wt')
+        else:
+            out = self.out
+
+        if self.err is not None and self.err != subprocess.PIPE:
+            err = open(self.err, 'wt')
+        else:
+            err = self.err
+
         kwargs = {
             'args': self.command,
-            'stdout': open(self.out, 'wt') if self.out != subprocess.PIPE else self.out,
-            'stderr': open(self.err, 'wt') if self.err != subprocess.PIPE else self.err,
+            'stdout': out,
+            'stderr': err,
             'cwd': self.working_dir,
+            'env': self.env,
             'shell': True
         }
         # FIXME: shouldn't we bother closing opened descriptors?
@@ -123,7 +165,7 @@ class Task(object):
             kwargs['preexec_fn'] = os.setpgrp
             kwargs['close_fds'] = True
 
-        self.log.debug("Starting task: %s", self)
+        self.log.info("Starting shell command: %s", self)
         self.process = subprocess.Popen(**kwargs)
         if self.is_background:
             self.log.debug("Task started, PID: %d", self.process.pid)

@@ -1,6 +1,6 @@
 # Gatling Executor
 
-configuration options:
+Configuration options:
 
  - `path`: "/somepath/folder/bin/gatling_executable"
     Path to Gatling executable.
@@ -24,3 +24,4 @@ execution:
     simulation: mytest.BasicSimulation
 ```
 
+The `simulation` option is canonical class name for main simulation class. It will be passed as-is to gatling with `-s` option.

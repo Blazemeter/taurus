@@ -1,5 +1,4 @@
 from time import time
-
 from nose.plugins import Plugin
 from nose import run
 import traceback
@@ -11,8 +10,10 @@ try:
     from lxml import etree
 except ImportError:
     try:
+        # noinspection PyPackageRequirements
         import cElementTree as etree
     except ImportError:
+        # noinspection PyPackageRequirements,PyPep8Naming
         import elementtree.ElementTree as etree
 
 JTL_ERR_ATRS = ["t", "lt", "ct", "ts", "s", "lb", "rc", "rm", "tn", "dt", "de", "by", "ng", "na"]
@@ -21,7 +22,7 @@ JTL_HEADER = ["timeStamp", "elapsed", "label", "responseCode", "responseMessage"
               "grpThreads", "allThreads", "Latency", "Connect"]
 
 SEARCH_PATTERNS = {"file": re.compile(r'\((.*?)\.'), "class": re.compile(r'\.(.*?)\)'),
-                   "method": re.compile(r'(.*?)\ ')}
+                   "method": re.compile(r'(.*?) ')}
 
 
 class TaurusNosePlugin(Plugin):
@@ -44,6 +45,9 @@ class TaurusNosePlugin(Plugin):
         self.jtl_dict = None
         self.error_writer = None
         self.last_err = None
+        self.out_stream = None
+        self.err_stream = None
+        self._time = None
 
     def addError(self, test, err, capt=None):
         """
@@ -154,7 +158,7 @@ class TaurusNosePlugin(Plugin):
 
         if self.last_err is not None:
             exc_type_name = self.last_err[0].__name__
-            trace = "".join(traceback.format_tb(self.last_err[2])) + "\n" + self.last_err[1]
+            trace = "".join(traceback.format_tb(self.last_err[2])) + ("\n%s" % self.last_err[1])
             self.jtl_dict["responseMessage"] = exc_type_name
 
             sample = {}.fromkeys(JTL_ERR_ATRS)
@@ -191,21 +195,17 @@ class JTLErrorWriter(object):
         next(self.xml_writer)
 
     def add_sample(self, sample, url, resp_data):
-        new_sample = self.gen_httpSample(sample, url, resp_data)
+        new_sample = self.gen_http_sample(sample, url, resp_data)
         self.xml_writer.send(new_sample)
 
-    def gen_httpSample(self, sample, url, resp_data):
-        """
-        :param params: namedtuple httpSample
-        :return:
-        """
+    def gen_http_sample(self, sample, url, resp_data):
         sample_element = etree.Element("httpSample", **sample)
         sample_element.append(self.gen_resp_header())
         sample_element.append(self.gen_req_header())
         sample_element.append(self.gen_resp_data(resp_data))
         sample_element.append(self.gen_cookies())
         sample_element.append(self.gen_method())
-        sample_element.append(self.gen_queryString())
+        sample_element.append(self.gen_query_string())
         sample_element.append(self.gen_url(url))
         return sample_element
 
@@ -235,10 +235,10 @@ class JTLErrorWriter(object):
         method.set("class", "java.lang.String")
         return method
 
-    def gen_queryString(self):
-        queryString = etree.Element("queryString")
-        queryString.set("class", "java.lang.String")
-        return queryString
+    def gen_query_string(self):
+        qstring = etree.Element("queryString")
+        qstring.set("class", "java.lang.String")
+        return qstring
 
     def gen_url(self, url):
         url_element = etree.Element("java.net.URL")
@@ -247,6 +247,7 @@ class JTLErrorWriter(object):
 
     def close(self):
         self.xml_writer.close()
+
 
 def write_element(fds):
     with etree.xmlfile(fds, buffered=False, encoding="UTF-8") as xf:

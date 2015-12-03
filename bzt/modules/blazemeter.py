@@ -18,23 +18,21 @@ limitations under the License.
 import copy
 import json
 import logging
+import math
 import os
 import sys
-import traceback
 import time
-import webbrowser
+import traceback
 import zipfile
-import math
-
+import yaml
 from urwid import Pile, Text
-
 from bzt import ManualShutdown
-from bzt.engine import Reporter, AggregatorListener, Provisioning, ScenarioExecutor, SETTINGS
-from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider
+from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service
+from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
 from bzt.modules.console import WidgetProvider
 from bzt.modules.jmeter import JMeterExecutor
-from bzt.utils import to_json, dehumanize_time, MultiPartForm, BetterDict
-from bzt.six import BytesIO, text_type, iteritems, HTTPError, urlencode, Request, urlopen, r_input
+from bzt.six import BytesIO, text_type, iteritems, HTTPError, urlencode, Request, urlopen, r_input, URLError
+from bzt.utils import to_json, dehumanize_time, MultiPartForm, BetterDict, open_browser
 
 
 class BlazeMeterUploader(Reporter, AggregatorListener):
@@ -52,12 +50,14 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         self.kpi_buffer = []
         self.send_interval = 30
         self.sess_name = None
+        self._last_status_check = time.time()
 
     def prepare(self):
         """
         Read options for uploading, check that they're sane
         """
         super(BlazeMeterUploader, self).prepare()
+        self.client.logger_limit = self.settings.get("request-logging-limit", self.client.logger_limit)
         self.client.address = self.settings.get("address", self.client.address)
         self.client.data_address = self.settings.get("data-address", self.client.data_address)
         self.client.timeout = dehumanize_time(self.settings.get("timeout", self.client.timeout))
@@ -72,6 +72,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         self.client.test_id = self.parameters.get("test-id", None)
         self.client.user_id = self.parameters.get("user-id", None)
         self.client.data_signature = self.parameters.get("signature", None)
+        self.client.kpi_target = self.parameters.get("kpi-target", self.client.kpi_target)
 
         if not self.client.test_id:
             try:
@@ -80,27 +81,16 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
                 self.log.error("Cannot reach online results storage, maybe the address/token is wrong")
                 raise
 
-            self.__get_test_id(token)
+            if token:
+                finder = ProjectFinder(self.parameters, self.settings, self.client, self.engine)
+                self.test_id = finder.resolve_test_id({"type": "external"}, self.engine.config, [])
 
         self.sess_name = self.parameters.get("report-name", self.settings.get("report-name", self.sess_name))
         if self.sess_name == 'ask' and sys.stdin.isatty():
             self.sess_name = r_input("Please enter report-name: ")
 
-    def __get_test_id(self, token):
-        if not token:
-            return
-
-        proj_name = self.parameters.get("project", self.settings.get("project", None))
-        if isinstance(proj_name, (int, float)):
-            proj_id = int(proj_name)
-            self.log.debug("Treating project name as ID: %s", proj_id)
-        elif proj_name is not None:
-            proj_id = self.client.project_by_name(proj_name)
-        else:
-            proj_id = None
-
-        test_name = self.parameters.get("test", self.settings.get("test", "Taurus Test"))
-        self.test_id = self.client.test_by_name(test_name, {"type": "external"}, self.engine.config, [], proj_id)
+        if isinstance(self.engine.aggregator, ResultsProvider):
+            self.engine.aggregator.add_listener(self)
 
     def startup(self):
         """
@@ -113,7 +103,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
                 url = self.client.start_online(self.test_id, self.sess_name)
                 self.log.info("Started data feeding: %s", url)
                 if self.browser_open in ('start', 'both'):
-                    webbrowser.open(url)
+                    open_browser(url)
             except KeyboardInterrupt:
                 raise
             except BaseException as exc:
@@ -127,7 +117,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         :return: BytesIO
         """
         mfile = BytesIO()
-        max_file_size = self.settings.get('artifact-upload-size-limit', 10) * 1048576  # 10MB
+        max_file_size = self.settings.get('artifact-upload-size-limit', 10) * 1024 * 1024  # 10MB
         with zipfile.ZipFile(mfile, mode='w', compression=zipfile.ZIP_DEFLATED, allowZip64=True) as zfh:
             for handler in self.engine.log.parent.handlers:
                 if isinstance(handler, logging.FileHandler):
@@ -139,8 +129,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
                         zfh.write(os.path.join(root, filename),
                                   os.path.join(os.path.relpath(root, self.engine.artifacts_dir), filename))
                     else:
-                        self.log.warning("File %s exceeded maximum size quota of %s and won't be included into upload",
-                                         filename, max_file_size)
+                        msg = "File %s exceeds maximum size quota of %s and won't be included into upload"
+                        self.log.warning(msg, filename, max_file_size)
         return mfile
 
     def __upload_artifacts(self):
@@ -164,32 +154,49 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         """
         Upload results if possible
         """
-        super(BlazeMeterUploader, self).post_process()
-
         if not self.client.active_session_id:
-            self.log.debug("No feeding session obtained, not uploading artifacts")
+            self.log.debug("No feeding session obtained, nothing to finalize")
             return
 
-        if len(self.kpi_buffer):
-            self.__send_data(self.kpi_buffer, False)
-            self.kpi_buffer = []
-
         try:
-            self.__upload_artifacts()
-        except IOError as _:
-            self.log.warning("Failed artifact upload: %s", traceback.format_exc())
+            self.__send_data(self.kpi_buffer, False, True)
+            self.kpi_buffer = []
         finally:
-            try:
-                self.client.end_online()
-            except KeyboardInterrupt:
-                raise
-            except BaseException as exc:
-                self.log.warning("Failed to finish online: %s", exc)
+            self._postproc_phase2()
 
         if self.client.results_url:
             if self.browser_open in ('end', 'both'):
-                webbrowser.open(self.client.results_url)
+                open_browser(self.client.results_url)
             self.log.info("Online report link: %s", self.client.results_url)
+
+    def _postproc_phase2(self):
+        try:
+            self.__upload_artifacts()
+        except IOError:
+            self.log.warning("Failed artifact upload: %s", traceback.format_exc())
+        finally:
+            self.set_last_status_check(self.parameters.get('forced-last-check', self._last_status_check))
+            tries = self.send_interval  # NOTE: you dirty one...
+            while not self._last_status_check and tries > 0:
+                self.log.info("Waiting for ping...")
+                time.sleep(self.send_interval)
+                tries -= 1
+
+            self._postproc_phase3()
+
+    def _postproc_phase3(self):
+        try:
+            self.client.end_online()
+            if self.engine.stopping_reason:
+                note = "%s: %s" % (self.engine.stopping_reason.__class__.__name__, str(self.engine.stopping_reason))
+                sess = self.client.get_session(self.client.active_session_id)
+                if 'note' in sess:
+                    note += "\n" + sess['note']
+                self.client.update_session(self.client.active_session_id, {"note": note})
+        except KeyboardInterrupt:
+            raise
+        except BaseException as exc:
+            self.log.warning("Failed to finish online: %s", exc)
 
     def check(self):
         """
@@ -204,30 +211,34 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
                 self.kpi_buffer = []
         return super(BlazeMeterUploader, self).check()
 
-    def __send_data(self, data, do_check=True):
+    def __send_data(self, data, do_check=True, is_final=False):
         """
         :param data: list[bzt.modules.aggregator.DataPoint]
         :return:
         """
-        if self.client.active_session_id:
-            try:
-                self.client.send_kpi_data(data, do_check)
-            except IOError as _:
-                self.log.debug("Error sending data: %s", traceback.format_exc())
-                self.log.warning("Failed to send data, will retry in %s sec...", self.client.timeout)
-                try:
-                    time.sleep(self.client.timeout)
-                    self.client.send_kpi_data(data, do_check)
-                    self.log.info("Succeeded with retry")
-                except IOError as _:
-                    self.log.error("Fatal error sending data: %s", traceback.format_exc())
-                    self.log.warning("Will skip failed data and continue running")
+        if not self.client.active_session_id:
+            return
 
+        try:
+            self.client.send_kpi_data(data, do_check, is_final)
+        except IOError as _:
+            self.log.debug("Error sending data: %s", traceback.format_exc())
+            self.log.warning("Failed to send data, will retry in %s sec...", self.client.timeout)
             try:
-                self.client.send_error_summary(data)
-            except IOError as exc:
-                self.log.debug("Failed sending error summary: %s", traceback.format_exc())
-                self.log.warning("Failed to send error summary: %s", exc)
+                time.sleep(self.client.timeout)
+                self.log.info("Succeeded with retry")
+            except IOError as _:
+                self.log.error("Fatal error sending data: %s", traceback.format_exc())
+                self.log.warning("Will skip failed data and continue running")
+
+        if not data:
+            return
+
+        try:
+            self.client.send_error_summary(data)
+        except IOError as exc:
+            self.log.debug("Failed sending error summary: %s", traceback.format_exc())
+            self.log.warning("Failed to send error summary: %s", exc)
 
     def aggregated_second(self, data):
         """
@@ -237,12 +248,41 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         """
         self.kpi_buffer.append(data)
 
+    def set_last_status_check(self, value):
+        self._last_status_check = value
+        self.log.debug("Set last check time to: %s", self._last_status_check)
+
+
+class ProjectFinder(object):
+    def __init__(self, parameters, settings, client, engine):
+        super(ProjectFinder, self).__init__()
+        self.default_test_name = "Taurus Test"
+        self.client = client
+        self.parameters = parameters
+        self.settings = settings
+        self.engine = engine
+        self.test_name = None
+
+    def resolve_test_id(self, test_config, taurus_config, rfiles):
+        proj_name = self.parameters.get("project", self.settings.get("project", None))
+        if isinstance(proj_name, (int, float)):
+            proj_id = int(proj_name)
+            self.engine.log.debug("Treating project name as ID: %s", proj_id)
+        elif proj_name is not None:
+            proj_id = self.client.project_by_name(proj_name)
+        else:
+            proj_id = None
+
+        self.test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
+        return self.client.test_by_name(self.test_name, test_config, taurus_config, rfiles, proj_id)
+
 
 class BlazeMeterClient(object):
     """ Service client class """
 
     def __init__(self, parent_logger):
-        self.logger_limit = 512  # NOTE: provide control over it
+        self.kpi_target = 'labels_bulk'
+        self.logger_limit = 256
         self.user_id = None
         self.test_id = None
         self.log = parent_logger.getChild(self.__class__.__name__)
@@ -260,7 +300,7 @@ class BlazeMeterClient(object):
         if not headers:
             headers = {}
         if self.token:
-            headers["X-API-Key"] = self.token
+            headers["X-Api-Key"] = self.token
 
         log_method = 'GET' if data is None else 'POST'
         if method:
@@ -279,12 +319,15 @@ class BlazeMeterClient(object):
             checker(response)
 
         resp = response.read()
-
         if not isinstance(resp, str):
             resp = resp.decode()
 
         self.log.debug("Response: %s", resp[:self.logger_limit] if resp else None)
-        return json.loads(resp) if len(resp) else {}
+        try:
+            return json.loads(resp) if len(resp) else {}
+        except ValueError:
+            self.log.warning("Non-JSON response from API: %s", resp)
+            raise
 
     def start_online(self, test_id, session_name):
         """
@@ -325,7 +368,7 @@ class BlazeMeterClient(object):
         :type test_id: str
         :return:
         """
-        self.log.info("Initiating cloud test...")
+        self.log.info("Initiating cloud test with %s ...", self.address)
         data = urlencode({})
 
         url = self.address + "/api/latest/tests/%s/start" % test_id
@@ -403,19 +446,20 @@ class BlazeMeterClient(object):
             resp = self._request(url, json.dumps(data), headers=hdr)
             test_id = resp['result']['id']
 
-        if configuration['type'] == 'taurus':  # FIXME: this is weird way to code
-            self.log.debug("Uploading files into the test")
+        if configuration['type'] == 'taurus':  # FIXME: this is weird way to code, subclass it or something
+            self.log.debug("Uploading files into the test: %s", resource_files)
             url = '%s/api/latest/tests/%s/files' % (self.address, test_id)
 
             body = MultiPartForm()
 
-            body.add_file_as_string('script', 'taurus.json', to_json(taurus_config))
+            body.add_file_as_string('script', 'taurus.yml', yaml.dump(taurus_config, default_flow_style=False,
+                                                                      explicit_start=True, canonical=False))
 
             for rfile in resource_files:
                 body.add_file('files[]', rfile)
 
             hdr = {"Content-Type": body.get_content_type()}
-            response = self._request(url, body.form_as_bytes(), headers=hdr)
+            _ = self._request(url, body.form_as_bytes(), headers=hdr)
 
         self.log.debug("Using test ID: %s", test_id)
         return test_id
@@ -429,7 +473,7 @@ class BlazeMeterClient(object):
         self.log.debug("Tests for user: %s", len(tests['result']))
         return tests['result']
 
-    def send_kpi_data(self, data_buffer, is_check_response=True):
+    def send_kpi_data(self, data_buffer, is_check_response=True, is_final=False):
         """
         Sends online data
 
@@ -468,11 +512,13 @@ class BlazeMeterClient(object):
                 json_item['n'] = cumul[KPISet.SAMPLE_COUNT]
                 json_item["summary"] = self.__summary_json(cumul)
 
-        data = {"labels": data}
+        data = {"labels": data, "sourceID": id(self)}
+        if is_final:
+            data['final'] = True
 
         url = self.data_address + "/submit.php?session_id=%s&signature=%s&test_id=%s&user_id=%s"
         url = url % (self.active_session_id, self.data_signature, self.test_id, self.user_id)
-        url += "&pq=0&target=labels_bulk&update=1"
+        url += "&pq=0&target=%s&update=1" % self.kpi_target
         hdr = {"Content-Type": " application/json"}
         response = self._request(url, to_json(data), headers=hdr)
 
@@ -682,6 +728,10 @@ class BlazeMeterClient(object):
         sess = self._request(self.address + '/api/latest/masters/%s/status' % master_id)
         return sess['result']
 
+    def get_master_sessions(self, master_id):
+        sess = self._request(self.address + '/api/latest/masters/%s/sessions' % master_id)
+        return sess['result']['sessions'] if 'sessions' in sess['result'] else sess['result']
+
     def get_projects(self):
         data = self._request(self.address + '/api/latest/projects')
         return data['result']
@@ -717,6 +767,16 @@ class BlazeMeterClient(object):
         res = self._request(url)
         return res['result']
 
+    def update_session(self, active_session_id, data):
+        hdr = {"Content-Type": "application/json"}
+        data = self._request(self.address + '/api/latest/sessions/%s' % active_session_id, to_json(data),
+                             headers=hdr, method="PUT")
+        return data['result']
+
+    def get_available_locations(self):
+        user_info = self.get_user_info()
+        return {str(x['id']): x for x in user_info['locations'] if not x['id'].startswith('harbor-')}
+
 
 class CloudProvisioning(Provisioning, WidgetProvider):
     """
@@ -731,12 +791,15 @@ class CloudProvisioning(Provisioning, WidgetProvider):
         self.results_reader = None
         self.client = BlazeMeterClient(self.log)
         self.test_id = None
+        self.test_name = None
         self.__last_master_status = None
         self.browser_open = 'start'
+        self.widget = None
 
     def prepare(self):
         super(CloudProvisioning, self).prepare()
         self.browser_open = self.settings.get("browser-open", self.browser_open)
+        self.client.logger_limit = self.settings.get("request-logging-limit", self.client.logger_limit)
 
         # TODO: go to "blazemeter" section for these settings by default?
         self.client.address = self.settings.get("address", self.client.address)
@@ -744,31 +807,46 @@ class CloudProvisioning(Provisioning, WidgetProvider):
         self.client.timeout = dehumanize_time(self.settings.get("timeout", self.client.timeout))
 
         if not self.client.token:
-            raise ValueError("You must provide API token to use cloud provisioning")
+            bmmod = self.engine.instantiate_module('blazemeter')
+            self.client.token = bmmod.settings.get("token")
+            if not self.client.token:
+                raise ValueError("You must provide API token to use cloud provisioning")
 
-        user_info = self.client.get_user_info()
-        available_locations = {str(x['id']): x for x in user_info['locations']}
+        self.__prepare_locations()
+        config = self.__get_config_for_cloud()
+        rfiles = self.__get_rfiles()
 
+        def file_replacer(container):
+            if isinstance(container, dict):
+                for key, val in iteritems(container):
+                    if val in rfiles:
+                        container[key] = os.path.basename(val)
+                        if container[key] != val:
+                            self.log.info("Replaced %s with %s in %s", val, container[key], key)
+
+        BetterDict.traverse(config, file_replacer)
+
+        bza_plugin = self.__get_bza_test_config()
+        finder = ProjectFinder(self.parameters, self.settings, self.client, self.engine)
+        finder.default_test_name = "Taurus Cloud Test"
+        self.test_id = finder.resolve_test_id(bza_plugin, config, rfiles)
+        self.test_name = finder.test_name
+        self.widget = CloudProvWidget(self)
+
+        if isinstance(self.engine.aggregator, ConsolidatingAggregator):
+            self.results_reader = ResultsFromBZA(self.client)
+            self.engine.aggregator.add_underling(self.results_reader)
+
+    def __prepare_locations(self):
+        available_locations = self.client.get_available_locations()
         for executor in self.executors:
             locations = self._get_locations(available_locations, executor)
+            executor.get_load()  # we need it to resolve load settings into full form
 
             for location in locations.keys():
                 if location not in available_locations:
                     self.log.warning("List of supported locations for you is: %s", sorted(available_locations.keys()))
                     raise ValueError("Invalid location requested: %s" % location)
-
-            if executor.parameters.get("locations-weighted", True):
-                self.weight_locations(locations, executor.get_load(), available_locations)
-
-        config = self.__get_config_for_cloud()
-        rfiles = self.__get_rfiles()
-        bza_plugin = self.__get_bza_test_config()
-        test_name = self.settings.get("test-name", "Taurus Test")
-        self.test_id = self.client.test_by_name(test_name, bza_plugin, config, rfiles, None)  # FIXME: set project id
-
-        if isinstance(self.engine.aggregator, ConsolidatingAggregator):
-            self.results_reader = ResultsFromBZA(self.client)
-            self.engine.aggregator.add_underling(self.results_reader)
 
     def __get_config_for_cloud(self):
         config = copy.deepcopy(self.engine.config)
@@ -778,18 +856,23 @@ class CloudProvisioning(Provisioning, WidgetProvider):
 
         provisioning = config.pop(Provisioning.PROV)
         for execution in config[ScenarioExecutor.EXEC]:
-            execution[ScenarioExecutor.CONCURR] = execution[ScenarioExecutor.CONCURR][provisioning]
-            execution[ScenarioExecutor.THRPT] = execution[ScenarioExecutor.THRPT][provisioning]
+            execution[ScenarioExecutor.CONCURR] = execution.get(ScenarioExecutor.CONCURR).get(provisioning, None)
+            execution[ScenarioExecutor.THRPT] = execution.get(ScenarioExecutor.THRPT).get(provisioning, None)
 
-        config.pop(SETTINGS)
+        for key in list(config.keys()):
+            if key not in ("scenarios", ScenarioExecutor.EXEC, "included-configs", Service.SERV):
+                config.pop(key)
 
+        assert isinstance(config, Configuration)
+        config.dump(self.engine.create_artifact("cloud", ""))
         return config
 
     def __get_rfiles(self):
         rfiles = []
         for executor in self.executors:
             rfiles += executor.get_resource_files()
-        return rfiles
+        self.log.debug("All resource files are: %s", rfiles)
+        return [self.engine.find_file(x) for x in rfiles]
 
     def __get_bza_test_config(self):
         bza_plugin = {
@@ -809,6 +892,7 @@ class CloudProvisioning(Provisioning, WidgetProvider):
                 if location['sandbox']:
                     locations.merge({location['id']: 1})
         if not locations:
+            self.log.warning("List of supported locations for you is: %s", sorted(available_locations.keys()))
             raise ValueError("No sandbox location available, please specify locations manually")
         return locations
 
@@ -818,11 +902,18 @@ class CloudProvisioning(Provisioning, WidgetProvider):
         self.log.info("Started cloud test: %s", self.client.results_url)
         if self.client.results_url:
             if self.browser_open in ('start', 'both'):
-                webbrowser.open(self.client.results_url)
+                open_browser(self.client.results_url)
 
     def check(self):
         # TODO: throttle down requests
-        master = self.client.get_master_status(self.client.active_session_id)
+        try:
+            master = self.client.get_master_status(self.client.active_session_id)
+        except URLError:
+            self.log.warning("Failed to get test status, will retry in %s seconds...", self.client.timeout)
+            self.log.debug("Full exception: %s", traceback.format_exc())
+            time.sleep(self.client.timeout)
+            master = self.client.get_master_status(self.client.active_session_id)
+
         if "status" in master and master['status'] != self.__last_master_status:
             self.__last_master_status = master['status']
             self.log.info("Cloud test status: %s", self.__last_master_status)
@@ -832,16 +923,21 @@ class CloudProvisioning(Provisioning, WidgetProvider):
 
         if 'progress' in master and master['progress'] > 100:
             self.log.info("Test was stopped in the cloud: %s", master['status'])
+            status = self.client.get_master(self.client.active_session_id)
+            if 'note' in status and status['note']:
+                self.log.warning("Cloud test has probably failed with message: %s", status['note'])
+
             self.client.active_session_id = None
             return True
 
+        self.widget.update()
         return super(CloudProvisioning, self).check()
 
-    def shutdown(self):
+    def post_process(self):
         self.client.end_master(self.client.active_session_id)
         if self.client.results_url:
             if self.browser_open in ('end', 'both'):
-                webbrowser.open(self.client.results_url)
+                open_browser(self.client.results_url)
 
     def weight_locations(self, locations, load, available_locations):
         total = float(sum(locations.values()))
@@ -859,7 +955,8 @@ class CloudProvisioning(Provisioning, WidgetProvider):
                 locations[loc_name] = 1
 
     def get_widget(self):
-        return CloudProvWidget(self)
+        self.widget = CloudProvWidget(self)
+        return self.widget
 
 
 class BlazeMeterClientEmul(BlazeMeterClient):
@@ -926,18 +1023,33 @@ class CloudProvWidget(Pile):
         """
         self.prov = prov
         self.text = Text("")
+        self._sessions = None
         super(CloudProvWidget, self).__init__([self.text])
 
-    def render(self, size, focus=False):
-        txt = "Cloud test #%s\n" % self.prov.client.active_session_id
+    def update(self):
+        if not self._sessions:
+            self._sessions = self.prov.client.get_master_sessions(self.prov.client.active_session_id)
+            if not self._sessions:
+                return
+
+        mapping = BetterDict()
         cnt = 0
-        for executor in self.prov.executors:
-            cnt += 1
-            name = executor.execution.get("executor", ValueError("Execution type is not yet defined"))
-            txt += "  %s. %s" % (cnt, name)
-            txt += " machines:\n"
-            locations = executor.execution.get("locations")
-            for location in sorted(locations.keys()):
-                txt += "    %s: %s\n" % (location, locations[location])
+        for session in self._sessions:
+            try:
+                cnt += 1
+                name_split = session['name'].split('/')
+                location = session['configuration']['location']
+                count = session['configuration']['serversCount']
+                mapping.get(name_split[0]).get(name_split[1])[location] = count
+            except KeyError:
+                self._sessions = None
+
+        txt = "%s #%s\n" % (self.prov.test_name, self.prov.client.active_session_id)
+        for executor, scenarios in iteritems(mapping):
+            txt += " %s" % executor
+            for scenario, locations in iteritems(scenarios):
+                txt += " %s:\n" % scenario
+                for location, count in iteritems(locations):
+                    txt += "  Agents in %s: %s\n" % (location, count)
+
         self.text.set_text(txt)
-        return super(CloudProvWidget, self).render(size, focus)

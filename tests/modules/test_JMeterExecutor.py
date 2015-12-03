@@ -295,7 +295,7 @@ class TestJMeterExecutor(BZTestCase):
         obj.engine = EngineEmul()
         obj.engine.config = BetterDict()
         obj.engine.config.merge({'execution': {'concurrency': 200, 'throughput': 100, 'hold-for': '1m',
-                                               'scenario': {'script': 'tests/jmx/http.jmx'}}})
+                                               'scenario': {'script': __dir__()+'/../jmx/http.jmx'}}})
         obj.engine.config.merge({"provisioning": "local"})
         obj.execution = obj.engine.config['execution']
         obj.prepare()
@@ -763,6 +763,7 @@ class TestJMeterExecutor(BZTestCase):
     def test_fail_on_zero_results(self):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
+        obj.engine.aggregator=ConsolidatingAggregator()
         obj.execution = BetterDict()
         obj.execution.merge({"scenario": {"script": "tests/jmx/dummy.jmx"}})
         obj.prepare()
@@ -774,3 +775,48 @@ class TestJMeterExecutor(BZTestCase):
         obj = JMeterExecutor()
         objjm = JMeter(path, obj.log, JMeterExecutor.JMETER_VER)
         objjm.install()
+
+    def test_convert_tgroups_no_load(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config[Provisioning.PROV] = 'test'
+        obj.execution = BetterDict()
+        obj.execution.merge({
+            "scenario": {"script": __dir__() + "/../jmx/SteppingThreadGroup.jmx"}
+        })
+        obj.prepare()
+        modified_xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        st_tg = modified_xml_tree.find(".//kg.apc.jmeter.threads.SteppingThreadGroup")
+        self.assertNotEqual(st_tg, None)
+        ul_tg = modified_xml_tree.find(".//kg.apc.jmeter.threads.UltimateThreadGroup")
+        self.assertNotEqual(ul_tg, None)
+
+
+    def test_convert_tgroups_load_modifications(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config[Provisioning.PROV] = 'test'
+        obj.execution = BetterDict()
+        obj.execution.merge({
+            "iterations": 20,
+            "ramp-up": 10,
+            "hold-for": "2m",
+            "scenario": {"script": __dir__() + "/../jmx/SteppingThreadGroup.jmx"}
+        })
+        obj.prepare()
+        modified_xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        st_tg = modified_xml_tree.find(".//kg.apc.jmeter.threads.SteppingThreadGroup")
+        self.assertEqual(st_tg, None)
+        ul_tg = modified_xml_tree.find(".//kg.apc.jmeter.threads.UltimateThreadGroup")
+        self.assertEqual(ul_tg, None)
+
+        converted_st_tg = modified_xml_tree.find(".//ThreadGroup[@testname='stepping tg']")
+
+        loop_ctrl = converted_st_tg.find(".//elementProp[@name='ThreadGroup.main_controller']")
+        tg_loops = loop_ctrl.find(".//*[@name='LoopController.loops']")
+        tg_forever = loop_ctrl.find(".//boolProp[@name='LoopController.continue_forever']")
+        self.assertEqual(tg_loops.text, "20")
+        self.assertEqual(tg_forever.text, "false")
+
+        st_tg_concurrency = converted_st_tg.find(".//stringProp[@name='ThreadGroup.num_threads']")
+        self.assertEqual(st_tg_concurrency.text, "123")

@@ -16,6 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import csv
+from itertools import chain
 import platform
 import subprocess
 import time
@@ -30,12 +31,8 @@ import shutil
 from collections import Counter, namedtuple
 import tempfile
 import re
-
 from lxml.etree import XMLSyntaxError
-
 from cssselect import GenericTranslator
-
-from bzt import six
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
@@ -53,7 +50,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     MIRRORS_SOURCE = "http://jmeter.apache.org/download_jmeter.cgi"
     JMETER_DOWNLOAD_LINK = "http://apache.claz.org/jmeter/binaries/apache-jmeter-{version}.zip"
     JMETER_VER = "2.13"
-    PLUGINS_DOWNLOAD_TPL = "http://jmeter-plugins.org/files/JMeterPlugins-{plugin}-1.3.0.zip"
+    PLUGINS_DOWNLOAD_TPL = "http://jmeter-plugins.org/files/JMeterPlugins-{plugin}-1.3.1.zip"
     UDP_PORT_NUMBER = None
 
     def __init__(self):
@@ -89,7 +86,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.distributed_servers = self.execution.get('distributed', self.distributed_servers)
         scenario = self.get_scenario()
         self.resource_files()
-        if Scenario.SCRIPT in scenario:
+        if Scenario.SCRIPT in scenario and scenario[Scenario.SCRIPT]:
             self.engine.existing_artifact(self.original_jmx)
         elif "requests" in scenario:
             if scenario.get("requests"):
@@ -100,7 +97,24 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             raise ValueError("There must be a JMX file to run JMeter")
         load = self.get_load()
         self.modified_jmx = self.__get_modified_jmx(self.original_jmx, load)
+
+        self.__set_jmeter_properties(scenario)
+        self.__set_system_properties()
+
+        if isinstance(self.engine.aggregator, ConsolidatingAggregator):
+            self.reader = JTLReader(self.kpi_jtl, self.log, self.errors_jtl)
+            self.reader.is_distributed = len(self.distributed_servers) > 0
+            self.engine.aggregator.add_underling(self.reader)
+
+    def __set_system_properties(self):
         sys_props = self.settings.get("system-properties")
+        if sys_props:
+            self.log.debug("Additional system properties %s", sys_props)
+            sys_props_file = self.engine.create_artifact("system", ".properties")
+            JMeterExecutor.__write_props_to_file(sys_props_file, sys_props)
+            self.sys_properties_file = sys_props_file
+
+    def __set_jmeter_properties(self, scenario):
         props = self.settings.get("properties")
         props_local = scenario.get("properties")
         if self.distributed_servers and self.settings.get("gui", False):
@@ -109,23 +123,16 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         props_local.update({"jmeterengine.nongui.maxport": self.management_port})
         props_local.update({"jmeter.save.saveservice.timestamp_format": "ms"})
         props.merge(props_local)
-        props['user.classpath'] = self.engine.artifacts_dir.replace(os.path.sep, "/")  # replace to avoid Windows issue
+        user_cp = self.engine.artifacts_dir
+        if 'user.classpath' in props:
+            user_cp += os.pathsep + props['user.classpath']
+
+        props['user.classpath'] = user_cp.replace(os.path.sep, "/")  # replace to avoid Windows issue
         if props:
             self.log.debug("Additional properties: %s", props)
             props_file = self.engine.create_artifact("jmeter-bzt", ".properties")
             JMeterExecutor.__write_props_to_file(props_file, props)
             self.properties_file = props_file
-
-        if sys_props:
-            self.log.debug("Additional system properties %s", sys_props)
-            sys_props_file = self.engine.create_artifact("system", ".properties")
-            JMeterExecutor.__write_props_to_file(sys_props_file, sys_props)
-            self.sys_properties_file = sys_props_file
-
-        self.reader = JTLReader(self.kpi_jtl, self.log, self.errors_jtl)
-        self.reader.is_distributed = len(self.distributed_servers) > 0
-        if isinstance(self.engine.aggregator, ConsolidatingAggregator):
-            self.engine.aggregator.add_underling(self.reader)
 
     def startup(self):
         """
@@ -363,6 +370,42 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             msg = "%s threads left undistributed due to thread group proportion"
             self.log.warning(msg, leftover)
 
+    def __convert_to_normal_tg(self, jmx, load):
+        """
+        Convert all TGs to simple ThreadGroup
+        :param jmx: JMX
+        :param load:
+        :return:
+        """
+        if load.iterations or load.concurrency or load.duration:
+            for group in jmx.enabled_thread_groups(all_types=True):
+                if group.tag != 'ThreadGroup':
+                    testname = group.get('testname')
+                    self.log.warning("Converting %s (%s) to normal ThreadGroup", group.tag, testname)
+                    group_concurrency = JMeterExecutor.__get_concurrency_from_tg(group)
+                    on_error = JMeterExecutor.__get_tg_action_on_error(group)
+                    if group_concurrency:
+                        new_group = JMX._get_thread_group(group_concurrency, 0, -1, testname, on_error)
+                    else:
+                        new_group = JMX._get_thread_group(1, 0, -1, testname, on_error)
+                    group.getparent().replace(group, new_group)
+
+    @staticmethod
+    def __get_concurrency_from_tg(thread_group):
+        """
+        :param thread_group: etree.Element
+        :return:
+        """
+        concurrency_element = thread_group.find(".//stringProp[@name='ThreadGroup.num_threads']")
+        if concurrency_element is not None:
+            return int(concurrency_element.text)
+
+    @staticmethod
+    def __get_tg_action_on_error(thread_group):
+        action = thread_group.find(".//stringProp[@name='ThreadGroup.on_sample_error']")
+        if action is not None:
+            return action.text
+
     @staticmethod
     def __add_shaper(jmx, load):
         """
@@ -431,6 +474,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 listener.set("enabled", "false")
 
     def __apply_load_settings(self, jmx, load):
+        self.__convert_to_normal_tg(jmx, load)
         if load.concurrency:
             self.__apply_concurrency(jmx, load.concurrency)
         if load.hold or (load.ramp_up and not load.iterations):
@@ -531,11 +575,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :return:
         """
         if not self.widget:
-            if self.original_jmx is not None:
-                label = "Script: %s" % os.path.basename(self.original_jmx)
-            else:
-                label = None
-            self.widget = SidebarWidget(self, label)
+            label = "%s" % self
+            self.widget = SidebarWidget(self, "JMeter: " + label.split('/')[1])
         return self.widget
 
     def resource_files(self):
@@ -548,7 +589,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if not self.original_jmx:
             self.original_jmx = self.__get_script()
 
-        if self.original_jmx:
+        if self.original_jmx and os.path.exists(self.original_jmx):
             jmx = JMX(self.original_jmx)
             resource_files_from_jmx = JMeterExecutor.__get_resource_files_from_jmx(jmx)
 
@@ -567,7 +608,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.__cp_res_files_to_artifacts_dir(resource_files)
         if self.original_jmx:
             resource_files.append(self.original_jmx)
-        return [os.path.basename(file_path) for file_path in resource_files]  # return list of file names
+        return resource_files
 
     def __cp_res_files_to_artifacts_dir(self, resource_files_list):
         """
@@ -582,7 +623,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 except BaseException:
                     self.log.warning("Cannot copy file: %s", resource_file)
             else:
-                self.log.warning("File not found: %s", resource_file)
+                if '${' not in resource_file:
+                    self.log.warning("File not found: %s", resource_file)
 
     def __modify_resources_paths_in_jmx(self, jmx, file_list):
         """
@@ -678,8 +720,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if Scenario.SCRIPT not in scenario:
             return None
 
-        scen = ensure_is_dict(scenario, Scenario.SCRIPT, "path")
-        fname = scen["path"]
+        fname = scenario[Scenario.SCRIPT]
         if fname is not None:
             return self.engine.find_file(fname)
         else:
@@ -861,11 +902,17 @@ class JMX(object):
             # self.log.debug("\n%s", etree.tostring(self.tree))
             self.tree.write(fhd, pretty_print=True, encoding="UTF-8", xml_declaration=True)
 
-    def enabled_thread_groups(self):
+    def enabled_thread_groups(self, all_types=False):
         """
         Get thread groups that are enabled
         """
-        tgroups = self.get('jmeterTestPlan>hashTree>hashTree>ThreadGroup')
+        if all_types:
+            ultimate_tgroup = self.get('jmeterTestPlan>hashTree>hashTree>kg\.apc\.jmeter\.threads\.UltimateThreadGroup')
+            stepping_tgroup = self.get('jmeterTestPlan>hashTree>hashTree>kg\.apc\.jmeter\.threads\.SteppingThreadGroup')
+            tgroups = chain(ultimate_tgroup, stepping_tgroup)
+        else:
+            tgroups = self.get('jmeterTestPlan>hashTree>hashTree>ThreadGroup')
+
         for group in tgroups:
             if group.get("enabled") != 'false':
                 yield group
@@ -1079,10 +1126,11 @@ class JMX(object):
         :return:
         """
         res = etree.Element("stringProp", name=name)
-        if not isinstance(value, six.string_types):
-            value = str(value)
-
-        res.text = value
+        try:
+            res.text = str(value)
+        except ValueError:
+            logging.warning("Failed to set string prop: %s=%s", name, value)
+            res.text = 'BINARY'
         return res
 
     @staticmethod
@@ -1124,7 +1172,7 @@ class JMX(object):
         return res
 
     @staticmethod
-    def _get_thread_group(concurrency=None, rampup=None, iterations=None):
+    def _get_thread_group(concurrency=None, rampup=None, iterations=None, testname="ThreadGroup", on_error="continue"):
         """
         Generates ThreadGroup with 1 thread and 1 loop
 
@@ -1134,7 +1182,9 @@ class JMX(object):
         :return:
         """
         trg = etree.Element("ThreadGroup", guiclass="ThreadGroupGui",
-                            testclass="ThreadGroup", testname="ThreadGroup")
+                            testclass="ThreadGroup", testname=testname)
+        if on_error is not None:
+            trg.append(JMX._string_prop("ThreadGroup.on_sample_error", on_error))
         loop = etree.Element("elementProp",
                              name="ThreadGroup.main_controller",
                              elementType="LoopController",
@@ -1199,21 +1249,20 @@ class JMX(object):
         shaper_collection.append(coll_prop)
 
     @staticmethod
-    def add_user_def_vars_elements(udv_dict):
+    def add_user_def_vars_elements(udv_dict, testname="Variables from Taurus"):
         """
-
-        :param udv_dict:
-        :return:
+        :type udv_dict: dict[str,str]
+        :rtype: etree.Element
         """
 
         udv_element = etree.Element("Arguments", guiclass="ArgumentsPanel", testclass="Arguments",
-                                    testname="Variables from Taurus")
+                                    testname=testname)
         udv_collection_prop = JMX._collection_prop("Arguments.arguments")
 
-        for var_name, var_value in udv_dict.items():
+        for var_name in sorted(udv_dict.keys()):
             udv_element_prop = JMX._element_prop(var_name, "Argument")
             udv_arg_name_prop = JMX._string_prop("Argument.name", var_name)
-            udv_arg_value_prop = JMX._string_prop("Argument.value", var_value)
+            udv_arg_value_prop = JMX._string_prop("Argument.value", udv_dict[var_name])
             udv_arg_desc_prop = JMX._string_prop("Argument.desc", "")
             udv_arg_meta_prop = JMX._string_prop("Argument.metadata", "=")
             udv_element_prop.append(udv_arg_name_prop)
@@ -1306,7 +1355,7 @@ class JMX(object):
         return mgr
 
     @staticmethod
-    def _get_http_defaults(default_address, timeout, retrieve_resources, concurrent_pool_size=4):
+    def _get_http_defaults(default_address=None, timeout=None, retrieve_resources=None, concurrent_pool_size=4):
         """
         :rtype: lxml.etree.Element
         """
@@ -2095,7 +2144,7 @@ class JMeter(RequiredTool):
         dest = os.path.abspath(dest)
         jmeter_dist = super(JMeter, self).install_with_mirrors(dest, ".zip")
         self.log.info("Unzipping %s to %s", jmeter_dist.name, dest)
-        unzip(jmeter_dist.name, dest, 'apache-jmeter-' + self.version)
+        unzip(jmeter_dist.name, dest, 'apache-jmeter-%s' % self.version)
         # set exec permissions
         os.chmod(self.tool_path, 0o755)
         jmeter_dist.close()

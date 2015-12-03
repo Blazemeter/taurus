@@ -4,16 +4,15 @@ import json
 import os
 import time
 from requests.exceptions import HTTPError
-
 from locust import main, events, runners
 
 
 def getrec(request_type, name, response_time, response_length, exc=None):
-    rc = '200' if exc is None else '500'
-    rm = 'OK' if exc is None else '%s' % exc
+    rcode = '200' if exc is None else '500'
+    rmsg = 'OK' if exc is None else '%s' % exc
     if isinstance(exc, HTTPError):
-        rc = exc.message[:exc.message.index(' ')]
-        rm = exc.message[exc.message.index(':') + 2:]
+        rcode = exc.message[:exc.message.index(' ')]
+        rmsg = exc.message[exc.message.index(':') + 2:]
 
     return {
         'timeStamp': "%d" % (time.time() * 1000),
@@ -21,8 +20,8 @@ def getrec(request_type, name, response_time, response_length, exc=None):
         'method': request_type,
         'elapsed': response_time,
         'bytes': response_length,  # NOTE: not sure if the field name is right
-        'responseCode': rc,
-        'responseMessage': rm,
+        'responseCode': rcode,
+        'responseMessage': rmsg,
         'success': 'true' if exc is None else 'false',
 
         # NOTE: might be resource-consuming
@@ -31,7 +30,7 @@ def getrec(request_type, name, response_time, response_length, exc=None):
     }
 
 
-if __name__ == '__main__':
+def execute():
     if os.getenv("SLAVES_LDJSON"):
         fname = os.getenv("SLAVES_LDJSON")
         is_csv = False
@@ -49,16 +48,13 @@ if __name__ == '__main__':
         else:
             writer = None  # FIXME: bad code design, have zero object for it
 
-
         def on_request_success(request_type, name, response_time, response_length):
             writer.writerow(getrec(request_type, name, response_time, response_length))
             fhd.flush()
 
-
         def on_request_failure(request_type, name, response_time, exception):
             writer.writerow(getrec(request_type, name, response_time, 0, exception))
             fhd.flush()
-
 
         def on_slave_report(client_id, data):
             if data['stats'] or data['errors']:
@@ -66,10 +62,13 @@ if __name__ == '__main__':
                 fhd.write("%s\n" % json.dumps(data))
                 fhd.flush()
 
-
         events.request_success += on_request_success
         events.request_failure += on_request_failure
         events.slave_report += on_slave_report
 
         main.main()
         fhd.flush()
+
+
+if __name__ == '__main__':
+    execute()

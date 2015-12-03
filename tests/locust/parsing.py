@@ -4,7 +4,6 @@
 import random
 
 from locust import HttpLocust, TaskSet, task
-
 from pyquery import PyQuery
 
 

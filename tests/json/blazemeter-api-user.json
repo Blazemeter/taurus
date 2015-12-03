@@ -89,7 +89,7 @@
             "capabilities": {
                 "dedicatedIps": true
             },
-            "sandbox": false
+            "sandbox": true
         },
         {
             "id": "us-west-2",
