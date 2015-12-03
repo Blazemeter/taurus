@@ -1,4 +1,4 @@
-""" 
+"""
 Module holds all stuff regarding Apache Benchmark tool usage
 
 Copyright 2015 BlazeMeter Inc.
@@ -77,16 +77,13 @@ class ABExecutor(ScenarioExecutor):
 
         self.reader.output = [int(time.time()), request, concurrency, test_time, 0, 0, 0, None, '']
 
-    def _val(self, outlist, key):
-        return outlist[outlist.index(key) + 1]
-
     def check(self):
         self.log.warning("___ABExecutor.check!")
         return True
 
     def shutdown(self):
         self.log.warning("___ABExecutor.shutdown!")
-        #shutdown_process(self.process, self.log)
+        # shutdown_process(self.process, self.log)
 
         if self.start_time:
             self.end_time = time.time()
