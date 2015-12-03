@@ -11,3 +11,4 @@ class TestApacheBenchExecutor(BZTestCase):
         obj.startup()
         self.assertEqual(len(obj.reader.output), 9)
 
+
