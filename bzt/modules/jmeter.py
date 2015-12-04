@@ -1050,7 +1050,6 @@ class JMX(object):
     def _get_http_request(url, label, method, timeout, body, keepalive):
         """
         Generates HTTP request
-        :type timeout: float
         :type method: str
         :type label: str
         :type url: str
@@ -1358,8 +1357,6 @@ class JMX(object):
     @staticmethod
     def _get_http_defaults(default_address=None, timeout=None, retrieve_resources=None, concurrent_pool_size=4):
         """
-
-        :type timeout: int
         :rtype: lxml.etree.Element
         """
         cfg = etree.Element("ConfigTestElement", guiclass="HttpDefaultsGui",

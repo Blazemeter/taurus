@@ -6,7 +6,7 @@ execution:
     scenario: 
       script: my-existing.jmx
       
-reporting:
+services:
   - module: fail-criteria
     criterias:
      - "avg-rt>150ms for 10s, continue as failed"
