@@ -37,6 +37,7 @@ class ABExecutor(ScenarioExecutor):
         super(ABExecutor, self).__init__()
         self.process = None
         self.reader = None
+        self.retcode = None
 
     def prepare(self):
         self._check_installed()
@@ -57,15 +58,21 @@ class ABExecutor(ScenarioExecutor):
         request = requests[0] + '/'  # TODO: process list of requests
 
         cmd_line = "ab -g file.tmp -c %s -n %s %s" % (concurrency, iterations, request)
-        shell_exec(cmd_line, stderr=subprocess.STDOUT)
+        self.process = shell_exec(cmd_line, stderr=subprocess.STDOUT)
 
     def check(self):
-
-        return True
+        self.retcode = self.process.poll()
+        if self.retcode is not None:
+            if self.retcode != 0:
+                self.log.info("Apache Benchmark exit code: %s", self.retcode)
+                raise RuntimeError("Apache Benchmark exited with non-zero code")
+            return True
+        return False
 
     def shutdown(self):
+        # if self.process and self.process.poll() is None:
+        #    time.sleep(self.engine.check_interval)
         pass
-
 
 class DataLogReader(ResultsReader):
     """ Class to read ___ """
