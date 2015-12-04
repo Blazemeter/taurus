@@ -61,21 +61,14 @@ class ABExecutor(ScenarioExecutor):
 
         self.start_time = time.time()
 
-        concurrency = self.execution.get("concurrency", 1)
+        self.reader.concurrency = concurrency = self.execution.get("concurrency", 1)
         iterations = self.execution.get("iterations", 1)
         requests = self.get_scenario().get("requests", ["http://blazedemo.com"])
 
         request = requests[0] + '/'  # TODO: process list of requests
 
-        cmd_line = "ab -c %s -n %s %s" % (concurrency, iterations, request)
-
-        ab = shell_exec(cmd_line, stderr=subprocess.STDOUT)
-        ab_out, ab_err = ab.communicate()
-        key = 'Time taken for tests:'
-        pos = ab_out.find(key) + len(key)
-        test_time = float(ab_out[pos:pos+100].split()[0])
-
-        self.reader.output = [int(time.time()), request, concurrency, test_time, 0, 0, 0, None, '']
+        cmd_line = "ab -g file.tmp -c %s -n %s %s" % (concurrency, iterations, request)
+        shell_exec(cmd_line, stderr=subprocess.STDOUT)
 
     def check(self):
         self.log.warning("___ABExecutor.check!")
@@ -83,7 +76,12 @@ class ABExecutor(ScenarioExecutor):
 
     def shutdown(self):
         self.log.warning("___ABExecutor.shutdown!")
-        # shutdown_process(self.process, self.log)
+        shutdown_process(self.process, self.log)
+        sro = [line for line in open('file.tmp', 'r')]          # FIXME: wrong place for open()
+        sro = [line.split('\t')[1:] for line in sro[1:]]        # file isn't ready at opening moment
+        sro = [[int(item) for item in line] for line in sro]
+        sro.sort(key=lambda a: a[0])
+        self.reader.output = sro
 
         if self.start_time:
             self.end_time = time.time()
@@ -96,7 +94,8 @@ class DataLogReader(ResultsReader):
     def __init__(self, basedir, parent_logger):
         super(DataLogReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
-        self.output = None
+        self.concurrency = None
+        self.output = []
 
     def _read(self, last_pass=False):
         """
@@ -105,9 +104,12 @@ class DataLogReader(ResultsReader):
         :param last_pass:
         :return: timestamp, label, concurrency, rt, latency, rc, error
         """
-        if not last_pass:
+        self.log.warning("read...")
+        if not self.output:
             raise StopIteration
-        yield self.output
+
+        return ((line[0], 'ab', self.concurrency,
+                 int(line[1])/1000.0, 1, 1, 1, None, '') for line in self.output)
 
 
 class AB(RequiredTool):
