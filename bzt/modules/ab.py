@@ -36,31 +36,20 @@ class ABExecutor(ScenarioExecutor):
     def __init__(self):
         super(ABExecutor, self).__init__()
         self.process = None
-        self.start_time = None
-        self.end_time = None
         self.reader = None
-        self.log.warning("___ABExecutor.__init__!")
 
     def prepare(self):
         self._check_installed()
-        self.log.warning("___ABExecutor.prepare!")
         self.reader = DataLogReader(self.engine.artifacts_dir, self.log)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
     def _check_installed(self):
         ab_path = "ab" + EXE_SUFFIX
-        required_tools = [AB(ab_path, self.log)]
-        for tool in required_tools:
-            if not tool.check_if_installed():
-                self.log.info("Installing %s", tool.tool_name)
-                tool.install()
+        required_tool = AB(ab_path, self.log)
+        required_tool.check_if_installed()
 
     def startup(self):
-        self.log.warning("___ABExecutor.startup!")
-
-        self.start_time = time.time()
-
         self.reader.concurrency = concurrency = self.execution.get("concurrency", 1)
         iterations = self.execution.get("iterations", 1)
         requests = self.get_scenario().get("requests", ["http://blazedemo.com"])
@@ -71,21 +60,11 @@ class ABExecutor(ScenarioExecutor):
         shell_exec(cmd_line, stderr=subprocess.STDOUT)
 
     def check(self):
-        self.log.warning("___ABExecutor.check!")
+
         return True
 
     def shutdown(self):
-        self.log.warning("___ABExecutor.shutdown!")
-        shutdown_process(self.process, self.log)
-        sro = [line for line in open('file.tmp', 'r')]          # FIXME: wrong place for open()
-        sro = [line.split('\t')[1:] for line in sro[1:]]        # file isn't ready at opening moment
-        sro = [[int(item) for item in line] for line in sro]
-        sro.sort(key=lambda a: a[0])
-        self.reader.output = sro
-
-        if self.start_time:
-            self.end_time = time.time()
-            self.log.debug("AB worked for %s seconds", self.end_time - self.start_time)
+        pass
 
 
 class DataLogReader(ResultsReader):
@@ -105,8 +84,12 @@ class DataLogReader(ResultsReader):
         :return: timestamp, label, concurrency, rt, latency, rc, error
         """
         self.log.warning("read...")
-        if not self.output:
-            raise StopIteration
+
+        sro = [line for line in open('file.tmp', 'r')]          # FIXME: wrong place for open()
+        sro = [line.split('\t')[1:] for line in sro[1:]]        # file isn't ready at opening moment
+        sro = [[int(item) for item in line] for line in sro]
+        sro.sort(key=lambda a: a[0])
+        self.output = sro
 
         return ((line[0], 'ab', self.concurrency,
                  int(line[1])/1000.0, 1, 1, 1, None, '') for line in self.output)
