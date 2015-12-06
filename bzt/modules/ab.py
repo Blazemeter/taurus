@@ -23,7 +23,7 @@ import subprocess
 from subprocess import CalledProcessError
 from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ResultsReader, ConsolidatingAggregator
-from bzt.utils import shutdown_process, shell_exec, RequiredTool
+from bzt.utils import shell_exec, RequiredTool
 
 EXE_SUFFIX = ".exe" if platform.system() == "Windows" else ""
 
@@ -38,6 +38,7 @@ class ABExecutor(ScenarioExecutor):
         self.process = None
         self.reader = None
         self.retcode = None
+        self.cmd = "ab" + EXE_SUFFIX
 
     def prepare(self):
         self._check_installed()
@@ -46,8 +47,7 @@ class ABExecutor(ScenarioExecutor):
             self.engine.aggregator.add_underling(self.reader)
 
     def _check_installed(self):
-        ab_path = "ab" + EXE_SUFFIX
-        required_tool = AB(ab_path, self.log)
+        required_tool = AB(self.cmd, self.log)
         required_tool.check_if_installed()
 
     def startup(self):
@@ -57,7 +57,7 @@ class ABExecutor(ScenarioExecutor):
 
         request = requests[0] + '/'  # TODO: process list of requests
 
-        cmd_line = "ab -g file.tmp -c %s -n %s %s" % (concurrency, iterations, request)
+        cmd_line = "%s -g file.tmp -c %s -n %s %s" % (self.cmd, concurrency, iterations, request)
         self.process = shell_exec(cmd_line, stderr=subprocess.STDOUT)
 
     def check(self):
@@ -70,9 +70,10 @@ class ABExecutor(ScenarioExecutor):
         return False
 
     def shutdown(self):
-        # if self.process and self.process.poll() is None:
-        #    time.sleep(self.engine.check_interval)
+        if self.process and self.process.poll() is None:
+            time.sleep(self.engine.check_interval)
         pass
+
 
 class DataLogReader(ResultsReader):
     """ Class to read ___ """
@@ -90,8 +91,6 @@ class DataLogReader(ResultsReader):
         :param last_pass:
         :return: timestamp, label, concurrency, rt, latency, rc, error
         """
-        self.log.warning("read...")
-
         sro = [line for line in open('file.tmp', 'r')]          # FIXME: wrong place for open()
         sro = [line.split('\t')[1:] for line in sro[1:]]        # file isn't ready at opening moment
         sro = [[int(item) for item in line] for line in sro]
@@ -118,11 +117,9 @@ class AB(RequiredTool):
             self.log.debug("AB check: %s", ab_out)
             if ab_err:
                 self.log.warning("AB check stderr: %s", ab_err)
-            return True
+            return
         except (CalledProcessError, OSError):
             self.log.debug("Check failed: %s", traceback.format_exc())
             self.log.error("Apache Benchmark check failed. Consider installing it")
-            return False
+            raise RuntimeError("Please install Apache Benchmark tool manually")
 
-    def install(self):
-        raise RuntimeError("Please install Apache Benchmark tool manually")
