@@ -295,6 +295,7 @@ scenarios:
            subject: body  # subject for search
            regexp: true  # treat string as regular expression
            not: false  # invert condition - fail if found
+           assume-success: false  # mark sample successful before asserting it
 ```
 
 Possible subjects are:

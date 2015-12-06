@@ -2,6 +2,7 @@
 
 ## 0.5.1 (next)
  - fix shellexec env variables
+ - add `assume-success` flag for JMeter assertions
 
 ## 0.5.0
  - allow using Xvfb for Selenium executor

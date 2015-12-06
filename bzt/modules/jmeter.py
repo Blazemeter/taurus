@@ -16,29 +16,31 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import csv
-from itertools import chain
+import fnmatch
+import logging
+import os
 import platform
+import re
+import shutil
+import socket
 import subprocess
+import tempfile
 import time
 import traceback
-import logging
-from math import ceil
-import socket
-from distutils.version import LooseVersion
-import fnmatch
-import os
-import shutil
 from collections import Counter, namedtuple
-import tempfile
-import re
-from lxml.etree import XMLSyntaxError
+from distutils.version import LooseVersion
+from itertools import chain
+from math import ceil
+
 from cssselect import GenericTranslator
+from lxml.etree import XMLSyntaxError
+
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
-from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
+from bzt.modules.console import WidgetProvider, SidebarWidget
+from bzt.six import iteritems, text_type, string_types, StringIO, parse, request, etree, binary_type
 from bzt.utils import shell_exec, ensure_is_dict, dehumanize_time, BetterDict, \
     guess_csv_dialect, unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary, MirrorsManager
-from bzt.six import iteritems, text_type, string_types, StringIO, parse, request, etree, binary_type
 
 EXE_SUFFIX = ".bat" if platform.system() == 'Windows' else ""
 
@@ -1496,7 +1498,7 @@ class JMX(object):
         return element
 
     @staticmethod
-    def _get_resp_assertion(field, contains, is_regexp, is_invert):
+    def _get_resp_assertion(field, contains, is_regexp, is_invert, assume_success=False):
         """
 
         :type field: str
@@ -1528,6 +1530,7 @@ class JMX(object):
 
         element.append(JMX._string_prop("Assertion.test_field", fld))
         element.append(JMX._string_prop("Assertion.test_type", mtype))
+        element.append(JMX._bool_prop("Assertion.assume_success", assume_success))
 
         coll_prop = etree.Element("collectionProp", name="Asserion.test_strings")
         for string in contains:
@@ -2016,7 +2019,8 @@ class JMeterScenarioBuilder(JMX):
             children.append(JMX._get_resp_assertion(assertion.get("subject", self.FIELD_BODY),
                                                     assertion['contains'],
                                                     assertion.get('regexp', True),
-                                                    assertion.get('not', False)))
+                                                    assertion.get('not', False),
+                                                    assertion.get('assume-success', False)), )
             children.append(etree.Element("hashTree"))
 
         jpath_assertions = req.config.get("assert-jsonpath", [])
