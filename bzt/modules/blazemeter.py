@@ -24,8 +24,10 @@ import sys
 import time
 import traceback
 import zipfile
+
 import yaml
 from urwid import Pile, Text
+
 from bzt import ManualShutdown
 from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
@@ -226,6 +228,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
             self.log.warning("Failed to send data, will retry in %s sec...", self.client.timeout)
             try:
                 time.sleep(self.client.timeout)
+                self.client.send_kpi_data(data, do_check, is_final)
                 self.log.info("Succeeded with retry")
             except IOError as _:
                 self.log.error("Fatal error sending data: %s", traceback.format_exc())
@@ -913,6 +916,7 @@ class CloudProvisioning(Provisioning, WidgetProvider):
             self.log.debug("Full exception: %s", traceback.format_exc())
             time.sleep(self.client.timeout)
             master = self.client.get_master_status(self.client.active_session_id)
+            self.log.info("Succeeded with retry")
 
         if "status" in master and master['status'] != self.__last_master_status:
             self.__last_master_status = master['status']
