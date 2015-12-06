@@ -17,6 +17,7 @@ Configuration options:
 ## Run Gatling Tool
 
 ```yaml
+---
 execution:
   - executor: gatling
     scenario:
