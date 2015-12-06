@@ -93,6 +93,9 @@
     },
     "pbench": {
       "class": "bzt.modules.pbench.PBenchExecutor"
+    },
+    "ab": {
+      "class": "bzt.modules.ab.ABExecutor"
     }
   },
   "settings": {
