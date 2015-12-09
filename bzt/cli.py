@@ -28,7 +28,7 @@ from colorlog import ColoredFormatter
 import bzt
 from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown
 from bzt.engine import Engine, Configuration, ScenarioExecutor
-from bzt.six import HTTPError, string_types
+from bzt.six import HTTPError, string_types, b
 from bzt.utils import run_once, is_int, BetterDict
 
 
@@ -371,7 +371,7 @@ def main():
             stdin = stream.read()
             if stdin:
                 with NamedTemporaryFile(prefix="stdin_", suffix=".config", delete=False) as fhd:
-                    fhd.write(stdin)
+                    fhd.write(b(stdin))
                     parsed_configs.append(fhd.name)
 
     try:
