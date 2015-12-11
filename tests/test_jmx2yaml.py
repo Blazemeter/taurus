@@ -293,7 +293,5 @@ class TestConverter(BZTestCase):
     def test_param_null(self):
         obj = JMX2YAML(FakeOptions(file_name=self.temp_yaml()), __dir__() + "/yaml/converter/param-null.jmx")
         obj.process()
-        yml = yaml.load(open(__dir__() + "/yaml/converter/disabled.yml").read())
         converted = obj.converter.convert(obj.file_to_convert)
-        self.assertEqual(converted, yml)
 
