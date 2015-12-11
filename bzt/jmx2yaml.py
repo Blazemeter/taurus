@@ -17,16 +17,16 @@ limitations under the License.
 import logging
 import os
 import traceback
-from optparse import OptionParser
-from copy import deepcopy
 from collections import namedtuple
-import sys
+from copy import deepcopy
+from optparse import OptionParser
 
+import sys
 from cssselect import GenericTranslator
 
+from bzt.cli import CLI
 from bzt.engine import Configuration, ScenarioExecutor
 from bzt.modules.jmeter import JMX
-from bzt.cli import CLI
 
 KNOWN_TAGS = ["hashTree", "jmeterTestPlan", "TestPlan", "ResultCollector",
               "HTTPSamplerProxy",
@@ -209,7 +209,11 @@ class JMXasDict(JMX):
             xpath = GenericTranslator().css_to_xpath("elementProp>collectionProp>elementProp")
             http_args_collection = element.xpath(xpath)
             for element in http_args_collection:
-                body_params[element.get("name")] = self._get_string_prop(element, 'Argument.value')
+                val = self._get_string_prop(element, 'Argument.value')
+                if val is None and self._get_bool_prop(element, 'HTTPArgument.use_equals'):
+                    val = ''
+                body_params[element.get("name")] = val
+
             if body_params:
                 self.log.debug('Got %s for body in %s (%s)', body_params, element.tag, element.get("name"))
                 return {"body": body_params}
@@ -371,8 +375,7 @@ class JMXasDict(JMX):
         url_info = self._extract_url_info(element)
         if url_info is not None:
             full_url = self._make_url(url_info)
-            if full_url:
-                base_settings["url"] = full_url
+            base_settings["url"] = full_url
             if url_info.method:
                 base_settings["method"] = url_info.method
         if element.get("testname"):
@@ -587,7 +590,7 @@ class JMXasDict(JMX):
             for response_assertion_element in response_assertion_elements:
                 response_assertion = {}
                 assertion_collection = response_assertion_element.find(
-                    ".//collectionProp[@name='Asserion.test_strings']")
+                        ".//collectionProp[@name='Asserion.test_strings']")
 
                 if assertion_collection is None:
                     self.log.warning("Collection not found in %s, skipping", response_assertion_element.tag)
@@ -856,7 +859,9 @@ class Converter(object):
     def convert(self, file_to_convert, dump_modified_jmx_to=None):
         """
         Get all thread groups from jmx, convert to dict.
-        :return: dict
+        :type dump_modified_jmx_to: str
+        :type file_to_convert: str
+        :rtype: dict
         """
         self.dialect.load(file_to_convert)
         base_script = {"scenarios": {}, ScenarioExecutor.EXEC: []}

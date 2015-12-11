@@ -1020,7 +1020,7 @@ class Scenario(UserDict, object):
             req = ensure_is_dict(requests, key, "url")
             res = namedtuple("HTTPReq",
                              ('url', 'label', 'method', 'headers', 'timeout', 'think_time', 'config', "body"))
-            url = req["url"]
+            url = req.get("url", ValueError("Option 'url' is mandatory for request"))
             label = req.get("label", url)
             method = req.get("method", "GET")
             headers = req.get("headers", {})

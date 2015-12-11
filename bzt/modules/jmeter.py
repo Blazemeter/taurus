@@ -32,7 +32,6 @@ from distutils.version import LooseVersion
 import time
 from cssselect import GenericTranslator
 from itertools import chain
-from lxml.etree import XMLSyntaxError
 from math import ceil
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
@@ -1042,11 +1041,8 @@ class JMX(object):
         :param name:
         :return:
         """
-        return etree.Element("elementProp",
-                             name=name,
-                             elementType="Arguments",
-                             guiclass="ArgumentsPanel",
-                             testclass="Arguments")
+        return etree.Element("elementProp", name=name, elementType="Arguments",
+                             guiclass="ArgumentsPanel", testclass="Arguments")
 
     @staticmethod
     def _get_http_request(url, label, method, timeout, body, keepalive):
@@ -1057,8 +1053,7 @@ class JMX(object):
         :type url: str
         :rtype: lxml.etree.Element
         """
-        proxy = etree.Element("HTTPSamplerProxy", guiclass="HttpTestSampleGui",
-                              testclass="HTTPSamplerProxy")
+        proxy = etree.Element("HTTPSamplerProxy", guiclass="HttpTestSampleGui", testclass="HTTPSamplerProxy")
         proxy.set("testname", label)
 
         args = JMX._get_arguments_panel("HTTPsampler.Arguments")
@@ -1076,8 +1071,8 @@ class JMX(object):
             for arg_name, arg_value in body.items():
                 http_element_prop = JMX._element_prop(arg_name, "HTTPArgument")
                 http_element_prop.append(JMX._bool_prop("HTTPArgument.always_encode", True))
-                http_element_prop.append(JMX._bool_prop("HTTPArgument.use_equals", True))
-                http_element_prop.append(JMX._string_prop("Argument.value", arg_value))
+                http_element_prop.append(JMX._bool_prop("HTTPArgument.use_equals", arg_value is not None))
+                http_element_prop.append(JMX._string_prop("Argument.value", arg_value if arg_value is not None else ''))
                 http_element_prop.append(JMX._string_prop("Argument.name", arg_name))
                 http_element_prop.append(JMX._string_prop("Argument.metadata", '='))
                 http_args_coll_prop.append(http_element_prop)
@@ -1795,7 +1790,7 @@ class JTLErrorsReader(object):
         self.fds.seek(self.offset)
         try:
             self.parser.feed(self.fds.read(1024 * 1024))  # "Huge input lookup" error without capping :)
-        except XMLSyntaxError as exc:
+        except etree.XMLSyntaxError as exc:
             self.log.debug("Error reading errors.jtl: %s", traceback.format_exc())
             self.log.warning("Failed to parse errors XML: %s", exc)
 
@@ -2030,13 +2025,11 @@ class JMeterScenarioBuilder(JMX):
         for idx, assertion in enumerate(jpath_assertions):
             assertion = ensure_is_dict(jpath_assertions, idx, "jsonpath")
 
-            children.append(JMX._get_json_path_assertion(
-                    assertion['jsonpath'],
-                    assertion.get('expected-value', ''),
-                    assertion.get('validate', False),
-                    assertion.get('expect-null', False),
-                    assertion.get('invert', False),
-            ))
+            component = JMX._get_json_path_assertion(assertion['jsonpath'], assertion.get('expected-value', ''),
+                                                     assertion.get('validate', False),
+                                                     assertion.get('expect-null', False),
+                                                     assertion.get('invert', False), )
+            children.append(component)
             children.append(etree.Element("hashTree"))
 
     def __add_requests(self):

@@ -3,8 +3,8 @@ import tempfile
 import yaml
 
 from bzt.engine import ScenarioExecutor
-from tests import BZTestCase
 from bzt.jmx2yaml import JMX2YAML
+from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul, RecordingHandler
 
 
@@ -25,7 +25,7 @@ class TestConverter(BZTestCase):
 
     def test_loadjmx1(self):
         log_recorder = RecordingHandler()
-        obj = JMX2YAML(FakeOptions(file_name=self.temp_yaml()), "tests/jmx/http.jmx")
+        obj = JMX2YAML(FakeOptions(file_name=self.temp_yaml()), __dir__() + "/jmx/http.jmx")
         obj.log.addHandler(log_recorder)
         obj.process()
         self.assertIn("Loading jmx file", log_recorder.info_buff.getvalue())
@@ -35,7 +35,7 @@ class TestConverter(BZTestCase):
 
     def test_loadjmx2(self):
         log_recorder = RecordingHandler()
-        obj = JMX2YAML(FakeOptions(), "tests/jmx/notfound.jmx")
+        obj = JMX2YAML(FakeOptions(), __dir__() + "/jmx/notfound.jmx")
         obj.log.addHandler(log_recorder)
         try:
             obj.process()
@@ -49,7 +49,7 @@ class TestConverter(BZTestCase):
 
     def test_loadjmx3(self):
         log_recorder = RecordingHandler()
-        obj = JMX2YAML(FakeOptions(), "tests/jmx/broken.jmx")
+        obj = JMX2YAML(FakeOptions(), __dir__() + "/jmx/broken.jmx")
         obj.log.addHandler(log_recorder)
         try:
             obj.process()
@@ -64,7 +64,7 @@ class TestConverter(BZTestCase):
     def test_loadjmx4(self):
         log_recorder = RecordingHandler()
         with tempfile.NamedTemporaryFile() as tmp_file:
-            obj = JMX2YAML(FakeOptions(file_name=tmp_file.name), "tests/jmx/http.jmx")
+            obj = JMX2YAML(FakeOptions(file_name=tmp_file.name), __dir__() + "/jmx/http.jmx")
             obj.log.addHandler(log_recorder)
             obj.process()
             self.assertIn("Loading jmx file", log_recorder.info_buff.getvalue())
@@ -75,7 +75,7 @@ class TestConverter(BZTestCase):
     def test_export_clean_jmx(self):
         with tempfile.NamedTemporaryFile() as tmp_jmx:
             obj = JMX2YAML(FakeOptions(dump_jmx=tmp_jmx.name, file_name=self.temp_yaml()),
-                           "tests/yaml/converter/disabled.jmx")
+                           __dir__() + "/yaml/converter/disabled.jmx")
             log_recorder = RecordingHandler()
             obj.log.addHandler(log_recorder)
             obj.process()
@@ -85,7 +85,7 @@ class TestConverter(BZTestCase):
             obj.log.removeHandler(log_recorder)
 
     def test_not_jmx(self):
-        obj = JMX2YAML(FakeOptions(file_name=self.temp_yaml()), "tests/jmx/not-jmx.xml")
+        obj = JMX2YAML(FakeOptions(file_name=self.temp_yaml()), __dir__() + "/jmx/not-jmx.xml")
         try:
             obj.process()
             self.fail()
@@ -93,7 +93,7 @@ class TestConverter(BZTestCase):
             self.assertIn("Bad jmx format", exc.args[0])
 
     def test_clean_disabled_jmx(self):
-        obj = JMX2YAML(FakeOptions(file_name=self.temp_yaml()), "tests/yaml/converter/disabled.jmx")
+        obj = JMX2YAML(FakeOptions(file_name=self.temp_yaml()), __dir__() + "/yaml/converter/disabled.jmx")
         obj.process()
         disabled_elements = [element for element in obj.converter.dialect.tree.iter() if
                              element.get("enabled") == "false"]
@@ -101,7 +101,7 @@ class TestConverter(BZTestCase):
 
     def test_copy_global_csv_dataset(self):
         yml = self.temp_yaml()
-        obj = JMX2YAML(FakeOptions(file_name=yml), "tests/yaml/converter/global_copy.jmx")
+        obj = JMX2YAML(FakeOptions(file_name=yml), __dir__() + "/yaml/converter/global_copy.jmx")
         obj.process()
         yml = yaml.load(open(yml).read())
         datasets_first_tg = yml.get("scenarios").get("Thread Group one").get("data-sources")
@@ -118,7 +118,7 @@ class TestConverter(BZTestCase):
 
     def test_copy_global_headers(self):
         yml = self.temp_yaml()
-        obj = JMX2YAML(FakeOptions(file_name=yml), "tests/yaml/converter/global_copy.jmx")
+        obj = JMX2YAML(FakeOptions(file_name=yml), __dir__() + "/yaml/converter/global_copy.jmx")
         obj.process()
         yml = yaml.load(open(yml).read())
         headers_first_tg = yml.get("scenarios").get("Thread Group one").get("headers", [])
@@ -128,7 +128,7 @@ class TestConverter(BZTestCase):
 
     def test_cache_cookie_dns_overrides(self):
         yml = self.temp_yaml()
-        obj = JMX2YAML(FakeOptions(file_name=yml), "tests/yaml/converter/global_copy.jmx")
+        obj = JMX2YAML(FakeOptions(file_name=yml), __dir__() + "/yaml/converter/global_copy.jmx")
         obj.process()
         yml = yaml.load(open(yml).read())
         tg_one = yml.get("scenarios").get('Thread Group one')
@@ -148,7 +148,7 @@ class TestConverter(BZTestCase):
 
     def test_think_time_overrides(self):
         yml = self.temp_yaml()
-        obj = JMX2YAML(FakeOptions(file_name=yml), "tests/yaml/converter/global_copy.jmx")
+        obj = JMX2YAML(FakeOptions(file_name=yml), __dir__() + "/yaml/converter/global_copy.jmx")
         obj.process()
         yml = yaml.load(open(yml).read())
         tg_one = yml.get("scenarios").get('Thread Group one')
@@ -164,7 +164,7 @@ class TestConverter(BZTestCase):
 
     def test_request_defaults(self):
         yml = self.temp_yaml()
-        obj = JMX2YAML(FakeOptions(file_name=yml), "tests/yaml/converter/global_copy.jmx")
+        obj = JMX2YAML(FakeOptions(file_name=yml), __dir__() + "/yaml/converter/global_copy.jmx")
         obj.process()
         yml = yaml.load(open(yml).read())
         tg_one = yml.get("scenarios").get('Thread Group one')
@@ -180,7 +180,7 @@ class TestConverter(BZTestCase):
 
     def test_copy_global_request_assertions(self):
         yml = self.temp_yaml()
-        obj = JMX2YAML(FakeOptions(file_name=yml), "tests/yaml/converter/assertions.jmx")
+        obj = JMX2YAML(FakeOptions(file_name=yml), __dir__() + "/yaml/converter/assertions.jmx")
         obj.process()
         yml = yaml.load(open(yml).read())
         tg_one = yml.get("scenarios").get("tg1")
@@ -198,7 +198,7 @@ class TestConverter(BZTestCase):
 
     def test_copy_global_json_assertions(self):
         yml = self.temp_yaml()
-        obj = JMX2YAML(FakeOptions(file_name=yml), "tests/yaml/converter/assertions.jmx")
+        obj = JMX2YAML(FakeOptions(file_name=yml), __dir__() + "/yaml/converter/assertions.jmx")
         obj.process()
         yml = yaml.load(open(yml).read())
         tg_one = yml.get("scenarios").get("tg1")
@@ -229,7 +229,7 @@ class TestConverter(BZTestCase):
 
     def test_extractors(self):
         yml = self.temp_yaml()
-        obj = JMX2YAML(FakeOptions(file_name=yml), "tests/yaml/converter/extractors.jmx")
+        obj = JMX2YAML(FakeOptions(file_name=yml), __dir__() + "/yaml/converter/extractors.jmx")
         obj.process()
         yml = yaml.load(open(yml).read())
         tg_one = yml.get("scenarios").get("tg1")
@@ -253,7 +253,7 @@ class TestConverter(BZTestCase):
 
     def test_request_body(self):
         yml = self.temp_yaml()
-        obj = JMX2YAML(FakeOptions(file_name=yml), "tests/yaml/converter/extractors.jmx")
+        obj = JMX2YAML(FakeOptions(file_name=yml), __dir__() + "/yaml/converter/extractors.jmx")
         obj.process()
         yml = yaml.load(open(yml).read())
         tg_one = yml.get("scenarios").get("tg1")
@@ -267,7 +267,7 @@ class TestConverter(BZTestCase):
 
     def test_duration_throughput(self):
         yml = self.temp_yaml()
-        obj = JMX2YAML(FakeOptions(file_name=yml), "tests/yaml/converter/duration.jmx")
+        obj = JMX2YAML(FakeOptions(file_name=yml), __dir__() + "/yaml/converter/duration.jmx")
         obj.process()
         yml = yaml.load(open(yml).read())
         tg_one = yml.get(ScenarioExecutor.EXEC)[0]
@@ -285,7 +285,15 @@ class TestConverter(BZTestCase):
         self.assertEqual(100, tg_three.get("throughput"))
 
     def test_all(self):
-        obj = JMX2YAML(FakeOptions(file_name=self.temp_yaml()), "tests/yaml/converter/disabled.jmx")
+        obj = JMX2YAML(FakeOptions(file_name=self.temp_yaml()), __dir__() + "/yaml/converter/disabled.jmx")
         obj.process()
-        yml = yaml.load(open("tests/yaml/converter/disabled.yml").read())
+        yml = yaml.load(open(__dir__() + "/yaml/converter/disabled.yml").read())
         self.assertEqual(obj.converter.convert(obj.file_to_convert), yml)
+
+    def test_param_null(self):
+        obj = JMX2YAML(FakeOptions(file_name=self.temp_yaml()), __dir__() + "/yaml/converter/param-null.jmx")
+        obj.process()
+        yml = yaml.load(open(__dir__() + "/yaml/converter/disabled.yml").read())
+        converted = obj.converter.convert(obj.file_to_convert)
+        self.assertEqual(converted, yml)
+
