@@ -251,7 +251,7 @@ scenarios:
             regexp: <title>(\w+)</title>  # regular expression
             default: NOT_FOUND  # default value to use when regexp not found
             match-no: 1  # if multiple values has matched, which match use (0=random)
-            template: 1  # which capture group to take
+            template: 1  # which capture group to take, integer or template string
         extract-jsonpath:   
           varname:
             jsonpath: $.jsonpath[0]  # jsonpath expression

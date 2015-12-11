@@ -25,15 +25,15 @@ import shutil
 import socket
 import subprocess
 import tempfile
-import time
 import traceback
 from collections import Counter, namedtuple
 from distutils.version import LooseVersion
-from itertools import chain
-from math import ceil
 
+import time
 from cssselect import GenericTranslator
+from itertools import chain
 from lxml.etree import XMLSyntaxError
+from math import ceil
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
@@ -848,7 +848,7 @@ class JMX(object):
             self.append("jmeterTestPlan", htree)
 
             element_prop = self._get_arguments_panel(
-                "TestPlan.user_defined_variables")
+                    "TestPlan.user_defined_variables")
             self.append("jmeterTestPlan>hashTree>TestPlan", element_prop)
 
     def load(self, original):
@@ -1420,11 +1420,14 @@ class JMX(object):
 
         :type varname: str
         :type regexp: str
-        :type template: str
+        :type template: str|int
         :type match_no: int
         :type default: str
         :rtype: lxml.etree.Element
         """
+        if template.isdigit():
+            template = '$%s$' % template
+
         element = etree.Element("RegexExtractor", guiclass="RegexExtractorGui",
                                 testclass="RegexExtractor", testname="Get %s" % varname)
         element.append(JMX._string_prop("RegexExtractor.refname", varname))
@@ -1991,7 +1994,7 @@ class JMeterScenarioBuilder(JMX):
         extractors = req.config.get("extract-regexp", BetterDict())
         for varname in extractors:
             cfg = ensure_is_dict(extractors, varname, "regexp")
-            extractor = JMX._get_extractor(varname, cfg['regexp'], '$%s$' % cfg.get('template', 1),
+            extractor = JMX._get_extractor(varname, cfg['regexp'], cfg.get('template', 1),
                                            cfg.get('match-no', 1), cfg.get('default', 'NOT_FOUND'))
             children.append(extractor)
             children.append(etree.Element("hashTree"))
@@ -2006,8 +2009,8 @@ class JMeterScenarioBuilder(JMX):
         for varname in css_jquery_extors:
             cfg = ensure_is_dict(css_jquery_extors, varname, "expression")
             children.append(
-                JMX._get_jquerycss_extractor(varname, cfg['expression'], cfg.get('attribute', ""),
-                                             cfg.get('match-no', 0), cfg.get('default', 'NOT_FOUND')))
+                    JMX._get_jquerycss_extractor(varname, cfg['expression'], cfg.get('attribute', ""),
+                                                 cfg.get('match-no', 0), cfg.get('default', 'NOT_FOUND')))
             children.append(etree.Element("hashTree"))
 
     def __add_assertions(self, children, req):
@@ -2028,11 +2031,11 @@ class JMeterScenarioBuilder(JMX):
             assertion = ensure_is_dict(jpath_assertions, idx, "jsonpath")
 
             children.append(JMX._get_json_path_assertion(
-                assertion['jsonpath'],
-                assertion.get('expected-value', ''),
-                assertion.get('validate', False),
-                assertion.get('expect-null', False),
-                assertion.get('invert', False),
+                    assertion['jsonpath'],
+                    assertion.get('expected-value', ''),
+                    assertion.get('validate', False),
+                    assertion.get('expect-null', False),
+                    assertion.get('invert', False),
             ))
             children.append(etree.Element("hashTree"))
 
@@ -2102,8 +2105,8 @@ class JMeterScenarioBuilder(JMX):
             delimiter = source.get("delimiter", self.__guess_delimiter(source['path']))
 
             self.append(self.TEST_PLAN_SEL, JMX._get_csv_config(
-                os.path.abspath(source['path']), delimiter,
-                source.get("quoted", False), source.get("loop", True)
+                    os.path.abspath(source['path']), delimiter,
+                    source.get("quoted", False), source.get("loop", True)
             ))
             self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
 
