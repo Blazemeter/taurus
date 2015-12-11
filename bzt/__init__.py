@@ -65,7 +65,8 @@ def get_configs_dir():
     Generate configs dir path on install, moved from utils due to import error
     :return: str
     """
-    if hasattr(sys, 'real_prefix'):
+    # detect virtualenv or pyenv usage
+    if hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix):
         path = sys.prefix
     else:
         path = os.path.splitdrive(sys.executable)[0]
