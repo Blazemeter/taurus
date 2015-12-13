@@ -25,14 +25,14 @@ import shutil
 import socket
 import subprocess
 import tempfile
+import time
 import traceback
 from collections import Counter, namedtuple
 from distutils.version import LooseVersion
-
-import time
-from cssselect import GenericTranslator
 from itertools import chain
 from math import ceil
+
+from cssselect import GenericTranslator
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
@@ -1420,7 +1420,7 @@ class JMX(object):
         :type default: str
         :rtype: lxml.etree.Element
         """
-        if template.isdigit():
+        if isinstance(template, int):
             template = '$%s$' % template
 
         element = etree.Element("RegexExtractor", guiclass="RegexExtractorGui",
