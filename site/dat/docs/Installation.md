@@ -4,13 +4,13 @@
 
 Tried on Windows 7 and Windows XP:
 
-  1. Get python 2.7 from http://www.python.org/downloads and install it, don't forget to enable "Add python.exe to Path"
-  1. Get Microsoft Visual C++ Compiler for Python 2.7 from http://aka.ms/vcpython27 and install it
-  1. Get latest Java from https://www.java.com/download/ and install it
+  1. Get python 2.7 from [http://www.python.org/downloads](http://www.python.org/downloads) and install it, don't forget to enable "Add python.exe to Path"
+  1. Download `lxml-3.5.0-cp27-none-win32.whl` package from [http://www.lfd.uci.edu/~gohlke/pythonlibs/#lxml](http://www.lfd.uci.edu/~gohlke/pythonlibs/#lxml) and install it by running in command prompt `pip install lxml-3.5.0-cp27-none-win32.whl`
   1. Open Command Prompt from administrative account, type `pip install --upgrade setuptools` and hit `Enter`
   1. Open Command Prompt from administrative account, type `pip install bzt` and hit `Enter`
+  1. Get latest Java from [https://www.java.com/download/](https://www.java.com/download/) and install it
 
-To upgrade Taurus, open Command Prompt from administrative account and type `pip install --upgrade --no-deps bzt`, then hit `Enter`
+To upgrade Taurus, open Command Prompt from administrative account and type `pip install --upgrade bzt`, then hit `Enter`
 
 ## Linux
 
@@ -25,7 +25,7 @@ sudo pip install bzt
 Upgrading to latest is as simple as this:
 
 ```bash
-sudo pip install --upgrade --no-deps bzt
+sudo pip install --upgrade bzt
 ```
 
 ### CentOS
@@ -97,5 +97,5 @@ then try installing Taurus again.
 Upgrading to latest is as simple as this:
 
 ```bash
-sudo pip install --upgrade --no-deps bzt
+sudo pip install --upgrade bzt
 ```
