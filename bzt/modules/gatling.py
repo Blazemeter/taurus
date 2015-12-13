@@ -15,18 +15,18 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import time
-import subprocess
-import platform
 import os
+import platform
 import re
 import shutil
+import subprocess
+import time
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
-from bzt.utils import unzip, shell_exec, ensure_is_dict, RequiredTool, JavaVM, \
-    shutdown_process, TclLibrary, MirrorsManager
 from bzt.modules.console import WidgetProvider, SidebarWidget
+from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, \
+    shutdown_process, TclLibrary, MirrorsManager
 
 EXE_SUFFIX = ".bat" if platform.system() == 'Windows' else ".sh"
 
@@ -53,10 +53,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.widget = None
 
     def prepare(self):
-        """
-
-        :return:
-        """
         self._check_installed()
 
         scenario = self.get_scenario()
@@ -74,8 +70,8 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 self.__cp_res_files_to_artifacts_dir(resource_files)
 
         elif "requests" in scenario:
-            raise NotImplementedError(
-                "Script generating not yet implemented for Gatling")  # TODO: implement script generation for gatling
+            # TODO: implement script generation for gatling
+            raise NotImplementedError("Script generating not yet implemented for Gatling")
         else:
             raise ValueError("There must be a script file to run Gatling")
 
@@ -118,6 +114,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         if self.widget:
             self.widget.update()
+            
         self.retcode = self.process.poll()
         if self.retcode is not None:
             if self.retcode != 0:
