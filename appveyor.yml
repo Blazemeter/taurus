@@ -20,7 +20,7 @@ environment:
 
 install:
   # We need wheel installed to build wheels
-  - "%PYTHON%\\python.exe -m pip install codecov colorlog pyyaml psutil lxml cssselect grip urwid six selenium progressbar33 locustio pyvirtualdisplay"
+  - "%PYTHON%\\python.exe -m pip install codecov colorlog pyyaml psutil lxml==3.4.2  cssselect grip urwid six selenium progressbar33 locustio pyvirtualdisplay"
 
 build: off
 
