@@ -7,22 +7,19 @@ environment:
 
 install:
   # We need wheel installed to build wheels
-  - "%PYTHON%\\python.exe -m pip install codecov colorlog pyyaml psutil lxml==3.4.2  cssselect grip urwid six selenium progressbar33 locustio pyvirtualdisplay"
+  - "%PYTHON%\\python.exe -m pip install colorlog pyyaml psutil lxml==3.4.2  cssselect grip urwid six selenium progressbar33 locustio pyvirtualdisplay"
 
 build: off
 
 test_script:
-  - ps: "ls \"C:\\projects\\taurus\\.eggs\""
-  - "%PYTHON%\\python.exe setup.py test"
-  - "%PYTHON%\\python.exe -m coverage run nosetests"
-  - "%PYTHON%\\python.exe -m codecov"
+  - "nosetests"
 
 after_test:
   # This step builds your wheels.
   # Again, you only need if you're building C extensions for
   # 64-bit Python 3.3/3.4. And you need to use %PYTHON% to get the correct
   # interpreter
-  - "%PYTHON%\\python.exe setup.py sdist"
+  - "%PYTHON%\\python.exe setup.py clean sdist"
 
 artifacts:
   # bdist_wheel puts your built wheel in the dist directory
