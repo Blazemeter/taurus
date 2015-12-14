@@ -838,6 +838,7 @@ class CloudProvisioning(Provisioning, WidgetProvider):
 
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.results_reader = ResultsFromBZA(self.client)
+            self.results_reader.log = self.log
             self.engine.aggregator.add_underling(self.results_reader)
 
     def __prepare_locations(self):
@@ -985,12 +986,21 @@ class ResultsFromBZA(ResultsProvider):
         self.client = client
         self.master_id = None  # must be set afterwards
         self.min_ts = 0
+        self.log = logging.getLogger('')
 
     def _calculate_datapoints(self, final_pass=False):
         if self.master_id is None:
             return
 
-        data = self.client.get_kpis(self.master_id, self.min_ts)
+        try:
+            data = self.client.get_kpis(self.master_id, self.min_ts)
+        except URLError as exc:
+            self.log.warning("Failed to get result KPIs, will retry in %s seconds...", self.client.timeout)
+            self.log.debug("Full exception: %s", traceback.format_exc())
+            time.sleep(self.client.timeout)
+            data = self.client.get_kpis(self.master_id, self.min_ts)
+            self.log.info("Succeeded with retry")
+
         for label in data:
             if label['kpis']:
                 label['kpis'].pop(-1)  # never take last second since it could be incomplete
