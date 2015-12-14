@@ -7,13 +7,12 @@ environment:
 
 install:
   - "%PYTHON%\\python.exe -m pip install nose"
-  - "%PYTHON%\\python.exe -m pip install colorlog pyyaml psutil lxml==3.4.2 cssselect grip urwid six selenium progressbar33 locustio pyvirtualdisplay"
+  - "%PYTHON%\\python.exe -m pip install colorlog pyyaml psutil lxml==3.4.2 cssselect urwid six selenium progressbar33 locustio pyvirtualdisplay"
 
 build: off
 
 test_script:
-  - ps: "Get-ChildItem -Path C:\ -Filter nosetests.exe -Recurse -ErrorAction SilentlyContinue -Force"
-  - nosetests.exe
+  - "%PYTHON%\\python.exe -m nose"
 
 after_test:
   - "%PYTHON%\\python.exe setup.py clean sdist"
