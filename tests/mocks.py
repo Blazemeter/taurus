@@ -1,6 +1,5 @@
 """ test """
-from IN import AF_INET
-from _socket import SOCK_STREAM
+from _socket import SOCK_STREAM, AF_INET
 from io import StringIO
 import logging
 from logging import Handler
