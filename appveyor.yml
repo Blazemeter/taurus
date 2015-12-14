@@ -1,0 +1,13 @@
+#language: python
+#python:
+#  - "2.7"
+#  - "3.3"
+#  - "3.4"
+
+install:
+  - pip install codecov
+  - pip install colorlog pyyaml psutil lxml cssselect grip urwid six selenium progressbar33 locustio pyvirtualdisplay
+
+build_script:
+  - coverage run `which nosetests`
+  - codecov
