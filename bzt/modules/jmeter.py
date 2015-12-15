@@ -1674,12 +1674,12 @@ class IncrementalCSVReader(csv.DictReader, object):
         self.offset = 0
         self.filename = filename
         self.fds = None
-        self.csvreader = None
 
     def read(self, last_pass=False):
         """
         read data from jtl
         yield csv row
+        :type last_pass: bool
         """
         if not self.fds and not self.__open_fds():
             self.log.debug("No data to start reading yet")
@@ -1739,7 +1739,6 @@ class IncrementalCSVReader(csv.DictReader, object):
         self.log.debug("Opening file: %s", self.filename)
         self.fds = open(self.filename)
         self.fds.seek(self.offset)
-        self.csvreader = csv.reader(self.fds)
         return True
 
     def __del__(self):
