@@ -250,7 +250,7 @@ class JTLErrorWriter(object):
 
 
 def write_element(fds):
-    with etree.xmlfile(fds, buffered=False, encoding="UTF-8") as xf:
+    with etree.xmlfile(fds, encoding="UTF-8") as xf:
         xf.write_declaration()
         with xf.element('testResults', version="1.2"):
             try:

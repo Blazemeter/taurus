@@ -252,6 +252,7 @@ class SlavesReader(ResultsProvider):
 
     def point_from_locust(self, ts, sid, data):
         """
+        :type sid: str
         :type ts: str
         :type data: dict
         :rtype: DataPoint
