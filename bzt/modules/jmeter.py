@@ -1660,14 +1660,14 @@ class JTLReader(ResultsReader):
             yield point
 
 
-class IncrementalCSVReader(csv.DictReader, object):
+class IncrementalCSVReader(object):
     """
     JTL csv reader
     """
 
     def __init__(self, parent_logger, filename):
         self.buffer = StringIO()
-        super(IncrementalCSVReader, self).__init__(self.buffer, [])
+        self.csv_reader = csv.DictReader(self.buffer, [])
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.indexes = {}
         self.partial_buffer = ""
@@ -1705,16 +1705,16 @@ class IncrementalCSVReader(csv.DictReader, object):
             line = "%s%s" % (self.partial_buffer, line)
             self.partial_buffer = ""
 
-            if not self._fieldnames:
-                self.dialect = guess_csv_dialect(line)
-                self._fieldnames += line.strip().split(self.dialect.delimiter)
-                self.log.debug("Analyzed header line: %s", self.fieldnames)
+            if not self.csv_reader.fieldnames:
+                self.csv_reader.dialect = guess_csv_dialect(line)
+                self.csv_reader.fieldnames += line.strip().split(self.csv_reader.dialect.delimiter)
+                self.log.debug("Analyzed header line: %s", self.csv_reader.fieldnames)
                 continue
 
             self.buffer.write(line)
 
         self.buffer.seek(0)
-        for row in self:
+        for row in self.csv_reader:
             yield row
         self.buffer.seek(0)
         self.buffer.truncate(0)
