@@ -28,6 +28,7 @@ from abc import abstractmethod
 from collections import namedtuple, defaultdict
 from distutils.version import LooseVersion
 from json import encoder
+
 import psutil
 import yaml
 from yaml.representer import SafeRepresenter
@@ -78,6 +79,7 @@ class Engine(object):
     def configure(self, user_configs):
         """
         Load configuration files
+        :type user_configs: list[str]
         """
         self.log.info("Configuring...")
         self._load_base_configs()
@@ -171,28 +173,22 @@ class Engine(object):
         :return:
         """
         self.log.info("Shutting down...")
-        try:
-            exception = None
-            modules = [self.provisioning, self.aggregator]
-            modules += self.reporters
-            modules += self.services
-            for module in modules:
-                try:
-                    module.shutdown()
-                except BaseException as exc:
-                    self.log.error("Error while shutting down: %s", traceback.format_exc())
-                    self.stopping_reason = exc if not self.stopping_reason else self.stopping_reason
-                    if not exception:
-                        exception = exc
+        exception = None
+        modules = [self.provisioning, self.aggregator]
+        modules += self.reporters
+        modules += self.services
+        for module in modules:
+            try:
+                module.shutdown()
+            except BaseException as exc:
+                self.log.error("Error while shutting down: %s", traceback.format_exc())
+                self.stopping_reason = exc if not self.stopping_reason else self.stopping_reason
+                if not exception:
+                    exception = exc
 
-            if exception:
-                raise exception
-        except BaseException as exc:
-            self.log.error("Error while shutting down: %s", traceback.format_exc())
-            self.stopping_reason = exc if not self.stopping_reason else self.stopping_reason
-            raise
-        finally:
-            self.config.dump()
+        self.config.dump()
+        if exception:
+            raise exception
 
     def post_process(self):
         """
@@ -201,25 +197,21 @@ class Engine(object):
         self.log.info("Post-processing...")
         # :type exception: BaseException
         exception = None
-        try:
-            modules = [self.provisioning, self.aggregator] + self.reporters
-            modules += self.services
-            for module in modules:
-                try:
-                    module.post_process()
-                except KeyboardInterrupt as exc:
-                    self.log.error("Shutdown: %s", exc)
-                    self.stopping_reason = exc if not self.stopping_reason else self.stopping_reason
-                    if not exception:
-                        exception = exc
-                except BaseException as exc:
-                    self.log.error("Error while post-processing: %s", traceback.format_exc())
-                    self.stopping_reason = exc if not self.stopping_reason else self.stopping_reason
-                    if not exception:
-                        exception = exc
-        finally:
-            self.__finalize()
-
+        modules = [self.provisioning, self.aggregator] + self.reporters
+        modules += self.services
+        for module in modules:
+            try:
+                module.post_process()
+            except KeyboardInterrupt as exc:
+                self.log.error("Shutdown: %s", exc)
+                self.stopping_reason = exc if not self.stopping_reason else self.stopping_reason
+                if not exception:
+                    exception = exc
+            except BaseException as exc:
+                self.log.error("Error while post-processing: %s", traceback.format_exc())
+                self.stopping_reason = exc if not self.stopping_reason else self.stopping_reason
+                if not exception:
+                    exception = exc
         self.config.dump()
 
         if exception:
@@ -231,13 +223,6 @@ class Engine(object):
         elif exception:
             self.log.warning("Failed post-processing")
             raise exception
-
-    def __finalize(self):
-        """
-        Finalize the Engine. For example, copy artifacts
-        into artifacts directory
-        """
-        pass
 
     def create_artifact(self, prefix, suffix):
         """
@@ -370,6 +355,7 @@ class Engine(object):
         """
         Try to find file in search_path if it was specified. Helps finding files
         in non-CLI environments or relative to config path
+        :param filename: file basename to find
         """
         filename = os.path.expanduser(filename)
         if os.path.isfile(filename):
@@ -497,10 +483,10 @@ class Engine(object):
         rx_bytes, tx_bytes, dru, dwu = self.__get_resource_stats()
         # TODO: measure and report check loop utilization
         return stats(
-            cpu=psutil.cpu_percent(),
-            disk_usage=psutil.disk_usage(self.artifacts_dir).percent,
-            mem_usage=psutil.virtual_memory().percent,
-            rx=rx_bytes, tx=tx_bytes, dru=dru, dwu=dwu
+                cpu=psutil.cpu_percent(),
+                disk_usage=psutil.disk_usage(self.artifacts_dir).percent,
+                mem_usage=psutil.virtual_memory().percent,
+                rx=rx_bytes, tx=tx_bytes, dru=dru, dwu=dwu
         )
 
     def __get_resource_stats(self):
@@ -596,6 +582,7 @@ class Configuration(BetterDict):
         """
         Load and merge JSON/YAML files into current dict
 
+        :type callback: callable
         :type configs: list[str]
         """
         self.log.debug("Configs: %s", configs)
@@ -685,6 +672,7 @@ class Configuration(BetterDict):
     def masq_sensitive(config):
         """
         Remove sensitive data from config
+        :type config: dict
         """
         for key in config.keys():
             for suffix in ('password', 'secret', 'token',):
@@ -815,6 +803,7 @@ class Provisioning(EngineModule):
             instance = self.engine.instantiate_module(executor)
             instance.provisioning = self
             instance.execution = execution
+            assert isinstance(instance, ScenarioExecutor)
             self.executors.append(instance)
 
 
