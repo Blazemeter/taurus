@@ -16,18 +16,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import json
-from subprocess import STDOUT
-import sys
 import math
-import time
 import os
+import sys
+import time
 from imp import find_module
+from subprocess import STDOUT
+
 from bzt.engine import ScenarioExecutor, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsProvider, DataPoint, KPISet
-from bzt.modules.jmeter import JTLReader
-from bzt.utils import shutdown_process, shell_exec, RequiredTool, BetterDict
 from bzt.modules.console import WidgetProvider, SidebarWidget
+from bzt.modules.jmeter import JTLReader
 from bzt.six import PY3, iteritems
+from bzt.utils import shutdown_process, shell_exec, RequiredTool, BetterDict
 
 
 class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
@@ -70,7 +71,9 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     def __check_installed(self):
         tool = LocustIO(self.log)
         if not tool.check_if_installed():
-            tool.install()
+            if PY3:
+                raise RuntimeError("LocustIO is not currently compatible with Python 3.x")
+            raise RuntimeError("Unable to locate locustio package. Please install it like this: pip install locustio")
 
     def startup(self):
         self.start_time = time.time()
@@ -108,7 +111,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         Add progress widget to console screen sidebar
 
-        :return:
+        :rtype: SidebarWidget
         """
         if not self.widget:
             if self.locustfile is not None:
@@ -127,7 +130,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if retcode is not None:
             self.log.info("Locust exit code: %s", retcode)
             if retcode != 0:
-                raise RuntimeError("Locust exited with non-zero code")
+                raise RuntimeError("Locust exited with non-zero code: %s" % retcode)
 
             return True
 
@@ -146,14 +149,17 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         return locustfile
 
     def shutdown(self):
-        shutdown_process(self.process, self.log)
-        if self.__out:
-            self.__out.close()
-            self.__out.close()
+        try:
+            shutdown_process(self.process, self.log)
+        finally:
+            if self.__out:
+                self.__out.close()
+                self.__out.close()
 
     def post_process(self):
-        if (self.is_master and not self.reader.cumulative) \
-                or (not self.is_master and self.reader and not self.reader.buffer):
+        no_master_results = (self.is_master and not self.reader.cumulative)
+        no_local_results = (not self.is_master and self.reader and not self.reader.buffer)
+        if no_master_results or no_local_results:
             raise RuntimeWarning("Empty results, most likely Locust failed")
 
 
@@ -172,9 +178,7 @@ class LocustIO(RequiredTool):
         return True
 
     def install(self):
-        if PY3:
-            raise RuntimeError("LocustIO is not currently compatible with Python 3.x")
-        raise RuntimeError("Unable to locate locustio package. Please install it like this: pip install locustio")
+        raise NotImplementedError()
 
 
 class SlavesReader(ResultsProvider):
