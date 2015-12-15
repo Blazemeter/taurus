@@ -18,8 +18,6 @@ limitations under the License.
 
 from bzt.engine import Provisioning
 
-# TODO: detect and inform on engine overload in local provisioning
-
 
 class Local(Provisioning):
     """
