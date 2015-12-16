@@ -9,10 +9,10 @@ from tests.mocks import EngineEmul, ModuleMock
 class TestCLI(BZTestCase):
     def setUp(self):
         super(TestCLI, self).setUp()
-        self.log = os.path.dirname(__file__) + "/../build/bzt.log"
+        self.log = os.path.join(os.path.dirname(__file__), "..", "build", "bzt.log")
         self.verbose = True
         self.option = []
-        self.datadir = os.path.dirname(__file__) + "/../build/acli"
+        self.datadir = os.path.join(os.path.dirname(__file__), "..", "build", "acli")
         self.obj = CLI(self)
         self.aliases = []
         self.obj.engine = EngineEmul()

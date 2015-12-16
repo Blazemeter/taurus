@@ -47,6 +47,11 @@ EXE_SUFFIX = ".bat" if platform.system() == 'Windows' else ""
 class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     """
     JMeter executor module
+
+    :type modified_jmx: str
+    :type jmeter_log: str
+    :type properties_file: str
+    :type sys_properties_file: str
     """
     MIRRORS_SOURCE = "http://jmeter.apache.org/download_jmeter.cgi"
     JMETER_DOWNLOAD_LINK = "http://apache.claz.org/jmeter/binaries/apache-jmeter-{version}.zip"
@@ -846,8 +851,7 @@ class JMX(object):
             htree.append(etree.Element("hashTree"))
             self.append("jmeterTestPlan", htree)
 
-            element_prop = self._get_arguments_panel(
-                    "TestPlan.user_defined_variables")
+            element_prop = self._get_arguments_panel("TestPlan.user_defined_variables")
             self.append("jmeterTestPlan>hashTree>TestPlan", element_prop)
 
     def load(self, original):
@@ -906,6 +910,7 @@ class JMX(object):
     def enabled_thread_groups(self, all_types=False):
         """
         Get thread groups that are enabled
+        :type all_types: bool
         """
         if all_types:
             ultimate_tgroup = self.get('jmeterTestPlan>hashTree>hashTree>kg\.apc\.jmeter\.threads\.UltimateThreadGroup')
@@ -1248,6 +1253,7 @@ class JMX(object):
     @staticmethod
     def add_user_def_vars_elements(udv_dict, testname="Variables from Taurus"):
         """
+        :type testname: str
         :type udv_dict: dict[str,str]
         :rtype: etree.Element
         """
