@@ -37,7 +37,6 @@ class SiegeExecutor(ScenarioExecutor):
         Should start the tool as fast as possible.
         """
         load = self.get_load()
-        data_dir = os.path.realpath(self.engine.artifacts_dir)
         args = ['siege', 'blazedemo.com']
         args += ['--reps=%s' % load.iterations, '--concurrent=%s' % load.concurrency]
 
