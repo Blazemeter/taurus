@@ -154,7 +154,6 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         finally:
             if self.__out:
                 self.__out.close()
-                self.__out.close()
 
     def post_process(self):
         no_master_results = (self.is_master and not self.reader.cumulative)
