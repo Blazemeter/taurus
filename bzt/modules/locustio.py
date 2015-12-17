@@ -87,7 +87,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if os.getenv("PYTHONPATH"):
             env['PYTHONPATH'] = os.getenv("PYTHONPATH") + os.pathsep + env['PYTHONPATH']
 
-        args = [sys.executable, os.path.realpimpath(wrapper), '-f', os.path.realpath(self.locustfile)]
+        args = [sys.executable, os.path.realpath(wrapper), '-f', os.path.realpath(self.locustfile)]
         args += ['--logfile=%s' % self.engine.create_artifact("locust", ".log")]
         args += ["--no-web", "--only-summary", ]
         args += ["--clients=%d" % load.concurrency, "--hatch-rate=%d" % math.ceil(hatch), ]

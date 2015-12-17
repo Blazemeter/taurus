@@ -18,7 +18,10 @@ limitations under the License.
 
 import os
 import logging
+import time
+import datetime
 
+from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.engine import ScenarioExecutor
 from bzt.utils import shell_exec, shutdown_process
 
@@ -31,6 +34,7 @@ class SiegeExecutor(ScenarioExecutor):
         self.log = None
         self.__out = None
         self.__err = None
+        self.reader = None
 
     def startup(self):
         """
@@ -40,7 +44,12 @@ class SiegeExecutor(ScenarioExecutor):
         args = ['siege', 'blazedemo.com']
         args += ['--reps=%s' % load.iterations, '--concurrent=%s' % load.concurrency]
 
-        args += ['--log=%s' % self.engine.create_artifact("siege", ".log")]
+        log_file = self.engine.create_artifact("siege", ".log")
+        self.reader = DataLogReader(log_file, self.log)
+        if isinstance(self.engine.aggregator, ConsolidatingAggregator):
+            self.engine.aggregator.add_underling(self.reader)
+
+        args += ['--log=%s' % log_file]
 
         self.__out = open(self.engine.create_artifact("siege", ".out"), 'w')
         self.__err = open(self.engine.create_artifact("siege", ".err"), 'w')
@@ -64,3 +73,53 @@ class SiegeExecutor(ScenarioExecutor):
                 self.__out.close()
             if self.__err:
                 self.__err.close()
+
+class DataLogReader(ResultsReader):
+    def __init__(self, filename, parent_logger):
+        super(DataLogReader, self).__init__()
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.filename = filename
+        self.fds = None
+
+    def __open_fds(self):
+        """
+        opens siege.log
+        """
+        if not os.path.isfile(self.filename):
+            self.log.debug("File not appeared yet")
+            return False
+
+        if not os.path.getsize(self.filename):
+            self.log.debug("File is empty: %s", self.filename)
+            return False
+
+        if not self.fds:
+            self.fds = open(self.filename)
+            self.fds.read()
+
+        return True
+
+    def _read(self, last_pass=False):
+        while not self.fds and not self.__open_fds():
+            self.log.debug("No data to start reading yet")
+            yield None
+        if last_pass:
+            lines = self.fds.readlines()  # unlimited
+        else:
+            lines = self.fds.readlines(1024 * 1024)  # 1MB limit to read
+        for line in lines:
+            _log_vals = [val.strip() for val in line.strip().split(',')]
+            t_stamp = time.mktime(datetime.datetime.strptime(_log_vals[0], "%Y-%m-%d %H:%M:%S").timetuple())
+            label = ""
+            r_time = float(_log_vals[4])
+            latency = None
+            r_code = 200
+            con_time = float(_log_vals[2])
+
+            if int(_log_vals[9]):
+                error = "There were some errors in Siege test"
+            else:
+                error = None
+            concur = float(_log_vals[7])
+
+            yield int(t_stamp), label, concur, r_time, con_time, latency, r_code, error, ''
