@@ -37,8 +37,8 @@ class SiegeExecutor(ScenarioExecutor):
         load = self.get_load()
         data_dir = os.path.realpath(self.engine.artifacts_dir)
         args = ['siege', 'blazedemo.com']
-        args += ['-reps=%s' % load.iterations, '-concurrent=%s' % load.concurrency]
-        args += ['-l', data_dir + '/gitsiege.log']
+        args += ['--reps=%s' % load.iterations, '--concurrent=%s' % load.concurrency]
+        args += ['--log', data_dir + '/gitsiege.log']
 
         out_file = data_dir + '/siege.out'
         err_file = data_dir + '/siege.err'
