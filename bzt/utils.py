@@ -789,4 +789,4 @@ def is_windows():
     return platform.system() == 'Windows'
 
 
-EXE_SUFFIX = ".bat" if is_windows() else ""
+EXE_SUFFIX = ".bat" if is_windows() else ".sh"

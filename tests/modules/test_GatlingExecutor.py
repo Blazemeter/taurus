@@ -1,16 +1,30 @@
-import shutil
 import os
 import re
+import shutil
 
-from tests import setup_test_logging, BZTestCase, __dir__
 from bzt.modules.gatling import GatlingExecutor, EXE_SUFFIX, Gatling
-from tests.mocks import EngineEmul
 from bzt.utils import BetterDict
+from tests import setup_test_logging, BZTestCase, __dir__
+from tests.mocks import EngineEmul
 
 setup_test_logging()
 
 
 class TestGatlingExecutor(BZTestCase):
+    def getGatling(self):
+        path = os.path.abspath(__dir__() + "/../../build/gatling-taurus/bin/gatling" + EXE_SUFFIX)
+        obj = GatlingExecutor()
+        obj.engine = EngineEmul()
+        obj.settings.merge({"path": path})
+        return obj
+
+    def test_gatling_mirrors(self):
+        path = os.path.abspath(__dir__() + "/../../build/tmp/gatling-taurus/bin/gatling" + EXE_SUFFIX)
+        shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
+        obj = GatlingExecutor()
+        gatling_tool = Gatling(path, obj.log, GatlingExecutor.VERSION)
+        gatling_tool.install()
+
     def test_install_Gatling(self):
         path = os.path.abspath(__dir__() + "/../../build/tmp/gatling-taurus/bin/gatling" + EXE_SUFFIX)
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
@@ -25,8 +39,7 @@ class TestGatlingExecutor(BZTestCase):
         GatlingExecutor.MIRRORS_SOURCE = "file:///" + __dir__() + "/../data/unicode_file"
 
         self.assertFalse(os.path.exists(path))
-        obj = GatlingExecutor()
-        obj.engine = EngineEmul()
+        obj = self.getGatling()
         obj.settings.merge({"path": path})
 
         obj.execution = BetterDict()
@@ -40,8 +53,7 @@ class TestGatlingExecutor(BZTestCase):
         GatlingExecutor.MIRRORS_SOURCE = mirrors_link
 
     def test_gatling_widget(self):
-        obj = GatlingExecutor()
-        obj.engine = EngineEmul()
+        obj = self.getGatling()
         obj.execution.merge({"scenario": {"script": __dir__() + "/../gatling/BasicSimulation.scala"}})
         obj.prepare()
         obj.get_widget()
@@ -69,8 +81,7 @@ class TestGatlingExecutor(BZTestCase):
                 self.assertEqual("", os.path.dirname(file_path))
 
     def test_resource_files_collection_remote(self):
-        obj = GatlingExecutor()
-        obj.engine = EngineEmul()
+        obj = self.getGatling()
         obj.execution.merge({"scenario": {"script": __dir__() + "/../gatling/LocalBasicSimulation.scala"}})
         res_files = obj.resource_files()
         artifacts = os.listdir(obj.engine.artifacts_dir)
@@ -79,8 +90,7 @@ class TestGatlingExecutor(BZTestCase):
         self.__check_path_resource_files(os.path.join(obj.engine.artifacts_dir, "LocalBasicSimulation.scala"))
 
     def test_resource_files_collection_local(self):
-        obj = GatlingExecutor()
-        obj.engine = EngineEmul()
+        obj = self.getGatling()
         obj.execution.merge({"scenario": {"script": __dir__() + "/../gatling/LocalBasicSimulation.scala"}})
         obj.prepare()
         artifacts = os.listdir(obj.engine.artifacts_dir)
@@ -88,15 +98,7 @@ class TestGatlingExecutor(BZTestCase):
         self.__check_path_resource_files(os.path.join(obj.engine.artifacts_dir, "LocalBasicSimulation.scala"))
 
     def test_fail_on_zero_results(self):
-        obj = GatlingExecutor()
-        obj.engine = EngineEmul()
+        obj = self.getGatling()
         obj.execution.merge({"scenario": {"script": __dir__() + "/../gatling/BasicSimulation.scala"}})
         obj.prepare()
         self.assertRaises(RuntimeWarning, obj.post_process)
-
-    def test_gatling_mirrors(self):
-        path = os.path.abspath(__dir__() + "/../../build/tmp/gatling-taurus/bin/gatling" + EXE_SUFFIX)
-        shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
-        obj = GatlingExecutor()
-        gatling_tool = Gatling(path, obj.log, GatlingExecutor.VERSION)
-        gatling_tool.install()
