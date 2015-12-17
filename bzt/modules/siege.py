@@ -31,7 +31,6 @@ class SiegeExecutor(ScenarioExecutor):
         self.log = None
         self.__out = None
         self.__err = None
-        self.__log = None
 
     def startup(self):
         """
@@ -42,10 +41,7 @@ class SiegeExecutor(ScenarioExecutor):
         args = ['siege', 'blazedemo.com']
         args += ['--reps=%s' % load.iterations, '--concurrent=%s' % load.concurrency]
 
-        log_path = data_dir + '/siege.log'
-        args += ['--log', log_path]
-
-        self.__log = open(self.engine.create_artifact("siege", ".log"), 'w')
+        args += ['--log=%s' % self.engine.create_artifact("siege", ".log")]
 
         self.__out = open(self.engine.create_artifact("siege", ".out"), 'w')
         self.__err = open(self.engine.create_artifact("siege", ".err"), 'w')
@@ -69,5 +65,3 @@ class SiegeExecutor(ScenarioExecutor):
                 self.__out.close()
             if self.__err:
                 self.__err.close()
-            if self.__log:
-                self.__log.close()
