@@ -19,7 +19,6 @@ import csv
 import fnmatch
 import logging
 import os
-import platform
 import re
 import shutil
 import socket
@@ -39,14 +38,18 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataP
 from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.six import iteritems, text_type, string_types, StringIO, parse, request, etree, binary_type
 from bzt.utils import shell_exec, ensure_is_dict, dehumanize_time, BetterDict, \
-    guess_csv_dialect, unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary, MirrorsManager
-
-EXE_SUFFIX = ".bat" if platform.system() == 'Windows' else ""
+    guess_csv_dialect, unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary, MirrorsManager, \
+    EXE_SUFFIX
 
 
 class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     """
     JMeter executor module
+
+    :type modified_jmx: str
+    :type jmeter_log: str
+    :type properties_file: str
+    :type sys_properties_file: str
     """
     MIRRORS_SOURCE = "http://jmeter.apache.org/download_jmeter.cgi"
     JMETER_DOWNLOAD_LINK = "http://apache.claz.org/jmeter/binaries/apache-jmeter-{version}.zip"
@@ -769,7 +772,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         required_tools = [JavaVM("", "", self.log), TclLibrary(self.log)]
 
         jmeter_path = self.settings.get("path", "~/.bzt/jmeter-taurus/bin/jmeter")
-        if EXE_SUFFIX and not jmeter_path.lower().endswith(EXE_SUFFIX):
+        if jmeter_path.lower().endswith(EXE_SUFFIX):
             jmeter_path += EXE_SUFFIX
         jmeter_path = os.path.abspath(os.path.expanduser(jmeter_path))
         self.settings["path"] = jmeter_path
@@ -846,8 +849,7 @@ class JMX(object):
             htree.append(etree.Element("hashTree"))
             self.append("jmeterTestPlan", htree)
 
-            element_prop = self._get_arguments_panel(
-                    "TestPlan.user_defined_variables")
+            element_prop = self._get_arguments_panel("TestPlan.user_defined_variables")
             self.append("jmeterTestPlan>hashTree>TestPlan", element_prop)
 
     def load(self, original):
@@ -906,6 +908,7 @@ class JMX(object):
     def enabled_thread_groups(self, all_types=False):
         """
         Get thread groups that are enabled
+        :type all_types: bool
         """
         if all_types:
             ultimate_tgroup = self.get('jmeterTestPlan>hashTree>hashTree>kg\.apc\.jmeter\.threads\.UltimateThreadGroup')
@@ -1248,6 +1251,7 @@ class JMX(object):
     @staticmethod
     def add_user_def_vars_elements(udv_dict, testname="Variables from Taurus"):
         """
+        :type testname: str
         :type udv_dict: dict[str,str]
         :rtype: etree.Element
         """

@@ -15,14 +15,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import os
-import platform
 import subprocess
 from subprocess import CalledProcessError
 
-from bzt.six import iteritems
-from bzt.utils import shutdown_process, BetterDict
 from bzt.engine import Provisioning, Service
+from bzt.six import iteritems
 from bzt.utils import ensure_is_dict
+from bzt.utils import shutdown_process, BetterDict, is_windows
 
 ARTIFACTS_DIR_EVVAR = "TAURUS_ARTIFACTS_DIR"
 
@@ -161,7 +160,7 @@ class Task(object):
             'shell': True
         }
         # FIXME: shouldn't we bother closing opened descriptors?
-        if platform.system() != 'Windows':
+        if not is_windows():
             kwargs['preexec_fn'] = os.setpgrp
             kwargs['close_fds'] = True
 

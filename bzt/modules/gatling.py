@@ -16,7 +16,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import os
-import platform
 import re
 import shutil
 import subprocess
@@ -26,9 +25,7 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, \
-    shutdown_process, TclLibrary, MirrorsManager
-
-EXE_SUFFIX = ".bat" if platform.system() == 'Windows' else ".sh"
+    shutdown_process, TclLibrary, MirrorsManager, EXE_SUFFIX
 
 
 class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
@@ -114,7 +111,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         if self.widget:
             self.widget.update()
-            
+
         self.retcode = self.process.poll()
         if self.retcode is not None:
             if self.retcode != 0:
