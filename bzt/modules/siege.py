@@ -16,6 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import os
 import logging
 
 from bzt.engine import ScenarioExecutor
@@ -26,7 +27,6 @@ class SiegeExecutor(ScenarioExecutor):
     def __init__(self):
         super(SiegeExecutor, self).__init__()
         self.log = logging.getLogger('')
-        self.log.warning("init!")
         self.process = None
         self.log = None
 
@@ -34,12 +34,18 @@ class SiegeExecutor(ScenarioExecutor):
         """
         Should start the tool as fast as possible.
         """
-        self.log.warning("startup!")
-        self.process = shell_exec('siege blazedemo.com --log=/tmp/sige.log -c2 -b -r3 > siege.out 2> siege.err')
+        load = self.get_load()
+        data_dir = os.path.realpath(self.engine.artifacts_dir)
+        args = ['siege', 'blazedemo.com']
+        args += ['-reps=%s' % load.iterations, '-concurrent=%s' % load.concurrency]
+        args += ['-l', data_dir + '/gitsiege.log']
+
+        out_file = data_dir + '/siege.out'
+        err_file = data_dir + '/siege.err'
+        self.process = shell_exec(args, stdout=out_file, stderr=err_file)
 
     def check(self):
-        self.log.warning("check!")
-        if self.process.poll():
+        if self.process.poll() is None:
             return False
         else:
             return True
@@ -48,5 +54,4 @@ class SiegeExecutor(ScenarioExecutor):
         """
         If tool is still running - let's stop it.
         """
-        self.log.warning("shutdown!")
         shutdown_process(self.process, self.log)
