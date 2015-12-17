@@ -1,24 +1,24 @@
 """
 Module holds selenium stuff
 """
-import time
-import sys
-import subprocess
 import json
-from abc import abstractmethod
 import os
 import shutil
+import subprocess
+import sys
+import time
+from abc import abstractmethod
 
-from pyvirtualdisplay import Display
 import urwid
+from pyvirtualdisplay import Display
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
-from bzt.utils import RequiredTool, shell_exec, shutdown_process, JavaVM, TclLibrary, dehumanize_time, \
-    MirrorsManager
-from bzt.six import string_types, text_type, etree
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.console import WidgetProvider
 from bzt.modules.jmeter import JTLReader
+from bzt.six import string_types, text_type, etree
+from bzt.utils import RequiredTool, shell_exec, shutdown_process, JavaVM, TclLibrary, dehumanize_time, \
+    MirrorsManager, is_windows
 
 
 class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
@@ -93,9 +93,12 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         display_conf = self.settings.get("virtual-display")
         if display_conf:
-            width = display_conf.get("width", 1024)
-            height = display_conf.get("height", 768)
-            self.virtual_display = Display(size=(width, height))
+            if is_windows():
+                self.log.warning("Cannot have virtual display on Windows, ignoring")
+            else:
+                width = display_conf.get("width", 1024)
+                height = display_conf.get("height", 768)
+                self.virtual_display = Display(size=(width, height))
 
     def _verify_script(self):
         if not self.scenario.get("script"):
@@ -322,7 +325,7 @@ class JunitTester(AbstractTestRunner):
         self.required_tools.append(JavaVM("", "", self.log))
         self.required_tools.append(SeleniumServerJar(self.selenium_server_jar_path,
                                                      SeleniumExecutor.SELENIUM_DOWNLOAD_LINK.format(
-                                                         version=SeleniumExecutor.SELENIUM_VERSION), self.log))
+                                                             version=SeleniumExecutor.SELENIUM_VERSION), self.log))
         self.required_tools.append(JUnitJar(self.junit_path, self.log, SeleniumExecutor.JUNIT_VERSION))
         self.required_tools.append(HamcrestJar(self.hamcrest_path, SeleniumExecutor.HAMCREST_DOWNLOAD_LINK))
         self.required_tools.append(JUnitListenerJar(self.junit_listener_path, ""))
@@ -697,7 +700,7 @@ class SeleniumScriptBuilder(NoseTest):
                 assert_method = "self.assertEqual" if reverse else "self.assertNotEqual"
                 assertion_elements.append(self.gen_method_statement('re_pattern = re.compile("%s")' % val))
                 assertion_elements.append(
-                    self.gen_method_statement('%s(0, len(re.findall(re_pattern, body)))' % assert_method))
+                        self.gen_method_statement('%s(0, len(re.findall(re_pattern, body)))' % assert_method))
             else:
                 assert_method = "self.assertNotIn" if reverse else "self.assertIn"
                 assertion_elements.append(self.gen_method_statement('%s("%s", body)' % (assert_method, val)))
