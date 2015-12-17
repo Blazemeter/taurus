@@ -29,7 +29,7 @@ import bzt
 from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown
 from bzt.engine import Engine, Configuration, ScenarioExecutor
 from bzt.six import HTTPError, string_types, b
-from bzt.utils import run_once, is_int, BetterDict
+from bzt.utils import run_once, is_int, BetterDict, is_windows
 
 
 class CLI(object):
@@ -104,7 +104,7 @@ class CLI(object):
         :return:
         """
         if self.options.log:
-            if platform.system() == 'Windows':
+            if is_windows():
                 # need to finalize the logger before moving file
                 for handler in self.log.handlers:
                     if issubclass(handler.__class__, logging.FileHandler):
@@ -365,7 +365,7 @@ def main():
 
     executor = CLI(parsed_options)
 
-    if platform.system() != 'Windows':
+    if not is_windows():
         readable = select([sys.stdin], [], [], 0.1)[0]
         for stream in readable:
             stdin = stream.read()

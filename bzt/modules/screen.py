@@ -25,6 +25,7 @@ from urwid import BaseScreen
 
 from bzt.six import text_type, iteritems, PY2
 from bzt import ManualShutdown
+from bzt.utils import is_windows
 
 if PY2:  # we have to put import logic here to avoid requiring python-tk library on linux
     import tkFont as tkfont
@@ -98,7 +99,7 @@ class GUIScreen(BaseScreen):
         self.root = tkinter.Tk()
         self.root.geometry("%sx%s" % (self.size[0] * 7, self.size[1] * 15))
         self.root.bind("<Configure>", self.resize)
-        if platform.system() == 'Windows':
+        if is_windows():
             self.root.bind("<Control-MouseWheel>", self.change_font)
         else:
             self.root.bind("<Control-4>", self.change_font)

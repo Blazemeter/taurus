@@ -17,30 +17,30 @@ limitations under the License.
 """
 
 import csv
+import itertools
 import json
 import logging
+import mimetypes
 import os
 import platform
 import random
 import re
 import shlex
-import mimetypes
-import itertools
-import webbrowser
-from webbrowser import GenericBrowser
-import zipfile
-import sys
-import time
 import signal
-import subprocess
-import tempfile
 import socket
+import subprocess
+import sys
+import tempfile
+import time
+import webbrowser
+import zipfile
+from abc import abstractmethod
 from collections import defaultdict, Counter
 from subprocess import PIPE
-from abc import abstractmethod
+from webbrowser import GenericBrowser
 
-from progressbar import ProgressBar, Percentage, Bar, ETA
 import psutil
+from progressbar import ProgressBar, Percentage, Bar, ETA
 from psutil import Popen
 
 from bzt.six import string_types, iteritems, viewvalues, binary_type, text_type, b, integer_types, request, file_type
@@ -238,7 +238,7 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False
     if isinstance(args, string_types) and not shell:
         args = shlex.split(args)
     logging.getLogger(__name__).debug("Executing shell: %s", args)
-    if platform.system() == 'Windows':
+    if is_windows():
         return Popen(args, stdout=stdout, stderr=stderr, stdin=stdin, bufsize=0, cwd=cwd, shell=shell, env=env)
     else:
         return Popen(args, stdout=stdout, stderr=stderr, stdin=stdin, bufsize=0,
@@ -358,16 +358,16 @@ class MultiPartForm(object):
 
         # Add the form fields
         parts.extend(
-            [part_boundary, 'Content-Disposition: form-data; name="%s"' % name, '', value, ]
-            for name, value in self.form_fields
+                [part_boundary, 'Content-Disposition: form-data; name="%s"' % name, '', value, ]
+                for name, value in self.form_fields
         )
 
         # Add the files to upload
         parts.extend(
-            [part_boundary,
-             'Content-Disposition: file; name="%s"; filename="%s"' % (field_name, filename),
-             'Content-Type: %s' % content_type, '', body, "\r\n"]
-            for field_name, filename, content_type, body in self.files
+                [part_boundary,
+                 'Content-Disposition: file; name="%s"; filename="%s"' % (field_name, filename),
+                 'Content-Type: %s' % content_type, '', body, "\r\n"]
+                for field_name, filename, content_type, body in self.files
         )
 
         # Flatten the list and add closing boundary marker,
@@ -589,7 +589,7 @@ def shutdown_process(process_obj, log_obj):
         kill_signal = signal.SIGTERM if count > 0 else signal.SIGKILL
         log_obj.info("Terminating process PID %s with signal %s (%s tries left)", process_obj.pid, kill_signal, count)
         try:
-            if platform.system() == 'Windows':
+            if is_windows():
                 cur_pids = psutil.pids()
                 if process_obj.pid in cur_pids:
                     jm_proc = psutil.Process(process_obj.pid)
@@ -718,7 +718,7 @@ class TclLibrary(RequiredTool):
         Check if tcl is available
         :return:
         """
-        if platform.system() == 'Windows':
+        if is_windows():
             self.log.debug("Checking if %s variable is present in environment", TclLibrary.ENV_NAME)
             if not os.environ.get(TclLibrary.ENV_NAME, None):
                 self.log.debug("%s environment variable is not present", TclLibrary.ENV_NAME)
@@ -783,3 +783,10 @@ def open_browser(url):
     browser = webbrowser.get()
     if type(browser) != GenericBrowser:
         browser.open(url)
+
+
+def is_windows():
+    return platform.system() == 'Windows'
+
+
+EXE_SUFFIX = ".bat" if is_windows() else ""

@@ -19,7 +19,6 @@ import csv
 import fnmatch
 import logging
 import os
-import platform
 import re
 import shutil
 import socket
@@ -39,9 +38,8 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataP
 from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.six import iteritems, text_type, string_types, StringIO, parse, request, etree, binary_type
 from bzt.utils import shell_exec, ensure_is_dict, dehumanize_time, BetterDict, \
-    guess_csv_dialect, unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary, MirrorsManager
-
-EXE_SUFFIX = ".bat" if platform.system() == 'Windows' else ""
+    guess_csv_dialect, unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary, MirrorsManager, \
+    EXE_SUFFIX
 
 
 class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):

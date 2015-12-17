@@ -14,35 +14,36 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import sys
+import copy
 import logging
-import traceback
 import math
-import platform
+import re
+import sys
 import time
-from logging import StreamHandler
-from itertools import groupby, islice, chain
+import traceback
+from abc import abstractmethod
 from collections import deque
 from datetime import datetime
-from abc import abstractmethod
-import re
-import copy
-from urwid.decoration import Padding
-from urwid.display_common import BaseScreen
+from itertools import groupby, islice, chain
+from logging import StreamHandler
+
 from urwid import Text, Pile, WEIGHT, Filler, Columns, Widget, CanvasCombine, LineBox, ListBox, RIGHT, CENTER, BOTTOM, \
     CLIP, GIVEN, ProgressBar
+from urwid.decoration import Padding
+from urwid.display_common import BaseScreen
 from urwid.font import Thin6x6Font
 from urwid.graphics import BigText
 from urwid.listbox import SimpleListWalker
 from urwid.widget import Divider
+
 import bzt
-from bzt.six import StringIO
-from bzt.modules.provisioning import Local
 from bzt.engine import Reporter
 from bzt.modules.aggregator import DataPoint, KPISet, AggregatorListener, ResultsProvider
-from bzt.utils import humanize_time
+from bzt.modules.provisioning import Local
+from bzt.six import StringIO
+from bzt.utils import humanize_time, is_windows
 
-if platform.system() == 'Windows':
+if is_windows():
     from bzt.modules.screen import GUIScreen as Screen  # curses unavailable on windows
 else:
     from urwid.curses_display import Screen
@@ -197,7 +198,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
             return
 
         if sys.stdout.isatty():
-            if platform.system() != 'Windows':
+            if not is_windows():
                 self.__detect_console_logger()
 
         if self.data_started and not self.screen.started:
@@ -450,9 +451,9 @@ class ThreeGraphs(Pile):
 
     def __init__(self, ):
         self.v_users = BoxedGraph(
-            [' ', ("graph vu", '1'), " %s users, ",
-             ("graph vc", '2'), " ~%s active "],
-            ("graph bg", "graph vu", "graph vc"))
+                [' ', ("graph vu", '1'), " %s users, ",
+                 ("graph vc", '2'), " ~%s active "],
+                ("graph bg", "graph vu", "graph vc"))
         self.rps = BoxedGraph([' ', ("graph rps", '1'), " %d hits, ",
                                ("graph fail", '2'), " %d fail "],
                               ("graph bg", "graph rps", "graph fail"))
@@ -608,7 +609,7 @@ class LatestStats(LineBox):
         self.avg_times = AvgTimesList(DataPoint.CURRENT)
         self.rcodes = RCodesList(DataPoint.CURRENT)
         original_widget = Columns(
-            [self.avg_times, self.percentiles, self.rcodes], dividechars=1)
+                [self.avg_times, self.percentiles, self.rcodes], dividechars=1)
         padded = Padding(original_widget, align=CENTER)
         super(LatestStats, self).__init__(padded,
                                           self.title)
@@ -695,7 +696,7 @@ class PercentilesList(ListBox):
         for key in sorted(overall.get(KPISet.PERCENTILES).keys(), key=float):
             dat = (float(key), overall[KPISet.PERCENTILES][key])
             self.body.append(
-                Text(("stat-txt", "%.1f%%: %.3f" % dat), align=RIGHT))
+                    Text(("stat-txt", "%.1f%%: %.3f" % dat), align=RIGHT))
 
 
 class AvgTimesList(ListBox):
@@ -724,14 +725,14 @@ class AvgTimesList(ListBox):
         recv -= overall[KPISet.AVG_CONN_TIME]
         recv -= overall[KPISet.AVG_LATENCY]
         self.body.append(
-            Text(("stat-txt", "Full: %.3f" % overall[KPISet.AVG_RESP_TIME]),
-                 align=RIGHT))
+                Text(("stat-txt", "Full: %.3f" % overall[KPISet.AVG_RESP_TIME]),
+                     align=RIGHT))
         self.body.append(
-            Text(("stat-txt", "Connect: %.3f" % overall[KPISet.AVG_CONN_TIME]),
-                 align=RIGHT))
+                Text(("stat-txt", "Connect: %.3f" % overall[KPISet.AVG_CONN_TIME]),
+                     align=RIGHT))
         self.body.append(
-            Text(("stat-txt", "Latency: %.3f" % overall[KPISet.AVG_LATENCY]),
-                 align=RIGHT))
+                Text(("stat-txt", "Latency: %.3f" % overall[KPISet.AVG_LATENCY]),
+                     align=RIGHT))
         self.body.append(Text(("stat-txt", "~Receive: %.3f" % recv),
                               align=RIGHT))
 
@@ -996,7 +997,7 @@ class DetailedErrorString(ListBox):
                 err_count = error.get('cnt')
 
                 self.body.append(
-                    Text(("stat-txt", err_template.format(err_count, err_description)), wrap=CLIP))
+                        Text(("stat-txt", err_template.format(err_count, err_description)), wrap=CLIP))
         else:
             self.body.append(Text(("stat-txt", "No failures occured")))
 
