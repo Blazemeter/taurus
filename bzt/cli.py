@@ -111,8 +111,9 @@ class CLI(object):
                         self.log.debug("Closing log handler: %s", handler.baseFilename)
                         handler.close()
                         self.log.handlers.remove(handler)
-                self.engine.existing_artifact(self.options.log)
-                os.remove(self.options.log)
+                if os.path.exists(self.options.log):
+                    self.engine.existing_artifact(self.options.log)
+                    os.remove(self.options.log)
             else:
                 self.engine.existing_artifact(self.options.log, True)
 
