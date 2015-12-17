@@ -70,6 +70,6 @@ def b(string):
 
 def u(string):
     if not isinstance(string, unicode):
-        return unicode(string.replace(r'\\', r'\\\\'), "unicode_escape")
+        return unicode(string.replace('\\', '\\\\'), "unicode_escape")
     else:
         return string
