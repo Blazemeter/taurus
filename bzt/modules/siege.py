@@ -29,6 +29,9 @@ class SiegeExecutor(ScenarioExecutor):
         self.log = logging.getLogger('')
         self.process = None
         self.log = None
+        self.__out = None
+        self.__err = None
+        self.__log = None
 
     def startup(self):
         """
@@ -38,11 +41,16 @@ class SiegeExecutor(ScenarioExecutor):
         data_dir = os.path.realpath(self.engine.artifacts_dir)
         args = ['siege', 'blazedemo.com']
         args += ['--reps=%s' % load.iterations, '--concurrent=%s' % load.concurrency]
-        args += ['--log', data_dir + '/gitsiege.log']
 
-        out_file = data_dir + '/siege.out'
-        err_file = data_dir + '/siege.err'
-        self.process = shell_exec(args, stdout=out_file, stderr=err_file)
+        log_path = data_dir + '/siege.log'
+        args += ['--log', log_path]
+
+        self.__log = open(self.engine.create_artifact("siege", ".log"), 'w')
+
+        self.__out = open(self.engine.create_artifact("siege", ".out"), 'w')
+        self.__err = open(self.engine.create_artifact("siege", ".err"), 'w')
+
+        self.process = shell_exec(args, stdout=self.__out, stderr=self.__err)
 
     def check(self):
         if self.process.poll() is None:
@@ -54,4 +62,12 @@ class SiegeExecutor(ScenarioExecutor):
         """
         If tool is still running - let's stop it.
         """
-        shutdown_process(self.process, self.log)
+        try:
+            shutdown_process(self.process, self.log)
+        finally:
+            if self.__out:
+                self.__out.close()
+            if self.__err:
+                self.__err.close()
+            if self.__log:
+                self.__log.close()
