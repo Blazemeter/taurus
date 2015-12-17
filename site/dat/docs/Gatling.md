@@ -26,3 +26,7 @@ execution:
 ```
 
 The `simulation` option is canonical class name for main simulation class. It will be passed as-is to gatling with `-s` option.
+
+## Load Configuration
+
+Take note that Gatling don't have tool options to set concurrency/duration. Everything is controlled by Simulation class, which is free-form scala code. Thus, taurus load profile options like `concurrency`, `ramp-up`, `hold-for` don't have any effect on execution. 
