@@ -30,7 +30,6 @@ class SiegeExecutor(ScenarioExecutor):
         super(SiegeExecutor, self).__init__()
         self.log = logging.getLogger('')
         self.process = None
-        self.log = None
         self.__out = None
         self.__err = None
         self.__rc = None
@@ -48,10 +47,10 @@ class SiegeExecutor(ScenarioExecutor):
                          'display-id = true',
                          'show-logfile = true',
                          'logging = false')
-        with open(self.__rc) as rc_file:
+        with open(self.__rc, 'w') as rc_file:
             rc_file.writelines([line + '\n' for line in config_params])
             rc_file.close()
-        self.reader = DataLogReader(self.__out.name, self.log)
+        self.reader = DataLogReader(self.__out, self.log)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
@@ -70,10 +69,13 @@ class SiegeExecutor(ScenarioExecutor):
         self.process = shell_exec(args, stdout=self.__out, stderr=self.__err, env=env)
 
     def check(self):
-        if self.process.poll() is None:
+        retcode = self.process.poll()
+        if retcode is None:
             return False
-        else:
-            return True
+        if retcode != 0:
+            self.log.info("Siege tool exit code: %s", str(retcode))
+            raise RuntimeError("Siege tool exited with non-zero code")
+        return True
 
     def shutdown(self):
         """

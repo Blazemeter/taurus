@@ -24,4 +24,5 @@ class TestSiegeExecutor(BZTestCase):
         finally:
             obj.shutdown()
 
+        obj.post_process()
         self.assertNotEquals(obj.process, None)
