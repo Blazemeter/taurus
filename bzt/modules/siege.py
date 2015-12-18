@@ -39,9 +39,9 @@ class SiegeExecutor(ScenarioExecutor):
 
     def prepare(self):
 
-        self.__out = open(self.engine.create_artifact("siege", ".out"), 'w')
-        self.__err = open(self.engine.create_artifact("siege", ".err"), 'w')
-        self.__rc = open(os.path.join(self.engine.artifacts_dir, 'siegerc'), 'w')
+        self.__out = self.engine.create_artifact("siege", ".out")
+        self.__err = self.engine.create_artifact("siege", ".err")
+        self.__rc = os.path.join(self.engine.artifacts_dir, 'siegerc')
         config_params = ('verbose = true',
                          'csv = true',
                          'timestamp = true',
@@ -49,8 +49,9 @@ class SiegeExecutor(ScenarioExecutor):
                          'display-id = true',
                          'show-logfile = true',
                          'logging = false')
-        self.__rc.writelines([line + '\n' for line in config_params])
-        self.__rc.close()
+        with open(self.__rc) as rc_file:
+            rc_file.writelines([line + '\n' for line in config_params])
+            rc_file.close()
         self.reader = DataLogReader(self.__out.name, self.log)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
@@ -65,7 +66,7 @@ class SiegeExecutor(ScenarioExecutor):
         args += ['--reps=%s' % load.iterations, '--concurrent=%s' % load.concurrency]
         env = BetterDict()
         env.merge({k: os.environ.get(k) for k in os.environ.keys()})
-        env.merge({"SIEGERC": self.__rc.name})
+        env.merge({"SIEGERC": self.__rc})
 
         self.process = shell_exec(args, stdout=self.__out, stderr=self.__err, env=env)
 
@@ -126,12 +127,9 @@ class DataLogReader(ResultsReader):
             t_stamp = time.mktime(datetime.datetime.strptime(_log_vals[1][:19], "%Y-%m-%d %H:%M:%S").timetuple())
             label = ""
             r_code = int(_log_vals[3])
-            latency = con_time = r_time = float(_log_vals[4])
-
-            if r_code < 400:
-                error = None
-            else:
-                error = "There were some errors in Siege test"
+            latency = con_time = 0
+            r_time = float(_log_vals[4])
+            error = None
             concur = None
 
             self.log.debug("_log_vals = %s" % str(_log_vals))
