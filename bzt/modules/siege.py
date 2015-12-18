@@ -38,20 +38,18 @@ class SiegeExecutor(ScenarioExecutor):
         self.reader = None
 
     def prepare(self):
-        load = self.get_load()
 
         self.__out = open(self.engine.create_artifact("siege", ".out"), 'w')
         self.__err = open(self.engine.create_artifact("siege", ".err"), 'w')
-        self.__rc = open(os.path.join(self.engine.artifacts_dir), 'siegerc', 'w')
-        self.__rc.writelines(('verbose = true',
-                              'csv = true',
-                              'timestamp = true',
-                              'fullurl = false',
-                              'display-id = true',
-                              'show-logfile = true',
-                              'logging = false',
-                              'concurrent = %s' % load.concurrency,
-                              'repr = %s' % load.iterations))
+        self.__rc = open(os.path.join(self.engine.artifacts_dir, 'siegerc'), 'w')
+        config_params = ('verbose = true',
+                         'csv = true',
+                         'timestamp = true',
+                         'fullurl = false',
+                         'display-id = true',
+                         'show-logfile = true',
+                         'logging = false')
+        self.__rc.writelines([line + '\n' for line in config_params])
         self.__rc.close()
         self.reader = DataLogReader(self.__out.name, self.log)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
@@ -62,11 +60,10 @@ class SiegeExecutor(ScenarioExecutor):
         """
         Should start the tool as fast as possible.
         """
-        #args += ['-v', '--reps=%s' % load.iterations, '--concurrent=%s' % load.concurrency]
-        #args += ['--log=%s' % log_file]
-        #log_file = self.engine.create_artifact("siege", ".log")
-
         args = ['siege', 'blazedemo.com']
+
+        load = self.get_load()
+        args += ['--reps=%s' % load.iterations, '--concurrent=%s' % load.concurrency]
         env = BetterDict()
         env.merge({k: os.environ.get(k) for k in os.environ.keys()})
         env.merge({"SIEGERC": self.__rc.name})
@@ -125,17 +122,19 @@ class DataLogReader(ResultsReader):
             lines = self.fds.readlines(1024 * 1024)  # 1MB limit to read
         for line in lines:
             _log_vals = [val.strip() for val in line.strip().split(',')]
-            t_stamp = time.mktime(datetime.datetime.strptime(_log_vals[0], "%Y-%m-%d %H:%M:%S").timetuple())
-            label = ""
-            r_time = float(_log_vals[4])
-            latency = None
-            r_code = 200
-            con_time = float(_log_vals[2])
+            # t_stamp = time.mktime(datetime.datetime.strptime(_log_vals[0], "%Y-%m-%d %H:%M:%S").timetuple())
+            # label = ""
+            # r_time = float(_log_vals[4])
+            # latency = None
+            # r_code = 200
+            # con_time = float(_log_vals[2])
+            #
+            # if int(_log_vals[9]):
+            #     error = "There were some errors in Siege test"
+            # else:
+            #     error = None
+            # concur = float(_log_vals[7])
 
-            if int(_log_vals[9]):
-                error = "There were some errors in Siege test"
-            else:
-                error = None
-            concur = float(_log_vals[7])
-
-            yield int(t_stamp), label, concur, r_time, con_time, latency, r_code, error, ''
+            self.log.debug(line)
+            yield  None, None, None, None, None, None, None, None, None
+            #yield int(t_stamp), label, concur, r_time, con_time, latency, r_code, error, ''
