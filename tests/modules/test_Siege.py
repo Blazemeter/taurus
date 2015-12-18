@@ -34,6 +34,7 @@ class TestDataLogReader(BZTestCase):
         for values in obj._read():
             if values is not None:
                 self.assertEqual(len(values), 9)
+                self.assertIsNone(values[7])
 
 
 
