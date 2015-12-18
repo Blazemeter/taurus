@@ -122,19 +122,17 @@ class DataLogReader(ResultsReader):
             lines = self.fds.readlines(1024 * 1024)  # 1MB limit to read
         for line in lines:
             _log_vals = [val.strip() for val in line.strip().split(',')]
-            # t_stamp = time.mktime(datetime.datetime.strptime(_log_vals[0], "%Y-%m-%d %H:%M:%S").timetuple())
-            # label = ""
-            # r_time = float(_log_vals[4])
-            # latency = None
-            # r_code = 200
-            # con_time = float(_log_vals[2])
-            #
-            # if int(_log_vals[9]):
-            #     error = "There were some errors in Siege test"
-            # else:
-            #     error = None
-            # concur = float(_log_vals[7])
+            t_stamp = time.mktime(datetime.datetime.strptime(_log_vals[1][:19], "%Y-%m-%d %H:%M:%S").timetuple())
+            label = ""
+            r_code = int(_log_vals[3])
+            latency = con_time = r_time = float(_log_vals[4])
 
-            self.log.debug(line)
-            yield  None, None, None, None, None, None, None, None, None
-            #yield int(t_stamp), label, concur, r_time, con_time, latency, r_code, error, ''
+            if r_code < 400:
+                error = None
+            else:
+                error = "There were some errors in Siege test"
+            concur = None
+
+            self.log.debug("_log_vals = %s" % str(_log_vals))
+
+            yield t_stamp, label, concur, r_time, con_time, latency, r_code, error, ''
