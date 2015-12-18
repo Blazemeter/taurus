@@ -34,40 +34,42 @@ class SiegeExecutor(ScenarioExecutor):
         self.log = None
         self.__out = None
         self.__err = None
+        self.__rc = None
         self.reader = None
+
+    def prepare(self):
+        load = self.get_load()
+
+        self.__out = open(self.engine.create_artifact("siege", ".out"), 'w')
+        self.__err = open(self.engine.create_artifact("siege", ".err"), 'w')
+        self.__rc = open(os.path.join(self.engine.artifacts_dir), 'siegerc', 'w')
+        self.__rc.writelines(('verbose = true',
+                              'csv = true',
+                              'timestamp = true',
+                              'fullurl = false',
+                              'display-id = true',
+                              'show-logfile = true',
+                              'logging = false',
+                              'concurrent = %s' % load.concurrency,
+                              'repr = %s' % load.iterations))
+        self.__rc.close()
+        self.reader = DataLogReader(self.__out.name, self.log)
+        if isinstance(self.engine.aggregator, ConsolidatingAggregator):
+            self.engine.aggregator.add_underling(self.reader)
+
 
     def startup(self):
         """
         Should start the tool as fast as possible.
         """
-        load = self.get_load()
-        args = ['siege', 'blazedemo.com']
         #args += ['-v', '--reps=%s' % load.iterations, '--concurrent=%s' % load.concurrency]
+        #args += ['--log=%s' % log_file]
+        #log_file = self.engine.create_artifact("siege", ".log")
 
-        log_file = self.engine.create_artifact("siege", ".log")
-        self.reader = DataLogReader(log_file, self.log)
-        if isinstance(self.engine.aggregator, ConsolidatingAggregator):
-            self.engine.aggregator.add_underling(self.reader)
-
-        args += ['--log=%s' % log_file]
-
-        self.__out = open(self.engine.create_artifact("siege", ".out"), 'w')
-        self.__err = open(self.engine.create_artifact("siege", ".err"), 'w')
-        rc_file = open(self.engine.artifacts_dir + os.pathsep + 'siegerc', 'w')
-        rc_file.writelines(('verbose = true',
-                            'csv = true',
-                            'timestamp = true',
-                            'fullurl = false',
-                            'display-id = true',
-                            'show-logfile = true',
-                            'logging = false',
-                            'concurrent = %s' % load.concurrency,
-                            'repr = %s' % load.iterations))
-        rc_file.close()
-
+        args = ['siege', 'blazedemo.com']
         env = BetterDict()
         env.merge({k: os.environ.get(k) for k in os.environ.keys()})
-        env.merge({"SIEGERC": rc_file.name})
+        env.merge({"SIEGERC": self.__rc.name})
 
         self.process = shell_exec(args, stdout=self.__out, stderr=self.__err, env=env)
 
