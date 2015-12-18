@@ -23,7 +23,7 @@ import datetime
 
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.engine import ScenarioExecutor
-from bzt.utils import shell_exec, shutdown_process
+from bzt.utils import shell_exec, shutdown_process, BetterDict
 
 
 class SiegeExecutor(ScenarioExecutor):
@@ -42,7 +42,7 @@ class SiegeExecutor(ScenarioExecutor):
         """
         load = self.get_load()
         args = ['siege', 'blazedemo.com']
-        args += ['--reps=%s' % load.iterations, '--concurrent=%s' % load.concurrency]
+        #args += ['-v', '--reps=%s' % load.iterations, '--concurrent=%s' % load.concurrency]
 
         log_file = self.engine.create_artifact("siege", ".log")
         self.reader = DataLogReader(log_file, self.log)
@@ -53,8 +53,23 @@ class SiegeExecutor(ScenarioExecutor):
 
         self.__out = open(self.engine.create_artifact("siege", ".out"), 'w')
         self.__err = open(self.engine.create_artifact("siege", ".err"), 'w')
+        rc_file = open(self.engine.artifacts_dir + os.pathsep + 'siegerc', 'w')
+        rc_file.writelines(('verbose = true',
+                            'csv = true',
+                            'timestamp = true',
+                            'fullurl = false',
+                            'display-id = true',
+                            'show-logfile = true',
+                            'logging = false',
+                            'concurrent = %s' % load.concurrency,
+                            'repr = %s' % load.iterations))
+        rc_file.close()
 
-        self.process = shell_exec(args, stdout=self.__out, stderr=self.__err)
+        env = BetterDict()
+        env.merge({k: os.environ.get(k) for k in os.environ.keys()})
+        env.merge({"SIEGERC": rc_file.name})
+
+        self.process = shell_exec(args, stdout=self.__out, stderr=self.__err, env=env)
 
     def check(self):
         if self.process.poll() is None:
@@ -95,7 +110,6 @@ class DataLogReader(ResultsReader):
 
         if not self.fds:
             self.fds = open(self.filename)
-            self.fds.read()
 
         return True
 
