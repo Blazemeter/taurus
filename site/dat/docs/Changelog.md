@@ -1,6 +1,8 @@
 # Changelog
 
-## 0.5.1 (next)
+## 0.5.2
+
+## 0.5.1
  - fix shellexec env variables
  - add `assume-success` flag for JMeter assertions
  - flexibly handle '$1$' templates for JMeter regex extractor
