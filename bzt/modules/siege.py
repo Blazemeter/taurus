@@ -20,7 +20,6 @@ import os
 import logging
 import time
 import datetime
-
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.engine import ScenarioExecutor
 from bzt.utils import shell_exec, shutdown_process, BetterDict
@@ -80,13 +79,7 @@ class SiegeExecutor(ScenarioExecutor):
         """
         If tool is still running - let's stop it.
         """
-        try:
-            shutdown_process(self.process, self.log)
-        finally:
-            if self.__out:
-                self.__out.close()
-            if self.__err:
-                self.__err.close()
+        shutdown_process(self.process, self.log)
 
 
 class DataLogReader(ResultsReader):
