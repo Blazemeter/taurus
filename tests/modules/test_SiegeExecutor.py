@@ -1,3 +1,4 @@
+import os
 import time
 
 from tests import BZTestCase
@@ -9,6 +10,7 @@ class TestSiegeExecutor(BZTestCase):
     def test_shutdown(self):
         obj = SiegeExecutor()
         obj.engine = EngineEmul()
+        obj.settings.merge({"path": os.path.join(os.path.dirname(__file__), '..', 'siege', 'siege.sh')})
         obj.execution = ({
             "concurrency": 1,
             "iterations": 10,

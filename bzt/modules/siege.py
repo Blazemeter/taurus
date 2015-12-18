@@ -1,5 +1,5 @@
 """
-Module holds all stuff regarding Grinder tool usage
+Module holds all stuff regarding Siege tool usage
 
 Copyright 2015 BlazeMeter Inc.
 
@@ -55,12 +55,11 @@ class SiegeExecutor(ScenarioExecutor):
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
-
     def startup(self):
         """
         Should start the tool as fast as possible.
         """
-        args = ['siege', 'blazedemo.com']
+        args = [self.settings.get('path', 'siege'), 'blazedemo.com']
 
         load = self.get_load()
         args += ['--reps=%s' % load.iterations, '--concurrent=%s' % load.concurrency]
@@ -87,6 +86,7 @@ class SiegeExecutor(ScenarioExecutor):
                 self.__out.close()
             if self.__err:
                 self.__err.close()
+
 
 class DataLogReader(ResultsReader):
     def __init__(self, filename, parent_logger):
@@ -118,6 +118,7 @@ class DataLogReader(ResultsReader):
             yield None
         if last_pass:
             lines = self.fds.readlines()  # unlimited
+            self.fds.close()
         else:
             lines = self.fds.readlines(1024 * 1024)  # 1MB limit to read
         for line in lines:
