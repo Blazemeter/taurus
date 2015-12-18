@@ -4,12 +4,12 @@ import json
 import logging
 import os
 import tempfile
-from unittest.case import TestCase
 from random import random
+from unittest.case import TestCase
 
 from bzt.cli import CLI
 from bzt.modules.aggregator import DataPoint, KPISet
-from bzt.utils import run_once
+from bzt.utils import run_once, EXE_SUFFIX
 
 
 @run_once
@@ -98,13 +98,13 @@ def local_paths_config():
     settings = {
         "modules": {
             "jmeter": {
-                "path": dirname + "/../build/jmeter/bin/jmeter",
+                "path": dirname + "/../build/jmeter/bin/jmeter" + EXE_SUFFIX,
             },
             "grinder": {
                 "path": dirname + "/../build/grinder/lib/grinder.jar",
             },
             "gatling": {
-                "path": dirname + "/../build/gatling/bin/gatling.sh",
+                "path": dirname + "/../build/gatling/bin/gatling" + EXE_SUFFIX,
             },
             "selenium": {
                 "selenium-tools": {
