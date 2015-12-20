@@ -1,6 +1,7 @@
 # Changelog
 
 ## 0.5.2
+ - fix JMeter installation on windows
 
 ## 0.5.1
  - fix shellexec env variables
