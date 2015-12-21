@@ -92,9 +92,10 @@ class SiegeExecutor(ScenarioExecutor):
         If tool is still running - let's stop it.
         """
         shutdown_process(self.process, self.log)
-        if not self.__out.closed:
+        if self.__out and not self.__out.closed:
             self.__out.close()
-
+        if self.__err and not self.__err.closed:
+            self.__err.close()
 
 class DataLogReader(ResultsReader):
     def __init__(self, filename, parent_logger):
