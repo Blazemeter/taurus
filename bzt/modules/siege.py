@@ -16,12 +16,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import os
 import logging
-import subprocess
-import datetime
-from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
+import os
+
+from datetime import datetime
+
 from bzt.engine import ScenarioExecutor
+from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.utils import shell_exec, shutdown_process, BetterDict
 
 
@@ -37,8 +38,6 @@ class SiegeExecutor(ScenarioExecutor):
         self.reader = None
 
     def prepare(self):
-        self.__rc_name = self.engine.create_artifact("siegerc", "")
-        rc_file = open(self.__rc_name, 'w')
         config_params = ('verbose = true',
                          'csv = true',
                          'timestamp = false',
@@ -46,14 +45,18 @@ class SiegeExecutor(ScenarioExecutor):
                          'display-id = true',
                          'show-logfile = false',
                          'logging = false')
-        rc_file.writelines('\n'.join(config_params))
-        rc_file.close()
+
+        self.__rc_name = self.engine.create_artifact("siegerc", "")
+        with open(self.__rc_name, 'w') as rc_file:
+            rc_file.writelines('\n'.join(config_params))
+            rc_file.close()
 
         self.__url_name = self.engine.create_artifact("siege", "url")
-        url_file = open(self.__url_name, 'w')
-        url_list = self.get_scenario().get("requests", ["http://blazedemo.com"])
-        url_file.writelines('\n'.join(url_list))
-        url_file.close()
+
+        with open(self.__url_name, 'w') as url_file:
+            url_list = self.get_scenario().get("requests", ["http://blazedemo.com"])
+            url_file.writelines('\n'.join(url_list))
+            url_file.close()
 
         out_file_name = self.engine.create_artifact("siege", ".out")
         self.reader = DataLogReader(out_file_name, self.log)
@@ -96,6 +99,7 @@ class SiegeExecutor(ScenarioExecutor):
             self.__out.close()
         if self.__err and not self.__err.closed:
             self.__err.close()
+
 
 class DataLogReader(ResultsReader):
     def __init__(self, filename, parent_logger):
@@ -148,8 +152,7 @@ class DataLogReader(ResultsReader):
             # _rsize = int(log_vals[5])  # size of response
             _url = log_vals[6]  # long or short URL value
             # _url_id = int(log_vals[7])  # url number
-            _tstamp = datetime.datetime.strptime(  # time request sending
-                    log_vals[8], "%Y-%m-%d %H:%M:%S").toordinal()
+            _tstamp = datetime.strptime(log_vals[8], "%Y-%m-%d %H:%M:%S").toordinal()   # time request sending
 
             _con_time = 0
             _latency = 0
