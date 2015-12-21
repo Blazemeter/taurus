@@ -55,6 +55,7 @@ class SiegeExecutor(ScenarioExecutor):
 
         with open(self.__url_name, 'w') as url_file:
             url_list = self.get_scenario().get("requests", ["http://blazedemo.com"])
+            url_list = [dic['url'] for dic in url_list]     # FIXME: read all info
             url_file.writelines('\n'.join(url_list))
             url_file.close()
 
