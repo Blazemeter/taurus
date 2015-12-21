@@ -5,15 +5,14 @@ from tests import BZTestCase
 from bzt.modules.siege import SiegeExecutor, DataLogReader
 from tests.mocks import EngineEmul
 
-
 class TestSiegeExecutor(BZTestCase):
     def test_shutdown(self):
         obj = SiegeExecutor()
         obj.engine = EngineEmul()
         obj.settings.merge({"path": os.path.join(os.path.dirname(__file__), '..', 'siege', 'siege.sh')})
         obj.execution = ({
-            "concurrency": 1,
-            "iterations": 10,
+            "concurrency": 2,
+            "iterations": 3,
         })
 
         obj.prepare()
@@ -26,7 +25,6 @@ class TestSiegeExecutor(BZTestCase):
 
         obj.post_process()
         self.assertNotEquals(obj.process, None)
-
 
 class TestDataLogReader(BZTestCase):
     def test_read(self):
