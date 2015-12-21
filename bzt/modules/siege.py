@@ -46,16 +46,16 @@ class SiegeExecutor(ScenarioExecutor):
                          'show-logfile = false',
                          'logging = false')
 
-        self.__rc_name = self.engine.create_artifact("siegerc", "")
+        self.__rc_name = self.engine.create_artifact("siegerc", ".")
         with open(self.__rc_name, 'w') as rc_file:
             rc_file.writelines('\n'.join(config_params))
             rc_file.close()
 
-        self.__url_name = self.engine.create_artifact("siege", "url")
+        self.__url_name = self.engine.create_artifact("siege", ".url")
 
         with open(self.__url_name, 'w') as url_file:
-            url_list = self.get_scenario().get("requests", ["http://blazedemo.com"])
-            url_list = [dic['url'] for dic in url_list]     # FIXME: read all info
+            url_list = self.get_scenario().get_requests()
+            url_list = [req.url for req in url_list]  # FIXME: read all info
             url_file.writelines('\n'.join(url_list))
             url_file.close()
 
@@ -100,6 +100,7 @@ class SiegeExecutor(ScenarioExecutor):
             self.__out.close()
         if self.__err and not self.__err.closed:
             self.__err.close()
+
 
 
 class DataLogReader(ResultsReader):

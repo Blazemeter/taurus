@@ -17,7 +17,7 @@ class TestSiegeExecutor(BZTestCase):
             "concurrency": 2,
             "iterations": 3,
         })
-        obj.execution.merge({"scenario": {"requests": "http://blazedemo.com"}})
+        obj.execution.merge({"scenario": {"requests": ["http://blazedemo.com"]}})
 
         obj.prepare()
         obj.startup()

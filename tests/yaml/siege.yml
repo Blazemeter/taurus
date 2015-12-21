@@ -1,0 +1,9 @@
+---
+execution:
+  executor: "siege"
+  concurrency: 5
+  iterations: 2
+  scenario:
+    requests:
+    - url: "http://ya.ru/"
+    - url: "http://mail.ru/"
