@@ -33,7 +33,8 @@ class TestSiegeExecutor(BZTestCase):
 
 class TestDataLogReader(BZTestCase):
     def test_read(self):
-        obj = DataLogReader(os.path.join(os.path.dirname(__file__), '..', 'siege', 'siege.out'), logging.getLogger(''))
+        log_path = os.path.join(os.path.dirname(__file__), '..', 'siege', 'siege.out')
+        obj = DataLogReader(log_path, logging.getLogger(''))
         for values in obj._read():
             if values is not None:
                 self.assertEqual(len(values), 9)
