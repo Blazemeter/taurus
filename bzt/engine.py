@@ -224,7 +224,7 @@ class Engine(object):
             self.log.warning("Failed post-processing")
             raise exception
 
-    def create_artifact(self, prefix, suffix=""):
+    def create_artifact(self, prefix, suffix):
         """
         Create new artifact in artifacts dir with given prefix and suffix
 

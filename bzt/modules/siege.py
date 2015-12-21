@@ -31,39 +31,52 @@ class SiegeExecutor(ScenarioExecutor):
         self.log = logging.getLogger('')
         self.process = None
         self.__out = None
-        self.__rc = None
+        self.__err = None
+        self.__rc_name = None
+        self.__url_name = None
         self.reader = None
 
     def prepare(self):
-        self.__rc = open(self.engine.create_artifact("siegerc"), 'w')
+        self.__rc_name = self.engine.create_artifact("siegerc", "")
+        rc_file = open(self.__rc_name, 'w')
         config_params = ('verbose = true',
                          'csv = true',
                          'timestamp = false',
-                         'fullurl = false',
+                         'fullurl = true',
                          'display-id = true',
                          'show-logfile = false',
                          'logging = false')
-        self.__rc.writelines('\n'.join(config_params))
-        self.__rc.close()
-        self.__out = open(self.engine.create_artifact("siege", ".out"), 'w')
-        self.reader = DataLogReader(self.__out.name, self.log)
+        rc_file.writelines('\n'.join(config_params))
+        rc_file.close()
+
+        self.__url_name = self.engine.create_artifact("siege", "url")
+        url_file = open(self.__url_name, 'w')
+        url_list = self.get_scenario().get("requests", ["http://blazedemo.com"])
+        url_file.writelines('\n'.join(url_list))
+        url_file.close()
+
+        out_file_name = self.engine.create_artifact("siege", ".out")
+        self.reader = DataLogReader(out_file_name, self.log)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
+
+        self.__out = open(out_file_name, 'w')
+        self.__err = open(self.engine.create_artifact("siege", ".err"), 'w')
 
     def startup(self):
         """
         Should start the tool as fast as possible.
         """
-        args = [self.settings.get('path', 'siege'), 'blazedemo.com']  # TODO: read URL as parameter
-
+        args = [self.settings.get('path', 'siege')]
         load = self.get_load()
         args += ['--reps=%s' % load.iterations, '--concurrent=%s' % load.concurrency]
         args += ['--mark="%s"' % 'text_mark']  # TODO: read MARK as parameter
+        args += ['--file="%s"' % self.__url_name]
         env = BetterDict()
         env.merge({k: os.environ.get(k) for k in os.environ.keys()})
-        env.merge({"SIEGERC": self.__rc.name})
+        env.merge({"SIEGERC": self.__rc_name})
 
-        self.process = shell_exec(args, stdout=self.__out, stderr=None, env=env)
+        self.process = shell_exec(args, stdout=self.__out, stderr=self.__err, env=env)
 
     def check(self):
         retcode = self.process.poll()
@@ -126,24 +139,20 @@ class DataLogReader(ResultsReader):
             line = line[l_start:l_end]
             log_vals = [val.strip() for val in line.split(',')]
 
-            _mark = log_vals[0]  # current test mark, defined by --mark key
-            _user_id = int(log_vals[1])  # fake user id
-            _http = log_vals[2]  # http protocol
+            # _mark = log_vals[0]  # current test mark, defined by --mark key
+            # _user_id = int(log_vals[1])  # fake user id
+            # _http = log_vals[2]  # http protocol
             _rstatus = int(log_vals[3])  # response status code
             _etime = float(log_vals[4])  # elapsed time (total time - connection time)
-            _rsize = int(log_vals[5])  # size of response
+            # _rsize = int(log_vals[5])  # size of response
             _url = log_vals[6]  # long or short URL value
-            _url_id = int(log_vals[7])  # url number
+            # _url_id = int(log_vals[7])  # url number
             _tstamp = datetime.datetime.strptime(  # time request sending
                     log_vals[8], "%Y-%m-%d %H:%M:%S").toordinal()
 
-            _label = ''
             _con_time = 0
             _latency = 0
             _error = None
-            _concur = 2
+            _concur = 2  # TODO read from params
 
-
-            self.log.debug("log_vals = %s" % str(log_vals))
-
-            yield _tstamp, _label, _concur, _etime, _con_time, _latency, _rstatus, _error, ''
+            yield _tstamp, _url, _concur, _etime, _con_time, _latency, _rstatus, _error, ''

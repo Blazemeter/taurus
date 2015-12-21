@@ -4,6 +4,7 @@ import logging
 from tests import BZTestCase
 from bzt.modules.siege import SiegeExecutor, DataLogReader
 from tests.mocks import EngineEmul
+from bzt.utils import BetterDict
 
 
 class TestSiegeExecutor(BZTestCase):
@@ -11,10 +12,12 @@ class TestSiegeExecutor(BZTestCase):
         obj = SiegeExecutor()
         obj.engine = EngineEmul()
         obj.settings.merge({"path": os.path.join(os.path.dirname(__file__), '..', 'siege', 'siege.sh')})
-        obj.execution = ({
+        obj.execution = BetterDict()
+        obj.execution.merge({
             "concurrency": 2,
             "iterations": 3,
         })
+        obj.execution.merge({"scenario": {"requests": "http://blazedemo.com"}})
 
         obj.prepare()
         obj.startup()
