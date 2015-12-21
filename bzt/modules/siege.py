@@ -73,7 +73,7 @@ class SiegeExecutor(ScenarioExecutor):
         args = [self.settings.get('path', 'siege')]
         load = self.get_load()
         args += ['--reps=%s' % load.iterations, '--concurrent=%s' % load.concurrency]
-        args += ['--mark="%s"' % 'text_mark']  # TODO: read MARK as parameter
+        self.reader.concurency = load.concurrency
         args += ['--file="%s"' % self.__url_name]
         env = BetterDict()
         env.merge({k: os.environ.get(k) for k in os.environ.keys()})
@@ -107,6 +107,7 @@ class DataLogReader(ResultsReader):
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.filename = filename
         self.fds = None
+        self.concurrency = None
 
     def _calculate_datapoints(self, final_pass=False):
         for point in super(DataLogReader, self)._calculate_datapoints(final_pass):
@@ -144,19 +145,20 @@ class DataLogReader(ResultsReader):
             line = line[l_start:l_end]
             log_vals = [val.strip() for val in line.split(',')]
 
-            # _mark = log_vals[0]  # current test mark, defined by --mark key
-            # _user_id = int(log_vals[1])  # fake user id
-            # _http = log_vals[2]  # http protocol
-            _rstatus = int(log_vals[3])  # response status code
-            _etime = float(log_vals[4])  # elapsed time (total time - connection time)
-            # _rsize = int(log_vals[5])  # size of response
-            _url = log_vals[6]  # long or short URL value
-            # _url_id = int(log_vals[7])  # url number
-            _tstamp = datetime.strptime(log_vals[8], "%Y-%m-%d %H:%M:%S").toordinal()   # time request sending
+            # _mark = log_vals[0]           # 0. current test mark, defined by --mark key
+            # _user_id = int(log_vals[1])   # 1. fake user id
+            # _http = log_vals[2]           # 2. http protocol
+            _rstatus = int(log_vals[2])     # 3. response status code
+            _etime = float(log_vals[3])     # 4. elapsed time (total time - connection time)
+            # _rsize = int(log_vals[5])     # 5. size of response
+            _url = log_vals[5]              # 6. long or short URL value
+            # _url_id = int(log_vals[7])    # 7. url number
+            _tstamp = datetime.strptime(log_vals[7], "%Y-%m-%d %H:%M:%S")
+            _tstamp = _tstamp.toordinal()   # 8. moment of request sending
 
             _con_time = 0
             _latency = 0
             _error = None
-            _concur = 2  # TODO read from params
+            _concur = self.concurrency
 
             yield _tstamp, _url, _concur, _etime, _con_time, _latency, _rstatus, _error, ''
