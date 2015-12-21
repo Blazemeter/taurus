@@ -23,7 +23,7 @@ from datetime import datetime
 
 from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
-from bzt.utils import shell_exec, shutdown_process, BetterDict
+from bzt.utils import shell_exec, shutdown_process, BetterDict, RequiredTool
 
 
 class SiegeExecutor(ScenarioExecutor):
@@ -35,9 +35,13 @@ class SiegeExecutor(ScenarioExecutor):
         self.__err = None
         self.__rc_name = None
         self.__url_name = None
+        self.siege_path = None
         self.reader = None
 
     def prepare(self):
+        self.siege_path = self.settings.get('executor-path', 'siege')
+        self._check_installed()
+
         config_params = ('verbose = true',
                          'csv = true',
                          'timestamp = false',
@@ -71,7 +75,7 @@ class SiegeExecutor(ScenarioExecutor):
         """
         Should start the tool as fast as possible.
         """
-        args = [self.settings.get('path', 'siege')]
+        args = [self.siege_path]
         load = self.get_load()
         args += ['--reps=%s' % load.iterations, '--concurrent=%s' % load.concurrency]
         self.reader.concurency = load.concurrency
@@ -101,6 +105,11 @@ class SiegeExecutor(ScenarioExecutor):
         if self.__err and not self.__err.closed:
             self.__err.close()
 
+    def _check_installed(self):
+        siege = Siege(self.siege_path, self.log)
+        if not siege.check_if_installed():
+            self.log.error("Siege tool not found")
+            raise RuntimeError("You must install Siege tool at first")
 
 
 class DataLogReader(ResultsReader):
@@ -164,3 +173,18 @@ class DataLogReader(ResultsReader):
             _concur = self.concurrency
 
             yield _tstamp, _url, _concur, _etime, _con_time, _latency, _rstatus, _error, ''
+
+
+class Siege (RequiredTool):
+    def __init__(self, tool_path, parent_logger):
+        super(Siege, self).__init__(tool_path)
+        self.tool_path = tool_path
+        self.log = parent_logger.getChild(self.__class__.__name__)
+
+    def check_if_installed(self):
+        self.log.debug('Check Siege: %s' % self.tool_path)
+        siege_subproc = shell_exec([self.tool_path, '-h'])
+        if siege_subproc:
+            return True
+        else:
+            return False
