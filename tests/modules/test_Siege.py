@@ -111,9 +111,9 @@ class TestDataLogReader(BZTestCase):
     def test_read(self):
         log_path = path.join(get_res_path('siege.out'))
         obj = DataLogReader(log_path, logging.getLogger(''))
-        list_of_values = list(obj._read())
+        list_of_values = list(obj.datapoints(True))
 
-        self.assertEqual(len(list_of_values), 10)
+        self.assertEqual(len(list_of_values), 3)
 
         for values in list_of_values:
-            self.assertEqual(len(values), 9)
+            self.assertEqual(len(values), 5)
