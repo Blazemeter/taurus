@@ -220,8 +220,12 @@ class Siege(RequiredTool):
 
     def check_if_installed(self):
         self.log.debug('Check Siege: %s' % self.tool_path)
+        if not path.isfile(self.tool_path):
+            return False
         try:
-            shell_exec([self.tool_path, '-h'])
+            ret_code = shell_exec([self.tool_path, '-h'])
         except OSError:
+            return False
+        if ret_code != 0:
             return False
         return True
