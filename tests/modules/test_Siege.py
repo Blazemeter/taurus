@@ -11,14 +11,13 @@ class TestSiegeExecutor(BZTestCase):
     def test_shutdown(self):
         obj = SiegeExecutor()
         obj.engine = EngineEmul()
-        obj.settings.merge({"path": os.path.join(os.path.dirname(__file__), '..', 'siege', 'siege.sh')})
         obj.execution = BetterDict()
         obj.execution.merge({
+            "executor-path": os.path.join(os.path.dirname(__file__), '..', 'siege', 'siege.sh'),
             "concurrency": 2,
             "iterations": 3,
         })
         obj.execution.merge({"scenario": {"requests": ["http://blazedemo.com"]}})
-
         obj.prepare()
         obj.startup()
         try:

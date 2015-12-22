@@ -1,6 +1,7 @@
 ---
 execution:
-  executor: "siege"
+  executor: siege
+  executor-path: "/usr/bin/siege"
   concurrency: 5
   iterations: 2
   scenario:

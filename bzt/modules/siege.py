@@ -35,11 +35,11 @@ class SiegeExecutor(ScenarioExecutor):
         self.__err = None
         self.__rc_name = None
         self.__url_name = None
-        self.siege_path = None
+        self.tool_path = None
         self.reader = None
 
     def prepare(self):
-        self.siege_path = self.settings.get('executor-path', 'siege')
+        self.tool_path = self.execution.get('executor-path', 'siege')
         self._check_installed()
 
         config_params = ('verbose = true',
@@ -75,11 +75,14 @@ class SiegeExecutor(ScenarioExecutor):
         """
         Should start the tool as fast as possible.
         """
-        args = [self.siege_path]
+        args = [self.tool_path]
         load = self.get_load()
         args += ['--reps=%s' % load.iterations, '--concurrent=%s' % load.concurrency]
         self.reader.concurency = load.concurrency
         args += ['--file="%s"' % self.__url_name]
+        headers = self.get_scenario().get_headers()
+        if headers:
+            args += ['--header="%s"' % ';'.join(headers)]
         env = BetterDict()
         env.merge({k: os.environ.get(k) for k in os.environ.keys()})
         env.merge({"SIEGERC": self.__rc_name})
@@ -106,7 +109,7 @@ class SiegeExecutor(ScenarioExecutor):
             self.__err.close()
 
     def _check_installed(self):
-        siege = Siege(self.siege_path, self.log)
+        siege = Siege(self.tool_path, self.log)
         if not siege.check_if_installed():
             self.log.error("Siege tool not found")
             raise RuntimeError("You must install Siege tool at first")
@@ -177,7 +180,7 @@ class DataLogReader(ResultsReader):
 
 class Siege (RequiredTool):
     def __init__(self, tool_path, parent_logger):
-        super(Siege, self).__init__(tool_path)
+        super(Siege, self).__init__("Siege", tool_path)
         self.tool_path = tool_path
         self.log = parent_logger.getChild(self.__class__.__name__)
 
