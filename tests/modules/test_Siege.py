@@ -1,23 +1,106 @@
-import os
-import time
 import logging
-from tests import BZTestCase
+import time
+from os import path
+
 from bzt.modules.siege import SiegeExecutor, DataLogReader
+from tests import BZTestCase
 from tests.mocks import EngineEmul
-from bzt.utils import BetterDict
+
+
+def get_res_path(resource):
+    return path.join(path.dirname(__file__), '..', 'siege', resource)
 
 
 class TestSiegeExecutor(BZTestCase):
-    def test_shutdown(self):
+    def test_iter_(self):
         obj = SiegeExecutor()
         obj.engine = EngineEmul()
-        obj.execution = BetterDict()
         obj.execution.merge({
-            "executor-path": os.path.join(os.path.dirname(__file__), '..', 'siege', 'siege.sh'),
+            "executor-path": get_res_path('siege.sh'),
             "concurrency": 2,
             "iterations": 3,
+            "scenario": {
+                "think-time": "1s",
+                "requests": ["http://blazedemo.com",
+                             "http://ya.ru"]}
         })
-        obj.execution.merge({"scenario": {"requests": ["http://blazedemo.com"]}})
+        obj.prepare()
+        obj.startup()
+
+    def test_hold_(self):
+        obj = SiegeExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({
+            "executor-path": get_res_path('siege.sh'),
+            "concurrency": 2,
+            "hold-for": '2s',
+            "scenario": {
+                "requests": ["http://blazedemo.com",
+                             "http://ya.ru"]}})
+        obj.prepare()
+        obj.startup()
+
+    def test_url_exceptions(self):
+        obj = SiegeExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({
+            "executor-path": get_res_path('siege.sh'),
+            "concurrency": 2,
+            "hold-for": '2s',
+            "scenario": {}})
+        try:
+            obj.prepare()
+        except ValueError:
+            return
+        self.fail()
+
+    def test_check_install_exceptions(self):
+        obj = SiegeExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({
+            "executor-path": '*',
+            "concurrency": 2,
+            "hold-for": '2s',
+            "scenario": {}})
+        try:
+            obj.prepare()
+        except RuntimeError:
+            return
+        self.fail()
+
+    def test_repetition_exceptions(self):
+        obj = SiegeExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({
+            "executor-path": get_res_path('siege.sh'),
+            "concurrency": 2,
+            "scenario": {
+                "requests": ["http://blazedemo.com",
+                             "http://ya.ru"]}})
+        obj.prepare()
+        try:
+            obj.startup()
+        except ValueError:
+            return
+        self.fail
+
+        try:
+            obj.prepare()
+        except ValueError:
+            return
+        self.fail()
+
+    def test_full_execution(self):
+        obj = SiegeExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({
+            "executor-path": get_res_path('siege.sh'),
+            "concurrency": 2,
+            "iterations": 3,
+            "scenario": {
+                "requests": ["http://blazedemo.com",
+                             "http://ya.ru"]}
+        })
         obj.prepare()
         obj.startup()
         try:
@@ -32,9 +115,11 @@ class TestSiegeExecutor(BZTestCase):
 
 class TestDataLogReader(BZTestCase):
     def test_read(self):
-        log_path = os.path.join(os.path.dirname(__file__), '..', 'siege', 'siege.out')
+        log_path = path.join(get_res_path('siege.out'))
         obj = DataLogReader(log_path, logging.getLogger(''))
-        for values in obj._read():
-            if values is not None:
-                self.assertEqual(len(values), 9)
-                self.assertIsNone(values[7])
+        list_of_values = list(obj._read())
+
+        self.assertEqual(len(list_of_values), 10)
+
+        for values in list_of_values:
+            self.assertEqual(len(values), 9)

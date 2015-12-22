@@ -17,12 +17,13 @@ limitations under the License.
 """
 
 import logging
-import os
 from datetime import datetime
 from math import ceil
+from os import environ, path
 
 from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
+from bzt.six import iteritems
 from bzt.utils import shell_exec, shutdown_process, BetterDict, RequiredTool, dehumanize_time
 
 
@@ -40,9 +41,8 @@ class SiegeExecutor(ScenarioExecutor):
         self.reader = None
 
     def prepare(self):
-        self.tool_path = self.execution.get('executor-path', 'siege')
         self.scenario = self.get_scenario()
-        self._check_installed()
+        self.tool_path = self._check_installed()
 
         config_params = ('verbose = true',
                          'csv = true',
@@ -52,21 +52,12 @@ class SiegeExecutor(ScenarioExecutor):
                          'show-logfile = false',
                          'logging = false')
 
-        self.__rc_name = self.engine.create_artifact("siegerc", ".")
+        self.__rc_name = self.engine.create_artifact("siegerc", "")
         with open(self.__rc_name, 'w') as rc_file:
             rc_file.writelines('\n'.join(config_params))
             rc_file.close()
 
-        self.__url_name = self.engine.create_artifact("siege", ".url")
-
-        user_vars = self.scenario.get('variables')
-        user_vars = ['%s=%s' % (key, val) for (key, val) in user_vars]
-
-        with open(self.__url_name, 'w') as url_file:
-            url_list = self.scenario.get_requests()
-            url_list = [req.url for req in url_list]  # FIXME: read all info
-            url_file.writelines('\n'.join(user_vars + url_list))
-            url_file.close()
+        self._fill_url_file()
 
         out_file_name = self.engine.create_artifact("siege", ".out")
         self.reader = DataLogReader(out_file_name, self.log)
@@ -75,6 +66,20 @@ class SiegeExecutor(ScenarioExecutor):
 
         self.__out = open(out_file_name, 'w')
         self.__err = open(self.engine.create_artifact("siege", ".err"), 'w')
+
+    def _fill_url_file(self):
+        self.__url_name = self.engine.create_artifact("siege", ".url")
+        user_vars = self.scenario.get('variables')
+        user_vars = ["%s=%s" % (key, val) for (key, val) in iteritems(user_vars)]
+
+        with open(self.__url_name, 'w') as url_file:
+            url_list = list(self.scenario.get_requests())
+            if not url_list:
+                self.log.error('URLs not found')
+                raise ValueError('You must specify some URLs')
+            url_list = [req.url for req in url_list]  # FIXME: read all info
+            url_file.writelines('\n'.join(user_vars + url_list))
+            url_file.close()
 
     def startup(self):
         """
@@ -90,7 +95,7 @@ class SiegeExecutor(ScenarioExecutor):
             args += ['--time%sS' % hold_for]
         else:
             self.log.error('Repetition rules not found')
-            raise RuntimeError('You must select some repetition rule')
+            raise ValueError("You must specify either 'hold-for' or 'iterations'")
 
         if self.scenario.get('think-time'):
             think_time = dehumanize_time(self.scenario.get('think-time'))
@@ -98,18 +103,18 @@ class SiegeExecutor(ScenarioExecutor):
         else:
             args += ['--benchmark']
 
-        load_concurrency = (load.concurrency or 10)  # default siege value
+        load_concurrency = load.concurrency
         args += ['--concurrent=%s' % load_concurrency]
         self.reader.concurency = load_concurrency
 
         args += ['--file="%s"' % self.__url_name]
 
-        headers = self.scenario.get_headers()
-        if headers:
-            args += ['--header="%s"' % header for header in headers]
+        for key, val in iteritems(self.scenario.get_headers()):
+            args += ['--header="%s: %s"' % key, val]
 
         env = BetterDict()
-        env.merge({k: os.environ.get(k) for k in os.environ.keys()})
+        env.merge(dict(environ))
+        # env.merge({k: os.environ.get(k) for k in os.environ.keys()})
         env.merge({"SIEGERC": self.__rc_name})
 
         self.process = shell_exec(args, stdout=self.__out, stderr=self.__err, env=env)
@@ -134,10 +139,12 @@ class SiegeExecutor(ScenarioExecutor):
             self.__err.close()
 
     def _check_installed(self):
-        siege = Siege(self.tool_path, self.log)
+        tool_path = self.execution.get('executor-path', 'siege')
+        siege = Siege(tool_path, self.log)
         if not siege.check_if_installed():
             self.log.error("Siege tool not found")
             raise RuntimeError("You must install Siege tool at first")
+        return tool_path
 
 
 class DataLogReader(ResultsReader):
@@ -156,11 +163,11 @@ class DataLogReader(ResultsReader):
         """
         opens siege.log
         """
-        if not os.path.isfile(self.filename):
+        if not path.isfile(self.filename):
             self.log.debug("File not appeared yet")
             return False
 
-        if not os.path.getsize(self.filename):
+        if not path.getsize(self.filename):
             self.log.debug("File is empty: %s", self.filename)
             return False
 
@@ -173,11 +180,13 @@ class DataLogReader(ResultsReader):
         while not self.fds and not self.__open_fds():
             self.log.debug("No data to start reading yet")
             yield None
+
         if last_pass:
             lines = self.fds.readlines()  # unlimited
             self.fds.close()
         else:
             lines = self.fds.readlines(1024 * 1024)  # 1MB limit to read
+
         for line in lines:
             l_start = line.index('m') + 1
             l_end = line.index(chr(0x1b), l_start)
@@ -211,8 +220,8 @@ class Siege(RequiredTool):
 
     def check_if_installed(self):
         self.log.debug('Check Siege: %s' % self.tool_path)
-        siege_subproc = shell_exec([self.tool_path, '-h'])
-        if siege_subproc:
-            return True
-        else:
+        try:
+            shell_exec([self.tool_path, '-h'])
+        except OSError:
             return False
+        return True
