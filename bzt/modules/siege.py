@@ -18,12 +18,11 @@ limitations under the License.
 
 import logging
 import os
-
 from datetime import datetime
-
+from math import ceil
 from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
-from bzt.utils import shell_exec, shutdown_process, BetterDict, RequiredTool
+from bzt.utils import shell_exec, shutdown_process, BetterDict, RequiredTool, dehumanize_time
 
 
 class SiegeExecutor(ScenarioExecutor):
@@ -36,10 +35,12 @@ class SiegeExecutor(ScenarioExecutor):
         self.__rc_name = None
         self.__url_name = None
         self.tool_path = None
+        self.scenario = None
         self.reader = None
 
     def prepare(self):
         self.tool_path = self.execution.get('executor-path', 'siege')
+        self.scenario = self.get_scenario()
         self._check_installed()
 
         config_params = ('verbose = true',
@@ -57,10 +58,13 @@ class SiegeExecutor(ScenarioExecutor):
 
         self.__url_name = self.engine.create_artifact("siege", ".url")
 
+        user_vars = self.scenario.get('variables')
+        user_vars = ['%s=%s' % (key, val) for (key, val) in user_vars]
+
         with open(self.__url_name, 'w') as url_file:
-            url_list = self.get_scenario().get_requests()
+            url_list = self.scenario.get_requests()
             url_list = [req.url for req in url_list]  # FIXME: read all info
-            url_file.writelines('\n'.join(url_list))
+            url_file.writelines('\n'.join(user_vars + url_list))
             url_file.close()
 
         out_file_name = self.engine.create_artifact("siege", ".out")
@@ -77,12 +81,32 @@ class SiegeExecutor(ScenarioExecutor):
         """
         args = [self.tool_path]
         load = self.get_load()
-        args += ['--reps=%s' % load.iterations, '--concurrent=%s' % load.concurrency]
-        self.reader.concurency = load.concurrency
+
+        if load.iterations:
+            args += ['--reps=%s' % load.iterations]
+        elif load.hold:
+            hold_for = ceil(dehumanize_time(load.hold))
+            args += ['--time%sS' % hold_for]
+        else:
+            self.log.error('Repetition rules not found')
+            raise RuntimeError('You must select some repetition rule')
+
+        if self.scenario.get('think-time'):
+            think_time = dehumanize_time(self.scenario.get('think-time'))
+            args += ['--delay=%s' % think_time]
+        else:
+            args += ['--benchmark']
+
+        load_concurrency = (load.concurrency or 10)    # default siege value
+        args += ['--concurrent=%s' % load_concurrency]
+        self.reader.concurency = load_concurrency
+
         args += ['--file="%s"' % self.__url_name]
-        headers = self.get_scenario().get_headers()
+
+        headers = self.scenario.get_headers()
         if headers:
-            args += ['--header="%s"' % ';'.join(headers)]
+            args += ['--header="%s"' % header for header in headers]
+
         env = BetterDict()
         env.merge({k: os.environ.get(k) for k in os.environ.keys()})
         env.merge({"SIEGERC": self.__rc_name})
@@ -162,13 +186,13 @@ class DataLogReader(ResultsReader):
             # _mark = log_vals[0]           # 0. current test mark, defined by --mark key
             # _user_id = int(log_vals[1])   # 1. fake user id
             # _http = log_vals[2]           # 2. http protocol
-            _rstatus = int(log_vals[2])     # 3. response status code
-            _etime = float(log_vals[3])     # 4. elapsed time (total time - connection time)
+            _rstatus = int(log_vals[2])  # 3. response status code
+            _etime = float(log_vals[3])  # 4. elapsed time (total time - connection time)
             # _rsize = int(log_vals[5])     # 5. size of response
-            _url = log_vals[5]              # 6. long or short URL value
+            _url = log_vals[5]  # 6. long or short URL value
             # _url_id = int(log_vals[7])    # 7. url number
             _tstamp = datetime.strptime(log_vals[7], "%Y-%m-%d %H:%M:%S")
-            _tstamp = _tstamp.toordinal()   # 8. moment of request sending
+            _tstamp = _tstamp.toordinal()  # 8. moment of request sending
 
             _con_time = 0
             _latency = 0
@@ -178,7 +202,7 @@ class DataLogReader(ResultsReader):
             yield _tstamp, _url, _concur, _etime, _con_time, _latency, _rstatus, _error, ''
 
 
-class Siege (RequiredTool):
+class Siege(RequiredTool):
     def __init__(self, tool_path, parent_logger):
         super(Siege, self).__init__("Siege", tool_path)
         self.tool_path = tool_path
