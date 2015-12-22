@@ -16,6 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import subprocess
 import logging
 from datetime import datetime
 from math import ceil
@@ -114,7 +115,7 @@ class SiegeExecutor(ScenarioExecutor):
 
         env = BetterDict()
         env.merge(dict(environ))
-        # env.merge({k: os.environ.get(k) for k in os.environ.keys()})
+        # env.merge({k: os.envirgion.get(k) for k in os.environ.keys()})
         env.merge({"SIEGERC": self.__rc_name})
 
         self.process = shell_exec(args, stdout=self.__out, stderr=self.__err, env=env)
