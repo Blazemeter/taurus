@@ -82,12 +82,6 @@ class TestSiegeExecutor(BZTestCase):
             obj.startup()
         except ValueError:
             return
-        self.fail
-
-        try:
-            obj.prepare()
-        except ValueError:
-            return
         self.fail()
 
     def test_full_execution(self):

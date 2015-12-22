@@ -120,12 +120,12 @@ class SiegeExecutor(ScenarioExecutor):
         self.process = shell_exec(args, stdout=self.__out, stderr=self.__err, env=env)
 
     def check(self):
-        retcode = self.process.poll()
-        if retcode is None:
+        ret_code = self.process.poll()
+        if ret_code is None:
             return False
-        if retcode != 0:
+        if ret_code != 0:
             raise RuntimeError("Siege tool exited with non-zero code")
-        self.log.info("Siege tool exit code: %s", str(retcode))
+        self.log.info("Siege tool exit code: %s", ret_code)
         return True
 
     def shutdown(self):
@@ -220,12 +220,8 @@ class Siege(RequiredTool):
 
     def check_if_installed(self):
         self.log.debug('Check Siege: %s' % self.tool_path)
-        if not path.isfile(self.tool_path):
-            return False
         try:
-            ret_code = shell_exec([self.tool_path, '-h'])
+            shell_exec([self.tool_path, '-h'])
         except OSError:
-            return False
-        if ret_code != 0:
             return False
         return True
