@@ -20,6 +20,7 @@ import logging
 import os
 from datetime import datetime
 from math import ceil
+
 from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.utils import shell_exec, shutdown_process, BetterDict, RequiredTool, dehumanize_time
@@ -97,7 +98,7 @@ class SiegeExecutor(ScenarioExecutor):
         else:
             args += ['--benchmark']
 
-        load_concurrency = (load.concurrency or 10)    # default siege value
+        load_concurrency = (load.concurrency or 10)  # default siege value
         args += ['--concurrent=%s' % load_concurrency]
         self.reader.concurency = load_concurrency
 
