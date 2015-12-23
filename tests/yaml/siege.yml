@@ -3,8 +3,9 @@ execution:
   executor: siege
   path: "/usr/bin/siege"
   concurrency: 100
-  iterations: 10000
+  hold-for: 100s
   scenario:
+    think-time: 1
     requests:
     - url: localhost
 
