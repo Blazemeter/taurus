@@ -118,7 +118,7 @@ class SiegeExecutor(ScenarioExecutor):
         # env.merge({k: os.envirgion.get(k) for k in os.environ.keys()})
         env.merge({"SIEGERC": self.__rc_name})
 
-        self.process = shell_exec(args, stdout=self.__out, stderr=self.__err, env=env)
+        self.process = shell_exec(' '.join(args), shell=True, stdout=self.__out, stderr=self.__err, env=env)
 
     def check(self):
         ret_code = self.process.poll()
@@ -186,9 +186,11 @@ class DataLogReader(ResultsReader):
             lines = self.fds.readlines()  # unlimited
             self.fds.close()
         else:
-            lines = self.fds.readlines(1024 * 1024)  # 1MB limit to read
+            lines = self.fds.readlines(1024 * 1024)  # 1MB limit to read    git
 
         for line in lines:
+            if line.count(chr(0x1b)) != 2:  # skip garbage
+                continue
             l_start = line.index('m') + 1
             l_end = line.index(chr(0x1b), l_start)
             line = line[l_start:l_end]
