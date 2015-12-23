@@ -60,6 +60,7 @@ class SiegeExecutor(ScenarioExecutor):
 
         if 'url-file' in self.scenario:
             self.__url_name = self.engine.find_file(self.scenario['url-file'])
+            self.engine.existing_artifact(self.__url_name)
         elif 'requests' in self.scenario:
             self.__url_name = self._fill_url_file()
         else:
