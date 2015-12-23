@@ -11,7 +11,7 @@ INTERNET&DELAY: randomly hitting of url-file with some delay if you set it with 
 BENCHMARK: throughput test if `think-time` option is not found
 HEADER(`hearders` in yml config file) allows you to  add additional header info
 REPS(`iterations`) or (if they not detected)
-TIME(`hold-for`) - run the test for a selected period of time. Naturally you can set comfortable taurus time format.
+TIME(`hold-for`) - running the test for a selected period of time. Naturally you can set comfortable taurus time format.
 
 ## Scenario Examples
 ```yaml
