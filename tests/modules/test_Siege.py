@@ -12,7 +12,7 @@ def get_res_path(resource):
 
 
 class TestSiegeExecutor(BZTestCase):
-    def test_iter_(self):
+    def test_iter(self):
         obj = SiegeExecutor()
         obj.engine = EngineEmul()
         obj.execution.merge({
@@ -27,7 +27,7 @@ class TestSiegeExecutor(BZTestCase):
         obj.prepare()
         obj.startup()
 
-    def test_hold_(self):
+    def test_hold(self):
         obj = SiegeExecutor()
         obj.engine = EngineEmul()
         obj.execution.merge({
@@ -35,8 +35,13 @@ class TestSiegeExecutor(BZTestCase):
             "concurrency": 2,
             "hold-for": '2s',
             "scenario": {
-                "requests": ["http://blazedemo.com",
-                             "http://ya.ru"]}})
+                "headers": {
+                    'h1': 'value1',
+                    'h2': 'value2'},
+                "variables": {
+                    'v1': 1,
+                    'v2': 'TWO'},
+                "url-file": get_res_path('url-file')}})
         obj.prepare()
         obj.startup()
 

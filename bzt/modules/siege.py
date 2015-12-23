@@ -58,7 +58,12 @@ class SiegeExecutor(ScenarioExecutor):
             rc_file.writelines('\n'.join(config_params))
             rc_file.close()
 
-        self._fill_url_file()
+        if 'url-file' in self.scenario:
+            self.__url_name = self.engine.find_file(self.scenario['url-file'])
+        elif 'requests' in self.scenario:
+            self.__url_name = self._fill_url_file()
+        else:
+            raise ValueError("You must specify either url-file or some requests for siege")
 
         out_file_name = self.engine.create_artifact("siege", ".out")
         self.reader = DataLogReader(out_file_name, self.log)
@@ -69,18 +74,16 @@ class SiegeExecutor(ScenarioExecutor):
         self.__err = open(self.engine.create_artifact("siege", ".err"), 'w')
 
     def _fill_url_file(self):
-        self.__url_name = self.engine.create_artifact("siege", ".url")
+        url_file_name = self.engine.create_artifact("siege", ".url")
         user_vars = self.scenario.get('variables')
         user_vars = ["%s=%s" % (key, val) for (key, val) in iteritems(user_vars)]
 
-        with open(self.__url_name, 'w') as url_file:
+        with open(url_file_name, 'w') as url_file:
             url_list = list(self.scenario.get_requests())
-            if not url_list:
-                self.log.error('URLs not found')
-                raise ValueError('You must specify some URLs')
             url_list = [req.url for req in url_list]  # FIXME: read all info
             url_file.writelines('\n'.join(user_vars + url_list))
             url_file.close()
+        return url_file_name
 
     def startup(self):
         """
@@ -95,8 +98,7 @@ class SiegeExecutor(ScenarioExecutor):
             hold_for = ceil(dehumanize_time(load.hold))
             args += ['--time%sS' % hold_for]
         else:
-            self.log.error('Repetition rules not found')
-            raise ValueError("You must specify either 'hold-for' or 'iterations'")
+            raise ValueError("You must specify either 'hold-for' or 'iterations' for siege")
 
         if self.scenario.get('think-time'):
             think_time = dehumanize_time(self.scenario.get('think-time'))
@@ -108,17 +110,17 @@ class SiegeExecutor(ScenarioExecutor):
         args += ['--concurrent=%s' % load_concurrency]
         self.reader.concurency = load_concurrency
 
-        args += ['--file="%s"' % self.__url_name]
+        args += ['--file', self.__url_name]
 
         for key, val in iteritems(self.scenario.get_headers()):
-            args += ['--header="%s: %s"' % key, val]
+            args += ['--header', "%s: %s" % (key, val)]
 
         env = BetterDict()
         env.merge(dict(environ))
         # env.merge({k: os.envirgion.get(k) for k in os.environ.keys()})
         env.merge({"SIEGERC": self.__rc_name})
 
-        self.process = shell_exec(' '.join(args), shell=True, stdout=self.__out, stderr=self.__err, env=env)
+        self.process = shell_exec(args, stdout=self.__out, stderr=self.__err, env=env)
 
     def check(self):
         ret_code = self.process.poll()
