@@ -1,10 +1,10 @@
 ---
 execution:
   executor: siege
-  executor-path: "/usr/bin/siege"
-  concurrency: 2
-  hold-for: 5s
+  path: "/usr/bin/siege"
+  concurrency: 100
+  iterations: 10000
   scenario:
     requests:
-    - url: "http://ya.ru/"
-    - url: "http://mail.ru/"
+    - url: localhost
+

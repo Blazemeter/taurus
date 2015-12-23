@@ -23,7 +23,7 @@ from math import ceil
 from os import environ, path
 
 
-from bzt.engine import ScenarioExecutor
+from bzt.engine import ScenarioExecutor, Scenario
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.six import iteritems
 from bzt.utils import shell_exec, shutdown_process, BetterDict, RequiredTool, dehumanize_time
@@ -62,13 +62,13 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider):
             rc_file.writelines('\n'.join(config_params))
             rc_file.close()
 
-        if 'url-file' in self.scenario:
-            self.__url_name = self.engine.find_file(self.scenario['url-file'])
+        if Scenario.SCRIPT in self.scenario:
+            self.__url_name = self.engine.find_file(self.scenario[Scenario.SCRIPT])
             self.engine.existing_artifact(self.__url_name)
         elif 'requests' in self.scenario:
             self.__url_name = self._fill_url_file()
         else:
-            raise ValueError("You must specify either url-file or some requests for siege")
+            raise ValueError("You must specify either script(url-file) or some requests for siege")
 
         out_file_name = self.engine.create_artifact("siege", ".out")
         self.reader = DataLogReader(out_file_name, self.log)
@@ -91,9 +91,6 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider):
         return url_file_name
 
     def startup(self):
-        """
-        Should start the tool as fast as possible.
-        """
         args = [self.tool_path]
         load = self.get_load()
 
@@ -134,9 +131,9 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider):
         ret_code = self.process.poll()
         if ret_code is None:
             return False
+        self.log.info("Siege tool exit code: %s", ret_code)
         if ret_code != 0:
             raise RuntimeError("Siege tool exited with non-zero code")
-        self.log.info("Siege tool exit code: %s", ret_code)
         return True
 
     def get_widget(self):
@@ -159,10 +156,9 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider):
             self.__err.close()
 
     def _check_installed(self):
-        tool_path = self.execution.get('executor-path', 'siege')
+        tool_path = self.execution.get('path', 'siege')
         siege = Siege(tool_path, self.log)
         if not siege.check_if_installed():
-            self.log.error("Siege tool not found")
             raise RuntimeError("You must install Siege tool at first")
         return tool_path
 
@@ -180,9 +176,6 @@ class DataLogReader(ResultsReader):
             yield point
 
     def __open_fds(self):
-        """
-        opens siege.log
-        """
         if not path.isfile(self.filename):
             self.log.debug("File not appeared yet")
             return False
