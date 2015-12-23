@@ -2,8 +2,8 @@
 execution:
   executor: siege
   executor-path: "/usr/bin/siege"
-  concurrency: 5
-  iterations: 2
+  concurrency: 2
+  hold-for: 5s
   scenario:
     requests:
     - url: "http://ya.ru/"

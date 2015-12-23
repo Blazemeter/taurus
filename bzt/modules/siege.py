@@ -16,19 +16,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import subprocess
+import time
 import logging
 from datetime import datetime
 from math import ceil
 from os import environ, path
 
+
 from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.six import iteritems
 from bzt.utils import shell_exec, shutdown_process, BetterDict, RequiredTool, dehumanize_time
+from bzt.modules.console import WidgetProvider, SidebarWidget
 
 
-class SiegeExecutor(ScenarioExecutor):
+class SiegeExecutor(ScenarioExecutor, WidgetProvider):
     def __init__(self):
         super(SiegeExecutor, self).__init__()
         self.log = logging.getLogger('')
@@ -40,6 +42,8 @@ class SiegeExecutor(ScenarioExecutor):
         self.tool_path = None
         self.scenario = None
         self.reader = None
+        self.start_time = None
+        self.widget = None
 
     def prepare(self):
         self.scenario = self.get_scenario()
@@ -94,21 +98,21 @@ class SiegeExecutor(ScenarioExecutor):
         load = self.get_load()
 
         if load.iterations:
-            args += ['--reps=%s' % load.iterations]
+            args += ['--reps', str(load.iterations)]
         elif load.hold:
             hold_for = ceil(dehumanize_time(load.hold))
-            args += ['--time%sS' % hold_for]
+            args += ['--time', '%sS' % hold_for]
         else:
             raise ValueError("You must specify either 'hold-for' or 'iterations' for siege")
 
         if self.scenario.get('think-time'):
             think_time = dehumanize_time(self.scenario.get('think-time'))
-            args += ['--delay=%s' % think_time]
+            args += ['--delay', str(think_time)]
         else:
             args += ['--benchmark']
 
         load_concurrency = load.concurrency
-        args += ['--concurrent=%s' % load_concurrency]
+        args += ['--concurrent', str(load_concurrency)]
         self.reader.concurency = load_concurrency
 
         args += ['--file', self.__url_name]
@@ -118,12 +122,15 @@ class SiegeExecutor(ScenarioExecutor):
 
         env = BetterDict()
         env.merge(dict(environ))
-        # env.merge({k: os.envirgion.get(k) for k in os.environ.keys()})
         env.merge({"SIEGERC": self.__rc_name})
+        self.start_time = time.time()
 
         self.process = shell_exec(args, stdout=self.__out, stderr=self.__err, env=env)
 
     def check(self):
+        if self.widget:
+            self.widget.update()
+
         ret_code = self.process.poll()
         if ret_code is None:
             return False
@@ -131,6 +138,15 @@ class SiegeExecutor(ScenarioExecutor):
             raise RuntimeError("Siege tool exited with non-zero code")
         self.log.info("Siege tool exit code: %s", ret_code)
         return True
+
+    def get_widget(self):
+        if not self.widget:
+            if self.get_load().hold:
+                label = "Siege Benchmark"
+            else:
+                label = None
+            self.widget = SidebarWidget(self, label)
+        return self.widget
 
     def shutdown(self):
         """
