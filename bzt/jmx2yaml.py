@@ -16,17 +16,17 @@ limitations under the License.
 """
 import logging
 import os
+import sys
 import traceback
 from collections import namedtuple
 from copy import deepcopy
 from optparse import OptionParser
 
-import sys
 from cssselect import GenericTranslator
 
 from bzt.cli import CLI
 from bzt.engine import Configuration, ScenarioExecutor
-from bzt.modules.jmeter import JMX
+from bzt.jmx import JMX
 
 KNOWN_TAGS = ["hashTree", "jmeterTestPlan", "TestPlan", "ResultCollector",
               "HTTPSamplerProxy",
@@ -589,8 +589,8 @@ class JMXasDict(JMX):
 
             for response_assertion_element in response_assertion_elements:
                 response_assertion = {}
-                assertion_collection = response_assertion_element.find(
-                        ".//collectionProp[@name='Asserion.test_strings']")
+                selector = ".//collectionProp[@name='Asserion.test_strings']"
+                assertion_collection = response_assertion_element.find(selector)
 
                 if assertion_collection is None:
                     self.log.warning("Collection not found in %s, skipping", response_assertion_element.tag)
