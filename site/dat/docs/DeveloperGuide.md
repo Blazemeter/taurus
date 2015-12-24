@@ -20,7 +20,9 @@
 
 If you want to deploy project website locally to debug its content:
  - Have Apache 2 web server installed with PHP 5 support: `sudo apt-get install apache2 libapache2-mod-php5 php5`
+ - enable `mod_rewrite` for Apache: `sudo a2enmod rewrite`
  - Get [PHP composer](https://getcomposer.org/download/), go to `site` directory and run there `composer.phar update --prefer-stable`
+ - copy file `vendor/undera/pwe/.htaccess` into `site` directory
  - Under `/etc/apache2/sites-enabled` create the file `taurus.conf` with following content:
 ```
 <Directory "/home/mydir/taurus/site">
