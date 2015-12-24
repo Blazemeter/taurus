@@ -16,18 +16,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import time
 import logging
+import time
 from datetime import datetime
 from math import ceil
 from os import environ, path
 
-
 from bzt.engine import ScenarioExecutor, Scenario
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
+from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.six import iteritems
 from bzt.utils import shell_exec, shutdown_process, BetterDict, RequiredTool, dehumanize_time
-from bzt.modules.console import WidgetProvider, SidebarWidget
 
 
 class SiegeExecutor(ScenarioExecutor, WidgetProvider):
