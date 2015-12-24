@@ -48,8 +48,6 @@ execution:
 Test servers from nodes.list with 1000 typical user emulation for 5 minutes
 ```yaml
 ---
-settings:
-  path: '/usr/bin/siege'
 execution:
   executor: siege
   concurrency: 1000
