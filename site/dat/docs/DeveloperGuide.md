@@ -17,8 +17,13 @@
  - site is updated automatically by Jenkins
  
 # Deploying Project Website
- 
-If you want to deploy project website locally to debug its content, have Apache web server installed and configure it to point to `site` directory like this:
+
+If you want to deploy project website locally to debug its content:
+ - Have Apache 2 web server installed with PHP 5 support: `sudo apt-get install apache2 libapache2-mod-php5 php5`
+ - enable _mod\_rewrite_ for Apache: `sudo a2enmod rewrite`
+ - Get [PHP composer](https://getcomposer.org/download/), go to `site` directory and run there `composer.phar update --prefer-stable`
+ - copy file `vendor/undera/pwe/.htaccess` into `site` directory
+ - Under `/etc/apache2/sites-enabled` create the file `taurus.conf` with following content:
 ```
 <Directory "/home/mydir/taurus/site">
     Options FollowSymlinks
@@ -32,12 +37,12 @@ Listen 8002
 </VirtualHost>
 ```
 
-Then get [PHP composer](https://getcomposer.org/download/), go to `site` dir and run `composer.phar update`. Then open [http://localhost:8002](http://localhost:8002) in your browser, you should see our website.
+Now restart Apache (`sudo service apache2 restart`) and open [http://localhost:8002](http://localhost:8002) in your browser, you should see our website.
 
 # Dev Artifacts
 [Code Coverage Report](/coverage/)
 
-## Python Egg Snapshots
+# Python Egg Snapshots
 
 Download and install it like this:
 ```bash
