@@ -118,8 +118,9 @@ class JMX(object):
         :type all_types: bool
         """
         if all_types:
-            ultimate_tgroup = self.get('jmeterTestPlan>hashTree>hashTree>kg\.apc\.jmeter\.threads\.UltimateThreadGroup')
-            stepping_tgroup = self.get('jmeterTestPlan>hashTree>hashTree>kg\.apc\.jmeter\.threads\.SteppingThreadGroup')
+            prefix = r'jmeterTestPlan>hashTree>hashTree>kg\.apc\.jmeter\.threads\.'
+            ultimate_tgroup = self.get(prefix + 'UltimateThreadGroup')
+            stepping_tgroup = self.get(prefix + 'SteppingThreadGroup')
             tgroups = chain(ultimate_tgroup, stepping_tgroup)
         else:
             tgroups = self.get('jmeterTestPlan>hashTree>hashTree>ThreadGroup')
