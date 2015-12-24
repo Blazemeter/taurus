@@ -1,14 +1,14 @@
 build:
   dependencies:
     before:
-      - pip install virtualenv
+      - pip install virtualenv codecov
       - pip install colorlog pyyaml psutil lxml cssselect nose urwid coverage six pylint selenium progressbar33 locustio pyvirtualdisplay
     override:
       - true
   tests:
     override:
       -
-        command: ./run-test.sh
+        command: coverage run `which nosetests`
         coverage:
           file: .coverage
           #config: .coveragerc
