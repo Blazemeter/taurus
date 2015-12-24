@@ -45,10 +45,10 @@ from bzt.utils import humanize_time, is_windows
 
 try:
     from urwid.curses_display import Screen
-except:
+except ImportError:
     try:
         from bzt.modules.screen import GUIScreen as Screen
-    except:
+    except ImportError:
         from bzt.utils import DummyScreen as Screen
 
 
