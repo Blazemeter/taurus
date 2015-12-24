@@ -10,8 +10,9 @@ from math import ceil
 import yaml
 
 from bzt.engine import Provisioning
+from bzt.jmx import JMX
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet
-from bzt.modules.jmeter import JMeterExecutor, JMX, JTLErrorsReader, JTLReader, JMeterJTLLoaderExecutor, \
+from bzt.modules.jmeter import JMeterExecutor, JTLErrorsReader, JTLReader, JMeterJTLLoaderExecutor, \
     JMeter
 from bzt.six import etree
 from bzt.utils import BetterDict, EXE_SUFFIX
@@ -300,8 +301,9 @@ class TestJMeterExecutor(BZTestCase):
         obj.execution = obj.engine.config['execution']
         obj.prepare()
         xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
-        shaper_elements = xml_tree.findall(
-                ".//kg.apc.jmeter.timers.VariableThroughputTimer[@testclass='kg.apc.jmeter.timers.VariableThroughputTimer']")
+        timer_ = ".//kg.apc.jmeter.timers.VariableThroughputTimer"
+        timer_ += "[@testclass='kg.apc.jmeter.timers.VariableThroughputTimer']"
+        shaper_elements = xml_tree.findall(timer_)
         self.assertEqual(1, len(shaper_elements))
         shaper_coll_element = shaper_elements[0].find(".//collectionProp[@name='load_profile']")
 
@@ -319,8 +321,9 @@ class TestJMeterExecutor(BZTestCase):
         obj.execution = obj.engine.config['execution']
         obj.prepare()
         xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
-        shaper_elements = xml_tree.findall(
-                ".//kg.apc.jmeter.timers.VariableThroughputTimer[@testclass='kg.apc.jmeter.timers.VariableThroughputTimer']")
+        timer_ = ".//kg.apc.jmeter.timers.VariableThroughputTimer"
+        timer_ += "[@testclass='kg.apc.jmeter.timers.VariableThroughputTimer']"
+        shaper_elements = xml_tree.findall(timer_)
         self.assertEqual(1, len(shaper_elements))
         shaper_coll_element = shaper_elements[0].find(".//collectionProp[@name='load_profile']")
 
@@ -356,13 +359,13 @@ class TestJMeterExecutor(BZTestCase):
 
     def test_nonstandard_errors_format(self):
         obj = JTLErrorsReader(__dir__() + "/../data/nonstantard-errors.jtl", logging.getLogger(''))
-        obj.read_file(True)
+        obj.read_file()
         values = obj.get_data(sys.maxsize)
         self.assertEquals(2, len(values))
 
     def test_standard_errors_format(self):
         obj = JTLErrorsReader(__dir__() + "/../data/standard-errors.jtl", logging.getLogger(''))
-        obj.read_file(True)
+        obj.read_file()
         values = obj.get_data(sys.maxsize)
         self.assertEquals(3, len(values))
 
@@ -715,21 +718,21 @@ class TestJMeterExecutor(BZTestCase):
 
     def test_embedded_resources_main_sample_fail_assert(self):
         obj = JTLErrorsReader(__dir__() + "/../data/resource-errors-main-assert.jtl", logging.getLogger(''))
-        obj.read_file(True)
+        obj.read_file()
         values = obj.get_data(sys.maxsize)
         self.assertEqual(values.get('')[0].get("msg"), "Test failed")
         self.assertEqual(values.get('HTTP Request')[0].get("msg"), "Test failed")
 
     def test_embedded_resources_fail_child_no_assert(self):
         obj = JTLErrorsReader(__dir__() + "/../data/resource-errors-child-no-assert.jtl", logging.getLogger(''))
-        obj.read_file(True)
+        obj.read_file()
         values = obj.get_data(sys.maxsize)
         self.assertEqual(values.get('')[0].get("msg"), "NOT FOUND")
         self.assertEqual(values.get('HTTP Request')[0].get("msg"), "NOT FOUND")
 
     def test_embedded_resources_fail_child_assert(self):
         obj = JTLErrorsReader(__dir__() + "/../data/resource-errors-child-assert.jtl", logging.getLogger(''))
-        obj.read_file(True)
+        obj.read_file()
         values = obj.get_data(sys.maxsize)
         self.assertEqual(values.get('')[0].get("msg"), "subsample assertion error")
         self.assertEqual(values.get('')[1].get("msg"), "NOT FOUND")
@@ -738,7 +741,7 @@ class TestJMeterExecutor(BZTestCase):
 
     def test_resource_tc(self):
         obj = JTLErrorsReader(__dir__() + "/../data/resource_tc.jtl", logging.getLogger(''))
-        obj.read_file(True)
+        obj.read_file()
         values = obj.get_data(sys.maxsize)
         self.assertEqual(values.get('')[0].get("msg"), "message")
         self.assertEqual(values.get('')[1].get("msg"), "FOUND")
@@ -754,7 +757,7 @@ class TestJMeterExecutor(BZTestCase):
 
     def test_embedded_resources_no_fail(self):
         obj = JTLErrorsReader(__dir__() + "/../data/resource-errors-no-fail.jtl", logging.getLogger(''))
-        obj.read_file(True)
+        obj.read_file()
         values = obj.get_data(sys.maxsize)
         self.assertEqual(values.get('')[0].get("msg"), "success_true_with_failed_embedded_resources")
         self.assertEqual(values.get('')[1].get("msg"), "failed_resource_message")
@@ -771,7 +774,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertRaises(RuntimeWarning, obj.post_process)
 
     def test_jmeter_mirrors(self):
-        path = os.path.abspath(__dir__() + "/../../build/tmp/jmeter-taurus/bin/jmeter"+ EXE_SUFFIX)
+        path = os.path.abspath(__dir__() + "/../../build/tmp/jmeter-taurus/bin/jmeter" + EXE_SUFFIX)
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
         obj = JMeterExecutor()
         objjm = JMeter(path, obj.log, JMeterExecutor.JMETER_VER)
