@@ -291,7 +291,19 @@ class JMX(object):
         elif body:
             raise ValueError("Cannot handle 'body' option of type %s: %s" % (type(body), body))
 
-        proxy.append(JMX._string_prop("HTTPSampler.path", url))
+        parsed_url = parse.urlparse(url)
+        if parsed_url.scheme:
+            proxy.append(JMX._string_prop("HTTPSampler.protocol", parsed_url.scheme))
+        if parsed_url.hostname:
+            proxy.append(JMX._string_prop("HTTPSampler.domain", parsed_url.hostname))
+        if parsed_url.port:
+            proxy.append(JMX._string_prop("HTTPSampler.port", parsed_url.port))
+
+        path = parsed_url.path
+        if parsed_url.query:
+            path += "?" + parsed_url.query
+
+        proxy.append(JMX._string_prop("HTTPSampler.path", path))
         proxy.append(JMX._string_prop("HTTPSampler.method", method))
         proxy.append(JMX._bool_prop("HTTPSampler.use_keepalive", keepalive))
         proxy.append(JMX._bool_prop("HTTPSampler.follow_redirects", True))
