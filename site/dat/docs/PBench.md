@@ -51,6 +51,7 @@ High throughput and precision comes with a price of lost requests logic. No loop
 
 First way to give it requests is to use usual Taurus requests spec of:
 ```yaml
+---
 scenarios:
   pbench-example:
     default-address: http://blazedemo.com
