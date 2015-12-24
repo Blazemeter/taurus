@@ -109,7 +109,7 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider):
 
         load_concurrency = load.concurrency
         args += ['--concurrent', str(load_concurrency)]
-        self.reader.concurency = load_concurrency
+        self.reader.concurrency = load_concurrency
 
         args += ['--file', self.__url_name]
 
