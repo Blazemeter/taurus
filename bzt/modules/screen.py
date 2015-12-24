@@ -16,15 +16,14 @@ limitations under the License.
 """
 
 import logging
-import re
-import platform
 import math
+import re
 
 import urwid
 from urwid import BaseScreen
 
-from bzt.six import text_type, iteritems, PY2
 from bzt import ManualShutdown
+from bzt.six import text_type, iteritems, PY2
 from bzt.utils import is_windows
 
 if PY2:  # we have to put import logic here to avoid requiring python-tk library on linux
