@@ -23,6 +23,7 @@ And of course you need Siege. If this program not in the system PATH help the Ta
 ## Configuration example fragments
 Simplest working example - just use it for taste.
 ```yaml
+---
 execution:
   executor: siege
   concurrency: 3 
@@ -33,9 +34,11 @@ execution:
 ```
 Five tests for every of hundred users without delay (it may be hardcore):
 ```yaml
+---
+settings:
+  path: 'C:\SIEGE\SIEGE.EXE'
 execution:
   executor: siege
-  path: 'C:\SIEGE\SIEGE.EXE'
   concurrency: 100
   repetition: 5
   scenario:
@@ -44,9 +47,11 @@ execution:
 ```
 Test servers from nodes.list with 1000 typical user emulation for 5 minutes
 ```yaml
+---
+settings:
+  path: '/usr/bin/siege'
 execution:
   executor: siege
-  path: '/usr/bin/siege'
   concurrency: 1000
   hold-for: 5m
   scenario:
@@ -55,6 +60,7 @@ execution:
 ```
 Variables example:
 ```yaml
+---
 scenario:
     requests:
       - variables:

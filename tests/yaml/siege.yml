@@ -1,7 +1,8 @@
 ---
+settings:
+  path: "/usr/bin/siege"
 execution:
   executor: siege
-  path: "/usr/bin/siege"
   concurrency: 100
   hold-for: 5s
   scenario:

@@ -155,7 +155,7 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider):
             self.__err.close()
 
     def _check_installed(self):
-        tool_path = self.execution.get('path', 'siege')
+        tool_path = self.settings.get('path', 'siege')
         siege = Siege(tool_path, self.log)
         if not siege.check_if_installed():
             raise RuntimeError("You must install Siege tool at first")

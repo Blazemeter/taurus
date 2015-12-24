@@ -15,8 +15,9 @@ class TestSiegeExecutor(BZTestCase):
     def test_iter(self):
         obj = SiegeExecutor()
         obj.engine = EngineEmul()
+        obj.settings.merge({
+            "path": get_res_path('siege.sh'),})
         obj.execution.merge({
-            "path": get_res_path('siege.sh'),
             "concurrency": 2,
             "iterations": 3,
             "scenario": {
@@ -30,8 +31,9 @@ class TestSiegeExecutor(BZTestCase):
     def test_hold(self):
         obj = SiegeExecutor()
         obj.engine = EngineEmul()
+        obj.settings.merge({
+            "path": get_res_path('siege.sh'),})
         obj.execution.merge({
-            "path": get_res_path('siege.sh'),
             "concurrency": 2,
             "hold-for": '2s',
             "scenario": {
@@ -48,8 +50,9 @@ class TestSiegeExecutor(BZTestCase):
     def test_url_exceptions(self):
         obj = SiegeExecutor()
         obj.engine = EngineEmul()
+        obj.settings.merge({
+            "path": get_res_path('siege.sh'),})
         obj.execution.merge({
-            "path": get_res_path('siege.sh'),
             "concurrency": 2,
             "hold-for": '2s',
             "scenario": {}})
@@ -62,8 +65,9 @@ class TestSiegeExecutor(BZTestCase):
     def test_check_install_exceptions(self):
         obj = SiegeExecutor()
         obj.engine = EngineEmul()
+        obj.settings.merge({
+            "path": '*',})
         obj.execution.merge({
-            "path": '*',
             "concurrency": 2,
             "hold-for": '2s',
             "scenario": {}})
@@ -76,8 +80,9 @@ class TestSiegeExecutor(BZTestCase):
     def test_repetition_exceptions(self):
         obj = SiegeExecutor()
         obj.engine = EngineEmul()
+        obj.settings.merge({
+            "path": get_res_path('siege.sh'),})
         obj.execution.merge({
-            "path": get_res_path('siege.sh'),
             "concurrency": 2,
             "scenario": {
                 "requests": ["http://blazedemo.com",
@@ -92,8 +97,9 @@ class TestSiegeExecutor(BZTestCase):
     def test_full_execution(self):
         obj = SiegeExecutor()
         obj.engine = EngineEmul()
+        obj.settings.merge({
+            "path": get_res_path('siege.sh'),})
         obj.execution.merge({
-            "path": get_res_path('siege.sh'),
             "concurrency": 2,
             "iterations": 3,
             "scenario": {
