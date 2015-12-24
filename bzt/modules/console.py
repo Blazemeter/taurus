@@ -43,10 +43,13 @@ from bzt.modules.provisioning import Local
 from bzt.six import StringIO
 from bzt.utils import humanize_time, is_windows
 
-if is_windows():
-    from bzt.modules.screen import GUIScreen as Screen  # curses unavailable on windows
-else:
+try:
     from urwid.curses_display import Screen
+except ImportError:
+    try:
+        from bzt.modules.screen import GUIScreen as Screen
+    except ImportError:
+        from bzt.utils import DummyScreen as Screen
 
 
 class ConsoleStatusReporter(Reporter, AggregatorListener):

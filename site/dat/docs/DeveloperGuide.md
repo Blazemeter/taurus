@@ -27,6 +27,7 @@ If you want to deploy project website locally to debug its content:
  - enable _mod\_rewrite_ for Apache: `sudo a2enmod rewrite`
  - Get [PHP composer](https://getcomposer.org/download/), go to `site` directory and run there `composer.phar update --prefer-stable`
  - copy file `vendor/undera/pwe/.htaccess` into `site` directory
+ - create `site/snapshots` directory
  - Under `/etc/apache2/sites-enabled` create the file `taurus.conf` with following content:
 ```
 <Directory "/home/mydir/taurus/site">

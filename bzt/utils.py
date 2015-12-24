@@ -1,3 +1,4 @@
+# coding=utf-8
 """
 Every project needs its trash heap of miscellaneous functions and classes
 
@@ -42,6 +43,7 @@ from webbrowser import GenericBrowser
 import psutil
 from progressbar import ProgressBar, Percentage, Bar, ETA
 from psutil import Popen
+from urwid import BaseScreen
 
 from bzt.six import string_types, iteritems, viewvalues, binary_type, text_type, b, integer_types, request, file_type
 
@@ -790,3 +792,40 @@ def is_windows():
 
 
 EXE_SUFFIX = ".bat" if is_windows() else ".sh"
+
+
+class DummyScreen(BaseScreen):
+    """
+    Null-object for Screen on non-tty output
+    """
+
+    def __init__(self):
+        super(DummyScreen, self).__init__()
+        self.size = (120, 40)
+        self.ansi_escape = re.compile(r'\x1b[^m]*m')
+
+    def get_cols_rows(self):
+        """
+        Dummy cols and rows
+
+        :return:
+        """
+        return self.size
+
+    def draw_screen(self, size, canvas):
+        """
+
+        :param size:
+        :type canvas: urwid.Canvas
+        """
+        data = ""
+        for char in canvas.content():
+            line = ""
+            for part in char:
+                if isinstance(part[2], str):
+                    line += part[2]
+                else:
+                    line += part[2].decode()
+            data += "%s│\n" % line
+        data = self.ansi_escape.sub('', data)
+        logging.info("Screen %sx%s chars:\n%s", size[0], size[1], data)

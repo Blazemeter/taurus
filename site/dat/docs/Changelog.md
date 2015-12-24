@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.3
+ - parse URLs for JMeter a bit better 
+
 ## 0.5.2
  - fix JMeter installation on windows
 

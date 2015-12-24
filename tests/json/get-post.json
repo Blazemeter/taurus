@@ -141,7 +141,6 @@
   },
   "modules": {
     "jmeter": {
-      "path": "build/jmeter/bin/jmeter",
       "rename-distributed-threads": false,
       "properties": {
         "jmeter.save.saveservice.autoflush": "true"

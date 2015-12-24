@@ -66,7 +66,7 @@ Field names with explanations:
  -   `avg_ct` - average connect time if present
  -   `avg_lt`  - average latency if present 
  -   `rc_200` - counts for specific response codes
- -   `perc_0.0 .. perc_100.0` - percentile levels for response time, 0 is also minimum response time, 100 is maximum
+ -   `perc_0.0` .. `perc_100.0` - percentile levels for response time, 0 is also minimum response time, 100 is maximum
 
 ## Console Screen
 
@@ -139,8 +139,9 @@ modules:
     browser-open: start  # auto-open the report in browser, 
                          # can be "start", "end", "both", "none"
     send-interval: 30s   # send data each n-th second
-    timeout: 5  # connect and request timeout for BlazeMeter API
-    artifact-upload-size-limit: 5  # limit max size of file (in megabytes) that goes into zip for artifact upload, 10 by default
+    timeout: 5s  # connect and request timeout for BlazeMeter API
+    artifact-upload-size-limit: 5  # limit max size of file (in megabytes) 
+                                   # that goes into zip for artifact upload, 10 by default
     
     # following instructions will have effect when no per-reporter settings
     report-name: My Next Test  # if you will use value 'ask', it will ask it from command line
