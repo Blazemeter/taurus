@@ -8,7 +8,7 @@ build:
   tests:
     override:
       -
-        command: coverage run `which nosetests`
+        command: nosetests --with-coverage tests
         coverage:
           file: .coverage
           #config: .coveragerc
