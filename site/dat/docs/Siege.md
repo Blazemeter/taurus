@@ -19,7 +19,6 @@ You must specify at leas one test target with `url` param in `requests` section 
 It's needed to choose explicitly `iterations` or `hold-for` mode.
 If you used `script` option no `variables` or `requests` are processed.
 And of course you need Siege. If this program not in the system PATH help the Taurus to find it with `path` option.
-
  
 ## Configuration example fragments
 Simplest working example - just use it for taste.
