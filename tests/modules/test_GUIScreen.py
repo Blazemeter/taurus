@@ -1,10 +1,14 @@
-from unittest import TestCase
 import time
+from unittest import TestCase
 
 from urwid.canvas import Canvas
 
 from bzt.modules.console import TaurusConsole
-from bzt.modules.screen import GUIScreen
+
+try:
+    from bzt.modules.screen import GUIScreen as Screen
+except:
+    from bzt.utils import DummyScreen as Screen
 
 
 class TestCanvas(Canvas):
@@ -31,7 +35,7 @@ class TestGUIScreen(TestCase):
         lines = [((x[0], None, "%s\n" % x[0]),) for x in TaurusConsole.palette]
         canvas = TestCanvas(lines)
 
-        obj = GUIScreen()
+        obj = Screen()
         obj.register_palette(TaurusConsole.palette)
 
         obj.start()
