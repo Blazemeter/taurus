@@ -3,7 +3,7 @@ from unittest import TestCase
 
 from urwid.canvas import Canvas
 
-from bzt.modules.console import TaurusConsole
+from bzt.modules.console import TaurusConsole, DummyScreen
 
 try:
     from bzt.modules.screen import GUIScreen as Screen
@@ -36,6 +36,9 @@ class TestGUIScreen(TestCase):
         canvas = TestCanvas(lines)
 
         obj = Screen()
+        """
+        :type: bzt.modules.screen.GUIScreen
+        """
         obj.register_palette(TaurusConsole.palette)
 
         obj.start()
@@ -43,16 +46,17 @@ class TestGUIScreen(TestCase):
             obj.draw_screen((1, 1), canvas)
             time.sleep(0.5)
 
-        old_font_size = obj.font['size']
-        obj.root.event_generate("<Control-4>")
-        obj.root.event_generate("<Control-MouseWheel>", delta=120)
-        if old_font_size > 0:
-            self.assertGreater(obj.font['size'], old_font_size)
-        else:
-            self.assertLess(obj.font['size'], old_font_size)
-        obj.root.event_generate("<Control-5>")
-        obj.root.event_generate("<Control-MouseWheel>", delta=-120)
+        if not isinstance(obj, DummyScreen):
+            old_font_size = obj.font['size']
+            obj.root.event_generate("<Control-4>")
+            obj.root.event_generate("<Control-MouseWheel>", delta=120)
+            if old_font_size > 0:
+                self.assertGreater(obj.font['size'], old_font_size)
+            else:
+                self.assertLess(obj.font['size'], old_font_size)
+            obj.root.event_generate("<Control-5>")
+            obj.root.event_generate("<Control-MouseWheel>", delta=-120)
 
-        self.assertEqual(obj.font['size'], old_font_size)
+            self.assertEqual(obj.font['size'], old_font_size)
 
         obj.stop()
