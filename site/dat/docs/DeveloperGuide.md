@@ -21,7 +21,8 @@
  
 # Deploying Project Website
 
-If you want to deploy project website locally to debug its content.
+If you want to deploy project website locally to debug its content use this instruction (actually it's for Debuan/Ubuntu, adopt for your system if needed).   
+
 Have Apache web server installed with  `mod\_rewrite` support and PHP 5:
 ```
   sudo aptitude update
