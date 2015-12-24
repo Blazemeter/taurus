@@ -3,7 +3,7 @@ from unittest import TestCase
 
 from urwid.canvas import Canvas
 
-from bzt.modules.console import TaurusConsole, DummyScreen
+from bzt.modules.console import TaurusConsole
 
 try:
     from bzt.modules.screen import GUIScreen as Screen
@@ -46,7 +46,7 @@ class TestGUIScreen(TestCase):
             obj.draw_screen((1, 1), canvas)
             time.sleep(0.5)
 
-        if not isinstance(obj, DummyScreen):
+        if hasattr(obj, 'font'):
             old_font_size = obj.font['size']
             obj.root.event_generate("<Control-4>")
             obj.root.event_generate("<Control-MouseWheel>", delta=120)
