@@ -164,8 +164,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         try:
             self.console.add_data(data)
         except BaseException:
-            self.log.debug("Failed to add datapoint to display: %s", traceback.format_exc())
-            self.log.warning("Failed to add datapoint to display")
+            self.log.warn("Failed to add datapoint to display: %s", traceback.format_exc())
 
         self.data_started = True
 
