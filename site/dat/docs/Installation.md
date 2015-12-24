@@ -23,14 +23,14 @@ To upgrade Taurus, open Command Prompt the same way and hit
 ### Ubuntu
 Instructions are tested on Ubuntu 14.04 (Trusty) minimal install, but should work on other distributions with corresponding packages and libs. You will need python 2.7 or higher and Java installed.
 
-```bash
+```
+sudo aptitude update
 sudo aptitude install python default-jre-headless python-tk python-pip python-dev libxml2-dev libxslt-dev zlib1g-dev
 sudo pip install bzt
 ```
-
 Upgrading to latest is as simple as this:
 
-```bash
+```
 sudo pip install --upgrade bzt
 ```
 
