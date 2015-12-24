@@ -1,11 +1,11 @@
 build:
-    dependencies:
-        before:
-            - pip install colorlog pyyaml psutil lxml cssselect nose urwid coverage six pylint selenium progressbar33 locustio pyvirtualdisplay
-    tests:
-        override:
-                command: ./run-test.sh
-                coverage:
-                    file: .coverage
-                    #config: .coveragerc
-                    format: py-cc
+  dependencies:
+    before:
+      - pip install colorlog pyyaml psutil lxml cssselect nose urwid coverage six pylint selenium progressbar33 locustio pyvirtualdisplay
+  tests:
+    override:
+      command: ./run-test.sh
+      coverage:
+        file: .coverage
+        #config: .coveragerc
+        format: py-cc
