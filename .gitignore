@@ -2,7 +2,6 @@
 *.iml
 **/.idea/
 /site/img/docs
-/site/dat/eg_globals.xml
 /build/
 /dist/
 /*.egg-info/
