@@ -49,7 +49,7 @@ except:
     try:
         from bzt.modules.screen import GUIScreen as Screen
     except:
-        from bzt.modules.screen import DummyScreen as Screen
+        from bzt.utils import DummyScreen as Screen
 
 
 class ConsoleStatusReporter(Reporter, AggregatorListener):
