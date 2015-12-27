@@ -43,10 +43,13 @@ from bzt.modules.provisioning import Local
 from bzt.six import StringIO
 from bzt.utils import humanize_time, is_windows
 
-if is_windows():
-    from bzt.modules.screen import GUIScreen as Screen  # curses unavailable on windows
-else:
+try:
     from urwid.curses_display import Screen
+except ImportError:
+    try:
+        from bzt.modules.screen import GUIScreen as Screen
+    except ImportError:
+        from bzt.utils import DummyScreen as Screen
 
 
 class ConsoleStatusReporter(Reporter, AggregatorListener):
@@ -91,9 +94,9 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         modules += self.engine.services
         if isinstance(self.engine.provisioning, Local):
             modules += self.engine.provisioning.executors
-        for executor in modules:
-            if isinstance(executor, WidgetProvider):
-                widgets.append(executor.get_widget())
+        for module in modules:
+            if isinstance(module, WidgetProvider):
+                widgets.append(module.get_widget())
 
         self.console = TaurusConsole(widgets)
         self.screen.register_palette(self.console.palette)
@@ -161,7 +164,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         try:
             self.console.add_data(data)
         except BaseException:
-            self.log.warning("Failed to add datapoint to display")
+            self.log.warn("Failed to add datapoint to display: %s", traceback.format_exc())
 
         self.data_started = True
 

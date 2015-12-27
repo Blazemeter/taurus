@@ -15,6 +15,7 @@ Configuration options:
 ## Run Grinder Tool
 
 ```yaml
+---
 execution:
   - executor: grinder
     concurrency: 3

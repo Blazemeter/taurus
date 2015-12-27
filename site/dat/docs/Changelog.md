@@ -1,6 +1,12 @@
 # Changelog
 
+## 0.5.3
+ - parse URLs for JMeter a bit better
+ - add `Siege` executor
+ - fix website deploying manual and some other instructions 
+
 ## 0.5.2
+ - fix JMeter installation on windows
 
 ## 0.5.1
  - fix shellexec env variables

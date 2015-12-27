@@ -16,15 +16,13 @@ limitations under the License.
 """
 
 import logging
-import re
-import platform
 import math
 
 import urwid
 from urwid import BaseScreen
 
-from bzt.six import text_type, iteritems, PY2
 from bzt import ManualShutdown
+from bzt.six import text_type, iteritems, PY2
 from bzt.utils import is_windows
 
 if PY2:  # we have to put import logic here to avoid requiring python-tk library on linux
@@ -33,43 +31,6 @@ if PY2:  # we have to put import logic here to avoid requiring python-tk library
 else:
     import tkinter as tkinter
     from tkinter import font as tkfont
-
-
-class DummyScreen(BaseScreen):
-    """
-    Null-object for Screen on non-tty output
-    """
-
-    def __init__(self, cols, rows):
-        super(DummyScreen, self).__init__()
-        self.size = (cols, rows)
-        self.ansi_escape = re.compile(r'\x1b[^m]*m')
-
-    def get_cols_rows(self):
-        """
-        Dummy cols and rows
-
-        :return:
-        """
-        return self.size
-
-    def draw_screen(self, size, canvas):
-        """
-
-        :param size:
-        :type canvas: urwid.Canvas
-        """
-        data = ""
-        for char in canvas.content():
-            line = ""
-            for part in char:
-                if isinstance(part[2], str):
-                    line += part[2]
-                else:
-                    line += part[2].decode()
-            data += "%s│\n" % line
-        data = self.ansi_escape.sub('', data)
-        logging.info("Screen %sx%s chars:\n%s", size[0], size[1], data)
 
 
 class GUIScreen(BaseScreen):

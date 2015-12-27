@@ -1,0 +1,12 @@
+---
+settings:
+  path: "/usr/bin/siege"
+execution:
+  executor: siege
+  concurrency: 100
+  hold-for: 5s
+  scenario:
+    think-time: 1
+    requests:
+      - url: localhost
+

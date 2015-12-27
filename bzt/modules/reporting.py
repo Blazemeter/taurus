@@ -15,17 +15,17 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-from collections import OrderedDict
 import copy
 import csv
 import os
 import time
+from collections import OrderedDict
 from datetime import datetime
 
-from bzt.modules.aggregator import DataPoint, KPISet, AggregatorListener, ResultsProvider
 from bzt.engine import Reporter
-from bzt.modules.passfail import PassFailStatus
+from bzt.modules.aggregator import DataPoint, KPISet, AggregatorListener, ResultsProvider
 from bzt.modules.blazemeter import BlazeMeterUploader
+from bzt.modules.passfail import PassFailStatus
 from bzt.six import etree, iteritems, string_types
 
 
@@ -314,7 +314,9 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
                 report_url = "BlazeMeter report link: %s\n" % bza_reporter.client.results_url
             if bza_reporter.client.test_id:
                 test_name = bza_reporter.parameters.get("test", None)
-            result.append((report_url, test_name))
+
+            if report_url is not None:
+                result.append((report_url, test_name if test_name is not None else report_url))
 
         if len(result) > 1:
             self.log.warning("More then one blazemeter reporter found")
