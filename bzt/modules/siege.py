@@ -18,7 +18,6 @@ limitations under the License.
 
 import os
 import logging
-import subprocess
 import datetime
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.engine import ScenarioExecutor
@@ -96,6 +95,7 @@ class SiegeExecutor(ScenarioExecutor):
             self.__out.close()
         if self.__err and not self.__err.closed:
             self.__err.close()
+
 
 class DataLogReader(ResultsReader):
     def __init__(self, filename, parent_logger):
