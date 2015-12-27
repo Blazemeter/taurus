@@ -214,8 +214,8 @@ class DataLogReader(ResultsReader):
             # _rsize = int(log_vals[5])     # 5. size of response
             _url = log_vals[5]  # 6. long or short URL value
             # _url_id = int(log_vals[7])    # 7. url number
-            _tstamp = datetime.strptime(log_vals[7], "%Y-%m-%d %H:%M:%S")
-            _tstamp = _tstamp.toordinal()  # 8. moment of request sending
+            _tstamp = time.strptime(log_vals[7], "%Y-%m-%d %H:%M:%S")
+            _tstamp = int(time.mktime(_tstamp))  # 8. moment of request sending
 
             _con_time = 0
             _latency = 0
