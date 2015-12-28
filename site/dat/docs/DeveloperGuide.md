@@ -21,7 +21,7 @@
  
 # Deploying Project Website
 
-If you want to deploy project website locally to debug its content use this instruction (actually it's for Debuan/Ubuntu, adopt for your system if needed).   
+If you want to deploy project website locally to debug its content use these instructions (actually it's for Debian/Ubuntu, adopt for your system if needed).   
 
 Have Apache web server installed with  `mod\_rewrite` support and PHP 5:
 ```
@@ -29,7 +29,7 @@ Have Apache web server installed with  `mod\_rewrite` support and PHP 5:
   sudo apt-get install apache2 libapache2-mod-php5 php5
   sudo a2enmod rewrite
 ```
-Prepare site directory, for it go to there and execute
+Prepare site directory, go here and execute
 ```
  php -r "readfile('https://getcomposer.org/installer');" | php
  composer.phar update --prefer-stable

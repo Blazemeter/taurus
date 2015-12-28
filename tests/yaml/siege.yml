@@ -2,10 +2,12 @@
 settings:
   path: "/usr/bin/siege"
 execution:
-  executor: siege
+- executor: siege
   concurrency: 5
-  hold-for: 30
+  hold-for: 3
   scenario:
     requests:
-      - url: ya.ru
+    - url: ya.ru
+
+
 
