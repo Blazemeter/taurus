@@ -83,7 +83,7 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider):
 
         with open(url_file_name, 'w') as url_file:
             url_list = list(self.scenario.get_requests())
-            url_list = [req.url for req in url_list]  # FIXME: read all info
+            url_list = [req.url for req in url_list]
             url_file.writelines('\n'.join(user_vars + url_list))
             url_file.close()
         return url_file_name

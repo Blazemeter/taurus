@@ -31,6 +31,8 @@ Taurus tool may use different underlying tools as executors for scenarios. Curre
   - [Gatling](Gatling.md), executor type `gatling`
   - [Grinder](Grinder.md), executor type `grinder`
   - [Locust](Locust.md), executor type `locust`
+  - [PBench](PBench.md), executor type `pbench`
+  - [Siege](Siege.md), executor type `siege`
 
 Default executor is `jmeter` and can be changed under [general settings](ConfigSyntax.md#top-level-settings) section.
 ```yaml
@@ -39,7 +41,7 @@ settings:
   default-executor: jmeter
 ```
 
-You may contribute your efforts in supporting requests-scenarios for your favorite tool by discussing this on [project forums](https://groups.google.com/forum/#!forum/codename-taurus).
+You may contribute your efforts in supporting requests-scenarios for your favorite tool by discussing this on [project forum](https://groups.google.com/forum/#!forum/codename-taurus).
 
 ## Load Profile
 
