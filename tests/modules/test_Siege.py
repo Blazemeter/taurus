@@ -124,7 +124,8 @@ class TestDataLogReader(BZTestCase):
         obj = DataLogReader(log_path, logging.getLogger(''))
         list_of_values = list(obj.datapoints(True))
 
-        self.assertEqual(len(list_of_values), 3)
+        self.assertEqual(len(list_of_values), 8)
 
         for values in list_of_values:
+            self.assertTrue(1400000000 < values['ts'] < 1500000000)
             self.assertEqual(len(values), 5)

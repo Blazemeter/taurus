@@ -4,7 +4,7 @@ settings:
 execution:
   executor: siege
   concurrency: 5
-  iterations: 1000
+  hold-for: 30
   scenario:
     requests:
       - url: ya.ru
