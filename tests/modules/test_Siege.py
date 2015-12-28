@@ -26,6 +26,7 @@ class TestSiegeExecutor(BZTestCase):
                              "http://ya.ru"]}
         })
         obj.prepare()
+        obj.get_widget()
         obj.startup()
 
     def test_hold(self):
@@ -45,6 +46,7 @@ class TestSiegeExecutor(BZTestCase):
                     'v2': 'TWO'},
                 "script": get_res_path('url-file')}})
         obj.prepare()
+        obj.get_widget()
         obj.startup()
 
     def test_url_exceptions(self):

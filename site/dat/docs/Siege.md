@@ -35,8 +35,9 @@ execution:
 Five tests for every of hundred users without delay (it may be hardcore):
 ```yaml
 ---
-settings:
-  path: 'C:\SIEGE\SIEGE.EXE'
+modules:
+  siege:
+    path: 'C:\SIEGE\SIEGE.EXE'
 execution:
   executor: siege
   concurrency: 100
