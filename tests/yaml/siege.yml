@@ -1,0 +1,11 @@
+---
+settings:
+  path: "/usr/bin/siege"
+execution:
+  executor: siege
+  concurrency: 5
+  hold-for: 30
+  scenario:
+    requests:
+      - url: ya.ru
+

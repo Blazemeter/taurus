@@ -93,6 +93,9 @@
     },
     "pbench": {
       "class": "bzt.modules.pbench.PBenchExecutor"
+    },
+    "siege": {
+      "class": "bzt.modules.siege.SiegeExecutor"
     }
   },
   "settings": {
