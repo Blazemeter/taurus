@@ -24,13 +24,13 @@ By default, cloud-provisioned execution will read `concurrency` and `throughput`
 ```yaml
 ---
 execution:
-  - scenario: my-scen
-    concurrency:
-      local: 5
-      cloud: 5000
-    throughput:
-      local: 100
-      cloud: 10000
+- scenario: my-scen
+  concurrency:
+    local: 5
+    cloud: 5000
+  throughput:
+    local: 100
+    cloud: 10000
 ```
 
 Then you can just switch `provisioning` and load settings will be taken accordingly. For example, running `bzt config.yml -o provisioning=cloud` is an easy way to toggle on `cloud` provisioning. The `concurrency` and `througput` are always *total* value for execution, no matter how many locations will be involved.
@@ -42,9 +42,9 @@ Cloud locations are specified per-execution. Specifying multiple cloud locations
 ```yaml
 ---
 execution:
-  - locations:
-      eu-west: 1
-      eu-east: 2
+- locations:
+    eu-west: 1
+    eu-east: 2
 ```
 
 The list of all available locations contained in [User API Call](https://a.blazemeter.com/api/latest/user) and may be specific for particular user. See `locations` block and `id` option for each location.
@@ -54,10 +54,10 @@ By default, Taurus will calculate machines count for each location based on thei
 ```yaml
 ---
 execution:
-  - locations:
-      eu-west: 2
-      eu-east: 7
-    locations-weighted: false
+- locations:
+    eu-west: 2
+    eu-east: 7
+  locations-weighted: false
 ```
 
 ## Reporting Settings
@@ -76,13 +76,13 @@ If you need some additional files as part of your test and Taurus fails to detec
 ```yaml
 ---
 execution:
-  - locations:
-      eu-east: 1
-    scenario:
-      script: testplan.jmx
-    files:
-      - path/to/file1.csv
-      - path/to/file2.csv
+- locations:
+    eu-east: 1
+  scenario:
+    script: testplan.jmx
+  files:
+  - path/to/file1.csv
+  - path/to/file2.csv
 ```
 
 
@@ -97,9 +97,9 @@ If you need to install additional python modules via `pip`, you can do it by usi
 ```yaml
 ---
 services:
-  - module: shellexec
-    prepare: 
-      - pip install cryptography  # 'cryptography' is the library from PyPi
+  module: shellexec
+  prepare: 
+  - pip install cryptography  # 'cryptography' is the library from PyPi
 ```
 
 You can even upload your proprietary python eggs into workers by specifying them in `files` option and then installing by shellexec:
@@ -107,16 +107,15 @@ You can even upload your proprietary python eggs into workers by specifying them
 ```yaml
 ---
 execution:
-  - executor: locust
-    scenario: locust-scen
-    files:
-      - my-modules.zip
-      
+- executor: locust
+  scenario: locust-scen
+  files:
+  - my-modules.zip      
 services:
-  - module: shellexec
-    prepare: 
-      - unzip my-modules.zip
-      - pip install -r requirements.txt
+  module: shellexec
+  prepare: 
+  - unzip my-modules.zip
+  - pip install -r requirements.txt
 ```
 
 ## Worker Number Info

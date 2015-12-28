@@ -10,3 +10,9 @@ execution:
   scenario:
     requests:
     - url: ya.ru
+  header1:
+    header2: 'val2'
+   header3: 'va3'
+
+
+

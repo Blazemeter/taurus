@@ -5,8 +5,8 @@ When you need to perform some actions before test starts, after test starts, or 
 ```yaml
 ---
 services:
-  - shellexec:
-      prepare: ...
+- shellexec:
+    prepare: ...
 ```
 
 ## Pass/Fail Criteria
@@ -18,10 +18,10 @@ Pass/fail criteria are specified as array of `criteria`, set through `services` 
 ```yaml
 ---
 services:
- - module: passfail
-   criterias:
-   - avg-rt of Sample Label>150ms for 10s, stop as failed
-   - fail of Sample Label>50% for 10s, stop as failed
+- module: passfail
+  criterias:
+  - avg-rt of Sample Label>150ms for 10s, stop as failed
+  - fail of Sample Label>50% for 10s, stop as failed
 ```
 
 The above example use short form for criteria, its general format is `subject of label{condition}threshold {logic} timeframe, action as status`, where:
@@ -55,7 +55,7 @@ The full form of the criteria is conducted by Taurus automatically from short fo
 ```yaml
 ---
 services:
- - module: passfail
+- module: passfail
   criterias:
   - subject: avg-rt  # required
     label: 'Sample Label'  # optional, default is ''
@@ -79,10 +79,10 @@ By default, Taurus uses criteria string to present it in messages. If you want t
 ```yaml
 ---
 services:
- - module: passfail
-   criterias:
-     My Message: avg-rt of Sample Label>150ms for 10s, stop as failed
-     Sample Label fails too much: fail of Sample Label>50% for 10s, stop as failed
+- module: passfail
+  criterias:
+    My Message: avg-rt of Sample Label>150ms for 10s, stop as failed
+    Sample Label fails too much: fail of Sample Label>50% for 10s, stop as failed
 ```
 
 
@@ -92,20 +92,20 @@ Sample configuration:
 ```yaml
 ---
 services:
-  - module: shellexec
-    prepare:  
-      - mkdir /tmp/test
-    startup:
-      - echo 1 > /tmp/test
-      - echo 2 > /tmp/test
-    shutdown:
-      - cat /tmp/test2 
-    post-process:
-      - rm /tmp/test1
-      - rm /tmp/test2
+- module: shellexec
+  prepare:  
+  - mkdir /tmp/test
+  startup:
+  - echo 1 > /tmp/test
+  - echo 2 > /tmp/test
+  shutdown:
+  - cat /tmp/test2 
+  post-process:
+  - rm /tmp/test1
+  - rm /tmp/test2
 execution:
-  - scenario: tg1
-    hold-for: 10s
+- scenario: tg1
+  hold-for: 10s
 scenarios:
   tg1:
     requests:
@@ -118,30 +118,30 @@ Extended task configuration sample:
 ```yaml
 ---
 services:
-  - module: shellexec
-    prepare: # stage names: [prepare, startup, check]
-    - command: echo 1 > /tmp/1.txt && sleep 1 && dmesg | grep pci  # task command
-      background: true  # wait for task completion or send it to background, false by default. 
-      ignore-failure: true  # false by default, otherwise will shutdown tests if command return code != 0, 
-      out: taskout.txt  # set file name for task stdout, null to print to stdout
-      err: taskerr.txt  # set file name for task stderr, null to print to stdout
-      run-at: local  # provisioning level to limit command usage, null to run always
-      cwd: artifacts-dir  # option to change working dir for command, null to not change it
-                          # special value 'artifacts-dir' will change to taurus artifacts dir
-      env:  # environment variables to set for command
-         VAR1: val1
-         VAR2: val2
+- module: shellexec
+  prepare: # stage names: [prepare, startup, check]
+  - command: echo 1 > /tmp/1.txt && sleep 1 && dmesg | grep pci  # task command
+    background: true  # wait for task completion or send it to background, false by default. 
+    ignore-failure: true  # false by default, otherwise will shutdown tests if command return code != 0, 
+    out: taskout.txt  # set file name for task stdout, null to print to stdout
+    err: taskerr.txt  # set file name for task stderr, null to print to stdout
+    run-at: local  # provisioning level to limit command usage, null to run always
+    cwd: artifacts-dir  # option to change working dir for command, null to not change it
+                        # special value 'artifacts-dir' will change to taurus artifacts dir
+    env:  # environment variables to set for command
+      VAR1: val1
+      VAR2: val2
 ```
 
 Minimum task configuration sample:
 ```yaml
 ---
 services:
-  - module: shellexec
-    prepare: ls -la
-    startup:
-    - pwd
-    - echo something
+- module: shellexec
+  prepare: ls -la
+  startup:
+  - pwd
+  - echo something
 ```
 Notes:
  - Non-background tasks are not allowed on startup stage.
@@ -170,19 +170,19 @@ Shortly, you need to unzip and launch small Java server on each of your target s
 ```yaml
 ---
 services:
-  - module: monitoring
-    server-agents:
-      127.0.0.1:4444:
-        metrics:
-          - cpu
-          - disks
-          - memory
-      application server:
-        address: myserv.target.com 
-        metrics:
-          - cpu
-          - disks
-          - memory
+- module: monitoring
+  server-agents:
+    127.0.0.1:4444:
+      metrics:
+      - cpu
+      - disks
+      - memory
+    application server:
+      address: myserv.target.com 
+      metrics:
+      - cpu
+      - disks
+      - memory
 ``` 
 
 ### Sidebar Widget
@@ -200,11 +200,11 @@ Once you have working resource collecting process, you can use special failure c
 ```yaml
 ---
 services:
-  - module: passfail
-    criterias:
-      - class: bzt.modules.monitoring.MonitoringCriteria
-        subject: 127.0.0.1/cpu:idle
-        condition: '<'
-        threshold: 5
-        timeframe: 5s
+- module: passfail
+  criterias:
+  - class: bzt.modules.monitoring.MonitoringCriteria
+    subject: 127.0.0.1/cpu:idle
+    condition: '<'
+    threshold: 5
+    timeframe: 5s
 ```
