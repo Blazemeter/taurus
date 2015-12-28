@@ -1,6 +1,8 @@
 ---
-settings:
-  path: "/usr/bin/siege"
+
+modules:
+  siege:
+    path: "/usr/bin/siege"
 execution:
 - executor: siege
   concurrency: 5
@@ -8,6 +10,3 @@ execution:
   scenario:
     requests:
     - url: ya.ru
-
-
-
