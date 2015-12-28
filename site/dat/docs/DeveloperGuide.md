@@ -25,8 +25,8 @@ If you want to deploy project website locally to debug its content use this inst
 
 Have Apache web server installed with  `mod\_rewrite` support and PHP 5:
 ```
-  sudo aptitude update
-  sudo aptitude install apache2 libapache2-mod-php5 php5
+  sudo apt-get update
+  sudo apt-get install apache2 libapache2-mod-php5 php5
   sudo a2enmod rewrite
 ```
 Prepare site directory, for it go to there and execute
