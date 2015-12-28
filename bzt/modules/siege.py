@@ -210,13 +210,13 @@ class DataLogReader(ResultsReader):
             # _mark = log_vals[0]           # 0. current test mark, defined by --mark key
             # _user_id = int(log_vals[1])   # 1. fake user id
             # _http = log_vals[2]           # 2. http protocol
-            _rstatus = int(log_vals[2])  # 3. response status code
-            _etime = float(log_vals[3])  # 4. elapsed time (total time - connection time)
+            _rstatus = log_vals[2]          # 3. response status code
+            _etime = float(log_vals[3])     # 4. elapsed time (total time - connection time)
             # _rsize = int(log_vals[5])     # 5. size of response
-            _url = log_vals[5]  # 6. long or short URL value
+            _url = log_vals[5]              # 6. long or short URL value
             # _url_id = int(log_vals[7])    # 7. url number
             _tstamp = datetime.strptime(log_vals[7], "%Y-%m-%d %H:%M:%S")
-            _tstamp = _tstamp.toordinal()  # 8. moment of request sending
+            _tstamp = _tstamp.toordinal()   # 8. moment of request sending
 
             _con_time = 0
             _latency = 0
