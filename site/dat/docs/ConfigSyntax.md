@@ -16,7 +16,7 @@ Example for config that touches all sections:
 ```yaml
 ---
 execution:
-  concurrency: 10
+- concurrency: 10
   hold-for: 5m
   ramp-up: 2m
   scenario:
@@ -185,8 +185,8 @@ Hint: YAML config files on Linux/MacOS allows a trick of self-executing config. 
 #! /usr/local/bin/bzt
 ---
 execution:
- hold-for: 1m
- scenario:
+- hold-for: 1m
+  scenario:
   requests:
    - http://blazedemo.com/
 ```
@@ -209,6 +209,6 @@ After all config files loaded, Taurus will also merge into resulting configurati
 ```yaml
 ---
 included-configs:  # it must be a list of string values
-  - additional-local-file.yml  # to add local file just set its path
-  - http://central.host/mystorage/remote.yml  # you can also download config from http/https location
+- additional-local-file.yml  # to add local file just set its path
+- http://central.host/mystorage/remote.yml  # you can also download config from http/https location
 ```

@@ -5,8 +5,8 @@ Reporting functionality in Taurus is delegated to special modules category. Ther
 ```yaml
 ---
 reporting:
-    - final_stats
-    - console
+- final_stats
+- console
 ```
 
 The example above uses a shorthand form for specifying reporters. Full form is using dictionaries and allows specifying some additional settings for reporters:
@@ -14,8 +14,8 @@ The example above uses a shorthand form for specifying reporters. Full form is u
 ```yaml
 ---
 reporting:
-    - module: final_stats
-    - module: console
+- module: final_stats
+- module: console
 ```
 
 Possible reporting modules are listed below.
@@ -41,13 +41,13 @@ This reporter is enabled by default. To enable it manually, use following config
 ```yaml
 ---
 reporting:
-  - module: final_stats
-      summary: true  # overall samples count and percent of failures
-      percentiles: true  # display average times and percentiles
-      failed-labels: false  # provides list of sample labels with failures
-      test-duration: true  # provides test duration
-      dump-xml: filename to export data in XML format
-      dump-csv: filename to export data in CSV format
+- module: final_stats
+  summary: true  # overall samples count and percent of failures
+  percentiles: true  # display average times and percentiles
+  failed-labels: false  # provides list of sample labels with failures
+  test-duration: true  # provides test duration
+  dump-xml: filename to export data in XML format
+  dump-csv: filename to export data in CSV format
 ```
 
 ### Dump Summary for Jenkins Plot Plugin
@@ -56,7 +56,7 @@ Two options `dump-csv` and `dump-xml` allows to export final cumulative stats in
 
 Field names with explanations:
 
- - `label` - is the sample group for which this CSV line presents the stats. Empty label means total of all labels
+ -   `label` - is the sample group for which this CSV line presents the stats. Empty label means total of all labels
  -   `concurrency` - average number of Virtual Users
  -   `throughput` - total count of all samples
  -   `succ` - total count of not-failed samples   
@@ -79,7 +79,7 @@ This reporter is enabled by default. To enable it manually, use following config
 ```yaml
 ---
 reporting:
-    - console
+- console
 ```
 
 There is module settings for Console Screen, containing option `disable`. It allows easy disabling fullscreen display by using [command-line](CommandLine.md) switch `-o`:
@@ -122,10 +122,10 @@ Now you can use `-report` command-line switch, or you can set BlazeMeter reporti
 ```yaml
 ---
 reporting:
-  - module: blazemeter
-    report-name: Jenkins Build 1
-    test: Taurus Demo
-    project: Taurus Tests Group
+- module: blazemeter
+  report-name: Jenkins Build 1
+  test: Taurus Demo
+  project: Taurus Tests Group
 ```
 
 Advanced settings:
@@ -169,9 +169,9 @@ Sample configuration:
 ```yaml
 ---
 reporting:
-  - module: junit-xml
-    filename: /path_to_file/file.xml
-    data-source: pass-fail
+- module: junit-xml
+  filename: /path_to_file/file.xml
+  data-source: pass-fail
 ```
 
 

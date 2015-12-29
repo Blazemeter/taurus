@@ -25,12 +25,12 @@ Simplest working example - just use it for taste.
 ```yaml
 ---
 execution:
-  executor: siege
+- executor: siege
   concurrency: 3 
   repetition: 10
   scenario:
     requests:
-      - url: 'blazedemo.com'
+    - url: 'blazedemo.com'
 ```
 Five tests for every of hundred users without delay (it may be hardcore):
 ```yaml
@@ -39,18 +39,18 @@ modules:
   siege:
     path: 'C:\SIEGE\SIEGE.EXE'
 execution:
-  executor: siege
+- executor: siege
   concurrency: 100
   repetition: 5
   scenario:
     requests:
-      - url: 'server.com'
+    - url: 'server.com'
 ```
 Test servers from nodes.list with 1000 typical user emulation for 5 minutes
 ```yaml
 ---
 execution:
-  executor: siege
+- executor: siege
   concurrency: 1000
   hold-for: 5m
   scenario:
@@ -61,9 +61,9 @@ Variables example:
 ```yaml
 ---
 scenario:
-    requests:
-      - variables:
-        - HOST0: 'http://mainhost.com/'
-      - url: '$(HOST0)page1.html'
-      - url: '$(HOST0)dir/page2.html'
+  requests:
+  - variables:
+    - HOST0: 'http://mainhost.com/'
+    - url: '$(HOST0)page1.html'
+    - url: '$(HOST0)dir/page2.html'
 ```

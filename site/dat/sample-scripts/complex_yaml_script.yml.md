@@ -21,39 +21,39 @@ scenarios:
       Accept-Encoding: 'gzip, deflate, sdch'
       Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp'
     requests:
-      - /index.php
-      - url: '/reserve.php'
-        method: POST
-        headers:
-          Content-Type: application/x-www-form-urlencoded
-        body:
-          fromPort: Boston
-          toPort: London
-      - url: '/purchase.php'
-        method: POST
-        headers:
-          Content-Type: application/x-www-form-urlencoded
-        body:
-          airline: United Airlines
-          flight: '234'
-          fromPort: Boston
-          price: '432.98'
-          toPort: London
-      - url: '/confirmation.php'
-        method: POST
-        label: '/confirmation.php'
-        headers:
-          Content-Type: application/x-www-form-urlencoded
-        body:
-          address: test
-          cardType: visa
-          city: test
-          creditCardNumber: test
-          inputName: test
-          nameOnCard: ettest
-          rememberMe: 'on'
-          state: test
-          zipCode: test
-      - /index.php
-      - /vacation.html
+    - /index.php
+    - url: '/reserve.php'
+      method: POST
+      headers:
+        Content-Type: application/x-www-form-urlencoded
+      body:
+        fromPort: Boston
+        toPort: London
+    - url: '/purchase.php'
+      method: POST
+      headers:
+        Content-Type: application/x-www-form-urlencoded
+      body:
+        airline: United Airlines
+        flight: '234'
+        fromPort: Boston
+        price: '432.98'
+        toPort: London
+    - url: '/confirmation.php'
+      method: POST
+      label: '/confirmation.php'
+      headers:
+        Content-Type: application/x-www-form-urlencoded
+      body:
+        address: test
+        cardType: visa
+        city: test
+        creditCardNumber: test
+        inputName: test
+        nameOnCard: ettest
+        rememberMe: 'on'
+        state: test
+        zipCode: test
+    - /index.php
+    - /vacation.html
 ```

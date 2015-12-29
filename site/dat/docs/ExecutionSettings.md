@@ -14,8 +14,8 @@ is equivalent for
 ```yaml
 ---
 execution:
-  - scenario:
-      script: my-existing.jmx
+- scenario:
+    script: my-existing.jmx
 ```
 
 However, users are encouraged to use array notation always to leverage the arrays auto-join capability when combining multiple config files into one. See [config merge rules](CommandLine.md#configuration-files-processing) for more details on this.
@@ -57,7 +57,7 @@ Execution has several options to set load profile settings. Support for options 
 ```yaml
 ---
 execution: 
-  concurrency: 10
+- concurrency: 10
   ramp-up: 15s
   hold-for: 2m
   iterations: 1000
@@ -73,7 +73,7 @@ scenarios and access them through aliases. Read more on building scenarios [here
 ---
 # embedded scenario
 execution:
-  scenario:
+- scenario:
     requests:
       - http://localhost/1
       - http://localhost/2
@@ -89,7 +89,7 @@ scenarios:
       - http://localhost/2
 
 execution:
-  scenario: get-requests
+- scenario: get-requests
 ```
 
 

@@ -51,7 +51,7 @@ Minimal working scenario:
 ```yaml
 ---
 execution:
-  executor: "selenium"
+- executor: "selenium"
   scenario:
     script: "/home/user/selenium_tests.java"
 ```
@@ -61,7 +61,7 @@ or
 ```yaml
 ---
 execution:
-  executor: "selenium"
+- executor: "selenium"
   scenario:
     script: "/home/user/folder/"
 ```
@@ -71,19 +71,19 @@ Extended scenario with runner options:
 ```yaml
 ---
 execution:
-  executor: "selenium"
+- executor: "selenium"
   scenario:
     script: "/home/user/tests/my_test.java"
     additional-classpath:  # optional, following libs will be added to java classpath
-      - /home/user/lib_one.jar
-      - /home/user/lib_two.jar
+    - /home/user/lib_one.jar
+    - /home/user/lib_two.jar
 modules:
   selenium:
     selenium-tools:
       junit:
         "jar-name": "compiled_jar_from_provided_sources.jar"
 reporting:
-  - module: junit-xml
+- module: junit-xml
 ```
 
 ## Requests Scenario
@@ -98,7 +98,7 @@ Sample request scenario
 ```yaml
 ---
 execution:
-  executor: "selenium"
+- executor: "selenium"
   scenario:
     browser: Firefox  # available browsers are: ["Firefox", "Chrome", "Ie", "Opera"]
     timeout: 10  #  global scenario timeout for connecting, receiving results, 30 seconds by default

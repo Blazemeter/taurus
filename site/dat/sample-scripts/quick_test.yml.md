@@ -1,13 +1,13 @@
 ```yaml
 ---
 execution:
-  - concurrency: 100
-    ramp-up: 1m
-    hold-for: 5m
-    scenario: quick-test
+- concurrency: 100
+  ramp-up: 1m
+  hold-for: 5m
+  scenario: quick-test
 
 scenarios:
   quick-test:
     requests:
-      - http://blazedemo.com
+    - http://blazedemo.com
 ```

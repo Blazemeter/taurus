@@ -19,10 +19,10 @@ Configuration options:
 ```yaml
 ---
 execution:
-  - executor: gatling
-    scenario:
-      script: tests/gatling/BasicSimulation.scala
-      simulation: tests.gatling.BasicSimulation
+- executor: gatling
+  scenario:
+    script: tests/gatling/BasicSimulation.scala
+    simulation: tests.gatling.BasicSimulation
 ```
 
 The `simulation` option is canonical class name for main simulation class. It will be passed as-is to gatling with `-s` option.

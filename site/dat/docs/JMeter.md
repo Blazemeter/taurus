@@ -20,7 +20,7 @@ modules:
 ```yaml
 ---
 execution:
-  scenario:
+- scenario:
     script: tests/jmx/dummy.jmx
 ```
 
@@ -51,7 +51,7 @@ Scenario-level properties are set like this:
 ```yaml
 ---
 execution:
-  scenario: 
+- scenario: 
     properties:
         my-hostname: www.prod.com
         log_level.jmeter: DEBUG
@@ -75,10 +75,10 @@ Distributed mode for JMeter is enabled with simple option `distributed` under ex
 ```yaml
 ---
 execution:
-  distributed: 
-    - host1.mynet.com
-    - host2.mynet.com
-    - host3.mynet.com
+- distributed: 
+  - host1.mynet.com
+  - host2.mynet.com
+  - host3.mynet.com
   scenario:
     script: my-test.jmx
 modules:
@@ -97,7 +97,7 @@ JMeter executor allows you to apply some modifications to the JMX file before ru
 ```yaml
 ---
 execution:
-  scenario:
+- scenario:
     script: tests/jmx/dummy.jmx
     variables: # add User Defined Variables component to test plan, 
                # overriding other global variables
@@ -105,9 +105,9 @@ execution:
       user_def_var2: user_def_val_2
     modifications:
         disable:  # Names of the tree elements to disable
-            - Thread Group 1
+        - Thread Group 1
         enable:  # Names of the tree elements to ensable
-            - Thread Group 2
+        - Thread Group 2
         set-prop:  # Set element properties, selected as [Element Name]>[property name]
           "HTTP Sampler>HTTPSampler.connect_timeout": "0"
           "HTTP Sampler>HTTPSampler.protocol": "https"
@@ -126,11 +126,11 @@ Inline form is useful for quick start and for single-config executions, full sce
 ```yaml
 ---
 execution:
-  scenario:
-      # scenario is specified inline
-      requests:
-      - http://localhost/1
-      - http://localhost/2
+- scenario:
+    # scenario is specified inline
+    requests:
+    - http://localhost/1
+    - http://localhost/2
 ```
 
 Referred form is useful when you use separate configs to store scenarios and executions, it is recommended for all cases. Scenarios are listed in top-level `scenarios` element and referred from executions by their alias:
@@ -140,11 +140,11 @@ Referred form is useful when you use separate configs to store scenarios and exe
 scenarios:
   get-requests:  # the alias for scenario
     requests:
-      - http://localhost/1
-      - http://localhost/2
+    - http://localhost/1
+    - http://localhost/2
 
 execution:
-  scenario: get-requests  # alias from above is used 
+- scenario: get-requests  # alias from above is used 
 ```
 
 
@@ -169,8 +169,8 @@ scenarios:
     use-dns-cache-mgr: true  # use DNS Cache Manager to test resources 
                              # behind dns load balancers. True by default.
     data-sources: # list of external data sources
-      - path/to/my.csv  # this is a shorthand form
-      - path: path/to/another.csv  # this is full form, path option is required
+    - path/to/my.csv  # this is a shorthand form
+    - path: path/to/another.csv  # this is full form, path option is required
         delimiter: ';'  # CSV delimiter, auto-detected by default
         quoted: false  # allow quoted data
         loop: true  # loop over in case of end-of-file reached
@@ -187,8 +187,8 @@ The base element for requests scenario is HTTP Request. In its simpliest form it
 scenarios:
   get-requests:  
     requests:
-      - http://localhost/1
-      - http://localhost/2
+    - http://localhost/1
+    - http://localhost/2
 ```
 
 The full form for request is dictionary, all fields except `url` are optional:
@@ -198,25 +198,25 @@ The full form for request is dictionary, all fields except `url` are optional:
 scenarios:
   my-req: 
     requests:
-      - url: http://blazedemo.com/  # url to hit
-        method: GET  # request method (GET, POST, PUT, DELETE)
-        label: homepage  # sampler label
+    - url: http://blazedemo.com/  # url to hit
+      method: GET  # request method (GET, POST, PUT, DELETE)
+      label: homepage  # sampler label
 
-        body: 'request-body-string'  # if present, will be used as body 
-        body:  # generate query string based on parameters and request type
-          param1: value1
-          param2: value2
+      body: 'request-body-string'  # if present, will be used as body 
+      body:  # generate query string based on parameters and request type
+        param1: value1
+        param2: value2
         body-file: path/to/file.txt  # this file contents will be used as post body
 
-        headers:  # local headers that override global
-          Authentication: Token 1234567890
-          Referer: http://taurus.blazemeter/docs
-        think-time: 1s  # local think-time, overrides global
-        timeout: 1s  # local timeout, overrides global
+      headers:  # local headers that override global
+        Authentication: Token 1234567890
+        Referer: http://taurus.blazemeter/docs
+      think-time: 1s  # local think-time, overrides global
+      timeout: 1s  # local timeout, overrides global
 
-        extract-regexp: {}  # explained below
-        extract-jsonpath: {}  # explained below
-        assert: []  # explained below
+      extract-regexp: {}  # explained below
+      extract-jsonpath: {}  # explained below
+      assert: []  # explained below
 ```
 
 ### Extractors
@@ -228,14 +228,14 @@ Extractors are the objects that attached to request to take a piece of the respo
 scenarios:
   my-req: 
     requests:
-      - url: http://blazedemo.com/  
-        extract-regexp: # dictionary under it has form <var name>: <regular expression>
-          page_title: <title>(\w+)</title>  #  must have at least one capture group
-        extract-jsonpath: # dictionary under it has form <var name>: <JSONPath expression>
-          varname: $.jsonpath[0].expression
-      - http://blazedemo.com/${varname}/${page_title}  # that's how we use those variables
-        extract-css-jquery: # dictionary under it has form <var name>: <CSS/JQuery selector>
-          extractor1: input[name~=my_input]
+    - url: http://blazedemo.com/  
+      extract-regexp: # dictionary under it has form <var name>: <regular expression>
+        page_title: <title>(\w+)</title>  #  must have at least one capture group
+      extract-jsonpath: # dictionary under it has form <var name>: <JSONPath expression>
+        varname: $.jsonpath[0].expression
+    - http://blazedemo.com/${varname}/${page_title}  # that's how we use those variables
+      extract-css-jquery: # dictionary under it has form <var name>: <CSS/JQuery selector>
+        extractor1: input[name~=my_input]
 ```
 
 The full form for extractors is:
@@ -245,24 +245,24 @@ The full form for extractors is:
 scenarios:
   my-req: 
     requests:
-      - url: http://blazedemo.com/  
-        extract-regexp:
-          page_title:
-            regexp: <title>(\w+)</title>  # regular expression
-            default: NOT_FOUND  # default value to use when regexp not found
-            match-no: 1  # if multiple values has matched, which match use (0=random)
-            template: 1  # which capture group to take, integer or template string
-        extract-jsonpath:   
-          varname:
-            jsonpath: $.jsonpath[0]  # jsonpath expression
-            default: NOT_FOUND  # default value to use when jsonpath not found
-      - http://blazedemo.com/${varname}/${page_title}
-        extract-css-jquery:
-          extractor2:
-            expression: input[name=JMeter]
-            attribute: value
-            match-no: 1
-            default: NOT_FOUND
+    - url: http://blazedemo.com/  
+      extract-regexp:
+        page_title:
+          regexp: <title>(\w+)</title>  # regular expression
+          default: NOT_FOUND  # default value to use when regexp not found
+          match-no: 1  # if multiple values has matched, which match use (0=random)
+          template: 1  # which capture group to take, integer or template string
+      extract-jsonpath:   
+        varname:
+          jsonpath: $.jsonpath[0]  # jsonpath expression
+          default: NOT_FOUND  # default value to use when jsonpath not found
+    - http://blazedemo.com/${varname}/${page_title}
+      extract-css-jquery:
+        extractor2:
+          expression: input[name=JMeter]
+          attribute: value
+          match-no: 1
+          default: NOT_FOUND
 ```
 
 ### Assertions
@@ -276,9 +276,9 @@ First one checks http response fields, its short form looks like this:
 scenarios:
   my-req: 
     requests:
-      - url: http://blazedemo.com/  
-        assert:  # contains list of regular expressions to check
-         - .+App.+
+    - url: http://blazedemo.com/  
+      assert:  # contains list of regular expressions to check
+      - .+App.+
 ```
 
 The full form has following format:
@@ -288,14 +288,14 @@ The full form has following format:
 scenarios:
   my-req: 
     requests:
-      - url: http://blazedemo.com/  
-        assert:
-         - contains:  # list of strings to check
-           - .+App.+ 
-           subject: body  # subject for search
-           regexp: true  # treat string as regular expression
-           not: false  # invert condition - fail if found
-           assume-success: false  # mark sample successful before asserting it
+    - url: http://blazedemo.com/  
+      assert:
+       - contains:  # list of strings to check
+         - .+App.+ 
+         subject: body  # subject for search
+         regexp: true  # treat string as regular expression
+         not: false  # invert condition - fail if found
+         assume-success: false  # mark sample successful before asserting it
 ```
 
 Possible subjects are:
@@ -311,10 +311,10 @@ The second assertion type is used to perform validation of JSON response against
 scenarios:
   my-req:
     requests:
-      - url: http://blazedemo.com/
-        assert-jsonpath:  # contains list of options
-            - "$."  # if this JSONPath not found, assert will fail
-            - "$.result[0]" # there can be multiple JSONPaths provided            
+    - url: http://blazedemo.com/
+      assert-jsonpath:  # contains list of options
+        - "$."  # if this JSONPath not found, assert will fail
+        - "$.result[0]" # there can be multiple JSONPaths provided            
 ```
 
 Full form:
@@ -324,11 +324,11 @@ Full form:
 scenarios:
   my-req:
     requests:
-      - url: http://blazedemo.com/
-        assert-jsonpath:
-            - jsonpath: "$." # path to value, validation fails if path not exists
-              validate: true # validate against expected value
-              expected-value: "value" # the value we are expecting to validate
-              expect-null: false  # expected value is null
-              invert: false # invert condition
+    - url: http://blazedemo.com/
+      assert-jsonpath:
+      - jsonpath: "$." # path to value, validation fails if path not exists
+        validate: true # validate against expected value
+        expected-value: "value" # the value we are expecting to validate
+        expect-null: false  # expected value is null
+        invert: false # invert condition
 ```

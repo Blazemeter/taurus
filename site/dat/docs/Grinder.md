@@ -17,22 +17,22 @@ Configuration options:
 ```yaml
 ---
 execution:
-  - executor: grinder
-    concurrency: 3
-    ramp-up: 10
-    iterations: 20
-    scenario:
-      script: tests/grinder/helloworld.py
-      properties_file: tests/grinder/grinder.properties
-      properties:
-        grinder.useConsole: false
+- executor: grinder
+  concurrency: 3
+  ramp-up: 10
+  iterations: 20
+  scenario:
+    script: tests/grinder/helloworld.py
+    properties_file: tests/grinder/grinder.properties
+    properties:
+      grinder.useConsole: false
 
-  - executor: grinder
-    concurrency: 2
-    ramp-up: 5
-    iterations: 10
-    scenario:
-      requests:
-        - http://demo.blazemeter.com/
-        - http://demo.blazemeter.com/api
+- executor: grinder
+  concurrency: 2
+  ramp-up: 5
+  iterations: 10
+  scenario:
+    requests:
+    - http://demo.blazemeter.com/
+    - http://demo.blazemeter.com/api
 ```

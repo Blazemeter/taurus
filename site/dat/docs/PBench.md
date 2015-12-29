@@ -16,12 +16,12 @@ Then use it like this:
 ```yaml
 ---
 execution:
-  executor: pbench
+- executor: pbench
   scenario:
     default-address: http://blazedemo.com/
     requests:
-      - /
-      - /vacation.html
+    - /
+    - /vacation.html
 ```
 
 ## About
@@ -59,17 +59,17 @@ scenarios:
     headers:
       User-Agent: Mozilla
     requests:
-      - /
-      - url: /vacation.html
-        headers:
-          Accept: "*/*"
-        method: POST
-        body:
-          formParam1: value1
-          formParam2: value2
-      - url: /do.php
-        method: PUT
-        body: '{"json": "body"}'
+    - /
+    - url: /vacation.html
+      headers:
+        Accept: "*/*"
+      method: POST
+      body:
+        formParam1: value1
+        formParam2: value2
+    - url: /do.php
+      method: PUT
+      body: '{"json": "body"}'
 ```
  
 Second way is to generate the payload script yourself and use it. This is frequently done with custom scripts that takes production server logs as source data:
