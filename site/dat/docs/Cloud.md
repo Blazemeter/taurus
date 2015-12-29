@@ -97,7 +97,7 @@ If you need to install additional python modules via `pip`, you can do it by usi
 ```yaml
 ---
 services:
-  module: shellexec
+- module: shellexec
   prepare: 
   - pip install cryptography  # 'cryptography' is the library from PyPi
 ```
@@ -112,7 +112,7 @@ execution:
   files:
   - my-modules.zip      
 services:
-  module: shellexec
+- module: shellexec
   prepare: 
   - unzip my-modules.zip
   - pip install -r requirements.txt
