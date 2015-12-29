@@ -10,17 +10,6 @@ class TestEngine(BZTestCase):
         self.obj = EngineEmul()
         self.paths = local_paths_config()
 
-    # def test_jmx(self):
-    #     configs = [
-    #         __dir__() + "/../bzt/10-base.json",
-    #         __dir__() + "/json/jmx.json",
-    #         self.paths
-    #     ]
-    #     self.obj.configure(configs)
-    #     self.obj.prepare()
-    #     self.obj.run()
-    #     self.obj.post_process()
-
     def test_requests(self):
         configs = [
             __dir__() + "/../bzt/10-base.json",
@@ -45,28 +34,6 @@ class TestEngine(BZTestCase):
         self.obj.prepare()
         self.obj.run()
         self.obj.post_process()
-
-    # def test_grinder(self):
-    #     configs = [
-    #         __dir__() + "/../bzt/10-base.json",
-    #         __dir__() + "/json/grinder.json",
-    #         self.paths
-    #     ]
-    #     self.obj.configure(configs)
-    #     self.obj.prepare()
-    #     self.obj.run()
-    #     self.obj.post_process()
-
-    # def test_gatling(self):
-    #     configs = [
-    #         __dir__() + "/../bzt/10-base.json",
-    #         __dir__() + "/json/gatling.json",
-    #         self.paths
-    #     ]
-    #     self.obj.configure(configs)
-    #     self.obj.prepare()
-    #     self.obj.run()
-    #     self.obj.post_process()
 
     def test_unknown_module(self):
         configs = [
