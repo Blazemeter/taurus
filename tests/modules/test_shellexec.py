@@ -114,11 +114,13 @@ class TestTasksConfigs(TaskTestCase):
         err_file = os.path.join(self.obj.engine.artifacts_dir, 'err.txt')
         with NamedTemporaryFile() as file1, NamedTemporaryFile() as file2:
             command = "echo 1 > {file1} && sleep 1 && echo 2 > {file2}"
+            file1.close()
+            file2.close()
             task = {"command": command.format(file1=file1.name, file2=file2.name), "out": out_file, "err": err_file}
             self.obj.parameters.merge({"prepare": [task]})
             self.obj.prepare()
-            self.assertEqual(open(file1.name).read(), '1\n')
-            self.assertEqual(open(file2.name).read(), '2\n')
+            self.assertEqual(open(file1.name).read().strip(), '1')
+            self.assertEqual(open(file2.name).read().strip(), '2')
             self.assertTrue(os.path.exists(out_file))
             self.assertTrue(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, err_file)))
 
