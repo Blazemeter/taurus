@@ -73,7 +73,9 @@ class TestConverter(BZTestCase):
         obj.log.removeHandler(log_recorder)
 
     def test_export_clean_jmx(self):
-        tmp_jmx_name = self.engine.create_artifact('tmp', 'jmx')
+        tmp_jmx_name = self.engine.create_artifact('tmp', '.jmx')
+        open(tmp_jmx_name, 'w+').close()  # touch file
+
         obj = JMX2YAML(FakeOptions(dump_jmx=tmp_jmx_name, file_name=self.temp_yaml()),
                        __dir__() + "/yaml/converter/disabled.jmx")
         log_recorder = RecordingHandler()
