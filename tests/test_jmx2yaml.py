@@ -1,5 +1,3 @@
-import tempfile
-
 import yaml
 
 from bzt.engine import ScenarioExecutor
@@ -19,9 +17,11 @@ class FakeOptions(object):
 
 
 class TestConverter(BZTestCase):
+    def setUp(self):
+        self.engine = EngineEmul()
+
     def temp_yaml(self):
-        emul = EngineEmul()
-        return emul.create_artifact("test", ".yml")
+        return self.engine.create_artifact("test", ".yml")
 
     def test_loadjmx1(self):
         log_recorder = RecordingHandler()
@@ -63,26 +63,26 @@ class TestConverter(BZTestCase):
 
     def test_loadjmx4(self):
         log_recorder = RecordingHandler()
-        with tempfile.NamedTemporaryFile() as tmp_file:
-            obj = JMX2YAML(FakeOptions(file_name=tmp_file.name), __dir__() + "/jmx/http.jmx")
-            obj.log.addHandler(log_recorder)
-            obj.process()
-            self.assertIn("Loading jmx file", log_recorder.info_buff.getvalue())
-            self.assertIn("Done processing, result saved in", log_recorder.info_buff.getvalue())
-            self.assertIn("Removing unknown element", log_recorder.warn_buff.getvalue())
-            obj.log.removeHandler(log_recorder)
+        tmp_file_name = self.engine.create_artifact('tmp', 'file')
+        obj = JMX2YAML(FakeOptions(file_name=tmp_file_name), __dir__() + "/jmx/http.jmx")
+        obj.log.addHandler(log_recorder)
+        obj.process()
+        self.assertIn("Loading jmx file", log_recorder.info_buff.getvalue())
+        self.assertIn("Done processing, result saved in", log_recorder.info_buff.getvalue())
+        self.assertIn("Removing unknown element", log_recorder.warn_buff.getvalue())
+        obj.log.removeHandler(log_recorder)
 
     def test_export_clean_jmx(self):
-        with tempfile.NamedTemporaryFile() as tmp_jmx:
-            obj = JMX2YAML(FakeOptions(dump_jmx=tmp_jmx.name, file_name=self.temp_yaml()),
-                           __dir__() + "/yaml/converter/disabled.jmx")
-            log_recorder = RecordingHandler()
-            obj.log.addHandler(log_recorder)
-            obj.process()
+        tmp_jmx_name = self.engine.create_artifact('tmp', 'jmx')
+        obj = JMX2YAML(FakeOptions(dump_jmx=tmp_jmx_name, file_name=self.temp_yaml()),
+                       __dir__() + "/yaml/converter/disabled.jmx")
+        log_recorder = RecordingHandler()
+        obj.log.addHandler(log_recorder)
+        obj.process()
 
-            self.assertIn("Loading jmx file", log_recorder.info_buff.getvalue())
-            self.assertIn("already exists and will be overwritten", log_recorder.warn_buff.getvalue())
-            obj.log.removeHandler(log_recorder)
+        self.assertIn("Loading jmx file", log_recorder.info_buff.getvalue())
+        self.assertIn("already exists and will be overwritten", log_recorder.warn_buff.getvalue())
+        obj.log.removeHandler(log_recorder)
 
     def test_not_jmx(self):
         obj = JMX2YAML(FakeOptions(file_name=self.temp_yaml()), __dir__() + "/jmx/not-jmx.xml")
@@ -294,4 +294,3 @@ class TestConverter(BZTestCase):
         obj = JMX2YAML(FakeOptions(file_name=self.temp_yaml()), __dir__() + "/yaml/converter/param-null.jmx")
         obj.process()
         converted = obj.converter.convert(obj.file_to_convert)
-
