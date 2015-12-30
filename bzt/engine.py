@@ -76,14 +76,19 @@ class Engine(object):
         self.__net_counters = None
         self.__counters_ts = None
 
-    def configure(self, user_configs):
+    def configure(self, user_configs, read_config_files=True):
         """
         Load configuration files
         :type user_configs: list[str]
+        :type read_config_files: bool
         """
         self.log.info("Configuring...")
-        self._load_base_configs()
+
+        if read_config_files:
+            self._load_base_configs()
+
         merged_config = self._load_user_configs(user_configs)
+
         self._create_artifacts_dir()
         dump = self.create_artifact("effective", "")  # FIXME: not good since this file not exists
         self.config.set_dump_file(dump)
