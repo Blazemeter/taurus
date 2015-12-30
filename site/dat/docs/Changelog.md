@@ -1,11 +1,11 @@
 # Changelog
-## Next
- - add command line option `-n` for skipping system bzt configs
 
-## 0.5.3
+## 1.0.0 (next)
+ - support [cloud](Cloud.md) provisioning
  - parse URLs for JMeter a bit better
  - add `Siege` executor
  - fix website deploying manual and some other instructions 
+ - add command line option `-n` to skip loading system and user configs
 
 ## 0.5.2
  - fix JMeter installation on windows

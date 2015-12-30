@@ -1,6 +1,8 @@
 # Cloud Provisioning
 
-The default mode for taurus is to use `local` provisioning, which means all the tools will be started on local machine. This is not much scalable, so there is a way to delegate actual tool execution into BlazeMeter cloud. It is done by setting `cloud` provisioning like this:
+The default mode for taurus is to use `local` provisioning, which means all the tools will be started on local machine. This is not much scalable, so there is a way to delegate actual tool execution into [BlazeMeter cloud](http://blazemeter.com/). Even free accounts can execute cloud tests, according to BlazeMeter's free-tier plan.
+
+It is done by setting `cloud` provisioning like this:
 
 ```yaml
 ---

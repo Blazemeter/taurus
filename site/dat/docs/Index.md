@@ -8,6 +8,7 @@
  1. [Command-Line Tool](CommandLine.md)
  1. [Configuration Files Syntax](ConfigSyntax.md)
     1. [General Execution Settings](ExecutionSettings.md)
+    1. [Cloud Provisioned Execution](Cloud.md)
     1. [JMeter Executor](JMeter.md)
     1. [Selenium Executor](Selenium.md)
     1. [Gatling Executor](Gatling.md)
