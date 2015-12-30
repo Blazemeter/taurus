@@ -1,4 +1,6 @@
 # Changelog
+## Next
+ - add command line option `-n` for skipping system bzt configs
 
 ## 0.5.3
  - parse URLs for JMeter a bit better

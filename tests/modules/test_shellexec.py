@@ -1,12 +1,12 @@
 import os
-from subprocess import CalledProcessError
-from tempfile import NamedTemporaryFile
 import time
+from subprocess import CalledProcessError
+
 from bzt.engine import Service
-from tests import setup_test_logging, BZTestCase
-from tests.mocks import EngineEmul, RecordingHandler
 from bzt.modules.shellexec import ShellExecutor
 from bzt.utils import BetterDict
+from tests import setup_test_logging, BZTestCase
+from tests.mocks import EngineEmul, RecordingHandler
 
 setup_test_logging()
 
@@ -112,15 +112,16 @@ class TestTasksConfigs(TaskTestCase):
     def test_shell_exec(self):
         out_file = os.path.join(self.obj.engine.artifacts_dir, 'out.txt')
         err_file = os.path.join(self.obj.engine.artifacts_dir, 'err.txt')
-        with NamedTemporaryFile() as file1, NamedTemporaryFile() as file2:
-            command = "echo 1 > {file1} && sleep 1 && echo 2 > {file2}"
-            task = {"command": command.format(file1=file1.name, file2=file2.name), "out": out_file, "err": err_file}
-            self.obj.parameters.merge({"prepare": [task]})
-            self.obj.prepare()
-            self.assertEqual(open(file1.name).read(), '1\n')
-            self.assertEqual(open(file2.name).read(), '2\n')
-            self.assertTrue(os.path.exists(out_file))
-            self.assertTrue(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, err_file)))
+        file1 = self.obj.engine.create_artifact('file_1.out', "")
+        file2 = self.obj.engine.create_artifact('file_2.out', "")
+        command = "echo 1 > {file1} && sleep 1 && echo 2 > {file2}"
+        task = {"command": command.format(file1=file1, file2=file2), "out": out_file, "err": err_file}
+        self.obj.parameters.merge({"prepare": [task]})
+        self.obj.prepare()
+        self.assertEqual(open(file1).read().strip(), '1')
+        self.assertEqual(open(file2).read().strip(), '2')
+        self.assertTrue(os.path.exists(out_file))
+        self.assertTrue(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, err_file)))
 
     def test_config(self):
         self.obj.engine.config.merge({'services': [

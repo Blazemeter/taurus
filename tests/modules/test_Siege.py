@@ -5,6 +5,10 @@ from os import path
 from bzt.modules.siege import SiegeExecutor, DataLogReader
 from tests import BZTestCase
 from tests.mocks import EngineEmul
+from bzt.utils import EXE_SUFFIX
+
+
+TOOL_NAME = 'siege' + EXE_SUFFIX
 
 
 def get_res_path(resource):
@@ -16,7 +20,7 @@ class TestSiegeExecutor(BZTestCase):
         obj = SiegeExecutor()
         obj.engine = EngineEmul()
         obj.settings.merge({
-            "path": get_res_path('siege.sh'),})
+            "path": get_res_path(TOOL_NAME),})
         obj.execution.merge({
             "concurrency": 2,
             "iterations": 3,
@@ -33,7 +37,7 @@ class TestSiegeExecutor(BZTestCase):
         obj = SiegeExecutor()
         obj.engine = EngineEmul()
         obj.settings.merge({
-            "path": get_res_path('siege.sh'),})
+            "path": get_res_path(TOOL_NAME),})
         obj.execution.merge({
             "concurrency": 2,
             "hold-for": '2s',
@@ -53,7 +57,7 @@ class TestSiegeExecutor(BZTestCase):
         obj = SiegeExecutor()
         obj.engine = EngineEmul()
         obj.settings.merge({
-            "path": get_res_path('siege.sh'),})
+            "path": get_res_path(TOOL_NAME),})
         obj.execution.merge({
             "concurrency": 2,
             "hold-for": '2s',
@@ -83,7 +87,7 @@ class TestSiegeExecutor(BZTestCase):
         obj = SiegeExecutor()
         obj.engine = EngineEmul()
         obj.settings.merge({
-            "path": get_res_path('siege.sh'),})
+            "path": get_res_path(TOOL_NAME),})
         obj.execution.merge({
             "concurrency": 2,
             "scenario": {
@@ -100,7 +104,7 @@ class TestSiegeExecutor(BZTestCase):
         obj = SiegeExecutor()
         obj.engine = EngineEmul()
         obj.settings.merge({
-            "path": get_res_path('siege.sh'),})
+            "path": get_res_path(TOOL_NAME),})
         obj.execution.merge({
             "concurrency": 2,
             "iterations": 3,
