@@ -4,7 +4,7 @@ Command-line tool is named `bzt` and invoked like `bzt <options> [configs]`. Pos
 
   - `-h, --help` - show help message and exit
   - `-q, --quiet` - only errors and warnings printed to console
-  - `-n, --no-system-config` - skip `/etc/bzt.d` and `~/.bzt-rc` (see below)
+  - `-n, --no-system-configs` - skip `/etc/bzt.d` and `~/.bzt-rc` (see below)
   - `-v, --verbose` - prints all logging messages to console (sometimes _a lot_)
   - `-l LOG, --log=LOG` - change log file location, by default is `bzt.log` in current directory
   - `-o OPTION, --option=OPTION` override some of config settings from command line, may be used multiple times
