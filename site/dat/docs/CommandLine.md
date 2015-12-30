@@ -1,6 +1,6 @@
 # Command-Line Tool
 
-Command-line tool is named `bzt` and invoked like `bzt <options> [configs]`. Possible options are:
+Command-line tool is named `bzt` and invoked like `bzt <options> \[configs]`. Possible options are:
 
   - `-h, --help` - show help message and exit
   - `-q, --quiet` - only errors and warnings printed to console
