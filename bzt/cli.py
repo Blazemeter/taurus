@@ -17,14 +17,16 @@ limitations under the License.
 import logging
 import os
 import platform
-from select import select
+import signal
 import sys
-from tempfile import NamedTemporaryFile
 import traceback
 from logging import Formatter
 from optparse import OptionParser, BadOptionError, Option
-import signal
+from select import select
+from tempfile import NamedTemporaryFile
+
 from colorlog import ColoredFormatter
+
 import bzt
 from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown
 from bzt.engine import Engine, Configuration, ScenarioExecutor
@@ -131,7 +133,8 @@ class CLI(object):
             configs.extend(jmx_shorthands)
 
             self.log.info("Starting with configs: %s", configs)
-            self.engine.configure(configs)
+
+            self.engine.configure(configs, not self.options.no_config_files)
 
             # apply aliases
             for alias in self.options.aliases:
@@ -320,10 +323,10 @@ class OptionParserWithAliases(OptionParser, object):
                  prog=None,
                  epilog=None):
         super(OptionParserWithAliases, self).__init__(
-            usage=usage, option_list=option_list,
-            option_class=option_class, version=version,
-            conflict_handler=conflict_handler, description=description, formatter=formatter,
-            add_help_option=add_help_option, prog=prog, epilog=epilog)
+                usage=usage, option_list=option_list,
+                option_class=option_class, version=version,
+                conflict_handler=conflict_handler, description=description, formatter=formatter,
+                add_help_option=add_help_option, prog=prog, epilog=epilog)
         self.aliases = []
 
     def _process_short_opts(self, rargs, values):
@@ -361,6 +364,8 @@ def main():
                       help="Only errors and warnings printed to console")
     parser.add_option('-v', '--verbose', action='store_true',
                       help="Prints all logging messages to console")
+    parser.add_option('-n', '--no-config-files', action='store_true',
+                      help="Skip system and user config files", default=False)
 
     parsed_options, parsed_configs = parser.parse_args()
 
