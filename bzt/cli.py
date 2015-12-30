@@ -134,7 +134,10 @@ class CLI(object):
 
             self.log.info("Starting with configs: %s", configs)
 
-            self.engine.configure(configs, not self.options.no_config_files)
+            if self.options.no_system_configs is None:
+                self.options.no_system_configs = False
+
+            self.engine.configure(configs, not self.options.no_system_configs)
 
             # apply aliases
             for alias in self.options.aliases:
@@ -364,8 +367,8 @@ def main():
                       help="Only errors and warnings printed to console")
     parser.add_option('-v', '--verbose', action='store_true',
                       help="Prints all logging messages to console")
-    parser.add_option('-n', '--no-config-files', action='store_true',
-                      help="Skip system and user config files", default=False)
+    parser.add_option('-n', '--no-system-configs', action='store_true',
+                      help="Skip system and user config files")
 
     parsed_options, parsed_configs = parser.parse_args()
 
