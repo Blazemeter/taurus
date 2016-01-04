@@ -166,7 +166,6 @@ class TestJMeterExecutor(BZTestCase):
     def test_think_time_bug(self):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
-        obj.engine.config = BetterDict()
         obj.engine.config.merge({'execution': {'ramp-up': '1m', 'hold-for': '1m30s', 'concurrency': 10,
                                                'scenario':
                                                    {'think-time': 0.75,

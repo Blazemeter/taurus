@@ -13,6 +13,7 @@ build: off
 
 test_script:
   - "%PYTHON%\\python.exe -m nose"
+  - "TASKLIST /V"
 
 after_test:
   - "%PYTHON%\\python.exe setup.py clean sdist"
