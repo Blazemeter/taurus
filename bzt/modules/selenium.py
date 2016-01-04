@@ -80,8 +80,9 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             runner_class = NoseTester
             runner_config = self.settings.get("selenium-tools").get("nose")
         elif script_type == ".jar" or script_type == ".java":
-            runner_class = JunitTester
+            runner_class = JUnitTester
             runner_config = self.settings.get("selenium-tools").get("junit")
+            runner_config['props-file'] = self.engine.create_artifact("customrunner", ".properties")
         else:
             raise ValueError("Unsupported script type: %s" % script_type)
 
@@ -294,13 +295,14 @@ class AbstractTestRunner(object):
         self.opened_descriptors = []
 
 
-class JunitTester(AbstractTestRunner):
+class JUnitTester(AbstractTestRunner):
     """
     Allows to test java and jar files
     """
 
     def __init__(self, junit_config, scenario, load, parent_logger):
-        super(JunitTester, self).__init__(junit_config, scenario, load)
+        super(JUnitTester, self).__init__(junit_config, scenario, load)
+        self.props_file = junit_config['props-file']
         self.log = parent_logger.getChild(self.__class__.__name__)
         path_lambda = lambda key, val: os.path.abspath(os.path.expanduser(self.settings.get(key, val)))
 
@@ -422,8 +424,7 @@ class JunitTester(AbstractTestRunner):
         jar_list = [os.path.join(self.working_dir, jar) for jar in os.listdir(self.working_dir) if jar.endswith(".jar")]
         self.base_class_path.extend(jar_list)
 
-        fname = '/tmp/test'  # FIXME
-        with open(fname, 'wt') as props:
+        with open(self.props_file, 'wt') as props:
             props.write("kpi_log=%s\n" % self.settings.get("report-file"))
             props.write("error_log=%s\n" % self.settings.get("err-file"))
 
@@ -441,7 +442,8 @@ class JunitTester(AbstractTestRunner):
         std_err = open(self.settings.get("stderr"), "wt")
         self.opened_descriptors.append(std_err)
 
-        junit_command_line = ["java", "-cp", os.pathsep.join(self.base_class_path), "taurusjunit.CustomRunner", fname]
+        junit_command_line = ["java", "-cp", os.pathsep.join(self.base_class_path), "taurusjunit.CustomRunner",
+                              self.props_file]
         self.process = shell_exec(junit_command_line, cwd=self.artifacts_dir,
                                   stdout=std_out,
                                   stderr=std_err)
@@ -481,10 +483,10 @@ class NoseTester(AbstractTestRunner):
                              '-e', self.settings.get("err-file")]
 
         if self.load.iterations:
-            nose_command_line += ['-i', self.load.iterations]
+            nose_command_line += ['-i', str(self.load.iterations)]
 
         if self.load.hold:
-            nose_command_line += ['-d', self.load.hold]
+            nose_command_line += ['-d', str(self.load.hold)]
 
         nose_command_line += [self.working_dir]
 

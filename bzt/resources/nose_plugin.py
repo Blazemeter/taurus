@@ -51,6 +51,20 @@ class TaurusNosePlugin(Plugin):
         self.err_stream = None
         self._time = None
 
+    def __enter__(self):
+        self.out_stream = open(self.output_file, "wt")
+        self.csv_writer = csv.DictWriter(self.out_stream, delimiter=',', fieldnames=JTL_HEADER)
+        self.csv_writer.writeheader()
+
+        self.err_stream = open(self.err_file, "wb")
+        self.error_writer = JTLErrorWriter(self.err_stream)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.error_writer.close()
+        self.out_stream.close()
+        self.err_stream.close()
+
     def addError(self, test, err, capt=None):
         """
         when a test raises an uncaught exception
@@ -97,13 +111,6 @@ class TaurusNosePlugin(Plugin):
         open descriptor here
         :return:
         """
-        self.out_stream = open(self.output_file, "wt")
-        self.csv_writer = csv.DictWriter(self.out_stream, delimiter=',', fieldnames=JTL_HEADER)
-
-        self.err_stream = open(self.err_file, "wb")
-        self.error_writer = JTLErrorWriter(self.err_stream)
-
-        self.csv_writer.writeheader()
         self._module_name = ""
 
     def finalize(self, result):
@@ -112,9 +119,6 @@ class TaurusNosePlugin(Plugin):
         :param result:
         :return:
         """
-        self.error_writer.close()
-        self.out_stream.close()
-        self.err_stream.close()
         if not self.test_count:
             raise RuntimeError("Nothing to test.")
 
@@ -276,11 +280,11 @@ def run_nose(_output_file, _err_file, files, iterations, hold):
             iterations = 1
 
     start_time = int(time())
-    plugin = TaurusNosePlugin(_output_file, _err_file)
-    for iteration in range(0, iterations):
-        nose.run(addplugins=[plugin], argv=argv)
-        if 0 < hold < int(time()) - start_time:
-            break
+    with TaurusNosePlugin(_output_file, _err_file) as plugin:
+        for iteration in range(0, iterations):
+            nose.run(addplugins=[plugin], argv=argv)
+            if 0 < hold < int(time()) - start_time:
+                break
 
 
 if __name__ == "__main__":
@@ -289,7 +293,8 @@ if __name__ == "__main__":
     parser.add_option('-e', '--errors-file', action='store')
     parser.add_option('-i', '--iterations', action='store', default=0)
     parser.add_option('-d', '--duration', action='store', default=0)
+    parser.add_option('-w', '--with-nose_plugin', action='store', default=0)
 
     opts, args = parser.parse_args()
 
-    run_nose(opts.kpi_file, opts.errors_file, args, opts.iterations, opts.duration)
+    run_nose(opts.kpi_file, opts.errors_file, args, int(opts.iterations), float(opts.duration))

@@ -3,6 +3,8 @@ Allows to run functional tests locally with Selenium WebDriver. Currently suppor
 
 Selenium executor uses two types of test runners: JUnit and Nose, test type and runner type are detected automatically. Scenario may be presented not only as single file but as a folder.
 
+Taurus can repeat Selenium script in a loop until desired number of `iterations` will complete or `hold-for` time will be exceeded.
+
 ## Supported file types:
 
   - .java/single file
@@ -41,8 +43,8 @@ modules:
   selenium:
     selenium-tools:
       nose:
-        "working-dir": "classes"  # set name of runner working directory within artifacts dir
-        "interpreter": "/home/user/interpreter/python"  # path to custom interpreter.
+        working-dir: classes  # set name of runner working directory within artifacts dir
+        interpreter: "/home/user/interpreter/python"  # path to custom interpreter.
 ```
 
 ## Scenario Samples
@@ -51,9 +53,9 @@ Minimal working scenario:
 ```yaml
 ---
 execution:
-- executor: "selenium"
+- executor: selenium
   scenario:
-    script: "/home/user/selenium_tests.java"
+    script: /home/user/selenium_tests.java
 ```
 
 or
@@ -63,7 +65,7 @@ or
 execution:
 - executor: "selenium"
   scenario:
-    script: "/home/user/folder/"
+    script: /home/user/folder/
 ```
 
 Extended scenario with runner options:
@@ -73,6 +75,7 @@ Extended scenario with runner options:
 execution:
 - executor: "selenium"
   scenario:
+    iterations: 5
     script: "/home/user/tests/my_test.java"
     additional-classpath:  # optional, following libs will be added to java classpath
     - /home/user/lib_one.jar
@@ -99,6 +102,7 @@ Sample request scenario
 ---
 execution:
 - executor: "selenium"
+  hold-for: 5m
   scenario:
     browser: Firefox  # available browsers are: ["Firefox", "Chrome", "Ie", "Opera"]
     timeout: 10  #  global scenario timeout for connecting, receiving results, 30 seconds by default
