@@ -14,13 +14,6 @@ class TestGrinderExecutor(BZTestCase):
         path = os.path.abspath(__dir__() + "/../../build/tmp/grinder-taurus/lib/grinder.jar")
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
 
-        grinder_link = GrinderExecutor.DOWNLOAD_LINK
-        grinder_version = GrinderExecutor.VERSION
-        mirrors_source = GrinderExecutor.MIRRORS_SOURCE
-        GrinderExecutor.DOWNLOAD_LINK = "file:///" + __dir__() + "/../data/grinder-{version}_{version}-binary.zip"
-        GrinderExecutor.VERSION = "3.11"
-        GrinderExecutor.MIRRORS_SOURCE = "file:///" + __dir__() + "/../data/unicode_file"
-
         self.assertFalse(os.path.exists(path))
 
         obj = GrinderExecutor()
@@ -37,24 +30,13 @@ class TestGrinderExecutor(BZTestCase):
 
         self.assertTrue(os.path.exists(path))
 
-        GrinderExecutor.DOWNLOAD_LINK = grinder_link
-        GrinderExecutor.VERSION = grinder_version
-        GrinderExecutor.MIRRORS_SOURCE = mirrors_source
-
-    def test_strage_concurrency(self):
-        obj = GrinderExecutor()
-        obj.engine = EngineEmul()
-        obj.execution = BetterDict()
-        obj.execution.merge({"concurrency": 3})
-        obj.execution.merge({"concurrency": 4})
-        obj.execution.merge({"concurrency": 5})
-        obj.prepare()
-
-
     def test_grinder_widget(self):
         obj = GrinderExecutor()
         obj.engine = EngineEmul()
-        obj.execution.merge({"scenario": {"script": __dir__() + "/../grinder/helloworld.py"}})
+        obj.execution.merge({"concurrency": 2,
+                             "ramp-up": 2,
+                             "hold-for": 2,
+                             "scenario": {"script": __dir__() + "/../grinder/helloworld.py"}})
         obj.prepare()
         obj.get_widget()
         self.assertEqual(obj.widget.widgets[0].text, "Script: helloworld.py")
@@ -69,7 +51,8 @@ class TestGrinderExecutor(BZTestCase):
     def test_fail_on_zero_results(self):
         obj = GrinderExecutor()
         obj.engine = EngineEmul()
-        obj.execution.merge({"scenario": {"script": __dir__() + "/../grinder/helloworld.py"}})
+        obj.execution.merge({"concurrency": 2,
+                             "scenario": {"script": __dir__() + "/../grinder/helloworld.py"}})
         obj.prepare()
         self.assertRaises(RuntimeWarning, obj.post_process)
 
@@ -78,7 +61,7 @@ class TestGrinderExecutor(BZTestCase):
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
         obj = GrinderExecutor()
         grinder_tool = Grinder(path, obj.log, GrinderExecutor.VERSION)
-        #grinder_tool.install()
+        grinder_tool.install()
 
     def test_requests(self):
         obj = GrinderExecutor()
