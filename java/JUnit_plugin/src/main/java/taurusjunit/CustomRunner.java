@@ -3,14 +3,12 @@ package taurusjunit;
 import junit.framework.TestCase;
 import org.junit.runner.JUnitCore;
 
+import java.io.FileReader;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Enumeration;
-import java.util.List;
+import java.util.*;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.logging.Level;
@@ -18,59 +16,63 @@ import java.util.logging.Logger;
 
 public class CustomRunner {
     private static final Logger log = Logger.getLogger(CustomRunner.class.getName());
+    public static final String KPI_LOG = "kpi_log";
+    public static final String ERROR_LOG = "error_log";
+    public static final String TARGET_PREFIX = "target_";
 
     static {
         log.setLevel(Level.FINER);
     }
 
     public void main(String[] args) throws Exception {
-        log.info("Starting");
-        if (args.length < 3) {
-            throw new IllegalArgumentException("Usage requires at least 3 params");
+        log.info("Starting: " + Arrays.toString(args));
+        if (args.length != 1) {
+            throw new IllegalArgumentException("Usage requires 1 parameter, containing path to properties file");
         }
-        //Open Jar files in args, scan them, load test classes, run test suite
-        //Last item in args is a writeSample filename
-        //redirect stderr to file
 
-        String[] jar_paths = new String[args.length - 2];
-        System.arraycopy(args, 2, jar_paths, 0, args.length - 2);
-        List<Class<?>> test_classes = getClasses(jar_paths);
-        Class[] classes = test_classes.toArray(new Class[test_classes.size()]);
+        Properties props = new Properties();
+        props.load(new FileReader(args[0]));
 
-        if (test_classes.isEmpty()) {
+        ArrayList<Class> classes = getClasses(props);
+
+        if (classes.isEmpty()) {
             throw new RuntimeException("Nothing to test");
         } else {
-            log.info("Running with classes: " + Arrays.toString(classes));
-            CustomListener custom_listener = new CustomListener(new JTLReporter(args[0]), new JTLErrorReporter(args[1]));
+            log.info("Running with classes: " + classes.toString());
+            JTLReporter jtlReporter = new JTLReporter(props.getProperty(KPI_LOG));
+            JTLErrorReporter jtlErrorReporter = new JTLErrorReporter(props.getProperty(ERROR_LOG));
+            CustomListener custom_listener = new CustomListener(jtlReporter, jtlErrorReporter);
             JUnitCore runner = new JUnitCore();
             runner.addListener(custom_listener);
-            runner.run(classes);
+            runner.run(classes.toArray(new Class[classes.size()]));
         }
     }
 
-    public boolean has_annotations(Class<?> c) {
-        for (Method method : c.getDeclaredMethods()) {
-            if (method.isAnnotationPresent(org.junit.Test.class)) {
-                return true;
+    protected ArrayList<Class> getClasses(Properties props) {
+        ArrayList<Class> result = new ArrayList<>(0);
+
+        Enumeration<?> it = props.propertyNames();
+        while (it.hasMoreElements()) {
+            String propName = (String) it.nextElement();
+            if (propName.startsWith(TARGET_PREFIX)) {
+                result.addAll(getClasses(props.getProperty(propName)));
             }
         }
 
-        return false;
+        return result;
     }
 
-    private List<Class<?>> getClasses(String[] jar_paths) {
+    protected List<Class<?>> getClasses(String jar_path) {
         List<Class<?>> test_classes = new ArrayList<>(); //List of loaded classes
-        for (String jar_path : jar_paths) {
-            try {
-                processJAR(test_classes, jar_path);
-            } catch (IOException | ClassNotFoundException e) {
-                log.warning("Failed to add " + jar_path + "\n" + Utils.getStackTrace(e));
-            }
+        try {
+            processJAR(test_classes, jar_path);
+        } catch (IOException | ClassNotFoundException e) {
+            log.warning("Failed to add " + jar_path + "\n" + Utils.getStackTrace(e));
         }
         return test_classes;
     }
 
-    private void processJAR(List<Class<?>> test_classes, String jar_path) throws IOException, ClassNotFoundException {
+    protected void processJAR(List<Class<?>> test_classes, String jar_path) throws IOException, ClassNotFoundException {
         log.info("Processing JAR: " + jar_path);
         JarFile jarFile = new JarFile(jar_path);
         Enumeration<JarEntry> jar_entries_enum = jarFile.entries();
@@ -97,6 +99,16 @@ public class CustomRunner {
             }
         }
         jarFile.close();
+    }
+
+    protected boolean has_annotations(Class<?> c) {
+        for (Method method : c.getDeclaredMethods()) {
+            if (method.isAnnotationPresent(org.junit.Test.class)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
 }
