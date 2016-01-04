@@ -16,7 +16,6 @@ public class CustomRunnerTest extends TestCase {
     }
 
     public void testMain() throws Exception {
-        CustomRunner obj = new CustomRunner();
         File log = File.createTempFile("log", ".jtl");
         log.deleteOnExit();
 
@@ -36,14 +35,13 @@ public class CustomRunnerTest extends TestCase {
         props.store(new FileWriter(propsFile), "test");
 
         String[] args = {propsFile.getAbsolutePath()};
-        obj.main(args);
+        CustomRunner.main(args);
 
         assertEquals(3, getLinesCount(log));
         assertEquals(8, getLinesCount(err));
     }
 
     public void testIterations() throws Exception {
-        CustomRunner obj = new CustomRunner();
         File log = File.createTempFile("log", ".jtl");
         log.deleteOnExit();
 
@@ -64,14 +62,13 @@ public class CustomRunnerTest extends TestCase {
         props.store(new FileWriter(propsFile), "test");
 
         String[] args = {propsFile.getAbsolutePath()};
-        obj.main(args);
+        CustomRunner.main(args);
 
         assertEquals(7, getLinesCount(log));
         assertEquals(24, getLinesCount(err));
     }
 
     public void testHold() throws Exception {
-        CustomRunner obj = new CustomRunner();
         File log = File.createTempFile("log", ".jtl");
         log.deleteOnExit();
 
@@ -92,14 +89,13 @@ public class CustomRunnerTest extends TestCase {
         props.store(new FileWriter(propsFile), "test");
 
         String[] args = {propsFile.getAbsolutePath()};
-        obj.main(args);
+        CustomRunner.main(args);
 
         assertTrue(3 < getLinesCount(log));
         assertTrue(8 < getLinesCount(err));
     }
 
     public void testHoldIterations() throws Exception {
-        CustomRunner obj = new CustomRunner();
         File log = File.createTempFile("log", ".jtl");
         log.deleteOnExit();
 
@@ -121,7 +117,7 @@ public class CustomRunnerTest extends TestCase {
         props.store(new FileWriter(propsFile), "test");
 
         String[] args = {propsFile.getAbsolutePath()};
-        obj.main(args);
+        CustomRunner.main(args);
 
         assertEquals(3, getLinesCount(log));
         assertEquals(8, getLinesCount(err));

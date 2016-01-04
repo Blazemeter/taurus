@@ -2,9 +2,10 @@ import csv
 import re
 import sys
 import traceback
+from optparse import OptionParser
 from time import time
 
-from nose import run
+import nose
 from nose.plugins import Plugin
 
 try:
@@ -263,11 +264,32 @@ def write_element(fds):
                 pass
 
 
-if __name__ == "__main__":
-    _output_file = sys.argv[1]
-    _err_file = sys.argv[2]
-    test_path = sys.argv[3:]
+def run_nose(_output_file, _err_file, files, iterations, hold):
     argv = [__file__, '-v']
-    argv.extend(test_path)
+    argv.extend(files)
     argv += ['--with-nose_plugin'] + ['--nocapture']
-    run(addplugins=[TaurusNosePlugin(_output_file, _err_file)], argv=argv)
+
+    if iterations == 0:
+        if hold > 0:
+            iterations = sys.maxsize
+        else:
+            iterations = 1
+
+    start_time = int(time())
+    plugin = TaurusNosePlugin(_output_file, _err_file)
+    for iteration in range(0, iterations):
+        nose.run(addplugins=[plugin], argv=argv)
+        if 0 < hold < int(time()) - start_time:
+            break
+
+
+if __name__ == "__main__":
+    parser = OptionParser()
+    parser.add_option('-k', '--kpi-file', action='store')
+    parser.add_option('-e', '--errors-file', action='store')
+    parser.add_option('-i', '--iterations', action='store', default=0)
+    parser.add_option('-d', '--duration', action='store', default=0)
+
+    opts, args = parser.parse_args()
+
+    run_nose(opts.kpi_file, opts.errors_file, args, opts.iterations, opts.duration)

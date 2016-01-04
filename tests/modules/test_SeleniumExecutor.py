@@ -1,14 +1,15 @@
+import csv
 import os
 import shutil
 import time
-import csv
+
 import yaml
 
-from bzt.engine import ScenarioExecutor
-from tests import setup_test_logging, BZTestCase, local_paths_config, __dir__
+from bzt.engine import ScenarioExecutor, Provisioning
 from bzt.modules.selenium import SeleniumExecutor, JUnitJar
-from tests.mocks import EngineEmul
 from bzt.utils import BetterDict
+from tests import setup_test_logging, BZTestCase, local_paths_config, __dir__
+from tests.mocks import EngineEmul
 
 setup_test_logging()
 
@@ -87,8 +88,7 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
         :return:
         """
         obj = self.get_selenium_executor()
-        obj.execution.merge(
-            {"scenario": {"script": __dir__() + "/../selenium/java/TestBlazemeterFail.java"}})
+        obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/java/TestBlazemeterFail.java"}})
         obj.prepare()
         self.assertTrue(os.path.exists(os.path.join(obj.runner.working_dir, "TestBlazemeterFail.java")))
         self.assertTrue(os.path.exists(os.path.join(obj.runner.working_dir, "TestBlazemeterFail.class")))
@@ -118,8 +118,7 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
         """
         obj = self.get_selenium_executor()
         obj.execution = BetterDict()
-        obj.execution.merge(
-            {"scenario": {"script": __dir__() + "/../selenium/java_package/"}})
+        obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/java_package/"}})
         obj.prepare()
         self.assertTrue(os.path.exists(os.path.join(obj.runner.working_dir, "compiled.jar")))
 
@@ -129,9 +128,10 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
         :return:
         """
         obj = self.get_selenium_executor()
-        obj.engine.config.merge(
-            {'execution': {'scenario': {'script': __dir__() + '/../selenium/java_package/'}, 'executor': 'selenium'},
-             'reporting': [{'module': 'junit-xml'}]})
+        obj.engine.config.merge({'execution': {
+            'scenario': {'script': __dir__() + '/../selenium/java_package/'},
+            'executor': 'selenium'},
+            'reporting': [{'module': 'junit-xml'}]})
         obj.engine.config.merge({"provisioning": "local"})
         obj.execution = obj.engine.config['execution']
         obj.settings.merge(obj.engine.config.get("modules").get("selenium"))
@@ -149,11 +149,9 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
         """
         obj = self.get_selenium_executor()
         obj.execution = BetterDict()
-        obj.execution.merge(
-            {"scenario": {"script": __dir__() + "/../selenium/jar/dummy.jar"}})
+        obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/jar/dummy.jar"}})
         obj.prepare()
-        self.assertTrue(
-            os.path.exists(os.path.join(obj.runner.working_dir, "dummy.jar")))
+        self.assertTrue(os.path.exists(os.path.join(obj.runner.working_dir, "dummy.jar")))
 
     def test_prepare_jar_folder(self):
         """
@@ -173,13 +171,12 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
         :return:
         """
         obj = self.get_selenium_executor()
-        obj.engine.config.merge(
-            {'execution': {'scenario': {'script': __dir__() + '/../selenium/jar/'}, 'executor': 'selenium'},
-             'reporting': [{'module': 'junit-xml'}]})
+        obj.engine.config.merge({'execution': {
+            'scenario': {'script': __dir__() + '/../selenium/jar/'}, 'executor': 'selenium'},
+            'reporting': [{'module': 'junit-xml'}]})
         obj.engine.config.merge({"provisioning": "local"})
         obj.execution = obj.engine.config['execution']
-        obj.execution.merge(
-            {"scenario": {"script": __dir__() + "/../selenium/jar/dummy.jar"}})
+        obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/jar/dummy.jar"}})
         obj.settings.merge(obj.engine.config.get("modules").get("selenium"))
         obj.prepare()
         obj.startup()
@@ -202,9 +199,10 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
         :return:
         """
         obj = self.get_selenium_executor()
-        obj.engine.config.merge(
-            {'execution': {'scenario': {'script': __dir__() + '/../selenium/jar/'}, 'executor': 'selenium'},
-             'reporting': [{'module': 'junit-xml'}]})
+        obj.engine.config.merge({'execution': {
+            'scenario': {'script': __dir__() + '/../selenium/jar/'}, 'executor': 'selenium'},
+            'reporting': [{'module': 'junit-xml'}]
+        })
         obj.engine.config.merge({"provisioning": "local"})
         obj.execution = obj.engine.config['execution']
         obj.settings.merge(obj.engine.config.get("modules").get("selenium"))
@@ -229,13 +227,12 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
         :return:
         """
         obj = self.get_selenium_executor()
-        obj.engine.config.merge(
-            {'execution': {'scenario': {'script': __dir__() + '/../selenium/java/'}, 'executor': 'selenium'},
-             'reporting': [{'module': 'junit-xml'}]})
+        obj.engine.config.merge({'execution': {
+            'scenario': {'script': __dir__() + '/../selenium/java/'}, 'executor': 'selenium'},
+            'reporting': [{'module': 'junit-xml'}]})
         obj.engine.config.merge({"provisioning": "local"})
         obj.execution = obj.engine.config['execution']
-        obj.execution.merge(
-            {"scenario": {"script": __dir__() + "/../selenium/java/TestBlazemeterFail.java"}})
+        obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/java/TestBlazemeterFail.java"}})
         obj.settings.merge(obj.engine.config.get("modules").get("selenium"))
         obj.prepare()
         obj.startup()
@@ -259,9 +256,9 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
         :return:
         """
         obj = self.get_selenium_executor()
-        obj.engine.config.merge(
-            {'execution': {'scenario': {'script': __dir__() + '/../selenium/java/'}, 'executor': 'selenium'},
-             'reporting': [{'module': 'junit-xml'}]})
+        obj.engine.config.merge({'execution': {
+            'scenario': {'script': __dir__() + '/../selenium/java/'}, 'executor': 'selenium'},
+            'reporting': [{'module': 'junit-xml'}]})
         obj.engine.config.merge({"provisioning": "local"})
         obj.execution = obj.engine.config['execution']
         obj.settings.merge(obj.engine.config.get("modules").get("selenium"))
@@ -288,9 +285,11 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
         """
         obj = self.get_selenium_executor()
         obj.engine.config = BetterDict()
-        obj.engine.config.merge(
-            {ScenarioExecutor.EXEC: {"executor": "selenium",
-                                     "scenario": {"script": __dir__() + "/../selenium/invalid/NotJUnittest.java"}}})
+        obj.engine.config.merge({
+            Provisioning.PROV: "local",
+            ScenarioExecutor.EXEC: {"executor": "selenium",
+                                    "scenario": {"script": __dir__() + "/../selenium/invalid/NotJUnittest.java"}}
+        })
         obj.execution = obj.engine.config['execution']
         obj.prepare()
         obj.startup()
@@ -304,9 +303,9 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
 
     def test_resource_files_collection_remote_java(self):
         obj = self.get_selenium_executor()
-        obj.engine.config.merge(
-            {'execution': {'scenario': {'script': __dir__() + '/../selenium/java/'}, 'executor': 'selenium'},
-             'reporting': [{'module': 'junit-xml'}]})
+        obj.engine.config.merge({'execution': {
+            'scenario': {'script': __dir__() + '/../selenium/java/'}, 'executor': 'selenium'},
+            'reporting': [{'module': 'junit-xml'}]})
         obj.engine.config.merge({"provisioning": "local"})
         obj.execution = obj.engine.config['execution']
         obj.settings.merge(obj.engine.config.get("modules").get("selenium"))
@@ -317,9 +316,9 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
 
     def test_resource_files_collection_remote_jar(self):
         obj = self.get_selenium_executor()
-        obj.engine.config.merge(
-            {'execution': {'scenario': {'script': __dir__() + '/../selenium/jar/'}, 'executor': 'selenium'},
-             'reporting': [{'module': 'junit-xml'}]})
+        obj.engine.config.merge({'execution': {
+            'scenario': {'script': __dir__() + '/../selenium/jar/'}, 'executor': 'selenium'},
+            'reporting': [{'module': 'junit-xml'}]})
         obj.engine.config.merge({"provisioning": "local"})
         obj.execution = obj.engine.config['execution']
         obj.settings.merge(obj.engine.config.get("modules").get("selenium"))
@@ -366,9 +365,9 @@ class TestSeleniumNoseRunner(BZTestCase):
         obj = SeleniumExecutor()
         obj.engine = EngineEmul()
         obj.engine.config = BetterDict()
-        obj.engine.config.merge(
-            {'execution': {'scenario': {'script': __dir__() + '/../selenium/python/'}, 'executor': 'selenium'},
-             'reporting': [{'module': 'junit-xml'}]})
+        obj.engine.config.merge({'execution': {
+            'scenario': {'script': __dir__() + '/../selenium/python/'}, 'executor': 'selenium'},
+            'reporting': [{'module': 'junit-xml'}]})
         obj.engine.config.merge({"provisioning": "local"})
         obj.execution = obj.engine.config['execution']
 
@@ -394,9 +393,9 @@ class TestSeleniumNoseRunner(BZTestCase):
         obj = SeleniumExecutor()
         obj.engine = EngineEmul()
         obj.engine.config = BetterDict()
-        obj.engine.config.merge(
-            {'execution': {'scenario': {'script': __dir__() + '/../selenium/python/'}, 'executor': 'selenium'},
-             'reporting': [{'module': 'junit-xml'}]})
+        obj.engine.config.merge({'execution': {
+            'scenario': {'script': __dir__() + '/../selenium/python/'}, 'executor': 'selenium'},
+            'reporting': [{'module': 'junit-xml'}]})
         obj.engine.config.merge({"provisioning": "local"})
         obj.execution = obj.engine.config['execution']
         obj.settings.merge(obj.engine.config.get("modules").get("selenium"))
@@ -418,9 +417,9 @@ class TestSeleniumNoseRunner(BZTestCase):
         obj = SeleniumExecutor()
         obj.engine = EngineEmul()
         obj.engine.config = BetterDict()
-        obj.engine.config.merge(
-            {ScenarioExecutor.EXEC: {"executor": "selenium",
-                                     "scenario": {"script": __dir__() + "/../selenium/invalid/dummy.py"}}})
+        obj.engine.config.merge({ScenarioExecutor.EXEC: {
+            "executor": "selenium",
+            "scenario": {"script": __dir__() + "/../selenium/invalid/dummy.py"}}})
         obj.execution = obj.engine.config['execution']
         obj.prepare()
         obj.startup()
@@ -466,9 +465,9 @@ class TestSeleniumStuff(SeleniumTestCase):
         obj.engine = self.engine_obj
         obj.settings = self.selenium_config
         obj.engine.config = BetterDict()
-        obj.engine.config.merge(
-            {ScenarioExecutor.EXEC: {"executor": "selenium",
-                                     "scenario": {"script": __dir__() + "/../selenium/invalid/invalid.java"}}})
+        obj.engine.config.merge({ScenarioExecutor.EXEC: {
+            "executor": "selenium",
+            "scenario": {"script": __dir__() + "/../selenium/invalid/invalid.java"}}})
         obj.execution = obj.engine.config['execution']
         self.assertRaises(RuntimeError, obj.prepare)
 
@@ -480,9 +479,9 @@ class TestSeleniumStuff(SeleniumTestCase):
         obj = SeleniumExecutor()
         obj.engine = EngineEmul()
         obj.engine.config = BetterDict()
-        obj.engine.config.merge(
-            {ScenarioExecutor.EXEC: {"executor": "selenium",
-                                     "scenario": {"script": __dir__() + "/../selenium/invalid/not_found"}}})
+        obj.engine.config.merge({ScenarioExecutor.EXEC: {
+            "executor": "selenium",
+            "scenario": {"script": __dir__() + "/../selenium/invalid/not_found"}}})
         obj.execution = obj.engine.config['execution']
         self.assertRaises(RuntimeError, obj.prepare)
 
@@ -494,9 +493,9 @@ class TestSeleniumStuff(SeleniumTestCase):
         obj = SeleniumExecutor()
         obj.engine = self.engine_obj
         obj.settings = self.selenium_config
-        obj.engine.config.merge(
-            {ScenarioExecutor.EXEC: {"executor": "selenium",
-                                     "scenario": {"script": __dir__() + "/../selenium/invalid/SeleniumTest.java"}}})
+        obj.engine.config.merge({ScenarioExecutor.EXEC: {
+            "executor": "selenium",
+            "scenario": {"script": __dir__() + "/../selenium/invalid/SeleniumTest.java"}}})
         obj.execution = obj.engine.config['execution']
         obj.prepare()
         obj.startup()
@@ -516,9 +515,9 @@ class TestSeleniumStuff(SeleniumTestCase):
         obj = SeleniumExecutor()
         obj.engine = self.engine_obj
         obj.settings = self.selenium_config
-        obj.engine.config.merge(
-            {ScenarioExecutor.EXEC: {"executor": "selenium",
-                                     "scenario": {"script": __dir__() + "/../selenium/invalid/SimpleTest.java"}}})
+        obj.engine.config.merge({ScenarioExecutor.EXEC: {
+            "executor": "selenium",
+            "scenario": {"script": __dir__() + "/../selenium/invalid/SimpleTest.java"}}})
         obj.execution = obj.engine.config['execution']
         obj.prepare()
         obj.startup()

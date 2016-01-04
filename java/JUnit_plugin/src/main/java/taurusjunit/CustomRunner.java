@@ -26,7 +26,7 @@ public class CustomRunner {
         log.setLevel(Level.FINER);
     }
 
-    public void main(String[] args) throws Exception {
+    public static void main(String[] args) throws Exception {
         log.info("Starting: " + Arrays.toString(args));
         if (args.length != 1) {
             throw new IllegalArgumentException("Usage requires 1 parameter, containing path to properties file");
@@ -72,7 +72,7 @@ public class CustomRunner {
         jtlErrorReporter.close();
     }
 
-    protected ArrayList<Class> getClasses(Properties props) {
+    protected static ArrayList<Class> getClasses(Properties props) {
         ArrayList<Class> result = new ArrayList<>(0);
 
         Enumeration<?> it = props.propertyNames();
@@ -86,7 +86,7 @@ public class CustomRunner {
         return result;
     }
 
-    protected List<Class<?>> getClasses(String jar_path) {
+    protected static List<Class<?>> getClasses(String jar_path) {
         List<Class<?>> test_classes = new ArrayList<>(); //List of loaded classes
         try {
             processJAR(test_classes, jar_path);
@@ -96,7 +96,7 @@ public class CustomRunner {
         return test_classes;
     }
 
-    protected void processJAR(List<Class<?>> test_classes, String jar_path) throws IOException, ClassNotFoundException {
+    protected static void processJAR(List<Class<?>> test_classes, String jar_path) throws IOException, ClassNotFoundException {
         log.info("Processing JAR: " + jar_path);
         JarFile jarFile = new JarFile(jar_path);
         Enumeration<JarEntry> jar_entries_enum = jarFile.entries();
@@ -125,7 +125,7 @@ public class CustomRunner {
         jarFile.close();
     }
 
-    protected boolean has_annotations(Class<?> c) {
+    protected static boolean has_annotations(Class<?> c) {
         for (Method method : c.getDeclaredMethods()) {
             if (method.isAnnotationPresent(org.junit.Test.class)) {
                 return true;
