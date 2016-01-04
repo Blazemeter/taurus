@@ -19,6 +19,7 @@ public class CustomRunner {
     public static final String KPI_LOG = "kpi_log";
     public static final String ERROR_LOG = "error_log";
     public static final String TARGET_PREFIX = "target_";
+    public static final String ITERATIONS = "iterations";
 
     static {
         log.setLevel(Level.FINER);
@@ -37,15 +38,21 @@ public class CustomRunner {
 
         if (classes.isEmpty()) {
             throw new RuntimeException("Nothing to test");
-        } else {
-            log.info("Running with classes: " + classes.toString());
-            JTLReporter jtlReporter = new JTLReporter(props.getProperty(KPI_LOG));
-            JTLErrorReporter jtlErrorReporter = new JTLErrorReporter(props.getProperty(ERROR_LOG));
-            CustomListener custom_listener = new CustomListener(jtlReporter, jtlErrorReporter);
-            JUnitCore runner = new JUnitCore();
-            runner.addListener(custom_listener);
+        }
+
+        log.info("Running with classes: " + classes.toString());
+        JTLReporter jtlReporter = new JTLReporter(props.getProperty(KPI_LOG));
+        JTLErrorReporter jtlErrorReporter = new JTLErrorReporter(props.getProperty(ERROR_LOG));
+        CustomListener custom_listener = new CustomListener(jtlReporter, jtlErrorReporter);
+        JUnitCore runner = new JUnitCore();
+        runner.addListener(custom_listener);
+
+        Long iterations = Long.valueOf(props.getProperty(ITERATIONS, "1"));
+        for (int iteration = 0; iteration < iterations; iteration++) {
             runner.run(classes.toArray(new Class[classes.size()]));
         }
+        jtlReporter.close();
+        jtlErrorReporter.close();
     }
 
     protected ArrayList<Class> getClasses(Properties props) {

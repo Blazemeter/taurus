@@ -31,8 +31,6 @@ public class CustomListener extends RunListener {
 
     public void testRunFinished(Result result) throws java.lang.Exception {
         log.info("Run Finished, successful=" + result.wasSuccessful() + ", run count=" + result.getRunCount());
-        reporter.close();
-        err_reporter.close();
     }
 
     public void testStarted(Description description) throws Exception {
