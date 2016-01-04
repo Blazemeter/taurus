@@ -1,10 +1,11 @@
-from time import time
-from nose.plugins import Plugin
-from nose import run
-import traceback
-import sys
 import csv
 import re
+import sys
+import traceback
+from time import time
+
+from nose import run
+from nose.plugins import Plugin
 
 try:
     from lxml import etree
@@ -268,4 +269,5 @@ if __name__ == "__main__":
     test_path = sys.argv[3:]
     argv = [__file__, '-v']
     argv.extend(test_path)
-    run(addplugins=[TaurusNosePlugin(_output_file, _err_file)], argv=argv + ['--with-nose_plugin'] + ['--nocapture'])
+    argv += ['--with-nose_plugin'] + ['--nocapture']
+    run(addplugins=[TaurusNosePlugin(_output_file, _err_file)], argv=argv)
