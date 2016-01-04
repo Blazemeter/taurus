@@ -29,12 +29,10 @@ class TestGrinderExecutor(BZTestCase):
         obj.execution = BetterDict()
         obj.settings.merge({"properties-file": __dir__() + "/../grinder/grinder.base.properties",
                             "properties": {"sample_prop": "some_val"}})
-        obj.execution.merge({"concurrency": 2,
-                             "scenario": {
+        obj.execution.merge({"scenario": {
                                  "script": __dir__() + "/../grinder/helloworld.py",
                                  "properties-file": __dir__() + "/..//grinder/grinder.properties",
                                  "properties": {"grinder.useConsole": "false"}}})
-        obj.execution.merge({"concurrency": 3})
         obj.prepare()
 
         self.assertTrue(os.path.exists(path))
@@ -42,6 +40,16 @@ class TestGrinderExecutor(BZTestCase):
         GrinderExecutor.DOWNLOAD_LINK = grinder_link
         GrinderExecutor.VERSION = grinder_version
         GrinderExecutor.MIRRORS_SOURCE = mirrors_source
+
+    def test_strage_concurrency(self):
+        obj = GrinderExecutor()
+        obj.engine = EngineEmul()
+        obj.execution = BetterDict()
+        obj.execution.merge({"concurrency": 3})
+        obj.execution.merge({"concurrency": 4})
+        obj.execution.merge({"concurrency": 5})
+        obj.prepare()
+
 
     def test_grinder_widget(self):
         obj = GrinderExecutor()
