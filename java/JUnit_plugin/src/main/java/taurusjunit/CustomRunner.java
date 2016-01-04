@@ -50,8 +50,12 @@ public class CustomRunner {
 
         long iterations = Long.valueOf(props.getProperty(ITERATIONS, "0"));
         long hold = Long.valueOf(props.getProperty(HOLD, "0"));
-        if (hold > 0 && iterations == 0) {
-            iterations = Long.MAX_VALUE;
+        if (iterations == 0) {
+            if (hold > 0) {
+                iterations = Long.MAX_VALUE;
+            } else {
+                iterations = 1;
+            }
         }
 
         long startTime = System.currentTimeMillis();
