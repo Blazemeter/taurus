@@ -20,6 +20,7 @@ public class CustomRunner {
     public static final String ERROR_LOG = "error_log";
     public static final String TARGET_PREFIX = "target_";
     public static final String ITERATIONS = "iterations";
+    public static final String HOLD = "hold_for";
 
     static {
         log.setLevel(Level.FINER);
@@ -47,10 +48,22 @@ public class CustomRunner {
         JUnitCore runner = new JUnitCore();
         runner.addListener(custom_listener);
 
-        Long iterations = Long.valueOf(props.getProperty(ITERATIONS, "1"));
+        long iterations = Long.valueOf(props.getProperty(ITERATIONS, "0"));
+        long hold = Long.valueOf(props.getProperty(HOLD, "0"));
+        if (hold > 0 && iterations == 0) {
+            iterations = Long.MAX_VALUE;
+        }
+
+        long startTime = System.currentTimeMillis();
         for (int iteration = 0; iteration < iterations; iteration++) {
             runner.run(classes.toArray(new Class[classes.size()]));
+            log.info("Elapsed: " + (System.currentTimeMillis() - startTime) + ", limit: " + (hold * 1000));
+            if (hold > 0 && System.currentTimeMillis() - startTime > hold * 1000) {
+                log.info("Duration limit reached, stopping");
+                break;
+            }
         }
+
         jtlReporter.close();
         jtlErrorReporter.close();
     }
