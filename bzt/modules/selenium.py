@@ -40,7 +40,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     """
     SELENIUM_DOWNLOAD_LINK = "http://selenium-release.storage.googleapis.com/{version}/" \
                              "selenium-server-standalone-{version}.0.jar"
-    SELENIUM_VERSION = "2.46"
+    SELENIUM_VERSION = "2.48"
 
     JUNIT_DOWNLOAD_LINK = "http://search.maven.org/remotecontent?filepath=junit/junit/{version}/junit-{version}.jar"
     JUNIT_VERSION = "4.12"
