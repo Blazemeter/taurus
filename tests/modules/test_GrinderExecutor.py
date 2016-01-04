@@ -27,6 +27,7 @@ class TestGrinderExecutor(BZTestCase):
         obj.engine = EngineEmul()
         obj.settings.merge({"path": path})
         obj.execution = BetterDict()
+        obj.settings.merge({"properties-file": __dir__() + "/../grinder/grinder.base.properties"})
         obj.execution.merge({"scenario": {
             "script": __dir__() + "/../grinder/helloworld.py",
             "properties-file": __dir__() + "/..//grinder/grinder.properties",
