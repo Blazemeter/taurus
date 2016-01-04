@@ -1,10 +1,10 @@
-import shutil
 import os
+import shutil
 
-from tests import setup_test_logging, BZTestCase, __dir__
 from bzt.modules.grinder import GrinderExecutor, Grinder
-from tests.mocks import EngineEmul
 from bzt.utils import BetterDict
+from tests import setup_test_logging, BZTestCase, __dir__
+from tests.mocks import EngineEmul
 
 setup_test_logging()
 
@@ -27,16 +27,17 @@ class TestGrinderExecutor(BZTestCase):
         obj.engine = EngineEmul()
         obj.settings.merge({"path": path})
         obj.execution = BetterDict()
-        obj.settings.merge({"properties-file": __dir__() + "/../grinder/grinder.base.properties"})
-        obj.execution.merge({"scenario": {
-            "script": __dir__() + "/../grinder/helloworld.py",
-            "properties-file": __dir__() + "/..//grinder/grinder.properties",
-            "properties": {"grinder.useConsole": "false"}}})
+        obj.settings.merge({"properties-file": __dir__() + "/../grinder/grinder.base.properties",
+                            "properties": {"sample_prop": "some_val"}})
+        obj.execution.merge({"concurrency": 1,
+                             "scenario": {
+                                 "script": __dir__() + "/../grinder/helloworld.py",
+                                 "properties-file": __dir__() + "/..//grinder/grinder.properties",
+                                 "properties": {"grinder.useConsole": "false"}}})
         obj.prepare()
 
         self.assertTrue(os.path.exists(path))
 
-        obj.prepare()
         GrinderExecutor.DOWNLOAD_LINK = grinder_link
         GrinderExecutor.VERSION = grinder_version
         GrinderExecutor.MIRRORS_SOURCE = mirrors_source
@@ -69,3 +70,21 @@ class TestGrinderExecutor(BZTestCase):
         obj = GrinderExecutor()
         grinder_tool = Grinder(path, obj.log, GrinderExecutor.VERSION)
         grinder_tool.install()
+
+    def test_requests(self):
+        obj = GrinderExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({"scenario": {"requests": ['http://blazedemo.com']}})
+        obj.prepare()
+
+    def test_full_Grinder(self):
+        obj = GrinderExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({"scenario": {"requests": ['http://blazedemo.com']}})
+        obj.prepare()
+        # obj.startup()
+        # try:
+        #     while not obj.check():
+        #         time.sleep(obj.engine.check_interval)
+        # finally:
+        #     obj.shutdown()
