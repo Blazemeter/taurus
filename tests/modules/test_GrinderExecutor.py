@@ -29,11 +29,12 @@ class TestGrinderExecutor(BZTestCase):
         obj.execution = BetterDict()
         obj.settings.merge({"properties-file": __dir__() + "/../grinder/grinder.base.properties",
                             "properties": {"sample_prop": "some_val"}})
-        obj.execution.merge({"concurrency": 1,
+        obj.execution.merge({"concurrency": 2,
                              "scenario": {
                                  "script": __dir__() + "/../grinder/helloworld.py",
                                  "properties-file": __dir__() + "/..//grinder/grinder.properties",
                                  "properties": {"grinder.useConsole": "false"}}})
+        obj.execution.merge({"concurrency": 3})
         obj.prepare()
 
         self.assertTrue(os.path.exists(path))
@@ -69,7 +70,7 @@ class TestGrinderExecutor(BZTestCase):
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
         obj = GrinderExecutor()
         grinder_tool = Grinder(path, obj.log, GrinderExecutor.VERSION)
-        grinder_tool.install()
+        #grinder_tool.install()
 
     def test_requests(self):
         obj = GrinderExecutor()
