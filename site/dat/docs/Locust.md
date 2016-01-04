@@ -45,3 +45,7 @@ class WebsiteUser(HttpLocust):
     min_wait = 100
     max_wait = 1500
 ```
+
+## Limitations
+
+As Locust tool do not support hits/s manipulations, the `throughput` setting for execution has no effect on it. Also, due to Locust's "hatch rate" approach, `hold-for` setting has no effect.
