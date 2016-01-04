@@ -157,7 +157,9 @@
     <!-- Latest compiled and minified JavaScript -->
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
 
-    {include file="dat/counter.tpl"}
+    {if $smarty.server.SERVER_ADDR!=$smarty.server.REMOTE_ADDR}
+        {include file="dat/counter.tpl"}
+    {/if}
 
 </footer>
 
