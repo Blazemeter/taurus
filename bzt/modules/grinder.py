@@ -270,21 +270,6 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         return resource_files
 
-    def __cp_res_files_to_artifacts_dir(self, resource_files_list):
-        """
-
-        :param resource_files_list:
-        :return:
-        """
-        for resource_file in resource_files_list:
-            if os.path.exists(resource_file):
-                try:
-                    shutil.copy(resource_file, self.engine.artifacts_dir)
-                except BaseException:
-                    self.log.warning("Cannot copy file: %s", resource_file)
-            else:
-                self.log.warning("File not found: %s", resource_file)
-
 
 class DataLogReader(ResultsReader):
     """ Class to read KPI from data log """

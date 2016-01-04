@@ -50,6 +50,8 @@ class TestSiegeExecutor(BZTestCase):
                     'v2': 'TWO'},
                 "script": get_res_path('url-file')}})
         obj.prepare()
+        obj.prepare()
+        self.assertNotEqual(len(obj.resource_files()), 0)
         obj.get_widget()
         obj.startup()
 
@@ -94,6 +96,7 @@ class TestSiegeExecutor(BZTestCase):
                 "requests": ["http://blazedemo.com",
                              "http://ya.ru"]}})
         obj.prepare()
+        self.assertEqual(len(obj.resource_files()), 0)
         try:
             obj.startup()
         except ValueError:
