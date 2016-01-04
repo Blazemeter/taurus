@@ -49,7 +49,7 @@ public class CustomRunner {
         runner.addListener(custom_listener);
 
         long iterations = Long.valueOf(props.getProperty(ITERATIONS, "0"));
-        long hold = Long.valueOf(props.getProperty(HOLD, "0"));
+        float hold = Float.valueOf(props.getProperty(HOLD, "0"));
         if (iterations == 0) {
             if (hold > 0) {
                 iterations = Long.MAX_VALUE;
