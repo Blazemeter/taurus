@@ -15,18 +15,17 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import time
-import subprocess
 import os
 import re
-import shutil
+import subprocess
+import time
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
+from bzt.modules.console import WidgetProvider, SidebarWidget
+from bzt.six import iteritems
 from bzt.utils import shell_exec, MirrorsManager
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, TclLibrary
-from bzt.six import iteritems
-from bzt.modules.console import WidgetProvider, SidebarWidget
 
 
 class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
@@ -87,11 +86,11 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         script_props_file = scenario.get("properties-file", "")
         if script_props_file:
             fds.write(
-                "# Script Properies File Start: %s\n" % script_props_file)
+                    "# Script Properies File Start: %s\n" % script_props_file)
             with open(script_props_file) as spf:
                 fds.write(spf.read())
             fds.write(
-                "# Script Properies File End: %s\n\n" % script_props_file)
+                    "# Script Properies File End: %s\n\n" % script_props_file)
 
         # scenario props
         local_props = scenario.get("properties")

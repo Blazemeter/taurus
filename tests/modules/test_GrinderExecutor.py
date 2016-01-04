@@ -23,9 +23,9 @@ class TestGrinderExecutor(BZTestCase):
         obj.settings.merge({"properties-file": __dir__() + "/../grinder/grinder.base.properties",
                             "properties": {"sample_prop": "some_val"}})
         obj.execution.merge({"scenario": {
-                                 "script": __dir__() + "/../grinder/helloworld.py",
-                                 "properties-file": __dir__() + "/..//grinder/grinder.properties",
-                                 "properties": {"grinder.useConsole": "false"}}})
+            "script": __dir__() + "/../grinder/helloworld.py",
+            "properties-file": __dir__() + "/..//grinder/grinder.properties",
+            "properties": {"grinder.useConsole": "false"}}})
         obj.prepare()
 
         self.assertTrue(os.path.exists(path))
@@ -33,7 +33,8 @@ class TestGrinderExecutor(BZTestCase):
     def test_grinder_widget(self):
         obj = GrinderExecutor()
         obj.engine = EngineEmul()
-        obj.execution.merge({"concurrency": 2,
+        obj.engine.config.merge({"provisioning": 'local'})
+        obj.execution.merge({"concurrency": {"local": 2},
                              "ramp-up": 2,
                              "hold-for": 2,
                              "scenario": {"script": __dir__() + "/../grinder/helloworld.py"}})
@@ -51,7 +52,7 @@ class TestGrinderExecutor(BZTestCase):
     def test_fail_on_zero_results(self):
         obj = GrinderExecutor()
         obj.engine = EngineEmul()
-        obj.execution.merge({"concurrency": 2,
+        obj.execution.merge({"concurrency": {"local": 2},
                              "scenario": {"script": __dir__() + "/../grinder/helloworld.py"}})
         obj.prepare()
         self.assertRaises(RuntimeWarning, obj.post_process)
