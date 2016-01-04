@@ -23,7 +23,7 @@ public class CustomRunner {
         log.setLevel(Level.FINER);
     }
 
-    public static void main(String[] args) throws Exception {
+    public void main(String[] args) throws Exception {
         log.info("Starting");
         if (args.length < 3) {
             throw new IllegalArgumentException("Usage requires at least 3 params");
@@ -48,7 +48,7 @@ public class CustomRunner {
         }
     }
 
-    public static boolean has_annotations(Class<?> c) {
+    public boolean has_annotations(Class<?> c) {
         for (Method method : c.getDeclaredMethods()) {
             if (method.isAnnotationPresent(org.junit.Test.class)) {
                 return true;
@@ -58,7 +58,7 @@ public class CustomRunner {
         return false;
     }
 
-    private static List<Class<?>> getClasses(String[] jar_paths) {
+    private List<Class<?>> getClasses(String[] jar_paths) {
         List<Class<?>> test_classes = new ArrayList<>(); //List of loaded classes
         for (String jar_path : jar_paths) {
             try {
@@ -70,7 +70,7 @@ public class CustomRunner {
         return test_classes;
     }
 
-    private static void processJAR(List<Class<?>> test_classes, String jar_path) throws IOException, ClassNotFoundException {
+    private void processJAR(List<Class<?>> test_classes, String jar_path) throws IOException, ClassNotFoundException {
         log.info("Processing JAR: " + jar_path);
         JarFile jarFile = new JarFile(jar_path);
         Enumeration<JarEntry> jar_entries_enum = jarFile.entries();
