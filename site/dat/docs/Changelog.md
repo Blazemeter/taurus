@@ -1,5 +1,7 @@
 # Changelog
 
+## 1.1.0 (next)
+
 ## 1.0.0
  - support [cloud](Cloud.md) provisioning
  - parse URLs for JMeter a bit better
