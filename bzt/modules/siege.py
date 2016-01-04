@@ -76,6 +76,12 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider):
         self.__out = open(out_file_name, 'w')
         self.__err = open(self.engine.create_artifact("siege", ".err"), 'w')
 
+    def resource_files(self):
+        resource_files = []
+        if Scenario.SCRIPT in self.scenario:
+            resource_files.append(self.engine.find_file(self.scenario[Scenario.SCRIPT]))
+        return resource_files
+
     def _fill_url_file(self):
         url_file_name = self.engine.create_artifact("siege", ".url")
         user_vars = self.scenario.get('variables')
