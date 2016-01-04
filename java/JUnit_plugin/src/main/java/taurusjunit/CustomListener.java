@@ -14,10 +14,10 @@ public class CustomListener extends RunListener {
     private JTLReporter reporter;
     private JTLErrorReporter err_reporter;
     private long started = 0;
-    
+
     private long test_count = 0;
     private long failed_count = 0;
-    private String report_tmpl = "%s.%s,Total:%d Pass:%d Failed:%d\n";
+    private final static String report_tmpl = "%s.%s,Total:%d Pass:%d Failed:%d\n";
 
     public CustomListener(JTLReporter jtlReporter, JTLErrorReporter jtlErrorReporter) {
         super();
@@ -48,18 +48,18 @@ public class CustomListener extends RunListener {
         log.info(String.format("finished %s", description.getDisplayName()));
         pendingSample.setElapsed(System.currentTimeMillis() - started);
         reporter.writeSample(pendingSample);
-        
-        if (pendingSample.getResponseCode() != 200){
-        	err_reporter.add_sample(pendingSample);
-        	failed_count += 1;
+
+        if (pendingSample.getResponseCode() != 200) {
+            err_reporter.add_sample(pendingSample);
+            failed_count += 1;
         }
         pendingSample = null;
         System.out.printf(report_tmpl,
-        		description.getClassName(),
-        		description.getMethodName(),
-        		test_count,
-        		test_count - failed_count,
-        		failed_count);
+                description.getClassName(),
+                description.getMethodName(),
+                test_count,
+                test_count - failed_count,
+                failed_count);
     }
 
     public void testFailure(Failure failure) throws java.lang.Exception {
