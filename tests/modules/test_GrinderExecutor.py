@@ -1,5 +1,6 @@
 import os
 import shutil
+import time
 
 from bzt.modules.grinder import GrinderExecutor, Grinder
 from bzt.utils import BetterDict
@@ -62,7 +63,7 @@ class TestGrinderExecutor(BZTestCase):
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
         obj = GrinderExecutor()
         grinder_tool = Grinder(path, obj.log, GrinderExecutor.VERSION)
-        grinder_tool.install()
+        # grinder_tool.install()
 
     def test_requests(self):
         obj = GrinderExecutor()
@@ -72,12 +73,27 @@ class TestGrinderExecutor(BZTestCase):
 
     def test_full_Grinder(self):
         obj = GrinderExecutor()
+        obj.kpi_file = os.path.abspath(__dir__() + '/../grinder/test.log')
         obj.engine = EngineEmul()
-        obj.execution.merge({"scenario": {"requests": ['http://blazedemo.com']}})
+        obj.execution.merge({"concurrency": {"local": 2},
+                             "hold-for": 5,
+                             "scenario": {"requests": ['http://blazedemo.com']}})
         obj.prepare()
-        # obj.startup()
-        # try:
-        #     while not obj.check():
-        #         time.sleep(obj.engine.check_interval)
-        # finally:
-        #     obj.shutdown()
+
+        try:
+            obj.startup()
+            while not obj.check():
+                time.sleep(obj.engine.check_interval)
+            obj.check()
+        finally:
+            obj.shutdown()
+        try:
+            obj.post_process()
+        except RuntimeWarning:
+            return
+        self.fail()
+
+
+class TestDataLogReader(BZTestCase):
+    def test_read(self):
+        log_path = path.join(path.dirname(__file__), '..', 'grinder', 'test.log')

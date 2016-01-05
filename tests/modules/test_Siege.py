@@ -116,8 +116,8 @@ class TestSiegeExecutor(BZTestCase):
                              "http://ya.ru"]}
         })
         obj.prepare()
-        obj.startup()
         try:
+            obj.startup()
             while not obj.check():
                 time.sleep(obj.engine.check_interval)
         finally:
