@@ -38,7 +38,7 @@ public class Sample {
     public void setTrace(String trace) {
         this.trace = trace == null ? "" : trace;
     }
-    
+
     public String getTrace() {
         return trace;
     }

@@ -1,5 +1,17 @@
 """
-Module holds selenium stuff
+Copyright 2015 BlazeMeter Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 """
 import json
 import os
@@ -28,7 +40,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     """
     SELENIUM_DOWNLOAD_LINK = "http://selenium-release.storage.googleapis.com/{version}/" \
                              "selenium-server-standalone-{version}.0.jar"
-    SELENIUM_VERSION = "2.46"
+    SELENIUM_VERSION = "2.48"
 
     JUNIT_DOWNLOAD_LINK = "http://search.maven.org/remotecontent?filepath=junit/junit/{version}/junit-{version}.jar"
     JUNIT_VERSION = "4.12"
@@ -65,11 +77,12 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         script_type = self.detect_script_type(self.scenario.get(Scenario.SCRIPT))
 
         if script_type == ".py":
-            self.runner = NoseTester
+            runner_class = NoseTester
             runner_config = self.settings.get("selenium-tools").get("nose")
         elif script_type == ".jar" or script_type == ".java":
-            self.runner = JunitTester
+            runner_class = JUnitTester
             runner_config = self.settings.get("selenium-tools").get("junit")
+            runner_config['props-file'] = self.engine.create_artifact("customrunner", ".properties")
         else:
             raise ValueError("Unsupported script type: %s" % script_type)
 
@@ -85,7 +98,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         self._cp_resource_files(self.runner_working_dir)
 
-        self.runner = self.runner(runner_config, self.scenario, self.log)
+        self.runner = runner_class(runner_config, self.scenario, self.get_load(), self.log)
         self.runner.prepare()
         self.reader = JTLReader(self.kpi_file, self.log, self.err_jtl)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
@@ -233,11 +246,12 @@ class AbstractTestRunner(object):
     Abstract test runner
     """
 
-    def __init__(self, settings, scenario):
+    def __init__(self, settings, scenario, load):
         self.process = None
         self.settings = settings
         self.required_tools = []
         self.scenario = scenario
+        self.load = load
         self.artifacts_dir = self.settings.get("artifacts-dir")
         self.working_dir = self.settings.get("working-dir")
         self.log = None
@@ -281,13 +295,14 @@ class AbstractTestRunner(object):
         self.opened_descriptors = []
 
 
-class JunitTester(AbstractTestRunner):
+class JUnitTester(AbstractTestRunner):
     """
     Allows to test java and jar files
     """
 
-    def __init__(self, junit_config, scenario, parent_logger):
-        super(JunitTester, self).__init__(junit_config, scenario)
+    def __init__(self, junit_config, scenario, load, parent_logger):
+        super(JUnitTester, self).__init__(junit_config, scenario, load)
+        self.props_file = junit_config['props-file']
         self.log = parent_logger.getChild(self.__class__.__name__)
         path_lambda = lambda key, val: os.path.abspath(os.path.expanduser(self.settings.get(key, val)))
 
@@ -323,9 +338,8 @@ class JunitTester(AbstractTestRunner):
 
         self.required_tools.append(TclLibrary(self.log))
         self.required_tools.append(JavaVM("", "", self.log))
-        self.required_tools.append(SeleniumServerJar(self.selenium_server_jar_path,
-                                                     SeleniumExecutor.SELENIUM_DOWNLOAD_LINK.format(
-                                                             version=SeleniumExecutor.SELENIUM_VERSION), self.log))
+        link = SeleniumExecutor.SELENIUM_DOWNLOAD_LINK.format(version=SeleniumExecutor.SELENIUM_VERSION)
+        self.required_tools.append(SeleniumServerJar(self.selenium_server_jar_path, link, self.log))
         self.required_tools.append(JUnitJar(self.junit_path, self.log, SeleniumExecutor.JUNIT_VERSION))
         self.required_tools.append(HamcrestJar(self.hamcrest_path, SeleniumExecutor.HAMCREST_DOWNLOAD_LINK))
         self.required_tools.append(JUnitListenerJar(self.junit_listener_path, ""))
@@ -410,17 +424,26 @@ class JunitTester(AbstractTestRunner):
         jar_list = [os.path.join(self.working_dir, jar) for jar in os.listdir(self.working_dir) if jar.endswith(".jar")]
         self.base_class_path.extend(jar_list)
 
-        junit_command_line = ["java", "-cp", os.pathsep.join(self.base_class_path), "taurusjunit.CustomRunner"]
+        with open(self.props_file, 'wt') as props:
+            props.write("kpi_log=%s\n" % self.settings.get("report-file"))
+            props.write("error_log=%s\n" % self.settings.get("err-file"))
 
-        junit_command_line.extend([self.settings.get("report-file")])
-        junit_command_line.extend([self.settings.get("err-file")])
-        junit_command_line.extend(jar_list)
+            if self.load.iterations:
+                props.write("iterations=%s\n" % self.load.iterations)
+
+            if self.load.hold:
+                props.write("hold_for=%s\n" % self.load.hold)
+
+            for index, item in enumerate(jar_list):
+                props.write("target_%s=%s\n" % (index, item))
 
         std_out = open(self.settings.get("stdout"), "wt")
         self.opened_descriptors.append(std_out)
         std_err = open(self.settings.get("stderr"), "wt")
         self.opened_descriptors.append(std_err)
 
+        junit_command_line = ["java", "-cp", os.pathsep.join(self.base_class_path), "taurusjunit.CustomRunner",
+                              self.props_file]
         self.process = shell_exec(junit_command_line, cwd=self.artifacts_dir,
                                   stdout=std_out,
                                   stderr=std_err)
@@ -431,8 +454,8 @@ class NoseTester(AbstractTestRunner):
     Python selenium tests runner
     """
 
-    def __init__(self, nose_config, scenario, parent_logger):
-        super(NoseTester, self).__init__(nose_config, scenario)
+    def __init__(self, nose_config, scenario, load, parent_logger):
+        super(NoseTester, self).__init__(nose_config, scenario, load)
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.plugin_path = os.path.join(os.path.dirname(__file__), os.pardir, "resources", "nose_plugin.py")
 
@@ -456,17 +479,23 @@ class NoseTester(AbstractTestRunner):
         run python tests
         """
         executable = self.settings.get("interpreter", sys.executable)
-        nose_command_line = [executable, self.plugin_path, self.settings.get("report-file"),
-                             self.settings.get("err-file"), self.working_dir]
+        nose_command_line = [executable, self.plugin_path, '-k', self.settings.get("report-file"),
+                             '-e', self.settings.get("err-file")]
+
+        if self.load.iterations:
+            nose_command_line += ['-i', str(self.load.iterations)]
+
+        if self.load.hold:
+            nose_command_line += ['-d', str(self.load.hold)]
+
+        nose_command_line += [self.working_dir]
 
         std_out = open(self.settings.get("stdout"), "wt")
         self.opened_descriptors.append(std_out)
         std_err = open(self.settings.get("stderr"), "wt")
         self.opened_descriptors.append(std_err)
 
-        self.process = shell_exec(nose_command_line, cwd=self.artifacts_dir,
-                                  stdout=std_out,
-                                  stderr=std_err)
+        self.process = shell_exec(nose_command_line, cwd=self.artifacts_dir, stdout=std_out, stderr=std_err)
 
 
 class SeleniumWidget(urwid.Pile):
@@ -699,8 +728,8 @@ class SeleniumScriptBuilder(NoseTest):
             if regexp:
                 assert_method = "self.assertEqual" if reverse else "self.assertNotEqual"
                 assertion_elements.append(self.gen_method_statement('re_pattern = re.compile("%s")' % val))
-                assertion_elements.append(
-                        self.gen_method_statement('%s(0, len(re.findall(re_pattern, body)))' % assert_method))
+                method = '%s(0, len(re.findall(re_pattern, body)))' % assert_method
+                assertion_elements.append(self.gen_method_statement(method))
             else:
                 assert_method = "self.assertNotIn" if reverse else "self.assertIn"
                 assertion_elements.append(self.gen_method_statement('%s("%s", body)' % (assert_method, val)))

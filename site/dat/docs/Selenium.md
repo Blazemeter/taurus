@@ -3,6 +3,8 @@ Allows to run functional tests locally with Selenium WebDriver. Currently suppor
 
 Selenium executor uses two types of test runners: JUnit and Nose, test type and runner type are detected automatically. Scenario may be presented not only as single file but as a folder.
 
+Taurus can repeat Selenium script in a loop until desired number of `iterations` will complete or `hold-for` time will be exceeded.
+
 ## Supported file types:
 
   - .java/single file
@@ -25,10 +27,10 @@ modules:
   selenium:
     selenium-tools:
       junit:
-        path: "~/.bzt/selenium-taurus/tools/junit/junit.jar"  # path to JUnit framework
-        selenium-server: "~/.bzt/selenium-taurus/selenium-server.jar"  # path to Selenium Standalone Server
-        "jar-name": "compiled.jar",  # set name of jar file when compiling from java source files 
-        "working-dir": "classes"  # set name of runner working directory within artifacts dir     
+        path: ~/.bzt/selenium-taurus/tools/junit/junit.jar  # path to JUnit framework
+        selenium-server: ~/.bzt/selenium-taurus/selenium-server.jar  # path to Selenium Standalone Server
+        jar-name: compiled.jar,  # set name of jar file when compiling from java source files 
+        working-dir: classes  # set name of runner working directory within artifacts dir     
 ```
 
 ## Python Nose Runner
@@ -41,8 +43,8 @@ modules:
   selenium:
     selenium-tools:
       nose:
-        "working-dir": "classes"  # set name of runner working directory within artifacts dir
-        "interpreter": "/home/user/interpreter/python"  # path to custom interpreter.
+        working-dir: classes  # set name of runner working directory within artifacts dir
+        interpreter: /home/user/interpreter/python  # path to custom interpreter.
 ```
 
 ## Scenario Samples
@@ -51,9 +53,9 @@ Minimal working scenario:
 ```yaml
 ---
 execution:
-- executor: "selenium"
+- executor: selenium
   scenario:
-    script: "/home/user/selenium_tests.java"
+    script: /home/user/selenium_tests.java
 ```
 
 or
@@ -61,9 +63,9 @@ or
 ```yaml
 ---
 execution:
-- executor: "selenium"
+- executor: selenium
   scenario:
-    script: "/home/user/folder/"
+    script: /home/user/folder/
 ```
 
 Extended scenario with runner options:
@@ -71,9 +73,10 @@ Extended scenario with runner options:
 ```yaml
 ---
 execution:
-- executor: "selenium"
+- executor: selenium
   scenario:
-    script: "/home/user/tests/my_test.java"
+    iterations: 5
+    script: /home/user/tests/my_test.java
     additional-classpath:  # optional, following libs will be added to java classpath
     - /home/user/lib_one.jar
     - /home/user/lib_two.jar
@@ -81,7 +84,7 @@ modules:
   selenium:
     selenium-tools:
       junit:
-        "jar-name": "compiled_jar_from_provided_sources.jar"
+        jar-name: compiled_jar_from_provided_sources.jar
 reporting:
 - module: junit-xml
 ```
@@ -98,13 +101,14 @@ Sample request scenario
 ```yaml
 ---
 execution:
-- executor: "selenium"
+- executor: selenium
+  hold-for: 5m
   scenario:
     browser: Firefox  # available browsers are: ["Firefox", "Chrome", "Ie", "Opera"]
     timeout: 10  #  global scenario timeout for connecting, receiving results, 30 seconds by default
     think-time: 1s500ms  # global scenario delay between each request
     requests:
-    - url: "http://demo.blazemeter.com/"  # url to open, only get method is supported
+    - url: http://demo.blazemeter.com/  # url to open, only get method is supported
       assert:
       - contains:
         - blazemeter  # list of search patterns

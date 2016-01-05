@@ -1,4 +1,3 @@
-#! /usr/bin/env python
 """
 Copyright 2015 BlazeMeter Inc.
 

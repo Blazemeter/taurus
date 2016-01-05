@@ -1,6 +1,7 @@
 # Changelog
 
 ## 1.1.0 (next)
+ - Support `iterations` and `hold-for` options for Selenium
 
 ## 1.0.0
  - support [cloud](Cloud.md) provisioning

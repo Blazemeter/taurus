@@ -1,10 +1,12 @@
-from time import time
-from nose.plugins import Plugin
-from nose import run
-import traceback
-import sys
 import csv
 import re
+import sys
+import traceback
+from optparse import OptionParser
+from time import time
+
+import nose
+from nose.plugins import Plugin
 
 try:
     from lxml import etree
@@ -48,6 +50,20 @@ class TaurusNosePlugin(Plugin):
         self.out_stream = None
         self.err_stream = None
         self._time = None
+
+    def __enter__(self):
+        self.out_stream = open(self.output_file, "wt")
+        self.csv_writer = csv.DictWriter(self.out_stream, delimiter=',', fieldnames=JTL_HEADER)
+        self.csv_writer.writeheader()
+
+        self.err_stream = open(self.err_file, "wb")
+        self.error_writer = JTLErrorWriter(self.err_stream)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.error_writer.close()
+        self.out_stream.close()
+        self.err_stream.close()
 
     def addError(self, test, err, capt=None):
         """
@@ -95,13 +111,6 @@ class TaurusNosePlugin(Plugin):
         open descriptor here
         :return:
         """
-        self.out_stream = open(self.output_file, "wt")
-        self.csv_writer = csv.DictWriter(self.out_stream, delimiter=',', fieldnames=JTL_HEADER)
-
-        self.err_stream = open(self.err_file, "wb")
-        self.error_writer = JTLErrorWriter(self.err_stream)
-
-        self.csv_writer.writeheader()
         self._module_name = ""
 
     def finalize(self, result):
@@ -110,9 +119,6 @@ class TaurusNosePlugin(Plugin):
         :param result:
         :return:
         """
-        self.error_writer.close()
-        self.out_stream.close()
-        self.err_stream.close()
         if not self.test_count:
             raise RuntimeError("Nothing to test.")
 
@@ -262,10 +268,33 @@ def write_element(fds):
                 pass
 
 
-if __name__ == "__main__":
-    _output_file = sys.argv[1]
-    _err_file = sys.argv[2]
-    test_path = sys.argv[3:]
+def run_nose(_output_file, _err_file, files, iterations, hold):
     argv = [__file__, '-v']
-    argv.extend(test_path)
-    run(addplugins=[TaurusNosePlugin(_output_file, _err_file)], argv=argv + ['--with-nose_plugin'] + ['--nocapture'])
+    argv.extend(files)
+    argv += ['--with-nose_plugin'] + ['--nocapture']
+
+    if iterations == 0:
+        if hold > 0:
+            iterations = sys.maxsize
+        else:
+            iterations = 1
+
+    start_time = int(time())
+    with TaurusNosePlugin(_output_file, _err_file) as plugin:
+        for iteration in range(0, iterations):
+            nose.run(addplugins=[plugin], argv=argv)
+            if 0 < hold < int(time()) - start_time:
+                break
+
+
+if __name__ == "__main__":
+    parser = OptionParser()
+    parser.add_option('-k', '--kpi-file', action='store')
+    parser.add_option('-e', '--errors-file', action='store')
+    parser.add_option('-i', '--iterations', action='store', default=0)
+    parser.add_option('-d', '--duration', action='store', default=0)
+    parser.add_option('-w', '--with-nose_plugin', action='store', default=0)
+
+    opts, args = parser.parse_args()
+
+    run_nose(opts.kpi_file, opts.errors_file, args, int(opts.iterations), float(opts.duration))
