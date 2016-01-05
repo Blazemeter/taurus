@@ -62,7 +62,7 @@ class TestGrinderExecutor(BZTestCase):
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
         obj = GrinderExecutor()
         grinder_tool = Grinder(path, obj.log, GrinderExecutor.VERSION)
-        #grinder_tool.install()
+        grinder_tool.install()
 
     def test_requests(self):
         obj = GrinderExecutor()

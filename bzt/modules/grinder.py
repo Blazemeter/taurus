@@ -184,11 +184,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             if self.retcode != 0:
                 self.log.info("Grinder exit code: %s", self.retcode)
                 raise RuntimeError("Grinder exited with non-zero code")
-            # if self.kpi_file:
-            #     if not os.path.exists(self.kpi_file) \
-            #             or not os.path.getsize(self.kpi_file):
-            #         msg = "Empty results log, most likely the tool failed: %s"
-            #         raise RuntimeWarning(msg % self.kpi_file)
+
             return True
         return False
 
