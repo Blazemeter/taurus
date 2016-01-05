@@ -457,7 +457,7 @@ class TestSeleniumNoseRunner(BZTestCase):
         """
         obj = SeleniumExecutor()
         obj.engine = EngineEmul()
-        obj.engine.config = BetterDict()
+        #obj.engine.config = BetterDict()
         obj.engine.config.merge({
             ScenarioExecutor.EXEC: {
                 "executor": "selenium",
@@ -508,7 +508,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         obj = SeleniumExecutor()
         obj.engine = self.engine_obj
         obj.settings = self.selenium_config
-        obj.engine.config = BetterDict()
+        # obj.engine.config = BetterDict()
         obj.engine.config.merge({
             ScenarioExecutor.EXEC: {
                 "executor": "selenium",
