@@ -23,7 +23,7 @@ execution:
   iterations: 20
   scenario:
     script: tests/grinder/helloworld.py
-    properties_file: tests/grinder/grinder.properties
+    properties-file: tests/grinder/grinder.properties
     properties:
       grinder.useConsole: false
 

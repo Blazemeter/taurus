@@ -35,3 +35,4 @@ reporting:
   percentiles: true
 - module: blazemeter
   test: Distributed Gui
+provisioning: local

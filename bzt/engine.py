@@ -882,10 +882,8 @@ class ScenarioExecutor(EngineModule):
     def get_load(self):
         """
         Helper method to read load specification
-
-        :return:
         """
-        prov_type = self.engine.config.get(Provisioning.PROV, None)
+        prov_type = self.engine.config.get(Provisioning.PROV, ValueError("There must be provisioning type set"))
 
         ensure_is_dict(self.execution, ScenarioExecutor.THRPT, prov_type)
         throughput = self.execution[ScenarioExecutor.THRPT].get(prov_type, 0)

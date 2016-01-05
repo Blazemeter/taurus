@@ -1,4 +1,5 @@
 {
+  "provisioning": "local",
   "scenarios": {
     "get-post": {
       "requests": [

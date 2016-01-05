@@ -43,6 +43,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     def __init__(self):
         super(GrinderExecutor, self).__init__()
         self.script = None
+        self.exec_id = "grinder-bzt-%s" % id(self)
 
         self.properties_file = None
         self.kpi_file = None
@@ -85,12 +86,10 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         script_props_file = scenario.get("properties-file", "")
         if script_props_file:
-            fds.write(
-                    "# Script Properies File Start: %s\n" % script_props_file)
+            fds.write("# Script Properies File Start: %s\n" % script_props_file)
             with open(script_props_file) as spf:
                 fds.write(spf.read())
-            fds.write(
-                    "# Script Properies File End: %s\n\n" % script_props_file)
+            fds.write("# Script Properies File End: %s\n\n" % script_props_file)
 
         # scenario props
         local_props = scenario.get("properties")
@@ -107,7 +106,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :return:
         """
         fds.write("# BZT Properies Start\n")
-        fds.write("grinder.hostID=grinder-bzt\n")
+        fds.write("grinder.hostID=%s\n" % self.exec_id)
         fds.write("grinder.script=%s\n" % os.path.realpath(self.script).replace(os.path.sep, "/"))
         dirname = os.path.realpath(self.engine.artifacts_dir)
         fds.write("grinder.logDirectory=%s\n" % dirname.replace(os.path.sep, "/"))
@@ -144,8 +143,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.__write_scenario_props(fds, scenario)
             self.__write_bzt_props(fds)
 
-        # TODO: multi-grinder executions to have different names
-        self.kpi_file = os.path.join(self.engine.artifacts_dir, "grinder-bzt-kpi.log")
+        self.kpi_file = os.path.join(self.engine.artifacts_dir, self.exec_id + "-kpi.log")
 
         self.reader = DataLogReader(self.kpi_file, self.log)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
@@ -357,7 +355,7 @@ class Grinder(RequiredTool):
     def check_if_installed(self):
         self.log.debug("Trying grinder: %s", self.tool_path)
         grinder_launch_command = ["java", "-classpath", self.tool_path, "net.grinder.Grinder"]
-        grinder_subprocess = shell_exec(grinder_launch_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        grinder_subprocess = shell_exec(grinder_launch_command, stderr=subprocess.STDOUT)
         output = grinder_subprocess.communicate()
         self.log.debug("%s output: %s", self.tool_name, output)
         if grinder_subprocess.returncode == 0:
