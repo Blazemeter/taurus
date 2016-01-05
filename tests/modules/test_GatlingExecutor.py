@@ -4,10 +4,8 @@ import shutil
 
 from bzt.modules.gatling import GatlingExecutor, EXE_SUFFIX, Gatling
 from bzt.utils import BetterDict
-from tests import setup_test_logging, BZTestCase, __dir__
+from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul
-
-setup_test_logging()
 
 
 class TestGatlingExecutor(BZTestCase):

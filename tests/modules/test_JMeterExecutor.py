@@ -16,10 +16,8 @@ from bzt.modules.jmeter import JMeterExecutor, JTLErrorsReader, JTLReader, JMete
     JMeter
 from bzt.six import etree
 from bzt.utils import BetterDict, EXE_SUFFIX
-from tests import setup_test_logging, BZTestCase, __dir__
+from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul, ResultChecker, RecordingHandler
-
-setup_test_logging()
 
 
 class TestJMeterExecutor(BZTestCase):

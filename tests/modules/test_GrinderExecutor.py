@@ -1,12 +1,10 @@
-import shutil
 import os
+import shutil
 
-from tests import setup_test_logging, BZTestCase, __dir__
 from bzt.modules.grinder import GrinderExecutor, Grinder
-from tests.mocks import EngineEmul
 from bzt.utils import BetterDict
-
-setup_test_logging()
+from tests import BZTestCase, __dir__
+from tests.mocks import EngineEmul
 
 
 class TestGrinderExecutor(BZTestCase):
