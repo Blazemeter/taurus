@@ -1,10 +1,8 @@
+import logging
 import os
 import shutil
-import time
-import logging
 
 from bzt.modules.grinder import GrinderExecutor, DataLogReader, Grinder
-from bzt.utils import BetterDict
 from tests import setup_test_logging, BZTestCase, __dir__
 from tests.mocks import EngineEmul
 
@@ -21,7 +19,6 @@ class TestGrinderExecutor(BZTestCase):
         obj = GrinderExecutor()
         obj.engine = EngineEmul()
         obj.settings.merge({"path": path})
-        obj.execution = BetterDict()
         obj.settings.merge({"properties-file": __dir__() + "/../grinder/grinder.base.properties",
                             "properties": {"sample_prop": "some_val"}})
         obj.execution.merge({"scenario": {
