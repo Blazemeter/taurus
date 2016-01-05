@@ -1,1 +1,2 @@
-1 2 3 4 5 6 6
+Start time (ms since Epoch),Test time,Time to first byte,HTTP response code,Time to resolve host,Time to establish connection,Errors
+1000000,1,1,200,1,1,0

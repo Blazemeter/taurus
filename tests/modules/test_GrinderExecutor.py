@@ -1,8 +1,9 @@
 import os
 import shutil
 import time
+import logging
 
-from bzt.modules.grinder import GrinderExecutor, Grinder
+from bzt.modules.grinder import GrinderExecutor, DataLogReader, Grinder
 from bzt.utils import BetterDict
 from tests import setup_test_logging, BZTestCase, __dir__
 from tests.mocks import EngineEmul
@@ -63,7 +64,7 @@ class TestGrinderExecutor(BZTestCase):
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
         obj = GrinderExecutor()
         grinder_tool = Grinder(path, obj.log, GrinderExecutor.VERSION)
-        # grinder_tool.install()
+        grinder_tool.install()
 
     def test_requests(self):
         obj = GrinderExecutor()
@@ -96,4 +97,7 @@ class TestGrinderExecutor(BZTestCase):
 
 class TestDataLogReader(BZTestCase):
     def test_read(self):
-        log_path = path.join(path.dirname(__file__), '..', 'grinder', 'test.log')
+        log_path = os.path.join(os.path.dirname(__file__), '..', 'grinder', 'test.log')
+        obj = DataLogReader(log_path, logging.getLogger(''))
+        list_of_values = list(obj.datapoints(True))
+        a = 2 + 2
