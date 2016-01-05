@@ -83,8 +83,6 @@ class TestGrinderExecutor(BZTestCase):
 
         try:
             obj.startup()
-            while not obj.check():
-                time.sleep(obj.engine.check_interval)
             obj.check()
         finally:
             obj.shutdown()
@@ -100,4 +98,4 @@ class TestDataLogReader(BZTestCase):
         log_path = os.path.join(os.path.dirname(__file__), '..', 'grinder', 'test.log')
         obj = DataLogReader(log_path, logging.getLogger(''))
         list_of_values = list(obj.datapoints(True))
-        a = 2 + 2
+        self.assertEqual(len(list_of_values), 1)
