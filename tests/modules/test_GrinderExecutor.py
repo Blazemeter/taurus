@@ -1,6 +1,7 @@
 import logging
 import os
 import shutil
+import time
 
 from bzt.modules.grinder import GrinderExecutor, DataLogReader, Grinder
 from tests import setup_test_logging, BZTestCase, __dir__
@@ -61,7 +62,7 @@ class TestGrinderExecutor(BZTestCase):
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
         obj = GrinderExecutor()
         grinder_tool = Grinder(path, obj.log, GrinderExecutor.VERSION)
-        grinder_tool.install()
+        #grinder_tool.install()
 
     def test_requests(self):
         obj = GrinderExecutor()
@@ -79,20 +80,18 @@ class TestGrinderExecutor(BZTestCase):
         obj.prepare()
 
         try:
+            obj.cmd_line = __dir__() + "/../grinder/grinder.sh"
             obj.startup()
-            obj.check()
+            while not obj.check():
+                time.sleep(obj.engine.check_interval)
         finally:
             obj.shutdown()
-        try:
-            obj.post_process()
-        except RuntimeWarning:
-            return
-        self.fail()
+        self.assertRaises(RuntimeWarning, obj.post_process)
 
 
 class TestDataLogReader(BZTestCase):
     def test_read(self):
-        log_path = os.path.join(os.path.dirname(__file__), '..', 'grinder', 'test.log')
+        log_path = os.path.join(os.path.dirname(__file__), '..', 'grinder', 'grinder-bzt-kpi.log')
         obj = DataLogReader(log_path, logging.getLogger(''))
         list_of_values = list(obj.datapoints(True))
-        self.assertEqual(len(list_of_values), 1)
+        self.assertEqual(len(list_of_values), 10)
