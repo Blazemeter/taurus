@@ -1182,6 +1182,14 @@ class JMeterScenarioBuilder(JMX):
             self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
             self.system_props.merge({"system-properties": {"sun.net.inetaddr.ttl": 0}})
 
+    def smart_time(self, any_time):
+        try:
+            smart_time = int(1000 * dehumanize_time(any_time))
+        except ValueError:
+            smart_time = any_time
+        finally:
+            return smart_time
+
     def __add_defaults(self):
         """
 
@@ -1192,7 +1200,7 @@ class JMeterScenarioBuilder(JMX):
         concurrent_pool_size = self.scenario.get("concurrent-pool-size", 4)
 
         timeout = self.scenario.get("timeout", None)
-        timeout = int(1000 * dehumanize_time(timeout))
+        timeout = self.smart_time(timeout)
         self.append(self.TEST_PLAN_SEL, self._get_http_defaults(default_address, timeout,
                                                                 retrieve_resources, concurrent_pool_size))
         self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
@@ -1200,9 +1208,9 @@ class JMeterScenarioBuilder(JMX):
     def __add_think_time(self, children, req):
         global_ttime = self.scenario.get("think-time", None)
         if req.think_time is not None:
-            ttime = int(1000 * dehumanize_time(req.think_time))
+            ttime = self.smart_time(req.think_time)
         elif global_ttime is not None:
-            ttime = int(1000 * dehumanize_time(global_ttime))
+            ttime = self.smart_time(global_ttime)
         else:
             ttime = None
         if ttime is not None:
@@ -1262,9 +1270,9 @@ class JMeterScenarioBuilder(JMX):
 
         for req in self.scenario.get_requests():
             if req.timeout is not None:
-                timeout = int(1000 * dehumanize_time(req.timeout))
+                timeout = self.smart_time(req.timeout)
             elif global_timeout is not None:
-                timeout = int(1000 * dehumanize_time(global_timeout))
+                timeout = self.smart_time(global_timeout)
             else:
                 timeout = None
 

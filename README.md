@@ -23,7 +23,7 @@ Create a file named `test.yml` with following contents:
 ```yaml
 ---
 execution:
-  concurrency: 10
+- concurrency: 10
   ramp-up: 1m
   hold-for: 1m30s
 

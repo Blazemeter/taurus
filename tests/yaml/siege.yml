@@ -8,6 +8,7 @@ execution:
   concurrency: 5
   hold-for: 3
   scenario:
+    think-time: 1q
     requests:
     - url: ya.ru
 
