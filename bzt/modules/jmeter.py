@@ -1182,13 +1182,14 @@ class JMeterScenarioBuilder(JMX):
             self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
             self.system_props.merge({"system-properties": {"sun.net.inetaddr.ttl": 0}})
 
-    def smart_time(self, any_time):
+    @staticmethod
+    def smart_time(any_time):
         try:
             smart_time = int(1000 * dehumanize_time(any_time))
         except ValueError:
             smart_time = any_time
-        finally:
-            return smart_time
+        
+        return smart_time
 
     def __add_defaults(self):
         """
