@@ -2,10 +2,12 @@ import os
 import re
 import shutil
 import time
+import logging
 
-from bzt.modules.gatling import GatlingExecutor, EXE_SUFFIX, Gatling
+from bzt.modules.gatling import GatlingExecutor, DataLogReader, Gatling
 from tests import setup_test_logging, BZTestCase, __dir__
 from tests.mocks import EngineEmul
+from bzt.utils import EXE_SUFFIX
 
 setup_test_logging()
 
@@ -108,10 +110,18 @@ class TestGatlingExecutor(BZTestCase):
             }
         })
         obj.prepare()
-        
+
         try:
             obj.startup()
             while not obj.check():
                 time.sleep(obj.engine.check_interval)
         finally:
             obj.shutdown()
+
+
+class TestDataLogReader(BZTestCase):
+    def test_read(self):
+        log_path = os.path.join(os.path.dirname(__file__), '..', 'gatling')
+        obj = DataLogReader(log_path, logging.getLogger(''))
+        list_of_values = list(obj.datapoints(True))
+        self.assertEqual(len(list_of_values), 23)
