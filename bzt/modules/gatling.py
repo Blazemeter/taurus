@@ -238,10 +238,11 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     def __cp_res_files_to_artifacts_dir(self, resource_files_list):
         """
 
-        :param file_list:
+        :param resource_files_list:
         :return:
         """
         for resource_file in resource_files_list:
+            resource_file = self.engine.find_file(resource_file)
             if os.path.exists(resource_file):
                 try:
                     shutil.copy(resource_file, self.engine.artifacts_dir)
