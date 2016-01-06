@@ -1,11 +1,13 @@
 import os
 import re
 import shutil
+import time
+import logging
 
-from bzt.modules.gatling import GatlingExecutor, EXE_SUFFIX, Gatling
-from bzt.utils import BetterDict
+from bzt.modules.gatling import GatlingExecutor, DataLogReader, Gatling
 from tests import setup_test_logging, BZTestCase, __dir__
 from tests.mocks import EngineEmul
+from bzt.utils import EXE_SUFFIX
 
 setup_test_logging()
 
@@ -29,11 +31,6 @@ class TestGatlingExecutor(BZTestCase):
         path = os.path.abspath(__dir__() + "/../../build/tmp/gatling-taurus/bin/gatling" + EXE_SUFFIX)
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
 
-        # backup download link and version
-        gatling_link = GatlingExecutor.DOWNLOAD_LINK
-        gatling_ver = GatlingExecutor.VERSION
-        mirrors_link = GatlingExecutor.MIRRORS_SOURCE
-
         GatlingExecutor.DOWNLOAD_LINK = "file:///" + __dir__() + "/../data/gatling-dist-{version}_{version}.zip"
         GatlingExecutor.VERSION = '2.1.4'
         GatlingExecutor.MIRRORS_SOURCE = "file:///" + __dir__() + "/../data/unicode_file"
@@ -42,15 +39,10 @@ class TestGatlingExecutor(BZTestCase):
         obj = self.getGatling()
         obj.settings.merge({"path": path})
 
-        obj.execution = BetterDict()
-        obj.execution.merge({"scenario": {"script": "tests/gatling/BasicSimulation.scala",
+        obj.execution.merge({"scenario": {"script": __dir__() + "/../gatling/BasicSimulation.scala",
                                           "simulation": "mytest.BasicSimulation"}})
         obj.prepare()
         self.assertTrue(os.path.exists(path))
-        obj.prepare()
-        GatlingExecutor.DOWNLOAD_LINK = gatling_link
-        GatlingExecutor.VERSION = gatling_ver
-        GatlingExecutor.MIRRORS_SOURCE = mirrors_link
 
     def test_gatling_widget(self):
         obj = self.getGatling()
@@ -102,3 +94,34 @@ class TestGatlingExecutor(BZTestCase):
         obj.execution.merge({"scenario": {"script": __dir__() + "/../gatling/BasicSimulation.scala"}})
         obj.prepare()
         self.assertRaises(RuntimeWarning, obj.post_process)
+
+    def test_no_simulation(self):
+        obj = self.getGatling()
+        obj.execution.merge({"scenario": {"script": __dir__() + "/../gatling/BasicSimulation.scala"}})
+        obj.prepare()
+        self.assertRaises(ValueError, obj.startup)
+
+    def test_full_Gatling(self):
+        obj = self.getGatling()
+        obj.execution.merge({
+            "scenario": {
+                "script": __dir__() + "/../gatling/BasicSimulation.scala",
+                "simulation": "fake"
+            }
+        })
+        obj.prepare()
+
+        try:
+            obj.startup()
+            while not obj.check():
+                time.sleep(obj.engine.check_interval)
+        finally:
+            obj.shutdown()
+
+
+class TestDataLogReader(BZTestCase):
+    def test_read(self):
+        log_path = os.path.join(os.path.dirname(__file__), '..', 'gatling')
+        obj = DataLogReader(log_path, logging.getLogger(''))
+        list_of_values = list(obj.datapoints(True))
+        self.assertEqual(len(list_of_values), 23)

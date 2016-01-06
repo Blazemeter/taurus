@@ -44,9 +44,9 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         super(GrinderExecutor, self).__init__()
         self.script = None
         self.exec_id = "grinder-bzt-%s" % id(self)
-
         self.properties_file = None
         self.kpi_file = None
+        self.cmd_line = None
         self.process = None
         self.start_time = None
         self.end_time = None
@@ -149,21 +149,22 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
+        classpath = os.path.join(os.path.dirname(__file__), os.pardir, 'resources')
+        classpath += os.path.pathsep + os.path.realpath(self.settings.get("path"))
+
+        self.cmd_line = ["java", "-classpath", classpath]
+        self.cmd_line = ["net.grinder.Grinder", self.properties_file]
+
     def startup(self):
         """
         Should start the tool as fast as possible.
         """
-        classpath = os.path.join(os.path.dirname(__file__), os.pardir, 'resources')
-        classpath += os.path.pathsep + os.path.realpath(self.settings.get("path"))
-        cmdline = ["java", "-classpath", classpath]
-        cmdline += ["net.grinder.Grinder", self.properties_file]
-
         self.start_time = time.time()
         out = self.engine.create_artifact("grinder-stdout", ".log")
         err = self.engine.create_artifact("grinder-stderr", ".log")
         self.stdout_file = open(out, "w")
         self.stderr_file = open(err, "w")
-        self.process = shell_exec(cmdline, cwd=self.engine.artifacts_dir,
+        self.process = shell_exec(self.cmd_line, cwd=self.engine.artifacts_dir,
                                   stdout=self.stdout_file,
                                   stderr=self.stderr_file)
 
@@ -183,12 +184,6 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             if self.retcode != 0:
                 self.log.info("Grinder exit code: %s", self.retcode)
                 raise RuntimeError("Grinder exited with non-zero code")
-
-            if self.kpi_file:
-                if not os.path.exists(self.kpi_file) \
-                        or not os.path.getsize(self.kpi_file):
-                    msg = "Empty results log, most likely the tool failed: %s"
-                    raise RuntimeWarning(msg % self.kpi_file)
 
             return True
         return False
