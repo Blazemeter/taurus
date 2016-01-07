@@ -461,7 +461,9 @@ class PBenchKPIReader(ResultsReader):
 
         :type last_pass: bool
         """
-        mcs2sec = lambda x: int(int(x) / 1000.0) / 1000.0
+
+        def mcs2sec(x):
+            return int(int(x) / 1000.0) / 1000.0
 
         if self.stats_reader:
             self.stats_reader.read_file(last_pass)

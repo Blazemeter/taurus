@@ -829,6 +829,7 @@ class JTLReader(ResultsReader):
         self.is_distributed = False
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.csvreader = IncrementalCSVReader(self.log, filename)
+        self.read_records = 0
         if errors_filename:
             self.errors_reader = JTLErrorsReader(errors_filename, parent_logger)
         else:
@@ -871,6 +872,7 @@ class JTLReader(ResultsReader):
                 error = None
 
             tstmp = int(int(row["timeStamp"]) / 1000)
+            self.read_records += 1
             yield tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname
 
     def _calculate_datapoints(self, final_pass=False):
@@ -1268,8 +1270,7 @@ class JMeterScenarioBuilder(JMX):
             else:
                 timeout = None
 
-            http = JMX._get_http_request(req.url, req.label, req.method, timeout, req.body,
-                                         global_keepalive)
+            http = JMX._get_http_request(req.url, req.label, req.method, timeout, req.body, global_keepalive)
             self.append(self.THR_GROUP_SEL, http)
 
             children = etree.Element("hashTree")
