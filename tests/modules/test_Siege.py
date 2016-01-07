@@ -64,11 +64,7 @@ class TestSiegeExecutor(BZTestCase):
             "concurrency": 2,
             "hold-for": '2s',
             "scenario": {}})
-        try:
-            obj.prepare()
-        except ValueError:
-            return
-        self.fail()
+        self.assertRaises(ValueError, obj.prepare)
 
     def test_check_install_exceptions(self):
         obj = SiegeExecutor()
@@ -79,11 +75,7 @@ class TestSiegeExecutor(BZTestCase):
             "concurrency": 2,
             "hold-for": '2s',
             "scenario": {}})
-        try:
-            obj.prepare()
-        except RuntimeError:
-            return
-        self.fail()
+        self.assertRaises(RuntimeError, obj.prepare)
 
     def test_repetition_exceptions(self):
         obj = SiegeExecutor()
@@ -97,11 +89,7 @@ class TestSiegeExecutor(BZTestCase):
                              "http://ya.ru"]}})
         obj.prepare()
         self.assertEqual(len(obj.resource_files()), 0)
-        try:
-            obj.startup()
-        except ValueError:
-            return
-        self.fail()
+        self.assertRaises(ValueError, obj.startup)
 
     def test_full_execution(self):
         obj = SiegeExecutor()
@@ -116,8 +104,8 @@ class TestSiegeExecutor(BZTestCase):
                              "http://ya.ru"]}
         })
         obj.prepare()
-        obj.startup()
         try:
+            obj.startup()
             while not obj.check():
                 time.sleep(obj.engine.check_interval)
         finally:

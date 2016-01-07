@@ -7,7 +7,6 @@ import yaml
 
 from bzt.engine import ScenarioExecutor, Provisioning
 from bzt.modules.selenium import SeleniumExecutor, JUnitJar
-from bzt.utils import BetterDict
 from tests import BZTestCase, local_paths_config, __dir__
 from tests.mocks import EngineEmul
 
@@ -66,7 +65,6 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
             "junit": {"path": os.path.join(dummy_installation_path, "tools", "junit", "junit.jar")}
         }})
 
-        obj.execution = BetterDict()
         obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/jar/"}})
         obj.prepare()
         self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "selenium-server.jar")))
@@ -101,7 +99,6 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
         :return:
         """
         obj = self.get_selenium_executor()
-        obj.execution = BetterDict()
         obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/java/"}})
         obj.prepare()
         prepared_files = os.listdir(obj.runner.working_dir)
@@ -118,7 +115,6 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
         :return:
         """
         obj = self.get_selenium_executor()
-        obj.execution = BetterDict()
         obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/java_package/"}})
         obj.prepare()
         self.assertTrue(os.path.exists(os.path.join(obj.runner.working_dir, "compiled.jar")))
@@ -152,7 +148,6 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
         :return:
         """
         obj = self.get_selenium_executor()
-        obj.execution = BetterDict()
         obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/jar/dummy.jar"}})
         obj.prepare()
         self.assertTrue(os.path.exists(os.path.join(obj.runner.working_dir, "dummy.jar")))
@@ -163,7 +158,6 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
         :return:
         """
         obj = self.get_selenium_executor()
-        obj.execution = BetterDict()
         obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/jar/"}})
         obj.prepare()
         java_scripts = os.listdir(obj.runner.working_dir)
@@ -303,7 +297,6 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
         :return:
         """
         obj = self.get_selenium_executor()
-        obj.engine.config = BetterDict()
         obj.engine.config.merge({
             Provisioning.PROV: "local",
             ScenarioExecutor.EXEC: {
@@ -365,7 +358,6 @@ class TestSeleniumNoseRunner(BZTestCase):
         """
         obj = SeleniumExecutor()
         obj.engine = EngineEmul()
-        obj.execution = BetterDict()
         obj.execution.merge({"scenario": {
             "script": __dir__() + "/../selenium/python/test_blazemeter_fail.py"
         }})
@@ -380,7 +372,6 @@ class TestSeleniumNoseRunner(BZTestCase):
         """
         obj = SeleniumExecutor()
         obj.engine = EngineEmul()
-        obj.execution = BetterDict()
         obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/python/"}})
         obj.prepare()
         python_scripts = os.listdir(obj.runner.working_dir)
@@ -394,7 +385,6 @@ class TestSeleniumNoseRunner(BZTestCase):
 
         obj = SeleniumExecutor()
         obj.engine = EngineEmul()
-        obj.engine.config = BetterDict()
         obj.engine.config.merge({
             'execution': {
                 'scenario': {'script': __dir__() + '/../selenium/python/'},
@@ -427,7 +417,6 @@ class TestSeleniumNoseRunner(BZTestCase):
         """
         obj = SeleniumExecutor()
         obj.engine = EngineEmul()
-        obj.engine.config = BetterDict()
         obj.engine.config.merge({
             'execution': {
                 'scenario': {'script': __dir__() + '/../selenium/python/'},
@@ -475,7 +464,6 @@ class TestSeleniumNoseRunner(BZTestCase):
     def test_resource_files_collection_remote_nose(self):
         obj = SeleniumExecutor()
         obj.engine = EngineEmul()
-        obj.execution = BetterDict()
         obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/python/"}})
         obj.settings.merge(obj.engine.config.get("modules").get("selenium"))
 
@@ -492,7 +480,6 @@ class TestSeleniumStuff(SeleniumTestCase):
         """
         obj = SeleniumExecutor()
         obj.engine = EngineEmul()
-        obj.engine.config = BetterDict()
         obj.engine.config.merge({ScenarioExecutor.EXEC: {"executor": "selenium"}})
         obj.execution = obj.engine.config['execution']
         self.assertRaises(ValueError, obj.prepare)
@@ -521,7 +508,6 @@ class TestSeleniumStuff(SeleniumTestCase):
         """
         obj = SeleniumExecutor()
         obj.engine = EngineEmul()
-        obj.engine.config = BetterDict()
         obj.engine.config.merge({ScenarioExecutor.EXEC: {
             "executor": "selenium",
             "scenario": {"script": __dir__() + "/../selenium/invalid/not_found"}

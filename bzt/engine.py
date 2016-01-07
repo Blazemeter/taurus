@@ -257,7 +257,7 @@ class Engine(object):
 
     def existing_artifact(self, filename, move=False):
         """
-        Add existing artifact, copy it into artifacts. If
+        Add existing artifact, it will be collected into artifact_dir. If
         move=True, the original file will be deleted
 
         :type filename: str
