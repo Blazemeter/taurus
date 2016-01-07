@@ -12,8 +12,8 @@ import yaml
 from bzt.engine import Provisioning
 from bzt.jmx import JMX
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet
-from bzt.modules.jmeter import JMeterExecutor, JTLErrorsReader, JTLReader, JMeterJTLLoaderExecutor, \
-    JMeter
+from bzt.modules.jmeter import JMeterExecutor, JTLErrorsReader, JTLReader, JMeter
+from bzt.modules.jmeter import JMeterJTLLoaderExecutor, JMeterScenarioBuilder
 from bzt.six import etree
 from bzt.utils import BetterDict, EXE_SUFFIX
 from tests import setup_test_logging, BZTestCase, __dir__
@@ -822,3 +822,8 @@ class TestJMeterExecutor(BZTestCase):
 
         st_tg_concurrency = converted_st_tg.find(".//stringProp[@name='ThreadGroup.num_threads']")
         self.assertEqual(st_tg_concurrency.text, "123")
+
+    def test_smart_time(self):
+        s_t = JMeterScenarioBuilder.smart_time
+        self.assertEqual(s_t('1m'), 60*1000.0)
+        self.assertEqual(s_t('${VAR}'), '${VAR}')
