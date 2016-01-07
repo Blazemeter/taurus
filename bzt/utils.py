@@ -79,6 +79,11 @@ def dehumanize_time(str_time):
     """
     parser = re.compile(r'([\d\.]+)([a-zA-Z]*)')
     parts = parser.findall(str(str_time).replace(' ', ''))
+
+    if len(parts) == 0:
+        msg = "String format not supported: %s"
+        raise ValueError(msg % str_time)
+
     result = 0.0
     for value, unit in parts:
         value = float(value)

@@ -1,7 +1,8 @@
 # Changelog
 
 ## 1.1.0 (next)
- - Support `iterations` and `hold-for` options for Selenium
+ - support `iterations` and `hold-for` options for Selenium
+ - support variables in time fields for JMeter 
 
 ## 1.0.0
  - support [cloud](Cloud.md) provisioning

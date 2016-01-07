@@ -1188,7 +1188,7 @@ class JMeterScenarioBuilder(JMX):
             smart_time = int(1000 * dehumanize_time(any_time))
         except ValueError:
             smart_time = any_time
-        
+
         return smart_time
 
     def __add_defaults(self):
