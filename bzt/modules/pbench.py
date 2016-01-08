@@ -364,14 +364,10 @@ class Scheduler(object):
         self.log = logger
         self.load = load
         self.payload_fhd = payload_fhd
-        # TODO: implement concurrency schedule
         if not load.duration and not load.iterations:
             self.iteration_limit = 1
         else:
             self.iteration_limit = load.iterations
-
-        if not load.throughput:
-            raise NotImplementedError("Only throughtput mode is supported")
 
         self.ramp_up_slope = load.throughput / load.ramp_up if load.ramp_up else 0
         self.step_size = float(load.throughput) / load.steps if load.steps else 0
@@ -413,17 +409,19 @@ class Scheduler(object):
             yield payload_len, payload_offset, payload, marker.strip(), len(line), rec_type
             rec_type = self.REC_TYPE_SCHEDULE
 
-    def generate(self):  # TODO: implement instances ramp-up in any case
+    def generate(self):
         for payload_len, payload_offset, payload, marker, meta_len, record_type in self._payload_reader():
-            rps = self.__get_rps()
-            self.time_offset += 1.0 / rps if rps else 0
+            if self.load.throughput:
+                rps = self.__get_rps()
+                self.time_offset += 1.0 / rps if rps else 0
 
-            if self.time_offset > self.load.duration:
-                self.log.debug("Duration limit reached: %s", self.time_offset)
-                break
+                if self.time_offset > self.load.duration:
+                    self.log.debug("Duration limit reached: %s", self.time_offset)
+                    break
 
-            yield self.time_offset, payload_len, payload_offset, payload, marker, record_type, payload_len + meta_len
-            self.count += 1
+                overall_len = payload_len + meta_len
+                yield self.time_offset, payload_len, payload_offset, payload, marker, record_type, overall_len
+                self.count += 1
 
     def __get_rps(self):
         if not self.load.ramp_up or self.time_offset > self.load.ramp_up:

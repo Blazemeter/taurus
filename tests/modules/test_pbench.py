@@ -108,13 +108,17 @@ if not is_windows():
         def test_schedule_empty(self):
             executor = PBenchExecutor()
             executor.engine = EngineEmul()
-            try:
-                obj = Scheduler(executor.get_load(), StringIO("4 test\ntest\n"), logging.getLogger(""))
-                for item in obj.generate():
-                    logging.debug("Item: %s", item)
-                self.fail()
-            except NotImplementedError:
-                pass
+            obj = Scheduler(executor.get_load(), StringIO("4 test\ntest\n"), logging.getLogger(""))
+            for item in obj.generate():
+                logging.debug("Item: %s", item)
+
+        def test_schedule_concurrency(self):
+            executor = PBenchExecutor()
+            executor.engine = EngineEmul()
+            executor.execution.merge({"concurrency": 5, "ramp-up": 10})
+            obj = Scheduler(executor.get_load(), StringIO("4 test\ntest\n"), logging.getLogger(""))
+            for item in obj.generate():
+                logging.debug("Item: %s", item)
 
         def test_widget(self):
             obj = PBenchExecutor()
