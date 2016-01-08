@@ -796,7 +796,22 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(s_t('1m'), 60*1000.0)
         self.assertEqual(s_t('${VAR}'), '${VAR}')
 
-    def test_a_json_body(self):
+    def test_a1_json_body(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({
+            "scenario": {
+                "requests": [{
+                    "url": "http://blazedemo.com",
+                    "headers": {"Content-Type": "application/json"},
+                    "body": "{\"store_id\": \"${store_id}\", \"display_name\": \"${display_name}\"}"
+                }]}})
+        obj.prepare()
+        jmx = JMX(obj.original_jmx)
+        selector = 'elementProp[name="HTTPsampler.Arguments"]>collectionProp>elementProp>stringProp'
+        self.assertNotEqual(jmx.get(selector)[0].text.find('store_id'), -1)
+
+    def test_a2_json_body(self):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
         obj.execution.merge({
@@ -809,10 +824,23 @@ class TestJMeterExecutor(BZTestCase):
                         "display_name": "${display_name}"
                     }}]}})
         obj.prepare()
-        self.assertEqual(obj.get_scenario()['requests'][0]['body'], 'some value')
-        # jmx = JMX(obj.modified_jmx)
-        # selector = 'jmeterTestPlan>hashTree>hashTree>ThreadGroup'
-        # selector += '>stringProp[name=ThreadGroup\.num_threads]'
-        # thr = jmx.get(selector)
-        # self.assertEquals('420', thr[0].text)
+        jmx = JMX(obj.original_jmx)
+        selector = 'elementProp[name="HTTPsampler.Arguments"]>collectionProp>elementProp>stringProp'
+        self.assertNotEqual(jmx.get(selector)[0].text.find('store_id'), -1)
 
+    def test_a3_json_body(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({
+            "scenario": {
+                "requests": [{
+                    "url": "http://blazedemo.com",
+                    "headers": {"Content-Type": "application/exi"},
+                    "body": {
+                        "store_id": "${store_id}",
+                        "display_name": "${display_name}"
+                    }}]}})
+        obj.prepare()
+        jmx = JMX(obj.original_jmx)
+        selector = 'elementProp[name="HTTPsampler.Arguments"]>collectionProp>elementProp>stringProp'
+        self.assertEqual(jmx.get(selector)[0].text.find('store_id'), -1)
