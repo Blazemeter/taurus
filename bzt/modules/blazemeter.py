@@ -800,20 +800,19 @@ class CloudProvisioning(Provisioning, WidgetProvider):
         self.widget = None
 
     def prepare(self):
+        if self.settings.get("dump-locations", False):
+            self.log.warning("Dumping available locations instead of running the test")
+            self._configure_client()
+            info = self.client.get_user_info()
+            locations = self.client.get_available_locations()
+            for item in info['locations']:
+                if item['id'] in locations:
+                    self.log.info("Location: %s\t%s", item['id'], item['title'])
+            raise ManualShutdown("Done listing locations")
+
         super(CloudProvisioning, self).prepare()
         self.browser_open = self.settings.get("browser-open", self.browser_open)
-        self.client.logger_limit = self.settings.get("request-logging-limit", self.client.logger_limit)
-
-        # TODO: go to "blazemeter" section for these settings by default?
-        self.client.address = self.settings.get("address", self.client.address)
-        self.client.token = self.settings.get("token", self.client.token)
-        self.client.timeout = dehumanize_time(self.settings.get("timeout", self.client.timeout))
-
-        if not self.client.token:
-            bmmod = self.engine.instantiate_module('blazemeter')
-            self.client.token = bmmod.settings.get("token")
-            if not self.client.token:
-                raise ValueError("You must provide API token to use cloud provisioning")
+        self._configure_client()
 
         self.__prepare_locations()
         config = self.__get_config_for_cloud()
@@ -840,6 +839,18 @@ class CloudProvisioning(Provisioning, WidgetProvider):
             self.results_reader = ResultsFromBZA(self.client)
             self.results_reader.log = self.log
             self.engine.aggregator.add_underling(self.results_reader)
+
+    def _configure_client(self):
+        self.client.logger_limit = self.settings.get("request-logging-limit", self.client.logger_limit)
+        # TODO: go to "blazemeter" section for these settings by default?
+        self.client.address = self.settings.get("address", self.client.address)
+        self.client.token = self.settings.get("token", self.client.token)
+        self.client.timeout = dehumanize_time(self.settings.get("timeout", self.client.timeout))
+        if not self.client.token:
+            bmmod = self.engine.instantiate_module('blazemeter')
+            self.client.token = bmmod.settings.get("token")
+            if not self.client.token:
+                raise ValueError("You must provide API token to use cloud provisioning")
 
     def __prepare_locations(self):
         available_locations = self.client.get_available_locations()

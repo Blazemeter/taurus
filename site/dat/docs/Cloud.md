@@ -49,7 +49,7 @@ execution:
     eu-east: 2
 ```
 
-The list of all available locations contained in [User API Call](https://a.blazemeter.com/api/latest/user) and may be specific for particular user. See `locations` block and `id` option for each location.
+To get the list of all available locations, run `bzt -locations -o modules.cloud.token=<API Key>`. The list of available locations is taken from [User API Call](https://a.blazemeter.com/api/latest/user) and may be specific for particular user. See `locations` block and `id` option for each location.
 
 By default, Taurus will calculate machines count for each location based on their limits obtained from *User API Call*. To switch to manual machines count just set option `locations-weighted` into `false`. Exact numbers of machines for each location will be used in that case:
 
