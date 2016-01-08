@@ -321,7 +321,7 @@ class TaurusPBenchTool(PBenchTool):
         for item in scheduler.generate():
             time_offset, payload_len, payload_offset, payload, marker, record_type, overall_len = item
 
-            if cnt % 5000 == 0:  # it's just the number...
+            if cnt % 5000 == 0:  # it's just the number, to throttle down updates...
                 pbar.update(time_offset if time_offset < load.duration else load.duration)
             cnt += 1
 
@@ -369,9 +369,13 @@ class Scheduler(object):
         else:
             self.iteration_limit = load.iterations
 
-        self.ramp_up_slope = load.throughput / load.ramp_up if load.ramp_up else 0
-        self.step_size = float(load.throughput) / load.steps if load.steps else 0
         self.step_len = load.ramp_up / load.steps if load.steps else 0
+        if load.throughput:
+            self.ramp_up_slope = load.throughput / load.ramp_up if load.ramp_up else 0
+            self.step_size = float(load.throughput) / load.steps if load.steps else 0
+        else:
+            self.ramp_up_slope = load.concurrency / load.ramp_up if load.ramp_up else 0
+            self.step_size = float(load.concurrency) / load.steps if load.steps else 0
 
         self.count = 0.0
         self.time_offset = 0.0
@@ -422,6 +426,8 @@ class Scheduler(object):
                 overall_len = payload_len + meta_len
                 yield self.time_offset, payload_len, payload_offset, payload, marker, record_type, overall_len
                 self.count += 1
+            else:
+                pass
 
     def __get_rps(self):
         if not self.load.ramp_up or self.time_offset > self.load.ramp_up:
