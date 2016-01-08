@@ -32,7 +32,6 @@ class TestJMeterExecutor(BZTestCase):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
         obj.engine.config[Provisioning.PROV] = 'test'
-        obj.execution = BetterDict()
         obj.execution.merge({
             "concurrency": 1051,
             "ramp-up": 15,
@@ -51,11 +50,7 @@ class TestJMeterExecutor(BZTestCase):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
         obj.execution = {"scenario": {"script": __file__}}
-        try:
-            obj.prepare()
-            self.fail()
-        except RuntimeError:
-            pass
+        self.assertRaises(RuntimeError, obj.prepare)
 
     def test_broken_xml(self):
         obj = JMeterExecutor()
@@ -63,22 +58,14 @@ class TestJMeterExecutor(BZTestCase):
         obj.execution = BetterDict()
 
         obj.execution.merge({"scenario": {"script": __dir__() + "/../jmx/broken.jmx"}})
-        try:
-            obj.prepare()
-            self.fail()
-        except RuntimeError:
-            pass
+        self.assertRaises(RuntimeError, obj.prepare)
 
     def test_not_jmx_xml(self):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
         obj.execution = BetterDict()
         obj.execution.merge({"scenario": {"script": __dir__() + "/../jmx/not-jmx.xml"}})
-        try:
-            obj.prepare()
-            self.fail()
-        except RuntimeError:
-            pass
+        self.assertRaises(RuntimeError, obj.prepare)
 
     def test_requests(self):
         obj = JMeterExecutor()
@@ -119,16 +106,6 @@ class TestJMeterExecutor(BZTestCase):
 
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
 
-        jmeter_link = JMeterExecutor.JMETER_DOWNLOAD_LINK
-        jmeter_ver = JMeterExecutor.JMETER_VER
-        plugins_link = JMeterExecutor.PLUGINS_DOWNLOAD_TPL
-        mirrors_link = JMeterExecutor.MIRRORS_SOURCE
-
-        JMeterExecutor.MIRRORS_SOURCE = "file:///" + __dir__() + "/../data/unicode_file"
-        JMeterExecutor.JMETER_DOWNLOAD_LINK = "file:///" + __dir__() + "/../data/jmeter-dist-{version}.zip"
-        JMeterExecutor.PLUGINS_DOWNLOAD_TPL = "file:///" + __dir__() + "/../data/JMeterPlugins-{plugin}-1.3.0.zip"
-        JMeterExecutor.JMETER_VER = '2.13'
-
         self.assertFalse(os.path.exists(path))
 
         obj = JMeterExecutor()
@@ -155,11 +132,6 @@ class TestJMeterExecutor(BZTestCase):
         obj.execution.merge({"scenario": {"requests": ["http://localhost"]}})
 
         obj.prepare()
-
-        JMeterExecutor.JMETER_DOWNLOAD_LINK = jmeter_link
-        JMeterExecutor.PLUGINS_DOWNLOAD_TPL = plugins_link
-        JMeterExecutor.JMETER_VER = jmeter_ver
-        JMeterExecutor.MIRRORS_SOURCE = mirrors_link
 
     def test_think_time_bug(self):
         obj = JMeterExecutor()
@@ -823,5 +795,57 @@ class TestJMeterExecutor(BZTestCase):
 
     def test_smart_time(self):
         s_t = JMeterScenarioBuilder.smart_time
-        self.assertEqual(s_t('1m'), 60*1000.0)
+        self.assertEqual(s_t('1m'), 60 * 1000.0)
         self.assertEqual(s_t('${VAR}'), '${VAR}')
+
+    def test_a1_json_body(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({
+            "scenario": {
+                "requests": [{
+                    "url": "http://blazedemo.com",
+                    "headers": {"Content-Type": "application/json"},
+                    "body": "{\"store_id\": \"${store_id}\", \"display_name\": \"${display_name}\"}"
+                }]}})
+        obj.prepare()
+        jmx = JMX(obj.original_jmx)
+        selector = 'elementProp[name="HTTPsampler.Arguments"]>collectionProp'
+        selector += '>elementProp>stringProp[name="Argument.value"]'
+        self.assertNotEqual(jmx.get(selector)[0].text.find('store_id'), -1)
+
+    def test_a2_json_body(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({
+            "scenario": {
+                "requests": [{
+                    "url": "http://blazedemo.com",
+                    "headers": {"Content-Type": "application/json"},
+                    "body": {
+                        "store_id": "${store_id}",
+                        "display_name": "${display_name}"
+                    }}]}})
+        obj.prepare()
+        jmx = JMX(obj.original_jmx)
+        selector = 'elementProp[name="HTTPsampler.Arguments"]>collectionProp'
+        selector += '>elementProp>stringProp[name="Argument.value"]'
+        self.assertNotEqual(jmx.get(selector)[0].text.find('store_id'), -1)
+
+    def test_a3_json_body(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({
+            "scenario": {
+                "requests": [{
+                    "url": "http://blazedemo.com",
+                    "headers": {"Content-Type": "application/exi"},
+                    "body": {
+                        "store_id": "${store_id}",
+                        "display_name": "${display_name}"
+                    }}]}})
+        obj.prepare()
+        jmx = JMX(obj.original_jmx)
+        selector = 'elementProp[name="HTTPsampler.Arguments"]>collectionProp'
+        selector += '>elementProp>stringProp[name="Argument.value"]'
+        self.assertEqual(jmx.get(selector)[0].text.find('store_id'), -1)
