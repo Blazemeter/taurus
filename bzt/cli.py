@@ -21,7 +21,7 @@ import signal
 import sys
 import traceback
 from logging import Formatter
-from optparse import OptionParser, BadOptionError, Option
+from optparse import OptionParser, Option
 from select import select
 from tempfile import NamedTemporaryFile
 
@@ -333,18 +333,10 @@ class OptionParserWithAliases(OptionParser, object):
         self.aliases = []
 
     def _process_short_opts(self, rargs, values):
-        if rargs:
-            candidate = rargs[0]
+        if rargs[0].startswith('-') and len(rargs[0]) > 2:
+            self.aliases.append(rargs.pop(0)[1:])
         else:
-            candidate = None
-        # sys.stderr.write("Rargs: %s\n" % rargs)
-        try:
             return OptionParser._process_short_opts(self, rargs, values)
-        except BadOptionError as exc:
-            if candidate.startswith(exc.opt_str) and len(candidate) > 2:
-                self.aliases.append(candidate[1:])
-            else:
-                raise
 
     def parse_args(self, args=None, values=None):
         res = OptionParser.parse_args(self, args, values)

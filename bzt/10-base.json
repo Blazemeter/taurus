@@ -114,6 +114,14 @@
           "gui": true
         }
       }
+    },
+    "locations": {
+      "provisioning": "cloud",
+      "modules": {
+        "cloud": {
+          "dump-locations": true
+        }
+      }
     }
   }
 }

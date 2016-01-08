@@ -17,6 +17,7 @@ limitations under the License.
 """
 import csv
 import fnmatch
+import json
 import logging
 import os
 import re
@@ -1194,10 +1195,6 @@ class JMeterScenarioBuilder(JMX):
         return smart_time
 
     def __add_defaults(self):
-        """
-
-        :return:
-        """
         default_address = self.scenario.get("default-address", None)
         retrieve_resources = self.scenario.get("retrieve-resources", True)
         concurrent_pool_size = self.scenario.get("concurrent-pool-size", 4)
@@ -1267,6 +1264,21 @@ class JMeterScenarioBuilder(JMX):
             children.append(component)
             children.append(etree.Element("hashTree"))
 
+    def _get_merged_ci_headers(self, request, header):
+
+        def dic_lower(dic):
+            return {k.lower(): dic[k].lower() for k in dic}
+
+        ci_scenario_headers = dic_lower(self.scenario.get_headers())
+        ci_request_headers = dic_lower(request.headers)
+        headers = BetterDict()
+        headers.merge(ci_scenario_headers)
+        headers.merge(ci_request_headers)
+        if header.lower() in headers:
+            return headers[header]
+        else:
+            return None
+
     def __add_requests(self):
         global_timeout = self.scenario.get("timeout", None)
         global_keepalive = self.scenario.get("keepalive", True)
@@ -1279,7 +1291,13 @@ class JMeterScenarioBuilder(JMX):
             else:
                 timeout = None
 
-            http = JMX._get_http_request(req.url, req.label, req.method, timeout, req.body, global_keepalive)
+            if self._get_merged_ci_headers(req, 'content-type') == 'application/json' and isinstance(req.body, dict):
+                body = json.dumps(req.body)
+            else:
+                body = req.body
+
+            http = JMX._get_http_request(req.url, req.label, req.method, timeout, body, global_keepalive)
+
             self.append(self.THR_GROUP_SEL, http)
 
             children = etree.Element("hashTree")
