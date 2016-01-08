@@ -312,29 +312,32 @@ class TaurusPBenchTool(PBenchTool):
             with open(self.payload_file) as pfd:
                 scheduler = Scheduler(load, pfd, self.log)
                 with open(self.schedule_file, 'wb') as sfd:
-                    prev_offset = 0
-                    accum_interval = 0.0
-                    cnt = 0
-                    for item in scheduler.generate():
-                        time_offset, payload_len, payload_offset, payload, marker, record_type, overall_len = item
+                    self._write_schedule_file(load, pbar, scheduler, sfd)
 
-                        if cnt % 5000 == 0:  # it's just the number...
-                            pbar.update(time_offset if time_offset < load.duration else load.duration)
-                        cnt += 1
+    def _write_schedule_file(self, load, pbar, scheduler, sfd):
+        prev_offset = 0
+        accum_interval = 0.0
+        cnt = 0
+        for item in scheduler.generate():
+            time_offset, payload_len, payload_offset, payload, marker, record_type, overall_len = item
 
-                        accum_interval += 1000 * (time_offset - prev_offset)
-                        interval = math.floor(accum_interval)
-                        accum_interval -= interval
-                        type_and_delay = struct.pack("I", int(interval))[:-1] + chr(record_type)
-                        payload_len_bytes = struct.pack('I', overall_len)
-                        payload_offset_bytes = struct.pack('Q', payload_offset)
+            if cnt % 5000 == 0:  # it's just the number...
+                pbar.update(time_offset if time_offset < load.duration else load.duration)
+            cnt += 1
 
-                        sfd.write(type_and_delay + payload_len_bytes + payload_offset_bytes)
-                        prev_offset = time_offset
+            accum_interval += 1000 * (time_offset - prev_offset)
+            interval = math.floor(accum_interval)
+            accum_interval -= interval
+            type_and_delay = struct.pack("I", int(interval))[:-1] + chr(record_type)
+            payload_len_bytes = struct.pack('I', overall_len)
+            payload_offset_bytes = struct.pack('Q', payload_offset)
 
-                        if record_type == Scheduler.REC_TYPE_STOP:
-                            self.log.debug("End record marked by scheduler")
-                            break
+            sfd.write(type_and_delay + payload_len_bytes + payload_offset_bytes)
+            prev_offset = time_offset
+
+            if record_type == Scheduler.REC_TYPE_STOP:
+                self.log.debug("End record marked by scheduler")
+                break
 
     def _get_source(self, load):
         tpl = 'source_t source_log = taurus_source_t { ammo = "%s"\n schedule = "%s"\n %s\n }'
