@@ -281,7 +281,7 @@ def run_nose(_output_file, _err_file, files, iterations, hold):
 
     start_time = int(time())
     with TaurusNosePlugin(_output_file, _err_file) as plugin:
-        for iteration in range(0, iterations):
+        for iteration in xrange(0, iterations):
             nose.run(addplugins=[plugin], argv=argv)
             if 0 < hold < int(time()) - start_time:
                 break

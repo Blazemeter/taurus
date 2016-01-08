@@ -7,7 +7,7 @@
  1. All changes must be reflected in [Changelog](Changelog)
  1. All changes must be properly documented 
  1. All changes must be covered with unit tests, no broken tests in master.
-  - [](https://api.travis-ci.org/Blazemeter/taurus.svg) 
+  - [](https://api.travis-ci.org/Blazemeter/taurus.svg?branch=master&ext=.svg) 
   - [](https://ci.appveyor.com/api/projects/status/github/Blazemeter/taurus?svg=true&ext=.svg) 
   - [](https://scrutinizer-ci.com/g/Blazemeter/taurus/badges/quality-score.png?b=master&ext=.svg)
  

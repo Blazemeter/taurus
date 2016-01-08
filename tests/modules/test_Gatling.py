@@ -5,11 +5,9 @@ import time
 import logging
 
 from bzt.modules.gatling import GatlingExecutor, DataLogReader, Gatling
-from tests import setup_test_logging, BZTestCase, __dir__
+from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul
 from bzt.utils import EXE_SUFFIX
-
-setup_test_logging()
 
 
 class TestGatlingExecutor(BZTestCase):

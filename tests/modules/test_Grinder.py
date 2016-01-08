@@ -3,11 +3,9 @@ import os
 import shutil
 import time
 
-from bzt.modules.grinder import GrinderExecutor, DataLogReader, Grinder
-from tests import setup_test_logging, BZTestCase, __dir__
+from bzt.modules.grinder import GrinderExecutor, Grinder, DataLogReader
+from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul
-
-setup_test_logging()
 
 
 class TestGrinderExecutor(BZTestCase):

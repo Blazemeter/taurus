@@ -7,10 +7,8 @@ import yaml
 
 from bzt.engine import ScenarioExecutor, Provisioning
 from bzt.modules.selenium import SeleniumExecutor, JUnitJar
-from tests import setup_test_logging, BZTestCase, local_paths_config, __dir__
+from tests import BZTestCase, local_paths_config, __dir__
 from tests.mocks import EngineEmul
-
-setup_test_logging()
 
 
 class SeleniumTestCase(BZTestCase):

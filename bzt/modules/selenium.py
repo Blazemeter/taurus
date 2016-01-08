@@ -22,7 +22,6 @@ import time
 from abc import abstractmethod
 
 import urwid
-from pyvirtualdisplay import Display
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator
@@ -31,6 +30,11 @@ from bzt.modules.jmeter import JTLReader
 from bzt.six import string_types, text_type, etree
 from bzt.utils import RequiredTool, shell_exec, shutdown_process, JavaVM, TclLibrary, dehumanize_time, \
     MirrorsManager, is_windows
+
+try:
+    from pyvirtualdisplay.smartdisplay import SmartDisplay as Display
+except ImportError:
+    from pyvirtualdisplay import Display
 
 
 class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
@@ -177,10 +181,11 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if self.widget:
             self.widget.update()
 
-        if self.virtual_display and not self.virtual_display.is_alive():
-            self.log.info("Virtual display out: %s", self.virtual_display.stdout)
-            self.log.warning("Virtual display err: %s", self.virtual_display.stderr)
-            raise RuntimeError("Virtual display failed: %s" % self.virtual_display.return_code)
+        if self.virtual_display:
+            if not self.virtual_display.is_alive():
+                self.log.info("Virtual display out: %s", self.virtual_display.stdout)
+                self.log.warning("Virtual display err: %s", self.virtual_display.stderr)
+                raise RuntimeError("Virtual display failed: %s" % self.virtual_display.return_code)
 
         return self.runner.is_finished()
 
@@ -200,7 +205,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.log.debug("Selenium tests ran for %s seconds", self.end_time - self.start_time)
 
     def post_process(self):
-        if self.reader and not self.reader.buffer:
+        if self.reader and not self.reader.read_records:
             raise RuntimeWarning("Empty results, most likely Selenium failed")
 
     def get_widget(self):

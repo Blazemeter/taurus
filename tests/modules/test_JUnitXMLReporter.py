@@ -8,10 +8,8 @@ from bzt.modules.passfail import PassFailStatus, DataCriteria
 from bzt.modules.reporting import JUnitXMLReporter
 from bzt.six import etree
 from bzt.utils import BetterDict
-from tests import BZTestCase, setup_test_logging
+from tests import BZTestCase
 from tests.mocks import EngineEmul
-
-setup_test_logging()
 
 
 class TestJUnitXML(BZTestCase):
