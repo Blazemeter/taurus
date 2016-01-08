@@ -323,9 +323,7 @@ class DataLogReader(ResultsReader):
                     self.concurrency -= 1
 
             if fields[2].strip() != "REQUEST":
-                self.log.debug("Skipping line: %s", line)
                 continue
-            self.log.debug("Accept line: %s", line)
             label = fields[4]
             t_stamp = int(fields[8]) / 1000.0
 
