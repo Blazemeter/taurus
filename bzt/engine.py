@@ -619,15 +619,9 @@ class Configuration(BetterDict):
                 return yaml.load(fds), self.YAML
             elif first_line.startswith('{'):
                 self.log.debug("Reading %s as JSON", filename)
-                return json.loads(fds.read(), object_hook=self._as_post_body), self.JSON
+                return json.loads(fds.read()), self.JSON
             else:
                 raise ValueError("Cannot detect file format for %s" % filename)
-
-    @staticmethod
-    def _as_post_body(dct):
-        if "headers" in dct and "body" in dct:
-            dct['body'] = encoder.JSONEncoder().encode(dct['body'])
-        return dct
 
     def set_dump_file(self, filename):
         """

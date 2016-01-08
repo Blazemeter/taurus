@@ -34,7 +34,6 @@ class TestJMeterExecutor(BZTestCase):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
         obj.engine.config[Provisioning.PROV] = 'test'
-        obj.execution = BetterDict()
         obj.execution.merge({
             "concurrency": 1051,
             "ramp-up": 15,
@@ -53,11 +52,7 @@ class TestJMeterExecutor(BZTestCase):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
         obj.execution = {"scenario": {"script": __file__}}
-        try:
-            obj.prepare()
-            self.fail()
-        except RuntimeError:
-            pass
+        self.assertRaises(RuntimeError, obj.prepare)
 
     def test_broken_xml(self):
         obj = JMeterExecutor()
@@ -65,22 +60,14 @@ class TestJMeterExecutor(BZTestCase):
         obj.execution = BetterDict()
 
         obj.execution.merge({"scenario": {"script": __dir__() + "/../jmx/broken.jmx"}})
-        try:
-            obj.prepare()
-            self.fail()
-        except RuntimeError:
-            pass
+        self.assertRaises(RuntimeError, obj.prepare)
 
     def test_not_jmx_xml(self):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
         obj.execution = BetterDict()
         obj.execution.merge({"scenario": {"script": __dir__() + "/../jmx/not-jmx.xml"}})
-        try:
-            obj.prepare()
-            self.fail()
-        except RuntimeError:
-            pass
+        self.assertRaises(RuntimeError, obj.prepare)
 
     def test_requests(self):
         obj = JMeterExecutor()
@@ -121,16 +108,6 @@ class TestJMeterExecutor(BZTestCase):
 
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
 
-        jmeter_link = JMeterExecutor.JMETER_DOWNLOAD_LINK
-        jmeter_ver = JMeterExecutor.JMETER_VER
-        plugins_link = JMeterExecutor.PLUGINS_DOWNLOAD_TPL
-        mirrors_link = JMeterExecutor.MIRRORS_SOURCE
-
-        JMeterExecutor.MIRRORS_SOURCE = "file:///" + __dir__() + "/../data/unicode_file"
-        JMeterExecutor.JMETER_DOWNLOAD_LINK = "file:///" + __dir__() + "/../data/jmeter-dist-{version}.zip"
-        JMeterExecutor.PLUGINS_DOWNLOAD_TPL = "file:///" + __dir__() + "/../data/JMeterPlugins-{plugin}-1.3.0.zip"
-        JMeterExecutor.JMETER_VER = '2.13'
-
         self.assertFalse(os.path.exists(path))
 
         obj = JMeterExecutor()
@@ -157,11 +134,6 @@ class TestJMeterExecutor(BZTestCase):
         obj.execution.merge({"scenario": {"requests": ["http://localhost"]}})
 
         obj.prepare()
-
-        JMeterExecutor.JMETER_DOWNLOAD_LINK = jmeter_link
-        JMeterExecutor.PLUGINS_DOWNLOAD_TPL = plugins_link
-        JMeterExecutor.JMETER_VER = jmeter_ver
-        JMeterExecutor.MIRRORS_SOURCE = mirrors_link
 
     def test_think_time_bug(self):
         obj = JMeterExecutor()
@@ -704,15 +676,11 @@ class TestJMeterExecutor(BZTestCase):
         obj.engine = EngineEmul()
         obj.execution = BetterDict()
         obj.execution.merge({"scenario": {"script": __dir__() + "/../jmx/dummy.jmx"}})
-        try:
-            obj.prepare()
-            obj.startup()
-            time.sleep(1)
-            obj.shutdown()
-        except:
-            self.fail()
-        finally:
-            obj.log.removeHandler(log_recorder)
+        obj.prepare()
+        obj.startup()
+        time.sleep(1)
+        obj.shutdown()
+        obj.log.removeHandler(log_recorder)
         self.assertIn("JMeter stopped on Shutdown command", log_recorder.debug_buff.getvalue())
 
     def test_embedded_resources_main_sample_fail_assert(self):
@@ -827,3 +795,24 @@ class TestJMeterExecutor(BZTestCase):
         s_t = JMeterScenarioBuilder.smart_time
         self.assertEqual(s_t('1m'), 60*1000.0)
         self.assertEqual(s_t('${VAR}'), '${VAR}')
+
+    def test_a_json_body(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({
+            "scenario": {
+                "requests": [{
+                    "url": "http://blazedemo.com",
+                    "headers": {"Content-Type": "application/json"},
+                    "body": {
+                        "store_id": "${store_id}",
+                        "display_name": "${display_name}"
+                    }}]}})
+        obj.prepare()
+        self.assertEqual(obj.get_scenario()['requests'][0]['body'], 'some value')
+        # jmx = JMX(obj.modified_jmx)
+        # selector = 'jmeterTestPlan>hashTree>hashTree>ThreadGroup'
+        # selector += '>stringProp[name=ThreadGroup\.num_threads]'
+        # thr = jmx.get(selector)
+        # self.assertEquals('420', thr[0].text)
+
