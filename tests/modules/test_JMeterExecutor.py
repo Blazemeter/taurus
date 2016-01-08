@@ -676,11 +676,15 @@ class TestJMeterExecutor(BZTestCase):
         obj.engine = EngineEmul()
         obj.execution = BetterDict()
         obj.execution.merge({"scenario": {"script": __dir__() + "/../jmx/dummy.jmx"}})
-        obj.prepare()
-        obj.startup()
-        time.sleep(1)
-        obj.shutdown()
-        obj.log.removeHandler(log_recorder)
+        try:
+            obj.prepare()
+            obj.startup()
+            time.sleep(1)
+            obj.shutdown()
+        except:
+            self.fail()
+        finally:
+            obj.log.removeHandler(log_recorder)
         self.assertIn("JMeter stopped on Shutdown command", log_recorder.debug_buff.getvalue())
 
     def test_embedded_resources_main_sample_fail_assert(self):
@@ -793,7 +797,7 @@ class TestJMeterExecutor(BZTestCase):
 
     def test_smart_time(self):
         s_t = JMeterScenarioBuilder.smart_time
-        self.assertEqual(s_t('1m'), 60*1000.0)
+        self.assertEqual(s_t('1m'), 60 * 1000.0)
         self.assertEqual(s_t('${VAR}'), '${VAR}')
 
     def test_a1_json_body(self):

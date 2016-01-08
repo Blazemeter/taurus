@@ -17,6 +17,7 @@ limitations under the License.
 """
 import csv
 import fnmatch
+import json
 import logging
 import os
 import re
@@ -25,12 +26,10 @@ import socket
 import subprocess
 import tempfile
 import time
-import json
 import traceback
 from collections import Counter, namedtuple
 from distutils.version import LooseVersion
 from math import ceil
-from json import encoder
 
 from cssselect import GenericTranslator
 
