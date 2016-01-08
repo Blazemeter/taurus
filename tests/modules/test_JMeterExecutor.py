@@ -808,7 +808,8 @@ class TestJMeterExecutor(BZTestCase):
                 }]}})
         obj.prepare()
         jmx = JMX(obj.original_jmx)
-        selector = 'elementProp[name="HTTPsampler.Arguments"]>collectionProp>elementProp>stringProp'
+        selector = 'elementProp[name="HTTPsampler.Arguments"]>collectionProp'
+        selector += '>elementProp>stringProp[name="Argument.value"]'
         self.assertNotEqual(jmx.get(selector)[0].text.find('store_id'), -1)
 
     def test_a2_json_body(self):
@@ -825,7 +826,8 @@ class TestJMeterExecutor(BZTestCase):
                     }}]}})
         obj.prepare()
         jmx = JMX(obj.original_jmx)
-        selector = 'elementProp[name="HTTPsampler.Arguments"]>collectionProp>elementProp>stringProp'
+        selector = 'elementProp[name="HTTPsampler.Arguments"]>collectionProp'
+        selector += '>elementProp>stringProp[name="Argument.value"]'
         self.assertNotEqual(jmx.get(selector)[0].text.find('store_id'), -1)
 
     def test_a3_json_body(self):
@@ -842,5 +844,6 @@ class TestJMeterExecutor(BZTestCase):
                     }}]}})
         obj.prepare()
         jmx = JMX(obj.original_jmx)
-        selector = 'elementProp[name="HTTPsampler.Arguments"]>collectionProp>elementProp>stringProp'
+        selector = 'elementProp[name="HTTPsampler.Arguments"]>collectionProp'
+        selector += '>elementProp>stringProp[name="Argument.value"]'
         self.assertEqual(jmx.get(selector)[0].text.find('store_id'), -1)

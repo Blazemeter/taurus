@@ -25,10 +25,12 @@ import socket
 import subprocess
 import tempfile
 import time
+import json
 import traceback
 from collections import Counter, namedtuple
 from distutils.version import LooseVersion
 from math import ceil
+from json import encoder
 
 from cssselect import GenericTranslator
 
@@ -1261,6 +1263,21 @@ class JMeterScenarioBuilder(JMX):
             children.append(component)
             children.append(etree.Element("hashTree"))
 
+    def _get_merged_ci_headers(self, request, header):
+
+        def dic_lower(dic):
+            return {k.lower(): dic[k].lower() for k in dic}
+
+        ci_scenario_headers = dic_lower(self.scenario.get_headers())
+        ci_request_headers = dic_lower(request.headers)
+        headers = BetterDict()
+        headers.merge(ci_scenario_headers)
+        headers.merge(ci_request_headers)
+        if header.lower() in headers:
+            return headers[header]
+        else:
+            return None
+
     def __add_requests(self):
         global_timeout = self.scenario.get("timeout", None)
         global_keepalive = self.scenario.get("keepalive", True)
@@ -1273,7 +1290,12 @@ class JMeterScenarioBuilder(JMX):
             else:
                 timeout = None
 
-            http = JMX._get_http_request(req.url, req.label, req.method, timeout, req.body,
+            if self._get_merged_ci_headers(req, 'content-type') == 'application/json' and isinstance(req.body, dict):
+                body = json.dumps(req.body)
+            else:
+                body = req.body
+
+            http = JMX._get_http_request(req.url, req.label, req.method, timeout, body,
                                          global_keepalive)
             self.append(self.THR_GROUP_SEL, http)
 
