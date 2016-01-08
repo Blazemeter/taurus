@@ -2,7 +2,8 @@
 
 ## 1.1.0 (next)
  - support `iterations` and `hold-for` options for Selenium
- - support variables in time fields for JMeter 
+ - support variables in time fields for JMeter
+ - support POST body in application/json format  
 
 ## 1.0.0
  - support [cloud](Cloud.md) provisioning
