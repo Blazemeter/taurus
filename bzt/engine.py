@@ -76,7 +76,7 @@ class Engine(object):
         self.__net_counters = None
         self.__counters_ts = None
 
-    def configure(self, user_configs, read_config_files=True):
+    def configure(self, user_configs, read_config_files=True, jtl_log_level=None):
         """
         Load configuration files
         :type user_configs: list[str]
@@ -101,6 +101,8 @@ class Engine(object):
 
         self._load_included_configs()
         self.config.merge({"version": bzt.VERSION})
+        if jtl_log_level:
+            self.config.merge({'jtl_log_level': jtl_log_level})
         self._set_up_proxy()
         self._check_updates()
 

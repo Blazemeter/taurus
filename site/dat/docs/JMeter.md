@@ -332,3 +332,5 @@ scenarios:
         expect-null: false  # expected value is null
         invert: false # invert condition
 ```
+### Jmeter Test Log
+You can tune JTL file verbosity with command line option `[--write-jtl-xml](CommandLine)`. Possible values are 'error' (default), 'full', or any other value for 'none'. Keep in mind: max verbosity can seriously load your system.

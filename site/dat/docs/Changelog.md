@@ -5,6 +5,7 @@
  - support variables in time fields for JMeter
  - support POST body in application/json format
  - add `-locations` command alias to dump available locations
+ - ability to set JMeter log verbosity with command line option `-w`
 
 ## 1.0.0
  - support [cloud](Cloud.md) provisioning

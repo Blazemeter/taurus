@@ -66,7 +66,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.properties_file = None
         self.sys_properties_file = None
         self.kpi_jtl = None
-        self.errors_jtl = None
+        self.log_jtl = None
         self.process = None
         self.start_time = None
         self.end_time = None
@@ -501,11 +501,20 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         kpil = jmx.new_kpi_listener(self.kpi_jtl)
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, kpil)
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
-        # NOTE: maybe have option not to write it, since it consumes drive space
-        # TODO: option to enable full trace JTL for all requests
-        self.errors_jtl = self.engine.create_artifact("errors", ".jtl")
-        errs = jmx.new_errors_listener(self.errors_jtl)
-        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, errs)
+
+        jtl_log_level = self.engine.config.get('jtl_log_level', None)
+        if jtl_log_level:
+            if jtl_log_level == 'error':
+                log_name = 'errors'
+                is_full = False
+            elif jtl_log_level == 'full':
+                log_name = 'trace'
+                is_full = True
+
+            self.log_jtl = self.engine.create_artifact(log_name, ".jtl")
+            logl = jmx.new_xml_listener(self.errors_jtl, is_full)
+            jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, logl)
+
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
 
     def __prepare_resources(self, jmx):
@@ -1024,12 +1033,11 @@ class JTLErrorsReader(object):
         self.offset = self.fds.tell()
         for _action, elem in self.parser.read_events():
             if elem.getparent() is None or elem.getparent().tag != 'testResults':
-                continue
-
-            if elem.items():
-                self.__extract_standard(elem)
-            else:
-                self.__extract_nonstandard(elem)
+                if elem.get('s') == 'false':
+                    if elem.items():
+                        self.__extract_standard(elem)
+                    else:
+                        self.__extract_nonstandard(elem)
 
             # cleanup processed from the memory
             elem.clear()

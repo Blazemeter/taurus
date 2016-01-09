@@ -137,7 +137,14 @@ class CLI(object):
             if self.options.no_system_configs is None:
                 self.options.no_system_configs = False
 
-            self.engine.configure(configs, not self.options.no_system_configs)
+            if self.options.write_xml_jtl in ('error', 'full'):
+                jtl_log_level = self.options.write_xml_jtl
+            else:
+                jtl_log_level = None
+
+            self.engine.configure(configs,
+                                  read_config_files=not self.options.no_system_configs,
+                                  jtl_log_level=jtl_log_level)
 
             # apply aliases
             for alias in self.options.aliases:
@@ -361,6 +368,8 @@ def main():
                       help="Prints all logging messages to console")
     parser.add_option('-n', '--no-system-configs', action='store_true',
                       help="Skip system and user config files")
+    parser.add_option('-w', '--write-xml-jtl', action='store', default="error",
+                      help="JTL logging level")
 
     parsed_options, parsed_configs = parser.parse_args()
 
