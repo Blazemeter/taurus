@@ -18,6 +18,11 @@ except ImportError:
         # noinspection PyPackageRequirements,PyPep8Naming
         import elementtree.ElementTree as etree
 
+if sys.version_info[0] == 2:
+    irange = xrange
+else:
+    irange = range
+
 JTL_ERR_ATRS = ["t", "lt", "ct", "ts", "s", "lb", "rc", "rm", "tn", "dt", "de", "by", "ng", "na"]
 
 JTL_HEADER = ["timeStamp", "elapsed", "label", "responseCode", "responseMessage", "threadName", "success",
@@ -281,7 +286,7 @@ def run_nose(_output_file, _err_file, files, iterations, hold):
 
     start_time = int(time())
     with TaurusNosePlugin(_output_file, _err_file) as plugin:
-        for iteration in xrange(0, iterations):
+        for iteration in irange(0, iterations):
             nose.run(addplugins=[plugin], argv=argv)
             if 0 < hold < int(time()) - start_time:
                 break
