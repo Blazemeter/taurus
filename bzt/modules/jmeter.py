@@ -503,15 +503,13 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         jtl_log_level = self.execution.get('write-xml-jtl', None)
 
-        if jtl_log_level:
-            if jtl_log_level == 'error':
-                self.log_jtl = self.engine.create_artifact("error", ".jtl")
-                log_lst = jmx.new_xml_listener(self.log_jtl, False)
-
-            elif jtl_log_level == 'full':
-                self.log_jtl = self.engine.create_artifact("trace", ".jtl")
-                log_lst = jmx.new_xml_listener(self.log_jtl, True)
-
+        if not jtl_log_level or jtl_log_level == 'error':
+            self.log_jtl = self.engine.create_artifact("error", ".jtl")
+            log_lst = jmx.new_xml_listener(self.log_jtl, False)
+            jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, log_lst)
+        elif jtl_log_level == 'full':
+            self.log_jtl = self.engine.create_artifact("trace", ".jtl")
+            log_lst = jmx.new_xml_listener(self.log_jtl, True)
             jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, log_lst)
 
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
@@ -1038,10 +1036,10 @@ class JTLErrorsReader(object):
                     else:
                         self.__extract_nonstandard(elem)
 
-            # cleanup processed from the memory
-            elem.clear()
-            while elem.getprevious() is not None:
-                del elem.getparent()[0]
+                # cleanup processed from the memory
+                elem.clear()
+                while elem.getprevious() is not None:
+                    del elem.getparent()[0]
 
     def get_data(self, max_ts):
         """

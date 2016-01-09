@@ -858,9 +858,16 @@ class TestJMeterExecutor(BZTestCase):
             "scenario": {
                 "requests": [{
                     "url": "http://blazedemo.com",
-                    "headers": {"Content-Type": "application/exi"},
-                    "body": {
-                        "store_id": "${store_id}",
-                        "display_name": "${display_name}"
-                    }}]}})
+                    }]}})
+        obj.prepare()
+
+    def test_jtl_none(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({
+            "write-xml-jtl": "bla-bla-bla",
+            "scenario": {
+                "requests": [{
+                    "url": "http://blazedemo.com",
+                    }]}})
         obj.prepare()

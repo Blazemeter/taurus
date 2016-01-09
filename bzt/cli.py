@@ -376,7 +376,6 @@ def main():
                     parsed_configs.append(fhd.name)
 
     try:
-
         code = executor.perform(parsed_configs)
     except BaseException as exc_top:
         logging.error("%s: %s", type(exc_top).__name__, exc_top)
