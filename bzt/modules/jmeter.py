@@ -501,9 +501,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, kpi_lst)
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
 
-        jtl_log_level = self.execution.get('write-xml-jtl', None)
+        jtl_log_level = self.execution.get('write-xml-jtl', 'error')
 
-        if not jtl_log_level or jtl_log_level == 'error':
+        if jtl_log_level == 'error':
             self.log_jtl = self.engine.create_artifact("error", ".jtl")
             log_lst = jmx.new_xml_listener(self.log_jtl, False)
             jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, log_lst)
