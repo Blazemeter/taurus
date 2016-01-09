@@ -38,9 +38,8 @@ from bzt.jmx import JMX
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.six import iteritems, text_type, StringIO, request, etree, binary_type
-from bzt.utils import shell_exec, ensure_is_dict, dehumanize_time, BetterDict, \
-    guess_csv_dialect, unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary, MirrorsManager, \
-    EXE_SUFFIX
+from bzt.utils import shell_exec, ensure_is_dict, dehumanize_time, BetterDict, guess_csv_dialect, EXE_SUFFIX
+from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary, MirrorsManager
 
 
 class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
@@ -107,7 +106,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.__set_system_properties()
 
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
-            self.reader = JTLReader(self.kpi_jtl, self.log, self.errors_jtl)
+            self.reader = JTLReader(self.kpi_jtl, self.log, self.log_jtl)
             self.reader.is_distributed = len(self.distributed_servers) > 0
             self.engine.aggregator.add_underling(self.reader)
 
@@ -498,22 +497,22 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def __add_result_writers(self, jmx):
         self.kpi_jtl = self.engine.create_artifact("kpi", ".jtl")
-        kpil = jmx.new_kpi_listener(self.kpi_jtl)
-        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, kpil)
+        kpi_lst = jmx.new_kpi_listener(self.kpi_jtl)
+        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, kpi_lst)
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
 
-        jtl_log_level = self.engine.config.get('jtl_log_level', None)
+        jtl_log_level = self.execution.get('write-xml-jtl', None)
+
         if jtl_log_level:
             if jtl_log_level == 'error':
-                log_name = 'errors'
-                is_full = False
-            elif jtl_log_level == 'full':
-                log_name = 'trace'
-                is_full = True
+                self.log_jtl = self.engine.create_artifact("error", ".jtl")
+                log_lst = jmx.new_xml_listener(self.log_jtl, False)
 
-            self.log_jtl = self.engine.create_artifact(log_name, ".jtl")
-            logl = jmx.new_xml_listener(self.errors_jtl, is_full)
-            jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, logl)
+            elif jtl_log_level == 'full':
+                self.log_jtl = self.engine.create_artifact("trace", ".jtl")
+                log_lst = jmx.new_xml_listener(self.log_jtl, True)
+
+            jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, log_lst)
 
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
 
@@ -529,7 +528,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         add two listeners to test plan:
             - to collect basic stats for KPIs
-            - to collect detailed errors info
+            - to collect detailed errors/trace info
         :return: path to artifact
         """
         self.log.debug("Load: %s", load)
@@ -804,23 +803,23 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
 class JMeterJTLLoaderExecutor(ScenarioExecutor):
     """
-    Executor type that just loads existing kpi.jtl and errors.jtl
+    Executor type that just loads existing kpi.jtl and errors.jtl/trace.jtl
     """
 
     def __init__(self):
         # TODO: document this executor
         super(JMeterJTLLoaderExecutor, self).__init__()
         self.kpi_jtl = None
-        self.errors_jtl = None
+        self.log_jtl = None
         self.reader = None
 
     def prepare(self):
         self.kpi_jtl = self.execution.get("kpi-jtl", None)
         if self.kpi_jtl is None:
             raise ValueError("Option is required for executor: kpi-jtl")
-        self.errors_jtl = self.execution.get("errors-jtl", None)
+        self.log_jtl = self.execution.get("errors-jtl", None)
 
-        self.reader = JTLReader(self.kpi_jtl, self.log, self.errors_jtl)
+        self.reader = JTLReader(self.kpi_jtl, self.log, self.log_jtl)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
@@ -1032,7 +1031,7 @@ class JTLErrorsReader(object):
 
         self.offset = self.fds.tell()
         for _action, elem in self.parser.read_events():
-            if elem.getparent() is None or elem.getparent().tag != 'testResults':
+            if elem.getparent() and elem.getparent().tag == 'testResults':
                 if elem.get('s') == 'false':
                     if elem.items():
                         self.__extract_standard(elem)

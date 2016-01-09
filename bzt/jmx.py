@@ -212,7 +212,8 @@ class JMX(object):
     def new_xml_listener(filename, is_full):
         """
 
-        :type filename: str
+        :param is_full: bool
+        :param filename: str
         :return:
         """
         flags = {
@@ -240,9 +241,13 @@ class JMX(object):
             "threadCounts": True,
             "url": True
         }
-        writer = JMX.__jtl_writer(filename, "Errors Writer", flags)
-        if not is_full:
+
+        if is_full:
+            writer = JMX.__jtl_writer(filename, "Trace Writer", flags)
+        else:
+            writer = JMX.__jtl_writer(filename, "Errors Writer", flags)
             writer.append(JMX._bool_prop("ResultCollector.error_logging", True))
+
         return writer
 
     @staticmethod

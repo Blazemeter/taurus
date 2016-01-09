@@ -8,7 +8,6 @@ Command-line tool is named `bzt` and invoked like `bzt <options> \[configs]`. Po
   - `-v, --verbose` - prints all logging messages to console (sometimes _a lot_)
   - `-l LOG, --log=LOG` - change log file location, by default is `bzt.log` in current directory
   - `-o OPTION, --option=OPTION` override some of config settings from command line, may be used multiple times
-  - `-w MODE, --write-xml-jtl=MODE` set JMeter logging verbosity
 
 ## Configuration Files Processing
 Taurus tool consumes configuration files as input format (start learning its syntax [here](ConfigSyntax.md)), it automatically detects YAML and JSON formats. Internally, all configuration files are merged into single configuration object (see merged.config artifact), and each following config overrides/appends previous. There are some special config locations that allows having per-machine and per-user configs, that will be loaded for every tool run. In general, configs load sequence is:
