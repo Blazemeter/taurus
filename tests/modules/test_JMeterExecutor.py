@@ -327,10 +327,10 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(1, len(udv_elements))
 
     def test_nonstandard_errors_format(self):
-        obj = JTLErrorsReader(__dir__() + "/../data/nonstantard-errors.jtl", logging.getLogger(''))
+        obj = JTLErrorsReader(__dir__() + "/../data/nonstandard-errors.jtl", logging.getLogger(''))
         obj.read_file()
         values = obj.get_data(sys.maxsize)
-        self.assertEquals(2, len(values))
+        self.assertNotEquals(values[''][0]['msg'].find('Cannot find function error in object FirefoxDriver'), -1)
 
     def test_standard_errors_format(self):
         obj = JTLErrorsReader(__dir__() + "/../data/standard-errors.jtl", logging.getLogger(''))
@@ -728,10 +728,8 @@ class TestJMeterExecutor(BZTestCase):
         obj = JTLErrorsReader(__dir__() + "/../data/resource-errors-no-fail.jtl", logging.getLogger(''))
         obj.read_file()
         values = obj.get_data(sys.maxsize)
-        self.assertEqual(values.get('')[0].get("msg"), "success_true_with_failed_embedded_resources")
-        self.assertEqual(values.get('')[1].get("msg"), "failed_resource_message")
-        self.assertEqual(values.get('HTTP Request')[0].get("msg"), "success_true_with_failed_embedded_resources")
-        self.assertEqual(values.get('HTTP Request')[1].get("msg"), "failed_resource_message")
+        self.assertEqual(len(values.get('HTTP Request')), 1)
+        self.assertEqual(values.get('HTTP Request')[0].get("msg"), "failed_resource_message")
 
     def test_fail_on_zero_results(self):
         obj = JMeterExecutor()
@@ -798,7 +796,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(s_t('1m'), 60 * 1000.0)
         self.assertEqual(s_t('${VAR}'), '${VAR}')
 
-    def test_a1_json_body(self):
+    def test_json_body_app_str(self):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
         obj.execution.merge({
@@ -814,7 +812,7 @@ class TestJMeterExecutor(BZTestCase):
         selector += '>elementProp>stringProp[name="Argument.value"]'
         self.assertNotEqual(jmx.get(selector)[0].text.find('store_id'), -1)
 
-    def test_a2_json_body(self):
+    def test_json_body_app_dic(self):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
         obj.execution.merge({
@@ -832,7 +830,7 @@ class TestJMeterExecutor(BZTestCase):
         selector += '>elementProp>stringProp[name="Argument.value"]'
         self.assertNotEqual(jmx.get(selector)[0].text.find('store_id'), -1)
 
-    def test_a3_json_body(self):
+    def test_json_body_no_app(self):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
         obj.execution.merge({
@@ -848,4 +846,26 @@ class TestJMeterExecutor(BZTestCase):
         jmx = JMX(obj.original_jmx)
         selector = 'elementProp[name="HTTPsampler.Arguments"]>collectionProp'
         selector += '>elementProp>stringProp[name="Argument.value"]'
-        self.assertEqual(jmx.get(selector)[0].text.find('store_id'), -1)
+        self.assertEqual(jmx.get(selector)[0].text.find('"store_id": "${store_id}"'), -1)
+
+    def test_a1_jtl_verbose(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({
+            "write-xml-jtl": "full",
+            "scenario": {
+                "requests": [{
+                    "url": "http://blazedemo.com",
+                    }]}})
+        obj.prepare()
+
+    def test_jtl_none(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({
+            "write-xml-jtl": "bla-bla-bla",
+            "scenario": {
+                "requests": [{
+                    "url": "http://blazedemo.com",
+                    }]}})
+        obj.prepare()
