@@ -326,11 +326,11 @@ class TestJMeterExecutor(BZTestCase):
         udv_elements = xml_tree.findall(".//Arguments[@testclass='Arguments']")
         self.assertEqual(1, len(udv_elements))
 
-    def test_nonstandard_errors_format(self):
-        obj = JTLErrorsReader(__dir__() + "/../data/nonstantard-errors.jtl", logging.getLogger(''))
+    def test_anonstandard_errors_format(self):
+        obj = JTLErrorsReader(__dir__() + "/../data/nonstandard-errors.jtl", logging.getLogger(''))
         obj.read_file()
         values = obj.get_data(sys.maxsize)
-        self.assertEquals(2, len(values))
+        self.assertNotEquals(values[''][0]['msg'].find('Cannot find function error in object FirefoxDriver'), -1)
 
     def test_standard_errors_format(self):
         obj = JTLErrorsReader(__dir__() + "/../data/standard-errors.jtl", logging.getLogger(''))
@@ -728,10 +728,8 @@ class TestJMeterExecutor(BZTestCase):
         obj = JTLErrorsReader(__dir__() + "/../data/resource-errors-no-fail.jtl", logging.getLogger(''))
         obj.read_file()
         values = obj.get_data(sys.maxsize)
-        self.assertEqual(values.get('')[0].get("msg"), "success_true_with_failed_embedded_resources")
-        self.assertEqual(values.get('')[1].get("msg"), "failed_resource_message")
-        self.assertEqual(values.get('HTTP Request')[0].get("msg"), "success_true_with_failed_embedded_resources")
-        self.assertEqual(values.get('HTTP Request')[1].get("msg"), "failed_resource_message")
+        self.assertEqual(len(values.get('HTTP Request')), 1)
+        self.assertEqual(values.get('HTTP Request')[0].get("msg"), "failed_resource_message")
 
     def test_fail_on_zero_results(self):
         obj = JMeterExecutor()
