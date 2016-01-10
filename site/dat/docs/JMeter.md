@@ -332,3 +332,13 @@ scenarios:
         expect-null: false  # expected value is null
         invert: false # invert condition
 ```
+### Jmeter Test Log
+You can tune JTL file verbosity with option `write-xml-jtl`. Possible values are 'error' (default), 'full', or any other value for 'none'. Keep in mind: max verbosity can seriously load your system.
+```yaml
+---
+execution
+- write-xml-jtl: full
+  scenario
+    script: my.jmx
+
+```

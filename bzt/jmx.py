@@ -164,13 +164,13 @@ class JMX(object):
         obj_prop.append(name)
         obj_prop.append(value)
 
-        kpi_listener = etree.Element("ResultCollector",
+        listener = etree.Element("ResultCollector",
                                      testname=label,
                                      testclass="ResultCollector",
                                      guiclass="SimpleDataWriter")
-        kpi_listener.append(jtl)
-        kpi_listener.append(obj_prop)
-        return kpi_listener
+        listener.append(jtl)
+        listener.append(obj_prop)
+        return listener
 
     @staticmethod
     def new_kpi_listener(filename):
@@ -209,10 +209,11 @@ class JMX(object):
         return JMX.__jtl_writer(filename, "KPI Writer", flags)
 
     @staticmethod
-    def new_errors_listener(filename):
+    def new_xml_listener(filename, is_full):
         """
 
-        :type filename: str
+        :param is_full: bool
+        :param filename: str
         :return:
         """
         flags = {
@@ -240,8 +241,13 @@ class JMX(object):
             "threadCounts": True,
             "url": True
         }
-        writer = JMX.__jtl_writer(filename, "Errors Writer", flags)
-        writer.append(JMX._bool_prop("ResultCollector.error_logging", True))
+
+        if is_full:
+            writer = JMX.__jtl_writer(filename, "Trace Writer", flags)
+        else:
+            writer = JMX.__jtl_writer(filename, "Errors Writer", flags)
+            writer.append(JMX._bool_prop("ResultCollector.error_logging", True))
+
         return writer
 
     @staticmethod
