@@ -1018,6 +1018,7 @@ class JTLErrorsReader(object):
         try:
             self.parser.feed(self.fds.read(1024 * 1024))  # "Huge input lookup" error without capping :)
         except etree.XMLSyntaxError as exc:
+            # FIXME: once failed, it cannot restore. we should stop errors processing then
             self.log.debug("Error reading errors.jtl: %s", traceback.format_exc())
             self.log.warning("Failed to parse errors XML: %s", exc)
 
