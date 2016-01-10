@@ -93,9 +93,7 @@ Having `len` is a length of `request`, `marker` is a sample label, `request` is 
 
 ## Load Generation Specifics
 
-Currently it does support only throughput-based load generating. Concurrency-based load support is in TODO.
-
-Concurrency for PBench means how many workers will be allocated for a test. Worker is very much like HTTP connection, it reads source data, sends request and receives response. During this process worker is busy and counted as active. So if server's response time is high and concurrency is low there might be a situation when all workers are busy and PBench will be unable to sustain reqired throughput. To fix it, either increase `concurrency`, or decrease `timeout`. Decreasing `timeout` will lead to "Connection timed out" errors, meaning server failed to handle requests fast enough.
+Concurrency for PBench means how many workers will be allocated for a test. Worker is very much like "object that has HTTP connection", it reads source data, sends request and receives response. During this process worker is busy and counted as active. So if server's response time is high and concurrency is low there might be a situation when all workers are busy and PBench will be unable to sustain reqired throughput. To fix it, either increase `concurrency`, or decrease `timeout`. Decreasing `timeout` will lead to "Connection timed out" errors, meaning server failed to handle requests fast enough.
 
 There is a way to change the load in runtime by appending schedule file with additional schedule. PBench will read this new data and execute it. If new data will have proper payload loop markers, it will switch into new schedule loop. In the future Taurus `pbench` module will have helper methods to automate this.
 
