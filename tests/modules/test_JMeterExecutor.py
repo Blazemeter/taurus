@@ -326,7 +326,7 @@ class TestJMeterExecutor(BZTestCase):
         udv_elements = xml_tree.findall(".//Arguments[@testclass='Arguments']")
         self.assertEqual(1, len(udv_elements))
 
-    def test_anonstandard_errors_format(self):
+    def test_nonstandard_errors_format(self):
         obj = JTLErrorsReader(__dir__() + "/../data/nonstandard-errors.jtl", logging.getLogger(''))
         obj.read_file()
         values = obj.get_data(sys.maxsize)
@@ -846,7 +846,7 @@ class TestJMeterExecutor(BZTestCase):
         jmx = JMX(obj.original_jmx)
         selector = 'elementProp[name="HTTPsampler.Arguments"]>collectionProp'
         selector += '>elementProp>stringProp[name="Argument.value"]'
-        self.assertEqual(jmx.get(selector)[0].text.find('store_id'), -1)
+        self.assertEqual(jmx.get(selector)[0].text.find('"store_id": "${store_id}"'), -1)
 
     def test_a1_jtl_verbose(self):
         obj = JMeterExecutor()
