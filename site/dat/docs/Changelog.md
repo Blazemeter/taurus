@@ -1,12 +1,12 @@
 # Changelog
 
-## 1.1.0 (next)
+## 1.1.0
  - support `iterations` and `hold-for` options for Selenium
+ - add concurrency-driven load support for PBench
+ - add `-locations` command alias to dump available locations for Cloud tests
  - support variables in time fields for JMeter
- - support POST body in application/json format
- - add `-locations` command alias to dump available locations
+ - support POST body in application/json format for JMeter
  - ability to set JMeter log verbosity with `write-xml-jtl`
- - add concurrency-driven load to PBench
 
 ## 1.0.0
  - support [cloud](Cloud.md) provisioning
