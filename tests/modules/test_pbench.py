@@ -108,13 +108,31 @@ if not is_windows():
         def test_schedule_empty(self):
             executor = PBenchExecutor()
             executor.engine = EngineEmul()
-            try:
-                obj = Scheduler(executor.get_load(), StringIO("4 test\ntest\n"), logging.getLogger(""))
-                for item in obj.generate():
-                    logging.debug("Item: %s", item)
-                self.fail()
-            except NotImplementedError:
-                pass
+            obj = Scheduler(executor.get_load(), StringIO("4 test\ntest\n"), logging.getLogger(""))
+            for item in obj.generate():
+                logging.debug("Item: %s", item)
+
+        def test_schedule_concurrency(self):
+            executor = PBenchExecutor()
+            executor.engine = EngineEmul()
+            executor.execution.merge({"concurrency": 5, "ramp-up": 10, "hold-for": 5})
+            obj = Scheduler(executor.get_load(), StringIO("5 test1\ntest1\n5 test2\ntest2\n"), logging.getLogger(""))
+            items = list(obj.generate())
+            logging.debug("%s", items)
+            self.assertEqual(8, len(items))
+            self.assertEqual(-1, items[5][0])  # instance became unlimited
+            self.assertEqual(1, items[6][5])  # looped payload
+
+        def test_schedule_concurrency_steps(self):
+            executor = PBenchExecutor()
+            executor.engine = EngineEmul()
+            executor.execution.merge({"concurrency": 5, "ramp-up": 10, "steps": 3})
+            obj = Scheduler(executor.get_load(), StringIO("5 test1\ntest1\n5 test2\ntest2\n"), logging.getLogger(""))
+            items = list(obj.generate())
+            logging.debug("%s", items)
+            self.assertEqual(8, len(items))
+            self.assertEqual(-1, items[5][0])  # instance became unlimited
+            self.assertEqual(1, items[6][5])  # looped payload
 
         def test_widget(self):
             obj = PBenchExecutor()

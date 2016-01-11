@@ -6,6 +6,7 @@
  - support POST body in application/json format
  - add `-locations` command alias to dump available locations
  - ability to set JMeter log verbosity with `write-xml-jtl`
+ - add concurrency-driven load to PBench
 
 ## 1.0.0
  - support [cloud](Cloud.md) provisioning

@@ -312,29 +312,36 @@ class TaurusPBenchTool(PBenchTool):
             with open(self.payload_file) as pfd:
                 scheduler = Scheduler(load, pfd, self.log)
                 with open(self.schedule_file, 'wb') as sfd:
-                    prev_offset = 0
-                    accum_interval = 0.0
-                    cnt = 0
-                    for item in scheduler.generate():
-                        time_offset, payload_len, payload_offset, payload, marker, record_type, overall_len = item
+                    self._write_schedule_file(load, pbar, scheduler, sfd)
 
-                        if cnt % 5000 == 0:  # it's just the number...
-                            pbar.update(time_offset if time_offset < load.duration else load.duration)
-                        cnt += 1
+    def _write_schedule_file(self, load, pbar, scheduler, sfd):
+        prev_offset = 0
+        accum_interval = 0.0
+        cnt = 0
+        for item in scheduler.generate():
+            time_offset, payload_len, payload_offset, payload, marker, record_type, overall_len = item
 
-                        accum_interval += 1000 * (time_offset - prev_offset)
-                        interval = math.floor(accum_interval)
-                        accum_interval -= interval
-                        type_and_delay = struct.pack("I", int(interval))[:-1] + chr(record_type)
-                        payload_len_bytes = struct.pack('I', overall_len)
-                        payload_offset_bytes = struct.pack('Q', payload_offset)
+            if cnt % 5000 == 0:  # it's just the number, to throttle down updates...
+                pbar.update(time_offset if time_offset < load.duration else load.duration)
+            cnt += 1
 
-                        sfd.write(type_and_delay + payload_len_bytes + payload_offset_bytes)
-                        prev_offset = time_offset
+            if time_offset >= 0:
+                accum_interval += 1000 * (time_offset - prev_offset)
+                interval = int(math.floor(accum_interval))
+                accum_interval -= interval
+            else:
+                interval = 0xFFFFFF
 
-                        if record_type == Scheduler.REC_TYPE_STOP:
-                            self.log.debug("End record marked by scheduler")
-                            break
+            type_and_delay = struct.pack("I", interval)[:-1] + chr(record_type)
+            payload_len_bytes = struct.pack('I', overall_len)
+            payload_offset_bytes = struct.pack('Q', payload_offset)
+
+            sfd.write(type_and_delay + payload_len_bytes + payload_offset_bytes)
+            prev_offset = time_offset
+
+            if record_type == Scheduler.REC_TYPE_STOP:
+                self.log.debug("End record marked by scheduler")
+                break
 
     def _get_source(self, load):
         tpl = 'source_t source_log = taurus_source_t { ammo = "%s"\n schedule = "%s"\n %s\n }'
@@ -361,18 +368,18 @@ class Scheduler(object):
         self.log = logger
         self.load = load
         self.payload_fhd = payload_fhd
-        # TODO: implement concurrency schedule
         if not load.duration and not load.iterations:
             self.iteration_limit = 1
         else:
             self.iteration_limit = load.iterations
 
-        if not load.throughput:
-            raise NotImplementedError("Only throughtput mode is supported")
-
-        self.ramp_up_slope = load.throughput / load.ramp_up if load.ramp_up else 0
-        self.step_size = float(load.throughput) / load.steps if load.steps else 0
         self.step_len = load.ramp_up / load.steps if load.steps else 0
+        if load.throughput:
+            self.ramp_up_slope = load.throughput / load.ramp_up if load.ramp_up else 0
+            self.step_size = float(load.throughput) / load.steps if load.steps else 0
+        else:
+            self.ramp_up_slope = None
+            self.step_size = float(load.concurrency) / load.steps if load.steps else 0
 
         self.count = 0.0
         self.time_offset = 0.0
@@ -383,7 +390,7 @@ class Scheduler(object):
         while True:
             payload_offset = self.payload_fhd.tell()
             line = self.payload_fhd.readline()
-            if not line:
+            if not line:  # rewind
                 self.payload_fhd.seek(0)
                 iterations += 1
 
@@ -410,19 +417,32 @@ class Scheduler(object):
             yield payload_len, payload_offset, payload, marker.strip(), len(line), rec_type
             rec_type = self.REC_TYPE_SCHEDULE
 
-    def generate(self):  # TODO: implement instances ramp-up in any case
+    def generate(self):
         for payload_len, payload_offset, payload, marker, meta_len, record_type in self._payload_reader():
-            rps = self.__get_rps()
-            self.time_offset += 1.0 / rps if rps else 0
+            if self.load.throughput:
+                self.time_offset += self.__get_time_offset_rps()
+                if self.time_offset > self.load.duration:
+                    self.log.debug("Duration limit reached: %s", self.time_offset)
+                    break
+            else:  # concurrency schedule
+                self.time_offset = self.__get_time_offset_concurrency()
 
-            if self.time_offset > self.load.duration:
-                self.log.debug("Duration limit reached: %s", self.time_offset)
-                break
-
-            yield self.time_offset, payload_len, payload_offset, payload, marker, record_type, payload_len + meta_len
+            overall_len = payload_len + meta_len
+            yield self.time_offset, payload_len, payload_offset, payload, marker, record_type, overall_len
             self.count += 1
 
-    def __get_rps(self):
+    def __get_time_offset_concurrency(self):
+        if not self.load.ramp_up or self.count >= self.load.concurrency:
+            if self.need_start_loop is None:
+                self.need_start_loop = True
+            return -1  # special case, means no delay
+        elif self.load.steps:
+            step = math.floor(self.count / self.step_size)
+            return step * self.step_len
+        else:  # ramp-up case
+            return self.count * self.load.ramp_up / self.load.concurrency
+
+    def __get_time_offset_rps(self):
         if not self.load.ramp_up or self.time_offset > self.load.ramp_up:
             # limit iterations
             rps = self.load.throughput
@@ -430,11 +450,11 @@ class Scheduler(object):
                 self.need_start_loop = True
         elif self.load.steps:
             rps = self.step_size * (math.floor(self.time_offset / self.step_len) + 1)
-        else:
+        else:  # ramp-up case
             xpos = math.sqrt(2 * self.count / self.ramp_up_slope)
             rps = xpos * self.ramp_up_slope
 
-        return rps
+        return 1.0 / rps if rps else 0
 
 
 class PBenchKPIReader(ResultsReader):
