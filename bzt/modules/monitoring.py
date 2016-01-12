@@ -11,7 +11,7 @@ from bzt.engine import EngineModule, Service
 from bzt.modules.console import WidgetProvider
 from bzt.modules.passfail import FailCriteria
 from bzt.six import iteritems
-from bzt.utils import dehumanize_time
+from bzt.utils import dehumanize_time, load_class
 
 
 class Monitoring(Service, WidgetProvider):
@@ -24,17 +24,29 @@ class Monitoring(Service, WidgetProvider):
         super(Monitoring, self).__init__()
         self.listeners = []
         self.clients = []
-        self.server_agent_class = ServerAgentClient
+        self.client_class = None
 
     def add_listener(self, listener):
         assert isinstance(listener, MonitoringListener)
         self.listeners.append(listener)
 
     def prepare(self):
-        for label, config in iteritems(self.parameters.get("server-agents")):
-            client = self.server_agent_class(self.log, label, config)
-            client.connect()
-            self.clients.append(client)
+
+        for client_name in self.parameters:
+            config_params = self.parameters.get(client_name)
+
+            #FIXME: modify for any clients
+            if client_name == 'module':
+                continue
+            if client_name == 'server-agents':
+                self.client_class = ServerAgentClient
+            if client_name == 'graphite':
+                self.client_class = GraphiteClient
+
+            for label, config in iteritems(config_params):
+                client = self.client_class(self.log, label, config)
+                client.connect()
+                self.clients.append(client)
 
     def startup(self):
         for client in self.clients:
@@ -91,17 +103,44 @@ class MonitoringClient(object):
 
 
 class GraphiteClient(MonitoringClient):
+    def __init__(self, parent_logger, label, config):
+        super(GraphiteClient, self).__init__()
+        self.host_label = label
+        self.address = config.get("address", label)
+        if ':' in self.address:
+            self.port = int(self.address[self.address.index(":") + 1:])
+            self.address = self.address[:self.address.index(":")]
+        else:
+            self.port = 81
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        self._partial_buffer = ""
+        metrics = config.get('metrics', ValueError("Metrics list required"))
+        self._result_fields = [x for x in metrics]  # TODO: handle more complex metric specifications and labeling
+        self._metrics_command = "\t".join([x for x in metrics])
+        self.socket = socket.socket()
+        self.select = select.select
+        self.interval = int(dehumanize_time(config.get("interval", 1)))
+
     def connect(self):
-        pass
+        try:
+            self.socket.connect((self.address, self.port))
+            self.log.debug("Connected to Graphite at %s:%s successfully", self.address, self.port)
+        except socket.error:
+            self.log.error("Failed to connect to Graphite at %s:%s" % (self.address, self.port))
 
     def start(self):
         pass
+        # command = ""
+        # self.log.debug("Sending metrics command: %s", command)
+        # self.socket.send(command)
 
     def get_data(self):
-        pass
+        # exchange with graphite server will be there
+        return []
 
     def disconnect(self):
-        pass
+        self.log.debug("Closing connection with %s:%s", self.address, self.port)
+        self.socket.close()
 
 
 class ServerAgentClient(MonitoringClient):

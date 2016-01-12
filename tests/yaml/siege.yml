@@ -1,8 +1,10 @@
 ---
 services:
 - module: monitoring
-  server-agents:
-    127.0.0.1:4444:
+  graphite:
+  #server-agents:
+    192.168.0.38:
+    #127.0.0.1:4444:
       metrics:
       - cpu
       - disks
