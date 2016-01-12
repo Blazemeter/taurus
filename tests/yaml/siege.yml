@@ -1,14 +1,21 @@
 ---
-
+services:
+- module: monitoring
+  server-agents:
+    127.0.0.1:4444:
+      metrics:
+      - cpu
+      - disks
+      - memory
 modules:
   siege:
     path: "/usr/bin/siege"
 execution:
 - executor: siege
   concurrency: 5
-  hold-for: 3
+  hold-for: 15
   scenario:
-    think-time: 1q
+    think-time: 1s
     requests:
     - url: ya.ru
 

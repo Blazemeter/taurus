@@ -72,7 +72,39 @@ class MonitoringListener(object):
         pass
 
 
-class ServerAgentClient(object):
+class MonitoringClient(object):
+    @abstractmethod
+    def connect(self):
+        pass
+
+    @abstractmethod
+    def start(self):
+        pass
+
+    @abstractmethod
+    def get_data(self):
+        pass
+
+    @abstractmethod
+    def disconnect(self):
+        pass
+
+
+class GraphiteClient(MonitoringClient):
+    def connect(self):
+        pass
+
+    def start(self):
+        pass
+
+    def get_data(self):
+        pass
+
+    def disconnect(self):
+        pass
+
+
+class ServerAgentClient(MonitoringClient):
     def __init__(self, parent_logger, label, config):
         """
         :type parent_logger: logging.Logger
