@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.1.1 (next)
+ - maximize browser window in Selenium test, when possible
+
 ## 1.1.0
  - support `iterations` and `hold-for` options for Selenium
  - add concurrency-driven load support for PBench

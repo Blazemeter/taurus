@@ -33,7 +33,9 @@ modules:
         working-dir: classes  # set name of runner working directory within artifacts dir     
 ```
 
-## Python Nose Runner
+## Python Unittest Runner
+
+Python unittests are launched using NoseTest runner.
 
 Configuration options:
 
