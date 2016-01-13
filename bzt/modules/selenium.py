@@ -77,6 +77,9 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 width = display_conf.get("width", 1024)
                 height = display_conf.get("height", 768)
                 self.virtual_display = Display(size=(width, height))
+                msg = "Starting virtual display[%s]: %s"
+                self.log.info(msg, self.virtual_display.size, self.virtual_display.new_display_var)
+                self.virtual_display.start()
 
         self.scenario = self.get_scenario()
         self._verify_script()
@@ -162,10 +165,6 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :return:
         """
         self.start_time = time.time()
-        if self.virtual_display:
-            msg = "Starting virtual display[%s]: %s"
-            self.log.info(msg, self.virtual_display.size, self.virtual_display.new_display_var)
-            self.virtual_display.start()
         self.runner.run_tests()
 
     def check(self):
@@ -189,17 +188,16 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         shutdown test_runner
         :return:
         """
-        try:
-            self.runner.shutdown()
-        finally:
-            if self.virtual_display and self.virtual_display.is_alive():
-                self.virtual_display.stop()
+        self.runner.shutdown()
 
         if self.start_time:
             self.end_time = time.time()
             self.log.debug("Selenium tests ran for %s seconds", self.end_time - self.start_time)
 
     def post_process(self):
+        if self.virtual_display and self.virtual_display.is_alive():
+            self.virtual_display.stop()
+
         if self.reader and not self.reader.read_records:
             raise RuntimeWarning("Empty results, most likely Selenium failed")
 
@@ -236,7 +234,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         filename = self.engine.create_artifact("test_requests", ".py")
         nose_test = SeleniumScriptBuilder(self.scenario, self.log)
         if self.virtual_display:
-            nose_test.window_size=self.virtual_display.size
+            nose_test.window_size = self.virtual_display.size
         nose_test.scenario = self.scenario
         nose_test.gen_test_case()
         nose_test.save(filename)
