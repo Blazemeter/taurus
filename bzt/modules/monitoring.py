@@ -106,8 +106,9 @@ class GraphiteClient(MonitoringClient):
         super(GraphiteClient, self).__init__()
         self.host_label = label
         self.start_time = None
+        self.check_time = None
         self.config = config
-
+        self.interval = int(dehumanize_time(self.config.get('interval', '10s')))
         # TODO: handle more complex metric specifications and labeling
         self._result_fields = config.get('metrics', ValueError("Metrics list required"))
 
@@ -119,30 +120,31 @@ class GraphiteClient(MonitoringClient):
         pass
 
     def start(self):
-        # ??? some init commands?
-        self.start_time = int(time.time())-300
-        pass
+        self.check_time = int(time.time())
+        self.start_time = self.check_time - 200
 
     def get_data(self):
 
-        # TODO check time interval
+        current_time = int(time.time())
+        if current_time < self.check_time + self.interval:
+            return []
+        self.check_time = current_time
 
         params = [('target', field) for field in self._result_fields]
 
-        # TODO read params from self.config
-        use_last = True
+        back_time = int(dehumanize_time(self.config.get('back-time', '%ss' % self.interval*100)))
         params += [
-            ('from', '-3min'),
+            ('from', '-%ss' % back_time),
             ('format', 'json')
         ]
 
+        use_last = self.config.get('use-last', False)
         url = 'http://' + self.config['address'] + '/render?' + urlencode(params)
         raw_data = urlopen(url)
         json_list = json.load(raw_data)
 
         res = []
         for element in json_list:
-
             item = {
                 'ts': int(time.time()),
                 'source': '%s' % (self.config['address'])}
@@ -163,6 +165,7 @@ class GraphiteClient(MonitoringClient):
 
     def disconnect(self):
         pass
+
 
 class ServerAgentClient(MonitoringClient):
     def __init__(self, parent_logger, label, config):

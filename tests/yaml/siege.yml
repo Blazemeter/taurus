@@ -5,11 +5,11 @@ services:
     graphite:
     - address: 192.168.0.38
       interval: 5
-      uselast: 'true'
-      back_time: 100
+      use-last: 'true'
+      back-time: 100
       metrics:
       - carbon.agents.ubuntu-a.memUsage
-      - carbon.agents.ubuntu-a.cpuUsage
+      - test.formula
     server-agent:
     - address: 127.0.0.1:4444
       metrics:
