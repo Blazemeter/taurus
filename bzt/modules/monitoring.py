@@ -4,14 +4,15 @@ from collections import OrderedDict
 import socket
 import select
 import time
+import json
 
 from urwid import Pile, Text
 
 from bzt.engine import EngineModule, Service
 from bzt.modules.console import WidgetProvider
 from bzt.modules.passfail import FailCriteria
-from bzt.six import iteritems
-from bzt.utils import dehumanize_time, load_class
+from bzt.six import iteritems, urlopen, urlencode
+from bzt.utils import dehumanize_time
 
 
 class Monitoring(Service, WidgetProvider):
@@ -24,7 +25,6 @@ class Monitoring(Service, WidgetProvider):
         super(Monitoring, self).__init__()
         self.listeners = []
         self.clients = []
-        self.client_class = None
 
     def add_listener(self, listener):
         assert isinstance(listener, MonitoringListener)
@@ -32,21 +32,20 @@ class Monitoring(Service, WidgetProvider):
 
     def prepare(self):
 
-        for client_name in self.parameters:
-            config_params = self.parameters.get(client_name)
+        clients = [serv for serv in self.engine.config.get('services') if serv['module'] == 'monitoring'][0]['clients']
 
-            #FIXME: modify for any clients
-            if client_name == 'module':
-                continue
-            if client_name == 'server-agents':
-                self.client_class = ServerAgentClient
-            if client_name == 'graphite':
-                self.client_class = GraphiteClient
+        for client_name in clients:
+            configs = clients[client_name]
 
-            for label, config in iteritems(config_params):
-                client = self.client_class(self.log, label, config)
-                client.connect()
+            if client_name == 'server-agent':
+                client_class = ServerAgentClient
+            elif client_name == 'graphite':
+                client_class = GraphiteClient
+
+            for config in configs:
+                client = client_class(self.log, client_name, config)
                 self.clients.append(client)
+                client.connect()
 
     def startup(self):
         for client in self.clients:
@@ -106,42 +105,64 @@ class GraphiteClient(MonitoringClient):
     def __init__(self, parent_logger, label, config):
         super(GraphiteClient, self).__init__()
         self.host_label = label
-        self.address = config.get("address", label)
-        if ':' in self.address:
-            self.port = int(self.address[self.address.index(":") + 1:])
-            self.address = self.address[:self.address.index(":")]
-        else:
-            self.port = 81
-        self.log = parent_logger.getChild(self.__class__.__name__)
-        self._partial_buffer = ""
-        metrics = config.get('metrics', ValueError("Metrics list required"))
-        self._result_fields = [x for x in metrics]  # TODO: handle more complex metric specifications and labeling
-        self._metrics_command = "\t".join([x for x in metrics])
-        self.socket = socket.socket()
-        self.select = select.select
-        self.interval = int(dehumanize_time(config.get("interval", 1)))
+        self.start_time = None
+        self.config = config
+
+        # TODO: handle more complex metric specifications and labeling
+        self._result_fields = config.get('metrics', ValueError("Metrics list required"))
+
+        # TODO: smart profiling for parameter back-time (if it set up to 'auto')
+        # variants: interval*X, series of requests, ???
 
     def connect(self):
-        try:
-            self.socket.connect((self.address, self.port))
-            self.log.debug("Connected to Graphite at %s:%s successfully", self.address, self.port)
-        except socket.error:
-            self.log.error("Failed to connect to Graphite at %s:%s" % (self.address, self.port))
+        # ??? add test connection?
+        pass
 
     def start(self):
+        # ??? some init commands?
+        self.start_time = int(time.time())-300
         pass
-        # command = ""
-        # self.log.debug("Sending metrics command: %s", command)
-        # self.socket.send(command)
 
     def get_data(self):
-        # exchange with graphite server will be there
-        return []
+
+        # TODO check time interval
+
+        params = [('target', field) for field in self._result_fields]
+
+        # TODO read params from self.config
+        use_last = True
+        params += [
+            ('from', '-3min'),
+            ('format', 'json')
+        ]
+
+        url = 'http://' + self.config['address'] + '/render?' + urlencode(params)
+        raw_data = urlopen(url)
+        json_list = json.load(raw_data)
+
+        res = []
+        for element in json_list:
+
+            item = {
+                'ts': int(time.time()),
+                'source': '%s' % (self.config['address'])}
+
+            # TODO for targets process wildcards, functions, etc.
+            metric = element['target']
+            datapoints = element['datapoints']
+            value = None
+            if len(datapoints) > 1:
+                if use_last and datapoints[-1][0] is not None and datapoints[-1][1] > self.start_time:
+                    value = datapoints[-1][0]
+                elif datapoints[-2][0] is not None and datapoints[-2][1] > self.start_time:
+                    value = datapoints[-2][0]
+
+            item[metric] = value
+            res.append(item)
+        return res
 
     def disconnect(self):
-        self.log.debug("Closing connection with %s:%s", self.address, self.port)
-        self.socket.close()
-
+        pass
 
 class ServerAgentClient(MonitoringClient):
     def __init__(self, parent_logger, label, config):
