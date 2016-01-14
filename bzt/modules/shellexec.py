@@ -133,7 +133,6 @@ class Task(object):
     def start(self):
         """
         Start task
-        :return:
         """
         if self.process:
             self.check()
@@ -141,12 +140,12 @@ class Task(object):
             return
 
         if self.out is not None and self.out != subprocess.PIPE:
-            out = open(self.out, 'wt')
+            out = open(self.out, 'awt')
         else:
             out = self.out
 
         if self.err is not None and self.err != subprocess.PIPE:
-            err = open(self.err, 'wt')
+            err = open(self.err, 'awt')
         else:
             err = self.err
 
