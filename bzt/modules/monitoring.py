@@ -121,7 +121,7 @@ class GraphiteClient(MonitoringClient):
 
     def start(self):
         self.check_time = int(time.time())
-        self.start_time = self.check_time - 200
+        self.start_time = self.check_time
 
     def get_data(self):
 
@@ -159,7 +159,8 @@ class GraphiteClient(MonitoringClient):
                 elif datapoints[-2][0] is not None and datapoints[-2][1] > self.start_time:
                     value = datapoints[-2][0]
 
-            item[metric] = value
+            if value is not None:
+                item[metric] = value
             res.append(item)
         return res
 
@@ -271,11 +272,12 @@ class MonitoringWidget(Pile, MonitoringListener):
         for host, metrics in iteritems(self.host_metrics):
             text.append(('stat-hdr', " %s \n" % host))
 
-            maxwidth = max([len(key) for key in metrics.keys()])
+            if len(metrics):
+                maxwidth = max([len(key) for key in metrics.keys()])
 
-            for metric, value in iteritems(metrics):
-                values = (' ' * (maxwidth - len(metric)), metric, value[0])
-                text.append((value[1], "  %s%s: %.3f\n" % values))
+                for metric, value in iteritems(metrics):
+                    values = (' ' * (maxwidth - len(metric)), metric, value[0])
+                    text.append((value[1], "  %s%s: %.3f\n" % values))
 
         self.display.set_text(text)
         self._invalidate()
