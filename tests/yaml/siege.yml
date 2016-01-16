@@ -1,20 +1,19 @@
 ---
 services:
 - module: monitoring
-  clients:
-    graphite:
-    - address: 192.168.0.38
-      interval: 5
-      use-last: 'true'
-      back-time: 100
-      metrics:
-      - carbon.agents.ubuntu-a.memUsage
-      - test.formula
-    server-agent:
-    - address: 127.0.0.1:4444
-      metrics:
-      - cpu
-      - disks
+  graphite:
+  - address: 192.168.0.38
+    interval: 5s
+    from: 100s
+    until: 1s
+    metrics:
+    - carbon.agents.ubuntu-a.memUsage
+    - test.formula
+  server-agent:
+  - address: 127.0.0.1:4444
+    metrics:
+    - cpu
+    - disks
       - memory
 modules:
   siege:
@@ -22,7 +21,7 @@ modules:
 execution:
 - executor: siege
   concurrency: 5
-  hold-for: 150
+  hold-for: 150s
   scenario:
     think-time: 1s
     requests:

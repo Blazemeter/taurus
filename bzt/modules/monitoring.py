@@ -31,18 +31,16 @@ class Monitoring(Service, WidgetProvider):
         self.listeners.append(listener)
 
     def prepare(self):
-
-        clients = [serv for serv in self.engine.config.get('services') if serv['module'] == 'monitoring'][0]['clients']
-
-        for client_name in clients:
-            configs = clients[client_name]
+        for client_name in self.parameters:
 
             if client_name == 'server-agent':
                 client_class = ServerAgentClient
             elif client_name == 'graphite':
                 client_class = GraphiteClient
+            else:
+                continue
 
-            for config in configs:
+            for config in self.parameters.get(client_name):
                 client = client_class(self.log, client_name, config)
                 self.clients.append(client)
                 client.connect()
@@ -132,14 +130,17 @@ class GraphiteClient(MonitoringClient):
 
         params = [('target', field) for field in self._result_fields]
 
-        back_time = int(dehumanize_time(self.config.get('back-time', '%ss' % self.interval*100)))
+        from_t = int(dehumanize_time(self.config.get('from', '-%ss' % self.interval*100)))
+        until_t = int(dehumanize_time(self.config.get('until', '-%ss' % 0)))
         params += [
-            ('from', '-%ss' % back_time),
+            ('from', '-%ss' % from_t),
+            ('until', '-%ss' % until_t),
             ('format', 'json')
         ]
 
-        use_last = self.config.get('use-last', False)
-        url = 'http://' + self.config['address'] + '/render?' + urlencode(params)
+        url = self.config['address'] + '/render?' + urlencode(params)
+        if not url.startwith('http'):
+            url = 'http://' + url
         raw_data = urlopen(url)
         json_list = json.load(raw_data)
 
