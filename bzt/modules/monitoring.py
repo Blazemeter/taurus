@@ -11,7 +11,7 @@ from urwid import Pile, Text
 from bzt.engine import EngineModule, Service
 from bzt.modules.console import WidgetProvider
 from bzt.modules.passfail import FailCriteria
-from bzt.six import iteritems, urlopen, urlencode, URLError
+from bzt.six import iteritems, urlopen, urlencode
 from bzt.utils import dehumanize_time
 
 
@@ -103,22 +103,9 @@ class GraphiteClient(MonitoringClient):
     def __init__(self, parent_logger, label, config):
         super(GraphiteClient, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
-        self.host_label = label
-        self.start_time = None
-        self.check_time = None
         self.config = config
+        self.address = self.config.get('address')
         self.interval = int(dehumanize_time(self.config.get('interval', '10s')))
-        # TODO: handle more complex metric specifications and labeling
-        # TODO: smart profiling for parameter back-time (if it set up to 'auto')
-        # variants: interval*X, series of requests, ???
-
-    def connect(self):
-        str_data = self._get_response()
-        if not isinstance(str_data, str) or str_data.startswith('[{"target":'):
-            self.log.warning('Wrong Graphite server response')
-            pass  # TODO: alert
-
-    def _prepare_request(self):
         params = [('target', field) for field in self.config.get('metrics', ValueError("Metrics list required"))]
         from_t = int(dehumanize_time(self.config.get('from', self.interval * 1000)))
         until_t = int(dehumanize_time(self.config.get('until', 0)))
@@ -128,18 +115,35 @@ class GraphiteClient(MonitoringClient):
             ('format', 'json')
         ]
 
-        url = self.config['address'] + '/render?' + urlencode(params)
+        url = self.address + '/render?' + urlencode(params)
         if not url.startswith('http'):
             url = 'http://' + url
-        return url
+        self.url = url
+        if label:
+            self.host_label = label
+        else:
+            self.host_label = self.address
+        self.start_time = None
+        self.check_time = None
+        self.timeout = int(dehumanize_time(self.config.get('timeout', '5s')))
+
+        # TODO: handle more complex metric specifications and labeling
+        # TODO: smart profiling for parameter back-time (if it set up to 'auto')
+        # variants: interval*X, series of requests, ???
 
     def _get_response(self):  # TODO: add timeout
         try:
-            res = urlopen(self._prepare_request(), timeout=1)
-        except (ValueError, URLError):
-            self.log.warning('Wrong Graphite server')
-            res = None
+            str_data = urlopen(self.url, self.timeout)
+            res = json.load(str_data)
+        except BaseException as error:
+            self.log.warning('Fail to receive metrics from %s: %s' % (self.address, error.message))
+            res = []
         return res
+
+    def connect(self):
+        response = self._get_response()
+        if not response or any(('target' not in dic.keys() for dic in response)):
+            raise ValueError('Test graphite sever %s failed', self.host_label)
 
     def start(self):
         self.check_time = int(time.time())
@@ -151,14 +155,13 @@ class GraphiteClient(MonitoringClient):
             return []
         self.check_time = current_time
 
-        raw_data = self._get_response()
-        json_list = json.load(raw_data)
+        json_list = self._get_response()
 
         res = []
         for element in json_list:
             item = {
                 'ts': int(time.time()),
-                'source': '%s' % (self.config['address'])}
+                'source': '%s' % self.host_label}
 
             # TODO for targets process wildcards, functions, etc.
             for datapoint in reversed(element['datapoints']):

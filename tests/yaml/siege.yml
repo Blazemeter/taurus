@@ -6,6 +6,7 @@ services:
     interval: 5s
     from: 100s
     until: 1s
+    #timeout: s
     metrics:
     - carbon.agents.ubuntu-a.memUsage
     - test.formula
@@ -14,7 +15,7 @@ services:
     metrics:
     - cpu
     - disks
-      - memory
+    - memory
 modules:
   siege:
     path: "/usr/bin/siege"
