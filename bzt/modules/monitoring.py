@@ -11,7 +11,7 @@ from urwid import Pile, Text
 from bzt.engine import EngineModule, Service
 from bzt.modules.console import WidgetProvider
 from bzt.modules.passfail import FailCriteria
-from bzt.six import iteritems, urlopen, urlencode
+from bzt.six import iteritems, urlopen, urlencode, URLError
 from bzt.utils import dehumanize_time
 
 
@@ -102,6 +102,8 @@ class MonitoringClient(object):
 class GraphiteClient(MonitoringClient):
     def __init__(self, parent_logger, label, config):
         super(GraphiteClient, self).__init__()
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        urlopen('localhost:8888')
         self.host_label = label
         self.start_time = None
         self.check_time = None
@@ -109,13 +111,38 @@ class GraphiteClient(MonitoringClient):
         self.interval = int(dehumanize_time(self.config.get('interval', '10s')))
         # TODO: handle more complex metric specifications and labeling
         self._result_fields = config.get('metrics', ValueError("Metrics list required"))
-
         # TODO: smart profiling for parameter back-time (if it set up to 'auto')
         # variants: interval*X, series of requests, ???
 
     def connect(self):
-        # ??? add test connection?
-        pass
+        str_data = self._get_response()
+        if not isinstance(str_data, str) or str_data.startswith('[{"target":'):
+            self.log.warning('Wrong Graphite server response')
+            pass  # TODO: alert
+
+    def _prepare_request(self):
+        params = [('target', field) for field in self._result_fields]
+
+        from_t = int(dehumanize_time(self.config.get('from', self.interval*1000)))
+        until_t = int(dehumanize_time(self.config.get('until', 0)))
+        params += [
+            ('from', '-%ss' % from_t),
+            ('until', '-%ss' % until_t),
+            ('format', 'json')
+        ]
+
+        url = self.config['address'] + '/render?' + urlencode(params)
+        if not url.startswith('http'):
+            url = 'http://' + url
+        return url
+
+    def _get_response(self):    # TODO: add timeout
+        try:
+            res = urlopen(self._prepare_request(), timeout=1)
+        except (ValueError, URLError):
+            self.log.warning('Wrong Graphite server')
+            res = None
+        return res
 
     def start(self):
         self.check_time = int(time.time())
@@ -128,20 +155,7 @@ class GraphiteClient(MonitoringClient):
             return []
         self.check_time = current_time
 
-        params = [('target', field) for field in self._result_fields]
-
-        from_t = int(dehumanize_time(self.config.get('from', '-%ss' % self.interval*100)))
-        until_t = int(dehumanize_time(self.config.get('until', '-%ss' % 0)))
-        params += [
-            ('from', '-%ss' % from_t),
-            ('until', '-%ss' % until_t),
-            ('format', 'json')
-        ]
-
-        url = self.config['address'] + '/render?' + urlencode(params)
-        if not url.startwith('http'):
-            url = 'http://' + url
-        raw_data = urlopen(url)
+        raw_data = self._get_response()
         json_list = json.load(raw_data)
 
         res = []
@@ -151,17 +165,11 @@ class GraphiteClient(MonitoringClient):
                 'source': '%s' % (self.config['address'])}
 
             # TODO for targets process wildcards, functions, etc.
-            metric = element['target']
-            datapoints = element['datapoints']
-            value = None
-            if len(datapoints) > 1:
-                if use_last and datapoints[-1][0] is not None and datapoints[-1][1] > self.start_time:
-                    value = datapoints[-1][0]
-                elif datapoints[-2][0] is not None and datapoints[-2][1] > self.start_time:
-                    value = datapoints[-2][0]
+            for datapoint in reversed(element['datapoints']):
+                if datapoint[0] is not None:
+                    item[element['target']] = datapoint[0]
+                    break
 
-            if value is not None:
-                item[metric] = value
             res.append(item)
         return res
 
