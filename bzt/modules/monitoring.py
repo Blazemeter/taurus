@@ -1,10 +1,10 @@
 """ Monitoring service subsystem """
+import json
+import select
+import socket
+import time
 from abc import abstractmethod
 from collections import OrderedDict
-import socket
-import select
-import time
-import json
 
 from urwid import Pile, Text
 
@@ -103,14 +103,12 @@ class GraphiteClient(MonitoringClient):
     def __init__(self, parent_logger, label, config):
         super(GraphiteClient, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
-        urlopen('localhost:8888')
         self.host_label = label
         self.start_time = None
         self.check_time = None
         self.config = config
         self.interval = int(dehumanize_time(self.config.get('interval', '10s')))
         # TODO: handle more complex metric specifications and labeling
-        self._result_fields = config.get('metrics', ValueError("Metrics list required"))
         # TODO: smart profiling for parameter back-time (if it set up to 'auto')
         # variants: interval*X, series of requests, ???
 
@@ -121,9 +119,8 @@ class GraphiteClient(MonitoringClient):
             pass  # TODO: alert
 
     def _prepare_request(self):
-        params = [('target', field) for field in self._result_fields]
-
-        from_t = int(dehumanize_time(self.config.get('from', self.interval*1000)))
+        params = [('target', field) for field in self.config.get('metrics', ValueError("Metrics list required"))]
+        from_t = int(dehumanize_time(self.config.get('from', self.interval * 1000)))
         until_t = int(dehumanize_time(self.config.get('until', 0)))
         params += [
             ('from', '-%ss' % from_t),
@@ -136,7 +133,7 @@ class GraphiteClient(MonitoringClient):
             url = 'http://' + url
         return url
 
-    def _get_response(self):    # TODO: add timeout
+    def _get_response(self):  # TODO: add timeout
         try:
             res = urlopen(self._prepare_request(), timeout=1)
         except (ValueError, URLError):
@@ -149,7 +146,6 @@ class GraphiteClient(MonitoringClient):
         self.start_time = self.check_time
 
     def get_data(self):
-
         current_time = int(time.time())
         if current_time < self.check_time + self.interval:
             return []
