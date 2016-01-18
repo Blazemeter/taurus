@@ -202,6 +202,7 @@ class CLI(object):
         :type configs: list
         :return: list
         """
+
         jmxes = []
         for filename in configs[:]:
             if filename.lower().endswith(".jmx"):
