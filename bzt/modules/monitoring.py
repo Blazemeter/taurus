@@ -105,7 +105,7 @@ class GraphiteClient(MonitoringClient):
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.config = config
         self.address = self.config.get('address')
-        self.interval = int(dehumanize_time(self.config.get('interval', '10s')))
+        self.interval = int(dehumanize_time(self.config.get('interval', '5s')))
         params = [('target', field) for field in self.config.get('metrics', ValueError("Metrics list required"))]
         from_t = int(dehumanize_time(self.config.get('from', self.interval * 1000)))
         until_t = int(dehumanize_time(self.config.get('until', 0)))
@@ -132,18 +132,14 @@ class GraphiteClient(MonitoringClient):
         # variants: interval*X, series of requests, ???
 
     def _get_response(self):  # TODO: add timeout
-        try:
-            str_data = urlopen(self.url, self.timeout)
-            res = json.load(str_data)
-        except BaseException as error:
-            self.log.warning('Fail to receive metrics from %s: %s' % (self.address, error.message))
-            res = []
-        return res
+        str_data = urlopen(self.url, timeout=self.timeout)
+        json_list = json.load(str_data)
+
+        assert all('target' in dic.keys() for dic in json_list), 'Fail to receive metrics from %s' % self.address
+        return json_list
 
     def connect(self):
-        response = self._get_response()
-        if not response or any(('target' not in dic.keys() for dic in response)):
-            raise ValueError('Test graphite sever %s failed', self.host_label)
+        self._get_response()
 
     def start(self):
         self.check_time = int(time.time())
@@ -155,7 +151,11 @@ class GraphiteClient(MonitoringClient):
             return []
         self.check_time = current_time
 
-        json_list = self._get_response()
+        try:
+            json_list = self._get_response()
+        except BaseException as error:
+            self.log.warning(error.message)
+            return []
 
         res = []
         for element in json_list:

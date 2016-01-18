@@ -6,7 +6,7 @@ services:
     interval: 5s
     from: 100s
     until: 1s
-    #timeout: s
+    timeout: 2s
     metrics:
     - carbon.agents.ubuntu-a.memUsage
     - test.formula

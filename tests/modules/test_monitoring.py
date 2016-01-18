@@ -14,7 +14,7 @@ class TestMonitoring(BZTestCase):
         obj.server_agent_class = ServerAgentClientEmul
         obj.engine = EngineEmul()
         obj.parameters.merge({
-            "server-agents": {
+            "server-agent": {
                 "127.0.0.1:4444": {
                     "metrics": [
                         "cpu",
