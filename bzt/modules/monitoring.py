@@ -47,7 +47,11 @@ class Monitoring(Service, WidgetProvider):
             for config in self.parameters.get(client_name):
                 if isinstance(config, str):
                     self.log.warning('Monitoring: obsolete config file format detected.')
-                client = client_class(self.log, client_name, config)
+                if 'label' in config:
+                    label = config['label']
+                else:
+                    label = None
+                client = client_class(self.log, label, config)
                 self.clients.append(client)
                 client.connect()
 
@@ -137,10 +141,12 @@ class GraphiteClient(MonitoringClient):
         # TODO: smart profiling for parameter back-time (if it set up to 'auto')
         # variants: interval*X, series of requests, ???
 
-    def _get_response(self):  # TODO: add timeout
+    def _data_transfer(self):
         str_data = urlopen(self.url, timeout=self.timeout)
-        json_list = json.load(str_data)
+        return json.load(str_data)
 
+    def _get_response(self):  # TODO: add timeout
+        json_list = self._data_transfer()
         assert all('target' in dic.keys() for dic in json_list), 'Fail to receive metrics from %s' % self.address
         return json_list
 

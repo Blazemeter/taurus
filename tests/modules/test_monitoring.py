@@ -19,6 +19,12 @@ class TestMonitoring(BZTestCase):
                     "cpu",
                     "disks"
                 ]
+            }, {
+                "address": "10.0.0.1",
+                "metrics": [
+                    "something1",
+                    "something2"
+                ]
             }]
         })
 
@@ -55,6 +61,7 @@ class TestMonitoring(BZTestCase):
         obj.parameters.merge({
             "graphite": [{
                 "address": "people.com:1066",
+                "label": "Earth",
                 "metrics": [
                     "body",
                     "brain"]}, {
@@ -67,6 +74,12 @@ class TestMonitoring(BZTestCase):
         obj.client_classes = {'graphite': GraphiteClientEmul}
         obj.prepare()
         obj.startup()
+        obj.check()
+
+        obj.clients[0].check_time += obj.clients[0].interval*2
+        obj.clients[0].prepared_data = "wrong data"
+        obj.check()
+
         obj.shutdown()
         obj.post_process()
 
@@ -88,7 +101,7 @@ class ServerAgentClientEmul(ServerAgentClient):
 
 
 class GraphiteClientEmul(GraphiteClient):
-    waiting_response = None
+    prepared_data = [{'target': 'usability', 'datapoints': [[1, 1], [2, 2]]}]
 
-    def _get_response(self):
-        return self.waiting_response
+    def _data_transfer(self):
+        return self.prepared_data
