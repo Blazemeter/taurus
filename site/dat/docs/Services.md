@@ -168,7 +168,17 @@ A frequest task for tests is to monitor target server's health. Monitoring servi
  - [Graphite](https://graphite.readthedocs.org/en/latest/).
  
 Shortly, you need to unzip and launch small Java server on each of your target servers and then specify [metrics](http://jmeter-plugins.org/wiki/PerfMonMetrics/) to collect under `services` item. For example: 
-
+```yaml
+---
+services:
+- module: monitoring
+  server-agent:
+  - address: 127.0.0.1:4444
+    metrics:
+    - cpu
+    - memory
+```
+Next more complicated example shows usage optional server `label`, `interval` for graphite answers, interesting graphite data range definition with parameters `from` and `until`.
 ```yaml
 ---
 services:

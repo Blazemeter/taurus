@@ -1,5 +1,8 @@
 # Changelog
 
+## Next
+ - add support of graphite monitoring service
+
 ## 1.1.0
  - support `iterations` and `hold-for` options for Selenium
  - add concurrency-driven load support for PBench
