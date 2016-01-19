@@ -76,7 +76,10 @@ class TestMonitoring(BZTestCase):
         obj.startup()
         obj.check()
 
-        obj.clients[0].check_time += obj.clients[0].interval*2
+        obj.clients[0].check_time -= obj.clients[0].interval*2
+        obj.check()
+
+        obj.clients[0].check_time -= obj.clients[0].interval*2
         obj.clients[0].prepared_data = "wrong data"
         obj.check()
 
