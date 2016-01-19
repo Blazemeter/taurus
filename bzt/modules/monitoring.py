@@ -114,7 +114,7 @@ class GraphiteClient(MonitoringClient):
         super(GraphiteClient, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.config = config
-        self.address = self.config.get('address')
+        self.address = self.config.get("address", ValueError("Address parameter required"))
         self.interval = int(dehumanize_time(self.config.get('interval', '5s')))
         self.url = self._get_url()
         if label:
@@ -150,10 +150,7 @@ class GraphiteClient(MonitoringClient):
         return json_list
 
     def connect(self):
-        try:
-            self._get_response()
-        except BaseException:
-            self.log.error("Test connection to %s failed: %s" % (self.address, traceback.format_exc()))
+        self._get_response()
 
     def start(self):
         self.check_time = int(time.time())
@@ -168,8 +165,8 @@ class GraphiteClient(MonitoringClient):
         try:
             json_list = self._get_response()
         except BaseException:
+            self.log.debug("Metrics receiving: %s" % traceback.format_exc())
             self.log.warning("Fail to receive metrics from %s" % self.address)
-            self.log.debug(traceback.format_exc())
             return []
 
         res = []
@@ -198,7 +195,7 @@ class ServerAgentClient(MonitoringClient):
         """
         super(ServerAgentClient, self).__init__()
         self.host_label = label
-        self.address = config.get("address", label)
+        self.address = config.get("address", label, ValueError("Address parameter required"))
         if ':' in self.address:
             self.port = int(self.address[self.address.index(":") + 1:])
             self.address = self.address[:self.address.index(":")]
@@ -208,7 +205,7 @@ class ServerAgentClient(MonitoringClient):
         self._partial_buffer = ""
         self.log = parent_logger.getChild(self.__class__.__name__)
         metrics = config.get('metrics', ValueError("Metrics list required"))
-        self._result_fields = [x for x in metrics]
+        self._result_fields = [x for x in metrics]  # TODO: handle more complex metric specifications and labeling
         self._metrics_command = "\t".join([x for x in metrics])
         self.socket = socket.socket()
         self.select = select.select

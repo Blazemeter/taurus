@@ -178,11 +178,13 @@ services:
   - address: 127.0.0.1:4444
     metrics:
     - cpu
+    - disks
     - memory
+
 ```
 ### Graphite 
 
-Next more complicated data source requires graphite, carbon and some other servers tuned appropriately. 
+Graphite data source uses graphite The Render URL API to receive metrics.
 In this example you can see usage optional server `label`, `timeout` for graphite answers, `interval` between requests and interesting graphite data range definition with parameters `from`/`until`.
 ```yaml
 ---
@@ -200,8 +202,8 @@ services:
   - address: local_serv:2222
     label: test_serv
     metrics:
-    - store.cpuUsage
-    - test.param2    
+    - production.hardware.cpuUsage
+    - groupByNode(myserv_comp_org.cpu.?.cpu.*.value, 4, 'avg')
 ``` 
 
 ### Sidebar Widget
