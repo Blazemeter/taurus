@@ -195,7 +195,7 @@ class ServerAgentClient(MonitoringClient):
         """
         super(ServerAgentClient, self).__init__()
         self.host_label = label
-        self.address = config.get("address", label, ValueError("Address parameter required"))
+        self.address = config.get("address", ValueError("Address parameter required"))
         if ':' in self.address:
             self.port = int(self.address[self.address.index(":") + 1:])
             self.address = self.address[:self.address.index(":")]
