@@ -166,7 +166,7 @@ class GraphiteClient(MonitoringClient):
         try:
             json_list = self._get_response()
         except BaseException as error:
-            self.log.warning(error.message)
+            self.log.warning(str(error))
             return []
 
         res = []

@@ -163,7 +163,9 @@ modules:
  
 ## Resource Monitoring Service
 
-A frequest task for tests is to monitor target server's health. Monitoring service is built to collect data from those remote servers. It relies on [ServerAgent](http://jmeter-plugins.org/wiki/PerfMonAgent/) technology that is used by JMeter users for long time. 
+A frequest task for tests is to monitor target server's health. Monitoring service is built to collect data from those remote servers. At this time two type of services are supported:
+ - [ServerAgent](http://jmeter-plugins.org/wiki/PerfMonAgent/) technology that is used by JMeter users for long time and
+ - [Graphite](https://graphite.readthedocs.org/en/latest/).
  
 Shortly, you need to unzip and launch small Java server on each of your target servers and then specify [metrics](http://jmeter-plugins.org/wiki/PerfMonMetrics/) to collect under `services` item. For example: 
 
@@ -171,18 +173,30 @@ Shortly, you need to unzip and launch small Java server on each of your target s
 ---
 services:
 - module: monitoring
-  server-agents:
-    127.0.0.1:4444:
+  server-agent:
+  - address: http://server.com:4444
+    label: production_serv
+    metrics:
+    - disks
+    - memory
+  - address: myserv.target.com
       metrics:
       - cpu
-      - disks
       - memory
-    application server:
-      address: myserv.target.com 
-      metrics:
-      - cpu
-      - disks
-      - memory
+  graphite:
+  - address: 192.168.0.38
+    interval: 5s
+    from: 100s
+    until: 1s
+    timeout: 2s
+    metrics:
+    - store.memUsage
+    - test.param1
+  - address: local_serv:2222
+    label: test_serv
+    metrics:
+    - store.cpuUsage
+    - test.param2    
 ``` 
 
 ### Sidebar Widget
