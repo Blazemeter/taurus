@@ -3,6 +3,7 @@ import json
 import select
 import socket
 import time
+import traceback
 from abc import abstractmethod
 from collections import OrderedDict
 
@@ -36,7 +37,6 @@ class Monitoring(Service, WidgetProvider):
 
     def prepare(self):
         for client_name in self.parameters:
-
             if client_name in self.client_classes:
                 client_class = self.client_classes[client_name]
             else:
@@ -116,6 +116,16 @@ class GraphiteClient(MonitoringClient):
         self.config = config
         self.address = self.config.get('address')
         self.interval = int(dehumanize_time(self.config.get('interval', '5s')))
+        self.url = self._get_url()
+        if label:
+            self.host_label = label
+        else:
+            self.host_label = self.address
+        self.start_time = None
+        self.check_time = None
+        self.timeout = int(dehumanize_time(self.config.get('timeout', '5s')))
+
+    def _get_url(self):
         params = [('target', field) for field in self.config.get('metrics', ValueError("Metrics list required"))]
         from_t = int(dehumanize_time(self.config.get('from', self.interval * 1000)))
         until_t = int(dehumanize_time(self.config.get('until', 0)))
@@ -128,30 +138,22 @@ class GraphiteClient(MonitoringClient):
         url = self.address + '/render?' + urlencode(params)
         if not url.startswith('http'):
             url = 'http://' + url
-        self.url = url
-        if label:
-            self.host_label = label
-        else:
-            self.host_label = self.address
-        self.start_time = None
-        self.check_time = None
-        self.timeout = int(dehumanize_time(self.config.get('timeout', '5s')))
-
-        # TODO: handle more complex metric specifications and labeling
-        # TODO: smart profiling for parameter back-time (if it set up to 'auto')
-        # variants: interval*X, series of requests, ???
+        return url
 
     def _data_transfer(self):
         str_data = urlopen(self.url, timeout=self.timeout)
         return json.load(str_data)
 
-    def _get_response(self):  # TODO: add timeout
+    def _get_response(self):
         json_list = self._data_transfer()
-        assert all('target' in dic.keys() for dic in json_list), 'Fail to receive metrics from %s' % self.address
+        assert all('target' in dic.keys() for dic in json_list), "Key 'target' not found in graphite response"
         return json_list
 
     def connect(self):
-        self._get_response()
+        try:
+            self._get_response()
+        except BaseException:
+            self.log.error("Test connection to %s failed: %s" % (self.address, traceback.format_exc()))
 
     def start(self):
         self.check_time = int(time.time())
@@ -165,8 +167,9 @@ class GraphiteClient(MonitoringClient):
 
         try:
             json_list = self._get_response()
-        except BaseException as error:
-            self.log.warning(str(error))
+        except BaseException:
+            self.log.warning("Fail to receive metrics from %s" % self.address)
+            self.log.debug(traceback.format_exc())
             return []
 
         res = []
@@ -175,7 +178,6 @@ class GraphiteClient(MonitoringClient):
                 'ts': int(time.time()),
                 'source': '%s' % self.host_label}
 
-            # TODO for targets process wildcards, functions, etc.
             for datapoint in reversed(element['datapoints']):
                 if datapoint[0] is not None:
                     item[element['target']] = datapoint[0]
@@ -206,7 +208,7 @@ class ServerAgentClient(MonitoringClient):
         self._partial_buffer = ""
         self.log = parent_logger.getChild(self.__class__.__name__)
         metrics = config.get('metrics', ValueError("Metrics list required"))
-        self._result_fields = [x for x in metrics]  # TODO: handle more complex metric specifications and labeling
+        self._result_fields = [x for x in metrics]
         self._metrics_command = "\t".join([x for x in metrics])
         self.socket = socket.socket()
         self.select = select.select

@@ -1,7 +1,7 @@
 # Changelog
 
 ## Next
- - add support of graphite monitoring service
+ - add graphite support to monitoring service
 
 ## 1.1.0
  - support `iterations` and `hold-for` options for Selenium
