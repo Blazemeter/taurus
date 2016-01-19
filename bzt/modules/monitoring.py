@@ -41,6 +41,8 @@ class Monitoring(Service, WidgetProvider):
                 continue
 
             for config in self.parameters.get(client_name):
+                if isinstance(config, str):
+                    self.log.warning('Monitoring: obsolete config file format detected.')
                 client = client_class(self.log, client_name, config)
                 self.clients.append(client)
                 client.connect()
