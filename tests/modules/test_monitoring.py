@@ -2,23 +2,22 @@ import logging
 import random
 import time
 
-from bzt.modules.monitoring import Monitoring, MonitoringListener, MonitoringCriteria, ServerAgentClient
+from bzt.modules.monitoring import Monitoring, MonitoringListener, MonitoringCriteria, ServerAgentClient, GraphiteClient
 from bzt.utils import BetterDict
 from tests import BZTestCase
 from tests.mocks import EngineEmul, SocketEmul
 
 
 class TestMonitoring(BZTestCase):
-    def test_simple(self):
+    def test_server_agent(self):
         obj = Monitoring()
-        obj.server_agent_class = ServerAgentClientEmul
         obj.engine = EngineEmul()
         obj.parameters.merge({
             "server-agent": [{
                 "address": "127.0.0.1:4444",
                 "metrics": [
-                        "cpu",
-                        "disks"
+                    "cpu",
+                    "disks"
                 ]
             }]
         })
@@ -34,8 +33,9 @@ class TestMonitoring(BZTestCase):
         criteria = MonitoringCriteria(crit_conf, obj)
         obj.add_listener(criteria)
 
-        obj.prepare()
+        obj.client_classes = {'server-agent': ServerAgentClientEmul}
 
+        obj.prepare()
         obj.startup()
 
         for _ in range(1, 10):
@@ -48,6 +48,27 @@ class TestMonitoring(BZTestCase):
         obj.post_process()
 
         self.assertEquals("test\ninterval:1\nmetrics:cpu\tdisks\nexit\n", obj.clients[0].socket.sent_data)
+
+    def test_graphite(self):
+        obj = Monitoring()
+        obj.engine = EngineEmul()
+        obj.parameters.merge({
+            "graphite": [{
+                "address": "people.com:1066",
+                "metrics": [
+                    "body",
+                    "brain"]}, {
+                "address": "http://spririts.net",
+                "metrics": [
+                    "transparency",
+                    "usability"
+                ]}]
+        })
+        obj.client_classes = {'graphite': GraphiteClientEmul}
+        obj.prepare()
+        obj.startup()
+        obj.shutdown()
+        obj.post_process()
 
 
 class LoggingMonListener(MonitoringListener):
@@ -64,3 +85,10 @@ class ServerAgentClientEmul(ServerAgentClient):
 
     def select_emul(self, reads, writes, excepts, timeout):
         return reads, writes, []
+
+
+class GraphiteClientEmul(GraphiteClient):
+    waiting_response = None
+
+    def _get_response(self):
+        return self.waiting_response

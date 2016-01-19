@@ -25,6 +25,10 @@ class Monitoring(Service, WidgetProvider):
         super(Monitoring, self).__init__()
         self.listeners = []
         self.clients = []
+        self.client_classes = {
+            'server-agent': ServerAgentClient,
+            'graphite': GraphiteClient,
+        }
 
     def add_listener(self, listener):
         assert isinstance(listener, MonitoringListener)
@@ -33,11 +37,11 @@ class Monitoring(Service, WidgetProvider):
     def prepare(self):
         for client_name in self.parameters:
 
-            if client_name == 'server-agent':
-                client_class = ServerAgentClient
-            elif client_name == 'graphite':
-                client_class = GraphiteClient
+            if client_name in self.client_classes:
+                client_class = self.client_classes[client_name]
             else:
+                if client_name == 'server-agents':
+                    self.log.warning('Monitoring: obsolete config file format detected.')
                 continue
 
             for config in self.parameters.get(client_name):
