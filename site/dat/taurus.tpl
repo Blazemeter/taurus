@@ -160,7 +160,6 @@
     {if $smarty.server.SERVER_ADDR!=$smarty.server.REMOTE_ADDR}
         {include file="dat/counter.tpl"}
     {/if}
-
 </footer>
 
 </body>

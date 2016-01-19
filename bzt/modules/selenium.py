@@ -69,11 +69,15 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.scenario = None
 
     def prepare(self):
-        """
-        1) Locate script or folder
-        2) detect script type
-        3) create runner instance, prepare runner
-        """
+        display_conf = self.settings.get("virtual-display")
+        if display_conf:
+            if is_windows():
+                self.log.warning("Cannot have virtual display on Windows, ignoring")
+            else:
+                width = display_conf.get("width", 1024)
+                height = display_conf.get("height", 768)
+                self.virtual_display = Display(size=(width, height))
+
         self.scenario = self.get_scenario()
         self._verify_script()
         self.kpi_file = self.engine.create_artifact("selenium_tests_report", ".csv")
@@ -107,15 +111,6 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.reader = JTLReader(self.kpi_file, self.log, self.err_jtl)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
-
-        display_conf = self.settings.get("virtual-display")
-        if display_conf:
-            if is_windows():
-                self.log.warning("Cannot have virtual display on Windows, ignoring")
-            else:
-                width = display_conf.get("width", 1024)
-                height = display_conf.get("height", 768)
-                self.virtual_display = Display(size=(width, height))
 
     def _verify_script(self):
         if not self.scenario.get("script"):
@@ -240,6 +235,8 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     def __tests_from_requests(self):
         filename = self.engine.create_artifact("test_requests", ".py")
         nose_test = SeleniumScriptBuilder(self.scenario, self.log)
+        if self.virtual_display:
+            nose_test.window_size=self.virtual_display.size
         nose_test.scenario = self.scenario
         nose_test.gen_test_case()
         nose_test.save(filename)
@@ -646,6 +643,7 @@ from selenium.common.exceptions import NoAlertPresentException
 class SeleniumScriptBuilder(NoseTest):
     def __init__(self, scenario, parent_logger):
         super(SeleniumScriptBuilder, self).__init__()
+        self.window_size = None
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.scenario = scenario
 
@@ -696,6 +694,10 @@ class SeleniumScriptBuilder(NoseTest):
         setup_method_def.append(self.gen_method_statement("self.driver=webdriver.%s()" % browser))
         scenario_timeout = self.scenario.get("timeout", 30)
         setup_method_def.append(self.gen_impl_wait(scenario_timeout))
+        if self.window_size:
+            setup_method_def.append(self.gen_method_statement("self.driver.set_window_size(%s, %s)" % self.window_size))
+        else:
+            setup_method_def.append(self.gen_method_statement("self.driver.maximize_window()"))
         setup_method_def.append(self.__gen_new_line())
         return setup_method_def
 

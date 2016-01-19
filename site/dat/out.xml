@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<url title="Codename: Taurus" template="dat/taurus.tpl" custom_logo="/img/tau.png"
+<url title="Taurus" template="dat/taurus.tpl" custom_logo="/img/tau.png"
      class="PWE\Modules\HTMLPage\HTMLPage" src="index.html">
     <url link="install" menu="1" title="Installation"
          class="PWE\Modules\RedirectAccepted\RedirectAccepted"
