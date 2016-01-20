@@ -1,16 +1,18 @@
 """ Monitoring service subsystem """
+import json
+import select
+import socket
+import time
+import traceback
 from abc import abstractmethod
 from collections import OrderedDict
-import socket
-import select
-import time
 
 from urwid import Pile, Text
 
 from bzt.engine import EngineModule, Service
 from bzt.modules.console import WidgetProvider
 from bzt.modules.passfail import FailCriteria
-from bzt.six import iteritems
+from bzt.six import iteritems, urlopen, urlencode
 from bzt.utils import dehumanize_time
 
 
@@ -24,17 +26,34 @@ class Monitoring(Service, WidgetProvider):
         super(Monitoring, self).__init__()
         self.listeners = []
         self.clients = []
-        self.server_agent_class = ServerAgentClient
+        self.client_classes = {
+            'server-agent': ServerAgentClient,
+            'graphite': GraphiteClient,
+        }
 
     def add_listener(self, listener):
         assert isinstance(listener, MonitoringListener)
         self.listeners.append(listener)
 
     def prepare(self):
-        for label, config in iteritems(self.parameters.get("server-agents")):
-            client = self.server_agent_class(self.log, label, config)
-            client.connect()
-            self.clients.append(client)
+        for client_name in self.parameters:
+            if client_name in self.client_classes:
+                client_class = self.client_classes[client_name]
+            else:
+                if client_name == 'server-agents':
+                    self.log.warning('Monitoring: obsolete config file format detected.')
+                continue
+
+            for config in self.parameters.get(client_name):
+                if isinstance(config, str):
+                    self.log.warning('Monitoring: obsolete config file format detected.')
+                if 'label' in config:
+                    label = config['label']
+                else:
+                    label = None
+                client = client_class(self.log, label, config)
+                self.clients.append(client)
+                client.connect()
 
     def startup(self):
         for client in self.clients:
@@ -72,7 +91,103 @@ class MonitoringListener(object):
         pass
 
 
-class ServerAgentClient(object):
+class MonitoringClient(object):
+    @abstractmethod
+    def connect(self):
+        pass
+
+    @abstractmethod
+    def start(self):
+        pass
+
+    @abstractmethod
+    def get_data(self):
+        pass
+
+    @abstractmethod
+    def disconnect(self):
+        pass
+
+
+class GraphiteClient(MonitoringClient):
+    def __init__(self, parent_logger, label, config):
+        super(GraphiteClient, self).__init__()
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.config = config
+        self.address = self.config.get("address", ValueError("Address parameter required"))
+        self.interval = int(dehumanize_time(self.config.get('interval', '5s')))
+        self.url = self._get_url()
+        if label:
+            self.host_label = label
+        else:
+            self.host_label = self.address
+        self.start_time = None
+        self.check_time = None
+        self.timeout = int(dehumanize_time(self.config.get('timeout', '5s')))
+
+    def _get_url(self):
+        params = [('target', field) for field in self.config.get('metrics', ValueError("Metrics list required"))]
+        from_t = int(dehumanize_time(self.config.get('from', self.interval * 1000)))
+        until_t = int(dehumanize_time(self.config.get('until', 0)))
+        params += [
+            ('from', '-%ss' % from_t),
+            ('until', '-%ss' % until_t),
+            ('format', 'json')
+        ]
+
+        url = self.address + '/render?' + urlencode(params)
+        if not url.startswith('http'):
+            url = 'http://' + url
+        return url
+
+    def _data_transfer(self):
+        str_data = urlopen(self.url, timeout=self.timeout)
+        return json.load(str_data)
+
+    def _get_response(self):
+        json_list = self._data_transfer()
+        assert all('target' in dic.keys() for dic in json_list), "Key 'target' not found in graphite response"
+        return json_list
+
+    def connect(self):
+        self._get_response()
+
+    def start(self):
+        self.check_time = int(time.time())
+        self.start_time = self.check_time
+
+    def get_data(self):
+        current_time = int(time.time())
+        if current_time < self.check_time + self.interval:
+            return []
+        self.check_time = current_time
+
+        try:
+            json_list = self._get_response()
+        except BaseException:
+            self.log.debug("Metrics receiving: %s" % traceback.format_exc())
+            self.log.warning("Fail to receive metrics from %s" % self.address)
+            return []
+
+        res = []
+        for element in json_list:
+            item = {
+                'ts': int(time.time()),
+                'source': '%s' % self.host_label}
+
+            for datapoint in reversed(element['datapoints']):
+                if datapoint[0] is not None:
+                    item[element['target']] = datapoint[0]
+                    break
+
+            res.append(item)
+        return res
+
+    def disconnect(self):
+        pass
+
+
+class ServerAgentClient(MonitoringClient):
     def __init__(self, parent_logger, label, config):
         """
         :type parent_logger: logging.Logger
@@ -80,7 +195,7 @@ class ServerAgentClient(object):
         """
         super(ServerAgentClient, self).__init__()
         self.host_label = label
-        self.address = config.get("address", label)
+        self.address = config.get("address", ValueError("Address parameter required"))
         if ':' in self.address:
             self.port = int(self.address[self.address.index(":") + 1:])
             self.address = self.address[:self.address.index(":")]
@@ -176,11 +291,12 @@ class MonitoringWidget(Pile, MonitoringListener):
         for host, metrics in iteritems(self.host_metrics):
             text.append(('stat-hdr', " %s \n" % host))
 
-            maxwidth = max([len(key) for key in metrics.keys()])
+            if len(metrics):
+                maxwidth = max([len(key) for key in metrics.keys()])
 
-            for metric, value in iteritems(metrics):
-                values = (' ' * (maxwidth - len(metric)), metric, value[0])
-                text.append((value[1], "  %s%s: %.3f\n" % values))
+                for metric, value in iteritems(metrics):
+                    values = (' ' * (maxwidth - len(metric)), metric, value[0])
+                    text.append((value[1], "  %s%s: %.3f\n" % values))
 
         self.display.set_text(text)
         self._invalidate()

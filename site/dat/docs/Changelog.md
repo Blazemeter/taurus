@@ -2,6 +2,8 @@
 
 ## 1.1.1 (next)
  - maximize browser window in Selenium test, when possible
+ - add graphite support to monitoring service
+
 
 ## 1.1.0
  - support `iterations` and `hold-for` options for Selenium

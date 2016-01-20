@@ -163,26 +163,47 @@ modules:
  
 ## Resource Monitoring Service
 
-A frequest task for tests is to monitor target server's health. Monitoring service is built to collect data from those remote servers. It relies on [ServerAgent](http://jmeter-plugins.org/wiki/PerfMonAgent/) technology that is used by JMeter users for long time. 
+A frequest task for tests is to monitor target server's health. Monitoring service is built to collect data from those remote servers. At this time two type of servers are supported:
+ - [ServerAgent](http://jmeter-plugins.org/wiki/PerfMonAgent/) - technology that is used by JMeter users for long time and
+ - [Graphite](https://graphite.readthedocs.org/en/latest/).
+ 
+### ServerAgent
  
 Shortly, you need to unzip and launch small Java server on each of your target servers and then specify [metrics](http://jmeter-plugins.org/wiki/PerfMonMetrics/) to collect under `services` item. For example: 
-
 ```yaml
 ---
 services:
 - module: monitoring
-  server-agents:
-    127.0.0.1:4444:
-      metrics:
-      - cpu
-      - disks
-      - memory
-    application server:
-      address: myserv.target.com 
-      metrics:
-      - cpu
-      - disks
-      - memory
+  server-agent:
+  - address: 127.0.0.1:4444
+    metrics:
+    - cpu
+    - disks
+    - memory
+
+```
+### Graphite 
+
+Graphite data source uses graphite The Render URL API to receive metrics.
+In this example you can see usage optional server `label`, `timeout` for graphite answers, `interval` between requests and interesting graphite data range definition with parameters `from`/`until`.
+```yaml
+---
+services:
+- module: monitoring
+  graphite:
+  - address: 192.168.0.38
+    interval: 5s
+    from: 100s
+    until: 1s
+    timeout: 2s
+    metrics:
+    - store.memUsage
+    - test.param1
+  - address: local_serv:2222
+    label: test_serv
+    metrics:
+    - production.hardware.cpuUsage
+    - groupByNode(myserv_comp_org.cpu.?.cpu.*.value, 4, 'avg')
 ``` 
 
 ### Sidebar Widget
