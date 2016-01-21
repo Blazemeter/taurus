@@ -3,7 +3,7 @@
 ## 1.1.1 (next)
  - maximize browser window in Selenium test, when possible
  - add graphite support to monitoring service
-
+ - create [Docker](Docker.md) image with Taurus inside
 
 ## 1.1.0
  - support `iterations` and `hold-for` options for Selenium
