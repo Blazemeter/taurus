@@ -8,7 +8,7 @@ To use it, create a directory, for example `/tmp/my-test`, put all YAML configs 
 sudo docker run --rm -v /tmp/my-test:/bzt-configs:ro undera/bzt
 ```
 
-Make note that `/tmp/my-test` were passed in `-v` Docker option, it's crucial. Here's what happens inside container:
+Make note that `/tmp/my-test` were passed in `-v` Docker option, it's crucial. Also note that you have to use `.yml` as config file extension. Here's [what happens](https://github.com/Blazemeter/taurus/blob/master/Dockerfile) inside container:
  1. Directory `/tmp/my-test` is mounted as `/bzt-configs`
  1. Current directory changed to `/bzt-configs`
  1. Taurus is started with following command: `bzt /bzt-configs/*.yml`
