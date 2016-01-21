@@ -6,6 +6,7 @@
  1. [Introduction](Introduction.md)
  1. [Installation and Upgrade](Installation.md)
  1. [Command-Line Tool](CommandLine.md)
+ 1. [Docker Image](Docker.md)
  1. [Configuration Files Syntax](ConfigSyntax.md)
     1. [General Execution Settings](ExecutionSettings.md)
     1. [Cloud Provisioned Execution](Cloud.md)

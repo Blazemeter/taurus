@@ -17,7 +17,9 @@
  - Create git tag
  - git push, including tag
  - Upload to PyPi: `python ./setup.py clean sdist upload`
+ - rebuild and publish Docker image
  - site is updated automatically by Jenkins
+ - notify all interested parties (Twitter, mailing lists)
  
 # Deploying Project Website
 
