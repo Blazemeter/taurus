@@ -29,6 +29,7 @@ class Monitoring(Service, WidgetProvider):
         self.client_classes = {
             'server-agent': ServerAgentClient,
             'graphite': GraphiteClient,
+            'local': LocalClient,
         }
 
     def add_listener(self, listener):
@@ -105,6 +106,36 @@ class MonitoringClient(object):
         pass
 
     @abstractmethod
+    def disconnect(self):
+        pass
+
+
+class LocalClient(MonitoringClient):
+    def __init__(self, parent_logger, label, config):
+        super(LocalClient, self).__init__()
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.config = config
+        if label:
+            self.label = label
+        else:
+            self.label = 'local'
+
+    def connect(self):
+        pass
+
+    def start(self):
+        pass
+
+    def get_data(self):
+        _time = time.time()
+        res = {
+            'source': self.label,
+            'ts': _time}
+        metric_values = None
+        for metric_name in self.config.get('metrics', ValueError('Metric is required')):
+            res[metric_name] = None
+        return res
+
     def disconnect(self):
         pass
 

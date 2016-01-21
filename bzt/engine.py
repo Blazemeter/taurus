@@ -75,6 +75,7 @@ class Engine(object):
         self.__disk_counters = None
         self.__net_counters = None
         self.__counters_ts = None
+        self.engine_loop_percent = 0
 
     def configure(self, user_configs, read_config_files=True):
         """
@@ -164,6 +165,7 @@ class Engine(object):
             now = time.time()
             diff = now - prev
             delay = self.check_interval - diff
+            self.engine_loop_percent = diff/self.check_interval * 100
             self.log.debug("Iteration took %.3f sec, sleeping for %.3f sec...", diff, delay)
             if delay > 0:
                 time.sleep(delay)
@@ -491,7 +493,8 @@ class Engine(object):
                 cpu=psutil.cpu_percent(),
                 disk_usage=psutil.disk_usage(self.artifacts_dir).percent,
                 mem_usage=psutil.virtual_memory().percent,
-                rx=rx_bytes, tx=tx_bytes, dru=dru, dwu=dwu
+                rx=rx_bytes, tx=tx_bytes, dru=dru, dwu=dwu,
+                engine_loop=self.engine_loop_percent
         )
 
     def __get_resource_stats(self):

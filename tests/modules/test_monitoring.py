@@ -2,7 +2,8 @@ import logging
 import random
 import time
 
-from bzt.modules.monitoring import Monitoring, MonitoringListener, MonitoringCriteria, ServerAgentClient, GraphiteClient
+from bzt.modules.monitoring import Monitoring, MonitoringListener, MonitoringCriteria
+from bzt.modules.monitoring import ServerAgentClient, GraphiteClient, LocalClient
 from bzt.utils import BetterDict
 from tests import BZTestCase
 from tests.mocks import EngineEmul, SocketEmul
@@ -65,7 +66,7 @@ class TestMonitoring(BZTestCase):
                 "metrics": [
                     "body",
                     "brain"]}, {
-                "address": "http://spririts.net",
+                "address": "http://spirits.net",
                 "metrics": [
                     "transparency",
                     "usability"
@@ -83,6 +84,23 @@ class TestMonitoring(BZTestCase):
         obj.clients[0].prepared_data = "wrong data"
         obj.check()
 
+        obj.shutdown()
+        obj.post_process()
+
+    def test_local(self):
+        obj = Monitoring()
+        obj.engine = EngineEmul()
+        obj.parameters.merge({
+            "local": [{
+                "metrics": [
+                    "cpu",
+                    "loop"]
+            }]
+        })
+        obj.client_classes = {'local': LocalClient}
+        obj.prepare()
+        obj.startup()
+        obj.check()
         obj.shutdown()
         obj.post_process()
 
@@ -108,3 +126,6 @@ class GraphiteClientEmul(GraphiteClient):
 
     def _data_transfer(self):
         return self.prepared_data
+
+class LocalClientEmul(LocalClient):
+    pass
