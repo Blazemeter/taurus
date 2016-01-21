@@ -54,7 +54,10 @@ class Monitoring(Service, WidgetProvider):
                     label = config['label']
                 else:
                     label = None
-                client = client_class(self.log, label, config)
+                if client_name == 'local':
+                    client = client_class(self.log, label, config, self.engine)
+                else:
+                    client = client_class(self.log, label, config)
                 self.clients.append(client)
                 client.connect()
 
@@ -113,10 +116,11 @@ class MonitoringClient(object):
 
 
 class LocalClient(MonitoringClient):
-    def __init__(self, parent_logger, label, config):
+    def __init__(self, parent_logger, label, config, engine):
         super(LocalClient, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.config = config
+        self.engine = engine
         if label:
             self.label = label
         else:
@@ -134,8 +138,13 @@ class LocalClient(MonitoringClient):
             'source': self.label,
             'ts': _time}
         metric_values = self.engine_resource_stats()
-        for metric_name in self.config.get('metrics', ValueError('Metric is required')):
-            res[metric_name] = None
+
+        for metric_name in self.config.get('metrics', ValueError('Local monitoring client: Metric is required')):
+            if metric_name == 'loop':
+                res['loop'] = metric_values.engine_loop
+            elif metric_values == 'cpu':
+                res['cpu'] = metric_values.cpu
+
         return res
 
     def disconnect(self):
@@ -156,7 +165,7 @@ class LocalClient(MonitoringClient):
                 disk_usage=psutil.disk_usage(self.artifacts_dir).percent,
                 mem_usage=psutil.virtual_memory().percent,
                 rx=rx_bytes, tx=tx_bytes, dru=dru, dwu=dwu,
-                engine_loop=self.engine_loop_percent
+                engine_loop=self.engine.engine_loop_percent
         )
 
     def __get_resource_stats(self):
