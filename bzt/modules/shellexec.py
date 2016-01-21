@@ -140,12 +140,12 @@ class Task(object):
             return
 
         if self.out is not None and self.out != subprocess.PIPE:
-            out = open(self.out, 'awt')
+            out = open(self.out, 'at')
         else:
             out = self.out
 
         if self.err is not None and self.err != subprocess.PIPE:
-            err = open(self.err, 'awt')
+            err = open(self.err, 'at')
         else:
             err = self.err
 
