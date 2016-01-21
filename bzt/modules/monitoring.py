@@ -3,9 +3,11 @@ import json
 import select
 import socket
 import time
+import datetime
+import psutil
 import traceback
 from abc import abstractmethod
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
 
 from urwid import Pile, Text
 
@@ -131,13 +133,58 @@ class LocalClient(MonitoringClient):
         res = {
             'source': self.label,
             'ts': _time}
-        metric_values = None
+        metric_values = self.engine_resource_stats()
         for metric_name in self.config.get('metrics', ValueError('Metric is required')):
             res[metric_name] = None
         return res
 
     def disconnect(self):
         pass
+
+    def engine_resource_stats(self):
+        """
+        Get local resource stats
+
+        :return: namedtuple
+        """
+        stats = namedtuple("ResourceStats", ('cpu', 'disk_usage', 'mem_usage',
+                                             'rx', 'tx', 'dru', 'dwu', 'engine_loop'))
+        rx_bytes, tx_bytes, dru, dwu = self.__get_resource_stats()
+        # TODO: measure and report check loop utilization
+        return stats(
+                cpu=psutil.cpu_percent(),
+                disk_usage=psutil.disk_usage(self.artifacts_dir).percent,
+                mem_usage=psutil.virtual_memory().percent,
+                rx=rx_bytes, tx=tx_bytes, dru=dru, dwu=dwu,
+                engine_loop=self.engine_loop_percent
+        )
+
+    def __get_resource_stats(self):
+        """
+        Get network and disk counters
+        :return: tuple
+        """
+        if not self.__counters_ts:
+            self.__disk_counters = psutil.disk_io_counters()
+            self.__net_counters = psutil.net_io_counters()
+            self.__counters_ts = datetime.datetime.now()
+            time.sleep(0.2)  # small enough for human, big enough for machine
+
+        now = datetime.datetime.now()
+        interval = (now - self.__counters_ts).total_seconds()
+
+        net = psutil.net_io_counters()
+        tx_bytes = (net.bytes_sent - self.__net_counters.bytes_sent) / interval
+        rx_bytes = (net.bytes_recv - self.__net_counters.bytes_recv) / interval
+        self.__net_counters = net
+
+        disk = psutil.disk_io_counters()
+        dru = (disk.read_bytes - self.__disk_counters.read_bytes) / interval
+        dwu = (disk.write_bytes - self.__disk_counters.write_bytes) / interval
+        self.__disk_counters = disk
+
+        self.__counters_ts = now
+        return rx_bytes, tx_bytes, dru, dwu
 
 
 class GraphiteClient(MonitoringClient):
