@@ -5,14 +5,14 @@
       "local": [
         {
           "metrics": [
-            "engine-loop",
             "cpu",
-            "disk",
+            "mem",
             "bytes-sent",
             "bytes-recv",
             "disk-read",
             "disk-write",
-            "memory"
+            "disk-space",
+            "engine-loop"
           ]
         }
       ]

@@ -163,11 +163,33 @@ modules:
  
 ## Resource Monitoring Service
 
-A frequest task for tests is to monitor target server's health. Monitoring service is built to collect data from those remote servers. At this time two type of servers are supported:
+A frequest task for tests is to monitor target server's health. Monitoring service is built to collect data from those remote servers. At this time followind sources are supported:
+ - local health stats, enabled by default
  - [ServerAgent](http://jmeter-plugins.org/wiki/PerfMonAgent/) - technology that is used by JMeter users for long time and
  - [Graphite](https://graphite.readthedocs.org/en/latest/).
 Also you can use `local` monitoring (enabled by default) for check tester system state.
- 
+
+### Local Resource Stats
+
+Following metrics are collected locally: 
+- `cpu` - total CPU usage %
+- `mem` - total RAM usage %
+- `bytes-sent`/`bytes-recv` - network transfer rate 
+- `disk-read`/`disk-write` - disk I/O rate
+- `disk-space` - % disk space used for artifacts storage
+- `engine-loop` - Taurus "check loop" utilization, values higher than 1.0 means you should increase `settings.check-interval`
+
+```yaml
+---
+services:
+- module: monitoring
+  local:
+  - metrics:
+    - cpu
+    - disk
+    - engine-loop
+```
+  
 ### ServerAgent
  
 Shortly, you need to unzip and launch small Java server on each of your target servers and then specify [metrics](http://jmeter-plugins.org/wiki/PerfMonMetrics/) to collect under `services` item. For example: 
@@ -206,25 +228,7 @@ services:
     - production.hardware.cpuUsage
     - groupByNode(myserv_comp_org.cpu.?.cpu.*.value, 4, 'avg')
 ``` 
-### Local monitoring
 
-Here you have next metrics: 
-- `cpu`/`disk`/`memory`: utilization of these subsystems
-- `bytes-sent`/`bytes-recv`: size of sent/received data 
-- `disk-read`/`disk-write`: size of read/written data
-- `engine-loop`: measure of Taurus load
-
-```yaml
----
-services:
-- module: monitoring
-  local:
-  - metrics:
-    - cpu
-    - disk
-    - engine-loop
-```
-  
 ### Sidebar Widget
 
 Once you have resource monitoring enabled, you'll be presented with small sidebar widget that informs you on latest data from monitoring agents:

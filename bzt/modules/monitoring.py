@@ -144,22 +144,22 @@ class LocalClient(MonitoringClient):
             item = {
                 'source': self.label,
                 'ts': _time}
-            if metric_values == 'cpu':
+            if metric_name == 'cpu':
                 item['cpu'] = metric_values.cpu
             elif metric_name == 'mem':
                 item['mem'] = metric_values.mem_usage
-            elif metric_name == 'disk':
-                item['disk'] = metric_values.disk_usage
+            elif metric_name == 'disk-space':
+                item['disk-space'] = metric_values.disk_usage
             elif metric_name == 'engine-loop':
-                item['engine_loop'] = metric_values.engine_loop
+                item['engine-loop'] = metric_values.engine_loop
             elif metric_name == 'bytes-recv':
-                item['rx'] = metric_values.rx
+                item['bytes-recv'] = metric_values.rx
             elif metric_name == 'bytes-sent':
-                item['tx'] = metric_values.tx
+                item['bytes-sent'] = metric_values.tx
             elif metric_name == 'disk-read':
-                item['dru'] = metric_values.dru
+                item['disk-read'] = metric_values.dru
             elif metric_name == 'disk-write':
-                item['dwu'] = metric_values.dwu
+                item['disk-write'] = metric_values.dwu
             else:
                 self.log.warning('Wrong metric: %s' % metric_name)
 
@@ -200,7 +200,7 @@ class LocalClient(MonitoringClient):
         self.__counters_ts = now
 
         if self.engine:
-            engine_loop = self.engine.engine_loop
+            engine_loop = self.engine.engine_loop_utilization
             disk_usage = psutil.disk_usage(self.engine.artifacts_dir).percent
         else:
             engine_loop = None
