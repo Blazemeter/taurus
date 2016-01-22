@@ -8,6 +8,10 @@
             "engine-loop",
             "cpu",
             "disk",
+            "bytes-sent",
+            "bytes-recv",
+            "disk-read",
+            "disk-write",
             "memory"
           ]
         }
