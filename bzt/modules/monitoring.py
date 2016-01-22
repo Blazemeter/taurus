@@ -121,6 +121,9 @@ class LocalClient(MonitoringClient):
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.config = config
         self.engine = engine
+        self.__disk_counters = None
+        self.__net_counters = None
+        self.__counters_ts = None
         if label:
             self.label = label
         else:
@@ -134,16 +137,23 @@ class LocalClient(MonitoringClient):
 
     def get_data(self):
         _time = time.time()
-        res = {
-            'source': self.label,
-            'ts': _time}
+        res = []
         metric_values = self.engine_resource_stats()
 
         for metric_name in self.config.get('metrics', ValueError('Local monitoring client: Metric is required')):
-            if metric_name == 'loop':
-                res['loop'] = metric_values.engine_loop
-            elif metric_values == 'cpu':
-                res['cpu'] = metric_values.cpu
+            item = {
+                'source': self.label,
+                'ts': _time}
+            if metric_values == 'cpu':
+                item['cpu'] = metric_values.cpu
+            elif metric_name == 'mem':
+                item['mem'] = metric_values.mem_usage
+            elif metric_name == 'disk':
+                item['disk'] = metric_values.disk_usage
+            elif metric_name == 'loop':
+                item['loop'] = metric_values.engine_loop
+
+            res.append(item)
 
         return res
 
@@ -162,7 +172,7 @@ class LocalClient(MonitoringClient):
         # TODO: measure and report check loop utilization
         return stats(
                 cpu=psutil.cpu_percent(),
-                disk_usage=psutil.disk_usage(self.artifacts_dir).percent,
+                disk_usage=psutil.disk_usage(self.engine.artifacts_dir).percent,
                 mem_usage=psutil.virtual_memory().percent,
                 rx=rx_bytes, tx=tx_bytes, dru=dru, dwu=dwu,
                 engine_loop=self.engine.engine_loop_percent
