@@ -103,7 +103,6 @@ class MonitoringListener(object):
 class MonitoringClient(object):
     def __init__(self):
         self.engine = None
-        self.local_dir = None
 
     @abstractmethod
     def connect(self):
