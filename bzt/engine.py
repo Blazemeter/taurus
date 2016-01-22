@@ -161,7 +161,7 @@ class Engine(object):
             now = time.time()
             diff = now - prev
             delay = self.check_interval - diff
-            self.engine_loop_percent = diff/self.check_interval
+            self.engine_loop_percent = diff / self.check_interval
             self.log.debug("Iteration took %.3f sec, sleeping for %.3f sec...", diff, delay)
             if delay > 0:
                 time.sleep(delay)
