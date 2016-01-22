@@ -91,16 +91,13 @@ class TestMonitoring(BZTestCase):
         config = {'metrics': ['cpu', 'engine-loop']}
         obj = LocalClient(logging.getLogger(''), 'label', config)
         obj.engine = EngineEmul()
-        obj.local_dir = obj.engine.artifacts_dir
         data = obj.get_data()
         self.assertTrue(all('source' in item.keys() and 'ts' in item.keys() for item in data))
         return data
 
     def test_local_without_engine(self):
         config = {'metrics': ['cpu']}
-        engine = EngineEmul()
         obj = LocalClient(logging.getLogger(''), 'label', config)
-        obj.local_dir = engine.artifacts_dir
         data = obj.get_data()
         self.assertTrue(all('source' in item.keys() and 'ts' in item.keys() for item in data))
         return data

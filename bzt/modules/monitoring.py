@@ -27,7 +27,6 @@ class Monitoring(Service, WidgetProvider):
 
     def __init__(self):
         super(Monitoring, self).__init__()
-        self.log = logging.getLogger('')
         self.listeners = []
         self.clients = []
         self.client_classes = {
@@ -57,10 +56,6 @@ class Monitoring(Service, WidgetProvider):
                     label = None
                 client = client_class(self.log, label, config)
                 client.engine = self.engine
-                if self.engine:
-                    client.local_dir = self.engine.artifacts_dir
-                else:
-                    client.local_dir = self.local_dir
                 self.clients.append(client)
                 client.connect()
 
@@ -173,10 +168,14 @@ class LocalClient(MonitoringClient):
         stats = namedtuple("ResourceStats", ('cpu', 'disk_usage', 'mem_usage',
                                              'rx', 'tx', 'dru', 'dwu', 'engine_loop'))
         rx_bytes, tx_bytes, dru, dwu, engine_loop = self.__get_resource_stats()
-        # TODO: measure and report check loop utilization
+        if self.engine:
+            disk_usage = psutil.disk_usage(self.engine.artifacts_dir).percent
+        else:
+            disk_usage = None
+
         return stats(
                 cpu=psutil.cpu_percent(),
-                disk_usage=psutil.disk_usage(self.local_dir).percent,
+                disk_usage=disk_usage,
                 mem_usage=psutil.virtual_memory().percent,
                 rx=rx_bytes, tx=tx_bytes, dru=dru, dwu=dwu,
                 engine_loop=engine_loop
