@@ -1,12 +1,15 @@
 """ Monitoring service subsystem """
+import datetime
 import json
+import logging
 import select
 import socket
 import time
 import traceback
 from abc import abstractmethod
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
 
+import psutil
 from urwid import Pile, Text
 
 from bzt.engine import EngineModule, Service
@@ -29,6 +32,7 @@ class Monitoring(Service, WidgetProvider):
         self.client_classes = {
             'server-agent': ServerAgentClient,
             'graphite': GraphiteClient,
+            'local': LocalClient,
         }
 
     def add_listener(self, listener):
@@ -43,7 +47,6 @@ class Monitoring(Service, WidgetProvider):
                 if client_name == 'server-agents':
                     self.log.warning('Monitoring: obsolete config file format detected.')
                 continue
-
             for config in self.parameters.get(client_name):
                 if isinstance(config, str):
                     self.log.warning('Monitoring: obsolete config file format detected.')
@@ -52,6 +55,7 @@ class Monitoring(Service, WidgetProvider):
                 else:
                     label = None
                 client = client_class(self.log, label, config)
+                client.engine = self.engine
                 self.clients.append(client)
                 client.connect()
 
@@ -92,6 +96,9 @@ class MonitoringListener(object):
 
 
 class MonitoringClient(object):
+    def __init__(self):
+        self.engine = None
+
     @abstractmethod
     def connect(self):
         pass
@@ -107,6 +114,105 @@ class MonitoringClient(object):
     @abstractmethod
     def disconnect(self):
         pass
+
+
+class LocalClient(MonitoringClient):
+    def __init__(self, parent_logger, label, config):
+        super(LocalClient, self).__init__()
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.config = config
+        self.__disk_counters = None
+        self.__net_counters = None
+        self.__counters_ts = None
+        if label:
+            self.label = label
+        else:
+            self.label = 'local'
+
+    def connect(self):
+        pass
+
+    def start(self):
+        pass
+
+    def get_data(self):
+        _time = time.time()
+        res = []
+        metric_values = self.engine_resource_stats()
+
+        for metric_name in self.config.get('metrics', ValueError('Local monitoring client: Metric is required')):
+            item = {
+                'source': self.label,
+                'ts': _time}
+            if metric_values == 'cpu':
+                item['cpu'] = metric_values.cpu
+            elif metric_name == 'mem':
+                item['mem'] = metric_values.mem_usage
+            elif metric_name == 'disk':
+                item['disk'] = metric_values.disk_usage
+            elif metric_name == 'engine-loop':
+                item['engine_loop'] = metric_values.engine_loop
+            elif metric_name == 'bytes-recv':
+                item['rx'] = metric_values.rx
+            elif metric_name == 'bytes-sent':
+                item['tx'] = metric_values.tx
+            elif metric_name == 'disk-read':
+                item['dru'] = metric_values.dru
+            elif metric_name == 'disk-write':
+                item['dwu'] = metric_values.dwu
+            else:
+                self.log.warning('Wrong metric: %s' % metric_name)
+
+            res.append(item)
+
+        return res
+
+    def disconnect(self):
+        pass
+
+    def engine_resource_stats(self):
+        """
+        Get local resource stats
+
+        :return: namedtuple
+        """
+        stats = namedtuple("ResourceStats", ('cpu', 'disk_usage', 'mem_usage',
+                                             'rx', 'tx', 'dru', 'dwu', 'engine_loop'))
+        if not self.__counters_ts:
+            self.__disk_counters = psutil.disk_io_counters()
+            self.__net_counters = psutil.net_io_counters()
+            self.__counters_ts = datetime.datetime.now()
+            time.sleep(0.2)  # small enough for human, big enough for machine
+
+        now = datetime.datetime.now()
+        interval = (now - self.__counters_ts).total_seconds()
+
+        net = psutil.net_io_counters()
+        tx_bytes = (net.bytes_sent - self.__net_counters.bytes_sent) / interval
+        rx_bytes = (net.bytes_recv - self.__net_counters.bytes_recv) / interval
+        self.__net_counters = net
+
+        disk = psutil.disk_io_counters()
+        dru = (disk.read_bytes - self.__disk_counters.read_bytes) / interval
+        dwu = (disk.write_bytes - self.__disk_counters.write_bytes) / interval
+        self.__disk_counters = disk
+
+        self.__counters_ts = now
+
+        if self.engine:
+            engine_loop = self.engine.engine_loop
+            disk_usage = psutil.disk_usage(self.engine.artifacts_dir).percent
+        else:
+            engine_loop = None
+            disk_usage = None
+
+        return stats(
+                cpu=psutil.cpu_percent(),
+                disk_usage=disk_usage,
+                mem_usage=psutil.virtual_memory().percent,
+                rx=rx_bytes, tx=tx_bytes, dru=dru, dwu=dwu,
+                engine_loop=engine_loop
+        )
 
 
 class GraphiteClient(MonitoringClient):

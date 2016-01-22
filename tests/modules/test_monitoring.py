@@ -2,7 +2,8 @@ import logging
 import random
 import time
 
-from bzt.modules.monitoring import Monitoring, MonitoringListener, MonitoringCriteria, ServerAgentClient, GraphiteClient
+from bzt.modules.monitoring import Monitoring, MonitoringListener, MonitoringCriteria
+from bzt.modules.monitoring import ServerAgentClient, GraphiteClient, LocalClient
 from bzt.utils import BetterDict
 from tests import BZTestCase
 from tests.mocks import EngineEmul, SocketEmul
@@ -65,7 +66,7 @@ class TestMonitoring(BZTestCase):
                 "metrics": [
                     "body",
                     "brain"]}, {
-                "address": "http://spririts.net",
+                "address": "http://spirits.net",
                 "metrics": [
                     "transparency",
                     "usability"
@@ -76,15 +77,30 @@ class TestMonitoring(BZTestCase):
         obj.startup()
         obj.check()
 
-        obj.clients[0].check_time -= obj.clients[0].interval*2
+        obj.clients[0].check_time -= obj.clients[0].interval * 2
         obj.check()
 
-        obj.clients[0].check_time -= obj.clients[0].interval*2
+        obj.clients[0].check_time -= obj.clients[0].interval * 2
         obj.clients[0].prepared_data = "wrong data"
         obj.check()
 
         obj.shutdown()
         obj.post_process()
+
+    def test_local_with_engine(self):
+        config = {'metrics': ['cpu', 'engine-loop']}
+        obj = LocalClient(logging.getLogger(''), 'label', config)
+        obj.engine = EngineEmul()
+        data = obj.get_data()
+        self.assertTrue(all('source' in item.keys() and 'ts' in item.keys() for item in data))
+        return data
+
+    def test_local_without_engine(self):
+        config = {'metrics': ['cpu']}
+        obj = LocalClient(logging.getLogger(''), 'label', config)
+        data = obj.get_data()
+        self.assertTrue(all('source' in item.keys() and 'ts' in item.keys() for item in data))
+        return data
 
 
 class LoggingMonListener(MonitoringListener):
