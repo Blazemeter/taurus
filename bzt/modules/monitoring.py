@@ -119,6 +119,7 @@ class MonitoringClient(object):
 class LocalClient(MonitoringClient):
     def __init__(self, parent_logger, label, config):
         super(LocalClient, self).__init__()
+        self.log = parent_logger.getChild(self.__class__.__name__)
         self.config = config
         self.__disk_counters = None
         self.__net_counters = None
