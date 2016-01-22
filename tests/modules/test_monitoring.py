@@ -77,20 +77,30 @@ class TestMonitoring(BZTestCase):
         obj.startup()
         obj.check()
 
-        obj.clients[0].check_time -= obj.clients[0].interval*2
+        obj.clients[0].check_time -= obj.clients[0].interval * 2
         obj.check()
 
-        obj.clients[0].check_time -= obj.clients[0].interval*2
+        obj.clients[0].check_time -= obj.clients[0].interval * 2
         obj.clients[0].prepared_data = "wrong data"
         obj.check()
 
         obj.shutdown()
         obj.post_process()
 
-    def test_local(self):
-        config = {'metrics': ['cpu', 'loop']}
+    def test_local_with_engine(self):
+        config = {'metrics': ['cpu', 'engine-loop']}
         obj = LocalClient(logging.getLogger(''), 'label', config)
         obj.engine = EngineEmul()
+        obj.local_dir = obj.engine.artifacts_dir
+        data = obj.get_data()
+        self.assertTrue(all('source' in item.keys() and 'ts' in item.keys() for item in data))
+        return data
+
+    def test_local_without_engine(self):
+        config = {'metrics': ['cpu']}
+        engine = EngineEmul()
+        obj = LocalClient(logging.getLogger(''), 'label', config)
+        obj.local_dir = engine.artifacts_dir
         data = obj.get_data()
         self.assertTrue(all('source' in item.keys() and 'ts' in item.keys() for item in data))
         return data
@@ -117,6 +127,3 @@ class GraphiteClientEmul(GraphiteClient):
 
     def _data_transfer(self):
         return self.prepared_data
-
-class LocalClientEmul(LocalClient):
-    pass

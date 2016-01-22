@@ -5,7 +5,7 @@
       "local": [
         {
           "metrics": [
-            "loop",
+            "engine-loop",
             "cpu",
             "disk",
             "memory"

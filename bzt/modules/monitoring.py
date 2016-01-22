@@ -1,15 +1,15 @@
 """ Monitoring service subsystem """
+import datetime
 import json
+import logging
 import select
 import socket
 import time
-import datetime
-import psutil
 import traceback
-import logging
 from abc import abstractmethod
 from collections import OrderedDict, namedtuple
 
+import psutil
 from urwid import Pile, Text
 
 from bzt.engine import EngineModule, Service
@@ -57,6 +57,10 @@ class Monitoring(Service, WidgetProvider):
                     label = None
                 client = client_class(self.log, label, config)
                 client.engine = self.engine
+                if self.engine:
+                    client.local_dir = self.engine.artifacts_dir
+                else:
+                    client.local_dir = self.local_dir
                 self.clients.append(client)
                 client.connect()
 
@@ -97,7 +101,9 @@ class MonitoringListener(object):
 
 
 class MonitoringClient(object):
-    engine = None
+    def __init__(self):
+        self.engine = None
+        self.local_dir = None
 
     @abstractmethod
     def connect(self):
@@ -119,7 +125,6 @@ class MonitoringClient(object):
 class LocalClient(MonitoringClient):
     def __init__(self, parent_logger, label, config):
         super(LocalClient, self).__init__()
-        self.log = parent_logger.getChild(self.__class__.__name__)
         self.config = config
         self.__disk_counters = None
         self.__net_counters = None
@@ -150,8 +155,8 @@ class LocalClient(MonitoringClient):
                 item['mem'] = metric_values.mem_usage
             elif metric_name == 'disk':
                 item['disk'] = metric_values.disk_usage
-            elif metric_name == 'loop':
-                item['loop'] = metric_values.engine_loop
+            elif metric_name == 'engine_loop':
+                item['engine_loop'] = metric_values.engine_loop
 
             res.append(item)
 
@@ -168,14 +173,14 @@ class LocalClient(MonitoringClient):
         """
         stats = namedtuple("ResourceStats", ('cpu', 'disk_usage', 'mem_usage',
                                              'rx', 'tx', 'dru', 'dwu', 'engine_loop'))
-        rx_bytes, tx_bytes, dru, dwu = self.__get_resource_stats()
+        rx_bytes, tx_bytes, dru, dwu, engine_loop = self.__get_resource_stats()
         # TODO: measure and report check loop utilization
         return stats(
                 cpu=psutil.cpu_percent(),
-                disk_usage=psutil.disk_usage(self.engine.artifacts_dir).percent,
+                disk_usage=psutil.disk_usage(self.local_dir).percent,
                 mem_usage=psutil.virtual_memory().percent,
                 rx=rx_bytes, tx=tx_bytes, dru=dru, dwu=dwu,
-                engine_loop=self.engine.engine_loop
+                engine_loop=engine_loop
         )
 
     def __get_resource_stats(self):
@@ -203,7 +208,11 @@ class LocalClient(MonitoringClient):
         self.__disk_counters = disk
 
         self.__counters_ts = now
-        return rx_bytes, tx_bytes, dru, dwu
+        if self.engine:
+            engine_loop = self.engine.engine_loop
+        else:
+            engine_loop = None
+        return rx_bytes, tx_bytes, dru, dwu, engine_loop
 
 
 class GraphiteClient(MonitoringClient):
