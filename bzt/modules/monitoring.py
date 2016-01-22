@@ -149,7 +149,7 @@ class LocalClient(MonitoringClient):
                 item['mem'] = metric_values.mem_usage
             elif metric_name == 'disk':
                 item['disk'] = metric_values.disk_usage
-            elif metric_name == 'engine_loop':
+            elif metric_name == 'engine-loop':
                 item['engine_loop'] = metric_values.engine_loop
 
             res.append(item)
@@ -167,25 +167,6 @@ class LocalClient(MonitoringClient):
         """
         stats = namedtuple("ResourceStats", ('cpu', 'disk_usage', 'mem_usage',
                                              'rx', 'tx', 'dru', 'dwu', 'engine_loop'))
-        rx_bytes, tx_bytes, dru, dwu, engine_loop = self.__get_resource_stats()
-        if self.engine:
-            disk_usage = psutil.disk_usage(self.engine.artifacts_dir).percent
-        else:
-            disk_usage = None
-
-        return stats(
-                cpu=psutil.cpu_percent(),
-                disk_usage=disk_usage,
-                mem_usage=psutil.virtual_memory().percent,
-                rx=rx_bytes, tx=tx_bytes, dru=dru, dwu=dwu,
-                engine_loop=engine_loop
-        )
-
-    def __get_resource_stats(self):
-        """
-        Get network and disk counters
-        :return: tuple
-        """
         if not self.__counters_ts:
             self.__disk_counters = psutil.disk_io_counters()
             self.__net_counters = psutil.net_io_counters()
@@ -206,11 +187,21 @@ class LocalClient(MonitoringClient):
         self.__disk_counters = disk
 
         self.__counters_ts = now
+
         if self.engine:
             engine_loop = self.engine.engine_loop
+            disk_usage = psutil.disk_usage(self.engine.artifacts_dir).percent
         else:
             engine_loop = None
-        return rx_bytes, tx_bytes, dru, dwu, engine_loop
+            disk_usage = None
+
+        return stats(
+                cpu=psutil.cpu_percent(),
+                disk_usage=disk_usage,
+                mem_usage=psutil.virtual_memory().percent,
+                rx=rx_bytes, tx=tx_bytes, dru=dru, dwu=dwu,
+                engine_loop=engine_loop
+        )
 
 
 class GraphiteClient(MonitoringClient):

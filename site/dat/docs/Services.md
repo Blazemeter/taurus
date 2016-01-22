@@ -166,6 +166,7 @@ modules:
 A frequest task for tests is to monitor target server's health. Monitoring service is built to collect data from those remote servers. At this time two type of servers are supported:
  - [ServerAgent](http://jmeter-plugins.org/wiki/PerfMonAgent/) - technology that is used by JMeter users for long time and
  - [Graphite](https://graphite.readthedocs.org/en/latest/).
+Also you can use `local` monitoring (enabled by default) for check tester system state.
  
 ### ServerAgent
  
@@ -205,7 +206,21 @@ services:
     - production.hardware.cpuUsage
     - groupByNode(myserv_comp_org.cpu.?.cpu.*.value, 4, 'avg')
 ``` 
+### Local monitoring
 
+Here you have next metrics: cpu, disk, memory, and engine-loop (measure of system load).
+
+```yaml
+---
+services:
+- module: monitoring
+  local:
+  - metrics:
+    - cpu
+    - disk
+    - engine-loop
+```
+  
 ### Sidebar Widget
 
 Once you have resource monitoring enabled, you'll be presented with small sidebar widget that informs you on latest data from monitoring agents:
