@@ -88,21 +88,12 @@ class TestMonitoring(BZTestCase):
         obj.post_process()
 
     def test_local(self):
-        obj = Monitoring()
+        config = {'metrics': ['cpu', 'loop']}
+        obj = LocalClient(logging.getLogger(''), 'label', config)
         obj.engine = EngineEmul()
-        obj.parameters.merge({
-            "local": [{
-                "metrics": [
-                    "cpu",
-                    "loop"]
-            }]
-        })
-        obj.client_classes = {'local': LocalClient}
-        obj.prepare()
-        obj.startup()
-        obj.check()
-        obj.shutdown()
-        obj.post_process()
+        data = obj.get_data()
+        self.assertTrue(all('source' in item.keys() and 'ts' in item.keys() for item in data))
+        return data
 
 
 class LoggingMonListener(MonitoringListener):

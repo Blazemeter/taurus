@@ -6,6 +6,7 @@ import time
 import datetime
 import psutil
 import traceback
+import logging
 from abc import abstractmethod
 from collections import OrderedDict, namedtuple
 
@@ -26,6 +27,7 @@ class Monitoring(Service, WidgetProvider):
 
     def __init__(self):
         super(Monitoring, self).__init__()
+        self.log = logging.getLogger('')
         self.listeners = []
         self.clients = []
         self.client_classes = {
@@ -46,7 +48,6 @@ class Monitoring(Service, WidgetProvider):
                 if client_name == 'server-agents':
                     self.log.warning('Monitoring: obsolete config file format detected.')
                 continue
-
             for config in self.parameters.get(client_name):
                 if isinstance(config, str):
                     self.log.warning('Monitoring: obsolete config file format detected.')
@@ -54,10 +55,8 @@ class Monitoring(Service, WidgetProvider):
                     label = config['label']
                 else:
                     label = None
-                if client_name == 'local':
-                    client = client_class(self.log, label, config, self.engine)
-                else:
-                    client = client_class(self.log, label, config)
+                client = client_class(self.log, label, config)
+                client.engine = self.engine
                 self.clients.append(client)
                 client.connect()
 
@@ -98,6 +97,8 @@ class MonitoringListener(object):
 
 
 class MonitoringClient(object):
+    engine = None
+
     @abstractmethod
     def connect(self):
         pass
@@ -116,11 +117,10 @@ class MonitoringClient(object):
 
 
 class LocalClient(MonitoringClient):
-    def __init__(self, parent_logger, label, config, engine):
+    def __init__(self, parent_logger, label, config):
         super(LocalClient, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.config = config
-        self.engine = engine
         self.__disk_counters = None
         self.__net_counters = None
         self.__counters_ts = None
@@ -175,7 +175,7 @@ class LocalClient(MonitoringClient):
                 disk_usage=psutil.disk_usage(self.engine.artifacts_dir).percent,
                 mem_usage=psutil.virtual_memory().percent,
                 rx=rx_bytes, tx=tx_bytes, dru=dru, dwu=dwu,
-                engine_loop=self.engine.engine_loop_percent
+                engine_loop=self.engine.engine_loop
         )
 
     def __get_resource_stats(self):

@@ -71,7 +71,7 @@ class Engine(object):
         self.interrupted = False
         self.check_interval = 1
         self.stopping_reason = None
-        self.engine_loop_percent = 0
+        self.engine_loop = 0
 
     def configure(self, user_configs, read_config_files=True):
         """
@@ -161,7 +161,7 @@ class Engine(object):
             now = time.time()
             diff = now - prev
             delay = self.check_interval - diff
-            self.engine_loop_percent = diff/self.check_interval * 100
+            self.engine_loop_percent = diff/self.check_interval
             self.log.debug("Iteration took %.3f sec, sleeping for %.3f sec...", diff, delay)
             if delay > 0:
                 time.sleep(delay)

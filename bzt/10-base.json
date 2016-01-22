@@ -1,4 +1,19 @@
 {
+  "services": [
+    {
+      "module": "monitoring",
+      "local": [
+        {
+          "metrics": [
+            "loop",
+            "cpu",
+            "disk",
+            "memory"
+          ]
+        }
+      ]
+    }
+  ],
   "provisioning": "local",
   "reporting": [
     "final_stats",
