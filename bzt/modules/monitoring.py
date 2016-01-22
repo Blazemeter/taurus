@@ -151,6 +151,16 @@ class LocalClient(MonitoringClient):
                 item['disk'] = metric_values.disk_usage
             elif metric_name == 'engine-loop':
                 item['engine_loop'] = metric_values.engine_loop
+            elif metric_name == 'bytes-recv':
+                item['rx'] = metric_values.rx
+            elif metric_name == 'bytes-sent':
+                item['tx'] = metric_values.tx
+            elif metric_name == 'disk-read':
+                item['dru'] = metric_values.dru
+            elif metric_name == 'disk-write':
+                item['dwu'] = metric_values.dwu
+            else:
+                self.log.warning('Wrong metric: %s' % metric_name)
 
             res.append(item)
 

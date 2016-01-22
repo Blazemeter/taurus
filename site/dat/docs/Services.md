@@ -208,7 +208,11 @@ services:
 ``` 
 ### Local monitoring
 
-Here you have next metrics: cpu, disk, memory, and engine-loop (measure of system load).
+Here you have next metrics: 
+- `cpu`/`disk`/`memory`: utilization of these subsystems
+- `bytes-sent`/`bytes-recv`: size of sent/received data 
+- `disk-read`/`disk-write`: size of read/written data
+- engine-loop: measure of Taurus load
 
 ```yaml
 ---
