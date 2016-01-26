@@ -109,7 +109,7 @@ class TestGatlingExecutor(BZTestCase):
         })
         obj.prepare()
 
-        obj.settings.merge({"path": __dir__() + "../gatling/gatling" + EXE_SUFFIX})
+        obj.settings.merge({"path": __dir__() + "/../gatling/gatling" + EXE_SUFFIX})
 
         try:
             obj.startup()
