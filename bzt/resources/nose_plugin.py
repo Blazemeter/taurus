@@ -125,7 +125,7 @@ class TaurusNosePlugin(Plugin):
         :return:
         """
         if not self.test_count:
-            raise RuntimeError("Nothing to test.")
+                raise RuntimeError("Nothing to test.")
 
     def startTest(self, test):
         """

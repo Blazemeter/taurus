@@ -1,0 +1,1 @@
+echo -e "Fake gatling output"
