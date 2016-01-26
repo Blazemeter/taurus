@@ -1,1 +1,1 @@
-echo -e "Fake gatling output"
+echo "Fake gatling output"
