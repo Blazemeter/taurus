@@ -272,6 +272,7 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
             },
             'reporting': [{'module': 'junit-xml'}]
         })
+        
         obj.engine.config.merge({"provisioning": "local"})
         obj.execution = obj.engine.config['execution']
         obj.settings.merge(obj.engine.config.get("modules").get("selenium"))
