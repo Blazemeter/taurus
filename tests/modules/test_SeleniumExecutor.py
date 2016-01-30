@@ -537,7 +537,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         with open(obj.kpi_file) as kpi_fds:
             reader = csv.reader(kpi_fds)
             rows = list(reader)
-        self.assertEqual(len(rows), 3)
+        self.assertEqual(len(rows), 3, str(rows))
 
     def test_samples_count_testcase(self):
         """
@@ -582,7 +582,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         with open(obj.kpi_file) as kpi_fds:
             reader = csv.reader(kpi_fds)
             rows = list(reader)
-        self.assertEqual(len(rows), 3)
+        self.assertEqual(len(rows), 3, str(rows))
 
     def test_requests(self):
         obj = SeleniumExecutor()
