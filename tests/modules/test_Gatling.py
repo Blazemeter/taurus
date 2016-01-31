@@ -109,8 +109,11 @@ class TestGatlingExecutor(BZTestCase):
         })
         obj.prepare()
 
+        obj.settings.merge({"path": __dir__() + "/../gatling/gatling" + EXE_SUFFIX})
+
         try:
             obj.startup()
+
             while not obj.check():
                 time.sleep(obj.engine.check_interval)
         finally:
