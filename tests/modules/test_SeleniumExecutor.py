@@ -494,7 +494,7 @@ class TestSeleniumStuff(SeleniumTestCase):
             "scenario": {"script": __dir__() + "/../selenium/invalid/not_found"}
         }})
         obj.execution = obj.engine.config['execution']
-        self.assertRaises(RuntimeError, obj.prepare)
+        self.assertRaises(ValueError, obj.prepare)
 
     def test_samples_count_annotations(self):
         """
@@ -561,6 +561,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         obj.execution = obj.engine.config['execution']
 
         obj.prepare()
+        obj.get_widget()
         obj.startup()
         while not obj.check():
             time.sleep(1)

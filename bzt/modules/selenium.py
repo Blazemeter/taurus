@@ -142,10 +142,13 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 os.makedirs(runner_working_dir)
                 shutil.copy2(script, runner_working_dir)
 
-    def detect_script_type(self, script_path):
+    @staticmethod
+    def detect_script_type(script_path):
         """
         checks if script is java or python
         if it's folder or single script
+
+        :param script_path: str
         :return:
         """
         if not isinstance(script_path, string_types) and not isinstance(script_path, text_type):
@@ -162,8 +165,6 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         else:
             file_ext = os.path.splitext(script_path)[1]
 
-        if file_ext not in SeleniumExecutor.SUPPORTED_TYPES:
-            raise RuntimeError("Supported tests types %s was not found" % SeleniumExecutor.SUPPORTED_TYPES)
         return file_ext
 
     def startup(self):
