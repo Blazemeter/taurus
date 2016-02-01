@@ -55,6 +55,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     SUPPORTED_TYPES = [".py", ".jar", ".java"]
 
+
     def __init__(self):
         super(SeleniumExecutor, self).__init__()
         self.virtual_display = None
