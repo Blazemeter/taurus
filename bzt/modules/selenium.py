@@ -55,6 +55,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     SUPPORTED_TYPES = [".py", ".jar", ".java"]
 
+    VIRTUAL_DISPLAY = None
 
     def __init__(self):
         super(SeleniumExecutor, self).__init__()
@@ -69,19 +70,24 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.runner_working_dir = None
         self.scenario = None
 
-    def prepare(self):
+    def get_virtual_display(self):
         display_conf = self.settings.get("virtual-display")
         if display_conf:
             if is_windows():
                 self.log.warning("Cannot have virtual display on Windows, ignoring")
-            else:
+            elif not SeleniumExecutor.VIRTUAL_DISPLAY:
                 width = display_conf.get("width", 1024)
                 height = display_conf.get("height", 768)
-                self.virtual_display = Display(size=(width, height))
+                virtual_display = Display(size=(width, height))
                 msg = "Starting virtual display[%s]: %s"
-                self.log.info(msg, self.virtual_display.size, self.virtual_display.new_display_var)
-                self.virtual_display.start()
+                self.log.info(msg, virtual_display.size, virtual_display.new_display_var)
+                virtual_display.start()
+                SeleniumExecutor.VIRTUAL_DISPLAY = virtual_display
 
+        return SeleniumExecutor.VIRTUAL_DISPLAY
+
+    def prepare(self):
+        self.virtual_display = self.get_virtual_display()
         self.scenario = self.get_scenario()
         self._verify_script()
         self.kpi_file = self.engine.create_artifact("selenium_tests_report", ".csv")
@@ -196,9 +202,6 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.log.debug("Selenium tests ran for %s seconds", self.end_time - self.start_time)
 
     def post_process(self):
-        if self.virtual_display and self.virtual_display.is_alive():
-            self.virtual_display.stop()
-
         if self.reader and not self.reader.read_records:
             raise RuntimeWarning("Empty results, most likely Selenium failed")
 
