@@ -543,7 +543,8 @@ class TestSeleniumStuff(SeleniumTestCase):
         obj.engine = self.engine_obj
         obj.settings = self.selenium_config
         obj.engine.config.merge({ScenarioExecutor.EXEC: {
-            "executor": "selenium", "scenario": {"script": __dir__() + "/../selenium/invalid/selenium1.java"}
+            "executor": "selenium",
+            "scenario": {"script": __dir__() + "/../selenium/invalid/selenium1.java"}
         }})
         obj.execution = obj.engine.config['execution']
         obj.prepare()

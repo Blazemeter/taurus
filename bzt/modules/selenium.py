@@ -161,9 +161,9 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         file_types = set()
 
-        if os.path.isfile(script_path):                             # regular file received
+        if os.path.isfile(script_path):  # regular file received
             file_types.add(os.path.splitext(script_path)[1].lower())
-        else:                                                       # not file but dir: check files
+        else:  # dir received: check files
             for walk_rec in os.walk(script_path):
                 for file_name in walk_rec[2]:
                     file_types.add(os.path.splitext(file_name)[1].lower())
