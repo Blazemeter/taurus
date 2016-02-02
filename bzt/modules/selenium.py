@@ -55,7 +55,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     SUPPORTED_TYPES = [".py", ".jar", ".java"]
 
-    VIRTUAL_DISPLAY = None
+    SHARED_VIRTUAL_DISPLAY = {}
 
     def __init__(self):
         super(SeleniumExecutor, self).__init__()
@@ -70,24 +70,31 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.runner_working_dir = None
         self.scenario = None
 
-    def get_virtual_display(self):
+    def set_virtual_display(self):
         display_conf = self.settings.get("virtual-display")
         if display_conf:
             if is_windows():
                 self.log.warning("Cannot have virtual display on Windows, ignoring")
-            elif not SeleniumExecutor.VIRTUAL_DISPLAY:
-                width = display_conf.get("width", 1024)
-                height = display_conf.get("height", 768)
-                virtual_display = Display(size=(width, height))
-                msg = "Starting virtual display[%s]: %s"
-                self.log.info(msg, virtual_display.size, virtual_display.new_display_var)
-                virtual_display.start()
-                SeleniumExecutor.VIRTUAL_DISPLAY = virtual_display
+            else:
+                if self.engine in SeleniumExecutor.SHARED_VIRTUAL_DISPLAY.keys():
+                    self.virtual_display = SeleniumExecutor.SHARED_VIRTUAL_DISPLAY[self.engine]
+                else:
+                    width = display_conf.get("width", 1024)
+                    height = display_conf.get("height", 768)
+                    self.virtual_display = Display(size=(width, height))
+                    msg = "Starting virtual display[%s]: %s"
+                    self.log.info(msg, self.virtual_display.size, self.virtual_display.new_display_var)
+                    self.virtual_display.start()
+                    SeleniumExecutor.SHARED_VIRTUAL_DISPLAY[self.engine] = self.virtual_display
 
-        return SeleniumExecutor.VIRTUAL_DISPLAY
+    def free_virtual_display(self):
+        if self.virtual_display and self.virtual_display.is_alive():
+            self.virtual_display.stop()
+        if self.engine in SeleniumExecutor.SHARED_VIRTUAL_DISPLAY.keys():
+            del SeleniumExecutor.SHARED_VIRTUAL_DISPLAY[self.engine]
 
     def prepare(self):
-        self.virtual_display = self.get_virtual_display()
+        self.set_virtual_display()
         self.scenario = self.get_scenario()
         self._verify_script()
         self.kpi_file = self.engine.create_artifact("selenium_tests_report", ".csv")
@@ -101,8 +108,6 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             runner_class = JUnitTester
             runner_config = self.settings.get("selenium-tools").get("junit")
             runner_config['props-file'] = self.engine.create_artifact("customrunner", ".properties")
-        else:
-            raise ValueError("Unsupported script type: %s" % script_type)
 
         runner_config["script-type"] = script_type
         self.runner_working_dir = self.engine.create_artifact(runner_config.get("working-dir", "classes"), "")
@@ -152,18 +157,25 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :return:
         """
         if not isinstance(script_path, string_types) and not isinstance(script_path, text_type):
-            raise RuntimeError("Nothing to test, no files were provided in scenario")
-        test_files = []
-        for dir_entry in os.walk(script_path):
-            if dir_entry[2]:
-                for test_file in dir_entry[2]:
-                    if os.path.splitext(test_file)[1].lower() in SeleniumExecutor.SUPPORTED_TYPES:
-                        test_files.append(test_file)
+            raise ValueError("Nothing to test, no files were provided in scenario")
 
-        if os.path.isdir(script_path):
-            file_ext = os.path.splitext(test_files[0])[1].lower()
+        file_types = set()
+
+        if os.path.isfile(script_path):                             # regular file received
+            file_types.add(os.path.splitext(script_path)[1].lower())
+        else:                                                       # not file but dir: check files
+            for walk_rec in os.walk(script_path):
+                for file_name in walk_rec[2]:
+                    file_types.add(os.path.splitext(file_name)[1].lower())
+
+        if '.java' in file_types:
+            file_ext = '.java'
+        elif '.py' in file_types:
+            file_ext = '.py'
+        elif '.jar' in file_types:
+            file_ext = '.jar'
         else:
-            file_ext = os.path.splitext(script_path)[1]
+            raise ValueError("Unsupported script type")
 
         return file_ext
 
@@ -197,6 +209,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :return:
         """
         self.runner.shutdown()
+        self.free_virtual_display()
 
         if self.start_time:
             self.end_time = time.time()
@@ -218,15 +231,12 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if "script" not in self.scenario:
             return []
 
-        script = self.scenario.get("script")
-        script_type = self.detect_script_type(script)
+        script_type = self.detect_script_type(self.scenario.get(Scenario.SCRIPT))
 
         if script_type == ".py":
             runner_config = self.settings.get("selenium-tools").get("nose")
         elif script_type == ".jar" or script_type == ".java":
             runner_config = self.settings.get("selenium-tools").get("junit")
-        else:
-            raise ValueError("Unsupported script type: %s" % script_type)
 
         if self.runner_working_dir is None:
             self.runner_working_dir = self.engine.create_artifact(runner_config.get("working-dir", "classes"), "")
