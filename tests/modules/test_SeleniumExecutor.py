@@ -36,7 +36,21 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
         :return:
         """
         dummy_installation_path = __dir__() + "/../../build/tmp/selenium-taurus"
+        base_link = "file:///" + __dir__() + "/../data/"
+
         shutil.rmtree(os.path.dirname(dummy_installation_path), ignore_errors=True)
+
+        selenium_server_link = SeleniumExecutor.SELENIUM_DOWNLOAD_LINK
+        SeleniumExecutor.SELENIUM_DOWNLOAD_LINK = base_link + "/selenium-server-standalone-2.46.0.jar"
+
+        junit_link = SeleniumExecutor.JUNIT_DOWNLOAD_LINK
+        junit_mirrors = SeleniumExecutor.JUNIT_MIRRORS_SOURCE
+        SeleniumExecutor.JUNIT_DOWNLOAD_LINK = base_link + "/junit-4.12.jar"
+        SeleniumExecutor.JUNIT_MIRRORS_SOURCE = base_link + "unicode_file"
+
+        hamcrest_link = SeleniumExecutor.HAMCREST_DOWNLOAD_LINK
+        SeleniumExecutor.HAMCREST_DOWNLOAD_LINK = base_link + "/hamcrest-core-1.3.jar"
+
         self.assertFalse(os.path.exists(dummy_installation_path))
 
         obj = self.get_selenium_executor()
@@ -55,6 +69,10 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
         self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "selenium-server.jar")))
         self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "tools", "junit", "junit.jar")))
         self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "tools", "junit", "hamcrest-core.jar")))
+        SeleniumExecutor.SELENIUM_DOWNLOAD_LINK = selenium_server_link
+        SeleniumExecutor.JUNIT_DOWNLOAD_LINK = junit_link
+        SeleniumExecutor.HAMCREST_DOWNLOAD_LINK = hamcrest_link
+        SeleniumExecutor.JUNIT_MIRRORS_SOURCE = junit_mirrors
 
     def get_selenium_executor(self):
         obj = SeleniumExecutor()
