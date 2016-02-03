@@ -132,3 +132,4 @@ modules:
       width: 1024
       height: 768
 ```
+Note: SeleniumExecutor uses shared virtual display for all executions. 
