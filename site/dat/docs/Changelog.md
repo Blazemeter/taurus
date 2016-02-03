@@ -5,6 +5,7 @@
  - add graphite support to monitoring service
  - add local monitoring service
  - create [Docker](Docker.md) image with Taurus inside
+ - one virtual display for all selenium executions
 
 ## 1.1.0
  - support `iterations` and `hold-for` options for Selenium
