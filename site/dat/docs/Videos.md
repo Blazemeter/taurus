@@ -9,4 +9,7 @@
 
 ## Performance Testing Bootcamp with JMeter and Taurus
 <iframe width="560" height="315" src="https://www.youtube.com/embed/rwccqwaHT9U" frameborder="0" allowfullscreen></iframe>
+
+## Continuous Performance Testing for OpenShift Applications
+<iframe width="560" height="315" src="https://www.youtube.com/embed/toMDGhQ96GA" frameborder="0" allowfullscreen></iframe>
   
