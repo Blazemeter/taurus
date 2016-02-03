@@ -104,7 +104,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if script_type == ".py":
             runner_class = NoseTester
             runner_config = self.settings.get("selenium-tools").get("nose")
-        else:   # script_type == ".jar" or script_type == ".java":
+        else:  # script_type == ".jar" or script_type == ".java":
             runner_class = JUnitTester
             runner_config = self.settings.get("selenium-tools").get("junit")
             runner_config['props-file'] = self.engine.create_artifact("customrunner", ".properties")
@@ -216,7 +216,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def post_process(self):
         self.free_virtual_display()
-        
+
         if self.reader and not self.reader.read_records:
             raise RuntimeWarning("Empty results, most likely Selenium failed")
 
@@ -236,7 +236,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         if script_type == ".py":
             runner_config = self.settings.get("selenium-tools").get("nose")
-        else:    # script_type == ".jar" or script_type == ".java":
+        else:  # script_type == ".jar" or script_type == ".java":
             runner_config = self.settings.get("selenium-tools").get("junit")
 
         if self.runner_working_dir is None:
