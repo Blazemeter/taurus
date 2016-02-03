@@ -8,10 +8,8 @@ import time
 import traceback
 from abc import abstractmethod
 from collections import OrderedDict, namedtuple
-
 import psutil
 from urwid import Pile, Text
-
 from bzt.engine import EngineModule, Service
 from bzt.modules.console import WidgetProvider
 from bzt.modules.passfail import FailCriteria
@@ -179,7 +177,7 @@ class LocalClient(MonitoringClient):
         stats = namedtuple("ResourceStats", ('cpu', 'disk_usage', 'mem_usage',
                                              'rx', 'tx', 'dru', 'dwu', 'engine_loop'))
         if not self.__counters_ts:
-            self.__disk_counters = psutil.disk_io_counters()
+            self.__disk_counters = self.__get_disk_counters()
             self.__net_counters = psutil.net_io_counters()
             self.__counters_ts = datetime.datetime.now()
             time.sleep(0.2)  # small enough for human, big enough for machine
@@ -192,7 +190,7 @@ class LocalClient(MonitoringClient):
         rx_bytes = (net.bytes_recv - self.__net_counters.bytes_recv) / interval
         self.__net_counters = net
 
-        disk = psutil.disk_io_counters()
+        disk = self.__get_disk_counters()
         dru = (disk.read_bytes - self.__disk_counters.read_bytes) / interval
         dwu = (disk.write_bytes - self.__disk_counters.write_bytes) / interval
         self.__disk_counters = disk
@@ -207,12 +205,19 @@ class LocalClient(MonitoringClient):
             disk_usage = None
 
         return stats(
-                cpu=psutil.cpu_percent(),
-                disk_usage=disk_usage,
-                mem_usage=psutil.virtual_memory().percent,
-                rx=rx_bytes, tx=tx_bytes, dru=dru, dwu=dwu,
-                engine_loop=engine_loop
+            cpu=psutil.cpu_percent(),
+            disk_usage=disk_usage,
+            mem_usage=psutil.virtual_memory().percent,
+            rx=rx_bytes, tx=tx_bytes, dru=dru, dwu=dwu,
+            engine_loop=engine_loop
         )
+
+    def __get_disk_counters(self):
+        try:
+            return psutil.disk_io_counters()
+        except RuntimeError as exc:
+            self.log.debug("Failed to get disk metrics: %s", exc)
+            return psutil._common.sdiskio(0, 0, 0, 0, 0, 0)
 
 
 class GraphiteClient(MonitoringClient):

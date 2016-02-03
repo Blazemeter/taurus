@@ -441,8 +441,8 @@ class JUnitTester(AbstractTestRunner):
         self.base_class_path.extend(jar_list)
 
         with open(self.props_file, 'wt') as props:
-            props.write("kpi_log=%s\n" % self.settings.get("report-file"))
-            props.write("error_log=%s\n" % self.settings.get("err-file"))
+            props.write("kpi_log=%s\n" % self.settings.get("report-file").replace(os.path.sep, '/'))
+            props.write("error_log=%s\n" % self.settings.get("err-file").replace(os.path.sep, '/'))
 
             if self.load.iterations:
                 props.write("iterations=%s\n" % self.load.iterations)
@@ -451,7 +451,7 @@ class JUnitTester(AbstractTestRunner):
                 props.write("hold_for=%s\n" % self.load.hold)
 
             for index, item in enumerate(jar_list):
-                props.write("target_%s=%s\n" % (index, item))
+                props.write("target_%s=%s\n" % (index, item.replace(os.path.sep, '/')))
 
         std_out = open(self.settings.get("stdout"), "wt")
         self.opened_descriptors.append(std_out)

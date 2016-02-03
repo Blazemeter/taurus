@@ -186,7 +186,7 @@ services:
   local:
   - metrics:
     - cpu
-    - disk
+    - disk-space
     - engine-loop
 ```
   

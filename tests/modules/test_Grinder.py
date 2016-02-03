@@ -6,6 +6,7 @@ import time
 from bzt.modules.grinder import GrinderExecutor, Grinder, DataLogReader
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul
+from bzt.utils import EXE_SUFFIX
 
 
 class TestGrinderExecutor(BZTestCase):
@@ -78,7 +79,7 @@ class TestGrinderExecutor(BZTestCase):
         obj.prepare()
 
         try:
-            obj.cmd_line = __dir__() + "/../grinder/grinder.sh"
+            obj.cmd_line = __dir__() + "/../grinder/grinder" + EXE_SUFFIX
             obj.startup()
             while not obj.check():
                 time.sleep(obj.engine.check_interval)
