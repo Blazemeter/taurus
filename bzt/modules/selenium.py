@@ -76,7 +76,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             if is_windows():
                 self.log.warning("Cannot have virtual display on Windows, ignoring")
             else:
-                if self.engine in SeleniumExecutor.SHARED_VIRTUAL_DISPLAY.keys():
+                if self.engine in SeleniumExecutor.SHARED_VIRTUAL_DISPLAY:
                     self.virtual_display = SeleniumExecutor.SHARED_VIRTUAL_DISPLAY[self.engine]
                 else:
                     width = display_conf.get("width", 1024)
@@ -90,7 +90,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     def free_virtual_display(self):
         if self.virtual_display and self.virtual_display.is_alive():
             self.virtual_display.stop()
-        if self.engine in SeleniumExecutor.SHARED_VIRTUAL_DISPLAY.keys():
+        if self.engine in SeleniumExecutor.SHARED_VIRTUAL_DISPLAY:
             del SeleniumExecutor.SHARED_VIRTUAL_DISPLAY[self.engine]
 
     def prepare(self):
@@ -104,7 +104,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if script_type == ".py":
             runner_class = NoseTester
             runner_config = self.settings.get("selenium-tools").get("nose")
-        elif script_type == ".jar" or script_type == ".java":
+        else:   # script_type == ".jar" or script_type == ".java":
             runner_class = JUnitTester
             runner_config = self.settings.get("selenium-tools").get("junit")
             runner_config['props-file'] = self.engine.create_artifact("customrunner", ".properties")
@@ -175,7 +175,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         elif '.jar' in file_types:
             file_ext = '.jar'
         else:
-            raise ValueError("Unsupported script type")
+            raise ValueError("Unsupported script type: %s" % script_path)
 
         return file_ext
 
@@ -209,13 +209,14 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :return:
         """
         self.runner.shutdown()
-        self.free_virtual_display()
 
         if self.start_time:
             self.end_time = time.time()
             self.log.debug("Selenium tests ran for %s seconds", self.end_time - self.start_time)
 
     def post_process(self):
+        self.free_virtual_display()
+        
         if self.reader and not self.reader.read_records:
             raise RuntimeWarning("Empty results, most likely Selenium failed")
 
@@ -235,7 +236,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         if script_type == ".py":
             runner_config = self.settings.get("selenium-tools").get("nose")
-        elif script_type == ".jar" or script_type == ".java":
+        else:    # script_type == ".jar" or script_type == ".java":
             runner_config = self.settings.get("selenium-tools").get("junit")
 
         if self.runner_working_dir is None:
