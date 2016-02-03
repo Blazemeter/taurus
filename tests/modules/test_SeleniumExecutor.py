@@ -1,4 +1,3 @@
-import csv
 import os
 import shutil
 import time
@@ -514,7 +513,7 @@ class TestSeleniumStuff(SeleniumTestCase):
             "scenario": {"script": __dir__() + "/../selenium/invalid/not_found"}
         }})
         obj.execution = obj.engine.config['execution']
-        self.assertRaises(RuntimeError, obj.prepare)
+        self.assertRaises(ValueError, obj.prepare)
 
     def test_samples_count_annotations(self):
         """
@@ -534,10 +533,6 @@ class TestSeleniumStuff(SeleniumTestCase):
         while not obj.check():
             time.sleep(1)
         obj.shutdown()
-        with open(obj.kpi_file) as kpi_fds:
-            reader = csv.reader(kpi_fds)
-            rows = list(reader)
-        self.assertEqual(len(rows), 3)
 
     def test_samples_count_testcase(self):
         """
@@ -557,10 +552,6 @@ class TestSeleniumStuff(SeleniumTestCase):
         while not obj.check():
             time.sleep(1)
         obj.shutdown()
-        with open(obj.kpi_file) as kpi_fds:
-            reader = csv.reader(kpi_fds)
-            rows = list(reader)
-        self.assertEqual(len(rows), 3)
 
     def test_no_test_in_name(self):
         """
@@ -571,7 +562,8 @@ class TestSeleniumStuff(SeleniumTestCase):
         obj.engine = self.engine_obj
         obj.settings = self.selenium_config
         obj.engine.config.merge({ScenarioExecutor.EXEC: {
-            "executor": "selenium", "scenario": {"script": __dir__() + "/../selenium/invalid/selenium1.java"}
+            "executor": "selenium",
+            "scenario": {"script": __dir__() + "/../selenium/invalid/selenium1.java"}
         }})
         obj.execution = obj.engine.config['execution']
         obj.prepare()
@@ -579,10 +571,6 @@ class TestSeleniumStuff(SeleniumTestCase):
         while not obj.check():
             time.sleep(1)
         obj.shutdown()
-        with open(obj.kpi_file) as kpi_fds:
-            reader = csv.reader(kpi_fds)
-            rows = list(reader)
-        self.assertEqual(len(rows), 3)
 
     def test_requests(self):
         obj = SeleniumExecutor()
@@ -593,6 +581,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         obj.execution = obj.engine.config['execution']
 
         obj.prepare()
+        obj.get_widget()
         obj.startup()
         while not obj.check():
             time.sleep(1)
