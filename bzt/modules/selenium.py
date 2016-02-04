@@ -28,8 +28,8 @@ from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.console import WidgetProvider
 from bzt.modules.jmeter import JTLReader
 from bzt.six import string_types, text_type, etree
-from bzt.utils import RequiredTool, shell_exec, shutdown_process, JavaVM, TclLibrary, dehumanize_time, \
-    MirrorsManager, is_windows
+from bzt.utils import RequiredTool, shell_exec, shutdown_process, JavaVM, TclLibrary
+from bzt.utils import dehumanize_time, MirrorsManager, is_windows, BetterDict
 
 try:
     from pyvirtualdisplay.smartdisplay import SmartDisplay as Display
@@ -101,12 +101,14 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.err_jtl = self.engine.create_artifact("selenium_tests_err", ".xml")
         script_type = self.detect_script_type(self.scenario.get(Scenario.SCRIPT))
 
+        runner_config = BetterDict()
+
         if script_type == ".py":
             runner_class = NoseTester
-            runner_config = self.settings.get("selenium-tools").get("nose")
+            runner_config.merge(self.settings.get("selenium-tools").get("nose"))
         else:  # script_type == ".jar" or script_type == ".java":
             runner_class = JUnitTester
-            runner_config = self.settings.get("selenium-tools").get("junit")
+            runner_config.merge(self.settings.get("selenium-tools").get("junit"))
             runner_config['props-file'] = self.engine.create_artifact("customrunner", ".properties")
 
         runner_config["script-type"] = script_type
