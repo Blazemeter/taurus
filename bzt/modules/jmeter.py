@@ -1030,7 +1030,7 @@ class JTLErrorsReader(object):
 
         self.offset = self.fds.tell()
         for _action, elem in self.parser.read_events():
-            if elem.getparent() and elem.getparent().tag == 'testResults':
+            if elem.getparent() is not None and elem.getparent().tag == 'testResults':
                 if elem.get('s'):
                     result = elem.get('s')
                 else:
