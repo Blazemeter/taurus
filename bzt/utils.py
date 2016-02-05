@@ -39,12 +39,10 @@ from abc import abstractmethod
 from collections import defaultdict, Counter
 from subprocess import PIPE
 from webbrowser import GenericBrowser
-
 import psutil
 from progressbar import ProgressBar, Percentage, Bar, ETA
 from psutil import Popen
 from urwid import BaseScreen
-
 from bzt.six import string_types, iteritems, viewvalues, binary_type, text_type, b, integer_types, request, file_type
 
 
@@ -150,7 +148,7 @@ class BetterDict(defaultdict):
         :type src: dict
         """
         if not isinstance(src, dict):
-            raise ValueError("Loaded object is not dict: %s" % src)
+            raise ValueError("Loaded object is not dict [%s]: %s" % (src.__class__, src))
 
         for key, val in iteritems(src):
             if len(key) and key[0] == '~':  # overwrite flag
@@ -365,16 +363,16 @@ class MultiPartForm(object):
 
         # Add the form fields
         parts.extend(
-                [part_boundary, 'Content-Disposition: form-data; name="%s"' % name, '', value, ]
-                for name, value in self.form_fields
+            [part_boundary, 'Content-Disposition: form-data; name="%s"' % name, '', value, ]
+            for name, value in self.form_fields
         )
 
         # Add the files to upload
         parts.extend(
-                [part_boundary,
-                 'Content-Disposition: file; name="%s"; filename="%s"' % (field_name, filename),
-                 'Content-Type: %s' % content_type, '', body, "\r\n"]
-                for field_name, filename, content_type, body in self.files
+            [part_boundary,
+             'Content-Disposition: file; name="%s"; filename="%s"' % (field_name, filename),
+             'Content-Type: %s' % content_type, '', body, "\r\n"]
+            for field_name, filename, content_type, body in self.files
         )
 
         # Flatten the list and add closing boundary marker,
