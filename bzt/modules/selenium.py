@@ -20,9 +20,7 @@ import subprocess
 import sys
 import time
 from abc import abstractmethod
-
 import urwid
-
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.console import WidgetProvider
@@ -41,6 +39,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     """
     Selenium executor
     :type virtual_display: Display
+    :type runner: AbstractTestRunner
     """
     SELENIUM_DOWNLOAD_LINK = "http://selenium-release.storage.googleapis.com/{version}/" \
                              "selenium-server-standalone-{version}.0.jar"
@@ -59,6 +58,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def __init__(self):
         super(SeleniumExecutor, self).__init__()
+        self.additional_env = {}
         self.virtual_display = None
         self.start_time = None
         self.end_time = None
@@ -187,6 +187,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :return:
         """
         self.start_time = time.time()
+        self.runner.env = self.additional_env
         self.runner.run_tests()
 
     def check(self):
@@ -275,6 +276,7 @@ class AbstractTestRunner(object):
         self.log = None
         self.opened_descriptors = []
         self.is_failed = False
+        self.env = {}
 
     @abstractmethod
     def prepare(self):
@@ -460,11 +462,15 @@ class JUnitTester(AbstractTestRunner):
         std_err = open(self.settings.get("stderr"), "wt")
         self.opened_descriptors.append(std_err)
 
+        env = BetterDict()
+        env.merge(dict(os.environ))
+        env.merge(self.env)
+
         junit_command_line = ["java", "-cp", os.pathsep.join(self.base_class_path), "taurusjunit.CustomRunner",
                               self.props_file]
         self.process = shell_exec(junit_command_line, cwd=self.artifacts_dir,
                                   stdout=std_out,
-                                  stderr=std_err)
+                                  stderr=std_err, env=env)
 
 
 class NoseTester(AbstractTestRunner):
@@ -513,7 +519,11 @@ class NoseTester(AbstractTestRunner):
         std_err = open(self.settings.get("stderr"), "wt")
         self.opened_descriptors.append(std_err)
 
-        self.process = shell_exec(nose_command_line, cwd=self.artifacts_dir, stdout=std_out, stderr=std_err)
+        env = BetterDict()
+        env.merge(dict(os.environ))
+        env.merge(self.env)
+
+        self.process = shell_exec(nose_command_line, cwd=self.artifacts_dir, stdout=std_out, stderr=std_err, env=env)
 
 
 class SeleniumWidget(urwid.Pile):
