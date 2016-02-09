@@ -24,7 +24,7 @@ from datetime import datetime
 
 from bzt.engine import Reporter
 from bzt.modules.aggregator import DataPoint, KPISet, AggregatorListener, ResultsProvider
-from bzt.modules.blazemeter import BlazeMeterUploader
+from bzt.modules.blazemeter import BlazeMeterUploader, CloudProvisioning
 from bzt.modules.passfail import PassFailStatus
 from bzt.six import etree, iteritems, string_types
 
@@ -304,22 +304,23 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         :return: [(url, test), (url, test), ...]
         """
         result = []
-        bza_reporters = [_x for _x in self.engine.reporters if isinstance(_x, BlazeMeterUploader)]
-        for bza_reporter in bza_reporters:
-            assert isinstance(bza_reporter, BlazeMeterUploader)
-            report_url = None
-            test_name = None
+        if isinstance(self.engine.provisioning, CloudProvisioning):
+            cloud_prov = self.engine.provisioning
+            report_url = "Cloud report link: %s\n" % cloud_prov.client.results_url
+            test_name = cloud_prov.settings.get('test', None)
+            result.append((report_url, test_name if test_name is not None else report_url))
+        else:
+            bza_reporters = [_x for _x in self.engine.reporters if isinstance(_x, BlazeMeterUploader)]
+            for bza_reporter in bza_reporters:
 
-            if bza_reporter.client.results_url:
-                report_url = "BlazeMeter report link: %s\n" % bza_reporter.client.results_url
-            if bza_reporter.client.test_id:
-                test_name = bza_reporter.parameters.get("test", None)
+                if bza_reporter.client.results_url:
+                    report_url = "BlazeMeter report link: %s\n" % bza_reporter.client.results_url
+                    test_name = bza_reporter.parameters.get("test", None)
 
-            if report_url is not None:
-                result.append((report_url, test_name if test_name is not None else report_url))
+                    result.append((report_url, test_name if test_name is not None else report_url))
 
-        if len(result) > 1:
-            self.log.warning("More then one blazemeter reporter found")
+            if len(result) > 1:
+                self.log.warning("More then one blazemeter reporter found")
         return result
 
     def save_report(self, root_node):

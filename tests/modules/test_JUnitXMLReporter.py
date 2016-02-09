@@ -3,10 +3,11 @@ import tempfile
 from collections import Counter
 
 from bzt.modules.aggregator import DataPoint, KPISet
-from bzt.modules.blazemeter import BlazeMeterUploader
+from bzt.modules.blazemeter import BlazeMeterUploader, CloudProvisioning, BlazeMeterClientEmul
 from bzt.modules.passfail import PassFailStatus, DataCriteria
 from bzt.modules.reporting import JUnitXMLReporter
 from bzt.six import etree
+from bzt.modules.provisioning import Local
 from bzt.utils import BetterDict
 from tests import BZTestCase
 from tests.mocks import EngineEmul
@@ -274,3 +275,26 @@ class TestJUnitXML(BZTestCase):
         self.assertEqual('testcase', xml_tree.getchildren()[0].tag)
         self.assertEqual('error', xml_tree.getchildren()[0].getchildren()[0].tag)
         self.assertEqual('error', xml_tree.getchildren()[2].getchildren()[0].tag)
+
+    def test_results_link_cloud(self):
+        obj = JUnitXMLReporter()
+        obj.engine = EngineEmul()
+        obj.engine.provisioning = CloudProvisioning()
+        obj.engine.provisioning.client = BlazeMeterClientEmul(obj.log)
+        prov = obj.engine.provisioning
+        prov.client.results_url = 'url1'
+        prov.settings.merge({'test': 'test1'})
+        report_info = obj.get_bza_report_info()
+        self.assertEqual(report_info, [('Cloud report link: url1\n', 'test1')])
+
+    def test_results_link_blazemeter(self):
+        obj = JUnitXMLReporter()
+        obj.engine = EngineEmul()
+        obj.engine.provisioning = Local()
+        obj.engine.reporters.append(BlazeMeterUploader())
+        obj.engine.provisioning.client = BlazeMeterClientEmul(obj.log)
+        rep = obj.engine.reporters[0]
+        rep.client.results_url = 'url2'
+        rep.parameters.merge({'test': 'test2'})
+        report_info = obj.get_bza_report_info()
+        self.assertEqual(report_info, [('BlazeMeter report link: url2\n', 'test2')])
