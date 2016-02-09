@@ -304,27 +304,23 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         :return: [(url, test), (url, test), ...]
         """
         result = []
-        reporters = [_x for _x in self.engine.reporters if isinstance(_x, BlazeMeterUploader)]
         if isinstance(self.engine.provisioning, CloudProvisioning):
-            reporters = [self.engine.provisioning]
-        for _reporter in reporters:
-            report_url = None
-            test_name = None
+            cloud_prov = self.engine.provisioning
+            report_url = "Cloud report link: %s\n" % cloud_prov.client.results_url
+            test_name = cloud_prov.settings.get('test', None)
+            result.append((report_url, test_name if test_name is not None else report_url))
+        else:
+            bza_reporters = [_x for _x in self.engine.reporters if isinstance(_x, BlazeMeterUploader)]
+            for bza_reporter in bza_reporters:
 
-            if _reporter.client.results_url:
-                if isinstance(_reporter, CloudProvisioning):
-                    name = "Cloud"
-                else:  # is instance(reporter, BlazeMeterUploader)
-                    name = "BlazeMeter"
-                report_url = "%s report link: %s\n" % (name, _reporter.client.results_url)
-            if _reporter.client.test_id:
-                test_name = _reporter.parameters.get("test", None)
+                if bza_reporter.client.results_url:
+                    report_url = "BlazeMeter report link: %s\n" % bza_reporter.client.results_url
+                    test_name = bza_reporter.parameters.get("test", None)
 
-            if report_url is not None:
-                result.append((report_url, test_name if test_name is not None else report_url))
+                    result.append((report_url, test_name if test_name is not None else report_url))
 
-        if len(result) > 1:
-            self.log.warning("More then one blazemeter reporter found")
+            if len(result) > 1:
+                self.log.warning("More then one blazemeter reporter found")
         return result
 
     def save_report(self, root_node):

@@ -6,6 +6,7 @@
  - add local monitoring service
  - create [Docker](Docker.md) image with Taurus inside
  - one virtual display for all selenium executions
+ - add link for cloud provisioning results into JUnit xml
 
 ## 1.1.0
  - support `iterations` and `hold-for` options for Selenium
