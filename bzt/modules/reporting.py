@@ -24,7 +24,7 @@ from datetime import datetime
 
 from bzt.engine import Reporter
 from bzt.modules.aggregator import DataPoint, KPISet, AggregatorListener, ResultsProvider
-from bzt.modules.blazemeter import BlazeMeterUploader
+from bzt.modules.blazemeter import BlazeMeterUploader, CloudProvisioning
 from bzt.modules.passfail import PassFailStatus
 from bzt.six import etree, iteritems, string_types
 
@@ -304,16 +304,21 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         :return: [(url, test), (url, test), ...]
         """
         result = []
-        bza_reporters = [_x for _x in self.engine.reporters if isinstance(_x, BlazeMeterUploader)]
-        for bza_reporter in bza_reporters:
-            assert isinstance(bza_reporter, BlazeMeterUploader)
+        reporters = [_x for _x in self.engine.reporters if isinstance(_x, BlazeMeterUploader)]
+        if isinstance(self.engine.provisioning, CloudProvisioning):
+            reporters = [self.engine.provisioning]
+        for _reporter in reporters:
             report_url = None
             test_name = None
 
-            if bza_reporter.client.results_url:
-                report_url = "BlazeMeter report link: %s\n" % bza_reporter.client.results_url
-            if bza_reporter.client.test_id:
-                test_name = bza_reporter.parameters.get("test", None)
+            if _reporter.client.results_url:
+                if isinstance(_reporter, CloudProvisioning):
+                    name = "Cloud"
+                else:  # is instance(reporter, BlazeMeterUploader)
+                    name = "BlazeMeter"
+                report_url = "%s report link: %s\n" % (name, _reporter.client.results_url)
+            if _reporter.client.test_id:
+                test_name = _reporter.parameters.get("test", None)
 
             if report_url is not None:
                 result.append((report_url, test_name if test_name is not None else report_url))
