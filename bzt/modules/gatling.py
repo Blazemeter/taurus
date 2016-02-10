@@ -89,6 +89,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         datadir = os.path.realpath(self.engine.artifacts_dir)
 
         cmdline = [self.settings["path"]]
+
         cmdline += ["-sf", datadir, "-df", datadir, "-rf ", datadir]
         cmdline += ["-on", "gatling-bzt", "-m", "-s", simulation]
 
@@ -98,13 +99,17 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.stdout_file = open(out, "w")
         self.stderr_file = open(err, "w")
 
+        params_for_scala = {}
+        load = self.get_load()
+        if load.concurrency is not None:
+            params_for_scala['concurrency'] = load.concurrency
+        if load.ramp_up is not None:
+            params_for_scala['ramp-up'] = int(load.ramp_up)
+        if load.hold is not None:
+            params_for_scala['hold-for'] = int(load.hold)
+
         env = BetterDict()
         env.merge(dict(os.environ))
-
-        params_for_scala = {
-            'concurrency': self.get_scenario().get('concurrency', 1),
-            'hold-for': self.execution.get('hold_for', 5)
-        }
 
         java_opts = "".join([" -D%s=%s" % (key, params_for_scala[key]) for key in params_for_scala])
         java_opts += " " + env.get("JAVA_OPTS", "") + " " + self.engine.config.get("java_opts", "")
