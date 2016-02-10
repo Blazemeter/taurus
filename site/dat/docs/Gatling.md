@@ -29,4 +29,29 @@ The `simulation` option is canonical class name for main simulation class. It wi
 
 ## Load Configuration
 
-Take note that Gatling don't have tool options to set concurrency/duration. Everything is controlled by Simulation class, which is free-form scala code. Thus, taurus load profile options like `concurrency`, `ramp-up`, `hold-for` don't have any effect on execution. 
+ Taurus supports possibility to send values of execution options `concurrency`, `ramp-up` and `hold-for` to Gatling test script. Below you can see example of usage these parameters on the Gatling side:
+ 
+```
+ package mytest
+
+import io.gatling.core.Predef._
+import io.gatling.http.Predef._
+import scala.concurrent.duration._
+
+class BasicSimulation extends Simulation {
+
+  val httpConf = http
+    .baseURL("http://blazedemo.com/")
+
+  val scn = scenario("Extra").exec(
+          http("request_1").get("/")
+      )
+
+  val t_concurrency = Integer.getInteger("concurrency", 10).toInt
+  val t_ramp_up = Integer.getInteger("hold-for", 1).toInt
+  val t_hold_for = Integer.getInteger("ramp-up", 1).toInt
+
+  setUp(scn.inject(rampUsers(t_concurrency) over (t_ramp_up))
+    .protocols(httpConf)).maxDuration(t_ramp_up + t_hold_for)
+}
+```

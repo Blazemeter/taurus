@@ -24,8 +24,8 @@ import time
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, SidebarWidget
-from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, \
-    shutdown_process, TclLibrary, MirrorsManager, EXE_SUFFIX
+from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, shutdown_process
+from bzt.utils import BetterDict, TclLibrary, MirrorsManager, EXE_SUFFIX
 
 
 class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
@@ -89,6 +89,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         datadir = os.path.realpath(self.engine.artifacts_dir)
 
         cmdline = [self.settings["path"]]
+
         cmdline += ["-sf", datadir, "-df", datadir, "-rf ", datadir]
         cmdline += ["-on", "gatling-bzt", "-m", "-s", simulation]
 
@@ -98,8 +99,25 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.stdout_file = open(out, "w")
         self.stderr_file = open(err, "w")
 
+        params_for_scala = {}
+        load = self.get_load()
+        if load.concurrency is not None:
+            params_for_scala['concurrency'] = load.concurrency
+        if load.ramp_up is not None:
+            params_for_scala['ramp-up'] = int(load.ramp_up)
+        if load.hold is not None:
+            params_for_scala['hold-for'] = int(load.hold)
+
+        env = BetterDict()
+        env.merge(dict(os.environ))
+
+        java_opts = "".join([" -D%s=%s" % (key, params_for_scala[key]) for key in params_for_scala])
+        java_opts += " " + env.get("JAVA_OPTS", "") + " " + self.engine.config.get("java_opts", "")
+
+        env.merge({"JAVA_OPTS": java_opts})
+
         self.process = shell_exec(cmdline, cwd=self.engine.artifacts_dir, stdout=self.stdout_file,
-                                  stderr=self.stderr_file)
+                                  stderr=self.stderr_file, env=env)
 
     def check(self):
         """
