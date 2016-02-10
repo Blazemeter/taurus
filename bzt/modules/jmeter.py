@@ -799,32 +799,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 tool.install()
 
 
-class JMeterJTLLoaderExecutor(ScenarioExecutor):
-    """
-    Executor type that just loads existing kpi.jtl and errors.jtl/trace.jtl
-    """
-
-    def __init__(self):
-        # TODO: document this executor
-        super(JMeterJTLLoaderExecutor, self).__init__()
-        self.kpi_jtl = None
-        self.log_jtl = None
-        self.reader = None
-
-    def prepare(self):
-        self.kpi_jtl = self.execution.get("kpi-jtl", None)
-        if self.kpi_jtl is None:
-            raise ValueError("Option is required for executor: kpi-jtl")
-        self.log_jtl = self.execution.get("errors-jtl", None)
-
-        self.reader = JTLReader(self.kpi_jtl, self.log, self.log_jtl)
-        if isinstance(self.engine.aggregator, ConsolidatingAggregator):
-            self.engine.aggregator.add_underling(self.reader)
-
-    def check(self):
-        return True
-
-
 class JTLReader(ResultsReader):
     """
     Class to read KPI JTL
