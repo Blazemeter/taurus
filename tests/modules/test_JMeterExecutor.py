@@ -11,13 +11,13 @@ import yaml
 
 from bzt.engine import Provisioning
 from bzt.jmx import JMX
-from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet
+from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.jmeter import JMeterExecutor, JTLErrorsReader, JTLReader, JMeter
-from bzt.modules.jmeter import JMeterJTLLoaderExecutor, JMeterScenarioBuilder
+from bzt.modules.jmeter import JMeterScenarioBuilder
 from bzt.six import etree
 from bzt.utils import BetterDict, EXE_SUFFIX
 from tests import BZTestCase, __dir__
-from tests.mocks import EngineEmul, ResultChecker, RecordingHandler
+from tests.mocks import EngineEmul, RecordingHandler
 
 
 class TestJMeterExecutor(BZTestCase):
@@ -578,24 +578,6 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(tg_loops.text, "1")  # default value, not disabled
         self.assertEqual(tg_forever.text, "false")
 
-    def test_distributed_jtl(self):
-        obj = JMeterJTLLoaderExecutor()
-        obj.engine = EngineEmul()
-        obj.engine.aggregator = ConsolidatingAggregator()
-        self.maxc = 0
-
-        def clb(x):
-            self.maxc = max(self.maxc, x[DataPoint.CURRENT][''][KPISet.CONCURRENCY])
-
-        obj.engine.aggregator.add_listener(ResultChecker(clb))
-        obj.execution = BetterDict()
-        obj.execution.merge({"kpi-jtl": __dir__() + "/../data/distributed.jtl"})
-        obj.prepare()
-        obj.reader.is_distributed = True
-
-        obj.engine.aggregator.post_process()
-        self.assertEquals(23, self.maxc)
-
     def test_distributed_gui(self):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
@@ -856,7 +838,7 @@ class TestJMeterExecutor(BZTestCase):
             "scenario": {
                 "requests": [{
                     "url": "http://blazedemo.com",
-                    }]}})
+                }]}})
         obj.prepare()
 
     def test_jtl_none(self):
@@ -867,5 +849,5 @@ class TestJMeterExecutor(BZTestCase):
             "scenario": {
                 "requests": [{
                     "url": "http://blazedemo.com",
-                    }]}})
+                }]}})
         obj.prepare()
