@@ -254,7 +254,6 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         nose_test = SeleniumScriptBuilder(self.scenario, self.log)
         if self.virtual_display:
             nose_test.window_size = self.virtual_display.size
-        nose_test.scenario = self.scenario
         nose_test.gen_test_case()
         nose_test.save(filename)
         return filename

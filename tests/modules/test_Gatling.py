@@ -87,6 +87,11 @@ class TestGatlingExecutor(BZTestCase):
         self.assertEqual(len(artifacts), 12)
         self.__check_path_resource_files(os.path.join(obj.engine.artifacts_dir, "LocalBasicSimulation.scala"))
 
+    def test_requests(self):
+        obj = self.getGatling()
+        obj.execution.merge({"scenario": {"requests": ['http://blazedemo.com', 'http://google.com']}})
+        obj.prepare()
+
     def test_fail_on_zero_results(self):
         obj = self.getGatling()
         obj.execution.merge({"scenario": {"script": __dir__() + "/../gatling/BasicSimulation.scala"}})

@@ -28,6 +28,56 @@ from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, shutdown_process
 from bzt.utils import BetterDict, TclLibrary, MirrorsManager, EXE_SUFFIX
 
 
+class GatlingScriptBuilder(object):
+    def __init__(self, load, scenario, parent_logger):
+        super(GatlingScriptBuilder, self).__init__()
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.load = load
+        self.scenario = scenario
+        self.script = ''
+        self.requests = list(enumerate([req.url for req in scenario.get_requests()]))
+
+    def gen_test_case(self):
+        self._header()
+        self._http_conf()
+        self._scenario()
+        self._setup()
+        self._footer()
+
+    def _header(self):
+        self.script = '// generated automatically by Taurus\n\n'
+        self.script += 'package taurus_test\n\n'
+        self.script += 'import io.gatling.core.Predef._\nimport io.gatling.http.Predef._\n'
+        self.script += 'import scala.concurrent.duration._\nclass TaurusSimulation extends Simulation {\n\n'
+
+    def _http_conf(self):
+        for req in self.requests:
+            self.script += '\tval httpConf_%s = http.baseURL("%s")\n' % req
+        self.script += '\n'
+
+    def _scenario(self):
+        scenario_template = '\tval scenario_%(num)s = scenario("%(scn)s").exec(http("request_%(num)s").get("/"))'
+        scenario_template += '.pause(%(hold)s)\n'
+        for n in range(len(self.requests)):
+            self.script += scenario_template % {'num': n, 'scn': self.requests[n][1], 'hold': int(self.load.hold)}
+        self.script += '\n'
+
+    def _setup(self):
+        self.script += '\tsetUp('
+        setup_template = '\n\t\tscenario_%(num)s.inject(rampUsers(%(con)s) over (%(ramp)s)).protocols(httpConf_%(num)s)'
+        for n in range(len(self.requests)):
+            self.script += setup_template % {'num': n, 'ramp': int(self.load.ramp_up), 'con': self.load.concurrency}
+            if n < len(self.requests) - 1:
+                self.script += ','
+        self.script += '\n\t)'
+
+    def _footer(self):
+        self.script += '\n}\n'
+
+    def save(self, file_name):
+        open(file_name, 'wt').writelines(self.script)
+
+
 class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     """
     Gatling executor module
@@ -67,14 +117,21 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 self.__cp_res_files_to_artifacts_dir(resource_files)
 
         elif "requests" in scenario:
-            # TODO: implement script generation for gatling
-            raise NotImplementedError("Script generating not yet implemented for Gatling")
+            self.script = self.__generate_script()
+            self.get_scenario().get('simulation', 'taurus_test.TaurusSimulation')
         else:
             raise ValueError("There must be a script file to run Gatling")
 
         self.reader = DataLogReader(self.engine.artifacts_dir, self.log)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
+
+    def __generate_script(self):
+        file_name = self.engine.create_artifact("TaurusSimulation", ".scala")
+        gen_script = GatlingScriptBuilder(self.get_load(), self.get_scenario(), self.log)
+        gen_script.gen_test_case()
+        gen_script.save(file_name)
+        return file_name
 
     def startup(self):
         """
