@@ -39,37 +39,28 @@ class GatlingScriptBuilder(object):
 
     def gen_test_case(self):
         self._header()
-        self._http_conf()
         self._scenario()
         self._setup()
         self._footer()
 
     def _header(self):
         self.script = '// generated automatically by Taurus\n\n'
-        self.script += 'package taurus_test\n\n'
         self.script += 'import io.gatling.core.Predef._\nimport io.gatling.http.Predef._\n'
         self.script += 'import scala.concurrent.duration._\nclass TaurusSimulation extends Simulation {\n\n'
-
-    def _http_conf(self):
-        for req in self.requests:
-            self.script += '\tval httpConf_%s = http.baseURL("%s")\n' % req
-        self.script += '\n'
+        self.script += '\tval httpConf = http.baseURL("")\n\n'
 
     def _scenario(self):
-        scenario_template = '\tval scenario_%(num)s = scenario("%(scn)s").exec(http("request_%(num)s").get("/"))'
-        scenario_template += '.pause(%(hold)s)\n'
+        self.script += '\tval scn = scenario("Taurus Scenario")'
         for n in range(len(self.requests)):
-            self.script += scenario_template % {'num': n, 'scn': self.requests[n][1], 'hold': int(self.load.hold)}
+            scenario_template = '.exec(\n\t\t\thttp("request_%(num)s").get("%(url)s")\n\t\t).pause(%(hold)s)'
+            self.script += scenario_template % {'num': n, 'url': self.requests[n][1], 'hold': int(self.load.hold)}
         self.script += '\n'
 
     def _setup(self):
         self.script += '\tsetUp('
-        setup_template = '\n\t\tscenario_%(num)s.inject(rampUsers(%(con)s) over (%(ramp)s)).protocols(httpConf_%(num)s)'
-        for n in range(len(self.requests)):
-            self.script += setup_template % {'num': n, 'ramp': int(self.load.ramp_up), 'con': self.load.concurrency}
-            if n < len(self.requests) - 1:
-                self.script += ','
-        self.script += '\n\t)'
+        setup_template = '\n\t\tscn.inject(rampUsers(%(con)s) over (%(ramp)s)).protocols(httpConf)\n'
+        self.script += setup_template % {'ramp': int(self.load.ramp_up), 'con': self.load.concurrency}
+        self.script += '\t)'
 
     def _footer(self):
         self.script += '\n}\n'
