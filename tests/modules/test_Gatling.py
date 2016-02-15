@@ -103,6 +103,7 @@ class TestGatlingExecutor(BZTestCase):
             }
         })
         obj.prepare()
+        
         with open(__dir__() + "/../gatling/generated1.scala", 'rt') as std:
             std_str = [s.rstrip() for s in std.readlines()]
         with open(obj.engine.artifacts_dir + "/TaurusSimulation.scala", 'rt') as res:
@@ -120,6 +121,7 @@ class TestGatlingExecutor(BZTestCase):
             }
         })
         obj.prepare()
+
         with open(__dir__() + "/../gatling/generated2.scala", 'rt') as std:
             std_str = [s.rstrip() for s in std.readlines()]
         with open(obj.engine.artifacts_dir + "/TaurusSimulation.scala", 'rt') as res:
