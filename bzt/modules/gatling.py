@@ -24,8 +24,8 @@ import time
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, SidebarWidget
-from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, shutdown_process
 from bzt.utils import BetterDict, TclLibrary, MirrorsManager, EXE_SUFFIX
+from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, shutdown_process
 
 
 class GatlingScriptBuilder(object):
@@ -35,7 +35,6 @@ class GatlingScriptBuilder(object):
         self.load = load
         self.scenario = scenario
         self.script = ''
-        self.requests = scenario.get_requests()
 
     def gen_test_case(self):
         self._header()
@@ -66,12 +65,11 @@ class GatlingScriptBuilder(object):
             self.script += '\t\t.header("%(key)s", "%(val)s")\n' % {'key': key, 'val': scenario_headers[key]}
 
     def _scenario(self):
-
         self.script += '\n\tvar _scn = scenario("Taurus Scenario")\n\n'
         self.script += '\tvar _exec = '
 
         scenario_template = ''
-        for req in self.requests:
+        for req in self.scenario.get_requests():
             if scenario_template != '':
                 scenario_template = '.'
             scenario_template += 'exec(\n\t\t\thttp("%(req_label)s").%(method)s("%(url)s")'
@@ -94,9 +92,6 @@ class GatlingScriptBuilder(object):
 
     def _footer(self):
         self.script += '\n}\n'
-
-    def save(self, file_name):
-        open(file_name, 'wt').writelines(self.script)
 
 
 class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
@@ -151,7 +146,10 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         file_name = self.engine.create_artifact("TaurusSimulation", ".scala")
         gen_script = GatlingScriptBuilder(self.get_load(), self.get_scenario(), self.log)
         gen_script.gen_test_case()
-        gen_script.save(file_name)
+
+        with open(file_name, 'wt') as script:
+            script.writelines(gen_script.script)
+
         return file_name
 
     def startup(self):
@@ -167,7 +165,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         datadir = os.path.realpath(self.engine.artifacts_dir)
 
         cmdline = [self.settings["path"]]
-
         cmdline += ["-sf", datadir, "-df", datadir, "-rf ", datadir]
         cmdline += ["-on", "gatling-bzt", "-m", "-s", simulation]
 

@@ -103,6 +103,11 @@ class TestGatlingExecutor(BZTestCase):
             }
         })
         obj.prepare()
+        with open(__dir__() + "/../gatling/generated1.scala", 'rt') as std:
+            std_str = [s.rstrip() for s in std.readlines()]
+        with open(obj.engine.artifacts_dir + "/TaurusSimulation.scala", 'rt') as res:
+            res_str = [s.rstrip() for s in res.readlines()]
+        self.assertEqual(std_str, res_str)
 
     def test_requests_noiter_noramp(self):
         obj = self.getGatling()
@@ -115,6 +120,11 @@ class TestGatlingExecutor(BZTestCase):
             }
         })
         obj.prepare()
+        with open(__dir__() + "/../gatling/generated2.scala", 'rt') as std:
+            std_str = [s.rstrip() for s in std.readlines()]
+        with open(obj.engine.artifacts_dir + "/TaurusSimulation.scala", 'rt') as res:
+            res_str = [s.rstrip() for s in res.readlines()]
+        self.assertEqual(std_str, res_str)
 
     def test_fail_on_zero_results(self):
         obj = self.getGatling()
