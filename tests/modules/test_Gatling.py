@@ -87,9 +87,14 @@ class TestGatlingExecutor(BZTestCase):
         self.assertEqual(len(artifacts), 12)
         self.__check_path_resource_files(os.path.join(obj.engine.artifacts_dir, "LocalBasicSimulation.scala"))
 
-    def test_requests(self):
+    def test_requests_defaddr_iter_ramp(self):
         obj = self.getGatling()
         obj.execution.merge({"scenario": {"requests": ['http://blazedemo.com', 'http://google.com']}})
+        obj.prepare()
+
+    def test_requests_noiter_header_noramp(self):
+        obj = self.getGatling()
+        obj.execution.mer()
         obj.prepare()
 
     def test_fail_on_zero_results(self):

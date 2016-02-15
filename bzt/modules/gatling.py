@@ -39,6 +39,8 @@ class GatlingScriptBuilder(object):
 
     def gen_test_case(self):
         self._header()
+        self._vars()
+        self._http_conf()
         self._scenario()
         self._setup()
         self._footer()
@@ -47,20 +49,36 @@ class GatlingScriptBuilder(object):
         self.script = '// generated automatically by Taurus\n\n'
         self.script += 'import io.gatling.core.Predef._\nimport io.gatling.http.Predef._\n'
         self.script += 'import scala.concurrent.duration._\nclass TaurusSimulation extends Simulation {\n\n'
-        self.script += '\tval httpConf = http.baseURL("")\n\n'
+
+    def _vars(self):
+        self.script += '\tval _t_concurrency = Integer.getInteger("concurrency", 1).toInt\n'
+        self.script += '\tval _t_ramp_up = Integer.getInteger("ramp-up", 0).toInt\n'
+        self.script += '\tval _t_hold_for = Integer.getInteger("hold-for", 0).toInt\n'
+        self.script += '\tval _t_iterations = Integer.getInteger("iterations")\n'
+        self.script += '\tval _t_think_time = Integer.getInteger("think-time", 0).toInt\n'
+
+    def _http_conf(self):
+        base_addr = self.scenario.get('default-address', '')
+        self.script += '\tval httpConf = http.baseURL("%(addr)s")\n\n' % {'addr': base_addr}
 
     def _scenario(self):
-        self.script += '\tval scn = scenario("Taurus Scenario")'
+
+        self.script += '\tvar _scn = scenario("Taurus Scenario")\n'
+        self.script += '\tvar _exec = \n'
+
         for n in range(len(self.requests)):
-            scenario_template = '.exec(\n\t\t\thttp("request_%(num)s").get("%(url)s")\n\t\t).pause(%(hold)s)'
-            self.script += scenario_template % {'num': n, 'url': self.requests[n][1], 'hold': int(self.load.hold)}
-        self.script += '\n'
+            scenario_template = '\t\texec(http("request_%(num)s").get("%(url)s")).pause(_t_think_time)\n'
+            self.script += scenario_template % {'num': n, 'url': self.requests[n][1]}
+
+        self.script += '\n\tif (_t_iterations == null)\n'
+        self.script += '\t\t_scn = _scn.forever{_exec}\n'
+        self.script += '\telse\n'
+        self.script += '\t\t_scn = _scn.repeat(_t_iterations.toInt){_exec}\n\n'
+
+        self.script += '\tvar _scn_pop = _scn.inject(rampUsers(_t_concurrency) over (_t_ramp_up))\n'
 
     def _setup(self):
-        self.script += '\tsetUp('
-        setup_template = '\n\t\tscn.inject(rampUsers(%(con)s) over (%(ramp)s)).protocols(httpConf)\n'
-        self.script += setup_template % {'ramp': int(self.load.ramp_up), 'con': self.load.concurrency}
-        self.script += '\t)'
+        self.script += '\tsetUp(_scn_pop.protocols(httpConf)).maxDuration(_t_hold_for + _t_ramp_up)\n'
 
     def _footer(self):
         self.script += '\n}\n'
@@ -149,12 +167,17 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         params_for_scala = {}
         load = self.get_load()
+        scenario = self.get_scenario()
         if load.concurrency is not None:
             params_for_scala['concurrency'] = load.concurrency
         if load.ramp_up is not None:
             params_for_scala['ramp-up'] = int(load.ramp_up)
         if load.hold is not None:
             params_for_scala['hold-for'] = int(load.hold)
+        if load.iterations is not None:
+            params_for_scala['iterations'] = int(load.iterations)
+        if scenario.get('think-time', None) is not None:
+            params_for_scala['think-time'] = int(scenario.get('think-time'))
 
         env = BetterDict()
         env.merge(dict(os.environ))
