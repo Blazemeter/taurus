@@ -35,7 +35,7 @@ class GatlingScriptBuilder(object):
         self.load = load
         self.scenario = scenario
         self.script = ''
-        self.requests = list(enumerate([req.url for req in scenario.get_requests()]))
+        self.requests = scenario.get_requests()
 
     def gen_test_case(self):
         self._header()
@@ -48,7 +48,7 @@ class GatlingScriptBuilder(object):
     def _header(self):
         self.script = '// generated automatically by Taurus\n\n'
         self.script += 'import io.gatling.core.Predef._\nimport io.gatling.http.Predef._\n'
-        self.script += 'import scala.concurrent.duration._\nclass TaurusSimulation extends Simulation {\n\n'
+        self.script += 'import scala.concurrent.duration._\n\nclass TaurusSimulation extends Simulation {\n\n'
 
     def _vars(self):
         self.script += '\tval _t_concurrency = Integer.getInteger("concurrency", 1).toInt\n'
@@ -59,18 +59,30 @@ class GatlingScriptBuilder(object):
 
     def _http_conf(self):
         base_addr = self.scenario.get('default-address', '')
-        self.script += '\tval httpConf = http.baseURL("%(addr)s")\n\n' % {'addr': base_addr}
+        self.script += '\n\tval httpConf = http.baseURL("%(addr)s")\n' % {'addr': base_addr}
+
+        scenario_headers = self.scenario.get_headers()
+        for key in scenario_headers:
+            self.script += '\t\t.header("%(key)s", "%(val)s")\n' % {'key': key, 'val': scenario_headers[key]}
 
     def _scenario(self):
 
-        self.script += '\tvar _scn = scenario("Taurus Scenario")\n'
-        self.script += '\tvar _exec = \n'
+        self.script += '\n\tvar _scn = scenario("Taurus Scenario")\n\n'
+        self.script += '\tvar _exec = '
 
-        for n in range(len(self.requests)):
-            scenario_template = '\t\texec(http("request_%(num)s").get("%(url)s")).pause(_t_think_time)\n'
-            self.script += scenario_template % {'num': n, 'url': self.requests[n][1]}
+        scenario_template = ''
+        for req in self.requests:
+            if scenario_template != '':
+                scenario_template = '.'
+            scenario_template += 'exec(\n\t\t\thttp("%(req_label)s").%(method)s("%(url)s")'
 
-        self.script += '\n\tif (_t_iterations == null)\n'
+            for key in req.headers:
+                scenario_template += '\n\t\t\t\t.header("%(key)s", "%(val)s")' % {'key': key, 'val': req.headers[key]}
+
+            scenario_template += '\n\t\t).pause(_t_think_time)'
+            self.script += scenario_template % {'req_label': req.label, 'url': req.url, 'method': req.method.lower()}
+
+        self.script += '\n\n\tif (_t_iterations == null)\n'
         self.script += '\t\t_scn = _scn.forever{_exec}\n'
         self.script += '\telse\n'
         self.script += '\t\t_scn = _scn.repeat(_t_iterations.toInt){_exec}\n\n'

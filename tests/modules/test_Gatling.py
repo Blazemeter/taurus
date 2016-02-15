@@ -87,14 +87,33 @@ class TestGatlingExecutor(BZTestCase):
         self.assertEqual(len(artifacts), 12)
         self.__check_path_resource_files(os.path.join(obj.engine.artifacts_dir, "LocalBasicSimulation.scala"))
 
-    def test_requests_defaddr_iter_ramp(self):
+    def test_requests_defaddr_iter_headers(self):
         obj = self.getGatling()
-        obj.execution.merge({"scenario": {"requests": ['http://blazedemo.com', 'http://google.com']}})
+        obj.execution.merge({
+            "concurrency": 10,
+            "iterations": 5,
+            "scenario": {
+                "think-time": 1,
+                "default-address": "http://blazedemo.com",
+                "headers": {'SH1': 'SV1', 'SH2': 'SV2'},
+                "requests": [{'url': '/reserve.php',
+                              'headers': {'RH1': 'RV1', 'RH2': 'RV2'},
+                              'method': 'POST'},
+                             {'url': '/'}]
+            }
+        })
         obj.prepare()
 
-    def test_requests_noiter_header_noramp(self):
+    def test_requests_noiter_noramp(self):
         obj = self.getGatling()
-        obj.execution.mer()
+        obj.execution.merge({
+            "scenario": {
+                "concurrency": 10,
+                "hold-for": 110,
+                "ramp-up": 30,
+                "requests": ['http://blazedemo.com', 'http://google.com']
+            }
+        })
         obj.prepare()
 
     def test_fail_on_zero_results(self):
