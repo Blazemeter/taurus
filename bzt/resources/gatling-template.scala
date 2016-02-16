@@ -12,14 +12,15 @@ class TaurusSimulation extends Simulation {
     val _t_iterations = Integer.getInteger("iterations")
     val _t_think_time = Integer.getInteger("think-time", 0).toInt
 
-    val httpConf = http.baseURL("")
+    val httpConf = http.baseURL("%(addr)s")
+        .header("%(key)s", "%(val)s")
 
     var _scn = scenario("Taurus Scenario")
 
-    var _exec = exec(
-            http("http://blazedemo.com").get("http://blazedemo.com")
-        ).pause(_t_think_time).exec(
-            http("http://google.com").get("http://google.com")
+    var _exec =
+        exec(
+            http("%(req_label)s").%(method)s("%(url)s")
+                .header("%(key)s", "%(val)s")
         ).pause(_t_think_time)
 
         if (_t_iterations == null)
