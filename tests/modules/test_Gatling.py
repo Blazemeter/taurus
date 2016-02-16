@@ -103,7 +103,7 @@ class TestGatlingExecutor(BZTestCase):
             }
         })
         obj.prepare()
-
+        self.maxDiff = None
         self.assertEqualFiles(__dir__() + "/../gatling/generated1.scala",
                               obj.engine.artifacts_dir + "/TaurusSimulation.scala")
 
