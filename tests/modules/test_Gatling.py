@@ -1,13 +1,13 @@
+import logging
 import os
 import re
 import shutil
 import time
-import logging
 
 from bzt.modules.gatling import GatlingExecutor, DataLogReader, Gatling
+from bzt.utils import EXE_SUFFIX
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul
-from bzt.utils import EXE_SUFFIX
 
 
 class TestGatlingExecutor(BZTestCase):
@@ -103,10 +103,9 @@ class TestGatlingExecutor(BZTestCase):
             }
         })
         obj.prepare()
-        
+
         self.assertEqualFiles(__dir__() + "/../gatling/generated1.scala",
                               obj.engine.artifacts_dir + "/TaurusSimulation.scala")
-
 
     def test_requests_noiter_noramp(self):
         obj = self.getGatling()
