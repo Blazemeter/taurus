@@ -95,15 +95,14 @@ class TestGatlingExecutor(BZTestCase):
             "scenario": {
                 "think-time": 1,
                 "default-address": "http://blazedemo.com",
-                "headers": {'SH1': 'SV1', 'SH2': 'SV2'},
+                "headers": {'H1': 'V1'},
                 "requests": [{'url': '/reserve.php',
-                              'headers': {'RH1': 'RV1', 'RH2': 'RV2'},
+                              'headers': {'H2': 'V2'},
                               'method': 'POST'},
                              {'url': '/'}]
             }
         })
         obj.prepare()
-        self.maxDiff = None
         self.assertEqualFiles(__dir__() + "/../gatling/generated1.scala",
                               obj.engine.artifacts_dir + "/TaurusSimulation.scala")
 

@@ -13,15 +13,13 @@ class TaurusSimulation extends Simulation {
     val _t_think_time = Integer.getInteger("think-time", 0).toInt
 
     val httpConf = http.baseURL("http://blazedemo.com")
-        .header("SH1", "SV1")
-        .header("SH2", "SV2")
+        .header("H1", "V1")
 
     var _scn = scenario("Taurus Scenario")
 
     var _exec = exec(
             http("/reserve.php").post("/reserve.php")
-                .header("RH1", "RV1")
-                .header("RH2", "RV2")
+                .header("H2", "V2")
         ).pause(_t_think_time).exec(
             http("/").get("/")
         ).pause(_t_think_time)
