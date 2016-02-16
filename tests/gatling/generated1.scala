@@ -10,7 +10,6 @@ class TaurusSimulation extends Simulation {
     val _t_ramp_up = Integer.getInteger("ramp-up", 0).toInt
     val _t_hold_for = Integer.getInteger("hold-for", 0).toInt
     val _t_iterations = Integer.getInteger("iterations")
-    val _t_think_time = Integer.getInteger("think-time", 0).toInt
 
     val httpConf = http.baseURL("http://blazedemo.com")
         .header("H1", "V1")
@@ -20,9 +19,9 @@ class TaurusSimulation extends Simulation {
     var _exec = exec(
             http("/reserve.php").post("/reserve.php")
                 .header("H2", "V2")
-        ).pause(_t_think_time).exec(
+        ).pause(None).exec(
             http("/").get("/")
-        ).pause(_t_think_time)
+        ).pause(None)
 
         if (_t_iterations == null)
             _scn = _scn.forever{_exec}

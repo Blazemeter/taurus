@@ -77,7 +77,11 @@ class GatlingScriptBuilder(object):
                 for key in req.headers:
                     script.append(tmp_header % {'key': key, 'val': req.headers[key]})
 
-                temp_line = tmp_pause
+                if req.think_time is None or req.think_time == 0:
+                    think_time = req.think_time
+                else:
+                    think_time = self.scenario.get('think-time', 0)
+                temp_line = tmp_pause % {'think_time': think_time}
                 delimiter = '.'
             script.append(temp_line)
 
@@ -168,7 +172,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         params_for_scala = {}
         load = self.get_load()
-        scenario = self.get_scenario()
         if load.concurrency is not None:
             params_for_scala['concurrency'] = load.concurrency
         if load.ramp_up is not None:
@@ -177,8 +180,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             params_for_scala['hold-for'] = int(load.hold)
         if load.iterations is not None and load.iterations != 0:
             params_for_scala['iterations'] = int(load.iterations)
-        if scenario.get('think-time', None) is not None:
-            params_for_scala['think-time'] = int(scenario.get('think-time'))
 
         env = BetterDict()
         env.merge(dict(os.environ))

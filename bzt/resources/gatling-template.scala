@@ -10,7 +10,6 @@ class TaurusSimulation extends Simulation {
     val _t_ramp_up = Integer.getInteger("ramp-up", 0).toInt
     val _t_hold_for = Integer.getInteger("hold-for", 0).toInt
     val _t_iterations = Integer.getInteger("iterations")
-    val _t_think_time = Integer.getInteger("think-time", 0).toInt
 
     val httpConf = http.baseURL("%(addr)s")
         .header("%(key)s", "%(val)s")
@@ -21,7 +20,7 @@ class TaurusSimulation extends Simulation {
         exec(
             http("%(req_label)s").%(method)s("%(url)s")
                 .header("%(key)s", "%(val)s")
-        ).pause(_t_think_time)
+        ).pause(%(think_time)s)
 
         if (_t_iterations == null)
             _scn = _scn.forever{_exec}
