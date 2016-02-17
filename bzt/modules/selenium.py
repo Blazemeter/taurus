@@ -246,8 +246,8 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.runner_working_dir = self.engine.create_artifact(runner_config.get("working-dir", "classes"), "")
 
         self._cp_resource_files(self.runner_working_dir)
-
-        return [os.path.basename(self.runner_working_dir)]
+        files = os.walk(self.runner_working_dir).next()
+        return [os.path.join(files[0], f) for f in files[2]]
 
     def __tests_from_requests(self):
         filename = self.engine.create_artifact("test_requests", ".py")
