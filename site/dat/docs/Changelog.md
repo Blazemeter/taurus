@@ -8,7 +8,8 @@
  - one virtual display for all selenium executions
  - add link for cloud provisioning results into JUnit xml
  - add interface between Taurus and Gatling test script (scala)
- - fix selenium resource files list for cloud 
+ - fix selenium resource files list for cloud
+ - fix forced delimiter detection for JMeter (failed for single-column csv)  
 
 ## 1.1.0
  - support `iterations` and `hold-for` options for Selenium

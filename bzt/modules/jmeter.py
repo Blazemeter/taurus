@@ -1331,7 +1331,10 @@ class JMeterScenarioBuilder(JMX):
         for idx, source in enumerate(sources):
             source = ensure_is_dict(sources, idx, "path")
 
-            delimiter = source.get("delimiter", self.__guess_delimiter(source['path']))
+            delimiter = source.get("delimiter", None)
+
+            if delimiter is None:
+                delimiter = self.__guess_delimiter(source['path'])
 
             config = JMX._get_csv_config(os.path.abspath(source['path']), delimiter,
                                          source.get("quoted", False), source.get("loop", True))
