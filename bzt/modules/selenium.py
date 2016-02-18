@@ -584,7 +584,8 @@ class JUnitJar(RequiredTool):
         junit_dist = super(JUnitJar, self).install_with_mirrors(dest, ".jar")
         self.log.info("Installing %s into %s", self.tool_name, dest)
         junit_dist.close()
-        os.makedirs(dest)
+        if not os.path.exists(dest):
+            os.makedirs(dest)
         shutil.move(junit_dist.name, self.tool_path)
         self.log.info("Installed JUnit successfully")
 
