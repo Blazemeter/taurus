@@ -1341,12 +1341,12 @@ class JMeterScenarioBuilder(JMX):
             self.append(self.TEST_PLAN_SEL, config)
             self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
 
-    @staticmethod
-    def __guess_delimiter(path):
+    def __guess_delimiter(self, path):
         with open(path) as fhd:
             header = fhd.read(4096)  # 4KB is enough for header
             dialect = guess_csv_dialect(header)
             if dialect is None:
+                self.log.warning('CSV dialect detection failed, default delimiter (",") selected.')
                 delimiter = ","  # default value
             else:
                 delimiter = dialect.delimiter
