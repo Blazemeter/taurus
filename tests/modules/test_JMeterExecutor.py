@@ -15,7 +15,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.jmeter import JMeterExecutor, JTLErrorsReader, JTLReader, JMeter
 from bzt.modules.jmeter import JMeterScenarioBuilder
 from bzt.six import etree
-from bzt.utils import BetterDict, EXE_SUFFIX
+from bzt.utils import BetterDict, guess_csv_dialect, EXE_SUFFIX
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul, RecordingHandler
 
@@ -99,6 +99,27 @@ class TestJMeterExecutor(BZTestCase):
                 "script": __dir__() + "/../jmx/issue_no_iterations.jmx"
             }
         })
+        obj.prepare()
+
+    def test_datasources_with_delimiter(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.execution = BetterDict()
+        obj.execution.merge({"scenario":
+                                 {"requests": ["http://localhost"],
+                                  "data-sources": [
+                                      {"path": __dir__() + "/../data/test2.csv",
+                                       "delimiter": ","}]}})
+        obj.prepare()
+
+    def test_datasources_without_delimiter(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.execution = BetterDict()
+        obj.execution.merge({"scenario":
+                                 {"requests": ["http://localhost"],
+                                  "data-sources": [
+                                      {"path": __dir__() + "/../data/test2.csv"}]}})
         obj.prepare()
 
     def test_install_jmeter(self):

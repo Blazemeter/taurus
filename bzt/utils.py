@@ -35,6 +35,7 @@ import tempfile
 import time
 import webbrowser
 import zipfile
+from _csv import Error
 from abc import abstractmethod
 from collections import defaultdict, Counter
 from subprocess import PIPE
@@ -495,13 +496,12 @@ def guess_csv_dialect(header):
     :raise ValueError:
     :rtype: csv.Dialect
     """
-    possible_delims = "\t;|:,"
-    lines = header.split("\n")
-    if len(lines) < 2:
-        raise ValueError("CSV header must contain at least 1 line")
+    possible_delims = ",;\t"
 
-    dialect = csv.Sniffer().sniff(header, delimiters=possible_delims)
-    return dialect
+    try:
+        return csv.Sniffer().sniff(header, delimiters=possible_delims)
+    except Error:
+        return None  # dialect detection failed
 
 
 def load_class(full_name):
