@@ -171,9 +171,9 @@ scenarios:
     data-sources: # list of external data sources
     - path/to/my.csv  # this is a shorthand form
     - path: path/to/another.csv  # this is full form, path option is required
-        delimiter: ';'  # CSV delimiter, auto-detected by default
-        quoted: false  # allow quoted data
-        loop: true  # loop over in case of end-of-file reached
+      delimiter: ';'  # CSV delimiter, auto-detected by default
+      quoted: false  # allow quoted data
+      loop: true  # loop over in case of end-of-file reached
 ```
 
 Note that `timeout` also sets duration assertion that will mark response failed if response time was more than timeout.
