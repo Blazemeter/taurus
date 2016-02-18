@@ -15,7 +15,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.jmeter import JMeterExecutor, JTLErrorsReader, JTLReader, JMeter
 from bzt.modules.jmeter import JMeterScenarioBuilder
 from bzt.six import etree
-from bzt.utils import BetterDict, guess_csv_dialect, EXE_SUFFIX
+from bzt.utils import BetterDict, EXE_SUFFIX
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul, RecordingHandler
 
