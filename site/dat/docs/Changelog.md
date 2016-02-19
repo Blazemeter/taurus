@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.1 (next)
+## 1.2.0
  - maximize browser window in Selenium test, when possible
  - add graphite support to monitoring service
  - add local monitoring service
