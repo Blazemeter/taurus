@@ -1341,7 +1341,14 @@ class JMeterScenarioBuilder(JMX):
     def __guess_delimiter(self, path):
         with open(path) as fhd:
             header = fhd.read(4096)  # 4KB is enough for header
-            return guess_csv_dialect(header).delimiter
+            try:
+                delimiter = guess_csv_dialect(header).delimiter
+            except BaseException as exc:
+                self.log.debug(traceback.format_exc())
+                self.log.warning('CSV dialect detection failed (%s), default delimiter selected (",")' % str(exc))
+                delimiter = ","  # default value
+
+        return delimiter
 
 
 class JMeter(RequiredTool):

@@ -101,6 +101,27 @@ class TestJMeterExecutor(BZTestCase):
         })
         obj.prepare()
 
+    def test_datasources_with_delimiter(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.execution = BetterDict()
+        obj.execution.merge({"scenario":
+                                 {"requests": ["http://localhost"],
+                                  "data-sources": [
+                                      {"path": __dir__() + "/../data/test2.csv",
+                                       "delimiter": ","}]}})
+        obj.prepare()
+
+    def test_datasources_without_delimiter(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.execution = BetterDict()
+        obj.execution.merge({"scenario":
+                                 {"requests": ["http://localhost"],
+                                  "data-sources": [
+                                      {"path": __dir__() + "/../data/test2.csv"}]}})
+        obj.prepare()
+
     def test_install_jmeter(self):
         path = os.path.abspath(__dir__() + "/../../build/tmp/jmeter-taurus/bin/jmeter" + EXE_SUFFIX)
 
