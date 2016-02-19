@@ -1344,7 +1344,7 @@ class JMeterScenarioBuilder(JMX):
             try:
                 delimiter = guess_csv_dialect(header).delimiter
             except:
-                self.log.warning('CSV dialect detection failed, default delimiter (",") selected.')
+                self.log.warning('CSV dialect detection failed, default delimiter (",") selected')
                 delimiter = ","  # default value
 
         return delimiter
