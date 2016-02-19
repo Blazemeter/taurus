@@ -246,8 +246,8 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.runner_working_dir = self.engine.create_artifact(runner_config.get("working-dir", "classes"), "")
 
         self._cp_resource_files(self.runner_working_dir)
-
-        return [os.path.basename(self.runner_working_dir)]
+        files = next(os.walk(self.runner_working_dir))
+        return [os.path.join(files[0], f) for f in files[2]]
 
     def __tests_from_requests(self):
         filename = self.engine.create_artifact("test_requests", ".py")
@@ -583,7 +583,8 @@ class JUnitJar(RequiredTool):
         junit_dist = super(JUnitJar, self).install_with_mirrors(dest, ".jar")
         self.log.info("Installing %s into %s", self.tool_name, dest)
         junit_dist.close()
-        os.makedirs(dest)
+        if not os.path.exists(dest):
+            os.makedirs(dest)
         shutil.move(junit_dist.name, self.tool_path)
         self.log.info("Installed JUnit successfully")
 

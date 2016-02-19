@@ -76,8 +76,8 @@ Extended scenario with runner options:
 ---
 execution:
 - executor: selenium
+  iterations: 5
   scenario:
-    iterations: 5
     script: /home/user/tests/my_test.java
     additional-classpath:  # optional, following libs will be added to java classpath
     - /home/user/lib_one.jar

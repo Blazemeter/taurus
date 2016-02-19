@@ -1,13 +1,15 @@
 # Changelog
 
-## 1.1.1 (next)
+## 1.2.0
  - maximize browser window in Selenium test, when possible
  - add graphite support to monitoring service
  - add local monitoring service
  - create [Docker](Docker.md) image with Taurus inside
  - one virtual display for all selenium executions
  - add link for cloud provisioning results into JUnit xml
- - add interface between Taurus and Gatling test script (scala)  
+ - add interface between Taurus and Gatling test script (scala)
+ - fix selenium resource files list for cloud
+ - fix forced delimiter detection for JMeter (failed for single-column csv)  
 
 ## 1.1.0
  - support `iterations` and `hold-for` options for Selenium
