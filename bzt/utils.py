@@ -35,15 +35,16 @@ import tempfile
 import time
 import webbrowser
 import zipfile
-from _csv import Error
 from abc import abstractmethod
 from collections import defaultdict, Counter
 from subprocess import PIPE
 from webbrowser import GenericBrowser
+
 import psutil
 from progressbar import ProgressBar, Percentage, Bar, ETA
 from psutil import Popen
 from urwid import BaseScreen
+
 from bzt.six import string_types, iteritems, viewvalues, binary_type, text_type, b, integer_types, request, file_type
 
 
