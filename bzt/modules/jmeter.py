@@ -1331,10 +1331,7 @@ class JMeterScenarioBuilder(JMX):
         for idx, source in enumerate(sources):
             source = ensure_is_dict(sources, idx, "path")
 
-            delimiter = source.get("delimiter", None)
-
-            if delimiter is None:
-                delimiter = self.__guess_delimiter(source['path'])
+            delimiter = source.get("delimiter", self.__guess_delimiter(source['path']))
 
             config = JMX._get_csv_config(os.path.abspath(source['path']), delimiter,
                                          source.get("quoted", False), source.get("loop", True))
@@ -1344,12 +1341,11 @@ class JMeterScenarioBuilder(JMX):
     def __guess_delimiter(self, path):
         with open(path) as fhd:
             header = fhd.read(4096)  # 4KB is enough for header
-            dialect = guess_csv_dialect(header)
-            if dialect is None:
+            try:
+                delimiter = guess_csv_dialect(header).delimiter
+            except:
                 self.log.warning('CSV dialect detection failed, default delimiter (",") selected.')
                 delimiter = ","  # default value
-            else:
-                delimiter = dialect.delimiter
 
         return delimiter
 

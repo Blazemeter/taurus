@@ -498,10 +498,7 @@ def guess_csv_dialect(header):
     """
     possible_delims = ",;\t"
 
-    try:
-        return csv.Sniffer().sniff(header, delimiters=possible_delims)
-    except Error:
-        return None  # dialect detection failed
+    return csv.Sniffer().sniff(header, delimiters=possible_delims)
 
 
 def load_class(full_name):
