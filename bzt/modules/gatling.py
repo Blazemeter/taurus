@@ -209,9 +209,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 self.log.info("Gatling tool exit code: %s", self.retcode)
                 raise RuntimeError("Gatling tool exited with non-zero code")
 
-            # if not self.reader.filename:
-            #    msg = "No simulation.log, most likely the tool failed to run"
-            #    raise RuntimeWarning(msg)
             return True
         return False
 

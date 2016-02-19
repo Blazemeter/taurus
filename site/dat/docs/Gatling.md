@@ -29,7 +29,7 @@ The `simulation` option is canonical class name for main simulation class. It wi
 
 ## Load Configuration
 
- Taurus supports possibility to send values of execution options `concurrency`, `ramp-up` and `hold-for` to Gatling test script. Below you can see example of usage these parameters on the Gatling side:
+ Taurus supports possibility to send values of execution options `concurrency`, `iterations`, `ramp-up` and `hold-for` to Gatling test script. Below you can see example of usage these parameters on the Gatling side:
  
 ```
  package mytest
