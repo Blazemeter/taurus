@@ -39,10 +39,12 @@ from abc import abstractmethod
 from collections import defaultdict, Counter
 from subprocess import PIPE
 from webbrowser import GenericBrowser
+
 import psutil
 from progressbar import ProgressBar, Percentage, Bar, ETA
 from psutil import Popen
 from urwid import BaseScreen
+
 from bzt.six import string_types, iteritems, viewvalues, binary_type, text_type, b, integer_types, request, file_type
 
 
@@ -495,13 +497,9 @@ def guess_csv_dialect(header):
     :raise ValueError:
     :rtype: csv.Dialect
     """
-    possible_delims = "\t;|:,"
-    lines = header.split("\n")
-    if len(lines) < 2:
-        raise ValueError("CSV header must contain at least 1 line")
+    possible_delims = ",;\t"
 
-    dialect = csv.Sniffer().sniff(header, delimiters=possible_delims)
-    return dialect
+    return csv.Sniffer().sniff(header, delimiters=possible_delims)
 
 
 def load_class(full_name):
