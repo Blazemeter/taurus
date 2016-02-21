@@ -38,7 +38,7 @@ from bzt.jmx import JMX
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.six import iteritems, text_type, StringIO, request, etree, binary_type
-from bzt.utils import shell_exec, ensure_is_dict, get_milliseconds, BetterDict, guess_csv_dialect, EXE_SUFFIX
+from bzt.utils import shell_exec, ensure_is_dict, dehumanize_time, BetterDict, guess_csv_dialect, EXE_SUFFIX
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary, MirrorsManager
 
 
@@ -1169,13 +1169,22 @@ class JMeterScenarioBuilder(JMX):
             self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
             self.system_props.merge({"system-properties": {"sun.net.inetaddr.ttl": 0}})
 
+    @staticmethod
+    def smart_time(any_time):
+        try:
+            smart_time = int(1000 * dehumanize_time(any_time))
+        except ValueError:
+            smart_time = any_time
+
+        return smart_time
+
     def __add_defaults(self):
         default_address = self.scenario.get("default-address", None)
         retrieve_resources = self.scenario.get("retrieve-resources", True)
         concurrent_pool_size = self.scenario.get("concurrent-pool-size", 4)
 
         timeout = self.scenario.get("timeout", None)
-        timeout = get_milliseconds(timeout)
+        timeout = self.smart_time(timeout)
         self.append(self.TEST_PLAN_SEL, self._get_http_defaults(default_address, timeout,
                                                                 retrieve_resources, concurrent_pool_size))
         self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
@@ -1183,9 +1192,9 @@ class JMeterScenarioBuilder(JMX):
     def __add_think_time(self, children, req):
         global_ttime = self.scenario.get("think-time", None)
         if req.think_time is not None:
-            ttime = get_milliseconds(req.think_time)
+            ttime = self.smart_time(req.think_time)
         elif global_ttime is not None:
-            ttime = get_milliseconds(global_ttime)
+            ttime = self.smart_time(global_ttime)
         else:
             ttime = None
         if ttime is not None:
@@ -1260,9 +1269,9 @@ class JMeterScenarioBuilder(JMX):
 
         for req in self.scenario.get_requests():
             if req.timeout is not None:
-                timeout = get_milliseconds(req.timeout)
+                timeout = self.smart_time(req.timeout)
             elif global_timeout is not None:
-                timeout = get_milliseconds(global_timeout)
+                timeout = self.smart_time(global_timeout)
             else:
                 timeout = None
 

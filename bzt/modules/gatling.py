@@ -24,7 +24,7 @@ import time
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, SidebarWidget
-from bzt.utils import BetterDict, TclLibrary, MirrorsManager, EXE_SUFFIX, get_milliseconds
+from bzt.utils import BetterDict, TclLibrary, MirrorsManager, EXE_SUFFIX, dehumanize_time
 from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, shutdown_process
 
 
@@ -182,7 +182,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         scenario = self.get_scenario()
 
         if scenario.get('timeout', None) is not None:
-            params_for_scala['gatling.http.ahc.requestTimeout'] = get_milliseconds(scenario.get('timeout'))
+            params_for_scala['gatling.http.ahc.requestTimeout'] = int(dehumanize_time(scenario.get('timeout'))*1000)
         if scenario.get('keepalive', None) is not None:
             params_for_scala['gatling.http.ahc.keepAlive'] = scenario.get('keepalive').lower()
         if load.concurrency is not None:

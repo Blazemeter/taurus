@@ -109,15 +109,6 @@ def dehumanize_time(str_time):
     return result
 
 
-def get_milliseconds(str_time):
-    try:
-        milliseconds = int(1000 * dehumanize_time(str_time))
-    except ValueError:
-        milliseconds = str_time
-
-    return milliseconds
-
-
 class BetterDict(defaultdict):
     """
     Wrapper for defaultdict that able to deep merge other dicts into itself
