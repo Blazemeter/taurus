@@ -206,7 +206,7 @@ scenarios:
       body:  # generate query string based on parameters and request type
         param1: value1
         param2: value2
-        body-file: path/to/file.txt  # this file contents will be used as post body
+      body-file: path/to/file.txt  # this file contents will be used as post body
 
       headers:  # local headers that override global
         Authentication: Token 1234567890

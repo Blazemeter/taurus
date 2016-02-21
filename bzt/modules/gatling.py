@@ -24,7 +24,7 @@ import time
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, SidebarWidget
-from bzt.utils import BetterDict, TclLibrary, MirrorsManager, EXE_SUFFIX
+from bzt.utils import BetterDict, TclLibrary, MirrorsManager, EXE_SUFFIX, get_milliseconds
 from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, shutdown_process
 
 
@@ -41,7 +41,7 @@ class GatlingScriptBuilder(object):
         def get_line(_file):
             return _file.readline().rstrip()
 
-        template_path = os.path.join(os.path.dirname(__file__), os.pardir, 'resources', "gatling-template.scala")
+        template_path = os.path.join(os.path.dirname(__file__), os.pardir, 'resources', "gatling_script_template.scala")
         script = []
 
         with open(template_path) as template_file:
@@ -65,6 +65,7 @@ class GatlingScriptBuilder(object):
             tmp_exec = get_line(template_file).strip()
             tmp_http = get_line(template_file)
             tmp_header = get_line(template_file)
+            tmp_body = get_line(template_file)
             tmp_pause = get_line(template_file)
 
             delimiter = ''
@@ -77,10 +78,16 @@ class GatlingScriptBuilder(object):
                 for key in req.headers:
                     script.append(tmp_header % {'key': key, 'val': req.headers[key]})
 
-                if req.think_time is None or req.think_time == 0:
-                    think_time = req.think_time
+                if req.body is not None:
+                    if isinstance(req.body, str):
+                        script.append(tmp_body % {'method': 'StringBody', 'body': req.body})
+                    else:
+                        self.log.warning('Only string and file are supported body content, "%s" ignored' % str(req.body))
+
+                if req.think_time is None:
+                    think_time = 0
                 else:
-                    think_time = self.scenario.get('think-time', 0)
+                    think_time = req.think_time
                 temp_line = tmp_pause % {'think_time': think_time}
                 delimiter = '.'
             script.append(temp_line)
@@ -172,6 +179,12 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         params_for_scala = {}
         load = self.get_load()
+        scenario = self.get_scenario()
+
+        if scenario.get('timeout', None) is not None:
+            params_for_scala['gatling.http.ahc.requestTimeout'] = get_milliseconds(scenario.get('timeout'))
+        if scenario.get('keepalive', None) is not None:
+            params_for_scala['gatling.http.ahc.keepAlive'] = scenario.get('keepalive').lower()
         if load.concurrency is not None:
             params_for_scala['concurrency'] = load.concurrency
         if load.ramp_up is not None:

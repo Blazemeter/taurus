@@ -795,7 +795,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(st_tg_concurrency.text, "123")
 
     def test_smart_time(self):
-        s_t = JMeterScenarioBuilder.smart_time
+        s_t = JMeterScenarioBuilder.get_milliseconds
         self.assertEqual(s_t('1m'), 60 * 1000.0)
         self.assertEqual(s_t('${VAR}'), '${VAR}')
 

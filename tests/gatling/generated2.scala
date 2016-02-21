@@ -17,9 +17,9 @@ class TaurusSimulation extends Simulation {
 
     var _exec = exec(
             http("http://blazedemo.com").get("http://blazedemo.com")
-        ).pause(None).exec(
+        ).pause(0).exec(
             http("http://google.com").get("http://google.com")
-        ).pause(None)
+        ).pause(0)
 
         if (_t_iterations == null)
             _scn = _scn.forever{_exec}

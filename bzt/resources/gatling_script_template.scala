@@ -20,6 +20,7 @@ class TaurusSimulation extends Simulation {
         exec(
             http("%(req_label)s").%(method)s("%(url)s")
                 .header("%(key)s", "%(val)s")
+                .body(%(method)s(""""%(body)s"""))
         ).pause(%(think_time)s)
 
         if (_t_iterations == null)

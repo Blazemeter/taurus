@@ -19,9 +19,9 @@ class TaurusSimulation extends Simulation {
     var _exec = exec(
             http("/reserve.php").post("/reserve.php")
                 .header("H2", "V2")
-        ).pause(None).exec(
+        ).pause(0).exec(
             http("/").get("/")
-        ).pause(None)
+        ).pause(0)
 
         if (_t_iterations == null)
             _scn = _scn.forever{_exec}
