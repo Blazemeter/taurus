@@ -34,7 +34,7 @@ Have Apache web server installed with  `mod\_rewrite` support and PHP 5:
 Prepare site directory, go here and execute
 ```
  php -r "readfile('https://getcomposer.org/installer');" | php
- composer.phar update --prefer-stable
+ php composer.phar update --prefer-stable
  cp vendor/undera/pwe/.htaccess .
  mkdir snapshots
 ``` 

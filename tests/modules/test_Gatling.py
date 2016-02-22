@@ -98,7 +98,8 @@ class TestGatlingExecutor(BZTestCase):
                 "headers": {'H1': 'V1'},
                 "requests": [{'url': '/reserve.php',
                               'headers': {'H2': 'V2'},
-                              'method': 'POST'},
+                              'method': 'POST',
+                              'body': 'Body Content'},
                              {'url': '/'}]
             }
         })
@@ -109,10 +110,12 @@ class TestGatlingExecutor(BZTestCase):
     def test_requests_noiter_noramp(self):
         obj = self.getGatling()
         obj.execution.merge({
+            "concurrency": 10,
+            "hold-for": 110,
+            "ramp-up": 30,
             "scenario": {
-                "concurrency": 10,
-                "hold-for": 110,
-                "ramp-up": 30,
+                'keepalive': 'false',
+                'timeout': '100ms',
                 "requests": ['http://blazedemo.com', 'http://google.com']
             }
         })

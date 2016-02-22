@@ -19,6 +19,7 @@ class TaurusSimulation extends Simulation {
     var _exec = exec(
             http("/reserve.php").post("/reserve.php")
                 .header("H2", "V2")
+                .body(StringBody(""""Body Content"""))
         ).pause(0).exec(
             http("/").get("/")
         ).pause(0)
