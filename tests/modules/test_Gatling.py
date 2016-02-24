@@ -94,7 +94,7 @@ class TestGatlingExecutor(BZTestCase):
             "iterations": 5,
             "scenario": {
                 "think-time": 1,
-                "default-address": "http://blazedemo.com",
+                "default-address": "blazedemo.com",
                 "headers": {'H1': 'V1'},
                 "requests": [{'url': '/reserve.php',
                               'headers': {'H2': 'V2'},
@@ -104,8 +104,7 @@ class TestGatlingExecutor(BZTestCase):
             }
         })
         obj.prepare()
-        self.assertEqualFiles(__dir__() + "/../gatling/generated1.scala",
-                              obj.engine.artifacts_dir + "/TaurusSimulation.scala")
+        self.assertEqualFiles(__dir__() + "/../gatling/generated1.scala", obj.script)
 
     def test_requests_noiter_noramp(self):
         obj = self.getGatling()
@@ -116,13 +115,12 @@ class TestGatlingExecutor(BZTestCase):
             "scenario": {
                 'keepalive': 'false',
                 'timeout': '100ms',
-                "requests": ['http://blazedemo.com', 'http://google.com']
+                "requests": ['http://blazedemo.com', 'google.com']
             }
         })
         obj.prepare()
 
-        self.assertEqualFiles(__dir__() + "/../gatling/generated2.scala",
-                              obj.engine.artifacts_dir + "/TaurusSimulation.scala")
+        self.assertEqualFiles(__dir__() + "/../gatling/generated2.scala", obj.script)
 
     def assertEqualFiles(self, name1, name2):
         with open(name1, 'rt') as file1:

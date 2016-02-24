@@ -29,72 +29,69 @@ from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, shutdown_process
 
 
 class GatlingScriptBuilder(object):
-    def __init__(self, load, scenario, parent_logger):
+    def __init__(self, load, scenario, parent_logger, class_name):
         super(GatlingScriptBuilder, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.load = load
         self.scenario = scenario
-        self.script = []
+        self.script = ''
+        self.class_name = class_name
+
+    # add prefix 'http://' if user forgot it
+    @staticmethod
+    def fixed_addr(addr):
+        if len(addr) > 0 and not addr.startswith('http'):
+            return 'http://' + addr
+        else:
+            return addr
+
+    def _get_http(self):
+        http_str = 'http.baseURL("%(addr)s")\n' % {'addr': self.fixed_addr(self.scenario.get('default-address', ''))}
+
+        scenario_headers = self.scenario.get_headers()
+        for key in scenario_headers:
+            http_str += '\t\t.header("%(key)s", "%(val)s")\n' % {'key': key, 'val': scenario_headers[key]}
+        return http_str
+
+    def _get_exec(self):
+        exec_str = ''
+        for req in self.scenario.get_requests():
+            if len(exec_str) > 0:
+                exec_str += '.'
+
+            if len(self.scenario.get('default-address')) > 0:
+                url = req.url
+            else:
+                url = self.fixed_addr(req.url)
+
+            exec_str += 'exec(\n\t\t\thttp("%(req_label)s").%(method)s("%(url)s")\n' % \
+                                {'req_label': req.label, 'method': req.method.lower(), 'url': url}
+
+            for key in req.headers:
+                    exec_str += '\t\t\t\t.header("%(key)s", "%(val)s")\n' % {'key': key, 'val': req.headers[key]}
+
+            if req.body is not None:
+                if isinstance(req.body, str):
+                    exec_str += '\t\t\t\t.body(%(method)s(""""%(body)s"""))\n'
+                    exec_str = exec_str % {'method': 'StringBody', 'body': req.body}
+                else:
+                    self.log.warning('Only string and file are supported body content, "%s" ignored' % str(req.body))
+            if req.think_time is None:
+                think_time = 0
+            else:
+                think_time = req.think_time
+            exec_str += '\t\t).pause(%(think_time)s)' % {'think_time': think_time}
+        return exec_str
 
     def gen_test_case(self):
-
-        def get_line(_file):
-            return _file.readline().rstrip()
-
         template_path = os.path.join(os.path.dirname(__file__), os.pardir, 'resources', "gatling_script_template.scala")
-        script = []
 
         with open(template_path) as template_file:
-            temp_line = get_line(template_file)
-            while temp_line.find('URL') == -1:
-                script.append(temp_line)
-                temp_line = get_line(template_file)
+            template_line = template_file.read()
 
-            script.append(temp_line % {'addr': self.scenario.get('default-address', '')})
-
-            temp_line = get_line(template_file)
-            scenario_headers = self.scenario.get_headers()
-            for key in scenario_headers:
-                script.append(temp_line % {'key': key, 'val': scenario_headers[key]})
-
-            temp_line = get_line(template_file)
-            while temp_line.find('_exec') == -1:
-                script.append(temp_line)
-                temp_line = get_line(template_file)
-
-            tmp_exec = get_line(template_file).strip()
-            tmp_http = get_line(template_file)
-            tmp_header = get_line(template_file)
-            tmp_body = get_line(template_file)
-            tmp_pause = get_line(template_file)
-
-            delimiter = ''
-            temp_line += ' '
-            for req in self.scenario.get_requests():
-                temp_line += delimiter + tmp_exec
-                script.append(temp_line)
-                script.append(tmp_http % {'req_label': req.label, 'method': req.method.lower(), 'url': req.url})
-
-                for key in req.headers:
-                    script.append(tmp_header % {'key': key, 'val': req.headers[key]})
-
-                if req.body is not None:
-                    if isinstance(req.body, str):
-                        script.append(tmp_body % {'method': 'StringBody', 'body': req.body})
-                    else:
-                        self.log.warning('Only string and file are supported body content, "%s" ignored' % str(req.body))
-
-                if req.think_time is None:
-                    think_time = 0
-                else:
-                    think_time = req.think_time
-                temp_line = tmp_pause % {'think_time': think_time}
-                delimiter = '.'
-            script.append(temp_line)
-
-            script += [line.rstrip() for line in template_file.readlines()]
-
-        self.script = '\n'.join(script)
+        self.script = template_line % {'class_name': self.class_name,
+                                       'httpConf': self._get_http(),
+                                       '_exec': self._get_exec()}
 
 
 class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
@@ -118,6 +115,11 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.stderr_file = None
         self.widget = None
 
+    @staticmethod
+    def class_from_script(script):
+        class_name = os.path.splitext(os.path.split(script)[1])[0]  # get FILE for script=='/path/to/FILE.ext'
+        return class_name.replace('-', '_')                         # replace forbidden symbol
+
     def prepare(self):
         self._check_installed()
 
@@ -137,7 +139,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         elif "requests" in scenario:
             self.script = self.__generate_script()
-            self.get_scenario().get('simulation', 'taurus_test.TaurusSimulation')
+            self.get_scenario()['simulation'] = self.class_from_script(self.script)
         else:
             raise ValueError("There must be a script file to run Gatling")
 
@@ -147,7 +149,8 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def __generate_script(self):
         file_name = self.engine.create_artifact("TaurusSimulation", ".scala")
-        gen_script = GatlingScriptBuilder(self.get_load(), self.get_scenario(), self.log)
+        gen_script = GatlingScriptBuilder(
+            self.get_load(), self.get_scenario(), self.log, self.class_from_script(file_name))
         gen_script.gen_test_case()
 
         with open(file_name, 'wt') as script:
