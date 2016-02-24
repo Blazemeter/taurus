@@ -55,3 +55,10 @@ class BasicSimulation extends Simulation {
     .protocols(httpConf)).maxDuration(t_ramp_up + t_hold_for)
 }
 ```
+
+## Building Test Script from Config
+
+ If your scenario don't contains `script` parameter and contains at least one element of `requests` Taurus will build scala script for test. This script will be placed in `[artifact-dir](ConfigSyntax/#Top-Level-Settings)`: you can modify it and use with Gatling later. 
+ 
+ Next abilities are supported: `default-address`, `requests`, `headers` on scenario and request levels, `body` of request, `think-time` and params that described in `[Load Configuration](#Load Configuration)`
+

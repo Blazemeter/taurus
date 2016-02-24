@@ -115,7 +115,7 @@ execution:
 
 ## Building Test Plan from Config
 
-Scenario that has `requests` element makes Taurus to generate the script for underlying tools automatically. For now, this is available for JMeter, partially available for Grinder and not available for Gatling. 
+Scenario that has `requests` element makes Taurus to generate the script for underlying tools automatically. For now, this is available for JMeter and partially available for some other tools. 
 
 The `requests` element must contain a list of requests, each with its settings and child elements (assertions, extractors). Also there are additional configuration elements for requests-based scenario, described below.
 

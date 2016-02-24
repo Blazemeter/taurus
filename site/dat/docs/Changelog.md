@@ -1,4 +1,6 @@
 # Changelog
+## 1.3.0 (next)
+ - add gatling script generation 
 
 ## 1.2.0
  - maximize browser window in Selenium test, when possible
