@@ -125,10 +125,16 @@ class TestGatlingExecutor(BZTestCase):
         self.assertEqualFiles(__dir__() + "/../gatling/generated2.scala", scala_file)
 
     def assertEqualFiles(self, name1, name2):
+        def without_id(lines):
+            id_mark = 'TaurusSimulation'
+            id_pos = lines.find(id_mark)
+            space_pos = lines.find(' ', id_pos)
+            return lines[:id_pos + len(id_mark)] + lines[space_pos:]
+
         with open(name1, 'rt') as file1:
             with open(name2, 'rt') as file2:
-                lines1 = [line.rstrip() for line in file1.readlines()]
-                lines2 = [line.rstrip() for line in file2.readlines()]
+                lines1 = without_id(file1.read())
+                lines2 = without_id(file2.read())
         self.assertEqual(lines1, lines2)
 
     def test_fail_on_zero_results(self):

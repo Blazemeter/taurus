@@ -35,6 +35,7 @@ class GatlingScriptBuilder(object):
         self.load = load
         self.scenario = scenario
         self.class_name = class_name
+        self.script = ''
 
     # add prefix 'http://' if user forgot it
     @staticmethod
@@ -85,18 +86,26 @@ class GatlingScriptBuilder(object):
 
         return exec_str
 
-    def gen_test_case(self):
+    def read_template(self):
         template_path = os.path.join(os.path.dirname(__file__), os.pardir, 'resources', "gatling_script_template.scala")
 
         with open(template_path) as template_file:
             template_line = template_file.read()
 
-        params = {
+        self.script = template_line
+        return self
+
+    def set_params(self):
+        self.params = {
             'class_name': self.class_name,
             'httpConf': self._get_http(),
             '_exec': self._get_exec()
         }
-        return template_line % params
+        return self
+
+    def gen_test_case(self):
+        self.read_template().set_params()
+        return self.script % self.params
 
 
 class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
