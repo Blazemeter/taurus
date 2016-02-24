@@ -65,10 +65,10 @@ class GatlingScriptBuilder(object):
                 url = self.fixed_addr(req.url)
 
             exec_str += 'exec(\n\t\t\thttp("%(req_label)s").%(method)s("%(url)s")\n' % \
-                                {'req_label': req.label, 'method': req.method.lower(), 'url': url}
+                        {'req_label': req.label, 'method': req.method.lower(), 'url': url}
 
             for key in req.headers:
-                    exec_str += '\t\t\t\t.header("%(key)s", "%(val)s")\n' % {'key': key, 'val': req.headers[key]}
+                exec_str += '\t\t\t\t.header("%(key)s", "%(val)s")\n' % {'key': key, 'val': req.headers[key]}
 
             if req.body is not None:
                 if isinstance(req.body, str):
@@ -118,7 +118,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     @staticmethod
     def class_from_script(script):
         class_name = os.path.splitext(os.path.split(script)[1])[0]  # get FILE for script=='/path/to/FILE.ext'
-        return class_name.replace('-', '_')                         # replace forbidden symbol
+        return class_name.replace('-', '_')  # replace forbidden symbol
 
     def prepare(self):
         self._check_installed()
@@ -185,7 +185,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         scenario = self.get_scenario()
 
         if scenario.get('timeout', None) is not None:
-            params_for_scala['gatling.http.ahc.requestTimeout'] = int(dehumanize_time(scenario.get('timeout'))*1000)
+            params_for_scala['gatling.http.ahc.requestTimeout'] = int(dehumanize_time(scenario.get('timeout')) * 1000)
         if scenario.get('keepalive', None) is not None:
             params_for_scala['gatling.http.ahc.keepAlive'] = scenario.get('keepalive').lower()
         if load.concurrency is not None:
