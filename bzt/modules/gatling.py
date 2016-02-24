@@ -76,11 +76,13 @@ class GatlingScriptBuilder(object):
                     exec_str = exec_str % {'method': 'StringBody', 'body': req.body}
                 else:
                     self.log.warning('Only string and file are supported body content, "%s" ignored' % str(req.body))
+
             if req.think_time is None:
                 think_time = 0
             else:
                 think_time = req.think_time
             exec_str += '\t\t).pause(%(think_time)s)' % {'think_time': think_time}
+
         return exec_str
 
     def gen_test_case(self):
@@ -89,9 +91,12 @@ class GatlingScriptBuilder(object):
         with open(template_path) as template_file:
             template_line = template_file.read()
 
-        self.script = template_line % {'class_name': self.class_name,
-                                       'httpConf': self._get_http(),
-                                       '_exec': self._get_exec()}
+        params = {
+            'class_name': self.class_name,
+            'httpConf': self._get_http(),
+            '_exec': self._get_exec()
+        }
+        return template_line % params
 
 
 class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
@@ -115,11 +120,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.stderr_file = None
         self.widget = None
 
-    @staticmethod
-    def class_from_script(script):
-        class_name = os.path.splitext(os.path.split(script)[1])[0]  # get FILE for script=='/path/to/FILE.ext'
-        return class_name.replace('-', '_')  # replace forbidden symbol
-
     def prepare(self):
         self._check_installed()
 
@@ -138,8 +138,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 self.__cp_res_files_to_artifacts_dir(resource_files)
 
         elif "requests" in scenario:
-            self.script = self.__generate_script()
-            self.get_scenario()['simulation'] = self.class_from_script(self.script)
+            self.get_scenario()['simulation'], self.script = self.__generate_script()
         else:
             raise ValueError("There must be a script file to run Gatling")
 
@@ -148,15 +147,13 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.engine.aggregator.add_underling(self.reader)
 
     def __generate_script(self):
-        file_name = self.engine.create_artifact("TaurusSimulation", ".scala")
-        gen_script = GatlingScriptBuilder(
-            self.get_load(), self.get_scenario(), self.log, self.class_from_script(file_name))
-        gen_script.gen_test_case()
-
+        simulation = "TaurusSimulation_%s" % id(self)
+        file_name = self.engine.create_artifact(simulation, ".scala")
+        gen_script = GatlingScriptBuilder(self.get_load(), self.get_scenario(), self.log, simulation)
         with open(file_name, 'wt') as script:
-            script.writelines(gen_script.script)
+            script.writelines(gen_script.gen_test_case())
 
-        return file_name
+        return simulation, file_name
 
     def startup(self):
         """
