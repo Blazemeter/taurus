@@ -104,7 +104,8 @@ class TestGatlingExecutor(BZTestCase):
             }
         })
         obj.prepare()
-        self.assertEqualFiles(__dir__() + "/../gatling/generated1.scala", obj.script)
+        scala_file = obj.engine.artifacts_dir + '/' + obj.get_scenario().get('simulation') + '.scala'
+        self.assertEqualFiles(__dir__() + "/../gatling/generated1.scala", scala_file)
 
     def test_requests_noiter_noramp(self):
         obj = self.getGatling()
@@ -120,7 +121,8 @@ class TestGatlingExecutor(BZTestCase):
         })
         obj.prepare()
 
-        self.assertEqualFiles(__dir__() + "/../gatling/generated2.scala", obj.script)
+        scala_file = obj.engine.artifacts_dir + '/' + obj.get_scenario().get('simulation') + '.scala'
+        self.assertEqualFiles(__dir__() + "/../gatling/generated2.scala", scala_file)
 
     def assertEqualFiles(self, name1, name2):
         with open(name1, 'rt') as file1:

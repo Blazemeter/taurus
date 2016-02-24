@@ -4,11 +4,13 @@ import io.gatling.core.Predef._
 import io.gatling.http.Predef._
 import scala.concurrent.duration._
 
-class TaurusSimulation extends Simulation {
+class TaurusSimulation_139844879784144 extends Simulation {
 	val _t_concurrency = Integer.getInteger("concurrency", 1).toInt
 	val _t_ramp_up = Integer.getInteger("ramp-up", 0).toInt
 	val _t_hold_for = Integer.getInteger("hold-for", 0).toInt
 	val _t_iterations = Integer.getInteger("iterations")
+
+	val _duration = _t_ramp_up + _t_hold_for
 
 	var httpConf = http.baseURL("")
 
@@ -20,13 +22,14 @@ class TaurusSimulation extends Simulation {
 			http("google.com").get("http://google.com")
 		).pause(0)
 
-	if (_t_iterations == null) {
+	if (_t_iterations == null)
 		_scn = _scn.forever{_exec}
-		setUp(_scn.inject(rampUsers(_t_concurrency) over (_t_ramp_up))
-			.protocols(httpConf)).maxDuration(_t_hold_for + _t_ramp_up)
-	} else {
+	 else
 		_scn = _scn.repeat(_t_iterations.toInt){_exec}
-		setUp(_scn.inject(rampUsers(_t_concurrency) over (_t_ramp_up))
+
+	var _setUp = setUp(_scn.inject(rampUsers(_t_concurrency) over (_t_ramp_up))
 			.protocols(httpConf))
-	}
+
+	if (_duration > 0)
+		_setUp.maxDuration(_duration)
 }

@@ -34,7 +34,6 @@ class GatlingScriptBuilder(object):
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.load = load
         self.scenario = scenario
-        self.script = ''
         self.class_name = class_name
 
     # add prefix 'http://' if user forgot it
@@ -46,7 +45,8 @@ class GatlingScriptBuilder(object):
             return addr
 
     def _get_http(self):
-        http_str = 'http.baseURL("%(addr)s")\n' % {'addr': self.fixed_addr(self.scenario.get('default-address', ''))}
+        http_str = 'http.baseURL("%(addr)s")\n'
+        http_str = http_str % {'addr': self.fixed_addr(self.scenario.get('default-address', ''))}
 
         scenario_headers = self.scenario.get_headers()
         for key in scenario_headers:
@@ -64,8 +64,8 @@ class GatlingScriptBuilder(object):
             else:
                 url = self.fixed_addr(req.url)
 
-            exec_str += 'exec(\n\t\t\thttp("%(req_label)s").%(method)s("%(url)s")\n' % \
-                        {'req_label': req.label, 'method': req.method.lower(), 'url': url}
+            exec_template = 'exec(\n\t\t\thttp("%(req_label)s").%(method)s("%(url)s")\n'
+            exec_str += exec_template % {'req_label': req.label, 'method': req.method.lower(), 'url': url}
 
             for key in req.headers:
                 exec_str += '\t\t\t\t.header("%(key)s", "%(val)s")\n' % {'key': key, 'val': req.headers[key]}
@@ -80,7 +80,7 @@ class GatlingScriptBuilder(object):
             if req.think_time is None:
                 think_time = 0
             else:
-                think_time = req.think_time
+                think_time = int(dehumanize_time(req.think_time))
             exec_str += '\t\t).pause(%(think_time)s)' % {'think_time': think_time}
 
         return exec_str
