@@ -151,7 +151,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         file_name = self.engine.create_artifact(simulation, ".scala")
         gen_script = GatlingScriptBuilder(self.get_load(), self.get_scenario(), self.log, simulation)
         with open(file_name, 'wt') as script:
-            script.writelines(gen_script.gen_test_case())
+            script.write(gen_script.gen_test_case())
 
         return simulation, file_name
 
