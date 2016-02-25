@@ -1,13 +1,13 @@
+import logging
 import os
 import re
 import shutil
 import time
-import logging
 
 from bzt.modules.gatling import GatlingExecutor, DataLogReader, Gatling
+from bzt.utils import EXE_SUFFIX
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul
-from bzt.utils import EXE_SUFFIX
 
 
 class TestGatlingExecutor(BZTestCase):
@@ -86,6 +86,56 @@ class TestGatlingExecutor(BZTestCase):
         artifacts = os.listdir(obj.engine.artifacts_dir)
         self.assertEqual(len(artifacts), 12)
         self.__check_path_resource_files(os.path.join(obj.engine.artifacts_dir, "LocalBasicSimulation.scala"))
+
+    def test_requests_defaddr_iter_headers(self):
+        obj = self.getGatling()
+        obj.execution.merge({
+            "concurrency": 10,
+            "iterations": 5,
+            "scenario": {
+                "think-time": 1,
+                "default-address": "blazedemo.com",
+                "headers": {'H1': 'V1'},
+                "requests": [{'url': '/reserve.php',
+                              'headers': {'H2': 'V2'},
+                              'method': 'POST',
+                              'body': 'Body Content'},
+                             {'url': '/'}]
+            }
+        })
+        obj.prepare()
+        scala_file = obj.engine.artifacts_dir + '/' + obj.get_scenario().get('simulation') + '.scala'
+        self.assertEqualFiles(__dir__() + "/../gatling/generated1.scala", scala_file)
+
+    def test_requests_noiter_noramp(self):
+        obj = self.getGatling()
+        obj.execution.merge({
+            "concurrency": 10,
+            "hold-for": 110,
+            "ramp-up": 30,
+            "scenario": {
+                'keepalive': 'false',
+                'timeout': '100ms',
+                "requests": ['http://blazedemo.com', 'google.com']
+            }
+        })
+        obj.prepare()
+
+        scala_file = obj.engine.artifacts_dir + '/' + obj.get_scenario().get('simulation') + '.scala'
+        self.assertEqualFiles(__dir__() + "/../gatling/generated2.scala", scala_file)
+
+    def assertEqualFiles(self, name1, name2):
+        def without_id(lines):
+            id_mark = 'TaurusSimulation'
+            id_pos = lines.find(id_mark)
+            space_pos = lines.find(' ', id_pos)
+            return lines[:id_pos + len(id_mark)] + lines[space_pos:]
+
+        with open(name1, 'rt') as file1:
+            with open(name2, 'rt') as file2:
+                lines1 = without_id(file1.read())
+                lines2 = without_id(file2.read())
+        self.assertEqual(lines1, lines2)
 
     def test_fail_on_zero_results(self):
         obj = self.getGatling()
