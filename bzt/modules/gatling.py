@@ -24,8 +24,88 @@ import time
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, SidebarWidget
+from bzt.utils import BetterDict, TclLibrary, MirrorsManager, EXE_SUFFIX, dehumanize_time
 from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, shutdown_process
-from bzt.utils import BetterDict, TclLibrary, MirrorsManager, EXE_SUFFIX
+
+
+class GatlingScriptBuilder(object):
+    def __init__(self, load, scenario, parent_logger, class_name):
+        super(GatlingScriptBuilder, self).__init__()
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.load = load
+        self.scenario = scenario
+        self.class_name = class_name
+        self.script = ''
+
+    # add prefix 'http://' if user forgot it
+    @staticmethod
+    def fixed_addr(addr):
+        if len(addr) > 0 and not addr.startswith('http'):
+            return 'http://' + addr
+        else:
+            return addr
+
+    def _get_http(self):
+        http_str = 'http.baseURL("%(addr)s")\n'
+        http_str = http_str % {'addr': self.fixed_addr(self.scenario.get('default-address', ''))}
+
+        scenario_headers = self.scenario.get_headers()
+        for key in scenario_headers:
+            http_str += '\t\t.header("%(key)s", "%(val)s")\n' % {'key': key, 'val': scenario_headers[key]}
+        return http_str
+
+    def _get_exec(self):
+        exec_str = ''
+        for req in self.scenario.get_requests():
+            if len(exec_str) > 0:
+                exec_str += '.'
+
+            if len(self.scenario.get('default-address')) > 0:
+                url = req.url
+            else:
+                url = self.fixed_addr(req.url)
+
+            exec_template = 'exec(\n\t\t\thttp("%(req_label)s").%(method)s("%(url)s")\n'
+            exec_str += exec_template % {'req_label': req.label, 'method': req.method.lower(), 'url': url}
+
+            for key in req.headers:
+                exec_str += '\t\t\t\t.header("%(key)s", "%(val)s")\n' % {'key': key, 'val': req.headers[key]}
+
+            if req.body is not None:
+                if isinstance(req.body, str):
+                    exec_str += '\t\t\t\t.body(%(method)s(""""%(body)s"""))\n'
+                    exec_str = exec_str % {'method': 'StringBody', 'body': req.body}
+                else:
+                    self.log.warning('Only string and file are supported body content, "%s" ignored' % str(req.body))
+
+            if req.think_time is None:
+                think_time = 0
+            else:
+                think_time = int(dehumanize_time(req.think_time))
+            exec_str += '\t\t).pause(%(think_time)s)' % {'think_time': think_time}
+
+        return exec_str
+
+    def read_template(self):
+        template_path = os.path.join(os.path.dirname(__file__), os.pardir, 'resources', "gatling_script_template.scala")
+
+        with open(template_path) as template_file:
+            template_line = template_file.read()
+
+        self.script = template_line
+        return self
+
+    def set_params(self):
+        self.params = {
+            'class_name': self.class_name,
+            'httpConf': self._get_http(),
+            '_exec': self._get_exec()
+        }
+        return self
+
+    def fill_template(self):
+        self.script = self.script % self.params
+        return self
 
 
 class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
@@ -67,14 +147,22 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 self.__cp_res_files_to_artifacts_dir(resource_files)
 
         elif "requests" in scenario:
-            # TODO: implement script generation for gatling
-            raise NotImplementedError("Script generating not yet implemented for Gatling")
+            self.get_scenario()['simulation'], self.script = self.__generate_script()
         else:
             raise ValueError("There must be a script file to run Gatling")
 
         self.reader = DataLogReader(self.engine.artifacts_dir, self.log)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
+
+    def __generate_script(self):
+        simulation = "TaurusSimulation_%s" % id(self)
+        file_name = self.engine.create_artifact(simulation, ".scala")
+        gen_script = GatlingScriptBuilder(self.get_load(), self.get_scenario(), self.log, simulation)
+        with open(file_name, 'wt') as script:
+            script.write(gen_script.read_template().set_params().fill_template().script)
+
+        return simulation, file_name
 
     def startup(self):
         """
@@ -89,7 +177,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         datadir = os.path.realpath(self.engine.artifacts_dir)
 
         cmdline = [self.settings["path"]]
-
         cmdline += ["-sf", datadir, "-df", datadir, "-rf ", datadir]
         cmdline += ["-on", "gatling-bzt", "-m", "-s", simulation]
 
@@ -101,12 +188,20 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         params_for_scala = {}
         load = self.get_load()
+        scenario = self.get_scenario()
+
+        if scenario.get('timeout', None) is not None:
+            params_for_scala['gatling.http.ahc.requestTimeout'] = int(dehumanize_time(scenario.get('timeout')) * 1000)
+        if scenario.get('keepalive', None) is not None:
+            params_for_scala['gatling.http.ahc.keepAlive'] = scenario.get('keepalive').lower()
         if load.concurrency is not None:
             params_for_scala['concurrency'] = load.concurrency
         if load.ramp_up is not None:
             params_for_scala['ramp-up'] = int(load.ramp_up)
         if load.hold is not None:
             params_for_scala['hold-for'] = int(load.hold)
+        if load.iterations is not None and load.iterations != 0:
+            params_for_scala['iterations'] = int(load.iterations)
 
         env = BetterDict()
         env.merge(dict(os.environ))
@@ -136,9 +231,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 self.log.info("Gatling tool exit code: %s", self.retcode)
                 raise RuntimeError("Gatling tool exited with non-zero code")
 
-            # if not self.reader.filename:
-            #    msg = "No simulation.log, most likely the tool failed to run"
-            #    raise RuntimeWarning(msg)
             return True
         return False
 
