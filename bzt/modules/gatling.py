@@ -103,9 +103,13 @@ class GatlingScriptBuilder(object):
         }
         return self
 
+    def fill_template(self):
+        self.script = self.script % self.params
+        return self
+
     def gen_test_case(self):
-        self.read_template().set_params()
-        return self.script % self.params
+        return self.read_template().set_params().fill_template().script
+
 
 
 class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
