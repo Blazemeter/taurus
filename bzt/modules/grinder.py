@@ -331,7 +331,7 @@ class DataLogReader(ResultsReader):
 
     def __open_fds(self):
         """
-        opens grinder-bzt-kpi.log
+        opens grinder kpi-file
         """
         if not os.path.isfile(self.filename):
             self.log.debug("File not appeared yet")
