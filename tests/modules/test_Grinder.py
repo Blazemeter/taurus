@@ -92,6 +92,7 @@ class TestGrinderExecutor(BZTestCase):
         self.assertEqual(len(obj.cmd_line), 5)
         cmd_line = ' '.join(obj.cmd_line)
         self.assertTrue(cmd_line.startswith('java -classpath'))
+        self.assertNotEqual(cmd_line.find('net.grinder.Grinder'), -11)
 
         try:
             obj.cmd_line = __dir__() + "/../grinder/grinder" + EXE_SUFFIX
