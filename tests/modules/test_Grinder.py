@@ -4,15 +4,22 @@ import shutil
 import time
 
 from bzt.modules.grinder import GrinderExecutor, Grinder, DataLogReader
+from bzt.utils import EXE_SUFFIX
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul
-from bzt.utils import EXE_SUFFIX
 
 
 class TestGrinderExecutor(BZTestCase):
     def test_install_Grinder(self):
         path = os.path.abspath(__dir__() + "/../../build/tmp/grinder-taurus/lib/grinder.jar")
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
+
+        grinder_link = GrinderExecutor.DOWNLOAD_LINK
+        grinder_version = GrinderExecutor.VERSION
+        mirrors_source = GrinderExecutor.MIRRORS_SOURCE
+        GrinderExecutor.DOWNLOAD_LINK = "file:///" + __dir__() + "/../data/grinder-{version}_{version}-binary.zip"
+        GrinderExecutor.VERSION = "3.11"
+        GrinderExecutor.MIRRORS_SOURCE = "file:///" + __dir__() + "/../data/unicode_file"
 
         self.assertFalse(os.path.exists(path))
 
@@ -28,6 +35,10 @@ class TestGrinderExecutor(BZTestCase):
         obj.prepare()
 
         self.assertTrue(os.path.exists(path))
+
+        GrinderExecutor.DOWNLOAD_LINK = grinder_link
+        GrinderExecutor.VERSION = grinder_version
+        GrinderExecutor.MIRRORS_SOURCE = mirrors_source
 
     def test_grinder_widget(self):
         obj = GrinderExecutor()
@@ -77,6 +88,11 @@ class TestGrinderExecutor(BZTestCase):
                              "hold-for": 5,
                              "scenario": {"requests": ['http://blazedemo.com']}})
         obj.prepare()
+
+        self.assertEqual(len(obj.cmd_line), 5)
+        cmd_line = ' '.join(obj.cmd_line)
+        self.assertTrue(cmd_line.startswith('java -classpath'))
+        self.assertNotEqual(cmd_line.find('net.grinder.Grinder'), -1)
 
         try:
             obj.cmd_line = __dir__() + "/../grinder/grinder" + EXE_SUFFIX

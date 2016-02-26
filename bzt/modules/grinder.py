@@ -24,7 +24,7 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.six import iteritems
-from bzt.utils import shell_exec, MirrorsManager
+from bzt.utils import shell_exec, MirrorsManager, BetterDict
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, TclLibrary
 
 
@@ -149,11 +149,13 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
+        # add logback configurations used by worker processes (logback-worker.xml)
         classpath = os.path.join(os.path.dirname(__file__), os.pardir, 'resources')
+
         classpath += os.path.pathsep + os.path.realpath(self.settings.get("path"))
 
         self.cmd_line = ["java", "-classpath", classpath]
-        self.cmd_line = ["net.grinder.Grinder", self.properties_file]
+        self.cmd_line += ["net.grinder.Grinder", self.properties_file]
 
     def startup(self):
         """
@@ -164,9 +166,15 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         err = self.engine.create_artifact("grinder-stderr", ".log")
         self.stdout_file = open(out, "w")
         self.stderr_file = open(err, "w")
+
+        env = BetterDict()
+        env.merge(dict(os.environ))
+        env.merge({"T_GRINDER_PREFIX": self.exec_id})
+
         self.process = shell_exec(self.cmd_line, cwd=self.engine.artifacts_dir,
                                   stdout=self.stdout_file,
-                                  stderr=self.stderr_file)
+                                  stderr=self.stderr_file,
+                                  env=env)
 
     def check(self):
         """
@@ -323,7 +331,7 @@ class DataLogReader(ResultsReader):
 
     def __open_fds(self):
         """
-        opens grinder-bzt-kpi.log
+        opens grinder kpi-file
         """
         if not os.path.isfile(self.filename):
             self.log.debug("File not appeared yet")

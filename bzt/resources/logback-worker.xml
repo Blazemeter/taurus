@@ -1,6 +1,6 @@
 <configuration>
 
-    <property name="PREFIX" value="${LOG_DIRECTORY}/grinder-bzt"/>
+    <property name="PREFIX" value="${LOG_DIRECTORY}/${T_GRINDER_PREFIX}"/>
 
     <appender name="log-file"
               class="ch.qos.logback.core.FileAppender">
