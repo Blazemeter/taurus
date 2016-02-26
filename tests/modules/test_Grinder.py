@@ -89,6 +89,10 @@ class TestGrinderExecutor(BZTestCase):
                              "scenario": {"requests": ['http://blazedemo.com']}})
         obj.prepare()
 
+        self.assertEqual(len(obj.cmd_line), 5)
+        cmd_line = ' '.join(obj.cmd_line)
+        self.assertTrue(cmd_line.startswith('java -classpath'))
+
         try:
             obj.cmd_line = __dir__() + "/../grinder/grinder" + EXE_SUFFIX
             obj.startup()
