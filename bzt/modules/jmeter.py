@@ -784,15 +784,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         jmeter_path = os.path.abspath(os.path.expanduser(jmeter_path))
         self.settings["path"] = jmeter_path
         jmeter_version = self.settings.get("version", JMeterExecutor.JMETER_VER)
-
         plugin_download_link = self.settings.get("plugins-download-link", JMeterExecutor.PLUGINS_DOWNLOAD_TPL)
+        required_tools.append(JMeter(jmeter_path, self.log, jmeter_version, plugin_download_link))
 
-        required_tools.append(JMeter(jmeter_path, self.log, jmeter_version))
-        required_tools.append(JMeterPlugins(jmeter_path, plugin_download_link, self.log))
-
-        self.check_tools(required_tools)
-
-    def check_tools(self, required_tools):
         for tool in required_tools:
             if not tool.check_if_installed():
                 self.log.info("Installing %s", tool.tool_name)
@@ -1356,73 +1350,63 @@ class JMeter(RequiredTool):
     JMeter tool
     """
 
-    def __init__(self, tool_path, parent_logger, jmeter_version):
+    def __init__(self, tool_path, parent_logger, jmeter_version, plugin_link):
         super(JMeter, self).__init__("JMeter", tool_path)
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.version = jmeter_version
         self.mirror_manager = JMeterMirrorsManager(self.log, self.version)
+        self.plugins = ["Standard", "Extras", "ExtrasLibs", "WebDriver"]
+        self.plugin_link = plugin_link
 
     def check_if_installed(self):
         self.log.debug("Trying jmeter: %s", self.tool_path)
         try:
-            jmlog = tempfile.NamedTemporaryFile(prefix="jmeter", suffix="log", delete=False)
-            jm_proc = shell_exec([self.tool_path, '-j', jmlog.name, '--version'], stderr=subprocess.STDOUT)
-            jmout, jmerr = jm_proc.communicate()
-            self.log.debug("JMeter check: %s / %s", jmout, jmerr)
-            jmlog.close()
+            with tempfile.NamedTemporaryFile(prefix="jmeter", suffix="log", delete=False) as jmlog:
+                jm_proc = shell_exec([self.tool_path, '-j', jmlog.name, '--version'], stderr=subprocess.STDOUT)
+                jmout, jmerr = jm_proc.communicate()
+                self.log.debug("JMeter check: %s / %s", jmout, jmerr)
+
             os.remove(jmlog.name)
+
             if isinstance(jmout, binary_type):
                 jmout = jmout.decode()
+
             if "is too low to run JMeter" in jmout:
                 self.log.error(jmout)
                 raise ValueError("Java version is too low to run JMeter")
+
             return True
+
         except OSError:
             self.log.debug("JMeter check failed.")
             return False
 
+            # plugin_folder = os.path.join(os.path.dirname(os.path.dirname(self.tool_path)), "lib", "ext")
+            # if os.path.exists(plugin_folder):
+            #     listed_files = os.listdir(plugin_folder)
+            #     for plugin in self.plugins:
+            #         if "JMeterPlugins-%s.jar" % plugin not in listed_files:
+            #             return False
+            #     return True
+            # else:
+            #     return False
+
     def install(self):
         dest = os.path.dirname(os.path.dirname(os.path.expanduser(self.tool_path)))
-        dest = os.path.abspath(dest)
-        jmeter_dist = super(JMeter, self).install_with_mirrors(dest, ".zip")
+        jmeter_dist = super(JMeter, self).install_with_mirrors(dest, ".zip").close()
         self.log.info("Unzipping %s to %s", jmeter_dist.name, dest)
         unzip(jmeter_dist.name, dest, 'apache-jmeter-%s' % self.version)
+        os.remove(jmeter_dist.name)
+
         # set exec permissions
         os.chmod(self.tool_path, 0o755)
-        jmeter_dist.close()
-        os.remove(jmeter_dist.name)
-        if self.check_if_installed():
-            return self.tool_path
-        else:
+
+        if not self.check_if_installed():
             raise RuntimeError("Unable to run %s after installation!" % self.tool_name)
 
-
-class JMeterPlugins(RequiredTool):
-    """
-    JMeter plugins
-    """
-
-    def __init__(self, tool_path, download_link, parent_logger):
-        super(JMeterPlugins, self).__init__("JMeterPlugins", tool_path, download_link)
-        self.log = parent_logger.getChild(self.__class__.__name__)
-        self.plugins = ["Standard", "Extras", "ExtrasLibs", "WebDriver"]
-
-    def check_if_installed(self):
-        plugin_folder = os.path.join(os.path.dirname(os.path.dirname(self.tool_path)), "lib", "ext")
-        if os.path.exists(plugin_folder):
-            listed_files = os.listdir(plugin_folder)
-            for plugin in self.plugins:
-                if "JMeterPlugins-%s.jar" % plugin not in listed_files:
-                    return False
-            return True
-        else:
-            return False
-
-    def install(self):
-        dest = os.path.dirname(os.path.dirname(os.path.expanduser(self.tool_path)))
-        for set_name in ("Standard", "Extras", "ExtrasLibs", "WebDriver"):
-            plugin_dist = tempfile.NamedTemporaryFile(suffix=".zip", delete=False, prefix=set_name)
-            plugin_download_link = self.download_link.format(plugin=set_name)
+        for plugin in self.plugins:
+            plugin_dist = tempfile.NamedTemporaryFile(suffix=".zip", delete=False, prefix=plugin)
+            plugin_download_link = self.download_link.format(plugin=plugin)
             self.log.info("Downloading %s", plugin_download_link)
             downloader = request.FancyURLopener()
             with ProgressBarContext() as pbar:
