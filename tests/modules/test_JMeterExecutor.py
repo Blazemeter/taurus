@@ -747,7 +747,7 @@ class TestJMeterExecutor(BZTestCase):
         path = os.path.abspath(__dir__() + "/../../build/tmp/jmeter-taurus/bin/jmeter" + EXE_SUFFIX)
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
         obj = JMeterExecutor()
-        objjm = JMeter(path, obj.log, JMeterExecutor.JMETER_VER)
+        objjm = JMeter(path, obj.log, JMeterExecutor.JMETER_VER, JMeterExecutor.PLUGINS_DOWNLOAD_TPL)
         objjm.install()
 
     def test_convert_tgroups_no_load(self):

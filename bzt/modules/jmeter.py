@@ -1381,21 +1381,13 @@ class JMeter(RequiredTool):
             self.log.debug("JMeter check failed.")
             return False
 
-            # plugin_folder = os.path.join(os.path.dirname(os.path.dirname(self.tool_path)), "lib", "ext")
-            # if os.path.exists(plugin_folder):
-            #     listed_files = os.listdir(plugin_folder)
-            #     for plugin in self.plugins:
-            #         if "JMeterPlugins-%s.jar" % plugin not in listed_files:
-            #             return False
-            #     return True
-            # else:
-            #     return False
-
     def install(self):
         dest = os.path.dirname(os.path.dirname(os.path.expanduser(self.tool_path)))
-        jmeter_dist = super(JMeter, self).install_with_mirrors(dest, ".zip").close()
-        self.log.info("Unzipping %s to %s", jmeter_dist.name, dest)
-        unzip(jmeter_dist.name, dest, 'apache-jmeter-%s' % self.version)
+
+        with super(JMeter, self).install_with_mirrors(dest, ".zip") as jmeter_dist:
+            self.log.info("Unzipping %s to %s", jmeter_dist.name, dest)
+            unzip(jmeter_dist.name, dest, 'apache-jmeter-%s' % self.version)
+
         os.remove(jmeter_dist.name)
 
         # set exec permissions
@@ -1406,7 +1398,7 @@ class JMeter(RequiredTool):
 
         for plugin in self.plugins:
             plugin_dist = tempfile.NamedTemporaryFile(suffix=".zip", delete=False, prefix=plugin)
-            plugin_download_link = self.download_link.format(plugin=plugin)
+            plugin_download_link = self.plugin_link.format(plugin=plugin)
             self.log.info("Downloading %s", plugin_download_link)
             downloader = request.FancyURLopener()
             with ProgressBarContext() as pbar:
