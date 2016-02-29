@@ -429,7 +429,7 @@ class DataLogReader(ResultsReader):
             t_stamp = int(fields[8]) / 1000.0
 
             r_time = (int(fields[8]) - int(fields[5])) / 1000.0
-            latency = (int(fields[7]) - int(fields[5])) / 1000.0
+            latency = (int(fields[7]) - int(fields[6])) / 1000.0
             con_time = (int(fields[6]) - int(fields[5])) / 1000.0
 
             if fields[-1] == 'OK':
