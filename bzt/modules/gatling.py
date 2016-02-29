@@ -201,6 +201,9 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         java_opts += " " + env.get("JAVA_OPTS", "") + " " + self.engine.config.get("java_opts", "")
 
         env.merge({"JAVA_OPTS": java_opts})
+        env.merge({'T_CMD_LINE': ' '.join(cmdline)})
+        env.merge({'T_DELAY': '15'})
+        cmdline = ['python', '/home/taras/Projects/taurus/bzt/pause.py']
 
         self.process = shell_exec(cmdline, cwd=self.engine.artifacts_dir, stdout=self.stdout_file,
                                   stderr=self.stderr_file, env=env)
