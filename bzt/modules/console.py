@@ -714,10 +714,6 @@ class AvgTimesList(ListBox):
         self.key = key
 
     def add_data(self, data):
-        def abs_zero(num):
-            if '%.3f' % num == '-0.000':
-                return 0
-            return num
         """
         Append data
 
@@ -732,15 +728,15 @@ class AvgTimesList(ListBox):
         recv -= overall[KPISet.AVG_CONN_TIME]
         recv -= overall[KPISet.AVG_LATENCY]
         self.body.append(
-                Text(("stat-txt", "Full: %.3f" % abs_zero(overall[KPISet.AVG_RESP_TIME])),
+                Text(("stat-txt", "Full: %.3f" % overall[KPISet.AVG_RESP_TIME]),
                      align=RIGHT))
         self.body.append(
-                Text(("stat-txt", "Connect: %.3f" % abs_zero(overall[KPISet.AVG_CONN_TIME])),
+                Text(("stat-txt", "Connect: %.3f" % overall[KPISet.AVG_CONN_TIME]),
                      align=RIGHT))
         self.body.append(
-                Text(("stat-txt", "Latency: %.3f" % abs_zero(overall[KPISet.AVG_LATENCY])),
+                Text(("stat-txt", "Latency: %.3f" % overall[KPISet.AVG_LATENCY]),
                      align=RIGHT))
-        self.body.append(Text(("stat-txt", "~Receive: %.3f" % abs_zero(recv)),
+        self.body.append(Text(("stat-txt", "~Receive: %.3f" % recv),
                               align=RIGHT))
 
 
