@@ -169,6 +169,20 @@ class TestGatlingExecutor(BZTestCase):
         finally:
             obj.shutdown()
 
+    def test_interactive_request(self):
+        obj = self.getGatling()
+        obj.execution.merge({
+            "scenario": {
+                "script": __dir__() + "/../gatling",
+                "simulation": "fake"
+            }
+        })
+        obj.prepare()
+        try:
+            obj.startup()
+        finally:
+            pass
+
 
 class TestDataLogReader(BZTestCase):
     def test_read(self):
