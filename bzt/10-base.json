@@ -27,6 +27,9 @@
     "local": {
       "class": "bzt.modules.provisioning.Local"
     },
+    "apachebench": {
+      "class": "bzt.modules.apachebench.ApacheBenchExecutor"
+    },
     "jmeter": {
       "class": "bzt.modules.jmeter.JMeterExecutor",
       "properties": {
