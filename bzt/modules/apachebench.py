@@ -176,16 +176,15 @@ class TSVDataReader(ResultsReader):
             if all(val.isalpha() for val in log_vals):
                 continue
 
-            _con_time = 0
             _latency = 0
             _error = None
-            _concur = self.concurrency
-
-            _tstamp = int(log_vals[1])   # timestamp - moment of request sending
-            _etime = float(log_vals[5])  # elapsed time
-
             _url = None
             _rstatus = None
+
+            _concur = self.concurrency
+            _tstamp = int(log_vals[1])   # timestamp - moment of request sending
+            _con_time = float(log_vals[2])
+            _etime = float(log_vals[4])  # elapsed time
 
             yield _tstamp, _url, _concur, _etime, _con_time, _latency, _rstatus, _error, ''
 
