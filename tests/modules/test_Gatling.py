@@ -173,10 +173,11 @@ class TestGatlingExecutor(BZTestCase):
         obj = self.getGatling()
         obj.execution.merge({
             "scenario": {
-                "script": __dir__() + "/../gatling",
+                "script": __dir__() + "/../gatling/generated1.scala",
                 "simulation": "fake"
             }
         })
+        obj.engine.existing_artifact(__dir__() + "/../gatling/generated2.scala")
         obj.prepare()
         try:
             obj.startup()
