@@ -3,7 +3,7 @@
  - add gatling script generation 
  - fix grinder crash
  - fix gatling metric parsing
- - join JMeter and his plugins installation procedures
+ - join JMeter and its plugins installation procedures
 
 ## 1.2.0
  - maximize browser window in Selenium test, when possible
