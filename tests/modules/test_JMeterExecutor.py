@@ -137,18 +137,18 @@ class TestJMeterExecutor(BZTestCase):
         fake = FakeTool()
         end_str = os.path.join('bin', 'jmeter' + EXE_SUFFIX)
 
-        fake.set(__file__, True)        # real file, jmeter work: do nothing
+        fake.set(__file__, True)        # real file, jmeter works: do nothing
         self.assertEqual(JMeterExecutor._need_to_install(fake), False)
 
-        fake.set(__file__, False)       # real file, jmeter don't work: raise
+        fake.set(__file__, False)       # real file, jmeter doesn't work: raise
         with self.assertRaises(ValueError):
             JMeterExecutor._need_to_install(fake)
 
-        fake.set(os.path.curdir, True)  # real dir, $dir/bin/jmeter.EXT is working: fix path only
+        fake.set(os.path.curdir, True)  # real dir, $dir/bin/jmeter.EXT works: fix path only
         self.assertEqual(JMeterExecutor._need_to_install(fake), False)
         self.assertEqual(fake.tool_path, os.path.join(os.path.curdir, end_str))
 
-        fake.set(os.path.curdir, False)  # real dir, $dir/bin/jmeter.EXT isn't working: install into $dir
+        fake.set(os.path.curdir, False)  # real dir, $dir/bin/jmeter.EXT doesn't work: install into $dir
         self.assertEqual(JMeterExecutor._need_to_install(fake), True)
         self.assertEqual(fake.tool_path, os.path.join(os.path.curdir, end_str))
 
@@ -157,7 +157,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(JMeterExecutor._need_to_install(fake), True)
         self.assertEqual(fake.tool_path, '*' + end_str)
 
-        # not real file/dir, don't looks like bin/jmeter.EXT: use as dir, install jmeter inside it
+        # not real file/dir, doesn't look like bin/jmeter.EXT: use as dir, install jmeter inside it
         fake.set('*', False)
         self.assertEqual(JMeterExecutor._need_to_install(fake), True)
         self.assertEqual(fake.tool_path, os.path.join('*',end_str))
