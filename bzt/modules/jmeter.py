@@ -800,19 +800,19 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         end_str = os.path.join('bin', 'jmeter' + EXE_SUFFIX)
 
         if os.path.isfile(tool.tool_path):
-            if tool.check_if_installed():       # all ok, it's tool path
+            if tool.check_if_installed():  # all ok, it's tool path
                 return False
-            else:                               # probably it's path of other tool)
+            else:  # probably it's path of other tool)
                 raise ValueError('Wrong tool path: %s' % tool.tool_path)
 
-        if os.path.isdir(tool.tool_path):           # it's dir: fix tool path and install if needed
+        if os.path.isdir(tool.tool_path):  # it's dir: fix tool path and install if needed
             tool.tool_path = os.path.join(tool.tool_path, end_str)
             if tool.check_if_installed():
                 return False
             else:
                 return True
 
-        if not tool.tool_path.endswith(end_str):     # similar to future jmeter directory
+        if not tool.tool_path.endswith(end_str):  # similar to future jmeter directory
             tool.tool_path = os.path.join(tool.tool_path, end_str)
 
         return True
@@ -1449,6 +1449,7 @@ class JarCleaner(object):
     def clean(self, path):
         """
         Remove old jars
+        :param path: str
         """
         self.log.debug("Removing old jars from %s", path)
         jarlib = namedtuple("jarlib", ("file_name", "lib_name"))
