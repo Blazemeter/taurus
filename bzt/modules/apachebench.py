@@ -27,7 +27,7 @@ from bzt.six import iteritems
 from bzt.utils import shell_exec, shutdown_process, RequiredTool
 
 
-class ApacheBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister):
+class ApacheBenchExecutor(ScenarioExecutor, WidgetProvider):
     """
     Apache Benchmark executor module
     """
@@ -35,8 +35,7 @@ class ApacheBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         super(ApacheBenchExecutor, self).__init__()
         self.log = logging.getLogger('')
         self.process = None
-        self.__csv_file_name = None
-        self.__csv = None
+        self.__tsv_file_name = None
         self.__out = None
         self.__err = None
         self.__rc_name = None
@@ -44,28 +43,21 @@ class ApacheBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.tool_path = None
         self.scenario = None
         self.reader = None
-        self.start_time = None
         self.widget = None
 
     def prepare(self):
         self.scenario = self.get_scenario()
         self.tool_path = self._check_installed()
 
-        self.__csv_file_name = self.engine.create_artifact("apachebench", ".csv")
+        self.__tsv_file_name = self.engine.create_artifact("apachebench", ".tsv")
 
         out_file_name = self.engine.create_artifact("apachebench", ".out")
-        self.reader = DataLogReader(self.__csv_file_name, self.log)
+        self.reader = TSVDataReader(self.__tsv_file_name, self.log)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
         self.__out = open(out_file_name, 'w')
         self.__err = open(self.engine.create_artifact("apachebench", ".err"), 'w')
-
-    def resource_files(self):
-        resource_files = []
-        if Scenario.SCRIPT in self.scenario:
-            resource_files.append(self.engine.find_file(self.scenario[Scenario.SCRIPT]))
-        return resource_files
 
     def startup(self):
         args = [self.tool_path]
@@ -82,7 +74,7 @@ class ApacheBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         args += ['-d']  # do not emit 'Processed *00 requests' every 100 requests or so
 
-        args += ['-g', str(self.__csv_file_name)]
+        args += ['-g', str(self.__tsv_file_name)]  # dump stats to TSV file
 
         # verbosity level: 1-4
         args += ['-v', '3']
@@ -90,12 +82,13 @@ class ApacheBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         for key, val in iteritems(self.scenario.get_headers()):
             args += ['-H', "%s: %s" % (key, val)]
 
-        # TODO: multiple requests
-        url_list = list(self.scenario.get_requests())
-        args += [url_list[0].url]
-
-        self.start_time = time.time()
-        self.log.info("ApacheBench cmdline: %s", args)
+        requests = list(self.scenario.get_requests())
+        if not requests:
+            raise ValueError("You must specify at least one request for apachebench")
+        if len(requests) > 1:
+            self.log.warning("ApacheBench doesn't support multiple requests."
+                             " Only first one will be used.")
+        args += [requests[0].url]
 
         self.process = shell_exec(args, stdout=self.__out, stderr=self.__err)
 
@@ -138,16 +131,16 @@ class ApacheBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         return tool_path
 
 
-class DataLogReader(ResultsReader):
+class TSVDataReader(ResultsReader):
     def __init__(self, filename, parent_logger):
-        super(DataLogReader, self).__init__()
+        super(TSVDataReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.filename = filename
         self.fds = None
         self.concurrency = None
 
     def _calculate_datapoints(self, final_pass=False):
-        for point in super(DataLogReader, self)._calculate_datapoints(final_pass):
+        for point in super(TSVDataReader, self)._calculate_datapoints(final_pass):
             yield point
 
     def __open_fds(self):
