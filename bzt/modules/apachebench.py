@@ -21,14 +21,13 @@ import time
 from math import ceil
 from os import path
 
-from bzt.engine import ScenarioExecutor, Scenario, FileLister
+from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
-from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.six import iteritems
 from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time
 
 
-class ApacheBenchExecutor(ScenarioExecutor, WidgetProvider):
+class ApacheBenchExecutor(ScenarioExecutor):
     """
     Apache Benchmark executor module
     """
@@ -44,7 +43,6 @@ class ApacheBenchExecutor(ScenarioExecutor, WidgetProvider):
         self.tool_path = None
         self.scenario = None
         self.reader = None
-        self.widget = None
         self.start_time = None
 
     def prepare(self):
@@ -110,9 +108,6 @@ class ApacheBenchExecutor(ScenarioExecutor, WidgetProvider):
         self.process = shell_exec(args, stdout=self.__out, stderr=self.__err)
 
     def check(self):
-        if self.widget:
-            self.widget.update()
-
         ret_code = self.process.poll()
         if ret_code is None:
             return False
@@ -120,15 +115,6 @@ class ApacheBenchExecutor(ScenarioExecutor, WidgetProvider):
         if ret_code != 0:
             raise RuntimeError("ApacheBench tool exited with non-zero code")
         return True
-
-    def get_widget(self):
-        if not self.widget:
-            if self.get_load().hold:
-                label = "Apache Benchmark"
-            else:
-                label = None
-            self.widget = SidebarWidget(self, label)
-        return self.widget
 
     def shutdown(self):
         """

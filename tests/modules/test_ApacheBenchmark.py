@@ -29,7 +29,6 @@ class TestApacheBenchExecutor(BZTestCase):
             }
         })
         obj.prepare()
-        obj.get_widget()
         obj.startup()
 
     def test_url_exceptions(self):
