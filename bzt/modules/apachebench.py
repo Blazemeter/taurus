@@ -18,13 +18,14 @@ limitations under the License.
 
 import logging
 import time
+from math import ceil
 from os import path
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.six import iteritems
-from bzt.utils import shell_exec, shutdown_process, RequiredTool
+from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time
 
 
 class ApacheBenchExecutor(ScenarioExecutor, WidgetProvider):
@@ -66,20 +67,21 @@ class ApacheBenchExecutor(ScenarioExecutor, WidgetProvider):
 
         if load.iterations:
             args += ['-n', str(load.iterations)]
+        elif load.hold:
+            hold = int(ceil(dehumanize_time(load.hold)))
+            args += ['-t', str(hold)]
         else:
-            raise ValueError("You must specify 'iterations' for apachebench")
+            raise ValueError("You must specify either 'iterations' or 'hold-for' for apachebench")
 
         load_concurrency = load.concurrency
         args += ['-c', str(load_concurrency)]
         self.reader.concurrency = load_concurrency
 
-        args += ['-d']  # do not emit 'Processed *00 requests' every 100 requests or so
+        args += ['-d']  # do not print 'Processed *00 requests' every 100 requests or so
 
         args += ['-g', str(self.__tsv_file_name)]  # dump stats to TSV file
 
-        # verbosity level: 1-4
-        args += ['-v', '3']
-
+        # add global scenario headers
         for key, val in iteritems(self.scenario.get_headers()):
             args += ['-H', "%s: %s" % (key, val)]
 
@@ -89,7 +91,20 @@ class ApacheBenchExecutor(ScenarioExecutor, WidgetProvider):
         if len(requests) > 1:
             self.log.warning("ApacheBench doesn't support multiple requests."
                              " Only first one will be used.")
-        args += [requests[0].url]
+        request = requests[0]
+
+        # add request-specific headers
+        for header in request.headers:
+            for key, val in iteritems(header):
+                args += ['-H', "%s: %s" % (key, val)]
+
+        args += ['-m', request.method]
+
+        if request.timeout is not None:
+            timeout = int(ceil(dehumanize_time(request.timeout)))
+            args += ['-s', str(timeout)]
+
+        args += [request.url]
 
         self.start_time = time.time()
         self.process = shell_exec(args, stdout=self.__out, stderr=self.__err)
