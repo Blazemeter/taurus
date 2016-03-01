@@ -44,6 +44,7 @@ class ApacheBenchExecutor(ScenarioExecutor, WidgetProvider):
         self.scenario = None
         self.reader = None
         self.widget = None
+        self.start_time = None
 
     def prepare(self):
         self.scenario = self.get_scenario()
@@ -90,6 +91,7 @@ class ApacheBenchExecutor(ScenarioExecutor, WidgetProvider):
                              " Only first one will be used.")
         args += [requests[0].url]
 
+        self.start_time = time.time()
         self.process = shell_exec(args, stdout=self.__out, stderr=self.__err)
 
     def check(self):
