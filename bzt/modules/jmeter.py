@@ -1408,7 +1408,6 @@ class JMeter(RequiredTool):
 
     def install(self):
         dest = os.path.join(os.path.dirname((get_full_path(self.tool_path))), os.path.pardir)
-        plugin_dest = dest + '/lib/ext'
 
         with super(JMeter, self).install_with_mirrors(dest, ".zip") as jmeter_dist:
             self.log.info("Unzipping %s to %s", jmeter_dist.name, dest)
@@ -1435,7 +1434,7 @@ class JMeter(RequiredTool):
                     raise exc
 
             self.log.info("Unzipping %s", plugin_dist.name)
-            unzip(plugin_dist.name, plugin_dest)
+            unzip(plugin_dist.name, dest)
             plugin_dist.close()
             os.remove(plugin_dist.name)
         cleaner = JarCleaner(self.log)
