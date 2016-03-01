@@ -17,6 +17,7 @@ def get_res_path(resource):
 
 class TestApacheBenchExecutor(BZTestCase):
     def test_iter(self):
+        "Ensures that executor doesn't fail with minimal configuration."
         obj = ApacheBenchExecutor()
         obj.engine = EngineEmul()
         obj.settings.merge({
@@ -31,7 +32,8 @@ class TestApacheBenchExecutor(BZTestCase):
         obj.prepare()
         obj.startup()
 
-    def test_url_exceptions(self):
+    def test_no_request_exception(self):
+        "Checks that executor.startup fails if there's no request specified."
         obj = ApacheBenchExecutor()
         obj.engine = EngineEmul()
         obj.settings.merge({
@@ -42,7 +44,23 @@ class TestApacheBenchExecutor(BZTestCase):
         obj.prepare()
         self.assertRaises(ValueError, obj.startup)
 
-    def test_check_install_exceptions(self):
+    def test_no_iterations_nor_hold(self):
+        """
+        Checks that executor.startup fails if neither of 'iterations' nor
+         'hold-for' parameters are specified.
+        """
+        obj = ApacheBenchExecutor()
+        obj.engine = EngineEmul()
+        obj.settings.merge({
+            "path": get_res_path(TOOL_NAME),})
+        obj.execution.merge({
+            "concurrency": 2,
+            "scenario": {}})
+        obj.prepare()
+        self.assertRaises(ValueError, obj.startup)
+
+    def test_no_apache_benchmark(self):
+        "Checks that prepare() fails if ApacheBenchmark is not installed."
         obj = ApacheBenchExecutor()
         obj.engine = EngineEmul()
         obj.settings.merge({
@@ -60,8 +78,20 @@ class TestApacheBenchExecutor(BZTestCase):
         obj.execution.merge({
             "concurrency": 2,
             "iterations": 3,
+            "headers": {
+                "Content-Type": "text/plain"
+            },
             "scenario": {
-                "requests": ["http://blazedemo.com"],
+                "requests": [
+                    {
+                        "url": "http://blazedemo.com",
+                        "headers": [
+                            {"X-Answer": "42"},
+                        ],
+                        "method": "POST",
+                        "timeout": "3",
+                    }
+                ],
             }
         })
         obj.prepare()
