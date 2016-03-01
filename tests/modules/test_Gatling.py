@@ -169,19 +169,46 @@ class TestGatlingExecutor(BZTestCase):
         finally:
             obj.shutdown()
 
-    def test_interactive_request(self):
+    def test_ainteractive_request(self):
         obj = self.getGatling()
         obj.execution.merge({
             "scenario": {
-                "script": __dir__() + "/../gatling/generated1.scala",
-                "simulation": "fake"
-            }
-        })
+                "script": __dir__() + "/../gatling/SimpleSimulation.scala",
+                "simulation": "SimpleSimulation"}})
         obj.engine.existing_artifact(__dir__() + "/../gatling/generated2.scala")
         obj.prepare()
+
+        counter1 = 0
         try:
             obj.startup()
-        finally:
+            while not obj.check():
+                time.sleep(obj.engine.check_interval)
+                counter1 += 1
+
+            obj.shutdown()
+            obj.post_process()
+        except RuntimeWarning:
+            pass
+
+        obj = self.getGatling()
+        obj.execution.merge({
+            "scenario": {
+                "script": __dir__() + "/../gatling/SimpleSimulation.scala",
+                "simulation": "fake"}})
+        obj.engine.existing_artifact(__dir__() + "/../gatling/generated2.scala")
+        obj.prepare()
+
+        counter2 = 0
+        try:
+            obj.startup()
+            while not obj.check():
+                time.sleep(obj.engine.check_interval)
+                counter2 += 1
+                if counter2 > counter1*3:
+                    self.fail('It seems gatling hangs')
+            obj.shutdown()
+            obj.post_process()
+        except RuntimeWarning:
             pass
 
 
