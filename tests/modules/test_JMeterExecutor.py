@@ -152,12 +152,12 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(JMeterExecutor._need_to_install(fake), True)
         self.assertEqual(fake.tool_path, os.path.join(os.path.curdir, end_str))
 
-        # not real file/dir, looks like *bin/jmeter.EXT: make two steps up, use as dir, install jmeter inside it
+        # not real file/dir, looks like *bin/jmeter.EXT: make two steps up, use as dir, install jmeter into it
         fake.set('*' + end_str, False)
         self.assertEqual(JMeterExecutor._need_to_install(fake), True)
         self.assertEqual(fake.tool_path, '*' + end_str)
 
-        # not real file/dir, doesn't look like *bin/jmeter.EXT: use as dir, install jmeter inside it
+        # not real file/dir, doesn't look like *bin/jmeter.EXT: use as dir, install jmeter into it
         fake.set('*', False)
         self.assertEqual(JMeterExecutor._need_to_install(fake), True)
         self.assertEqual(fake.tool_path, os.path.join('*',end_str))
