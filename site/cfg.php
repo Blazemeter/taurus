@@ -9,7 +9,7 @@ if ($_SERVER['SERVER_ADDR'] == $_SERVER['REMOTE_ADDR']) {
 } else { // our real website settings
     $level = \PWE\Core\PWELogger::WARNING;
     $tempdir = "/home/gettauru/tmp";
-    $logfile = "/home/gettauru/logs/pwe.log";
+    $logfile = "/home/gettauru/logs/pwe.".date('Ym');
 }
 
 \PWE\Core\PWELogger::setStdErr($logfile);
