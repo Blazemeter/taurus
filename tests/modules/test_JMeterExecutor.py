@@ -1,3 +1,4 @@
+# coding=utf-8
 """ test """
 import json
 import logging
@@ -123,7 +124,7 @@ class TestJMeterExecutor(BZTestCase):
         obj.prepare()
 
     def test_path_processing(self):
-        class FakeTool:
+        class FakeTool(object):
             tool_path = ''
             installed = None
 
@@ -914,3 +915,11 @@ class TestJMeterExecutor(BZTestCase):
                     "url": "http://blazedemo.com",
                 }]}})
         obj.prepare()
+
+
+class TestJMX(BZTestCase):
+    def test_checkmark(self):
+        obj = JMX()
+        res = obj._get_http_request("url", "label", "method", 0, {"param": "✓"}, True)
+        prop = res.find(".//stringProp[@name='Argument.value']")
+        self.assertNotEqual("BINARY", prop.text)
