@@ -119,6 +119,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.stdout_file = None
         self.stderr_file = None
         self.widget = None
+        self.simulation_started = False
 
     def prepare(self):
         self._check_installed()
@@ -217,6 +218,20 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.widget.update()
 
         self.retcode = self.process.poll()
+
+        if not self.simulation_started:
+            wrong_line = "Choose a simulation number:"
+            with open(self.stdout_file.name) as out:
+                file_header = out.read(1024)
+            if wrong_line in file_header:  # gatling can't select test scenario
+                scenarios = file_header[file_header.find(wrong_line) + len(wrong_line):].rstrip()
+                warn_line = 'Several gatling simulations are found, you must ' + \
+                            'specify exact simulation to use in "simulation" option %s'
+                self.log.warning(warn_line % scenarios)
+                raise ValueError('You must select proper gatling simulation')
+            if 'started...' in file_header:
+                self.simulation_started = True
+
         if self.retcode is not None:
             if self.retcode != 0:
                 self.log.info("Gatling tool exit code: %s", self.retcode)
