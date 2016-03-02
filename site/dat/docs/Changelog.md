@@ -3,6 +3,7 @@
  - add gatling script generation 
  - fix grinder crash
  - fix gatling metric parsing
+ - add detection of gatling simulation request in case of several simulations are found
  - join JMeter and its plugins installation procedures
 
 ## 1.2.0

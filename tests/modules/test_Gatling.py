@@ -169,6 +169,47 @@ class TestGatlingExecutor(BZTestCase):
         finally:
             obj.shutdown()
 
+    def test_interactive_request(self):
+        obj = self.getGatling()
+        obj.execution.merge({
+            "scenario": {
+                "script": __dir__() + "/../gatling/SimpleSimulation.scala",
+                "simulation": "SimpleSimulation"}})
+        obj.prepare()
+        obj.settings.merge({"path": __dir__() + "/../gatling/gatling" + EXE_SUFFIX})
+        counter1 = 0
+        try:
+            obj.startup()
+            while not obj.check():
+                time.sleep(obj.engine.check_interval)
+                counter1 += 1
+            obj.shutdown()
+            obj.post_process()
+        except RuntimeWarning:
+            pass
+
+        obj = self.getGatling()
+        obj.execution.merge({
+            "scenario": {
+                "script": __dir__() + "/../gatling/SimpleSimulation.scala",
+                "simulation": "fake"}})
+        obj.engine.existing_artifact(__dir__() + "/../gatling/generated2.scala")
+        obj.prepare()
+        obj.settings.merge({"path": __dir__() + "/../gatling/gatling" + EXE_SUFFIX})
+        counter2 = 0
+        try:
+            obj.startup()
+            while not obj.check():
+                time.sleep(obj.engine.check_interval)
+                counter2 += 1
+                if counter2 > counter1 * 5:
+                    self.fail('It seems gatling made interactive request')
+            obj.shutdown()
+            obj.post_process()
+        except ValueError:
+            return
+        self.fail('ValueError not found')
+
 
 class TestDataLogReader(BZTestCase):
     def test_read(self):
