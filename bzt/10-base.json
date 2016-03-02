@@ -36,7 +36,7 @@
         "summariser.name": "",
         "mode": "Stripped"
       },
-      "path": "~/.bzt/jmeter-taurus/bin/jmeter"
+      "path": "~/.bzt/jmeter-taurus/"
     },
     "jtl-loader": "bzt.modules.jmeter.JMeterJTLLoaderExecutor",
     "grinder": {
