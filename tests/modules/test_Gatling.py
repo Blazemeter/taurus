@@ -169,7 +169,7 @@ class TestGatlingExecutor(BZTestCase):
         finally:
             obj.shutdown()
 
-    def test_ainteractive_request(self):
+    def test_interactive_request(self):
         obj = self.getGatling()
         obj.execution.merge({
             "scenario": {

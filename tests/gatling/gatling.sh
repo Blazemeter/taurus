@@ -9,4 +9,4 @@ if [ "$QT" -gt 1 ]; then
   echo "Choose a simulation number:"
   read
 fi
-echo -e "Done"
+echo -e "started..."

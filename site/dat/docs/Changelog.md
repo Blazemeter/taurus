@@ -3,7 +3,7 @@
  - add gatling script generation 
  - fix grinder crash
  - fix gatling metric parsing
- - add detection of gatling simulation request
+ - add detection of gatling simulation request in case of several simulations are found
 
 ## 1.2.0
  - maximize browser window in Selenium test, when possible
