@@ -38,8 +38,9 @@ from bzt.jmx import JMX
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.six import iteritems, text_type, StringIO, request, etree, binary_type
-from bzt.utils import shell_exec, ensure_is_dict, dehumanize_time, BetterDict, guess_csv_dialect, EXE_SUFFIX
-from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary, MirrorsManager
+from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager
+from bzt.utils import shell_exec, ensure_is_dict, dehumanize_time, BetterDict, guess_csv_dialect
+from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
 
 
 class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
@@ -777,26 +778,44 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         check tools
         """
         required_tools = [JavaVM("", "", self.log), TclLibrary(self.log)]
-
-        jmeter_path = self.settings.get("path", "~/.bzt/jmeter-taurus/bin/jmeter")
-        if not jmeter_path.lower().endswith(EXE_SUFFIX):
-            jmeter_path += EXE_SUFFIX
-        jmeter_path = os.path.abspath(os.path.expanduser(jmeter_path))
-        self.settings["path"] = jmeter_path
-        jmeter_version = self.settings.get("version", JMeterExecutor.JMETER_VER)
-
-        plugin_download_link = self.settings.get("plugins-download-link", JMeterExecutor.PLUGINS_DOWNLOAD_TPL)
-
-        required_tools.append(JMeter(jmeter_path, self.log, jmeter_version))
-        required_tools.append(JMeterPlugins(jmeter_path, plugin_download_link, self.log))
-
-        self.check_tools(required_tools)
-
-    def check_tools(self, required_tools):
         for tool in required_tools:
             if not tool.check_if_installed():
                 self.log.info("Installing %s", tool.tool_name)
                 tool.install()
+
+        jmeter_path = self.settings.get("path", "~/.bzt/jmeter-taurus/")
+        jmeter_path = get_full_path(jmeter_path)
+        jmeter_version = self.settings.get("version", JMeterExecutor.JMETER_VER)
+        plugin_download_link = self.settings.get("plugins-download-link", JMeterExecutor.PLUGINS_DOWNLOAD_TPL)
+        tool = JMeter(jmeter_path, self.log, jmeter_version, plugin_download_link)
+
+        if self._need_to_install(tool):
+            self.log.info("Installing %s", tool.tool_name)
+            tool.install()
+
+        self.settings['path'] = tool.tool_path
+
+    @staticmethod
+    def _need_to_install(tool):
+        end_str = os.path.join('bin', 'jmeter' + EXE_SUFFIX)
+
+        if os.path.isfile(tool.tool_path):
+            if tool.check_if_installed():  # all ok, it's tool path
+                return False
+            else:  # probably it's path of other tool)
+                raise ValueError('Wrong tool path: %s' % tool.tool_path)
+
+        if os.path.isdir(tool.tool_path):  # it's dir: fix tool path and install if needed
+            tool.tool_path = os.path.join(tool.tool_path, end_str)
+            if tool.check_if_installed():
+                return False
+            else:
+                return True
+
+        if not tool.tool_path.endswith(end_str):  # similar to future jmeter directory
+            tool.tool_path = os.path.join(tool.tool_path, end_str)
+
+        return True
 
 
 class JTLReader(ResultsReader):
@@ -804,7 +823,6 @@ class JTLReader(ResultsReader):
     Class to read KPI JTL
     :type errors_reader: JTLErrorsReader
     """
-
     def __init__(self, filename, parent_logger, errors_filename):
         super(JTLReader, self).__init__()
         self.is_distributed = False
@@ -1356,73 +1374,55 @@ class JMeter(RequiredTool):
     JMeter tool
     """
 
-    def __init__(self, tool_path, parent_logger, jmeter_version):
+    def __init__(self, tool_path, parent_logger, jmeter_version, plugin_link):
         super(JMeter, self).__init__("JMeter", tool_path)
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.version = jmeter_version
         self.mirror_manager = JMeterMirrorsManager(self.log, self.version)
+        self.plugins = ["Standard", "Extras", "ExtrasLibs", "WebDriver"]
+        self.plugin_link = plugin_link
 
     def check_if_installed(self):
         self.log.debug("Trying jmeter: %s", self.tool_path)
         try:
-            jmlog = tempfile.NamedTemporaryFile(prefix="jmeter", suffix="log", delete=False)
-            jm_proc = shell_exec([self.tool_path, '-j', jmlog.name, '--version'], stderr=subprocess.STDOUT)
-            jmout, jmerr = jm_proc.communicate()
-            self.log.debug("JMeter check: %s / %s", jmout, jmerr)
-            jmlog.close()
+            with tempfile.NamedTemporaryFile(prefix="jmeter", suffix="log", delete=False) as jmlog:
+                jm_proc = shell_exec([self.tool_path, '-j', jmlog.name, '--version'], stderr=subprocess.STDOUT)
+                jmout, jmerr = jm_proc.communicate()
+                self.log.debug("JMeter check: %s / %s", jmout, jmerr)
+
             os.remove(jmlog.name)
+
             if isinstance(jmout, binary_type):
                 jmout = jmout.decode()
+
             if "is too low to run JMeter" in jmout:
                 self.log.error(jmout)
                 raise ValueError("Java version is too low to run JMeter")
+
             return True
+
         except OSError:
             self.log.debug("JMeter check failed.")
             return False
 
     def install(self):
-        dest = os.path.dirname(os.path.dirname(os.path.expanduser(self.tool_path)))
-        dest = os.path.abspath(dest)
-        jmeter_dist = super(JMeter, self).install_with_mirrors(dest, ".zip")
-        self.log.info("Unzipping %s to %s", jmeter_dist.name, dest)
-        unzip(jmeter_dist.name, dest, 'apache-jmeter-%s' % self.version)
+        dest = os.path.join(os.path.dirname((get_full_path(self.tool_path))), os.path.pardir)
+
+        with super(JMeter, self).install_with_mirrors(dest, ".zip") as jmeter_dist:
+            self.log.info("Unzipping %s to %s", jmeter_dist.name, dest)
+            unzip(jmeter_dist.name, dest, 'apache-jmeter-%s' % self.version)
+
+        os.remove(jmeter_dist.name)
+
         # set exec permissions
         os.chmod(self.tool_path, 0o755)
-        jmeter_dist.close()
-        os.remove(jmeter_dist.name)
-        if self.check_if_installed():
-            return self.tool_path
-        else:
+
+        if not self.check_if_installed():
             raise RuntimeError("Unable to run %s after installation!" % self.tool_name)
 
-
-class JMeterPlugins(RequiredTool):
-    """
-    JMeter plugins
-    """
-
-    def __init__(self, tool_path, download_link, parent_logger):
-        super(JMeterPlugins, self).__init__("JMeterPlugins", tool_path, download_link)
-        self.log = parent_logger.getChild(self.__class__.__name__)
-        self.plugins = ["Standard", "Extras", "ExtrasLibs", "WebDriver"]
-
-    def check_if_installed(self):
-        plugin_folder = os.path.join(os.path.dirname(os.path.dirname(self.tool_path)), "lib", "ext")
-        if os.path.exists(plugin_folder):
-            listed_files = os.listdir(plugin_folder)
-            for plugin in self.plugins:
-                if "JMeterPlugins-%s.jar" % plugin not in listed_files:
-                    return False
-            return True
-        else:
-            return False
-
-    def install(self):
-        dest = os.path.dirname(os.path.dirname(os.path.expanduser(self.tool_path)))
-        for set_name in ("Standard", "Extras", "ExtrasLibs", "WebDriver"):
-            plugin_dist = tempfile.NamedTemporaryFile(suffix=".zip", delete=False, prefix=set_name)
-            plugin_download_link = self.download_link.format(plugin=set_name)
+        for plugin in self.plugins:
+            plugin_dist = tempfile.NamedTemporaryFile(suffix=".zip", delete=False, prefix=plugin)
+            plugin_download_link = self.plugin_link.format(plugin=plugin)
             self.log.info("Downloading %s", plugin_download_link)
             downloader = request.FancyURLopener()
             with ProgressBarContext() as pbar:
@@ -1447,6 +1447,7 @@ class JarCleaner(object):
     def clean(self, path):
         """
         Remove old jars
+        :param path: str
         """
         self.log.debug("Removing old jars from %s", path)
         jarlib = namedtuple("jarlib", ("file_name", "lib_name"))

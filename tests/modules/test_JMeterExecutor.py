@@ -122,6 +122,46 @@ class TestJMeterExecutor(BZTestCase):
                                       {"path": __dir__() + "/../data/test2.csv"}]}})
         obj.prepare()
 
+    def test_path_processing(self):
+        class FakeTool:
+            tool_path = ''
+            installed = None
+
+            def set(self, tool_path, installed):
+                self.tool_path = tool_path
+                self.installed = installed
+
+            def check_if_installed(self):
+                return self.installed
+
+        fake = FakeTool()
+        end_str = os.path.join('bin', 'jmeter' + EXE_SUFFIX)
+
+        fake.set(__file__, True)        # real file, jmeter works: do nothing
+        self.assertEqual(JMeterExecutor._need_to_install(fake), False)
+
+        fake.set(__file__, False)       # real file, jmeter doesn't work: raise
+        with self.assertRaises(ValueError):
+            JMeterExecutor._need_to_install(fake)
+
+        fake.set(os.path.curdir, True)  # real dir, $dir/bin/jmeter.EXT works: fix path only
+        self.assertEqual(JMeterExecutor._need_to_install(fake), False)
+        self.assertEqual(fake.tool_path, os.path.join(os.path.curdir, end_str))
+
+        fake.set(os.path.curdir, False)  # real dir, $dir/bin/jmeter.EXT doesn't work: install into $dir
+        self.assertEqual(JMeterExecutor._need_to_install(fake), True)
+        self.assertEqual(fake.tool_path, os.path.join(os.path.curdir, end_str))
+
+        # not real file/dir, looks like *bin/jmeter.EXT: make two steps up, use as dir, install jmeter into it
+        fake.set('*' + end_str, False)
+        self.assertEqual(JMeterExecutor._need_to_install(fake), True)
+        self.assertEqual(fake.tool_path, '*' + end_str)
+
+        # not real file/dir, doesn't look like *bin/jmeter.EXT: use as dir, install jmeter into it
+        fake.set('*', False)
+        self.assertEqual(JMeterExecutor._need_to_install(fake), True)
+        self.assertEqual(fake.tool_path, os.path.join('*',end_str))
+
     def test_install_jmeter(self):
         path = os.path.abspath(__dir__() + "/../../build/tmp/jmeter-taurus/bin/jmeter" + EXE_SUFFIX)
 
@@ -747,7 +787,7 @@ class TestJMeterExecutor(BZTestCase):
         path = os.path.abspath(__dir__() + "/../../build/tmp/jmeter-taurus/bin/jmeter" + EXE_SUFFIX)
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
         obj = JMeterExecutor()
-        objjm = JMeter(path, obj.log, JMeterExecutor.JMETER_VER)
+        objjm = JMeter(path, obj.log, JMeterExecutor.JMETER_VER, JMeterExecutor.PLUGINS_DOWNLOAD_TPL)
         objjm.install()
 
     def test_convert_tgroups_no_load(self):
