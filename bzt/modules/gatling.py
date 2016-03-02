@@ -225,8 +225,9 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 file_header = out.read(1024)
             if wrong_line in file_header:  # gatling can't select test scenario
                 scenarios = file_header[file_header.find(wrong_line) + len(wrong_line):].rstrip()
-                warn_line = 'Several gatling simulations are found, you must select one in config file'
-                self.log.warning(warn_line + scenarios)
+                warn_line = 'Several gatling simulations are found, you must ' + \
+                            'specify exact simulation to use in "simulation" option %s'
+                self.log.warning(warn_line % scenarios)
                 raise ValueError('You must select proper gatling simulation')
             if 'started...' in file_header:
                 self.simulation_started = True
