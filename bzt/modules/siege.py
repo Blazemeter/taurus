@@ -135,9 +135,11 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider):
         ret_code = self.process.poll()
         if ret_code is None:
             return False
+
         self.log.info("Siege tool exit code: %s", ret_code)
         if ret_code != 0:
             raise RuntimeError("Siege tool exited with non-zero code")
+
         return True
 
     def get_widget(self):
@@ -154,7 +156,7 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider):
         If tool is still running - let's stop it.
         """
         shutdown_process(self.process, self.log)
-        if self.__out and not self.__out.closed:
+        if self.__out and not self.__out.closed:  # FIXME: this should happen in post_process
             self.__out.close()
         if self.__err and not self.__err.closed:
             self.__err.close()
@@ -175,7 +177,7 @@ class DataLogReader(ResultsReader):
         self.fds = None
         self.concurrency = None
 
-    def _calculate_datapoints(self, final_pass=False):
+    def _calculate_datapoints(self, final_pass=False):  # FIXME: why override it?
         for point in super(DataLogReader, self)._calculate_datapoints(final_pass):
             yield point
 
