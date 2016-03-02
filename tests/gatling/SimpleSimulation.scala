@@ -4,10 +4,10 @@ import scala.concurrent.duration._
 
 class SimpleSimulation extends Simulation { 
 
-  val conf = http.baseUrl("http:/blazedemo.com/")
+  val conf = http.baseURL("http:/blazedemo.com/")
 
   val scn = scenario("Simple scenario")
-            .exec(http("req1").get("/")).pause(2)
+            .exec(http("req1").get("/")).pause(1)
 
-  setUp(scn.inject(atOnceUsers(5))).protocols(conf)
+  setUp(scn.inject(atOnceUsers(2))).protocols(conf)
 }

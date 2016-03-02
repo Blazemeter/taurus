@@ -217,6 +217,12 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.widget.update()
 
         self.retcode = self.process.poll()
+
+        with open(self.stdout_file.name) as out:
+            file_header = out.read(1024)
+        if file_header.find("Choose a simulation number:") != -1:  # gatling can't select test scenario
+            raise ValueError('You must select proper gatling simulation')
+
         if self.retcode is not None:
             if self.retcode != 0:
                 self.log.info("Gatling tool exit code: %s", self.retcode)
