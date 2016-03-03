@@ -25,8 +25,8 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.utils import BetterDict, TclLibrary, MirrorsManager, EXE_SUFFIX, dehumanize_time
-from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, shutdown_process
-
+from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, shutdown_process, ensure_is_dict
+from bzt.utils import FIELD_BODY, FIELD_HEADERS, FIELD_RESP_CODE
 
 class GatlingScriptBuilder(object):
     def __init__(self, load, scenario, parent_logger, class_name):
@@ -76,6 +76,57 @@ class GatlingScriptBuilder(object):
                     exec_str = exec_str % {'method': 'StringBody', 'body': req.body}
                 else:
                     self.log.warning('Only string and file are supported body content, "%s" ignored' % str(req.body))
+
+            assertions = req.config.get('assert', [])
+            if len(assertions) > 0:
+                total_assume = True
+                first_check = True
+                exec_str += '\t'*4 + '.check(\n'
+                for idx, assertion in enumerate(assertions):
+
+                    assertion = ensure_is_dict(assertions, idx, "contains")
+
+                    a_subject = assertion.get('subject', FIELD_BODY)
+                    error_str = 'You must specify some assertion argument in config file "contains" list'
+                    a_contains = assertion.get('contains', ValueError(error_str))
+                    a_regexp = assertion.get('regexp', 'false')
+                    a_assume_success = assertion.get('assume-success', 'false')
+
+                    if a_assume_success == 'false':
+                        total_assume = False
+
+                    a_not = assertion.get('not', 'false')
+
+                    if a_subject == FIELD_HEADERS:
+                        if a_not == 'true':
+                            check_template = 'status.not(%(sample)s))'
+                        else:
+                            check_template = 'status.is(%(sample)s))'
+                    elif a_subject == FIELD_HEADERS:
+                        pass
+                    else:  # FIELD_BODY
+                        if a_regexp:
+                            check_template = 'regex("""%(sample)s""").'
+                        else:
+                            check_template = 'substring("""%(sample)s""").'
+                        if a_not:
+                            check_template += 'notExists'
+                        else:
+                            check_template += 'exists'
+
+                    if not isinstance(a_contains, list):
+                        a_contains = [a_contains]
+                    for sample in a_contains:
+                        if not first_check:
+                            exec_str += ', \n'
+                        exec_str += '\t'*5 + check_template % {'sample': sample}
+                        first_check = False
+
+
+                if not total_assume:
+                    exec_str += ', \n' + '\t'*5 + 'status.in(200 to 299, 304)'
+
+                exec_str += ')\n'
 
             if req.think_time is None:
                 think_time = 0
