@@ -7,7 +7,7 @@ class SimpleSimulation extends Simulation {
   val conf = http.baseURL("http://blazedemo.com")
 
   val scn = scenario("Simple scenario")
-            .exec(http("req1").get("/").pause(1)
+            .exec(http("req1").get("/")).pause(1)
 
   setUp(scn.inject(atOnceUsers(1))).protocols(conf)
 }
