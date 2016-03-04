@@ -87,7 +87,7 @@ class TestGatlingExecutor(BZTestCase):
         self.assertEqual(len(artifacts), 12)
         self.__check_path_resource_files(os.path.join(obj.engine.artifacts_dir, "LocalBasicSimulation.scala"))
 
-    def test_requests_defaddr_iter_headers(self):
+    def test_requests_1(self):
         obj = self.getGatling()
         obj.execution.merge({
             "concurrency": 10,
@@ -99,7 +99,12 @@ class TestGatlingExecutor(BZTestCase):
                 "requests": [{'url': '/reserve.php',
                               'headers': {'H2': 'V2'},
                               'method': 'POST',
-                              'body': 'Body Content'},
+                              'body': 'Body Content',
+                              'assert': [{
+                                  'contains': ['bootstrap.min'],
+                                  'not': True,
+                                  'assume-success': False
+                              }]},
                              {'url': '/'}]
             }
         })
@@ -107,22 +112,96 @@ class TestGatlingExecutor(BZTestCase):
         scala_file = obj.engine.artifacts_dir + '/' + obj.get_scenario().get('simulation') + '.scala'
         self.assertEqualFiles(__dir__() + "/../gatling/generated1.scala", scala_file)
 
-    def test_requests_noiter_noramp(self):
+    def test_requests_2(self):
         obj = self.getGatling()
         obj.execution.merge({
             "concurrency": 10,
             "hold-for": 110,
             "ramp-up": 30,
             "scenario": {
-                'keepalive': 'false',
+                'keepalive': False,
                 'timeout': '100ms',
-                "requests": ['http://blazedemo.com', 'google.com']
+                'requests': ['http://blazedemo.com', 'google.com']
             }
         })
         obj.prepare()
 
         scala_file = obj.engine.artifacts_dir + '/' + obj.get_scenario().get('simulation') + '.scala'
         self.assertEqualFiles(__dir__() + "/../gatling/generated2.scala", scala_file)
+
+    def test_requests_3(self):
+        obj = self.getGatling()
+        obj.execution.merge({
+            "iterations": 55,
+            "scenario": {
+                "default-address": "blazedemo.com",
+                "requests": [{'url': '/reserve.php',
+                              'assert': [{
+                                  'contains': [200],
+                                  'subject': 'http-code',
+                                  'not': False,
+                                  'assume-success': True
+                              }]}]
+            }
+        })
+        obj.prepare()
+        scala_file = obj.engine.artifacts_dir + '/' + obj.get_scenario().get('simulation') + '.scala'
+        self.assertEqualFiles(__dir__() + "/../gatling/generated3.scala", scala_file)
+
+    def test_requests_4(self):
+        obj = self.getGatling()
+        obj.execution.merge({
+            "iterations": 55,
+            "scenario": {
+                "default-address": "blazedemo.com",
+                "requests": [{'url': '/reserve.php',
+                              'assert': [{
+                                  'subject': 'body',
+                                  'contains': 'boot(.*)strap.min',
+                                  'regexp': True,
+                                  'not': False,
+                                  'assume-success': False
+                              }]}]
+            }
+        })
+        obj.prepare()
+        scala_file = obj.engine.artifacts_dir + '/' + obj.get_scenario().get('simulation') + '.scala'
+        self.assertEqualFiles(__dir__() + "/../gatling/generated4.scala", scala_file)
+
+    def test_requests_5(self):
+        obj = self.getGatling()
+        obj.execution.merge({
+            "iterations": 55,
+            "scenario": {
+                "default-address": "blazedemo.com",
+                "requests": [{'url': '/reserve.php',
+                              'assert': [{
+                                  'subject': 'body',
+                                  'regexp': True,
+                                  'not': False,
+                                  'assume-success': False
+                              }]}]
+            }
+        })
+        self.assertRaises(ValueError, obj.prepare)
+
+    def test_requests_6(self):
+        obj = self.getGatling()
+        obj.execution.merge({
+            "iterations": 55,
+            "scenario": {
+                "default-address": "blazedemo.com",
+                "requests": [{'url': '/reserve.php',
+                              'assert': [{
+                                  'subject': 'headers',
+                                  'contains': [1, 2, 3],
+                                  'regexp': True,
+                                  'not': False,
+                                  'assume-success': False
+                              }]}]
+            }
+        })
+        self.assertRaises(NotImplementedError, obj.prepare)
 
     def assertEqualFiles(self, name1, name2):
         def without_id(lines):

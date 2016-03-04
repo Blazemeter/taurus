@@ -77,56 +77,7 @@ class GatlingScriptBuilder(object):
                 else:
                     self.log.warning('Only string and file are supported body content, "%s" ignored' % str(req.body))
 
-            assertions = req.config.get('assert', [])
-            if len(assertions) > 0:
-                total_assume = True
-                first_check = True
-                exec_str += '\t'*4 + '.check(\n'
-                for idx, assertion in enumerate(assertions):
-
-                    assertion = ensure_is_dict(assertions, idx, "contains")
-
-                    a_subject = assertion.get('subject', FIELD_BODY)
-                    error_str = 'You must specify some assertion argument in config file "contains" list'
-                    a_contains = assertion.get('contains', ValueError(error_str))
-                    a_regexp = assertion.get('regexp', 'false')
-                    a_assume_success = assertion.get('assume-success', 'false')
-
-                    if a_assume_success == 'false':
-                        total_assume = False
-
-                    a_not = assertion.get('not', 'false')
-
-                    if a_subject == FIELD_HEADERS:
-                        if a_not == 'true':
-                            check_template = 'status.not(%(sample)s))'
-                        else:
-                            check_template = 'status.is(%(sample)s))'
-                    elif a_subject == FIELD_HEADERS:
-                        pass
-                    else:  # FIELD_BODY
-                        if a_regexp:
-                            check_template = 'regex("""%(sample)s""").'
-                        else:
-                            check_template = 'substring("""%(sample)s""").'
-                        if a_not:
-                            check_template += 'notExists'
-                        else:
-                            check_template += 'exists'
-
-                    if not isinstance(a_contains, list):
-                        a_contains = [a_contains]
-                    for sample in a_contains:
-                        if not first_check:
-                            exec_str += ', \n'
-                        exec_str += '\t'*5 + check_template % {'sample': sample}
-                        first_check = False
-
-
-                if not total_assume:
-                    exec_str += ', \n' + '\t'*5 + 'status.in(200 to 299, 304)'
-
-                exec_str += ')\n'
+            exec_str += self.__get_assertions(req.config.get('assert', []))
 
             if req.think_time is None:
                 think_time = 0
@@ -135,6 +86,64 @@ class GatlingScriptBuilder(object):
             exec_str += '\t\t).pause(%(think_time)s)' % {'think_time': think_time}
 
         return exec_str
+
+    def __get_assertions(self, assertions):
+        if len(assertions) == 0:
+            return ''
+
+        check_result = ''
+        total_assume = True
+        first_check = True
+        check_result += '\t'*4 + '.check(\n'
+
+        for idx, assertion in enumerate(assertions):
+            assertion = ensure_is_dict(assertions, idx, "contains")
+            a_subject = assertion.get('subject', FIELD_BODY)
+            error_str = 'You must specify some assertion argument in config file "contains" list'
+            a_contains = assertion.get('contains', ValueError(error_str))
+            a_regexp = assertion.get('regexp', False)
+            a_assume_success = assertion.get('assume-success', False)
+
+            if not a_assume_success:
+                total_assume = False
+
+            a_not = assertion.get('not', 'false')
+
+            if a_subject == FIELD_RESP_CODE:
+                if a_not:
+                    check_template = 'status.not(%(sample)s)'
+                else:
+                    check_template = 'status.is(%(sample)s)'
+            elif a_subject == FIELD_HEADERS:
+                raise NotImplementedError('Sorry, but "headers" subject is not implemented for gatling asserts')
+            else:  # FIELD_BODY
+                if a_regexp:
+                    check_template = 'regex("""%(sample)s""").'
+                else:
+                    check_template = 'substring("""%(sample)s""").'
+                if a_not:
+                    check_template += 'notExists'
+                else:
+                    check_template += 'exists'
+
+            if not isinstance(a_contains, list):
+                a_contains = [a_contains]
+            for sample in a_contains:
+                if not first_check:
+                    check_result += ',\n'
+                check_result += '\t'*5 + check_template % {'sample': sample}
+                first_check = False
+
+        if not total_assume:
+            check_result += ',\n' + '\t'*5 + 'status.in(200 to 304)'
+            check_result += ',\n' + '\t'*5 + 'status.not(300)'
+            check_result += ',\n' + '\t'*5 + 'status.not(301)'
+            check_result += ',\n' + '\t'*5 + 'status.not(302)'
+            check_result += ',\n' + '\t'*5 + 'status.not(302)'
+
+        check_result += ')\n'
+
+        return check_result
 
     def gen_test_case(self):
         template_path = os.path.join(os.path.dirname(__file__), os.pardir, 'resources', "gatling_script_template.scala")
