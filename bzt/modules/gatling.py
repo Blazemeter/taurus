@@ -88,12 +88,31 @@ class GatlingScriptBuilder(object):
         return exec_str
 
     def __get_assertions(self, assertions):
+        def get_template():
+            if a_subject == Scenario.FIELD_RESP_CODE:
+                if a_not:
+                    res = 'status.not(%(sample)s)'
+                else:
+                    res = 'status.is(%(sample)s)'
+            elif a_subject == Scenario.FIELD_HEADERS:
+                self.log.warning('Sorry, but "headers" subject is not implemented for gatling asserts')
+                res = ''
+            else:  # FIELD_BODY
+                if a_regexp:
+                    res = 'regex("""%(sample)s""").'
+                else:
+                    res = 'substring("""%(sample)s""").'
+                if a_not:
+                    res += 'notExists'
+                else:
+                    res += 'exists'
+            return res
+
         if len(assertions) == 0:
             return ''
 
-        check_result = ''
         first_check = True
-        check_result += '\t' * 4 + '.check(\n'
+        check_result = '\t' * 4 + '.check(\n'
 
         for idx, assertion in enumerate(assertions):
             assertion = ensure_is_dict(assertions, idx, "contains")
@@ -101,26 +120,11 @@ class GatlingScriptBuilder(object):
             error_str = 'You must specify some assertion argument in config file "contains" list'
             a_contains = assertion.get('contains', ValueError(error_str))
             a_regexp = assertion.get('regexp', False)
+            a_not = assertion.get('not', False)
 
-            a_not = assertion.get('not', 'false')
-
-            if a_subject == Scenario.FIELD_RESP_CODE:
-                if a_not:
-                    check_template = 'status.not(%(sample)s)'
-                else:
-                    check_template = 'status.is(%(sample)s)'
-            elif a_subject == Scenario.FIELD_HEADERS:
-                self.log.warning('Sorry, but "headers" subject is not implemented for gatling asserts')
+            check_template = get_template()
+            if check_template == '':    # FIELD_HEADERS
                 return ''
-            else:  # FIELD_BODY
-                if a_regexp:
-                    check_template = 'regex("""%(sample)s""").'
-                else:
-                    check_template = 'substring("""%(sample)s""").'
-                if a_not:
-                    check_template += 'notExists'
-                else:
-                    check_template += 'exists'
 
             if not isinstance(a_contains, list):
                 a_contains = [a_contains]
