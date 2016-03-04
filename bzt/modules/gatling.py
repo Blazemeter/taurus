@@ -80,34 +80,34 @@ class GatlingScriptBuilder(object):
             exec_str += self.__get_assertions(req.config.get('assert', []))
 
             if req.think_time is None:
-                think_time = 0
+                think_time = 01
             else:
                 think_time = int(dehumanize_time(req.think_time))
             exec_str += '\t\t).pause(%(think_time)s)' % {'think_time': think_time}
 
         return exec_str
 
-    def __get_assertions(self, assertions):
-        def get_template():
-            if a_subject == Scenario.FIELD_RESP_CODE:
-                if a_not:
-                    res = 'status.not(%(sample)s)'
-                else:
-                    res = 'status.is(%(sample)s)'
-            elif a_subject == Scenario.FIELD_HEADERS:
-                self.log.warning('Sorry, but "headers" subject is not implemented for gatling asserts')
-                res = ''
-            else:  # FIELD_BODY
-                if a_regexp:
-                    res = 'regex("""%(sample)s""").'
-                else:
-                    res = 'substring("""%(sample)s""").'
-                if a_not:
-                    res += 'notExists'
-                else:
-                    res += 'exists'
-            return res
+    @staticmethod
+    def __get_check_template(a_not, a_subject, a_regexp):
+        if a_subject == Scenario.FIELD_RESP_CODE:
+            if a_not:
+                res = 'status.not(%(sample)s)'
+            else:
+                res = 'status.is(%(sample)s)'
+        elif a_subject == Scenario.FIELD_HEADERS:
+            res = ''
+        else:  # FIELD_BODY
+            if a_regexp:
+                res = 'regex("""%(sample)s""").'
+            else:
+                res = 'substring("""%(sample)s""").'
+            if a_not:
+                res += 'notExists'
+            else:
+                res += 'exists'
+        return res
 
+    def __get_assertions(self, assertions):
         if len(assertions) == 0:
             return ''
 
@@ -116,14 +116,16 @@ class GatlingScriptBuilder(object):
 
         for idx, assertion in enumerate(assertions):
             assertion = ensure_is_dict(assertions, idx, "contains")
-            a_subject = assertion.get('subject', Scenario.FIELD_BODY)
+
             error_str = 'You must specify some assertion argument in config file "contains" list'
             a_contains = assertion.get('contains', ValueError(error_str))
-            a_regexp = assertion.get('regexp', False)
-            a_not = assertion.get('not', False)
 
-            check_template = get_template()
+            check_template = self.__get_check_template(a_not=assertion.get('not', False),
+                                                       a_regexp=assertion.get('regexp', False),
+                                                       a_subject=assertion.get('subject', Scenario.FIELD_BODY))
+
             if check_template == '':    # FIELD_HEADERS
+                self.log.warning('Sorry, but "headers" subject is not implemented for gatling asserts')
                 return ''
 
             if not isinstance(a_contains, list):
