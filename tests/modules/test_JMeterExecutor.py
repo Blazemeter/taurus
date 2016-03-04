@@ -137,10 +137,10 @@ class TestJMeterExecutor(BZTestCase):
         fake = FakeTool()
         end_str = os.path.join('bin', 'jmeter' + EXE_SUFFIX)
 
-        fake.set(__file__, True)        # real file, jmeter works: do nothing
+        fake.set(__file__, True)  # real file, jmeter works: do nothing
         self.assertEqual(JMeterExecutor._need_to_install(fake), False)
 
-        fake.set(__file__, False)       # real file, jmeter doesn't work: raise
+        fake.set(__file__, False)  # real file, jmeter doesn't work: raise
         with self.assertRaises(ValueError):
             JMeterExecutor._need_to_install(fake)
 
@@ -160,7 +160,7 @@ class TestJMeterExecutor(BZTestCase):
         # not real file/dir, doesn't look like *bin/jmeter.EXT: use as dir, install jmeter into it
         fake.set('*', False)
         self.assertEqual(JMeterExecutor._need_to_install(fake), True)
-        self.assertEqual(fake.tool_path, os.path.join('*',end_str))
+        self.assertEqual(fake.tool_path, os.path.join('*', end_str))
 
     def test_install_jmeter(self):
         path = os.path.abspath(__dir__() + "/../../build/tmp/jmeter-taurus/bin/jmeter" + EXE_SUFFIX)
@@ -294,8 +294,10 @@ class TestJMeterExecutor(BZTestCase):
         obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
         obj.execution = obj.engine.config['execution']
         obj.prepare()
+        files = ['http.jmx', 'jmeter-bzt.properties', 'modified_requests.jmx.jmx']
+        files += ['requests.jmx', 'system.properties', 'test1.csv']
         artifacts = os.listdir(obj.engine.artifacts_dir)
-        self.assertEqual(len(artifacts), 6, '%s' % str(artifacts))  # + system.properties, minus jmeter.log
+        self.assertTrue(all([_file in artifacts for _file in files]))  # +system.properties, -jmeter.log
         target_jmx = os.path.join(obj.engine.artifacts_dir, "modified_requests.jmx.jmx")
         self.__check_path_resource_files(target_jmx, exclude_jtls=True)
 
