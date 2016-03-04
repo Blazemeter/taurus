@@ -92,7 +92,6 @@ class GatlingScriptBuilder(object):
             return ''
 
         check_result = ''
-        total_assume = True
         first_check = True
         check_result += '\t' * 4 + '.check(\n'
 
