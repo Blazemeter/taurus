@@ -102,8 +102,7 @@ class TestGatlingExecutor(BZTestCase):
                               'body': 'Body Content',
                               'assert': [{
                                   'contains': ['bootstrap.min'],
-                                  'not': True,
-                                  'assume-success': False
+                                  'not': True
                               }]},
                              {'url': '/'}]
             }
@@ -139,8 +138,7 @@ class TestGatlingExecutor(BZTestCase):
                               'assert': [{
                                   'contains': [200],
                                   'subject': 'http-code',
-                                  'not': False,
-                                  'assume-success': True
+                                  'not': False
                               }]}]
             }
         })
@@ -159,8 +157,7 @@ class TestGatlingExecutor(BZTestCase):
                                   'subject': 'body',
                                   'contains': 'boot(.*)strap.min',
                                   'regexp': True,
-                                  'not': False,
-                                  'assume-success': False
+                                  'not': False
                               }]}]
             }
         })
@@ -178,30 +175,11 @@ class TestGatlingExecutor(BZTestCase):
                               'assert': [{
                                   'subject': 'body',
                                   'regexp': True,
-                                  'not': False,
-                                  'assume-success': False
+                                  'not': False
                               }]}]
             }
         })
         self.assertRaises(ValueError, obj.prepare)
-
-    def test_requests_6(self):
-        obj = self.getGatling()
-        obj.execution.merge({
-            "iterations": 55,
-            "scenario": {
-                "default-address": "blazedemo.com",
-                "requests": [{'url': '/reserve.php',
-                              'assert': [{
-                                  'subject': 'headers',
-                                  'contains': [1, 2, 3],
-                                  'regexp': True,
-                                  'not': False,
-                                  'assume-success': False
-                              }]}]
-            }
-        })
-        self.assertRaises(NotImplementedError, obj.prepare)
 
     def assertEqualFiles(self, name1, name2):
         def without_id(lines):
