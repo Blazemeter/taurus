@@ -25,8 +25,9 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.utils import BetterDict, TclLibrary, MirrorsManager, EXE_SUFFIX, dehumanize_time
-from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, shutdown_process, ensure_is_dict
 from bzt.utils import FIELD_BODY, FIELD_HEADERS, FIELD_RESP_CODE
+from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, shutdown_process, ensure_is_dict
+
 
 class GatlingScriptBuilder(object):
     def __init__(self, load, scenario, parent_logger, class_name):
@@ -94,7 +95,7 @@ class GatlingScriptBuilder(object):
         check_result = ''
         total_assume = True
         first_check = True
-        check_result += '\t'*4 + '.check(\n'
+        check_result += '\t' * 4 + '.check(\n'
 
         for idx, assertion in enumerate(assertions):
             assertion = ensure_is_dict(assertions, idx, "contains")
@@ -131,15 +132,15 @@ class GatlingScriptBuilder(object):
             for sample in a_contains:
                 if not first_check:
                     check_result += ',\n'
-                check_result += '\t'*5 + check_template % {'sample': sample}
+                check_result += '\t' * 5 + check_template % {'sample': sample}
                 first_check = False
 
         if not total_assume:
-            check_result += ',\n' + '\t'*5 + 'status.in(200 to 304)'
-            check_result += ',\n' + '\t'*5 + 'status.not(300)'
-            check_result += ',\n' + '\t'*5 + 'status.not(301)'
-            check_result += ',\n' + '\t'*5 + 'status.not(302)'
-            check_result += ',\n' + '\t'*5 + 'status.not(302)'
+            check_result += ',\n' + '\t' * 5 + 'status.in(200 to 304)'
+            check_result += ',\n' + '\t' * 5 + 'status.not(300)'
+            check_result += ',\n' + '\t' * 5 + 'status.not(301)'
+            check_result += ',\n' + '\t' * 5 + 'status.not(302)'
+            check_result += ',\n' + '\t' * 5 + 'status.not(302)'
 
         check_result += ')\n'
 
