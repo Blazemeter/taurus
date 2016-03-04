@@ -110,7 +110,8 @@ class GatlingScriptBuilder(object):
                 else:
                     check_template = 'status.is(%(sample)s)'
             elif a_subject == Scenario.FIELD_HEADERS:
-                raise NotImplementedError('Sorry, but "headers" subject is not implemented for gatling asserts')
+                self.log.warning('Sorry, but "headers" subject is not implemented for gatling asserts')
+                return ''
             else:  # FIELD_BODY
                 if a_regexp:
                     check_template = 'regex("""%(sample)s""").'
