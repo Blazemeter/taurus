@@ -80,7 +80,7 @@ class GatlingScriptBuilder(object):
             exec_str += self.__get_assertions(req.config.get('assert', []))
 
             if req.think_time is None:
-                think_time = 01
+                think_time = 0
             else:
                 think_time = int(dehumanize_time(req.think_time))
             exec_str += '\t\t).pause(%(think_time)s)' % {'think_time': think_time}
@@ -124,7 +124,7 @@ class GatlingScriptBuilder(object):
                                                        a_regexp=assertion.get('regexp', False),
                                                        a_subject=assertion.get('subject', Scenario.FIELD_BODY))
 
-            if check_template == '':    # FIELD_HEADERS
+            if check_template == '':  # FIELD_HEADERS
                 self.log.warning('Sorry, but "headers" subject is not implemented for gatling asserts')
                 return ''
 
