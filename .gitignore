@@ -5,7 +5,7 @@
 /site/dat/eg_globals.xml
 /build/
 /dist/
-/2016*/
+/201*/
 /*.egg-info/
 .coverage
 
