@@ -23,6 +23,7 @@ from itertools import chain
 from cssselect import GenericTranslator
 
 from bzt.six import etree, iteritems, string_types, parse
+from bzt.engine import Scenario
 
 
 class JMX(object):
@@ -35,9 +36,6 @@ class JMX(object):
 
     TEST_PLAN_SEL = "jmeterTestPlan>hashTree>hashTree"
     THR_GROUP_SEL = TEST_PLAN_SEL + ">hashTree[type=tg]"
-    FIELD_RESP_CODE = "http-code"
-    FIELD_HEADERS = "headers"
-    FIELD_BODY = "body"
 
     def __init__(self, original=None, test_plan_name="BZT Generated Test Plan"):
         self.log = logging.getLogger(self.__class__.__name__)
@@ -738,9 +736,9 @@ class JMX(object):
         tname = "Assert %s has %s" % ("not" if is_invert else "", [str(x) for x in contains])
         element = etree.Element("ResponseAssertion", guiclass="AssertionGui",
                                 testclass="ResponseAssertion", testname=tname)
-        if field == JMX.FIELD_HEADERS:
+        if field == Scenario.FIELD_HEADERS:
             fld = "Assertion.response_headers"
-        elif field == JMX.FIELD_RESP_CODE:
+        elif field == Scenario.FIELD_RESP_CODE:
             fld = "Assertion.response_code"
         else:
             fld = "Assertion.response_data"

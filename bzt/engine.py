@@ -916,6 +916,9 @@ class Scenario(UserDict, object):
     """
 
     SCRIPT = "script"
+    FIELD_RESP_CODE = "http-code"
+    FIELD_HEADERS = "headers"
+    FIELD_BODY = "body"
 
     def __init__(self, scenario=None):
         super(Scenario, self).__init__()
