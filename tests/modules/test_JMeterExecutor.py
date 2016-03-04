@@ -294,9 +294,9 @@ class TestJMeterExecutor(BZTestCase):
         obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
         obj.execution = obj.engine.config['execution']
         obj.prepare()
-        artifacts = ['http.jmx', 'jmeter-bzt.properties', 'modified_requests.jmx.jmx']
-        artifacts += ['requests.jmx', 'system.properties', 'test1.csv']
-        files = os.listdir(obj.engine.artifacts_dir)
+        files = ['http.jmx', 'jmeter-bzt.properties', 'modified_requests.jmx.jmx']
+        files += ['requests.jmx', 'system.properties', 'test1.csv']
+        artifacts = os.listdir(obj.engine.artifacts_dir)
         self.assertTrue(all([_file in artifacts for _file in files]))  # +system.properties, -jmeter.log
         target_jmx = os.path.join(obj.engine.artifacts_dir, "modified_requests.jmx.jmx")
         self.__check_path_resource_files(target_jmx, exclude_jtls=True)
