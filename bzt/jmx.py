@@ -23,7 +23,7 @@ from itertools import chain
 from cssselect import GenericTranslator
 
 from bzt.six import etree, iteritems, string_types, parse
-from bzt.utils import FIELD_BODY, FIELD_HEADERS, FIELD_RESP_CODE
+from bzt.engine import Scenario
 
 
 class JMX(object):
@@ -736,9 +736,9 @@ class JMX(object):
         tname = "Assert %s has %s" % ("not" if is_invert else "", [str(x) for x in contains])
         element = etree.Element("ResponseAssertion", guiclass="AssertionGui",
                                 testclass="ResponseAssertion", testname=tname)
-        if field == FIELD_HEADERS:
+        if field == Scenario.FIELD_HEADERS:
             fld = "Assertion.response_headers"
-        elif field == FIELD_RESP_CODE:
+        elif field == Scenario.FIELD_RESP_CODE:
             fld = "Assertion.response_code"
         else:
             fld = "Assertion.response_data"

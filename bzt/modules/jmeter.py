@@ -38,7 +38,7 @@ from bzt.jmx import JMX
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.six import iteritems, text_type, StringIO, request, etree, binary_type
-from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, FIELD_BODY
+from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager
 from bzt.utils import shell_exec, ensure_is_dict, dehumanize_time, BetterDict, guess_csv_dialect
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
 
@@ -1248,7 +1248,7 @@ class JMeterScenarioBuilder(JMX):
             assertion = ensure_is_dict(assertions, idx, "contains")
             if not isinstance(assertion['contains'], list):
                 assertion['contains'] = [assertion['contains']]
-            children.append(JMX._get_resp_assertion(assertion.get("subject", FIELD_BODY),
+            children.append(JMX._get_resp_assertion(assertion.get("subject", Scenario.FIELD_BODY),
                                                     assertion['contains'],
                                                     assertion.get('regexp', True),
                                                     assertion.get('not', False),

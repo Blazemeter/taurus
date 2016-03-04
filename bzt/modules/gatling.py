@@ -25,7 +25,6 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.utils import BetterDict, TclLibrary, MirrorsManager, EXE_SUFFIX, dehumanize_time
-from bzt.utils import FIELD_BODY, FIELD_HEADERS, FIELD_RESP_CODE
 from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, shutdown_process, ensure_is_dict
 
 
@@ -99,23 +98,19 @@ class GatlingScriptBuilder(object):
 
         for idx, assertion in enumerate(assertions):
             assertion = ensure_is_dict(assertions, idx, "contains")
-            a_subject = assertion.get('subject', FIELD_BODY)
+            a_subject = assertion.get('subject', Scenario.FIELD_BODY)
             error_str = 'You must specify some assertion argument in config file "contains" list'
             a_contains = assertion.get('contains', ValueError(error_str))
             a_regexp = assertion.get('regexp', False)
-            a_assume_success = assertion.get('assume-success', False)
-
-            if not a_assume_success:
-                total_assume = False
 
             a_not = assertion.get('not', 'false')
 
-            if a_subject == FIELD_RESP_CODE:
+            if a_subject == Scenario.FIELD_RESP_CODE:
                 if a_not:
                     check_template = 'status.not(%(sample)s)'
                 else:
                     check_template = 'status.is(%(sample)s)'
-            elif a_subject == FIELD_HEADERS:
+            elif a_subject == Scenario.FIELD_HEADERS:
                 raise NotImplementedError('Sorry, but "headers" subject is not implemented for gatling asserts')
             else:  # FIELD_BODY
                 if a_regexp:
@@ -134,13 +129,6 @@ class GatlingScriptBuilder(object):
                     check_result += ',\n'
                 check_result += '\t' * 5 + check_template % {'sample': sample}
                 first_check = False
-
-        if not total_assume:
-            check_result += ',\n' + '\t' * 5 + 'status.in(200 to 304)'
-            check_result += ',\n' + '\t' * 5 + 'status.not(300)'
-            check_result += ',\n' + '\t' * 5 + 'status.not(301)'
-            check_result += ',\n' + '\t' * 5 + 'status.not(302)'
-            check_result += ',\n' + '\t' * 5 + 'status.not(302)'
 
         check_result += ')\n'
 

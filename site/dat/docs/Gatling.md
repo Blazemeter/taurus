@@ -51,7 +51,7 @@ class BasicSimulation extends Simulation {
  If your scenario don't contains `script` parameter and contains at least one element of `requests` Taurus will build scala script for test. This script will be placed in `[artifact-dir](ConfigSyntax/#Top-Level-Settings)`: you can modify it and use with Gatling later. 
  
  Next abilities are supported: `default-address`, `requests`, `headers` on scenario and request levels, `body` of request, `think-time` and params that described in `[Load Configuration](#Load Configuration)`. 
- Some asserts can be added to request. Assert describes templates and area for search (`contains` and `subject` accordingly), regexp and inverse marks and ability to switch off default check for success answer. You can look for particular response code in `http-code` part or for string and regular expression in `body` of request.
+ Some asserts can be added to request. Assert describes templates and area for search (`contains` and `subject` accordingly), regexp and inverse marks. You can look for particular response code in `http-code` part or for string and regular expression in `body` of request.
  Next yaml example shows the way these features can be used and ready to conversion to scala automatically:
 
 ```yaml
@@ -74,8 +74,7 @@ execution:
         - .+sometext.+  # expression for assertion (mandatory)
           subject: body # subject for search (defalut: body)
           regexp: true  # whether expression is regular (default: false)
-          not: true     # invert condition (default: false)
-          assume-success: false # don't doing automatic http-code check (defalut: false, check will be done) 
+          not: true     # invert condition (default: false)          
       body: 'Some Body Data'
       headers:
         HEADER_11: VALUE_11

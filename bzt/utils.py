@@ -48,11 +48,6 @@ from urwid import BaseScreen
 from bzt.six import string_types, iteritems, viewvalues, binary_type, text_type, b, integer_types, request, file_type
 
 
-FIELD_RESP_CODE = "http-code"
-FIELD_HEADERS = "headers"
-FIELD_BODY = "body"
-
-
 def get_full_path(path):
     return os.path.abspath(os.path.expanduser(path))
 
