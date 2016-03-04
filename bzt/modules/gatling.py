@@ -88,7 +88,11 @@ class GatlingScriptBuilder(object):
         return exec_str
 
     @staticmethod
-    def __get_check_template(a_not, a_subject, a_regexp):
+    def __get_check_template(assertion):
+        a_not = assertion.get('not', False)
+        a_regexp = assertion.get('regexp', False)
+        a_subject = assertion.get('subject', Scenario.FIELD_BODY)
+
         if a_subject == Scenario.FIELD_RESP_CODE:
             if a_not:
                 res = 'status.not(%(sample)s)'
@@ -120,9 +124,7 @@ class GatlingScriptBuilder(object):
             error_str = 'You must specify some assertion argument in config file "contains" list'
             a_contains = assertion.get('contains', ValueError(error_str))
 
-            check_template = self.__get_check_template(a_not=assertion.get('not', False),
-                                                       a_regexp=assertion.get('regexp', False),
-                                                       a_subject=assertion.get('subject', Scenario.FIELD_BODY))
+            check_template = self.__get_check_template(assertion)
 
             if check_template == '':  # FIELD_HEADERS
                 self.log.warning('Sorry, but "headers" subject is not implemented for gatling asserts')
