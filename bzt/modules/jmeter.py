@@ -1248,7 +1248,7 @@ class JMeterScenarioBuilder(JMX):
             assertion = ensure_is_dict(assertions, idx, "contains")
             if not isinstance(assertion['contains'], list):
                 assertion['contains'] = [assertion['contains']]
-            children.append(JMX._get_resp_assertion(assertion.get("subject", self.FIELD_BODY),
+            children.append(JMX._get_resp_assertion(assertion.get("subject", Scenario.FIELD_BODY),
                                                     assertion['contains'],
                                                     assertion.get('regexp', True),
                                                     assertion.get('not', False),

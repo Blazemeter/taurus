@@ -25,7 +25,7 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.utils import BetterDict, TclLibrary, MirrorsManager, EXE_SUFFIX, dehumanize_time
-from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, shutdown_process
+from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, shutdown_process, ensure_is_dict
 
 
 class GatlingScriptBuilder(object):
@@ -77,6 +77,8 @@ class GatlingScriptBuilder(object):
                 else:
                     self.log.warning('Only string and file are supported body content, "%s" ignored' % str(req.body))
 
+            exec_str += self.__get_assertions(req.config.get('assert', []))
+
             if req.think_time is None:
                 think_time = 0
             else:
@@ -84,6 +86,61 @@ class GatlingScriptBuilder(object):
             exec_str += '\t\t).pause(%(think_time)s)' % {'think_time': think_time}
 
         return exec_str
+
+    @staticmethod
+    def __get_check_template(assertion):
+        a_not = assertion.get('not', False)
+        a_regexp = assertion.get('regexp', False)
+        a_subject = assertion.get('subject', Scenario.FIELD_BODY)
+
+        if a_subject == Scenario.FIELD_RESP_CODE:
+            if a_not:
+                res = 'status.not(%(sample)s)'
+            else:
+                res = 'status.is(%(sample)s)'
+        elif a_subject == Scenario.FIELD_HEADERS:
+            res = ''
+        else:  # FIELD_BODY
+            if a_regexp:
+                res = 'regex("""%(sample)s""").'
+            else:
+                res = 'substring("""%(sample)s""").'
+            if a_not:
+                res += 'notExists'
+            else:
+                res += 'exists'
+        return res
+
+    def __get_assertions(self, assertions):
+        if len(assertions) == 0:
+            return ''
+
+        first_check = True
+        check_result = '\t' * 4 + '.check(\n'
+
+        for idx, assertion in enumerate(assertions):
+            assertion = ensure_is_dict(assertions, idx, "contains")
+
+            error_str = 'You must specify some assertion argument in config file "contains" list'
+            a_contains = assertion.get('contains', ValueError(error_str))
+
+            check_template = self.__get_check_template(assertion)
+
+            if check_template == '':  # FIELD_HEADERS
+                self.log.warning('Sorry, but "headers" subject is not implemented for gatling asserts')
+                return ''
+
+            if not isinstance(a_contains, list):
+                a_contains = [a_contains]
+            for sample in a_contains:
+                if not first_check:
+                    check_result += ',\n'
+                check_result += '\t' * 5 + check_template % {'sample': sample}
+                first_check = False
+
+        check_result += ')\n'
+
+        return check_result
 
     def gen_test_case(self):
         template_path = os.path.join(os.path.dirname(__file__), os.pardir, 'resources', "gatling_script_template.scala")
