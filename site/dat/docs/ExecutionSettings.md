@@ -67,7 +67,7 @@ execution:
 ## Scenario
 
 Scenario is a sequence of steps that is used to build script for underlying tool (e.g. generate JMX file for JMeter). Scenarios can be specified directly inside execution section. However, it is recommended to use special `scenarios` top-level config element to declare
-scenarios and access them through aliases. Read more on building scenarios [here](ScenarioBuilding.md). Some examples:
+scenarios and access them through aliases. Some examples:
 
 ```yaml
 ---
