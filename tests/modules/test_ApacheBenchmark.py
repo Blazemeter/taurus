@@ -92,8 +92,8 @@ class TestApacheBenchExecutor(BZTestCase):
             "headers": {
                 "Content-Type": "text/plain"
             },
-            "keepalive": True,
             "scenario": {
+                "keepalive": True,
                 "requests": [
                     {
                         "url": "http://blazedemo.com",
