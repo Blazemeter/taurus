@@ -33,6 +33,7 @@ Taurus tool may use different underlying tools as executors for scenarios. Curre
   - [Locust](Locust.md), executor type `locust`
   - [PBench](PBench.md), executor type `pbench`
   - [Siege](Siege.md), executor type `siege`
+  - [ApacheBenchmark](ApacheBenchmark.md), executor type `apachebench`
 
 Default executor is `jmeter` and can be changed under [general settings](ConfigSyntax.md#top-level-settings) section.
 ```yaml
