@@ -23,14 +23,19 @@ class TestApacheBenchExecutor(BZTestCase):
         obj.settings.merge({
             "path": get_res_path(TOOL_NAME),})
         obj.execution.merge({
-            "concurrency": 2,
-            "iterations": 3,
             "scenario": {
                 "requests": ["http://blazedemo.com"]
             }
         })
         obj.prepare()
-        obj.startup()
+        try:
+            obj.startup()
+            while not obj.check():
+                time.sleep(obj.engine.check_interval)
+        finally:
+            obj.shutdown()
+        obj.post_process()
+        self.assertNotEquals(obj.process, None)
 
     def test_no_request_exception(self):
         "Checks that executor.startup fails if there's no request specified."
@@ -39,23 +44,28 @@ class TestApacheBenchExecutor(BZTestCase):
         obj.settings.merge({
             "path": get_res_path(TOOL_NAME),})
         obj.execution.merge({
-            "concurrency": 2,
             "scenario": {}})
         obj.prepare()
         self.assertRaises(ValueError, obj.startup)
 
-    def test_no_iterations_nor_hold(self):
+    def test_non_get_request_exception(self):
         """
-        Checks that executor.startup fails if neither of 'iterations' nor
-         'hold-for' parameters are specified.
+        Checks that executor.startup fails if
+        request with non-GET method is specified.
         """
         obj = ApacheBenchExecutor()
         obj.engine = EngineEmul()
         obj.settings.merge({
             "path": get_res_path(TOOL_NAME),})
         obj.execution.merge({
-            "concurrency": 2,
-            "scenario": {}})
+            "scenario": {
+                "requests": [
+                    {
+                        "url": "http://blazedemo.com",
+                        "method": "POST",
+                    }
+                ]
+            }})
         obj.prepare()
         self.assertRaises(ValueError, obj.startup)
 
@@ -66,8 +76,9 @@ class TestApacheBenchExecutor(BZTestCase):
         obj.settings.merge({
             "path": '*',})
         obj.execution.merge({
-            "concurrency": 2,
-            "scenario": {}})
+            "scenario": {
+                "requests": ["http://blazedemo.com"]
+            }})
         self.assertRaises(RuntimeError, obj.prepare)
 
     def test_full_execution(self):
@@ -81,6 +92,7 @@ class TestApacheBenchExecutor(BZTestCase):
             "headers": {
                 "Content-Type": "text/plain"
             },
+            "keepalive": True,
             "scenario": {
                 "requests": [
                     {
@@ -88,8 +100,8 @@ class TestApacheBenchExecutor(BZTestCase):
                         "headers": [
                             {"X-Answer": "42"},
                         ],
-                        "method": "POST",
-                        "timeout": "3",
+                        "keepalive": False,
+                        "method": "GET",
                     }
                 ],
             }
@@ -101,7 +113,6 @@ class TestApacheBenchExecutor(BZTestCase):
                 time.sleep(obj.engine.check_interval)
         finally:
             obj.shutdown()
-
         obj.post_process()
         self.assertNotEquals(obj.process, None)
 

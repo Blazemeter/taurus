@@ -63,17 +63,16 @@ class ApacheBenchExecutor(ScenarioExecutor):
         args = [self.tool_path]
         load = self.get_load()
 
-        if load.iterations:
-            args += ['-n', str(load.iterations)]
-        elif load.hold:
+        if load.hold:
             hold = int(ceil(dehumanize_time(load.hold)))
             args += ['-t', str(hold)]
+        elif load.iterations:
+            args += ['-n', str(load.iterations)]
         else:
-            raise ValueError("You must specify either 'iterations' or 'hold-for' for apachebench")
+            args += ['-n', '1']  # 1 iteration by default
 
-        load_concurrency = load.concurrency
+        load_concurrency = load.concurrency if load.concurrency is not None else 1
         args += ['-c', str(load_concurrency)]
-        self.reader.concurrency = load_concurrency
 
         args += ['-d']  # do not print 'Processed *00 requests' every 100 requests or so
 
@@ -96,13 +95,20 @@ class ApacheBenchExecutor(ScenarioExecutor):
             for key, val in iteritems(header):
                 args += ['-H', "%s: %s" % (key, val)]
 
-        args += ['-m', request.method]
+        if request.method != 'GET':
+            raise ValueError("ApacheBench doesn't support non-GET requests")
 
-        if request.timeout is not None:
-            timeout = int(ceil(dehumanize_time(request.timeout)))
-            args += ['-s', str(timeout)]
+        keepalive = True
+        if request.config.get('keepalive') is not None:
+            keepalive = request.config.get('keepalive')
+        elif self.scenario.get('keepalive') is not None:
+            keepalive = self.scenario.get('keepalive')
+        if keepalive:
+            args += ['-k']
 
         args += [request.url]
+
+        self.reader.setup(load_concurrency, request.label)
 
         self.start_time = time.time()
         self.process = shell_exec(args, stdout=self.__out, stderr=self.__err)
@@ -117,10 +123,9 @@ class ApacheBenchExecutor(ScenarioExecutor):
         return True
 
     def shutdown(self):
-        """
-        If tool is still running - let's stop it.
-        """
         shutdown_process(self.process, self.log)
+
+    def post_process(self):
         if self.__out and not self.__out.closed:
             self.__out.close()
         if self.__err and not self.__err.closed:
@@ -140,11 +145,13 @@ class TSVDataReader(ResultsReader):
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.filename = filename
         self.fds = None
+        self.skipped_header = False
         self.concurrency = None
+        self.url_label = None
 
-    def _calculate_datapoints(self, final_pass=False):
-        for point in super(TSVDataReader, self)._calculate_datapoints(final_pass):
-            yield point
+    def setup(self, concurrency, url_label):
+        self.concurrency = concurrency
+        self.url_label = url_label
 
     def __open_fds(self):
         if not path.isfile(self.filename):
@@ -165,26 +172,26 @@ class TSVDataReader(ResultsReader):
             self.log.debug("No data to start reading yet")
             yield None
         if last_pass:
-            lines = self.fds.readlines()  # unlimited
+            lines = self.fds.readlines()
             self.fds.close()
         else:
-            lines = self.fds.readlines(1024 * 1024)  # 1MB limit to read    git
+            lines = self.fds.readlines(1024 * 1024)
 
         for line in lines:
+            if not self.skipped_header:
+                self.skipped_header = True
+                continue
             log_vals = [val.strip() for val in line.split('\t')]
 
-            if all(val.isalpha() for val in log_vals):
-                continue
-
-            _latency = 0
             _error = None
-            _url = None
             _rstatus = None
 
+            _url = self.url_label
             _concur = self.concurrency
             _tstamp = int(log_vals[1])   # timestamp - moment of request sending
-            _con_time = float(log_vals[2])
+            _con_time = float(log_vals[2])  # connection time
             _etime = float(log_vals[4])  # elapsed time
+            _latency = float(log_vals[5])  # latency (aka waittime)
 
             yield _tstamp, _url, _concur, _etime, _con_time, _latency, _rstatus, _error, ''
 
