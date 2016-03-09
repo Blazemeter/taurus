@@ -49,43 +49,20 @@ class TestGatlingExecutor(BZTestCase):
         obj.get_widget()
         self.assertEqual(obj.widget.widgets[0].text, "Script: BasicSimulation.scala")
 
-    def __check_path_resource_files(self, scala_script_path):
-        with open(scala_script_path, 'rt') as fds:
-            script_contents = fds.read()
-        search_patterns = [re.compile('\.formUpload\(".*?"\)'),
-                           re.compile('RawFileBody\(".*?"\)'),
-                           re.compile('RawFileBodyPart\(".*?"\)'),
-                           re.compile('ELFileBody\(".*?"\)'),
-                           re.compile('ELFileBodyPart\(".*?"\)'),
-                           re.compile('csv\(".*?"\)'),
-                           re.compile('tsv\(".*?"\)'),
-                           re.compile('ssv\(".*?"\)'),
-                           re.compile('jsonFile\(".*?"\)'),
-                           re.compile('separatedValues\(".*?"\)')]
-        for search_pattern in search_patterns:
-            found_samples = search_pattern.findall(script_contents)
-            for found_sample in found_samples:
-                param_list = found_sample.split(",")
-                param_index = 0 if "separatedValues" in search_pattern.pattern else -1  # first or last param
-                file_path = re.compile('\".*?\"').findall(param_list[param_index])[0].strip('"')
-                self.assertEqual("", os.path.dirname(file_path))
-
     def test_resource_files_collection_remote(self):
         obj = self.getGatling()
         obj.execution.merge({"scenario": {"script": __dir__() + "/../gatling/LocalBasicSimulation.scala"}})
         res_files = obj.resource_files()
         artifacts = os.listdir(obj.engine.artifacts_dir)
         self.assertEqual(len(res_files), 14)  # file "gatling_" will be not found
-        self.assertEqual(len(artifacts), 12)
-        self.__check_path_resource_files(os.path.join(obj.engine.artifacts_dir, "LocalBasicSimulation.scala"))
+        self.assertEqual(len(artifacts), 0)
 
     def test_resource_files_collection_local(self):
         obj = self.getGatling()
         obj.execution.merge({"scenario": {"script": __dir__() + "/../gatling/LocalBasicSimulation.scala"}})
         obj.prepare()
         artifacts = os.listdir(obj.engine.artifacts_dir)
-        self.assertEqual(len(artifacts), 12)
-        self.__check_path_resource_files(os.path.join(obj.engine.artifacts_dir, "LocalBasicSimulation.scala"))
+        self.assertEqual(len(artifacts), 0)
 
     def test_requests_1(self):
         obj = self.getGatling()
@@ -196,13 +173,13 @@ class TestGatlingExecutor(BZTestCase):
 
     def test_fail_on_zero_results(self):
         obj = self.getGatling()
-        obj.execution.merge({"scenario": {"script": __dir__() + "/../gatling/BasicSimulation.scala"}})
+        obj.execution.merge({"scenario": {"script": __dir__() + "/../gatling/bs/BasicSimulation.scala"}})
         obj.prepare()
         self.assertRaises(RuntimeWarning, obj.post_process)
 
     def test_no_simulation(self):
         obj = self.getGatling()
-        obj.execution.merge({"scenario": {"script": __dir__() + "/../gatling/BasicSimulation.scala"}})
+        obj.execution.merge({"scenario": {"script": __dir__() + "/../gatling/bs/BasicSimulation.scala"}})
         obj.prepare()
         self.assertRaises(ValueError, obj.startup)
 
@@ -210,7 +187,7 @@ class TestGatlingExecutor(BZTestCase):
         obj = self.getGatling()
         obj.execution.merge({
             "scenario": {
-                "script": __dir__() + "/../gatling/BasicSimulation.scala",
+                "script": __dir__() + "/../gatling/bs/BasicSimulation.scala",
                 "simulation": "fake"
             }
         })
@@ -228,9 +205,10 @@ class TestGatlingExecutor(BZTestCase):
 
     def test_interactive_request(self):
         obj = self.getGatling()
+        obj.engine.existing_artifact(__dir__() + "/../gatling/SimpleSimulation.scala")
         obj.execution.merge({
             "scenario": {
-                "script": __dir__() + "/../gatling/SimpleSimulation.scala",
+                "script": obj.engine.artifacts_dir + "/SimpleSimulation.scala",
                 "simulation": "SimpleSimulation"}})
         obj.prepare()
         obj.settings.merge({"path": __dir__() + "/../gatling/gatling" + EXE_SUFFIX})
@@ -246,11 +224,12 @@ class TestGatlingExecutor(BZTestCase):
             pass
 
         obj = self.getGatling()
+        obj.engine.existing_artifact(__dir__() + "/../gatling/SimpleSimulation.scala")
+        obj.engine.existing_artifact(__dir__() + "/../gatling/generated1.scala")
         obj.execution.merge({
             "scenario": {
-                "script": __dir__() + "/../gatling/SimpleSimulation.scala",
+                "script": obj.engine.artifacts_dir + "/SimpleSimulation.scala",
                 "simulation": "fake"}})
-        obj.engine.existing_artifact(__dir__() + "/../gatling/generated2.scala")
         obj.prepare()
         obj.settings.merge({"path": __dir__() + "/../gatling/gatling" + EXE_SUFFIX})
         counter2 = 0

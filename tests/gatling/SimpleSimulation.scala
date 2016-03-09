@@ -9,5 +9,5 @@ class SimpleSimulation extends Simulation {
   val scn = scenario("Simple scenario")
             .exec(http("req1").get("/")).pause(1)
 
-  setUp(scn.inject(atOnceUsers(1))).protocols(conf)
+  setUp(scn.inject(atOnceUsers(1))).protocols(conf).maxDuration(2)
 }

@@ -185,16 +185,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         if Scenario.SCRIPT in scenario:
             self.script = self.__get_script()
-            self.engine.existing_artifact(self.script)
-            with open(os.path.join(self.engine.artifacts_dir, os.path.basename(self.script)), 'rt') as fds:
-                script_contents = fds.read()
-            resource_files = GatlingExecutor.__get_res_files_from_script(script_contents)
-            if resource_files:
-                modified_contents = GatlingExecutor.__modify_res_paths_in_scala(script_contents, resource_files)
-                with open(os.path.join(self.engine.artifacts_dir, os.path.basename(self.script)), 'wt') as fds:
-                    fds.write(modified_contents)
-                self.__cp_res_files_to_artifacts_dir(resource_files)
-
         elif "requests" in scenario:
             self.get_scenario()['simulation'], self.script = self.__generate_script()
         else:
@@ -226,7 +216,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         datadir = os.path.realpath(self.engine.artifacts_dir)
 
         cmdline = [self.settings["path"]]
-        cmdline += ["-sf", datadir, "-df", datadir, "-rf ", datadir]
+        cmdline += ["-sf", os.path.dirname(self.script), "-df", datadir, "-rf ", datadir]
         cmdline += ["-on", "gatling-bzt", "-m", "-s", simulation]
 
         self.start_time = time.time()
@@ -352,18 +342,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             script_contents = open(self.script, 'rt').read()
             resource_files = GatlingExecutor.__get_res_files_from_script(script_contents)
 
-            if resource_files:
-                script_name, script_ext = os.path.splitext(self.script)
-                script_name = os.path.basename(script_name)
-                modified_script = self.engine.create_artifact(script_name, script_ext)
-                modified_contents = GatlingExecutor.__modify_res_paths_in_scala(script_contents, resource_files)
-                self.__cp_res_files_to_artifacts_dir(resource_files)
-                with open(modified_script, 'wt') as _fds:
-                    _fds.write(modified_contents)
-                resource_files.append(modified_script)
-            else:
-                shutil.copy2(self.script, self.engine.artifacts_dir)
-                resource_files.append(self.script)
+            resource_files.append(self.script)
 
         return resource_files
 
@@ -394,34 +373,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 resource_files.append(file_path)
 
         return resource_files
-
-    @staticmethod
-    def __modify_res_paths_in_scala(scala_script_contents, file_list):
-        """
-
-        :param scala_path:
-        :param file_list:
-        :return:
-        """
-        for file_path in file_list:
-            scala_script_contents = scala_script_contents.replace(file_path, os.path.basename(file_path))
-        return scala_script_contents
-
-    def __cp_res_files_to_artifacts_dir(self, resource_files_list):
-        """
-
-        :param resource_files_list:
-        :return:
-        """
-        for resource_file in resource_files_list:
-            resource_file = self.engine.find_file(resource_file)
-            if os.path.exists(resource_file):
-                try:
-                    shutil.copy(resource_file, self.engine.artifacts_dir)
-                except BaseException:
-                    self.log.warning("Cannot copy file: %s", resource_file)
-            else:
-                self.log.warning("File not found: %s", resource_file)
 
     def __get_script(self):
         """
