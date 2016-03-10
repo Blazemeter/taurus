@@ -5,6 +5,7 @@
  - fix gatling metric parsing
  - add detection of gatling simulation request in case of several simulations are found
  - join JMeter and its plugins installation procedures
+ - remove explicitly cwd assignment from gatling
 
 ## 1.2.0
  - maximize browser window in Selenium test, when possible
