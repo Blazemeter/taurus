@@ -23,7 +23,7 @@ import time
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, SidebarWidget
-from bzt.utils import BetterDict, TclLibrary, MirrorsManager, EXE_SUFFIX, dehumanize_time
+from bzt.utils import BetterDict, TclLibrary, MirrorsManager, EXE_SUFFIX, dehumanize_time, get_full_path
 from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, shutdown_process, ensure_is_dict
 
 
@@ -214,8 +214,13 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         datadir = os.path.realpath(self.engine.artifacts_dir)
 
+        if os.path.isfile(self.script):
+            script_path = os.path.dirname(get_full_path(self.script))
+        else:
+            script_path = self.script
+
         cmdline = [self.settings["path"]]
-        cmdline += ["-sf", os.path.dirname(self.script), "-df", datadir, "-rf ", datadir]
+        cmdline += ["-sf", script_path, "-df", datadir, "-rf ", datadir]
         cmdline += ["-on", "gatling-bzt", "-m", "-s", simulation]
 
         self.start_time = time.time()
@@ -338,8 +343,10 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         resource_files = []
 
         if self.script and os.path.exists(self.script):
-            script_contents = open(self.script, 'rt').read()
-            resource_files = GatlingExecutor.__get_res_files_from_script(script_contents)
+            if os.path.isfile(self.script):  # not directory
+                with open(self.script, 'rt') as script:
+                    script_contents = script.read()
+                resource_files = GatlingExecutor.__get_res_files_from_script(script_contents)
 
             resource_files.append(self.script)
 

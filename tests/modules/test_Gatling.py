@@ -48,13 +48,20 @@ class TestGatlingExecutor(BZTestCase):
         obj.get_widget()
         self.assertEqual(obj.widget.widgets[0].text, "Script: BasicSimulation.scala")
 
-    def test_resource_files_collection_remote(self):
+    def test_resource_files_collection_remote1(self):  # script = <file>
         obj = self.getGatling()
         obj.execution.merge({"scenario": {"script": __dir__() + "/../gatling/LocalBasicSimulation.scala"}})
         res_files = obj.resource_files()
         artifacts = os.listdir(obj.engine.artifacts_dir)
         self.assertEqual(len(res_files), 14)  # file "gatling_" will be not found
         self.assertEqual(len(artifacts), 0)
+
+    def test_resource_files_collection_remote2(self):  # script = <dir>
+        obj = self.getGatling()
+        script_path = __dir__() + "/../gatling/bs"
+        obj.execution.merge({"scenario": {"script": script_path}})
+        res_files = obj.resource_files()
+        self.assertEqual(res_files, [script_path])
 
     def test_resource_files_collection_local(self):
         obj = self.getGatling()
