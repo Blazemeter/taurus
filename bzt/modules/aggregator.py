@@ -432,7 +432,6 @@ class ResultsReader(ResultsProvider):
             elif isinstance(result, list) or isinstance(result, tuple):
                 t_stamp, label, conc, r_time, con_time, latency, r_code, error, trname = result
 
-                if self.min_timestamp
                 self.stamps.append((self.min_timestamp, t_stamp))
 
                 if label in self.ignored_labels:
