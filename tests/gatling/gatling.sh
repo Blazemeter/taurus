@@ -1,12 +1,12 @@
-#!/bin/sh -xe
-echo -e "Fake gatling output"
+#!/bin/sh
+echo "Fake gatling output"
 echo "dir:"
 pwd
 
-QT="`ls *scala | wc -l`"
+QT="`ls $2/*scala | wc -l`"
 
 if [ "$QT" -gt 1 ]; then
   echo "Choose a simulation number:"
-  read
+  read tmp_var
 fi
-echo -e "started..."
+echo "started..."
