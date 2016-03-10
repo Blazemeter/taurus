@@ -417,6 +417,8 @@ class ResultsReader(ResultsProvider):
         self.min_timestamp = 0
         self.track_percentiles = perc_levels
 
+        self.stamps = []
+
     def __process_readers(self, final_pass=False):
         """
 
@@ -429,6 +431,10 @@ class ResultsReader(ResultsProvider):
                 break
             elif isinstance(result, list) or isinstance(result, tuple):
                 t_stamp, label, conc, r_time, con_time, latency, r_code, error, trname = result
+
+                if self.min_timestamp
+                self.stamps.append((self.min_timestamp, t_stamp))
+
                 if label in self.ignored_labels:
                     continue
                 if t_stamp < self.min_timestamp:
