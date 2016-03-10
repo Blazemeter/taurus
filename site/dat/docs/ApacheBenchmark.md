@@ -6,11 +6,11 @@ Taurus supports the following features of Apache Benchmark:
 
  - `iterations`: number of requests to make
  - `concurrency`: number of multiple requests to make at a time (defaults to 1).
- - `hold-for`: run load testing until specified timeout
+ - `hold-for`: run load testing for specified duration
  - `headers`: headers to attach to HTTP request
  - `keepalive`: use HTTP KeepAlive feature
 
-Keep in mind the following rules when using `executor: apachebench`:
+Keep in mind the following rules when using `executor: ab`:
  - You cannot specify more than one request in `requests` section.
  - Apache Benchmark supports only GET requests.
  - `timeout` option is not supported.
@@ -22,7 +22,7 @@ Simplest working example:
 ```yaml
 ---
 execution:
-- executor: apachebench
+- executor: ab
   scenario:
     requests:
     - http://blazedemo.com/
@@ -32,7 +32,7 @@ Example of `hold-for` usage:
 ```yaml
 ---
 execution:
-- executor: apachebench
+- executor: ab
   hold-for: 30s
   scenario:
     requests:
@@ -43,7 +43,7 @@ Complex example:
 ```yaml
 ---
 execution:
-- executor: apachebench
+- executor: ab
   concurrency: 20
   iterations: 1000
   headers:
@@ -64,6 +64,6 @@ If you have Apache Benchmark in non-standard location, use `path` option to poin
 ```yaml
 ---
 modules:
-  apachebench:
+  ab:
     path: /home/john/build/apache2/bin/ab
 ```

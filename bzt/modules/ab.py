@@ -27,12 +27,12 @@ from bzt.six import iteritems
 from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time
 
 
-class ApacheBenchExecutor(ScenarioExecutor):
+class ApacheBenchmarkExecutor(ScenarioExecutor):
     """
     Apache Benchmark executor module
     """
     def __init__(self):
-        super(ApacheBenchExecutor, self).__init__()
+        super(ApacheBenchmarkExecutor, self).__init__()
         self.log = logging.getLogger('')
         self.process = None
         self.__tsv_file_name = None
@@ -49,15 +49,15 @@ class ApacheBenchExecutor(ScenarioExecutor):
         self.scenario = self.get_scenario()
         self.tool_path = self._check_installed()
 
-        self.__tsv_file_name = self.engine.create_artifact("apachebench", ".tsv")
+        self.__tsv_file_name = self.engine.create_artifact("ab", ".tsv")
 
-        out_file_name = self.engine.create_artifact("apachebench", ".out")
+        out_file_name = self.engine.create_artifact("ab", ".out")
         self.reader = TSVDataReader(self.__tsv_file_name, self.log)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
         self.__out = open(out_file_name, 'w')
-        self.__err = open(self.engine.create_artifact("apachebench", ".err"), 'w')
+        self.__err = open(self.engine.create_artifact("ab", ".err"), 'w')
 
     def startup(self):
         args = [self.tool_path]
@@ -84,9 +84,9 @@ class ApacheBenchExecutor(ScenarioExecutor):
 
         requests = list(self.scenario.get_requests())
         if not requests:
-            raise ValueError("You must specify at least one request for apachebench")
+            raise ValueError("You must specify at least one request for ab")
         if len(requests) > 1:
-            self.log.warning("ApacheBench doesn't support multiple requests."
+            self.log.warning("ab doesn't support multiple requests."
                              " Only first one will be used.")
         request = requests[0]
 
@@ -96,7 +96,7 @@ class ApacheBenchExecutor(ScenarioExecutor):
                 args += ['-H', "%s: %s" % (key, val)]
 
         if request.method != 'GET':
-            raise ValueError("ApacheBench doesn't support non-GET requests")
+            raise ValueError("ab supports only GET requests")
 
         keepalive = True
         if request.config.get('keepalive') is not None:
@@ -117,9 +117,9 @@ class ApacheBenchExecutor(ScenarioExecutor):
         ret_code = self.process.poll()
         if ret_code is None:
             return False
-        self.log.info("ApacheBench tool exit code: %s", ret_code)
+        self.log.info("ab tool exit code: %s", ret_code)
         if ret_code != 0:
-            raise RuntimeError("ApacheBench tool exited with non-zero code")
+            raise RuntimeError("ab tool exited with non-zero code")
         return True
 
     def shutdown(self):
@@ -133,9 +133,9 @@ class ApacheBenchExecutor(ScenarioExecutor):
 
     def _check_installed(self):
         tool_path = self.settings.get('path', 'ab')
-        ab = ApacheBench(tool_path, self.log)
+        ab = ApacheBenchmark(tool_path, self.log)
         if not ab.check_if_installed():
-            raise RuntimeError("You must install ApacheBench tool at first")
+            raise RuntimeError("You must install ab tool at first")
         return tool_path
 
 
@@ -196,14 +196,14 @@ class TSVDataReader(ResultsReader):
             yield _tstamp, _url, _concur, _etime, _con_time, _latency, _rstatus, _error, ''
 
 
-class ApacheBench(RequiredTool):
+class ApacheBenchmark(RequiredTool):
     def __init__(self, tool_path, parent_logger):
-        super(ApacheBench, self).__init__("ApacheBench", tool_path)
+        super(ApacheBenchmark, self).__init__("ApacheBenchmark", tool_path)
         self.tool_path = tool_path
         self.log = parent_logger.getChild(self.__class__.__name__)
 
     def check_if_installed(self):
-        self.log.debug('Checking ApacheBench: %s' % self.tool_path)
+        self.log.debug('Checking ApacheBenchmark: %s' % self.tool_path)
         try:
             shell_exec([self.tool_path, '-h'])
         except OSError:

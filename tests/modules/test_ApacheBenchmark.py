@@ -2,7 +2,7 @@ import logging
 import time
 from os import path
 
-from bzt.modules.apachebench import ApacheBenchExecutor, TSVDataReader
+from bzt.modules.ab import ApacheBenchmarkExecutor, TSVDataReader
 from tests import BZTestCase
 from tests.mocks import EngineEmul
 from bzt.utils import EXE_SUFFIX
@@ -12,13 +12,13 @@ TOOL_NAME = 'ab' + EXE_SUFFIX
 
 
 def get_res_path(resource):
-    return path.join(path.dirname(__file__), '..', 'apachebench', resource)
+    return path.join(path.dirname(__file__), '..', 'ab', resource)
 
 
 class TestApacheBenchExecutor(BZTestCase):
     def test_iter(self):
         "Ensures that executor doesn't fail with minimal configuration."
-        obj = ApacheBenchExecutor()
+        obj = ApacheBenchmarkExecutor()
         obj.engine = EngineEmul()
         obj.settings.merge({
             "path": get_res_path(TOOL_NAME),})
@@ -37,9 +37,11 @@ class TestApacheBenchExecutor(BZTestCase):
         obj.post_process()
         self.assertNotEquals(obj.process, None)
 
+
+
     def test_no_request_exception(self):
         "Checks that executor.startup fails if there's no request specified."
-        obj = ApacheBenchExecutor()
+        obj = ApacheBenchmarkExecutor()
         obj.engine = EngineEmul()
         obj.settings.merge({
             "path": get_res_path(TOOL_NAME),})
@@ -53,7 +55,7 @@ class TestApacheBenchExecutor(BZTestCase):
         Checks that executor.startup fails if
         request with non-GET method is specified.
         """
-        obj = ApacheBenchExecutor()
+        obj = ApacheBenchmarkExecutor()
         obj.engine = EngineEmul()
         obj.settings.merge({
             "path": get_res_path(TOOL_NAME),})
@@ -71,7 +73,7 @@ class TestApacheBenchExecutor(BZTestCase):
 
     def test_no_apache_benchmark(self):
         "Checks that prepare() fails if ApacheBenchmark is not installed."
-        obj = ApacheBenchExecutor()
+        obj = ApacheBenchmarkExecutor()
         obj.engine = EngineEmul()
         obj.settings.merge({
             "path": '*',})
@@ -82,7 +84,7 @@ class TestApacheBenchExecutor(BZTestCase):
         self.assertRaises(RuntimeError, obj.prepare)
 
     def test_full_execution(self):
-        obj = ApacheBenchExecutor()
+        obj = ApacheBenchmarkExecutor()
         obj.engine = EngineEmul()
         obj.settings.merge({
             "path": get_res_path(TOOL_NAME),})
@@ -119,7 +121,7 @@ class TestApacheBenchExecutor(BZTestCase):
 
 class TestDataLogReader(BZTestCase):
     def test_read(self):
-        log_path = path.join(get_res_path('apachebench.tsv'))
+        log_path = path.join(get_res_path('ab.tsv'))
         obj = TSVDataReader(log_path, logging.getLogger(''))
         list_of_values = list(obj.datapoints(True))
 
