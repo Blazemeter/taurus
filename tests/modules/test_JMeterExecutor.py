@@ -916,10 +916,34 @@ class TestJMeterExecutor(BZTestCase):
                 }]}})
         obj.prepare()
 
+    def test_jmx_modification_unicode(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        cfg_selector = ('Home Page>HTTPsampler.Arguments>Arguments.arguments'
+                        '>param>Argument.value')
+
+        obj.execution.merge({
+            "scenario": {
+                "script": __dir__() + "/../jmx/dummy_plan.jmx",
+                "modifications": {
+                    "set-prop": {
+                        cfg_selector: u"✓",
+                    }
+                }
+            }
+        })
+        selector = ("[testname='Home Page']>[name='HTTPsampler.Arguments']"
+                    ">[name='Arguments.arguments']>[name='param']>[name='Argument.value']")
+        obj.prepare()
+        jmx = JMX(obj.modified_jmx)
+        self.assertEqual(jmx.get(selector)[0].text, u"✓")
+
+
 
 class TestJMX(BZTestCase):
-    def test_checkmark(self):
+    def test_jmx_unicode_checkmark(self):
         obj = JMX()
-        res = obj._get_http_request("url", "label", "method", 0, {"param": "✓"}, True)
+        res = obj._get_http_request("url", "label", "method", 0, {"param": u"✓"}, True)
         prop = res.find(".//stringProp[@name='Argument.value']")
         self.assertNotEqual("BINARY", prop.text)
+        self.assertEqual(u"✓", prop.text)
