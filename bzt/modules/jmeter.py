@@ -1420,7 +1420,7 @@ class JMeter(RequiredTool):
         # set exec permissions
         if not is_windows():
             os.chmod(os.path.join(dest, 'bin', 'jmeter'), 0o755)
-            os.chmod(os.path.join(dest, 'bin', 'jmeter.sh'), 0o755)
+            os.chmod(os.path.join(dest, 'bin', 'jmeter' + EXE_SUFFIX), 0o755)
 
         if not self.check_if_installed():
             raise RuntimeError("Unable to run %s after installation!" % self.tool_name)
