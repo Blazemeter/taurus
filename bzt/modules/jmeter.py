@@ -38,7 +38,7 @@ from bzt.jmx import JMX
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.six import iteritems, text_type, StringIO, request, etree, binary_type
-from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager
+from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, is_windows
 from bzt.utils import shell_exec, ensure_is_dict, dehumanize_time, BetterDict, guess_csv_dialect
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
 
@@ -797,23 +797,25 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     @staticmethod
     def _need_to_install(tool):
-        end_str = os.path.join('bin', 'jmeter' + EXE_SUFFIX)
+        end_str_l = os.path.join('bin', 'jmeter' + EXE_SUFFIX)
+        end_str_s = os.path.join('bin', 'jmeter')
 
         if os.path.isfile(tool.tool_path):
-            if tool.check_if_installed():  # all ok, it's tool path
+            if tool.check_if_installed():  # all ok, it's really tool path
                 return False
-            else:  # probably it's path of other tool)
+            else:  # probably it's path to other tool)
                 raise ValueError('Wrong tool path: %s' % tool.tool_path)
 
         if os.path.isdir(tool.tool_path):  # it's dir: fix tool path and install if needed
-            tool.tool_path = os.path.join(tool.tool_path, end_str)
+            tool.tool_path = os.path.join(tool.tool_path, end_str_l)
             if tool.check_if_installed():
                 return False
             else:
                 return True
 
-        if not tool.tool_path.endswith(end_str):  # similar to future jmeter directory
-            tool.tool_path = os.path.join(tool.tool_path, end_str)
+        # similar to future jmeter directory
+        if not (tool.tool_path.endswith(end_str_l) or tool.tool_path.endswith(end_str_s)):
+            tool.tool_path = os.path.join(tool.tool_path, end_str_l)
 
         return True
 
@@ -1415,7 +1417,9 @@ class JMeter(RequiredTool):
         os.remove(jmeter_dist.name)
 
         # set exec permissions
-        os.chmod(self.tool_path, 0o755)
+        if not is_windows():
+            os.chmod(os.path.join(dest, 'bin', 'jmeter'), 0o755)
+            os.chmod(os.path.join(dest, 'bin', 'jmeter.sh'), 0o755)
 
         if not self.check_if_installed():
             raise RuntimeError("Unable to run %s after installation!" % self.tool_name)
