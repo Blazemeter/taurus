@@ -797,23 +797,25 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     @staticmethod
     def _need_to_install(tool):
-        end_str = os.path.join('bin', 'jmeter' + EXE_SUFFIX)
+        end_str_l = os.path.join('bin', 'jmeter' + EXE_SUFFIX)
+        end_str_s = os.path.join('bin', 'jmeter')
 
         if os.path.isfile(tool.tool_path):
-            if tool.check_if_installed():  # all ok, it's tool path
+            if tool.check_if_installed():  # all ok, it's really tool path
                 return False
-            else:  # probably it's path of other tool)
+            else:  # probably it's path to other tool)
                 raise ValueError('Wrong tool path: %s' % tool.tool_path)
 
         if os.path.isdir(tool.tool_path):  # it's dir: fix tool path and install if needed
-            tool.tool_path = os.path.join(tool.tool_path, end_str)
+            tool.tool_path = os.path.join(tool.tool_path, end_str_l)
             if tool.check_if_installed():
                 return False
             else:
                 return True
 
-        if not tool.tool_path.endswith(end_str):  # similar to future jmeter directory
-            tool.tool_path = os.path.join(tool.tool_path, end_str)
+        # similar to future jmeter directory
+        if not (tool.tool_path.endswith(end_str_l) or tool.tool_path.endswith(end_str_s)):
+            tool.tool_path = os.path.join(tool.tool_path, end_str_l)
 
         return True
 
@@ -823,6 +825,7 @@ class JTLReader(ResultsReader):
     Class to read KPI JTL
     :type errors_reader: JTLErrorsReader
     """
+
     def __init__(self, filename, parent_logger, errors_filename):
         super(JTLReader, self).__init__()
         self.is_distributed = False
@@ -1415,7 +1418,8 @@ class JMeter(RequiredTool):
         os.remove(jmeter_dist.name)
 
         # set exec permissions
-        os.chmod(self.tool_path, 0o755)
+        os.chmod(os.path.join(dest, 'bin', 'jmeter'), 0o755)
+        os.chmod(os.path.join(dest, 'bin', 'jmeter' + EXE_SUFFIX), 0o755)
 
         if not self.check_if_installed():
             raise RuntimeError("Unable to run %s after installation!" % self.tool_name)

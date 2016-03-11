@@ -7,7 +7,9 @@
  - add detection of gatling simulation request in case of several simulations are found
  - join JMeter and its plugins installation procedures
  - add Apache Benchmark executor
+ - extend script path recognition for Jmeter
  - fix PBench not working with cloud provisioning
+
 
 ## 1.2.0
  - maximize browser window in Selenium test, when possible
