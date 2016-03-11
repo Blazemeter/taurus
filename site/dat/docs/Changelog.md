@@ -7,6 +7,7 @@
  - join JMeter and its plugins installation procedures
  - remove explicitly cwd assignment from gatling
  - add Apache Benchmark executor
+ - extend script path recognition for Jmeter
 
 ## 1.2.0
  - maximize browser window in Selenium test, when possible
