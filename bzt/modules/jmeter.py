@@ -825,6 +825,7 @@ class JTLReader(ResultsReader):
     Class to read KPI JTL
     :type errors_reader: JTLErrorsReader
     """
+
     def __init__(self, filename, parent_logger, errors_filename):
         super(JTLReader, self).__init__()
         self.is_distributed = False
