@@ -17,7 +17,7 @@ from subprocess import CalledProcessError
 import psutil
 
 from bzt import resources
-from bzt.engine import ScenarioExecutor, FileLister
+from bzt.engine import ScenarioExecutor, FileLister, Scenario
 from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet, ConsolidatingAggregator
 from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.six import string_types, urlencode, iteritems, parse, StringIO
@@ -99,7 +99,7 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     def resource_files(self):
         resource_files = []
         scenario = self.get_scenario()
-        script = scenario.get("script")
+        script = scenario.get(Scenario.SCRIPT, None)
         if script:
             resource_files.append(os.path.basename(script))
         return resource_files
@@ -169,7 +169,7 @@ class PBenchTool(object):
             _fhd.write(substituter.substitute(params))
 
     def generate_payload(self, scenario):
-        self.payload_file = self.execution.get("script", self.payload_file)
+        self.payload_file = self.execution.get(Scenario.SCRIPT, self.payload_file)
         if self.payload_file is None:
             self.payload_file = self.engine.create_artifact("pbench", '.src')
             self.log.info("Generating payload file: %s", self.payload_file)
