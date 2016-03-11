@@ -38,7 +38,7 @@ from bzt.jmx import JMX
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.six import iteritems, text_type, StringIO, request, etree, binary_type
-from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, is_windows
+from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager
 from bzt.utils import shell_exec, ensure_is_dict, dehumanize_time, BetterDict, guess_csv_dialect
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
 
@@ -1418,9 +1418,8 @@ class JMeter(RequiredTool):
         os.remove(jmeter_dist.name)
 
         # set exec permissions
-        if not is_windows():
-            os.chmod(os.path.join(dest, 'bin', 'jmeter'), 0o755)
-            os.chmod(os.path.join(dest, 'bin', 'jmeter' + EXE_SUFFIX), 0o755)
+        os.chmod(os.path.join(dest, 'bin', 'jmeter'), 0o755)
+        os.chmod(os.path.join(dest, 'bin', 'jmeter' + EXE_SUFFIX), 0o755)
 
         if not self.check_if_installed():
             raise RuntimeError("Unable to run %s after installation!" % self.tool_name)
