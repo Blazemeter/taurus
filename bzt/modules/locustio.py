@@ -23,7 +23,7 @@ import time
 from imp import find_module
 from subprocess import STDOUT
 
-from bzt.engine import ScenarioExecutor, FileLister
+from bzt.engine import ScenarioExecutor, FileLister, Scenario
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsProvider, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.modules.jmeter import JTLReader
@@ -144,7 +144,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def get_locust_file(self):
         scenario = self.get_scenario()
-        locustfile = scenario.get("script", ValueError("Please specify locusfile in 'script' option"))
+        locustfile = scenario.get(Scenario.SCRIPT, ValueError("Please specify locusfile in 'script' option"))
         locustfile = self.engine.find_file(locustfile)
         return locustfile
 

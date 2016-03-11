@@ -130,9 +130,9 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.engine.aggregator.add_underling(self.reader)
 
     def _verify_script(self):
-        if not self.scenario.get("script"):
+        if not self.scenario.get(Scenario.SCRIPT):
             if self.scenario.get("requests"):
-                self.scenario["script"] = self.__tests_from_requests()
+                self.scenario[Scenario.SCRIPT] = self.__tests_from_requests()
             else:
                 raise RuntimeError("Nothing to test, no requests were provided in scenario")
 
@@ -140,7 +140,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         :return:
         """
-        script = self.scenario.get("script")
+        script = self.scenario.get(Scenario.SCRIPT)
 
         if Scenario.SCRIPT in self.scenario:
             if os.path.isdir(script):
@@ -225,14 +225,14 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def get_widget(self):
         if not self.widget:
-            self.widget = SeleniumWidget(self.scenario.get("script"), self.runner.settings.get("stdout"))
+            self.widget = SeleniumWidget(self.scenario.get(Scenario.SCRIPT), self.runner.settings.get("stdout"))
         return self.widget
 
     def resource_files(self):
         if not self.scenario:
             self.scenario = self.get_scenario()
 
-        if "script" not in self.scenario:
+        if Scenario.SCRIPT not in self.scenario:
             return []
 
         script_type = self.detect_script_type(self.scenario.get(Scenario.SCRIPT))

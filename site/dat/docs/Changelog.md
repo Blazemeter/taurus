@@ -1,13 +1,15 @@
 # Changelog
 ## 1.3.0 (next)
  - add gatling script generation 
- - fix grinder crash
  - fix gatling metric parsing
+ - fix grinder crash
+ - remove explicitly cwd assignment from gatling
  - add detection of gatling simulation request in case of several simulations are found
  - join JMeter and its plugins installation procedures
- - remove explicitly cwd assignment from gatling
  - add Apache Benchmark executor
  - extend script path recognition for Jmeter
+ - fix PBench not working with cloud provisioning
+
 
 ## 1.2.0
  - maximize browser window in Selenium test, when possible
