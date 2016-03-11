@@ -229,7 +229,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.stdout_file = open(out, "w")
         self.stderr_file = open(err, "w")
 
-        params_for_scala = {}
+        params_for_scala = {'gatling.data.file.bufferSize': 256}  # 8K by default
         load = self.get_load()
         scenario = self.get_scenario()
 
