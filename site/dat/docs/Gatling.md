@@ -94,6 +94,8 @@ execution:
     If no Gatling executable found, it will be automatically downloaded and installed in "path".
     By default "~/.bzt/gatling-taurus/bin/gatling.sh".
     
+ - `buffer-size`: output buffer for gatling test results, 256 bytes by default. Bigger one makes gatling less responsive (specially when requests are rare). On the other hand too short buffer can cause gatling fail. 
+    
  - `download-link`:"http://somehost/gatling-charts-highcharts-bundle-{version}-bundle.zip"
     Link to download Gatling.
     By default: "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip"

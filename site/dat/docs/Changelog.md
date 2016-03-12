@@ -9,7 +9,7 @@
  - add Apache Benchmark executor
  - extend script path recognition for Jmeter
  - fix PBench not working with cloud provisioning
- - decrease Gatling write bufferization to improve responsiveness 
+ - add write buffer size control to Gatling executor 
 
 ## 1.2.0
  - maximize browser window in Selenium test, when possible
