@@ -10,6 +10,7 @@
  - extend script path recognition for Jmeter
  - fix PBench not working with cloud provisioning
  - fix unicode handling in JMeter's jmx script
+ - set unique output dir for every gatling execution
 
 ## 1.2.0
  - maximize browser window in Selenium test, when possible
