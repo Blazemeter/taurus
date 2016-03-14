@@ -304,6 +304,11 @@ class OriginalPBenchTool(PBenchTool):
                         sfd.write("%s %s %s%s" % (payload_len, int(1000 * time_offset), marker, self.NL))
                         sfd.write("%s%s" % (payload, self.NL))
 
+                        if record_type == Scheduler.REC_TYPE_STOP:
+                            self.log.debug("End record marked by scheduler")
+                            break
+
+
     def _get_source(self, load):
         return 'source_t source_log = source_log_t { filename = "%s" }' % self.schedule_file
 
@@ -375,6 +380,7 @@ class Scheduler(object):
         else:
             self.iteration_limit = load.iterations
 
+        # TODO: handle cases when ramp_up is not specified
         self.step_len = load.ramp_up / load.steps if load.steps else 0
         if load.throughput:
             self.ramp_up_slope = load.throughput / load.ramp_up if load.ramp_up else 0
@@ -401,7 +407,7 @@ class Scheduler(object):
                     self.iteration_limit = iterations
                     rec_type = self.REC_TYPE_LOOP_START
 
-                if self.iteration_limit and iterations > self.iteration_limit:
+                if self.load.throughput and self.iteration_limit and iterations > self.iteration_limit:
                     self.log.debug("Schedule iterations limit reached: %s", self.iteration_limit)
                     break
                 continue
@@ -427,7 +433,19 @@ class Scheduler(object):
                     self.log.debug("Duration limit reached: %s", self.time_offset)
                     break
             else:  # concurrency schedule
-                self.time_offset = self.__get_time_offset_concurrency()
+                offset = self.__get_time_offset_concurrency()
+                if offset == -1:
+                    if self.load.ramp_up and offset < self.load.ramp_up:
+                        if self.load.steps:
+                            step = math.floor(self.count / self.step_size)
+                            offset = step * self.step_len
+                        else:
+                            offset = self.count + self.load.ramp_up / self.load.concurrency
+                    else:
+                        raise RuntimeError("Cannot calculate offsets")
+                self.time_offset = offset
+                if self.time_offset > self.load.duration:
+                    break
 
             overall_len = payload_len + meta_len
             yield self.time_offset, payload_len, payload_offset, payload, marker, record_type, overall_len
