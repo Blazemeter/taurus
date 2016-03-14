@@ -176,6 +176,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.stderr_file = None
         self.widget = None
         self.simulation_started = False
+        self.dir_prefix = ''
 
     def prepare(self):
         self._check_installed()
@@ -189,7 +190,8 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         else:
             raise ValueError("There must be a script file to run Gatling")
 
-        self.reader = DataLogReader(self.engine.artifacts_dir, self.log)
+        self.dir_prefix = 'gatling-%s' % id(self)
+        self.reader = DataLogReader(self.engine.artifacts_dir, self.log, self.dir_prefix)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
@@ -221,7 +223,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         cmdline = [self.settings["path"]]
         cmdline += ["-sf", script_path, "-df", datadir, "-rf ", datadir]
-        cmdline += ["-on", "gatling-bzt", "-m", "-s", simulation]
+        cmdline += ["-on", self.dir_prefix, "-m", "-s", simulation]
 
         self.start_time = time.time()
         out = self.engine.create_artifact("gatling-stdout", ".log")
@@ -229,9 +231,8 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.stdout_file = open(out, "w")
         self.stderr_file = open(err, "w")
 
-        properties = self.settings.get('properties')
-        properties.merge(self.get_scenario().get('properties'))
-        params_for_scala = {'gatling.data.file.bufferSize': properties.get('buffer-size', 256)}
+        params_for_scala = self.settings.get('properties')
+        params_for_scala.merge(self.get_scenario().get('properties'))
         load = self.get_load()
         scenario = self.get_scenario()
 
@@ -251,8 +252,8 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         env = BetterDict()
         env.merge(dict(os.environ))
 
-        java_opts = "".join([" -D%s=%s" % (key, params_for_scala[key]) for key in params_for_scala])
-        java_opts += " " + env.get("JAVA_OPTS", "") + " " + properties.get("java-opts", "")
+        java_opts = ''.join([" -D%s=%s" % (key, params_for_scala[key]) for key in params_for_scala])
+        java_opts += ' ' + env.get('JAVA_OPTS', '') + ' ' + self.settings.get('java-opts', '')
 
         env.merge({"JAVA_OPTS": java_opts})
 
@@ -401,7 +402,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 class DataLogReader(ResultsReader):
     """ Class to read KPI from data log """
 
-    def __init__(self, basedir, parent_logger):
+    def __init__(self, basedir, parent_logger, dir_prefix):
         super(DataLogReader, self).__init__()
         self.concurrency = 0
         self.log = parent_logger.getChild(self.__class__.__name__)
@@ -411,6 +412,7 @@ class DataLogReader(ResultsReader):
         self.partial_buffer = ""
         self.delimiter = "\t"
         self.offset = 0
+        self.dir_prefix = dir_prefix
 
     def _read(self, last_pass=False):
         """
@@ -479,7 +481,7 @@ class DataLogReader(ResultsReader):
         """
         open gatling simulation.log
         """
-        prog = re.compile("^gatling-bzt-[0-9]+$")
+        prog = re.compile("^%s-[0-9]+$" % self.dir_prefix)
 
         for fname in os.listdir(self.basedir):
             if prog.match(fname):

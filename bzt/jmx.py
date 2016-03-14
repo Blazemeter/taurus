@@ -22,7 +22,7 @@ from itertools import chain
 
 from cssselect import GenericTranslator
 
-from bzt.six import etree, iteritems, string_types, parse
+from bzt.six import etree, iteritems, string_types, parse, text_type
 from bzt.engine import Scenario
 
 
@@ -350,11 +350,7 @@ class JMX(object):
         :return:
         """
         res = etree.Element("stringProp", name=name)
-        try:
-            res.text = str(value)
-        except ValueError:
-            logging.warning("Failed to set string prop: %s=%s", name, value)
-            res.text = 'BINARY'
+        res.text = text_type(value)
         return res
 
     @staticmethod
@@ -367,7 +363,7 @@ class JMX(object):
         :return:
         """
         res = etree.Element("longProp", name=name)
-        res.text = str(value)
+        res.text = text_type(value)
         return res
 
     @staticmethod
@@ -392,7 +388,7 @@ class JMX(object):
         :return:
         """
         res = etree.Element("intProp", name=name)
-        res.text = str(value)
+        res.text = text_type(value)
         return res
 
     @staticmethod
@@ -733,7 +729,7 @@ class JMX(object):
         :type is_invert:  bool
         :rtype: lxml.etree.Element
         """
-        tname = "Assert %s has %s" % ("not" if is_invert else "", [str(x) for x in contains])
+        tname = "Assert %s has %s" % ("not" if is_invert else "", [text_type(x) for x in contains])
         element = etree.Element("ResponseAssertion", guiclass="AssertionGui",
                                 testclass="ResponseAssertion", testname=tname)
         if field == Scenario.FIELD_HEADERS:
@@ -804,7 +800,7 @@ class JMX(object):
         """
         items = self.get(sel)
         for item in items:
-            item.text = str(text)
+            item.text = text_type(text)
 
     @staticmethod
     def _get_simple_controller(name):

@@ -93,6 +93,8 @@ execution:
     Path to Gatling executable.
     If no Gatling executable found, it will be automatically downloaded and installed in "path".
     By default "~/.bzt/gatling-taurus/bin/gatling.sh".
+    
+ - `java-opts`: string with some java options for Gatling    
         
  - `download-link`:"http://somehost/gatling-charts-highcharts-bundle-{version}-bundle.zip"
     Link to download Gatling.
@@ -102,7 +104,7 @@ execution:
     Gatling version, by default "2.1.4"        
     
 ## Gatling Properties
- You can specify Gatling properties on two config levels: global (modules/gatling/properties) and local (scenario/properties). Following example shows local properties and available parameters:
+ You can specify properties which controlled Gatling behaviour on two config levels: global (modules/gatling/properties) and local (scenario/properties). Following example shows setting output buffer size in local scope:
    
 ```yaml
 ---
@@ -112,10 +114,7 @@ execution:
   hold-for: 20
   scenario:
     properties:
-      buffer-size: 512         # output buffer size, 256 bytes by default
-      java-opts: "some_options" # additional options for Gatling
+      gatling.data.file.bufferSize: 512         # output buffer size, 256 bytes by default      
     requests:
     - url: blazedemo.com         
 ```
-
-    

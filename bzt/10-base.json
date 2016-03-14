@@ -52,7 +52,7 @@
     "gatling": {
       "class": "bzt.modules.gatling.GatlingExecutor",
       "properties": {
-        "buffer-size": 256
+        "gatling.data.file.bufferSize": 256
      }
     },
     "shellexec": {
