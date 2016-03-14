@@ -229,8 +229,9 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.stdout_file = open(out, "w")
         self.stderr_file = open(err, "w")
 
-        buffer_size = self.settings.get('buffer-size', 256)  # gatling default: 8K
-        params_for_scala = {'gatling.data.file.bufferSize': buffer_size}
+        properties = self.settings.get('properties')
+        properties.merge(self.get_scenario().get('properties'))
+        params_for_scala = {'gatling.data.file.bufferSize': properties.get('buffer-size', 256)}
         load = self.get_load()
         scenario = self.get_scenario()
 
@@ -251,7 +252,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         env.merge(dict(os.environ))
 
         java_opts = "".join([" -D%s=%s" % (key, params_for_scala[key]) for key in params_for_scala])
-        java_opts += " " + env.get("JAVA_OPTS", "") + " " + self.engine.config.get("java_opts", "")
+        java_opts += " " + env.get("JAVA_OPTS", "") + " " + properties.get("java-opts", "")
 
         env.merge({"JAVA_OPTS": java_opts})
 
