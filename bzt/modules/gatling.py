@@ -176,6 +176,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.stderr_file = None
         self.widget = None
         self.simulation_started = False
+        self.dir_prefix = ''
 
     def prepare(self):
         self._check_installed()
@@ -189,7 +190,8 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         else:
             raise ValueError("There must be a script file to run Gatling")
 
-        self.reader = DataLogReader(self.engine.artifacts_dir, self.log)
+        self.dir_prefix = 'gatling-%s' % id(self)
+        self.reader = DataLogReader(self.engine.artifacts_dir, self.log, self.dir_prefix)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
@@ -221,7 +223,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         cmdline = [self.settings["path"]]
         cmdline += ["-sf", script_path, "-df", datadir, "-rf ", datadir]
-        cmdline += ["-on", "gatling-bzt", "-m", "-s", simulation]
+        cmdline += ["-on", self.dir_prefix, "-m", "-s", simulation]
 
         self.start_time = time.time()
         out = self.engine.create_artifact("gatling-stdout", ".log")
@@ -399,7 +401,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 class DataLogReader(ResultsReader):
     """ Class to read KPI from data log """
 
-    def __init__(self, basedir, parent_logger):
+    def __init__(self, basedir, parent_logger, dir_prefix):
         super(DataLogReader, self).__init__()
         self.concurrency = 0
         self.log = parent_logger.getChild(self.__class__.__name__)
@@ -409,6 +411,7 @@ class DataLogReader(ResultsReader):
         self.partial_buffer = ""
         self.delimiter = "\t"
         self.offset = 0
+        self.dir_prefix = dir_prefix
 
     def _read(self, last_pass=False):
         """
@@ -477,7 +480,7 @@ class DataLogReader(ResultsReader):
         """
         open gatling simulation.log
         """
-        prog = re.compile("^gatling-bzt-[0-9]+$")
+        prog = re.compile("^%s-[0-9]+$" % self.dir_prefix)
 
         for fname in os.listdir(self.basedir):
             if prog.match(fname):
