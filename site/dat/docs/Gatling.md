@@ -94,27 +94,21 @@ execution:
     If no Gatling executable found, it will be automatically downloaded and installed in "path".
     By default "~/.bzt/gatling-taurus/bin/gatling.sh".
     
- - `java-opts`: string with some java options for Gatling    
-        
+ - `java-opts`: string with some java options for Gatling
+     
  - `download-link`:"http://somehost/gatling-charts-highcharts-bundle-{version}-bundle.zip"
     Link to download Gatling.
     By default: "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip"
     
  -  `version`: "2.1.4"
     Gatling version, by default "2.1.4"        
-    
-## Gatling Properties
- You can specify properties which controlled Gatling behaviour on two config levels: global (modules/gatling/properties) and local (scenario/properties). Following example shows setting output buffer size in local scope:
-   
+
+ - `properties`: dictionary for tuning of gatling tool behaviour (see list of available parameters in gatling documentation). Following example shows setting output buffer size:
+        
 ```yaml
 ---
-execution:
-- executor: gatling
-  concurrency: 5
-  hold-for: 20
-  scenario:
+modules:
+  gatling:
     properties:
-      gatling.data.file.bufferSize: 512         # output buffer size, 256 bytes by default      
-    requests:
-    - url: blazedemo.com         
+      gatling.data.file.bufferSize: 512  # output buffer size, 256 bytes by default      
 ```

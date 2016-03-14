@@ -232,7 +232,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.stderr_file = open(err, "w")
 
         params_for_scala = self.settings.get('properties')
-        params_for_scala.merge(self.get_scenario().get('properties'))
         load = self.get_load()
         scenario = self.get_scenario()
 
