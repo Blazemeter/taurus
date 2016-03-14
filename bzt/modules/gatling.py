@@ -231,7 +231,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.stdout_file = open(out, "w")
         self.stderr_file = open(err, "w")
 
-        params_for_scala = {}
+        params_for_scala = self.settings.get('properties')
         load = self.get_load()
         scenario = self.get_scenario()
 
@@ -251,8 +251,8 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         env = BetterDict()
         env.merge(dict(os.environ))
 
-        java_opts = "".join([" -D%s=%s" % (key, params_for_scala[key]) for key in params_for_scala])
-        java_opts += " " + env.get("JAVA_OPTS", "") + " " + self.engine.config.get("java_opts", "")
+        java_opts = ''.join([" -D%s=%s" % (key, params_for_scala[key]) for key in params_for_scala])
+        java_opts += ' ' + env.get('JAVA_OPTS', '') + ' ' + self.settings.get('java-opts', '')
 
         env.merge({"JAVA_OPTS": java_opts})
 

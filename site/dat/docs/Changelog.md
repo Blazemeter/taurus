@@ -9,6 +9,7 @@
  - add Apache Benchmark executor
  - extend script path recognition for Jmeter
  - fix PBench not working with cloud provisioning
+ - add output buffer size control to Gatling executor 
  - fix unicode handling in JMeter's jmx script
  - set unique output dir for every gatling execution
 

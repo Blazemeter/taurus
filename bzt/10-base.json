@@ -50,7 +50,10 @@
       "path": "~/.bzt/grinder-taurus/lib/grinder.jar"
     },
     "gatling": {
-      "class": "bzt.modules.gatling.GatlingExecutor"
+      "class": "bzt.modules.gatling.GatlingExecutor",
+      "properties": {
+        "gatling.data.file.bufferSize": 256
+     }
     },
     "shellexec": {
       "class": "bzt.modules.shellexec.ShellExecutor"
