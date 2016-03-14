@@ -298,7 +298,9 @@ class OriginalPBenchTool(PBenchTool):
                 with open(self.schedule_file, 'w') as sfd:
                     for item in scheduler.generate():
                         time_offset, payload_len, payload_offset, payload, marker, record_type, overall_len = item
-                        pbar.update(time_offset if time_offset < load.duration else load.duration)
+
+                        pbar.update(time_offset if 0 <= time_offset < load.duration else load.duration)
+
                         sfd.write("%s %s %s%s" % (payload_len, int(1000 * time_offset), marker, self.NL))
                         sfd.write("%s%s" % (payload, self.NL))
 
