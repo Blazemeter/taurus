@@ -299,7 +299,10 @@ class OriginalPBenchTool(PBenchTool):
                     for item in scheduler.generate():
                         time_offset, payload_len, payload_offset, payload, marker, record_type, overall_len = item
 
-                        pbar.update(time_offset if 0 <= time_offset < load.duration else load.duration)
+                        if time_offset < 0:  # special case, run worker with no delay
+                            time_offset = 0
+
+                        pbar.update(time_offset if time_offset < load.duration else load.duration)
 
                         sfd.write("%s %s %s%s" % (payload_len, int(1000 * time_offset), marker, self.NL))
                         sfd.write("%s%s" % (payload, self.NL))
@@ -434,23 +437,7 @@ class Scheduler(object):
                     self.log.debug("Duration limit reached: %s", self.time_offset)
                     break
             else:  # concurrency schedule
-                offset = self.__get_time_offset_concurrency()
-
-                if offset == -1:
-                    if self.load.ramp_up and offset < self.load.ramp_up:
-                        if self.load.steps:
-                            step = math.floor(self.count / self.step_size)
-                            offset = step * self.step_len
-                        else:
-                            offset = self.count * self.load.ramp_up / self.concurrency
-                    else:
-                       offset = self.time_offset
-
-                self.time_offset = offset
-
-                if self.load.duration and self.time_offset > self.load.duration:
-                    self.log.debug("Duration exceeded, finishing")
-                    break
+                self.time_offset = self.__get_time_offset_concurrency()
 
             overall_len = payload_len + meta_len
             yield self.time_offset, payload_len, payload_offset, payload, marker, record_type, overall_len
