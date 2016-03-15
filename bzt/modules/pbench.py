@@ -380,7 +380,6 @@ class Scheduler(object):
         else:
             self.iteration_limit = load.iterations
 
-        # TODO: handle cases when ramp_up is not specified
         self.step_len = load.ramp_up / load.steps if load.steps else 0
         if load.throughput:
             self.ramp_up_slope = load.throughput / load.ramp_up if load.ramp_up else 0
@@ -388,6 +387,8 @@ class Scheduler(object):
         else:
             self.ramp_up_slope = None
             self.step_size = float(load.concurrency) / load.steps if load.steps else 0
+
+        self.concurrency = load.concurrency if load.concurrency is not None else 1
 
         self.count = 0.0
         self.time_offset = 0.0
@@ -407,7 +408,7 @@ class Scheduler(object):
                     self.iteration_limit = iterations
                     rec_type = self.REC_TYPE_LOOP_START
 
-                if self.load.throughput and self.iteration_limit and iterations > self.iteration_limit:
+                if self.iteration_limit and iterations > self.iteration_limit:
                     self.log.debug("Schedule iterations limit reached: %s", self.iteration_limit)
                     break
                 continue
@@ -434,17 +435,21 @@ class Scheduler(object):
                     break
             else:  # concurrency schedule
                 offset = self.__get_time_offset_concurrency()
+
                 if offset == -1:
                     if self.load.ramp_up and offset < self.load.ramp_up:
                         if self.load.steps:
                             step = math.floor(self.count / self.step_size)
                             offset = step * self.step_len
                         else:
-                            offset = self.count + self.load.ramp_up / self.load.concurrency
+                            offset = self.count * self.load.ramp_up / self.concurrency
                     else:
-                        raise RuntimeError("Cannot calculate offsets")
+                       offset = self.time_offset
+
                 self.time_offset = offset
-                if self.time_offset > self.load.duration:
+
+                if self.load.duration and self.time_offset > self.load.duration:
+                    self.log.debug("Duration exceeded, finishing")
                     break
 
             overall_len = payload_len + meta_len
@@ -452,7 +457,7 @@ class Scheduler(object):
             self.count += 1
 
     def __get_time_offset_concurrency(self):
-        if not self.load.ramp_up or self.count >= self.load.concurrency:
+        if not self.load.ramp_up or self.count >= self.concurrency:
             if self.need_start_loop is None:
                 self.need_start_loop = True
             return -1  # special case, means no delay
@@ -460,7 +465,7 @@ class Scheduler(object):
             step = math.floor(self.count / self.step_size)
             return step * self.step_len
         else:  # ramp-up case
-            return self.count * self.load.ramp_up / self.load.concurrency
+            return self.count * self.load.ramp_up / self.concurrency
 
     def __get_time_offset_rps(self):
         if not self.load.ramp_up or self.time_offset > self.load.ramp_up:
