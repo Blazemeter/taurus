@@ -12,6 +12,7 @@
  - add output buffer size control to Gatling executor 
  - fix unicode handling in JMeter's jmx script
  - set unique output dir for every gatling execution
+ - fix schedule generation in original PBench
 
 ## 1.2.0
  - maximize browser window in Selenium test, when possible
