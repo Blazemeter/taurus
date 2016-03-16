@@ -279,7 +279,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 scenarios = file_header[file_header.find(wrong_line) + len(wrong_line):].rstrip()
                 warn_line = 'Several gatling simulations are found, you must ' + \
                             'specify exact simulation to use in "simulation" option %s'
-                self.log.warning(warn_line % scenarios)
+                self.log.warning(warn_line, scenarios)
                 raise ValueError('You must select proper gatling simulation')
             if 'started...' in file_header:
                 self.simulation_started = True
