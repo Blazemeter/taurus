@@ -292,25 +292,33 @@ class OriginalPBenchTool(PBenchTool):
         super(OriginalPBenchTool, self).__init__(executor, base_logger)
 
     def _generate_schedule_inner(self, load):
+        prev_offset = 0.0
         with ProgressBarContext(load.duration) as pbar:
             with open(self.payload_file) as pfd:
                 scheduler = Scheduler(load, pfd, self.log)
                 with open(self.schedule_file, 'w') as sfd:
                     for item in scheduler.generate():
                         time_offset, payload_len, payload_offset, payload, marker, record_type, overall_len = item
+                        if time_offset >= 0:
+                            progress = time_offset
+                        elif prev_offset >= 0:
+                            progress = prev_offset
+                        else:  # both time_offset and prev_offset are < 0
+                            progress = 0
+
+                        pbar.update(progress if progress < load.duration else load.duration)
 
                         if time_offset < 0:  # special case, run worker with no delay
-                            time_offset = 0
-
-                        pbar.update(time_offset if time_offset < load.duration else load.duration)
+                            time_offset = 0.0
 
                         sfd.write("%s %s %s%s" % (payload_len, int(1000 * time_offset), marker, self.NL))
                         sfd.write("%s%s" % (payload, self.NL))
 
                         if record_type == Scheduler.REC_TYPE_STOP:
-                            self.log.debug("End record marked by scheduler")
+                            self.log.debug("End loop marked by scheduler")
                             break
 
+                        prev_offset = time_offset
 
     def _get_source(self, load):
         return 'source_t source_log = source_log_t { filename = "%s" }' % self.schedule_file
@@ -332,7 +340,13 @@ class TaurusPBenchTool(PBenchTool):
             time_offset, payload_len, payload_offset, payload, marker, record_type, overall_len = item
 
             if cnt % 5000 == 0:  # it's just the number, to throttle down updates...
-                pbar.update(time_offset if time_offset < load.duration else load.duration)
+                if time_offset >= 0:
+                    progress = time_offset
+                elif prev_offset >= 0:
+                    progress = prev_offset
+                else:  # both time_offset and prev_offset are < 0
+                    progress = 0
+                pbar.update(progress if 0 <= progress < load.duration else load.duration)
             cnt += 1
 
             if time_offset >= 0:
@@ -383,15 +397,15 @@ class Scheduler(object):
         else:
             self.iteration_limit = load.iterations
 
-        self.step_len = load.ramp_up / load.steps if load.steps else 0
+        self.concurrency = load.concurrency if load.concurrency is not None else 1
+
+        self.step_len = load.ramp_up / load.steps if load.steps and load.ramp_up else 0
         if load.throughput:
             self.ramp_up_slope = load.throughput / load.ramp_up if load.ramp_up else 0
             self.step_size = float(load.throughput) / load.steps if load.steps else 0
         else:
             self.ramp_up_slope = None
-            self.step_size = float(load.concurrency) / load.steps if load.steps else 0
-
-        self.concurrency = load.concurrency if load.concurrency is not None else 1
+            self.step_size = float(self.concurrency) / load.steps if load.steps else 0
 
         self.count = 0.0
         self.time_offset = 0.0
@@ -414,6 +428,7 @@ class Scheduler(object):
                 if self.iteration_limit and iterations > self.iteration_limit:
                     self.log.debug("Schedule iterations limit reached: %s", self.iteration_limit)
                     break
+
                 continue
 
             if not line.strip():  # we're fine to skip empty lines between records
@@ -455,6 +470,7 @@ class Scheduler(object):
             return self.count * self.load.ramp_up / self.concurrency
 
     def __get_time_offset_rps(self):
+        # we can't use time_offset here, because time_offset from
         if not self.load.ramp_up or self.time_offset > self.load.ramp_up:
             # limit iterations
             rps = self.load.throughput
