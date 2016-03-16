@@ -133,8 +133,8 @@ class ApacheBenchmarkExecutor(ScenarioExecutor):
 
     def _check_installed(self):
         tool_path = self.settings.get('path', 'ab')
-        ab = ApacheBenchmark(tool_path, self.log)
-        if not ab.check_if_installed():
+        ab_tool = ApacheBenchmark(tool_path, self.log)
+        if not ab_tool.check_if_installed():
             raise RuntimeError("You must install ab tool at first")
         return tool_path
 
