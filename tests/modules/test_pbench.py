@@ -86,7 +86,7 @@ if not is_windows():
             executor.engine.config.merge({"provisioning": "test"})
             rps = 9
             rampup = 12
-            executor.execution.merge({"throughput": rps, "ramp-up": rampup, "steps": 3, "hold-for1": 0})
+            executor.execution.merge({"throughput": rps, "ramp-up": rampup, "steps": 3, "hold-for": 0})
             obj = Scheduler(executor.get_load(), StringIO("4 test\ntest\n"), logging.getLogger(""))
 
             cnt = 0
@@ -105,12 +105,22 @@ if not is_windows():
 
             logging.debug("RPS: %s", currps)
 
+        def test_schedule_with_no_rampup(self):
+            executor = PBenchExecutor()
+            executor.engine = EngineEmul()
+            executor.execution.merge({"concurrency": 10, "ramp-up": None, "steps": 3, "hold-for": 10})
+            # this line shouln't throw an exception
+            obj = Scheduler(executor.get_load(), StringIO("4 test\ntest\n"), logging.getLogger(""))
+
         def test_schedule_empty(self):
             executor = PBenchExecutor()
             executor.engine = EngineEmul()
+            # concurrency: 1, iterations: 1
             obj = Scheduler(executor.get_load(), StringIO("4 test\ntest\n"), logging.getLogger(""))
-            for item in obj.generate():
+            items = list(obj.generate())
+            for item in items:
                 logging.debug("Item: %s", item)
+            self.assertEqual(1, len(items))
 
         def test_schedule_concurrency(self):
             executor = PBenchExecutor()
@@ -118,10 +128,9 @@ if not is_windows():
             executor.execution.merge({"concurrency": 5, "ramp-up": 10, "hold-for": 5})
             obj = Scheduler(executor.get_load(), StringIO("5 test1\ntest1\n5 test2\ntest2\n"), logging.getLogger(""))
             items = list(obj.generate())
-            logging.debug("%s", items)
             self.assertEqual(8, len(items))
             self.assertEqual(-1, items[5][0])  # instance became unlimited
-            self.assertEqual(1, items[6][5])  # looped payload
+            self.assertEqual(Scheduler.REC_TYPE_LOOP_START, items[6][5])  # looped payload
 
         def test_schedule_concurrency_steps(self):
             executor = PBenchExecutor()
@@ -129,10 +138,9 @@ if not is_windows():
             executor.execution.merge({"concurrency": 5, "ramp-up": 10, "steps": 3})
             obj = Scheduler(executor.get_load(), StringIO("5 test1\ntest1\n5 test2\ntest2\n"), logging.getLogger(""))
             items = list(obj.generate())
-            logging.debug("%s", items)
             self.assertEqual(8, len(items))
             self.assertEqual(-1, items[5][0])  # instance became unlimited
-            self.assertEqual(1, items[6][5])  # looped payload
+            self.assertEqual(Scheduler.REC_TYPE_LOOP_START, items[6][5])  # looped payload
 
         def test_widget(self):
             obj = PBenchExecutor()
