@@ -292,33 +292,20 @@ class OriginalPBenchTool(PBenchTool):
         super(OriginalPBenchTool, self).__init__(executor, base_logger)
 
     def _generate_schedule_inner(self, load):
-        prev_offset = 0.0
         with ProgressBarContext(load.duration) as pbar:
             with open(self.payload_file) as pfd:
                 scheduler = Scheduler(load, pfd, self.log)
                 with open(self.schedule_file, 'w') as sfd:
                     for item in scheduler.generate():
                         time_offset, payload_len, payload_offset, payload, marker, record_type, overall_len = item
-                        if time_offset >= 0:
-                            progress = time_offset
-                        elif prev_offset >= 0:
-                            progress = prev_offset
-                        else:  # both time_offset and prev_offset are < 0
-                            progress = 0
-
-                        pbar.update(progress if progress < load.duration else load.duration)
-
                         if time_offset < 0:  # special case, run worker with no delay
                             time_offset = 0.0
+
+                        pbar.update(time_offset if time_offset < load.duration else load.duration)
 
                         sfd.write("%s %s %s%s" % (payload_len, int(1000 * time_offset), marker, self.NL))
                         sfd.write("%s%s" % (payload, self.NL))
 
-                        if record_type == Scheduler.REC_TYPE_STOP:
-                            self.log.debug("End loop marked by scheduler")
-                            break
-
-                        prev_offset = time_offset
 
     def _get_source(self, load):
         return 'source_t source_log = source_log_t { filename = "%s" }' % self.schedule_file
@@ -362,10 +349,6 @@ class TaurusPBenchTool(PBenchTool):
 
             sfd.write(type_and_delay + payload_len_bytes + payload_offset_bytes)
             prev_offset = time_offset
-
-            if record_type == Scheduler.REC_TYPE_STOP:
-                self.log.debug("End record marked by scheduler")
-                break
 
     def _get_source(self, load):
         tpl = 'source_t source_log = taurus_source_t { ammo = "%s"\n schedule = "%s"\n %s\n }'
@@ -470,7 +453,6 @@ class Scheduler(object):
             return self.count * self.load.ramp_up / self.concurrency
 
     def __get_time_offset_rps(self):
-        # we can't use time_offset here, because time_offset from
         if not self.load.ramp_up or self.time_offset > self.load.ramp_up:
             # limit iterations
             rps = self.load.throughput
