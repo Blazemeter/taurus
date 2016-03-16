@@ -1,18 +1,19 @@
 # Changelog
-## 1.3.0 (next)
- - add gatling script generation 
- - fix gatling metric parsing
- - fix grinder crash
- - remove explicitly cwd assignment from gatling
- - add detection of gatling simulation request in case of several simulations are found
- - join JMeter and its plugins installation procedures
- - add Apache Benchmark executor
- - extend script path recognition for Jmeter
- - fix PBench not working with cloud provisioning
- - add output buffer size control to Gatling executor 
- - fix unicode handling in JMeter's jmx script
- - set unique output dir for every gatling execution
- - fix schedule generation in original PBench
+
+## 1.3.0
+ - add [Gatling](Gatling.md) script generation 
+ - fix [Gatling](Gatling.md) metric parsing
+ - remove explicitly cwd setting for [Gatling](Gatling.md)
+ - add detection of [Gatling](Gatling.md) simulation request in case of several simulations are found
+ - set unique output dir for every [Gatling](Gatling.md) execution
+ - add output buffer size control to [Gatling](Gatling.md) executor 
+ - fix [Grinder](Grinder.md) crash
+ - join [JMeter](JMeter.md) and its plugins installation procedures
+ - fix unicode handling in [JMeter](JMeter.md)'s jmx script
+ - add [Apache Benchmark](ApacheBenchmark.md) executor
+ - extend script path recognition for [JMeter](JMeter.md)
+ - fix [PBench](PBench.md) not working with cloud provisioning
+ - fix schedule generation in original [PBench](PBench.md)
 
 ## 1.2.0
  - maximize browser window in Selenium test, when possible
