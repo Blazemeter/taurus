@@ -105,6 +105,13 @@ if not is_windows():
 
             logging.debug("RPS: %s", currps)
 
+        def test_schedule_with_no_rampup(self):
+            executor = PBenchExecutor()
+            executor.engine = EngineEmul()
+            executor.execution.merge({"concurrency": 10, "ramp-up": None, "steps": 3, "hold-for": 10})
+            # this line shouln't throw an exception
+            obj = Scheduler(executor.get_load(), StringIO("4 test\ntest\n"), logging.getLogger(""))
+
         def test_schedule_empty(self):
             executor = PBenchExecutor()
             executor.engine = EngineEmul()
