@@ -1349,6 +1349,8 @@ class JMeterScenarioBuilder(JMX):
 
     def __add_datasources(self):
         sources = self.scenario.get("data-sources", [])
+        if not sources:
+            return
         if not isinstance(sources, list):
             raise ValueError("data-sources is not a list")
         for idx, source in enumerate(sources):
