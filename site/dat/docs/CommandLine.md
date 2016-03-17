@@ -44,6 +44,21 @@ bzt -o execution.scenario.jmx=my_plan.jmx
 
 Rule for composing the override path is simple: it is built from dictionary keys and array indexes, separated by dot (`.`). If the array index is `-1` then list is appended.
 
+Consider the following Taurus configuration:
+```yaml
+---
+execution:
+  concurrency: 100
+  hold-for: 60s
+  scenario:
+    timeout: 500ms
+    keepalive: true
+```
+The following override example creates the `data-sources` list (as it isn't specified in config) and sets the first element to `data.csv`:
+```
+bzt -o execution.scenario.data-sources.0=data.csv config.yaml
+```
+
 ## Aliases
 
 There is a way to create some config chunks and apply them from command-line like this: `bzt -gui-mode -scenario1`
