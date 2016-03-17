@@ -3,7 +3,7 @@ import os
 import shutil
 import time
 
-from bzt.modules.grinder import GrinderExecutor, Grinder, DataLogReader
+from bzt.modules.grinder import GrinderExecutor, DataLogReader
 from bzt.utils import EXE_SUFFIX
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul
@@ -43,6 +43,7 @@ class TestGrinderExecutor(BZTestCase):
     def test_grinder_widget(self):
         obj = GrinderExecutor()
         obj.engine = EngineEmul()
+        obj.settings.merge({'path': __dir__() + "/../grinder/fake_grinder.jar"})
         obj.engine.config.merge({"provisioning": 'local'})
         obj.execution.merge({"concurrency": {"local": 2},
                              "ramp-up": 2,
@@ -62,21 +63,16 @@ class TestGrinderExecutor(BZTestCase):
     def test_fail_on_zero_results(self):
         obj = GrinderExecutor()
         obj.engine = EngineEmul()
+        obj.settings.merge({'path': __dir__() + "/../grinder/fake_grinder.jar"})
         obj.execution.merge({"concurrency": {"local": 2},
                              "scenario": {"script": __dir__() + "/../grinder/helloworld.py"}})
         obj.prepare()
         self.assertRaises(RuntimeWarning, obj.post_process)
 
-    def test_grinder_mirrors(self):
-        path = os.path.abspath(__dir__() + "/../../build/tmp/grinder-taurus/lib/grinder.jar")
-        shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
-        obj = GrinderExecutor()
-        grinder_tool = Grinder(path, obj.log, GrinderExecutor.VERSION)
-        grinder_tool.install()
-
     def test_requests(self):
         obj = GrinderExecutor()
         obj.engine = EngineEmul()
+        obj.settings.merge({'path': __dir__() + "/../grinder/fake_grinder.jar"})
         obj.execution.merge({"scenario": {"requests": ['http://blazedemo.com']}})
         obj.prepare()
 
@@ -84,6 +80,7 @@ class TestGrinderExecutor(BZTestCase):
         obj = GrinderExecutor()
         obj.kpi_file = os.path.abspath(__dir__() + '/../grinder/test.log')
         obj.engine = EngineEmul()
+        obj.settings.merge({'path': __dir__() + "/../grinder/fake_grinder.jar"})
         obj.execution.merge({"concurrency": {"local": 2},
                              "hold-for": 5,
                              "scenario": {"requests": ['http://blazedemo.com']}})
