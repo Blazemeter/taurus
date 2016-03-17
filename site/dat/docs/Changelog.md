@@ -1,4 +1,6 @@
 # Changelog
+## 1.4.0 (next)
+ - remove real installation procedure from grinder unit tests
 
 ## 1.3.0
  - add [Gatling](Gatling.md) script generation 
