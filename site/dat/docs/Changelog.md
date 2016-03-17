@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.4.0 (next)
+ - fix JMeter crash when `data-sources` value is not a list
+
 ## 1.3.0
  - add [Gatling](Gatling.md) script generation 
  - fix [Gatling](Gatling.md) metric parsing
