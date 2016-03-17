@@ -44,6 +44,12 @@ bzt -o execution.scenario.jmx=my_plan.jmx
 
 Rule for composing the override path is simple: it is built from dictionary keys and array indexes, separated by dot (`.`). If the array index is `-1` then list is appended.
 
+The following example sets the first element of `data-sources` list (and creates the list if it doesn't exist):
+
+```
+bzt -o execution.scenario.data-sources.0=data.csv config.yaml
+```
+
 ## Aliases
 
 There is a way to create some config chunks and apply them from command-line like this: `bzt -gui-mode -scenario1`
