@@ -938,6 +938,19 @@ class TestJMeterExecutor(BZTestCase):
         jmx = JMX(obj.modified_jmx)
         self.assertEqual(jmx.get(selector)[0].text, u"✓")
 
+    def test_data_source_list(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({
+            "scenario": {
+                "requests": ["http://blazedemo.com/"],
+                # note that data-sources should be a list of strings/objects
+                "data-sources": {
+                    "path": __dir__() + "/../data/test1.csv",
+                }
+            }
+        })
+        self.assertRaises(ValueError, obj.prepare)
 
 
 class TestJMX(BZTestCase):
