@@ -156,9 +156,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             shutil.copy2(hosts, self.hosts_file)
         elif isinstance(hosts, dict):
             self.hosts_file = self.engine.create_artifact("hosts", "")
-            with open(self.hosts_file, 'w') as f:
+            with open(self.hosts_file, 'w') as fds:
                 for key, value in iteritems(hosts):
-                    f.write("%s %s\n" % (key, value))
+                    fds.write("%s %s\n" % (key, value))
         else:
             raise ValueError("Value of `hosts` should be either a file or a dictionary")
 
