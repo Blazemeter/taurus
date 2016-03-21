@@ -22,8 +22,8 @@ from itertools import chain
 
 from cssselect import GenericTranslator
 
-from bzt.six import etree, iteritems, string_types, parse, text_type
 from bzt.engine import Scenario
+from bzt.six import etree, iteritems, string_types, parse, text_type
 
 
 class JMX(object):
@@ -163,9 +163,9 @@ class JMX(object):
         obj_prop.append(value)
 
         listener = etree.Element("ResultCollector",
-                                     testname=label,
-                                     testclass="ResultCollector",
-                                     guiclass="SimpleDataWriter")
+                                 testname=label,
+                                 testclass="ResultCollector",
+                                 guiclass="SimpleDataWriter")
         listener.append(jtl)
         listener.append(obj_prop)
         return listener
@@ -301,8 +301,12 @@ class JMX(object):
             proxy.append(JMX._string_prop("HTTPSampler.protocol", parsed_url.scheme))
         if parsed_url.hostname:
             proxy.append(JMX._string_prop("HTTPSampler.domain", parsed_url.hostname))
-        if parsed_url.port:
-            proxy.append(JMX._string_prop("HTTPSampler.port", parsed_url.port))
+        try:
+            if parsed_url.port:
+                proxy.append(JMX._string_prop("HTTPSampler.port", parsed_url.port))
+        except ValueError:
+            logging.debug("Non-parsable port: %s", url)
+            proxy.append(JMX._string_prop("HTTPSampler.port", ""))
 
         path = parsed_url.path
         if parsed_url.query:
