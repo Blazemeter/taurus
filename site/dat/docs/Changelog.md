@@ -3,6 +3,7 @@
  - remove real installation procedure from grinder unit tests
  - fix JMeter crash when `data-sources` value is not a list
  - fix non-integer port in HTTP request
+ - fix Selenium crash with `script-not-found` when using cloud/remote provisioning
 
 ## 1.3.0
  - add [Gatling](Gatling.md) script generation 
