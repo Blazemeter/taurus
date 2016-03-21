@@ -615,3 +615,18 @@ class TestSeleniumStuff(SeleniumTestCase):
             }
         })
         obj.resource_files()
+
+    def test_dont_copy_script_to_artifacts(self):
+        "ensures that .java file is not copied into artifacts dir"
+        obj = SeleniumExecutor()
+        obj.engine = EngineEmul()
+        script_path = __dir__() + "/../data/BlazeDemo.java"
+        obj.execution.merge({
+            "scenario": {
+                "script": script_path,
+            }
+        })
+        obj.prepare()
+        files = obj.resource_files()
+        self.assertIn(script_path, files)
+
