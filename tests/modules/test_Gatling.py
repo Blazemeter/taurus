@@ -256,6 +256,6 @@ class TestGatlingExecutor(BZTestCase):
 class TestDataLogReader(BZTestCase):
     def test_read(self):
         log_path = os.path.join(os.path.dirname(__file__), '..', 'gatling')
-        obj = DataLogReader(log_path, logging.getLogger(''))
+        obj = DataLogReader(log_path, logging.getLogger(''), 'gatling-0')
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 23)

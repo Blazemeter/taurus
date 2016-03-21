@@ -1,3 +1,4 @@
+# coding=utf-8
 """ test """
 import json
 import logging
@@ -123,7 +124,7 @@ class TestJMeterExecutor(BZTestCase):
         obj.prepare()
 
     def test_path_processing(self):
-        class FakeTool:
+        class FakeTool(object):
             tool_path = ''
             installed = None
 
@@ -914,3 +915,48 @@ class TestJMeterExecutor(BZTestCase):
                     "url": "http://blazedemo.com",
                 }]}})
         obj.prepare()
+
+    def test_jmx_modification_unicode(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        cfg_selector = ('Home Page>HTTPsampler.Arguments>Arguments.arguments'
+                        '>param>Argument.value')
+
+        obj.execution.merge({
+            "scenario": {
+                "script": __dir__() + "/../jmx/dummy_plan.jmx",
+                "modifications": {
+                    "set-prop": {
+                        cfg_selector: u"✓",
+                    }
+                }
+            }
+        })
+        selector = ("[testname='Home Page']>[name='HTTPsampler.Arguments']"
+                    ">[name='Arguments.arguments']>[name='param']>[name='Argument.value']")
+        obj.prepare()
+        jmx = JMX(obj.modified_jmx)
+        self.assertEqual(jmx.get(selector)[0].text, u"✓")
+
+    def test_data_source_list(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({
+            "scenario": {
+                "requests": ["http://blazedemo.com/"],
+                # note that data-sources should be a list of strings/objects
+                "data-sources": {
+                    "path": __dir__() + "/../data/test1.csv",
+                }
+            }
+        })
+        self.assertRaises(ValueError, obj.prepare)
+
+
+class TestJMX(BZTestCase):
+    def test_jmx_unicode_checkmark(self):
+        obj = JMX()
+        res = obj._get_http_request("url", "label", "method", 0, {"param": u"✓"}, True)
+        prop = res.find(".//stringProp[@name='Argument.value']")
+        self.assertNotEqual("BINARY", prop.text)
+        self.assertEqual(u"✓", prop.text)

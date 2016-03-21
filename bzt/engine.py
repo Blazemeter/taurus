@@ -826,7 +826,8 @@ class ScenarioExecutor(EngineModule):
             if Scenario.SCRIPT in self.__scenario:
                 # using script name if present
                 error = ValueError("Wrong script in scenario")
-                self._label = os.path.basename(self.__scenario.get(Scenario.SCRIPT, error))
+                scen = self.__scenario.get(Scenario.SCRIPT, error)
+                self._label = os.path.basename(scen)
             else:
                 # last resort - a checksum of whole scenario
                 self._label = hashlib.md5(to_json(self.__scenario).encode()).hexdigest()

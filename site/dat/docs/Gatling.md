@@ -86,7 +86,7 @@ execution:
         subject: http-code
         not: true
 ```
-## Configuration options:
+## Configuration Options
 
  Similar to other modules there is possibility of global configuration Gatling Executor by write some lines in `gatling` branch of modules setting. Next options can be set:
  - `path`: "/somepath/folder/bin/gatling_executable"
@@ -94,9 +94,21 @@ execution:
     If no Gatling executable found, it will be automatically downloaded and installed in "path".
     By default "~/.bzt/gatling-taurus/bin/gatling.sh".
     
+ - `java-opts`: string with some java options for Gatling
+     
  - `download-link`:"http://somehost/gatling-charts-highcharts-bundle-{version}-bundle.zip"
     Link to download Gatling.
     By default: "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip"
     
  -  `version`: "2.1.4"
-    Gatling version, by default "2.1.4"
+    Gatling version, by default "2.1.4"        
+
+ - `properties`: dictionary for tuning of gatling tool behaviour (see list of available parameters in gatling documentation). Following example shows setting output buffer size:
+        
+```yaml
+---
+modules:
+  gatling:
+    properties:
+      gatling.data.file.bufferSize: 512  # output buffer size, 256 bytes by default      
+```
