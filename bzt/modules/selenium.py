@@ -256,20 +256,20 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         script = self.scenario.get(Scenario.SCRIPT)
         script_type = self.detect_script_type(script)
+        script_path = self._get_script_path()
 
         if script_type == ".py":
             runner_config = self.settings.get("selenium-tools").get("nose")
-            working_dir = self.engine.create_artifact(runner_config.get("working-dir", "classes"), "")
-            resources = [script]
         else:  # .java or .jar
             runner_config = self.settings.get("selenium-tools").get("junit")
-            working_dir = self.engine.create_artifact(runner_config.get("working-dir", "classes"), "")
-            if os.path.isdir(script):
-                files = next(os.walk(working_dir))
-                resources = [os.path.join(files[0], f) for f in files[2]]
-            else:
-                resources = [script]
 
+        if os.path.isdir(script_path):
+            files = next(os.walk(script_path))
+            resources = [os.path.join(files[0], f) for f in files[2]]
+        else:
+            resources = [script_path]
+
+        working_dir = self.engine.create_artifact(runner_config.get("working-dir", "classes"), "")
         self.runner_working_dir = working_dir
 
         return resources
