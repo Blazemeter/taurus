@@ -979,6 +979,28 @@ class TestJMeterExecutor(BZTestCase):
         hosts_file = os.path.join(obj.engine.artifacts_dir, "hosts")
         self.assertTrue(os.path.exists(hosts_file))
 
+    def test_hosts_file(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({
+            "scenario": {
+                "hosts": __dir__() + "/../data/hostsfile",
+                "requests": ["http://blazedemo.com/"],
+            }
+        })
+        obj.prepare()
+
+    def test_hosts_file_doesnt_exist(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({
+            "scenario": {
+                "hosts": __dir__() + "/../data/***",
+                "requests": ["http://blazedemo.com/"],
+            }
+        })
+        self.assertRaises(ValueError, obj.prepare)
+
     def test_hosts_full_run(self):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()

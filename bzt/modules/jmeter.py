@@ -37,7 +37,7 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.jmx import JMX
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, SidebarWidget
-from bzt.six import iteritems, text_type, StringIO, request, etree, binary_type
+from bzt.six import iteritems, text_type, StringIO, request, etree, binary_type, string_types
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager
 from bzt.utils import shell_exec, ensure_is_dict, dehumanize_time, BetterDict, guess_csv_dialect
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
@@ -106,7 +106,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         self.__set_jmeter_properties(scenario)
         self.__set_system_properties()
-        self.__generate_hosts_file()
+        self.__create_hosts_file()
 
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.reader = JTLReader(self.kpi_jtl, self.log, self.log_jtl)
@@ -141,20 +141,26 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             JMeterExecutor.__write_props_to_file(props_file, props)
             self.properties_file = props_file
 
-    def __generate_hosts_file(self):
+    def __create_hosts_file(self):
         scenario = self.get_scenario()
         if "hosts" not in scenario:
             return
         hosts = scenario.get("hosts")
         if not hosts:
             return
-        if not isinstance(hosts, dict):
-            raise ValueError("Value of `hosts` should be a dictionary")
 
-        self.hosts_file = self.engine.create_artifact("hosts", "")
-        with open(self.hosts_file, 'w') as f:
-            for key, value in iteritems(hosts):
-                f.write("%s %s\n" % (key, value))
+        if isinstance(hosts, string_types):
+            if not os.path.exists(hosts):
+                raise ValueError("`hosts` file doesn't exist")
+            self.hosts_file = self.engine.create_artifact("hosts", "")
+            shutil.copy2(hosts, self.hosts_file)
+        elif isinstance(hosts, dict):
+            self.hosts_file = self.engine.create_artifact("hosts", "")
+            with open(self.hosts_file, 'w') as f:
+                for key, value in iteritems(hosts):
+                    f.write("%s %s\n" % (key, value))
+        else:
+            raise ValueError("Value of `hosts` should be either a file or a dictionary")
 
     def startup(self):
         """
