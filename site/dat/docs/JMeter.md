@@ -174,6 +174,8 @@ scenarios:
       delimiter: ';'  # CSV delimiter, auto-detected by default
       quoted: false  # allow quoted data
       loop: true  # loop over in case of end-of-file reached
+    hosts:
+      mydomain: example.com
 ```
 
 Note that `timeout` also sets duration assertion that will mark response failed if response time was more than timeout.
@@ -340,5 +342,19 @@ execution
 - write-xml-jtl: full
   scenario
     script: my.jmx
+
+```
+
+## Hosts Override
+You can add additional local DNS entries with `hosts` option.
+
+```yaml
+---
+execution
+- scenario
+    hosts:
+      demo: blazedemo.com
+    requests:
+      - http://demo/
 
 ```

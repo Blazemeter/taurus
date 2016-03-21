@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.4.0
+ - implement hosts override for JMeter
+
 ## 1.3.2 <sup>23 mar 2016</sup>
  - fix lowercase hostname for JMeter HTTP request
  - fix binary varname crash for JMeter HTTP request 
