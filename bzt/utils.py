@@ -223,6 +223,7 @@ class BetterDict(defaultdict):
             for val in viewvalues(obj):
                 cls.traverse(val, visitor)
         elif isinstance(obj, list):
+            visitor(obj)
             for val in obj:
                 cls.traverse(val, visitor)
 
