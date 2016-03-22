@@ -277,18 +277,40 @@ class JMX(object):
             proxy.append(JMX._bool_prop("HTTPSampler.postBodyRaw", True))
             coll_prop = JMX._collection_prop("Arguments.arguments")
             header = JMX._element_prop("elementProp", "HTTPArgument")
-            header.append(JMX._string_prop("Argument.value", body))
+
+            try:
+                header.append(JMX._string_prop("Argument.value", body))
+            except ValueError:
+                logging.warning("Failed to set body: %s", traceback.format_exc())
+                header.append(JMX._string_prop("Argument.value", "BINARY-STUB"))
+
             coll_prop.append(header)
             args.append(coll_prop)
             proxy.append(args)
         elif isinstance(body, dict):
             http_args_coll_prop = JMX._collection_prop("Arguments.arguments")
             for arg_name, arg_value in body.items():
-                http_element_prop = JMX._element_prop(arg_name, "HTTPArgument")
+                try:
+                    http_element_prop = JMX._element_prop(arg_name, "HTTPArgument")
+                except ValueError:
+                    logging.warning("Failed to get element property: %s", traceback.format_exc())
+                    http_element_prop = JMX._element_prop('BINARY-STUB', "HTTPArgument")
+
+                try:
+                    http_element_prop.append(JMX._string_prop("Argument.name", arg_name))
+                except ValueError:
+                    logging.warning("Failed to set arg name: %s", traceback.format_exc())
+                    http_element_prop.append(JMX._string_prop("Argument.name", "BINARY-STUB"))
+
+                try:
+                    http_element_prop.append(
+                        JMX._string_prop("Argument.value", arg_value if arg_value is not None else ''))
+                except ValueError:
+                    logging.warning("Failed to set arg name: %s", traceback.format_exc())
+                    http_element_prop.append(JMX._string_prop("Argument.value", "BINARY-STUB"))
+
                 http_element_prop.append(JMX._bool_prop("HTTPArgument.always_encode", True))
                 http_element_prop.append(JMX._bool_prop("HTTPArgument.use_equals", arg_value is not None))
-                http_element_prop.append(JMX._string_prop("Argument.value", arg_value if arg_value is not None else ''))
-                http_element_prop.append(JMX._string_prop("Argument.name", arg_name))
                 http_element_prop.append(JMX._string_prop("Argument.metadata", '='))
                 http_args_coll_prop.append(http_element_prop)
             args.append(http_args_coll_prop)
