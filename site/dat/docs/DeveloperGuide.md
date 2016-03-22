@@ -1,23 +1,19 @@
 
 
 # Rules for Contributing
- 1. All contributions goes through pull requests.
- 1. Most of pylint warnings should be fixed.
- 1. All new files must contain Apache License header (unit test files may not have it).
+ 1. All contributions go via pull requests and code review
+ 1. Most of pylint warnings should be fixed [](https://scrutinizer-ci.com/g/Blazemeter/taurus/badges/quality-score.png?b=master&ext=.svg)
+ 1. All new files must contain Apache License header (unit test files may not have it)
  1. All changes must be reflected in [Changelog](Changelog)
  1. All changes must be properly documented 
- 1. All changes must be covered with unit tests, no broken tests in master.
-  - [](https://api.travis-ci.org/Blazemeter/taurus.svg?branch=master&ext=.svg) 
-  - [](https://ci.appveyor.com/api/projects/status/github/Blazemeter/taurus?svg=true&ext=.svg) 
-  - [](https://scrutinizer-ci.com/g/Blazemeter/taurus/badges/quality-score.png?b=master&ext=.svg)
+ 1. All changes must be covered with unit tests, no broken tests in master [](https://api.travis-ci.org/Blazemeter/taurus.svg?branch=master&ext=.svg)  [](https://ci.appveyor.com/api/projects/status/github/Blazemeter/taurus?svg=true&ext=.svg) 
  
 # Release Process
- - Modify Changelog.md, set version and date
+ - Modify [Changelog.md](Changelog), set version and date
  - Set correct version in `bzt/\_\_init\_\_.py`, commit
- - Create git tag
- - git push, including tag
+ - Create git tag, make `git push`, including tag
  - Upload to PyPi: `python ./setup.py clean sdist upload`
- - rebuild and publish Docker image
+ - rebuild and publish [Docker](Docker) image
  - site is updated automatically by Jenkins
  - notify all interested parties (Twitter, mailing lists)
  
