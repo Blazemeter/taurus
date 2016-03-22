@@ -97,14 +97,12 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         script = self.scenario.get(Scenario.SCRIPT)
         if not script:
             return None
-        if os.path.basename(script) == script:  # `script` is just a filename
+
+        if os.path.basename(script) == script:
             artifact_script = os.path.join(self.engine.artifacts_dir, script)
-            if self.runner_working_dir:
-                working_script = os.path.join(self.runner_working_dir, script)
-                if os.path.exists(working_script):  # if script was already copied into working dir
-                    return working_script
-            if os.path.exists(artifact_script):  # if script is already in artifacts
+            if os.path.exists(artifact_script):  # if script is already in artifacts (cloud/remote case)
                 return artifact_script
+
         return script
 
     def prepare(self):
@@ -158,7 +156,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         script = self._get_script_path()
 
-        if Scenario.SCRIPT in self.scenario:
+        if script is not None:
             if os.path.isdir(script):
                 shutil.copytree(script, runner_working_dir)
             else:
@@ -268,9 +266,6 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             resources = [os.path.join(files[0], f) for f in files[2]]
         else:
             resources = [script_path]
-
-        working_dir = self.engine.create_artifact(runner_config.get("working-dir", "classes"), "")
-        self.runner_working_dir = working_dir
 
         return resources
 
