@@ -12,7 +12,7 @@
   - [](https://scrutinizer-ci.com/g/Blazemeter/taurus/badges/quality-score.png?b=master&ext=.svg)
  
 # Release Process
- - Modify Changelog.md and README.md
+ - Modify Changelog.md, set version and date
  - Set correct version in `bzt/\_\_init\_\_.py`, commit
  - Create git tag
  - git push, including tag
@@ -35,7 +35,8 @@ Prepare site directory, go here and execute
 ```
  php -r "readfile('https://getcomposer.org/installer');" | php
  php composer.phar update --prefer-stable
- cp vendor/undera/pwe/.htaccess .
+ ln -s vendor/undera/pwe/.htaccess 
+ ln -s vendor/undera/pwe/index.php 
  mkdir snapshots
 ``` 
 Under `/etc/apache2/sites-enabled` create the file `taurus.conf` with following content (change for appropriate directory names):
