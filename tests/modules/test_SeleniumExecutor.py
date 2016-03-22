@@ -615,3 +615,38 @@ class TestSeleniumStuff(SeleniumTestCase):
             }
         })
         obj.resource_files()
+
+    def test_dont_copy_local_script_to_artifacts(self):
+        "ensures that .java file is not copied into artifacts-dir"
+        obj = SeleniumExecutor()
+        obj.engine = EngineEmul()
+        filename = "BlazeDemo.java"
+        script_path = __dir__() + "/../data/" + filename
+        obj.execution.merge({
+            "scenario": {
+                "script": script_path,
+            }
+        })
+        obj.prepare()
+        files = obj.resource_files()
+        self.assertIn(script_path, files)
+        artifacts_script = os.path.join(obj.engine.artifacts_dir, filename)
+        self.assertFalse(os.path.exists(artifacts_script))
+
+    def test_take_script_from_artifacts(self):
+        "ensures that executor looks for script in artifacts-dir (for cloud/remote cases)"
+        obj = SeleniumExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.file_search_paths = [obj.engine.artifacts_dir]
+
+        script_name = "BlazeDemo.java"
+        test_script = __dir__() + "/../data/" + script_name
+        artifacts_script = os.path.join(obj.engine.artifacts_dir, script_name)
+        shutil.copy2(test_script, artifacts_script)
+
+        obj.execution.merge({
+            "scenario": {
+                "script": script_name,
+            }
+        })
+        obj.prepare()

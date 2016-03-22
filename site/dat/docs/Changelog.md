@@ -2,6 +2,7 @@
 ## 1.3.1 <sup>next</sup>
  - fix JMeter crash when `data-sources` value is not a list
  - fix non-integer port in HTTP request
+ - fix Selenium crash with when using cloud/remote provisioning
 
 ## 1.3.0 <sup>16 mar 2016</sup>
  - add [Gatling](Gatling.md) script generation 

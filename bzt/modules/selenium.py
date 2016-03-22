@@ -93,13 +93,20 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if self.engine in SeleniumExecutor.SHARED_VIRTUAL_DISPLAY:
             del SeleniumExecutor.SHARED_VIRTUAL_DISPLAY[self.engine]
 
+    def _get_script_path(self):
+        script = self.scenario.get(Scenario.SCRIPT)
+        if not script:
+            return None
+        return self.engine.find_file(script)
+
     def prepare(self):
         self.set_virtual_display()
         self.scenario = self.get_scenario()
         self._verify_script()
         self.kpi_file = self.engine.create_artifact("selenium_tests_report", ".csv")
         self.err_jtl = self.engine.create_artifact("selenium_tests_err", ".xml")
-        script_type = self.detect_script_type(self.scenario.get(Scenario.SCRIPT))
+        script_path = self._get_script_path()
+        script_type = self.detect_script_type(script_path)
 
         runner_config = BetterDict()
 
@@ -112,7 +119,8 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             runner_config['props-file'] = self.engine.create_artifact("customrunner", ".properties")
 
         runner_config["script-type"] = script_type
-        self.runner_working_dir = self.engine.create_artifact(runner_config.get("working-dir", "classes"), "")
+        if self.runner_working_dir is None:
+            self.runner_working_dir = self.engine.create_artifact(runner_config.get("working-dir", "classes"), "")
         runner_config["working-dir"] = self.runner_working_dir
         runner_config.get("artifacts-dir", self.engine.artifacts_dir)
         runner_config.get("working-dir", self.runner_working_dir)
@@ -140,9 +148,9 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         :return:
         """
-        script = self.scenario.get(Scenario.SCRIPT)
+        script = self._get_script_path()
 
-        if Scenario.SCRIPT in self.scenario:
+        if script is not None:
             if os.path.isdir(script):
                 shutil.copytree(script, runner_working_dir)
             else:
@@ -160,6 +168,9 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         if not isinstance(script_path, string_types) and not isinstance(script_path, text_type):
             raise ValueError("Nothing to test, no files were provided in scenario")
+
+        if not os.path.exists(script_path):
+            raise ValueError("Script %s doesn't exist" % script_path)
 
         file_types = set()
 
@@ -235,19 +246,21 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if Scenario.SCRIPT not in self.scenario:
             return []
 
-        script_type = self.detect_script_type(self.scenario.get(Scenario.SCRIPT))
+        script_path = self._get_script_path()
+        script_type = self.detect_script_type(script_path)
 
         if script_type == ".py":
             runner_config = self.settings.get("selenium-tools").get("nose")
-        else:  # script_type == ".jar" or script_type == ".java":
+        else:  # .java or .jar
             runner_config = self.settings.get("selenium-tools").get("junit")
 
-        if self.runner_working_dir is None:
-            self.runner_working_dir = self.engine.create_artifact(runner_config.get("working-dir", "classes"), "")
+        if os.path.isdir(script_path):
+            files = next(os.walk(script_path))
+            resources = [os.path.join(files[0], f) for f in files[2]]
+        else:
+            resources = [script_path]
 
-        self._cp_resource_files(self.runner_working_dir)
-        files = next(os.walk(self.runner_working_dir))
-        return [os.path.join(files[0], f) for f in files[2]]
+        return resources
 
     def __tests_from_requests(self):
         filename = self.engine.create_artifact("test_requests", ".py")
@@ -383,6 +396,7 @@ class JUnitTester(AbstractTestRunner):
 
         with open(os.path.join(self.artifacts_dir, "javac.out"), 'ab') as javac_out:
             with open(os.path.join(self.artifacts_dir, "javac.err"), 'ab') as javac_err:
+                self.log.debug("running javac: %s", compile_cl)
                 self.process = shell_exec(compile_cl, cwd=self.working_dir, stdout=javac_out, stderr=javac_err)
                 ret_code = self.process.poll()
 
@@ -418,6 +432,7 @@ class JUnitTester(AbstractTestRunner):
                     package_dir = os.listdir(self.working_dir)[0]
                     compile_jar_cl = ["jar", "-cf", jar_name, "-C", package_dir, "."]
 
+                self.log.debug("running jar: %s", compile_jar_cl)
                 self.process = shell_exec(compile_jar_cl, cwd=self.working_dir, stdout=jar_out, stderr=jar_err)
                 ret_code = self.process.poll()
 
