@@ -73,3 +73,17 @@ class TestConfiguration(BZTestCase):
             written = fh.read()
             logging.debug("YAML:\n%s", written)
             self.assertNotIn("unicode", written)
+
+    def test_masq_sensitive(self):
+        obj = Configuration()
+        obj.merge({
+            "token": "my-precious",
+            "my_password": "qweasdzxc",
+            "secret": "secret",
+            "secret_story": "story",
+        })
+        BetterDict.traverse(obj, Configuration.masq_sensitive)
+        self.assertEquals(obj["token"], "*" * 8)
+        self.assertEquals(obj["my_password"], "*" * 8)
+        self.assertEquals(obj["secret"], "*" * 8)
+        self.assertEquals(obj["secret_story"], "story")

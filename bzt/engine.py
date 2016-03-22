@@ -628,16 +628,15 @@ class Configuration(BetterDict):
                 acopy.write(fhd, fmt)
 
     @staticmethod
-    def masq_sensitive(config):
+    def masq_sensitive(value, key, container):
         """
         Remove sensitive data from config
         :type config: dict
         """
-        if isinstance(config, dict):
-            for key in config.keys():
-                for suffix in ('password', 'secret', 'token',):
-                    if key.lower().endswith(suffix) and config[key]:
-                        config[key] = '*' * 8
+        if isinstance(key, string_types):
+            for suffix in ('password', 'secret', 'token',):
+                if key.lower().endswith(suffix) and value:
+                    container[key] = '*' * 8
 
 
 yaml.add_representer(Configuration, SafeRepresenter.represent_dict)
