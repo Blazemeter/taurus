@@ -1,6 +1,5 @@
 # Changelog
-## 1.4.0 (next)
- - remove real installation procedure from grinder unit tests
+## 1.3.1 (next)
  - fix JMeter crash when `data-sources` value is not a list
  - fix non-integer port in HTTP request
 
