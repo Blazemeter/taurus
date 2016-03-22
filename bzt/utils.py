@@ -45,7 +45,7 @@ from progressbar import ProgressBar, Percentage, Bar, ETA
 from psutil import Popen
 from urwid import BaseScreen
 
-from bzt.six import string_types, iteritems, viewvalues, binary_type, text_type, b, integer_types, request, file_type
+from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, request, file_type
 
 
 def get_full_path(path):
@@ -219,12 +219,13 @@ class BetterDict(defaultdict):
         :type visitor: callable
         """
         if isinstance(obj, dict):
-            visitor(obj)
-            for val in viewvalues(obj):
-                cls.traverse(val, visitor)
+            for key, val in iteritems(obj):
+                visitor(val, key, obj)
+                cls.traverse(obj[key], visitor)
         elif isinstance(obj, list):
-            for val in obj:
-                cls.traverse(val, visitor)
+            for idx, val in enumerate(obj):
+                visitor(val, idx, obj)
+                cls.traverse(obj[idx], visitor)
 
 
 def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False, env=None):

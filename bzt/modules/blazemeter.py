@@ -33,7 +33,8 @@ from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, 
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
 from bzt.modules.console import WidgetProvider
 from bzt.modules.jmeter import JMeterExecutor
-from bzt.six import BytesIO, text_type, iteritems, HTTPError, urlencode, Request, urlopen, r_input, URLError
+from bzt.six import BytesIO, text_type, iteritems, HTTPError, urlencode, Request, urlopen, r_input, URLError, \
+    string_types
 from bzt.utils import to_json, dehumanize_time, MultiPartForm, BetterDict, open_browser
 
 
@@ -818,13 +819,12 @@ class CloudProvisioning(Provisioning, WidgetProvider):
         config = self.__get_config_for_cloud()
         rfiles = self.__get_rfiles()
 
-        def file_replacer(container):
-            if isinstance(container, dict):
-                for key, val in iteritems(container):
-                    if val in rfiles:
-                        container[key] = os.path.basename(val)
-                        if container[key] != val:
-                            self.log.info("Replaced %s with %s in %s", val, container[key], key)
+        def file_replacer(value, key, container):
+            if isinstance(value, string_types):
+                if value in rfiles:
+                    container[key] = os.path.basename(value)
+                    if container[key] != value:
+                        self.log.debug("Replaced %s with %s", value, container[key])
 
         BetterDict.traverse(config, file_replacer)
 
