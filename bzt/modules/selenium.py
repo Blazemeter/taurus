@@ -247,12 +247,6 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             return []
 
         script_path = self._get_script_path()
-        script_type = self.detect_script_type(script_path)
-
-        if script_type == ".py":
-            runner_config = self.settings.get("selenium-tools").get("nose")
-        else:  # .java or .jar
-            runner_config = self.settings.get("selenium-tools").get("junit")
 
         if os.path.isdir(script_path):
             files = next(os.walk(script_path))
