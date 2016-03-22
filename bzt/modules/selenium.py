@@ -97,13 +97,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         script = self.scenario.get(Scenario.SCRIPT)
         if not script:
             return None
-
-        if os.path.basename(script) == script:
-            artifact_script = os.path.join(self.engine.artifacts_dir, script)
-            if os.path.exists(artifact_script):  # if script is already in artifacts (cloud/remote case)
-                return artifact_script
-
-        return script
+        return self.engine.find_file(script)
 
     def prepare(self):
         self.set_virtual_display()

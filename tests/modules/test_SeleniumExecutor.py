@@ -637,6 +637,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         "ensures that executor looks for script in artifacts-dir (for cloud/remote cases)"
         obj = SeleniumExecutor()
         obj.engine = EngineEmul()
+        obj.engine.file_search_paths = [obj.engine.artifacts_dir]
 
         script_name = "BlazeDemo.java"
         test_script = __dir__() + "/../data/" + script_name
