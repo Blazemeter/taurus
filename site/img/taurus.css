@@ -144,7 +144,11 @@ table.wiki pre {
 }
 
 table.wiki ol, table.wiki ul {
-    line-height: 1.7;
+    /*line-height: 1.7;*/
+}
+
+table.wiki li {
+    margin-bottom: 0.25em;
 }
 
 table.wiki .sidebar {
@@ -162,6 +166,7 @@ table.wiki .toc-list {
     margin-bottom: 0.75em;
     white-space: nowrap;
     list-style-type: decimal;
+    font-size: 14px;
 }
 
 table.wiki .toc-list1 {
@@ -195,6 +200,10 @@ table.wiki a.anchorLink {
 
 table.wiki img {
     max-width: 100%;
+}
+
+.wiki p {
+    margin-bottom: 1em;
 }
 
 .stick {

@@ -18,6 +18,43 @@ To upgrade Taurus, open Command Prompt the same way and hit
  pip install --upgrade bzt
 ```
 
+## Mac OS
+
+You will need python 2.7 or higher and Java Runtime installed. 
+
+If you're on _El Capitan_, please execute first:
+
+```bash
+brew install python
+```
+
+Most likely you also need to upgrade `setuptools`:
+
+```bash
+sudo pip install --upgrade setuptools
+```
+
+Then install Taurus:
+
+```bash
+sudo pip install bzt
+```
+
+If you experience `libxml/xmlversion.h missing` error, try running:
+
+```bash
+brew install libxml2
+brew install libxslt
+```
+then try installing Taurus again.
+
+
+Upgrading to latest is as simple as this:
+
+```bash
+sudo pip install --upgrade bzt
+```
+
 ## Linux
 
 ### Ubuntu
@@ -75,33 +112,3 @@ Install Taurus:
 sudo pip install bzt
 ```
 
-## Mac OS
-
-You will need python 2.7 or higher and Java Runtime installed.
-
-Most likely you also need first to upgrade `setuptools`:
-
-```bash
-sudo pip install --upgrade setuptools
-```
-
-Then install Taurus:
-
-```bash
-sudo pip install bzt
-```
-
-If you experience `libxml/xmlversion.h missing` error, try running:
-
-```bash
-brew install libxml2
-brew install libxslt
-```
-then try installing Taurus again.
-
-
-Upgrading to latest is as simple as this:
-
-```bash
-sudo pip install --upgrade bzt
-```

@@ -1,6 +1,6 @@
 #### Quick Links:
 
-[Educational Videos](Videos)
+[Educational Videos](/kb/Videos)
 
 [Command-Line Tool](CommandLine)
 
