@@ -1,5 +1,5 @@
 # Changelog
-## 1.3.1 <sup>next</sup>
+## 1.3.1 <sup>22 mar 2016</sup>
  - fix JMeter crash when `data-sources` value is not a list
  - fix non-integer port in HTTP request
  - fix Selenium crash with when using cloud/remote provisioning
