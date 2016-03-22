@@ -252,9 +252,8 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if Scenario.SCRIPT not in self.scenario:
             return []
 
-        script = self.scenario.get(Scenario.SCRIPT)
-        script_type = self.detect_script_type(script)
         script_path = self._get_script_path()
+        script_type = self.detect_script_type(script_path)
 
         if script_type == ".py":
             runner_config = self.settings.get("selenium-tools").get("nose")
