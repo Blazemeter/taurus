@@ -9,9 +9,11 @@ But JMeter best practices state that you should avoid using Listeners, which ena
 
 It leaves us with a deadlock:
  
-<b>To understand the results of your load test, you need the User Interface (UI)...</b>
-    
-<b>BUT to run your load test without exhausting your machine’s memory, you shouldn’t use the UI</b>
+<b>To understand the results of your load test, you need the User Interface (UI).</b>
+ 
+BUT 
+ 
+<b>To run your load test without exhausting your machine’s memory, you shouldn’t use the UI at all.</b>
 
 This conflict between resources and functionality gives you a number of problems, especially when it comes to real-time test visualization and advanced analysis. In this article, I’m going to cover these issues and show you how to overcome them. 
 
@@ -24,7 +26,7 @@ Let’s say you run a JMeter script with a number of requests to a page, you exe
 
 Without real-time feedback, it’s very hard to tell if you should stop the test. You could be running a test for three hours with invalid requests and you won’t know it - which is obviously a huge waste of time and resources. 
 
-Of course, you can add some graphs and tables into your JMeter test plan so you have some information to view. By using [JMeter plugins](http://jmeter-plugins.org/), you can add KPIs like transactions per second, active threads over time, components etc. However, there are a number of drawbacks to this approach:
+Of course, you can add some graphs and tables into your JMeter test plan so you have some information to view. By using [JMeter plugins](http://jmeter-plugins.org/), you can add KPIs like transactions per second, active threads over time, percentiles etc. However, there are a number of drawbacks to this approach:
 
 1. <b>It takes a lot of time.</b> As there’s no ‘default’ reporting UI in JMeter, you’ll need to set it up from scratch _every single time_ you create a test plan. 
 1. <b>You don’t have one simple place to look.</b> Even if you’ve set up all the individual reporting components like tables and graphs, you’ll need to jump from plugin to plugin to see if there are any errors, where the errors are etc. AND you can’t do any of this when you’re in non-UI mode (which is where you should be when running a load test in JMeter). The more KPIs you want to see, the more confusing this all becomes.
@@ -45,13 +47,16 @@ Taurus’ default dashboard shows you key information like:
 
 You can view all of these results in real time while running your test in JMeter. If you’re running JMeter with BlazeMeter, use the “-report” command line option to send all the reports to BlazeMeter in real-time.
 
+![Console Screen](console.png)
+
 ## Running Post Test Analysis
 
 Taurus also automatically saves reports in JMeter’s results files for further analysis. Once you’ve completed your test, you can then: 
 
 
 1. Upload the files in the JMeter UI for advanced analysis after the test
-1. Upload to Loadosophia’s test results’ storage to view interactive reports, process your own scripts, and calculate statistics.  
+1. Upload to [BlazeMeter Sense](http://sense.blazemeter.com/) test results’ storage to view interactive reports, and calculate statistics.
+1. There are also several more [reporting](/docs/Reporting.md) options to integrate with Jenkins
 
 ----
 
