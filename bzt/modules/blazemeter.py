@@ -824,7 +824,7 @@ class CloudProvisioning(Provisioning, WidgetProvider):
                 if value in rfiles:
                     container[key] = os.path.basename(value)
                     if container[key] != value:
-                        self.log.info("Replaced %s with %s", value, container[key])
+                        self.log.debug("Replaced %s with %s", value, container[key])
 
         BetterDict.traverse(config, file_replacer)
 
