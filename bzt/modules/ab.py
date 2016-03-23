@@ -59,6 +59,8 @@ class ApacheBenchmarkExecutor(ScenarioExecutor):
         self.__out = open(out_file_name, 'w')
         self.__err = open(self.engine.create_artifact("ab", ".err"), 'w')
 
+        self._prepare_hosts_file()
+
     def startup(self):
         args = [self.tool_path]
         load = self.get_load()
@@ -111,7 +113,7 @@ class ApacheBenchmarkExecutor(ScenarioExecutor):
         self.reader.setup(load_concurrency, request.label)
 
         self.start_time = time.time()
-        self.process = shell_exec(args, stdout=self.__out, stderr=self.__err)
+        self.process = self.execute(args, stdout=self.__out, stderr=self.__err)
 
     def check(self):
         ret_code = self.process.poll()

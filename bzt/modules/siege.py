@@ -76,6 +76,8 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider):
         self.__out = open(out_file_name, 'w')
         self.__err = open(self.engine.create_artifact("siege", ".err"), 'w')
 
+        self._prepare_hosts_file()
+
     def resource_files(self):
         resource_files = []
         if Scenario.SCRIPT in self.scenario:
@@ -121,12 +123,10 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider):
         for key, val in iteritems(self.scenario.get_headers()):
             args += ['--header', "%s: %s" % (key, val)]
 
-        env = BetterDict()
-        env.merge(dict(environ))
-        env.merge({"SIEGERC": self.__rc_name})
+        env = {"SIEGERC": self.__rc_name}
         self.start_time = time.time()
 
-        self.process = shell_exec(args, stdout=self.__out, stderr=self.__err, env=env)
+        self.process = self.execute(args, stdout=self.__out, stderr=self.__err, env=env)
 
     def check(self):
         if self.widget:

@@ -131,11 +131,13 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         self._cp_resource_files(self.runner_working_dir)
 
-        self.runner = runner_class(runner_config, self.scenario, self.get_load(), self.log)
+        self.runner = runner_class(runner_config, self.scenario, self.get_load(), self.log, self)
         self.runner.prepare()
         self.reader = JTLReader(self.kpi_file, self.log, self.err_jtl)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
+
+        self._prepare_hosts_file()
 
     def _verify_script(self):
         if not self.scenario.get(Scenario.SCRIPT):
@@ -271,12 +273,13 @@ class AbstractTestRunner(object):
     Abstract test runner
     """
 
-    def __init__(self, settings, scenario, load):
+    def __init__(self, settings, scenario, load, executor):
         self.process = None
         self.settings = settings
         self.required_tools = []
         self.scenario = scenario
         self.load = load
+        self.executor = executor
         self.artifacts_dir = self.settings.get("artifacts-dir")
         self.working_dir = self.settings.get("working-dir")
         self.log = None
@@ -326,8 +329,8 @@ class JUnitTester(AbstractTestRunner):
     Allows to test java and jar files
     """
 
-    def __init__(self, junit_config, scenario, load, parent_logger):
-        super(JUnitTester, self).__init__(junit_config, scenario, load)
+    def __init__(self, junit_config, scenario, load, parent_logger, executor):
+        super(JUnitTester, self).__init__(junit_config, scenario, load, executor)
         self.props_file = junit_config['props-file']
         self.log = parent_logger.getChild(self.__class__.__name__)
         path_lambda = lambda key, val: os.path.abspath(os.path.expanduser(self.settings.get(key, val)))
@@ -476,9 +479,11 @@ class JUnitTester(AbstractTestRunner):
 
         junit_command_line = ["java", "-cp", os.pathsep.join(self.base_class_path), "taurusjunit.CustomRunner",
                               self.props_file]
-        self.process = shell_exec(junit_command_line, cwd=self.artifacts_dir,
-                                  stdout=std_out,
-                                  stderr=std_err, env=env)
+        self.process = self.executor.execute(junit_command_line,
+                                             cwd=self.artifacts_dir,
+                                             stdout=std_out,
+                                             stderr=std_err,
+                                             env=env)
 
 
 class NoseTester(AbstractTestRunner):
@@ -486,8 +491,8 @@ class NoseTester(AbstractTestRunner):
     Python selenium tests runner
     """
 
-    def __init__(self, nose_config, scenario, load, parent_logger):
-        super(NoseTester, self).__init__(nose_config, scenario, load)
+    def __init__(self, nose_config, scenario, load, parent_logger, executor):
+        super(NoseTester, self).__init__(nose_config, scenario, load, executor)
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.plugin_path = os.path.join(os.path.dirname(__file__), os.pardir, "resources", "nose_plugin.py")
 
@@ -531,7 +536,11 @@ class NoseTester(AbstractTestRunner):
         env.merge(dict(os.environ))
         env.merge(self.env)
 
-        self.process = shell_exec(nose_command_line, cwd=self.artifacts_dir, stdout=std_out, stderr=std_err, env=env)
+        self.process = self.executor.execute(nose_command_line,
+                                             cwd=self.artifacts_dir,
+                                             stdout=std_out,
+                                             stderr=std_err,
+                                             env=env)
 
 
 class SeleniumWidget(urwid.Pile):

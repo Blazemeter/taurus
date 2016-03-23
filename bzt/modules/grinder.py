@@ -136,6 +136,8 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         else:
             raise ValueError("There must be a scenario file to run Grinder")
 
+        self._prepare_hosts_file()
+
         self.properties_file = self.engine.create_artifact("grinder", ".properties")
 
         with open(self.properties_file, 'w') as fds:
@@ -167,14 +169,11 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.stdout_file = open(out, "w")
         self.stderr_file = open(err, "w")
 
-        env = BetterDict()
-        env.merge(dict(os.environ))
-        env.merge({"T_GRINDER_PREFIX": self.exec_id})
-
-        self.process = shell_exec(self.cmd_line, cwd=self.engine.artifacts_dir,
-                                  stdout=self.stdout_file,
-                                  stderr=self.stderr_file,
-                                  env=env)
+        env = {"T_GRINDER_PREFIX": self.exec_id}
+        self.process = self.execute(self.cmd_line, cwd=self.engine.artifacts_dir,
+                                    stdout=self.stdout_file,
+                                    stderr=self.stderr_file,
+                                    env=env)
 
     def check(self):
         """

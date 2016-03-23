@@ -802,7 +802,7 @@ class ScenarioExecutor(EngineModule):
         self.__scenario = None
         self._label = None
         self.__hosts_file = None
-        self.__env = None
+        self._env = None
 
     def get_scenario(self):
         """
@@ -916,14 +916,14 @@ class ScenarioExecutor(EngineModule):
         else:
             raise ValueError("Value of `hostaliases` should be either a file or a dictionary")
 
-        self.__env = BetterDict()
-        self.__env.merge(dict(os.environ))
-        self.__env["HOSTALIASES"] = self.__hosts_file
+        self._env = BetterDict()
+        self._env.merge(dict(os.environ))
+        self._env["HOSTALIASES"] = self.__hosts_file
 
     def execute(self, args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False, env=None):
-        if env is not None and self.__env is not None:
-            self.__env.merge(env)
-        return shell_exec(args, cwd=cwd, stdout=stdout, stderr=stderr, stdin=stdin, shell=shell, env=self.__env)
+        if env is not None and self._env is not None:
+            self._env.merge(env)
+        return shell_exec(args, cwd=cwd, stdout=stdout, stderr=stderr, stdin=stdin, shell=shell, env=self._env)
 
 
 class Reporter(EngineModule):

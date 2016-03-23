@@ -68,6 +68,8 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
+        self._prepare_hosts_file()
+
     def __check_installed(self):
         tool = LocustIO(self.log)
         if not tool.check_if_installed():
@@ -82,7 +84,6 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         wrapper = os.path.join(os.path.dirname(__file__), os.pardir, "resources", "locustio-taurus-wrapper.py")
 
         env = BetterDict()
-        env.merge({k: os.environ.get(k) for k in os.environ.keys()})
         env.merge({"PYTHONPATH": self.engine.artifacts_dir + os.pathsep + os.getcwd()})
         if os.getenv("PYTHONPATH"):
             env['PYTHONPATH'] = os.getenv("PYTHONPATH") + os.pathsep + env['PYTHONPATH']
@@ -105,7 +106,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             args.append("--host=%s" % host)
 
         self.__out = open(self.engine.create_artifact("locust", ".out"), 'w')
-        self.process = shell_exec(args, stderr=STDOUT, stdout=self.__out, env=env)
+        self.process = self.execute(args, stderr=STDOUT, stdout=self.__out, env=env)
 
     def get_widget(self):
         """

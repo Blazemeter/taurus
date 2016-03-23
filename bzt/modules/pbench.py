@@ -37,6 +37,14 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.start_time = None
 
     def prepare(self):
+        self._prepare_hosts_file()
+
+        # we use socket.gethostbyname() for generating schedule
+        # and it won't resolve a host alias to ip without HOSTALIASES being set
+        env = self._env
+        if env is not None and "HOSTALIASES" in env:
+            os.environ.update(env)
+
         self._prepare_pbench()
         reader = self.pbench.get_results_reader()
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
@@ -115,6 +123,7 @@ class PBenchTool(object):
         """
         super(PBenchTool, self).__init__()
         self.log = base_logger.getChild(self.__class__.__name__)
+        self.executor = executor
         self.engine = executor.engine
         self.settings = executor.settings
         self.execution = executor.execution
@@ -197,7 +206,10 @@ class PBenchTool(object):
         stdout = sys.stdout if not isinstance(sys.stdout, StringIO) else None
         stderr = sys.stderr if not isinstance(sys.stderr, StringIO) else None
         try:
-            self.process = shell_exec(cmdline, cwd=self.engine.artifacts_dir, stdout=stdout, stderr=stderr)
+            self.process = self.executor.execute(cmdline,
+                                                 cwd=self.engine.artifacts_dir,
+                                                 stdout=stdout,
+                                                 stderr=stderr)
         except OSError as exc:
             self.log.error("Failed to start phantom-benchmark utility: %s", traceback.format_exc())
             self.log.error("Failed command: %s", cmdline)

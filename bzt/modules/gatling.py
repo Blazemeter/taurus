@@ -195,6 +195,8 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
+        self._prepare_hosts_file()
+
     def __generate_script(self):
         simulation = "TaurusSimulation_%s" % id(self)
         file_name = self.engine.create_artifact(simulation, ".scala")
@@ -256,7 +258,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         env.merge({"JAVA_OPTS": java_opts})
 
-        self.process = shell_exec(cmdline, stdout=self.stdout_file, stderr=self.stderr_file, env=env)
+        self.process = self.execute(cmdline, stdout=self.stdout_file, stderr=self.stderr_file, env=env)
 
     def check(self):
         """
