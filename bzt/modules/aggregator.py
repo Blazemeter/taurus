@@ -15,15 +15,16 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-from abc import abstractmethod
 import copy
 import logging
 import math
 import re
+from abc import abstractmethod
 from collections import Counter
-from bzt.utils import BetterDict
+
 from bzt.engine import EngineModule
 from bzt.six import iteritems
+from bzt.utils import BetterDict
 
 
 class KPISet(BetterDict):
@@ -407,7 +408,7 @@ class ResultsReader(ResultsProvider):
         (re.compile(r"\b\d{2,}\b"), "N")
     ]
 
-    def __init__(self, perc_levels=()):
+    def __init__(self, perc_levels=[]):
         super(ResultsReader, self).__init__()
         self.generalize_labels = False
         self.ignored_labels = []
@@ -416,8 +417,10 @@ class ResultsReader(ResultsProvider):
         self.buffer_len = 2
         self.min_timestamp = 0
         self.track_percentiles = perc_levels
-
-        self.stamps = []
+        self.min_buffer_len = 0
+        self.max_buffer_len = 0
+        self.buffer_scale_multiplier = 0
+        self.buffer_scale_idx = None
 
     def __process_readers(self, final_pass=False):
         """
@@ -431,8 +434,6 @@ class ResultsReader(ResultsProvider):
                 break
             elif isinstance(result, list) or isinstance(result, tuple):
                 t_stamp, label, conc, r_time, con_time, latency, r_code, error, trname = result
-
-                self.stamps.append((self.min_timestamp, t_stamp))
 
                 if label in self.ignored_labels:
                     continue
@@ -481,6 +482,17 @@ class ResultsReader(ResultsProvider):
         self.log.debug("Buffer len: %s", len(self.buffer))
         if not self.buffer:
             return
+
+        if self.cumulative and self.track_percentiles:
+            timings = (val[KPISet.PERCENTILES][self.buffer_scale_idx] for val in self.cumulative.values())
+            self.buffer_len = self.buffer_scale_multiplier * max(timings)
+            if self.min_buffer_len and self.buffer_len < self.min_buffer_len:
+                self.buffer_len = self.min_buffer_len
+            if self.max_buffer_len and self.buffer_len > self.max_buffer_len:
+                self.buffer_len = self.max_buffer_len
+
+            self.log.debug('_d_ buffer_len: %s', self.buffer_len)
+
         timestamps = sorted(self.buffer.keys())
         while final_pass or (timestamps[-1] >= (timestamps[0] + self.buffer_len)):
             timestamp = timestamps.pop(0)
@@ -534,17 +546,42 @@ class ConsolidatingAggregator(EngineModule, ResultsProvider):
         self.ignored_labels = []
         self.underlings = []
         self.buffer = BetterDict()
-        self.buffer_len = 2
+        self.buffer_len = 0
+        self.min_buffer_len = 0
+        self.max_buffer_len = 0
+        self.buffer_scale_multiplier = 0
+        self.buffer_scale_idx = ''
 
     def prepare(self):
         """
         Read aggregation options
         """
         super(ConsolidatingAggregator, self).prepare()
-        self.track_percentiles = self.settings.get("percentiles", self.track_percentiles)
-        self.buffer_len = self.settings.get("buffer-seconds", self.buffer_len)
+
+        # make unique & sort
+        percentiles = self.settings.get("percentiles", self.track_percentiles)
+        percentiles = list(set(percentiles))
+        percentiles.sort()
+        self.track_percentiles = percentiles
+        self.settings['percentiles'] = percentiles
+
+        self.buffer_len = self.settings.get("buffer-seconds", 2)
         self.ignored_labels = self.settings.get("ignore-labels", self.ignored_labels)
         self.generalize_labels = self.settings.get("generalize-labels", self.generalize_labels)
+
+        self.min_buffer_len = self.settings.get("min-buffer-len", self.buffer_len)
+        self.max_buffer_len = self.settings.get("max-buffer-len", 0)
+        self.buffer_scale_multiplier = self.settings.get("buffer-scale-multiplier", 2)
+
+        percentile = self.settings.get("buffer-scale-percentile", 0.5)
+        count = len(self.track_percentiles)
+        if count == 1:
+            self.buffer_scale_idx = str(self.track_percentiles[0])
+        if count > 1:
+            percentiles = [i/(count-1.0) for i in range(count)]
+            distances = [abs(percentile - percentiles[i]) for i in range(count)]
+            index_position = distances.index(min(distances))
+            self.buffer_scale_idx = str(self.track_percentiles[index_position])
 
     def add_underling(self, underling):
         """
@@ -556,6 +593,10 @@ class ConsolidatingAggregator(EngineModule, ResultsProvider):
         if isinstance(underling, ResultsReader):
             underling.ignored_labels = self.ignored_labels
             underling.generalize_labels = self.generalize_labels
+            underling.min_buffer_len = self.min_buffer_len
+            underling.max_buffer_len = self.max_buffer_len
+            underling.buffer_scale_multiplier = self.buffer_scale_multiplier
+            underling.buffer_scale_idx = self.buffer_scale_idx
             # underling.buffer_len = self.buffer_len  # NOTE: is it ok for underling to have the same buffer len?
         self.underlings.append(underling)
 
@@ -579,7 +620,7 @@ class ConsolidatingAggregator(EngineModule, ResultsProvider):
 
     def _process_underlings(self, final_pass):
         for underling in self.underlings:
-            for data in [x for x in underling.datapoints(final_pass)]:
+            for data in underling.datapoints(final_pass):
                 tstamp = data[DataPoint.TIMESTAMP]
                 if self.buffer:
                     mints = min(self.buffer.keys())

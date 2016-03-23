@@ -3,6 +3,8 @@
  - remove real installation procedure from grinder unit tests
  - fix JMeter crash when `data-sources` value is not a list
  - fix non-integer port in HTTP request
+ - add dynamic buffer scaling for results reader
+ 
 
 ## 1.3.0
  - add [Gatling](Gatling.md) script generation 
