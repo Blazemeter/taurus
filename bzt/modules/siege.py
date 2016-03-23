@@ -19,13 +19,13 @@ limitations under the License.
 import logging
 import time
 from math import ceil
-from os import environ, path
+from os import path
 
 from bzt.engine import ScenarioExecutor, Scenario
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.six import iteritems
-from bzt.utils import shell_exec, shutdown_process, BetterDict, RequiredTool, dehumanize_time
+from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time
 
 
 class SiegeExecutor(ScenarioExecutor, WidgetProvider):

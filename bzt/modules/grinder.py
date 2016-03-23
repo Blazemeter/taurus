@@ -24,7 +24,7 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.six import iteritems
-from bzt.utils import shell_exec, MirrorsManager, BetterDict
+from bzt.utils import shell_exec, MirrorsManager
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, TclLibrary
 
 

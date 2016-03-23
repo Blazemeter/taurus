@@ -28,7 +28,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsProvider, Dat
 from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.modules.jmeter import JTLReader
 from bzt.six import PY3, iteritems
-from bzt.utils import shutdown_process, shell_exec, RequiredTool, BetterDict
+from bzt.utils import shutdown_process, RequiredTool, BetterDict
 
 
 class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
