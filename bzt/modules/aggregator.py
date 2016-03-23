@@ -352,6 +352,11 @@ class ResultsProvider(object):
         self.cumulative = BetterDict()
         self.track_percentiles = []
         self.listeners = []
+        self.buffer_len = 2
+        self.min_buffer_len = 2
+        self.max_buffer_len = float('inf')
+        self.buffer_scale_multiplier = 2
+        self.buffer_scale_idx = ''
 
     def add_listener(self, listener):
         """
@@ -408,19 +413,15 @@ class ResultsReader(ResultsProvider):
         (re.compile(r"\b\d{2,}\b"), "N")
     ]
 
-    def __init__(self, perc_levels=[]):
+    def __init__(self, perc_levels=()):
         super(ResultsReader, self).__init__()
         self.generalize_labels = False
         self.ignored_labels = []
         self.log = logging.getLogger(self.__class__.__name__)
         self.buffer = {}
-        self.buffer_len = 2
         self.min_timestamp = 0
         self.track_percentiles = perc_levels
-        self.min_buffer_len = 0
-        self.max_buffer_len = 0
-        self.buffer_scale_multiplier = 0
-        self.buffer_scale_idx = None
+
         self._d_count = 0
 
     def __process_readers(self, final_pass=False):
@@ -486,13 +487,10 @@ class ResultsReader(ResultsProvider):
             return
 
         if self.cumulative and self.track_percentiles:
-            timings = (val[KPISet.PERCENTILES][self.buffer_scale_idx] for val in self.cumulative.values())
-            timings = list(timings)
-            self.buffer_len = self.buffer_scale_multiplier * max(timings)
-            if self.min_buffer_len and self.buffer_len < self.min_buffer_len:
-                self.buffer_len = self.min_buffer_len
-            if self.max_buffer_len and self.buffer_len > self.max_buffer_len:
-                self.buffer_len = self.max_buffer_len
+            self.buffer_len = self.cumulative[''][KPISet.PERCENTILES][self.buffer_scale_idx]
+
+            self.buffer_len = max(self.min_buffer_len, self.buffer_len)
+            self.buffer_len = min(self.max_buffer_len, self.buffer_len)
 
             self.log.debug('_d_ buffer_len: %s', self.buffer_len)
 
@@ -549,11 +547,6 @@ class ConsolidatingAggregator(EngineModule, ResultsProvider):
         self.ignored_labels = []
         self.underlings = []
         self.buffer = BetterDict()
-        self.buffer_len = 0
-        self.min_buffer_len = 0
-        self.max_buffer_len = 0
-        self.buffer_scale_multiplier = 0
-        self.buffer_scale_idx = ''
 
     def prepare(self):
         """
@@ -568,15 +561,16 @@ class ConsolidatingAggregator(EngineModule, ResultsProvider):
         self.track_percentiles = percentiles
         self.settings['percentiles'] = percentiles
 
-        self.buffer_len = self.settings.get("buffer-seconds", 2)
         self.ignored_labels = self.settings.get("ignore-labels", self.ignored_labels)
         self.generalize_labels = self.settings.get("generalize-labels", self.generalize_labels)
 
-        self.min_buffer_len = self.settings.get("min-buffer-len", self.buffer_len)
-        self.max_buffer_len = self.settings.get("max-buffer-len", 0)
-        self.buffer_scale_multiplier = self.settings.get("buffer-scale-multiplier", 2)
+        self.min_buffer_len = self.settings.get("min-buffer-len", self.min_buffer_len)
+        self.max_buffer_len = self.settings.get("max-buffer-len", self.max_buffer_len)
 
-        percentile = self.settings.get("buffer-scale-percentile", 0.5)
+        self.buffer_scale_multiplier = \
+            self.settings.get("buffer-scale-multiplier", self.buffer_scale_multiplier)
+
+        percentile = self.settings.get("buffer-scale-choice", 0.5)
         count = len(self.track_percentiles)
         if count == 1:
             self.buffer_scale_idx = str(self.track_percentiles[0])
@@ -585,6 +579,8 @@ class ConsolidatingAggregator(EngineModule, ResultsProvider):
             distances = [abs(percentile - percentiles[i]) for i in range(count)]
             index_position = distances.index(min(distances))
             self.buffer_scale_idx = str(self.track_percentiles[index_position])
+        debug_str = 'Buffer scaling setup: percentile %s from %s selected'
+        self.log.debug(debug_str, self.buffer_scale_idx, self.track_percentiles)
 
     def add_underling(self, underling):
         """
@@ -600,7 +596,7 @@ class ConsolidatingAggregator(EngineModule, ResultsProvider):
             underling.max_buffer_len = self.max_buffer_len
             underling.buffer_scale_multiplier = self.buffer_scale_multiplier
             underling.buffer_scale_idx = self.buffer_scale_idx
-            # underling.buffer_len = self.buffer_len  # NOTE: is it ok for underling to have the same buffer len?
+
         self.underlings.append(underling)
 
     def check(self):
