@@ -75,26 +75,10 @@ class TestScenarioExecutor(BZTestCase):
         hosts_file = os.path.join(self.engine.artifacts_dir, "hostaliases")
         self.assertTrue(os.path.exists(hosts_file))
 
-    def test_hostaliases_list(self):
+    def test_hostaliases_nondict(self):
         self.engine.config.merge({
             "settings": {
                 "hostaliases": ["demo blazedemo.com"],
-            }
-        })
-        self.assertRaises(ValueError, self.executor._prepare_hosts_file)
-
-    def test_hostaliases_file_value(self):
-        self.engine.config.merge({
-            "settings": {
-                "hostaliases": __dir__() + "/data/hostsfile",
-            }
-        })
-        self.executor._prepare_hosts_file()
-
-    def test_hostaliases_file_doesnt_exist(self):
-        self.engine.config.merge({
-            "settings": {
-                "hostaliases": __dir__() + "/***",
             }
         })
         self.assertRaises(ValueError, self.executor._prepare_hosts_file)

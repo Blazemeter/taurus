@@ -899,22 +899,17 @@ class ScenarioExecutor(EngineModule):
         settings = self.engine.config.get(SETTINGS, {})
         if "hostaliases" not in settings:
             return
-        hosts = settings.get("hostaliases")
-        if not hosts:
+        aliases = settings.get("hostaliases")
+        if not aliases:
             return
 
-        if isinstance(hosts, string_types):
-            if not os.path.exists(hosts):
-                raise ValueError("`hostaliases` file doesn't exist")
-            self.__hosts_file = self.engine.create_artifact("hostaliases", "")
-            shutil.copy2(hosts, self.__hosts_file)
-        elif isinstance(hosts, dict):
-            self.__hosts_file = self.engine.create_artifact("hostaliases", "")
-            with open(self.__hosts_file, 'w') as fds:
-                for key, value in iteritems(hosts):
-                    fds.write("%s %s\n" % (key, value))
-        else:
+        if not isinstance(aliases, dict):
             raise ValueError("Value of `hostaliases` should be either a file or a dictionary")
+
+        self.__hosts_file = self.engine.create_artifact("hostaliases", "")
+        with open(self.__hosts_file, 'w') as fds:
+            for key, value in iteritems(aliases):
+                fds.write("%s %s\n" % (key, value))
 
         self._env = BetterDict()
         self._env.merge(dict(os.environ))
