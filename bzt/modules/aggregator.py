@@ -355,7 +355,7 @@ class ResultsProvider(object):
         self.buffer_len = 2
         self.min_buffer_len = 2
         self.max_buffer_len = float('inf')
-        self.buffer_scale_multiplier = 2
+        self.buffer_multiplier = 2
         self.buffer_scale_idx = ''
 
     def add_listener(self, listener):
@@ -567,15 +567,14 @@ class ConsolidatingAggregator(EngineModule, ResultsProvider):
         self.min_buffer_len = self.settings.get("min-buffer-len", self.min_buffer_len)
         self.max_buffer_len = self.settings.get("max-buffer-len", self.max_buffer_len)
 
-        self.buffer_scale_multiplier = \
-            self.settings.get("buffer-scale-multiplier", self.buffer_scale_multiplier)
+        self.buffer_multiplier = self.settings.get("buffer-multiplier", self.buffer_multiplier)
 
         percentile = self.settings.get("buffer-scale-choice", 0.5)
         count = len(self.track_percentiles)
         if count == 1:
             self.buffer_scale_idx = str(self.track_percentiles[0])
         if count > 1:
-            percentiles = [i/(count-1.0) for i in range(count)]
+            percentiles = [i / (count - 1.0) for i in range(count)]
             distances = [abs(percentile - percentiles[i]) for i in range(count)]
             index_position = distances.index(min(distances))
             self.buffer_scale_idx = str(self.track_percentiles[index_position])
@@ -594,7 +593,7 @@ class ConsolidatingAggregator(EngineModule, ResultsProvider):
             underling.generalize_labels = self.generalize_labels
             underling.min_buffer_len = self.min_buffer_len
             underling.max_buffer_len = self.max_buffer_len
-            underling.buffer_scale_multiplier = self.buffer_scale_multiplier
+            underling.buffer_multiplier = self.buffer_multiplier
             underling.buffer_scale_idx = self.buffer_scale_idx
 
         self.underlings.append(underling)
