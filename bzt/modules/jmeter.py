@@ -37,7 +37,7 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.jmx import JMX
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, SidebarWidget
-from bzt.six import iteritems, text_type, StringIO, request, etree, binary_type, string_types
+from bzt.six import iteritems, text_type, StringIO, request, etree, binary_type
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager
 from bzt.utils import shell_exec, ensure_is_dict, dehumanize_time, BetterDict, guess_csv_dialect
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
