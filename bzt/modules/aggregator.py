@@ -421,6 +421,7 @@ class ResultsReader(ResultsProvider):
         self.max_buffer_len = 0
         self.buffer_scale_multiplier = 0
         self.buffer_scale_idx = None
+        self._d_count = 0
 
     def __process_readers(self, final_pass=False):
         """
@@ -438,7 +439,8 @@ class ResultsReader(ResultsProvider):
                 if label in self.ignored_labels:
                     continue
                 if t_stamp < self.min_timestamp:
-                    self.log.warning("Putting sample %s into %s", t_stamp, self.min_timestamp)
+                    self.log.warning("Putting sample %s into %s _d_#%s", t_stamp, self.min_timestamp, self._d_count)
+                    self._d_count += 1
                     t_stamp = self.min_timestamp
                 if t_stamp not in self.buffer:
                     self.buffer[t_stamp] = []
@@ -485,6 +487,7 @@ class ResultsReader(ResultsProvider):
 
         if self.cumulative and self.track_percentiles:
             timings = (val[KPISet.PERCENTILES][self.buffer_scale_idx] for val in self.cumulative.values())
+            timings = list(timings)
             self.buffer_len = self.buffer_scale_multiplier * max(timings)
             if self.min_buffer_len and self.buffer_len < self.min_buffer_len:
                 self.buffer_len = self.min_buffer_len
