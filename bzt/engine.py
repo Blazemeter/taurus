@@ -35,8 +35,9 @@ from yaml.representer import SafeRepresenter
 import bzt
 from bzt import ManualShutdown, NormalShutdown, get_configs_dir
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, build_opener, \
-    install_opener, urlopen, request, numeric_types
-from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time
+    install_opener, urlopen, request, numeric_types, iteritems
+from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, PIPE, \
+    shell_exec
 
 SETTINGS = "settings"
 
@@ -800,6 +801,9 @@ class ScenarioExecutor(EngineModule):
         self.execution = BetterDict()
         self.__scenario = None
         self._label = None
+        # TODO: private/protected/public
+        self.__hosts_file = None
+        self.__env = None
 
     def get_scenario(self):
         """
@@ -891,6 +895,35 @@ class ScenarioExecutor(EngineModule):
 
     def __repr__(self):
         return "%s/%s" % (self.execution.get("executor", None), self._label if self._label else id(self))
+
+    def prepare_hosts_file(self):
+        settings = self.engine.config.get(SETTINGS, {})
+        if "hostaliases" not in settings:
+            return
+        hosts = settings.get("hostaliases")
+        if not hosts:
+            return
+
+        if isinstance(hosts, string_types):
+            if not os.path.exists(hosts):
+                raise ValueError("`hostaliases` file doesn't exist")
+            self.__hosts_file = self.engine.create_artifact("hostaliases", "")
+            shutil.copy2(hosts, self.__hosts_file)
+        elif isinstance(hosts, dict):
+            self.__hosts_file = self.engine.create_artifact("hostaliases", "")
+            with open(self.__hosts_file, 'w') as fds:
+                for key, value in iteritems(hosts):
+                    fds.write("%s %s\n" % (key, value))
+        else:
+            raise ValueError("Value of `hostaliases` should be either a file or a dictionary")
+
+        self.__env = os.environ.copy()
+        self.__env["HOSTALIASES"] = self.__hosts_file
+
+    def execute(self, args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False, env=None):
+        if env is not None and self.__env is not None:
+            self.__env.update(env)
+        return shell_exec(args, cwd=cwd, stdout=stdout, stderr=stderr, stdin=stdin, shell=shell, env=self.__env)
 
 
 class Reporter(EngineModule):

@@ -952,65 +952,84 @@ class TestJMeterExecutor(BZTestCase):
         })
         self.assertRaises(ValueError, obj.prepare)
 
-    def test_hosts_list(self):
+    def test_hostaliases_list(self):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
         obj.execution.merge({
             "scenario": {
-                "hosts": ["demo blazedemo.com"],
                 "requests": ["http://blazedemo.com/"],
+            }
+        })
+        obj.engine.config.merge({
+            "settings": {
+                "hostaliases": ["demo blazedemo.com"],
             }
         })
         self.assertRaises(ValueError, obj.prepare)
 
-    def test_hosts_creates_file(self):
+    def test_hostaliases_creates_file(self):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
         obj.execution.merge({
             "scenario": {
-                "hosts": {
-                    "demo": "blazedemo.com",
-                    "example": "example.com",
-                },
-                "requests": ["http://blazedemo.com/"],
+                "requests": ["demo"],
+            }
+        })
+        obj.engine.config.merge({
+            "settings": {
+                "hostaliases": {
+                    "demo": "blazedemo.com"
+                }
             }
         })
         obj.prepare()
-        hosts_file = os.path.join(obj.engine.artifacts_dir, "hosts")
+        hosts_file = os.path.join(obj.engine.artifacts_dir, "hostaliases")
         self.assertTrue(os.path.exists(hosts_file))
 
-    def test_hosts_file(self):
+    def test_hostaliases_file(self):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
         obj.execution.merge({
             "scenario": {
-                "hosts": __dir__() + "/../data/hostsfile",
                 "requests": ["http://blazedemo.com/"],
+            }
+        })
+        obj.engine.config.merge({
+            "settings": {
+                "hostaliases": __dir__() + "/../data/hostsfile",
             }
         })
         obj.prepare()
 
-    def test_hosts_file_doesnt_exist(self):
+    def test_hostaliases_file_doesnt_exist(self):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
         obj.execution.merge({
             "scenario": {
-                "hosts": __dir__() + "/../data/***",
                 "requests": ["http://blazedemo.com/"],
+            }
+        })
+        obj.engine.config.merge({
+            "settings": {
+                "hostaliases": __dir__() + "/../data/***",
             }
         })
         self.assertRaises(ValueError, obj.prepare)
 
-    def test_hosts_full_run(self):
+    def test_hostaliases_full_run(self):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
         obj.execution.merge({
             "hold-for": 1.0,
             "scenario": {
-                "hosts": {
-                    "demo": "blazedemo.com"
-                },
                 "requests": ["http://demo/"],
+            }
+        })
+        obj.engine.config.merge({
+            "settings": {
+                "hostaliases": {
+                    "demo": "127.0.0.1"
+                },
             }
         })
         obj.prepare()

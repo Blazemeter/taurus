@@ -75,7 +75,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.distributed_servers = []
         self.management_port = None
         self.reader = None
-        self.hosts_file = None
 
     def prepare(self):
         """
@@ -106,7 +105,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         self.__set_jmeter_properties(scenario)
         self.__set_system_properties()
-        self.__create_hosts_file()
+
+        self.prepare_hosts_file()
 
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.reader = JTLReader(self.kpi_jtl, self.log, self.log_jtl)
@@ -141,27 +141,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             JMeterExecutor.__write_props_to_file(props_file, props)
             self.properties_file = props_file
 
-    def __create_hosts_file(self):
-        scenario = self.get_scenario()
-        if "hosts" not in scenario:
-            return
-        hosts = scenario.get("hosts")
-        if not hosts:
-            return
-
-        if isinstance(hosts, string_types):
-            if not os.path.exists(hosts):
-                raise ValueError("`hosts` file doesn't exist")
-            self.hosts_file = self.engine.create_artifact("hosts", "")
-            shutil.copy2(hosts, self.hosts_file)
-        elif isinstance(hosts, dict):
-            self.hosts_file = self.engine.create_artifact("hosts", "")
-            with open(self.hosts_file, 'w') as fds:
-                for key, value in iteritems(hosts):
-                    fds.write("%s %s\n" % (key, value))
-        else:
-            raise ValueError("Value of `hosts` should be either a file or a dictionary")
-
     def startup(self):
         """
         Should start JMeter as fast as possible.
@@ -184,10 +163,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.start_time = time.time()
         try:
             # FIXME: muting stderr and stdout is bad
-            env = None
-            if self.hosts_file is not None:
-                env = {"HOSTALIASES": os.path.abspath(self.hosts_file)}
-            self.process = shell_exec(cmdline, stderr=None, cwd=self.engine.artifacts_dir, env=env)
+            self.process = self.execute(cmdline, stderr=None, cwd=self.engine.artifacts_dir)
         except OSError as exc:
             self.log.error("Failed to start JMeter: %s", traceback.format_exc())
             self.log.error("Failed command: %s", cmdline)
