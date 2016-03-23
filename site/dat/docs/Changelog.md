@@ -1,4 +1,9 @@
 # Changelog
+
+## 1.3.2 <sup>next</sup>
+ - fix lowercase hostname for JMeter HTTP request
+ - fix binary varname crash for JMeter HTTP request 
+
 ## 1.3.1 <sup>22 mar 2016</sup>
  - fix JMeter crash when `data-sources` value is not a list
  - fix non-integer port in HTTP request

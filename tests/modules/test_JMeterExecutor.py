@@ -219,7 +219,7 @@ class TestJMeterExecutor(BZTestCase):
         xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
         sampler_element = xml_tree.findall(".//HTTPSamplerProxy[@testname='With body params']")
         arguments_element_prop = sampler_element[0][0]
-        self.assertEqual(9, len(sampler_element[0].getchildren()))
+        self.assertEqual(10, len(sampler_element[0].getchildren()))
         self.assertEqual(1, len(arguments_element_prop.getchildren()))
         self.assertEqual(2, len(arguments_element_prop[0].getchildren()))
         self.assertEqual(1, len(arguments_element_prop[0].findall(".//elementProp[@name='param1']")))
@@ -960,3 +960,17 @@ class TestJMX(BZTestCase):
         prop = res.find(".//stringProp[@name='Argument.value']")
         self.assertNotEqual("BINARY", prop.text)
         self.assertEqual(u"✓", prop.text)
+
+    def test_variable_hostname(self):
+        obj = JMX()
+        res = obj._get_http_request("http://${hostName}:${Port}/${Path}", "label", "method", 0, {}, True)
+        self.assertEqual("/${Path}", res.find(".//stringProp[@name='HTTPSampler.path']").text)
+        self.assertEqual("${hostName}", res.find(".//stringProp[@name='HTTPSampler.domain']").text)
+        self.assertEqual("${Port}", res.find(".//stringProp[@name='HTTPSampler.port']").text)
+
+    def test_no_port(self):
+        obj = JMX()
+        res = obj._get_http_request("http://hostname", "label", "method", 0, {}, True)
+        self.assertEqual("", res.find(".//stringProp[@name='HTTPSampler.path']").text)
+        self.assertEqual("hostname", res.find(".//stringProp[@name='HTTPSampler.domain']").text)
+        self.assertEqual("", res.find(".//stringProp[@name='HTTPSampler.port']").text)
