@@ -174,8 +174,6 @@ scenarios:
       delimiter: ';'  # CSV delimiter, auto-detected by default
       quoted: false  # allow quoted data
       loop: true  # loop over in case of end-of-file reached
-    hosts:
-      mydomain: example.com
 ```
 
 Note that `timeout` also sets duration assertion that will mark response failed if response time was more than timeout.
@@ -344,32 +342,3 @@ execution
     script: my.jmx
 
 ```
-
-## Hosts Override
-You can add additional local DNS entries with `hosts` option. You can either specify hosts directly in `hosts` section
-or point Taurus to hosts file.
-
-Configuration sample for specifying hosts directly:
-```yaml
----
-execution
-- scenario
-    hosts:
-      demo: blazedemo.com
-      qa: example.com
-    requests:
-      - http://demo/
-
-```
-
-Configuration sample for using hosts file:
-```yaml
----
-execution
-- scenario
-    hosts: configs/network/hosts.txt
-    requests:
-      - http://demo/
-
-```
-

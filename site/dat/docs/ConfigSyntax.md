@@ -90,6 +90,7 @@ Available settings are:
  - `aggregator` - module alias for top-level [results aggregator](Reporting.md#results-reading-and-aggregating-facility) to be used for collecting results and passing it to reporters
  - `default-executor` - module alias for executor that will be used by default for [executions](ExecutionSettings)
  - `proxy` - proxy settings for BZA feeding, Taurus will use proxy settings from OS environment by default.
+ - `hostaliases` - add local DNS records (or override existing ones) in test execution environment.
  
 See default settings below:
 
@@ -105,8 +106,21 @@ settings:
     username: user  # username and password used if authentication is configured on proxy server
     password: 12345
   check-updates: true  # check for newer version of Taurus on startup
-``` 
+```
 
+Here's an example of using `hostaliases` setting:
+```yaml
+---
+execution:
+- scenario:
+    requests:
+      - http://staging/
+
+settings:
+  hostaliases:
+    staging: 192.168.1.3
+    dev: 192.168.1.2
+```
 
 ## Human-Readable Time Specifications
 All time specifications in Taurus configs, including timeouts and durations, are _always_ expressed in unit of _seconds_.
