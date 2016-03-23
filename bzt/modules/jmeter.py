@@ -106,7 +106,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.__set_jmeter_properties(scenario)
         self.__set_system_properties()
 
-        self.prepare_hosts_file()
+        self._prepare_hosts_file()
 
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.reader = JTLReader(self.kpi_jtl, self.log, self.log_jtl)

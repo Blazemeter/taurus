@@ -801,7 +801,6 @@ class ScenarioExecutor(EngineModule):
         self.execution = BetterDict()
         self.__scenario = None
         self._label = None
-        # TODO: private/protected/public
         self.__hosts_file = None
         self.__env = None
 
@@ -896,7 +895,7 @@ class ScenarioExecutor(EngineModule):
     def __repr__(self):
         return "%s/%s" % (self.execution.get("executor", None), self._label if self._label else id(self))
 
-    def prepare_hosts_file(self):
+    def _prepare_hosts_file(self):
         settings = self.engine.config.get(SETTINGS, {})
         if "hostaliases" not in settings:
             return
@@ -917,12 +916,13 @@ class ScenarioExecutor(EngineModule):
         else:
             raise ValueError("Value of `hostaliases` should be either a file or a dictionary")
 
-        self.__env = os.environ.copy()
+        self.__env = BetterDict()
+        self.__env.merge(dict(os.environ))
         self.__env["HOSTALIASES"] = self.__hosts_file
 
     def execute(self, args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False, env=None):
         if env is not None and self.__env is not None:
-            self.__env.update(env)
+            self.__env.merge(env)
         return shell_exec(args, cwd=cwd, stdout=stdout, stderr=stderr, stdin=stdin, shell=shell, env=self.__env)
 
 
