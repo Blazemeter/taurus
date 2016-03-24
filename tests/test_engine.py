@@ -1,5 +1,8 @@
 """ unit test """
-from bzt.utils import BetterDict
+import os
+
+from bzt.utils import BetterDict, is_windows, EXE_SUFFIX
+from bzt.engine import ScenarioExecutor
 from tests import BZTestCase, __dir__, local_paths_config
 from tests.mocks import EngineEmul
 
@@ -50,3 +53,28 @@ class TestEngine(BZTestCase):
             self.fail()
         except ValueError:
             pass
+
+
+class TestScenarioExecutor(BZTestCase):
+    def setUp(self):
+        super(TestScenarioExecutor, self).setUp()
+        self.engine = EngineEmul()
+        self.executor = ScenarioExecutor()
+        self.executor.engine = self.engine
+
+    def test_creates_hostaliases_file(self):
+        self.engine.config.merge({
+            "settings": {
+                "hostaliases": {
+                    "demo": "blazedemo.com"
+                }
+            }
+        })
+
+        path = os.path.join(__dir__(), "data", "hostaliases" + EXE_SUFFIX)
+        process = self.executor.execute([path])
+        stdout, _ = process.communicate()
+        hosts_file = os.path.join(self.engine.artifacts_dir, "hostaliases")
+
+        self.assertTrue(os.path.exists(hosts_file))
+        self.assertIn(hosts_file, str(stdout))

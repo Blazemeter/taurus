@@ -256,7 +256,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         env.merge({"JAVA_OPTS": java_opts})
 
-        self.process = shell_exec(cmdline, stdout=self.stdout_file, stderr=self.stderr_file, env=env)
+        self.process = self.execute(cmdline, stdout=self.stdout_file, stderr=self.stderr_file, env=env)
 
     def check(self):
         """

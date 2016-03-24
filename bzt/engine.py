@@ -35,8 +35,9 @@ from yaml.representer import SafeRepresenter
 import bzt
 from bzt import ManualShutdown, NormalShutdown, get_configs_dir
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, build_opener, \
-    install_opener, urlopen, request, numeric_types
-from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time
+    install_opener, urlopen, request, numeric_types, iteritems
+from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, PIPE, \
+    shell_exec
 
 SETTINGS = "settings"
 
@@ -891,6 +892,25 @@ class ScenarioExecutor(EngineModule):
 
     def __repr__(self):
         return "%s/%s" % (self.execution.get("executor", None), self._label if self._label else id(self))
+
+    def get_hostaliases(self):
+        settings = self.engine.config.get(SETTINGS, {})
+        return settings.get("hostaliases", {})
+
+    def execute(self, args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False, env=None):
+        hosts_file = self.engine.create_artifact("hostaliases", "")
+        aliases = self.get_hostaliases()
+        with open(hosts_file, 'w') as fds:
+            for key, value in iteritems(aliases):
+                fds.write("%s %s\n" % (key, value))
+
+        environ = BetterDict()
+        environ.merge(dict(os.environ))
+        environ["HOSTALIASES"] = hosts_file
+        if env is not None:
+            environ.merge(env)
+
+        return shell_exec(args, cwd=cwd, stdout=stdout, stderr=stderr, stdin=stdin, shell=shell, env=environ)
 
 
 class Reporter(EngineModule):

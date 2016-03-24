@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.3.3
+ - add new `hostaliases` setting for all executors
+
 ## 1.3.2 <sup>23 mar 2016</sup>
  - fix lowercase hostname for JMeter HTTP request
  - fix binary varname crash for JMeter HTTP request 

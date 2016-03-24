@@ -28,7 +28,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsProvider, Dat
 from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.modules.jmeter import JTLReader
 from bzt.six import PY3, iteritems
-from bzt.utils import shutdown_process, shell_exec, RequiredTool, BetterDict
+from bzt.utils import shutdown_process, RequiredTool, BetterDict
 
 
 class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
@@ -82,7 +82,6 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         wrapper = os.path.join(os.path.dirname(__file__), os.pardir, "resources", "locustio-taurus-wrapper.py")
 
         env = BetterDict()
-        env.merge({k: os.environ.get(k) for k in os.environ.keys()})
         env.merge({"PYTHONPATH": self.engine.artifacts_dir + os.pathsep + os.getcwd()})
         if os.getenv("PYTHONPATH"):
             env['PYTHONPATH'] = os.getenv("PYTHONPATH") + os.pathsep + env['PYTHONPATH']
@@ -105,7 +104,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             args.append("--host=%s" % host)
 
         self.__out = open(self.engine.create_artifact("locust", ".out"), 'w')
-        self.process = shell_exec(args, stderr=STDOUT, stdout=self.__out, env=env)
+        self.process = self.execute(args, stderr=STDOUT, stdout=self.__out, env=env)
 
     def get_widget(self):
         """
