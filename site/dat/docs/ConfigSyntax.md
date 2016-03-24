@@ -232,7 +232,7 @@ execution:
     requests:
       - url: http://staging-env/
         headers:
-          Host: 192.168.1.3
+          Host: mytarget.server.com
 
 settings:
   hostaliases:
