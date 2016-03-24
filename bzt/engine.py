@@ -801,8 +801,6 @@ class ScenarioExecutor(EngineModule):
         self.execution = BetterDict()
         self.__scenario = None
         self._label = None
-        self.__hosts_file = None
-        self._env = None
 
     def get_scenario(self):
         """
@@ -895,30 +893,24 @@ class ScenarioExecutor(EngineModule):
     def __repr__(self):
         return "%s/%s" % (self.execution.get("executor", None), self._label if self._label else id(self))
 
-    def _prepare_hosts_file(self):
+    def get_hostaliases(self):
         settings = self.engine.config.get(SETTINGS, {})
-        if "hostaliases" not in settings:
-            return
-        aliases = settings.get("hostaliases")
-        if not aliases:
-            return
+        return settings.get("hostaliases", {})
 
-        if not isinstance(aliases, dict):
-            raise ValueError("Value of `hostaliases` should be either a file or a dictionary")
-
-        self.__hosts_file = self.engine.create_artifact("hostaliases", "")
-        with open(self.__hosts_file, 'w') as fds:
+    def execute(self, args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False, env=None):
+        hosts_file = self.engine.create_artifact("hostaliases", "")
+        aliases = self.get_hostaliases()
+        with open(hosts_file, 'w') as fds:
             for key, value in iteritems(aliases):
                 fds.write("%s %s\n" % (key, value))
 
-        self._env = BetterDict()
-        self._env.merge(dict(os.environ))
-        self._env["HOSTALIASES"] = self.__hosts_file
+        environ = BetterDict()
+        environ.merge(dict(os.environ))
+        environ["HOSTALIASES"] = hosts_file
+        if env is not None:
+            environ.merge(env)
 
-    def execute(self, args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False, env=None):
-        if env is not None and self._env is not None:
-            self._env.merge(env)
-        return shell_exec(args, cwd=cwd, stdout=stdout, stderr=stderr, stdin=stdin, shell=shell, env=self._env)
+        return shell_exec(args, cwd=cwd, stdout=stdout, stderr=stderr, stdin=stdin, shell=shell, env=environ)
 
 
 class Reporter(EngineModule):

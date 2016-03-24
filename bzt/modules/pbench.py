@@ -37,14 +37,6 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.start_time = None
 
     def prepare(self):
-        self._prepare_hosts_file()
-
-        # we use socket.gethostbyname() for generating schedule
-        # and it won't resolve a host alias to ip without HOSTALIASES being set
-        env = self._env
-        if env is not None and "HOSTALIASES" in env:
-            os.environ.update(env)
-
         self._prepare_pbench()
         reader = self.pbench.get_results_reader()
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
@@ -65,7 +57,7 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         self.pbench.generate_payload(self.get_scenario())
         self.pbench.generate_schedule(self.get_load())
-        self.pbench.generate_config(self.get_scenario(), self.get_load())
+        self.pbench.generate_config(self.get_scenario(), self.get_load(), self.get_hostaliases())
         self.pbench.check_config()
 
     def startup(self):
@@ -140,7 +132,7 @@ class PBenchTool(object):
         self.port = 80
         self._target = {"scheme": None, "netloc": None}
 
-    def generate_config(self, scenario, load):
+    def generate_config(self, scenario, load, hostaliases):
         self.kpi_file = self.engine.create_artifact("pbench-kpi", ".txt")
         self.stats_file = self.engine.create_artifact("pbench-additional", ".ldjson")
         self.config_file = self.engine.create_artifact('pbench', '.conf')
@@ -155,6 +147,10 @@ class PBenchTool(object):
         threads = 1 if psutil.cpu_count() < 2 else (psutil.cpu_count() - 1)
         threads = int(self.execution.get("worker-threads", threads))
 
+        if self.hostname in hostaliases:
+            address = hostaliases[self.hostname]
+        else:
+            address = socket.gethostbyname(self.hostname)
         params = {
             "modules_path": self.modules_path,
             "threads": threads,
@@ -165,7 +161,7 @@ class PBenchTool(object):
             "source": self._get_source(load),
             "ssl": self.SSL_STR if self.use_ssl else "",
             "reply_limits": "",  # TODO
-            "address": socket.gethostbyname(self.hostname),
+            "address": address,
             "port": self.port,
             "timeout": timeout,
             "instances": instances,

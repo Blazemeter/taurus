@@ -131,13 +131,11 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         self._cp_resource_files(self.runner_working_dir)
 
-        self.runner = runner_class(runner_config, self.scenario, self.get_load(), self.log, self)
+        self.runner = runner_class(runner_config, self)
         self.runner.prepare()
         self.reader = JTLReader(self.kpi_file, self.log, self.err_jtl)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
-
-        self._prepare_hosts_file()
 
     def _verify_script(self):
         if not self.scenario.get(Scenario.SCRIPT):
@@ -273,13 +271,13 @@ class AbstractTestRunner(object):
     Abstract test runner
     """
 
-    def __init__(self, settings, scenario, load, executor):
+    def __init__(self, settings, executor):
         self.process = None
         self.settings = settings
         self.required_tools = []
-        self.scenario = scenario
-        self.load = load
         self.executor = executor
+        self.scenario = executor.scenario
+        self.load = executor.get_load()
         self.artifacts_dir = self.settings.get("artifacts-dir")
         self.working_dir = self.settings.get("working-dir")
         self.log = None
@@ -329,10 +327,10 @@ class JUnitTester(AbstractTestRunner):
     Allows to test java and jar files
     """
 
-    def __init__(self, junit_config, scenario, load, parent_logger, executor):
-        super(JUnitTester, self).__init__(junit_config, scenario, load, executor)
+    def __init__(self, junit_config, executor):
+        super(JUnitTester, self).__init__(junit_config, executor)
         self.props_file = junit_config['props-file']
-        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.log = executor.log.getChild(self.__class__.__name__)
         path_lambda = lambda key, val: os.path.abspath(os.path.expanduser(self.settings.get(key, val)))
 
         self.junit_path = path_lambda("path", "~/.bzt/selenium-taurus/tools/junit/junit.jar")
@@ -491,9 +489,9 @@ class NoseTester(AbstractTestRunner):
     Python selenium tests runner
     """
 
-    def __init__(self, nose_config, scenario, load, parent_logger, executor):
-        super(NoseTester, self).__init__(nose_config, scenario, load, executor)
-        self.log = parent_logger.getChild(self.__class__.__name__)
+    def __init__(self, nose_config, executor):
+        super(NoseTester, self).__init__(nose_config, executor)
+        self.log = executor.log.getChild(self.__class__.__name__)
         self.plugin_path = os.path.join(os.path.dirname(__file__), os.pardir, "resources", "nose_plugin.py")
 
     def prepare(self):

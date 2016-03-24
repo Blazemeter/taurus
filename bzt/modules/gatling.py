@@ -195,8 +195,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
-        self._prepare_hosts_file()
-
     def __generate_script(self):
         simulation = "TaurusSimulation_%s" % id(self)
         file_name = self.engine.create_artifact(simulation, ".scala")

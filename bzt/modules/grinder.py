@@ -136,8 +136,6 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         else:
             raise ValueError("There must be a scenario file to run Grinder")
 
-        self._prepare_hosts_file()
-
         self.properties_file = self.engine.create_artifact("grinder", ".properties")
 
         with open(self.properties_file, 'w') as fds:

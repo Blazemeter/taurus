@@ -76,8 +76,6 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider):
         self.__out = open(out_file_name, 'w')
         self.__err = open(self.engine.create_artifact("siege", ".err"), 'w')
 
-        self._prepare_hosts_file()
-
     def resource_files(self):
         resource_files = []
         if Scenario.SCRIPT in self.scenario:

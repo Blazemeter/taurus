@@ -68,8 +68,6 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
-        self._prepare_hosts_file()
-
     def __check_installed(self):
         tool = LocustIO(self.log)
         if not tool.check_if_installed():
