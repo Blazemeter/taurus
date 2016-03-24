@@ -1245,6 +1245,18 @@ class JMeterScenarioBuilder(JMX):
             children.append(extractor)
             children.append(etree.Element("hashTree"))
 
+        xpath_extractors = req.config.get("extract-xpath", BetterDict())
+        for varname in xpath_extractors:
+            cfg = ensure_is_dict(xpath_extractors, varname, "xpath")
+            children.append(JMX._get_xpath_extractor(varname,
+                                                     cfg['xpath'],
+                                                     cfg.get('default', 'NOT_FOUND'),
+                                                     cfg.get('validate-xml', False),
+                                                     cfg.get('ignore-whitespace', False),
+                                                     cfg.get('use-tolerant-parser', False)))
+            children.append(etree.Element("hashTree"))
+
+
     def __add_assertions(self, children, req):
         assertions = req.config.get("assert", [])
         for idx, assertion in enumerate(assertions):
@@ -1277,7 +1289,7 @@ class JMeterScenarioBuilder(JMX):
                                                  assertion.get('validate-xml', False),
                                                  assertion.get('ignore-whitespace', False),
                                                  assertion.get('use-tolerant-parser', False),
-                                                 assertion.get('negate', False), )
+                                                 assertion.get('negate', False))
             children.append(component)
             children.append(etree.Element("hashTree"))
 
