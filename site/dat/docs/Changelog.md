@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.4.0
+## 1.3.3
  - add new `hostaliases` setting for all executors
 
 ## 1.3.2 <sup>23 mar 2016</sup>
