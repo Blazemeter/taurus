@@ -1269,6 +1269,19 @@ class JMeterScenarioBuilder(JMX):
             children.append(component)
             children.append(etree.Element("hashTree"))
 
+        xpath_assertions = req.config.get("assert-xpath", [])
+        for idx, assertion in enumerate(xpath_assertions):
+            assertion = ensure_is_dict(xpath_assertions, idx, "xpath")
+
+            component = JMX._get_xpath_assertion(assertion['xpath'],
+                                                 assertion.get('validate-xml', False),
+                                                 assertion.get('ignore-whitespace', False),
+                                                 assertion.get('use-tolerant-parser', False),
+                                                 assertion.get('negate', False), )
+            children.append(component)
+            children.append(etree.Element("hashTree"))
+
+
     def _get_merged_ci_headers(self, request, header):
 
         def dic_lower(dic):

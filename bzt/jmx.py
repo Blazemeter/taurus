@@ -764,6 +764,28 @@ class JMX(object):
         return element
 
     @staticmethod
+    def _get_xpath_assertion(xpath, validate_xml, ignore_whitespace, use_tolerant_parser, negate):
+        """
+        :type xpath: str
+        :type validate_xml: bool
+        :type ignore_whitespace: bool
+        :type use_tolerant_parser: bool
+        :return: lxml.etree.Element
+        """
+        element = etree.Element("XPathAssertion",
+                                guiclass="XPathAssertionGui",
+                                testclass="XPathAssertion",
+                                testname="XPath Assertion")
+
+        element.append(JMX._string_prop("XPath.xpath", xpath))
+        element.append(JMX._bool_prop("XPath.validate", validate_xml))
+        element.append(JMX._bool_prop("XPath.whitespace", ignore_whitespace))
+        element.append(JMX._bool_prop("XPath.tolerant", use_tolerant_parser))
+        element.append(JMX._bool_prop("XPath.negate", negate))
+
+        return element
+
+    @staticmethod
     def _get_resp_assertion(field, contains, is_regexp, is_invert, assume_success=False):
         """
 
