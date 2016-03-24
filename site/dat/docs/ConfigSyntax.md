@@ -90,7 +90,6 @@ Available settings are:
  - `aggregator` - module alias for top-level [results aggregator](Reporting.md#results-reading-and-aggregating-facility) to be used for collecting results and passing it to reporters
  - `default-executor` - module alias for executor that will be used by default for [executions](ExecutionSettings)
  - `proxy` - proxy settings for BZA feeding, Taurus will use proxy settings from OS environment by default.
- - `hostaliases` - add local host aliases in test execution environment.
  
 See default settings below:
 
@@ -106,23 +105,6 @@ settings:
     username: user  # username and password used if authentication is configured on proxy server
     password: 12345
   check-updates: true  # check for newer version of Taurus on startup
-```
-
-A few notes about using `hostaliases` setting:
-1. Alias name cannot contain dots.
-2. You should point your HTTP requests to alias address.
-
-Here's an example of using `hostaliases`:
-```yaml
----
-execution:
-- scenario:
-    requests:
-      - http://staging-env/
-
-settings:
-  hostaliases:
-    staging-env: staging.myservice.com
 ```
 
 ## Human-Readable Time Specifications
@@ -228,4 +210,31 @@ After all config files loaded, Taurus will also merge into resulting configurati
 included-configs:  # it must be a list of string values
 - additional-local-file.yml  # to add local file just set its path
 - http://central.host/mystorage/remote.yml  # you can also download config from http/https location
+```
+
+
+## Host Aliases
+
+It is possible to add local hostname aliases in test execution environment. Aliases are defined in pairs:
+(alias, aliased hostname).
+
+There are a few limitations about using `hostaliases` setting:
+1. Alias name *cannot* contain dots.
+2. You should point your HTTP requests to alias address.
+3. You should also manually set `Host` HTTP header to aliased address.
+
+
+Here's an example of using `hostaliases`:
+```yaml
+---
+execution:
+- scenario:
+    requests:
+      - url: http://staging-env/
+        headers:
+          Host: staging.myservice.com
+
+settings:
+  hostaliases:
+    staging-env: staging.myservice.com
 ```
