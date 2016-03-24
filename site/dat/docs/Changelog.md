@@ -2,6 +2,7 @@
 
 ## 1.3.3
  - add new `hostaliases` setting for all executors
+ - add XPath extractors and assertions for JMeter
 
 ## 1.3.2 <sup>23 mar 2016</sup>
  - fix lowercase hostname for JMeter HTTP request
