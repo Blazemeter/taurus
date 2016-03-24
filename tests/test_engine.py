@@ -77,4 +77,4 @@ class TestScenarioExecutor(BZTestCase):
         hosts_file = os.path.join(self.engine.artifacts_dir, "hostaliases")
 
         self.assertTrue(os.path.exists(hosts_file))
-        self.assertIn(hosts_file, stdout)
+        self.assertIn(hosts_file, str(stdout))
