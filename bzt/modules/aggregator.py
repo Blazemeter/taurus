@@ -356,7 +356,7 @@ class ResultsProvider(object):
         self.min_buffer_len = 2
         self.max_buffer_len = float('inf')
         self.buffer_multiplier = 2
-        self.buffer_scale_idx = ''
+        self.buffer_scale_idx = '100.0'
 
     def add_listener(self, listener):
         """
