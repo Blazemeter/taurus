@@ -216,12 +216,12 @@ included-configs:  # it must be a list of string values
 ## Host Aliases
 
 It is possible to add local hostname aliases in test execution environment. Aliases are defined in pairs:
-(alias, aliased hostname).
+(alias, target hostname).
 
 There are a few limitations about using `hostaliases` setting:
 1. Alias name *cannot* contain dots.
 2. You should point your HTTP requests to alias address.
-3. You should also manually set `Host` HTTP header to aliased address.
+3. You should also manually set `Host` HTTP header to target address.
 
 
 Here's an example of using `hostaliases`:
@@ -232,9 +232,9 @@ execution:
     requests:
       - url: http://staging-env/
         headers:
-          Host: staging.myservice.com
+          Host: 192.168.1.3
 
 settings:
   hostaliases:
-    staging-env: staging.myservice.com
+    staging-env: 192.168.1.3
 ```
