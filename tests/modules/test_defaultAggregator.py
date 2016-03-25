@@ -71,3 +71,52 @@ class TestDefaultAggregator(BZTestCase):
 
         for point in mock.datapoints(True):
             pass
+
+    def test_0buffer_scaling(self):
+        obj = self.obj
+
+        mock = MockReader()
+        obj.add_listener(mock)
+
+        # t_stamp, label, conc, r_time, con_time, latency, r_code, error, trname
+        mock.min_buffer_len = 1
+        mock.buffer_len = 1
+
+        buffer_len = mock.buffer_len
+
+        for i in range(5):
+            mock.data.append((10+i, "", 1, 2, 2, 2, 200, None, ''))
+        points = list(mock.datapoints())
+        points = list(mock.datapoints())
+        self.assertTrue(mock.buffer_len > buffer_len)
+        buffer_len = mock.buffer_len
+
+        for i in range(5):
+            mock.data.append((20+i, "", 1, 3, 3, 3, 200, None, ''))
+        points = list(mock.datapoints())
+        points = list(mock.datapoints())
+        self.assertTrue(mock.buffer_len > buffer_len)
+        buffer_len = mock.buffer_len
+
+        for i in range(5):
+            mock.data.append((30+i, "", 1, 4, 4, 4, 200, None, ''))
+        points = list(mock.datapoints())
+        points = list(mock.datapoints())
+        self.assertTrue(mock.buffer_len > buffer_len)
+        buffer_len = mock.buffer_len
+
+        for i in range(50):
+            mock.data.append((40+i, "", 1, 1, 1, 1, 200, None, ''))
+        points = list(mock.datapoints())
+        points = list(mock.datapoints())
+        self.assertTrue(mock.buffer_len <= buffer_len)
+        buffer_len = mock.buffer_len
+
+        for i in range(5):
+            mock.data.append((50+i, "", 1, 1, 1, 1, 200, None, ''))
+        points = list(mock.datapoints())
+        points = list(mock.datapoints())
+        self.assertTrue(mock.buffer_len < buffer_len)
+
+        pass
+
