@@ -753,8 +753,8 @@ class JMXasDict(JMX):
                 assertion["ignore-whitespace"] = whitespace if whitespace else False
                 tolerant = self._get_bool_prop(assertion_element, 'XPath.tolerant')
                 assertion["use-tolerant-parser"] = tolerant if tolerant else False
-                negate = self._get_bool_prop(assertion_element, 'XPath.negate')
-                assertion["negate"] = negate if negate else False
+                invert = self._get_bool_prop(assertion_element, 'XPath.negate')
+                assertion["invert"] = invert if invert else False
 
                 assertions.append(assertion)
 

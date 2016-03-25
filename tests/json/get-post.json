@@ -77,7 +77,7 @@
               "ignore-whitespace": true,
               "validate-xml": true,
               "use-tolerant-parser": true,
-              "negate": true
+              "invert": true
             }
           ]
         },

@@ -1289,7 +1289,7 @@ class JMeterScenarioBuilder(JMX):
                                                  assertion.get('validate-xml', False),
                                                  assertion.get('ignore-whitespace', False),
                                                  assertion.get('use-tolerant-parser', False),
-                                                 assertion.get('negate', False))
+                                                 assertion.get('invert', False))
             children.append(component)
             children.append(etree.Element("hashTree"))
 

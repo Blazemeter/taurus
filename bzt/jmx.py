@@ -787,7 +787,7 @@ class JMX(object):
         return element
 
     @staticmethod
-    def _get_xpath_assertion(xpath, validate_xml, ignore_whitespace, use_tolerant_parser, negate):
+    def _get_xpath_assertion(xpath, validate_xml, ignore_whitespace, use_tolerant_parser, invert):
         """
         :type xpath: str
         :type validate_xml: bool
@@ -804,7 +804,7 @@ class JMX(object):
         element.append(JMX._bool_prop("XPath.validate", validate_xml))
         element.append(JMX._bool_prop("XPath.whitespace", ignore_whitespace))
         element.append(JMX._bool_prop("XPath.tolerant", use_tolerant_parser))
-        element.append(JMX._bool_prop("XPath.negate", negate))
+        element.append(JMX._bool_prop("XPath.negate", invert))
 
         return element
 

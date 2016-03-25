@@ -376,11 +376,11 @@ scenarios:
     requests:
     - url: http://blazedemo.com/
       assert-xpath:
-      - xpath: "/html/head/title" # query 
-        validate: false # validate XML against its schema
-        ignore-whitespace: false # ignore whitespaces in elements
+      - xpath: "/html/head/title" # query
         use-tolerant-parser: false  # use error-tolerant XML parser
-        negate: false # negate condition
+        validate: false # validate XML against its schema (has no effect when `use-tolerant-parser` is true)
+        ignore-whitespace: false # ignore whitespaces in elements (has no effect when `use-tolerant-parser` is true)
+        invert: false # invert condition
 ```
 
 
