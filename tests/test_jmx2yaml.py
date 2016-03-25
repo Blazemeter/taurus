@@ -230,6 +230,29 @@ class TestConverter(BZTestCase):
         self.assertEqual(tg_two_exec.get("iterations"), None)
         self.assertEqual(tg_three_exec.get("iterations"), 100)
 
+    def test_copy_xpath_assertions(self):
+        yml = self._get_tmp()
+        obj = self._get_jmx2yaml("/yaml/converter/assertions.jmx", yml)
+        obj.process()
+        yml = yaml.load(open(yml).read())
+        tg = yml.get("scenarios").get("tg3")
+        assertions = tg.get("assert-xpath")
+        self.assertEqual(len(assertions), 2)
+        self.assertEqual(assertions[0], {
+            "xpath": "/note/to",
+            "ignore-whitespace": False,
+            "negate": False,
+            "validate-xml": False,
+            "use-tolerant-parser": False,
+        })
+        self.assertEqual(assertions[1], {
+            "xpath": "/note/from",
+            "ignore-whitespace": True,
+            "negate": True,
+            "validate-xml": True,
+            "use-tolerant-parser": True,
+        })
+
     def test_extractors(self):
         yml = self._get_tmp()
         obj = self._get_jmx2yaml("/yaml/converter/extractors.jmx", yml)
@@ -253,6 +276,23 @@ class TestConverter(BZTestCase):
         self.assertEqual(len(tg_two_extractors), 2)  # 2x global
         tg_three_req_exr = tg_three.get("requests")[0].get("extract-jsonpath", {})
         self.assertEqual(len(tg_three_req_exr), 1)  # 1x local
+        # test extract-xpath
+        tg_three_extractors = tg_three.get("extract-xpath")
+        self.assertEqual(len(tg_three_extractors), 2)  # 2 global
+        self.assertEqual(tg_three_extractors['bookAuthor'], {
+            "xpath": "/books/[@title()='1984']/author",
+            "default": "no_author",
+            "ignore-whitespace": False,
+            "validate-xml": False,
+            "use-tolerant-parser": False,
+        })
+        self.assertEqual(tg_three_extractors['author'], {
+            "xpath": "/books/[@title()='Fahrenheit 451']/author",
+            "default": "no",
+            "ignore-whitespace": True,
+            "validate-xml": True,
+            "use-tolerant-parser": False,
+        })
 
     def test_request_body(self):
         yml = self._get_tmp()

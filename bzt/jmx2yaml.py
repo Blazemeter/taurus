@@ -44,6 +44,8 @@ KNOWN_TAGS = ["hashTree", "jmeterTestPlan", "TestPlan", "ResultCollector",
               "HtmlExtractor",
               "com.atlantbh.jmeter.plugins.jsonutils.jsonpathextractor.JSONPathExtractor",
               "com.atlantbh.jmeter.plugins.jsonutils.jsonpathassertion.JSONPathAssertion",
+              "XPathAssertion",
+              "XPathExtractor",
               "ResponseAssertion",
               "CSVDataSet",
               "GenericController",
@@ -734,8 +736,7 @@ class JMXasDict(JMX):
         hashtree = element.getnext()
 
         if hashtree is not None and hashtree.tag == "hashTree":
-            pattern = "XPathAssertion"
-            assertion_elements = [element for element in hashtree.iterchildren() if element.tag == pattern]
+            assertion_elements = [element for element in hashtree.iterchildren() if element.tag == "XPathAssertion"]
             for assertion_element in assertion_elements:
                 assertion = {}
                 xpath_element = self._get_string_prop(assertion_element, 'XPath.xpath')
@@ -753,7 +754,7 @@ class JMXasDict(JMX):
                 tolerant = self._get_bool_prop(assertion_element, 'XPath.tolerant')
                 assertion["use-tolerant-parser"] = tolerant if tolerant else False
                 negate = self._get_bool_prop(assertion_element, 'XPath.negate')
-                assertion["use-tolerant-parser"] = negate if negate else False
+                assertion["negate"] = negate if negate else False
 
                 assertions.append(assertion)
 
