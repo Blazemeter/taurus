@@ -526,7 +526,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     def __set_tran_controller_parent_sample(self, jmx):
         jmx.set_text('TransactionController > boolProp[name="TransactionController.parent"]', 'true')
 
-
     def __get_modified_jmx(self, original, load):
         """
         add two listeners to test plan:
