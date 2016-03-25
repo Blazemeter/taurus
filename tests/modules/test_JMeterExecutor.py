@@ -713,6 +713,66 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.default']").text, "NV_JMETER")
         obj.log.removeHandler(handler)
 
+    def test_xpath_extractor(self):
+        obj = JMeterExecutor()
+        handler = RecordingHandler()
+        obj.log.addHandler(handler)
+        obj.engine = EngineEmul()
+        obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
+        obj.execution = obj.engine.config['execution']
+        obj.prepare()
+        target_jmx = os.path.join(obj.engine.artifacts_dir, "requests.jmx")
+        modified_xml_tree = etree.fromstring(open(target_jmx, "rb").read())
+        xpath_extractors = modified_xml_tree.findall(".//XPathExtractor")
+        self.assertEqual(2, len(xpath_extractors))
+
+        simplified = modified_xml_tree.find(".//XPathExtractor[@testname='Get xpath1']")
+        self.assertEqual(simplified.find(".//stringProp[@name='XPathExtractor.refname']").text, "xpath1")
+        self.assertEqual(simplified.find(".//stringProp[@name='XPathExtractor.xpathQuery']").text,
+                         "/html/head/title")
+        self.assertEqual(simplified.find(".//stringProp[@name='XPathExtractor.default']").text, "NOT_FOUND")
+        self.assertEqual(simplified.find(".//boolProp[@name='XPathExtractor.validate']").text, "false")
+        self.assertEqual(simplified.find(".//boolProp[@name='XPathExtractor.whitespace']").text, "false")
+        self.assertEqual(simplified.find(".//boolProp[@name='XPathExtractor.tolerant']").text, "false")
+
+        full_form = modified_xml_tree.find(".//XPathExtractor[@testname='Get xpath2']")
+        self.assertEqual(full_form.find(".//stringProp[@name='XPathExtractor.refname']").text, "xpath2")
+        self.assertEqual(full_form.find(".//stringProp[@name='XPathExtractor.xpathQuery']").text,
+                         "/html/head/base")
+        self.assertEqual(full_form.find(".//stringProp[@name='XPathExtractor.default']").text, "<no base>")
+        self.assertEqual(full_form.find(".//boolProp[@name='XPathExtractor.validate']").text, "true")
+        self.assertEqual(full_form.find(".//boolProp[@name='XPathExtractor.whitespace']").text, "true")
+        self.assertEqual(full_form.find(".//boolProp[@name='XPathExtractor.tolerant']").text, "true")
+        obj.log.removeHandler(handler)
+
+    def test_xpath_assertion(self):
+        obj = JMeterExecutor()
+        handler = RecordingHandler()
+        obj.log.addHandler(handler)
+        obj.engine = EngineEmul()
+        obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
+        obj.execution = obj.engine.config['execution']
+        obj.prepare()
+        target_jmx = os.path.join(obj.engine.artifacts_dir, "requests.jmx")
+        modified_xml_tree = etree.fromstring(open(target_jmx, "rb").read())
+        assertions = modified_xml_tree.findall(".//XPathAssertion")
+        self.assertEqual(2, len(assertions))
+
+        simplified = assertions[0]
+        self.assertEqual(simplified.find(".//stringProp[@name='XPath.xpath']").text, "/note/to")
+        self.assertEqual(simplified.find(".//boolProp[@name='XPath.validate']").text, "false")
+        self.assertEqual(simplified.find(".//boolProp[@name='XPath.whitespace']").text, "false")
+        self.assertEqual(simplified.find(".//boolProp[@name='XPath.tolerant']").text, "false")
+        self.assertEqual(simplified.find(".//boolProp[@name='XPath.negate']").text, "false")
+
+        full_form = assertions[1]
+        self.assertEqual(full_form.find(".//stringProp[@name='XPath.xpath']").text, "/note/from")
+        self.assertEqual(full_form.find(".//boolProp[@name='XPath.validate']").text, "true")
+        self.assertEqual(full_form.find(".//boolProp[@name='XPath.whitespace']").text, "true")
+        self.assertEqual(full_form.find(".//boolProp[@name='XPath.tolerant']").text, "true")
+        self.assertEqual(full_form.find(".//boolProp[@name='XPath.negate']").text, "true")
+        obj.log.removeHandler(handler)
+
     def test_shutdown_soft(self):
         obj = JMeterExecutor()
         log_recorder = RecordingHandler()
