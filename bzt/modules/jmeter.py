@@ -1252,7 +1252,7 @@ class JMeterScenarioBuilder(JMX):
                                                      cfg['xpath'],
                                                      cfg.get('default', 'NOT_FOUND'),
                                                      cfg.get('validate-xml', False),
-                                                     cfg.get('ignore-whitespace', False),
+                                                     cfg.get('ignore-whitespace', True),
                                                      cfg.get('use-tolerant-parser', False)))
             children.append(etree.Element("hashTree"))
 
@@ -1287,7 +1287,7 @@ class JMeterScenarioBuilder(JMX):
 
             component = JMX._get_xpath_assertion(assertion['xpath'],
                                                  assertion.get('validate-xml', False),
-                                                 assertion.get('ignore-whitespace', False),
+                                                 assertion.get('ignore-whitespace', True),
                                                  assertion.get('use-tolerant-parser', False),
                                                  assertion.get('invert', False))
             children.append(component)

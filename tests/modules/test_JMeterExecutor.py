@@ -732,7 +732,7 @@ class TestJMeterExecutor(BZTestCase):
                          "/html/head/title")
         self.assertEqual(simplified.find(".//stringProp[@name='XPathExtractor.default']").text, "NOT_FOUND")
         self.assertEqual(simplified.find(".//boolProp[@name='XPathExtractor.validate']").text, "false")
-        self.assertEqual(simplified.find(".//boolProp[@name='XPathExtractor.whitespace']").text, "false")
+        self.assertEqual(simplified.find(".//boolProp[@name='XPathExtractor.whitespace']").text, "true")
         self.assertEqual(simplified.find(".//boolProp[@name='XPathExtractor.tolerant']").text, "false")
 
         full_form = modified_xml_tree.find(".//XPathExtractor[@testname='Get xpath2']")
@@ -761,7 +761,7 @@ class TestJMeterExecutor(BZTestCase):
         simplified = assertions[0]
         self.assertEqual(simplified.find(".//stringProp[@name='XPath.xpath']").text, "/note/to")
         self.assertEqual(simplified.find(".//boolProp[@name='XPath.validate']").text, "false")
-        self.assertEqual(simplified.find(".//boolProp[@name='XPath.whitespace']").text, "false")
+        self.assertEqual(simplified.find(".//boolProp[@name='XPath.whitespace']").text, "true")
         self.assertEqual(simplified.find(".//boolProp[@name='XPath.tolerant']").text, "false")
         self.assertEqual(simplified.find(".//boolProp[@name='XPath.negate']").text, "false")
 

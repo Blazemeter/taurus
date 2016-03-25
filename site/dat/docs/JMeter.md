@@ -280,7 +280,7 @@ scenarios:
           xpath: /order/client/address
           default: NOT_FOUND
           validate-xml: false
-          ignore-whitespace: false
+          ignore-whitespace: true
           use-tolerant-parser: false
 ```
 
@@ -378,8 +378,8 @@ scenarios:
       assert-xpath:
       - xpath: "/html/head/title" # query
         use-tolerant-parser: false  # use error-tolerant XML parser
+        ignore-whitespace: true # ignore whitespaces in XML (has no effect when `use-tolerant-parser` is true)
         validate: false # validate XML against its schema (has no effect when `use-tolerant-parser` is true)
-        ignore-whitespace: false # ignore whitespaces in elements (has no effect when `use-tolerant-parser` is true)
         invert: false # invert condition
 ```
 
