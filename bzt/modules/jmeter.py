@@ -523,6 +523,15 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if resource_files_from_jmx and not self.distributed_servers:
             self.__modify_resources_paths_in_jmx(jmx.tree, resource_files_from_jmx)
 
+    def __set_tran_controller_parent_sample(self, jmx):
+        transactions = jmx.get('TransactionController')
+        for tran in transactions:
+            prop = tran.find('boolProp[@name="TransactionController.parent"]')
+            if prop is None:
+                tran.append(JMX._bool_prop("TransactionController.parent", True))
+            else:
+                prop.text = 'true'
+
     def __get_modified_jmx(self, original, load):
         """
         add two listeners to test plan:
@@ -550,6 +559,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.__apply_load_settings(jmx, load)
         self.__prepare_resources(jmx)
         self.__add_result_writers(jmx)
+        self.__set_tran_controller_parent_sample(jmx)
 
         prefix = "modified_" + os.path.basename(original)
         filename = self.engine.create_artifact(prefix, ".jmx")
