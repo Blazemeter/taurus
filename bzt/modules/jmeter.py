@@ -1245,6 +1245,18 @@ class JMeterScenarioBuilder(JMX):
             children.append(extractor)
             children.append(etree.Element("hashTree"))
 
+        xpath_extractors = req.config.get("extract-xpath", BetterDict())
+        for varname in xpath_extractors:
+            cfg = ensure_is_dict(xpath_extractors, varname, "xpath")
+            children.append(JMX._get_xpath_extractor(varname,
+                                                     cfg['xpath'],
+                                                     cfg.get('default', 'NOT_FOUND'),
+                                                     cfg.get('validate-xml', False),
+                                                     cfg.get('ignore-whitespace', True),
+                                                     cfg.get('use-tolerant-parser', False)))
+            children.append(etree.Element("hashTree"))
+
+
     def __add_assertions(self, children, req):
         assertions = req.config.get("assert", [])
         for idx, assertion in enumerate(assertions):
@@ -1268,6 +1280,19 @@ class JMeterScenarioBuilder(JMX):
                                                      assertion.get('invert', False), )
             children.append(component)
             children.append(etree.Element("hashTree"))
+
+        xpath_assertions = req.config.get("assert-xpath", [])
+        for idx, assertion in enumerate(xpath_assertions):
+            assertion = ensure_is_dict(xpath_assertions, idx, "xpath")
+
+            component = JMX._get_xpath_assertion(assertion['xpath'],
+                                                 assertion.get('validate-xml', False),
+                                                 assertion.get('ignore-whitespace', True),
+                                                 assertion.get('use-tolerant-parser', False),
+                                                 assertion.get('invert', False))
+            children.append(component)
+            children.append(etree.Element("hashTree"))
+
 
     def _get_merged_ci_headers(self, request, header):
 
