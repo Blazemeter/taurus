@@ -16,7 +16,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import time
+
 from bzt.engine import Provisioning
+from bzt.utils import dehumanize_time
 
 
 class Local(Provisioning):
@@ -32,20 +35,31 @@ class Local(Provisioning):
         for executor in self.executors:
             self.log.debug("Preparing executor: %s", executor)
             executor.prepare()
+            executor.delay = dehumanize_time(executor.execution.get('delay', '0'))
 
     def startup(self):
-        """
-        Call startup on executors
-        """
-        for executor in self.executors:
-            self.log.debug("Startup %s", executor)
-            executor.startup()
+        self.start_time = time.time()
+        return False
 
     def check(self):
         """
         Check executors for finish. Return True if all of them has finished.
         """
-        return self.__class__.check_modules_list(self.executors, True)
+        finished = True
+        cur_time = time.time()
+
+        for executor in self.executors:
+            if not executor.started:
+                if cur_time >= self.start_time + executor.delay:  # time to start executor
+                    executor.startup()
+                    executor.started = True
+                else:  # in progress: some executors haven't started yet
+                    finished = False
+
+            if executor.started:
+                finished &= executor.check()
+
+        return finished
 
     def shutdown(self):
         """

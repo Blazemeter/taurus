@@ -128,7 +128,6 @@ class Engine(object):
         """
         self.log.info("Starting...")
         try:
-            #self._startup()
             self._wait()
         except NormalShutdown as exc:
             self.log.debug("Normal shutdown called: %s", traceback.format_exc())
@@ -139,12 +138,25 @@ class Engine(object):
         finally:
             self._shutdown()
 
-    def _startup(self):
-        modules = self.services + [self.aggregator] + self.reporters + [self.provisioning]
-        for _module in modules:
-            _module.startup()
+    def __check_modules_list(self, modules):
+        """
+        Helper for bulk check
 
-        self.config.dump()
+        :type modules: list
+        :param require_all:
+        :param logger: logging.Logger
+        :return:
+        """
+        finished = False
+        for module in modules:
+            if not module.started:
+                self.log.debug("Startup %s", module)
+                module.startup()
+                module.started = True
+
+            self.log.debug("Checking %s", module)
+            finished |= module.check()
+        return finished
 
     def _wait(self):
         """
@@ -158,7 +170,7 @@ class Engine(object):
         if self.aggregator:
             modules.append(self.aggregator)
         modules += self.services + self.reporters
-        while not EngineModule.check_modules_list(modules):
+        while not self.__check_modules_list(modules):
             now = time.time()
             diff = now - prev
             delay = self.check_interval - diff
@@ -663,6 +675,8 @@ class EngineModule(object):
         self.settings = BetterDict()
         self.parameters = BetterDict()
         self.started = False
+        self.delay = 0
+        self.start_time = None
 
     def prepare(self):
         """
@@ -702,31 +716,6 @@ class EngineModule(object):
         Do all possibly long analysis and processing on run results
         """
         pass
-
-    @staticmethod
-    def check_modules_list(modules, require_all=False):
-        """
-        Helper for bulk check
-
-        :type modules: list
-        :param require_all:
-        :return:
-        """
-        finished = require_all
-        for module in modules:
-            if not module.started:
-                module.startup()
-                module.started = True
-                module_check = False
-            else:
-                logging.debug("Checking %s", module)
-                module_check = module.check()
-
-            if require_all:
-                finished &= module_check
-            else:
-                finished |= module_check
-        return finished
 
 
 class Provisioning(EngineModule):
