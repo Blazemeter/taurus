@@ -128,7 +128,7 @@ class Engine(object):
         """
         self.log.info("Starting...")
         try:
-            self._startup()
+            #self._startup()
             self._wait()
         except NormalShutdown as exc:
             self.log.debug("Normal shutdown called: %s", traceback.format_exc())
@@ -143,6 +143,7 @@ class Engine(object):
         modules = self.services + [self.aggregator] + self.reporters + [self.provisioning]
         for _module in modules:
             _module.startup()
+
         self.config.dump()
 
     def _wait(self):
@@ -150,7 +151,6 @@ class Engine(object):
         Wait modules for finish
         :return:
         """
-        self.log.info("Waiting for finish...")
         prev = time.time()
         modules = []
         if self.provisioning:
@@ -662,6 +662,7 @@ class EngineModule(object):
         self.engine = None
         self.settings = BetterDict()
         self.parameters = BetterDict()
+        self.started = False
 
     def prepare(self):
         """
@@ -713,11 +714,18 @@ class EngineModule(object):
         """
         finished = require_all
         for module in modules:
-            logging.debug("Checking %s", module)
-            if require_all:
-                finished &= module.check()
+            if not module.started:
+                module.startup()
+                module.started = True
+                module_check = False
             else:
-                finished |= module.check()
+                logging.debug("Checking %s", module)
+                module_check = module.check()
+
+            if require_all:
+                finished &= module_check
+            else:
+                finished |= module_check
         return finished
 
 
