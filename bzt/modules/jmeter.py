@@ -759,7 +759,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 sel = "[testname='%s']" % parts[0]  # TODO: support wildcards in element names
                 for add in parts[1:]:
                     sel += ">[name='%s']" % add
-                jmx.set_text(sel, text)
+                if not jmx.set_text(sel, text):
+                    self.log.warn("No elements matched for set-prop: %s", path)
 
     def __apply_enable_disable(self, modifs, action, jmx):
         items = modifs[action]

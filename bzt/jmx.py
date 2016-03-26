@@ -843,8 +843,12 @@ class JMX(object):
         :type text: str
         """
         items = self.get(sel)
+        res = 0
         for item in items:
             item.text = text_type(text)
+            res += 1
+
+        return res
 
     @staticmethod
     def _get_simple_controller(name):
