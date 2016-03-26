@@ -44,6 +44,8 @@ KNOWN_TAGS = ["hashTree", "jmeterTestPlan", "TestPlan", "ResultCollector",
               "HtmlExtractor",
               "com.atlantbh.jmeter.plugins.jsonutils.jsonpathextractor.JSONPathExtractor",
               "com.atlantbh.jmeter.plugins.jsonutils.jsonpathassertion.JSONPathAssertion",
+              "XPathAssertion",
+              "XPathExtractor",
               "ResponseAssertion",
               "CSVDataSet",
               "GenericController",
@@ -438,7 +440,7 @@ class JMXasDict(JMX):
 
     def _get_extractors(self, element):
         """
-        Gets jsonpath and regexp extractors
+        Gets xpath, jsonpath and regexp extractors
         :param element:
         :return:
         """
@@ -449,6 +451,9 @@ class JMXasDict(JMX):
         jsonpath_extractors = self._get_json_path_extractors(element)
         if jsonpath_extractors:
             extractors.update({"extract-jsonpath": jsonpath_extractors})
+        xpath_extractors = self._get_xpath_extractors(element)
+        if xpath_extractors:
+            extractors.update({"extract-xpath": xpath_extractors})
         self.log.debug('Got %s for extractors in %s (%s)', extractors, element.tag, element.get("testname"))
         return extractors
 
@@ -554,10 +559,61 @@ class JMXasDict(JMX):
 
         return json_path_extractors
 
+    def _get_xpath_extractors(self, element):
+        """
+        extract-xpath option
+        :param element:
+        :return:
+        """
+
+        extractors = {}
+
+        hashtree = element.getnext()
+        if hashtree is not None and hashtree.tag == "hashTree":
+            elements = [element for element in hashtree.iterchildren() if element.tag == "XPathExtractor"]
+            for element in elements:
+                extractor = {}
+                if element is not None:
+                    varname = self._get_string_prop(element, 'XPathExtractor.refname')
+                    if varname:
+                        props = {}
+                        xpath = self._get_string_prop(element, 'XPathExtractor.xpathQuery')
+
+                        if xpath:
+                            props["xpath"] = xpath
+                        else:
+                            self.log.warning("No xpath query found in %s, skipping element", element.tag)
+                            continue
+
+                        default = self._get_string_prop(element, 'XPathExtractor.default')
+
+                        if default:
+                            props["default"] = default
+                        else:
+                            self.log.warning("No default value found in %s", element.tag)
+                            props["default"] = ""
+
+                        validate = self._get_bool_prop(element, 'XPathExtractor.validate')
+                        props["validate-xml"] = validate if validate else False
+                        whitespace = self._get_bool_prop(element, 'XPathExtractor.whitespace')
+                        props["ignore-whitespace"] = whitespace if whitespace else False
+                        tolerant = self._get_bool_prop(element, 'XPathExtractor.tolerant')
+                        props["use-tolerant-parser"] = tolerant if tolerant else False
+
+                        extractor.update({varname: props})
+
+                    else:
+                        self.log.warning("Not found varname in %s, skipping", element.tag)
+                        continue
+
+                extractors.update(extractor)
+
+        return extractors
+
     def _get_assertions(self, element):
         """
         assertions:
-        assert, assert-jsonpath
+        assert, assert-jsonpath, assert-xpath
         :param element:
         :return:
         """
@@ -568,6 +624,9 @@ class JMXasDict(JMX):
         jsonpath_assertions = self._get_jsonpath_assertions(element)
         if jsonpath_assertions:
             assertions.update({"assert-jsonpath": jsonpath_assertions})
+        xpath_assertions = self._get_xpath_assertions(element)
+        if xpath_assertions:
+            assertions.update({"assert-xpath": xpath_assertions})
         self.log.debug('Got %s for assertions in %s (%s)', assertions, element.tag, element.get("testname"))
         return assertions
 
@@ -666,6 +725,40 @@ class JMXasDict(JMX):
                 json_path_assertions.append(json_path_assertion)
 
         return json_path_assertions
+
+    def _get_xpath_assertions(self, element):
+        """
+        assert-xpath option
+        :param element:
+        :return: list of dicts
+        """
+        assertions = []
+        hashtree = element.getnext()
+
+        if hashtree is not None and hashtree.tag == "hashTree":
+            assertion_elements = [element for element in hashtree.iterchildren() if element.tag == "XPathAssertion"]
+            for assertion_element in assertion_elements:
+                assertion = {}
+                xpath_element = self._get_string_prop(assertion_element, 'XPath.xpath')
+
+                if xpath_element:
+                    assertion["xpath"] = xpath_element
+                else:
+                    self.log.warning("No xpath in %s, skipping", assertion_element.tag)
+                    continue
+
+                validate = self._get_bool_prop(assertion_element, 'XPath.validate')
+                assertion["validate-xml"] = validate if validate else False
+                whitespace = self._get_bool_prop(assertion_element, 'XPath.whitespace')
+                assertion["ignore-whitespace"] = whitespace if whitespace else False
+                tolerant = self._get_bool_prop(assertion_element, 'XPath.tolerant')
+                assertion["use-tolerant-parser"] = tolerant if tolerant else False
+                invert = self._get_bool_prop(assertion_element, 'XPath.negate')
+                assertion["invert"] = invert if invert else False
+
+                assertions.append(assertion)
+
+        return assertions
 
     def process_tg(self, tg_etree_element):
         """
