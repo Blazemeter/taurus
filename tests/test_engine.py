@@ -1,8 +1,9 @@
 """ unit test """
 import os
+import time
 
-from bzt.utils import BetterDict, is_windows, EXE_SUFFIX
 from bzt.engine import ScenarioExecutor
+from bzt.utils import BetterDict, EXE_SUFFIX
 from tests import BZTestCase, __dir__, local_paths_config
 from tests.mocks import EngineEmul
 
@@ -13,6 +14,30 @@ class TestEngine(BZTestCase):
         self.obj = EngineEmul()
         self.paths = local_paths_config()
 
+    def test_delay(self):
+        configs = [__dir__() + "/../bzt/10-base.json",
+                   __dir__() + "/yaml/delay_0.yml",
+
+                   self.paths]
+        self.obj.configure(configs)
+        self.obj.prepare()
+        start0 = time.time()
+        self.obj.run()
+        finish0 = time.time()
+        self.obj.post_process()
+
+        configs = [__dir__() + "/../bzt/10-base.json",
+                   __dir__() + "/yaml/delay_1.yml",
+                   self.paths]
+        self.obj.configure(configs)
+        self.obj.prepare()
+        start1 = time.time()
+        self.obj.run()
+        finish1 = time.time()
+        self.obj.post_process()
+
+        self.assertTrue(finish1 - start1 > finish0 - start0)
+
     def test_requests(self):
         configs = [
             __dir__() + "/../bzt/10-base.json",
@@ -21,7 +46,6 @@ class TestEngine(BZTestCase):
             self.paths
         ]
         self.obj.configure(configs)
-        self.obj.prepare()
         self.obj.prepare()
         self.obj.run()
         self.obj.post_process()
