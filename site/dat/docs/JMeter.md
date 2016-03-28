@@ -168,6 +168,8 @@ scenarios:
     concurrent-pool-size: 4  # concurrent pool size for resources download, 4 by default
     use-dns-cache-mgr: true  # use DNS Cache Manager to test resources 
                              # behind dns load balancers. True by default.
+    force-parent-sample: true  # generate only parent sample for transaction controllers.
+                               # True by default
     data-sources: # list of external data sources
     - path/to/my.csv  # this is a shorthand form
     - path: path/to/another.csv  # this is full form, path option is required
@@ -390,7 +392,7 @@ You can tune JTL file verbosity with option `write-xml-jtl`. Possible values are
 ---
 execution
 - write-xml-jtl: full
-  scenario
+  scenario:
     script: my.jmx
 
 ```
