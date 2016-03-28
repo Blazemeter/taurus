@@ -524,7 +524,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.__modify_resources_paths_in_jmx(jmx.tree, resource_files_from_jmx)
 
     def __set_tran_controller_parent_sample(self, jmx):
-        jmx.set_text('TransactionController > boolProp[name="TransactionController.parent"]', 'true')
+        scenario = self.get_scenario()
+        if scenario.get("force-parent-sample", True):
+            self.log.debug("Enforcing parent sample for transaction controller")
+            jmx.set_text('TransactionController > boolProp[name="TransactionController.parent"]', 'true')
 
     def __get_modified_jmx(self, original, load):
         """
