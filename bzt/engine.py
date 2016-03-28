@@ -898,20 +898,21 @@ class ScenarioExecutor(EngineModule):
         return settings.get("hostaliases", {})
 
     def execute(self, args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False, env=None):
-        hosts_file = self.engine.create_artifact("hostaliases", "")
         aliases = self.get_hostaliases()
-        with open(hosts_file, 'w') as fds:
-            for key, value in iteritems(aliases):
-                fds.write("%s %s\n" % (key, value))
+        if aliases:
+            hosts_file = self.engine.create_artifact("hostaliases", "")
+            with open(hosts_file, 'w') as fds:
+                for key, value in iteritems(aliases):
+                    fds.write("%s %s\n" % (key, value))
 
         environ = BetterDict()
         environ.merge(dict(os.environ))
-        environ["HOSTALIASES"] = hosts_file
+        if aliases:
+            environ["HOSTALIASES"] = hosts_file
         if env is not None:
             environ.merge(env)
 
         return shell_exec(args, cwd=cwd, stdout=stdout, stderr=stderr, stdin=stdin, shell=shell, env=environ)
-
 
 class Reporter(EngineModule):
     """
