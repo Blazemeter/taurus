@@ -99,7 +99,7 @@ You can run different executions at different times with `delay` option:
 ```yaml
 ---
 execution:
-- councurrency: 10
+- concurrency: 10
   hold-for: 20
   scenario: main
 - concurrency: 20
