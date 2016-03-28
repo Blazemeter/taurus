@@ -66,7 +66,7 @@ class Engine(object):
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.config = Configuration()
         self.config.log = self.log.getChild(Configuration.__name__)
-        self.modules = {}   # available modules
+        self.modules = {}  # available modules
         self.work_mod_list = []
         self.provisioning = Provisioning()
         self.aggregator = EngineModule()  # FIXME: have issues with non-aggregator object set here
