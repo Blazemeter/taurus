@@ -26,7 +26,6 @@ class Local(Provisioning):
     """
     Local provisioning means we start all the tools locally
     """
-
     def __init__(self):
         super(Local, self).__init__()
         self.executor_stage = {'start': [], 'check': [], 'stop': []}
@@ -67,7 +66,7 @@ class Local(Provisioning):
         self._start_modules()
         for executor in self.executors:
             if executor in self.executor_stage['check']:
-                finished &= executor.check()1
+                finished &= executor.check()
             else:
                 finished = False
 
