@@ -26,6 +26,9 @@ class Local(Provisioning):
     """
     Local provisioning means we start all the tools locally
     """
+    def __init__(self):
+        super(Local, self).__init__()
+        self.executor_stage = {'start': [], 'check': [], 'stop': []}
 
     def prepare(self):
         """
@@ -35,29 +38,37 @@ class Local(Provisioning):
         for executor in self.executors:
             self.log.debug("Preparing executor: %s", executor)
             executor.prepare()
+
+            # TODO: move to executor - but where exactly?
             executor.delay = dehumanize_time(executor.execution.get('delay', '0'))
+            self.executor_stage['start'].append(executor)
 
     def startup(self):
         self.start_time = time.time()
-        return False
+
+    def _start_modules(self):
+        started = []
+        for executor in self.executor_stage['start']:
+            if time.time() >= self.start_time + executor.delay:  # time to start executor
+                executor.startup()
+                started.append(executor)
+        for executor in started:
+            self.executor_stage['start'].remove(executor)
+            self.executor_stage['check'].append(executor)
+            self.executor_stage['stop'].append(executor)
 
     def check(self):
         """
         Check executors for finish. Return True if all of them has finished.
         """
         finished = True
-        cur_time = time.time()
 
+        self._start_modules()
         for executor in self.executors:
-            if not executor.started:
-                if cur_time >= self.start_time + executor.delay:  # time to start executor
-                    executor.startup()
-                    executor.started = True
-                else:  # in progress: some executors haven't started yet
-                    finished = False
-
-            if executor.started:
+            if executor in self.executor_stage['check']:
                 finished &= executor.check()
+            else:
+                finished = False
 
         return finished
 
@@ -65,7 +76,7 @@ class Local(Provisioning):
         """
         Call shutdown on executors
         """
-        for executor in self.executors:
+        for executor in self.executor_stage['stop']:
             self.log.debug("Shutdown %s", executor)
             executor.shutdown()
 

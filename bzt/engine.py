@@ -66,7 +66,8 @@ class Engine(object):
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.config = Configuration()
         self.config.log = self.log.getChild(Configuration.__name__)
-        self.modules = {}
+        self.modules = {}   # available modules
+        self.work_mod_list = []
         self.provisioning = Provisioning()
         self.aggregator = EngineModule()  # FIXME: have issues with non-aggregator object set here
         self.interrupted = False
@@ -117,9 +118,22 @@ class Engine(object):
             self.__prepare_provisioning()
             self.__prepare_reporters()
             self.config.dump()
+
+            if self.provisioning:
+                self.work_mod_list.append(self.provisioning)
+            if self.aggregator:
+                self.work_mod_list.append(self.aggregator)
+            self.work_mod_list += self.services + self.reporters
+
         except BaseException as exc:
             self.stopping_reason = exc if not self.stopping_reason else self.stopping_reason
             raise
+
+    def _startup(self):
+
+        for module in self.work_mod_list:
+            self.log.debug("Startup %s", module)
+            module.startup()
 
     def run(self):
         """
@@ -128,6 +142,7 @@ class Engine(object):
         """
         self.log.info("Starting...")
         try:
+            self._startup()
             self._wait()
         except NormalShutdown as exc:
             self.log.debug("Normal shutdown called: %s", traceback.format_exc())
@@ -138,22 +153,9 @@ class Engine(object):
         finally:
             self._shutdown()
 
-    def __check_modules_list(self, modules):
-        """
-        Helper for bulk check
-
-        :type modules: list
-        :param require_all:
-        :param logger: logging.Logger
-        :return:
-        """
+    def _check_modules_list(self):
         finished = False
-        for module in modules:
-            if not module.started:
-                self.log.debug("Startup %s", module)
-                module.startup()
-                module.started = True
-
+        for module in self.work_mod_list:
             self.log.debug("Checking %s", module)
             finished |= module.check()
         return finished
@@ -164,13 +166,8 @@ class Engine(object):
         :return:
         """
         prev = time.time()
-        modules = []
-        if self.provisioning:
-            modules.append(self.provisioning)
-        if self.aggregator:
-            modules.append(self.aggregator)
-        modules += self.services + self.reporters
-        while not self.__check_modules_list(modules):
+
+        while not self._check_modules_list():
             now = time.time()
             diff = now - prev
             delay = self.check_interval - diff
@@ -190,10 +187,8 @@ class Engine(object):
         """
         self.log.info("Shutting down...")
         exception = None
-        modules = [self.provisioning, self.aggregator]
-        modules += self.reporters
-        modules += self.services
-        for module in modules:
+
+        for module in self.work_mod_list:
             try:
                 module.shutdown()
             except BaseException as exc:
@@ -213,9 +208,8 @@ class Engine(object):
         self.log.info("Post-processing...")
         # :type exception: BaseException
         exception = None
-        modules = [self.provisioning, self.aggregator] + self.reporters
-        modules += self.services
-        for module in modules:
+
+        for module in self.work_mod_list:
             try:
                 module.post_process()
             except KeyboardInterrupt as exc:
@@ -674,7 +668,6 @@ class EngineModule(object):
         self.engine = None
         self.settings = BetterDict()
         self.parameters = BetterDict()
-        self.started = False
         self.delay = 0
         self.start_time = None
 
