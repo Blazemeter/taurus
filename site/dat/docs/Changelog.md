@@ -4,7 +4,7 @@
  - add XPath extractors and assertions for JMeter
  - show warning if no element matched `set-prop` modification
  - do not create hostaliases file when aliases are not specified
- - force `parent sample` option for JMeter's transaction controllers
+ - add `force-parent-sample` option to JMeter executor
 
 ## 1.3.3 <sup>24 mar 2016</sup>
  - add new `hostaliases` setting for all executors
