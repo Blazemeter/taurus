@@ -100,7 +100,7 @@ You can run different executions at different times with `delay` option:
 ---
 execution:
 - councurrency: 10
-  hold-for 20
+  hold-for: 20
   scenario: main
 - concurrency: 20
   hold-for: 15
