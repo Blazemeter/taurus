@@ -26,9 +26,6 @@ class Local(Provisioning):
     """
     Local provisioning means we start all the tools locally
     """
-    def __init__(self):
-        super(Local, self).__init__()
-        self.executor_stage = {'start': [], 'check': [], 'stop': []}
 
     def prepare(self):
         """
@@ -38,24 +35,18 @@ class Local(Provisioning):
         for executor in self.executors:
             self.log.debug("Preparing executor: %s", executor)
             executor.prepare()
-
-            # TODO: move to executor - but where exactly?
+            self.engine.prepared.append(executor)
             executor.delay = dehumanize_time(executor.execution.get('delay', '0'))
-            self.executor_stage['start'].append(executor)
 
     def startup(self):
         self.start_time = time.time()
 
     def _start_modules(self):
-        started = []
-        for executor in self.executor_stage['start']:
-            if time.time() >= self.start_time + executor.delay:  # time to start executor
-                executor.startup()
-                started.append(executor)
-        for executor in started:
-            self.executor_stage['start'].remove(executor)
-            self.executor_stage['check'].append(executor)
-            self.executor_stage['stop'].append(executor)
+        for executor in self.executors:
+            if executor in self.engine.prepared and executor not in self.engine.started:
+                if time.time() >= self.start_time + executor.delay:  # time to start executor
+                    executor.startup()
+                    self.engine.started.append(executor)
 
     def check(self):
         """
@@ -65,7 +56,7 @@ class Local(Provisioning):
 
         self._start_modules()
         for executor in self.executors:
-            if executor in self.executor_stage['check']:
+            if executor in self.engine.started:
                 finished &= executor.check()
             else:
                 finished = False
@@ -76,14 +67,16 @@ class Local(Provisioning):
         """
         Call shutdown on executors
         """
-        for executor in self.executor_stage['stop']:
-            self.log.debug("Shutdown %s", executor)
-            executor.shutdown()
+        for executor in self.executors:
+            if executor in self.engine.started:
+                self.log.debug("Shutdown %s", executor)
+                executor.shutdown()
 
     def post_process(self):
         """
         Post-process executors
         """
         for executor in self.executors:
-            self.log.debug("Post-process %s", executor)
-            executor.post_process()
+            if executor in self.engine.prepared:
+                self.log.debug("Post-process %s", executor)
+                executor.post_process()

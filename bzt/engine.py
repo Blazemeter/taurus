@@ -67,13 +67,14 @@ class Engine(object):
         self.config = Configuration()
         self.config.log = self.log.getChild(Configuration.__name__)
         self.modules = {}  # available modules
-        self.work_mod_list = []
         self.provisioning = Provisioning()
         self.aggregator = EngineModule()  # FIXME: have issues with non-aggregator object set here
         self.interrupted = False
         self.check_interval = 1
         self.stopping_reason = None
         self.engine_loop_utilization = 0
+        self.prepared = []
+        self.started = []
 
     def configure(self, user_configs, read_config_files=True):
         """
@@ -119,21 +120,18 @@ class Engine(object):
             self.__prepare_reporters()
             self.config.dump()
 
-            if self.provisioning:
-                self.work_mod_list.append(self.provisioning)
-            if self.aggregator:
-                self.work_mod_list.append(self.aggregator)
-            self.work_mod_list += self.services + self.reporters
-
         except BaseException as exc:
             self.stopping_reason = exc if not self.stopping_reason else self.stopping_reason
             raise
 
     def _startup(self):
 
-        for module in self.work_mod_list:
+        modules = self.services + [self.aggregator] + self.reporters + [self.provisioning]
+        for module in modules:
             self.log.debug("Startup %s", module)
             module.startup()
+            self.started.append(module)
+        self.config.dump()
 
     def run(self):
         """
@@ -155,9 +153,11 @@ class Engine(object):
 
     def _check_modules_list(self):
         finished = False
-        for module in self.work_mod_list:
-            self.log.debug("Checking %s", module)
-            finished |= module.check()
+        modules = [self.provisioning, self.aggregator] + self.services + self.reporters
+        for module in modules:
+            if module in self.started:
+                self.log.debug("Checking %s", module)
+                finished |= module.check()
         return finished
 
     def _wait(self):
@@ -187,10 +187,11 @@ class Engine(object):
         """
         self.log.info("Shutting down...")
         exception = None
-
-        for module in self.work_mod_list:
+        modules = [self.provisioning, self.aggregator] + self.reporters + self.services
+        for module in modules:
             try:
-                module.shutdown()
+                if module in self.started:
+                    module.shutdown()
             except BaseException as exc:
                 self.log.error("Error while shutting down: %s", traceback.format_exc())
                 self.stopping_reason = exc if not self.stopping_reason else self.stopping_reason
@@ -208,10 +209,11 @@ class Engine(object):
         self.log.info("Post-processing...")
         # :type exception: BaseException
         exception = None
-
-        for module in self.work_mod_list:
+        modules = [self.provisioning, self.aggregator] + self.reporters + self.services
+        for module in modules:
             try:
-                module.post_process()
+                if module in self.prepared:
+                    module.post_process()
             except KeyboardInterrupt as exc:
                 self.log.error("Shutdown: %s", exc)
                 self.stopping_reason = exc if not self.stopping_reason else self.stopping_reason
@@ -435,6 +437,7 @@ class Engine(object):
             raise ValueError("Please configure provisioning settings")
         self.provisioning = self.instantiate_module(cls)
         self.provisioning.prepare()
+        self.prepared.append(self.provisioning)
 
     def __prepare_reporters(self):
         """
@@ -452,6 +455,7 @@ class Engine(object):
         # prepare reporters
         for module in self.reporters:
             module.prepare()
+            self.prepared.append(module)
 
     def __prepare_services(self):
         """
@@ -468,6 +472,7 @@ class Engine(object):
 
         for module in self.services:
             module.prepare()
+            self.prepared.append(module)
 
     def __prepare_aggregator(self):
         """
@@ -481,6 +486,7 @@ class Engine(object):
         else:
             self.aggregator = self.instantiate_module(cls)
         self.aggregator.prepare()
+        self.prepared.append(self.aggregator)
 
     def _set_up_proxy(self):
         proxy_settings = self.config.get("settings").get("proxy")
