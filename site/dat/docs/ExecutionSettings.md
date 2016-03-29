@@ -100,12 +100,12 @@ You can run different executions at different times with `delay` option:
 ---
 execution:
 - concurrency: 10
-  hold-for: 20
+  hold-for: 20s
   scenario: main
 - concurrency: 20
-  hold-for: 15
+  hold-for: 15s
   scenario: main
-  delay: 10
+  delay: 10s
 
 scenarios:
   main:
