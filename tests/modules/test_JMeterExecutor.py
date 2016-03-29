@@ -1012,6 +1012,44 @@ class TestJMeterExecutor(BZTestCase):
         })
         self.assertRaises(ValueError, obj.prepare)
 
+    def test_force_parent_sample(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config.merge({
+            'execution': {
+                'scenario': {
+                    'script': __dir__() + '/../jmx/transactions.jmx',
+                    # 'force-parent-sample' is True by default
+                }
+            }
+        })
+        obj.execution = obj.engine.config['execution']
+        obj.prepare()
+        jmx = JMX(obj.modified_jmx)
+        selector = 'TransactionController > boolProp[name="TransactionController.parent"]'
+        props = jmx.get(selector)
+        self.assertEqual(len(props), 2)
+        self.assertTrue(all(prop.text == 'true' for prop in props))
+
+    def test_disable_force_parent_sample(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config.merge({
+            'execution': {
+                'scenario': {
+                    'script': __dir__() + '/../jmx/transactions.jmx',
+                    'force-parent-sample': False,
+                }
+            }
+        })
+        obj.execution = obj.engine.config['execution']
+        obj.prepare()
+        jmx = JMX(obj.modified_jmx)
+        selector = 'TransactionController > boolProp[name="TransactionController.parent"]'
+        props = jmx.get(selector)
+        self.assertEqual(len(props), 2)
+        non_parent = props[1]
+        self.assertEqual(non_parent.text, 'false')
 
 class TestJMX(BZTestCase):
     def test_jmx_unicode_checkmark(self):
