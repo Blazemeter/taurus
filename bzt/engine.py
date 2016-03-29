@@ -125,7 +125,6 @@ class Engine(object):
             raise
 
     def _startup(self):
-
         modules = self.services + [self.aggregator] + self.reporters + [self.provisioning]
         for module in modules:
             self.log.debug("Startup %s", module)
