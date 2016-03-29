@@ -51,7 +51,7 @@ class TestCLI(BZTestCase):
         self.assertFalse(prov.was_shutdown)
         self.assertTrue(prov.was_postproc)
 
-    def test_aperform_start_err(self):
+    def test_perform_start_err(self):
         conf = __dir__() + "/json/mock_start_err.json"
         self.assertEquals(1, self.obj.perform([conf]))
 
