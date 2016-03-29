@@ -129,8 +129,8 @@ class Engine(object):
         modules = self.services + [self.aggregator] + self.reporters + [self.provisioning]
         for module in modules:
             self.log.debug("Startup %s", module)
-            module.startup()
             self.started.append(module)
+            module.startup()
         self.config.dump()
 
     def run(self):
@@ -436,8 +436,8 @@ class Engine(object):
         if not cls:
             raise ValueError("Please configure provisioning settings")
         self.provisioning = self.instantiate_module(cls)
-        self.provisioning.prepare()
         self.prepared.append(self.provisioning)
+        self.provisioning.prepare()
 
     def __prepare_reporters(self):
         """
@@ -454,8 +454,8 @@ class Engine(object):
 
         # prepare reporters
         for module in self.reporters:
-            module.prepare()
             self.prepared.append(module)
+            module.prepare()
 
     def __prepare_services(self):
         """
@@ -471,8 +471,8 @@ class Engine(object):
             self.services.append(instance)
 
         for module in self.services:
-            module.prepare()
             self.prepared.append(module)
+            module.prepare()
 
     def __prepare_aggregator(self):
         """
@@ -485,8 +485,8 @@ class Engine(object):
             self.aggregator = EngineModule()
         else:
             self.aggregator = self.instantiate_module(cls)
-        self.aggregator.prepare()
         self.prepared.append(self.aggregator)
+        self.aggregator.prepare()
 
     def _set_up_proxy(self):
         proxy_settings = self.config.get("settings").get("proxy")

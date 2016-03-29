@@ -2,7 +2,7 @@
 
 ## 1.3.3
  - add new `hostaliases` setting for all executors
- - add delay possibility to engine 
+ - add delay capability to engine 
 
 ## 1.3.2 <sup>23 mar 2016</sup>
  - fix lowercase hostname for JMeter HTTP request
