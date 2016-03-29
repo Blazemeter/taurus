@@ -16,7 +16,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import time
+
 from bzt.engine import Provisioning
+from bzt.utils import dehumanize_time
 
 
 class Local(Provisioning):
@@ -32,33 +35,48 @@ class Local(Provisioning):
         for executor in self.executors:
             self.log.debug("Preparing executor: %s", executor)
             executor.prepare()
+            self.engine.prepared.append(executor)
+            executor.delay = dehumanize_time(executor.execution.get('delay', '0'))
 
     def startup(self):
-        """
-        Call startup on executors
-        """
+        self.start_time = time.time()
+
+    def _start_modules(self):
         for executor in self.executors:
-            self.log.debug("Startup %s", executor)
-            executor.startup()
+            if executor in self.engine.prepared and executor not in self.engine.started:
+                if time.time() >= self.start_time + executor.delay:  # time to start executor
+                    executor.startup()
+                    self.engine.started.append(executor)
 
     def check(self):
         """
         Check executors for finish. Return True if all of them has finished.
         """
-        return self.__class__.check_modules_list(self.executors, True)
+        finished = True
+
+        self._start_modules()
+        for executor in self.executors:
+            if executor in self.engine.started:
+                finished &= executor.check()
+            else:
+                finished = False
+
+        return finished
 
     def shutdown(self):
         """
         Call shutdown on executors
         """
         for executor in self.executors:
-            self.log.debug("Shutdown %s", executor)
-            executor.shutdown()
+            if executor in self.engine.started:
+                self.log.debug("Shutdown %s", executor)
+                executor.shutdown()
 
     def post_process(self):
         """
         Post-process executors
         """
         for executor in self.executors:
-            self.log.debug("Post-process %s", executor)
-            executor.post_process()
+            if executor in self.engine.prepared:
+                self.log.debug("Post-process %s", executor)
+                executor.post_process()

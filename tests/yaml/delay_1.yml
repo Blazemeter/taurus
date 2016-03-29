@@ -1,0 +1,12 @@
+---
+execution:
+- concurrency: 1
+  hold-for: 1s
+  delay: 1
+  scenario: first
+
+scenarios:
+  first:
+    requests:
+    - url: http://blazedemo.com/index.php
+
