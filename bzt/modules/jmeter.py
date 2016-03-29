@@ -844,6 +844,12 @@ class JTLReader(ResultsReader):
         else:
             self.errors_reader = None
 
+    def finalize(self):
+        super(JTLReader, self).finalize()
+        self.csvreader.finalize()
+        if self.errors_reader:
+            self.errors_reader.finalize()
+
     def _read(self, last_pass=False):
         """
         Generator method that returns next portion of data
@@ -978,9 +984,12 @@ class IncrementalCSVReader(object):
         self.fds.seek(self.offset)
         return True
 
-    def __del__(self):
+    def finalize(self):
         if self.fds:
             self.fds.close()
+
+    def __del__(self):
+        self.finalize()
 
 
 class JTLErrorsReader(object):
@@ -1004,9 +1013,12 @@ class JTLErrorsReader(object):
         self.fds = None
         self.buffer = BetterDict()
 
-    def __del__(self):
+    def finalize(self):
         if self.fds:
             self.fds.close()
+
+    def __del__(self):
+        self.finalize()
 
     def read_file(self):
         """
