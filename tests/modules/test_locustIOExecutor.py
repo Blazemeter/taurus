@@ -142,3 +142,9 @@ class TestLocustIOExecutor(BZTestCase):
         })
         obj.prepare()
         self.assertRaises(RuntimeWarning, obj.post_process)
+
+    def test_slaves_reader_finalize(self):
+        obj = SlavesReader(__dir__() + "/../locust/locust-slaves.ldjson", 2, logging.getLogger(""))
+        _ = list(obj.datapoints(True))
+        obj.finalize()
+        self.assertTrue(obj.fds.closed)

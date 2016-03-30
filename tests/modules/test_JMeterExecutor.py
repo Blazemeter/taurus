@@ -1051,6 +1051,16 @@ class TestJMeterExecutor(BZTestCase):
         non_parent = props[1]
         self.assertEqual(non_parent.text, 'false')
 
+    def test_jtl_reader_finalize(self):
+        results_jtl = __dir__() + "/../data/tranctl.jtl"
+        errors_jtl = __dir__() + "/../data/standard-errors.jtl"
+        obj = JTLReader(results_jtl, logging.getLogger(''), errors_jtl)
+        _ = list(obj.datapoints(True))
+        obj.finalize()
+        self.assertTrue(obj.csvreader.fds.closed)
+        self.assertTrue(obj.errors_reader.fds.closed)
+
+
 class TestJMX(BZTestCase):
     def test_jmx_unicode_checkmark(self):
         obj = JMX()

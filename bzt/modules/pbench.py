@@ -570,6 +570,8 @@ class PBenchKPIReader(ResultsReader):
         return True
 
     def finalize(self):
+        if self.stats_reader:
+            self.stats_reader.finalize()
         if self.fds:
             self.log.debug("Finalizing PBenchKPIReader")
             self.fds.close()
