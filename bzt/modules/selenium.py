@@ -20,7 +20,9 @@ import subprocess
 import sys
 import time
 from abc import abstractmethod
+
 import urwid
+
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.console import WidgetProvider
@@ -328,6 +330,9 @@ class JUnitTester(AbstractTestRunner):
     """
 
     def __init__(self, junit_config, executor):
+        """
+        :type junit_config: BetterDict
+        """
         super(JUnitTester, self).__init__(junit_config, executor)
         self.props_file = junit_config['props-file']
         self.log = executor.log.getChild(self.__class__.__name__)
@@ -338,6 +343,7 @@ class JUnitTester(AbstractTestRunner):
         self.selenium_server_jar_path = path_lambda("selenium-server", "~/.bzt/selenium-taurus/selenium-server.jar")
         self.junit_listener_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), os.pardir, "resources",
                                                 "taurus-junit-1.0.jar")
+        self.target_java = str(junit_config.get("compile-target-java", "1.7"))
 
         self.base_class_path = [self.selenium_server_jar_path, self.junit_path, self.junit_listener_path,
                                 self.hamcrest_path]
@@ -386,7 +392,8 @@ class JUnitTester(AbstractTestRunner):
                     if os.path.splitext(test_file)[1].lower() == ".java":
                         java_files.append(os.path.join(dir_entry[0], test_file))
 
-        compile_cl = ["javac", "-cp", os.pathsep.join(self.base_class_path)]
+        compile_cl = ["javac", "-source", self.target_java, "-target", self.target_java, ]
+        compile_cl.extend(["-cp", os.pathsep.join(self.base_class_path)])
         compile_cl.extend(java_files)
 
         with open(os.path.join(self.artifacts_dir, "javac.out"), 'ab') as javac_out:
