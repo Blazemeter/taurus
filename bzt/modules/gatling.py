@@ -494,6 +494,11 @@ class DataLogReader(ResultsReader):
         self.fds = open(self.filename)
         return True
 
+    def finalize(self):
+        if self.fds:
+            self.log.debug("Finalizing Gatling.DataLogReader")
+            self.fds.close()
+
 
 class Gatling(RequiredTool):
     """

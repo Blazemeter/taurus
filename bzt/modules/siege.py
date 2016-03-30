@@ -154,7 +154,9 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider):
         If tool is still running - let's stop it.
         """
         shutdown_process(self.process, self.log)
-        if self.__out and not self.__out.closed:  # FIXME: this should happen in post_process
+
+    def post_process(self):
+        if self.__out and not self.__out.closed:
             self.__out.close()
         if self.__err and not self.__err.closed:
             self.__err.close()
@@ -200,7 +202,6 @@ class DataLogReader(ResultsReader):
 
         if last_pass:
             lines = self.fds.readlines()  # unlimited
-            self.fds.close()
         else:
             lines = self.fds.readlines(1024 * 1024)  # 1MB limit to read    git
 
@@ -230,6 +231,10 @@ class DataLogReader(ResultsReader):
 
             yield _tstamp, _url, _concur, _etime, _con_time, _latency, _rstatus, _error, ''
 
+    def finalize(self):
+        if self.fds:
+            self.log.debug("Finalizing Siege.DataLogReader")
+            self.fds.close()
 
 class Siege(RequiredTool):
     def __init__(self, tool_path, parent_logger):
