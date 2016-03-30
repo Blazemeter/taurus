@@ -37,8 +37,6 @@ class TestApacheBenchExecutor(BZTestCase):
         obj.post_process()
         self.assertNotEquals(obj.process, None)
 
-
-
     def test_no_request_exception(self):
         "Checks that executor.startup fails if there's no request specified."
         obj = ApacheBenchmarkExecutor()
@@ -130,3 +128,11 @@ class TestDataLogReader(BZTestCase):
         for values in list_of_values:
             self.assertTrue(1400000000 < values['ts'] < 1500000000)
             self.assertEqual(len(values), 5)
+
+    def test_finalize(self):
+        log_path = path.join(get_res_path('ab.tsv'))
+        obj = TSVDataReader(log_path, logging.getLogger(''))
+        _ = list(obj.datapoints(True))
+        obj.finalize()
+        self.assertTrue(obj.fds.closed)
+

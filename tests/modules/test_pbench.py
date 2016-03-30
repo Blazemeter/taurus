@@ -8,7 +8,7 @@ import yaml
 
 from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet, AggregatorListener
-from bzt.modules.pbench import PBenchExecutor, Scheduler
+from bzt.modules.pbench import PBenchExecutor, Scheduler, PBenchKPIReader
 from bzt.six import StringIO, parse
 from bzt.utils import BetterDict, is_windows
 from tests import BZTestCase, __dir__
@@ -235,6 +235,15 @@ if not is_windows():
             resource_files = obj.resource_files()
             self.assertEqual(1, len(resource_files))
             self.assertEqual(resource_files[0], 'script.src')
+
+        def test_kpi_reader_finalize(self):
+            kpi_file = __dir__() + "/../pbench/pbench-kpi.txt"
+            stats_file = __dir__() + "/../pbench/pbench-additional.ldjson"
+            obj = PBenchKPIReader(kpi_file, logging.getLogger(""), stats_file)
+            _ = list(obj.datapoints(True))
+            obj.finalize()
+            self.assertTrue(obj.fds.closed)
+            self.assertTrue(obj.stats_reader.fds.closed)
 
 
 class DataPointLogger(AggregatorListener):

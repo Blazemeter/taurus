@@ -126,3 +126,11 @@ class TestDataLogReader(BZTestCase):
         for values in list_of_values:
             self.assertTrue(1400000000 < values['ts'] < 1500000000)
             self.assertEqual(len(values), 5)
+
+    def test_finalize(self):
+        log_path = path.join(get_res_path('siege.out'))
+        obj = DataLogReader(log_path, logging.getLogger(''))
+        _ = list(obj.datapoints(True))
+        obj.finalize()
+        self.assertTrue(obj.fds.closed)
+

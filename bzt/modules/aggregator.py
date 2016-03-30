@@ -360,6 +360,10 @@ class ResultsProvider(object):
         """
         self.listeners.append(listener)
 
+    def finalize(self):
+        for listener in self.listeners:
+            listener.finalize()
+
     def __merge_to_cumulative(self, current):
         """
         Merge current KPISet to cumulative
@@ -554,6 +558,11 @@ class ConsolidatingAggregator(EngineModule, ResultsProvider):
             # underling.buffer_len = self.buffer_len  # NOTE: is it ok for underling to have the same buffer len?
         self.underlings.append(underling)
 
+    def finalize(self):
+        super(ConsolidatingAggregator, self).finalize()
+        for underling in self.underlings:
+            underling.finalize()
+
     def check(self):
         """
         Check if there is next aggregate data present
@@ -571,6 +580,7 @@ class ConsolidatingAggregator(EngineModule, ResultsProvider):
         super(ConsolidatingAggregator, self).post_process()
         for point in self.datapoints(True):
             self.log.debug("Processed datapoint: %s/%s", point[DataPoint.TIMESTAMP], point[DataPoint.SOURCE_ID])
+        self.finalize()
 
     def _process_underlings(self, final_pass):
         for underling in self.underlings:

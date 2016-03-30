@@ -844,6 +844,12 @@ class JTLReader(ResultsReader):
         else:
             self.errors_reader = None
 
+    def finalize(self):
+        super(JTLReader, self).finalize()
+        self.csvreader.finalize()
+        if self.errors_reader:
+            self.errors_reader.finalize()
+
     def _read(self, last_pass=False):
         """
         Generator method that returns next portion of data
@@ -978,8 +984,9 @@ class IncrementalCSVReader(object):
         self.fds.seek(self.offset)
         return True
 
-    def __del__(self):
+    def finalize(self):
         if self.fds:
+            self.log.debug("Finalizing IncrementalCSVReader")
             self.fds.close()
 
 
@@ -1003,10 +1010,6 @@ class JTLErrorsReader(object):
         self.filename = filename
         self.fds = None
         self.buffer = BetterDict()
-
-    def __del__(self):
-        if self.fds:
-            self.fds.close()
 
     def read_file(self):
         """
@@ -1168,6 +1171,11 @@ class JTLErrorsReader(object):
         for child in elem:
             if child.tag == tag:
                 return child.text
+
+    def finalize(self):
+        if self.fds:
+            self.log.debug("Finalizing JTLErrorsReader")
+            self.fds.close()
 
 
 class JMeterScenarioBuilder(JMX):

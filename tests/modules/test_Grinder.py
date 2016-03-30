@@ -107,3 +107,10 @@ class TestDataLogReader(BZTestCase):
         obj = DataLogReader(log_path, logging.getLogger(''))
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 10)
+
+    def test_finalize(self):
+        log_path = os.path.join(os.path.dirname(__file__), '..', 'grinder', 'grinder-bzt-kpi.log')
+        obj = DataLogReader(log_path, logging.getLogger(''))
+        _ = list(obj.datapoints(True))
+        obj.finalize()
+        self.assertTrue(obj.fds.closed)

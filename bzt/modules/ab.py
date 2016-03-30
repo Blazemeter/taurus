@@ -167,13 +167,17 @@ class TSVDataReader(ResultsReader):
 
         return True
 
+    def finalize(self):
+        if self.fds:
+            self.log.debug("Finalizing TSVDataReader")
+            self.fds.close()
+
     def _read(self, last_pass=False):
         while not self.fds and not self.__open_fds():
             self.log.debug("No data to start reading yet")
             yield None
         if last_pass:
             lines = self.fds.readlines()
-            self.fds.close()
         else:
             lines = self.fds.readlines(1024 * 1024)
 
