@@ -229,8 +229,9 @@ class SlavesReader(ResultsProvider):
                 max_full_ts = int(key)
         return max_full_ts
 
-    def __del__(self):
+    def finalize(self):
         if self.fds:
+            self.log.debug("Finalizing SlavesReader")
             self.fds.close()
 
     def __open_file(self):

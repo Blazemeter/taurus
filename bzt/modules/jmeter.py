@@ -986,10 +986,8 @@ class IncrementalCSVReader(object):
 
     def finalize(self):
         if self.fds:
+            self.log.debug("Finalizing IncrementalCSVReader")
             self.fds.close()
-
-    def __del__(self):
-        self.finalize()
 
 
 class JTLErrorsReader(object):
@@ -1012,13 +1010,6 @@ class JTLErrorsReader(object):
         self.filename = filename
         self.fds = None
         self.buffer = BetterDict()
-
-    def finalize(self):
-        if self.fds:
-            self.fds.close()
-
-    def __del__(self):
-        self.finalize()
 
     def read_file(self):
         """
@@ -1180,6 +1171,11 @@ class JTLErrorsReader(object):
         for child in elem:
             if child.tag == tag:
                 return child.text
+
+    def finalize(self):
+        if self.fds:
+            self.log.debug("Finalizing JTLErrorsReader")
+            self.fds.close()
 
 
 class JMeterScenarioBuilder(JMX):

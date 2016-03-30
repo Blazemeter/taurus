@@ -569,8 +569,9 @@ class PBenchKPIReader(ResultsReader):
         self.csvreader = csv.DictReader(self.fds, fields, dialect=dialect)
         return True
 
-    def __del__(self):
+    def finalize(self):
         if self.fds:
+            self.log.debug("Finalizing PBenchKPIReader")
             self.fds.close()
 
 
@@ -626,8 +627,9 @@ class PBenchStatsReader(object):
             self.log.debug("No active instances info for %s", tstmp)
             return 0
 
-    def __del__(self):
+    def finalize(self):
         if self.fds:
+            self.log.debug("Finalizing PBenchStatsReader")
             self.fds.close()
 
 
