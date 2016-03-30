@@ -314,7 +314,6 @@ class OriginalPBenchTool(PBenchTool):
                         sfd.write("%s %s %s%s" % (payload_len, int(1000 * time_offset), marker, self.NL))
                         sfd.write("%s%s" % (payload, self.NL))
 
-
     def _get_source(self, load):
         return 'source_t source_log = source_log_t { filename = "%s" }' % self.schedule_file
 
@@ -500,8 +499,8 @@ class PBenchKPIReader(ResultsReader):
         :type last_pass: bool
         """
 
-        def mcs2sec(x):
-            return int(int(x) / 1000.0) / 1000.0
+        def mcs2sec(val):
+            return int(int(val) / 1000.0) / 1000.0
 
         if self.stats_reader:
             self.stats_reader.read_file(last_pass)
