@@ -2,7 +2,7 @@
 execution:
 - concurrency: 1
   hold-for: 1s
-  delay: 1
+  delay: 2
   scenario: first
 
 scenarios:

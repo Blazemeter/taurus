@@ -27,7 +27,7 @@ class TestEngine(BZTestCase):
         self.obj.post_process()
 
         configs = [__dir__() + "/../bzt/10-base.json",
-                   __dir__() + "/yaml/delay_1.yml",
+                   __dir__() + "/yaml/delay_2.yml",
                    self.paths]
         self.obj.configure(configs)
         self.obj.prepare()
