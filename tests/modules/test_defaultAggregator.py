@@ -1,6 +1,6 @@
 """ test """
-import time
 import logging
+import time
 
 from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet
 from tests import BZTestCase, r, rc, err
@@ -85,37 +85,36 @@ class TestDefaultAggregator(BZTestCase):
 
         buffer_len = mock.buffer_len
         for i in range(5):
-            mock.data.append((100+i, "", 1, 2, 2, 2, 200, None, ''))
+            mock.data.append((100 + i, "", 1, 2, 2, 2, 200, None, ''))
         points = list(mock.datapoints())
         points = list(mock.datapoints())
         self.assertTrue(mock.buffer_len > buffer_len)
         buffer_len = mock.buffer_len
 
         for i in range(10):
-            mock.data.append((200+i, "", 1, 3, 3, 3, 200, None, ''))
+            mock.data.append((200 + i, "", 1, 3, 3, 3, 200, None, ''))
         points = list(mock.datapoints())
         points = list(mock.datapoints())
         self.assertTrue(mock.buffer_len > buffer_len)
         buffer_len = mock.buffer_len
 
         for i in range(20):
-            mock.data.append((300+i, "", 1, 4, 4, 4, 200, None, ''))
+            mock.data.append((300 + i, "", 1, 4, 4, 4, 200, None, ''))
         points = list(mock.datapoints())
         points = list(mock.datapoints())
         self.assertTrue(mock.buffer_len > buffer_len)
         buffer_len = mock.buffer_len
 
         for i in range(15):
-            mock.data.append((400+i, "", 1, 1, 1, 1, 200, None, ''))
+            mock.data.append((400 + i, "", 1, 1, 1, 1, 200, None, ''))
         points = list(mock.datapoints())
         points = list(mock.datapoints())
         self.assertTrue(mock.buffer_len <= buffer_len)
         buffer_len = mock.buffer_len
 
         for i in range(30):
-            mock.data.append((500+i, "", 1, 1, 1, 1, 200, None, ''))
+            mock.data.append((500 + i, "", 1, 1, 1, 1, 200, None, ''))
         points = list(mock.datapoints())
         points = list(mock.datapoints())
         self.assertTrue(mock.buffer_len < buffer_len)
         pass
-
