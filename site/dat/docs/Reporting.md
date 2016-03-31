@@ -194,10 +194,13 @@ modules:
     generalize-labels: false  # replace digits and UUID sequences 
                               # with N and U to decrease label count
     ignore-labels: # sample labels from this list 
-                   # will be ignored by results reader
-      - ignore
-    buffer-seconds: 2  # this buffer is used to wait 
-                       # for complete data within a second
+      - ignore     # will be ignored by results reader
+      
+    buffer-multiplier: 0.5  # choose middle value from following percentiles list (95.0)
+    buffer-scale-choice: 2  # make buffer two times bigger than need to receive 95% samples      
+    min-buffer-len: 2s      # minimal length of buffer (default: 2s)
+    max-buffer-len: 2h      # maximal length of buffer (default: infinity)
+        
     percentiles:  # percentile levels to track, 
                   # 0 also means min, 100 also means max 
     - 0.0
@@ -209,5 +212,4 @@ modules:
     - 100.0
 ```
 
-Note that increasing `buffer-seconds` might sometimes make results aggregation more robust, by price of delaying analysis.
 

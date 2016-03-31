@@ -8,8 +8,9 @@ class TestConsolidatingAggregator(BZTestCase):
     def test_mock(self):
         # check mock reader
         reader = self.get_reader()
-        first = [x for x in reader.datapoints()]
-        second = [x for x in reader.datapoints(True)]
+        reader.buffer_scale_idx = '90.0'
+        first = list(reader.datapoints())
+        second = list(reader.datapoints(True))
         self.assertEquals([1, 2, 3, 4], [x[DataPoint.TIMESTAMP] for x in first])
         self.assertEquals([5, 6], [x[DataPoint.TIMESTAMP] for x in second])
         for point in first + second:
@@ -18,7 +19,6 @@ class TestConsolidatingAggregator(BZTestCase):
 
     def test_merging(self):
         dst = DataPoint(0)
-
         src = DataPoint(0)
         src[DataPoint.CUMULATIVE].get('', KPISet())
         src[DataPoint.CUMULATIVE][''].sum_rt = 0.5
@@ -43,8 +43,8 @@ class TestConsolidatingAggregator(BZTestCase):
     def test_two_executions(self):
         # check consolidator
         obj = ConsolidatingAggregator()
-        obj.prepare()
         obj.track_percentiles = [0, 50, 100]
+        obj.prepare()
         underling1 = self.get_reader()
         underling2 = self.get_reader()
         obj.add_underling(underling1)
