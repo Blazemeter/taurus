@@ -230,6 +230,10 @@ class DataLogReader(ResultsReader):
 
             yield _tstamp, _url, _concur, _etime, _con_time, _latency, _rstatus, _error, ''
 
+    def __del__(self):
+        if self.fds:
+            self.fds.close()
+
 
 class Siege(RequiredTool):
     def __init__(self, tool_path, parent_logger):

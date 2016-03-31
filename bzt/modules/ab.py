@@ -167,6 +167,10 @@ class TSVDataReader(ResultsReader):
 
         return True
 
+    def __del__(self):
+        if self.fds:
+            self.fds.close()
+
     def _read(self, last_pass=False):
         while not self.fds and not self.__open_fds():
             self.log.debug("No data to start reading yet")
