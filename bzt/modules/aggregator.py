@@ -356,7 +356,7 @@ class ResultsProvider(object):
         self.min_buffer_len = 2
         self.max_buffer_len = float('inf')
         self.buffer_multiplier = 2
-        self.buffer_scale_idx = '100.0'
+        self.buffer_scale_idx = None
 
     def add_listener(self, listener):
         """
@@ -565,23 +565,25 @@ class ConsolidatingAggregator(EngineModule, ResultsProvider):
         max_buffer_len = self.settings.get("max-buffer-len", self.max_buffer_len)
         try:  # for max_buffer_len == float('inf')
             self.max_buffer_len = dehumanize_time(max_buffer_len)
-        except ValueError as ve:
-            if str(ve).find('inf') != -1:
+        except ValueError as verr:
+            if str(verr).find('inf') != -1:
                 self.max_buffer_len = max_buffer_len
             else:
-                raise ve
+                raise
 
         self.buffer_multiplier = self.settings.get("buffer-multiplier", self.buffer_multiplier)
 
         percentile = self.settings.get("buffer-scale-choice", 0.5)
         count = len(self.track_percentiles)
         if count == 1:
-            self.buffer_scale_idx = str(self.track_percentiles[0])
+            index_position = 0
         if count > 1:
             percentiles = [i / (count - 1.0) for i in range(count)]
             distances = [abs(percentile - percentiles[i]) for i in range(count)]
             index_position = distances.index(min(distances))
-            self.buffer_scale_idx = str(self.track_percentiles[index_position])
+
+        self.buffer_scale_idx = str(float(self.track_percentiles[index_position]))
+
         debug_str = 'Buffer scaling setup: percentile %s from %s selected'
         self.log.debug(debug_str, self.buffer_scale_idx, self.track_percentiles)
 

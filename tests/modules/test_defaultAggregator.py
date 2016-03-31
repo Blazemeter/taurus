@@ -12,12 +12,14 @@ class TestDefaultAggregator(BZTestCase):
         super(TestDefaultAggregator, self).setUp()
         self.obj = ResultsReader()
         self.obj.track_percentiles = [25, 50, 75, 80, 90, 95, 99, 99.9, 100]
+        self.obj.buffer_scale_idx = str(float(self.obj.track_percentiles[-1]))
         self.obj.buffer_len = 1
 
     def test_1(self):
         obj = self.obj
 
         mock = MockReader()
+        mock.buffer_scale_idx = '100.0'
         mock.data.append((1, "", 1, r(), r(), r(), 200, None, ''))
         mock.data.append((2, "", 1, r(), r(), r(), 200, None, ''))
         mock.data.append((2, "", 1, r(), r(), r(), 200, None, ''))
@@ -48,7 +50,7 @@ class TestDefaultAggregator(BZTestCase):
         obj = self.obj
 
         mock = MockReader()
-
+        mock.buffer_scale_idx = '100.0'
         obj.add_listener(mock)
 
         res = {}
@@ -109,7 +111,7 @@ class TestDefaultAggregator(BZTestCase):
             mock.data.append((400 + i, "", 1, 1, 1, 1, 200, None, ''))
         points = list(mock.datapoints())
         points = list(mock.datapoints())
-        self.assertTrue(mock.buffer_len <= buffer_len)
+        self.assertTrue(mock.buffer_len < buffer_len)
         buffer_len = mock.buffer_len
 
         for i in range(30):
