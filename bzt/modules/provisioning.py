@@ -17,6 +17,8 @@ limitations under the License.
 """
 
 import time
+import datetime
+
 
 from bzt.engine import Provisioning
 from bzt.utils import dehumanize_time
@@ -26,20 +28,54 @@ class Local(Provisioning):
     """
     Local provisioning means we start all the tools locally
     """
+    def _get_start_shift(self, shift):
+        if shift == '':
+            return 0
+
+        date = None
+        user_time_format = self.settings.get('time-format', '')
+        if user_time_format:
+            time_formats = [user_time_format]
+        else:
+            time_formats = ['%Y-%m-%d %H:%M:%S',
+                            '%Y-%m-%d %H:%M',
+                            '%H:%M:%S',
+                            '%H:%M']
+        for time_format in time_formats:
+            try:
+                date = datetime.datetime.strptime(shift, time_format)
+            except ValueError:
+                continue
+            except TypeError:
+                self.log.warning('Start time must be a string type, ignored')
+                break
+            today = datetime.date.today()
+            if today > date.date():
+                date = datetime.datetime(today.year, today.month, today.day, date.hour, date.minute, date.second)
+            return time.mktime(date.timetuple()) - self.start_time
+        else:
+            self.log.warning('Unrecognized time format: %s, ignored', shift)
+
+        return 0
 
     def prepare(self):
         """
         Call prepare on executors
         """
         super(Local, self).prepare()
+
+        self.start_time = time.time()
+
         for executor in self.executors:
             self.log.debug("Preparing executor: %s", executor)
             executor.prepare()
             self.engine.prepared.append(executor)
-            executor.delay = dehumanize_time(executor.execution.get('delay', '0'))
+
+            start_shift = self._get_start_shift(executor.execution.get('start-at', ''))
+            executor.delay = dehumanize_time(executor.execution.get('delay', '0')) + start_shift
 
     def startup(self):
-        self.start_time = time.time()
+        pass
 
     def _start_modules(self):
         for executor in self.executors:
