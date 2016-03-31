@@ -18,7 +18,6 @@ limitations under the License.
 import csv
 import fnmatch
 import json
-import logging
 import os
 import re
 import shutil
@@ -523,7 +522,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if resource_files_from_jmx and not self.distributed_servers:
             self.__modify_resources_paths_in_jmx(jmx.tree, resource_files_from_jmx)
 
-    def __set_tran_controller_parent_sample(self, jmx):
+    def __force_tran_parent_sample(self, jmx):
         scenario = self.get_scenario()
         if scenario.get("force-parent-sample", True):
             self.log.debug("Enforcing parent sample for transaction controller")
@@ -556,7 +555,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.__apply_load_settings(jmx, load)
         self.__prepare_resources(jmx)
         self.__add_result_writers(jmx)
-        self.__set_tran_controller_parent_sample(jmx)
+        self.__force_tran_parent_sample(jmx)
 
         prefix = "modified_" + os.path.basename(original)
         filename = self.engine.create_artifact(prefix, ".jmx")
@@ -1033,6 +1032,7 @@ class JTLErrorsReader(object):
 
         self.offset = self.fds.tell()
         for _action, elem in self.parser.read_events():
+            del _action
             if elem.getparent() is not None and elem.getparent().tag == 'testResults':
                 if elem.get('s'):
                     result = elem.get('s')
@@ -1264,7 +1264,6 @@ class JMeterScenarioBuilder(JMX):
                                                      cfg.get('use-tolerant-parser', False)))
             children.append(etree.Element("hashTree"))
 
-
     def __add_assertions(self, children, req):
         assertions = req.config.get("assert", [])
         for idx, assertion in enumerate(assertions):
@@ -1301,14 +1300,12 @@ class JMeterScenarioBuilder(JMX):
             children.append(component)
             children.append(etree.Element("hashTree"))
 
-
-    def _get_merged_ci_headers(self, request, header):
-
+    def _get_merged_ci_headers(self, req, header):
         def dic_lower(dic):
             return {k.lower(): dic[k].lower() for k in dic}
 
         ci_scenario_headers = dic_lower(self.scenario.get_headers())
-        ci_request_headers = dic_lower(request.headers)
+        ci_request_headers = dic_lower(req.headers)
         headers = BetterDict()
         headers.merge(ci_scenario_headers)
         headers.merge(ci_request_headers)
@@ -1403,7 +1400,7 @@ class JMeterScenarioBuilder(JMX):
                 delimiter = guess_csv_dialect(header).delimiter
             except BaseException as exc:
                 self.log.debug(traceback.format_exc())
-                self.log.warning('CSV dialect detection failed (%s), default delimiter selected (",")' % str(exc))
+                self.log.warning('CSV dialect detection failed (%s), default delimiter selected (",")', exc)
                 delimiter = ","  # default value
 
         return delimiter

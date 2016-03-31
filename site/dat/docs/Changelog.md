@@ -5,6 +5,8 @@
  - show warning if no element matched `set-prop` modification
  - do not create hostaliases file when aliases are not specified
  - add `force-parent-sample` option to JMeter executor
+ - add `compile-target-java` option for Selenium
+ - add dynamic buffer scaling ability to ResultsReader  
 
 ## 1.3.3 <sup>24 mar 2016</sup>
  - add new `hostaliases` setting for all executors

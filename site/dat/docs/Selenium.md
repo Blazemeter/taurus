@@ -30,7 +30,8 @@ modules:
         path: ~/.bzt/selenium-taurus/tools/junit/junit.jar  # path to JUnit framework
         selenium-server: ~/.bzt/selenium-taurus/selenium-server.jar  # path to Selenium Standalone Server
         jar-name: compiled.jar,  # set name of jar file when compiling from java source files 
-        working-dir: classes  # set name of runner working directory within artifacts dir     
+        working-dir: classes  # set name of runner working directory within artifacts dir
+        compile-target-java: 1.7  # -source and -target option value for javac
 ```
 
 ## Python Unittest Runner
