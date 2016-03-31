@@ -344,6 +344,10 @@ class DataLogReader(ResultsReader):
             self.idx[field.strip()] = _ix
         return True
 
+    def __del__(self):
+        if self.fds:
+            self.fds.close()
+
 
 class Grinder(RequiredTool):
     def __init__(self, tool_path, parent_logger, version):
