@@ -561,7 +561,15 @@ class ConsolidatingAggregator(EngineModule, ResultsProvider):
         self.generalize_labels = self.settings.get("generalize-labels", self.generalize_labels)
 
         self.min_buffer_len = dehumanize_time(self.settings.get("min-buffer-len", self.min_buffer_len))
-        self.max_buffer_len = dehumanize_time(self.settings.get("max-buffer-len", self.max_buffer_len))
+
+        max_buffer_len = self.settings.get("max-buffer-len", self.max_buffer_len)
+        try:  # for max_buffer_len == float('inf')
+            self.max_buffer_len = dehumanize_time(max_buffer_len)
+        except ValueError as ve:
+            if ve.message.find('inf') != -1:
+                self.max_buffer_len = max_buffer_len
+            else:
+                raise ve
 
         self.buffer_multiplier = self.settings.get("buffer-multiplier", self.buffer_multiplier)
 
