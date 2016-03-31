@@ -656,10 +656,24 @@ class TaurusNosePlugin(RequiredTool):
 class NoseTest(object):
     IMPORTS = """import unittest
 import re
-from time import sleep
+from contextlib import contextmanager
+from time import time, sleep
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import NoAlertPresentException
+"""
+    UTILS = """
+@contextmanager
+def wait_for_page_load(browser, timeout=30.0):
+    old_page = browser.find_element_by_tag_name('html')
+    yield
+    start_time = time()
+    while time() < start_time + timeout:
+        new_page = browser.find_element_by_tag_name('html')
+        if new_page.id != old_page.id:
+            break
+        else:
+            sleep(0.05)
 """
 
     def __init__(self):
@@ -670,6 +684,11 @@ from selenium.common.exceptions import NoAlertPresentException
         imports = etree.Element("imports")
         imports.text = NoseTest.IMPORTS
         return imports
+
+    def add_utils(self):
+        utils = etree.Element("utils")
+        utils.text = NoseTest.UTILS
+        return utils
 
     def gen_class_definition(self, class_name, inherits_from, indent="0"):
         def_tmpl = "class {class_name}({inherits_from}):"
@@ -700,6 +719,8 @@ class SeleniumScriptBuilder(NoseTest):
         self.log.debug("Generating Test Case test method")
         imports = self.add_imports()
         self.root.append(imports)
+        utils = self.add_utils()
+        self.root.append(utils)
         test_class = self.gen_class_definition("TestRequests", ["unittest.TestCase"])
         self.root.append(test_class)
         test_class.append(self.gen_setup_method())
@@ -715,7 +736,8 @@ class SeleniumScriptBuilder(NoseTest):
             if req.timeout is not None:
                 test_method.append(self.gen_impl_wait(req.timeout))
 
-            test_method.append(self.gen_method_statement("self.driver.get('%s')" % req.url))
+            test_method.append(self.gen_method_statement("with wait_for_page_load(self.driver):"))
+            test_method.append(self.gen_method_statement("self.driver.get('%s')" % req.url, indent="12"))
             think_time = req.think_time if req.think_time else self.scenario.get("think-time", None)
 
             if think_time is not None:
