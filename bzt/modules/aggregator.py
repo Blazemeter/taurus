@@ -576,13 +576,12 @@ class ConsolidatingAggregator(EngineModule, ResultsProvider):
         percentile = self.settings.get("buffer-scale-choice", 0.5)
         count = len(self.track_percentiles)
         if count == 1:
-            index_position = 0
+            self.buffer_scale_idx = str(float(self.track_percentiles[0]))
         if count > 1:
             percentiles = [i / (count - 1.0) for i in range(count)]
             distances = [abs(percentile - percentiles[i]) for i in range(count)]
             index_position = distances.index(min(distances))
-
-        self.buffer_scale_idx = str(float(self.track_percentiles[index_position]))
+            self.buffer_scale_idx = str(float(self.track_percentiles[index_position]))
 
         debug_str = 'Buffer scaling setup: percentile %s from %s selected'
         self.log.debug(debug_str, self.buffer_scale_idx, self.track_percentiles)
