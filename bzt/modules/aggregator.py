@@ -24,7 +24,7 @@ from collections import Counter
 
 from bzt.engine import EngineModule
 from bzt.six import iteritems
-from bzt.utils import BetterDict
+from bzt.utils import BetterDict, dehumanize_time
 
 
 class KPISet(BetterDict):
@@ -422,9 +422,6 @@ class ResultsReader(ResultsProvider):
         self.min_timestamp = 0
         self.track_percentiles = perc_levels
 
-        self._d_count = 0
-        self._d_count_ok = 0
-
     def __process_readers(self, final_pass=False):
         """
 
@@ -441,12 +438,8 @@ class ResultsReader(ResultsProvider):
                 if label in self.ignored_labels:
                     continue
                 if t_stamp < self.min_timestamp:
-                    self.log.warning("Putting sample %s into %s _d_#%s", t_stamp, self.min_timestamp, self._d_count)
-                    self._d_count += 1
-
+                    self.log.warning("Putting sample %s into %s", t_stamp, self.min_timestamp)
                     t_stamp = self.min_timestamp
-                else:
-                    self._d_count_ok += 1
 
                 if t_stamp not in self.buffer:
                     self.buffer[t_stamp] = []
@@ -492,17 +485,10 @@ class ResultsReader(ResultsProvider):
             return
 
         if self.cumulative and self.track_percentiles:
-            _d_oldbuf = self.buffer_len
             self.buffer_len = self.cumulative[''][KPISet.PERCENTILES][self.buffer_scale_idx]
 
             self.buffer_len = max(self.min_buffer_len, self.buffer_len)
             self.buffer_len = min(self.max_buffer_len, self.buffer_len)
-
-            self.log.debug('_d_ buffer_len: %s', self.buffer_len)
-
-            if self.buffer_len != _d_oldbuf:
-                _d_rel = int(self._d_count * 100000.0 / (self._d_count + self._d_count_ok)) / 1000.0
-                self.log.error('miss. %s (%s/%s) [%ss]', _d_rel, self._d_count, self._d_count_ok, self.buffer_len)
 
         timestamps = sorted(self.buffer.keys())
         while final_pass or (timestamps[-1] >= (timestamps[0] + self.buffer_len)):
@@ -574,8 +560,8 @@ class ConsolidatingAggregator(EngineModule, ResultsProvider):
         self.ignored_labels = self.settings.get("ignore-labels", self.ignored_labels)
         self.generalize_labels = self.settings.get("generalize-labels", self.generalize_labels)
 
-        self.min_buffer_len = self.settings.get("min-buffer-len", self.min_buffer_len)
-        self.max_buffer_len = self.settings.get("max-buffer-len", self.max_buffer_len)
+        self.min_buffer_len = dehumanize_time(self.settings.get("min-buffer-len", self.min_buffer_len))
+        self.max_buffer_len = dehumanize_time(self.settings.get("max-buffer-len", self.max_buffer_len))
 
         self.buffer_multiplier = self.settings.get("buffer-multiplier", self.buffer_multiplier)
 
