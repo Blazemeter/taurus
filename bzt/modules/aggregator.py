@@ -566,7 +566,7 @@ class ConsolidatingAggregator(EngineModule, ResultsProvider):
         try:  # for max_buffer_len == float('inf')
             self.max_buffer_len = dehumanize_time(max_buffer_len)
         except ValueError as ve:
-            if ve.message.find('inf') != -1:
+            if str(ve).find('inf') != -1:
                 self.max_buffer_len = max_buffer_len
             else:
                 raise ve
