@@ -57,7 +57,7 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         self.pbench.generate_payload(self.get_scenario())
         self.pbench.generate_schedule(self.get_load())
-        self.pbench.generate_config(self.get_scenario(), self.get_load())
+        self.pbench.generate_config(self.get_scenario(), self.get_load(), self.get_hostaliases())
         self.pbench.check_config()
 
     def startup(self):
@@ -115,6 +115,7 @@ class PBenchTool(object):
         """
         super(PBenchTool, self).__init__()
         self.log = base_logger.getChild(self.__class__.__name__)
+        self.executor = executor
         self.engine = executor.engine
         self.settings = executor.settings
         self.execution = executor.execution
@@ -131,7 +132,7 @@ class PBenchTool(object):
         self.port = 80
         self._target = {"scheme": None, "netloc": None}
 
-    def generate_config(self, scenario, load):
+    def generate_config(self, scenario, load, hostaliases):
         self.kpi_file = self.engine.create_artifact("pbench-kpi", ".txt")
         self.stats_file = self.engine.create_artifact("pbench-additional", ".ldjson")
         self.config_file = self.engine.create_artifact('pbench', '.conf')
@@ -146,6 +147,10 @@ class PBenchTool(object):
         threads = 1 if psutil.cpu_count() < 2 else (psutil.cpu_count() - 1)
         threads = int(self.execution.get("worker-threads", threads))
 
+        if self.hostname in hostaliases:
+            address = hostaliases[self.hostname]
+        else:
+            address = socket.gethostbyname(self.hostname)
         params = {
             "modules_path": self.modules_path,
             "threads": threads,
@@ -156,7 +161,7 @@ class PBenchTool(object):
             "source": self._get_source(load),
             "ssl": self.SSL_STR if self.use_ssl else "",
             "reply_limits": "",  # TODO
-            "address": socket.gethostbyname(self.hostname),
+            "address": address,
             "port": self.port,
             "timeout": timeout,
             "instances": instances,
@@ -197,7 +202,10 @@ class PBenchTool(object):
         stdout = sys.stdout if not isinstance(sys.stdout, StringIO) else None
         stderr = sys.stderr if not isinstance(sys.stderr, StringIO) else None
         try:
-            self.process = shell_exec(cmdline, cwd=self.engine.artifacts_dir, stdout=stdout, stderr=stderr)
+            self.process = self.executor.execute(cmdline,
+                                                 cwd=self.engine.artifacts_dir,
+                                                 stdout=stdout,
+                                                 stderr=stderr)
         except OSError as exc:
             self.log.error("Failed to start phantom-benchmark utility: %s", traceback.format_exc())
             self.log.error("Failed command: %s", cmdline)
@@ -305,7 +313,6 @@ class OriginalPBenchTool(PBenchTool):
 
                         sfd.write("%s %s %s%s" % (payload_len, int(1000 * time_offset), marker, self.NL))
                         sfd.write("%s%s" % (payload, self.NL))
-
 
     def _get_source(self, load):
         return 'source_t source_log = source_log_t { filename = "%s" }' % self.schedule_file
@@ -492,8 +499,8 @@ class PBenchKPIReader(ResultsReader):
         :type last_pass: bool
         """
 
-        def mcs2sec(x):
-            return int(int(x) / 1000.0) / 1000.0
+        def mcs2sec(val):
+            return int(int(val) / 1000.0) / 1000.0
 
         if self.stats_reader:
             self.stats_reader.read_file(last_pass)

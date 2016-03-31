@@ -18,7 +18,6 @@ limitations under the License.
 import csv
 import fnmatch
 import json
-import logging
 import os
 import re
 import shutil
@@ -161,7 +160,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.start_time = time.time()
         try:
             # FIXME: muting stderr and stdout is bad
-            self.process = shell_exec(cmdline, stderr=None, cwd=self.engine.artifacts_dir)
+            self.process = self.execute(cmdline, stderr=None, cwd=self.engine.artifacts_dir)
         except OSError as exc:
             self.log.error("Failed to start JMeter: %s", traceback.format_exc())
             self.log.error("Failed command: %s", cmdline)
@@ -523,6 +522,12 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if resource_files_from_jmx and not self.distributed_servers:
             self.__modify_resources_paths_in_jmx(jmx.tree, resource_files_from_jmx)
 
+    def __force_tran_parent_sample(self, jmx):
+        scenario = self.get_scenario()
+        if scenario.get("force-parent-sample", True):
+            self.log.debug("Enforcing parent sample for transaction controller")
+            jmx.set_text('TransactionController > boolProp[name="TransactionController.parent"]', 'true')
+
     def __get_modified_jmx(self, original, load):
         """
         add two listeners to test plan:
@@ -550,6 +555,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.__apply_load_settings(jmx, load)
         self.__prepare_resources(jmx)
         self.__add_result_writers(jmx)
+        self.__force_tran_parent_sample(jmx)
 
         prefix = "modified_" + os.path.basename(original)
         filename = self.engine.create_artifact(prefix, ".jmx")
@@ -759,7 +765,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 sel = "[testname='%s']" % parts[0]  # TODO: support wildcards in element names
                 for add in parts[1:]:
                     sel += ">[name='%s']" % add
-                jmx.set_text(sel, text)
+                if not jmx.set_text(sel, text):
+                    self.log.warn("No elements matched for set-prop: %s", path)
 
     def __apply_enable_disable(self, modifs, action, jmx):
         items = modifs[action]
@@ -1025,6 +1032,7 @@ class JTLErrorsReader(object):
 
         self.offset = self.fds.tell()
         for _action, elem in self.parser.read_events():
+            del _action
             if elem.getparent() is not None and elem.getparent().tag == 'testResults':
                 if elem.get('s'):
                     result = elem.get('s')
@@ -1245,6 +1253,17 @@ class JMeterScenarioBuilder(JMX):
             children.append(extractor)
             children.append(etree.Element("hashTree"))
 
+        xpath_extractors = req.config.get("extract-xpath", BetterDict())
+        for varname in xpath_extractors:
+            cfg = ensure_is_dict(xpath_extractors, varname, "xpath")
+            children.append(JMX._get_xpath_extractor(varname,
+                                                     cfg['xpath'],
+                                                     cfg.get('default', 'NOT_FOUND'),
+                                                     cfg.get('validate-xml', False),
+                                                     cfg.get('ignore-whitespace', True),
+                                                     cfg.get('use-tolerant-parser', False)))
+            children.append(etree.Element("hashTree"))
+
     def __add_assertions(self, children, req):
         assertions = req.config.get("assert", [])
         for idx, assertion in enumerate(assertions):
@@ -1269,13 +1288,24 @@ class JMeterScenarioBuilder(JMX):
             children.append(component)
             children.append(etree.Element("hashTree"))
 
-    def _get_merged_ci_headers(self, request, header):
+        xpath_assertions = req.config.get("assert-xpath", [])
+        for idx, assertion in enumerate(xpath_assertions):
+            assertion = ensure_is_dict(xpath_assertions, idx, "xpath")
 
+            component = JMX._get_xpath_assertion(assertion['xpath'],
+                                                 assertion.get('validate-xml', False),
+                                                 assertion.get('ignore-whitespace', True),
+                                                 assertion.get('use-tolerant-parser', False),
+                                                 assertion.get('invert', False))
+            children.append(component)
+            children.append(etree.Element("hashTree"))
+
+    def _get_merged_ci_headers(self, req, header):
         def dic_lower(dic):
             return {k.lower(): dic[k].lower() for k in dic}
 
         ci_scenario_headers = dic_lower(self.scenario.get_headers())
-        ci_request_headers = dic_lower(request.headers)
+        ci_request_headers = dic_lower(req.headers)
         headers = BetterDict()
         headers.merge(ci_scenario_headers)
         headers.merge(ci_request_headers)
@@ -1370,7 +1400,7 @@ class JMeterScenarioBuilder(JMX):
                 delimiter = guess_csv_dialect(header).delimiter
             except BaseException as exc:
                 self.log.debug(traceback.format_exc())
-                self.log.warning('CSV dialect detection failed (%s), default delimiter selected (",")' % str(exc))
+                self.log.warning('CSV dialect detection failed (%s), default delimiter selected (",")', exc)
                 delimiter = ","  # default value
 
         return delimiter

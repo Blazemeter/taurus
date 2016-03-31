@@ -19,13 +19,13 @@ limitations under the License.
 import logging
 import time
 from math import ceil
-from os import environ, path
+from os import path
 
 from bzt.engine import ScenarioExecutor, Scenario
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.six import iteritems
-from bzt.utils import shell_exec, shutdown_process, BetterDict, RequiredTool, dehumanize_time
+from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time
 
 
 class SiegeExecutor(ScenarioExecutor, WidgetProvider):
@@ -121,12 +121,10 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider):
         for key, val in iteritems(self.scenario.get_headers()):
             args += ['--header', "%s: %s" % (key, val)]
 
-        env = BetterDict()
-        env.merge(dict(environ))
-        env.merge({"SIEGERC": self.__rc_name})
+        env = {"SIEGERC": self.__rc_name}
         self.start_time = time.time()
 
-        self.process = shell_exec(args, stdout=self.__out, stderr=self.__err, env=env)
+        self.process = self.execute(args, stdout=self.__out, stderr=self.__err, env=env)
 
     def check(self):
         if self.widget:

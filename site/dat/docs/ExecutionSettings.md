@@ -93,6 +93,26 @@ execution:
 - scenario: get-requests
 ```
 
+## Startup delay
+
+You can run different executions at different times with `delay` option:
+```yaml
+---
+execution:
+- concurrency: 10
+  hold-for: 20s
+  scenario: main
+- concurrency: 20
+  hold-for: 15s
+  scenario: main
+  delay: 10s
+
+scenarios:
+  main:
+    requests:
+    - http://blazedemo.com/
+```
+By this way, the first execution works 10 seconds, then two executions will work 10 seconds together, then the first will stop and the second will complete its work in 5 seconds.   
 
 ## Additional Files
 

@@ -168,6 +168,8 @@ scenarios:
     concurrent-pool-size: 4  # concurrent pool size for resources download, 4 by default
     use-dns-cache-mgr: true  # use DNS Cache Manager to test resources 
                              # behind dns load balancers. True by default.
+    force-parent-sample: true  # generate only parent sample for transaction controllers.
+                               # True by default
     data-sources: # list of external data sources
     - path/to/my.csv  # this is a shorthand form
     - path: path/to/another.csv  # this is full form, path option is required
@@ -221,7 +223,15 @@ scenarios:
 
 ### Extractors
 
-Extractors are the objects that attached to request to take a piece of the response and use it in following requests. The concept is based on JMeter's extractors. Right now, three types of the extractors are supported: by regular expression, by JSONPath expression and by CSS/JQuery selectors. To specify extractors in shorthand form, use following config:
+Extractors are the objects that attached to request to take a piece of the response and use it in following requests.
+The concept is based on JMeter's extractors. The following types of extractors are supported:
+
+- by regular expression
+- by JSONPath expression
+- by CSS/JQuery selectors
+- by XPath query
+
+To specify extractors in shorthand form, use following configuration:
 
 ```yaml
 ---
@@ -236,6 +246,9 @@ scenarios:
     - http://blazedemo.com/${varname}/${page_title}  # that's how we use those variables
       extract-css-jquery: # dictionary under it has form <var name>: <CSS/JQuery selector>
         extractor1: input[name~=my_input]
+    - http://blazedemo.com/${varname}/${extractor1}.xml
+      extract-xpath:
+        title: /html/head/title
 ```
 
 The full form for extractors is:
@@ -263,12 +276,22 @@ scenarios:
           attribute: value
           match-no: 1
           default: NOT_FOUND
+    - http://blazedemo.com/${varname}/${extractor2}.xml
+      extract-xpath:
+        destination:
+          xpath: /order/client/address
+          default: NOT_FOUND
+          validate-xml: false
+          ignore-whitespace: true
+          use-tolerant-parser: false
 ```
 
 ### Assertions
 
-Assertions are attached to request elements and used to set fail status on the response. Fail status for the responseis not the same as response code for JMeter.
-Currently two types of response assertions are available.
+Assertions are attached to request elements and used to set fail status on the response. Fail status for the response is
+not the same as response code for JMeter.
+Currently three types of response assertions are available.
+
 First one checks http response fields, its short form looks like this:
 
 ```yaml
@@ -332,13 +355,44 @@ scenarios:
         expect-null: false  # expected value is null
         invert: false # invert condition
 ```
+
+And the third assertion type uses XPath query to validate XML response.
+
+```yaml
+---
+scenarios:
+  assertion-demo:
+    requests:
+    - url: http://blazedemo.com/
+      assert-xpath:  # contains list of xpath queries
+        - "/bookstore/book"  # if this XPath won't be matched, assert will fail
+        - "/html/head/title" # you can provide multiple XPath queries
+```
+
+Full form:
+
+```yaml
+---
+scenarios:
+  my-req:
+    requests:
+    - url: http://blazedemo.com/
+      assert-xpath:
+      - xpath: "/html/head/title" # query
+        use-tolerant-parser: false  # use error-tolerant XML parser
+        ignore-whitespace: true # ignore whitespaces in XML (has no effect when `use-tolerant-parser` is true)
+        validate: false # validate XML against its schema (has no effect when `use-tolerant-parser` is true)
+        invert: false # invert condition
+```
+
+
 ### Jmeter Test Log
 You can tune JTL file verbosity with option `write-xml-jtl`. Possible values are 'error' (default), 'full', or any other value for 'none'. Keep in mind: max verbosity can seriously load your system.
 ```yaml
 ---
 execution
 - write-xml-jtl: full
-  scenario
+  scenario:
     script: my.jmx
 
 ```

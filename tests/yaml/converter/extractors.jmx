@@ -241,6 +241,25 @@
         <stringProp name="SUBJECT">BODY</stringProp>
       </com.atlantbh.jmeter.plugins.jsonutils.jsonpathextractor.JSONPathExtractor>
       <hashTree/>
+      <XPathExtractor guiclass="XPathExtractorGui" testclass="XPathExtractor" testname="global_xpath_extractor" enabled="true">
+        <stringProp name="XPathExtractor.default">no_author</stringProp>
+        <stringProp name="XPathExtractor.refname">bookAuthor</stringProp>
+        <stringProp name="XPathExtractor.xpathQuery">/books/[@title()=&apos;1984&apos;]/author</stringProp>
+        <boolProp name="XPathExtractor.validate">false</boolProp>
+        <boolProp name="XPathExtractor.tolerant">false</boolProp>
+        <boolProp name="XPathExtractor.namespace">false</boolProp>
+      </XPathExtractor>
+      <hashTree/>
+      <XPathExtractor guiclass="XPathExtractorGui" testclass="XPathExtractor" testname="global_xpath_extractor2" enabled="true">
+        <stringProp name="XPathExtractor.default">no</stringProp>
+        <stringProp name="XPathExtractor.refname">author</stringProp>
+        <stringProp name="XPathExtractor.xpathQuery">/books/[@title()=&apos;Fahrenheit 451&apos;]/author</stringProp>
+        <boolProp name="XPathExtractor.validate">true</boolProp>
+        <boolProp name="XPathExtractor.tolerant">false</boolProp>
+        <boolProp name="XPathExtractor.namespace">false</boolProp>
+        <boolProp name="XPathExtractor.whitespace">true</boolProp>
+      </XPathExtractor>
+      <hashTree/>
     </hashTree>
   </hashTree>
 </jmeterTestPlan>

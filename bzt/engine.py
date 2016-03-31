@@ -35,8 +35,9 @@ from yaml.representer import SafeRepresenter
 import bzt
 from bzt import ManualShutdown, NormalShutdown, get_configs_dir
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, build_opener, \
-    install_opener, urlopen, request, numeric_types
-from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time
+    install_opener, urlopen, request, numeric_types, iteritems
+from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, PIPE, \
+    shell_exec
 
 SETTINGS = "settings"
 
@@ -65,13 +66,15 @@ class Engine(object):
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.config = Configuration()
         self.config.log = self.log.getChild(Configuration.__name__)
-        self.modules = {}
+        self.modules = {}  # available modules
         self.provisioning = Provisioning()
         self.aggregator = EngineModule()  # FIXME: have issues with non-aggregator object set here
         self.interrupted = False
         self.check_interval = 1
         self.stopping_reason = None
         self.engine_loop_utilization = 0
+        self.prepared = []
+        self.started = []
 
     def configure(self, user_configs, read_config_files=True):
         """
@@ -116,9 +119,18 @@ class Engine(object):
             self.__prepare_provisioning()
             self.__prepare_reporters()
             self.config.dump()
+
         except BaseException as exc:
             self.stopping_reason = exc if not self.stopping_reason else self.stopping_reason
             raise
+
+    def _startup(self):
+        modules = self.services + [self.aggregator] + self.reporters + [self.provisioning]
+        for module in modules:
+            self.log.debug("Startup %s", module)
+            self.started.append(module)
+            module.startup()
+        self.config.dump()
 
     def run(self):
         """
@@ -138,26 +150,23 @@ class Engine(object):
         finally:
             self._shutdown()
 
-    def _startup(self):
-        modules = self.services + [self.aggregator] + self.reporters + [self.provisioning]
-        for _module in modules:
-            _module.startup()
-        self.config.dump()
+    def _check_modules_list(self):
+        finished = False
+        modules = [self.provisioning, self.aggregator] + self.services + self.reporters
+        for module in modules:
+            if module in self.started:
+                self.log.debug("Checking %s", module)
+                finished |= module.check()
+        return finished
 
     def _wait(self):
         """
         Wait modules for finish
         :return:
         """
-        self.log.info("Waiting for finish...")
         prev = time.time()
-        modules = []
-        if self.provisioning:
-            modules.append(self.provisioning)
-        if self.aggregator:
-            modules.append(self.aggregator)
-        modules += self.services + self.reporters
-        while not EngineModule.check_modules_list(modules):
+
+        while not self._check_modules_list():
             now = time.time()
             diff = now - prev
             delay = self.check_interval - diff
@@ -177,12 +186,11 @@ class Engine(object):
         """
         self.log.info("Shutting down...")
         exception = None
-        modules = [self.provisioning, self.aggregator]
-        modules += self.reporters
-        modules += self.services
+        modules = [self.provisioning, self.aggregator] + self.reporters + self.services
         for module in modules:
             try:
-                module.shutdown()
+                if module in self.started:
+                    module.shutdown()
             except BaseException as exc:
                 self.log.error("Error while shutting down: %s", traceback.format_exc())
                 self.stopping_reason = exc if not self.stopping_reason else self.stopping_reason
@@ -200,11 +208,11 @@ class Engine(object):
         self.log.info("Post-processing...")
         # :type exception: BaseException
         exception = None
-        modules = [self.provisioning, self.aggregator] + self.reporters
-        modules += self.services
+        modules = [self.provisioning, self.aggregator] + self.reporters + self.services
         for module in modules:
             try:
-                module.post_process()
+                if module in self.prepared:
+                    module.post_process()
             except KeyboardInterrupt as exc:
                 self.log.error("Shutdown: %s", exc)
                 self.stopping_reason = exc if not self.stopping_reason else self.stopping_reason
@@ -427,6 +435,7 @@ class Engine(object):
         if not cls:
             raise ValueError("Please configure provisioning settings")
         self.provisioning = self.instantiate_module(cls)
+        self.prepared.append(self.provisioning)
         self.provisioning.prepare()
 
     def __prepare_reporters(self):
@@ -444,6 +453,7 @@ class Engine(object):
 
         # prepare reporters
         for module in self.reporters:
+            self.prepared.append(module)
             module.prepare()
 
     def __prepare_services(self):
@@ -460,6 +470,7 @@ class Engine(object):
             self.services.append(instance)
 
         for module in self.services:
+            self.prepared.append(module)
             module.prepare()
 
     def __prepare_aggregator(self):
@@ -473,6 +484,7 @@ class Engine(object):
             self.aggregator = EngineModule()
         else:
             self.aggregator = self.instantiate_module(cls)
+        self.prepared.append(self.aggregator)
         self.aggregator.prepare()
 
     def _set_up_proxy(self):
@@ -661,6 +673,8 @@ class EngineModule(object):
         self.engine = None
         self.settings = BetterDict()
         self.parameters = BetterDict()
+        self.delay = 0
+        self.start_time = None
 
     def prepare(self):
         """
@@ -700,24 +714,6 @@ class EngineModule(object):
         Do all possibly long analysis and processing on run results
         """
         pass
-
-    @staticmethod
-    def check_modules_list(modules, require_all=False):
-        """
-        Helper for bulk check
-
-        :type modules: list
-        :param require_all:
-        :return:
-        """
-        finished = require_all
-        for module in modules:
-            logging.debug("Checking %s", module)
-            if require_all:
-                finished &= module.check()
-            else:
-                finished |= module.check()
-        return finished
 
 
 class Provisioning(EngineModule):
@@ -892,6 +888,26 @@ class ScenarioExecutor(EngineModule):
     def __repr__(self):
         return "%s/%s" % (self.execution.get("executor", None), self._label if self._label else id(self))
 
+    def get_hostaliases(self):
+        settings = self.engine.config.get(SETTINGS, {})
+        return settings.get("hostaliases", {})
+
+    def execute(self, args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False, env=None):
+        aliases = self.get_hostaliases()
+        if aliases:
+            hosts_file = self.engine.create_artifact("hostaliases", "")
+            with open(hosts_file, 'w') as fds:
+                for key, value in iteritems(aliases):
+                    fds.write("%s %s\n" % (key, value))
+
+        environ = BetterDict()
+        environ.merge(dict(os.environ))
+        if aliases:
+            environ["HOSTALIASES"] = hosts_file
+        if env is not None:
+            environ.merge(env)
+
+        return shell_exec(args, cwd=cwd, stdout=stdout, stderr=stderr, stdin=stdin, shell=shell, env=environ)
 
 class Reporter(EngineModule):
     """

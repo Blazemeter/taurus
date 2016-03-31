@@ -105,8 +105,7 @@ settings:
     username: user  # username and password used if authentication is configured on proxy server
     password: 12345
   check-updates: true  # check for newer version of Taurus on startup
-``` 
-
+```
 
 ## Human-Readable Time Specifications
 All time specifications in Taurus configs, including timeouts and durations, are _always_ expressed in unit of _seconds_.
@@ -211,4 +210,31 @@ After all config files loaded, Taurus will also merge into resulting configurati
 included-configs:  # it must be a list of string values
 - additional-local-file.yml  # to add local file just set its path
 - http://central.host/mystorage/remote.yml  # you can also download config from http/https location
+```
+
+
+## Host Aliases
+
+It is possible to add local hostname aliases in test execution environment. Aliases are defined in pairs:
+(alias, target hostname).
+
+There are a few limitations about using `hostaliases` setting:
+1. Alias name *cannot* contain dots.
+2. You should point your HTTP requests to alias address.
+3. You should also manually set `Host` HTTP header to target address.
+
+
+Here's an example of using `hostaliases`:
+```yaml
+---
+execution:
+- scenario:
+    requests:
+      - url: http://staging-env/
+        headers:
+          Host: mytarget.server.com
+
+settings:
+  hostaliases:
+    staging-env: 192.168.1.3
 ```

@@ -24,7 +24,7 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.six import iteritems
-from bzt.utils import shell_exec, MirrorsManager, BetterDict
+from bzt.utils import shell_exec, MirrorsManager
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, TclLibrary
 
 
@@ -167,14 +167,11 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.stdout_file = open(out, "w")
         self.stderr_file = open(err, "w")
 
-        env = BetterDict()
-        env.merge(dict(os.environ))
-        env.merge({"T_GRINDER_PREFIX": self.exec_id})
-
-        self.process = shell_exec(self.cmd_line, cwd=self.engine.artifacts_dir,
-                                  stdout=self.stdout_file,
-                                  stderr=self.stderr_file,
-                                  env=env)
+        env = {"T_GRINDER_PREFIX": self.exec_id}
+        self.process = self.execute(self.cmd_line, cwd=self.engine.artifacts_dir,
+                                    stdout=self.stdout_file,
+                                    stderr=self.stderr_file,
+                                    env=env)
 
     def check(self):
         """

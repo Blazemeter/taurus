@@ -454,9 +454,9 @@ class ThreeGraphs(Pile):
 
     def __init__(self, ):
         self.v_users = BoxedGraph(
-                [' ', ("graph vu", '1'), " %s users, ",
-                 ("graph vc", '2'), " ~%s active "],
-                ("graph bg", "graph vu", "graph vc"))
+            [' ', ("graph vu", '1'), " %s users, ",
+             ("graph vc", '2'), " ~%s active "],
+            ("graph bg", "graph vu", "graph vc"))
         self.rps = BoxedGraph([' ', ("graph rps", '1'), " %d hits, ",
                                ("graph fail", '2'), " %d fail "],
                               ("graph bg", "graph rps", "graph fail"))
@@ -612,7 +612,7 @@ class LatestStats(LineBox):
         self.avg_times = AvgTimesList(DataPoint.CURRENT)
         self.rcodes = RCodesList(DataPoint.CURRENT)
         original_widget = Columns(
-                [self.avg_times, self.percentiles, self.rcodes], dividechars=1)
+            [self.avg_times, self.percentiles, self.rcodes], dividechars=1)
         padded = Padding(original_widget, align=CENTER)
         super(LatestStats, self).__init__(padded,
                                           self.title)
@@ -699,7 +699,7 @@ class PercentilesList(ListBox):
         for key in sorted(overall.get(KPISet.PERCENTILES).keys(), key=float):
             dat = (float(key), overall[KPISet.PERCENTILES][key])
             self.body.append(
-                    Text(("stat-txt", "%.1f%%: %.3f" % dat), align=RIGHT))
+                Text(("stat-txt", "%.1f%%: %.3f" % dat), align=RIGHT))
 
 
 class AvgTimesList(ListBox):
@@ -728,14 +728,14 @@ class AvgTimesList(ListBox):
         recv -= overall[KPISet.AVG_CONN_TIME]
         recv -= overall[KPISet.AVG_LATENCY]
         self.body.append(
-                Text(("stat-txt", "Full: %.3f" % overall[KPISet.AVG_RESP_TIME]),
-                     align=RIGHT))
+            Text(("stat-txt", "Full: %.3f" % overall[KPISet.AVG_RESP_TIME]),
+                 align=RIGHT))
         self.body.append(
-                Text(("stat-txt", "Connect: %.3f" % overall[KPISet.AVG_CONN_TIME]),
-                     align=RIGHT))
+            Text(("stat-txt", "Connect: %.3f" % overall[KPISet.AVG_CONN_TIME]),
+                 align=RIGHT))
         self.body.append(
-                Text(("stat-txt", "Latency: %.3f" % overall[KPISet.AVG_LATENCY]),
-                     align=RIGHT))
+            Text(("stat-txt", "Latency: %.3f" % overall[KPISet.AVG_LATENCY]),
+                 align=RIGHT))
         self.body.append(Text(("stat-txt", "~Receive: %.3f" % recv),
                               align=RIGHT))
 
@@ -1000,7 +1000,7 @@ class DetailedErrorString(ListBox):
                 err_count = error.get('cnt')
 
                 self.body.append(
-                        Text(("stat-txt", err_template.format(err_count, err_description)), wrap=CLIP))
+                    Text(("stat-txt", err_template.format(err_count, err_description)), wrap=CLIP))
         else:
             self.body.append(Text(("stat-txt", "No failures occured")))
 

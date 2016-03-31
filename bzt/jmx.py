@@ -764,6 +764,51 @@ class JMX(object):
         return element
 
     @staticmethod
+    def _get_xpath_extractor(varname, xpath, default, validate_xml, ignore_whitespace, use_tolerant_parser):
+        """
+        :type varname: str
+        :type xpath: str
+        :type default: str
+        :type validate_xml: bool
+        :type ignore_whitespace: bool
+        :type use_tolerant_parser: bool
+        :rtype: lxml.etree.Element
+        """
+        element = etree.Element("XPathExtractor",
+                                guiclass="XPathExtractorGui",
+                                testclass="XPathExtractor",
+                                testname="Get %s" % varname)
+        element.append(JMX._string_prop("XPathExtractor.refname", varname))
+        element.append(JMX._string_prop("XPathExtractor.xpathQuery", xpath))
+        element.append(JMX._string_prop("XPathExtractor.default", default))
+        element.append(JMX._bool_prop("XPathExtractor.validate", validate_xml))
+        element.append(JMX._bool_prop("XPathExtractor.whitespace", ignore_whitespace))
+        element.append(JMX._bool_prop("XPathExtractor.tolerant", use_tolerant_parser))
+        return element
+
+    @staticmethod
+    def _get_xpath_assertion(xpath, validate_xml, ignore_whitespace, use_tolerant_parser, invert):
+        """
+        :type xpath: str
+        :type validate_xml: bool
+        :type ignore_whitespace: bool
+        :type use_tolerant_parser: bool
+        :return: lxml.etree.Element
+        """
+        element = etree.Element("XPathAssertion",
+                                guiclass="XPathAssertionGui",
+                                testclass="XPathAssertion",
+                                testname="XPath Assertion")
+
+        element.append(JMX._string_prop("XPath.xpath", xpath))
+        element.append(JMX._bool_prop("XPath.validate", validate_xml))
+        element.append(JMX._bool_prop("XPath.whitespace", ignore_whitespace))
+        element.append(JMX._bool_prop("XPath.tolerant", use_tolerant_parser))
+        element.append(JMX._bool_prop("XPath.negate", invert))
+
+        return element
+
+    @staticmethod
     def _get_resp_assertion(field, contains, is_regexp, is_invert, assume_success=False):
         """
 
@@ -843,8 +888,12 @@ class JMX(object):
         :type text: str
         """
         items = self.get(sel)
+        res = 0
         for item in items:
             item.text = text_type(text)
+            res += 1
+
+        return res
 
     @staticmethod
     def _get_simple_controller(name):

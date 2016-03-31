@@ -38,6 +38,16 @@
               "default": "NV_JMETER"
             }
           },
+          "extract-xpath": {
+            "xpath1": "/html/head/title",
+            "xpath2": {
+              "xpath": "/html/head/base",
+              "default": "<no base>",
+              "ignore-whitespace": true,
+              "validate-xml": true,
+              "use-tolerant-parser": true
+            }
+          },
           "assert": [
             "contains_this_regexp",
             {
@@ -58,6 +68,16 @@
               "validate": true,
               "expect-null": false,
               "invert": false
+            }
+          ],
+          "assert-xpath": [
+            "/note/to",
+            {
+              "xpath": "/note/from",
+              "ignore-whitespace": true,
+              "validate-xml": true,
+              "use-tolerant-parser": true,
+              "invert": true
             }
           ]
         },

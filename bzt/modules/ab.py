@@ -111,7 +111,7 @@ class ApacheBenchmarkExecutor(ScenarioExecutor):
         self.reader.setup(load_concurrency, request.label)
 
         self.start_time = time.time()
-        self.process = shell_exec(args, stdout=self.__out, stderr=self.__err)
+        self.process = self.execute(args, stdout=self.__out, stderr=self.__err)
 
     def check(self):
         ret_code = self.process.poll()
