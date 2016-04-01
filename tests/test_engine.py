@@ -20,7 +20,6 @@ class TestEngine(BZTestCase):
 
                    self.paths]
         self.obj.configure(configs)
-        self.obj.create_artifacts_dir(configs)
         self.obj.prepare()
         start0 = time.time()
         self.obj.run()
@@ -31,7 +30,6 @@ class TestEngine(BZTestCase):
                    __dir__() + "/yaml/delay_1.yml",
                    self.paths]
         self.obj.configure(configs)
-        self.obj.create_artifacts_dir(configs)
         self.obj.prepare()
         start1 = time.time()
         self.obj.run()
@@ -48,7 +46,6 @@ class TestEngine(BZTestCase):
             self.paths
         ]
         self.obj.configure(configs)
-        self.obj.create_artifacts_dir(configs)
         self.obj.prepare()
         self.obj.run()
         self.obj.post_process()
@@ -61,7 +58,6 @@ class TestEngine(BZTestCase):
             self.paths
         ]
         self.obj.configure(configs)
-        self.obj.create_artifacts_dir(configs)
         self.obj.prepare()
         self.obj.run()
         self.obj.post_process()
@@ -73,7 +69,6 @@ class TestEngine(BZTestCase):
             self.paths
         ]
         self.obj.configure(configs)
-        self.obj.create_artifacts_dir(configs)
         self.obj.config["provisioning"] = "unknown"
         self.obj.config["modules"]["unknown"] = BetterDict()
 
