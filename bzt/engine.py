@@ -89,20 +89,12 @@ class Engine(object):
 
         merged_config = self._load_user_configs(user_configs)
 
-        self._create_artifacts_dir()
-        dump = self.create_artifact("effective", "")  # FIXME: not good since this file not exists
-        self.config.set_dump_file(dump)
-        self.config.dump()
-
-        merged_config.dump(self.create_artifact("merged", ".yml"), Configuration.YAML)
-        merged_config.dump(self.create_artifact("merged", ".json"), Configuration.JSON)
-        for config in user_configs:
-            self.existing_artifact(config)
-
         self._load_included_configs()
         self.config.merge({"version": bzt.VERSION})
         self._set_up_proxy()
         self._check_updates()
+
+        return merged_config
 
     def prepare(self):
         """
@@ -292,7 +284,7 @@ class Engine(object):
             self.log.debug("Copying %s to %s", filename, newname)
             shutil.copy(filename, newname)
 
-    def _create_artifacts_dir(self):
+    def create_artifacts_dir(self, existing_artifacts=(), merged_config=None):
         """
         Create directory for artifacts, directory name based on datetime.now()
         """
@@ -309,6 +301,19 @@ class Engine(object):
 
         if not os.path.isdir(self.artifacts_dir):
             os.makedirs(self.artifacts_dir)
+
+        # dump current effective configuration
+        dump = self.create_artifact("effective", "")  # FIXME: not good since this file not exists
+        self.config.set_dump_file(dump)
+        self.config.dump()
+
+        # dump merged configuration
+        if merged_config:
+            merged_config.dump(self.create_artifact("merged", ".yml"), Configuration.YAML)
+            merged_config.dump(self.create_artifact("merged", ".json"), Configuration.JSON)
+
+        for artifact in existing_artifacts:
+            self.existing_artifact(artifact)
 
     def __load_module(self, alias):
         """

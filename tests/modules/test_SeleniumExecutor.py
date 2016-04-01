@@ -18,6 +18,7 @@ class SeleniumTestCase(BZTestCase):
         self.engine_obj.configure(self.paths)  # FIXME: avoid using whole engine in particular module test!
         self.engine_obj.config.get("modules").get("selenium").merge({"virtual-display": {"width": 1024, "height": 768}})
         self.selenium_config = self.engine_obj.config["modules"]["selenium"]
+        self.engine_obj.create_artifacts_dir(self.paths)
 
 
 class TestSeleniumJUnitRunner(SeleniumTestCase):

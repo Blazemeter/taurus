@@ -1,5 +1,6 @@
 """ test """
 import os
+import shutil
 
 from bzt.cli import CLI
 from tests import BZTestCase, __dir__
@@ -102,3 +103,21 @@ class TestCLI(BZTestCase):
             __dir__() + "/jmx/dummy.jmx",
         ])
         self.assertEquals(0, ret)
+
+    def test_override_artifacts_dir(self):
+        # because EngineEmul sets up its own artifacts_dir
+        self.obj.engine.artifacts_dir = None
+        artifacts_dir = "/tmp/taurus-test-artifacts"
+
+        self.option.append("modules.mock=" + ModuleMock.__module__ + "." + ModuleMock.__name__)
+        self.option.append("provisioning=mock")
+        self.option.append("settings.artifacts-dir=%s" % artifacts_dir)
+        try:
+            ret = self.obj.perform([])
+            self.assertEquals(0, ret)
+            self.assertTrue(os.path.exists(artifacts_dir))
+        finally:
+            # cleanup artifacts dir
+            if os.path.exists(artifacts_dir):
+                shutil.rmtree(artifacts_dir)
+
