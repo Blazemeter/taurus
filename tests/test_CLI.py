@@ -107,22 +107,17 @@ class TestCLI(BZTestCase):
     def test_override_artifacts_dir(self):
         # because EngineEmul sets up its own artifacts_dir
         self.obj.engine.artifacts_dir = None
-
-        # cleanup artifacts dir
-        arts_dir = "/tmp/taurus-test-artifacts"
-        if os.path.exists(arts_dir):
-            shutil.rmtree(arts_dir)
+        artifacts_dir = "/tmp/taurus-test-artifacts"
 
         self.option.append("modules.mock=" + ModuleMock.__module__ + "." + ModuleMock.__name__)
         self.option.append("provisioning=mock")
-        self.option.append("settings.artifacts-dir=%s" % arts_dir)
+        self.option.append("settings.artifacts-dir=%s" % artifacts_dir)
         try:
             ret = self.obj.perform([])
             self.assertEquals(0, ret)
-            self.assertTrue(os.path.exists(arts_dir))
+            self.assertTrue(os.path.exists(artifacts_dir))
         finally:
             # cleanup artifacts dir
-            arts_dir = "/tmp/taurus-test-artifacts"
-            if os.path.exists(arts_dir):
-                shutil.rmtree(arts_dir)
+            if os.path.exists(artifacts_dir):
+                shutil.rmtree(artifacts_dir)
 
