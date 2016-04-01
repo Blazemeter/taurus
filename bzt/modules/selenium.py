@@ -499,7 +499,10 @@ class NoseTester(AbstractTestRunner):
     def __init__(self, nose_config, executor):
         super(NoseTester, self).__init__(nose_config, executor)
         self.log = executor.log.getChild(self.__class__.__name__)
-        self.plugin_path = os.path.join(os.path.dirname(__file__), os.pardir, "resources", "nose_plugin.py")
+        self.plugin_path = os.path.join(os.path.abspath(os.path.dirname(__file__)),
+                                        os.pardir,
+                                        "resources",
+                                        "nose_plugin.py")
 
     def prepare(self):
         self.run_checklist()

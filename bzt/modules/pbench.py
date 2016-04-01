@@ -137,7 +137,8 @@ class PBenchTool(object):
         self.stats_file = self.engine.create_artifact("pbench-additional", ".ldjson")
         self.config_file = self.engine.create_artifact('pbench', '.conf')
 
-        with open(os.path.join(os.path.dirname(resources.__file__), 'pbench.conf')) as _fhd:
+        conf_path = os.path.join(os.path.abspath(os.path.dirname(resources.__file__)), 'pbench.conf')
+        with open(conf_path) as _fhd:
             tpl = _fhd.read()
 
         instances = load.concurrency if load.concurrency else 1
