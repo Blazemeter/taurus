@@ -180,29 +180,25 @@ class LocalProvisioningTest(BZTestCase):
         local.start_time = time.mktime(datetime.datetime.combine(_today, _start_time).timetuple())
 
         date = datetime.datetime.combine(_tomorrow, _scheduled_time).strftime('%Y-%m-%d %H:%M:%S')
-        shift = local._get_start_shift(date, '')
+        shift = local._get_start_shift(date)
         self.assertEqual(shift, 90062.0)
 
         date = datetime.datetime.combine(_yesterday, _scheduled_time).strftime('%Y-%m-%d %H:%M')
-        shift = local._get_start_shift(date, '')
+        shift = local._get_start_shift(date)
         self.assertEqual(shift, 3655.0)
 
         date = datetime.datetime.combine(_today, _scheduled_time).strftime('%H:%M:%S')
-        shift = local._get_start_shift(date, '')
+        shift = local._get_start_shift(date)
         self.assertEqual(shift, 3662.0)
 
         date = datetime.datetime.combine(_today, _scheduled_time).strftime('%H:%M')
-        shift = local._get_start_shift(date, '')
+        shift = local._get_start_shift(date)
         self.assertEqual(shift, 3655.0)
 
-        date = datetime.datetime.combine(_today, _scheduled_time).strftime('%m/%d/%y %H:%M:%S')
-        shift = local._get_start_shift(date, '%m/%d/%y %H:%M:%S')
-        self.assertEqual(shift, 3662.0)
-
-        shift = local._get_start_shift('', '')
+        shift = local._get_start_shift('')
         self.assertEqual(shift, 0)
 
-        shift = local._get_start_shift('lorem ipsum', 'bla-bla-bla')
+        shift = local._get_start_shift('lorem ipsum')
         self.assertEqual(shift, 0)
 
 

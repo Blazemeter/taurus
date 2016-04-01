@@ -131,8 +131,6 @@ Supported time formats are:
 - HH:MM:SS
 - HH:MM
 
-You can describe your own format with `time-format` option (use directives of python method datetime.strptime())
-
 ## Additional Files
 
 When your execution requires additional files (e.g. JARs, certificates etc). you may use `files` option of execution and list paths for files there.

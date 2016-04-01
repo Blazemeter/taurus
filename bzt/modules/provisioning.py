@@ -27,18 +27,14 @@ class Local(Provisioning):
     """
     Local provisioning means we start all the tools locally
     """
-    def _get_start_shift(self, shift, time_format):
-
+    def _get_start_shift(self, shift):
         if shift == '':
             return 0
 
-        if time_format != '':
-            time_formats = [time_format]
-        else:
-            time_formats = ['%Y-%m-%d %H:%M:%S',
-                            '%Y-%m-%d %H:%M',
-                            '%H:%M:%S',
-                            '%H:%M']
+        time_formats = ['%Y-%m-%d %H:%M:%S',
+                        '%Y-%m-%d %H:%M',
+                        '%H:%M:%S',
+                        '%H:%M']
 
         for time_format in time_formats:
             try:
@@ -70,8 +66,7 @@ class Local(Provisioning):
     def startup(self):
         self.start_time = time.time()
         for executor in self.executors:
-            user_time_format = executor.execution.get('time-format', '')
-            start_shift = self._get_start_shift(executor.execution.get('start-at', ''), user_time_format)
+            start_shift = self._get_start_shift(executor.execution.get('start-at', ''))
             delay = dehumanize_time(executor.execution.get('delay', 0))
             executor.delay = delay + start_shift
             self.log.debug("Delay setup: %s(start-at) + %s(delay) = %s", start_shift, delay, executor.delay)
