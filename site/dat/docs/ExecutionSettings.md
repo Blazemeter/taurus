@@ -112,7 +112,24 @@ scenarios:
     requests:
     - http://blazedemo.com/
 ```
-By this way, the first execution works 10 seconds, then two executions will work 10 seconds together, then the first will stop and the second will complete its work in 5 seconds.   
+By this way, the first execution works 10 seconds, then two executions will work 10 seconds together, then the first will stop and the second will complete its work in 5 seconds.
+
+Another way to schedule is usage of `start-at`:
+```yaml
+---
+execution:
+- concurrency: 10
+  hold-for: 20s
+  start-at: '2020-03-25 23:15'  # must be string
+  scenario: 
+    requests:
+    - http://blazedemo.com/
+```
+Supported time formats are:
+- YYYY-MM-DD HH:MM:SS
+- YYYY-MM-DD HH:MM
+- HH:MM:SS
+- HH:MM
 
 ## Additional Files
 
