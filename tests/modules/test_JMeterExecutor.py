@@ -27,6 +27,7 @@ class TestJMeterExecutor(BZTestCase):
         obj.engine = EngineEmul()
         obj.execution = BetterDict()
         obj.execution.merge({"scenario": {"script": __dir__() + "/../jmx/dummy.jmx"}})
+        obj.engine.create_artifacts_dir()
         obj.prepare()
 
     def test_jmx_2tg(self):
@@ -265,7 +266,7 @@ class TestJMeterExecutor(BZTestCase):
         res_files = obj.resource_files()
         artifacts = os.listdir(obj.engine.artifacts_dir)
         self.assertEqual(len(res_files), 5)
-        self.assertEqual(len(artifacts), 5)
+        self.assertEqual(len(artifacts), 7) # 5 + two effective configs
         target_jmx = os.path.join(obj.engine.artifacts_dir, "files.jmx")
         self.__check_path_resource_files(target_jmx)
 
@@ -275,7 +276,7 @@ class TestJMeterExecutor(BZTestCase):
         obj.execution.merge({"scenario": {"script": __dir__() + "/../jmx/files.jmx"}})
         obj.prepare()
         artifacts = os.listdir(obj.engine.artifacts_dir)
-        self.assertEqual(len(artifacts), 7)  # minus jmeter.log
+        self.assertEqual(len(artifacts), 9)  # minus jmeter.log
         target_jmx = os.path.join(obj.engine.artifacts_dir, "modified_files.jmx.jmx")
         self.__check_path_resource_files(target_jmx, exclude_jtls=True)
 
@@ -287,7 +288,7 @@ class TestJMeterExecutor(BZTestCase):
         res_files = obj.resource_files()
         artifacts = os.listdir(obj.engine.artifacts_dir)
         self.assertEqual(len(res_files), 2)
-        self.assertEqual(len(artifacts), 2)
+        self.assertEqual(len(artifacts), 4)  # 2 + two effective configs
 
     def test_resource_files_from_requests_local_prov(self):
         obj = JMeterExecutor()
@@ -679,7 +680,7 @@ class TestJMeterExecutor(BZTestCase):
         obj.execution.merge({"scenario": {"script": __dir__() + "/../jmx/variable_csv.jmx"}})
         obj.prepare()
         artifacts = os.listdir(obj.engine.artifacts_dir)
-        self.assertEqual(len(artifacts), 3)  # minus jmeter.log
+        self.assertEqual(len(artifacts), 5)  # minus jmeter.log
         target_jmx = os.path.join(obj.engine.artifacts_dir, "modified_variable_csv.jmx.jmx")
         with open(target_jmx) as fds:
             jmx = fds.read()

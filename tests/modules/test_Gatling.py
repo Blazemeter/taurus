@@ -50,11 +50,12 @@ class TestGatlingExecutor(BZTestCase):
 
     def test_resource_files_collection_remote1(self):  # script = <file>
         obj = self.getGatling()
-        obj.execution.merge({"scenario": {"script": __dir__() + "/../gatling/LocalBasicSimulation.scala"}})
+        script = "LocalBasicSimulation.scala"
+        obj.execution.merge({"scenario": {"script": __dir__() + "/../gatling/" + script}})
         res_files = obj.resource_files()
         artifacts = os.listdir(obj.engine.artifacts_dir)
         self.assertEqual(len(res_files), 14)  # file "gatling_" will be not found
-        self.assertEqual(len(artifacts), 0)
+        self.assertNotIn(script, artifacts)
 
     def test_resource_files_collection_remote2(self):  # script = <dir>
         obj = self.getGatling()
@@ -65,10 +66,11 @@ class TestGatlingExecutor(BZTestCase):
 
     def test_resource_files_collection_local(self):
         obj = self.getGatling()
-        obj.execution.merge({"scenario": {"script": __dir__() + "/../gatling/LocalBasicSimulation.scala"}})
+        script = "LocalBasicSimulation.scala"
+        obj.execution.merge({"scenario": {"script": __dir__() + "/../gatling/" + script}})
         obj.prepare()
         artifacts = os.listdir(obj.engine.artifacts_dir)
-        self.assertEqual(len(artifacts), 0)
+        self.assertNotIn(script, artifacts)
 
     def test_requests_1(self):
         obj = self.getGatling()
