@@ -16,9 +16,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import time
 import datetime
-
+import time
 
 from bzt.engine import Provisioning
 from bzt.utils import dehumanize_time
@@ -63,7 +62,6 @@ class Local(Provisioning):
         Call prepare on executors
         """
         super(Local, self).prepare()
-        self.start_time = time.time()
         for executor in self.executors:
             self.log.debug("Preparing executor: %s", executor)
             executor.prepare()
@@ -71,7 +69,6 @@ class Local(Provisioning):
 
     def startup(self):
         self.start_time = time.time()
-
         for executor in self.executors:
             user_time_format = executor.execution.get('time-format', '')
             start_shift = self._get_start_shift(executor.execution.get('start-at', ''), user_time_format)
