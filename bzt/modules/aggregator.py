@@ -438,7 +438,7 @@ class ResultsReader(ResultsProvider):
                 if label in self.ignored_labels:
                     continue
                 if t_stamp < self.min_timestamp:
-                    self.log.warning("Putting sample %s into %s", t_stamp, self.min_timestamp)
+                    self.log.debug("Putting sample %s into %s", t_stamp, self.min_timestamp)
                     t_stamp = self.min_timestamp
 
                 if t_stamp not in self.buffer:
@@ -485,10 +485,14 @@ class ResultsReader(ResultsProvider):
             return
 
         if self.cumulative and self.track_percentiles:
-            self.buffer_len = self.cumulative[''][KPISet.PERCENTILES][self.buffer_scale_idx]
+            old_len = self.buffer_len
+            chosen_timing = self.cumulative[''][KPISet.PERCENTILES][self.buffer_scale_idx]
+            self.buffer_len = round(chosen_timing * self.buffer_multiplier)
 
             self.buffer_len = max(self.min_buffer_len, self.buffer_len)
             self.buffer_len = min(self.max_buffer_len, self.buffer_len)
+            if self.buffer_len != old_len:
+                self.log.info("Changed data analysis delay to %ds", self.buffer_len)
 
         timestamps = sorted(self.buffer.keys())
         while final_pass or (timestamps[-1] >= (timestamps[0] + self.buffer_len)):

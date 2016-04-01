@@ -1,0 +1,87 @@
+import datetime
+import time
+
+from bzt.modules.provisioning import Local
+from tests import BZTestCase
+from tests.mocks import EngineEmul
+
+
+class ScenarioExecutorEmul(object):
+    def __init__(self):
+        pass
+
+    def startup(self):
+        pass
+
+
+class LocalProvisioningEmul(Local):
+    def __init__(self):
+        self.engine = EngineEmul()
+
+
+class LocalProvisioningTest(BZTestCase):
+    def check_started_list(self, start_time, delay, prepared, started):
+        executor = ScenarioExecutorEmul()
+        executor.delay = delay
+        prov = LocalProvisioningEmul()
+        prov.executors = [executor]
+        prov.start_time = start_time
+
+        if prepared:
+            prov.engine.prepared = [executor]
+        else:
+            prov.engine.prepared = []
+
+        if started:
+            prov.engine.started = [executor]
+        else:
+            prov.engine.started = []
+
+        prov._start_modules()
+
+        if executor in prov.engine.started:
+            return True
+        else:
+            return False
+
+    def test_delay_cycle(self):
+        cur_time = time.time()
+
+        self.assertTrue(self.check_started_list(cur_time, 0, True, False))  # all ok
+        self.assertFalse(self.check_started_list(cur_time, 0, False, False))  # not prepared
+        self.assertTrue(self.check_started_list(cur_time - 10, 5, True, False))  # time to run
+        self.assertFalse(self.check_started_list(cur_time - 10, 20, True, False))  # too early
+        self.assertFalse(self.check_started_list(cur_time - 10, 5, False, False))  # time to run but not prepared
+
+    def test_start_shift(self):
+        local = Local()
+
+        _today = datetime.date.today()
+        _yesterday = _today - datetime.timedelta(days=1)
+        _tomorrow = _today + datetime.timedelta(days=1)
+        _start_time = datetime.time(12, 30, 5)
+        _scheduled_time = datetime.time(13, 31, 7)
+
+        local.start_time = time.mktime(datetime.datetime.combine(_today, _start_time).timetuple())
+
+        date = datetime.datetime.combine(_tomorrow, _scheduled_time).strftime('%Y-%m-%d %H:%M:%S')
+        shift = local._get_start_shift(date)
+        self.assertEqual(shift, 90062.0)
+
+        date = datetime.datetime.combine(_yesterday, _scheduled_time).strftime('%Y-%m-%d %H:%M')
+        shift = local._get_start_shift(date)
+        self.assertEqual(shift, 3655.0)
+
+        date = datetime.datetime.combine(_today, _scheduled_time).strftime('%H:%M:%S')
+        shift = local._get_start_shift(date)
+        self.assertEqual(shift, 3662.0)
+
+        date = datetime.datetime.combine(_today, _scheduled_time).strftime('%H:%M')
+        shift = local._get_start_shift(date)
+        self.assertEqual(shift, 3655.0)
+
+        shift = local._get_start_shift('')
+        self.assertEqual(shift, 0)
+
+        shift = local._get_start_shift('lorem ipsum')
+        self.assertEqual(shift, 0)

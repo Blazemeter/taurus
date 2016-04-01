@@ -494,6 +494,10 @@ class DataLogReader(ResultsReader):
         self.fds = open(self.filename)
         return True
 
+    def __del__(self):
+        if self.fds:
+            self.fds.close()
+
 
 class Gatling(RequiredTool):
     """
