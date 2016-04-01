@@ -109,14 +109,20 @@ class TestCLI(BZTestCase):
         self.obj.engine.artifacts_dir = None
 
         # cleanup artifacts dir
-        arts_dir = "build/test/artifacts"
+        arts_dir = "/tmp/taurus-test-artifacts"
         if os.path.exists(arts_dir):
             shutil.rmtree(arts_dir)
 
         self.option.append("modules.mock=" + ModuleMock.__module__ + "." + ModuleMock.__name__)
         self.option.append("provisioning=mock")
         self.option.append("settings.artifacts-dir=%s" % arts_dir)
-        ret = self.obj.perform([])
-        self.assertEquals(0, ret)
-        self.assertTrue(os.path.exists(arts_dir))
+        try:
+            ret = self.obj.perform([])
+            self.assertEquals(0, ret)
+            self.assertTrue(os.path.exists(arts_dir))
+        finally:
+            # cleanup artifacts dir
+            arts_dir = "/tmp/taurus-test-artifacts"
+            if os.path.exists(arts_dir):
+                shutil.rmtree(arts_dir)
 
