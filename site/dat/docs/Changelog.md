@@ -7,6 +7,7 @@
  - add `force-parent-sample` option to JMeter executor
  - add `compile-target-java` option for Selenium
  - add dynamic buffer scaling ability to ResultsReader  
+ - apply overrides and cli-aliases before creating artifacts-dir
 
 ## 1.3.3 <sup>24 mar 2016</sup>
  - add new `hostaliases` setting for all executors
