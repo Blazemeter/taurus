@@ -83,6 +83,7 @@ class TestDefaultAggregator(BZTestCase):
         # t_stamp, label, conc, r_time, con_time, latency, r_code, error, trname
         mock.min_buffer_len = 1
         mock.buffer_len = 1
+        mock.buffer_multiplier = 1
         mock.buffer_scale_idx = '50.0'
 
         buffer_len = mock.buffer_len
