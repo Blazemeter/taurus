@@ -577,7 +577,7 @@ class ConsolidatingAggregator(EngineModule, ResultsProvider):
 
         self.buffer_multiplier = self.settings.get("buffer-multiplier", self.buffer_multiplier)
 
-        percentile = self.settings.get("buffer-scale-choice", 0.25)
+        percentile = self.settings.get("buffer-scale-choice", 0.5)
         count = len(self.track_percentiles)
         if count == 1:
             self.buffer_scale_idx = str(float(self.track_percentiles[0]))
