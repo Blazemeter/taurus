@@ -66,6 +66,8 @@ class Engine(object):
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.config = Configuration()
         self.config.log = self.log.getChild(Configuration.__name__)
+        self._merged_config = None
+        self._user_configs = []
         self.modules = {}  # available modules
         self.provisioning = Provisioning()
         self.aggregator = EngineModule()  # FIXME: have issues with non-aggregator object set here
@@ -87,17 +89,8 @@ class Engine(object):
         if read_config_files:
             self._load_base_configs()
 
-        merged_config = self._load_user_configs(user_configs)
-
-        self._create_artifacts_dir()
-        dump = self.create_artifact("effective", "")  # FIXME: not good since this file not exists
-        self.config.set_dump_file(dump)
-        self.config.dump()
-
-        merged_config.dump(self.create_artifact("merged", ".yml"), Configuration.YAML)
-        merged_config.dump(self.create_artifact("merged", ".json"), Configuration.JSON)
-        for config in user_configs:
-            self.existing_artifact(config)
+        self._user_configs = user_configs
+        self._merged_config = self._load_user_configs(user_configs)
 
         self._load_included_configs()
         self.config.merge({"version": bzt.VERSION})
@@ -106,10 +99,21 @@ class Engine(object):
 
     def prepare(self):
         """
-        Prepare engine for work, will call preparing of Provisioning and add
-        downstream EngineModule instances
+        Prepare engine for work, will create artifacts dir, call preparing of Provisioning
+        and add downstream EngineModule instances
         """
         self.log.info("Preparing...")
+
+        self._create_artifacts_dir()
+        dump = self.create_artifact("effective", "")  # FIXME: not good since this file not exists
+        self.config.set_dump_file(dump)
+        self.config.dump()
+
+        self._merged_config.dump(self.create_artifact("merged", ".yml"), Configuration.YAML)
+        self._merged_config.dump(self.create_artifact("merged", ".json"), Configuration.JSON)
+        for config in self._user_configs:
+            self.existing_artifact(config)
+
         interval = self.config.get(SETTINGS).get("check-interval", self.check_interval)
         self.check_interval = dehumanize_time(interval)
 
