@@ -98,8 +98,8 @@ class Engine(object):
 
     def prepare(self):
         """
-        Prepare engine for work, will create artifacts dir, call preparing of Provisioning
-        and add downstream EngineModule instances
+        Prepare engine for work, will call preparing of Provisioning and add
+        downstream EngineModule instances
         """
         self.log.info("Preparing...")
         interval = self.config.get(SETTINGS).get("check-interval", self.check_interval)
