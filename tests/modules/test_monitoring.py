@@ -1,9 +1,11 @@
 import logging
 import random
 import time
+import datetime
 
 from bzt.modules.monitoring import Monitoring, MonitoringListener, MonitoringCriteria
 from bzt.modules.monitoring import ServerAgentClient, GraphiteClient, LocalClient
+from bzt.modules.provisioning import Local
 from bzt.utils import BetterDict
 from tests import BZTestCase
 from tests.mocks import EngineEmul, SocketEmul
@@ -117,6 +119,45 @@ class ServerAgentClientEmul(ServerAgentClient):
 
     def select_emul(self, reads, writes, excepts, timeout):
         return reads, writes, []
+
+
+class LocalProvisioningTest(BZTestCase):
+    def test_start_shift(self):
+        local = Local()
+
+        _today = datetime.date.today()
+        _yesterday = _today - datetime.timedelta(days=1)
+        _tomorrow = _today + datetime.timedelta(days=1)
+        _start_time = datetime.time(12, 30, 5)
+        _shedule_time = datetime.time(13, 31, 7)
+
+        local.start_time = time.mktime(datetime.datetime.combine(_today, _start_time).timetuple())
+
+        date = datetime.datetime.combine(_tomorrow, _shedule_time).strftime('%Y-%m-%d %H:%M:%S')
+        shift = local._get_start_shift(date, '')
+        self.assertEqual(shift, 90062.0)
+
+        date = datetime.datetime.combine(_yesterday, _shedule_time).strftime('%Y-%m-%d %H:%M')
+        shift = local._get_start_shift(date, '')
+        self.assertEqual(shift, 3655.0)
+
+        date = datetime.datetime.combine(_today, _shedule_time).strftime('%H:%M:%S')
+        shift = local._get_start_shift(date, '')
+        self.assertEqual(shift, 3662.0)
+
+        date = datetime.datetime.combine(_today, _shedule_time).strftime('%H:%M')
+        shift = local._get_start_shift(date, '')
+        self.assertEqual(shift, 3655.0)
+
+        date = datetime.datetime.combine(_today, _shedule_time).strftime('%m/%d/%y %H:%M:%S')
+        shift = local._get_start_shift(date, '%m/%d/%y %H:%M:%S')
+        self.assertEqual(shift, 3662.0)
+
+        shift = local._get_start_shift('', '')
+        self.assertEqual(shift, 0)
+
+        shift = local._get_start_shift('lorem ipsum', 'bla-bla-bla')
+        self.assertEqual(shift, 0)
 
 
 class GraphiteClientEmul(GraphiteClient):
