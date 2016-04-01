@@ -79,7 +79,10 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.start_time = time.time()
         load = self.get_load()
         hatch = load.concurrency / load.ramp_up if load.ramp_up else load.concurrency
-        wrapper = os.path.join(os.path.dirname(__file__), os.pardir, "resources", "locustio-taurus-wrapper.py")
+        wrapper = os.path.join(os.path.abspath(os.path.dirname(__file__)),
+                               os.pardir,
+                               "resources",
+                               "locustio-taurus-wrapper.py")
 
         env = BetterDict()
         env.merge({"PYTHONPATH": self.engine.artifacts_dir + os.pathsep + os.getcwd()})
