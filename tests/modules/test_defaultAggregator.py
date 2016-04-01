@@ -119,4 +119,3 @@ class TestDefaultAggregator(BZTestCase):
         points = list(mock.datapoints())
         points = list(mock.datapoints())
         self.assertTrue(mock.buffer_len < buffer_len)
-        pass
