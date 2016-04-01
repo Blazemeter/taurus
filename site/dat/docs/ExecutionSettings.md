@@ -120,7 +120,7 @@ Another way to schedule is usage of `start-at`:
 execution:
 - concurrency: 10
   hold-for: 20s
-  start_at: '2020-03-25 23:15'  # must be string
+  start-at: '2020-03-25 23:15'  # must be string
   scenario: 
     requests:
     - http://blazedemo.com/
