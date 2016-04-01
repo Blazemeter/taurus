@@ -137,7 +137,7 @@ class CLI(object):
             if self.options.no_system_configs is None:
                 self.options.no_system_configs = False
 
-            self.engine.configure(configs, not self.options.no_system_configs)
+            merged_config = self.engine.configure(configs, not self.options.no_system_configs)
 
             # apply aliases
             for alias in self.options.aliases:
@@ -150,7 +150,8 @@ class CLI(object):
                 overrider = ConfigOverrider(self.log)
                 overrider.apply_overrides(self.options.option, self.engine.config)
 
-            self.engine.create_artifacts_dir(configs)
+            self.engine.create_artifacts_dir(configs, merged_config)
+
             self.engine.prepare()
             self.engine.run()
             exit_code = 0

@@ -66,7 +66,6 @@ class Engine(object):
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.config = Configuration()
         self.config.log = self.log.getChild(Configuration.__name__)
-        self.merged_config = None
         self.modules = {}  # available modules
         self.provisioning = Provisioning()
         self.aggregator = EngineModule()  # FIXME: have issues with non-aggregator object set here
@@ -88,12 +87,14 @@ class Engine(object):
         if read_config_files:
             self._load_base_configs()
 
-        self.merged_config = self._load_user_configs(user_configs)
+        merged_config = self._load_user_configs(user_configs)
 
         self._load_included_configs()
         self.config.merge({"version": bzt.VERSION})
         self._set_up_proxy()
         self._check_updates()
+
+        return merged_config
 
     def prepare(self):
         """
@@ -283,13 +284,10 @@ class Engine(object):
             self.log.debug("Copying %s to %s", filename, newname)
             shutil.copy(filename, newname)
 
-    def create_artifacts_dir(self, existing_artifacts=None):
+    def create_artifacts_dir(self, existing_artifacts=(), merged_config=None):
         """
         Create directory for artifacts, directory name based on datetime.now()
         """
-        if existing_artifacts is None:
-            existing_artifacts = []
-
         if self.artifacts_dir:
             self.artifacts_dir = os.path.expanduser(self.artifacts_dir)
         else:
@@ -310,9 +308,9 @@ class Engine(object):
         self.config.dump()
 
         # dump merged configuration
-        if self.merged_config:
-            self.merged_config.dump(self.create_artifact("merged", ".yml"), Configuration.YAML)
-            self.merged_config.dump(self.create_artifact("merged", ".json"), Configuration.JSON)
+        if merged_config:
+            merged_config.dump(self.create_artifact("merged", ".yml"), Configuration.YAML)
+            merged_config.dump(self.create_artifact("merged", ".json"), Configuration.JSON)
 
         for artifact in existing_artifacts:
             self.existing_artifact(artifact)
