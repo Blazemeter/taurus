@@ -30,7 +30,7 @@ class EngineEmul(Engine):
     def __init__(self):
         Engine.__init__(self, logging.getLogger(''))
         self.config.get('settings')['artifacts-dir'] = os.path.dirname(__file__) + "/../build/test/%Y-%m-%d_%H-%M-%S.%f"
-        self._create_artifacts_dir()
+        self.create_artifacts_dir()
         self.config.merge({"provisioning": "local"})
         self.finalize_exc = None
         self.was_finalize = False

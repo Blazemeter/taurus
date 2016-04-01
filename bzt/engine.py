@@ -66,8 +66,7 @@ class Engine(object):
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.config = Configuration()
         self.config.log = self.log.getChild(Configuration.__name__)
-        self._merged_config = None
-        self._user_configs = []
+        self.merged_config = None
         self.modules = {}  # available modules
         self.provisioning = Provisioning()
         self.aggregator = EngineModule()  # FIXME: have issues with non-aggregator object set here
@@ -89,8 +88,7 @@ class Engine(object):
         if read_config_files:
             self._load_base_configs()
 
-        self._user_configs = user_configs
-        self._merged_config = self._load_user_configs(user_configs)
+        self.merged_config = self._load_user_configs(user_configs)
 
         self._load_included_configs()
         self.config.merge({"version": bzt.VERSION})
@@ -103,17 +101,6 @@ class Engine(object):
         and add downstream EngineModule instances
         """
         self.log.info("Preparing...")
-
-        self._create_artifacts_dir()
-        dump = self.create_artifact("effective", "")  # FIXME: not good since this file not exists
-        self.config.set_dump_file(dump)
-        self.config.dump()
-
-        self._merged_config.dump(self.create_artifact("merged", ".yml"), Configuration.YAML)
-        self._merged_config.dump(self.create_artifact("merged", ".json"), Configuration.JSON)
-        for config in self._user_configs:
-            self.existing_artifact(config)
-
         interval = self.config.get(SETTINGS).get("check-interval", self.check_interval)
         self.check_interval = dehumanize_time(interval)
 
@@ -296,10 +283,13 @@ class Engine(object):
             self.log.debug("Copying %s to %s", filename, newname)
             shutil.copy(filename, newname)
 
-    def _create_artifacts_dir(self):
+    def create_artifacts_dir(self, existing_artifacts=None):
         """
         Create directory for artifacts, directory name based on datetime.now()
         """
+        if existing_artifacts is None:
+            existing_artifacts = []
+
         if self.artifacts_dir:
             self.artifacts_dir = os.path.expanduser(self.artifacts_dir)
         else:
@@ -313,6 +303,19 @@ class Engine(object):
 
         if not os.path.isdir(self.artifacts_dir):
             os.makedirs(self.artifacts_dir)
+
+        # dump current effective configuration
+        dump = self.create_artifact("effective", "")  # FIXME: not good since this file not exists
+        self.config.set_dump_file(dump)
+        self.config.dump()
+
+        # dump merged configuration
+        if self.merged_config:
+            self.merged_config.dump(self.create_artifact("merged", ".yml"), Configuration.YAML)
+            self.merged_config.dump(self.create_artifact("merged", ".json"), Configuration.JSON)
+
+        for artifact in existing_artifacts:
+            self.existing_artifact(artifact)
 
     def __load_module(self, alias):
         """

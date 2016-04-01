@@ -150,6 +150,7 @@ class CLI(object):
                 overrider = ConfigOverrider(self.log)
                 overrider.apply_overrides(self.options.option, self.engine.config)
 
+            self.engine.create_artifacts_dir(configs)
             self.engine.prepare()
             self.engine.run()
             exit_code = 0
