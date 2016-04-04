@@ -124,13 +124,13 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         jvm_props = self.settings.get("jvm")
         if jvm_props:
             self.log.debug("Additional JVM settings %s", jvm_props)
-            jvm_args = ""
+            jvm_args = []
             if jvm_props.get("initial-heap-size", None):
-                jvm_args += "-Xms%sm" % jvm_props["initial-heap-size"]
+                jvm_args.append("-Xms%sm" % jvm_props["initial-heap-size"])
             if jvm_props.get("maximum-heap-size", None):
-                jvm_args += "-Xmx%sm" % jvm_props["maximum-heap-size"]
+                jvm_args.append("-Xmx%sm" % jvm_props["maximum-heap-size"])
             if jvm_args:
-                self._env["JVM_ARGS"] = jvm_args
+                self._env["JVM_ARGS"] = " ".join(jvm_args)
 
     def __set_jmeter_properties(self, scenario):
         props = self.settings.get("properties")
