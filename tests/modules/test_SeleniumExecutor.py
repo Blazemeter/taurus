@@ -585,6 +585,7 @@ class TestSeleniumStuff(SeleniumTestCase):
             contents = fds.read()
             self.assertEqual(1, contents.count("ok"))
             self.assertEqual(1, contents.count("OK"))
+        pass
 
     def test_fail_on_zero_results(self):
         obj = SeleniumExecutor()
