@@ -124,14 +124,14 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     @staticmethod
     def __calculate_default_heap_size():
         memory = psutil.virtual_memory()
-        memory_limit = int(memory.total * 0.8)
+        memory_limit = int(memory.total * 0.5)
         return str(memory_limit)
 
     def __set_jvm_properties(self):
         jvm_props = self.settings.get("jvm")
-        self.log.debug("Additional JVM settings %s", jvm_props)
         def_heap_size = JMeterExecutor.__calculate_default_heap_size()
         heap_size = jvm_props.get("memory-xmx", def_heap_size)
+        self.log.debug("Setting JVM heap size to %s", heap_size)
         self._env["JVM_ARGS"] = "-Xmx%s" % heap_size
 
     def __set_jmeter_properties(self, scenario):
