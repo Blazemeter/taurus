@@ -495,6 +495,13 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             else:
                 JMeterExecutor.__add_shaper(jmx, load)
 
+    @staticmethod
+    def __fill_empty_delimiters(jmx):
+        delimiters = jmx.get("CSVDataSet>stringProp[name='delimiter']")
+        for delimiter in delimiters:
+            if not delimiter.text:
+                delimiter.text = ','
+
     def __add_result_writers(self, jmx):
         self.kpi_jtl = self.engine.create_artifact("kpi", ".jtl")
         kpi_lst = jmx.new_kpi_listener(self.kpi_jtl)
@@ -556,6 +563,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.__prepare_resources(jmx)
         self.__add_result_writers(jmx)
         self.__force_tran_parent_sample(jmx)
+        self.__fill_empty_delimiters(jmx)
 
         prefix = "modified_" + os.path.basename(original)
         filename = self.engine.create_artifact(prefix, ".jmx")

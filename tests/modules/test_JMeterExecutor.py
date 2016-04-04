@@ -266,7 +266,7 @@ class TestJMeterExecutor(BZTestCase):
         res_files = obj.resource_files()
         artifacts = os.listdir(obj.engine.artifacts_dir)
         self.assertEqual(len(res_files), 5)
-        self.assertEqual(len(artifacts), 7) # 5 + two effective configs
+        self.assertEqual(len(artifacts), 7)  # 5 + two effective configs
         target_jmx = os.path.join(obj.engine.artifacts_dir, "files.jmx")
         self.__check_path_resource_files(target_jmx)
 
@@ -613,6 +613,15 @@ class TestJMeterExecutor(BZTestCase):
         tg_forever = loop_ctrl.find(".//boolProp[@name='LoopController.continue_forever']")
         self.assertEqual(tg_loops.text, "-1")
         self.assertEqual(tg_forever.text, "false")
+
+    def test_force_delimiters(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({"iterations": 10, "scenario": {"script": __dir__() + "/../jmx/delimiters.jmx"}})
+        obj.prepare()
+        jmx = JMX(obj.modified_jmx)
+        delimiters = [delimiter.text for delimiter in jmx.get("CSVDataSet>stringProp[name='delimiter']")]
+        self.assertEqual([1, 2, ','], delimiters)
 
     def test_iterations_loop_bug(self):
         obj = JMeterExecutor()
@@ -1051,6 +1060,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(len(props), 2)
         non_parent = props[1]
         self.assertEqual(non_parent.text, 'false')
+
 
 class TestJMX(BZTestCase):
     def test_jmx_unicode_checkmark(self):
