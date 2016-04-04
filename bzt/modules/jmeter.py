@@ -128,9 +128,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         return str(memory_limit)
 
     def __set_jvm_properties(self):
-        jvm_props = self.settings.get("jvm")
         def_heap_size = JMeterExecutor.__calculate_default_heap_size()
-        heap_size = jvm_props.get("memory-xmx", def_heap_size)
+        heap_size = self.settings.get("memory-xmx", def_heap_size)
         self.log.debug("Setting JVM heap size to %s", heap_size)
         self._env["JVM_ARGS"] = "-Xmx%s" % heap_size
 

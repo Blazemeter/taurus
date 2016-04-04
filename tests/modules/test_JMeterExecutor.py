@@ -1062,7 +1062,7 @@ class TestJMeterExecutor(BZTestCase):
         obj.engine.config = BetterDict()
         obj.engine.config.merge({'execution': {'iterations': 1,
                                                'scenario': { 'script': __dir__() + '/../jmx/http.jmx'}},
-                                 'modules': {'jmeter': {'jvm': {'memory-xmx': '2G'}}}})
+                                 'modules': {'jmeter': {'memory-xmx': '2G'}}})
         obj.engine.config.merge({"provisioning": "local"})
         obj.execution = obj.engine.config['execution']
         obj.settings.merge(obj.engine.config.get("modules").get("jmeter"))

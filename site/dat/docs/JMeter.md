@@ -413,6 +413,5 @@ execution
     
 modules:
   jmeter:
-    jvm:
-      memory-xmx: 4G  # allow JMeter to use up to 4G of memory
+    memory-xmx: 4G  # allow JMeter to use up to 4G of memory
 ```
