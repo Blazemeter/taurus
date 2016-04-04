@@ -621,7 +621,7 @@ class TestJMeterExecutor(BZTestCase):
         obj.prepare()
         jmx = JMX(obj.modified_jmx)
         delimiters = [delimiter.text for delimiter in jmx.get("CSVDataSet>stringProp[name='delimiter']")]
-        self.assertEqual([1, 2, ','], delimiters)
+        self.assertEqual(['1', '2', ','], delimiters)
 
     def test_iterations_loop_bug(self):
         obj = JMeterExecutor()
