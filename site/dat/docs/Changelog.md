@@ -9,6 +9,7 @@
  - add dynamic buffer scaling ability to ResultsReader
  - add scheduling ability with `start-at` parameter  
  - apply overrides and cli-aliases before creating artifacts-dir
+ - add JVM heap size configuration to JMeter settings
 
 ## 1.3.3 <sup>24 mar 2016</sup>
  - add new `hostaliases` setting for all executors
