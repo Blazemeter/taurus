@@ -31,6 +31,7 @@ from distutils.version import LooseVersion
 from math import ceil
 
 from cssselect import GenericTranslator
+import psutil
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.jmx import JMX
@@ -74,6 +75,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.distributed_servers = []
         self.management_port = None
         self.reader = None
+        self._env = {}
 
     def prepare(self):
         """
@@ -104,6 +106,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         self.__set_jmeter_properties(scenario)
         self.__set_system_properties()
+        self.__set_jvm_properties()
 
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.reader = JTLReader(self.kpi_jtl, self.log, self.log_jtl)
@@ -117,6 +120,19 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             sys_props_file = self.engine.create_artifact("system", ".properties")
             JMeterExecutor.__write_props_to_file(sys_props_file, sys_props)
             self.sys_properties_file = sys_props_file
+
+    @staticmethod
+    def __calculate_default_heap_size():
+        memory = psutil.virtual_memory()
+        memory_mb = round(float(memory.total) / 1024 / 1024)
+        memory_limit = int(memory_mb * 0.5)
+        return "%dM" % memory_limit
+
+    def __set_jvm_properties(self):
+        def_heap_size = JMeterExecutor.__calculate_default_heap_size()
+        heap_size = self.settings.get("memory-xmx", def_heap_size)
+        self.log.debug("Setting JVM heap size to %s", heap_size)
+        self._env["JVM_ARGS"] = "-Xmx%s" % heap_size
 
     def __set_jmeter_properties(self, scenario):
         props = self.settings.get("properties")
@@ -160,7 +176,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.start_time = time.time()
         try:
             # FIXME: muting stderr and stdout is bad
-            self.process = self.execute(cmdline, stderr=None, cwd=self.engine.artifacts_dir)
+            self.process = self.execute(cmdline, stderr=None, cwd=self.engine.artifacts_dir, env=self._env)
         except OSError as exc:
             self.log.error("Failed to start JMeter: %s", traceback.format_exc())
             self.log.error("Failed command: %s", cmdline)

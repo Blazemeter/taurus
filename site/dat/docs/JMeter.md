@@ -386,7 +386,7 @@ scenarios:
 ```
 
 
-### Jmeter Test Log
+### JMeter Test Log
 You can tune JTL file verbosity with option `write-xml-jtl`. Possible values are 'error' (default), 'full', or any other value for 'none'. Keep in mind: max verbosity can seriously load your system.
 ```yaml
 ---
@@ -395,4 +395,23 @@ execution
   scenario:
     script: my.jmx
 
+```
+
+## JMeter JVM Memory Limit
+
+By default Taurus will allow JMeter to use up to 50% of your RAM. You can tweak JMeter's memory limit with `memory-xmx`
+option. Use `K`, `M` or `G` suffixes to specify memory limit in kilobytes, megabytes or gigabytes.
+
+Example:
+```yaml
+---
+execution
+- executor: jmeter
+  hold-for: 5m
+  scenario:
+    script: my_test.jmx
+    
+modules:
+  jmeter:
+    memory-xmx: 4G  # allow JMeter to use up to 4G of memory
 ```
