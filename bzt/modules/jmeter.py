@@ -124,8 +124,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     @staticmethod
     def __calculate_default_heap_size():
         memory = psutil.virtual_memory()
-        memory_limit = int(memory.total * 0.5)
-        return str(memory_limit)
+        memory_mb = round(float(memory.total) / 1024 / 1024)
+        memory_limit = int(memory_mb * 0.5)
+        return "%dM" % memory_limit
 
     def __set_jvm_properties(self):
         def_heap_size = JMeterExecutor.__calculate_default_heap_size()
