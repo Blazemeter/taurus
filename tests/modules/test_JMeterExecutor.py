@@ -1075,8 +1075,8 @@ class TestJMeterExecutor(BZTestCase):
         stdout, _ = obj.process.communicate()
         obj.shutdown()
         obj.post_process()
-        self.assertIn("-Xmx2048m", stdout)
-        self.assertIn("-Xms512m", stdout)
+        self.assertIn("-Xmx2048m", str(stdout))
+        self.assertIn("-Xms512m", str(stdout))
 
 
 class TestJMX(BZTestCase):
