@@ -266,7 +266,7 @@ class TestJMeterExecutor(BZTestCase):
         res_files = obj.resource_files()
         artifacts = os.listdir(obj.engine.artifacts_dir)
         self.assertEqual(len(res_files), 5)
-        self.assertEqual(len(artifacts), 7) # 5 + two effective configs
+        self.assertEqual(len(artifacts), 7)  # 5 + two effective configs
         target_jmx = os.path.join(obj.engine.artifacts_dir, "files.jmx")
         self.__check_path_resource_files(target_jmx)
 
@@ -613,6 +613,15 @@ class TestJMeterExecutor(BZTestCase):
         tg_forever = loop_ctrl.find(".//boolProp[@name='LoopController.continue_forever']")
         self.assertEqual(tg_loops.text, "-1")
         self.assertEqual(tg_forever.text, "false")
+
+    def test_force_delimiters(self):
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({"iterations": 10, "scenario": {"script": __dir__() + "/../jmx/delimiters.jmx"}})
+        obj.prepare()
+        jmx = JMX(obj.modified_jmx)
+        delimiters = [delimiter.text for delimiter in jmx.get("CSVDataSet>stringProp[name='delimiter']")]
+        self.assertEqual(['1', '2', ','], delimiters)
 
     def test_iterations_loop_bug(self):
         obj = JMeterExecutor()
@@ -1061,12 +1070,12 @@ class TestJMeterExecutor(BZTestCase):
         obj.engine = EngineEmul()
         obj.engine.config = BetterDict()
         obj.engine.config.merge({'execution': {'iterations': 1,
-                                               'scenario': { 'script': __dir__() + '/../jmx/http.jmx'}},
+                                               'scenario': {'script': __dir__() + '/../jmx/http.jmx'}},
                                  'modules': {'jmeter': {'memory-xmx': '2G'}}})
         obj.engine.config.merge({"provisioning": "local"})
         obj.execution = obj.engine.config['execution']
         obj.settings.merge(obj.engine.config.get("modules").get("jmeter"))
-        fake_path = os.path.join( __dir__(), os.pardir, 'data', 'jmeter_jvm_args' + EXE_SUFFIX)
+        fake_path = os.path.join(__dir__(), os.pardir, 'data', 'jmeter_jvm_args' + EXE_SUFFIX)
         obj.settings.merge({"path": fake_path})
         obj.prepare()
         obj.startup()

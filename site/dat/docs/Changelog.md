@@ -9,6 +9,7 @@
  - add dynamic buffer scaling ability to ResultsReader
  - add scheduling ability with `start-at` parameter  
  - apply overrides and cli-aliases before creating artifacts-dir
+ - fix multiple JMeter warnings when CSV delimiter isn't set 
  - add `memory-xmx` option to JMeter to configure JVM heap size 
 
 ## 1.3.3 <sup>24 mar 2016</sup>
