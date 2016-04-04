@@ -277,7 +277,7 @@ class TestJMeterExecutor(BZTestCase):
         obj.prepare()
         artifacts = os.listdir(obj.engine.artifacts_dir)
         self.assertEqual(len(artifacts), 9)  # minus jmeter.log
-        target_jmx = os.path.join(obj.engine.artifacts_dir, "modified_files.jmx.jmx")
+        target_jmx = os.path.join(obj.engine.artifacts_dir, "modified_files.jmx")
         self.__check_path_resource_files(target_jmx, exclude_jtls=True)
 
     def test_resource_files_from_requests_remote_prov(self):
@@ -296,11 +296,11 @@ class TestJMeterExecutor(BZTestCase):
         obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
         obj.execution = obj.engine.config['execution']
         obj.prepare()
-        files = ['http.jmx', 'jmeter-bzt.properties', 'modified_requests.jmx.jmx']
+        files = ['http.jmx', 'jmeter-bzt.properties', 'modified_requests.jmx']
         files += ['requests.jmx', 'system.properties', 'test1.csv']
         artifacts = os.listdir(obj.engine.artifacts_dir)
         self.assertTrue(all([_file in artifacts for _file in files]))  # +system.properties, -jmeter.log
-        target_jmx = os.path.join(obj.engine.artifacts_dir, "modified_requests.jmx.jmx")
+        target_jmx = os.path.join(obj.engine.artifacts_dir, "modified_requests.jmx")
         self.__check_path_resource_files(target_jmx, exclude_jtls=True)
 
     def test_http_request_defaults(self):
@@ -590,7 +590,7 @@ class TestJMeterExecutor(BZTestCase):
         obj.execution.merge({"scenario": {"script": __dir__() + "/../jmx/files.jmx"}})
         obj.distributed_servers = ["127.0.0.1", "127.0.0.1"]
         obj.prepare()
-        target_jmx = os.path.join(obj.engine.artifacts_dir, "modified_files.jmx.jmx")
+        target_jmx = os.path.join(obj.engine.artifacts_dir, "modified_files.jmx")
         self.__check_path_resource_files(target_jmx, exclude_jtls=True, reverse_check=True)
 
     def test_duration_loops_bug(self):
@@ -690,7 +690,7 @@ class TestJMeterExecutor(BZTestCase):
         obj.prepare()
         artifacts = os.listdir(obj.engine.artifacts_dir)
         self.assertEqual(len(artifacts), 5)  # minus jmeter.log
-        target_jmx = os.path.join(obj.engine.artifacts_dir, "modified_variable_csv.jmx.jmx")
+        target_jmx = os.path.join(obj.engine.artifacts_dir, "modified_variable_csv.jmx")
         with open(target_jmx) as fds:
             jmx = fds.read()
             self.assertIn('<stringProp name="filename">${root}/csvfile.csv</stringProp>', jmx)
@@ -1060,6 +1060,51 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(len(props), 2)
         non_parent = props[1]
         self.assertEqual(non_parent.text, 'false')
+
+    def test_jvm_heap_settings(self):
+        """
+
+        :return:
+        """
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = BetterDict()
+        obj.engine.config.merge({'execution': {'iterations': 1,
+                                               'scenario': {'script': __dir__() + '/../jmx/http.jmx'}},
+                                 'modules': {'jmeter': {'memory-xmx': '2G'}}})
+        obj.engine.config.merge({"provisioning": "local"})
+        obj.execution = obj.engine.config['execution']
+        obj.settings.merge(obj.engine.config.get("modules").get("jmeter"))
+        fake_path = os.path.join(__dir__(), os.pardir, 'data', 'jmeter_jvm_args' + EXE_SUFFIX)
+        obj.settings.merge({"path": fake_path})
+        obj.prepare()
+        obj.startup()
+        stdout, _ = obj.process.communicate()
+        obj.shutdown()
+        obj.post_process()
+        self.assertIn("-Xmx2G", str(stdout))
+
+    def test_jvm_heap_default_value(self):
+        """
+
+        :return:
+        """
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = BetterDict()
+        obj.engine.config.merge({'execution': {'iterations': 1,
+                                               'scenario': {'script': __dir__() + '/../jmx/http.jmx'}}})
+        obj.engine.config.merge({"provisioning": "local"})
+        obj.execution = obj.engine.config['execution']
+        obj.settings.merge(obj.engine.config.get("modules").get("jmeter"))
+        fake_path = os.path.join(__dir__(), os.pardir, 'data', 'jmeter_jvm_args' + EXE_SUFFIX)
+        obj.settings.merge({"path": fake_path})
+        obj.prepare()
+        obj.startup()
+        stdout, _ = obj.process.communicate()
+        obj.shutdown()
+        obj.post_process()
+        self.assertIn("-Xmx", str(stdout))
 
 
 class TestJMX(BZTestCase):
