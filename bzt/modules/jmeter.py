@@ -31,6 +31,7 @@ from distutils.version import LooseVersion
 from math import ceil
 
 from cssselect import GenericTranslator
+import psutil
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.jmx import JMX
@@ -120,17 +121,18 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             JMeterExecutor.__write_props_to_file(sys_props_file, sys_props)
             self.sys_properties_file = sys_props_file
 
+    @staticmethod
+    def __calculate_default_heap_size():
+        memory = psutil.virtual_memory()
+        memory_limit = int(memory.total * 0.8)
+        return str(memory_limit)
+
     def __set_jvm_properties(self):
         jvm_props = self.settings.get("jvm")
-        if jvm_props:
-            self.log.debug("Additional JVM settings %s", jvm_props)
-            jvm_args = []
-            if jvm_props.get("initial-heap-size", None):
-                jvm_args.append("-Xms%sm" % jvm_props["initial-heap-size"])
-            if jvm_props.get("maximum-heap-size", None):
-                jvm_args.append("-Xmx%sm" % jvm_props["maximum-heap-size"])
-            if jvm_args:
-                self._env["JVM_ARGS"] = " ".join(jvm_args)
+        self.log.debug("Additional JVM settings %s", jvm_props)
+        def_heap_size = JMeterExecutor.__calculate_default_heap_size()
+        heap_size = jvm_props.get("memory-xmx", def_heap_size)
+        self._env["JVM_ARGS"] = "-Xmx%s" % heap_size
 
     def __set_jmeter_properties(self, scenario):
         props = self.settings.get("properties")

@@ -1062,9 +1062,7 @@ class TestJMeterExecutor(BZTestCase):
         obj.engine.config = BetterDict()
         obj.engine.config.merge({'execution': {'iterations': 1,
                                                'scenario': { 'script': __dir__() + '/../jmx/http.jmx'}},
-                                 'modules': {'jmeter': {'jvm': {'initial-heap-size': '512',
-                                                                'maximum-heap-size': '2048'},
-                                                        }}})
+                                 'modules': {'jmeter': {'jvm': {'memory-xmx': '2G'}}}})
         obj.engine.config.merge({"provisioning": "local"})
         obj.execution = obj.engine.config['execution']
         obj.settings.merge(obj.engine.config.get("modules").get("jmeter"))
@@ -1075,8 +1073,29 @@ class TestJMeterExecutor(BZTestCase):
         stdout, _ = obj.process.communicate()
         obj.shutdown()
         obj.post_process()
-        self.assertIn("-Xmx2048m", str(stdout))
-        self.assertIn("-Xms512m", str(stdout))
+        self.assertIn("-Xmx2G", str(stdout))
+
+    def test_jvm_heap_default_value(self):
+        """
+
+        :return:
+        """
+        obj = JMeterExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config = BetterDict()
+        obj.engine.config.merge({'execution': {'iterations': 1,
+                                               'scenario': {'script': __dir__() + '/../jmx/http.jmx'}}})
+        obj.engine.config.merge({"provisioning": "local"})
+        obj.execution = obj.engine.config['execution']
+        obj.settings.merge(obj.engine.config.get("modules").get("jmeter"))
+        fake_path = os.path.join(__dir__(), os.pardir, 'data', 'jmeter_jvm_args' + EXE_SUFFIX)
+        obj.settings.merge({"path": fake_path})
+        obj.prepare()
+        obj.startup()
+        stdout, _ = obj.process.communicate()
+        obj.shutdown()
+        obj.post_process()
+        self.assertIn("-Xmx", str(stdout))
 
 
 class TestJMX(BZTestCase):
