@@ -557,7 +557,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.__add_result_writers(jmx)
         self.__force_tran_parent_sample(jmx)
 
-        prefix = "modified_" + os.path.basename(original)
+        script_name, _ = os.path.splitext(os.path.basename(original))
+        prefix = "modified_" + script_name
         filename = self.engine.create_artifact(prefix, ".jmx")
         jmx.save(filename)
         return filename
