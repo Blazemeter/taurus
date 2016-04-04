@@ -74,6 +74,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.distributed_servers = []
         self.management_port = None
         self.reader = None
+        self._env = {}
 
     def prepare(self):
         """
@@ -104,6 +105,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         self.__set_jmeter_properties(scenario)
         self.__set_system_properties()
+        self.__set_jvm_properties()
 
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.reader = JTLReader(self.kpi_jtl, self.log, self.log_jtl)
@@ -117,6 +119,18 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             sys_props_file = self.engine.create_artifact("system", ".properties")
             JMeterExecutor.__write_props_to_file(sys_props_file, sys_props)
             self.sys_properties_file = sys_props_file
+
+    def __set_jvm_properties(self):
+        jvm_props = self.settings.get("jvm")
+        if jvm_props:
+            self.log.debug("Additional JVM settings %s", jvm_props)
+            jvm_args = ""
+            if jvm_props.get("initial-heap-size", None):
+                jvm_args += "-Xms%sm" % jvm_props["initial-heap-size"]
+            if jvm_props.get("maximum-heap-size", None):
+                jvm_args += "-Xmx%sm" % jvm_props["maximum-heap-size"]
+            if jvm_args:
+                self._env["JVM_ARGS"] = jvm_args
 
     def __set_jmeter_properties(self, scenario):
         props = self.settings.get("properties")
@@ -160,7 +174,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.start_time = time.time()
         try:
             # FIXME: muting stderr and stdout is bad
-            self.process = self.execute(cmdline, stderr=None, cwd=self.engine.artifacts_dir)
+            self.process = self.execute(cmdline, stderr=None, cwd=self.engine.artifacts_dir, env=self._env)
         except OSError as exc:
             self.log.error("Failed to start JMeter: %s", traceback.format_exc())
             self.log.error("Failed command: %s", cmdline)
