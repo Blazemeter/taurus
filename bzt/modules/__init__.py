@@ -1,4 +1,14 @@
-"""
+""" - add XPath extractors and assertions for JMeter
+ - show warning if no element matched `set-prop` modification
+ - do not create hostaliases file when aliases are not specified
+ - add `force-parent-sample` option to JMeter executor
+ - add `compile-target-java` option for Selenium
+ - add dynamic buffer scaling ability to ResultsReader
+ - add scheduling ability with `start-at` parameter
+ - apply overrides and cli-aliases before creating artifacts-dir
+ - fix multiple JMeter warnings when CSV delimiter isn't set
+ - add `memory-xmx` option to JMeter to configure JVM heap size
+
 Modules package holds EngineModule implementations
 
 Copyright 2015 BlazeMeter Inc.

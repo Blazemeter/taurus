@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.4.0 (next)
+## 1.4.0 <sup>5 apr 2016</sup>
  - add XPath extractors and assertions for JMeter
  - show warning if no element matched `set-prop` modification
  - do not create hostaliases file when aliases are not specified
