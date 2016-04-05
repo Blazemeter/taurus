@@ -185,7 +185,7 @@ class BlazeMeterSenseClient(object):
         while True:
             time.sleep(1)  # NOTE: really? we're blocking entire app here
             status = self.get_upload_status(queue_id)
-            if status['UserError']:
+            if status.get('UserError'):
                 raise RuntimeError("Sense processing error: " + status['UserError'])
 
             if int(status['status']) == self.STATUS_DONE:

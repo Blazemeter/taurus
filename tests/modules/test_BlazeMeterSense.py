@@ -5,7 +5,7 @@ import requests
 
 from tests import BZTestCase, random_datapoint
 from bzt.modules.monitoring import LocalClient
-from bzt.modules.sense import BlazeMeterSenseReporter
+from bzt.modules.sense import BlazeMeterSenseReporter, BlazeMeterSenseClient
 from tests.mocks import EngineEmul
 
 
@@ -109,6 +109,11 @@ class TestSenseReporter(BZTestCase):
         obj.shutdown()  # send last batch and end_online
         self.assertEquals(4, len(adapter.requests))
 
+    def _get_monitoring_client(self):
+        return LocalClient(logging.getLogger(''),
+                          None,
+                          {'metrics': ['cpu', 'mem', 'disk-space']})
+
     def test_sends_results(self):
         obj = BlazeMeterSenseReporter()
         obj.engine = EngineEmul()
@@ -116,20 +121,23 @@ class TestSenseReporter(BZTestCase):
             'token': 'faketoken',
             'browser-open': False,
             'online-enabled': False,
+            'test-title': 'Test Test',
         })
 
         adapter = RecordingAdapter([
+            # upload results
             MockResponse(200, [{'QueueID': '123cvb'}]),
+            # wait until files are processed
+            MockResponse(200, [{'status': BlazeMeterSenseClient.STATUS_DONE, 'TestID': 'testid'}]),
+            # set title
+            MockResponse(),
         ])
         obj.sense.session.mount('https://', adapter)
 
         obj.prepare()
         obj.startup()
 
-        monitor = LocalClient(logging.getLogger(''),
-                              None,
-                              {'metrics': ['cpu', 'mem', 'disk-space']})
-
+        monitor = self._get_monitoring_client()
         for x in range(30):
             obj.aggregated_second(random_datapoint(x))
             obj.monitoring_data(monitor.get_data())
@@ -140,6 +148,71 @@ class TestSenseReporter(BZTestCase):
 
         self.assertTrue(os.path.exists(obj.results_file))
         self.assertTrue(os.path.exists(obj.monitoring_file))
+        upload_request = adapter.requests[0]
+        self.assertIn('results.ldjson', upload_request.body)
+        self.assertIn('monitoring.ldjson', upload_request.body)
+
+    def test_set_title_color(self):
+        obj = BlazeMeterSenseReporter()
+        obj.engine = EngineEmul()
+        obj.settings.merge({
+            'token': 'faketoken',
+            'browser-open': False,
+            'online-enabled': False,
+            'test-title': 'MyTitle',
+            'test-color': 'MyColor',
+        })
+
+        adapter = RecordingAdapter([
+            # upload results
+            MockResponse(200, [{'QueueID': '123cvb'}]),
+            # wait until files are processed
+            MockResponse(200, [{'status': BlazeMeterSenseClient.STATUS_DONE, 'TestID': 'testid'}]),
+            # set title
+            MockResponse(),
+            # set color
+            MockResponse(),
+        ])
+        obj.sense.session.mount('https://', adapter)
+        monitor = self._get_monitoring_client()
+
+        obj.prepare()
+        obj.startup()
+        for x in range(5):
+            obj.aggregated_second(random_datapoint(x))
+            obj.monitoring_data(monitor.get_data())
+        obj.check()
+        obj.shutdown()
+        obj.post_process()
+
+        color_req = adapter.requests[2]
+        title_req = adapter.requests[3]
+        self.assertIn('MyTitle', title_req.path_url)
+        self.assertIn('MyColor', color_req.path_url)
+
+    def test_upload_failed(self):
+        obj = BlazeMeterSenseReporter()
+        obj.engine = EngineEmul()
+        obj.settings.merge({
+            'token': 'faketoken',
+            'browser-open': False,
+            'online-enabled': False,
+        })
+
+        adapter = RecordingAdapter([
+            MockResponse(451),
+        ])
+        obj.sense.session.mount('https://', adapter)
+        monitor = self._get_monitoring_client()
+
+        obj.prepare()
+        obj.startup()
+        for x in range(5):
+            obj.aggregated_second(random_datapoint(x))
+            obj.monitoring_data(monitor.get_data())
+        obj.check()
+        obj.shutdown()
+        self.assertRaises(RuntimeError, obj.post_process)
 
 
 class RecordingAdapter(requests.adapters.HTTPAdapter):
