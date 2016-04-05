@@ -30,8 +30,8 @@ from collections import Counter, namedtuple
 from distutils.version import LooseVersion
 from math import ceil
 
-from cssselect import GenericTranslator
 import psutil
+from cssselect import GenericTranslator
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.jmx import JMX
@@ -571,10 +571,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         self.__apply_modifications(jmx)
 
-        rename_threads = self.settings.get("rename-distributed-threads", True)
-        if self.distributed_servers and rename_threads:
-            self.__rename_thread_groups(jmx)
-
         self.__apply_load_settings(jmx, load)
         self.__prepare_resources(jmx)
         self.__add_result_writers(jmx)
@@ -739,21 +735,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                         post_body_files.append(post_body_path)
         return post_body_files
 
-    def __rename_thread_groups(self, jmx):
-        """
-        In case of distributed test, rename thread groups
-        :param jmx: JMX
-        :return:
-        """
-        prepend_str = r"${__machineName()}"
-        thread_groups = jmx.tree.findall(".//ThreadGroup")
-        for thread_group in thread_groups:
-            test_name = thread_group.attrib["testname"]
-            if prepend_str not in test_name:
-                thread_group.attrib["testname"] = prepend_str + test_name
-
-        self.log.debug("ThreadGroups renamed: %d", len(thread_groups))
-
     def __get_script(self):
         """
 
@@ -882,7 +863,7 @@ class JTLReader(ResultsReader):
             label = row["label"]
             if self.is_distributed:
                 concur = int(row["grpThreads"])
-                trname = row["threadName"][:row["threadName"].rfind('-')]
+                trname = row["Hostname"]
             else:
                 concur = int(row["allThreads"])
                 trname = ''

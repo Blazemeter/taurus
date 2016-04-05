@@ -415,10 +415,9 @@ class TestJMeterExecutor(BZTestCase):
         obj.distributed_servers = ["127.0.0.1", "127.0.0.1"]
         obj.prepare()
         xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
-        thread_groups = xml_tree.findall(".//ThreadGroup")
-        prepend_str = r"${__machineName()}"
-        for thread_group in thread_groups:
-            self.assertTrue(thread_group.attrib["testname"].startswith(prepend_str))
+        writers = xml_tree.findall(".//ResultCollector[@testname='KPI Writer']")
+        for writer in writers:
+            self.assertEqual('true', writer.find('objProp/value/hostname').text)
 
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
@@ -428,10 +427,9 @@ class TestJMeterExecutor(BZTestCase):
         obj.distributed_servers = ["127.0.0.1", "127.0.0.1"]
         obj.prepare()
         xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
-        thread_groups = xml_tree.findall(".//ThreadGroup")
-        prepend_str = r"${__machineName()}"
-        for thread_group in thread_groups:
-            self.assertFalse(thread_group.attrib["testname"].startswith(prepend_str))
+        writers = xml_tree.findall(".//ResultCollector[@testname='KPI Writer']")
+        for writer in writers:
+            self.assertEqual('true', writer.find('objProp/value/hostname').text)
 
     def test_dns_cache_mgr_scenario(self):
         """
