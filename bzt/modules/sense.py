@@ -25,6 +25,7 @@ import bzt
 from bzt.engine import Reporter
 from bzt.modules.monitoring import Monitoring, MonitoringListener
 from bzt.modules.aggregator import AggregatorListener, ResultsProvider
+from bzt.utils import open_browser
 
 
 class BlazeMeterSenseReporter(Reporter, AggregatorListener, MonitoringListener):
@@ -68,7 +69,9 @@ class BlazeMeterSenseReporter(Reporter, AggregatorListener, MonitoringListener):
 
     def startup(self):
         if self.online_enabled:
-            self.sense.start_online(self.project_key, self.test_title)
+            url = self.sense.start_online(self.project_key, self.test_title)
+            if url is not None and self.settings.get('browser-open', True):
+                open_browser(url)
 
     def aggregated_second(self, data_point):
         self.results_writer.write(data_point)
@@ -155,6 +158,7 @@ class BlazeMeterSenseClient(object):
         if not response.ok:
             self.log.warn("Failed to start Sense test: %s", response.status_code)
             self.log.debug("Failed to start Sense test: %s", response.text)
+            return None
 
         online_id = response.json()
         return self.address + "gui/active/" + online_id['OnlineID'] + '/'

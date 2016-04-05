@@ -193,6 +193,7 @@ modules:
     test-title: Sense Test  # name of Sense test
     test-color: blue  # test color label in Sense UI
     online-enabled: true  # send live reports to Sense as test is executing
+    browser-open: true  # open browser with live test data
 ```
 
 

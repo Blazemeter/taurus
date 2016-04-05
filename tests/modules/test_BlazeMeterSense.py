@@ -9,7 +9,10 @@ class TestSenseReporter(BZTestCase):
     def test_works(self):
         obj = BlazeMeterSenseReporter()
         obj.engine = EngineEmul()
-        obj.settings['token'] = 'faketoken'
+        obj.settings.merge({
+            'token': 'faketoken',
+            'browser-open': False,
+        })
         obj.engine = EngineEmul()
 
         adapter = RecordingAdapter([
