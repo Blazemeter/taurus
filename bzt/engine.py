@@ -824,13 +824,11 @@ class ScenarioExecutor(EngineModule):
                 raise ValueError("Unsupported type for scenario")
 
         if self._label is None:
-            if Scenario.SCRIPT in self.__scenario and self.__scenario.get(Scenario.SCRIPT):
-                # using script name if present
+            try:
                 error = ValueError("Wrong script in scenario")
                 scen = self.__scenario.get(Scenario.SCRIPT, error)
                 self._label = os.path.basename(scen)
-            else:
-                # last resort - a checksum of whole scenario
+            except BaseException:
                 self._label = hashlib.md5(to_json(self.__scenario).encode()).hexdigest()
 
         return self.__scenario
