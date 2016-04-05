@@ -13,6 +13,7 @@
  - apply overrides and cli-aliases before creating artifacts-dir
  - fix multiple JMeter warnings when CSV delimiter isn't set 
  - add `memory-xmx` option to JMeter to configure JVM heap size 
+ - add reporting to BlazeMeter Sense
 
 ## 1.3.3 <sup>24 mar 2016</sup>
  - add new `hostaliases` setting for all executors
