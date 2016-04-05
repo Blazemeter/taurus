@@ -155,8 +155,9 @@ bzt mytest.yml -o modules.blazemeter.report-name="Jenkins Build ${BUILD_NUMBER}"
 ```
 
 ## BlazeMeter Sense Reporting
-It is possible to integrate Taurus with BlazeMeter Sense service. BlazeMeter Sense is the service for storing and
-analysing performance test results. It provides highly detailed and interactive graphs and reports.
+It is possible to integrate Taurus with [BlazeMeter Sense](https://sense.blazemeter.com/). BlazeMeter Sense is the
+service for storing and analysing performance test results. It provides highly detailed and interactive graphs and
+reports.
 
 Example of usage:
 ```yaml
@@ -173,6 +174,28 @@ modules:
   sense:
     token: <Sense upload token>
 ```
+
+Full Sense configuration:
+```yaml
+execution:
+- concurrency: 10
+  scenario:
+    requests:
+      - http://blazedemo.com/
+
+reporting:
+- sense
+
+modules:
+  sense:
+    token: <Sense upload token>
+    project: Taurus  # name of Sense project
+    test-title: Sense Test  # name of Sense test
+    test-color: blue  # test color label in Sense UI
+    online-enabled: true  # send live reports to Sense as test is executing
+```
+
+
 
 ## JUnit XML Reporter
 

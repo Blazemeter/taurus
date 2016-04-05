@@ -43,9 +43,9 @@ class BlazeMeterSenseReporter(Reporter, AggregatorListener, MonitoringListener):
 
     def prepare(self):
         self.project_key = self.settings.get("project", 'Taurus')
-        self.test_title = self.settings.get("test_title", "")
-        self.test_color = self.settings.get("test_color", "")
-        self.online_enabled = self.settings.get("online_enabled", True)
+        self.test_title = self.settings.get("test-title", "")
+        self.test_color = self.settings.get("test-color", "")
+        self.online_enabled = self.settings.get("online-enabled", True)
 
         token = self.settings.get('token', '')
         if not token:
