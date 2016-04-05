@@ -824,7 +824,7 @@ class ScenarioExecutor(EngineModule):
                 raise ValueError("Unsupported type for scenario")
 
         if self._label is None:
-            if Scenario.SCRIPT in self.__scenario:
+            if Scenario.SCRIPT in self.__scenario and self.__scenario.get(Scenario.SCRIPT):
                 # using script name if present
                 error = ValueError("Wrong script in scenario")
                 scen = self.__scenario.get(Scenario.SCRIPT, error)
@@ -913,6 +913,7 @@ class ScenarioExecutor(EngineModule):
             environ.merge(env)
 
         return shell_exec(args, cwd=cwd, stdout=stdout, stderr=stderr, stdin=stdin, shell=shell, env=environ)
+
 
 class Reporter(EngineModule):
     """
