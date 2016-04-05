@@ -123,7 +123,7 @@
       "class": "bzt.modules.siege.SiegeExecutor"
     },
     "sense": {
-      "class": "bzt.modules.sense.BlazemeterSenseReporter"
+      "class": "bzt.modules.sense.BlazeMeterSenseReporter"
     }
   },
   "settings": {
