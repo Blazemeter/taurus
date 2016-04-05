@@ -182,7 +182,7 @@ class BlazeMeterSenseClient(object):
             time.sleep(1)  # NOTE: really? we're blocking entire app here
             status = self.get_upload_status(queue_id)
             if status['UserError']:
-                raise RuntimeError("Loadosophia processing error: " + status['UserError'])
+                raise RuntimeError("Sense processing error: " + status['UserError'])
 
             if int(status['status']) == self.STATUS_DONE:
                 self.results_url = self.address + 'gui/' + status['TestID'] + '/'
