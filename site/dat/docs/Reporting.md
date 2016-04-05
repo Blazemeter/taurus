@@ -177,18 +177,10 @@ modules:
 
 Full Sense configuration:
 ```yaml
-execution:
-- concurrency: 10
-  scenario:
-    requests:
-      - http://blazedemo.com/
-
-reporting:
-- sense
-
 modules:
   sense:
     token: <Sense upload token>
+    address: https://sense.blazemeter.com/
     project: Taurus  # name of Sense project
     test-title: Sense Test  # name of Sense test
     test-color: blue  # test color label in Sense UI
