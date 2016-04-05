@@ -149,8 +149,8 @@ class TestSenseReporter(BZTestCase):
         self.assertTrue(os.path.exists(obj.results_file))
         self.assertTrue(os.path.exists(obj.monitoring_file))
         upload_request = adapter.requests[0]
-        self.assertIn('results.ldjson', upload_request.body)
-        self.assertIn('monitoring.ldjson', upload_request.body)
+        self.assertIn('results.ldjson', str(upload_request.body))
+        self.assertIn('monitoring.ldjson', str(upload_request.body))
 
     def test_set_title_color(self):
         obj = BlazeMeterSenseReporter()
