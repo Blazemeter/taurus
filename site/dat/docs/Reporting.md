@@ -154,6 +154,26 @@ Note how easy is to set report settings from command line, i.e. from inside Jenk
 bzt mytest.yml -o modules.blazemeter.report-name="Jenkins Build ${BUILD_NUMBER}"
 ```
 
+## BlazeMeter Sense Reporting
+It is possible to integrate Taurus with BlazeMeter Sense service. BlazeMeter Sense is the service for storing and
+analysing performance test results. It provides highly detailed and interactive graphs and reports.
+
+Example of usage:
+```yaml
+execution:
+- concurrency: 10
+  scenario:
+    requests:
+      - http://blazedemo.com/
+
+reporting:
+- sense
+
+modules:
+  sense:
+    token: <Sense upload token>
+```
+
 ## JUnit XML Reporter
 
 This reporter provides test results in JUnit xml format parsable by Jenkins [JUnit Plugin](https://wiki.jenkins-ci.org/display/JENKINS/JUnit+Plugin).
