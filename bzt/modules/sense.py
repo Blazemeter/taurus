@@ -172,7 +172,7 @@ class BlazeMeterSenseClient(object):
             self.log.debug("Failed to end Sense test: %s", response.text)
 
     def send_online_data(self, data_buffer):
-        self.log.debug("Sending online data: %s", json.dumps(data_buffer))
+        self.log.debug("Sending online data")
         payload = {'data': json.dumps(data_buffer)}
         url = self.address + "api/active/receiver/data/"
         response = self.session.post(url, data=payload)
