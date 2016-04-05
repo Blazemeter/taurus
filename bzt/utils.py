@@ -134,9 +134,10 @@ class BetterDict(defaultdict):
         if default == defaultdict:
             default = BetterDict()
 
+        if isinstance(default, BaseException) and key not in self:
+            raise default
+
         value = self.setdefault(key, default)
-        if value == default and isinstance(value, BaseException):
-            raise value
 
         if isinstance(value, string_types):
             if isinstance(value, str):  # this is a trick for python v2/v3 compatibility

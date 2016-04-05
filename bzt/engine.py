@@ -372,6 +372,7 @@ class Engine(object):
         Try to find file in search_path if it was specified. Helps finding files
         in non-CLI environments or relative to config path
         :param filename: file basename to find
+        :type filename: str
         """
         filename = os.path.expanduser(filename)
         if os.path.isfile(filename):
@@ -648,7 +649,6 @@ class Configuration(BetterDict):
     def masq_sensitive(value, key, container):
         """
         Remove sensitive data from config
-        :type config: dict
         """
         if isinstance(key, string_types):
             for suffix in ('password', 'secret', 'token',):
@@ -897,6 +897,7 @@ class ScenarioExecutor(EngineModule):
 
     def execute(self, args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False, env=None):
         aliases = self.get_hostaliases()
+        hosts_file = None
         if aliases:
             hosts_file = self.engine.create_artifact("hostaliases", "")
             with open(hosts_file, 'w') as fds:
