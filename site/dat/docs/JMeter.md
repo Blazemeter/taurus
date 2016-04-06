@@ -375,7 +375,7 @@ scenarios:
     requests:
     - url: http://blazedemo.com/
       assert-xpath:
-      - xpath: "/html/head/title" # query
+      - xpath: "/html/head/title/text()='My title'" # query that compares XPath query result with some value
         use-tolerant-parser: false  # use error-tolerant XML parser
         ignore-whitespace: true # ignore whitespaces in XML (has no effect when `use-tolerant-parser` is true)
         validate: false # validate XML against its schema (has no effect when `use-tolerant-parser` is true)
