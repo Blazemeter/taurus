@@ -200,6 +200,7 @@ class JMX(object):
             "responseDataOnError": False,
             "saveAssertionResultsFailureMessage": False,
             "bytes": False,
+            "hostname": True,
             "threadCounts": True,
             "url": False
         }

@@ -1,4 +1,6 @@
 # Changelog
+## 1.4.1 (next)
+ - improve slave id analysis for JMeter distributed test 
 
 ## 1.4.0 <sup>5 apr 2016</sup>
  - add XPath extractors and assertions for JMeter
