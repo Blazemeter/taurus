@@ -25,6 +25,7 @@ import bzt
 from bzt.engine import Reporter
 from bzt.modules.monitoring import Monitoring, MonitoringListener
 from bzt.modules.aggregator import AggregatorListener, ResultsProvider
+from bzt.six import viewvalues
 from bzt.utils import open_browser
 
 
@@ -43,8 +44,8 @@ class BlazeMeterSenseReporter(Reporter, AggregatorListener, MonitoringListener):
         self.online_enabled = False
 
     def prepare(self):
-        self.project_key = self.settings.get("project", 'Taurus')
-        self.test_title = self.settings.get("test-title", "")
+        self.project_key = self.settings.get("project", "Taurus")
+        self.test_title = self.settings.get("test-title", "Test")
         self.test_color = self.settings.get("test-color", "")
         self.online_enabled = self.settings.get("online-enabled", True)
 
@@ -102,6 +103,8 @@ class BlazeMeterSenseReporter(Reporter, AggregatorListener, MonitoringListener):
 
     def send_test_results(self):
         queue_id = self.sense.send_results(self.project_key, self.results_file, self.monitoring_file)
+        if not queue_id:
+            return
         if self.test_title or self.test_color:
             test_id = self.sense.get_test_by_upload(queue_id)
             if self.test_color:
@@ -238,15 +241,11 @@ class BlazeMeterSenseClient(object):
 
         if not result_file or not os.path.exists(result_file) or not os.path.getsize(result_file):
             self.log.warning("Empty results file, skipping BlazeMeter Sense uploading: %s", result_file)
-            return
-
-        if not monitoring_file or not os.path.exists(monitoring_file) or not os.path.getsize(monitoring_file):
-            self.log.warning("Empty monitoring file, skipping BlazeMeter Sense uploading: %s", monitoring_file)
-            return
+            return None
 
         return self.__send_checked_results(project, result_file, monitoring_file)
 
-    def __send_checked_results(self, project, result_file, monitoring_file):
+    def __send_checked_results(self, project, result_file, perfmon_file):
         form = {
             'projectKey': project,
             'token': self.token,
@@ -254,13 +253,17 @@ class BlazeMeterSenseClient(object):
         params = {'format': 'json'}
         url = self.address + "api/file/upload/"
 
-        with open(result_file, 'rb') as results_fds:
-            with open(monitoring_file, 'rb') as monitoring_fds:
-                files = {
-                    'results_file': results_fds,
-                    'monitoring_file': monitoring_fds,
-                }
-                response = self.session.post(url, params=params, data=form, files=files)
+        try:
+            files = {}
+            files['jtl_file'] = open(result_file, 'rb')
+            if not perfmon_file or not os.path.exists(perfmon_file) or not os.path.getsize(perfmon_file):
+                self.log.warning("Monitoring file not exists, skipping")
+            else:
+                files['perfmon_0'] = open(perfmon_file, 'rb')
+            response = self.session.post(url, params=params, data=form, files=files)
+        finally:
+            for f in viewvalues(files):
+                f.close()
 
         if not response.ok:
             self.log.debug("Full BlazeMeter Sense response: %s", response.text)
