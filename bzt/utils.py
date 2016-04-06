@@ -143,7 +143,7 @@ class BetterDict(defaultdict):
             if isinstance(value, str):  # this is a trick for python v2/v3 compatibility
                 return value
             else:
-                return value.encode()
+                return text_type(value)
         else:
             return value
 

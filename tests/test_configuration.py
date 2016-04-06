@@ -1,3 +1,4 @@
+# coding=utf-8
 import logging
 import tempfile
 
@@ -60,6 +61,15 @@ class TestConfiguration(BZTestCase):
         self.assertNotEquals('test', token)
         token_orig = obj["list-complex"][1][0]['token']
         self.assertEquals('test', token_orig)
+
+    def test_unicode(self):
+        obj = Configuration()
+        expected = six.u("Юникод")
+        obj.merge({
+            "ustr": expected,
+        })
+        ustr = obj.get("ustr", "nope")
+        self.assertEqual(ustr, expected)
 
     def test_save(self):
         obj = Configuration()
