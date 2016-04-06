@@ -1,5 +1,6 @@
 import logging
 import os
+import time
 
 import requests
 
@@ -141,6 +142,7 @@ class TestSenseReporter(BZTestCase):
         for x in range(30):
             obj.aggregated_second(random_datapoint(x))
             obj.monitoring_data(monitor.get_data())
+            time.sleep(0.1)
 
         obj.check()
         obj.shutdown()
@@ -181,6 +183,7 @@ class TestSenseReporter(BZTestCase):
         for x in range(5):
             obj.aggregated_second(random_datapoint(x))
             obj.monitoring_data(monitor.get_data())
+            time.sleep(0.1)
         obj.check()
         obj.shutdown()
         obj.post_process()
@@ -210,6 +213,7 @@ class TestSenseReporter(BZTestCase):
         for x in range(5):
             obj.aggregated_second(random_datapoint(x))
             obj.monitoring_data(monitor.get_data())
+            time.sleep(0.1)
         obj.check()
         obj.shutdown()
         self.assertRaises(RuntimeError, obj.post_process)
