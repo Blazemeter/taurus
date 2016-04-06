@@ -42,6 +42,7 @@ class BlazeMeterSenseReporter(Reporter, AggregatorListener, MonitoringListener):
         self.test_title = None
         self.online_buffer = []
         self.online_enabled = False
+        self.online_initiated = False
 
     def prepare(self):
         self.project_key = self.settings.get("project", "Taurus")
@@ -65,12 +66,13 @@ class BlazeMeterSenseReporter(Reporter, AggregatorListener, MonitoringListener):
 
         self.results_file = self.engine.create_artifact('results', '.ldjson')
         self.monitoring_file = self.engine.create_artifact('monitoring', '.ldjson')
-        self.results_writer = LDJSONWriter(self.results_file)
-        self.monitoring_writer = LDJSONWriter(self.monitoring_file)
 
     def startup(self):
+        self.results_writer = LDJSONWriter(self.results_file)
+        self.monitoring_writer = LDJSONWriter(self.monitoring_file)
         if self.online_enabled:
             url = self.sense.start_online(self.project_key, self.test_title)
+            self.online_initiated = True
             if url is not None and self.settings.get('browser-open', True):
                 open_browser(url)
 
@@ -89,17 +91,16 @@ class BlazeMeterSenseReporter(Reporter, AggregatorListener, MonitoringListener):
         self.monitoring_writer.write(data_point)
 
     def shutdown(self):
-        if self.online_enabled:
-            if self.online_buffer:
-                self.sense.send_online_data(self.online_buffer)
-            self.sense.end_online()
+        self.close_fds()
+        redirect_link = self.send_test_results()
+        if self.online_initiated:
+            self.sense.end_online(redirect_link)
 
-    def post_process(self):
+    def close_fds(self):
         if self.results_writer is not None:
             self.results_writer.close_fds()
         if self.monitoring_writer is not None:
             self.monitoring_writer.close_fds()
-        self.send_test_results()
 
     def send_test_results(self):
         queue_id = self.sense.send_results(self.project_key, self.results_file, self.monitoring_file)
@@ -111,7 +112,11 @@ class BlazeMeterSenseReporter(Reporter, AggregatorListener, MonitoringListener):
                 self.sense.set_color_flag(test_id, self.test_color)
             if self.test_title:
                 self.sense.set_test_title(test_id, self.test_title)
-        self.log.info("BlazeMeter Sense upload succeeded, view the report at %s", self.sense.results_url)
+            redirect_link = self.sense.address + "gui/" + test_id + "/"
+        else:
+            redirect_link = self.sense.address + "api/file/status/" + queue_id + "/?redirect=true"
+        self.log.info("BlazeMeter Sense upload succeeded, view the report at %s", redirect_link)
+        return redirect_link
 
 
 class LDJSONWriter(object):
@@ -144,7 +149,6 @@ class BlazeMeterSenseClient(object):
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.token = None
         self.address = None
-        self.results_url = None
         self.session = requests.Session()
         self.session.headers.update({'User-Agent': 'Taurus %s Sense Uploader' % bzt.VERSION})
 
@@ -158,7 +162,7 @@ class BlazeMeterSenseClient(object):
 
         url = self.address + "api/active/receiver/start/"
         response = self.session.post(url, data=data)
-        if not response.ok:
+        if response.status_code != 201:
             self.log.warn("Failed to start Sense test: %s", response.status_code)
             self.log.debug("Failed to start Sense test: %s", response.text)
             return None
@@ -166,11 +170,11 @@ class BlazeMeterSenseClient(object):
         online_id = response.json()
         return self.address + "gui/active/" + online_id['OnlineID'] + '/'
 
-    def end_online(self):
+    def end_online(self, redirect_link):
         self.log.debug("Ending Sense online test")
         url = self.address + "api/active/receiver/stop/"
-        response = self.session.post(url)
-        if not response.ok:
+        response = self.session.post(url, data={'redirect': redirect_link})
+        if response.status_code != 205:
             self.log.warn("Failed to end Sense test: %s", response.status_code)
             self.log.debug("Failed to end Sense test: %s", response.text)
 
@@ -179,7 +183,7 @@ class BlazeMeterSenseClient(object):
         payload = {'data': json.dumps(data_buffer)}
         url = self.address + "api/active/receiver/data/"
         response = self.session.post(url, data=payload)
-        if not response.ok:
+        if response.status_code != 202:
             self.log.warn("Failed to send online data: %s", response.status_code)
 
     def get_test_by_upload(self, queue_id):
@@ -192,7 +196,6 @@ class BlazeMeterSenseClient(object):
                 raise RuntimeError("Sense processing error: " + status['UserError'])
 
             if int(status['status']) == self.STATUS_DONE:
-                self.results_url = self.address + 'gui/' + status['TestID'] + '/'
                 return status['TestID']
 
     def get_upload_status(self, queue_id):
@@ -203,7 +206,7 @@ class BlazeMeterSenseClient(object):
         form = {'token': self.token}
 
         response = self.session.post(url, params=params, data=form)
-        if not response.ok:
+        if response.status_code != 200:
             self.log.debug("Upload status check failed: %s", response.text)
             raise RuntimeError("BlazeMeter Sense upload failed, response code %s" % response.status_code)
 
@@ -218,7 +221,7 @@ class BlazeMeterSenseClient(object):
         form = {'token': self.token}
 
         response = self.session.post(url, params=params, data=form)
-        if not response.ok:
+        if response.status_code != 204:
             self.log.debug("Full BlazeMeter Sense response: %s", response.text)
             raise RuntimeError("BlazeMeter Sense request failed, response code %s" % response.status_code)
 
@@ -229,7 +232,7 @@ class BlazeMeterSenseClient(object):
         form = {'token': self.token}
 
         response = self.session.post(url, params=params, data=form)
-        if not response.ok:
+        if response.status_code != 204:
             self.log.debug("Full BlazeMeter Sense response: %s", response.text)
             raise RuntimeError("BlazeMeter Sense request failed, response code %s" % response.status_code)
 
@@ -253,8 +256,8 @@ class BlazeMeterSenseClient(object):
         params = {'format': 'json'}
         url = self.address + "api/file/upload/"
 
+        files = {}
         try:
-            files = {}
             files['jtl_file'] = open(result_file, 'rb')
             if not perfmon_file or not os.path.exists(perfmon_file) or not os.path.getsize(perfmon_file):
                 self.log.warning("Monitoring file not exists, skipping")
@@ -265,13 +268,12 @@ class BlazeMeterSenseClient(object):
             for f in viewvalues(files):
                 f.close()
 
-        if not response.ok:
+        if response.status_code != 200:
             self.log.debug("Full BlazeMeter Sense response: %s", response.text)
             raise RuntimeError("BlazeMeter Sense upload failed, response code %s" % response.status_code)
 
         res = response.json()
         queue_id = res[0]['QueueID']
-        self.results_url = self.address + 'api/file/status/' + queue_id + '/?redirect=true'
         return queue_id
 
 

@@ -1,3 +1,4 @@
+# coding=utf-8
 import logging
 import os
 import time
@@ -20,8 +21,8 @@ class TestSenseReporter(BZTestCase):
         })
 
         adapter = RecordingAdapter([
-            MockResponse(200, {'OnlineID': 'abc123'}),
-            MockResponse(),
+            MockResponse(201, {'OnlineID': 'abc123'}),
+            MockResponse(205),
         ])
         obj.sense.session.mount('https://', adapter)
 
@@ -68,8 +69,8 @@ class TestSenseReporter(BZTestCase):
         })
 
         adapter = RecordingAdapter([
-            MockResponse(200, {'OnlineID': 'abc123'}),  # /api/active/receiver/start/
-            MockResponse(),  # api/active/receiver/data/
+            MockResponse(201, {'OnlineID': 'abc123'}),  # /api/active/receiver/start/
+            MockResponse(202),  # api/active/receiver/data/
         ])
         obj.sense.session.mount('https://', adapter)
 
@@ -82,38 +83,10 @@ class TestSenseReporter(BZTestCase):
         obj.check()
         self.assertEquals(2, len(adapter.requests))
 
-    def test_sends_online_data_in_shutdown(self):
-        obj = BlazeMeterSenseReporter()
-        obj.engine = EngineEmul()
-        obj.settings.merge({
-            'token': 'faketoken',
-            'browser-open': False,
-        })
-
-        adapter = RecordingAdapter([
-            MockResponse(200, {'OnlineID': 'abc123'}),
-            MockResponse(),
-            MockResponse(),
-            MockResponse(),
-        ])
-        obj.sense.session.mount('https://', adapter)
-
-        obj.prepare()
-        obj.startup()
-
-        for x in range(7):  # 5 in first batch, 2 in last one
-            obj.aggregated_second(random_datapoint(x))
-
-        obj.check()  # send first batch
-        self.assertEquals(2, len(adapter.requests))
-
-        obj.shutdown()  # send last batch and end_online
-        self.assertEquals(4, len(adapter.requests))
-
     def _get_monitoring_client(self):
         return LocalClient(logging.getLogger(''),
-                          None,
-                          {'metrics': ['cpu', 'mem', 'disk-space']})
+                           None,
+                           {'metrics': ['cpu', 'mem', 'disk-space']})
 
     def test_sends_results(self):
         obj = BlazeMeterSenseReporter()
@@ -131,7 +104,7 @@ class TestSenseReporter(BZTestCase):
             # wait until files are processed
             MockResponse(200, [{'status': BlazeMeterSenseClient.STATUS_DONE, 'TestID': 'testid'}]),
             # set title
-            MockResponse(),
+            MockResponse(204),
         ])
         obj.sense.session.mount('https://', adapter)
 
@@ -171,9 +144,9 @@ class TestSenseReporter(BZTestCase):
             # wait until files are processed
             MockResponse(200, [{'status': BlazeMeterSenseClient.STATUS_DONE, 'TestID': 'testid'}]),
             # set title
-            MockResponse(),
+            MockResponse(204),
             # set color
-            MockResponse(),
+            MockResponse(204),
         ])
         obj.sense.session.mount('https://', adapter)
         monitor = self._get_monitoring_client()
@@ -215,8 +188,39 @@ class TestSenseReporter(BZTestCase):
             obj.monitoring_data(monitor.get_data())
             time.sleep(0.1)
         obj.check()
+        self.assertRaises(RuntimeError, obj.shutdown)
+
+    def test_unicode_project_title(self):
+        obj = BlazeMeterSenseReporter()
+        obj.engine = EngineEmul()
+        obj.settings.merge({
+            'token': 'faketoken',
+            'browser-open': False,
+            'online-enabled': False,
+            'test-title': u'Проект',
+            'project': u'Тест',
+        })
+
+        adapter = RecordingAdapter([
+            # upload results
+            MockResponse(200, [{'QueueID': '123cvb'}]),
+            # wait until files are processed
+            MockResponse(200, [{'status': BlazeMeterSenseClient.STATUS_DONE, 'TestID': 'testid'}]),
+            # set title
+            MockResponse(204),
+        ])
+        obj.sense.session.mount('https://', adapter)
+        monitor = self._get_monitoring_client()
+
+        obj.prepare()
+        obj.startup()
+        for x in range(5):
+            obj.aggregated_second(random_datapoint(x))
+            obj.monitoring_data(monitor.get_data())
+            time.sleep(0.1)
+        obj.check()
         obj.shutdown()
-        self.assertRaises(RuntimeError, obj.post_process)
+        obj.post_process()
 
 
 class RecordingAdapter(requests.adapters.HTTPAdapter):
