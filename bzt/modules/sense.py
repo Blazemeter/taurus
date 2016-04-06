@@ -265,8 +265,8 @@ class BlazeMeterSenseClient(object):
                 files['perfmon_0'] = open(perfmon_file, 'rb')
             response = self.session.post(url, params=params, data=form, files=files)
         finally:
-            for f in viewvalues(files):
-                f.close()
+            for fds in viewvalues(files):
+                fds.close()
 
         if response.status_code != 200:
             self.log.debug("Full BlazeMeter Sense response: %s", response.text)
