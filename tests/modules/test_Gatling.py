@@ -11,18 +11,11 @@ from tests.mocks import EngineEmul
 
 class TestGatlingExecutor(BZTestCase):
     def getGatling(self):
-        path = os.path.abspath(__dir__() + "/../../build/gatling-taurus/bin/gatling" + EXE_SUFFIX)
+        path = os.path.abspath(__dir__() + "/../gatling/gatling" + EXE_SUFFIX)
         obj = GatlingExecutor()
         obj.engine = EngineEmul()
         obj.settings.merge({"path": path})
         return obj
-
-    def test_gatling_mirrors(self):
-        path = os.path.abspath(__dir__() + "/../../build/tmp/gatling-taurus/bin/gatling" + EXE_SUFFIX)
-        shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
-        obj = GatlingExecutor()
-        gatling_tool = Gatling(path, obj.log, GatlingExecutor.VERSION)
-        gatling_tool.install()
 
     def test_install_Gatling(self):
         path = os.path.abspath(__dir__() + "/../../build/tmp/gatling-taurus/bin/gatling" + EXE_SUFFIX)
