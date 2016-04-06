@@ -852,6 +852,8 @@ class TestJMeterExecutor(BZTestCase):
         obj.execution = BetterDict()
         obj.execution.merge({"scenario": {"script": __dir__() + "/../jmx/dummy.jmx"}})
         obj.prepare()
+        obj.startup()
+        obj.shutdown()
         self.assertRaises(RuntimeWarning, obj.post_process)
 
     def test_jmeter_mirrors(self):
