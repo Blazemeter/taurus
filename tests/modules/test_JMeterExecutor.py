@@ -13,26 +13,32 @@ import yaml
 from bzt.engine import Provisioning
 from bzt.jmx import JMX
 from bzt.modules.aggregator import ConsolidatingAggregator
-from bzt.modules.jmeter import JMeterExecutor, JTLErrorsReader, JTLReader, JMeter
+from bzt.modules.jmeter import JMeterExecutor, JTLErrorsReader, JTLReader
 from bzt.modules.jmeter import JMeterScenarioBuilder
 from bzt.six import etree
-from bzt.utils import BetterDict, EXE_SUFFIX
+from bzt.utils import EXE_SUFFIX
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul, RecordingHandler
 
 
+def get_jmeter():
+    path = __dir__() + "/../jmeter/jmeter" + EXE_SUFFIX
+    obj = JMeterExecutor()
+    obj.engine = EngineEmul()
+    obj.settings.merge({'path': path})
+    return obj
+
+
 class TestJMeterExecutor(BZTestCase):
+
     def test_jmx(self):
-        obj = JMeterExecutor()
-        obj.engine = EngineEmul()
-        obj.execution = BetterDict()
+        obj = get_jmeter()
         obj.execution.merge({"scenario": {"script": __dir__() + "/../jmx/dummy.jmx"}})
         obj.engine.create_artifacts_dir()
         obj.prepare()
 
     def test_jmx_2tg(self):
-        obj = JMeterExecutor()
-        obj.engine = EngineEmul()
+        obj = get_jmeter()
         obj.engine.config[Provisioning.PROV] = 'test'
         obj.execution.merge({
             "concurrency": 1051,
@@ -49,29 +55,22 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEquals('631', thr[1].text)
 
     def test_not_jmx(self):
-        obj = JMeterExecutor()
-        obj.engine = EngineEmul()
+        obj = get_jmeter()
         obj.execution = {"scenario": {"script": __file__}}
         self.assertRaises(RuntimeError, obj.prepare)
 
     def test_broken_xml(self):
-        obj = JMeterExecutor()
-        obj.engine = EngineEmul()
-        obj.execution = BetterDict()
-
+        obj = get_jmeter()
         obj.execution.merge({"scenario": {"script": __dir__() + "/../jmx/broken.jmx"}})
         self.assertRaises(RuntimeError, obj.prepare)
 
     def test_not_jmx_xml(self):
-        obj = JMeterExecutor()
-        obj.engine = EngineEmul()
-        obj.execution = BetterDict()
+        obj = get_jmeter()
         obj.execution.merge({"scenario": {"script": __dir__() + "/../jmx/not-jmx.xml"}})
         self.assertRaises(RuntimeError, obj.prepare)
 
     def test_requests(self):
-        obj = JMeterExecutor()
-        obj.engine = EngineEmul()
+        obj = get_jmeter()
         obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
         obj.execution = obj.engine.config['execution']
         obj.prepare()
@@ -91,9 +90,7 @@ class TestJMeterExecutor(BZTestCase):
                 obj.log.debug("%s", open(obj.jmeter_log).read())
 
     def test_issue_no_iterations(self):
-        obj = JMeterExecutor()
-        obj.engine = EngineEmul()
-        obj.execution = BetterDict()
+        obj = get_jmeter()
         obj.execution.merge({
             "concurrency": 10,
             "ramp-up": 10,
@@ -104,9 +101,7 @@ class TestJMeterExecutor(BZTestCase):
         obj.prepare()
 
     def test_datasources_with_delimiter(self):
-        obj = JMeterExecutor()
-        obj.engine = EngineEmul()
-        obj.execution = BetterDict()
+        obj = get_jmeter()
         obj.execution.merge({"scenario":
                                  {"requests": ["http://localhost"],
                                   "data-sources": [
@@ -115,9 +110,7 @@ class TestJMeterExecutor(BZTestCase):
         obj.prepare()
 
     def test_datasources_without_delimiter(self):
-        obj = JMeterExecutor()
-        obj.engine = EngineEmul()
-        obj.execution = BetterDict()
+        obj = get_jmeter()
         obj.execution.merge({"scenario":
                                  {"requests": ["http://localhost"],
                                   "data-sources": [
@@ -168,17 +161,24 @@ class TestJMeterExecutor(BZTestCase):
         path = os.path.abspath(__dir__() + "/../../build/tmp/jmeter-taurus/bin/jmeter" + EXE_SUFFIX)
 
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
-
         self.assertFalse(os.path.exists(path))
 
-        obj = JMeterExecutor()
-        obj.engine = EngineEmul()
-        obj.settings.merge({"path": path})
+        jmeter_link = JMeterExecutor.JMETER_DOWNLOAD_LINK
+        jmeter_ver = JMeterExecutor.JMETER_VER
+        plugins_link = JMeterExecutor.PLUGINS_DOWNLOAD_TPL
+        mirrors_link = JMeterExecutor.MIRRORS_SOURCE
 
-        obj.execution = BetterDict()
+        JMeterExecutor.MIRRORS_SOURCE = "file:///" + __dir__() + "/../data/unicode_file"
+        JMeterExecutor.JMETER_DOWNLOAD_LINK = "file:///" + __dir__() + "/../data/jmeter-dist-{version}.zip"
+        JMeterExecutor.PLUGINS_DOWNLOAD_TPL = "file:///" + __dir__() + "/../data/JMeterPlugins-{plugin}-1.3.0.zip"
+        JMeterExecutor.JMETER_VER = '2.13'
+
+        obj = get_jmeter()
+        obj.settings.merge({"path": path})
         obj.execution.merge({"scenario": {"requests": ["http://localhost"]}})
 
         obj.prepare()
+
         jars = os.listdir(os.path.abspath(os.path.join(path, '../../lib')))
         old_jars = ['httpcore-4.2.5.jar', 'httpmime-4.2.6.jar', 'xercesImpl-2.9.1.jar', 'commons-jexl-1.1.jar',
                     'httpclient-4.2.6.jar']
@@ -187,18 +187,19 @@ class TestJMeterExecutor(BZTestCase):
 
         self.assertTrue(os.path.exists(path))
 
-        obj = JMeterExecutor()
-        obj.engine = EngineEmul()
+        obj = get_jmeter()
         obj.settings.merge({"path": path})
-
-        obj.execution = BetterDict()
         obj.execution.merge({"scenario": {"requests": ["http://localhost"]}})
 
         obj.prepare()
 
+        JMeterExecutor.JMETER_DOWNLOAD_LINK = jmeter_link
+        JMeterExecutor.PLUGINS_DOWNLOAD_TPL = plugins_link
+        JMeterExecutor.JMETER_VER = jmeter_ver
+        JMeterExecutor.MIRRORS_SOURCE = mirrors_link
+
     def test_think_time_bug(self):
-        obj = JMeterExecutor()
-        obj.engine = EngineEmul()
+        obj = get_jmeter()
         obj.engine.config.merge({'execution': {'ramp-up': '1m', 'hold-for': '1m30s', 'concurrency': 10,
                                                'scenario':
                                                    {'think-time': 0.75,
@@ -211,8 +212,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertIn('<stringProp name="ConstantTimer.delay">750</stringProp>', result)
 
     def test_body_parse(self):
-        obj = JMeterExecutor()
-        obj.engine = EngineEmul()
+        obj = get_jmeter()
         obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
         obj.execution = obj.engine.config['execution']
         obj.prepare()
@@ -271,8 +271,7 @@ class TestJMeterExecutor(BZTestCase):
         self.__check_path_resource_files(target_jmx)
 
     def test_resource_files_collection_local_prov(self):
-        obj = JMeterExecutor()
-        obj.engine = EngineEmul()
+        obj = get_jmeter()
         obj.execution.merge({"scenario": {"script": __dir__() + "/../jmx/files.jmx"}})
         obj.prepare()
         artifacts = os.listdir(obj.engine.artifacts_dir)
@@ -281,8 +280,7 @@ class TestJMeterExecutor(BZTestCase):
         self.__check_path_resource_files(target_jmx, exclude_jtls=True)
 
     def test_resource_files_from_requests_remote_prov(self):
-        obj = JMeterExecutor()
-        obj.engine = EngineEmul()
+        obj = get_jmeter()
         obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
         obj.execution = obj.engine.config['execution']
         res_files = obj.resource_files()
@@ -291,8 +289,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(len(artifacts), 4)  # 2 + two effective configs
 
     def test_resource_files_from_requests_local_prov(self):
-        obj = JMeterExecutor()
-        obj.engine = EngineEmul()
+        obj = get_jmeter()
         obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
         obj.execution = obj.engine.config['execution']
         obj.prepare()
@@ -304,8 +301,7 @@ class TestJMeterExecutor(BZTestCase):
         self.__check_path_resource_files(target_jmx, exclude_jtls=True)
 
     def test_http_request_defaults(self):
-        obj = JMeterExecutor()
-        obj.engine = EngineEmul()
+        obj = get_jmeter()
         obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
         obj.execution = obj.engine.config['execution']
         obj.prepare()
@@ -326,9 +322,7 @@ class TestJMeterExecutor(BZTestCase):
             self.assertEqual("false", request.find(".//boolProp[@name='HTTPSampler.use_keepalive']").text)
 
     def test_add_shaper_constant(self):
-        obj = JMeterExecutor()
-        obj.engine = EngineEmul()
-        obj.engine.config = BetterDict()
+        obj = get_jmeter()
         obj.engine.config.merge({'execution': {'concurrency': 200, 'throughput': 100, 'hold-for': '1m',
                                                'scenario': {'script': __dir__() + '/../jmx/http.jmx'}}})
         obj.engine.config.merge({"provisioning": "local"})
@@ -346,9 +340,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual("60", shaper_coll_element.find(".//stringProp[@name='53']").text)
 
     def test_add_shaper_ramp_up(self):
-        obj = JMeterExecutor()
-        obj.engine = EngineEmul()
-        obj.engine.config = BetterDict()
+        obj = get_jmeter()
         obj.engine.config.merge({'execution': {'ramp-up': '1m', 'throughput': 10, 'hold-for': '2m', 'concurrency': 20,
                                                'scenario': {'script': __dir__() + '/../jmx/http.jmx'}}})
         obj.engine.config.merge({"provisioning": "local"})
@@ -370,8 +362,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual("120", shaper_coll_element.findall(".//stringProp[@name='53']")[1].text)
 
     def test_user_def_vars_from_requests(self):
-        obj = JMeterExecutor()
-        obj.engine = EngineEmul()
+        obj = get_jmeter()
         obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
         obj.execution = obj.engine.config['execution']
         obj.prepare()
@@ -380,8 +371,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(1, len(udv_elements))
 
     def test_user_def_vars_override(self):
-        obj = JMeterExecutor()
-        obj.engine = EngineEmul()
+        obj = get_jmeter()
         obj.engine.config.merge({'execution': {'concurrency': 200, 'throughput': 100, 'hold-for': '1m', 'scenario': {
             'variables': {'my_var': 'http://demo.blazemeter.com/api/user', 'myvar2': 'val2'},
             'properties': {'log_level.jmeter': 'DEBUG'}, 'script': __dir__() + '/../jmx/http.jmx'}}})
@@ -409,8 +399,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEquals(1, len(values))
 
     def test_distributed_th_hostnames(self):
-        obj = JMeterExecutor()
-        obj.engine = EngineEmul()
+        obj = get_jmeter()
         obj.execution.merge({"scenario": {"script": __dir__() + "/../jmx/http.jmx"}})
         obj.distributed_servers = ["127.0.0.1", "127.0.0.1"]
         obj.prepare()
@@ -419,8 +408,7 @@ class TestJMeterExecutor(BZTestCase):
         for writer in writers:
             self.assertEqual('true', writer.find('objProp/value/hostname').text)
 
-        obj = JMeterExecutor()
-        obj.engine = EngineEmul()
+        obj = get_jmeter()
         obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
         obj.execution = obj.engine.config['execution']
         obj.settings.merge(obj.engine.config.get("modules").get("jmeter"))
@@ -432,12 +420,7 @@ class TestJMeterExecutor(BZTestCase):
             self.assertEqual('true', writer.find('objProp/value/hostname').text)
 
     def test_dns_cache_mgr_scenario(self):
-        """
-        No system properties
-        :return:
-        """
-        obj = JMeterExecutor()
-        obj.engine = EngineEmul()
+        obj = get_jmeter()
         obj.execution.merge({"scenario": {"script": __dir__() + "/../jmx/http.jmx"}})
         obj.prepare()
         xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
@@ -448,12 +431,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertNotIn("system.properties", arts)
 
     def test_dns_cache_mgr_requests(self):
-        """
-
-        :return:
-        """
-        obj = JMeterExecutor()
-        obj.engine = EngineEmul()
+        obj = get_jmeter()
         obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
         obj.execution = obj.engine.config['execution']
         obj.settings.merge(obj.engine.config.get("modules").get("jmeter"))
@@ -468,13 +446,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertTrue("sun.net.inetaddr.ttl=0" in sys_prop)
 
     def test_dns_cache_mgr_script(self):
-        """
-
-        :return:
-        """
-        obj = JMeterExecutor()
-        obj.engine = EngineEmul()
-        obj.engine.config = BetterDict()
+        obj = get_jmeter()
         obj.engine.config.merge({'execution': {'ramp-up': 10, 'throughput': 2, 'hold-for': 20, 'concurrency': 5,
                                                'scenario': {'think-time': '0.75s',
                                                             'script': __dir__() + '/../jmx/http.jmx'}},
@@ -499,9 +471,7 @@ class TestJMeterExecutor(BZTestCase):
         Tested without concurrency proportions
         :return:
         """
-        obj = JMeterExecutor()
-        obj.engine = EngineEmul()
-        obj.engine.config = BetterDict()
+        obj = get_jmeter()
         obj.engine.config.merge({'execution': {'steps': 5, 'concurrency': 170,
                                                'scenario': {'script': __dir__() + '/../jmx/stepping_ramp_up.jmx'},
                                                'ramp-up': '1m', 'distributed': ['127.0.0.1'], 'hold-for': '2m'}})
@@ -529,9 +499,7 @@ class TestJMeterExecutor(BZTestCase):
         Tested with concurrency proportions
         :return:
         """
-        obj = JMeterExecutor()
-        obj.engine = EngineEmul()
-        obj.engine.config = BetterDict()
+        obj = get_jmeter()
         obj.engine.config.merge({'execution': {'steps': 5, 'concurrency': 170,
                                                'scenario': {'script': __dir__() + '/../jmx/stepping_ramp_up.jmx'},
                                                'ramp-up': '1m', 'distributed': ['127.0.0.1'], 'hold-for': '2m'}})
@@ -558,9 +526,7 @@ class TestJMeterExecutor(BZTestCase):
                              str(int(ceil(float(load.concurrency) / orig_summ_cnc * orig_num_threads / load.steps))))
 
     def test_step_shaper(self):
-        obj = JMeterExecutor()
-        obj.engine = EngineEmul()
-        obj.engine.config = BetterDict()
+        obj = get_jmeter()
         obj.engine.config.merge({'execution': {'steps': 5, 'concurrency': 170,
                                                'scenario': {'script': __dir__() + '/../jmx/stepping_ramp_up.jmx'},
                                                'ramp-up': '1m', 'distributed': ['127.0.0.1'], 'hold-for': '2m'}})
@@ -583,8 +549,7 @@ class TestJMeterExecutor(BZTestCase):
                 self.assertEqual(step_collection.find(".//stringProp[@name='53']"), load.ramp_up / load.steps)
 
     def test_csv_path_bug_in_distributed_mode(self):
-        obj = JMeterExecutor()
-        obj.engine = EngineEmul()
+        obj = get_jmeter()
         obj.execution.merge({"scenario": {"script": __dir__() + "/../jmx/files.jmx"}})
         obj.distributed_servers = ["127.0.0.1", "127.0.0.1"]
         obj.prepare()
@@ -592,10 +557,8 @@ class TestJMeterExecutor(BZTestCase):
         self.__check_path_resource_files(target_jmx, exclude_jtls=True, reverse_check=True)
 
     def test_duration_loops_bug(self):
-        obj = JMeterExecutor()
-        obj.engine = EngineEmul()
+        obj = get_jmeter()
         obj.engine.config[Provisioning.PROV] = 'test'
-        obj.execution = BetterDict()
         obj.execution.merge({
             "concurrency": 10,
             "ramp-up": 15,
@@ -613,8 +576,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(tg_forever.text, "false")
 
     def test_force_delimiters(self):
-        obj = JMeterExecutor()
-        obj.engine = EngineEmul()
+        obj = get_jmeter()
         obj.execution.merge({"iterations": 10, "scenario": {"script": __dir__() + "/../jmx/delimiters.jmx"}})
         obj.prepare()
         jmx = JMX(obj.modified_jmx)
@@ -622,10 +584,8 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(['1', '2', ','], delimiters)
 
     def test_iterations_loop_bug(self):
-        obj = JMeterExecutor()
-        obj.engine = EngineEmul()
+        obj = get_jmeter()
         obj.engine.config[Provisioning.PROV] = 'test'
-        obj.execution = BetterDict()
         obj.execution.merge({"iterations": 10, "scenario": {"script": __dir__() + "/../jmx/http.jmx"}})
         obj.prepare()
         modified_xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
@@ -636,10 +596,8 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(tg_loops.text, "10")
         self.assertEqual(tg_forever.text, "false")
 
-        obj = JMeterExecutor()
-        obj.engine = EngineEmul()
+        obj = get_jmeter()
         obj.engine.config[Provisioning.PROV] = 'test'
-        obj.execution = BetterDict()
         obj.execution.merge({"scenario": {"script": __dir__() + "/../jmx/http.jmx"}})
         obj.prepare()
         modified_xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
@@ -651,9 +609,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(tg_forever.text, "false")
 
     def test_distributed_gui(self):
-        obj = JMeterExecutor()
-        obj.engine = EngineEmul()
-        obj.engine.config = BetterDict()
+        obj = get_jmeter()
         obj.engine.config.merge(yaml.load(open(__dir__() + "/../yaml/distributed_gui.yml").read()))
         obj.settings.merge(obj.engine.config.get("modules").get("jmeter"))
         obj.execution = obj.engine.config['execution']
@@ -666,9 +622,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertIn("remote_hosts=127.0.0.1,127.0.0.2", contents)
 
     def test_empty_requests(self):  # https://groups.google.com/forum/#!topic/codename-taurus/iaT6O2UhfBE
-        obj = JMeterExecutor()
-        obj.engine = EngineEmul()
-        obj.engine.config = BetterDict()
+        obj = get_jmeter()
         obj.engine.config.merge({'execution': {'ramp-up': '10s', 'requests': ['http://blazedemo.com/',
                                                                               'http://blazedemo.com/vacation.html'],
                                                'hold-for': '30s', 'concurrency': 5, 'scenario': {'think-time': 0.75}}})
@@ -682,8 +636,7 @@ class TestJMeterExecutor(BZTestCase):
             self.assertEqual(exc.args[0], "Nothing to test, no requests were provided in scenario")
 
     def test_variable_csv_file(self):
-        obj = JMeterExecutor()
-        obj.engine = EngineEmul()
+        obj = get_jmeter()
         obj.execution.merge({"scenario": {"script": __dir__() + "/../jmx/variable_csv.jmx"}})
         obj.prepare()
         artifacts = os.listdir(obj.engine.artifacts_dir)
@@ -694,10 +647,10 @@ class TestJMeterExecutor(BZTestCase):
             self.assertIn('<stringProp name="filename">${root}/csvfile.csv</stringProp>', jmx)
 
     def test_css_jquery_extractor(self):
-        obj = JMeterExecutor()
+        obj = get_jmeter()
         handler = RecordingHandler()
         obj.log.addHandler(handler)
-        obj.engine = EngineEmul()
+
         obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
         obj.execution = obj.engine.config['execution']
         obj.prepare()
@@ -722,10 +675,9 @@ class TestJMeterExecutor(BZTestCase):
         obj.log.removeHandler(handler)
 
     def test_xpath_extractor(self):
-        obj = JMeterExecutor()
+        obj = get_jmeter()
         handler = RecordingHandler()
         obj.log.addHandler(handler)
-        obj.engine = EngineEmul()
         obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
         obj.execution = obj.engine.config['execution']
         obj.prepare()
@@ -754,10 +706,9 @@ class TestJMeterExecutor(BZTestCase):
         obj.log.removeHandler(handler)
 
     def test_xpath_assertion(self):
-        obj = JMeterExecutor()
+        obj = get_jmeter()
         handler = RecordingHandler()
         obj.log.addHandler(handler)
-        obj.engine = EngineEmul()
         obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
         obj.execution = obj.engine.config['execution']
         obj.prepare()
@@ -782,11 +733,10 @@ class TestJMeterExecutor(BZTestCase):
         obj.log.removeHandler(handler)
 
     def test_shutdown_soft(self):
-        obj = JMeterExecutor()
+        obj = get_jmeter()
+        #obj.settings.merge({'path': ''})
         log_recorder = RecordingHandler()
         obj.log.addHandler(log_recorder)
-        obj.engine = EngineEmul()
-        obj.execution = BetterDict()
         obj.execution.merge({"scenario": {"script": __dir__() + "/../jmx/dummy.jmx"}})
         try:
             obj.prepare()
@@ -797,6 +747,7 @@ class TestJMeterExecutor(BZTestCase):
             self.fail()
         finally:
             obj.log.removeHandler(log_recorder)
+        return
         self.assertIn("JMeter stopped on Shutdown command", log_recorder.debug_buff.getvalue())
 
     def test_embedded_resources_main_sample_fail_assert(self):
@@ -849,23 +800,14 @@ class TestJMeterExecutor(BZTestCase):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
         obj.engine.aggregator = ConsolidatingAggregator()
-        obj.execution = BetterDict()
         obj.execution.merge({"scenario": {"script": __dir__() + "/../jmx/dummy.jmx"}})
         obj.prepare()
         self.assertRaises(RuntimeWarning, obj.post_process)
-
-    def test_jmeter_mirrors(self):
-        path = os.path.abspath(__dir__() + "/../../build/tmp/jmeter-taurus/bin/jmeter" + EXE_SUFFIX)
-        shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
-        obj = JMeterExecutor()
-        objjm = JMeter(path, obj.log, JMeterExecutor.JMETER_VER, JMeterExecutor.PLUGINS_DOWNLOAD_TPL)
-        objjm.install()
 
     def test_convert_tgroups_no_load(self):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
         obj.engine.config[Provisioning.PROV] = 'test'
-        obj.execution = BetterDict()
         obj.execution.merge({
             "scenario": {"script": __dir__() + "/../jmx/SteppingThreadGroup.jmx"}
         })
@@ -880,7 +822,6 @@ class TestJMeterExecutor(BZTestCase):
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
         obj.engine.config[Provisioning.PROV] = 'test'
-        obj.execution = BetterDict()
         obj.execution.merge({
             "iterations": 20,
             "ramp-up": 10,
@@ -1066,7 +1007,6 @@ class TestJMeterExecutor(BZTestCase):
         """
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
-        obj.engine.config = BetterDict()
         obj.engine.config.merge({'execution': {'iterations': 1,
                                                'scenario': {'script': __dir__() + '/../jmx/http.jmx'}},
                                  'modules': {'jmeter': {'memory-xmx': '2G'}}})
@@ -1089,7 +1029,6 @@ class TestJMeterExecutor(BZTestCase):
         """
         obj = JMeterExecutor()
         obj.engine = EngineEmul()
-        obj.engine.config = BetterDict()
         obj.engine.config.merge({'execution': {'iterations': 1,
                                                'scenario': {'script': __dir__() + '/../jmx/http.jmx'}}})
         obj.engine.config.merge({"provisioning": "local"})
