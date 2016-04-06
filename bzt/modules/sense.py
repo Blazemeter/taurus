@@ -193,7 +193,7 @@ class BlazeMeterSenseClient(object):
             time.sleep(1)  # NOTE: really? we're blocking entire app here
             status = self.get_upload_status(queue_id)
             if status.get('UserError'):
-                raise RuntimeError("Sense processing error: " + status['UserError'])
+                raise RuntimeWarning("Sense processing error: " + status['UserError'])
 
             if int(status['status']) == self.STATUS_DONE:
                 return status['TestID']
@@ -208,7 +208,7 @@ class BlazeMeterSenseClient(object):
         response = self.session.post(url, params=params, data=form)
         if response.status_code != 200:
             self.log.debug("Upload status check failed: %s", response.text)
-            raise RuntimeError("BlazeMeter Sense upload failed, response code %s" % response.status_code)
+            raise RuntimeWarning("BlazeMeter Sense upload failed, response code %s" % response.status_code)
 
         res = response.json()
         self.log.debug("Upload status info: %s", res)
@@ -223,7 +223,7 @@ class BlazeMeterSenseClient(object):
         response = self.session.post(url, params=params, data=form)
         if response.status_code != 204:
             self.log.debug("Full BlazeMeter Sense response: %s", response.text)
-            raise RuntimeError("BlazeMeter Sense request failed, response code %s" % response.status_code)
+            raise RuntimeWarning("BlazeMeter Sense request failed, response code %s" % response.status_code)
 
     def set_test_title(self, test_id, title):
         self.log.debug("Setting Sense test title: %s", test_id)
@@ -234,7 +234,7 @@ class BlazeMeterSenseClient(object):
         response = self.session.post(url, params=params, data=form)
         if response.status_code != 204:
             self.log.debug("Full BlazeMeter Sense response: %s", response.text)
-            raise RuntimeError("BlazeMeter Sense request failed, response code %s" % response.status_code)
+            raise RuntimeWarning("BlazeMeter Sense request failed, response code %s" % response.status_code)
 
     def send_results(self, project, result_file, monitoring_file):
         self.log.info("Uploading results to BlazeMeter Sense")
@@ -270,7 +270,7 @@ class BlazeMeterSenseClient(object):
 
         if response.status_code != 200:
             self.log.debug("Full BlazeMeter Sense response: %s", response.text)
-            raise RuntimeError("BlazeMeter Sense upload failed, response code %s" % response.status_code)
+            raise RuntimeWarning("BlazeMeter Sense upload failed, response code %s" % response.status_code)
 
         res = response.json()
         queue_id = res[0]['QueueID']
