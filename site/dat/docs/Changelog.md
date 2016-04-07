@@ -1,6 +1,7 @@
 # Changelog
 ## 1.4.1 (next)
- - improve slave id analysis for JMeter distributed test 
+ - improve slave id analysis for JMeter distributed test
+ - Remove real installations from tests of Gatling and JMeter
 
 ## 1.4.0 <sup>5 apr 2016</sup>
  - add XPath extractors and assertions for JMeter

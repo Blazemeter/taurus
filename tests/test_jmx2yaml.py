@@ -28,7 +28,7 @@ class TestConverter(BZTestCase):
 
     def test_loadjmx1(self):
         log_recorder = RecordingHandler()
-        obj = self._get_jmx2yaml("/jmx/http.jmx", self._get_tmp())
+        obj = self._get_jmx2yaml("/jmeter/jmx/http.jmx", self._get_tmp())
         obj.log.addHandler(log_recorder)
         obj.process()
         self.assertIn("Loading jmx file", log_recorder.info_buff.getvalue())
@@ -38,7 +38,7 @@ class TestConverter(BZTestCase):
 
     def test_loadjmx2(self):
         log_recorder = RecordingHandler()
-        obj = self._get_jmx2yaml("/jmx/notfound.jmx")
+        obj = self._get_jmx2yaml("/jmeter/jmx/notfound.jmx")
         obj.log.addHandler(log_recorder)
         try:
             obj.process()
@@ -52,7 +52,7 @@ class TestConverter(BZTestCase):
 
     def test_loadjmx3(self):
         log_recorder = RecordingHandler()
-        obj = self._get_jmx2yaml("/jmx/broken.jmx")
+        obj = self._get_jmx2yaml("/jmeter/jmx/broken.jmx")
         obj.log.addHandler(log_recorder)
         try:
             obj.process()
@@ -66,7 +66,7 @@ class TestConverter(BZTestCase):
 
     def test_loadjmx4(self):
         log_recorder = RecordingHandler()
-        obj = self._get_jmx2yaml("/jmx/http.jmx", self._get_tmp('tmp', 'file'))
+        obj = self._get_jmx2yaml("/jmeter/jmx/http.jmx", self._get_tmp('tmp', 'file'))
         obj.log.addHandler(log_recorder)
         obj.process()
         self.assertIn("Loading jmx file", log_recorder.info_buff.getvalue())
@@ -88,7 +88,7 @@ class TestConverter(BZTestCase):
         obj.log.removeHandler(log_recorder)
 
     def test_not_jmx(self):
-        obj = self._get_jmx2yaml("/jmx/not-jmx.xml")
+        obj = self._get_jmx2yaml("/jmeter/jmx/not-jmx.xml")
         try:
             obj.process()
             self.fail()

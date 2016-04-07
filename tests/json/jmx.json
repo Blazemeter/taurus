@@ -4,7 +4,7 @@
       "name": "JMX Scenario",
       "executor": "jmeter",
       "sla": [],
-      "script": "tests/jmx/dummy.jmx",
+      "script": "tests/jmeter/jmx/dummy.jmx",
       "modifications": [
         {
           "element": "Dummy Sampler",

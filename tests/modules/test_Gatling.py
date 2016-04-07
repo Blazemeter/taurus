@@ -11,22 +11,19 @@ from tests.mocks import EngineEmul
 
 class TestGatlingExecutor(BZTestCase):
     def getGatling(self):
-        path = os.path.abspath(__dir__() + "/../../build/gatling-taurus/bin/gatling" + EXE_SUFFIX)
+        path = os.path.abspath(__dir__() + "/../gatling/gatling" + EXE_SUFFIX)
         obj = GatlingExecutor()
         obj.engine = EngineEmul()
         obj.settings.merge({"path": path})
         return obj
 
-    def test_gatling_mirrors(self):
-        path = os.path.abspath(__dir__() + "/../../build/tmp/gatling-taurus/bin/gatling" + EXE_SUFFIX)
-        shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
-        obj = GatlingExecutor()
-        gatling_tool = Gatling(path, obj.log, GatlingExecutor.VERSION)
-        gatling_tool.install()
-
     def test_install_Gatling(self):
         path = os.path.abspath(__dir__() + "/../../build/tmp/gatling-taurus/bin/gatling" + EXE_SUFFIX)
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
+
+        gatling_download_link = GatlingExecutor.DOWNLOAD_LINK
+        gatling_version = GatlingExecutor.VERSION
+        gatling_mirrors = GatlingExecutor.MIRRORS_SOURCE
 
         GatlingExecutor.DOWNLOAD_LINK = "file:///" + __dir__() + "/../data/gatling-dist-{version}_{version}.zip"
         GatlingExecutor.VERSION = '2.1.4'
@@ -40,6 +37,10 @@ class TestGatlingExecutor(BZTestCase):
                                           "simulation": "mytest.BasicSimulation"}})
         obj.prepare()
         self.assertTrue(os.path.exists(path))
+
+        GatlingExecutor.DOWNLOAD_LINK = gatling_download_link
+        GatlingExecutor.VERSION = gatling_version
+        GatlingExecutor.MIRRORS_SOURCE = gatling_mirrors
 
     def test_gatling_widget(self):
         obj = self.getGatling()

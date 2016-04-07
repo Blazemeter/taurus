@@ -1,1 +1,0 @@
-echo %JVM_ARGS%
