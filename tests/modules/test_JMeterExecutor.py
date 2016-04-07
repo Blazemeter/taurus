@@ -802,6 +802,8 @@ class TestJMeterExecutor(BZTestCase):
         obj.engine.aggregator = ConsolidatingAggregator()
         obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/dummy.jmx"}})
         obj.prepare()
+        obj.startup()
+        obj.shutdown()
         self.assertRaises(RuntimeWarning, obj.post_process)
 
     def test_convert_tgroups_no_load(self):
