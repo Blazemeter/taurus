@@ -78,7 +78,8 @@ class TestConverter(BZTestCase):
         tmp_jmx_name = self._get_tmp('tmp', '.jmx')
         open(tmp_jmx_name, 'w+').close()  # touch file
 
-        obj = self._get_jmx2yaml("/yaml/converter/disabled.jmx", dump_jmx=tmp_jmx_name)
+        yml = self._get_tmp()
+        obj = self._get_jmx2yaml("/yaml/converter/disabled.jmx", yml, dump_jmx=tmp_jmx_name)
         log_recorder = RecordingHandler()
         obj.log.addHandler(log_recorder)
         obj.process()
@@ -96,7 +97,8 @@ class TestConverter(BZTestCase):
             self.assertIn("Bad jmx format", exc.args[0])
 
     def test_clean_disabled_jmx(self):
-        obj = self._get_jmx2yaml("/yaml/converter/disabled.jmx")
+        yml = self._get_tmp()
+        obj = self._get_jmx2yaml("/yaml/converter/disabled.jmx", yml)
         obj.process()
         disabled_elements = [element for element in obj.converter.dialect.tree.iter() if
                              element.get("enabled") == "false"]
