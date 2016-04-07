@@ -379,7 +379,7 @@ class MultiPartForm(object):
         parts.extend(
             [part_boundary,
              'Content-Disposition: file; name="%s"; filename="%s"' % (field_name, filename),
-             'Content-Type: %s' % content_type, '', body, "\r\n"]
+             'Content-Type: %s' % content_type, '', body]
             for field_name, filename, content_type, body in self.files
         )
 
