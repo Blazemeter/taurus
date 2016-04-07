@@ -1,7 +1,7 @@
 # Changelog
-## 1.4.1 (next)
+
+## 1.4.1 <sup>7 apr 2016</sup>
  - improve slave id analysis for JMeter distributed test
- - Remove real installations from tests of Gatling and JMeter
  - do not append extra \r\n to files sent to cloud/remote prov
 
 ## 1.4.0 <sup>5 apr 2016</sup>
