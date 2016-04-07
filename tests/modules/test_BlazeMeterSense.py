@@ -188,7 +188,7 @@ class TestSenseReporter(BZTestCase):
             obj.monitoring_data(monitor.get_data())
             time.sleep(0.1)
         obj.check()
-        self.assertRaises(RuntimeError, obj.shutdown)
+        self.assertRaises(RuntimeWarning, obj.shutdown)
 
     def test_unicode_project_title(self):
         obj = BlazeMeterSenseReporter()
