@@ -98,13 +98,13 @@ def local_paths_config():
     settings = {
         "modules": {
             "jmeter": {
-                "path": dirname + "/../build/jmeter/bin/jmeter" + EXE_SUFFIX,
+                "path": dirname + "/jmeter/jmeter-loader" + EXE_SUFFIX,
             },
             "grinder": {
-                "path": dirname + "/../build/grinder/lib/grinder.jar",
+                "path": dirname + "//grinder/fake_grinder.jar",
             },
             "gatling": {
-                "path": dirname + "/../build/gatling/bin/gatling" + EXE_SUFFIX,
+                "path": dirname + "/gatling/gatling" + EXE_SUFFIX,
             },
             "selenium": {
                 "selenium-tools": {

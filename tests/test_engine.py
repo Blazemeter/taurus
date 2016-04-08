@@ -23,6 +23,10 @@ class TestEngine(BZTestCase):
         ]
         self.obj.configure(configs)
         self.obj.prepare()
+
+        for executor in self.obj.provisioning.executors:
+            executor._env['TEST_MODE'] = 'files'
+
         self.obj.run()
         self.obj.post_process()
 
@@ -35,6 +39,10 @@ class TestEngine(BZTestCase):
         ]
         self.obj.configure(configs)
         self.obj.prepare()
+
+        for executor in self.obj.provisioning.executors:
+            executor._env['TEST_MODE'] = 'files'
+
         self.obj.run()
         self.obj.post_process()
 
