@@ -41,7 +41,7 @@ from subprocess import PIPE
 from webbrowser import GenericBrowser
 
 import psutil
-from progressbar import ProgressBar, Percentage, Bar, AdaptiveETA
+from progressbar import ProgressBar, Percentage, Bar, ETA
 from psutil import Popen
 from urwid import BaseScreen
 
@@ -689,7 +689,7 @@ class JavaVM(RequiredTool):
 
 class ProgressBarContext(ProgressBar):
     def __init__(self, maxval=0):
-        widgets = [Percentage(), ' ', Bar(marker='=', left='[', right=']'), ' ', AdaptiveETA()]
+        widgets = [Percentage(), ' ', Bar(marker='=', left='[', right=']'), ' ', ETA()]
         super(ProgressBarContext, self).__init__(widgets=widgets, maxval=maxval, fd=sys.stdout)
 
     def __enter__(self):
