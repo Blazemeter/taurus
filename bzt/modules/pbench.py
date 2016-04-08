@@ -339,7 +339,7 @@ class TaurusPBenchTool(PBenchTool):
             max_progress += self._get_rampup_progress(load)
         if load.duration:
             ramp_up = load.ramp_up if load.ramp_up else 0.0
-            max_progress += (load.duration - ramp_up)
+            max_progress += load.duration - ramp_up
         return max_progress
 
     def _get_current_progress(self, time_offset, load):
@@ -348,10 +348,9 @@ class TaurusPBenchTool(PBenchTool):
             actual_concurrency = load.concurrency * (time_offset / load.ramp_up)
             progress += time_offset * actual_concurrency / 2.0
         elif load.duration:
-            rampup_progress = self._get_rampup_progress(load)
             ramp_up = load.ramp_up if load.ramp_up else 0.0
             holding_for = time_offset - ramp_up
-            progress += rampup_progress + holding_for
+            progress += holding_for
         else:
             self.log.warning("Can't estimate progress")
         return progress
