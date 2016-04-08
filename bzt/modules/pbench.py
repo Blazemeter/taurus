@@ -330,26 +330,30 @@ class TaurusPBenchTool(PBenchTool):
                     self._write_schedule_file(load, pbar, scheduler, sfd)
 
     def _get_rampup_progress(self, load):
-        return load.ramp_up * load.concurrency / 2.0
+        ramp_up = load.ramp_up if load.ramp_up else 0.0
+        return ramp_up * load.concurrency / 2.0
 
     def _get_max_progress(self, load):
         max_progress = 0.0
         if load.ramp_up:
             max_progress += self._get_rampup_progress(load)
         if load.duration:
-            max_progress += (load.duration - load.ramp_up) * load.concurrency
+            ramp_up = load.ramp_up if load.ramp_up else 0.0
+            max_progress += (load.duration - ramp_up)
         return max_progress
 
     def _get_current_progress(self, time_offset, load):
+        progress = 0.0
         if load.ramp_up and time_offset < load.ramp_up:
-            real_concurrency = load.concurrency * (time_offset / load.ramp_up)
-            progress = time_offset * real_concurrency / 2.0
+            actual_concurrency = load.concurrency * (time_offset / load.ramp_up)
+            progress += time_offset * actual_concurrency / 2.0
         elif load.duration:
             rampup_progress = self._get_rampup_progress(load)
-            holding_for = (time_offset - load.ramp_up)
-            progress = rampup_progress + holding_for
+            ramp_up = load.ramp_up if load.ramp_up else 0.0
+            holding_for = time_offset - ramp_up
+            progress += rampup_progress + holding_for
         else:
-            progress = None
+            self.log.warning("Can't estimate progress")
         return progress
 
     def _write_schedule_file(self, load, pbar, scheduler, sfd):
@@ -366,9 +370,6 @@ class TaurusPBenchTool(PBenchTool):
                     time_offset = prev_offset if prev_offset > 0 else 0.0
 
                 progress = self._get_current_progress(time_offset, load)
-                # self.log.info("%s/%s, %s/%s", new_progress, max_progress, time_offset, load.duration)
-                # progress_delta = progress - self._get_current_progress(prev_offset, load)
-                # self.log.info("delta %s", progress_delta)
                 pbar.update(progress if 0 <= progress < max_progress else max_progress)
             cnt += 1
 
