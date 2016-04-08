@@ -75,7 +75,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.distributed_servers = []
         self.management_port = None
         self.reader = None
-        self._env = {}
+        self.env = {}
 
     def prepare(self):
         """
@@ -132,7 +132,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         def_heap_size = JMeterExecutor.__calculate_default_heap_size()
         heap_size = self.settings.get("memory-xmx", def_heap_size)
         self.log.debug("Setting JVM heap size to %s", heap_size)
-        self._env["JVM_ARGS"] = "-Xmx%s" % heap_size
+        self.env["JVM_ARGS"] = "-Xmx%s" % heap_size
 
     def __set_jmeter_properties(self, scenario):
         props = self.settings.get("properties")
@@ -176,7 +176,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.start_time = time.time()
         try:
             # FIXME: muting stderr and stdout is bad
-            self.process = self.execute(cmdline, stderr=None, cwd=self.engine.artifacts_dir, env=self._env)
+            self.process = self.execute(cmdline, stderr=None, cwd=self.engine.artifacts_dir, env=self.env)
         except OSError as exc:
             self.log.error("Failed to start JMeter: %s", traceback.format_exc())
             self.log.error("Failed command: %s", cmdline)

@@ -5,6 +5,7 @@ if "%3"=="--version" (
   goto :eof
 )
 echo %JVM_ARGS%
-python %TEST_SERVER_PATH%/udp-server.py
+
+if NOT "%TEST_SERVER_PATH%"=="" python %TEST_SERVER_PATH%/udp-server.py
 
 :eof
