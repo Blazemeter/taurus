@@ -740,7 +740,7 @@ class TestJMeterExecutor(BZTestCase):
         obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/dummy.jmx"}})
         try:
             obj.prepare()
-            obj.env['TEST_SERVER_PATH'] = __dir__() + "/../jmeter"
+            obj._env['TEST_SERVER_PATH'] = __dir__() + "/../jmeter"
             obj.startup()
             time.sleep(1)
             obj.management_port = 8089
