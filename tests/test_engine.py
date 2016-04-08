@@ -1,6 +1,5 @@
 """ unit test """
 import os
-import time
 
 from bzt.engine import ScenarioExecutor
 from bzt.utils import BetterDict, EXE_SUFFIX
