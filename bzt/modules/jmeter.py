@@ -1449,6 +1449,10 @@ class JMeter(RequiredTool):
             return False
 
     def install(self):
+        try:
+            raise ValueError("Installing")
+        except ValueError:
+            self.log.warning("Here: %s", traceback.format_exc())
         dest = os.path.join(os.path.dirname((get_full_path(self.tool_path))), os.path.pardir)
 
         with super(JMeter, self).install_with_mirrors(dest, ".zip") as jmeter_dist:
