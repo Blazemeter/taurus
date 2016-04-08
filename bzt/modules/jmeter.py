@@ -1448,6 +1448,7 @@ class JMeter(RequiredTool):
             return False
 
     def install(self):
+        raise RuntimeError("Installing")
         dest = os.path.join(os.path.dirname((get_full_path(self.tool_path))), os.path.pardir)
 
         with super(JMeter, self).install_with_mirrors(dest, ".zip") as jmeter_dist:
