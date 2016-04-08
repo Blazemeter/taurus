@@ -365,7 +365,6 @@ class TaurusPBenchTool(PBenchTool):
             time_offset, payload_len, payload_offset, payload, marker, record_type, overall_len = item
 
             if cnt % 5000 == 0:  # it's just the number, to throttle down updates...
-                sfd.flush()
                 if time_offset < 0:
                     time_offset = prev_offset if prev_offset > 0 else 0.0
 
