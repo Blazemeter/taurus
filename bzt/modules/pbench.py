@@ -314,17 +314,27 @@ class OriginalPBenchTool(PBenchTool):
         super(OriginalPBenchTool, self).__init__(executor, base_logger)
 
     def _estimate_max_progress(self, load, scheduler):
-        if load.concurrency or load.iterations:
-            return load.duration
-        max_progress = 0.0
-        if load.ramp_up:
-            max_progress += load.ramp_up * load.throughput / 2.0
+        ramp_up = load.ramp_up if load.ramp_up else 0.0
+
+        if load.throughput:
+            units = load.throughput
+        elif load.concurrency:
+            units = load.concurrency
+        else:
+            raise RuntimeError("Unknown units")
+
+        ramp_up_progress = ramp_up * units / 2.0
+
         if load.duration:
-            ramp_up = load.ramp_up if load.ramp_up else 0.0
             hold_for = load.duration - ramp_up
-            const_estimate = load.throughput * hold_for
-            max_progress += const_estimate
-        return max_progress
+            hold_progress = units * hold_for
+        elif load.iterations:
+            payload_count = scheduler.count_payload_items()
+            hold_progress = payload_count * load.iterations
+        else:
+            raise RuntimeError("Unknown hold")
+
+        return ramp_up_progress + hold_progress
 
     def _write_schedule_file(self, load, pbar, scheduler, sfd):
         cnt = 0
@@ -346,21 +356,27 @@ class OriginalPBenchTool(PBenchTool):
 
 class TaurusPBenchTool(PBenchTool):
     def _estimate_max_progress(self, load, scheduler):
-        if load.concurrency or load.iterations:
-            return load.duration
-        max_progress = 0.0
-        if load.ramp_up:
-            max_progress += load.ramp_up * load.throughput / 2.0
+        ramp_up = load.ramp_up if load.ramp_up else 0.0
+
+        if load.throughput:
+            units = load.throughput
+        elif load.concurrency:
+            units = load.concurrency
+        else:
+            raise RuntimeError("Unknown units")
+
+        ramp_up_progress = ramp_up * units / 2.0
+
         if load.duration:
-            ramp_up = load.ramp_up if load.ramp_up else 0.0
             hold_for = load.duration - ramp_up
+            hold_progress = units * hold_for
+        elif load.iterations:
             payload_count = scheduler.count_payload_items()
-            const_estimate = load.throughput * hold_for
-            if payload_count > max_progress + const_estimate:
-                max_progress += const_estimate
-            else:
-                max_progress += payload_count
-        return max_progress
+            hold_progress = payload_count * load.iterations
+        else:
+            raise RuntimeError("Unknown hold")
+
+        return ramp_up_progress + hold_progress
 
     def _get_current_progress(self, time_offset, load):
         progress = 0.0
@@ -469,13 +485,13 @@ class Scheduler(object):
 
             parts = line.split(' ')
             if len(parts) < 2:
-                raise RuntimeError("Wrong format for meta-info line: %s", line)
+                continue
 
             items += 1
             payload_len, _ = parts
             self.payload_fhd.read(int(payload_len))
         self.payload_fhd.seek(position)
-        self.log.debug("Payload items count: %s", items)
+        self.log.info("Payload items count: %s", items)
         return items
 
     def _payload_reader(self):
@@ -495,7 +511,7 @@ class Scheduler(object):
 
                 if self.iteration_limit and iterations > self.iteration_limit:
                     self.log.debug("Schedule iterations limit reached: %s", self.iteration_limit)
-                    rec_type = self.REC_TYPE_STOP
+                    break
 
                 continue
 
