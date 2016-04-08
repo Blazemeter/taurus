@@ -21,7 +21,7 @@ from bzt.engine import ScenarioExecutor, FileLister, Scenario
 from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet, ConsolidatingAggregator
 from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.six import string_types, urlencode, iteritems, parse, StringIO, b
-from bzt.utils import shell_exec, shutdown_process, BetterDict, ProgressBarContext, dehumanize_time, RequiredTool, \
+from bzt.utils import shell_exec, shutdown_process, BetterDict, dehumanize_time, RequiredTool, \
     IncrementableProgressBarContext
 
 
@@ -297,10 +297,6 @@ class PBenchTool(object):
         return path if len(path) else '/'
 
     @abstractmethod
-    def _generate_schedule_inner(self, load):
-        pass
-
-    @abstractmethod
     def _get_source(self, load):
         pass
 
@@ -476,7 +472,7 @@ class Scheduler(object):
                 raise RuntimeError("Wrong format for meta-info line: %s", line)
 
             items += 1
-            payload_len, marker = parts
+            payload_len, _ = parts
             self.payload_fhd.read(int(payload_len))
         self.payload_fhd.seek(position)
         self.log.debug("Payload items count: %s", items)
