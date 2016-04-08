@@ -713,6 +713,32 @@ class ProgressBarContext(ProgressBar):
         self.update(progress if progress <= totalsize else totalsize)
 
 
+class IncrementableProgressBarContext(ProgressBarContext):
+    def __init__(self, maxval=0):
+        super(IncrementableProgressBarContext, self).__init__(maxval=maxval)
+
+    def __enter__(self):
+        if not sys.stdout.isatty():
+            logging.debug("No progressbar for non-tty output: %s", sys.stdout)
+
+        self.start()
+        return self
+
+    def increment(self):
+        incremented = self.currval + 1
+        if incremented < self.maxval:
+            super(IncrementableProgressBarContext, self).update(incremented)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if sys.stdout.isatty():
+            self.finish()
+
+    def download_callback(self, block_count, blocksize, totalsize):
+        self.maxval = totalsize
+        progress = block_count * blocksize
+        self.update(progress if progress <= totalsize else totalsize)
+
+
 class TclLibrary(RequiredTool):
     ENV_NAME = "TCL_LIBRARY"
     INIT_TCL = "init.tcl"

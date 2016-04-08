@@ -21,7 +21,8 @@ from bzt.engine import ScenarioExecutor, FileLister, Scenario
 from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet, ConsolidatingAggregator
 from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.six import string_types, urlencode, iteritems, parse, StringIO, b
-from bzt.utils import shell_exec, shutdown_process, BetterDict, ProgressBarContext, dehumanize_time, RequiredTool
+from bzt.utils import shell_exec, shutdown_process, BetterDict, ProgressBarContext, dehumanize_time, RequiredTool, \
+    IncrementableProgressBarContext
 
 
 class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister):
@@ -183,12 +184,27 @@ class PBenchTool(object):
             self.log.info("Generating payload file: %s", self.payload_file)
             self._generate_payload_inner(scenario)
 
+    @abstractmethod
+    def _estimate_max_progress(self, load, scheduler):
+        pass
+
+    @abstractmethod
+    def _write_schedule_file(self, load, pbar, scheduler, sfd):
+        pass
+
     def generate_schedule(self, load):
         self.schedule_file = self.execution.get("schedule-file", None)
         if self.schedule_file is None:
             self.schedule_file = self.engine.create_artifact("pbench", '.sched')
             self.log.info("Generating request schedule file: %s", self.schedule_file)
-            self._generate_schedule_inner(load)
+            with open(self.payload_file) as pfd:
+                scheduler = Scheduler(load, pfd, self.log)
+                max_progress = self._estimate_max_progress(load, scheduler)
+                self.log.debug("Estimated schedule entry count: %s", max_progress)
+                with IncrementableProgressBarContext(max_progress) as pbar:
+                    with open(self.schedule_file, 'w') as sfd:
+                        self._write_schedule_file(load, pbar, scheduler, sfd)
+
             self.log.info("Done generating schedule file")
 
     def check_config(self):
@@ -301,45 +317,53 @@ class OriginalPBenchTool(PBenchTool):
     def __init__(self, executor, base_logger):
         super(OriginalPBenchTool, self).__init__(executor, base_logger)
 
-    def _generate_schedule_inner(self, load):
-        with ProgressBarContext(load.duration) as pbar:
-            with open(self.payload_file) as pfd:
-                scheduler = Scheduler(load, pfd, self.log)
-                with open(self.schedule_file, 'w') as sfd:
-                    for item in scheduler.generate():
-                        time_offset, payload_len, payload_offset, payload, marker, record_type, overall_len = item
-                        if time_offset < 0:  # special case, run worker with no delay
-                            time_offset = 0.0
+    def _estimate_max_progress(self, load, scheduler):
+        if load.concurrency or load.iterations:
+            return load.duration
+        max_progress = 0.0
+        if load.ramp_up:
+            max_progress += load.ramp_up * load.throughput / 2.0
+        if load.duration:
+            ramp_up = load.ramp_up if load.ramp_up else 0.0
+            hold_for = load.duration - ramp_up
+            const_estimate = load.throughput * hold_for
+            max_progress += const_estimate
+        return max_progress
 
-                        pbar.update(time_offset if time_offset < load.duration else load.duration)
+    def _write_schedule_file(self, load, pbar, scheduler, sfd):
+        cnt = 0
+        for item in scheduler.generate():
+            time_offset, payload_len, payload_offset, payload, marker, record_type, overall_len = item
+            if time_offset < 0:  # special case, run worker with no delay
+                time_offset = 0.0
 
-                        sfd.write("%s %s %s%s" % (payload_len, int(1000 * time_offset), marker, self.NL))
-                        sfd.write("%s%s" % (payload, self.NL))
+            sfd.write("%s %s %s%s" % (payload_len, int(1000 * time_offset), marker, self.NL))
+            sfd.write("%s%s" % (payload, self.NL))
+
+            pbar.increment()
+            cnt += 1
+        self.log.debug("Schedule entries: %s", cnt)
 
     def _get_source(self, load):
         return 'source_t source_log = source_log_t { filename = "%s" }' % self.schedule_file
 
 
 class TaurusPBenchTool(PBenchTool):
-    def _generate_schedule_inner(self, load):
-        maxprogress = self._get_max_progress(load)
-        with ProgressBarContext(maxprogress) as pbar:
-            with open(self.payload_file) as pfd:
-                scheduler = Scheduler(load, pfd, self.log)
-                with open(self.schedule_file, 'wb') as sfd:
-                    self._write_schedule_file(load, pbar, scheduler, sfd)
-
-    def _get_rampup_progress(self, load):
-        ramp_up = load.ramp_up if load.ramp_up else 0.0
-        return ramp_up * load.concurrency / 2.0
-
-    def _get_max_progress(self, load):
+    def _estimate_max_progress(self, load, scheduler):
+        if load.concurrency or load.iterations:
+            return load.duration
         max_progress = 0.0
         if load.ramp_up:
-            max_progress += self._get_rampup_progress(load)
+            max_progress += load.ramp_up * load.throughput / 2.0
         if load.duration:
             ramp_up = load.ramp_up if load.ramp_up else 0.0
-            max_progress += load.duration - ramp_up
+            hold_for = load.duration - ramp_up
+            payload_count = scheduler.count_payload_items()
+            const_estimate = load.throughput * hold_for
+            if payload_count > max_progress + const_estimate:
+                max_progress += const_estimate
+            else:
+                max_progress += payload_count
         return max_progress
 
     def _get_current_progress(self, time_offset, load):
@@ -383,7 +407,14 @@ class TaurusPBenchTool(PBenchTool):
             payload_offset_bytes = struct.pack('Q', payload_offset)
 
             sfd.write(type_and_delay + payload_len_bytes + payload_offset_bytes)
+
+            pbar.increment()
+
+            if record_type == Scheduler.REC_TYPE_STOP:
+                break
+
             prev_offset = time_offset
+        self.log.debug("Schedule entries: %s", cnt)
 
     def _get_source(self, load):
         tpl = 'source_t source_log = taurus_source_t { ammo = "%s"\n schedule = "%s"\n %s\n }'
@@ -428,6 +459,29 @@ class Scheduler(object):
         self.count = 0.0
         self.time_offset = 0.0
 
+    def count_payload_items(self):
+        items = 0
+        position = self.payload_fhd.tell()
+        self.payload_fhd.seek(0)
+        while True:
+            line = self.payload_fhd.readline()
+            if not line:
+                break
+
+            if not line.strip():  # we're fine to skip empty lines between records
+                continue
+
+            parts = line.split(' ')
+            if len(parts) < 2:
+                raise RuntimeError("Wrong format for meta-info line: %s", line)
+
+            items += 1
+            payload_len, marker = parts
+            self.payload_fhd.read(int(payload_len))
+        self.payload_fhd.seek(position)
+        self.log.debug("Payload items count: %s", items)
+        return items
+
     def _payload_reader(self):
         iterations = 1
         rec_type = self.REC_TYPE_SCHEDULE
@@ -439,9 +493,12 @@ class Scheduler(object):
                 iterations += 1
 
                 if self.need_start_loop is not None and self.need_start_loop and not self.iteration_limit:
-                    self.need_start_loop = False
-                    self.iteration_limit = iterations
-                    rec_type = self.REC_TYPE_LOOP_START
+                    if self.load.iterations:
+                        self.need_start_loop = False
+                        self.iteration_limit = iterations
+                        rec_type = self.REC_TYPE_LOOP_START
+                    else:
+                        rec_type = self.REC_TYPE_STOP
 
                 if self.iteration_limit and iterations > self.iteration_limit:
                     self.log.debug("Schedule iterations limit reached: %s", self.iteration_limit)
