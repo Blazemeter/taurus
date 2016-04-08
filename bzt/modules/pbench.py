@@ -489,16 +489,13 @@ class Scheduler(object):
                 iterations += 1
 
                 if self.need_start_loop is not None and self.need_start_loop and not self.iteration_limit:
-                    if self.load.iterations:
-                        self.need_start_loop = False
-                        self.iteration_limit = iterations
-                        rec_type = self.REC_TYPE_LOOP_START
-                    else:
-                        rec_type = self.REC_TYPE_STOP
+                    self.need_start_loop = False
+                    self.iteration_limit = iterations
+                    rec_type = self.REC_TYPE_LOOP_START
 
                 if self.iteration_limit and iterations > self.iteration_limit:
                     self.log.debug("Schedule iterations limit reached: %s", self.iteration_limit)
-                    break
+                    rec_type = self.REC_TYPE_STOP
 
                 continue
 
