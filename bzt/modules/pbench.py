@@ -322,27 +322,54 @@ class OriginalPBenchTool(PBenchTool):
 
 class TaurusPBenchTool(PBenchTool):
     def _generate_schedule_inner(self, load):
-        with ProgressBarContext(load.duration) as pbar:
+        maxprogress = self._get_max_progress(load)
+        with ProgressBarContext(maxprogress) as pbar:
             with open(self.payload_file) as pfd:
                 scheduler = Scheduler(load, pfd, self.log)
                 with open(self.schedule_file, 'wb') as sfd:
                     self._write_schedule_file(load, pbar, scheduler, sfd)
 
+    def _get_rampup_progress(self, load):
+        return load.ramp_up * load.concurrency / 2.0
+
+    def _get_max_progress(self, load):
+        max_progress = 0.0
+        if load.ramp_up:
+            max_progress += self._get_rampup_progress(load)
+        if load.duration:
+            max_progress += (load.duration - load.ramp_up) * load.concurrency
+        return max_progress
+
+    def _get_current_progress(self, time_offset, load):
+        if load.ramp_up and time_offset < load.ramp_up:
+            real_concurrency = load.concurrency * (time_offset / load.ramp_up)
+            progress = time_offset * real_concurrency / 2.0
+        elif load.duration:
+            rampup_progress = self._get_rampup_progress(load)
+            holding_for = (time_offset - load.ramp_up)
+            progress = rampup_progress + holding_for
+        else:
+            progress = None
+        return progress
+
     def _write_schedule_file(self, load, pbar, scheduler, sfd):
         prev_offset = 0
         accum_interval = 0.0
         cnt = 0
+        max_progress = self._get_max_progress(load)
         for item in scheduler.generate():
             time_offset, payload_len, payload_offset, payload, marker, record_type, overall_len = item
 
             if cnt % 5000 == 0:  # it's just the number, to throttle down updates...
-                if time_offset >= 0:
-                    progress = time_offset
-                elif prev_offset >= 0:
-                    progress = prev_offset
-                else:  # both time_offset and prev_offset are < 0
-                    progress = 0
-                pbar.update(progress if 0 <= progress < load.duration else load.duration)
+                sfd.flush()
+                if time_offset < 0:
+                    time_offset = prev_offset if prev_offset > 0 else 0.0
+
+                progress = self._get_current_progress(time_offset, load)
+                # self.log.info("%s/%s, %s/%s", new_progress, max_progress, time_offset, load.duration)
+                # progress_delta = progress - self._get_current_progress(prev_offset, load)
+                # self.log.info("delta %s", progress_delta)
+                pbar.update(progress if 0 <= progress < max_progress else max_progress)
             cnt += 1
 
             if time_offset >= 0:
