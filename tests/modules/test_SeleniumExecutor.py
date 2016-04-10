@@ -583,7 +583,8 @@ class TestSeleniumStuff(SeleniumTestCase):
         obj.shutdown()
         with open(os.path.join(obj.engine.artifacts_dir, "junit.err")) as fds:
             contents = fds.read()
-            self.assertEqual(1, contents.count("ok"), "file: '%s', size: %s, content: '%s'" % (fds, fds.__sizeof__(), contents))
+            self.assertEqual(1, contents.count("ok"),
+                             "file: '%s', size: %s, content: '%s'" % (fds, fds.__sizeof__(), contents))
             self.assertEqual(1, contents.count("OK"))
 
     def test_fail_on_zero_results(self):
