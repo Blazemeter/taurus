@@ -22,7 +22,8 @@ from tests.mocks import EngineEmul, RecordingHandler
 
 
 def get_jmeter():
-    path = __dir__() + "/../jmeter/jmeter" + EXE_SUFFIX
+    dir_name = os.path.dirname(__file__)
+    path = dir_name + "/../jmeter/jmeter-loader" + EXE_SUFFIX
     obj = JMeterExecutor()
     obj.engine = EngineEmul()
     obj.settings.merge({'path': path})
@@ -733,14 +734,14 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(full_form.find(".//boolProp[@name='XPath.negate']").text, "true")
         obj.log.removeHandler(handler)
 
-    def test_ashutdown_soft(self):
+    def test_shutdown_soft(self):
         obj = get_jmeter()
         log_recorder = RecordingHandler()
         obj.log.addHandler(log_recorder)
         obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/dummy.jmx"}})
         try:
             obj.prepare()
-            obj._env['TEST_SERVER_PATH'] = __dir__() + "/../jmeter"
+            obj._env['TEST_MODE'] = 'server'
             obj.startup()
             time.sleep(1)
             obj.management_port = 8089
@@ -1000,6 +1001,7 @@ class TestJMeterExecutor(BZTestCase):
         obj.execution = obj.engine.config['execution']
         obj.settings.merge(obj.engine.config.get("modules").get("jmeter"))
         obj.prepare()
+        obj._env['TEST_MODE'] = 'heap'
         obj.startup()
         stdout, _ = obj.process.communicate()
         obj.shutdown()
@@ -1014,6 +1016,7 @@ class TestJMeterExecutor(BZTestCase):
         obj.execution = obj.engine.config['execution']
         obj.settings.merge(obj.engine.config.get("modules").get("jmeter"))
         obj.prepare()
+        obj._env['TEST_MODE'] = 'heap'
         obj.startup()
         stdout, _ = obj.process.communicate()
         obj.shutdown()
