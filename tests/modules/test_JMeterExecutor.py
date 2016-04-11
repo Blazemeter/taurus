@@ -734,7 +734,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(full_form.find(".//boolProp[@name='XPath.negate']").text, "true")
         obj.log.removeHandler(handler)
 
-    def test_ashutdown_soft(self):
+    def test_shutdown_soft(self):
         obj = get_jmeter()
         log_recorder = RecordingHandler()
         obj.log.addHandler(log_recorder)

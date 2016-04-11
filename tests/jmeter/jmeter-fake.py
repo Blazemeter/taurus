@@ -41,11 +41,12 @@ mode = get_mode()
 
 # logging.debug('mode=%s', mode)
 
-if mode == 'files':
+# mode is gotten via environment variable $TEST_MODE
+if mode == 'files':     # test_engine
     files()
-elif mode == 'server':
+elif mode == 'server':  # test_JMeterExecutor.test_shutdown_soft
     udp_server()
-elif mode == 'heap':
+elif mode == 'heap':    # test_JMeterExecutor.test_jvm_heap*
     print(os.environ['JVM_ARGS'])
-else:
+else:                   # test if jmeter is installed
     print('JMemeter is installed')
