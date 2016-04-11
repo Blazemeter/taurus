@@ -622,7 +622,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         Get list of resource files, copy resource files to artifacts dir, modify jmx
         """
-        resource_files = []
+        resource_files = set()
         # get all resource files from requests
         files_from_requests = self.__get_res_files_from_requests()
         if not self.original_jmx:
@@ -640,14 +640,14 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 # create modified jmx script in artifacts dir
                 modified_script = self.engine.create_artifact(script_name, script_ext)
                 jmx.save(modified_script)
-                resource_files.extend(resource_files_from_jmx)
+                resource_files.update(resource_files_from_jmx)
 
-        resource_files.extend(files_from_requests)
+        resource_files.update(files_from_requests)
         # copy files to artifacts dir
         self.__cp_res_files_to_artifacts_dir(resource_files)
         if self.original_jmx:
-            resource_files.append(self.original_jmx)
-        return resource_files
+            resource_files.add(self.original_jmx)
+        return list(resource_files)
 
     def __cp_res_files_to_artifacts_dir(self, resource_files_list):
         """
