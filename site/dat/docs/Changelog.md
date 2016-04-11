@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.5.0 (next)
+## 1.5.2 <sup>11 apr 2016</sup>
  - fix detection of resource files for full-form `data-sources` items
  - fix `body-file` and `data-sources` not being detected in cloud environment
 
