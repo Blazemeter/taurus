@@ -817,9 +817,9 @@ class ScenarioExecutor(EngineModule):
                     raise ValueError("Scenario not found in scenarios: %s" % scenario)
                 ensure_is_dict(scenarios, scenario, Scenario.SCRIPT)
                 scenario = scenarios.get(scenario)
-                self.__scenario = Scenario(scenario)
+                self.__scenario = Scenario(self.engine, scenario)
             elif isinstance(scenario, dict):
-                self.__scenario = Scenario(scenario)
+                self.__scenario = Scenario(self.engine, scenario)
             else:
                 raise ValueError("Unsupported type for scenario")
 
@@ -942,8 +942,9 @@ class Scenario(UserDict, object):
     FIELD_HEADERS = "headers"
     FIELD_BODY = "body"
 
-    def __init__(self, scenario=None):
+    def __init__(self, engine, scenario=None):
         super(Scenario, self).__init__()
+        self.engine = engine
         self.data = scenario
 
     def get(self, key, default=defaultdict):
@@ -1001,7 +1002,8 @@ class Scenario(UserDict, object):
             body = None
             bodyfile = req.get("body-file", None)
             if bodyfile:
-                with open(bodyfile) as fhd:
+                bodyfile_path = self.engine.find_file(bodyfile)
+                with open(bodyfile_path) as fhd:
                     body = fhd.read()
             body = req.get("body", body)
 

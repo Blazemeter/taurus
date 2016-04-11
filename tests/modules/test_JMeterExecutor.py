@@ -1070,6 +1070,26 @@ class TestJMeterExecutor(BZTestCase):
         shutil.copy2(csv_source, obj.engine.artifacts_dir)
         obj.prepare()
 
+    def test_body_file_in_artifacts(self):
+        obj = get_jmeter()
+        obj.engine.config.merge({
+            'execution': {
+                'iterations': 1,
+                'scenario': {
+                    'requests': [{
+                        "method": "PUT",
+                        "url": "http://blazedemo.com/",
+                        "body-file": "http.jmx"
+                    }]}}})
+        obj.engine.config.merge({"provisioning": "local"})
+        obj.execution = obj.engine.config['execution']
+        obj.settings.merge(obj.engine.config.get("modules").get("jmeter"))
+        jmx_source = __dir__() + '/../jmeter/jmx/http.jmx'
+        obj.engine.file_search_paths.append(obj.engine.artifacts_dir)
+        shutil.copy2(jmx_source, obj.engine.artifacts_dir)
+        obj.prepare()
+
+
 
 class TestJMX(BZTestCase):
     def test_jmx_unicode_checkmark(self):
