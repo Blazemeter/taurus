@@ -1057,6 +1057,19 @@ class TestJMeterExecutor(BZTestCase):
         obj.post_process()
         self.assertIn("-Xmx", str(stdout))
 
+    def test_data_sources_in_artifacts(self):
+        obj = get_jmeter()
+        obj.engine.config.merge({'execution': {'iterations': 1,
+                                               'scenario': {'data-sources': ['test1.csv'],
+                                                            'requests': ['http://blazedemo.com/${url}']}}})
+        obj.engine.config.merge({"provisioning": "local"})
+        obj.execution = obj.engine.config['execution']
+        obj.settings.merge(obj.engine.config.get("modules").get("jmeter"))
+        csv_source = __dir__() + '/../data/test1.csv'
+        obj.engine.file_search_paths.append(obj.engine.artifacts_dir)
+        shutil.copy2(csv_source, obj.engine.artifacts_dir)
+        obj.prepare()
+
 
 class TestJMX(BZTestCase):
     def test_jmx_unicode_checkmark(self):
