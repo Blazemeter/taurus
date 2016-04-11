@@ -589,8 +589,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :return:
         """
         filename = self.engine.create_artifact("requests", ".jmx")
-        jmx = JMeterScenarioBuilder()
-        jmx.scenario = self.get_scenario()
+        jmx = JMeterScenarioBuilder(self)
         jmx.save(filename)
         self.settings.merge(jmx.system_props)
         return filename
@@ -622,7 +621,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         Get list of resource files, copy resource files to artifacts dir, modify jmx
         """
-        resource_files = []
+        resource_files = set()
         # get all resource files from requests
         files_from_requests = self.__get_res_files_from_requests()
         if not self.original_jmx:
@@ -640,14 +639,14 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 # create modified jmx script in artifacts dir
                 modified_script = self.engine.create_artifact(script_name, script_ext)
                 jmx.save(modified_script)
-                resource_files.extend(resource_files_from_jmx)
+                resource_files.update(resource_files_from_jmx)
 
-        resource_files.extend(files_from_requests)
+        resource_files.update(files_from_requests)
         # copy files to artifacts dir
         self.__cp_res_files_to_artifacts_dir(resource_files)
         if self.original_jmx:
-            resource_files.append(self.original_jmx)
-        return resource_files
+            resource_files.add(self.original_jmx)
+        return list(resource_files)
 
     def __cp_res_files_to_artifacts_dir(self, resource_files_list):
         """
@@ -655,7 +654,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :param resource_files_list:
         :return:
         """
-        for resource_file in resource_files_list:
+        for resource in resource_files_list:
+            resource_file = self.engine.find_file(resource)
             if os.path.exists(resource_file):
                 try:
                     shutil.copy(resource_file, self.engine.artifacts_dir)
@@ -673,7 +673,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :param file_list: list
         :return:
         """
-        for file_path in file_list:
+        for file in file_list:
+            file_path = self.engine.find_file(file)
             if os.path.exists(file_path):
                 file_path_elements = jmx.xpath('//stringProp[text()="%s"]' % file_path)
                 for file_path_element in file_path_elements:
@@ -724,6 +725,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             for data_source in data_sources:
                 if isinstance(data_source, text_type):
                     post_body_files.append(data_source)
+                elif isinstance(data_source, dict):
+                    post_body_files.append(data_source['path'])
 
         requests = scenario.data.get("requests")
         if requests:
@@ -1180,12 +1183,14 @@ class JMeterScenarioBuilder(JMX):
     """
     Helper to build JMeter test plan from Scenario
 
+    :param executor: ScenarioExecutor
     :param original: inherited from JMX
     """
 
-    def __init__(self, original=None):
+    def __init__(self, executor, original=None):
         super(JMeterScenarioBuilder, self).__init__(original)
-        self.scenario = Scenario()
+        self.executor = executor
+        self.scenario = executor.get_scenario()
         self.system_props = BetterDict()
 
     def __add_managers(self):
@@ -1391,10 +1396,11 @@ class JMeterScenarioBuilder(JMX):
             raise ValueError("data-sources is not a list")
         for idx, source in enumerate(sources):
             source = ensure_is_dict(sources, idx, "path")
+            source_path = self.executor.engine.find_file(source["path"])
 
-            delimiter = source.get("delimiter", self.__guess_delimiter(source['path']))
+            delimiter = source.get("delimiter", self.__guess_delimiter(source_path))
 
-            config = JMX._get_csv_config(os.path.abspath(source['path']), delimiter,
+            config = JMX._get_csv_config(os.path.abspath(source_path), delimiter,
                                          source.get("quoted", False), source.get("loop", True))
             self.append(self.TEST_PLAN_SEL, config)
             self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))

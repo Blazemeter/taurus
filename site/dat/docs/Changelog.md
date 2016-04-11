@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.0 (next)
+ - fix detection of resource files for full-form `data-sources` items
+ - fix `body-file` and `data-sources` not being detected in cloud environment
+
 ## 1.4.1 <sup>7 apr 2016</sup>
  - improve slave id analysis for JMeter distributed test
  - do not append extra \r\n to files sent to cloud/remote prov

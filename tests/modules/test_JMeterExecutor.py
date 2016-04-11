@@ -15,7 +15,7 @@ from bzt.jmx import JMX
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.jmeter import JMeterExecutor, JTLErrorsReader, JTLReader
 from bzt.modules.jmeter import JMeterScenarioBuilder
-from bzt.six import etree
+from bzt.six import etree, u
 from bzt.utils import EXE_SUFFIX
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul, RecordingHandler
@@ -298,6 +298,40 @@ class TestJMeterExecutor(BZTestCase):
         self.assertTrue(all([_file in artifacts for _file in files]))  # +system.properties, -jmeter.log
         target_jmx = os.path.join(obj.engine.artifacts_dir, "modified_requests.jmx")
         self.__check_path_resource_files(target_jmx, exclude_jtls=True)
+
+    def test_resource_files_data_sources_shorthand(self):
+        obj = get_jmeter()
+        csv_file = u(__dir__() + '/../data/test1.csv')
+        obj.engine.config.merge({
+            'execution': {
+                'scenario': {
+                    'data-sources': [csv_file],
+                }
+            }
+        })
+        obj.engine.config.merge({"provisioning": "local"})
+        obj.execution = obj.engine.config['execution']
+        resource_files = obj.resource_files()
+        self.assertIn(csv_file, resource_files)
+
+    def test_resource_files_data_sources_full_form(self):
+        obj = get_jmeter()
+        csv_file = u(__dir__() + '/../data/test1.csv')
+        obj.engine.config.merge({
+            'execution': {
+                'scenario': {
+                    'data-sources': [{
+                        'path': csv_file,
+                        'loop': False,
+                        'quoted': True,
+                    }],
+                }
+            }
+        })
+        obj.engine.config.merge({"provisioning": "local"})
+        obj.execution = obj.engine.config['execution']
+        resource_files = obj.resource_files()
+        self.assertIn(csv_file, resource_files)
 
     def test_http_request_defaults(self):
         obj = get_jmeter()
@@ -1022,6 +1056,39 @@ class TestJMeterExecutor(BZTestCase):
         obj.shutdown()
         obj.post_process()
         self.assertIn("-Xmx", str(stdout))
+
+    def test_data_sources_in_artifacts(self):
+        obj = get_jmeter()
+        obj.engine.config.merge({'execution': {'iterations': 1,
+                                               'scenario': {'data-sources': ['test1.csv'],
+                                                            'requests': ['http://blazedemo.com/${url}']}}})
+        obj.engine.config.merge({"provisioning": "local"})
+        obj.execution = obj.engine.config['execution']
+        obj.settings.merge(obj.engine.config.get("modules").get("jmeter"))
+        csv_source = __dir__() + '/../data/test1.csv'
+        obj.engine.file_search_paths.append(obj.engine.artifacts_dir)
+        shutil.copy2(csv_source, obj.engine.artifacts_dir)
+        obj.prepare()
+
+    def test_body_file_in_artifacts(self):
+        obj = get_jmeter()
+        obj.engine.config.merge({
+            'execution': {
+                'iterations': 1,
+                'scenario': {
+                    'requests': [{
+                        "method": "PUT",
+                        "url": "http://blazedemo.com/",
+                        "body-file": "http.jmx"
+                    }]}}})
+        obj.engine.config.merge({"provisioning": "local"})
+        obj.execution = obj.engine.config['execution']
+        obj.settings.merge(obj.engine.config.get("modules").get("jmeter"))
+        jmx_source = __dir__() + '/../jmeter/jmx/http.jmx'
+        obj.engine.file_search_paths.append(obj.engine.artifacts_dir)
+        shutil.copy2(jmx_source, obj.engine.artifacts_dir)
+        obj.prepare()
+
 
 
 class TestJMX(BZTestCase):
