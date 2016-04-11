@@ -15,7 +15,7 @@ from bzt.jmx import JMX
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.jmeter import JMeterExecutor, JTLErrorsReader, JTLReader
 from bzt.modules.jmeter import JMeterScenarioBuilder
-from bzt.six import etree
+from bzt.six import etree, u
 from bzt.utils import EXE_SUFFIX
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul, RecordingHandler
@@ -301,7 +301,7 @@ class TestJMeterExecutor(BZTestCase):
 
     def test_resource_files_data_sources_shorthand(self):
         obj = get_jmeter()
-        csv_file = __dir__() + '/../data/test1.csv'
+        csv_file = u(__dir__() + '/../data/test1.csv')
         obj.engine.config.merge({
             'execution': {
                 'scenario': {
@@ -316,7 +316,7 @@ class TestJMeterExecutor(BZTestCase):
 
     def test_resource_files_data_sources_full_form(self):
         obj = get_jmeter()
-        csv_file = __dir__() + '/../data/test1.csv'
+        csv_file = u(__dir__() + '/../data/test1.csv')
         obj.engine.config.merge({
             'execution': {
                 'scenario': {
