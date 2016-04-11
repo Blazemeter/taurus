@@ -299,6 +299,40 @@ class TestJMeterExecutor(BZTestCase):
         target_jmx = os.path.join(obj.engine.artifacts_dir, "modified_requests.jmx")
         self.__check_path_resource_files(target_jmx, exclude_jtls=True)
 
+    def test_resource_files_data_sources_shorthand(self):
+        obj = get_jmeter()
+        csv_file = __dir__() + '/../data/test1.csv'
+        obj.engine.config.merge({
+            'execution': {
+                'scenario': {
+                    'data-sources': [csv_file],
+                }
+            }
+        })
+        obj.engine.config.merge({"provisioning": "local"})
+        obj.execution = obj.engine.config['execution']
+        resource_files = obj.resource_files()
+        self.assertIn(csv_file, resource_files)
+
+    def test_resource_files_data_sources_full_form(self):
+        obj = get_jmeter()
+        csv_file = __dir__() + '/../data/test1.csv'
+        obj.engine.config.merge({
+            'execution': {
+                'scenario': {
+                    'data-sources': [{
+                        'path': csv_file,
+                        'loop': False,
+                        'quoted': True,
+                    }],
+                }
+            }
+        })
+        obj.engine.config.merge({"provisioning": "local"})
+        obj.execution = obj.engine.config['execution']
+        resource_files = obj.resource_files()
+        self.assertIn(csv_file, resource_files)
+
     def test_http_request_defaults(self):
         obj = get_jmeter()
         obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())

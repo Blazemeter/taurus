@@ -724,6 +724,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             for data_source in data_sources:
                 if isinstance(data_source, text_type):
                     post_body_files.append(data_source)
+                elif isinstance(data_source, dict):
+                    post_body_files.append(data_source['path'])
 
         requests = scenario.data.get("requests")
         if requests:
