@@ -357,26 +357,33 @@ class OriginalPBenchTool(PBenchTool):
 class TaurusPBenchTool(PBenchTool):
     def _estimate_max_progress(self, load, scheduler):
         ramp_up = load.ramp_up if load.ramp_up else 0.0
+        payload_count = scheduler.count_payload_items()
 
-        if load.throughput:
-            units = load.throughput
-        elif load.concurrency:
-            units = load.concurrency
+        if not load.throughput:
+            return None
+
+        iterations = float(load.iterations or "inf")
+        iteration_limit_items = iterations * payload_count
+
+        ramp_up_items = ramp_up * load.throughput / 2.0
+
+        hold_for = load.duration - ramp_up
+        if hold_for:
+            hold_for_items = payload_count * 2.0
         else:
-            raise RuntimeError("Unknown units")
+            hold_for_items = 0.0
 
-        ramp_up_progress = ramp_up * units / 2.0
+        duration_limit_items = ramp_up_items + hold_for_items
 
-        if load.duration:
-            hold_for = load.duration - ramp_up
-            hold_progress = units * hold_for
-        elif load.iterations:
-            payload_count = scheduler.count_payload_items()
-            hold_progress = payload_count * load.iterations
+        if iteration_limit_items < duration_limit_items:
+            # we don't have enough payload for all test duration
+            # so we'll hit iteration limit
+            estimated_items = iteration_limit_items
         else:
-            raise RuntimeError("Unknown hold")
+            # we have more that enough payload, so we'll hit duration limit
+            estimated_items = duration_limit_items
 
-        return ramp_up_progress + hold_progress
+        return estimated_items
 
     def _get_current_progress(self, time_offset, load):
         progress = 0.0
