@@ -10,7 +10,11 @@
 
 # Videos
 
- 1. [Test Automation with JMeter, Jenkins and Taurus April 7, 2016](https://www.youtube.com/watch?v=UoOcxlYDRbM&feature=youtu.be)
+The most recent video is: [Meetup on April 7, 2016: Test Automation with JMeter, Jenkins and Taurus](https://www.youtube.com/watch?v=UoOcxlYDRbM&feature=youtu.be)
+
+<iframe width="700" height="394" src="https://www.youtube.com/embed/UoOcxlYDRbM" frameborder="0" allowfullscreen></iframe>
+ 
+Other Videos:
  1. [BlazeMeter Meetup - How to Scale Test Automation with Jenkins & JMeter Using Taurus](https://www.youtube.com/watch?v=8oYzvNRRQi4)
  1. [Scaling Test Automation with Jenkins + JMeter + Taurus](https://www.youtube.com/watch?v=QuY0Qcdd90A)
  1. [The Secret to Scaling Test Automation w Jenkins & JMeter at Jenkins UC Israel 2015](https://www.youtube.com/watch?v=JnCYGBN4FTw)
