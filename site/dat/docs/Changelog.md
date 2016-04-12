@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.4.3 
+ - bump up version for jmeter plugins installation to 1.4.0
+
 ## 1.4.2 <sup>11 apr 2016</sup>
  - fix detection of resource files for full-form `data-sources` items
  - fix `body-file` and `data-sources` not being detected in cloud environment
