@@ -175,7 +175,7 @@ class PBenchTool(object):
             _fhd.write(substituter.substitute(params))
 
     def generate_payload(self, scenario):
-        self.payload_file = self.execution.get(Scenario.SCRIPT, self.payload_file)
+        self.payload_file = scenario.get(Scenario.SCRIPT, self.payload_file)
         if self.payload_file is None:
             self.payload_file = self.engine.create_artifact("pbench", '.src')
             self.log.info("Generating payload file: %s", self.payload_file)

@@ -236,6 +236,23 @@ if not is_windows():
             self.assertEqual(1, len(resource_files))
             self.assertEqual(resource_files[0], 'script.src')
 
+        def test_pbench_script(self):
+            obj = PBenchExecutor()
+            obj.engine = EngineEmul()
+            obj.settings = BetterDict()
+            obj.engine.config = BetterDict()
+            obj.engine.config.merge({
+                ScenarioExecutor.EXEC: {
+                    "executor": "pbench",
+                    "scenario": {"script": __dir__() + "/..//data/pbench.src"}
+                },
+                "provisioning": "test"
+            })
+            obj.execution = obj.engine.config['execution']
+            obj.settings.merge({
+                "path": os.path.join(os.path.dirname(__file__), '..', "phantom.sh"),
+            })
+            obj.prepare()
 
 class DataPointLogger(AggregatorListener):
     def aggregated_second(self, data):
