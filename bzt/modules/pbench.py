@@ -20,7 +20,7 @@ from bzt import resources
 from bzt.engine import ScenarioExecutor, FileLister, Scenario
 from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet, ConsolidatingAggregator
 from bzt.modules.console import WidgetProvider, SidebarWidget
-from bzt.six import string_types, urlencode, iteritems, parse, StringIO
+from bzt.six import string_types, urlencode, iteritems, parse, StringIO, b
 from bzt.utils import shell_exec, shutdown_process, BetterDict, ProgressBarContext, dehumanize_time, RequiredTool
 
 
@@ -351,7 +351,7 @@ class TaurusPBenchTool(PBenchTool):
             else:
                 interval = 0xFFFFFF
 
-            type_and_delay = struct.pack("I", interval)[:-1] + chr(record_type)
+            type_and_delay = struct.pack("I", interval)[:-1] + b(chr(record_type))
             payload_len_bytes = struct.pack('I', overall_len)
             payload_offset_bytes = struct.pack('Q', payload_offset)
 
