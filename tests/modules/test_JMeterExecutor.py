@@ -301,11 +301,12 @@ class TestJMeterExecutor(BZTestCase):
 
     def test_resource_files_data_sources_shorthand(self):
         obj = get_jmeter()
-        csv_file = u(__dir__() + '/../data/test1.csv')
+        csv_file = __dir__() + '/../data/test1.csv'
+        csv_file_uni = u(__dir__() + '/../data/test2.csv')
         obj.engine.config.merge({
             'execution': {
                 'scenario': {
-                    'data-sources': [csv_file],
+                    'data-sources': [csv_file, csv_file_uni],
                 }
             }
         })
@@ -313,15 +314,21 @@ class TestJMeterExecutor(BZTestCase):
         obj.execution = obj.engine.config['execution']
         resource_files = obj.resource_files()
         self.assertIn(csv_file, resource_files)
+        self.assertIn(csv_file_uni, resource_files)
 
     def test_resource_files_data_sources_full_form(self):
         obj = get_jmeter()
-        csv_file = u(__dir__() + '/../data/test1.csv')
+        csv_file = __dir__() + '/../data/test1.csv'
+        csv_file_uni = u(__dir__() + '/../data/test2.csv')
         obj.engine.config.merge({
             'execution': {
                 'scenario': {
                     'data-sources': [{
                         'path': csv_file,
+                        'loop': False,
+                        'quoted': True,
+                    }, {
+                        'path': csv_file_uni,
                         'loop': False,
                         'quoted': True,
                     }],
@@ -332,6 +339,7 @@ class TestJMeterExecutor(BZTestCase):
         obj.execution = obj.engine.config['execution']
         resource_files = obj.resource_files()
         self.assertIn(csv_file, resource_files)
+        self.assertIn(csv_file_uni, resource_files)
 
     def test_http_request_defaults(self):
         obj = get_jmeter()

@@ -366,7 +366,8 @@ class JUnitTester(AbstractTestRunner):
         junit.jar
         junit_listener.jar
         """
-        if self.settings.get("script_type", None) == ".java":
+        # only check javac if we need to compile. if we have JAR as script - we don't need javac
+        if self.settings.get("script-type", None) == ".java":
             self.required_tools.append(JavaC("", "", self.log))
 
         self.required_tools.append(TclLibrary(self.log))

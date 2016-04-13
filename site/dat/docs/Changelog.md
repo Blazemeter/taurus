@@ -2,6 +2,8 @@
 
 ## 1.4.3 
  - bump up version for jmeter plugins installation to 1.4.0
+ - `javac` presence check fixed for selenium
+ - fix shorthand `data-sources` not being sent to cloud
  - fix enhanced PBench schedule generation crash on Python 3
  - ensure that `script` option for PBench is looked at scenario level
  - do not CWD into artifacts directory when running phantom
