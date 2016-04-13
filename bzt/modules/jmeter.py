@@ -176,7 +176,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.start_time = time.time()
         try:
             # FIXME: muting stderr and stdout is bad
-            self.process = self.execute(cmdline, stderr=None, cwd=self.engine.artifacts_dir, env=self._env)
+            self.process = self.execute(cmdline, stderr=None, env=self._env)
         except OSError as exc:
             self.log.error("Failed to start JMeter: %s", traceback.format_exc())
             self.log.error("Failed command: %s", cmdline)
@@ -578,8 +578,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.__fill_empty_delimiters(jmx)
 
         script_name, _ = os.path.splitext(os.path.basename(original))
-        prefix = "modified_" + script_name
-        filename = self.engine.create_artifact(prefix, ".jmx")
+        filename = os.path.join(os.path.dirname(original), "modified_" + script_name + ".jmx")
+        self.engine.existing_artifact(filename, True)
         jmx.save(filename)
         return filename
 
@@ -1422,6 +1422,7 @@ class JMeter(RequiredTool):
     """
     JMeter tool
     """
+
     def __init__(self, tool_path, parent_logger, jmeter_version, plugin_link):
         super(JMeter, self).__init__("JMeter", tool_path)
         self.log = parent_logger.getChild(self.__class__.__name__)
