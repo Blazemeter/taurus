@@ -254,9 +254,9 @@ if not is_windows():
             })
             obj.prepare()
 
-        def test_pbench_payload_rel_path(self):
+        def test_pbench_payload_relpath(self):
+            "Verify that enhanced pbench preserves relative script path"
             script_path = "tests/data/pbench.src"
-            abs_script_path = os.path.abspath(script_path)
 
             obj = PBenchExecutor()
             obj.engine = EngineEmul()
@@ -265,7 +265,7 @@ if not is_windows():
             obj.engine.config.merge({
                 ScenarioExecutor.EXEC: {
                     "executor": "pbench",
-                    "scenario": {"script": __dir__() + "/../data/pbench.src"}
+                    "scenario": {"script": "tests/data/pbench.src"}
                 },
                 "provisioning": "test",
             })
@@ -279,7 +279,7 @@ if not is_windows():
             pbench_conf = os.path.join(obj.engine.artifacts_dir, "pbench.conf")
             with open(pbench_conf) as conf_fds:
                 config = conf_fds.read()
-                self.assertIn(abs_script_path, config)
+                self.assertIn(script_path, config)
 
 
 class DataPointLogger(AggregatorListener):
