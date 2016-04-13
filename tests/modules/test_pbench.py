@@ -244,7 +244,7 @@ if not is_windows():
             obj.engine.config.merge({
                 ScenarioExecutor.EXEC: {
                     "executor": "pbench",
-                    "scenario": {"script": __dir__() + "/..//data/pbench.src"}
+                    "scenario": {"script": __dir__() + "/../data/pbench.src"}
                 },
                 "provisioning": "test"
             })
@@ -253,6 +253,34 @@ if not is_windows():
                 "path": os.path.join(os.path.dirname(__file__), '..', "phantom.sh"),
             })
             obj.prepare()
+
+        def test_pbench_payload_rel_path(self):
+            script_path = "tests/data/pbench.src"
+            abs_script_path = os.path.abspath(script_path)
+
+            obj = PBenchExecutor()
+            obj.engine = EngineEmul()
+            obj.settings = BetterDict()
+            obj.engine.config = BetterDict()
+            obj.engine.config.merge({
+                ScenarioExecutor.EXEC: {
+                    "executor": "pbench",
+                    "scenario": {"script": __dir__() + "/../data/pbench.src"}
+                },
+                "provisioning": "test",
+            })
+            obj.execution = obj.engine.config['execution']
+            obj.settings.merge({
+                "path": os.path.join(os.path.dirname(__file__), '..', "phantom.sh"),
+                "enhanced": True,
+            })
+            obj.prepare()
+
+            pbench_conf = os.path.join(obj.engine.artifacts_dir, "pbench.conf")
+            with open(pbench_conf) as conf_fds:
+                config = conf_fds.read()
+                self.assertIn(abs_script_path, config)
+
 
 class DataPointLogger(AggregatorListener):
     def aggregated_second(self, data):

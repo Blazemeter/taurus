@@ -364,7 +364,8 @@ class TaurusPBenchTool(PBenchTool):
             duration_limit = "max_test_duration=%ss" % int(load.duration)
         else:
             duration_limit = ""
-        return tpl % (self.payload_file, self.schedule_file, duration_limit)
+        payload_path = os.path.abspath(self.payload_file)
+        return tpl % (payload_path, self.schedule_file, duration_limit)
 
     def _get_additional_modules(self):
         res = super(TaurusPBenchTool, self)._get_additional_modules()
