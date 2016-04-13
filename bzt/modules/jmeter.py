@@ -90,18 +90,21 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.run_checklist()
         self.distributed_servers = self.execution.get('distributed', self.distributed_servers)
         scenario = self.get_scenario()
-        self.resource_files()
+
+        is_jmx_generated = False
+
         if Scenario.SCRIPT in scenario and scenario[Scenario.SCRIPT]:
-            self.engine.existing_artifact(self.original_jmx)
-        elif "requests" in scenario:
-            if scenario.get("requests"):
-                self.original_jmx = self.__jmx_from_requests()
-            else:
-                raise RuntimeError("Nothing to test, no requests were provided in scenario")
+            self.original_jmx = self.__get_script()
+        elif scenario.get("requests"):
+            self.original_jmx = self.__jmx_from_requests()
+            is_jmx_generated = True
         else:
-            raise ValueError("There must be a JMX file to run JMeter")
+            raise ValueError("You must specify either a JMX file or list of requests to run JMeter")
+
         load = self.get_load()
-        self.modified_jmx = self.__get_modified_jmx(self.original_jmx, load)
+
+        modified = self.__get_modified_jmx(self.original_jmx, load)
+        self.modified_jmx = self.__save_modified_jmx(modified, self.original_jmx, is_jmx_generated)
 
         self.__set_jmeter_properties(scenario)
         self.__set_system_properties()
@@ -567,9 +570,15 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.__force_tran_parent_sample(jmx)
         self.__fill_empty_delimiters(jmx)
 
-        script_name, _ = os.path.splitext(os.path.basename(original))
-        filename = os.path.join(os.path.dirname(original), "modified_" + script_name + ".jmx")
-        self.engine.existing_artifact(filename, True)
+        return jmx
+
+    def __save_modified_jmx(self, jmx, original_jmx_path, is_jmx_generated):
+        script_name, _ = os.path.splitext(os.path.basename(original_jmx_path))
+        modified_script_name = "modified_" + script_name
+        if is_jmx_generated:
+            filename = self.engine.create_artifact(modified_script_name, ".jmx")
+        else:
+            filename = os.path.join(os.path.dirname(original_jmx_path), modified_script_name + ".jmx")
         jmx.save(filename)
         return filename
 
@@ -614,6 +623,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         resource_files = set()
         # get all resource files from requests
         files_from_requests = self.__get_res_files_from_requests()
+
         if not self.original_jmx:
             self.original_jmx = self.__get_script()
 
@@ -622,36 +632,12 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             resource_files_from_jmx = JMeterExecutor.__get_resource_files_from_jmx(jmx)
 
             if resource_files_from_jmx:
-                self.__modify_resources_paths_in_jmx(jmx.tree, resource_files_from_jmx)
-
-                script_name, script_ext = os.path.splitext(self.original_jmx)
-                script_name = os.path.basename(script_name)
-                # create modified jmx script in artifacts dir
-                modified_script = self.engine.create_artifact(script_name, script_ext)
-                jmx.save(modified_script)
                 resource_files.update(resource_files_from_jmx)
 
         resource_files.update(files_from_requests)
         if self.original_jmx:
             resource_files.add(self.original_jmx)
         return list(resource_files)
-
-    def __modify_resources_paths_in_jmx(self, jmx, file_list):
-        """
-        Modify resource files paths in jmx etree
-
-        :param jmx: JMX
-        :param file_list: list
-        :return:
-        """
-        for fname in file_list:
-            file_path = self.engine.find_file(fname)
-            if os.path.exists(file_path):
-                file_path_elements = jmx.xpath('//stringProp[text()="%s"]' % file_path)
-                for file_path_element in file_path_elements:
-                    file_path_element.text = os.path.basename(file_path)
-            else:
-                self.log.warning("File not found: %s", file_path)
 
     @staticmethod
     def __get_resource_files_from_jmx(jmx):

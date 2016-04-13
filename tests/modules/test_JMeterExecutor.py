@@ -627,23 +627,23 @@ class TestJMeterExecutor(BZTestCase):
         self.assertIn("remote_hosts=127.0.0.1,127.0.0.2", contents)
 
     def test_empty_requests(self):  # https://groups.google.com/forum/#!topic/codename-taurus/iaT6O2UhfBE
-        self.obj.engine.config.merge({'execution': {'ramp-up': '10s', 'requests': ['http://blazedemo.com/',
-                                                                              'http://blazedemo.com/vacation.html'],
-                                               'hold-for': '30s', 'concurrency': 5, 'scenario': {'think-time': 0.75}}})
+        self.obj.engine.config.merge({
+            'execution': {
+                'ramp-up': '10s',
+                'requests': ['http://blazedemo.com/',
+                             'http://blazedemo.com/vacation.html'],
+                'hold-for': '30s',
+                'concurrency': 5,
+                'scenario': {'think-time': 0.75}}})
         self.obj.settings.merge(self.obj.engine.config.get("modules").get("jmeter"))
         self.obj.execution = self.obj.engine.config['execution']
-
-        try:
-            self.obj.prepare()
-            self.fail()
-        except RuntimeError as exc:
-            self.assertEqual(exc.args[0], "Nothing to test, no requests were provided in scenario")
+        self.assertRaises(ValueError, self.obj.prepare)
 
     def test_variable_csv_file(self):
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/variable_csv.jmx"}})
         self.obj.prepare()
         artifacts = os.listdir(self.obj.engine.artifacts_dir)
-        self.assertEqual(len(artifacts), 3)  # 2*effective, .properties, jmx. Y JMX?
+        self.assertEqual(len(artifacts), 3)  # 2*effective, .properties, jmx
         with open(self.obj.modified_jmx) as fds:
             jmx = fds.read()
             self.assertIn('<stringProp name="filename">${root}/csvfile.csv</stringProp>', jmx)
