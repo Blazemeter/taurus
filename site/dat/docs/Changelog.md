@@ -2,6 +2,9 @@
 
 ## 1.4.3 
  - bump up version for jmeter plugins installation to 1.4.0
+ - fix enhanced PBench schedule generation crash on Python 3
+ - ensure that `script` option for PBench is looked at scenario level
+ - fix enhanced PBench relative `script` path handling
 
 ## 1.4.2 <sup>11 apr 2016</sup>
  - fix detection of resource files for full-form `data-sources` items
