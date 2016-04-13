@@ -20,7 +20,6 @@ import fnmatch
 import json
 import os
 import re
-import shutil
 import socket
 import subprocess
 import tempfile
@@ -537,14 +536,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
 
-    def __prepare_resources(self, jmx):
-        resource_files_from_jmx = JMeterExecutor.__get_resource_files_from_jmx(jmx)
-        resource_files_from_requests = self.__get_res_files_from_requests()
-        self.__cp_res_files_to_artifacts_dir(resource_files_from_jmx)
-        self.__cp_res_files_to_artifacts_dir(resource_files_from_requests)
-        if resource_files_from_jmx and not self.distributed_servers:
-            self.__modify_resources_paths_in_jmx(jmx.tree, resource_files_from_jmx)
-
     def __force_tran_parent_sample(self, jmx):
         scenario = self.get_scenario()
         if scenario.get("force-parent-sample", True):
@@ -572,7 +563,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.__apply_modifications(jmx)
 
         self.__apply_load_settings(jmx, load)
-        self.__prepare_resources(jmx)
         self.__add_result_writers(jmx)
         self.__force_tran_parent_sample(jmx)
         self.__fill_empty_delimiters(jmx)
@@ -642,28 +632,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 resource_files.update(resource_files_from_jmx)
 
         resource_files.update(files_from_requests)
-        # copy files to artifacts dir
-        self.__cp_res_files_to_artifacts_dir(resource_files)
         if self.original_jmx:
             resource_files.add(self.original_jmx)
         return list(resource_files)
-
-    def __cp_res_files_to_artifacts_dir(self, resource_files_list):
-        """
-
-        :param resource_files_list:
-        :return:
-        """
-        for resource in resource_files_list:
-            resource_file = self.engine.find_file(resource)
-            if os.path.exists(resource_file):
-                try:
-                    shutil.copy(resource_file, self.engine.artifacts_dir)
-                except BaseException:
-                    self.log.warning("Cannot copy file: %s", resource_file)
-            else:
-                if '${' not in resource_file:
-                    self.log.warning("File not found: %s", resource_file)
 
     def __modify_resources_paths_in_jmx(self, jmx, file_list):
         """
@@ -673,8 +644,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :param file_list: list
         :return:
         """
-        for file in file_list:
-            file_path = self.engine.find_file(file)
+        for fname in file_list:
+            file_path = self.engine.find_file(fname)
             if os.path.exists(file_path):
                 file_path_elements = jmx.xpath('//stringProp[text()="%s"]' % file_path)
                 for file_path_element in file_path_elements:
