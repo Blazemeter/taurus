@@ -84,7 +84,7 @@ class TestScenarioExecutor(BZTestCase):
         hosts_file = os.path.join(self.engine.artifacts_dir, "hostaliases")
 
         self.assertTrue(os.path.exists(hosts_file))
-        self.assertIn(hosts_file, str(stdout))
+        self.assertEquals(hosts_file, stdout.decode().strip())
 
     def test_doesnt_create_hostaliases(self):
         self.executor.execute(["echo"])
@@ -95,5 +95,5 @@ class TestScenarioExecutor(BZTestCase):
         cmdline = "echo %TAURUS_ARTIFACTS_DIR%" if is_windows() else "echo $TAURUS_ARTIFACTS_DIR"
         process = self.executor.execute(cmdline, shell=True)
         stdout, _ = process.communicate()
-        self.assertEqual(stdout.strip(), self.engine.artifacts_dir)
+        self.assertEquals(self.engine.artifacts_dir, stdout.decode().strip())
 
