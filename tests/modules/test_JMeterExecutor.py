@@ -263,37 +263,24 @@ class TestJMeterExecutor(BZTestCase):
         obj = get_jmeter()
         obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/files.jmx"}})
         res_files = obj.resource_files()
-        artifacts = os.listdir(obj.engine.artifacts_dir)
         self.assertEqual(len(res_files), 5)
-        self.assertEqual(len(artifacts), 7)  # 5 + two effective configs
         target_jmx = os.path.join(obj.engine.artifacts_dir, "files.jmx")
         self.__check_path_resource_files(target_jmx)
-
-    def test_resource_files_collection_local_prov(self):
-        obj = get_jmeter()
-        obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/files.jmx"}})
-        obj.prepare()
-        artifacts = os.listdir(obj.engine.artifacts_dir)
-        self.assertEqual(len(artifacts), 9)  # minus jmeter.log
-        target_jmx = os.path.join(obj.engine.artifacts_dir, "modified_files.jmx")
-        self.__check_path_resource_files(target_jmx, exclude_jtls=True)
 
     def test_resource_files_from_requests_remote_prov(self):
         obj = get_jmeter()
         obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
         obj.execution = obj.engine.config['execution']
         res_files = obj.resource_files()
-        artifacts = os.listdir(obj.engine.artifacts_dir)
         self.assertEqual(len(res_files), 2)
-        self.assertEqual(len(artifacts), 4)  # 2 + two effective configs
 
     def test_resource_files_from_requests_local_prov(self):
         obj = get_jmeter()
         obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
         obj.execution = obj.engine.config['execution']
         obj.prepare()
-        files = ['http.jmx', 'jmeter-bzt.properties', 'modified_requests.jmx']
-        files += ['requests.jmx', 'system.properties', 'test1.csv']
+        files = ['jmeter-bzt.properties', 'modified_requests.jmx']
+        files += ['requests.jmx', 'system.properties']
         artifacts = os.listdir(obj.engine.artifacts_dir)
         self.assertTrue(all([_file in artifacts for _file in files]))  # +system.properties, -jmeter.log
         target_jmx = os.path.join(obj.engine.artifacts_dir, "modified_requests.jmx")
@@ -1096,7 +1083,6 @@ class TestJMeterExecutor(BZTestCase):
         obj.engine.file_search_paths.append(obj.engine.artifacts_dir)
         shutil.copy2(jmx_source, obj.engine.artifacts_dir)
         obj.prepare()
-
 
 
 class TestJMX(BZTestCase):
