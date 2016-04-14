@@ -991,6 +991,50 @@ class TestJMeterExecutor(BZTestCase):
         shutil.copy2(jmx_source, self.obj.engine.artifacts_dir)
         self.obj.prepare()
 
+    def test_jmx_paths_local_prov(self):
+        "Ensures that file paths in JMX are not changed during local prov"
+        script = __dir__() + "/../jmeter/jmx/csvs.jmx"
+        self.obj.engine.config.merge({
+            'execution': {
+                'iterations': 1,
+                'scenario': {
+                    "script": script,
+                }
+            },
+            'provisioning': 'local',
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
+        original = JMX(script)
+        prepared = JMX(self.obj.modified_jmx)
+        query = '//CSVDataSet/stringProp[@name="filename"]/text()'
+        original_paths = original.tree.xpath(query)
+        prepared_paths = prepared.tree.xpath(query)
+        self.assertEqual(original_paths, prepared_paths)
+
+    def test_jmx_paths_remote_prov(self):
+        "Ensures that file paths in JMX are modified during remote prov"
+        script = __dir__() + "/../jmeter/jmx/csvs.jmx"
+        self.obj.engine.config.merge({
+            'execution': {
+                'iterations': 1,
+                'scenario': {
+                    "script": script,
+                }
+            },
+            'provisioning': 'test',
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.resource_files()
+        original = JMX(script)
+        prepared = JMX(self.obj.original_jmx)
+        query = '//CSVDataSet/stringProp[@name="filename"]/text()'
+        original_paths = original.tree.xpath(query)
+        prepared_paths = prepared.tree.xpath(query)
+        self.assertEqual(len(original_paths), len(prepared_paths))
+        for orig, modified in zip(original_paths, prepared_paths):
+            self.assertNotEqual(orig, modified)
+            self.assertEqual(os.path.basename(orig), os.path.basename(modified))
 
 class TestJMX(BZTestCase):
     def test_jmx_unicode_checkmark(self):
