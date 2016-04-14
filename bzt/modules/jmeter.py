@@ -36,6 +36,7 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.jmx import JMX
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, SidebarWidget
+from bzt.modules.provisioning import Local
 from bzt.six import iteritems, string_types, StringIO, request, etree, binary_type
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager
 from bzt.utils import shell_exec, ensure_is_dict, dehumanize_time, BetterDict, guess_csv_dialect
@@ -616,9 +617,28 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.widget = SidebarWidget(self, "JMeter: " + label.split('/')[1])
         return self.widget
 
+    def __modify_resources_paths_in_jmx(self, jmx, file_list):
+        """
+        Modify resource files paths in jmx etree
+
+        :param jmx: JMX
+        :param file_list: list
+        :return:
+        """
+        for file in file_list:
+            file_path = self.engine.find_file(file)
+            if os.path.exists(file_path):
+                file_path_elements = jmx.xpath('//stringProp[text()="%s"]' % file_path)
+                for file_path_element in file_path_elements:
+                    basename = os.path.basename(file_path)
+                    self.log.debug("Replacing JMX path %s with %s", file_path_element.text, basename)
+                    file_path_element.text = basename
+            else:
+                self.log.warning("File not found: %s", file_path)
+
     def resource_files(self):
         """
-        Get list of resource files, copy resource files to artifacts dir, modify jmx
+        Get list of resource files, modify jmx file paths if necessary
         """
         resource_files = set()
         # get all resource files from requests
@@ -632,6 +652,12 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             resource_files_from_jmx = JMeterExecutor.__get_resource_files_from_jmx(jmx)
 
             if resource_files_from_jmx:
+                if not isinstance(self.engine.provisioning, Local):
+                    self.__modify_resources_paths_in_jmx(jmx.tree, resource_files_from_jmx)
+                    script_name, script_ext = os.path.splitext(os.path.basename(self.original_jmx))
+                    self.original_jmx = self.engine.create_artifact(script_name, script_ext)
+                    jmx.save(self.original_jmx)
+
                 resource_files.update(resource_files_from_jmx)
 
         resource_files.update(files_from_requests)
