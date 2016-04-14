@@ -4,6 +4,7 @@
  - bump up version for jmeter plugins installation to 1.4.0
  - `javac` presence check fixed for selenium
  - fix shorthand `data-sources` not being sent to cloud
+ - do not change CWD when running JMeter
 
 ## 1.4.2 <sup>11 apr 2016</sup>
  - fix detection of resource files for full-form `data-sources` items
