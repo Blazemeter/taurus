@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.4.3 <sup>14 apr 2016</sup>
+ - bump up version for jmeter plugins installation to 1.4.0
+ - `javac` presence check fixed for selenium
+ - deeper fix detection of resource files for full-form `data-sources` items
+ 
+## 1.4.2 <sup>11 apr 2016</sup>
+ - fix detection of resource files for full-form `data-sources` items
+ - fix `body-file` and `data-sources` not being detected in cloud environment
+
 ## 1.4.1 <sup>7 apr 2016</sup>
  - improve slave id analysis for JMeter distributed test
  - do not append extra \r\n to files sent to cloud/remote prov

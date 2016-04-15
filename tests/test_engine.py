@@ -1,6 +1,5 @@
 """ unit test """
 import os
-import time
 
 from bzt.engine import ScenarioExecutor
 from bzt.utils import BetterDict, EXE_SUFFIX
@@ -23,6 +22,10 @@ class TestEngine(BZTestCase):
         ]
         self.obj.configure(configs)
         self.obj.prepare()
+
+        for executor in self.obj.provisioning.executors:
+            executor._env['TEST_MODE'] = 'files'
+
         self.obj.run()
         self.obj.post_process()
 
@@ -35,6 +38,10 @@ class TestEngine(BZTestCase):
         ]
         self.obj.configure(configs)
         self.obj.prepare()
+
+        for executor in self.obj.provisioning.executors:
+            executor._env['TEST_MODE'] = 'files'
+
         self.obj.run()
         self.obj.post_process()
 

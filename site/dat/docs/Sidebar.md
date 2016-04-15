@@ -1,7 +1,5 @@
 #### Quick Links:
 
-[Educational Videos](/kb/Videos)
-
 [Command-Line Tool](CommandLine)
 
 [Configuration Syntax](ConfigSyntax)
