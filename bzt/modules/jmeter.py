@@ -1405,7 +1405,6 @@ class JMeter(RequiredTool):
     """
     JMeter tool
     """
-
     def __init__(self, tool_path, parent_logger, jmeter_version, plugin_link):
         super(JMeter, self).__init__("JMeter", tool_path)
         self.log = parent_logger.getChild(self.__class__.__name__)
