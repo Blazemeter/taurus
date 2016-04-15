@@ -2,7 +2,7 @@
 import os
 
 from bzt.engine import ScenarioExecutor
-from bzt.utils import BetterDict, EXE_SUFFIX
+from bzt.utils import BetterDict, EXE_SUFFIX, is_windows
 from tests import BZTestCase, __dir__, local_paths_config
 from tests.mocks import EngineEmul
 
@@ -90,3 +90,10 @@ class TestScenarioExecutor(BZTestCase):
         self.executor.execute(["echo"])
         hosts_file = os.path.join(self.engine.artifacts_dir, "hostaliases")
         self.assertFalse(os.path.exists(hosts_file))
+
+    def test_passes_artifacts_dir(self):
+        cmdline = "echo %TAURUS_ARTIFACTS_DIR%" if is_windows() else "echo $TAURUS_ARTIFACTS_DIR"
+        process = self.executor.execute(cmdline, shell=True)
+        stdout, _ = process.communicate()
+        self.assertEquals(self.engine.artifacts_dir, stdout.decode().strip())
+

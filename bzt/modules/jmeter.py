@@ -20,7 +20,6 @@ import fnmatch
 import json
 import os
 import re
-import shutil
 import socket
 import subprocess
 import tempfile
@@ -37,6 +36,7 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.jmx import JMX
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, SidebarWidget
+from bzt.modules.provisioning import Local
 from bzt.six import iteritems, string_types, StringIO, request, etree, binary_type
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager
 from bzt.utils import shell_exec, ensure_is_dict, dehumanize_time, BetterDict, guess_csv_dialect
@@ -91,18 +91,21 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.run_checklist()
         self.distributed_servers = self.execution.get('distributed', self.distributed_servers)
         scenario = self.get_scenario()
-        self.resource_files()
+
+        is_jmx_generated = False
+
         if Scenario.SCRIPT in scenario and scenario[Scenario.SCRIPT]:
-            self.engine.existing_artifact(self.original_jmx)
-        elif "requests" in scenario:
-            if scenario.get("requests"):
-                self.original_jmx = self.__jmx_from_requests()
-            else:
-                raise RuntimeError("Nothing to test, no requests were provided in scenario")
+            self.original_jmx = self.__get_script()
+        elif scenario.get("requests"):
+            self.original_jmx = self.__jmx_from_requests()
+            is_jmx_generated = True
         else:
-            raise ValueError("There must be a JMX file to run JMeter")
+            raise ValueError("You must specify either a JMX file or list of requests to run JMeter")
+
         load = self.get_load()
-        self.modified_jmx = self.__get_modified_jmx(self.original_jmx, load)
+
+        modified = self.__get_modified_jmx(self.original_jmx, load)
+        self.modified_jmx = self.__save_modified_jmx(modified, self.original_jmx, is_jmx_generated)
 
         self.__set_jmeter_properties(scenario)
         self.__set_system_properties()
@@ -176,7 +179,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.start_time = time.time()
         try:
             # FIXME: muting stderr and stdout is bad
-            self.process = self.execute(cmdline, stderr=None, cwd=self.engine.artifacts_dir, env=self._env)
+            self.process = self.execute(cmdline, stderr=None, env=self._env)
         except OSError as exc:
             self.log.error("Failed to start JMeter: %s", traceback.format_exc())
             self.log.error("Failed command: %s", cmdline)
@@ -537,14 +540,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
 
-    def __prepare_resources(self, jmx):
-        resource_files_from_jmx = JMeterExecutor.__get_resource_files_from_jmx(jmx)
-        resource_files_from_requests = self.__get_res_files_from_requests()
-        self.__cp_res_files_to_artifacts_dir(resource_files_from_jmx)
-        self.__cp_res_files_to_artifacts_dir(resource_files_from_requests)
-        if resource_files_from_jmx and not self.distributed_servers:
-            self.__modify_resources_paths_in_jmx(jmx.tree, resource_files_from_jmx)
-
     def __force_tran_parent_sample(self, jmx):
         scenario = self.get_scenario()
         if scenario.get("force-parent-sample", True):
@@ -572,14 +567,19 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.__apply_modifications(jmx)
 
         self.__apply_load_settings(jmx, load)
-        self.__prepare_resources(jmx)
         self.__add_result_writers(jmx)
         self.__force_tran_parent_sample(jmx)
         self.__fill_empty_delimiters(jmx)
 
-        script_name, _ = os.path.splitext(os.path.basename(original))
-        prefix = "modified_" + script_name
-        filename = self.engine.create_artifact(prefix, ".jmx")
+        return jmx
+
+    def __save_modified_jmx(self, jmx, original_jmx_path, is_jmx_generated):
+        script_name, _ = os.path.splitext(os.path.basename(original_jmx_path))
+        modified_script_name = "modified_" + script_name
+        if is_jmx_generated:
+            filename = self.engine.create_artifact(modified_script_name, ".jmx")
+        else:
+            filename = os.path.join(os.path.dirname(original_jmx_path), modified_script_name + ".jmx")
         jmx.save(filename)
         return filename
 
@@ -617,54 +617,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.widget = SidebarWidget(self, "JMeter: " + label.split('/')[1])
         return self.widget
 
-    def resource_files(self):
-        """
-        Get list of resource files, copy resource files to artifacts dir, modify jmx
-        """
-        resource_files = set()
-        # get all resource files from requests
-        files_from_requests = self.__get_res_files_from_requests()
-        if not self.original_jmx:
-            self.original_jmx = self.__get_script()
-
-        if self.original_jmx and os.path.exists(self.original_jmx):
-            jmx = JMX(self.original_jmx)
-            resource_files_from_jmx = JMeterExecutor.__get_resource_files_from_jmx(jmx)
-
-            if resource_files_from_jmx:
-                self.__modify_resources_paths_in_jmx(jmx.tree, resource_files_from_jmx)
-
-                script_name, script_ext = os.path.splitext(self.original_jmx)
-                script_name = os.path.basename(script_name)
-                # create modified jmx script in artifacts dir
-                modified_script = self.engine.create_artifact(script_name, script_ext)
-                jmx.save(modified_script)
-                resource_files.update(resource_files_from_jmx)
-
-        resource_files.update(files_from_requests)
-        # copy files to artifacts dir
-        self.__cp_res_files_to_artifacts_dir(resource_files)
-        if self.original_jmx:
-            resource_files.add(self.original_jmx)
-        return list(resource_files)
-
-    def __cp_res_files_to_artifacts_dir(self, resource_files_list):
-        """
-
-        :param resource_files_list:
-        :return:
-        """
-        for resource in resource_files_list:
-            resource_file = self.engine.find_file(resource)
-            if os.path.exists(resource_file):
-                try:
-                    shutil.copy(resource_file, self.engine.artifacts_dir)
-                except BaseException:
-                    self.log.warning("Cannot copy file: %s", resource_file)
-            else:
-                if '${' not in resource_file:
-                    self.log.warning("File not found: %s", resource_file)
-
     def __modify_resources_paths_in_jmx(self, jmx, file_list):
         """
         Modify resource files paths in jmx etree
@@ -678,9 +630,40 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             if os.path.exists(file_path):
                 file_path_elements = jmx.xpath('//stringProp[text()="%s"]' % file_path)
                 for file_path_element in file_path_elements:
-                    file_path_element.text = os.path.basename(file_path)
+                    basename = os.path.basename(file_path)
+                    self.log.debug("Replacing JMX path %s with %s", file_path_element.text, basename)
+                    file_path_element.text = basename
             else:
                 self.log.warning("File not found: %s", file_path)
+
+    def resource_files(self):
+        """
+        Get list of resource files, modify jmx file paths if necessary
+        """
+        resource_files = set()
+        # get all resource files from requests
+        files_from_requests = self.__get_res_files_from_requests()
+
+        if not self.original_jmx:
+            self.original_jmx = self.__get_script()
+
+        if self.original_jmx and os.path.exists(self.original_jmx):
+            jmx = JMX(self.original_jmx)
+            resource_files_from_jmx = JMeterExecutor.__get_resource_files_from_jmx(jmx)
+
+            if resource_files_from_jmx:
+                if not isinstance(self.engine.provisioning, Local):
+                    self.__modify_resources_paths_in_jmx(jmx.tree, resource_files_from_jmx)
+                    script_name, script_ext = os.path.splitext(os.path.basename(self.original_jmx))
+                    self.original_jmx = self.engine.create_artifact(script_name, script_ext)
+                    jmx.save(self.original_jmx)
+
+                resource_files.update(resource_files_from_jmx)
+
+        resource_files.update(files_from_requests)
+        if self.original_jmx:
+            resource_files.add(self.original_jmx)
+        return list(resource_files)
 
     @staticmethod
     def __get_resource_files_from_jmx(jmx):
