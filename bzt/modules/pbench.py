@@ -22,7 +22,7 @@ from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet, Consolidati
 from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.six import string_types, urlencode, iteritems, parse, StringIO, b
 from bzt.utils import shell_exec, shutdown_process, BetterDict, dehumanize_time, RequiredTool, \
-    IncrementableProgressBarContext
+    IncrementableProgressBar
 
 
 class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister):
@@ -185,11 +185,11 @@ class PBenchTool(object):
             self._generate_payload_inner(scenario)
 
     @abstractmethod
-    def _estimate_max_progress(self, load, scheduler):
+    def _estimate_max_progress(self, load, payload_count):
         pass
 
     @abstractmethod
-    def _write_schedule_file(self, load, pbar, scheduler, sfd):
+    def _write_schedule_file(self, load, scheduler, sfd):
         pass
 
     def generate_schedule(self, load):
@@ -199,12 +199,8 @@ class PBenchTool(object):
             self.log.info("Generating request schedule file: %s", self.schedule_file)
             with open(self.payload_file) as pfd:
                 scheduler = Scheduler(load, pfd, self.log)
-                max_progress = self._estimate_max_progress(load, scheduler)
-                self.log.debug("Estimated schedule entry count: %s", max_progress)
-                with IncrementableProgressBarContext(max_progress) as pbar:
-                    with open(self.schedule_file, 'w') as sfd:
-                        self._write_schedule_file(load, pbar, scheduler, sfd)
-
+                with open(self.schedule_file, 'w') as sfd:
+                    self._write_schedule_file(load, scheduler, sfd)
             self.log.info("Done generating schedule file")
 
     def check_config(self):
@@ -336,7 +332,7 @@ class OriginalPBenchTool(PBenchTool):
 
         return ramp_up_progress + hold_progress
 
-    def _write_schedule_file(self, load, pbar, scheduler, sfd):
+    def _write_schedule_file(self, load, scheduler, sfd):
         cnt = 0
         for item in scheduler.generate():
             time_offset, payload_len, payload_offset, payload, marker, record_type, overall_len = item
@@ -346,7 +342,6 @@ class OriginalPBenchTool(PBenchTool):
             sfd.write("%s %s %s%s" % (payload_len, int(1000 * time_offset), marker, self.NL))
             sfd.write("%s%s" % (payload, self.NL))
 
-            pbar.increment()
             cnt += 1
         self.log.debug("Schedule entries: %s", cnt)
 
@@ -355,64 +350,89 @@ class OriginalPBenchTool(PBenchTool):
 
 
 class TaurusPBenchTool(PBenchTool):
-    def _estimate_max_progress(self, load, scheduler):
-        ramp_up = load.ramp_up if load.ramp_up else 0.0
-        payload_count = scheduler.count_payload_items()
-
+    def _estimate_max_progress(self, load, payload_count):
+        self.log.debug("payload count: %s", payload_count)
         if not load.throughput:
             return None
 
-        iterations = float(load.iterations or "inf")
-        iteration_limit_items = iterations * payload_count
+        ramp_up = load.ramp_up if load.ramp_up else 0.0
 
-        ramp_up_items = ramp_up * load.throughput / 2.0
+        estimate = 0.0
+        if load.iterations:
+            iteration_limit_items = load.iterations * payload_count
+            self.log.debug('estimated iteration limit items: %s', iteration_limit_items)
 
-        hold_for = load.duration - ramp_up
-        if hold_for:
-            hold_for_items = payload_count * 2.0
+            rampup_items = ramp_up * load.throughput / 2.0
+            self.log.debug('estimated rampup items: %s', rampup_items)
+
+            if rampup_items > iteration_limit_items:
+                estimate = iteration_limit_items
+                return estimate
+
+            estimate += rampup_items
+            iteration_limit_items -= rampup_items
+
+            rampup_iterations = rampup_items / payload_count
+            self.log.debug('rampup took %s iterations', rampup_iterations)
+
+            hold_for = load.duration - ramp_up
+            self.log.debug('hold for time: %s', hold_for)
+
+            if hold_for > 0:
+                hold_iterations = load.iterations - rampup_iterations
+                hold_iterations_items = payload_count * hold_iterations
+                self.log.debug('estimated hold by iterations items: %s', hold_iterations_items)
+
+                hold_duration_items = hold_for * load.throughput
+                self.log.debug('estimated hold by duration items: %s', hold_duration_items)
+
+                hold_items = min(hold_iterations_items, hold_duration_items)
+
+                if hold_items > iteration_limit_items:
+                    estimate = iteration_limit_items
+                    return estimate
+                estimate += hold_items
+            else:
+                return 0.0
         else:
-            hold_for_items = 0.0
+            # then it's basically rampup + holdfor
+            rampup_items = ramp_up * load.throughput / 2.0
+            self.log.debug('estimated rampup items: %s', rampup_items)
+            estimate += rampup_items
 
-        duration_limit_items = ramp_up_items + hold_for_items
+            rampup_iterations = rampup_items / payload_count
+            frac, whole = math.modf(rampup_iterations)
+            self.log.debug('rampup took %s iterations', rampup_iterations)
 
-        if iteration_limit_items < duration_limit_items:
-            # we don't have enough payload for all test duration
-            # so we'll hit iteration limit
-            estimated_items = iteration_limit_items
-        else:
-            # we have more that enough payload, so we'll hit duration limit
-            estimated_items = duration_limit_items
+            hold_for = load.duration - ramp_up
+            self.log.debug('hold for time: %s', hold_for)
 
-        return estimated_items
+            if hold_for > 0:
+                hold_iterations = 2.0 - frac
+                hold_items = payload_count * hold_iterations
+                self.log.debug('estimated hold items: %s', hold_items)
+                estimate += hold_items
+        return estimate
 
-    def _get_current_progress(self, time_offset, load):
-        progress = 0.0
-        if load.ramp_up and time_offset < load.ramp_up:
-            actual_concurrency = load.concurrency * (time_offset / load.ramp_up)
-            progress += time_offset * actual_concurrency / 2.0
-        elif load.duration:
-            ramp_up = load.ramp_up if load.ramp_up else 0.0
-            holding_for = time_offset - ramp_up
-            progress += holding_for
-        else:
-            self.log.warning("Can't estimate progress")
-        return progress
-
-    def _write_schedule_file(self, load, pbar, scheduler, sfd):
+    def _write_schedule_file(self, load, scheduler, sfd):
         prev_offset = 0
         accum_interval = 0.0
         cnt = 0
-        max_progress = self._get_max_progress(load)
+        payload_entry_count = None
+        pbar = None
+        start_time = time.time()
         for item in scheduler.generate():
             time_offset, payload_len, payload_offset, payload, marker, record_type, overall_len = item
 
-            if cnt % 5000 == 0:  # it's just the number, to throttle down updates...
-                if time_offset < 0:
-                    time_offset = prev_offset if prev_offset > 0 else 0.0
-
-                progress = self._get_current_progress(time_offset, load)
-                pbar.update(progress if 0 <= progress < max_progress else max_progress)
-            cnt += 1
+            if scheduler.iterations > 1 and payload_entry_count is None:
+                payload_entry_count = scheduler.count
+                self.log.debug("Payload entry count: %s", payload_entry_count)
+                estimated_writes = self._estimate_max_progress(load, payload_entry_count)
+                self.log.debug("Estimated number of writes: %s", estimated_writes)
+                if estimated_writes is not None:
+                    pbar = IncrementableProgressBar(maxval=estimated_writes)
+                    pbar.start(started_at=start_time)
+                    pbar.update(cnt)
 
             if time_offset >= 0:
                 accum_interval += 1000 * (time_offset - prev_offset)
@@ -421,19 +441,20 @@ class TaurusPBenchTool(PBenchTool):
             else:
                 interval = 0xFFFFFF
 
-            type_and_delay = struct.pack("I", interval)[:-1] + b(chr(record_type))
+            type_and_delay = struct.pack("I", interval)[:-1] + chr(record_type)
             payload_len_bytes = struct.pack('I', overall_len)
             payload_offset_bytes = struct.pack('Q', payload_offset)
 
             sfd.write(type_and_delay + payload_len_bytes + payload_offset_bytes)
 
-            pbar.increment()
-
             if record_type == Scheduler.REC_TYPE_STOP:
                 break
 
+            if pbar: pbar.increment()
+            cnt += 1
             prev_offset = time_offset
-        self.log.debug("Schedule entries: %s", cnt)
+        self.log.debug("Actual number of writes: %s", cnt)
+        if pbar: pbar.finish()
 
     def _get_source(self, load):
         tpl = 'source_t source_log = taurus_source_t { ammo = "%s"\n schedule = "%s"\n %s\n }'
@@ -477,46 +498,24 @@ class Scheduler(object):
 
         self.count = 0.0
         self.time_offset = 0.0
-
-    def count_payload_items(self):
-        items = 0
-        position = self.payload_fhd.tell()
-        self.payload_fhd.seek(0)
-        while True:
-            line = self.payload_fhd.readline()
-            if not line:
-                break
-
-            if not line.strip():  # we're fine to skip empty lines between records
-                continue
-
-            parts = line.split(' ')
-            if len(parts) < 2:
-                continue
-
-            items += 1
-            payload_len, _ = parts
-            self.payload_fhd.read(int(payload_len))
-        self.payload_fhd.seek(position)
-        self.log.info("Payload items count: %s", items)
-        return items
+        self.iterations = 0
 
     def _payload_reader(self):
-        iterations = 1
+        self.iterations = 1
         rec_type = self.REC_TYPE_SCHEDULE
         while True:
             payload_offset = self.payload_fhd.tell()
             line = self.payload_fhd.readline()
             if not line:  # rewind
                 self.payload_fhd.seek(0)
-                iterations += 1
+                self.iterations += 1
 
                 if self.need_start_loop is not None and self.need_start_loop and not self.iteration_limit:
                     self.need_start_loop = False
-                    self.iteration_limit = iterations
+                    self.iteration_limit = self.iterations
                     rec_type = self.REC_TYPE_LOOP_START
 
-                if self.iteration_limit and iterations > self.iteration_limit:
+                if self.iteration_limit and self.iterations > self.iteration_limit:
                     self.log.debug("Schedule iterations limit reached: %s", self.iteration_limit)
                     break
 

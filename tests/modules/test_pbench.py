@@ -9,7 +9,7 @@ import yaml
 
 from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet, AggregatorListener
-from bzt.modules.pbench import PBenchExecutor, Scheduler
+from bzt.modules.pbench import PBenchExecutor, Scheduler, TaurusPBenchTool
 from bzt.six import StringIO, parse
 from bzt.utils import BetterDict, is_windows
 from tests import BZTestCase, __dir__
@@ -282,6 +282,216 @@ if not is_windows():
             with open(pbench_conf) as conf_fds:
                 config = conf_fds.read()
                 self.assertIn(script_path, config)
+
+    class TestScheduler(BZTestCase):
+        def check_schedule_size_estimate(self, execution, tool_class):
+            obj = PBenchExecutor()
+            obj.engine = EngineEmul()
+            obj.settings = BetterDict()
+            obj.engine.config = BetterDict()
+            obj.engine.config.merge({
+                ScenarioExecutor.EXEC: execution,
+                "provisioning": "local",
+            })
+            obj.execution = obj.engine.config['execution']
+            load = obj.get_load()
+            obj.pbench = tool_class(obj, logging.getLogger(''))
+            obj.pbench.generate_payload(obj.get_scenario())
+            payload_count = len(obj.get_scenario().get('requests', []))
+            sch = Scheduler(load, open(obj.pbench.payload_file), logging.getLogger(''))
+            estimated_schedule_size = obj.pbench._estimate_max_progress(load, payload_count)
+            logging.debug("Estimated schedule size: %s", estimated_schedule_size)
+            items = list(sch.generate())
+            actual_schedule_size = len(items)
+            logging.debug("Actual schedule size: %s", actual_schedule_size)
+            if actual_schedule_size != 0:
+                error = abs(estimated_schedule_size - actual_schedule_size) / float(actual_schedule_size)
+                logging.debug("Estimation error: %s", error)
+                self.assertLess(error, 0.05)
+
+        def test_enhanced_estimation_rampup_throughput_duration_limit(self):
+            self.check_schedule_size_estimate({
+                "throughput": 1000,
+                "ramp-up": "10s",
+                # no "iterations" are specified,
+                # so iterations are effectively unlimited during ramp-up
+                "scenario": {
+                    "requests": ["test1", "test2", "test3"],
+                }
+            }, TaurusPBenchTool)
+
+        def test_enhanced_estimation_rampup_throughput_duration_limit_script(self):
+            self.check_schedule_size_estimate({
+                "throughput": 500,
+                "ramp-up": "10s",
+                # no "iterations" are specified,
+                # so iterations are effectively unlimited during ramp-up
+                "scenario": {
+                    "requests": ["test%d" % i for i in range(5000)],
+                }
+            }, TaurusPBenchTool)
+
+        def test_enhanced_estimation_rampup_throughput_iteration_limit(self):
+            self.check_schedule_size_estimate({
+                # this means we'll need 1000 * 10 / 2 = 5000 schedule entries
+                "throughput": 1000,
+                "ramp-up": "10s",
+
+                # allow at most 100 iterations on payload file,
+                # which means at most 100 * 3 = 300 schedule entries
+                "iterations": 100,
+                "scenario": {
+                    "requests": ["test1", "test2", "test3"],
+                }
+            }, TaurusPBenchTool)
+
+        def test_enhanced_estimation_rampup_throughput_iteration_limit_script(self):
+            self.check_schedule_size_estimate({
+                # this means we'll need 1000 * 20 / 2 = 10000 schedule entries
+                "throughput": 1000,
+                "ramp-up": "20s",
+
+                # allow at most 9 iterations on payload file,
+                # which means at most 9 * 1000 schedule entries
+                "iterations": 9,
+                "scenario": {
+                    "requests": ["test%d" % i for i in range(1000)],
+                }
+            }, TaurusPBenchTool)
+
+        def test_enhanced_estimation_hold_throughput_duration_limit(self):
+            self.check_schedule_size_estimate({
+                # we'll need 10 * 1000 schedule entries for that
+                "throughput": 1000,
+                "hold-for": "10s",
+
+                # but enhanced tool will generate looped schedule
+                # with two entries for each request
+                # i.e. 2 * 3 = 6 entries
+                "scenario": {
+                    "requests": ["test1", "test2", "test3"],
+                }
+            }, TaurusPBenchTool)
+
+        def test_enhanced_estimation_hold_throughput_duration_limit_script(self):
+            self.check_schedule_size_estimate({
+                # we'll need 10 * 1000 schedule entries for that
+                "throughput": 10000,
+                "hold-for": "10s",
+
+                # but enhanced tool will generate looped schedule
+                # with two entries for each request
+                # i.e. 2 * 1000 = 2000 entries
+                "scenario": {
+                    "requests": ["test%d" % i for i in range(1000)],
+                }
+            }, TaurusPBenchTool)
+
+        def test_enhanced_estimation_hold_throughput_iteration_limit(self):
+            self.check_schedule_size_estimate({
+                # we'll need 10 * 1000 schedule entries for that
+                "throughput": 1000,
+                "hold-for": "10s",
+
+                # but iteration limit is more important
+                # so schedule size should be 1000 * 3
+                "iterations": 1000,
+                "scenario": {
+                    "requests": ["test1", "test2", "test3"],
+                }
+            }, TaurusPBenchTool)
+
+        def test_enhanced_estimation_hold_throughput_iteration_limit_script(self):
+            self.check_schedule_size_estimate({
+                # we'll need 10 * 20 = 200 schedule entries for that
+                "throughput": 10,
+                "hold-for": "20s",
+
+                # but iteration limit is more important
+                # so schedule size could be at most 1200 entries
+                "iterations": 30,
+                "scenario": {
+                    "requests": ["test%d" % i for i in range(40)],
+                }
+            }, TaurusPBenchTool)
+
+        def test_enhanced_estimation_rampup_hold_throughput_duration_limit(self):
+            self.check_schedule_size_estimate({
+
+                # we'll need
+                # - 10 * 1000 / 2 = 5000 for rampup
+                # - 20 * 1000 = 20000
+                # overall: 25000 schedule entries
+                "throughput": 1000,
+                "ramp-up": "10s",
+                "hold-for": "20s",
+
+                # but enhanced tool will generate looped schedule for hold-for stage
+                # with an entry for each request
+                # i.e. 2 * 3 = 6 entries
+                "scenario": {
+                    "requests": ["test1", "test2", "test3"],
+                }
+            }, TaurusPBenchTool)
+
+        def test_enhanced_estimation_rampup_hold_throughput_duration_limit_script(self):
+            self.check_schedule_size_estimate({
+
+                # we'll need
+                # - 20 * 1000 / 2 = 10000 for rampup
+                # - 20 * 1000 = 20000 for hold
+                "throughput": 1000,
+                "ramp-up": "20s",
+                "hold-for": "20s",
+
+                # but enhanced tool will generate looped schedule for hold-for stage
+                # with an entry for each request
+                # i.e. 2 * 2000 = 4000 entries
+                "scenario": {
+                    "requests": ["test%d" % i for i in range(3000)],
+                }
+            }, TaurusPBenchTool)
+            # so what happens?
+            # it takes 3.3 iterations to fill rampup
+
+        def test_enhanced_estimation_rampup_hold_throughput_iteration_limit(self):
+            self.check_schedule_size_estimate({
+                # we'll need 10 * 1000 schedule entries for that
+                "throughput": 1000,
+                "ramp-up": "10s",
+                "hold-for": "10s",
+
+                # but iteration limit is more important
+                # so schedule size should be 1000 * 3
+                "iterations": 1000,
+                "scenario": {
+                    "requests": ["test1", "test2", "test3"],
+                }
+            }, TaurusPBenchTool)
+
+        def test_enhanced_estimation_rampuphold_throughput_iteration_limit_script(self):
+            self.check_schedule_size_estimate({
+                # we'll need 10 * 20 = 200 schedule entries for that
+                "throughput": 10,
+                "ramp-up": "10s",
+                "hold-for": "20s",
+
+                # but iteration limit is more important
+                # so schedule size could be at most 1200 entries
+                "iterations": 30,
+                "scenario": {
+                    "requests": ["test%d" % i for i in range(40)],
+                }
+            }, TaurusPBenchTool)
+
+        def test_enhanced_estimation_hold_throughput_iteration_limit(self):
+            self.check_schedule_size_estimate({
+                "throughput": 10,
+                "iterations": 1000,
+                "scenario": {
+                    "requests": ["test1", "test2", "test3"],
+                }
+            }, TaurusPBenchTool)
 
 
 class DataPointLogger(AggregatorListener):
