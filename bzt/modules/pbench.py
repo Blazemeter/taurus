@@ -20,7 +20,7 @@ from bzt import resources
 from bzt.engine import ScenarioExecutor, FileLister, Scenario
 from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet, ConsolidatingAggregator
 from bzt.modules.console import WidgetProvider, SidebarWidget
-from bzt.six import string_types, urlencode, iteritems, parse, StringIO
+from bzt.six import string_types, urlencode, iteritems, parse, StringIO, b
 from bzt.utils import shell_exec, shutdown_process, BetterDict, ProgressBarContext, dehumanize_time, RequiredTool
 
 
@@ -175,8 +175,10 @@ class PBenchTool(object):
             _fhd.write(substituter.substitute(params))
 
     def generate_payload(self, scenario):
-        self.payload_file = self.execution.get(Scenario.SCRIPT, self.payload_file)
-        if self.payload_file is None:
+        script_path = scenario.get(Scenario.SCRIPT, None)
+        if script_path is not None:
+            self.payload_file = self.engine.find_file(script_path)
+        else:
             self.payload_file = self.engine.create_artifact("pbench", '.src')
             self.log.info("Generating payload file: %s", self.payload_file)
             self._generate_payload_inner(scenario)
@@ -204,7 +206,6 @@ class PBenchTool(object):
         stderr = sys.stderr if not isinstance(sys.stderr, StringIO) else None
         try:
             self.process = self.executor.execute(cmdline,
-                                                 cwd=self.engine.artifacts_dir,
                                                  stdout=stdout,
                                                  stderr=stderr)
         except OSError as exc:
@@ -351,7 +352,7 @@ class TaurusPBenchTool(PBenchTool):
             else:
                 interval = 0xFFFFFF
 
-            type_and_delay = struct.pack("I", interval)[:-1] + chr(record_type)
+            type_and_delay = struct.pack("I", interval)[:-1] + b(chr(record_type))
             payload_len_bytes = struct.pack('I', overall_len)
             payload_offset_bytes = struct.pack('Q', payload_offset)
 

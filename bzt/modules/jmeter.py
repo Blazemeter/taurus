@@ -37,7 +37,7 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.jmx import JMX
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, SidebarWidget
-from bzt.six import iteritems, text_type, StringIO, request, etree, binary_type
+from bzt.six import iteritems, string_types, StringIO, request, etree, binary_type
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager
 from bzt.utils import shell_exec, ensure_is_dict, dehumanize_time, BetterDict, guess_csv_dialect
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
@@ -723,7 +723,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         data_sources = scenario.data.get('data-sources')
         if data_sources:
             for data_source in data_sources:
-                if isinstance(data_source, text_type):
+                if isinstance(data_source, string_types):
                     post_body_files.append(data_source)
                 elif isinstance(data_source, dict):
                     post_body_files.append(data_source['path'])

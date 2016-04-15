@@ -236,6 +236,51 @@ if not is_windows():
             self.assertEqual(1, len(resource_files))
             self.assertEqual(resource_files[0], 'script.src')
 
+        def test_pbench_script(self):
+            obj = PBenchExecutor()
+            obj.engine = EngineEmul()
+            obj.settings = BetterDict()
+            obj.engine.config = BetterDict()
+            obj.engine.config.merge({
+                ScenarioExecutor.EXEC: {
+                    "executor": "pbench",
+                    "scenario": {"script": __dir__() + "/../data/pbench.src"}
+                },
+                "provisioning": "test"
+            })
+            obj.execution = obj.engine.config['execution']
+            obj.settings.merge({
+                "path": os.path.join(os.path.dirname(__file__), '..', "phantom.sh"),
+            })
+            obj.prepare()
+
+        def test_pbench_payload_relpath(self):
+            "Verify that enhanced pbench preserves relative script path"
+            script_path = "tests/data/pbench.src"
+
+            obj = PBenchExecutor()
+            obj.engine = EngineEmul()
+            obj.settings = BetterDict()
+            obj.engine.config = BetterDict()
+            obj.engine.config.merge({
+                ScenarioExecutor.EXEC: {
+                    "executor": "pbench",
+                    "scenario": {"script": "tests/data/pbench.src"}
+                },
+                "provisioning": "test",
+            })
+            obj.execution = obj.engine.config['execution']
+            obj.settings.merge({
+                "path": os.path.join(os.path.dirname(__file__), '..', "phantom.sh"),
+                "enhanced": True,
+            })
+            obj.prepare()
+
+            pbench_conf = os.path.join(obj.engine.artifacts_dir, "pbench.conf")
+            with open(pbench_conf) as conf_fds:
+                config = conf_fds.read()
+                self.assertIn(script_path, config)
+
 
 class DataPointLogger(AggregatorListener):
     def aggregated_second(self, data):
