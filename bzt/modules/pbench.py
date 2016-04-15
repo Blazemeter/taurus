@@ -350,69 +350,56 @@ class OriginalPBenchTool(PBenchTool):
 
 
 class TaurusPBenchTool(PBenchTool):
-    def _estimate_max_progress(self, load, payload_count):
-        self.log.debug("payload count: %s", payload_count)
-        if not load.throughput:
-            return None
-
+    def _estimate_max_progress_rps(self, load, payload_count):
         ramp_up = load.ramp_up if load.ramp_up else 0.0
 
-        estimate = 0.0
+        iteration_limit_items = load.iterations * payload_count
+        self.log.debug('estimated iteration limit items: %s', iteration_limit_items)
+
         if load.iterations:
-            iteration_limit_items = load.iterations * payload_count
-            self.log.debug('estimated iteration limit items: %s', iteration_limit_items)
-
-            rampup_items = ramp_up * load.throughput / 2.0
-            self.log.debug('estimated rampup items: %s', rampup_items)
-
-            if rampup_items > iteration_limit_items:
-                estimate = iteration_limit_items
-                return estimate
-
-            estimate += rampup_items
-            iteration_limit_items -= rampup_items
-
-            rampup_iterations = rampup_items / payload_count
-            self.log.debug('rampup took %s iterations', rampup_iterations)
-
-            hold_for = load.duration - ramp_up
-            self.log.debug('hold for time: %s', hold_for)
-
-            if hold_for > 0:
-                hold_iterations = load.iterations - rampup_iterations
-                hold_iterations_items = payload_count * hold_iterations
-                self.log.debug('estimated hold by iterations items: %s', hold_iterations_items)
-
-                hold_duration_items = hold_for * load.throughput
-                self.log.debug('estimated hold by duration items: %s', hold_duration_items)
-
-                hold_items = min(hold_iterations_items, hold_duration_items)
-
-                if hold_items > iteration_limit_items:
-                    estimate = iteration_limit_items
-                    return estimate
-                estimate += hold_items
-            else:
-                return 0.0
+            whole_rampup_items = ramp_up * load.throughput / 2.0
+            rampup_items = min(iteration_limit_items, whole_rampup_items)
         else:
-            # then it's basically rampup + holdfor
             rampup_items = ramp_up * load.throughput / 2.0
-            self.log.debug('estimated rampup items: %s', rampup_items)
-            estimate += rampup_items
+        self.log.debug('estimated rampup items: %s', iteration_limit_items)
 
-            rampup_iterations = rampup_items / payload_count
-            frac, whole = math.modf(rampup_iterations)
-            self.log.debug('rampup took %s iterations', rampup_iterations)
+        rampup_iterations = rampup_items / payload_count
 
-            hold_for = load.duration - ramp_up
-            self.log.debug('hold for time: %s', hold_for)
+        hold_for = load.duration - ramp_up
+        if hold_for and load.iterations:
+            hold_iterations = load.iterations - rampup_iterations
+            hold_iteration_limit = payload_count * hold_iterations
+            whole_hold_items = hold_for * load.throughput
+            hold_items = min(hold_iteration_limit, whole_hold_items)
+        elif hold_for and not load.iterations:
+            frac, _ = math.modf(rampup_iterations)
+            hold_iterations = 2 - frac
+            hold_items = payload_count * hold_iterations
+        else:
+            hold_items = 0.0
+        self.log.debug('estimated hold items: %s', iteration_limit_items)
 
-            if hold_for > 0:
-                hold_iterations = 2.0 - frac
-                hold_items = payload_count * hold_iterations
-                self.log.debug('estimated hold items: %s', hold_items)
-                estimate += hold_items
-        return estimate
+        return rampup_items + hold_items
+
+    def _estimate_max_progress_concurrency(self, load, payload_count):
+        if load.iterations:
+            items = load.iterations * payload_count
+        else:
+            iteration_limit_items = 2 * payload_count
+            self.log.debug("estimated iteration limit items: %s", iteration_limit_items)
+            concurrency_items = load.concurrency
+            self.log.debug("estimated workers limit items: %s", concurrency_items)
+            # NOTE: `max` is bad at this decision making
+            items = max(iteration_limit_items, concurrency_items)
+
+        self.log.debug("items: %s", items)
+        return items
+
+    def _estimate_max_progress(self, load, payload_count):
+        if load.throughput:
+            return self._estimate_max_progress_rps(load, payload_count)
+        else:
+            return self._estimate_max_progress_concurrency(load, payload_count)
 
     def _write_schedule_file(self, load, scheduler, sfd):
         prev_offset = 0
@@ -429,7 +416,7 @@ class TaurusPBenchTool(PBenchTool):
                 self.log.debug("Payload entry count: %s", payload_entry_count)
                 estimated_writes = self._estimate_max_progress(load, payload_entry_count)
                 self.log.debug("Estimated number of writes: %s", estimated_writes)
-                if estimated_writes is not None:
+                if estimated_writes:
                     pbar = IncrementableProgressBar(maxval=estimated_writes)
                     pbar.start(started_at=start_time)
                     pbar.update(cnt)
