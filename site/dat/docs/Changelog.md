@@ -1,14 +1,16 @@
 # Changelog
 
-## 1.4.3 
- - bump up version for jmeter plugins installation to 1.4.0
- - `javac` presence check fixed for selenium
- - fix shorthand `data-sources` not being sent to cloud
+## 1.4.4 (next)
  - fix enhanced PBench schedule generation crash on Python 3
  - ensure that `script` option for PBench is looked at scenario level
- - do not CWD into artifacts directory when running phantom
+ - do not CWD into artifacts directory when running PBench
  - fix PBench script lookup when using cloud/remote provisioning
 
+## 1.4.3 <sup>14 apr 2016</sup>
+ - bump up version for jmeter plugins installation to 1.4.0
+ - `javac` presence check fixed for selenium
+ - deeper fix detection of resource files for full-form `data-sources` items
+ 
 ## 1.4.2 <sup>11 apr 2016</sup>
  - fix detection of resource files for full-form `data-sources` items
  - fix `body-file` and `data-sources` not being detected in cloud environment
