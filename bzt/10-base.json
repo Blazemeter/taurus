@@ -121,7 +121,6 @@
     },
     "siege": {
       "class": "bzt.modules.siege.SiegeExecutor"
-    }
   },
   "settings": {
     "default-executor": "jmeter",
