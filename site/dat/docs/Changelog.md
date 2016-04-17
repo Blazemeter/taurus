@@ -6,6 +6,7 @@
  - do not CWD into artifacts directory when running PBench
  - fix PBench script lookup when using cloud/remote provisioning
  - do not change CWD when running JMeter
+ - add forgotten Gatling script template to python egg
 
 ## 1.4.3 <sup>14 apr 2016</sup>
  - bump up version for jmeter plugins installation to 1.4.0
