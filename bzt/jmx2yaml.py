@@ -839,6 +839,7 @@ class JMXasDict(JMX):
         execution_settings = {
             'concurrency': 1,
             'throughput': 1,
+            'iterations': 1,
             'hold-for': '60s',
             'ramp-up': '60s',
         }

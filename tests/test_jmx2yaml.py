@@ -228,8 +228,8 @@ class TestConverter(BZTestCase):
         self.assertEqual(tg_one_exec.get("ramp-up"), '10s')
         self.assertEqual(tg_two_exec.get("ramp-up"), '60s')
         self.assertEqual(tg_three_exec.get("ramp-up"), '2s')
-        self.assertEqual(tg_one_exec.get("iterations"), None)
-        self.assertEqual(tg_two_exec.get("iterations"), None)
+        self.assertEqual(tg_one_exec.get("iterations"), 1)
+        self.assertEqual(tg_two_exec.get("iterations"), 1)
         self.assertEqual(tg_three_exec.get("iterations"), 100)
 
     def test_xpath_assertions(self):
@@ -349,4 +349,5 @@ class TestConverter(BZTestCase):
         self.assertEqual("60s", execution.get("ramp-up"))
         self.assertEqual("60s", execution.get("hold-for"))
         self.assertEqual(1, execution.get("concurrency"))
-
+        self.assertEqual(1, execution.get("iterations"))
+        self.assertEqual(1, execution.get("throughput"))
