@@ -350,4 +350,3 @@ class TestConverter(BZTestCase):
         self.assertEqual("60s", execution.get("hold-for"))
         self.assertEqual(1, execution.get("concurrency"))
         self.assertEqual(1, execution.get("iterations"))
-        self.assertEqual(1, execution.get("throughput"))

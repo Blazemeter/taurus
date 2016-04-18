@@ -5,13 +5,11 @@ execution:
   iterations: 1
   ramp-up: 60s
   scenario: First Thread Group
-  throughput: 1
 - concurrency: 1
   hold-for: 60s
   iterations: 1
   ramp-up: 60s
   scenario: Second Thread Group
-  throughput: 1
 scenarios:
   First Thread Group:
     data-sources:

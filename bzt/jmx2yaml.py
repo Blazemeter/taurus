@@ -838,7 +838,6 @@ class JMXasDict(JMX):
         global_execution_settings = self._get_global_tg_execution()
         execution_settings = {
             'concurrency': 1,
-            'throughput': 1,
             'iterations': 1,
             'hold-for': '60s',
             'ramp-up': '60s',
