@@ -31,23 +31,28 @@ def get_jmeter():
 
 
 class TestJMeterExecutor(BZTestCase):
+    def setUp(self):
+        self.obj = get_jmeter()
+
+    def tearDown(self):
+        if self.obj.modified_jmx and os.path.exists(self.obj.modified_jmx):
+            os.remove(self.obj.modified_jmx)
+
     def test_jmx(self):
-        obj = get_jmeter()
-        obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/dummy.jmx"}})
-        obj.engine.create_artifacts_dir()
-        obj.prepare()
+        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/dummy.jmx"}})
+        self.obj.engine.create_artifacts_dir()
+        self.obj.prepare()
 
     def test_jmx_2tg(self):
-        obj = get_jmeter()
-        obj.engine.config[Provisioning.PROV] = 'test'
-        obj.execution.merge({
+        self.obj.engine.config[Provisioning.PROV] = 'test'
+        self.obj.execution.merge({
             "concurrency": 1051,
             "ramp-up": 15,
             "iterations": 100,
             "scenario": {"script": __dir__() + "/../jmeter/jmx/two_tg.jmx"}
         })
-        obj.prepare()
-        jmx = JMX(obj.modified_jmx)
+        self.obj.prepare()
+        jmx = JMX(self.obj.modified_jmx)
         selector = 'jmeterTestPlan>hashTree>hashTree>ThreadGroup'
         selector += '>stringProp[name=ThreadGroup\.num_threads]'
         thr = jmx.get(selector)
@@ -55,67 +60,60 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEquals('631', thr[1].text)
 
     def test_not_jmx(self):
-        obj = get_jmeter()
-        obj.execution = {"scenario": {"script": __file__}}
-        self.assertRaises(RuntimeError, obj.prepare)
+        self.obj.execution = {"scenario": {"script": __file__}}
+        self.assertRaises(RuntimeError, self.obj.prepare)
 
     def test_broken_xml(self):
-        obj = get_jmeter()
-        obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/broken.jmx"}})
-        self.assertRaises(RuntimeError, obj.prepare)
+        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/broken.jmx"}})
+        self.assertRaises(RuntimeError, self.obj.prepare)
 
     def test_not_jmx_xml(self):
-        obj = get_jmeter()
-        obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/not-jmx.xml"}})
-        self.assertRaises(RuntimeError, obj.prepare)
+        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/not-jmx.xml"}})
+        self.assertRaises(RuntimeError, self.obj.prepare)
 
     def test_requests(self):
-        obj = get_jmeter()
-        obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
-        obj.execution = obj.engine.config['execution']
-        obj.prepare()
-        obj.log.debug("%s: %s", obj.modified_jmx, open(obj.modified_jmx).read())
-        obj.log.debug("%s", json.dumps(obj.execution, indent=True))
+        self.obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
+        self.obj.log.debug("%s: %s", self.obj.modified_jmx, open(self.obj.modified_jmx).read())
+        self.obj.log.debug("%s", json.dumps(self.obj.execution, indent=True))
         try:
-            obj.startup()
-            while not obj.check():
-                obj.log.debug("Check...")
+            self.obj.startup()
+            while not self.obj.check():
+                self.obj.log.debug("Check...")
                 time.sleep(1)
-            obj.shutdown()
-            obj.post_process()
+            self.obj.shutdown()
+            self.obj.post_process()
         except:
             pass
         finally:
-            if obj.jmeter_log and os.path.exists(obj.jmeter_log):
-                obj.log.debug("%s", open(obj.jmeter_log).read())
+            if self.obj.jmeter_log and os.path.exists(self.obj.jmeter_log):
+                self.obj.log.debug("%s", open(self.obj.jmeter_log).read())
 
     def test_issue_no_iterations(self):
-        obj = get_jmeter()
-        obj.execution.merge({
+        self.obj.execution.merge({
             "concurrency": 10,
             "ramp-up": 10,
             "scenario": {
                 "script": __dir__() + "/../jmeter/jmx/issue_no_iterations.jmx"
             }
         })
-        obj.prepare()
+        self.obj.prepare()
 
     def test_datasources_with_delimiter(self):
-        obj = get_jmeter()
-        obj.execution.merge({"scenario":
+        self.obj.execution.merge({"scenario":
                                  {"requests": ["http://localhost"],
                                   "data-sources": [
                                       {"path": __dir__() + "/../data/test2.csv",
                                        "delimiter": ","}]}})
-        obj.prepare()
+        self.obj.prepare()
 
     def test_datasources_without_delimiter(self):
-        obj = get_jmeter()
-        obj.execution.merge({"scenario":
+        self.obj.execution.merge({"scenario":
                                  {"requests": ["http://localhost"],
                                   "data-sources": [
                                       {"path": __dir__() + "/../data/test2.csv"}]}})
-        obj.prepare()
+        self.obj.prepare()
 
     def test_path_processing(self):
         class FakeTool(object):
@@ -173,11 +171,11 @@ class TestJMeterExecutor(BZTestCase):
         JMeterExecutor.PLUGINS_DOWNLOAD_TPL = "file:///" + __dir__() + "/../data/JMeterPlugins-{plugin}-1.3.0.zip"
         JMeterExecutor.JMETER_VER = '2.13'
 
-        obj = get_jmeter()
-        obj.settings.merge({"path": path})
-        obj.execution.merge({"scenario": {"requests": ["http://localhost"]}})
+        self.obj = get_jmeter()
+        self.obj.settings.merge({"path": path})
+        self.obj.execution.merge({"scenario": {"requests": ["http://localhost"]}})
 
-        obj.prepare()
+        self.obj.prepare()
 
         jars = os.listdir(os.path.abspath(os.path.join(path, '../../lib')))
         old_jars = ['httpcore-4.2.5.jar', 'httpmime-4.2.6.jar', 'xercesImpl-2.9.1.jar', 'commons-jexl-1.1.jar',
@@ -187,11 +185,11 @@ class TestJMeterExecutor(BZTestCase):
 
         self.assertTrue(os.path.exists(path))
 
-        obj = get_jmeter()
-        obj.settings.merge({"path": path})
-        obj.execution.merge({"scenario": {"requests": ["http://localhost"]}})
+        self.obj = get_jmeter()
+        self.obj.settings.merge({"path": path})
+        self.obj.execution.merge({"scenario": {"requests": ["http://localhost"]}})
 
-        obj.prepare()
+        self.obj.prepare()
 
         JMeterExecutor.JMETER_DOWNLOAD_LINK = jmeter_link
         JMeterExecutor.PLUGINS_DOWNLOAD_TPL = plugins_link
@@ -199,25 +197,23 @@ class TestJMeterExecutor(BZTestCase):
         JMeterExecutor.MIRRORS_SOURCE = mirrors_link
 
     def test_think_time_bug(self):
-        obj = get_jmeter()
-        obj.engine.config.merge({'execution': {'ramp-up': '1m', 'hold-for': '1m30s', 'concurrency': 10,
+        self.obj.engine.config.merge({'execution': {'ramp-up': '1m', 'hold-for': '1m30s', 'concurrency': 10,
                                                'scenario':
                                                    {'think-time': 0.75,
                                                     'requests':
                                                         ['http://blazedemo.com/',
                                                          'http://blazedemo.com/vacation.html']}}})
-        obj.execution = obj.engine.config['execution']
-        obj.prepare()
-        result = open(obj.modified_jmx).read()
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
+        result = open(self.obj.modified_jmx).read()
         self.assertIn('<stringProp name="ConstantTimer.delay">750</stringProp>', result)
 
     def test_body_parse(self):
-        obj = get_jmeter()
-        obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
-        obj.execution = obj.engine.config['execution']
-        obj.prepare()
+        self.obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
 
-        xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         sampler_element = xml_tree.findall(".//HTTPSamplerProxy[@testname='With body params']")
         arguments_element_prop = sampler_element[0][0]
         self.assertEqual(10, len(sampler_element[0].getchildren()))
@@ -226,119 +222,71 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(1, len(arguments_element_prop[0].findall(".//elementProp[@name='param1']")))
         self.assertEqual(1, len(arguments_element_prop.findall(".//elementProp[@name='param2']")))
 
-    def __check_path_resource_files(self, jmx_file_path, exclude_jtls=False, reverse_check=False):
-        xml_tree = etree.fromstring(open(jmx_file_path, "rb").read())
-        exclude_elements = ['kg.apc.jmeter.jmxmon.JMXMonCollector', 'JSR223Listener',
-                            'kg.apc.jmeter.vizualizers.CorrectedResultCollector',
-                            'kg.apc.jmeter.reporters.FlexibleFileWriter', 'BSFListener',
-                            'kg.apc.jmeter.dbmon.DbMonCollector', 'BeanShellListener', 'MailerResultCollector',
-                            'kg.apc.jmeter.perfmon.PerfMonCollector', 'ResultCollector',
-                            'kg.apc.jmeter.vizualizers.CompositeResultCollector',
-                            'kg.apc.jmeter.reporters.LoadosophiaUploader']
-        search_patterns = ["File.path", "filename", "BeanShellSampler.filename"]
-        for pattern in search_patterns:
-            resource_elements = xml_tree.findall(".//stringProp[@name='%s']" % pattern)
-            for resource_element in resource_elements:
-                parent = resource_element.getparent()
-                parent_disabled = False
-                while parent is not None:
-                    if parent.get('enabled') == 'false' or parent.tag in exclude_elements:
-                        parent_disabled = True
-                        break
-                    parent = parent.getparent()
-                if resource_element.text and parent_disabled is False:
-                    if exclude_jtls:
-                        if not resource_element.text.endswith('.jtl'):
-                            if not reverse_check:
-                                self.assertEqual("", os.path.dirname(resource_element.text))
-                            else:
-                                self.assertNotEqual("", os.path.dirname(resource_element.text))
-                    else:
-                        if not reverse_check:
-                            self.assertEqual("", os.path.dirname(resource_element.text))
-                        else:
-                            self.assertNotEqual("", os.path.dirname(resource_element.text))
-
     def test_resource_files_collection_remote_prov(self):
-        obj = get_jmeter()
-        obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/files.jmx"}})
-        res_files = obj.resource_files()
-        artifacts = os.listdir(obj.engine.artifacts_dir)
+        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/files.jmx"}})
+        res_files = self.obj.resource_files()
         self.assertEqual(len(res_files), 5)
-        self.assertEqual(len(artifacts), 7)  # 5 + two effective configs
-        target_jmx = os.path.join(obj.engine.artifacts_dir, "files.jmx")
-        self.__check_path_resource_files(target_jmx)
-
-    def test_resource_files_collection_local_prov(self):
-        obj = get_jmeter()
-        obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/files.jmx"}})
-        obj.prepare()
-        artifacts = os.listdir(obj.engine.artifacts_dir)
-        self.assertEqual(len(artifacts), 9)  # minus jmeter.log
-        target_jmx = os.path.join(obj.engine.artifacts_dir, "modified_files.jmx")
-        self.__check_path_resource_files(target_jmx, exclude_jtls=True)
 
     def test_resource_files_from_requests_remote_prov(self):
-        obj = get_jmeter()
-        obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
-        obj.execution = obj.engine.config['execution']
-        res_files = obj.resource_files()
-        artifacts = os.listdir(obj.engine.artifacts_dir)
+        self.obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
+        self.obj.execution = self.obj.engine.config['execution']
+        res_files = self.obj.resource_files()
         self.assertEqual(len(res_files), 2)
-        self.assertEqual(len(artifacts), 4)  # 2 + two effective configs
 
     def test_resource_files_from_requests_local_prov(self):
-        obj = get_jmeter()
-        obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
-        obj.execution = obj.engine.config['execution']
-        obj.prepare()
-        files = ['http.jmx', 'jmeter-bzt.properties', 'modified_requests.jmx']
-        files += ['requests.jmx', 'system.properties', 'test1.csv']
-        artifacts = os.listdir(obj.engine.artifacts_dir)
-        self.assertTrue(all([_file in artifacts for _file in files]))  # +system.properties, -jmeter.log
-        target_jmx = os.path.join(obj.engine.artifacts_dir, "modified_requests.jmx")
-        self.__check_path_resource_files(target_jmx, exclude_jtls=True)
+        self.obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
+        files = ['jmeter-bzt.properties', 'modified_requests.jmx']
+        files += ['requests.jmx', 'system.properties']
+        artifacts = os.listdir(self.obj.engine.artifacts_dir)
+        self.assertTrue(all([_file in artifacts for _file in files]))
 
     def test_resource_files_data_sources_shorthand(self):
-        obj = get_jmeter()
-        csv_file = u(__dir__() + '/../data/test1.csv')
-        obj.engine.config.merge({
+        csv_file = __dir__() + '/../data/test1.csv'
+        csv_file_uni = u(__dir__() + '/../data/test2.csv')
+        self.obj.engine.config.merge({
             'execution': {
                 'scenario': {
-                    'data-sources': [csv_file],
+                    'data-sources': [csv_file, csv_file_uni],
                 }
             }
         })
-        obj.engine.config.merge({"provisioning": "local"})
-        obj.execution = obj.engine.config['execution']
-        resource_files = obj.resource_files()
+        self.obj.engine.config.merge({"provisioning": "local"})
+        self.obj.execution = self.obj.engine.config['execution']
+        resource_files = self.obj.resource_files()
         self.assertIn(csv_file, resource_files)
+        self.assertIn(csv_file_uni, resource_files)
 
     def test_resource_files_data_sources_full_form(self):
-        obj = get_jmeter()
-        csv_file = u(__dir__() + '/../data/test1.csv')
-        obj.engine.config.merge({
+        csv_file = __dir__() + '/../data/test1.csv'
+        csv_file_uni = u(__dir__() + '/../data/test2.csv')
+        self.obj.engine.config.merge({
             'execution': {
                 'scenario': {
                     'data-sources': [{
                         'path': csv_file,
                         'loop': False,
                         'quoted': True,
+                    }, {
+                        'path': csv_file_uni,
+                        'loop': False,
+                        'quoted': True,
                     }],
                 }
             }
         })
-        obj.engine.config.merge({"provisioning": "local"})
-        obj.execution = obj.engine.config['execution']
-        resource_files = obj.resource_files()
+        self.obj.engine.config.merge({"provisioning": "local"})
+        self.obj.execution = self.obj.engine.config['execution']
+        resource_files = self.obj.resource_files()
         self.assertIn(csv_file, resource_files)
+        self.assertIn(csv_file_uni, resource_files)
 
     def test_http_request_defaults(self):
-        obj = get_jmeter()
-        obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
-        obj.execution = obj.engine.config['execution']
-        obj.prepare()
-        xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        self.obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         default_elements = xml_tree.findall(".//ConfigTestElement[@testclass='ConfigTestElement']")
         self.assertEqual(1, len(default_elements))
 
@@ -355,13 +303,12 @@ class TestJMeterExecutor(BZTestCase):
             self.assertEqual("false", request.find(".//boolProp[@name='HTTPSampler.use_keepalive']").text)
 
     def test_add_shaper_constant(self):
-        obj = get_jmeter()
-        obj.engine.config.merge({'execution': {'concurrency': 200, 'throughput': 100, 'hold-for': '1m',
+        self.obj.engine.config.merge({'execution': {'concurrency': 200, 'throughput': 100, 'hold-for': '1m',
                                                'scenario': {'script': __dir__() + '/../jmeter/jmx/http.jmx'}}})
-        obj.engine.config.merge({"provisioning": "local"})
-        obj.execution = obj.engine.config['execution']
-        obj.prepare()
-        xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        self.obj.engine.config.merge({"provisioning": "local"})
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         timer_ = ".//kg.apc.jmeter.timers.VariableThroughputTimer"
         timer_ += "[@testclass='kg.apc.jmeter.timers.VariableThroughputTimer']"
         shaper_elements = xml_tree.findall(timer_)
@@ -373,13 +320,12 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual("60", shaper_coll_element.find(".//stringProp[@name='53']").text)
 
     def test_add_shaper_ramp_up(self):
-        obj = get_jmeter()
-        obj.engine.config.merge({'execution': {'ramp-up': '1m', 'throughput': 10, 'hold-for': '2m', 'concurrency': 20,
+        self.obj.engine.config.merge({'execution': {'ramp-up': '1m', 'throughput': 10, 'hold-for': '2m', 'concurrency': 20,
                                                'scenario': {'script': __dir__() + '/../jmeter/jmx/http.jmx'}}})
-        obj.engine.config.merge({"provisioning": "local"})
-        obj.execution = obj.engine.config['execution']
-        obj.prepare()
-        xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        self.obj.engine.config.merge({"provisioning": "local"})
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         timer_ = ".//kg.apc.jmeter.timers.VariableThroughputTimer"
         timer_ += "[@testclass='kg.apc.jmeter.timers.VariableThroughputTimer']"
         shaper_elements = xml_tree.findall(timer_)
@@ -395,22 +341,20 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual("120", shaper_coll_element.findall(".//stringProp[@name='53']")[1].text)
 
     def test_user_def_vars_from_requests(self):
-        obj = get_jmeter()
-        obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
-        obj.execution = obj.engine.config['execution']
-        obj.prepare()
-        xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        self.obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         udv_elements = xml_tree.findall(".//Arguments[@testclass='Arguments']")
         self.assertEqual(1, len(udv_elements))
 
     def test_user_def_vars_override(self):
-        obj = get_jmeter()
-        obj.engine.config.merge({'execution': {'concurrency': 200, 'throughput': 100, 'hold-for': '1m', 'scenario': {
+        self.obj.engine.config.merge({'execution': {'concurrency': 200, 'throughput': 100, 'hold-for': '1m', 'scenario': {
             'variables': {'my_var': 'http://demo.blazemeter.com/api/user', 'myvar2': 'val2'},
             'properties': {'log_level.jmeter': 'DEBUG'}, 'script': __dir__() + '/../jmeter/jmx/http.jmx'}}})
-        obj.execution = obj.engine.config['execution']
-        obj.prepare()
-        xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         udv_elements = xml_tree.findall(".//Arguments[@testclass='Arguments']")
         self.assertEqual(1, len(udv_elements))
 
@@ -432,70 +376,66 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEquals(1, len(values))
 
     def test_distributed_th_hostnames(self):
-        obj = get_jmeter()
-        obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/http.jmx"}})
-        obj.distributed_servers = ["127.0.0.1", "127.0.0.1"]
-        obj.prepare()
-        xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/http.jmx"}})
+        self.obj.distributed_servers = ["127.0.0.1", "127.0.0.1"]
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         writers = xml_tree.findall(".//ResultCollector[@testname='KPI Writer']")
         for writer in writers:
             self.assertEqual('true', writer.find('objProp/value/hostname').text)
 
-        obj = get_jmeter()
-        obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
-        obj.execution = obj.engine.config['execution']
-        obj.settings.merge(obj.engine.config.get("modules").get("jmeter"))
-        obj.distributed_servers = ["127.0.0.1", "127.0.0.1"]
-        obj.prepare()
-        xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+    def test_distributed_th_hostnames_complex(self):
+        self.obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.settings.merge(self.obj.engine.config.get("modules").get("jmeter"))
+        self.obj.distributed_servers = ["127.0.0.1", "127.0.0.1"]
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         writers = xml_tree.findall(".//ResultCollector[@testname='KPI Writer']")
         for writer in writers:
             self.assertEqual('true', writer.find('objProp/value/hostname').text)
 
     def test_dns_cache_mgr_scenario(self):
-        obj = get_jmeter()
-        obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/http.jmx"}})
-        obj.prepare()
-        xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/http.jmx"}})
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         dns_element = xml_tree.findall(".//DNSCacheManager")
         # no dns manager when using jmx, no system.properties file
         self.assertEqual(len(dns_element), 0)
-        arts = os.listdir(obj.engine.artifacts_dir)
+        arts = os.listdir(self.obj.engine.artifacts_dir)
         self.assertNotIn("system.properties", arts)
 
     def test_dns_cache_mgr_requests(self):
-        obj = get_jmeter()
-        obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
-        obj.execution = obj.engine.config['execution']
-        obj.settings.merge(obj.engine.config.get("modules").get("jmeter"))
-        obj.prepare()
-        xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        self.obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.settings.merge(self.obj.engine.config.get("modules").get("jmeter"))
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         dns_managers = xml_tree.findall(".//DNSCacheManager")
         # 1 dns_manager
         self.assertEqual(len(dns_managers), 1)
         # check system.properies file contents
-        sys_prop = open(os.path.join(obj.engine.artifacts_dir, "system.properties")).read()
+        sys_prop = open(os.path.join(self.obj.engine.artifacts_dir, "system.properties")).read()
         self.assertTrue("any_prop=true" in sys_prop)
         self.assertTrue("sun.net.inetaddr.ttl=0" in sys_prop)
 
     def test_dns_cache_mgr_script(self):
-        obj = get_jmeter()
-        obj.engine.config.merge({'execution': {'ramp-up': 10, 'throughput': 2, 'hold-for': 20, 'concurrency': 5,
+        self.obj.engine.config.merge({'execution': {'ramp-up': 10, 'throughput': 2, 'hold-for': 20, 'concurrency': 5,
                                                'scenario': {'think-time': '0.75s',
                                                             'script': __dir__() + '/../jmeter/jmx/http.jmx'}},
                                  'modules': {'jmeter': {'system-properties': {'any_prop': 'true'},
                                                         'properties': {'log_level.jmeter': 'WARN',
                                                                        'log_level.jmeter.threads': 'DEBUG',
                                                                        'my-hostname': 'www.pre-test.com'}}}})
-        obj.engine.config.merge({"provisioning": "local"})
-        obj.execution = obj.engine.config['execution']
-        obj.settings.merge(obj.engine.config.get("modules").get("jmeter"))
-        obj.prepare()
-        xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        self.obj.engine.config.merge({"provisioning": "local"})
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.settings.merge(self.obj.engine.config.get("modules").get("jmeter"))
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         dns_managers = xml_tree.findall(".//DNSCacheManager")
         # 0 dns_managers
         self.assertEqual(len(dns_managers), 0)
-        sys_prop = open(os.path.join(obj.engine.artifacts_dir, "system.properties")).read()
+        sys_prop = open(os.path.join(self.obj.engine.artifacts_dir, "system.properties")).read()
         self.assertTrue("any_prop=true" in sys_prop)
         self.assertFalse("sun.net.inetaddr.ttl=0" in sys_prop)
 
@@ -504,17 +444,16 @@ class TestJMeterExecutor(BZTestCase):
         Tested without concurrency proportions
         :return:
         """
-        obj = get_jmeter()
-        obj.engine.config.merge({'execution': {'steps': 5, 'concurrency': 170,
+        self.obj.engine.config.merge({'execution': {'steps': 5, 'concurrency': 170,
                                                'scenario': {
                                                    'script': __dir__() + '/../jmeter/jmx/stepping_ramp_up.jmx'},
                                                'ramp-up': '1m', 'distributed': ['127.0.0.1'], 'hold-for': '2m'}})
-        obj.engine.config.merge({"provisioning": "local"})
-        obj.execution = obj.engine.config['execution']
-        obj.prepare()
-        load = obj.get_load()
-        orig_xml_tree = etree.fromstring(open(obj.original_jmx, "rb").read())
-        modified_xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        self.obj.engine.config.merge({"provisioning": "local"})
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
+        load = self.obj.get_load()
+        orig_xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
+        modified_xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         mod_stepping_tgs = modified_xml_tree.findall(".//kg.apc.jmeter.threads.SteppingThreadGroup")
         orig_tgs = orig_xml_tree.findall(".//ThreadGroup")
         self.assertEqual(len(mod_stepping_tgs), len(orig_tgs))
@@ -533,19 +472,18 @@ class TestJMeterExecutor(BZTestCase):
         Tested with concurrency proportions
         :return:
         """
-        obj = get_jmeter()
-        obj.engine.config.merge({'execution': {'steps': 5, 'concurrency': 170,
+        self.obj.engine.config.merge({'execution': {'steps': 5, 'concurrency': 170,
                                                'scenario': {
                                                    'script': __dir__() + '/../jmeter/jmx/stepping_ramp_up.jmx'},
                                                'ramp-up': '1m', 'distributed': ['127.0.0.1'], 'hold-for': '2m'}})
-        obj.engine.config.merge({"provisioning": "local"})
-        obj.execution = obj.engine.config['execution']
-        obj.execution['concurrency'] = 100  # from 170 to 100
-        obj.execution['steps'] = 4  # from 5 to 4
-        obj.prepare()
-        load = obj.get_load()
-        orig_xml_tree = etree.fromstring(open(obj.original_jmx, "rb").read())
-        modified_xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        self.obj.engine.config.merge({"provisioning": "local"})
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.execution['concurrency'] = 100  # from 170 to 100
+        self.obj.execution['steps'] = 4  # from 5 to 4
+        self.obj.prepare()
+        load = self.obj.get_load()
+        orig_xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
+        modified_xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         mod_stepping_tgs = modified_xml_tree.findall(".//kg.apc.jmeter.threads.SteppingThreadGroup")
         orig_tgs = orig_xml_tree.findall(".//ThreadGroup")
         self.assertEqual(len(mod_stepping_tgs), len(orig_tgs))
@@ -561,17 +499,16 @@ class TestJMeterExecutor(BZTestCase):
                              str(int(ceil(float(load.concurrency) / orig_summ_cnc * orig_num_threads / load.steps))))
 
     def test_step_shaper(self):
-        obj = get_jmeter()
-        obj.engine.config.merge({'execution': {'steps': 5, 'concurrency': 170,
+        self.obj.engine.config.merge({'execution': {'steps': 5, 'concurrency': 170,
                                                'scenario': {
                                                    'script': __dir__() + '/../jmeter/jmx/stepping_ramp_up.jmx'},
                                                'ramp-up': '1m', 'distributed': ['127.0.0.1'], 'hold-for': '2m'}})
-        obj.engine.config.merge({"provisioning": "local"})
-        obj.execution = obj.engine.config['execution']
-        obj.execution['throughput'] = 100
-        obj.prepare()
-        load = obj.get_load()
-        modified_xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        self.obj.engine.config.merge({"provisioning": "local"})
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.execution['throughput'] = 100
+        self.obj.prepare()
+        load = self.obj.get_load()
+        modified_xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         timer = modified_xml_tree.findall(".//kg.apc.jmeter.timers.VariableThroughputTimer")
         self.assertEqual(len(timer), 1)
         for num, step_collection in enumerate(timer[0].findall(".//load_profile")):
@@ -584,26 +521,17 @@ class TestJMeterExecutor(BZTestCase):
             else:
                 self.assertEqual(step_collection.find(".//stringProp[@name='53']"), load.ramp_up / load.steps)
 
-    def test_csv_path_bug_in_distributed_mode(self):
-        obj = get_jmeter()
-        obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/files.jmx"}})
-        obj.distributed_servers = ["127.0.0.1", "127.0.0.1"]
-        obj.prepare()
-        target_jmx = os.path.join(obj.engine.artifacts_dir, "modified_files.jmx")
-        self.__check_path_resource_files(target_jmx, exclude_jtls=True, reverse_check=True)
-
     def test_duration_loops_bug(self):
-        obj = get_jmeter()
-        obj.engine.config[Provisioning.PROV] = 'test'
-        obj.execution.merge({
+        self.obj.engine.config[Provisioning.PROV] = 'test'
+        self.obj.execution.merge({
             "concurrency": 10,
             "ramp-up": 15,
             "hold-for": "2m",
             "scenario": {"script": __dir__() + "/../jmeter/jmx/http.jmx"}
         })
-        obj.prepare()
+        self.obj.prepare()
 
-        modified_xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        modified_xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         tg = modified_xml_tree.find(".//ThreadGroup")
         loop_ctrl = tg.find(".//elementProp[@name='ThreadGroup.main_controller']")
         tg_loops = loop_ctrl.find(".//intProp[@name='LoopController.loops']")
@@ -612,19 +540,17 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(tg_forever.text, "false")
 
     def test_force_delimiters(self):
-        obj = get_jmeter()
-        obj.execution.merge({"iterations": 10, "scenario": {"script": __dir__() + "/../jmeter/jmx/delimiters.jmx"}})
-        obj.prepare()
-        jmx = JMX(obj.modified_jmx)
+        self.obj.execution.merge({"iterations": 10, "scenario": {"script": __dir__() + "/../jmeter/jmx/delimiters.jmx"}})
+        self.obj.prepare()
+        jmx = JMX(self.obj.modified_jmx)
         delimiters = [delimiter.text for delimiter in jmx.get("CSVDataSet>stringProp[name='delimiter']")]
         self.assertEqual(['1', '2', ','], delimiters)
 
     def test_iterations_loop_bug(self):
-        obj = get_jmeter()
-        obj.engine.config[Provisioning.PROV] = 'test'
-        obj.execution.merge({"iterations": 10, "scenario": {"script": __dir__() + "/../jmeter/jmx/http.jmx"}})
-        obj.prepare()
-        modified_xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        self.obj.engine.config[Provisioning.PROV] = 'test'
+        self.obj.execution.merge({"iterations": 10, "scenario": {"script": __dir__() + "/../jmeter/jmx/http.jmx"}})
+        self.obj.prepare()
+        modified_xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         tg = modified_xml_tree.find(".//ThreadGroup")
         loop_ctrl = tg.find(".//elementProp[@name='ThreadGroup.main_controller']")
         tg_loops = loop_ctrl.find(".//stringProp[@name='LoopController.loops']")
@@ -632,11 +558,11 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(tg_loops.text, "10")
         self.assertEqual(tg_forever.text, "false")
 
-        obj = get_jmeter()
-        obj.engine.config[Provisioning.PROV] = 'test'
-        obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/http.jmx"}})
-        obj.prepare()
-        modified_xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        self.obj = get_jmeter()
+        self.obj.engine.config[Provisioning.PROV] = 'test'
+        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/http.jmx"}})
+        self.obj.prepare()
+        modified_xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         tg = modified_xml_tree.find(".//ThreadGroup")
         loop_ctrl = tg.find(".//elementProp[@name='ThreadGroup.main_controller']")
         tg_loops = loop_ctrl.find("*[@name='LoopController.loops']")
@@ -645,52 +571,47 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(tg_forever.text, "false")
 
     def test_distributed_gui(self):
-        obj = get_jmeter()
-        obj.engine.config.merge(yaml.load(open(__dir__() + "/../yaml/distributed_gui.yml").read()))
-        obj.settings.merge(obj.engine.config.get("modules").get("jmeter"))
-        obj.execution = obj.engine.config['execution']
-        obj.prepare()
+        self.obj.engine.config.merge(yaml.load(open(__dir__() + "/../yaml/distributed_gui.yml").read()))
+        self.obj.settings.merge(self.obj.engine.config.get("modules").get("jmeter"))
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
 
-        prop_file_path = os.path.join(obj.engine.artifacts_dir, "jmeter-bzt.properties")
+        prop_file_path = os.path.join(self.obj.engine.artifacts_dir, "jmeter-bzt.properties")
         self.assertTrue(os.path.exists(prop_file_path))
         with open(prop_file_path) as prop_file:
             contents = prop_file.read()
         self.assertIn("remote_hosts=127.0.0.1,127.0.0.2", contents)
 
     def test_empty_requests(self):  # https://groups.google.com/forum/#!topic/codename-taurus/iaT6O2UhfBE
-        obj = get_jmeter()
-        obj.engine.config.merge({'execution': {'ramp-up': '10s', 'requests': ['http://blazedemo.com/',
-                                                                              'http://blazedemo.com/vacation.html'],
-                                               'hold-for': '30s', 'concurrency': 5, 'scenario': {'think-time': 0.75}}})
-        obj.settings.merge(obj.engine.config.get("modules").get("jmeter"))
-        obj.execution = obj.engine.config['execution']
-
-        try:
-            obj.prepare()
-            self.fail()
-        except RuntimeError as exc:
-            self.assertEqual(exc.args[0], "Nothing to test, no requests were provided in scenario")
+        self.obj.engine.config.merge({
+            'execution': {
+                'ramp-up': '10s',
+                'requests': ['http://blazedemo.com/',
+                             'http://blazedemo.com/vacation.html'],
+                'hold-for': '30s',
+                'concurrency': 5,
+                'scenario': {'think-time': 0.75}}})
+        self.obj.settings.merge(self.obj.engine.config.get("modules").get("jmeter"))
+        self.obj.execution = self.obj.engine.config['execution']
+        self.assertRaises(ValueError, self.obj.prepare)
 
     def test_variable_csv_file(self):
-        obj = get_jmeter()
-        obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/variable_csv.jmx"}})
-        obj.prepare()
-        artifacts = os.listdir(obj.engine.artifacts_dir)
-        self.assertEqual(len(artifacts), 5)  # minus jmeter.log
-        target_jmx = os.path.join(obj.engine.artifacts_dir, "modified_variable_csv.jmx")
-        with open(target_jmx) as fds:
+        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/variable_csv.jmx"}})
+        self.obj.prepare()
+        artifacts = os.listdir(self.obj.engine.artifacts_dir)
+        self.assertEqual(len(artifacts), 3)  # 2*effective, .properties, jmx
+        with open(self.obj.modified_jmx) as fds:
             jmx = fds.read()
             self.assertIn('<stringProp name="filename">${root}/csvfile.csv</stringProp>', jmx)
 
     def test_css_jquery_extractor(self):
-        obj = get_jmeter()
         handler = RecordingHandler()
-        obj.log.addHandler(handler)
+        self.obj.log.addHandler(handler)
 
-        obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
-        obj.execution = obj.engine.config['execution']
-        obj.prepare()
-        target_jmx = os.path.join(obj.engine.artifacts_dir, "requests.jmx")
+        self.obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
+        target_jmx = os.path.join(self.obj.engine.artifacts_dir, "requests.jmx")
         modified_xml_tree = etree.fromstring(open(target_jmx, "rb").read())
         jq_css_extractors = modified_xml_tree.findall(".//HtmlExtractor")
         self.assertEqual(2, len(jq_css_extractors))
@@ -708,16 +629,15 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.attribute']").text, "value")
         self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.match_number']").text, "1")
         self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.default']").text, "NV_JMETER")
-        obj.log.removeHandler(handler)
+        self.obj.log.removeHandler(handler)
 
     def test_xpath_extractor(self):
-        obj = get_jmeter()
         handler = RecordingHandler()
-        obj.log.addHandler(handler)
-        obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
-        obj.execution = obj.engine.config['execution']
-        obj.prepare()
-        target_jmx = os.path.join(obj.engine.artifacts_dir, "requests.jmx")
+        self.obj.log.addHandler(handler)
+        self.obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
+        target_jmx = os.path.join(self.obj.engine.artifacts_dir, "requests.jmx")
         modified_xml_tree = etree.fromstring(open(target_jmx, "rb").read())
         xpath_extractors = modified_xml_tree.findall(".//XPathExtractor")
         self.assertEqual(2, len(xpath_extractors))
@@ -739,16 +659,15 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(full_form.find(".//boolProp[@name='XPathExtractor.validate']").text, "true")
         self.assertEqual(full_form.find(".//boolProp[@name='XPathExtractor.whitespace']").text, "true")
         self.assertEqual(full_form.find(".//boolProp[@name='XPathExtractor.tolerant']").text, "true")
-        obj.log.removeHandler(handler)
+        self.obj.log.removeHandler(handler)
 
     def test_xpath_assertion(self):
-        obj = get_jmeter()
         handler = RecordingHandler()
-        obj.log.addHandler(handler)
-        obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
-        obj.execution = obj.engine.config['execution']
-        obj.prepare()
-        target_jmx = os.path.join(obj.engine.artifacts_dir, "requests.jmx")
+        self.obj.log.addHandler(handler)
+        self.obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
+        target_jmx = os.path.join(self.obj.engine.artifacts_dir, "requests.jmx")
         modified_xml_tree = etree.fromstring(open(target_jmx, "rb").read())
         assertions = modified_xml_tree.findall(".//XPathAssertion")
         self.assertEqual(2, len(assertions))
@@ -766,24 +685,23 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(full_form.find(".//boolProp[@name='XPath.whitespace']").text, "true")
         self.assertEqual(full_form.find(".//boolProp[@name='XPath.tolerant']").text, "true")
         self.assertEqual(full_form.find(".//boolProp[@name='XPath.negate']").text, "true")
-        obj.log.removeHandler(handler)
+        self.obj.log.removeHandler(handler)
 
     def test_shutdown_soft(self):
-        obj = get_jmeter()
         log_recorder = RecordingHandler()
-        obj.log.addHandler(log_recorder)
-        obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/dummy.jmx"}})
+        self.obj.log.addHandler(log_recorder)
+        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/dummy.jmx"}})
         try:
-            obj.prepare()
-            obj._env['TEST_MODE'] = 'server'
-            obj.startup()
+            self.obj.prepare()
+            self.obj._env['TEST_MODE'] = 'server'
+            self.obj.startup()
             time.sleep(1)
-            obj.management_port = 8089
-            obj.shutdown()
+            self.obj.management_port = 8089
+            self.obj.shutdown()
         except:
             self.fail()
         finally:
-            obj.log.removeHandler(log_recorder)
+            self.obj.log.removeHandler(log_recorder)
         self.assertIn("JMeter stopped on Shutdown command", log_recorder.debug_buff.getvalue())
 
     def test_embedded_resources_main_sample_fail_assert(self):
@@ -833,38 +751,35 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(values.get('HTTP Request')[0].get("msg"), "failed_resource_message")
 
     def test_fail_on_zero_results(self):
-        obj = get_jmeter()
-        obj.engine.aggregator = ConsolidatingAggregator()
-        obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/dummy.jmx"}})
-        obj.prepare()
-        obj.startup()
-        obj.shutdown()
-        self.assertRaises(RuntimeWarning, obj.post_process)
+        self.obj.engine.aggregator = ConsolidatingAggregator()
+        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/dummy.jmx"}})
+        self.obj.prepare()
+        self.obj.startup()
+        self.obj.shutdown()
+        self.assertRaises(RuntimeWarning, self.obj.post_process)
 
     def test_convert_tgroups_no_load(self):
-        obj = get_jmeter()
-        obj.engine.config[Provisioning.PROV] = 'test'
-        obj.execution.merge({
+        self.obj.engine.config[Provisioning.PROV] = 'test'
+        self.obj.execution.merge({
             "scenario": {"script": __dir__() + "/../jmeter/jmx/SteppingThreadGroup.jmx"}
         })
-        obj.prepare()
-        modified_xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        self.obj.prepare()
+        modified_xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         st_tg = modified_xml_tree.find(".//kg.apc.jmeter.threads.SteppingThreadGroup")
         self.assertNotEqual(st_tg, None)
         ul_tg = modified_xml_tree.find(".//kg.apc.jmeter.threads.UltimateThreadGroup")
         self.assertNotEqual(ul_tg, None)
 
     def test_convert_tgroups_load_modifications(self):
-        obj = get_jmeter()
-        obj.engine.config[Provisioning.PROV] = 'test'
-        obj.execution.merge({
+        self.obj.engine.config[Provisioning.PROV] = 'test'
+        self.obj.execution.merge({
             "iterations": 20,
             "ramp-up": 10,
             "hold-for": "2m",
             "scenario": {"script": __dir__() + "/../jmeter/jmx/SteppingThreadGroup.jmx"}
         })
-        obj.prepare()
-        modified_xml_tree = etree.fromstring(open(obj.modified_jmx, "rb").read())
+        self.obj.prepare()
+        modified_xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         st_tg = modified_xml_tree.find(".//kg.apc.jmeter.threads.SteppingThreadGroup")
         self.assertEqual(st_tg, None)
         ul_tg = modified_xml_tree.find(".//kg.apc.jmeter.threads.UltimateThreadGroup")
@@ -887,23 +802,21 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(s_t('${VAR}'), '${VAR}')
 
     def test_json_body_app_str(self):
-        obj = get_jmeter()
-        obj.execution.merge({
+        self.obj.execution.merge({
             "scenario": {
                 "requests": [{
                     "url": "http://blazedemo.com",
                     "headers": {"Content-Type": "application/json"},
                     "body": "{\"store_id\": \"${store_id}\", \"display_name\": \"${display_name}\"}"
                 }]}})
-        obj.prepare()
-        jmx = JMX(obj.original_jmx)
+        self.obj.prepare()
+        jmx = JMX(self.obj.original_jmx)
         selector = 'elementProp[name="HTTPsampler.Arguments"]>collectionProp'
         selector += '>elementProp>stringProp[name="Argument.value"]'
         self.assertNotEqual(jmx.get(selector)[0].text.find('store_id'), -1)
 
     def test_json_body_app_dic(self):
-        obj = get_jmeter()
-        obj.execution.merge({
+        self.obj.execution.merge({
             "scenario": {
                 "requests": [{
                     "url": "http://blazedemo.com",
@@ -912,15 +825,14 @@ class TestJMeterExecutor(BZTestCase):
                         "store_id": "${store_id}",
                         "display_name": "${display_name}"
                     }}]}})
-        obj.prepare()
-        jmx = JMX(obj.original_jmx)
+        self.obj.prepare()
+        jmx = JMX(self.obj.original_jmx)
         selector = 'elementProp[name="HTTPsampler.Arguments"]>collectionProp'
         selector += '>elementProp>stringProp[name="Argument.value"]'
         self.assertNotEqual(jmx.get(selector)[0].text.find('store_id'), -1)
 
     def test_json_body_no_app(self):
-        obj = get_jmeter()
-        obj.execution.merge({
+        self.obj.execution.merge({
             "scenario": {
                 "requests": [{
                     "url": "http://blazedemo.com",
@@ -929,38 +841,35 @@ class TestJMeterExecutor(BZTestCase):
                         "store_id": "${store_id}",
                         "display_name": "${display_name}"
                     }}]}})
-        obj.prepare()
-        jmx = JMX(obj.original_jmx)
+        self.obj.prepare()
+        jmx = JMX(self.obj.original_jmx)
         selector = 'elementProp[name="HTTPsampler.Arguments"]>collectionProp'
         selector += '>elementProp>stringProp[name="Argument.value"]'
         self.assertEqual(jmx.get(selector)[0].text.find('"store_id": "${store_id}"'), -1)
 
     def test_a1_jtl_verbose(self):
-        obj = get_jmeter()
-        obj.execution.merge({
+        self.obj.execution.merge({
             "write-xml-jtl": "full",
             "scenario": {
                 "requests": [{
                     "url": "http://blazedemo.com",
                 }]}})
-        obj.prepare()
+        self.obj.prepare()
 
     def test_jtl_none(self):
-        obj = get_jmeter()
-        obj.execution.merge({
+        self.obj.execution.merge({
             "write-xml-jtl": "bla-bla-bla",
             "scenario": {
                 "requests": [{
                     "url": "http://blazedemo.com",
                 }]}})
-        obj.prepare()
+        self.obj.prepare()
 
     def test_jmx_modification_unicode(self):
-        obj = get_jmeter()
         cfg_selector = ('Home Page>HTTPsampler.Arguments>Arguments.arguments'
                         '>param>Argument.value')
 
-        obj.execution.merge({
+        self.obj.execution.merge({
             "scenario": {
                 "script": __dir__() + "/../jmeter/jmx/dummy_plan.jmx",
                 "modifications": {
@@ -972,13 +881,12 @@ class TestJMeterExecutor(BZTestCase):
         })
         selector = ("[testname='Home Page']>[name='HTTPsampler.Arguments']"
                     ">[name='Arguments.arguments']>[name='param']>[name='Argument.value']")
-        obj.prepare()
-        jmx = JMX(obj.modified_jmx)
+        self.obj.prepare()
+        jmx = JMX(self.obj.modified_jmx)
         self.assertEqual(jmx.get(selector)[0].text, u"✓")
 
     def test_data_source_list(self):
-        obj = get_jmeter()
-        obj.execution.merge({
+        self.obj.execution.merge({
             "scenario": {
                 "requests": ["http://blazedemo.com/"],
                 # note that data-sources should be a list of strings/objects
@@ -987,11 +895,10 @@ class TestJMeterExecutor(BZTestCase):
                 }
             }
         })
-        self.assertRaises(ValueError, obj.prepare)
+        self.assertRaises(ValueError, self.obj.prepare)
 
     def test_force_parent_sample(self):
-        obj = get_jmeter()
-        obj.engine.config.merge({
+        self.obj.engine.config.merge({
             'execution': {
                 'scenario': {
                     'script': __dir__() + '/../jmeter/jmx/transactions.jmx',
@@ -999,17 +906,16 @@ class TestJMeterExecutor(BZTestCase):
                 }
             }
         })
-        obj.execution = obj.engine.config['execution']
-        obj.prepare()
-        jmx = JMX(obj.modified_jmx)
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
+        jmx = JMX(self.obj.modified_jmx)
         selector = 'TransactionController > boolProp[name="TransactionController.parent"]'
         props = jmx.get(selector)
         self.assertEqual(len(props), 2)
         self.assertTrue(all(prop.text == 'true' for prop in props))
 
     def test_disable_force_parent_sample(self):
-        obj = get_jmeter()
-        obj.engine.config.merge({
+        self.obj.engine.config.merge({
             'execution': {
                 'scenario': {
                     'script': __dir__() + '/../jmeter/jmx/transactions.jmx',
@@ -1017,9 +923,9 @@ class TestJMeterExecutor(BZTestCase):
                 }
             }
         })
-        obj.execution = obj.engine.config['execution']
-        obj.prepare()
-        jmx = JMX(obj.modified_jmx)
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
+        jmx = JMX(self.obj.modified_jmx)
         selector = 'TransactionController > boolProp[name="TransactionController.parent"]'
         props = jmx.get(selector)
         self.assertEqual(len(props), 2)
@@ -1027,52 +933,48 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(non_parent.text, 'false')
 
     def test_jvm_heap_settings(self):
-        obj = get_jmeter()
-        obj.engine.config.merge({'execution': {'iterations': 1,
+        self.obj.engine.config.merge({'execution': {'iterations': 1,
                                                'scenario': {'script': __dir__() + '/../jmeter/jmx/http.jmx'}},
                                  'modules': {'jmeter': {'memory-xmx': '2G'}}})
-        obj.engine.config.merge({"provisioning": "local"})
-        obj.execution = obj.engine.config['execution']
-        obj.settings.merge(obj.engine.config.get("modules").get("jmeter"))
-        obj.prepare()
-        obj._env['TEST_MODE'] = 'heap'
-        obj.startup()
-        stdout, _ = obj.process.communicate()
-        obj.shutdown()
-        obj.post_process()
+        self.obj.engine.config.merge({"provisioning": "local"})
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.settings.merge(self.obj.engine.config.get("modules").get("jmeter"))
+        self.obj.prepare()
+        self.obj._env['TEST_MODE'] = 'heap'
+        self.obj.startup()
+        stdout, _ = self.obj.process.communicate()
+        self.obj.shutdown()
+        self.obj.post_process()
         self.assertIn("-Xmx2G", str(stdout))
 
     def test_jvm_heap_default_value(self):
-        obj = get_jmeter()
-        obj.engine.config.merge({'execution': {'iterations': 1,
+        self.obj.engine.config.merge({'execution': {'iterations': 1,
                                                'scenario': {'script': __dir__() + '/../jmeter/jmx/http.jmx'}}})
-        obj.engine.config.merge({"provisioning": "local"})
-        obj.execution = obj.engine.config['execution']
-        obj.settings.merge(obj.engine.config.get("modules").get("jmeter"))
-        obj.prepare()
-        obj._env['TEST_MODE'] = 'heap'
-        obj.startup()
-        stdout, _ = obj.process.communicate()
-        obj.shutdown()
-        obj.post_process()
+        self.obj.engine.config.merge({"provisioning": "local"})
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.settings.merge(self.obj.engine.config.get("modules").get("jmeter"))
+        self.obj.prepare()
+        self.obj._env['TEST_MODE'] = 'heap'
+        self.obj.startup()
+        stdout, _ = self.obj.process.communicate()
+        self.obj.shutdown()
+        self.obj.post_process()
         self.assertIn("-Xmx", str(stdout))
 
     def test_data_sources_in_artifacts(self):
-        obj = get_jmeter()
-        obj.engine.config.merge({'execution': {'iterations': 1,
+        self.obj.engine.config.merge({'execution': {'iterations': 1,
                                                'scenario': {'data-sources': ['test1.csv'],
                                                             'requests': ['http://blazedemo.com/${url}']}}})
-        obj.engine.config.merge({"provisioning": "local"})
-        obj.execution = obj.engine.config['execution']
-        obj.settings.merge(obj.engine.config.get("modules").get("jmeter"))
+        self.obj.engine.config.merge({"provisioning": "local"})
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.settings.merge(self.obj.engine.config.get("modules").get("jmeter"))
         csv_source = __dir__() + '/../data/test1.csv'
-        obj.engine.file_search_paths.append(obj.engine.artifacts_dir)
-        shutil.copy2(csv_source, obj.engine.artifacts_dir)
-        obj.prepare()
+        self.obj.engine.file_search_paths.append(self.obj.engine.artifacts_dir)
+        shutil.copy2(csv_source, self.obj.engine.artifacts_dir)
+        self.obj.prepare()
 
     def test_body_file_in_artifacts(self):
-        obj = get_jmeter()
-        obj.engine.config.merge({
+        self.obj.engine.config.merge({
             'execution': {
                 'iterations': 1,
                 'scenario': {
@@ -1081,15 +983,58 @@ class TestJMeterExecutor(BZTestCase):
                         "url": "http://blazedemo.com/",
                         "body-file": "http.jmx"
                     }]}}})
-        obj.engine.config.merge({"provisioning": "local"})
-        obj.execution = obj.engine.config['execution']
-        obj.settings.merge(obj.engine.config.get("modules").get("jmeter"))
+        self.obj.engine.config.merge({"provisioning": "local"})
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.settings.merge(self.obj.engine.config.get("modules").get("jmeter"))
         jmx_source = __dir__() + '/../jmeter/jmx/http.jmx'
-        obj.engine.file_search_paths.append(obj.engine.artifacts_dir)
-        shutil.copy2(jmx_source, obj.engine.artifacts_dir)
-        obj.prepare()
+        self.obj.engine.file_search_paths.append(self.obj.engine.artifacts_dir)
+        shutil.copy2(jmx_source, self.obj.engine.artifacts_dir)
+        self.obj.prepare()
 
+    def test_jmx_paths_local_prov(self):
+        "Ensures that file paths in JMX are not changed during local prov"
+        script = __dir__() + "/../jmeter/jmx/csvs.jmx"
+        self.obj.engine.config.merge({
+            'execution': {
+                'iterations': 1,
+                'scenario': {
+                    "script": script,
+                }
+            },
+            'provisioning': 'local',
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
+        original = JMX(script)
+        prepared = JMX(self.obj.modified_jmx)
+        query = '//CSVDataSet/stringProp[@name="filename"]/text()'
+        original_paths = original.tree.xpath(query)
+        prepared_paths = prepared.tree.xpath(query)
+        self.assertEqual(original_paths, prepared_paths)
 
+    def test_jmx_paths_remote_prov(self):
+        "Ensures that file paths in JMX are modified during remote prov"
+        script = __dir__() + "/../jmeter/jmx/csvs.jmx"
+        self.obj.engine.config.merge({
+            'execution': {
+                'iterations': 1,
+                'scenario': {
+                    "script": script,
+                }
+            },
+            'provisioning': 'test',
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.resource_files()
+        original = JMX(script)
+        prepared = JMX(self.obj.original_jmx)
+        query = '//CSVDataSet/stringProp[@name="filename"]/text()'
+        original_paths = original.tree.xpath(query)
+        prepared_paths = prepared.tree.xpath(query)
+        self.assertEqual(len(original_paths), len(prepared_paths))
+        for orig, modified in zip(original_paths, prepared_paths):
+            self.assertNotEqual(orig, modified)
+            self.assertEqual(os.path.basename(orig), os.path.basename(modified))
 
 class TestJMX(BZTestCase):
     def test_jmx_unicode_checkmark(self):

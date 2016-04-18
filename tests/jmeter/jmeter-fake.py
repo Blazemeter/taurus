@@ -7,6 +7,9 @@ import os
 def get_mode():
     return os.environ.get("TEST_MODE")
 
+def get_artifacts_dir():
+    return os.environ.get("TAURUS_ARTIFACTS_DIR", ".")
+
 
 def udp_server():
     import socket
@@ -25,15 +28,16 @@ def udp_server():
 
 def files():
     import shutil
+    artifacts_dir = get_artifacts_dir()
     jmeter_path = os.path.dirname(__file__)
     jtl_file = jmeter_path + '/jtl/tranctl.jtl'
     file_name = 'kpi'
     suffix = ''
     i = 0
-    while os.path.isfile('./' + file_name + suffix + '.jtl'):
+    while os.path.isfile(os.path.join(artifacts_dir, file_name + suffix + '.jtl')):
         i += 1
         suffix = '-%i' % i
-    shutil.copy(jtl_file, './' + file_name + suffix + '.jtl')
+    shutil.copy(jtl_file, os.path.join(artifacts_dir, file_name + suffix + '.jtl'))
 
 
 # logging.basicConfig(level=logging.ERROR, filename='/tmp/bzt/fake_tool.log')
