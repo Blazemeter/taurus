@@ -184,9 +184,9 @@ class JMXasDict(JMX):
         """
         result = {}
         if element is not None:
-            prop_vaulue = self._get_string_prop(element, prop_name)
-            if prop_vaulue and prop_vaulue.isdigit() and int(prop_vaulue) != default:
-                result[opt_name] = int(prop_vaulue)
+            prop_value = self._get_string_prop(element, prop_name)
+            if prop_value and prop_value.isdigit() and int(prop_value) != default:
+                result[opt_name] = int(prop_value)
         return result
 
     def _get_request_body(self, element):
@@ -836,7 +836,12 @@ class JMXasDict(JMX):
         :return: dict
         """
         global_execution_settings = self._get_global_tg_execution()
-        execution_settings = {}
+        execution_settings = {
+            'concurrency': 1,
+            'iterations': 1,
+            'hold-for': '60s',
+            'ramp-up': '60s',
+        }
         self._apply_global_tg_settings(global_execution_settings, execution_settings)
         execution_settings.update(self._get_concurrency(tg_etree_element))
         execution_settings.update(self._get_iterations(tg_etree_element))

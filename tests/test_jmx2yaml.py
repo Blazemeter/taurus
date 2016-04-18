@@ -224,12 +224,12 @@ class TestConverter(BZTestCase):
         tg_three_exec = yml.get(ScenarioExecutor.EXEC)[2]
         self.assertEqual(tg_one_exec.get("concurrency"), 10)
         self.assertEqual(tg_two_exec.get("concurrency"), 15)
-        self.assertEqual(tg_three_exec.get("concurrency"), None)
+        self.assertEqual(tg_three_exec.get("concurrency"), 1)
         self.assertEqual(tg_one_exec.get("ramp-up"), '10s')
-        self.assertEqual(tg_two_exec.get("ramp-up"), None)
+        self.assertEqual(tg_two_exec.get("ramp-up"), '60s')
         self.assertEqual(tg_three_exec.get("ramp-up"), '2s')
-        self.assertEqual(tg_one_exec.get("iterations"), None)
-        self.assertEqual(tg_two_exec.get("iterations"), None)
+        self.assertEqual(tg_one_exec.get("iterations"), 1)
+        self.assertEqual(tg_two_exec.get("iterations"), 1)
         self.assertEqual(tg_three_exec.get("iterations"), 100)
 
     def test_xpath_assertions(self):
@@ -319,13 +319,13 @@ class TestConverter(BZTestCase):
         tg_two = yml.get(ScenarioExecutor.EXEC)[1]
         tg_three = yml.get(ScenarioExecutor.EXEC)[2]
         self.assertEqual("10s", tg_one.get("ramp-up"))
-        self.assertEqual(None, tg_one.get("hold-for"))
+        self.assertEqual("60s", tg_one.get("hold-for"))
         self.assertEqual("10s", tg_one.get("ramp-up"))
         self.assertEqual(100, tg_one.get("throughput"))
         self.assertEqual("10s", tg_two.get("ramp-up"))
         self.assertEqual("20s", tg_two.get("hold-for"))
         self.assertEqual(20, tg_two.get("throughput"))
-        self.assertEqual(None, tg_three.get("ramp-up"))
+        self.assertEqual("60s", tg_three.get("ramp-up"))
         self.assertEqual("40s", tg_three.get("hold-for"))
         self.assertEqual(100, tg_three.get("throughput"))
 
@@ -339,3 +339,14 @@ class TestConverter(BZTestCase):
         obj = self._get_jmx2yaml("/yaml/converter/param-null.jmx", self._get_tmp())
         obj.process()
         obj.converter.convert(obj.file_to_convert)
+
+    def test_load_profile_default_values(self):
+        yml = self._get_tmp()
+        obj = self._get_jmx2yaml("/yaml/converter/default.jmx", yml)
+        obj.process()
+        yml = yaml.load(open(yml).read())
+        execution = yml.get(ScenarioExecutor.EXEC)[0]
+        self.assertEqual("60s", execution.get("ramp-up"))
+        self.assertEqual("60s", execution.get("hold-for"))
+        self.assertEqual(1, execution.get("concurrency"))
+        self.assertEqual(1, execution.get("iterations"))
