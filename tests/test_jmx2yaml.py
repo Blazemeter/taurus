@@ -350,3 +350,24 @@ class TestConverter(BZTestCase):
         self.assertEqual("60s", execution.get("hold-for"))
         self.assertEqual(1, execution.get("concurrency"))
         self.assertEqual(1, execution.get("iterations"))
+
+    def test_variables(self):
+        yml = self._get_tmp()
+        obj = self._get_jmx2yaml("/yaml/converter/vars.jmx", yml)
+        obj.process()
+        yml = yaml.load(open(yml).read())
+        scenarios = yml.get("scenarios")
+        tg_one = scenarios["TG1"]
+        self.assertEqual(tg_one.get('variables'), {"tg1_local": "tg1", "global_var": "global"})
+        tg_two = scenarios["TG2"]
+        self.assertEqual(tg_two.get('variables'), {"tg2_local": "tg2", "global_var": "global"})
+
+    def test_no_variables(self):
+        yml = self._get_tmp()
+        obj = self._get_jmx2yaml("/yaml/converter/default.jmx", yml)
+        obj.process()
+        yml = yaml.load(open(yml).read())
+        execution = yml.get(ScenarioExecutor.EXEC)[0]
+        scenarios = yml.get("scenarios")
+        scenario = scenarios[execution.get("scenario")]
+        self.assertNotIn("variables", scenario)
