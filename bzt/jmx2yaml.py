@@ -185,8 +185,12 @@ class JMXasDict(JMX):
         result = {}
         if element is not None:
             prop_vaulue = self._get_string_prop(element, prop_name)
-            if prop_vaulue and prop_vaulue.isdigit() and int(prop_vaulue) != default:
+            if prop_vaulue and prop_vaulue.isdigit():
                 result[opt_name] = int(prop_vaulue)
+            else:
+                self.log.warning("Cannot use JMX value for '%s' (%s='%s'), "
+                                 "using default value '%s'", opt_name, prop_name, prop_vaulue, default)
+                result[opt_name] = default
         return result
 
     def _get_request_body(self, element):
