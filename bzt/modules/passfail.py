@@ -15,20 +15,20 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-from abc import abstractmethod
-from collections import OrderedDict
 import fnmatch
 import logging
 import re
+from abc import abstractmethod
+from collections import OrderedDict
 
 import urwid
 
 from bzt import AutomatedShutdown
 from bzt.engine import Reporter, Service
 from bzt.modules.aggregator import KPISet, DataPoint, AggregatorListener, ResultsProvider
-from bzt.utils import load_class, dehumanize_time
 from bzt.modules.console import WidgetProvider
 from bzt.six import string_types, viewvalues, iteritems
+from bzt.utils import load_class, dehumanize_time
 
 
 class PassFailStatus(Reporter, Service, AggregatorListener, WidgetProvider):
@@ -76,7 +76,7 @@ class PassFailStatus(Reporter, Service, AggregatorListener, WidgetProvider):
         for crit in self.criterias:
             if isinstance(crit, DataCriteria):
                 if crit.selector == DataPoint.CUMULATIVE:
-                    crit.aggregated_second(self.last_datapoint)     # !
+                    crit.aggregated_second(self.last_datapoint)  # !
                     if crit.is_triggered and crit.fail:
                         raise AutomatedShutdown("%s" % crit)
                 else:
