@@ -64,18 +64,19 @@ class PassFailStatus(Reporter, Service, AggregatorListener, WidgetProvider):
         if isinstance(self.engine.aggregator, ResultsProvider):
             self.engine.aggregator.add_listener(self)
 
-    def shutdown(self):
-        for crit in self.criterias:
-            if isinstance(crit, DataCriteria):
-                if crit.selector == DataPoint.CUMULATIVE:
-                    if self.last_datapoint:
-                        crit.aggregated_second(self.last_datapoint)
+    # def shutdown(self):
+    #     for crit in self.criterias:
+    #         if isinstance(crit, DataCriteria):
+    #             if crit.selector == DataPoint.CUMULATIVE:
+    #                 if self.last_datapoint:
+    #                     crit.aggregated_second(self.last_datapoint)
 
     def post_process(self):
         super(PassFailStatus, self).post_process()
         for crit in self.criterias:
             if isinstance(crit, DataCriteria):
                 if crit.selector == DataPoint.CUMULATIVE:
+                    crit.aggregated_second(self.last_datapoint)     # !
                     if crit.is_triggered and crit.fail:
                         raise AutomatedShutdown("%s" % crit)
                 else:
