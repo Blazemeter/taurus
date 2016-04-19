@@ -64,7 +64,7 @@ braces). Other than that, JSON and YAML are very similar. Here's the same YAML d
 ```
 
 
-## YAML syntax
+## YAML Syntax
 
 All Taurus YAML files should begin with `---`. This is a part of the YAML format and indicates the start of a document.
 
