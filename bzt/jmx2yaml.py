@@ -49,7 +49,8 @@ KNOWN_TAGS = ["hashTree", "jmeterTestPlan", "TestPlan", "ResultCollector",
               "ResponseAssertion",
               "CSVDataSet",
               "GenericController",
-              "ResultCollector"]
+              "ResultCollector",
+              "Arguments"]
 
 
 class JMXasDict(JMX):
@@ -184,9 +185,9 @@ class JMXasDict(JMX):
         """
         result = {}
         if element is not None:
-            prop_vaulue = self._get_string_prop(element, prop_name)
-            if prop_vaulue and prop_vaulue.isdigit() and int(prop_vaulue) != default:
-                result[opt_name] = int(prop_vaulue)
+            prop_value = self._get_string_prop(element, prop_name)
+            if prop_value and prop_value.isdigit() and int(prop_value) != default:
+                result[opt_name] = int(prop_value)
         return result
 
     def _get_request_body(self, element):
@@ -760,6 +761,25 @@ class JMXasDict(JMX):
 
         return assertions
 
+    def _get_variables(self, element):
+        """
+        :param element:
+        :return:
+        """
+        variables = {}
+        hashtree = element.getnext()
+
+        if hashtree is not None and hashtree.tag == "hashTree":
+            arguments = [element for element in hashtree.iterchildren() if element.tag == "Arguments"]
+            for argument in arguments:
+                for element in argument.find(".//collectionProp").findall(".//elementProp"):
+                    var_name = self._get_string_prop(element, 'Argument.name')
+                    var_value = self._get_string_prop(element, 'Argument.value')
+                    if var_name and var_value:
+                        variables[var_name] = var_value
+
+        return {"variables": variables} if variables else {}
+
     def process_tg(self, tg_etree_element):
         """
         Get execution and scenario settings for TG
@@ -822,6 +842,7 @@ class JMXasDict(JMX):
         tg_settings.update(self._get_dns_mgr(tg_etree_element))
         tg_settings.update(self._get_extractors(tg_etree_element))
         tg_settings.update(self._get_assertions(tg_etree_element))
+        tg_settings.update(self._get_variables(tg_etree_element))
         # apply global test plan settings:
         self._apply_global_tg_settings(global_tg_settings, tg_settings)
         # those settings will override global:
@@ -836,7 +857,12 @@ class JMXasDict(JMX):
         :return: dict
         """
         global_execution_settings = self._get_global_tg_execution()
-        execution_settings = {}
+        execution_settings = {
+            'concurrency': 1,
+            'iterations': 1,
+            'hold-for': '60s',
+            'ramp-up': '60s',
+        }
         self._apply_global_tg_settings(global_execution_settings, execution_settings)
         execution_settings.update(self._get_concurrency(tg_etree_element))
         execution_settings.update(self._get_iterations(tg_etree_element))
@@ -874,6 +900,7 @@ class JMXasDict(JMX):
         default_tg_settings.update(self._get_http_request_defaults(testplan_element))
         default_tg_settings.update(self._get_extractors(testplan_element))
         default_tg_settings.update(self._get_assertions(testplan_element))
+        default_tg_settings.update(self._get_variables(testplan_element))
         return default_tg_settings
 
     def _get_global_tg_execution(self):
