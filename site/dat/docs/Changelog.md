@@ -11,6 +11,7 @@
  - explicitly write default values in jmx2yaml
  - recognize JMX variables in jmx2yaml
  - don't fail execution because of web browser
+ - fix schedule size estimation and progress reporting in PBench
 
 ## 1.4.3 <sup>14 apr 2016</sup>
  - bump up version for jmeter plugins installation to 1.4.0
