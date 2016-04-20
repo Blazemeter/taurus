@@ -39,7 +39,7 @@ modules:
     
 settings:
   check-interval: 5s
-  default_executor: jmeter
+  default-executor: jmeter
 
 provisioning: local
 ```

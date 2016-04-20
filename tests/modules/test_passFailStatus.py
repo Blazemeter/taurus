@@ -2,17 +2,17 @@ import json
 import logging
 import time
 
-from tests import BZTestCase, __dir__, random_datapoint
 from bzt import AutomatedShutdown
 from bzt.modules.aggregator import DataPoint, KPISet
-from bzt.modules.passfail import PassFailStatus
+from bzt.modules.passfail import PassFailStatus, DataCriteria
+from tests import BZTestCase, __dir__, random_datapoint
 from tests.mocks import EngineEmul
 
 
 class TestPassFailStatus(BZTestCase):
     def test_prepare(self):
         obj = PassFailStatus()
-        obj.engine=EngineEmul()
+        obj.engine = EngineEmul()
         config = json.loads(open(__dir__() + "/../json/passfail.json").read())
         obj.parameters = config['reporting'][0]
         obj.prepare()
@@ -34,7 +34,7 @@ class TestPassFailStatus(BZTestCase):
 
     def test_prepare2(self):
         obj = PassFailStatus()
-        obj.engine=EngineEmul()
+        obj.engine = EngineEmul()
         obj.parameters = {"criterias": ["avg-rt>10ms, continue as non-failed"]}
         obj.prepare()
         self.assertGreater(len(obj.criterias), 0)
@@ -48,7 +48,7 @@ class TestPassFailStatus(BZTestCase):
 
     def test_prepare3(self):
         obj = PassFailStatus()
-        obj.engine=EngineEmul()
+        obj.engine = EngineEmul()
         obj.parameters = {"criterias": ["avg-rt>10ms for 3s, continue as failed"]}
         obj.prepare()
         self.assertGreater(len(obj.criterias), 0)
@@ -67,7 +67,7 @@ class TestPassFailStatus(BZTestCase):
 
     def test_widget(self):
         obj = PassFailStatus()
-        obj.engine=EngineEmul()
+        obj.engine = EngineEmul()
         obj.parameters = {"criterias": ["avg-rt>10ms for 2s, continue as failed"]}
         obj.prepare()
         obj.get_widget()
@@ -84,7 +84,7 @@ class TestPassFailStatus(BZTestCase):
 
     def test_within(self):
         obj = PassFailStatus()
-        obj.engine=EngineEmul()
+        obj.engine = EngineEmul()
         obj.parameters = {"criterias": [
             "fail>10% within 5s",
             "fail>1000 within 5s",
@@ -111,7 +111,7 @@ class TestPassFailStatus(BZTestCase):
     def test_prepare_label_issue(self):
         # https://groups.google.com/forum/?utm_medium=email&utm_source=footer#!msg/codename-taurus/PWjU7xVucZ0/WkjUAbE1EwAJ
         obj = PassFailStatus()
-        obj.engine=EngineEmul()
+        obj.engine = EngineEmul()
         obj.parameters = {"criterias": ["avg-rt of spaced label>10ms"]}
         obj.prepare()
         self.assertGreater(len(obj.criterias), 0)
@@ -141,7 +141,7 @@ class TestPassFailStatus(BZTestCase):
 
     def test_stop_counting_criteria(self):
         obj = PassFailStatus()
-        obj.engine=EngineEmul()
+        obj.engine = EngineEmul()
         obj.parameters = {"criterias": ["avg-rt>10ms for 2s, continue as failed"]}
         obj.prepare()
         obj.get_widget()
@@ -164,3 +164,24 @@ class TestPassFailStatus(BZTestCase):
             start_time += 1
 
         self.assertEqual(obj.widget.text_widget.text, "")
+
+    def test_ashort_data(self):
+        obj = PassFailStatus()
+        obj.engine = EngineEmul()
+
+        crit_cfg = DataCriteria.string_to_config("failures>0%, stop as failed")
+        obj.criterias.append(DataCriteria(crit_cfg, obj))
+
+        point = DataPoint(0)
+        point[DataPoint.CUMULATIVE] = {}
+        point[DataPoint.CUMULATIVE][''] = {}
+        point[DataPoint.CUMULATIVE][''][KPISet.FAILURES] = 100 * 16
+        point[DataPoint.CUMULATIVE][''][KPISet.SAMPLE_COUNT] = 100 * 16
+
+        obj.check()
+        obj.shutdown()
+        obj.aggregated_second(point)
+        self.assertRaises(AutomatedShutdown, obj.post_process)
+
+
+
