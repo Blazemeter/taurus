@@ -120,8 +120,7 @@ if not is_windows():
             executor.engine = EngineEmul()
             # concurrency: 1, iterations: 1
             obj = Scheduler(executor.get_load(), StringIO("4 test\ntest\n"), logging.getLogger(""))
-            items = list(itertools.takewhile(lambda it: it[5] != Scheduler.REC_TYPE_STOP,
-                                             obj.generate()))
+            items = list(obj.generate())
             for item in items:
                 logging.debug("Item: %s", item)
             self.assertEqual(1, len(items))
@@ -131,8 +130,7 @@ if not is_windows():
             executor.engine = EngineEmul()
             executor.execution.merge({"concurrency": 5, "ramp-up": 10, "hold-for": 5})
             obj = Scheduler(executor.get_load(), StringIO("5 test1\ntest1\n5 test2\ntest2\n"), logging.getLogger(""))
-            items = list(itertools.takewhile(lambda it: it[5] != Scheduler.REC_TYPE_STOP,
-                                             obj.generate()))
+            items = list(obj.generate())
             self.assertEqual(8, len(items))
             self.assertEqual(-1, items[5][0])  # instance became unlimited
             self.assertEqual(Scheduler.REC_TYPE_LOOP_START, items[6][5])  # looped payload
@@ -142,8 +140,7 @@ if not is_windows():
             executor.engine = EngineEmul()
             executor.execution.merge({"concurrency": 5, "ramp-up": 10, "steps": 3})
             obj = Scheduler(executor.get_load(), StringIO("5 test1\ntest1\n5 test2\ntest2\n"), logging.getLogger(""))
-            items = list(itertools.takewhile(lambda it: it[5] != Scheduler.REC_TYPE_STOP,
-                                             obj.generate()))
+            items = list(obj.generate())
             self.assertEqual(8, len(items))
             self.assertEqual(-1, items[5][0])  # instance became unlimited
             self.assertEqual(Scheduler.REC_TYPE_LOOP_START, items[6][5])  # looped payload
@@ -191,7 +188,9 @@ if not is_windows():
             with open(obj.pbench.schedule_file) as fds:
                 config = fds.readlines()
 
-            get_requests = list(set(req_str.split(" ")[1] for req_str in config if req_str.startswith("GET")))
+            get_requests = [req_str.split(" ")[1] for req_str in config if req_str.startswith("GET")]
+            self.assertEqual(len(get_requests), 2)
+
             for get_req in get_requests:
                 self.assertEqual(dict(parse.parse_qsl(parse.urlsplit(get_req).query)),
                                  {"get_param1": "value1", "get_param2": "value2"})
