@@ -305,7 +305,7 @@ if not is_windows():
             obj.pbench = tool_class(obj, logging.getLogger(''))
             obj.pbench.generate_payload(obj.get_scenario())
             payload_count = len(obj.get_scenario().get('requests', []))
-            sch = Scheduler(load, open(obj.pbench.payload_file), logging.getLogger(''))
+            sch = Scheduler(load, open(obj.pbench.payload_file, 'rb'), logging.getLogger(''))
             estimated_schedule_size = obj.pbench._estimate_max_progress(load, payload_count)
             logging.debug("Estimated schedule size: %s", estimated_schedule_size)
             items = list(sch.generate())

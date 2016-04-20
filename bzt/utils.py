@@ -722,10 +722,12 @@ class IncrementableProgressBar(ProgressBarContext):
         if incremented < self.maxval:
             super(IncrementableProgressBar, self).update(incremented)
 
-    def start(self, started_at=None):
+    def catchup(self, started_time=None, current_value=None):
         super(IncrementableProgressBar, self).start()
-        if started_at:
-            self.start_time = started_at
+        if started_time:
+            self.start_time = started_time
+        if current_value and current_value < self.maxval:
+            self.update(current_value)
 
 
 class TclLibrary(RequiredTool):
