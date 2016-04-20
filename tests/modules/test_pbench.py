@@ -315,7 +315,6 @@ if not is_windows():
             if actual_schedule_size != 0:
                 error = abs(estimated_schedule_size - actual_schedule_size)
                 error_rel = error / float(actual_schedule_size)
-                self.errors.append(error_rel)
                 logging.debug("Estimation error: %s", error)
                 if error_rel >= 0.10 and actual_schedule_size > 1000:
                     msg = "Estimation failed (error=%s) on config %s" % (error_rel, pprint.pformat(execution))
@@ -349,19 +348,6 @@ if not is_windows():
                 if i is not None:
                     execution["iterations"] = i
                 self.check_schedule_size_estimate(obj, execution, TaurusPBenchTool)
-
-        @classmethod
-        def setUpClass(cls):
-            cls.errors = []
-
-        @classmethod
-        def tearDownClass(cls):
-            if hasattr(cls, 'errors') and cls.errors:
-                avg = sum(cls.errors) / len(cls.errors)
-                logging.info("Average error: %s", avg)
-
-
-
 
 
 class DataPointLogger(AggregatorListener):
