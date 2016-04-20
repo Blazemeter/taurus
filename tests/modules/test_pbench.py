@@ -2,6 +2,8 @@ import itertools
 import logging
 import math
 import os
+import pprint
+import random
 import time
 
 import urwid
@@ -284,10 +286,16 @@ if not is_windows():
                 self.assertIn(script_path, config)
 
     class TestScheduler(BZTestCase):
-        def check_schedule_size_estimate(self, execution, tool_class):
+        ITERATIONS = 500
+
+        def _get_pbench(self):
             obj = PBenchExecutor()
             obj.engine = EngineEmul()
             obj.settings = BetterDict()
+            obj.engine.config = BetterDict()
+            return obj
+
+        def check_schedule_size_estimate(self, obj, execution, tool_class):
             obj.engine.config = BetterDict()
             obj.engine.config.merge({
                 ScenarioExecutor.EXEC: execution,
@@ -305,300 +313,55 @@ if not is_windows():
             actual_schedule_size = len(items)
             logging.debug("Actual schedule size: %s", actual_schedule_size)
             if actual_schedule_size != 0:
-                error = abs(estimated_schedule_size - actual_schedule_size) / float(actual_schedule_size)
+                error = abs(estimated_schedule_size - actual_schedule_size)
+                error_rel = error / float(actual_schedule_size)
+                self.errors.append(error_rel)
                 logging.debug("Estimation error: %s", error)
-                self.assertLess(error, 0.05)
+                if error_rel >= 0.10 and actual_schedule_size > 1000:
+                    msg = "Estimation failed (error=%s) on config %s" % (error_rel, pprint.pformat(execution))
+                    self.assertLess(error, 0.05, msg)
 
-        def test_rampup_throughput(self):
-            self.check_schedule_size_estimate({
-                "throughput": 1000,
-                "ramp-up": "10s",
-                "scenario": {
-                    "requests": ["test1", "test2", "test3"],
-                }
-            }, TaurusPBenchTool)
+        def test_quickcheck(self):
+            concurrency = [None, 1, 10, 100, 1000]
+            rampup = [None, "1s", "10s", "1m", "10m"]
+            hold_for = [None, "1s", "10s", "1m", "10m"]
+            throughput = [None, 1, 10, 100, 1000]
+            iterations = [None, 1, 10, 100, 1000]
+            requests = [1, 10, 100, 1000]
 
-        def test_rampup_throughput_script(self):
-            self.check_schedule_size_estimate({
-                "throughput": 500,
-                "ramp-up": "10s",
-                "scenario": {
-                    "requests": ["test%d" % i for i in range(5000)],
-                }
-            }, TaurusPBenchTool)
+            obj = self._get_pbench()
 
-        def test_rampup_throughput_iteration_limit(self):
-            self.check_schedule_size_estimate({
-                "throughput": 1000,
-                "ramp-up": "10s",
-                "iterations": 100,
-                "scenario": {
-                    "requests": ["test1", "test2", "test3"],
-                }
-            }, TaurusPBenchTool)
+            all_combinations = list(itertools.product(concurrency, rampup, hold_for, throughput, iterations, requests))
 
-        def test_rampup_throughput_iteration_limit_script(self):
-            self.check_schedule_size_estimate({
-                "throughput": 1000,
-                "ramp-up": "20s",
-                "iterations": 9,
-                "scenario": {
-                    "requests": ["test%d" % i for i in range(1000)],
-                }
-            }, TaurusPBenchTool)
+            for _ in range(self.ITERATIONS):
+                setup = random.choice(all_combinations)
+                logging.debug("setup: %s", setup)
+                c, r, h, t, i, reqs = setup
+                execution = {"scenario": {"requests": ["test%d" % x for x in range(reqs)]}}
+                if c is not None:
+                    execution["concurrency"] = c
+                if r is not None:
+                    execution["ramp-up"] = r
+                if h is not None:
+                    execution["hold-for"] = h
+                if t is not None:
+                    execution["throughput"] = t
+                if i is not None:
+                    execution["iterations"] = i
+                self.check_schedule_size_estimate(obj, execution, TaurusPBenchTool)
 
-        def test_hold_throughput(self):
-            self.check_schedule_size_estimate({
-                "throughput": 1000,
-                "hold-for": "10s",
-                "scenario": {
-                    "requests": ["test1", "test2", "test3"],
-                }
-            }, TaurusPBenchTool)
+        @classmethod
+        def setUpClass(cls):
+            cls.errors = []
 
-        def test_hold_throughput_script(self):
-            self.check_schedule_size_estimate({
-                "throughput": 10000,
-                "hold-for": "10s",
-                "scenario": {
-                    "requests": ["test%d" % i for i in range(1000)],
-                }
-            }, TaurusPBenchTool)
+        @classmethod
+        def tearDownClass(cls):
+            if hasattr(cls, 'errors') and cls.errors:
+                avg = sum(cls.errors) / len(cls.errors)
+                logging.info("Average error: %s", avg)
 
-        def test_hold_throughput_iteration_limit(self):
-            self.check_schedule_size_estimate({
-                "throughput": 1000,
-                "hold-for": "10s",
-                "iterations": 1000,
-                "scenario": {
-                    "requests": ["test1", "test2", "test3"],
-                }
-            }, TaurusPBenchTool)
 
-        def test_hold_throughput_iteration_limit_script(self):
-            self.check_schedule_size_estimate({
-                "throughput": 10,
-                "hold-for": "20s",
-                "iterations": 30,
-                "scenario": {
-                    "requests": ["test%d" % i for i in range(40)],
-                }
-            }, TaurusPBenchTool)
 
-        def test_rampup_hold_throughput(self):
-            self.check_schedule_size_estimate({
-                "throughput": 1000,
-                "ramp-up": "10s",
-                "hold-for": "20s",
-                "scenario": {
-                    "requests": ["test1", "test2", "test3"],
-                }
-            }, TaurusPBenchTool)
-
-        def test_rampup_hold_throughput_script(self):
-            self.check_schedule_size_estimate({
-                "throughput": 1000,
-                "ramp-up": "20s",
-                "hold-for": "20s",
-                "scenario": {
-                    "requests": ["test%d" % i for i in range(3000)],
-                }
-            }, TaurusPBenchTool)
-
-        def test_rampup_hold_throughput_iteration_limit(self):
-            self.check_schedule_size_estimate({
-                "throughput": 1000,
-                "ramp-up": "10s",
-                "hold-for": "10s",
-                "iterations": 1000,
-                "scenario": {
-                    "requests": ["test1", "test2", "test3"],
-                }
-            }, TaurusPBenchTool)
-
-        def test_rampup_hold_throughput_iteration_limit_script(self):
-            self.check_schedule_size_estimate({
-                "throughput": 10,
-                "ramp-up": "10s",
-                "hold-for": "20s",
-                "iterations": 30,
-                "scenario": {
-                    "requests": ["test%d" % i for i in range(40)],
-                }
-            }, TaurusPBenchTool)
-
-        def test_crash(self):
-            self.check_schedule_size_estimate({
-                "throughput": 10000,
-                "ramp-up": "10m",
-                "iterations": 1900000,
-                "scenario": {
-                    "requests": [
-                        "http://blazedemo.com/",
-                        "http://blazedemo.com/reserve.php",
-                        "http://blazedemo.com/",
-                    ],
-                }
-            }, TaurusPBenchTool)
-
-        def test_yo(self):
-            self.check_schedule_size_estimate({
-                "throughput": 100,
-                "ramp-up": 60,
-                "scenario": {
-                    "requests": ["test1", "test2", "test3"],
-                }
-            }, TaurusPBenchTool)
-
-        def test_crash_too(self):
-            self.check_schedule_size_estimate({
-                "throughput": 100,
-                "ramp-up": "10m",
-                "iterations": 20000,
-                "scenario": {
-                    "requests": [
-                        "http://blazedemo.com/",
-                        "http://blazedemo.com/reserve.php",
-                        "http://blazedemo.com/",
-                    ],
-                }
-            }, TaurusPBenchTool)
-
-        def test_rampup_concurrency(self):
-            self.check_schedule_size_estimate({
-                "concurrency": 1000,
-                "ramp-up": "10s",
-                "scenario": {
-                    "requests": ["test1", "test2", "test3"],
-                }
-            }, TaurusPBenchTool)
-
-        def test_rampup_concurrency_script(self):
-            self.check_schedule_size_estimate({
-                "concurrency": 1000,
-                "ramp-up": "10s",
-                "scenario": {
-                    "requests": ["test%d" % i for i in range(1500)],
-                }
-            }, TaurusPBenchTool)
-
-        def test_rampup_concurrency_iterations(self):
-            self.check_schedule_size_estimate({
-                "concurrency": 1000,
-                "ramp-up": "10s",
-                "iterations": 10,
-                "scenario": {
-                    "requests": ["test1", "test2", "test3"],
-                }
-            }, TaurusPBenchTool)
-
-        def test_rampup_concurrency_iterations_script(self):
-            self.check_schedule_size_estimate({
-                "concurrency": 1000,
-                "ramp-up": "10s",
-                "iterations": 10,
-                "scenario": {
-                    "requests": ["test%d" % i for i in range(1500)],
-                }
-            }, TaurusPBenchTool)
-
-        def test_holdfor_concurrency(self):
-            self.check_schedule_size_estimate({
-                "concurrency": 1000,
-                "hold-for": "10s",
-                "scenario": {
-                    "requests": ["test1", "test2", "test3"],
-                }
-            }, TaurusPBenchTool)
-
-        def test_holdfor_concurrency_script(self):
-            self.check_schedule_size_estimate({
-                "concurrency": 1000,
-                "hold-for": "10s",
-                "scenario": {
-                    "requests": ["test%d" % i for i in range(1500)],
-                }
-            }, TaurusPBenchTool)
-
-        def test_holdfor_concurrency_iterations(self):
-            self.check_schedule_size_estimate({
-                "concurrency": 1000,
-                "hold-for": "10s",
-                "iterations": 10,
-                "scenario": {
-                    "requests": ["test1", "test2", "test3"],
-                }
-            }, TaurusPBenchTool)
-
-        def test_holdfor_concurrency_iterations_script(self):
-            self.check_schedule_size_estimate({
-                "concurrency": 1000,
-                "hold-for": "10s",
-                "iterations": 10,
-                "scenario": {
-                    "requests": ["test%d" % i for i in range(1500)],
-                }
-            }, TaurusPBenchTool)
-
-        def test_rampup_hold_concurrency(self):
-            self.check_schedule_size_estimate({
-                "concurrency": 1000,
-                "ramp-up": "10s",
-                "hold-for": "20s",
-                "scenario": {
-                    "requests": ["test1", "test2", "test3"],
-                }
-            }, TaurusPBenchTool)
-
-        def test_rampup_hold_concurrency_script(self):
-            self.check_schedule_size_estimate({
-                "concurrency": 1000,
-                "ramp-up": "10s",
-                "hold-for": "20s",
-                "scenario": {
-                    "requests": ["test%d" % i for i in range(1500)],
-                }
-            }, TaurusPBenchTool)
-
-        def test_rampup_hold_iterations(self):
-            self.check_schedule_size_estimate({
-                "concurrency": 1000,
-                "ramp-up": "10s",
-                "hold-for": "20s",
-                "iterations": 10,
-                "scenario": {
-                    "requests": ["test1", "test2", "test3"],
-                }
-            }, TaurusPBenchTool)
-
-        def test_rampup_hold_iterations_script(self):
-            self.check_schedule_size_estimate({
-                "concurrency": 1000,
-                "ramp-up": "10s",
-                "hold-for": "20s",
-                "iterations": 100,
-                "scenario": {
-                    "requests": ["test%d" % i for i in range(1500)],
-                }
-            }, TaurusPBenchTool)
-
-        def test_iterations_throughput(self):
-            self.check_schedule_size_estimate({
-                "throughput": 10,
-                "iterations": 1000,
-                "scenario": {
-                    "requests": ["test1", "test2", "test3"],
-                }
-            }, TaurusPBenchTool)
-
-        def test_iterations_concurrency(self):
-            self.check_schedule_size_estimate({
-                "concurrency": 100,
-                "iterations": 1000,
-                "scenario": {
-                    "requests": ["test1", "test2", "test3"],
-                }
-            }, TaurusPBenchTool)
 
 
 class DataPointLogger(AggregatorListener):

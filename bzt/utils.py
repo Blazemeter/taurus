@@ -713,13 +713,9 @@ class ProgressBarContext(ProgressBar):
         self.update(progress if progress <= totalsize else totalsize)
 
 
-class IncrementableProgressBar(ProgressBar):
-    def __init__(self, maxval, halted=False):
-        widgets = [Percentage(), ' ', Bar(marker='=', left='[', right=']'), ' ', ETA()]
-        super(IncrementableProgressBar, self).__init__(widgets=widgets, maxval=maxval, fd=sys.stdout)
-
-    def set_max_value(self, maxval):
-        self.maxval = maxval
+class IncrementableProgressBar(ProgressBarContext):
+    def __init__(self, maxval):
+        super(IncrementableProgressBar, self).__init__(maxval=maxval)
 
     def increment(self):
         incremented = self.currval + 1

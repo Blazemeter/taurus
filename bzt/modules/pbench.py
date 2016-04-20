@@ -184,9 +184,60 @@ class PBenchTool(object):
             self.log.info("Generating payload file: %s", self.payload_file)
             self._generate_payload_inner(scenario)
 
-    @abstractmethod
+    def _estimate_max_progress_rps(self, load, payload_count):
+        ramp_up = load.ramp_up if load.ramp_up else 0.0
+
+        iterations = float(load.iterations or "inf")
+        iteration_limit_items = iterations * payload_count
+        self.log.debug('estimated iteration limit items: %s', iteration_limit_items)
+
+        if load.iterations:
+            whole_rampup_items = ramp_up * load.throughput / 2.0
+            rampup_items = min(iteration_limit_items, whole_rampup_items)
+        else:
+            rampup_items = ramp_up * load.throughput / 2.0
+        self.log.debug('estimated rampup items: %s', rampup_items)
+
+        rampup_iterations = rampup_items / payload_count
+
+        if load.hold and load.iterations:
+            hold_iterations = load.iterations - rampup_iterations
+            hold_iteration_limit = payload_count * hold_iterations
+            whole_hold_items = load.hold * load.throughput
+            hold_items = min(hold_iteration_limit, whole_hold_items)
+        elif load.hold and not load.iterations:
+            frac, _ = math.modf(rampup_iterations)
+            hold_iterations = 2 - frac
+            hold_iterations_items = payload_count * hold_iterations
+            hold_duration_items = load.hold * load.throughput
+            self.log.debug("hold iteration items: %s", hold_iterations_items)
+            self.log.debug("hold duration items: %s", hold_duration_items)
+            hold_items = min(hold_iterations_items, hold_duration_items)
+        else:
+            hold_items = 0.0
+        self.log.debug('estimated hold items: %s', hold_items)
+
+        return rampup_items + hold_items
+
+    def _estimate_max_progress_concurrency(self, load, payload_count):
+        ramp_up = load.ramp_up if load.ramp_up else 0.0
+
+        if load.iterations:
+            return load.iterations * payload_count
+        else:
+            if ramp_up:
+                instances = float(load.concurrency) if load.concurrency else 1.0
+                concurrency_iterations = instances / payload_count
+                upper_iteration_limit = math.ceil(concurrency_iterations) + 1
+            else:
+                upper_iteration_limit = 2
+            return upper_iteration_limit * payload_count
+
     def _estimate_max_progress(self, load, payload_count):
-        pass
+        if load.throughput:
+            return self._estimate_max_progress_rps(load, payload_count)
+        else:
+            return self._estimate_max_progress_concurrency(load, payload_count)
 
     @abstractmethod
     def _write_schedule_file(self, load, scheduler, sfd):
@@ -306,32 +357,6 @@ class PBenchTool(object):
 class OriginalPBenchTool(PBenchTool):
     NL = "\n"
 
-    def __init__(self, executor, base_logger):
-        super(OriginalPBenchTool, self).__init__(executor, base_logger)
-
-    def _estimate_max_progress(self, load, scheduler):
-        ramp_up = load.ramp_up if load.ramp_up else 0.0
-
-        if load.throughput:
-            units = load.throughput
-        elif load.concurrency:
-            units = load.concurrency
-        else:
-            raise RuntimeError("Unknown units")
-
-        ramp_up_progress = ramp_up * units / 2.0
-
-        if load.duration:
-            hold_for = load.duration - ramp_up
-            hold_progress = units * hold_for
-        elif load.iterations:
-            payload_count = scheduler.count_payload_items()
-            hold_progress = payload_count * load.iterations
-        else:
-            raise RuntimeError("Unknown hold")
-
-        return ramp_up_progress + hold_progress
-
     def _write_schedule_file(self, load, scheduler, sfd):
         cnt = 0
         for item in scheduler.generate():
@@ -350,57 +375,6 @@ class OriginalPBenchTool(PBenchTool):
 
 
 class TaurusPBenchTool(PBenchTool):
-    def _estimate_max_progress_rps(self, load, payload_count):
-        ramp_up = load.ramp_up if load.ramp_up else 0.0
-
-        iteration_limit_items = load.iterations * payload_count
-        self.log.debug('estimated iteration limit items: %s', iteration_limit_items)
-
-        if load.iterations:
-            whole_rampup_items = ramp_up * load.throughput / 2.0
-            rampup_items = min(iteration_limit_items, whole_rampup_items)
-        else:
-            rampup_items = ramp_up * load.throughput / 2.0
-        self.log.debug('estimated rampup items: %s', iteration_limit_items)
-
-        rampup_iterations = rampup_items / payload_count
-
-        hold_for = load.duration - ramp_up
-        if hold_for and load.iterations:
-            hold_iterations = load.iterations - rampup_iterations
-            hold_iteration_limit = payload_count * hold_iterations
-            whole_hold_items = hold_for * load.throughput
-            hold_items = min(hold_iteration_limit, whole_hold_items)
-        elif hold_for and not load.iterations:
-            frac, _ = math.modf(rampup_iterations)
-            hold_iterations = 2 - frac
-            hold_items = payload_count * hold_iterations
-        else:
-            hold_items = 0.0
-        self.log.debug('estimated hold items: %s', iteration_limit_items)
-
-        return rampup_items + hold_items
-
-    def _estimate_max_progress_concurrency(self, load, payload_count):
-        if load.iterations:
-            items = load.iterations * payload_count
-        else:
-            iteration_limit_items = 2 * payload_count
-            self.log.debug("estimated iteration limit items: %s", iteration_limit_items)
-            concurrency_items = load.concurrency
-            self.log.debug("estimated workers limit items: %s", concurrency_items)
-            # NOTE: `max` is bad at this decision making
-            items = max(iteration_limit_items, concurrency_items)
-
-        self.log.debug("items: %s", items)
-        return items
-
-    def _estimate_max_progress(self, load, payload_count):
-        if load.throughput:
-            return self._estimate_max_progress_rps(load, payload_count)
-        else:
-            return self._estimate_max_progress_concurrency(load, payload_count)
-
     def _write_schedule_file(self, load, scheduler, sfd):
         prev_offset = 0
         accum_interval = 0.0
