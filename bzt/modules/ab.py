@@ -31,6 +31,7 @@ class ApacheBenchmarkExecutor(ScenarioExecutor):
     """
     Apache Benchmark executor module
     """
+
     def __init__(self):
         super(ApacheBenchmarkExecutor, self).__init__()
         self.log = logging.getLogger('')
@@ -192,7 +193,7 @@ class TSVDataReader(ResultsReader):
 
             _url = self.url_label
             _concur = self.concurrency
-            _tstamp = int(log_vals[1])   # timestamp - moment of request sending
+            _tstamp = int(log_vals[1])  # timestamp - moment of request sending
             _con_time = float(log_vals[2])  # connection time
             _etime = float(log_vals[4])  # elapsed time
             _latency = float(log_vals[5])  # latency (aka waittime)

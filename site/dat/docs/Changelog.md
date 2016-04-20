@@ -7,6 +7,7 @@
  - fix PBench script lookup when using cloud/remote provisioning
  - do not change CWD when running JMeter
  - add forgotten Gatling script template to python egg
+ - fix PassFail condition flaw with few datapoints
  - explicitly write default values in jmx2yaml
  - recognize JMX variables in jmx2yaml
 
