@@ -5,7 +5,7 @@
 ## User Manual
  1. [Installation and Upgrade](Installation.md)
  1. [Command-Line Tool](CommandLine.md)
- 1. [Docker Image](Docker.md)
+ 1. [YAML Tutorial](YAMLTutorial.md)
  1. [Configuration Files Syntax](ConfigSyntax.md)
     1. [General Execution Settings](ExecutionSettings.md)
     1. [Cloud Provisioned Execution](Cloud.md)
@@ -20,6 +20,7 @@
     1. [Reporting and Results Processing](Reporting.md)
     1. [Services Subsystem](Services.md)
  1. [JMX to YAML converter](JMX2YAML.md)
+ 1. [Docker Image](Docker.md)
  1. [Troubleshooting, Support and Feedback](https://groups.google.com/forum/#!forum/codename-taurus)
 
 ## Developer Documentation
