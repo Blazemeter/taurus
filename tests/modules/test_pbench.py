@@ -1,3 +1,4 @@
+import io
 import itertools
 import logging
 import math
@@ -12,7 +13,7 @@ import yaml
 from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet, AggregatorListener
 from bzt.modules.pbench import PBenchExecutor, Scheduler, TaurusPBenchTool
-from bzt.six import StringIO, parse
+from bzt.six import parse, b
 from bzt.utils import BetterDict, is_windows
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul
@@ -90,7 +91,7 @@ if not is_windows():
             rps = 9
             rampup = 12
             executor.execution.merge({"throughput": rps, "ramp-up": rampup, "steps": 3, "hold-for": 0})
-            obj = Scheduler(executor.get_load(), StringIO("4 test\ntest\n"), logging.getLogger(""))
+            obj = Scheduler(executor.get_load(), io.BytesIO(b("4 test\ntest\n")), logging.getLogger(""))
 
             cnt = 0
             cur = 0
@@ -113,13 +114,13 @@ if not is_windows():
             executor.engine = EngineEmul()
             executor.execution.merge({"concurrency": 10, "ramp-up": None, "steps": 3, "hold-for": 10})
             # this line shouln't throw an exception
-            obj = Scheduler(executor.get_load(), StringIO("4 test\ntest\n"), logging.getLogger(""))
+            obj = Scheduler(executor.get_load(), io.BytesIO(b("4 test\ntest\n")), logging.getLogger(""))
 
         def test_schedule_empty(self):
             executor = PBenchExecutor()
             executor.engine = EngineEmul()
             # concurrency: 1, iterations: 1
-            obj = Scheduler(executor.get_load(), StringIO("4 test\ntest\n"), logging.getLogger(""))
+            obj = Scheduler(executor.get_load(), io.BytesIO(b("4 test\ntest\n")), logging.getLogger(""))
             items = list(obj.generate())
             for item in items:
                 logging.debug("Item: %s", item)
@@ -129,7 +130,7 @@ if not is_windows():
             executor = PBenchExecutor()
             executor.engine = EngineEmul()
             executor.execution.merge({"concurrency": 5, "ramp-up": 10, "hold-for": 5})
-            obj = Scheduler(executor.get_load(), StringIO("5 test1\ntest1\n5 test2\ntest2\n"), logging.getLogger(""))
+            obj = Scheduler(executor.get_load(), io.BytesIO(b("5 test1\ntest1\n5 test2\ntest2\n")), logging.getLogger(""))
             items = list(obj.generate())
             self.assertEqual(8, len(items))
             self.assertEqual(-1, items[5][0])  # instance became unlimited
@@ -139,7 +140,7 @@ if not is_windows():
             executor = PBenchExecutor()
             executor.engine = EngineEmul()
             executor.execution.merge({"concurrency": 5, "ramp-up": 10, "steps": 3})
-            obj = Scheduler(executor.get_load(), StringIO("5 test1\ntest1\n5 test2\ntest2\n"), logging.getLogger(""))
+            obj = Scheduler(executor.get_load(), io.BytesIO(b("5 test1\ntest1\n5 test2\ntest2\n")), logging.getLogger(""))
             items = list(obj.generate())
             self.assertEqual(8, len(items))
             self.assertEqual(-1, items[5][0])  # instance became unlimited
@@ -316,8 +317,7 @@ if not is_windows():
                 error_rel = error / float(actual_schedule_size)
                 logging.debug("Estimation error: %s", error)
                 if error_rel >= 0.10 and actual_schedule_size > 1000:
-                    msg = "Estimation failed (error=%s) on config %s" % (error_rel, pprint.pformat(execution))
-                    self.assertLess(error, 0.05, msg)
+                    self.fail("Estimation failed (error=%s) on config %s" % (error_rel, pprint.pformat(execution)))
 
         def test_quickcheck(self):
             concurrency = [None, 1, 10, 100, 1000]

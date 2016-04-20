@@ -184,7 +184,8 @@ class PBenchTool(object):
             self.log.info("Generating payload file: %s", self.payload_file)
             self._generate_payload_inner(scenario)
 
-    def _estimate_max_progress_rps(self, load, payload_count):
+    @staticmethod
+    def _estimate_max_progress_rps(load, payload_count):
         ramp_up = load.ramp_up if load.ramp_up else 0.0
 
         iterations = float(load.iterations or "inf")
@@ -214,7 +215,8 @@ class PBenchTool(object):
 
         return rampup_items + hold_items
 
-    def _estimate_max_progress_concurrency(self, load, payload_count):
+    @staticmethod
+    def _estimate_max_progress_concurrency(load, payload_count):
         ramp_up = load.ramp_up if load.ramp_up else 0.0
 
         if load.iterations:
@@ -371,13 +373,15 @@ class OriginalPBenchTool(PBenchTool):
             if time_offset < 0:  # special case, run worker with no delay
                 time_offset = 0.0
 
-            sfd.write("%s %s %s%s" % (payload_len, int(1000 * time_offset), marker, self.NL))
-            sfd.write("%s%s" % (payload, self.NL))
+            sfd.write(b("%s %s %s%s" % (payload_len, int(1000 * time_offset), marker, self.NL)))
+            sfd.write(b("%s%s" % (payload, self.NL)))
 
             cnt += 1
-            if pbar: pbar.increment()
+            if pbar:
+                pbar.increment()
         self.log.debug("Actual schedule size: %s", cnt)
-        if pbar: pbar.finish()
+        if pbar:
+            pbar.finish()
 
     def _get_source(self, load):
         return 'source_t source_log = source_log_t { filename = "%s" }' % self.schedule_file
@@ -415,11 +419,13 @@ class TaurusPBenchTool(PBenchTool):
 
             sfd.write(type_and_delay + payload_len_bytes + payload_offset_bytes)
 
-            if pbar: pbar.increment()
+            if pbar:
+                pbar.increment()
             cnt += 1
             prev_offset = time_offset
         self.log.debug("Actual schedule size: %s", cnt)
-        if pbar: pbar.finish()
+        if pbar:
+            pbar.finish()
 
     def _get_source(self, load):
         tpl = 'source_t source_log = taurus_source_t { ammo = "%s"\n schedule = "%s"\n %s\n }'
@@ -489,13 +495,17 @@ class Scheduler(object):
             if not line.strip():  # we're fine to skip empty lines between records
                 continue
 
-            parts = line.split(b(' '))
+            try:
+                parts = line.split(b(' '))
+            except TypeError:
+                pass
             if len(parts) < 2:
                 raise RuntimeError("Wrong format for meta-info line: %s", line)
 
             payload_len, marker = parts
+            marker = marker.decode()
             payload_len = int(payload_len)
-            payload = self.payload_fhd.read(payload_len)
+            payload = self.payload_fhd.read(payload_len).decode()
             yield payload_len, payload_offset, payload, marker.strip(), len(line), rec_type
             rec_type = self.REC_TYPE_SCHEDULE
 
