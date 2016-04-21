@@ -791,7 +791,10 @@ class MirrorsManager(object):
 def open_browser(url):
     browser = webbrowser.get()
     if type(browser) != GenericBrowser:
-        browser.open(url)
+        try:
+            browser.open(url)
+        except Exception as exc:
+            logging.warning("Can't open link in browser: %s" % exc)
 
 
 def is_windows():

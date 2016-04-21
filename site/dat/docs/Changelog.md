@@ -9,6 +9,7 @@
  - add forgotten Gatling script template to python egg
  - explicitly write default values in jmx2yaml
  - recognize JMX variables in jmx2yaml
+ - don't fail execution because of web browser
 
 ## 1.4.3 <sup>14 apr 2016</sup>
  - bump up version for jmeter plugins installation to 1.4.0
