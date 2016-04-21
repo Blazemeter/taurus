@@ -4,5 +4,5 @@ execution:
   executor: locust
   hold-for: 5
   scenario:
-    requests:
-      - url:  http://blazedemo.com
+    default-address: http://blazedemo.com
+    script: tests/yaml/func_test/locust_script.py
