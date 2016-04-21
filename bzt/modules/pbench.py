@@ -225,9 +225,11 @@ class PBenchTool(object):
             if ramp_up:
                 instances = float(load.concurrency) if load.concurrency else 1.0
                 concurrency_iterations = instances / payload_count
-                upper_iteration_limit = math.ceil(concurrency_iterations) + 1
-            else:
+                upper_iteration_limit = int(concurrency_iterations) + 2
+            elif load.hold:
                 upper_iteration_limit = 2
+            else:
+                upper_iteration_limit = 1
             return upper_iteration_limit * payload_count
 
     def _estimate_max_progress(self, load, payload_count):

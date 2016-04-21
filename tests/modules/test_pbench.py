@@ -305,8 +305,6 @@ if not is_windows():
 
 
     class TestScheduler(BZTestCase):
-        ITERATIONS = 100
-
         def _get_pbench(self):
             obj = PBenchExecutor()
             obj.engine = EngineEmul()
@@ -314,7 +312,7 @@ if not is_windows():
             obj.engine.config = BetterDict()
             return obj
 
-        def check_schedule_size_estimate(self, obj, execution, tool_class):
+        def check_schedule_size_estimate(self, obj, execution):
             obj.engine.config = BetterDict()
             obj.engine.config.merge({
                 ScenarioExecutor.EXEC: execution,
@@ -322,7 +320,7 @@ if not is_windows():
             })
             obj.execution = obj.engine.config['execution']
             load = obj.get_load()
-            obj.pbench = tool_class(obj, logging.getLogger(''))
+            obj.pbench = TaurusPBenchTool(obj, logging.getLogger(''))
             obj.pbench.generate_payload(obj.get_scenario())
             payload_count = len(obj.get_scenario().get('requests', []))
             sch = Scheduler(load, open(obj.pbench.payload_file, 'rb'), logging.getLogger(''))
@@ -335,37 +333,118 @@ if not is_windows():
                 error = abs(estimated_schedule_size - actual_schedule_size)
                 error_rel = error / float(actual_schedule_size)
                 logging.debug("Estimation error: %s", error)
-                if error_rel >= 0.10 and actual_schedule_size > 5000:
+                if error_rel >= 0.1:
                     self.fail("Estimation failed (error=%s) on config %s" % (error_rel, pprint.pformat(execution)))
 
-        def test_quickcheck(self):
-            concurrency = [None, 1, 100, 1000]
-            rampup = [None, "1s", "30s", "5m"]
-            hold_for = [None, "1s", "30s", "5m"]
-            throughput = [None, 1, 100, 1000]
-            iterations = [None, 1, 100, 1000]
-            requests = [1, 100, 1000]
-
+        def test_est_conc_requests(self):
+            execution = {
+                "concurrency": 10,
+                "scenario": {
+                    "requests": ["test1", "test2", "test3"]
+                }
+            }
             obj = self._get_pbench()
+            self.check_schedule_size_estimate(obj, execution)
 
-            all_combinations = list(itertools.product(concurrency, rampup, hold_for, throughput, iterations, requests))
+        def test_est_conc_iterations(self):
+            execution = {
+                "concurrency": 10,
+                "iterations": 3,
+                "scenario": {
+                    "requests": ["test1", "test2", "test3"]
+                }
+            }
+            obj = self._get_pbench()
+            self.check_schedule_size_estimate(obj, execution)
 
-            for _ in range(self.ITERATIONS):
-                setup = random.choice(all_combinations)
-                logging.debug("setup: %s", setup)
-                c, r, h, t, i, reqs = setup
-                execution = {"scenario": {"requests": ["test%d" % x for x in range(reqs)]}}
-                if c is not None:
-                    execution["concurrency"] = c
-                if r is not None:
-                    execution["ramp-up"] = r
-                if h is not None:
-                    execution["hold-for"] = h
-                if t is not None:
-                    execution["throughput"] = t
-                if i is not None:
-                    execution["iterations"] = i
-                self.check_schedule_size_estimate(obj, execution, TaurusPBenchTool)
+        def test_est_conc_holdfor(self):
+            execution = {
+                "concurrency": 10,
+                "hold-for": "10s",
+                "scenario": {
+                    "requests": ["test1", "test2", "test3"]
+                }
+            }
+            obj = self._get_pbench()
+            self.check_schedule_size_estimate(obj, execution)
+
+        def test_est_conc_rampup(self):
+            execution = {
+                "concurrency": 5,
+                "ramp-up": "20s",
+                "scenario": {
+                    "requests": ["test1", "test2", "test3"]
+                }
+            }
+            obj = self._get_pbench()
+            self.check_schedule_size_estimate(obj, execution)
+
+        def test_est_tput_requests(self):
+            execution = {
+                "throughput": 100,
+                "scenario": {
+                    "requests": ["test1", "test2", "test3"]
+                }
+            }
+            obj = self._get_pbench()
+            self.check_schedule_size_estimate(obj, execution)
+
+        def test_est_tput_iterations(self):
+            execution = {
+                "throughput": 100,
+                "iterations": 10,
+                "scenario": {
+                    "requests": ["test1", "test2", "test3"]
+                }
+            }
+            obj = self._get_pbench()
+            self.check_schedule_size_estimate(obj, execution)
+
+        def test_est_tput_hold(self):
+            execution = {
+                "throughput": 100,
+                "hold-for": "20s",
+                "scenario": {
+                    "requests": ["test1", "test2"]
+                }
+            }
+            obj = self._get_pbench()
+            self.check_schedule_size_estimate(obj, execution)
+
+        def test_est_tput_iterations(self):
+            execution = {
+                "throughput": 100,
+                "iterations": 10,
+                "hold-for": "10s",
+                "scenario": {
+                    "requests": ["test1", "test2", "test3"]
+                }
+            }
+            obj = self._get_pbench()
+            self.check_schedule_size_estimate(obj, execution)
+
+        def test_est_tput_rampup(self):
+            execution = {
+                "throughput": 100,
+                "ramp-up": "10s",
+                "scenario": {
+                    "requests": ["test1", "test2"]
+                }
+            }
+            obj = self._get_pbench()
+            self.check_schedule_size_estimate(obj, execution)
+        
+        def test_est_tput_rampup_iterations(self):
+            execution = {
+                "throughput": 100,
+                "ramp-up": "10s",
+                "iterations": 20,
+                "scenario": {
+                    "requests": ["test1", "test2", "test3"]
+                }
+            }
+            obj = self._get_pbench()
+            self.check_schedule_size_estimate(obj, execution)
 
 
 class DataPointLogger(AggregatorListener):
