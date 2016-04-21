@@ -1,0 +1,8 @@
+---
+execution:
+- concurrency: 1
+  executor: grinder
+  hold-for: 5
+  scenario:
+    requests:
+      - url:  http://blazedemo.com

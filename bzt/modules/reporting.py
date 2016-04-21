@@ -27,6 +27,7 @@ from bzt.modules.aggregator import DataPoint, KPISet, AggregatorListener, Result
 from bzt.modules.blazemeter import BlazeMeterUploader, CloudProvisioning
 from bzt.modules.passfail import PassFailStatus
 from bzt.six import etree, iteritems, string_types
+from bzt.utils import get_full_path
 
 
 class FinalStatus(Reporter, AggregatorListener):
@@ -132,7 +133,7 @@ class FinalStatus(Reporter, AggregatorListener):
             for label, kpiset in iteritems(self.last_sec[DataPoint.CUMULATIVE]):
                 root.append(self.__get_xml_summary(label, kpiset))
 
-        with open(filename, 'wb') as fhd:
+        with open(get_full_path(filename), 'wb') as fhd:
             tree = etree.ElementTree(root)
             tree.write(fhd, pretty_print=True, encoding="UTF-8", xml_declaration=True)
 
@@ -180,7 +181,7 @@ class FinalStatus(Reporter, AggregatorListener):
     def __dump_csv(self, filename):
         self.log.info("Dumping final status as CSV: %s", filename)
         # FIXME: what if there's no last_sec
-        with open(filename, 'wt') as fhd:
+        with open(get_full_path(filename), 'wt') as fhd:
             writer = csv.DictWriter(fhd, self.__get_csv_dict('', self.last_sec[DataPoint.CUMULATIVE]['']).keys())
             writer.writeheader()
             for label, kpiset in iteritems(self.last_sec[DataPoint.CUMULATIVE]):
@@ -338,7 +339,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
 
             etree_obj = etree.ElementTree(root_node)
             self.log.info("Writing JUnit XML report into: %s", self.report_file_path)
-            with open(self.report_file_path, 'wb') as _fds:
+            with open(get_full_path(self.report_file_path), 'wb') as _fds:
                 etree_obj.write(_fds, xml_declaration=True, encoding="UTF-8", pretty_print=True)
 
         except BaseException:
