@@ -32,3 +32,6 @@ bzt -o settings.artifacts-dir="build/test/%Y-%m-%d_%H-%M-%S.%f" -o modules.jmete
 
 #install gatling
 bzt.sh -o settings.artifacts-dir="build/test/%Y-%m-%d_%H-%M-%S.%f" -o modules.gatling.path=build/gatling/bin/gatling.sh  tests/yaml/func_test/gatling.yml
+
+#install grinder
+bzt.sh -o settings.artifacts-dir="build/test/%Y-%m-%d_%H-%M-%S.%f" -o modules.grinder.path=build/gatling/grinder/lib/grinder.jar  tests/yaml/func_test/grinder.yml

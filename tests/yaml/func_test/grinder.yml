@@ -1,7 +1,7 @@
 ---
 execution:
 - concurrency: 1
-  executor: gatling
+  executor: grinder
   hold-for: 5
   scenario:
     requests:
