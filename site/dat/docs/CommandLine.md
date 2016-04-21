@@ -18,7 +18,7 @@ Taurus tool consumes configuration files as input format (start learning its syn
   1. any data passed to stdin (like `./generate-config.sh | bzt`) is written to temporary file and that file is added to configs list
   1. all JMX shorthand configs generated and added to list (to support `bzt my-existing.jmx` launching)
   1. files list is loaded according to the [merge rules](ConfigSyntax.md#multiple-files-merging-rules)
-  1. [included configs]() loaded and merged
+  1. [included configs](ConfigSyntax.md#Included-Configs) loaded and merged
   1. [aliases](#aliases) applied
   1. all command-line option overrides (like `bzt -o execution.0.scenario=my-test`) are applied
 
