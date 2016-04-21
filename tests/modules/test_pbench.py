@@ -285,6 +285,25 @@ if not is_windows():
                 config = conf_fds.read()
                 self.assertIn(script_path, config)
 
+        def test_pbench_payload_py3_crash(self):
+            obj = PBenchExecutor()
+            obj.engine = EngineEmul()
+            obj.settings = BetterDict()
+            obj.engine.config = BetterDict()
+            obj.engine.config.merge({
+                ScenarioExecutor.EXEC: {
+                    "executor": "pbench",
+                    "scenario": {"requests": ["test%d" % i for i in range(20)]}
+                },
+                "provisioning": "test",
+            })
+            obj.execution = obj.engine.config['execution']
+            obj.settings.merge({
+                "path": os.path.join(os.path.dirname(__file__), '..', "phantom.sh"),
+            })
+            obj.prepare()
+
+
     class TestScheduler(BZTestCase):
         ITERATIONS = 100
 

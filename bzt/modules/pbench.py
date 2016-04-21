@@ -495,10 +495,7 @@ class Scheduler(object):
             if not line.strip():  # we're fine to skip empty lines between records
                 continue
 
-            try:
-                parts = line.split(b(' '))
-            except TypeError:
-                pass
+            parts = line.split(b(' '))
             if len(parts) < 2:
                 raise RuntimeError("Wrong format for meta-info line: %s", line)
 
