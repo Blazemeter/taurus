@@ -286,7 +286,7 @@ if not is_windows():
                 self.assertIn(script_path, config)
 
     class TestScheduler(BZTestCase):
-        ITERATIONS = 100
+        ITERATIONS = 250
 
         def _get_pbench(self):
             obj = PBenchExecutor()
@@ -319,14 +319,13 @@ if not is_windows():
                 if error_rel >= 0.10 and actual_schedule_size > 5000:
                     self.fail("Estimation failed (error=%s) on config %s" % (error_rel, pprint.pformat(execution)))
 
-
         def test_quickcheck(self):
-            concurrency = [None, 1, 100, 5000]
-            rampup = [None, "1s", "30s", "10m"]
-            hold_for = [None, "1s", "30s", "10m"]
-            throughput = [None, 1, 100, 5000]
-            iterations = [None, 1, 100, 5000]
-            requests = [1, 100, 5000]
+            concurrency = [None, 1, 100, 1000]
+            rampup = [None, "1s", "30s", "5m"]
+            hold_for = [None, "1s", "30s", "5m"]
+            throughput = [None, 1, 100, 1000]
+            iterations = [None, 1, 100, 1000]
+            requests = [1, 100, 1000]
 
             obj = self._get_pbench()
 
