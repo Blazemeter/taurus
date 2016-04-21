@@ -713,6 +713,23 @@ class ProgressBarContext(ProgressBar):
         self.update(progress if progress <= totalsize else totalsize)
 
 
+class IncrementableProgressBar(ProgressBarContext):
+    def __init__(self, maxval):
+        super(IncrementableProgressBar, self).__init__(maxval=maxval)
+
+    def increment(self):
+        incremented = self.currval + 1
+        if incremented < self.maxval:
+            super(IncrementableProgressBar, self).update(incremented)
+
+    def catchup(self, started_time=None, current_value=None):
+        super(IncrementableProgressBar, self).start()
+        if started_time:
+            self.start_time = started_time
+        if current_value and current_value < self.maxval:
+            self.update(current_value)
+
+
 class TclLibrary(RequiredTool):
     ENV_NAME = "TCL_LIBRARY"
     INIT_TCL = "init.tcl"
