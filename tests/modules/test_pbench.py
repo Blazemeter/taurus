@@ -286,7 +286,7 @@ if not is_windows():
                 self.assertIn(script_path, config)
 
     class TestScheduler(BZTestCase):
-        ITERATIONS = 250
+        ITERATIONS = 100
 
         def _get_pbench(self):
             obj = PBenchExecutor()
