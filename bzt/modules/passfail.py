@@ -197,7 +197,7 @@ class FailCriteria(object):
         else:
             raise ValueError("Unsupported fail criteria condition: %s" % cond)
 
-    def _get_aggregator_functor(self, logic, subject):
+    def _get_aggregator_functor(self, logic, _subject):
         if logic == 'for':
             return lambda tstmp, value: value
         elif logic == 'within':

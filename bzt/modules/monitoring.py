@@ -1,7 +1,6 @@
 """ Monitoring service subsystem """
 import datetime
 import json
-import logging
 import select
 import socket
 import time
@@ -10,7 +9,7 @@ from abc import abstractmethod
 from collections import OrderedDict, namedtuple
 import psutil
 from urwid import Pile, Text
-from bzt.engine import EngineModule, Service
+from bzt.engine import Service
 from bzt.modules.console import WidgetProvider
 from bzt.modules.passfail import FailCriteria
 from bzt.six import iteritems, urlopen, urlencode
@@ -417,7 +416,7 @@ class MonitoringCriteria(MonitoringListener, FailCriteria):
     def __init__(self, config, owner):
         """
         :type config: bzt.utils.BetterDict
-        :type owner: EngineModule
+        :type owner: bzt.engine.EngineModule
         """
         super(MonitoringCriteria, self).__init__(config, owner)
         for service in self.owner.engine.services:

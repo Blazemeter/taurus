@@ -328,10 +328,10 @@ class OptionParserWithAliases(OptionParser, object):
                  prog=None,
                  epilog=None):
         super(OptionParserWithAliases, self).__init__(
-                usage=usage, option_list=option_list,
-                option_class=option_class, version=version,
-                conflict_handler=conflict_handler, description=description, formatter=formatter,
-                add_help_option=add_help_option, prog=prog, epilog=epilog)
+            usage=usage, option_list=option_list,
+            option_class=option_class, version=version,
+            conflict_handler=conflict_handler, description=description, formatter=formatter,
+            add_help_option=add_help_option, prog=prog, epilog=epilog)
         self.aliases = []
 
     def _process_short_opts(self, rargs, values):
