@@ -215,7 +215,7 @@ class SlavesReader(ResultsProvider):
                 yield point
 
     def merge_datapoints(self, max_full_ts):
-        for key in sorted(self.join_buffer.keys(), key=lambda x: int(x)):
+        for key in sorted(self.join_buffer.keys(), key=int):
             if int(key) <= max_full_ts:
                 sec_data = self.join_buffer.pop(key)
                 self.log.debug("Processing complete second: %s", key)
@@ -227,7 +227,7 @@ class SlavesReader(ResultsProvider):
 
     def get_max_full_ts(self):
         max_full_ts = None
-        for key in sorted(self.join_buffer.keys(), key=lambda x: int(x)):
+        for key in sorted(self.join_buffer.keys(), key=int):
             if len(key) >= self.num_slaves:
                 max_full_ts = int(key)
         return max_full_ts

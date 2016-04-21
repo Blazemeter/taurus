@@ -566,10 +566,7 @@ class Configuration(BetterDict):
         for config_file in configs:
             config = self.__read_file(config_file)[0]
 
-            if isinstance(config, list):
-                self.__apply_overrides(config)
-            else:
-                self.merge(config)
+            self.merge(config)
 
             if callback is not None:
                 callback(config_file)

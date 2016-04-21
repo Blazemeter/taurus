@@ -625,8 +625,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :param file_list: list
         :return:
         """
-        for file in file_list:
-            file_path = self.engine.find_file(file)
+        for filename in file_list:
+            file_path = self.engine.find_file(filename)
             if os.path.exists(file_path):
                 file_path_elements = jmx.xpath('//stringProp[text()="%s"]' % file_path)
                 for file_path_element in file_path_elements:
