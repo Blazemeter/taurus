@@ -22,6 +22,7 @@ source build/bin/activate
 # run installation test
 cd build # cd is to make it not find bzt package from sources
 pip install --upgrade ../dist/bzt-*.tar.gz
+pip install locustio
 cd ..
 
 echo '{"install-id": "UnitTest"}' > build/etc/bzt.d/99-zinstallID.json
