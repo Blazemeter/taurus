@@ -1005,7 +1005,7 @@ class ResultsFromBZA(ResultsProvider):
 
         try:
             data = self.client.get_kpis(self.master_id, self.min_ts)
-        except URLError as exc:
+        except URLError:
             self.log.warning("Failed to get result KPIs, will retry in %s seconds...", self.client.timeout)
             self.log.debug("Full exception: %s", traceback.format_exc())
             time.sleep(self.client.timeout)

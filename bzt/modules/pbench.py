@@ -20,7 +20,7 @@ from bzt import resources
 from bzt.engine import ScenarioExecutor, FileLister, Scenario
 from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet, ConsolidatingAggregator
 from bzt.modules.console import WidgetProvider, SidebarWidget
-from bzt.six import string_types, urlencode, iteritems, parse, StringIO, b
+from bzt.six import string_types, urlencode, iteritems, parse, StringIO, b, viewvalues
 from bzt.utils import shell_exec, shutdown_process, BetterDict, dehumanize_time, RequiredTool, \
     IncrementableProgressBar
 
@@ -613,7 +613,7 @@ class PBenchKPIReader(ResultsReader):
             else:
                 concurrency = 0
 
-            for label, label_data in iteritems(point[DataPoint.CURRENT]):
+            for label_data in viewvalues(point[DataPoint.CURRENT]):
                 label_data[KPISet.CONCURRENCY] = concurrency
 
             yield point

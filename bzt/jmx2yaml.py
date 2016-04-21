@@ -712,10 +712,10 @@ class JMXasDict(JMX):
                     self.log.warning("No json path in %s, skipping", json_path_assertion_element.tag)
                     continue
 
-                expected_vaule_element = self._get_string_prop(json_path_assertion_element, 'EXPECTED_VALUE')
+                expected_value_element = self._get_string_prop(json_path_assertion_element, 'EXPECTED_VALUE')
 
-                if expected_vaule_element:
-                    json_path_assertion["expected-value"] = expected_vaule_element
+                if expected_value_element:
+                    json_path_assertion["expected-value"] = expected_value_element
 
                 validate_element = self._get_bool_prop(json_path_assertion_element, 'JSONVALIDATION')
                 json_path_assertion["validate"] = validate_element if validate_element else False
