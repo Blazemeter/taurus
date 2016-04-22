@@ -1,7 +1,7 @@
 ```yaml
 ---
 execution:
-  concurrency: 250
+- concurrency: 250
   throughput: 500
   ramp-up: 3ms
   hold-for: 1h
