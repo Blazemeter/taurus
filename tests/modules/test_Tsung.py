@@ -93,12 +93,4 @@ class TestTsungExecutor(BZTestCase):
 
 class TestStatsReader(BZTestCase):
     def test_read(self):
-        log_path = path.join(get_res_path('siege.out'))
-        obj = TsungStatsReader(log_path, logging.getLogger(''))
-        list_of_values = list(obj.datapoints(True))
-
-        self.assertEqual(len(list_of_values), 8)
-
-        for values in list_of_values:
-            self.assertTrue(1400000000 < values['ts'] < 1500000000)
-            self.assertEqual(len(values), 5)
+        self.fail("not implemented")
