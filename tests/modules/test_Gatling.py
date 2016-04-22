@@ -2,14 +2,11 @@ import logging
 import os
 import shutil
 import time
-import tempfile
-import socket
 
-from bzt.modules.gatling import GatlingExecutor, DataLogReader, GatlingMirrorsManager
-from bzt.utils import EXE_SUFFIX, ProgressBarContext
+from bzt.modules.gatling import GatlingExecutor, DataLogReader
+from bzt.utils import EXE_SUFFIX
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul
-from bzt.six import request
 
 
 class TestGatlingExecutor(BZTestCase):
