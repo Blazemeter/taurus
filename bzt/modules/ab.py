@@ -39,8 +39,6 @@ class ApacheBenchmarkExecutor(ScenarioExecutor):
         self.__tsv_file_name = None
         self.__out = None
         self.__err = None
-        self.__rc_name = None
-        self.__url_name = None
         self.tool_path = None
         self.scenario = None
         self.reader = None
