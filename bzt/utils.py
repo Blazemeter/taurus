@@ -648,10 +648,10 @@ class RequiredTool(object):
         mirrors = self.mirror_manager.mirrors()
         sock_timeout = socket.getdefaulttimeout()
         for mirror in mirrors:
+            self.log.debug("Downloading: %s", mirror)
             with ProgressBarContext() as pbar:
                 try:
                     socket.setdefaulttimeout(5)
-                    self.log.debug("Downloading: %s", mirror)
                     downloader.retrieve(mirror, tool_dist.name, pbar.download_callback)
                     return tool_dist
                 except BaseException:
