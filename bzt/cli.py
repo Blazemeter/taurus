@@ -78,6 +78,9 @@ class CLI(object):
         logger = logging.getLogger('')
         logger.setLevel(logging.DEBUG)
 
+        # disable garbage logs from `requests`
+        logging.getLogger("requests").setLevel(logging.WARNING)
+
         # log everything to file
         if options.log:
             file_handler = logging.FileHandler(options.log)
