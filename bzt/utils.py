@@ -433,7 +433,7 @@ class ComplexEncoder(json.JSONEncoder):
     """
     Magic class to help serialize in JSON any object.
     """
-    TYPES = [dict, list, tuple, text_type, string_types, integer_types, float, bool, type(None)]
+    TYPES = (dict, list, tuple, text_type, string_types, integer_types, float, bool, type(None))
 
     def default(self, obj):
         """
@@ -465,10 +465,8 @@ class ComplexEncoder(json.JSONEncoder):
         :param obj:
         :rtype: bool
         """
-        for atype in self.TYPES + [JSONDumpable]:
-            if isinstance(obj, atype):
-                return True
-        return False
+        dumpable_types = tuple(self.TYPES + (JSONDumpable,))
+        return isinstance(obj, dumpable_types)
 
     @classmethod
     def of_basic_type(cls, val):
@@ -478,10 +476,7 @@ class ComplexEncoder(json.JSONEncoder):
         :param val:
         :return:
         """
-        for atype in cls.TYPES:
-            if isinstance(val, atype):
-                return True
-        return False
+        return isinstance(val, cls.TYPES)
 
 
 def humanize_time(secs):
@@ -713,6 +708,23 @@ class ProgressBarContext(ProgressBar):
         self.update(progress if progress <= totalsize else totalsize)
 
 
+class IncrementableProgressBar(ProgressBarContext):
+    def __init__(self, maxval):
+        super(IncrementableProgressBar, self).__init__(maxval=maxval)
+
+    def increment(self):
+        incremented = self.currval + 1
+        if incremented < self.maxval:
+            super(IncrementableProgressBar, self).update(incremented)
+
+    def catchup(self, started_time=None, current_value=None):
+        super(IncrementableProgressBar, self).start()
+        if started_time:
+            self.start_time = started_time
+        if current_value and current_value < self.maxval:
+            self.update(current_value)
+
+
 class TclLibrary(RequiredTool):
     ENV_NAME = "TCL_LIBRARY"
     INIT_TCL = "init.tcl"
@@ -739,7 +751,8 @@ class TclLibrary(RequiredTool):
             self.log.debug("We don't need to check tcl library on this platform")
             return True
 
-    def _find_tcl_dir(self):
+    @staticmethod
+    def _find_tcl_dir():
         lib_dirs = [os.path.dirname(_x) for _x in sys.path if _x.lower().endswith('lib')]
         for lib_dir in lib_dirs:
             base_dir = os.path.join(lib_dir, TclLibrary.FOLDER)
@@ -790,8 +803,11 @@ class MirrorsManager(object):
 
 def open_browser(url):
     browser = webbrowser.get()
-    if type(browser) != GenericBrowser:
-        browser.open(url)
+    if not isinstance(browser, GenericBrowser):
+        try:
+            browser.open(url)
+        except BaseException as exc:
+            logging.warning("Can't open link in browser: %s", exc)
 
 
 def is_windows():

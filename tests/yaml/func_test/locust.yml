@@ -2,7 +2,7 @@
 execution:
 - concurrency: 1
   executor: locust
-  hold-for: 5
+  iterations: 5
   scenario:
-    requests:
-      - url:  http://blazedemo.com
+    default-address: http://blazedemo.com
+    script: tests/yaml/func_test/locust_script.py

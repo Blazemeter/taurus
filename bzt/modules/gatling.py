@@ -548,7 +548,7 @@ class GatlingMirrorsManager(MirrorsManager):
             href_search_pattern = re.compile(r'href=".*?">')
             select_element = a_search_pattern.findall(self.page_source)
 
-            if select_element:
+            if select_element and self.gatling_version in select_element:
                 href_elements = href_search_pattern.findall(select_element[0])
                 links = [link.strip('href=').strip('">') for link in href_elements]
         default_link = GatlingExecutor.DOWNLOAD_LINK.format(version=self.gatling_version)

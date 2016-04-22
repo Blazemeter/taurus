@@ -10,6 +10,9 @@
  - fix PassFail condition flaw with few datapoints
  - explicitly write default values in jmx2yaml
  - recognize JMX variables in jmx2yaml
+ - don't fail execution because of web browser
+ - fix schedule size estimation and progress reporting in PBench
+ - fix PBench schedule reading crashes in Python3
 
 ## 1.4.3 <sup>14 apr 2016</sup>
  - bump up version for jmeter plugins installation to 1.4.0

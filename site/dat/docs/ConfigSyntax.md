@@ -119,6 +119,7 @@ Use special strings convention to make it human-readable. Examples:
 If you have found config instruction that does not follow this rule, report immediately, this is most likely a bug.
 
 ## YAML/JSON Format for Config Files
+
 As you know, JSON is a subset of YAML. But in BZT config files there is no
 usage for YAML-JSON incompatibilities, so you can use either JSON or YAML for
 your configs. Also you can have some of configs in JSON and some in YAML, the
@@ -177,6 +178,8 @@ reporting:
 ```
 
 Look for `merged.yml/json` and `effective.yml/json` file pairs in artifacts to see matching examples. 
+
+If you're not familiar with YAML, you can check out our [YAML Tutorial](YAMLTutorial.md).
 
 Hint: YAML config files on Linux/MacOS allows a trick of self-executing config. To have it, add [shebang line](https://en.wikipedia.org/wiki/Shebang_(Unix\)) as first line of your file, like this:
 
