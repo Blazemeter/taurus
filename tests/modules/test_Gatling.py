@@ -3,7 +3,7 @@ import os
 import shutil
 import time
 
-from bzt.modules.gatling import GatlingExecutor, DataLogReader, Gatling
+from bzt.modules.gatling import GatlingExecutor, DataLogReader
 from bzt.utils import EXE_SUFFIX
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul
