@@ -188,6 +188,45 @@ class TestTsungConfig(BZTestCase):
         self.assertEqual(thinktimes[0].get("value"), "1")
         self.assertEqual(thinktimes[1].get("value"), "2")
 
+    def test_requests_custom(self):
+        obj = TsungExecutor()
+        obj.engine = EngineEmul()
+        throughput = 50
+        rampup = 30
+        obj.execution.merge({
+            "throughput": throughput,
+            "ramp-up": rampup,
+            "scenario": {
+                "default-address": "http://example.com",
+                "requests": [{
+                    "url": "/",
+                    "think-time": "1s",
+                    "method": "GET"
+                }, {
+                    "url": "/reserve.php",
+                    "think-time": "2s",
+                    "method": "POST",
+                    "body": "123",
+                }, {
+                    "url": "/reserve.php",
+                    "think-time": "3s",
+                    "method": "PUT",
+                    "body-file": get_res_path("http_simple.xml"),
+                }],
+            }
+        })
+        obj.settings.merge({"path": get_res_path(TOOL_NAME),})
+        obj.prepare()
+        config = TsungConfig()
+        config.load(obj.tsung_config)
+        urls = config.find('//http')
+        self.assertEqual(len(urls), 3)
+        self.assertEqual(urls[0].get("method"), "GET")
+        self.assertEqual(urls[1].get("method"), "POST")
+        self.assertEqual(urls[1].get("contents"), "123")
+        self.assertEqual(urls[2].get("method"), "PUT")
+        self.assertEqual(urls[2].get("contents"), open(get_res_path('http_simple.xml')).read())
+
 
 class TestStatsReader(BZTestCase):
     def test_read(self):

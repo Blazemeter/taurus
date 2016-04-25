@@ -354,6 +354,8 @@ class TsungConfig(object):
         for request in scenario.get_requests():
             request_elem = etree.Element("request")
             http_elem = etree.Element("http", url=request.url, method=request.method, version="1.1")
+            if request.body:
+                http_elem.set('contents', request.body)
             request_elem.append(http_elem)
             session.append(request_elem)
             if request.think_time is not None:
