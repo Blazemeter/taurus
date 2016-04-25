@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.4.4 (next)
+## 1.4.4 <sup>25 apr 2016</sup>
  - fix enhanced PBench schedule generation crash on Python 3
  - ensure that `script` option for PBench is looked at scenario level
  - do not CWD into artifacts directory when running PBench
