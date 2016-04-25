@@ -110,6 +110,7 @@ class TestTsungConfig(BZTestCase):
                 "requests": ["/"],
             }
         })
+        obj.settings.merge({"path": get_res_path(TOOL_NAME),})
         obj.prepare()
         config = TsungConfig()
         config.load(obj.tsung_config)
@@ -130,6 +131,7 @@ class TestTsungConfig(BZTestCase):
                 "requests": ["/", "/reserve.php"],
             }
         })
+        obj.settings.merge({"path": get_res_path(TOOL_NAME),})
         obj.prepare()
         config = TsungConfig()
         config.load(obj.tsung_config)
@@ -149,6 +151,7 @@ class TestTsungConfig(BZTestCase):
                 "requests": ["/", "/reserve.php"],
             }
         })
+        obj.settings.merge({"path": get_res_path(TOOL_NAME),})
         obj.prepare()
         config = TsungConfig()
         config.load(obj.tsung_config)
@@ -176,6 +179,7 @@ class TestTsungConfig(BZTestCase):
                 }],
             }
         })
+        obj.settings.merge({"path": get_res_path(TOOL_NAME),})
         obj.prepare()
         config = TsungConfig()
         config.load(obj.tsung_config)
