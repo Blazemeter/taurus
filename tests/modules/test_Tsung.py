@@ -98,6 +98,55 @@ class TestTsungExecutor(BZTestCase):
         })
         self.assertRaises(ValueError, self.obj.prepare)
 
+    def test_module_settings(self):
+        self.obj.settings.merge({
+            "max-erlang-processes": 3000,
+            "disable-web-gui": False,
+        })
+        self.obj.execution.merge({
+            "throughput": 2,
+            "hold-for": "10s",
+            "scenario": {
+                "default-address": "http://blazedemo.com",
+                "requests": ["/"],
+            }
+        })
+        self.obj.prepare()
+        self.obj.get_widget()
+        try:
+            self.obj.startup()
+            while not self.obj.check():
+                time.sleep(self.obj.engine.check_interval)
+        finally:
+            self.obj.shutdown()
+        self.obj.post_process()
+        stdout = open(path.join(self.obj.engine.artifacts_dir, 'tsung.out')).read()
+        self.assertNotIn("-n", stdout)
+        self.assertIn("-p 3000", stdout)
+
+    def test_module_settings_default(self):
+        self.obj.execution.merge({
+            "throughput": 2,
+            "hold-for": "10s",
+            "scenario": {
+                "default-address": "http://blazedemo.com",
+                "requests": ["/"],
+            }
+        })
+        self.obj.prepare()
+        self.obj.get_widget()
+        try:
+            self.obj.startup()
+            while not self.obj.check():
+                time.sleep(self.obj.engine.check_interval)
+        finally:
+            self.obj.shutdown()
+        self.obj.post_process()
+        stdout = open(path.join(self.obj.engine.artifacts_dir, 'tsung.out')).read()
+        self.assertIn("-n", stdout)
+        self.assertIn("-p", stdout)
+
+
 
 class TestTsungConfig(BZTestCase):
     def test_servers(self):

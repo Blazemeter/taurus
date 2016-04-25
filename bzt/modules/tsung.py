@@ -47,6 +47,8 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.stats_reader = None
         self.start_time = None
         self.widget = None
+        self.max_erlang_processes = None
+        self.disable_web_gui = None
 
     def prepare(self):
         scenario = self.get_scenario()
@@ -66,6 +68,9 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.stats_reader = TsungStatsReader(self.tsung_artifacts_basedir, self.log)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.stats_reader)
+
+        self.disable_web_gui = self.settings.get('disable-web-gui', True)
+        self.max_erlang_processes = self.settings.get('max-erlang-processes', 1000000)
 
         self.__out = open(self.engine.create_artifact("tsung", ".out"), 'w')
         self.__err = open(self.engine.create_artifact("tsung", ".err"), 'w')
@@ -91,12 +96,15 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         return config_file
 
     def startup(self):
-        args = [self.tool_path]
-        args += ['-f', self.tsung_config]
-        args += ['-l', self.tsung_artifacts_basedir]
-        args += ['-n']  # TODO: configurable?
-        args += ['-w', '0']
-        args += ['-p', '1000000']  # TODO: configurable?
+        args = [
+            self.tool_path,
+            '-f', self.tsung_config,
+            '-l', self.tsung_artifacts_basedir,
+            '-w', '0',
+            '-p', str(self.max_erlang_processes),
+        ]
+        if self.disable_web_gui:
+            args += ['-n']
         args += ['start']
         self.start_time = time.time()
         self.process = self.execute(args, stdout=self.__out, stderr=self.__err)
