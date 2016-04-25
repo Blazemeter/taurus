@@ -191,4 +191,7 @@ class TestTsungConfig(BZTestCase):
 
 class TestStatsReader(BZTestCase):
     def test_read(self):
-        self.fail("not implemented")
+        stats_basedir = get_res_path('stats')
+        obj = TsungStatsReader(stats_basedir, logging.getLogger(''))
+        list_of_values = list(obj.datapoints(True))
+        self.assertEqual(len(list_of_values), 16)
