@@ -2,10 +2,11 @@
 require_once __DIR__ . '/vendor/autoload.php';
 
 if (is_dir("/home/gettauru")) {
+    // our real website settings
     $level = \PWE\Core\PWELogger::WARNING;
     $tempdir = "/home/gettauru/tmp";
     $logfile = "/home/gettauru/logs/pwe.".date('Ym');
-} else { // our real website settings
+} else {
     // local debugging settings
     $level = \PWE\Core\PWELogger::DEBUG;
     $tempdir = sys_get_temp_dir();
