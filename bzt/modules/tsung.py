@@ -25,7 +25,7 @@ import psutil
 from bzt.engine import FileLister, Scenario, ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, SidebarWidget
-from bzt.utils import shell_exec, shutdown_process, RequiredTool
+from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time
 from bzt.six import etree, parse
 
 
@@ -356,7 +356,9 @@ class TsungConfig(object):
             http_elem = etree.Element("http", url=request.url, method=request.method, version="1.1")
             request_elem.append(http_elem)
             session.append(request_elem)
-            # TODO: think-time
+            if request.think_time is not None:
+                think_time = int(dehumanize_time(request.think_time))
+                session.append(etree.Element("thinktime", value=str(think_time)))
         sessions.append(session)
         self.root.append(sessions)
 

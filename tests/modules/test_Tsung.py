@@ -157,6 +157,32 @@ class TestTsungConfig(BZTestCase):
         error = abs(len(users) - estimated_count) / len(users)
         self.assertLess(error, 0.05)
 
+    def test_sessions_thinktime(self):
+        obj = TsungExecutor()
+        obj.engine = EngineEmul()
+        throughput = 50
+        rampup = 30
+        obj.execution.merge({
+            "throughput": throughput,
+            "ramp-up": rampup,
+            "scenario": {
+                "default-address": "http://example.com",
+                "requests": [{
+                    "url": "/",
+                    "think-time": "1s",
+                }, {
+                    "url": "/reserve.php",
+                    "think-time": "2s",
+                }],
+            }
+        })
+        obj.prepare()
+        config = TsungConfig()
+        config.load(obj.tsung_config)
+        thinktimes = config.find('//thinktime')
+        self.assertEqual(len(thinktimes), 2)
+        self.assertEqual(thinktimes[0].get("value"), "1")
+        self.assertEqual(thinktimes[1].get("value"), "2")
 
 
 class TestStatsReader(BZTestCase):
