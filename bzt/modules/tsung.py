@@ -15,11 +15,12 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import csv
 import logging
 import os
 import time
 import traceback
+
+import psutil
 
 from bzt.engine import FileLister, Scenario, ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
@@ -262,11 +263,20 @@ class TsungConfig(object):
         else:
             return time, "second"
 
+    @staticmethod
+    def __calculate_cpu_cores():
+        cores = psutil.cpu_count()
+        if cores > 1:
+            return cores // 2
+        else:
+            return 1
+
     def __add_clients(self):
         # TODO: distributed clients?
         clients = etree.Element("clients")
         # TODO: use actual number of cores
-        client = etree.Element("client", host="localhost", use_controller_vm="true", cpu="2")
+        cores = self.__calculate_cpu_cores()
+        client = etree.Element("client", host="localhost", use_controller_vm="true", cpu=str(cores))
         clients.append(client)
         self.root.append(clients)
 
