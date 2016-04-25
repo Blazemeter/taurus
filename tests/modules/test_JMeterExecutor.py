@@ -847,7 +847,7 @@ class TestJMeterExecutor(BZTestCase):
         selector += '>elementProp>stringProp[name="Argument.value"]'
         self.assertEqual(jmx.get(selector)[0].text.find('"store_id": "${store_id}"'), -1)
 
-    def test_a1_jtl_verbose(self):
+    def test_jtl_verbose(self):
         self.obj.execution.merge({
             "write-xml-jtl": "full",
             "scenario": {
@@ -855,6 +855,22 @@ class TestJMeterExecutor(BZTestCase):
                     "url": "http://blazedemo.com",
                 }]}})
         self.obj.prepare()
+        jmx = JMX(self.obj.modified_jmx)
+        self.assertNotEqual(jmx.get('ResultCollector[testname="Trace Writer"]'), [])
+        self.assertEqual(jmx.get('ResultCollector[testname="Errors Writer"]'), [])
+        
+    def test_jtl_errors(self):
+        self.obj.execution.merge({
+            "write-xml-jtl": "error",
+            "scenario": {
+                "requests": [{
+                    "url": "http://blazedemo.com",
+                }]}})
+        self.obj.prepare()
+        jmx = JMX(self.obj.modified_jmx)
+        self.assertNotEqual(jmx.get('ResultCollector[testname="Errors Writer"]'), [])
+        self.assertEqual(jmx.get('ResultCollector[testname="Trace Writer"]'), [])
+
 
     def test_jtl_none(self):
         self.obj.execution.merge({
@@ -864,6 +880,9 @@ class TestJMeterExecutor(BZTestCase):
                     "url": "http://blazedemo.com",
                 }]}})
         self.obj.prepare()
+        jmx = JMX(self.obj.modified_jmx)
+        self.assertEqual(jmx.get('ResultCollector[testname="Trace Writer"]'), [])
+        self.assertEqual(jmx.get('ResultCollector[testname="Errors Writer"]'), [])
 
     def test_jmx_modification_unicode(self):
         cfg_selector = ('Home Page>HTTPsampler.Arguments>Arguments.arguments'

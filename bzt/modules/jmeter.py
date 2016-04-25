@@ -521,24 +521,26 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             if not delimiter.text:
                 delimiter.text = ','
 
+    @staticmethod
+    def __add_listener(lst, jmx):
+        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, lst)
+        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
+
     def __add_result_writers(self, jmx):
         self.kpi_jtl = self.engine.create_artifact("kpi", ".jtl")
         kpi_lst = jmx.new_kpi_listener(self.kpi_jtl)
-        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, kpi_lst)
-        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
+        self.__add_listener(kpi_lst, jmx)
 
         jtl_log_level = self.execution.get('write-xml-jtl', 'error')
 
         if jtl_log_level == 'error':
             self.log_jtl = self.engine.create_artifact("error", ".jtl")
             log_lst = jmx.new_xml_listener(self.log_jtl, False)
-            jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, log_lst)
+            self.__add_listener(log_lst, jmx)
         elif jtl_log_level == 'full':
             self.log_jtl = self.engine.create_artifact("trace", ".jtl")
             log_lst = jmx.new_xml_listener(self.log_jtl, True)
-            jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, log_lst)
-
-        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
+            self.__add_listener(log_lst, jmx)
 
     def __force_tran_parent_sample(self, jmx):
         scenario = self.get_scenario()
