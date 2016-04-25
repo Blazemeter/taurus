@@ -26,7 +26,7 @@ from bzt.engine import FileLister, Scenario, ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time
-from bzt.six import etree, parse
+from bzt.six import etree, parse, iteritems
 
 
 class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
@@ -356,6 +356,11 @@ class TsungConfig(object):
             http_elem = etree.Element("http", url=request.url, method=request.method, version="1.1")
             if request.body:
                 http_elem.set('contents', request.body)
+
+            for header in request.headers:
+                for header_name, header_value in iteritems(header):
+                    http_elem.append(etree.Element("http_header", name=header_name, value=header_value))
+
             request_elem.append(http_elem)
             session.append(request_elem)
             if request.think_time is not None:

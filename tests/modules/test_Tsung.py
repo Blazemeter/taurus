@@ -227,6 +227,36 @@ class TestTsungConfig(BZTestCase):
         self.assertEqual(urls[2].get("method"), "PUT")
         self.assertEqual(urls[2].get("contents"), open(get_res_path('http_simple.xml')).read())
 
+    def test_requests_headers(self):
+        obj = TsungExecutor()
+        obj.engine = EngineEmul()
+        throughput = 50
+        rampup = 30
+        obj.execution.merge({
+            "throughput": throughput,
+            "ramp-up": rampup,
+            "scenario": {
+                "default-address": "http://example.com",
+                "requests": [{
+                    "url": "/",
+                    "headers": [
+                        {"X-Answer": "42"},
+                        {"X-Jedi": "Luke Skywalker"}
+                    ],
+                }],
+            }
+        })
+        obj.settings.merge({"path": get_res_path(TOOL_NAME),})
+        obj.prepare()
+        config = TsungConfig()
+        config.load(obj.tsung_config)
+        headers = config.find('//http/http_header')
+        self.assertEqual(len(headers), 2)
+        self.assertEqual(headers[0].get("name"), "X-Answer")
+        self.assertEqual(headers[0].get("value"), "42")
+        self.assertEqual(headers[1].get("name"), "X-Jedi")
+        self.assertEqual(headers[1].get("value"), "Luke Skywalker")
+
 
 class TestStatsReader(BZTestCase):
     def test_read(self):
