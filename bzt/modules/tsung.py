@@ -356,6 +356,7 @@ class TsungConfig(object):
             http_elem = etree.Element("http", url=request.url, method=request.method, version="1.1")
             request_elem.append(http_elem)
             session.append(request_elem)
+            # TODO: think-time
         sessions.append(session)
         self.root.append(sessions)
 

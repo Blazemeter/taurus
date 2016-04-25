@@ -100,14 +100,24 @@ class TestTsungExecutor(BZTestCase):
 
 
 class TestTsungConfig(BZTestCase):
-    def test_load(self):
-        self.fail("not implemented")
-
-    def test_clients(self):
-        self.fail("not implemented")
-
     def test_servers(self):
-        self.fail("not implemented")
+        obj = TsungExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({
+            "hold-for": "10s",
+            "scenario": {
+                "default-address": "http://example.com:8080",
+                "requests": ["/"],
+            }
+        })
+        obj.prepare()
+        config = TsungConfig()
+        config.load(obj.tsung_config)
+        servers = config.find('//servers/server')
+        self.assertEquals(1, len(servers))
+        server = servers[0]
+        self.assertEqual(server.get('host'), 'example.com')
+        self.assertEqual(server.get('port'), '8080')
 
     def test_sessions_requests(self):
         obj = TsungExecutor()
@@ -126,7 +136,7 @@ class TestTsungConfig(BZTestCase):
         requests = config.find('//request')
         self.assertEquals(2, len(requests))
 
-    def test_sessions_requests_rampup(self):
+    def test_load_rampup(self):
         obj = TsungExecutor()
         obj.engine = EngineEmul()
         throughput = 50
