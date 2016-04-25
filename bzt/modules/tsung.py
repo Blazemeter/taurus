@@ -252,7 +252,15 @@ class TsungConfig(object):
         self.__add_servers(scenario)
         self.__add_load(load)
         self.__add_options(scenario, load)
-        self.__add_sessions(scenario, load)
+        self.__add_sessions(scenario)
+
+    def __time_to_tsung_time(self, time):
+        if time % 3600 == 0:
+            return time // 3600, "hour"
+        elif time % 60 == 0:
+            return time // 60, "minute"
+        else:
+            return time, "second"
 
     def __add_clients(self):
         # TODO: distributed clients?
@@ -274,6 +282,18 @@ class TsungConfig(object):
         servers.append(server)
         self.root.append(servers)
 
+    def __generate_rampup_phase(self, load):
+        # TODO: load.steps?
+        users = []
+        throughput = load.throughput if load.throughput is not None else 1
+        rampup = int(load.ramp_up)
+        for i in range(rampup + 1):
+            actual_tput = int(float(throughput) * i / float(rampup))
+            for _ in range(actual_tput):
+                user = etree.Element("user", session="taurus_requests", start_time=str(i), unit="second")
+                users.append(user)
+        return users
+
     def __add_load(self, load):
         """
         Generate Tsung load profile.
@@ -281,35 +301,34 @@ class TsungConfig(object):
         Basically, generates two phases: one for ramp-up, one for hold-for.
 
         Tsung load progression is similar to pbench one. The users are erlang processes which are spawned according to
-        load profile. Each user executes assigned session (requests + think-time + logic) and then dies. So if we want to
-        maintain constant rps - we have to spawn new users each second.
+        load profile. Each user executes assigned session (requests + think-time + logic) and then dies. So if we want
+        to maintain constant rps - we have to spawn N new users each second.
         :param scenario:
         :param load:
         :return:
         """
+        throughput = load.throughput if load.throughput is not None else 1
         load_elem = etree.Element("load")
+        if load.duration:
+            duration, unit = self.__time_to_tsung_time(int(load.duration))
+            load_elem.set('duration', str(duration))
+            load_elem.set('unit', unit)
         phases = []
-        phase_counter = 1
-        # if load.ramp_up:
-        #     rampup_duration = int(load.ramp_up)
-        #     rampup_phase = etree.Element('arrivalphase',
-        #                                  phase=str(phase_counter),
-        #                                  duration=str(rampup_duration),
-        #                                  unit="second")
-        #     phase_counter += 1
-        #     phases.append(rampup_phase)
-        if load.hold and load.throughput:
-            hold_duration = int(load.hold)
-            users = etree.Element("users", arrivalrate=str(load.throughput), unit="second")
+
+        if load.ramp_up:
+            for user in self.__generate_rampup_phase(load):
+                phases.append(user)
+        elif load.hold:
+            duration, unit = self.__time_to_tsung_time(int(load.hold))
+            users = etree.Element("users", arrivalrate=str(throughput), unit="second")
             phase = etree.Element("arrivalphase",
-                                  phase=str(phase_counter),
-                                  duration=str(hold_duration),
-                                  unit="second")
-            phase_counter += 1
+                                  phase=str("1"),
+                                  duration=str(duration),
+                                  unit=unit)
             phase.append(users)
             phases.append(phase)
         else:
-            raise ValueError("throughput and hold-for parameters are required for Tsung")
+            raise ValueError("Neither ramp-up nor hold-for are specified")
 
         for phase in phases:
             load_elem.append(phase)
@@ -319,7 +338,7 @@ class TsungConfig(object):
     def __add_options(self, scenario, load):
         pass
 
-    def __add_sessions(self, scenario, load):
+    def __add_sessions(self, scenario):
         sessions = etree.Element("sessions")
         session = etree.Element("session", name="taurus_requests", probability="100", type="ts_http")
         for request in scenario.get_requests():

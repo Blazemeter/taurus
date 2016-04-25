@@ -112,7 +112,6 @@ class TestTsungConfig(BZTestCase):
     def test_sessions_requests(self):
         obj = TsungExecutor()
         obj.engine = EngineEmul()
-        obj.settings.merge({"path": get_res_path(TOOL_NAME),})
         obj.execution.merge({
             "throughput": 2,
             "hold-for": "10s",
@@ -126,6 +125,28 @@ class TestTsungConfig(BZTestCase):
         config.load(obj.tsung_config)
         requests = config.find('//request')
         self.assertEquals(2, len(requests))
+
+    def test_sessions_requests_rampup(self):
+        obj = TsungExecutor()
+        obj.engine = EngineEmul()
+        throughput = 50
+        rampup = 30
+        obj.execution.merge({
+            "throughput": throughput,
+            "ramp-up": rampup,
+            "scenario": {
+                "default-address": "http://example.com",
+                "requests": ["/", "/reserve.php"],
+            }
+        })
+        obj.prepare()
+        config = TsungConfig()
+        config.load(obj.tsung_config)
+        users = config.find('//user')
+        estimated_count = rampup  * throughput / 2.0
+        error = abs(len(users) - estimated_count) / len(users)
+        self.assertLess(error, 0.05)
+
 
 
 class TestStatsReader(BZTestCase):
