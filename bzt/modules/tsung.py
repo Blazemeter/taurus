@@ -25,7 +25,7 @@ from bzt.engine import FileLister, Scenario, ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.utils import shell_exec, shutdown_process, RequiredTool
-from bzt.six import etree
+from bzt.six import etree, parse
 
 
 class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
@@ -84,7 +84,10 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         config_file = self.engine.create_artifact("tsung-config", ".xml")
         scenario = self.get_scenario()
         load = self.get_load()
-        raise NotImplementedError("Tsung._generate_tsung_config()")
+        config = TsungConfig()
+        config.generate(scenario, load)
+        config.save(config_file)
+        return config_file
 
     def startup(self):
         args = [self.tool_path]
@@ -215,7 +218,7 @@ class TsungStatsReader(ResultsReader):
             trname = fields[9]
             error = fields[10] or None
 
-            concur = None
+            concur = int(fields[2])
             con_time = 0
             latency = 0
 
@@ -225,8 +228,8 @@ class TsungStatsReader(ResultsReader):
 class TsungConfig(object):
     def __init__(self):
         self.log = logging.getLogger(self.__class__.__name__)
-        root = etree.Element("tsung", loglevel="notice", version="1.0", dumptraffic="protocol")
-        self.tree = etree.ElementTree(root)
+        self.root = etree.Element("tsung", loglevel="notice", version="1.0", dumptraffic="protocol")
+        self.tree = etree.ElementTree(self.root)
 
     def load(self, filename):
         try:
@@ -239,15 +242,97 @@ class TsungConfig(object):
     def save(self, filename):
         self.log.debug("Saving Tsung config to: %s", filename)
         with open(filename, "wb") as fhd:
-            self.tree.write(fhd, pretty_print=True, encoding="UTF-8", xml_declaration=True)
+            # TODO: dynamically generate this /usr/ path?
+            doctype = '<!DOCTYPE tsung SYSTEM "/usr/share/tsung/tsung-1.0.dtd">'
+            xml = etree.tostring(self.tree, pretty_print=True, encoding="UTF-8", xml_declaration=True, doctype=doctype)
+            fhd.write(xml)
 
     def generate(self, scenario, load):
-        self.__add_clients(scenario, load)
-        self.__add_servers(scenario, load)
-        self.__add_monitoring(scenario, load)
-        self.__add_load(scenario, load)
+        self.__add_clients()
+        self.__add_servers(scenario)
+        self.__add_load(load)
         self.__add_options(scenario, load)
         self.__add_sessions(scenario, load)
+
+    def __add_clients(self):
+        # TODO: distributed clients?
+        clients = etree.Element("clients")
+        # TODO: use actual number of cores
+        client = etree.Element("client", host="localhost", use_controller_vm="true", cpu="2")
+        clients.append(client)
+        self.root.append(clients)
+
+    def __add_servers(self, scenario):
+        default_address = scenario.get("default-address", None)
+        # TODO: don't crash if there's no default-address but all requests are pointed to the same domain
+        if default_address is None:
+            raise ValueError("default-address is not specified")
+        base_addr = parse.urlparse(default_address)
+        servers = etree.Element("servers")
+        port = base_addr.port if base_addr.port is not None else 80
+        server = etree.Element("server", host=base_addr.hostname, port=str(port), type="tcp")
+        servers.append(server)
+        self.root.append(servers)
+
+    def __add_load(self, load):
+        """
+        Generate Tsung load profile.
+
+        Basically, generates two phases: one for ramp-up, one for hold-for.
+
+        Tsung load progression is similar to pbench one. The users are erlang processes which are spawned according to
+        load profile. Each user executes assigned session (requests + think-time + logic) and then dies. So if we want to
+        maintain constant rps - we have to spawn new users each second.
+        :param scenario:
+        :param load:
+        :return:
+        """
+        load_elem = etree.Element("load")
+        phases = []
+        phase_counter = 1
+        # if load.ramp_up:
+        #     rampup_duration = int(load.ramp_up)
+        #     rampup_phase = etree.Element('arrivalphase',
+        #                                  phase=str(phase_counter),
+        #                                  duration=str(rampup_duration),
+        #                                  unit="second")
+        #     phase_counter += 1
+        #     phases.append(rampup_phase)
+        if load.hold and load.throughput:
+            hold_duration = int(load.hold)
+            users = etree.Element("users", arrivalrate=str(load.throughput), unit="second")
+            phase = etree.Element("arrivalphase",
+                                  phase=str(phase_counter),
+                                  duration=str(hold_duration),
+                                  unit="second")
+            phase_counter += 1
+            phase.append(users)
+            phases.append(phase)
+        else:
+            raise ValueError("throughput and hold-for parameters are required for Tsung")
+
+        for phase in phases:
+            load_elem.append(phase)
+
+        self.root.append(load_elem)
+
+    def __add_options(self, scenario, load):
+        pass
+
+    def __add_sessions(self, scenario, load):
+        sessions = etree.Element("sessions")
+        session = etree.Element("session", name="taurus_requests", probability="100", type="ts_http")
+        for request in scenario.get_requests():
+            request_elem = etree.Element("request")
+            http_elem = etree.Element("http", url=request.url, method=request.method, version="1.1")
+            request_elem.append(http_elem)
+            session.append(request_elem)
+        sessions.append(session)
+        self.root.append(sessions)
+
+    def find(self, xpath_selector):
+        return self.tree.xpath(xpath_selector)
+
 
 class Tsung(RequiredTool):
     INSTALLATION_DOCS = "http://tsung.erlang-projects.org/user_manual/installation.html"

@@ -2,10 +2,10 @@ import logging
 import time
 from os import path
 
-from bzt.modules.tsung import TsungExecutor, TsungStatsReader
+from bzt.modules.tsung import TsungExecutor, TsungStatsReader, TsungConfig
 from tests import BZTestCase
 from tests.mocks import EngineEmul
-from bzt.utils import EXE_SUFFIX
+from bzt.utils import EXE_SUFFIX, BetterDict
 
 
 TOOL_NAME = 'tsung' + EXE_SUFFIX
@@ -19,7 +19,9 @@ class TestTsungExecutor(BZTestCase):
     def setUp(self):
         self.obj = TsungExecutor()
         self.obj.engine = EngineEmul()
+        self.obj.settings = BetterDict()
         self.obj.settings.merge({"path": get_res_path(TOOL_NAME),})
+        self.obj.execution = BetterDict()
 
     def test_prepare_no_script_no_requests(self):
         self.obj.execution.merge({"scenario": {}})
@@ -41,9 +43,6 @@ class TestTsungExecutor(BZTestCase):
             self.obj.shutdown()
         self.obj.post_process()
 
-    def test_requests(self):
-        self.fail("not implemented")
-
     def test_resource_files(self):
         self.fail("not implemented")
 
@@ -54,12 +53,12 @@ class TestTsungExecutor(BZTestCase):
 
     def test_full_requests(self):
         self.obj.execution.merge({
-            "concurrency": 2,
-            "iterations": 3,
+            "throughput": 10,
+            "hold-for": "20s",
             "scenario": {
-                "think-time": "1s",
-                "requests": ["http://blazedemo.com",
-                             "http://ya.ru"]}
+                "default-address": "http://blazedemo.com",
+                "requests": ["/",
+                             "/reserve.php"]}
         })
         self.obj.prepare()
         self.obj.get_widget()
@@ -89,6 +88,44 @@ class TestTsungExecutor(BZTestCase):
             self.obj.shutdown()
         self.obj.post_process()
 
+    def test_generated_config_no_default_address(self):
+        self.obj.execution.merge({
+            "throughput": 2,
+            "hold-for": "10s",
+            "scenario": {
+                "requests": ["http://example.com/", "http://blazedemo.com/"],
+            }
+        })
+        self.assertRaises(ValueError, self.obj.prepare)
+
+
+class TestTsungConfig(BZTestCase):
+    def test_load(self):
+        self.fail("not implemented")
+
+    def test_clients(self):
+        self.fail("not implemented")
+
+    def test_servers(self):
+        self.fail("not implemented")
+
+    def test_sessions_requests(self):
+        obj = TsungExecutor()
+        obj.engine = EngineEmul()
+        obj.settings.merge({"path": get_res_path(TOOL_NAME),})
+        obj.execution.merge({
+            "throughput": 2,
+            "hold-for": "10s",
+            "scenario": {
+                "default-address": "http://example.com",
+                "requests": ["/", "/reserve.php"],
+            }
+        })
+        obj.prepare()
+        config = TsungConfig()
+        config.load(obj.tsung_config)
+        requests = config.find('//request')
+        self.assertEquals(2, len(requests))
 
 
 class TestStatsReader(BZTestCase):
