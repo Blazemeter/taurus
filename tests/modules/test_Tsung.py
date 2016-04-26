@@ -309,6 +309,7 @@ class TestTsungConfig(BZTestCase):
         self.assertEqual(len(elements), 1)
         root = elements[0]
         self.assertEqual(root.get('dumptraffic'), 'protocol')
+        self.assertEqual(root.get('backend'), 'json')
 
     def test_scenario_thinktime(self):
         obj = TsungExecutor()

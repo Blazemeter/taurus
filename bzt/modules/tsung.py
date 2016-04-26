@@ -15,11 +15,11 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import json
 import logging
 import os
 import time
 import traceback
-from collections import Counter
 
 from bzt.engine import FileLister, Scenario, ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
@@ -103,11 +103,13 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         return config_file
 
     def startup(self):
+        # NOTE: this is some really nasty hack to make Tsung dump stats to tsung.log every 2 seconds
+        tsung_option_injection = ' -tsung_controller dumpstats_interval 2000'
         args = [
             self.tool_path,
             '-f', self.tsung_config,
             '-l', self.tsung_artifacts_basedir,
-            '-w', '0',
+            '-w', '0' + tsung_option_injection,
             'start',
         ]
         self.start_time = time.time()
@@ -163,27 +165,33 @@ class TsungStatsReader(ResultsReader):
         super(TsungStatsReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.tsung_basedir = tsung_basedir
-        self.filename = None
-        self.fds = None
+        self.stats_filename = None
+        self.stats_fds = None
         self.delimiter = ";"
         self.offset = 0
         self.partial_buffer = ""
         self.skipped_header = False
+        self.log_filename = None
+        self.log_fds = None
+        self.log_offset = 0
+        self.concurrency = 0
 
     def _open_fds(self):
         if not self._locate_stats_file():
             return False
 
-        if not os.path.isfile(self.filename):
+        if not os.path.isfile(self.stats_filename):
             self.log.debug("Stats file not appeared yet")
             return False
 
-        if not os.path.getsize(self.filename):
-            self.log.debug("Stats file is empty: %s", self.filename)
+        if not os.path.getsize(self.stats_filename):
+            self.log.debug("Stats file is empty: %s", self.stats_filename)
             return False
 
-        if not self.fds:
-            self.fds = open(self.filename)
+        if not self.stats_fds:
+            self.stats_fds = open(self.stats_filename)
+        if not self.log_fds:
+            self.log_fds = open(self.log_filename)
 
         return True
 
@@ -197,25 +205,48 @@ class TsungStatsReader(ResultsReader):
             self.log.warning("Multiple files in Tsung basedir %s, this shouldn't happen", self.tsung_basedir)
             return False
 
-        self.filename = os.path.join(self.tsung_basedir, basedir_contents[0], "tsung.dump")
+        self.stats_filename = os.path.join(self.tsung_basedir, basedir_contents[0], "tsung.dump")
+        self.log_filename = os.path.join(self.tsung_basedir, basedir_contents[0], "tsung.log")
         return True
 
     def __del__(self):
-        if self.fds:
-            self.fds.close()
+        if self.stats_fds:
+            self.stats_fds.close()
+        if self.log_fds:
+            self.log_fds.close()
+
+    def _read_concurrency(self, last_pass):
+        self.log_fds.seek(self.log_offset)
+        if last_pass:
+            lines = self.log_fds.readlines()
+        else:
+            lines = self.log_fds.readlines(1024 * 1024)
+        self.offset = self.stats_fds.tell()
+        for line in lines:
+            line = line.strip()
+            try:
+                stat = json.loads(line + "]}")
+            except ValueError:
+                continue
+            users = [sample for sample in stat["samples"] if sample["name"] == "users"]
+            if not users:
+                continue
+            self.concurrency = users[0]["value"]
 
     def _read(self, last_pass=False):
-        while not self.fds and not self._open_fds():
+        while not self.stats_fds and not self._open_fds():
             self.log.debug("No data to start reading yet")
             yield None
 
         self.log.debug("Reading Tsung results")
-        self.fds.seek(self.offset)
+        self.stats_fds.seek(self.offset)
         if last_pass:
-            lines = self.fds.readlines()
+            lines = self.stats_fds.readlines()
         else:
-            lines = self.fds.readlines(1024 * 1024)
-        self.offset = self.fds.tell()
+            lines = self.stats_fds.readlines(1024 * 1024)
+        self.offset = self.stats_fds.tell()
+
+        self._read_concurrency(last_pass)
 
         for line in lines:
             if not line.endswith("\n"):
@@ -233,7 +264,6 @@ class TsungStatsReader(ResultsReader):
             fields = line.split(self.delimiter)
 
             tstamp = int(float(fields[0]))
-            concurrency = int(fields[2])
             url = fields[4] + fields[5]
             rstatus = fields[6]
             etime = float(fields[8]) / 1000
@@ -243,13 +273,13 @@ class TsungStatsReader(ResultsReader):
             con_time = 0
             latency = 0
 
-            yield tstamp, url, concurrency, etime, con_time, latency, rstatus, error, trname
+            yield tstamp, url, self.concurrency, etime, con_time, latency, rstatus, error, trname
 
 
 class TsungConfig(object):
     def __init__(self):
         self.log = logging.getLogger(self.__class__.__name__)
-        self.root = etree.Element("tsung", loglevel="notice", version="1.0", dumptraffic="protocol")
+        self.root = etree.Element("tsung", loglevel="notice", version="1.0", dumptraffic="protocol", backend="json")
         self.tree = etree.ElementTree(self.root)
 
     def load(self, filename):
@@ -278,6 +308,7 @@ class TsungConfig(object):
 
     def apply_dumpstats(self):
         self.root.set("dumptraffic", "protocol")
+        self.root.set("backend", "json")
 
     def apply_load_profile(self, load):
         # do not apply unspecified load profile
