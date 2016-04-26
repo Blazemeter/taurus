@@ -243,10 +243,9 @@ class TestTsungConfig(BZTestCase):
         config.load(obj.tsung_config)
         headers = config.find('//http/http_header')
         self.assertEqual(len(headers), 2)
-        self.assertEqual(headers[0].get("name"), "X-Jedi")
-        self.assertEqual(headers[0].get("value"), "Luke Skywalker")
-        self.assertEqual(headers[1].get("name"), "X-Answer")
-        self.assertEqual(headers[1].get("value"), "42")
+        headers_list = [(h.get('name'), h.get('value')) for h in headers]
+        self.assertIn(("X-Jedi", "Luke Skywalker"), headers_list)
+        self.assertIn(("X-Answer", "42"), headers_list)
 
     def test_load_modification(self):
         obj = TsungExecutor()
