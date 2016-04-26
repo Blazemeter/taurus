@@ -310,10 +310,14 @@ class TsungConfig(object):
 
     def __gen_servers(self, scenario):
         default_address = scenario.get("default-address", None)
-        # TODO: don't crash if there's no default-address but all requests are pointed to the same domain
         if default_address is None:
-            raise ValueError("default-address is not specified")
-        base_addr = parse.urlparse(default_address)
+            requests = list(scenario.get_requests())
+            if not requests:
+                raise ValueError("No requests provided in scenario")
+            base_addr = parse.urlparse(requests[0].url)
+            self.log.debug("default-address was not specified, using %s insted", base_addr.hostname)
+        else:
+            base_addr = parse.urlparse(default_address)
         servers = etree.Element("servers")
         port = base_addr.port if base_addr.port is not None else 80
         server = etree.Element("server", host=base_addr.hostname, port=str(port), type="tcp")

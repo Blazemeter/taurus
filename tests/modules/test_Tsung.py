@@ -108,12 +108,11 @@ class TestTsungExecutor(BZTestCase):
             self.obj.shutdown()
         self.obj.post_process()
 
-    def test_generated_config_no_default_address(self):
+    def test_no_requests(self):
         self.obj.execution.merge({
-            "throughput": 2,
             "hold-for": "10s",
             "scenario": {
-                "requests": ["http://example.com/", "http://blazedemo.com/"],
+                "requests": [],
             }
         })
         self.assertRaises(ValueError, self.obj.prepare)
