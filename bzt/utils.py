@@ -52,6 +52,10 @@ def get_full_path(path):
     return os.path.abspath(os.path.expanduser(path))
 
 
+def get_full_dir_path(path):
+    return os.path.dirname(get_full_path(path))
+
+
 def run_once(func):
     """
     A decorator to run function only once
