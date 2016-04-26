@@ -51,6 +51,15 @@ class TestTsungExecutor(BZTestCase):
         self.obj.prepare()
         self.obj.get_widget()
 
+    def test_no_hold_for(self):
+        self.obj.execution.merge({
+            "scenario": {
+                "default-address": "http://blazedemo.com",
+                "requests": ["/"]
+            }
+        })
+        self.assertRaises(ValueError, self.obj.prepare)
+
     def test_full_requests(self):
         self.obj.execution.merge({
             "throughput": 10,
@@ -72,8 +81,8 @@ class TestTsungExecutor(BZTestCase):
 
     def test_full_script(self):
         self.obj.execution.merge({
-            "concurrency": 2,
-            "iterations": 3,
+            "throughput": 200,
+            "hold-for": "20s",
             "scenario": {
                 "script": get_res_path("http_simple.xml")
             }
@@ -97,55 +106,6 @@ class TestTsungExecutor(BZTestCase):
             }
         })
         self.assertRaises(ValueError, self.obj.prepare)
-
-    def test_module_settings(self):
-        self.obj.settings.merge({
-            "max-erlang-processes": 3000,
-            "disable-web-gui": False,
-        })
-        self.obj.execution.merge({
-            "throughput": 2,
-            "hold-for": "10s",
-            "scenario": {
-                "default-address": "http://blazedemo.com",
-                "requests": ["/"],
-            }
-        })
-        self.obj.prepare()
-        self.obj.get_widget()
-        try:
-            self.obj.startup()
-            while not self.obj.check():
-                time.sleep(self.obj.engine.check_interval)
-        finally:
-            self.obj.shutdown()
-        self.obj.post_process()
-        stdout = open(path.join(self.obj.engine.artifacts_dir, 'tsung.out')).read()
-        self.assertNotIn("-n", stdout)
-        self.assertIn("-p 3000", stdout)
-
-    def test_module_settings_default(self):
-        self.obj.execution.merge({
-            "throughput": 2,
-            "hold-for": "10s",
-            "scenario": {
-                "default-address": "http://blazedemo.com",
-                "requests": ["/"],
-            }
-        })
-        self.obj.prepare()
-        self.obj.get_widget()
-        try:
-            self.obj.startup()
-            while not self.obj.check():
-                time.sleep(self.obj.engine.check_interval)
-        finally:
-            self.obj.shutdown()
-        self.obj.post_process()
-        stdout = open(path.join(self.obj.engine.artifacts_dir, 'tsung.out')).read()
-        self.assertIn("-n", stdout)
-        self.assertIn("-p", stdout)
-
 
 
 class TestTsungConfig(BZTestCase):
@@ -187,36 +147,12 @@ class TestTsungConfig(BZTestCase):
         requests = config.find('//request')
         self.assertEquals(2, len(requests))
 
-    def test_load_rampup(self):
-        obj = TsungExecutor()
-        obj.engine = EngineEmul()
-        throughput = 50
-        rampup = 30
-        obj.execution.merge({
-            "throughput": throughput,
-            "ramp-up": rampup,
-            "scenario": {
-                "default-address": "http://example.com",
-                "requests": ["/", "/reserve.php"],
-            }
-        })
-        obj.settings.merge({"path": get_res_path(TOOL_NAME),})
-        obj.prepare()
-        config = TsungConfig()
-        config.load(obj.tsung_config)
-        users = config.find('//user')
-        estimated_count = rampup  * throughput / 2.0
-        error = abs(len(users) - estimated_count) / len(users)
-        self.assertLess(error, 0.05)
-
     def test_sessions_thinktime(self):
         obj = TsungExecutor()
         obj.engine = EngineEmul()
-        throughput = 50
-        rampup = 30
         obj.execution.merge({
-            "throughput": throughput,
-            "ramp-up": rampup,
+            "throughput": 50,
+            "hold-for": "30s",
             "scenario": {
                 "default-address": "http://example.com",
                 "requests": [{
@@ -240,11 +176,9 @@ class TestTsungConfig(BZTestCase):
     def test_requests_custom(self):
         obj = TsungExecutor()
         obj.engine = EngineEmul()
-        throughput = 50
-        rampup = 30
         obj.execution.merge({
-            "throughput": throughput,
-            "ramp-up": rampup,
+            "throughput": 50,
+            "hold-for": "30s",
             "scenario": {
                 "default-address": "http://example.com",
                 "requests": [{
@@ -279,11 +213,9 @@ class TestTsungConfig(BZTestCase):
     def test_requests_headers(self):
         obj = TsungExecutor()
         obj.engine = EngineEmul()
-        throughput = 50
-        rampup = 30
         obj.execution.merge({
-            "throughput": throughput,
-            "ramp-up": rampup,
+            "throughput": 50,
+            "hold-for": "30s",
             "scenario": {
                 "default-address": "http://example.com",
                 "requests": [{

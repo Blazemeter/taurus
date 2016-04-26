@@ -47,8 +47,6 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.stats_reader = None
         self.start_time = None
         self.widget = None
-        self.max_erlang_processes = None
-        self.disable_web_gui = None
 
     def prepare(self):
         scenario = self.get_scenario()
@@ -68,9 +66,6 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.stats_reader = TsungStatsReader(self.tsung_artifacts_basedir, self.log)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.stats_reader)
-
-        self.disable_web_gui = self.settings.get('disable-web-gui', True)
-        self.max_erlang_processes = self.settings.get('max-erlang-processes', 1000000)
 
         self.__out = open(self.engine.create_artifact("tsung", ".out"), 'w')
         self.__err = open(self.engine.create_artifact("tsung", ".err"), 'w')
@@ -101,11 +96,8 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             '-f', self.tsung_config,
             '-l', self.tsung_artifacts_basedir,
             '-w', '0',
-            '-p', str(self.max_erlang_processes),
+            'start',
         ]
-        if self.disable_web_gui:
-            args += ['-n']
-        args += ['start']
         self.start_time = time.time()
         self.process = self.execute(args, stdout=self.__out, stderr=self.__err)
 
@@ -115,6 +107,7 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         ret_code = self.process.poll()
         if ret_code is None:
+
             return False
         self.log.info("tsung exit code: %s", ret_code)
         if ret_code != 0:
@@ -271,20 +264,10 @@ class TsungConfig(object):
         else:
             return time, "second"
 
-    @staticmethod
-    def __calculate_cpu_cores():
-        cores = psutil.cpu_count()
-        if cores > 1:
-            return cores // 2
-        else:
-            return 1
-
     def __add_clients(self):
         # TODO: distributed clients?
         clients = etree.Element("clients")
-        # TODO: use actual number of cores
-        cores = self.__calculate_cpu_cores()
-        client = etree.Element("client", host="localhost", use_controller_vm="true", cpu=str(cores))
+        client = etree.Element("client", host="localhost", use_controller_vm="true")
         clients.append(client)
         self.root.append(clients)
 
@@ -299,18 +282,6 @@ class TsungConfig(object):
         server = etree.Element("server", host=base_addr.hostname, port=str(port), type="tcp")
         servers.append(server)
         self.root.append(servers)
-
-    def __generate_rampup_phase(self, load):
-        # TODO: load.steps?
-        users = []
-        throughput = load.throughput if load.throughput is not None else 1
-        rampup = int(load.ramp_up)
-        for i in range(rampup + 1):
-            actual_tput = int(float(throughput) * i / float(rampup))
-            for _ in range(actual_tput):
-                user = etree.Element("user", session="taurus_requests", start_time=str(i), unit="second")
-                users.append(user)
-        return users
 
     def __add_load(self, load):
         """
@@ -333,10 +304,7 @@ class TsungConfig(object):
             load_elem.set('unit', unit)
         phases = []
 
-        if load.ramp_up:
-            for user in self.__generate_rampup_phase(load):
-                phases.append(user)
-        elif load.hold:
+        if load.hold:
             duration, unit = self.__time_to_tsung_time(int(load.hold))
             users = etree.Element("users", arrivalrate=str(throughput), unit="second")
             phase = etree.Element("arrivalphase",
@@ -346,7 +314,7 @@ class TsungConfig(object):
             phase.append(users)
             phases.append(phase)
         else:
-            raise ValueError("Neither ramp-up nor hold-for are specified")
+            raise ValueError("You must specify test duration with `hold-for`")
 
         for phase in phases:
             load_elem.append(phase)
@@ -382,7 +350,7 @@ class TsungConfig(object):
 
 
 class Tsung(RequiredTool):
-    INSTALLATION_DOCS = "http://tsung.erlang-projects.org/user_manual/installation.html"
+    INSTALLATION_DOCS = "http://gettaurus.org/docs/Tsung/#Tsung-Installation"
 
     def __init__(self, tool_path, parent_logger):
         super(Tsung, self).__init__("Tsung", tool_path)
