@@ -33,6 +33,31 @@ execution:
     - http://blazedemo.com/
 ```
 
+Example of using user's Tsung config:
+```yaml
+---
+execution:
+- executor: tsung
+  scenario:
+    script: tsung/http_simple.xml
+```
+
+If you specify both `scenario.script` and load profile (`throughput` and `hold-for`) — Taurus will copy your Tsung
+configuration and overwrite `<load>` section. Your original Tsung configuration will be preserved.
+
+Example:
+```yaml
+---
+execution:
+- executor: tsung
+  throughput: 100
+  hold-for: 5m
+  scenario:
+    script: tsung/http_simple.xml
+```
+
+Note that Tsung doesn't support `concurrency` and `ramp-up` options.
+
 ## Module Settings
 
 If you have installed Tsung in non-standard location (i.e. `tsung` is not in your `$PATH`), you can use `path` option

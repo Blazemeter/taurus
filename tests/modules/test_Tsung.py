@@ -3,9 +3,10 @@ import time
 from os import path
 
 from bzt.modules.tsung import TsungExecutor, TsungStatsReader, TsungConfig
+from bzt.six import etree
+from bzt.utils import EXE_SUFFIX, BetterDict
 from tests import BZTestCase
 from tests.mocks import EngineEmul
-from bzt.utils import EXE_SUFFIX, BetterDict
 
 
 TOOL_NAME = 'tsung' + EXE_SUFFIX
@@ -237,6 +238,52 @@ class TestTsungConfig(BZTestCase):
         self.assertEqual(headers[0].get("value"), "42")
         self.assertEqual(headers[1].get("name"), "X-Jedi")
         self.assertEqual(headers[1].get("value"), "Luke Skywalker")
+
+    def test_load_modification(self):
+        obj = TsungExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({
+            "throughput": 50,
+            "hold-for": "30s",
+            "scenario": {
+                "script": get_res_path("http_simple.xml"),
+            }
+        })
+        obj.settings.merge({"path": get_res_path(TOOL_NAME),})
+        obj.prepare()
+        original_config = TsungConfig()
+        original_config.load(get_res_path("http_simple.xml"))
+        original_load = original_config.find('//tsung/load')[0]
+        modified_config = TsungConfig()
+        modified_config.load(obj.tsung_config)
+        loads = modified_config.find('//tsung/load')
+        self.assertEqual(len(loads), 1)
+        modified_load = loads[0]
+        self.assertNotEqual(etree.tostring(original_load), etree.tostring(modified_load))
+        self.assertEqual(modified_load.get('duration'), '30')
+
+    def test_no_load_no_modication(self):
+        # if load profile is not specified - original tsung config's <load> shouldn't be modified
+        obj = TsungExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({
+            "scenario": {
+                "script": get_res_path("http_simple.xml"),
+            }
+        })
+        obj.settings.merge({"path": get_res_path(TOOL_NAME),})
+        obj.prepare()
+        original_config = TsungConfig()
+        original_config.load(get_res_path("http_simple.xml"))
+        original_load = original_config.find('//tsung/load')[0]
+        modified_config = TsungConfig()
+        modified_config.load(obj.tsung_config)
+        loads = modified_config.find('//tsung/load')
+        self.assertEqual(len(loads), 1)
+        modified_load = loads[0]
+        self.assertEqual(etree.tostring(original_load), etree.tostring(modified_load))
+
+
 
 
 class TestStatsReader(BZTestCase):

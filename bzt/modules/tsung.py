@@ -53,7 +53,10 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.tool_path = self._check_installed()
 
         if Scenario.SCRIPT in scenario and scenario[Scenario.SCRIPT]:
-            self.tsung_config = self._get_script()
+            script = self._get_script()
+            if not script or not os.path.exists(script):
+                raise ValueError("Tsung script '%s' doesn't exist" % script)
+            self.tsung_config = self.__modify_user_tsung_config(script)
         elif scenario.get("requests"):
             self.tsung_config = self._generate_tsung_config()
         else:
@@ -80,6 +83,15 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             return self.engine.find_file(fname)
         else:
             return None
+
+    def __modify_user_tsung_config(self, user_config_path):
+        modified_config_path = self.engine.create_artifact("tsung-config", ".xml")
+        load = self.get_load()
+        config = TsungConfig()
+        config.load(user_config_path)
+        config.apply_load_profile(load)
+        config.save(modified_config_path)
+        return modified_config_path
 
     def _generate_tsung_config(self):
         config_file = self.engine.create_artifact("tsung-config", ".xml")
@@ -237,6 +249,7 @@ class TsungConfig(object):
         try:
             self.tree = etree.ElementTree()
             self.tree.parse(filename)
+            self.root = self.tree.getroot()
         except BaseException as exc:
             self.log.debug("XML parsing error: %s", traceback.format_exc())
             raise RuntimeError("XML parsing failed for file %s: %s" % (filename, exc))
@@ -250,11 +263,25 @@ class TsungConfig(object):
             fhd.write(xml)
 
     def generate(self, scenario, load):
-        self.__add_clients()
-        self.__add_servers(scenario)
-        self.__add_load(load)
-        self.__add_options(scenario, load)
-        self.__add_sessions(scenario)
+        self.root.append(self.__gen_clients())
+        self.root.append(self.__gen_servers(scenario))
+        self.root.append(self.__gen_load(load))
+        self.root.append(self.__gen_sessions(scenario))
+
+    def apply_load_profile(self, load):
+        # do not apply unspecified load profile
+        if not load.throughput and not load.hold:
+            return
+        original_load = self.find("//tsung/load")
+        generated_load = self.__gen_load(load)
+        if not original_load:
+            self.log.warning("<load> section not found in Tsung config, will create one")
+            servers = self.find("//tsung/servers")
+            if not servers:
+                raise ValueError("<servers> section not found. Provided Tsung script is invalid")
+            servers.addnext(generated_load)
+        else:
+            self.root.replace(original_load[0], generated_load)
 
     def __time_to_tsung_time(self, time):
         if time % 3600 == 0:
@@ -264,14 +291,14 @@ class TsungConfig(object):
         else:
             return time, "second"
 
-    def __add_clients(self):
+    def __gen_clients(self):
         # TODO: distributed clients?
         clients = etree.Element("clients")
         client = etree.Element("client", host="localhost", use_controller_vm="true")
         clients.append(client)
-        self.root.append(clients)
+        return clients
 
-    def __add_servers(self, scenario):
+    def __gen_servers(self, scenario):
         default_address = scenario.get("default-address", None)
         # TODO: don't crash if there's no default-address but all requests are pointed to the same domain
         if default_address is None:
@@ -281,9 +308,9 @@ class TsungConfig(object):
         port = base_addr.port if base_addr.port is not None else 80
         server = etree.Element("server", host=base_addr.hostname, port=str(port), type="tcp")
         servers.append(server)
-        self.root.append(servers)
+        return servers
 
-    def __add_load(self, load):
+    def __gen_load(self, load):
         """
         Generate Tsung load profile.
 
@@ -319,12 +346,9 @@ class TsungConfig(object):
         for phase in phases:
             load_elem.append(phase)
 
-        self.root.append(load_elem)
+        return load_elem
 
-    def __add_options(self, scenario, load):
-        pass
-
-    def __add_sessions(self, scenario):
+    def __gen_sessions(self, scenario):
         sessions = etree.Element("sessions")
         session = etree.Element("session", name="taurus_requests", probability="100", type="ts_http")
         for request in scenario.get_requests():
@@ -343,7 +367,7 @@ class TsungConfig(object):
                 think_time = int(dehumanize_time(request.think_time))
                 session.append(etree.Element("thinktime", value=str(think_time)))
         sessions.append(session)
-        self.root.append(sessions)
+        return sessions
 
     def find(self, xpath_selector):
         return self.tree.xpath(xpath_selector)
