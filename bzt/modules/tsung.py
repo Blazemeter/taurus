@@ -233,17 +233,17 @@ class TsungStatsReader(ResultsReader):
             fields = line.split(self.delimiter)
 
             tstamp = int(float(fields[0]))
+            concurrency = int(fields[2])
             url = fields[4] + fields[5]
             rstatus = fields[6]
             etime = float(fields[8]) / 1000
             trname = fields[9]
             error = fields[10] or None
 
-            concur = int(fields[2])
             con_time = 0
             latency = 0
 
-            yield tstamp, url, concur, etime, con_time, latency, rstatus, error, trname
+            yield tstamp, url, concurrency, etime, con_time, latency, rstatus, error, trname
 
 
 class TsungConfig(object):
