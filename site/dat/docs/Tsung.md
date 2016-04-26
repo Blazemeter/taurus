@@ -24,11 +24,7 @@ More recent Ubuntu versions provide Tsung 1.5.1 by default, so `apt-get install 
 When given fixed `concurrency`, Tsung spawns N "users" each second. Every user is actually a lightweight Erlang process.
 User executes all requests from given scenario and then stops.
 
-## HTTP Requests
-
-TODO: request, GET/PUT/POST, think-time.
-
-## Scenario Examples
+## Scenario Samples
 
 Example of using constant `concurrency` and `hold-for`:
 ```yaml
@@ -54,7 +50,7 @@ execution:
 ```
 
 If you specify both `scenario.script` and load profile (`concurrency` and `hold-for`) — Taurus will copy your Tsung
-configuration and overwrite `<load>` section. Your original Tsung configuration will be preserved.
+configuration and overwrite `<load>` section. The rest of your Tsung config will be preserved.
 
 Example:
 ```yaml
@@ -68,6 +64,39 @@ execution:
 ```
 
 Note that Tsung doesn't support `throughput` and `ramp-up` options.
+
+Here's the example of various HTTP requests features that Taurus supports:
+
+```yaml
+---
+execution:
+- executor: tsung
+  concurrency: 50
+  hold-for: 5m
+  scenario:
+    default-address: http://blazedemo.com  # base address for HTTP requests
+    requests:
+    - /  # shorthard form
+
+    - url: /reserve.php  # full form with specified method
+      method: GET
+
+    - url: /
+      think-time: 3s  # delay to make after executing this request
+
+    - url: /submit.php  # POST request with body
+      method: POST
+      body: 'request-body-string'  # POST body string
+
+    - url: /submit.php  # PUT request with file body
+      method: PUT
+      body-file: path/to/file.bin
+      
+    - url: /  # request with additional headers
+      headers:
+        Authentication: Token 142857
+        Referer: http://taurus.blazemeter/docs
+```
 
 ## Module Settings
 

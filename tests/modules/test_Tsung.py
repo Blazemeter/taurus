@@ -230,10 +230,10 @@ class TestTsungConfig(BZTestCase):
                 "default-address": "http://example.com",
                 "requests": [{
                     "url": "/",
-                    "headers": [
-                        {"X-Answer": "42"},
-                        {"X-Jedi": "Luke Skywalker"}
-                    ],
+                    "headers": {
+                        "X-Answer": "42",
+                        "X-Jedi": "Luke Skywalker",
+                    },
                 }],
             }
         })
@@ -243,10 +243,10 @@ class TestTsungConfig(BZTestCase):
         config.load(obj.tsung_config)
         headers = config.find('//http/http_header')
         self.assertEqual(len(headers), 2)
-        self.assertEqual(headers[0].get("name"), "X-Answer")
-        self.assertEqual(headers[0].get("value"), "42")
-        self.assertEqual(headers[1].get("name"), "X-Jedi")
-        self.assertEqual(headers[1].get("value"), "Luke Skywalker")
+        self.assertEqual(headers[0].get("name"), "X-Jedi")
+        self.assertEqual(headers[0].get("value"), "Luke Skywalker")
+        self.assertEqual(headers[1].get("name"), "X-Answer")
+        self.assertEqual(headers[1].get("value"), "42")
 
     def test_load_modification(self):
         obj = TsungExecutor()

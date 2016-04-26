@@ -371,9 +371,8 @@ class TsungConfig(object):
             if request.body:
                 http_elem.set('contents', request.body)
 
-            for header in request.headers:
-                for header_name, header_value in iteritems(header):
-                    http_elem.append(etree.Element("http_header", name=header_name, value=header_value))
+            for header_name, header_value in iteritems(request.headers):
+                http_elem.append(etree.Element("http_header", name=header_name, value=header_value))
 
             request_elem.append(http_elem)
             session.append(request_elem)
