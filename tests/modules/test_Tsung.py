@@ -308,8 +308,24 @@ class TestTsungConfig(BZTestCase):
         root = elements[0]
         self.assertEqual(root.get('dumptraffic'), 'protocol')
 
-
-
+    def test_scenario_thinktime(self):
+        obj = TsungExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({
+            "hold-for": "10s",
+            "scenario": {
+                "think-time": "3s",
+                "requests": ["http://blazedemo.com/"]
+            }
+        })
+        obj.settings.merge({"path": get_res_path(TOOL_NAME),})
+        obj.prepare()
+        config = TsungConfig()
+        config.load(obj.tsung_config)
+        elements = config.find('//options/option[@name="thinktime"]')
+        self.assertEqual(len(elements), 1)
+        thinktime = elements[0]
+        self.assertEqual(thinktime.get('value'), '3')
 
 
 class TestStatsReader(BZTestCase):

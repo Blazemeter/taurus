@@ -273,6 +273,7 @@ class TsungConfig(object):
         self.root.append(self.__gen_clients())
         self.root.append(self.__gen_servers(scenario))
         self.root.append(self.__gen_load(load))
+        self.root.append(self.__gen_options(scenario, load))
         self.root.append(self.__gen_sessions(scenario))
 
     def apply_dumpstats(self):
@@ -362,6 +363,14 @@ class TsungConfig(object):
 
         return load_elem
 
+    def __gen_options(self, scenario, load):
+        options = etree.Element("options")
+        global_think_time = scenario.data.get('think-time', None)
+        if global_think_time:
+            think_time = int(dehumanize_time(global_think_time))
+            options.append(etree.Element("option", name="thinktime", value=str(think_time), random="false"))
+        return options
+
     def __gen_sessions(self, scenario):
         sessions = etree.Element("sessions")
         session = etree.Element("session", name="taurus_requests", probability="100", type="ts_http")
@@ -378,7 +387,7 @@ class TsungConfig(object):
             session.append(request_elem)
             if request.think_time is not None:
                 think_time = int(dehumanize_time(request.think_time))
-                session.append(etree.Element("thinktime", value=str(think_time)))
+                session.append(etree.Element("thinktime", value=str(think_time), random="false"))
         sessions.append(session)
         return sessions
 

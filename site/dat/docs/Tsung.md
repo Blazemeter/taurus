@@ -75,6 +75,7 @@ execution:
   hold-for: 5m
   scenario:
     default-address: http://blazedemo.com  # base address for HTTP requests
+    think-time: 1s  # delay to make after executing this request, applied to all requests
     requests:
     - /  # shorthard form
 
@@ -82,7 +83,7 @@ execution:
       method: GET
 
     - url: /
-      think-time: 3s  # delay to make after executing this request
+      think-time: 3s  # overrides scenario-level think-time option
 
     - url: /submit.php  # POST request with body
       method: POST
