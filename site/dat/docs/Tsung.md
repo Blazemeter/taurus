@@ -77,6 +77,8 @@ execution:
     default-address: http://blazedemo.com  # base address for HTTP requests
 
     think-time: 1s  # delay to make after executing this request, applies to all requests
+    
+    timeout: 3s  # TCP connection timeout, applies to all requests
 
     headers:  # global headers, applies to all requests
       User-Agent: taurus-tsung

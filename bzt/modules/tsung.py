@@ -369,6 +369,10 @@ class TsungConfig(object):
         if global_think_time:
             think_time = int(dehumanize_time(global_think_time))
             options.append(etree.Element("option", name="thinktime", value=str(think_time), random="false"))
+        global_tcp_timeout = scenario.data.get('timeout')
+        if global_tcp_timeout:
+            timeout= int(dehumanize_time(global_tcp_timeout)) * 1000
+            options.append(etree.Element("option", name="connect_timeout", value=str(timeout)))
         return options
 
     def __gen_sessions(self, scenario):

@@ -329,6 +329,26 @@ class TestTsungConfig(BZTestCase):
         thinktime = elements[0]
         self.assertEqual(thinktime.get('value'), '3')
 
+    def test_scenario_timeout(self):
+        obj = TsungExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({
+            "hold-for": "10s",
+            "scenario": {
+                "timeout": "1s",
+                "requests": ["http://blazedemo.com/"]
+            }
+        })
+        obj.settings.merge({"path": get_res_path(TOOL_NAME),})
+        obj.prepare()
+        config = TsungConfig()
+        config.load(obj.tsung_config)
+        elements = config.find('//options/option[@name="connect_timeout"]')
+        self.assertEqual(len(elements), 1)
+        thinktime = elements[0]
+        self.assertEqual(thinktime.get('value'), '1000')
+
+
 
 class TestStatsReader(BZTestCase):
     def test_read(self):
