@@ -90,6 +90,7 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         config = TsungConfig()
         config.load(user_config_path)
         config.apply_load_profile(load)
+        config.apply_dumpstats()
         config.save(modified_config_path)
         return modified_config_path
 
@@ -274,6 +275,9 @@ class TsungConfig(object):
         self.root.append(self.__gen_servers(scenario))
         self.root.append(self.__gen_load(load))
         self.root.append(self.__gen_sessions(scenario))
+
+    def apply_dumpstats(self):
+        self.root.set("dumptraffic", "protocol")
 
     def apply_load_profile(self, load):
         # do not apply unspecified load profile

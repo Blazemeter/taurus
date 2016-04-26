@@ -1,23 +1,15 @@
 <?xml version="1.0"?>
 <!DOCTYPE tsung SYSTEM "/usr/share/tsung/tsung-1.0.dtd">
-<tsung loglevel="notice" version="1.0" backend="fullstats">
+<tsung loglevel="notice" version="1.0">
 
-  <!-- Client side setup -->
   <clients>
-    <client host="localhost" use_controller_vm="true" maxusers="1000000"/>
+    <client host="localhost" use_controller_vm="true"/>
   </clients>
   
-  <!-- Server side setup -->
   <servers>
     <server host="blazedemo.com" port="80" type="tcp"></server>
   </servers>
 
-  <!-- to start os monitoring (cpu, network, memory). Use an erlang
-  agent on the remote machine or SNMP. erlang is the default --> 
-  <!--<monitoring>
-    <monitor host="myserver" type="snmp"></monitor>
-  </monitoring>-->
-  
   <load>
     <arrivalphase phase="1" duration="10" unit="minute">
       <users interarrival="0.003" unit="second"></users>
@@ -31,14 +23,8 @@
    </option>
   </options>
 
-  <!-- start a session for a http user. the probability is the
-  frequency of this type os session. The sum of all session's
-  probabilities must be 100 -->
-
  <sessions>
   <session name="http-example" probability="100" type="ts_http">
-
-    <!-- full url with server name, this overrides the "server" config value -->
 
     <request> <http url="/" method="GET" version="1.1"></http> </request>
 

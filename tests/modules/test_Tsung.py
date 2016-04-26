@@ -52,7 +52,6 @@ class TestTsungExecutor(BZTestCase):
         self.assertIn(script, resources)
 
     def test_resource_files_requests(self):
-        script = get_res_path("http_simple.xml")
         self.obj.execution.merge({"scenario": {"default-address": "http://blazedemo.com",
                                                "requests": ["/"]}})
         resources = self.obj.resource_files()
@@ -293,6 +292,24 @@ class TestTsungConfig(BZTestCase):
         self.assertEqual(len(loads), 1)
         modified_load = loads[0]
         self.assertEqual(etree.tostring(original_load), etree.tostring(modified_load))
+
+    def test_modify_dumpstats(self):
+        obj = TsungExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({
+            "scenario": {
+                "script": get_res_path("http_simple.xml"),
+            }
+        })
+        obj.settings.merge({"path": get_res_path(TOOL_NAME),})
+        obj.prepare()
+        config = TsungConfig()
+        config.load(obj.tsung_config)
+        elements = config.find('//tsung')
+        self.assertEqual(len(elements), 1)
+        root = elements[0]
+        self.assertEqual(root.get('dumptraffic'), 'protocol')
+
 
 
 
