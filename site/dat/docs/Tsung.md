@@ -19,14 +19,23 @@ You can install more recent 1.5.1 version from [tsung-stable](https://launchpad.
 
 More recent Ubuntu versions provide Tsung 1.5.1 by default, so `apt-get install tsung` is enough to get Tsung.
 
+## Tsung load generation model
+
+When given fixed `concurrency`, Tsung spawns N "users" each second. Every user is actually a lightweight Erlang process.
+User executes all requests from given scenario and then stops.
+
+## HTTP Requests
+
+TODO: request, GET/PUT/POST, think-time.
+
 ## Scenario Examples
 
-Example of using constant `throughput` and `hold-for`:
+Example of using constant `concurrency` and `hold-for`:
 ```yaml
 ---
 execution:
 - executor: tsung
-  throughput: 100
+  concurrency: 100
   hold-for: 1m
   scenario:
     default-address: http://blazedemo.com
@@ -34,7 +43,6 @@ execution:
       - /
       - /reserve.php
 ```
-Note that `default-address` parameter is mandatory.
 
 Example of using user's Tsung config:
 ```yaml
@@ -45,7 +53,7 @@ execution:
     script: tsung/http_simple.xml
 ```
 
-If you specify both `scenario.script` and load profile (`throughput` and `hold-for`) — Taurus will copy your Tsung
+If you specify both `scenario.script` and load profile (`concurrency` and `hold-for`) — Taurus will copy your Tsung
 configuration and overwrite `<load>` section. Your original Tsung configuration will be preserved.
 
 Example:
@@ -53,13 +61,13 @@ Example:
 ---
 execution:
 - executor: tsung
-  throughput: 100
+  concurrency: 100
   hold-for: 5m
   scenario:
     script: tsung/http_simple.xml
 ```
 
-Note that Tsung doesn't support `concurrency` and `ramp-up` options.
+Note that Tsung doesn't support `throughput` and `ramp-up` options.
 
 ## Module Settings
 

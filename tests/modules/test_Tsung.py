@@ -73,7 +73,7 @@ class TestTsungExecutor(BZTestCase):
 
     def test_full_requests(self):
         self.obj.execution.merge({
-            "throughput": 10,
+            "concurrency": 10,
             "hold-for": "20s",
             "scenario": {
                 "default-address": "http://blazedemo.com",
@@ -92,7 +92,7 @@ class TestTsungExecutor(BZTestCase):
 
     def test_full_script(self):
         self.obj.execution.merge({
-            "throughput": 200,
+            "concurrency": 200,
             "hold-for": "20s",
             "scenario": {
                 "script": get_res_path("http_simple.xml")
@@ -143,7 +143,7 @@ class TestTsungConfig(BZTestCase):
         obj = TsungExecutor()
         obj.engine = EngineEmul()
         obj.execution.merge({
-            "throughput": 2,
+            "concurrency": 2,
             "hold-for": "10s",
             "scenario": {
                 "default-address": "http://example.com",
@@ -161,7 +161,7 @@ class TestTsungConfig(BZTestCase):
         obj = TsungExecutor()
         obj.engine = EngineEmul()
         obj.execution.merge({
-            "throughput": 50,
+            "concurrency": 50,
             "hold-for": "30s",
             "scenario": {
                 "default-address": "http://example.com",
@@ -187,7 +187,7 @@ class TestTsungConfig(BZTestCase):
         obj = TsungExecutor()
         obj.engine = EngineEmul()
         obj.execution.merge({
-            "throughput": 50,
+            "concurrency": 50,
             "hold-for": "30s",
             "scenario": {
                 "default-address": "http://example.com",
@@ -224,7 +224,7 @@ class TestTsungConfig(BZTestCase):
         obj = TsungExecutor()
         obj.engine = EngineEmul()
         obj.execution.merge({
-            "throughput": 50,
+            "concurrency": 50,
             "hold-for": "30s",
             "scenario": {
                 "default-address": "http://example.com",
@@ -252,7 +252,7 @@ class TestTsungConfig(BZTestCase):
         obj = TsungExecutor()
         obj.engine = EngineEmul()
         obj.execution.merge({
-            "throughput": 50,
+            "concurrency": 50,
             "hold-for": "30s",
             "scenario": {
                 "script": get_res_path("http_simple.xml"),

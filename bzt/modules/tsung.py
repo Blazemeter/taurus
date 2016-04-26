@@ -280,7 +280,7 @@ class TsungConfig(object):
 
     def apply_load_profile(self, load):
         # do not apply unspecified load profile
-        if not load.throughput and not load.hold:
+        if not load.concurrency and not load.hold:
             return
         original_load = self.find("//tsung/load")
         generated_load = self.__gen_load(load)
@@ -337,7 +337,7 @@ class TsungConfig(object):
         :param load:
         :return:
         """
-        throughput = load.throughput if load.throughput is not None else 1
+        concurrency = load.concurrency if load.concurrency is not None else 1
         load_elem = etree.Element("load")
         if load.duration:
             duration, unit = self.__time_to_tsung_time(int(round(load.duration)))
@@ -347,7 +347,7 @@ class TsungConfig(object):
 
         if load.hold:
             duration, unit = self.__time_to_tsung_time(int(round(load.hold)))
-            users = etree.Element("users", arrivalrate=str(throughput), unit="second")
+            users = etree.Element("users", arrivalrate=str(concurrency), unit="second")
             phase = etree.Element("arrivalphase",
                                   phase=str("1"),
                                   duration=str(duration),
