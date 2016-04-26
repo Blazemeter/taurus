@@ -19,8 +19,7 @@ import logging
 import os
 import time
 import traceback
-
-import psutil
+from collections import Counter
 
 from bzt.engine import FileLister, Scenario, ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
@@ -294,13 +293,13 @@ class TsungConfig(object):
         else:
             self.root.replace(original_load[0], generated_load)
 
-    def __time_to_tsung_time(self, time):
-        if time % 3600 == 0:
-            return time // 3600, "hour"
-        elif time % 60 == 0:
-            return time // 60, "minute"
+    def __time_to_tsung_time(self, time_amount):
+        if time_amount % 3600 == 0:
+            return time_amount // 3600, "hour"
+        elif time_amount % 60 == 0:
+            return time_amount // 60, "minute"
         else:
-            return time, "second"
+            return time_amount, "second"
 
     def __gen_clients(self):
         # TODO: distributed clients?
@@ -337,13 +336,13 @@ class TsungConfig(object):
         throughput = load.throughput if load.throughput is not None else 1
         load_elem = etree.Element("load")
         if load.duration:
-            duration, unit = self.__time_to_tsung_time(int(load.duration))
+            duration, unit = self.__time_to_tsung_time(int(round(load.duration)))
             load_elem.set('duration', str(duration))
             load_elem.set('unit', unit)
         phases = []
 
         if load.hold:
-            duration, unit = self.__time_to_tsung_time(int(load.hold))
+            duration, unit = self.__time_to_tsung_time(int(round(load.hold)))
             users = etree.Element("users", arrivalrate=str(throughput), unit="second")
             phase = etree.Element("arrivalphase",
                                   phase=str("1"),
