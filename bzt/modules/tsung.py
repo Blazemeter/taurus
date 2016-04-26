@@ -148,7 +148,14 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         return self.widget
 
     def resource_files(self):
-        raise NotImplementedError("Tsung.resource_files()")
+        resource_files = []
+        scenario = self.get_scenario()
+        if Scenario.SCRIPT in scenario and scenario[Scenario.SCRIPT]:
+            script = self._get_script()
+            if not script or not os.path.exists(script):
+                raise ValueError("Tsung script '%s' doesn't exist" % script)
+            resource_files.append(script)
+        return resource_files
 
 
 class TsungStatsReader(ResultsReader):

@@ -44,8 +44,19 @@ class TestTsungExecutor(BZTestCase):
             self.obj.shutdown()
         self.obj.post_process()
 
-    def test_resource_files(self):
-        self.fail("not implemented")
+    def test_resource_files_script(self):
+        script = get_res_path("http_simple.xml")
+        self.obj.execution.merge({"scenario": {"script": script}})
+        resources = self.obj.resource_files()
+        self.assertEqual(len(resources), 1)
+        self.assertIn(script, resources)
+
+    def test_resource_files_requests(self):
+        script = get_res_path("http_simple.xml")
+        self.obj.execution.merge({"scenario": {"default-address": "http://blazedemo.com",
+                                               "requests": ["/"]}})
+        resources = self.obj.resource_files()
+        self.assertEqual(len(resources), 0)
 
     def test_widget(self):
         self.obj.execution.merge({"scenario": {"script": get_res_path("http_simple.xml")}})
