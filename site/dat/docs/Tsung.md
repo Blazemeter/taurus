@@ -29,9 +29,12 @@ execution:
   throughput: 100
   hold-for: 1m
   scenario:
+    default-address: http://blazedemo.com
     requests:
-    - http://blazedemo.com/
+      - /
+      - /reserve.php
 ```
+Note that `default-address` parameter is mandatory.
 
 Example of using user's Tsung config:
 ```yaml
