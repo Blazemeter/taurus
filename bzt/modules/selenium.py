@@ -29,7 +29,7 @@ from bzt.modules.console import WidgetProvider
 from bzt.modules.jmeter import JTLReader
 from bzt.six import string_types, text_type, etree
 from bzt.utils import RequiredTool, shell_exec, shutdown_process, JavaVM, TclLibrary
-from bzt.utils import dehumanize_time, MirrorsManager, is_windows, BetterDict, get_full_path, get_full_dir_path
+from bzt.utils import dehumanize_time, MirrorsManager, is_windows, BetterDict, get_full_path
 
 try:
     from pyvirtualdisplay.smartdisplay import SmartDisplay as Display
@@ -341,7 +341,7 @@ class JUnitTester(AbstractTestRunner):
         self.hamcrest_path = path_lambda("hamcrest-core", "~/.bzt/selenium-taurus/tools/junit/hamcrest-core.jar")
         self.selenium_server_jar_path = path_lambda("selenium-server",
                                                     "~/.bzt/selenium-taurus/selenium-server.jar")
-        self.junit_listener_path = os.path.join(get_full_dir_path(__file__),
+        self.junit_listener_path = os.path.join(get_full_path(__file__, step_up=1),
                                                 os.pardir,
                                                 "resources",
                                                 "taurus-junit-1.0.jar")
@@ -501,7 +501,7 @@ class NoseTester(AbstractTestRunner):
 
     def __init__(self, nose_config, executor):
         super(NoseTester, self).__init__(nose_config, executor)
-        self.plugin_path = os.path.join(get_full_dir_path(__file__),
+        self.plugin_path = os.path.join(get_full_path(__file__, step_up=1),
                                         os.pardir,
                                         "resources",
                                         "nose_plugin.py")
@@ -606,7 +606,7 @@ class JUnitJar(RequiredTool):
         self.mirror_manager = JUnitMirrorsManager(self.log, self.version)
 
     def install(self):
-        dest = get_full_dir_path(self.tool_path)
+        dest = get_full_path(self.tool_path, step_up=1)
         dest = os.path.abspath(dest)
         junit_dist = super(JUnitJar, self).install_with_mirrors(dest, ".jar")
         self.log.info("Installing %s into %s", self.tool_name, dest)
