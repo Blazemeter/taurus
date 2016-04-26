@@ -273,7 +273,7 @@ class TsungConfig(object):
         self.root.append(self.__gen_clients())
         self.root.append(self.__gen_servers(scenario))
         self.root.append(self.__gen_load(load))
-        self.root.append(self.__gen_options(scenario, load))
+        self.root.append(self.__gen_options(scenario))
         self.root.append(self.__gen_sessions(scenario))
 
     def apply_dumpstats(self):
@@ -363,16 +363,21 @@ class TsungConfig(object):
 
         return load_elem
 
-    def __gen_options(self, scenario, load):
+    def __gen_options(self, scenario):
         options = etree.Element("options")
+
         global_think_time = scenario.data.get('think-time', None)
         if global_think_time:
             think_time = int(dehumanize_time(global_think_time))
             options.append(etree.Element("option", name="thinktime", value=str(think_time), random="false"))
+
         global_tcp_timeout = scenario.data.get('timeout')
         if global_tcp_timeout:
-            timeout= int(dehumanize_time(global_tcp_timeout)) * 1000
+            timeout = int(dehumanize_time(global_tcp_timeout)) * 1000
             options.append(etree.Element("option", name="connect_timeout", value=str(timeout)))
+
+        global_max_retries = scenario.data.get('max-retries', 1)
+        options.append(etree.Element("option", name="max_retries", value=str(global_max_retries)))
         return options
 
     def __gen_sessions(self, scenario):

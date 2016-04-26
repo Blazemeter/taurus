@@ -348,6 +348,24 @@ class TestTsungConfig(BZTestCase):
         thinktime = elements[0]
         self.assertEqual(thinktime.get('value'), '1000')
 
+    def test_scenario_max_retries(self):
+        obj = TsungExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({
+            "hold-for": "10s",
+            "scenario": {
+                "max-retries": "5",
+                "requests": ["http://blazedemo.com/"]
+            }
+        })
+        obj.settings.merge({"path": get_res_path(TOOL_NAME),})
+        obj.prepare()
+        config = TsungConfig()
+        config.load(obj.tsung_config)
+        elements = config.find('//options/option[@name="max_retries"]')
+        self.assertEqual(len(elements), 1)
+        thinktime = elements[0]
+        self.assertEqual(thinktime.get('value'), '5')
 
 
 class TestStatsReader(BZTestCase):

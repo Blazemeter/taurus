@@ -76,9 +76,10 @@ execution:
   scenario:
     default-address: http://blazedemo.com  # base address for HTTP requests
 
-    think-time: 1s  # delay to make after executing this request, applies to all requests
-    
-    timeout: 3s  # TCP connection timeout, applies to all requests
+    think-time: 1s  # delay to make after executing this request, applies to all requests, default value is 0
+
+    timeout: 3s  # TCP connection timeout, applies to all requests, defaults value is infinity
+    max-retries: 1  # max TCP reconnect retries number, defaults to 1
 
     headers:  # global headers, applies to all requests
       User-Agent: taurus-tsung
@@ -94,7 +95,7 @@ execution:
 
     - url: /submit.php  # POST request with body
       method: POST
-      body: 'request-body-string'  # POST body string
+      body: 'request-body-string'
 
     - url: /submit.php  # PUT request with file body
       method: PUT
