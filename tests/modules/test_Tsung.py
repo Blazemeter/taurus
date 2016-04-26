@@ -228,10 +228,12 @@ class TestTsungConfig(BZTestCase):
             "hold-for": "30s",
             "scenario": {
                 "default-address": "http://example.com",
+                "headers": {
+                    "X-Answer": "42",
+                },
                 "requests": [{
                     "url": "/",
                     "headers": {
-                        "X-Answer": "42",
                         "X-Jedi": "Luke Skywalker",
                     },
                 }],

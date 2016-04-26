@@ -75,7 +75,12 @@ execution:
   hold-for: 5m
   scenario:
     default-address: http://blazedemo.com  # base address for HTTP requests
-    think-time: 1s  # delay to make after executing this request, applied to all requests
+
+    think-time: 1s  # delay to make after executing this request, applies to all requests
+
+    headers:  # global headers, applies to all requests
+      User-Agent: taurus-tsung
+
     requests:
     - /  # shorthard form
 
@@ -96,7 +101,7 @@ execution:
     - url: /  # request with additional headers
       headers:
         Authentication: Token 142857
-        Referer: http://taurus.blazemeter/docs
+        Referer: http://gettaurus.org/docs
 ```
 
 ## Module Settings

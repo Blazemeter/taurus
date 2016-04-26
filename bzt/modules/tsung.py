@@ -380,7 +380,10 @@ class TsungConfig(object):
             if request.body:
                 http_elem.set('contents', request.body)
 
-            for header_name, header_value in iteritems(request.headers):
+            headers = {}
+            headers.update(scenario.data.get('headers', {}))
+            headers.update(request.headers)
+            for header_name, header_value in iteritems(headers):
                 http_elem.append(etree.Element("http_header", name=header_name, value=header_value))
 
             request_elem.append(http_elem)
