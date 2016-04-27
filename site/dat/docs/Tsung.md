@@ -118,3 +118,8 @@ modules:
   tsung:
     path: /usr/local/bin/tsung
 ```
+
+## Tsung concurrency stats
+
+Due to some limitations of Tsung, Taurus is able to extract actual concurrency info from Tsung only once in 10 seconds,
+so virtual users / time graph is not completely accurate.

@@ -103,13 +103,11 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         return config_file
 
     def startup(self):
-        # NOTE: this is some really nasty hack to make Tsung dump stats to tsung.log every second
-        tsung_option_injection = ' -tsung_controller dumpstats_interval 1000'
         args = [
             self.tool_path,
             '-f', self.tsung_config,
             '-l', self.tsung_artifacts_basedir,
-            '-w', '0' + tsung_option_injection,
+            '-w', '0',
             'start',
         ]
         self.start_time = time.time()
@@ -221,14 +219,14 @@ class TsungStatsReader(ResultsReader):
             lines = self.log_fds.readlines()
         else:
             lines = self.log_fds.readlines(1024 * 1024)
-        self.log_offset = self.stats_fds.tell()
+        self.log_offset = self.log_fds.tell()
         extractor = re.compile(r'^stats: users (\d+) (\d+)$')
         for line in lines:
             match = extractor.match(line.strip())
             if not match:
                 continue
             self.concurrency = int(match.group(2))
-            self.log.info("concurrency: %s", self.concurrency)
+            self.log.debug("Actual Tsung concurrency: %s", self.concurrency)
 
     def _read(self, last_pass=False):
         while not self.stats_fds and not self._open_fds():
