@@ -15,9 +15,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import json
 import logging
 import os
+import re
 import time
 import traceback
 
@@ -104,7 +104,7 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def startup(self):
         # NOTE: this is some really nasty hack to make Tsung dump stats to tsung.log every 2 seconds
-        tsung_option_injection = ' -tsung_controller dumpstats_interval 2000'
+        tsung_option_injection = ' -tsung_controller dumpstats_interval 1000'
         args = [
             self.tool_path,
             '-f', self.tsung_config,
@@ -167,13 +167,13 @@ class TsungStatsReader(ResultsReader):
         self.tsung_basedir = tsung_basedir
         self.stats_filename = None
         self.stats_fds = None
-        self.delimiter = ";"
-        self.offset = 0
-        self.partial_buffer = ""
-        self.skipped_header = False
+        self.stats_offset = 0
         self.log_filename = None
         self.log_fds = None
         self.log_offset = 0
+        self.delimiter = ";"
+        self.partial_buffer = ""
+        self.skipped_header = False
         self.concurrency = 0
 
     def _open_fds(self):
@@ -221,17 +221,14 @@ class TsungStatsReader(ResultsReader):
             lines = self.log_fds.readlines()
         else:
             lines = self.log_fds.readlines(1024 * 1024)
-        self.offset = self.stats_fds.tell()
+        self.log_offset = self.stats_fds.tell()
+        extractor = re.compile(r'^stats: users (\d+) (\d+)$')
         for line in lines:
-            line = line.strip()
-            try:
-                stat = json.loads(line + "]}")
-            except ValueError:
+            match = extractor.match(line.strip())
+            if not match:
                 continue
-            users = [sample for sample in stat["samples"] if sample["name"] == "users"]
-            if not users:
-                continue
-            self.concurrency = users[0]["value"]
+            self.concurrency = int(match.group(2))
+            self.log.info("concurrency: %s", self.concurrency)
 
     def _read(self, last_pass=False):
         while not self.stats_fds and not self._open_fds():
@@ -239,12 +236,12 @@ class TsungStatsReader(ResultsReader):
             yield None
 
         self.log.debug("Reading Tsung results")
-        self.stats_fds.seek(self.offset)
+        self.stats_fds.seek(self.stats_offset)
         if last_pass:
             lines = self.stats_fds.readlines()
         else:
             lines = self.stats_fds.readlines(1024 * 1024)
-        self.offset = self.stats_fds.tell()
+        self.stats_offset = self.stats_fds.tell()
 
         self._read_concurrency(last_pass)
 
@@ -279,7 +276,7 @@ class TsungStatsReader(ResultsReader):
 class TsungConfig(object):
     def __init__(self):
         self.log = logging.getLogger(self.__class__.__name__)
-        self.root = etree.Element("tsung", loglevel="notice", version="1.0", dumptraffic="protocol", backend="json")
+        self.root = etree.Element("tsung", loglevel="notice", version="1.0", dumptraffic="protocol", backend="text")
         self.tree = etree.ElementTree(self.root)
 
     def load(self, filename):
@@ -308,7 +305,7 @@ class TsungConfig(object):
 
     def apply_dumpstats(self):
         self.root.set("dumptraffic", "protocol")
-        self.root.set("backend", "json")
+        self.root.set("backend", "text")
 
     def apply_load_profile(self, load):
         # do not apply unspecified load profile
