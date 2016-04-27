@@ -28,7 +28,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.console import WidgetProvider
 from bzt.modules.jmeter import JTLReader
 from bzt.six import string_types, text_type, etree
-from bzt.utils import RequiredTool, shell_exec, shutdown_process, JavaVM, TclLibrary
+from bzt.utils import RequiredTool, shell_exec, shutdown_process, JavaVM, TclLibrary, get_files_recursive
 from bzt.utils import dehumanize_time, MirrorsManager, is_windows, BetterDict, get_full_path
 
 try:
@@ -161,13 +161,6 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     @staticmethod
     def detect_script_type(script_path):
-        """
-        checks if script is java or python
-        if it's folder or single script
-
-        :param script_path: str
-        :return:
-        """
         if not isinstance(script_path, string_types) and not isinstance(script_path, text_type):
             raise ValueError("Nothing to test, no files were provided in scenario")
 
@@ -178,10 +171,9 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         if os.path.isfile(script_path):  # regular file received
             file_types.add(os.path.splitext(script_path)[1].lower())
-        else:  # dir received: check files
-            for walk_rec in os.walk(script_path):
-                for file_name in walk_rec[2]:
-                    file_types.add(os.path.splitext(file_name)[1].lower())
+        else:  # dir received: check contained files
+            for file_name in get_files_recursive():
+                file_types.add(os.path.splitext(file_name)[1].lower())
 
         if '.java' in file_types:
             file_ext = '.java'
@@ -242,21 +234,12 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         return self.widget
 
     def resource_files(self):
-        if not self.scenario:
-            self.scenario = self.get_scenario()
+        self.scenario = self.get_scenario()
 
-        if Scenario.SCRIPT not in self.scenario:
-            return []
-
-        script_path = self._get_script_path()
-
-        if os.path.isdir(script_path):
-            files = next(os.walk(script_path))
-            resources = [os.path.join(files[0], f) for f in files[2]]
+        if Scenario.SCRIPT in self.scenario:
+            return [self._get_script_path()]
         else:
-            resources = [script_path]
-
-        return resources
+            return []
 
     def __tests_from_requests(self):
         filename = self.engine.create_artifact("test_requests", ".py")

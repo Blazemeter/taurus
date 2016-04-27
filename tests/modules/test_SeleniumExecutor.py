@@ -22,14 +22,21 @@ class SeleniumTestCase(BZTestCase):
 
 
 class TestSeleniumJUnitRunner(SeleniumTestCase):
-    """
-    java:one/folder/project/list
-    jar:one/folder/list
-    python:one/folder/list
-    """
-
-    def setUp(self):
-        super(TestSeleniumJUnitRunner, self).setUp()
+    def test_a_zip_resource_files(self):
+        obj = self.get_selenium_executor()
+        obj.engine.config.merge({
+            'execution': {
+                'scenario': {'script': __dir__() + '/../selenium/java/'},
+                'executor': 'selenium'
+            },
+            'reporting': [{'module': 'junit-xml'}]
+        })
+        obj.engine.config.merge({"provisioning": "local"})
+        obj.execution = obj.engine.config['execution']
+        obj.settings.merge(obj.engine.config.get("modules").get("selenium"))
+        #rf = obj.resource_files()
+        obj.prepare()
+        pass
 
     def test_install_tools(self):
         """

@@ -35,6 +35,7 @@ import tempfile
 import time
 import webbrowser
 import zipfile
+import fnmatch
 from abc import abstractmethod
 from collections import defaultdict, Counter
 from subprocess import PIPE
@@ -53,6 +54,13 @@ def get_full_path(path, step_up=0):
     for i in range(step_up):
         res = os.path.dirname(res)
     return res
+
+
+def get_files_recursive(dir_name, exclude_mask=''):
+    for root, dirs, files in os.walk(dir_name):
+        for _file in files:
+            if not fnmatch.fnmatch(_file, exclude_mask):
+                yield os.path.join(root, _file)
 
 
 def run_once(func):

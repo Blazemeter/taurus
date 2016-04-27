@@ -23,20 +23,13 @@ except ImportError:
 
 
 class EngineEmul(Engine):
-    """
-    emulating engine
-    """
-
     def __init__(self):
-        Engine.__init__(self, logging.getLogger(''))
+        super(EngineEmul, self).__init__(logging.getLogger(''))
         self.config.get('settings')['artifacts-dir'] = os.path.dirname(__file__) + "/../build/test/%Y-%m-%d_%H-%M-%S.%f"
         self.create_artifacts_dir()
         self.config.merge({"provisioning": "local"})
         self.finalize_exc = None
         self.was_finalize = False
-
-    def _shutdown(self):
-        return super(EngineEmul, self)._shutdown()
 
     def dump_config(self):
         """ test """

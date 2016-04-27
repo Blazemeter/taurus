@@ -24,6 +24,7 @@ import os
 import shutil
 import time
 import traceback
+import zipfile
 from abc import abstractmethod
 from collections import namedtuple, defaultdict
 from distutils.version import LooseVersion
@@ -34,10 +35,10 @@ from yaml.representer import SafeRepresenter
 
 import bzt
 from bzt import ManualShutdown, NormalShutdown, get_configs_dir
-from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, build_opener, \
-    install_opener, urlopen, request, numeric_types, iteritems
-from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, PIPE, \
-    shell_exec
+from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler
+from bzt.six import build_opener, install_opener, urlopen, request, numeric_types, iteritems
+from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time
+from bzt.utils import PIPE, shell_exec, get_files_recursive
 
 SETTINGS = "settings"
 
@@ -877,13 +878,31 @@ class ScenarioExecutor(EngineModule):
                    duration=duration, steps=steps)
 
     def get_resource_files(self):
-        """
-        Return resource files list
-        """
-        files_list = self.execution.get("files", [])
+
+        new_server = True  # TODO: implement set up of sever property
+        result_list = []
+        source_list = self.execution.get("files", [])
         if isinstance(self, FileLister):
-            files_list.extend(self.resource_files())
-        return files_list
+            source_list.extend(self.resource_files())
+        while source_list:
+            source = source_list.pop()
+            if os.path.isfile(source):
+                result_list.append(source)
+
+            else:   # source is dir
+                if new_server:  # server supports archives
+                    self.log.debug("Compress directory '%s'", source)
+                    zip_name = source + '.zip'  # TODO: create archive in artifacts dir
+                    with zipfile.ZipFile(zip_name, 'w', zipfile.ZIP_STORED) as zip_file:
+                        for filename in get_files_recursive(source):
+                            zip_file.write(filename)
+                    result_list.append(zip_name)
+
+                else:  # old server: send files
+                    for filename in get_files_recursive(source):
+                        result_list.append(filename)
+
+        return result_list
 
     def __repr__(self):
         return "%s/%s" % (self.execution.get("executor", None), self._label if self._label else id(self))
