@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.4.5 (next)
+## 1.5.0 (next)
  - add [Tsung](Tsung.md) executor
 
 ## 1.4.4 <sup>25 apr 2016</sup>

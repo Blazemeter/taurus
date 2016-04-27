@@ -12,17 +12,30 @@ Taurus supports only Tsung version 1.5.1 and higher.
 
 To install Tsung, see official [Tsung Installation](http://tsung.erlang-projects.org/user_manual/installation.html) docs.
 
+### Mac OS X
+
+On Mac OS X you can install Tsung with [Homebrew](http://brew.sh/):
+```bash
+$ brew install tsung
+```
+
 ### Notes for Ubuntu 14.04
 
-Ubuntu 14.04 repos provide 1.4.1 version of Tsung, which is not supported by Taurus, as it lacks some important features.
-You can install more recent 1.5.1 version from [tsung-stable](https://launchpad.net/~tsung/+archive/ubuntu/stable) PPA.
+Ubuntu 14.04 provides Tsung 1.4.1, which is not supported by Taurus, as it lacks some important features.
+You can install more recent 1.5.1 version from [tsung-stable](https://launchpad.net/~tsung/+archive/ubuntu/stable) PPA:
 
-More recent Ubuntu versions provide Tsung 1.5.1 by default, so `apt-get install tsung` is enough to get Tsung.
+```bash
+$ sudo add-apt-repository ppa:tsung/stable
+$ sudo apt-get update
+$ sudo apt-get install tsung
+```
+
+More recent Ubuntu versions provide Tsung 1.5.1 by default, so `apt-get install tsung` should be enough.
 
 ## Tsung load generation model
 
-When given fixed `concurrency`, Tsung spawns N "users" each second. Every user is actually a lightweight Erlang process.
-User executes all requests from given scenario and then stops.
+When given `concurrency: N`, Tsung spawns N "virtual users" each second. Every user is actually a lightweight Erlang
+process. User executes all requests from given scenario and then stops.
 
 ## Scenario Samples
 
