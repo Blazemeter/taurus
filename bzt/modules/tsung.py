@@ -103,7 +103,7 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         return config_file
 
     def startup(self):
-        # NOTE: this is some really nasty hack to make Tsung dump stats to tsung.log every 2 seconds
+        # NOTE: this is some really nasty hack to make Tsung dump stats to tsung.log every second
         tsung_option_injection = ' -tsung_controller dumpstats_interval 1000'
         args = [
             self.tool_path,
