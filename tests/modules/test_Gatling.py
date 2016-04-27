@@ -262,3 +262,10 @@ class TestDataLogReader(BZTestCase):
         obj = DataLogReader(log_path, logging.getLogger(''), 'gatling-0')
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 23)
+
+    def test_read_220_format(self):
+        log_path = os.path.join(os.path.dirname(__file__), '..', 'gatling')
+        obj = DataLogReader(log_path, logging.getLogger(''), 'gatling-220')
+        list_of_values = list(obj.datapoints(True))
+        self.assertEqual(len(list_of_values), 4)
+
