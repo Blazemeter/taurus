@@ -64,7 +64,11 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         self.tsung_controller_id = "tsung_taurus_%s" % id(self)
         self.tsung_artifacts_basedir = os.path.join(self.engine.artifacts_dir, self.tsung_controller_id)
-        os.makedirs(self.tsung_artifacts_basedir)
+        if not os.path.exists(self.tsung_artifacts_basedir):
+            os.makedirs(self.tsung_artifacts_basedir)
+        else:
+            msg = "Tsung artifacts basedir already exists, will not create: %s"
+            self.log.warning(msg, self.tsung_artifacts_basedir)
 
         self.stats_reader = TsungStatsReader(self.tsung_artifacts_basedir, self.log)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
