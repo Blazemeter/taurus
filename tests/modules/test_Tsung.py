@@ -117,6 +117,24 @@ class TestTsungExecutor(BZTestCase):
         })
         self.assertRaises(ValueError, self.obj.prepare)
 
+    def test_multiexec_controller_id(self):
+        self.obj.execution.merge({
+            "hold-for": "10s",
+            "scenario": {
+                "requests": ["http://blazedemo.com/"],
+            }
+        })
+        self.obj.prepare()
+        try:
+            self.obj.startup()
+            while not self.obj.check():
+                time.sleep(self.obj.engine.check_interval)
+        finally:
+            self.obj.shutdown()
+        self.obj.post_process()
+        stdout = open(path.join(self.obj.engine.artifacts_dir, 'tsung.out')).read()
+        cid_param = '-i %s' % self.obj.tsung_controller_id
+        self.assertIn(cid_param, stdout)
 
 class TestTsungConfig(BZTestCase):
     def test_servers(self):

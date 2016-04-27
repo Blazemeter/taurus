@@ -42,6 +42,7 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.__stats_file = None
         self.tsung_config = None
         self.tool_path = None
+        self.tsung_controller_id = None
         self.tsung_artifacts_basedir = None
         self.stats_reader = None
         self.start_time = None
@@ -61,8 +62,8 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         else:
             raise ValueError("You must specify either a script or a list of requests to run Tsung")
 
-        basedir_prefix = "tsung_taurus_%s" % id(self)
-        self.tsung_artifacts_basedir = os.path.join(self.engine.artifacts_dir, basedir_prefix)
+        self.tsung_controller_id = "tsung_taurus_%s" % id(self)
+        self.tsung_artifacts_basedir = os.path.join(self.engine.artifacts_dir, self.tsung_controller_id)
         os.makedirs(self.tsung_artifacts_basedir)
 
         self.stats_reader = TsungStatsReader(self.tsung_artifacts_basedir, self.log)
@@ -107,6 +108,7 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.tool_path,
             '-f', self.tsung_config,
             '-l', self.tsung_artifacts_basedir,
+            '-i', self.tsung_controller_id,
             '-w', '0',
             'start',
         ]
@@ -144,7 +146,7 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def get_widget(self):
         if not self.widget:
-            self.widget = SidebarWidget(self, "Tsung")
+            self.widget = SidebarWidget(self, self.tsung_controller_id)
         return self.widget
 
     def resource_files(self):
