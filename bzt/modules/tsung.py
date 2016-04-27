@@ -1,5 +1,5 @@
 """
-Module holds all stuff regarding usage of Apache Benchmark
+Module holds all stuff regarding usage of Tsung
 
 Copyright 2016 BlazeMeter Inc.
 
@@ -356,11 +356,8 @@ class TsungConfig(object):
         """
         Generate Tsung load profile.
 
-        Basically, generates two phases: one for ramp-up, one for hold-for.
-
-        Tsung load progression is similar to pbench one. The users are erlang processes which are spawned according to
-        load profile. Each user executes assigned session (requests + think-time + logic) and then dies. So if we want
-        to maintain constant rps - we have to spawn N new users each second.
+        Tsung load progression is scenario-based. Virtual users are erlang processes which are spawned according to
+        load profile. Each user executes assigned session (requests + think-time + logic) and then dies.
         :param scenario:
         :param load:
         :return:
