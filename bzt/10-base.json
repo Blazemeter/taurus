@@ -121,6 +121,9 @@
     },
     "siege": {
       "class": "bzt.modules.siege.SiegeExecutor"
+    },
+    "tsung": {
+      "class": "bzt.modules.tsung.TsungExecutor"
     }
   },
   "settings": {
