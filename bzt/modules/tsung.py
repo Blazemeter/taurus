@@ -322,7 +322,8 @@ class TsungConfig(object):
         else:
             self.root.replace(original_load[0], generated_load)
 
-    def __time_to_tsung_time(self, time_amount):
+    @staticmethod
+    def __time_to_tsung_time(time_amount):
         if time_amount % 3600 == 0:
             return time_amount // 3600, "hour"
         elif time_amount % 60 == 0:
