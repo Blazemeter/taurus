@@ -413,6 +413,81 @@ class DataLogReader(ResultsReader):
         self.offset = 0
         self.dir_prefix = dir_prefix
 
+    def _extract_log_gatling_217(self, fields):
+        # $scenario  $userId  ${RequestRecordHeader.value}
+        # ${serializeGroups(groupHierarchy)}  $name
+        # 5requestStartDate  6requestEndDate
+        # 7responseStartDate  8responseEndDate
+        # 9status
+        # ${serializeMessage(message)}${serializeExtraInfo(extraInfo)}$Eol"
+
+        if fields[2].strip() == "USER":
+            if fields[3].strip() == "START":
+                self.concurrency += 1
+            elif fields[3].strip() == "END":
+                self.concurrency -= 1
+
+        if fields[2].strip() != "REQUEST":
+            return None
+
+        label = fields[4]
+        t_stamp = int(fields[8]) / 1000.0
+
+        r_time = (int(fields[8]) - int(fields[5])) / 1000.0
+        latency = (int(fields[7]) - int(fields[6])) / 1000.0
+        con_time = (int(fields[6]) - int(fields[5])) / 1000.0
+
+        if fields[-1] == 'OK':
+            r_code = '200'
+        else:
+            _tmp_rc = fields[-1].split(" ")[-1]
+            r_code = _tmp_rc if _tmp_rc.isdigit() else 'No RC'
+
+        if len(fields) >= 11 and fields[10]:
+            error = fields[10]
+        else:
+            error = None
+        return int(t_stamp), label, r_time, con_time, latency, r_code, error
+
+    def _extract_log_gatling_220(self, fields):
+        # 0 ${RequestRecordHeader.value}
+        # 1 $scenario
+        # 2 $userId
+        # 3 ${serializeGroups(groupHierarchy)}
+        # 4 $label
+        # 5 $startTimestamp
+        # 6 $endTimestamp
+        # 7 $status
+        # [8] ${serializeMessage(message)}${serializeExtraInfo(extraInfo)}
+
+        if fields[0].strip() == "USER":
+            if fields[3].strip() == "START":
+                self.concurrency += 1
+            elif fields[3].strip() == "END":
+                self.concurrency -= 1
+
+        if fields[0].strip() != "REQUEST":
+            return None
+
+        label = fields[4]
+        t_stamp = int(fields[6]) / 1000.0
+
+        r_time = (int(fields[6]) - int(fields[5])) / 1000.0
+        latency = 0.0
+        con_time = 0.0
+
+        if fields[7] == 'OK':
+            r_code = '200'
+        else:
+            _tmp_rc = fields[-1].split(" ")[-1]
+            r_code = _tmp_rc if _tmp_rc.isdigit() else 'No RC'
+
+        if len(fields) >= 9 and fields[8]:
+            error = fields[8]
+        else:
+            error = None
+        return int(t_stamp), label, r_time, con_time, latency, r_code, error
+
     def _read(self, last_pass=False):
         """
         Generator method that returns next portion of data
@@ -442,39 +517,14 @@ class DataLogReader(ResultsReader):
             line = line.strip()
             fields = line.split(self.delimiter)
 
-            # $scenario  $userId  ${RequestRecordHeader.value}
-            # ${serializeGroups(groupHierarchy)}  $name
-            # 5requestStartDate  6requestEndDate
-            # 7responseStartDate  8responseEndDate
-            # 9status
-            # ${serializeMessage(message)}${serializeExtraInfo(extraInfo)}$Eol"
-            if fields[2].strip() == "USER":
-                if fields[3].strip() == "START":
-                    self.concurrency += 1
-                elif fields[3].strip() == "END":
-                    self.concurrency -= 1
-
-            if fields[2].strip() != "REQUEST":
+            data = self._extract_log_gatling_217(fields)
+            if data is None:
+                data = self._extract_log_gatling_220(fields)
+            if data is None:
                 continue
-            label = fields[4]
-            t_stamp = int(fields[8]) / 1000.0
+            t_stamp, label, r_time, con_time, latency, r_code, error = data
 
-            r_time = (int(fields[8]) - int(fields[5])) / 1000.0
-            latency = (int(fields[7]) - int(fields[6])) / 1000.0
-            con_time = (int(fields[6]) - int(fields[5])) / 1000.0
-
-            if fields[-1] == 'OK':
-                r_code = '200'
-            else:
-                _tmp_rc = fields[-1].split(" ")[-1]
-                r_code = _tmp_rc if _tmp_rc.isdigit() else 'No RC'
-
-            if len(fields) >= 11 and fields[10]:
-                error = fields[10]
-            else:
-                error = None
-
-            yield int(t_stamp), label, self.concurrency, r_time, con_time, latency, r_code, error, ''
+            yield t_stamp, label, self.concurrency, r_time, con_time, latency, r_code, error, ''
 
     def __open_fds(self):
         """
