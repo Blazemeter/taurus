@@ -648,7 +648,7 @@ class RequiredTool(object):
         mirrors = self.mirror_manager.mirrors()
         sock_timeout = socket.getdefaulttimeout()
         for mirror in mirrors:
-            self.log.debug("Downloading: %s", mirror)
+            self.log.info("Downloading: %s", mirror)
             with ProgressBarContext() as pbar:
                 try:
                     socket.setdefaulttimeout(5)
