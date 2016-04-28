@@ -2,7 +2,7 @@ import logging
 import time
 from os import path
 
-from bzt.modules.tsung import TsungExecutor, TsungStatsReader, TsungConfig
+from bzt.modules.tsung import TsungExecutor, TsungStatsReader, TsungConfig, Tsung
 from bzt.six import etree
 from bzt.utils import EXE_SUFFIX, BetterDict
 from tests import BZTestCase
@@ -149,7 +149,7 @@ class TestTsungConfig(BZTestCase):
         })
         obj.settings.merge({"path": get_res_path(TOOL_NAME),})
         obj.prepare()
-        config = TsungConfig()
+        config = TsungConfig(None)
         config.load(obj.tsung_config)
         servers = config.find('//servers/server')
         self.assertEquals(1, len(servers))
@@ -170,7 +170,7 @@ class TestTsungConfig(BZTestCase):
         })
         obj.settings.merge({"path": get_res_path(TOOL_NAME),})
         obj.prepare()
-        config = TsungConfig()
+        config = TsungConfig(None)
         config.load(obj.tsung_config)
         requests = config.find('//request')
         self.assertEquals(2, len(requests))
@@ -194,7 +194,7 @@ class TestTsungConfig(BZTestCase):
         })
         obj.settings.merge({"path": get_res_path(TOOL_NAME),})
         obj.prepare()
-        config = TsungConfig()
+        config = TsungConfig(None)
         config.load(obj.tsung_config)
         thinktimes = config.find('//thinktime')
         self.assertEqual(len(thinktimes), 2)
@@ -228,7 +228,7 @@ class TestTsungConfig(BZTestCase):
         })
         obj.settings.merge({"path": get_res_path(TOOL_NAME),})
         obj.prepare()
-        config = TsungConfig()
+        config = TsungConfig(None)
         config.load(obj.tsung_config)
         urls = config.find('//http')
         self.assertEqual(len(urls), 3)
@@ -259,7 +259,7 @@ class TestTsungConfig(BZTestCase):
         })
         obj.settings.merge({"path": get_res_path(TOOL_NAME),})
         obj.prepare()
-        config = TsungConfig()
+        config = TsungConfig(None)
         config.load(obj.tsung_config)
         headers = config.find('//http/http_header')
         self.assertEqual(len(headers), 2)
@@ -279,10 +279,10 @@ class TestTsungConfig(BZTestCase):
         })
         obj.settings.merge({"path": get_res_path(TOOL_NAME),})
         obj.prepare()
-        original_config = TsungConfig()
+        original_config = TsungConfig(None)
         original_config.load(get_res_path("http_simple.xml"))
         original_load = original_config.find('//tsung/load')[0]
-        modified_config = TsungConfig()
+        modified_config = TsungConfig(None)
         modified_config.load(obj.tsung_config)
         loads = modified_config.find('//tsung/load')
         self.assertEqual(len(loads), 1)
@@ -301,10 +301,10 @@ class TestTsungConfig(BZTestCase):
         })
         obj.settings.merge({"path": get_res_path(TOOL_NAME),})
         obj.prepare()
-        original_config = TsungConfig()
+        original_config = TsungConfig(None)
         original_config.load(get_res_path("http_simple.xml"))
         original_load = original_config.find('//tsung/load')[0]
-        modified_config = TsungConfig()
+        modified_config = TsungConfig(None)
         modified_config.load(obj.tsung_config)
         loads = modified_config.find('//tsung/load')
         self.assertEqual(len(loads), 1)
@@ -321,7 +321,7 @@ class TestTsungConfig(BZTestCase):
         })
         obj.settings.merge({"path": get_res_path(TOOL_NAME),})
         obj.prepare()
-        config = TsungConfig()
+        config = TsungConfig(None)
         config.load(obj.tsung_config)
         elements = config.find('//tsung')
         self.assertEqual(len(elements), 1)
@@ -341,7 +341,7 @@ class TestTsungConfig(BZTestCase):
         })
         obj.settings.merge({"path": get_res_path(TOOL_NAME),})
         obj.prepare()
-        config = TsungConfig()
+        config = TsungConfig(None)
         config.load(obj.tsung_config)
         elements = config.find('//options/option[@name="thinktime"]')
         self.assertEqual(len(elements), 1)
@@ -360,7 +360,7 @@ class TestTsungConfig(BZTestCase):
         })
         obj.settings.merge({"path": get_res_path(TOOL_NAME),})
         obj.prepare()
-        config = TsungConfig()
+        config = TsungConfig(None)
         config.load(obj.tsung_config)
         elements = config.find('//options/option[@name="connect_timeout"]')
         self.assertEqual(len(elements), 1)
@@ -379,7 +379,7 @@ class TestTsungConfig(BZTestCase):
         })
         obj.settings.merge({"path": get_res_path(TOOL_NAME),})
         obj.prepare()
-        config = TsungConfig()
+        config = TsungConfig(None)
         config.load(obj.tsung_config)
         elements = config.find('//options/option[@name="max_retries"]')
         self.assertEqual(len(elements), 1)
@@ -393,3 +393,13 @@ class TestStatsReader(BZTestCase):
         obj = TsungStatsReader(stats_basedir, logging.getLogger(''))
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 16)
+
+
+class TestTool(BZTestCase):
+    def test_prefix_local(self):
+        prefix = Tsung.get_tool_prefix("/usr/local/bin/tsung")
+        self.assertEqual(prefix, "/usr/local")
+
+    def test_prefix(self):
+        prefix = Tsung.get_tool_prefix("/usr/bin/tsung")
+        self.assertEqual(prefix, "/usr")
