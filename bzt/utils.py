@@ -803,7 +803,7 @@ class MirrorsManager(object):
 
 def open_browser(url):
     browser = webbrowser.get()
-    if not isinstance(browser, GenericBrowser):
+    if type(browser) != GenericBrowser:
         try:
             browser.open(url)
         except BaseException as exc:
