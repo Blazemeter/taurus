@@ -100,8 +100,8 @@ execution:
     Link to download Gatling.
     By default: "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip"
     
- -  `version`: "2.1.4"
-    Gatling version, by default "2.1.4"        
+ -  `version`: "2.1.7"
+    Gatling version, 2.1.7 by default
 
  - `properties`: dictionary for tuning of gatling tool behaviour (see list of available parameters in gatling documentation). Following example shows setting output buffer size:
         
@@ -112,3 +112,9 @@ modules:
     properties:
       gatling.data.file.bufferSize: 512  # output buffer size, 256 bytes by default      
 ```
+
+## Gatling 2.2.0 Support
+
+Taurus works with Gatling 2.2.0. However, with Gatling 2.2.0 it's not possible to extract such network stats
+as latency and connection time, as Gatling removed them from report data. Because of that, Taurus installs Gatling 2.1.7
+by default.
