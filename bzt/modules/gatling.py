@@ -413,8 +413,15 @@ class DataLogReader(ResultsReader):
         self.delimiter = "\t"
         self.offset = 0
         self.dir_prefix = dir_prefix
+        self.guessed_gatling_version = None
 
-    def _extract_log_gatling_217(self, fields):
+    def _extract_log_gatling_21(self, fields):
+        """
+        Extract stats from Gatling 2.1 format.
+
+        :param fields:
+        :return:
+        """
         # $scenario  $userId  ${RequestRecordHeader.value}
         # ${serializeGroups(groupHierarchy)}  $name
         # 5requestStartDate  6requestEndDate
@@ -450,7 +457,12 @@ class DataLogReader(ResultsReader):
             error = None
         return int(t_stamp), label, r_time, con_time, latency, r_code, error
 
-    def _extract_log_gatling_220(self, fields):
+    def _extract_log_gatling_22(self, fields):
+        """
+        Extract stats from Gatling 2.2 format
+        :param fields:
+        :return:
+        """
         # 0 ${RequestRecordHeader.value}
         # 1 $scenario
         # 2 $userId
@@ -489,6 +501,27 @@ class DataLogReader(ResultsReader):
             error = None
         return int(t_stamp), label, r_time, con_time, latency, r_code, error
 
+    def _guess_gatling_version(self, fields):
+        if fields[0].strip() in ["USER", "REQUEST", "RUN"]:
+            self.log.debug("Parsing Gatling 2.2 stats")
+            return "2.2"
+        elif fields[2].strip() in ["USER", "REQUEST", "RUN"]:
+            self.log.debug("Parsing Gatling 2.1 stats")
+            return "2.1"
+        else:
+            return None
+
+    def _extract_log_data(self, fields):
+        if self.guessed_gatling_version is None:
+            self.guessed_gatling_version = self._guess_gatling_version(fields)
+
+        if self.guessed_gatling_version == "2.1":
+            return self._extract_log_gatling_21(fields)
+        elif self.guessed_gatling_version == "2.2":
+            return self._extract_log_gatling_22(fields)
+        else:
+            return None
+
     def _read(self, last_pass=False):
         """
         Generator method that returns next portion of data
@@ -518,13 +551,11 @@ class DataLogReader(ResultsReader):
             line = line.strip()
             fields = line.split(self.delimiter)
 
-            data = self._extract_log_gatling_217(fields)
-            if data is None:
-                data = self._extract_log_gatling_220(fields)
+            data = self._extract_log_data(fields)
             if data is None:
                 continue
-            t_stamp, label, r_time, con_time, latency, r_code, error = data
 
+            t_stamp, label, r_time, con_time, latency, r_code, error = data
             yield t_stamp, label, self.concurrency, r_time, con_time, latency, r_code, error, ''
 
     def __open_fds(self):
