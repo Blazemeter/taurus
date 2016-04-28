@@ -21,25 +21,25 @@ class TestGatlingExecutor(BZTestCase):
         path = os.path.abspath(__dir__() + "/../../build/tmp/gatling-taurus/bin/gatling" + EXE_SUFFIX)
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
 
-        gatling_download_link = GatlingExecutor.DOWNLOAD_LINK
-        gatling_version = GatlingExecutor.VERSION
         gatling_mirrors = GatlingExecutor.MIRRORS_SOURCE
-
-        GatlingExecutor.DOWNLOAD_LINK = "file:///" + __dir__() + "/../data/gatling-dist-{version}_{version}.zip"
-        GatlingExecutor.VERSION = '2.1.4'
         GatlingExecutor.MIRRORS_SOURCE = "file:///" + __dir__() + "/../data/unicode_file"
+
+        download_link = "file:///" + __dir__() + "/../data/gatling-dist-{version}_{version}.zip"
+        gatling_version = '2.1.4'
 
         self.assertFalse(os.path.exists(path))
         obj = self.getGatling()
-        obj.settings.merge({"path": path})
+        obj.settings.merge({
+            "path": path,
+            "download-link": download_link,
+            "version": gatling_version,
+        })
 
         obj.execution.merge({"scenario": {"script": __dir__() + "/../gatling/BasicSimulation.scala",
                                           "simulation": "mytest.BasicSimulation"}})
         obj.prepare()
         self.assertTrue(os.path.exists(path))
 
-        GatlingExecutor.DOWNLOAD_LINK = gatling_download_link
-        GatlingExecutor.VERSION = gatling_version
         GatlingExecutor.MIRRORS_SOURCE = gatling_mirrors
 
     def test_gatling_widget(self):

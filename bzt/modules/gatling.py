@@ -322,8 +322,9 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         gatling_path = self.settings.get("path", "~/.bzt/gatling-taurus/bin/gatling" + EXE_SUFFIX)
         gatling_path = os.path.abspath(os.path.expanduser(gatling_path))
         self.settings["path"] = gatling_path
+        download_link = self.settings.get("download-link", GatlingExecutor.DOWNLOAD_LINK)
         gatling_version = self.settings.get("version", GatlingExecutor.VERSION)
-        required_tools.append(Gatling(gatling_path, self.log, gatling_version))
+        required_tools.append(Gatling(gatling_path, self.log, download_link, gatling_version))
 
         for tool in required_tools:
             if not tool.check_if_installed():
@@ -554,11 +555,11 @@ class Gatling(RequiredTool):
     Gatling tool
     """
 
-    def __init__(self, tool_path, parent_logger, version):
+    def __init__(self, tool_path, parent_logger, download_link, version):
         super(Gatling, self).__init__("Gatling", tool_path)
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.version = version
-        self.mirror_manager = GatlingMirrorsManager(self.log, self.version)
+        self.mirror_manager = GatlingMirrorsManager(self.log, download_link, self.version)
 
     def check_if_installed(self):
         self.log.debug("Trying Gatling: %s", self.tool_path)
@@ -586,7 +587,8 @@ class Gatling(RequiredTool):
 
 
 class GatlingMirrorsManager(MirrorsManager):
-    def __init__(self, parent_logger, gatling_version):
+    def __init__(self, parent_logger, download_link, gatling_version):
+        self.download_link = download_link
         self.gatling_version = gatling_version
         super(GatlingMirrorsManager, self).__init__(GatlingExecutor.MIRRORS_SOURCE, parent_logger)
 
@@ -601,7 +603,7 @@ class GatlingMirrorsManager(MirrorsManager):
             if select_element and self.gatling_version in select_element:
                 href_elements = href_search_pattern.findall(select_element[0])
                 links = [link.strip('href=').strip('">') for link in href_elements]
-        default_link = GatlingExecutor.DOWNLOAD_LINK.format(version=self.gatling_version)
+        default_link = self.download_link.format(version=self.gatling_version)
         if default_link not in links:
             links.append(default_link)
         self.log.debug('Total mirrors: %d', len(links))
