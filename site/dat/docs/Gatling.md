@@ -112,3 +112,9 @@ modules:
     properties:
       gatling.data.file.bufferSize: 512  # output buffer size, 256 bytes by default      
 ```
+
+## Gatling 2.2.0 Support
+
+Taurus works with Gatling 2.2.0. However, with Gatling 2.2.0 it's not possible to extract such network stats
+as latency and connection time, as Gatling removed them from report data. Because of that, Taurus installs Gatling 2.1.7
+by default.
