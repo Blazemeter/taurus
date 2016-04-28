@@ -24,7 +24,7 @@ import traceback
 from bzt.engine import FileLister, Scenario, ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, SidebarWidget
-from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time
+from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time, which
 from bzt.six import etree, parse, iteritems
 
 
@@ -91,7 +91,8 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     def __modify_user_tsung_config(self, user_config_path):
         modified_config_path = self.engine.create_artifact("tsung-config", ".xml")
         load = self.get_load()
-        config = TsungConfig()
+        tsung = Tsung(self.tool_path, self.log)
+        config = TsungConfig(tsung)
         config.load(user_config_path)
         config.apply_load_profile(load)
         config.apply_dumpstats()
@@ -102,7 +103,8 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         config_file = self.engine.create_artifact("tsung-config", ".xml")
         scenario = self.get_scenario()
         load = self.get_load()
-        config = TsungConfig()
+        tsung = Tsung(self.tool_path, self.log)
+        config = TsungConfig(tsung)
         config.generate(scenario, load)
         config.save(config_file)
         return config_file
@@ -278,10 +280,11 @@ class TsungStatsReader(ResultsReader):
 
 
 class TsungConfig(object):
-    def __init__(self):
+    def __init__(self, tsung_tool):
         self.log = logging.getLogger(self.__class__.__name__)
         self.root = etree.Element("tsung", loglevel="notice", version="1.0", dumptraffic="protocol", backend="text")
         self.tree = etree.ElementTree(self.root)
+        self.tsung_tool = tsung_tool
 
     def load(self, filename):
         try:
@@ -296,7 +299,9 @@ class TsungConfig(object):
         self.log.debug("Saving Tsung config to: %s", filename)
         with open(filename, "wb") as fhd:
             # TODO: dynamically generate this /usr/ path?
-            doctype = '<!DOCTYPE tsung SYSTEM "/usr/share/tsung/tsung-1.0.dtd">'
+            tsung_dtd = self.tsung_tool.get_dtd_path()
+            self.log.debug("Detected Tsung DTD: %s", tsung_dtd)
+            doctype = '<!DOCTYPE tsung SYSTEM "%s">' % tsung_dtd
             xml = etree.tostring(self.tree, pretty_print=True, encoding="UTF-8", xml_declaration=True, doctype=doctype)
             fhd.write(xml)
 
@@ -439,6 +444,7 @@ class TsungConfig(object):
 
 class Tsung(RequiredTool):
     INSTALLATION_DOCS = "http://gettaurus.org/docs/Tsung/#Tsung-Installation"
+    DEFAULT_DTD_PATH = "/usr/share/tsung/tsung-1.0.dtd"
 
     def __init__(self, tool_path, parent_logger):
         super(Tsung, self).__init__("Tsung", tool_path)
@@ -452,3 +458,42 @@ class Tsung(RequiredTool):
         except OSError:
             return False
         return True
+
+    def get_tool_abspath(self):
+        if not self.tool_path:
+            return None
+
+        abspath = os.path.abspath(os.path.expanduser(self.tool_path))
+        if os.path.exists(abspath):
+            return abspath
+
+        executables = which(self.tool_path)
+        if executables:
+            return executables[0]
+
+    @staticmethod
+    def get_tool_prefix(tool_abspath):
+        """
+        Get tsung installation prefix (like /usr/ or /usr/local)
+        :return: str
+        """
+        if tool_abspath is None:
+            return None
+
+        parts = tool_abspath.split(os.sep)
+
+        if len(parts) < 2:
+            return None
+
+        # cut 'bin/tsung' from abspath
+        prefix = os.sep.join(parts[:-2])
+        return prefix
+
+    def get_dtd_path(self):
+        "Get path of DTD validation file for Tsung."
+        tsung_abspath = self.get_tool_abspath()
+        prefix = self.get_tool_prefix(tsung_abspath)
+        if not prefix:
+            return self.DEFAULT_DTD_PATH
+        else:
+            return os.path.join(prefix, "share", "tsung", "tsung-1.0.dtd")
