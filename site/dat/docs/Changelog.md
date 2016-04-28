@@ -5,6 +5,7 @@
  - support Gatling 2.2.0
  - fix Gatling `download-link` option handling
  - add Tsung support for Mac OS (and for non-standard installations of Tsung)
+ - fix `browser-open` regression
 
 ## 1.4.4 <sup>25 apr 2016</sup>
  - fix enhanced PBench schedule generation crash on Python 3
