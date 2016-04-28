@@ -100,8 +100,8 @@ execution:
     Link to download Gatling.
     By default: "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip"
     
- -  `version`: "2.1.4"
-    Gatling version, by default "2.1.4"        
+ -  `version`: "2.1.7"
+    Gatling version, 2.1.7 by default
 
  - `properties`: dictionary for tuning of gatling tool behaviour (see list of available parameters in gatling documentation). Following example shows setting output buffer size:
         
