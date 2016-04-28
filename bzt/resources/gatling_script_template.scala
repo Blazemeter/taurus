@@ -22,8 +22,13 @@ class %(class_name)s extends Simulation {
 	 else
 		_scn = _scn.repeat(_t_iterations.toInt){_exec}
 
-	var _setUp = setUp(_scn.inject(rampUsers(_t_concurrency) over (_t_ramp_up))
-			.protocols(httpConf))
+    val _users =
+        if (_t_ramp_up > 0)
+            rampUsers(_t_concurrency) over (_t_ramp_up seconds)
+        else
+            atOnceUsers(_t_concurrency)
+
+    var _setUp = setUp(_scn.inject(_users).protocols(httpConf))
 
 	if (_duration > 0)
 		_setUp.maxDuration(_duration)
