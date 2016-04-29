@@ -147,6 +147,12 @@ class TestConfigOverrider(BZTestCase):
 
     def test_strings_literals_clash(self):
         # what if we want to pass literal string 'true' (and not have it converted to json)
-        self.obj.apply_overrides(['yes="true"'], self.config)
+        self.obj.apply_overrides(['yes="true"', 'nothing="null"'], self.config)
         self.assertEqual(self.config.get("yes"), "true")
+        self.assertEqual(self.config.get("nothing"), "null")
+
+    def test_null(self):
+        self.obj.apply_overrides(['nothing=null'], self.config)
+        self.assertEqual(self.config.get("nothing"), None)
+
 

@@ -291,23 +291,42 @@ class ConfigOverrider(object):
                 self.log.debug("No value to delete: %s", item)
         else:
             parsed_value = self.__parse_override_value(value)
-            self.log.debug("parse override value: %r -> %r", value, parsed_value)
+            self.log.debug("parsed override value: %r -> %r (%s)", value, parsed_value, type(parsed_value))
             if isinstance(pointer, list) and parts[-1] < 0:
                 pointer.append(parsed_value)
             else:
                 pointer[parts[-1]] = parsed_value
 
     def __parse_override_value(self, override):
+        """
+        Parse overrides values as if they are JSON. If they're not valid JSON - treat them as strings.
+
+        Has special behaviour for quoted strings.
+
+        Examples:
+        '123' -> int(123)
+        '12.1' -> float(12.1)
+        'true' -> bool(True)
+        'null' -> None,
+        'abcdef' -> str("abcdef")
+        '"abcdef"' -> str('"abcdef"')
+
+        '"true"' -> str("true") - because true is a literal value
+
+        :param override:
+        :return: Any
+        """
         try:
             value = json.loads(override)
-
-            # this is useful for strings that contain quotes
-            # e.g. __parse_override_value('"asd"') == '"asd"'
             if isinstance(value, string_types):
-                return override
-            return value
+                try:
+                    json.loads(value)
+                    return value
+                except ValueError:
+                    return override
+            else:
+                return value
         except ValueError:
-            # we treat non-json values as literal strings
             return override
 
     def __ensure_list_capacity(self, pointer, part, next_part=None):
