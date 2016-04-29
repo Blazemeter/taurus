@@ -291,7 +291,7 @@ class ConfigOverrider(object):
                 self.log.debug("No value to delete: %s", item)
         else:
             parsed_value = self.__parse_override_value(value)
-            self.log.debug("parsed override value: %r -> %r (%s)", value, parsed_value, type(parsed_value))
+            self.log.info("Parsed override value: %r -> %r (%s)", value, parsed_value, type(parsed_value))
             if isinstance(pointer, list) and parts[-1] < 0:
                 pointer.append(parsed_value)
             else:
@@ -317,9 +317,12 @@ class ConfigOverrider(object):
         try:
             value = json.loads(override)
             if isinstance(value, string_types):
-                return override
-            else:
-                return value
+                try:
+                    json.loads(value)
+                    return value
+                except ValueError:
+                    return override
+            return value
         except ValueError:
             return override
 

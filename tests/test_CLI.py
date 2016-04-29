@@ -131,25 +131,39 @@ class TestConfigOverrider(BZTestCase):
 
     def test_numbers(self):
         self.obj.apply_overrides(["int=11", "float=3.14"], self.config)
-        self.assertEqual(self.config.get("int"), 11)
-        self.assertEqual(self.config.get("float"), 3.14)
+        self.assertEqual(self.config.get("int"), int(11))
+        self.assertEqual(self.config.get("float"), float(3.14))
 
     def test_booleans(self):
         self.obj.apply_overrides(["yes=true", "no=false"], self.config)
-        self.assertEqual(self.config.get("yes"), True)
-        self.assertEqual(self.config.get("no"), False)
+        self.assertEqual(self.config.get("yes"), bool(True))
+        self.assertEqual(self.config.get("no"), bool(False))
 
     def test_strings(self):
         self.obj.apply_overrides(["plain=ima plain string",
                                   'quoted="ima quoted string"'], self.config)
-        self.assertEqual(self.config.get("plain"), "ima plain string")
-        self.assertEqual(self.config.get("quoted"), '"ima quoted string"')
+        self.assertEqual(self.config.get("plain"), str("ima plain string"))
+        self.assertEqual(self.config.get("quoted"), str('"ima quoted string"'))
 
     def test_strings_literals_clash(self):
         # what if we want to pass literal string 'true' (and not have it converted to bool(True))
         self.obj.apply_overrides(['yes="true"'], self.config)
-        self.assertEqual(self.config.get("yes"), "true")
+        self.assertEqual(self.config.get("yes"), str("true"))
 
     def test_null(self):
         self.obj.apply_overrides(['nothing=null'], self.config)
         self.assertEqual(self.config.get("nothing"), None)
+
+    def test_objects(self):
+        self.obj.apply_overrides(['obj={"key": "value"}'], self.config)
+        self.assertEqual(self.config.get("obj").get("key"), str("value"))
+
+    def test_lists(self):
+        self.obj.apply_overrides(['list=[1, 2.0, "str", []]'], self.config)
+        self.assertEqual(self.config.get("list"), list([1, 2.0, "str", []]))
+
+    def test_nested_quotation(self):
+        # bzt -o man='{"name": "Robert \"Destroyer of Worlds\" Oppenheimer"}'
+        self.obj.apply_overrides(['man={"name": "Robert \\"Destroyer of Worlds\\" Oppenheimer"}'], self.config)
+        self.assertEqual(self.config.get("man").get("name"), str('Robert "Destroyer of Worlds" Oppenheimer'))
+
