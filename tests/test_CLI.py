@@ -141,9 +141,11 @@ class TestConfigOverrider(BZTestCase):
 
     def test_strings(self):
         self.obj.apply_overrides(["plain=ima plain string",
-                                  'quoted="ima quoted string"'], self.config)
+                                  'quoted="ima quoted string"',
+                                  'empty-quoted=""'], self.config)
         self.assertEqual(self.config.get("plain"), str("ima plain string"))
         self.assertEqual(self.config.get("quoted"), str('"ima quoted string"'))
+        self.assertEqual(self.config.get("empty-quoted"), str('""'))
 
     def test_strings_literals_clash(self):
         # what if we want to pass literal string 'true' (and not have it converted to bool(True))

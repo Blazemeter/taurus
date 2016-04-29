@@ -308,18 +308,21 @@ class ConfigOverrider(object):
         Has special behaviour for quoted strings.
 
         Examples:
+        '' -> None
         '123' -> int(123)
         '12.1' -> float(12.1)
         'true' -> bool(True)
         'null' -> None,
         'abcdef' -> str("abcdef")
         '"abcdef"' -> str('"abcdef"')
+        '"true"' -> "true"
 
         :param override:
         :return: Any
         """
         if not override:
             return None
+
         try:
             value = json.loads(override)
             if isinstance(value, string_types):
