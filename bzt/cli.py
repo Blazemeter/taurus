@@ -318,6 +318,8 @@ class ConfigOverrider(object):
         :param override:
         :return: Any
         """
+        if not override:
+            return None
         try:
             value = json.loads(override)
             if isinstance(value, string_types):

@@ -167,3 +167,6 @@ class TestConfigOverrider(BZTestCase):
         self.obj.apply_overrides(['man={"name": "Robert \\"Destroyer of Worlds\\" Oppenheimer"}'], self.config)
         self.assertEqual(self.config.get("man").get("name"), str('Robert "Destroyer of Worlds" Oppenheimer'))
 
+    def test_no_override(self):
+        self.obj.apply_overrides(['nothing='], self.config)
+        self.assertEqual(self.config.get("nothing"), None)
