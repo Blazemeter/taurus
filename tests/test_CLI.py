@@ -142,10 +142,14 @@ class TestConfigOverrider(BZTestCase):
     def test_strings(self):
         self.obj.apply_overrides(["plain=ima plain string",
                                   'quoted="ima quoted string"',
-                                  'empty-quoted=""'], self.config)
+                                  'empty-quoted=""',
+                                  'escaped="a "b" \'c\' d"',
+                                  'escaped-quoted="a "b" \'c\' d"'], self.config)
         self.assertEqual(self.config.get("plain"), str("ima plain string"))
         self.assertEqual(self.config.get("quoted"), str('"ima quoted string"'))
         self.assertEqual(self.config.get("empty-quoted"), str('""'))
+        self.assertEqual(self.config.get("escaped"), str('"a "b" \'c\' d"'))
+        self.assertEqual(self.config.get("escaped-quoted"), str('"a "b" \'c\' d"'))
 
     def test_strings_literals_clash(self):
         # we want to pass literal string 'true' (and not have it converted to bool(True))
@@ -159,10 +163,18 @@ class TestConfigOverrider(BZTestCase):
         self.assertEqual(self.config.get("nothing"), None)
 
     def test_objects(self):
+        self.config.merge({
+            "obj": {
+                "key": "142857",
+            },
+        })
         self.obj.apply_overrides(['obj={"key": "value"}'], self.config)
         self.assertEqual(self.config.get("obj").get("key"), str("value"))
 
     def test_lists(self):
+        self.config.merge({
+            "list": ["stuff"],
+        })
         self.obj.apply_overrides(['list=[1, 2.0, "str", []]'], self.config)
         self.assertEqual(self.config.get("list"), list([1, 2.0, "str", []]))
 
