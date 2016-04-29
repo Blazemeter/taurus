@@ -311,19 +311,13 @@ class ConfigOverrider(object):
         'abcdef' -> str("abcdef")
         '"abcdef"' -> str('"abcdef"')
 
-        '"true"' -> str("true") - because true is a literal value
-
         :param override:
         :return: Any
         """
         try:
             value = json.loads(override)
             if isinstance(value, string_types):
-                try:
-                    json.loads(value)
-                    return value
-                except ValueError:
-                    return override
+                return override
             else:
                 return value
         except ValueError:
