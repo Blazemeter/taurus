@@ -291,7 +291,7 @@ class ConfigOverrider(object):
                 self.log.debug("No value to delete: %s", item)
         else:
             parsed_value = self.__parse_override_value(value)
-            self.log.info("Parsed override value: %r -> %r (%s)", value, parsed_value, type(parsed_value))
+            self.log.debug("Parsed override value: %r -> %r (%s)", value, parsed_value, type(parsed_value))
             if isinstance(parsed_value, dict):
                 dict_value = BetterDict()
                 dict_value.merge(parsed_value)

@@ -148,9 +148,11 @@ class TestConfigOverrider(BZTestCase):
         self.assertEqual(self.config.get("empty-quoted"), str('""'))
 
     def test_strings_literals_clash(self):
-        # what if we want to pass literal string 'true' (and not have it converted to bool(True))
-        self.obj.apply_overrides(['yes="true"'], self.config)
+        # we want to pass literal string 'true' (and not have it converted to bool(True))
+        self.obj.apply_overrides(['yes="true"',
+                                  'list="[1,2,3]"'], self.config)
         self.assertEqual(self.config.get("yes"), str("true"))
+        self.assertEqual(self.config.get("list"), str("[1,2,3]"))
 
     def test_null(self):
         self.obj.apply_overrides(['nothing=null'], self.config)
