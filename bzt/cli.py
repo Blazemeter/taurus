@@ -14,6 +14,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import json
 import logging
 import os
 import platform
@@ -289,12 +290,25 @@ class ConfigOverrider(object):
             else:
                 self.log.debug("No value to delete: %s", item)
         else:
-            if value.isdigit():
-                value = float(value)
+            parsed_value = self.__parse_override_value(value)
+            self.log.debug("parse override value: %r -> %r", value, parsed_value)
             if isinstance(pointer, list) and parts[-1] < 0:
-                pointer.append(value)
+                pointer.append(parsed_value)
             else:
-                pointer[parts[-1]] = value
+                pointer[parts[-1]] = parsed_value
+
+    def __parse_override_value(self, override):
+        try:
+            value = json.loads(override)
+
+            # this is useful for strings that contain quotes
+            # e.g. __parse_override_value('"asd"') == '"asd"'
+            if isinstance(value, string_types):
+                return override
+            return value
+        except ValueError:
+            # we treat non-json values as literal strings
+            return override
 
     def __ensure_list_capacity(self, pointer, part, next_part=None):
         """

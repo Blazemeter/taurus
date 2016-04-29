@@ -1,8 +1,10 @@
 """ test """
+import logging
 import os
 import shutil
 
-from bzt.cli import CLI
+from bzt.cli import CLI, ConfigOverrider
+from bzt.engine import Configuration
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul, ModuleMock
 
@@ -120,4 +122,31 @@ class TestCLI(BZTestCase):
             # cleanup artifacts dir
             if os.path.exists(artifacts_dir):
                 shutil.rmtree(artifacts_dir)
+
+
+class TestConfigOverrider(BZTestCase):
+    def setUp(self):
+        self.obj = ConfigOverrider(logging.getLogger())
+        self.config = Configuration()
+
+    def test_numbers(self):
+        self.obj.apply_overrides(["int=11", "float=3.14"], self.config)
+        self.assertEqual(self.config.get("int"), 11)
+        self.assertEqual(self.config.get("float"), 3.14)
+
+    def test_booleans(self):
+        self.obj.apply_overrides(["yes=true", "no=false"], self.config)
+        self.assertEqual(self.config.get("yes"), True)
+        self.assertEqual(self.config.get("no"), False)
+
+    def test_strings(self):
+        self.obj.apply_overrides(["plain=ima plain string",
+                                  'quoted="ima quoted string"'], self.config)
+        self.assertEqual(self.config.get("plain"), "ima plain string")
+        self.assertEqual(self.config.get("quoted"), '"ima quoted string"')
+
+    def test_strings_literals_clash(self):
+        # what if we want to pass literal string 'true' (and not have it converted to json)
+        self.obj.apply_overrides(['yes="true"'], self.config)
+        self.assertEqual(self.config.get("yes"), "true")
 
