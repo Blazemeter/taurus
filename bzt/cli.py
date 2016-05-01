@@ -14,7 +14,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import json
 import logging
 import os
 import platform
@@ -27,6 +26,7 @@ from select import select
 from tempfile import NamedTemporaryFile
 
 from colorlog import ColoredFormatter
+import yaml
 
 import bzt
 from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown
@@ -303,9 +303,8 @@ class ConfigOverrider(object):
 
     def __parse_override_value(self, override):
         """
-        Parse overrides values as if they are JSON. If they're not valid JSON - treat them as strings.
-
-        Has special behaviour for quoted strings.
+        Parse overrides values as if they are YAML values.
+        If they're not valid YAML - treat them as strings.
 
         Examples:
         '' -> None
@@ -315,7 +314,6 @@ class ConfigOverrider(object):
         'null' -> None,
         'abcdef' -> str("abcdef")
         '"abcdef"' -> str('"abcdef"')
-        '"true"' -> "true"
 
         :param override:
         :return: Any
@@ -324,15 +322,9 @@ class ConfigOverrider(object):
             return None
 
         try:
-            value = json.loads(override)
-            if isinstance(value, string_types):
-                try:
-                    json.loads(value)
-                    return value
-                except ValueError:
-                    return override
+            value = yaml.load(override)
             return value
-        except ValueError:
+        except BaseException:
             return override
 
     def __ensure_list_capacity(self, pointer, part, next_part=None):

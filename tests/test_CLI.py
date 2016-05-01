@@ -141,8 +141,8 @@ class TestConfigOverrider(BZTestCase):
 
     def test_strings(self):
         self.obj.apply_overrides(["plain=ima plain string",
-                                  'quoted="ima quoted string"',
-                                  'empty-quoted=""',
+                                  'quoted=\'"ima quoted string"\'',
+                                  'empty-quoted=\'""\'',
                                   'escaped="a "b" \'c\' d"',
                                   'escaped-quoted="a "b" \'c\' d"'], self.config)
         self.assertEqual(self.config.get("plain"), str("ima plain string"))
