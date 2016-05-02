@@ -7,6 +7,7 @@
  - add Tsung support for Mac OS (and for non-standard installations of Tsung)
  - fix `browser-open` regression
  - allow CLI overrides to be arbitrary YAML values
+ - make log widget in console reporter smaller to leave more space for sidebar widgets
 
 ## 1.4.4 <sup>25 apr 2016</sup>
  - fix enhanced PBench schedule generation crash on Python 3
