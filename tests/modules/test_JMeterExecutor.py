@@ -1055,6 +1055,33 @@ class TestJMeterExecutor(BZTestCase):
             self.assertNotEqual(orig, modified)
             self.assertEqual(os.path.basename(orig), os.path.basename(modified))
 
+    def test_conditional_request(self):
+        self.obj.engine.config.merge({
+            'execution': {
+                'iterations': 1,
+                'scenario': {
+                    "requests": [
+                        {
+                            "if": "<cond>",
+                            "then": [
+                                "http://blazedemo.com/",
+                            ],
+                        }
+                    ],
+                }
+            },
+        })
+        self.obj.engine.config.merge({"provisioning": "local"})
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.settings.merge(self.obj.engine.config.get("modules").get("jmeter"))
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        if_controller = xml_tree.find(".//IfController")
+        self.assertIsNotNone(if_controller)
+        condition = xml_tree.find(".//IfController/stringProp[@name='IfController.condition']")
+        self.assertIsNotNone(condition)
+        self.assertEqual(condition.text, "<cond>")
+
 class TestJMX(BZTestCase):
     def test_jmx_unicode_checkmark(self):
         obj = JMX()

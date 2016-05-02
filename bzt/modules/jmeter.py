@@ -1311,41 +1311,69 @@ class JMeterScenarioBuilder(JMX):
             return None
 
     def __add_requests(self):
+        requests = list(self.scenario.get_requests())
+        for compiled in self.__compile_requests(requests):
+            for element in compiled:
+                self.append(self.THR_GROUP_SEL, element)
+
+    def __compile_http_request(self, request):
         global_timeout = self.scenario.get("timeout", None)
         global_keepalive = self.scenario.get("keepalive", True)
 
-        for req in self.scenario.get_requests():
-            if req.timeout is not None:
-                timeout = self.smart_time(req.timeout)
-            elif global_timeout is not None:
-                timeout = self.smart_time(global_timeout)
-            else:
-                timeout = None
+        if request.timeout is not None:
+            timeout = self.smart_time(request.timeout)
+        elif global_timeout is not None:
+            timeout = self.smart_time(global_timeout)
+        else:
+            timeout = None
 
-            if self._get_merged_ci_headers(req, 'content-type') == 'application/json' and isinstance(req.body, dict):
-                body = json.dumps(req.body)
-            else:
-                body = req.body
+        content_type = self._get_merged_ci_headers(request, 'content-type')
+        if content_type == 'application/json' and isinstance(request.body, dict):
+            body = json.dumps(request.body)
+        else:
+            body = request.body
 
-            http = JMX._get_http_request(req.url, req.label, req.method, timeout, body, global_keepalive)
+        http = JMX._get_http_request(request.url, request.label, request.method, timeout, body, global_keepalive)
 
-            self.append(self.THR_GROUP_SEL, http)
+        children = etree.Element("hashTree")
 
-            children = etree.Element("hashTree")
-            self.append(self.THR_GROUP_SEL, children)
-            if req.headers:
-                children.append(JMX._get_header_mgr(req.headers))
-                children.append(etree.Element("hashTree"))
+        if request.headers:
+            children.append(JMX._get_header_mgr(request.headers))
+            children.append(etree.Element("hashTree"))
 
-            self.__add_think_time(children, req)
+        self.__add_think_time(children, request)
 
-            self.__add_assertions(children, req)
+        self.__add_assertions(children, request)
 
-            if timeout is not None:
-                children.append(JMX._get_dur_assertion(timeout))
-                children.append(etree.Element("hashTree"))
+        if timeout is not None:
+            children.append(JMX._get_dur_assertion(timeout))
+            children.append(etree.Element("hashTree"))
 
-            self.__add_extractors(children, req)
+        self.__add_extractors(children, request)
+
+        return [http, children]
+
+    def __compile_logic_block(self, block):
+        condition = block.if_
+        then_clause = block.then
+        controller = JMX._get_if_controller(condition)
+        children = etree.Element("hashTree")
+        for compiled in self.__compile_requests(then_clause):
+            for element in compiled:
+                children.append(element)
+        return [controller, children]
+
+    def __compile_request(self, request):
+        if 'if' in request.config:
+            return self.__compile_logic_block(request)
+        else:
+            return self.__compile_http_request(request)
+
+    def __compile_requests(self, requests):
+        return [
+            self.__compile_request(req)
+            for req in requests
+        ]
 
     def __generate(self):
         """
