@@ -141,15 +141,15 @@ class TestConfigOverrider(BZTestCase):
 
     def test_strings(self):
         self.obj.apply_overrides(["plain=ima plain string",
-                                  'quoted=\'"ima quoted string"\'',
-                                  'empty-quoted=\'""\'',
-                                  'escaped="a "b" \'c\' d"',
-                                  'escaped-quoted="a "b" \'c\' d"'], self.config)
+                                  """quoted='"ima quoted string"'""",
+                                  """empty-quoted='""'""",
+                                  '''escaped="a "b" 'c' d"''',
+                                  '''escaped-quoted="a "b" 'c' d"'''], self.config)
         self.assertEqual(self.config.get("plain"), str("ima plain string"))
-        self.assertEqual(self.config.get("quoted"), str('"ima quoted string"'))
+        self.assertEqual(self.config.get("quoted"), str('''"ima quoted string"'''))
         self.assertEqual(self.config.get("empty-quoted"), str('""'))
-        self.assertEqual(self.config.get("escaped"), str('"a "b" \'c\' d"'))
-        self.assertEqual(self.config.get("escaped-quoted"), str('"a "b" \'c\' d"'))
+        self.assertEqual(self.config.get("escaped"), str('''"a "b" 'c' d"'''))
+        self.assertEqual(self.config.get("escaped-quoted"), str('''"a "b" 'c' d"'''))
 
     def test_strings_literals_clash(self):
         # we want to pass literal string 'true' (and not have it converted to bool(True))
@@ -180,9 +180,13 @@ class TestConfigOverrider(BZTestCase):
 
     def test_nested_quotation(self):
         # bzt -o man='{"name": "Robert \"Destroyer of Worlds\" Oppenheimer"}'
-        self.obj.apply_overrides(['man={"name": "Robert \\"Destroyer of Worlds\\" Oppenheimer"}'], self.config)
+        self.obj.apply_overrides(['''man={"name": "Robert \\"Destroyer of Worlds\\" Oppenheimer"}'''], self.config)
         self.assertEqual(self.config.get("man").get("name"), str('Robert "Destroyer of Worlds" Oppenheimer'))
 
     def test_no_override(self):
         self.obj.apply_overrides(['nothing='], self.config)
         self.assertEqual(self.config.get("nothing"), None)
+
+    def test_unquoted_keys(self):
+        self.obj.apply_overrides(['obj={abc: def}'], self.config)
+        self.assertEqual(self.config.get("obj").get("abc"), str("def"))

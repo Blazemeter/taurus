@@ -302,28 +302,8 @@ class ConfigOverrider(object):
                 pointer[parts[-1]] = parsed_value
 
     def __parse_override_value(self, override):
-        """
-        Parse overrides values as if they are YAML values.
-        If they're not valid YAML - treat them as strings.
-
-        Examples:
-        '' -> None
-        '123' -> int(123)
-        '12.1' -> float(12.1)
-        'true' -> bool(True)
-        'null' -> None,
-        'abcdef' -> str("abcdef")
-        '"abcdef"' -> str('"abcdef"')
-
-        :param override:
-        :return: Any
-        """
-        if not override:
-            return None
-
         try:
-            value = yaml.load(override)
-            return value
+            return yaml.load(override)
         except BaseException:
             return override
 
