@@ -336,10 +336,10 @@ class TaurusConsole(Columns):
         right_widgets = ListBox(SimpleListWalker([Pile([x, Divider()]) for x in sidebar_widgets]))
 
         self.logo = TaurusLogo()
-        right_pane = Pile([(10, self.logo),
-                           right_widgets,
-                           (1, Filler(Divider('─'))),
-                           (WEIGHT, 1, self.log_widget)])
+        log_block = Pile([(1, Filler(Divider('─'))), self.log_widget])
+        dynamic_widgets = Pile([(7, self.logo), right_widgets,])
+        right_pane = Pile([(WEIGHT, 0.67, dynamic_widgets),
+                           (WEIGHT, 0.33, log_block)])
 
         columns = [(WEIGHT, 0.25, self.graphs),
                    (WEIGHT, 0.50, stats_pane),
