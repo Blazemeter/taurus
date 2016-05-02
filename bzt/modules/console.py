@@ -329,7 +329,7 @@ class TaurusConsole(Columns):
         self.cumulative_stats = CumulativeStats()
 
         stats_pane = Pile([(WEIGHT, 0.33, self.latest_stats),
-                           (WEIGHT, 0.67, self.cumulative_stats), ])
+                           (WEIGHT, 0.66, self.cumulative_stats), ])
 
         self.graphs = ThreeGraphs()
 
