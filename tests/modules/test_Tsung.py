@@ -1,10 +1,11 @@
 import logging
 import time
+import unittest
 from os import path
 
 from bzt.modules.tsung import TsungExecutor, TsungStatsReader, TsungConfig, Tsung
 from bzt.six import etree
-from bzt.utils import EXE_SUFFIX, BetterDict
+from bzt.utils import EXE_SUFFIX, BetterDict, is_windows
 from tests import BZTestCase
 from tests.mocks import EngineEmul
 
@@ -394,7 +395,7 @@ class TestStatsReader(BZTestCase):
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 16)
 
-
+@unittest.skipIf(is_windows(), "Tsung is not supported in Windows")
 class TestTool(BZTestCase):
     def test_prefix_local(self):
         prefix = Tsung.get_tool_prefix("/usr/local/bin/tsung")
