@@ -25,7 +25,7 @@ import urwid
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator
-from bzt.modules.console import WidgetProvider
+from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.jmeter import JTLReader
 from bzt.six import string_types, text_type, etree
 from bzt.utils import RequiredTool, shell_exec, shutdown_process, JavaVM, TclLibrary
@@ -552,7 +552,7 @@ class NoseTester(AbstractTestRunner):
                                              env=env)
 
 
-class SeleniumWidget(urwid.Pile):
+class SeleniumWidget(urwid.Pile, PrioritizedWidget):
     def __init__(self, script, runner_output):
         widgets = []
         self.script_name = urwid.Text("Tests: %s" % script)
@@ -563,6 +563,7 @@ class SeleniumWidget(urwid.Pile):
         widgets.append(self.summary_stats)
         widgets.append(self.current_test)
         super(SeleniumWidget, self).__init__(widgets)
+        PrioritizedWidget.__init__(self, priority=1)
 
     def update(self):
         cur_test, reader_summary = ["No data received yet"] * 2
