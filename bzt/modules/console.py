@@ -328,8 +328,8 @@ class TaurusConsole(Columns):
         self.latest_stats = LatestStats()
         self.cumulative_stats = CumulativeStats()
 
-        stats_pane = Pile([(WEIGHT, 0.33, self.latest_stats),
-                           (WEIGHT, 0.66, self.cumulative_stats)])
+        stats_pane = Pile([(WEIGHT, 0.333, self.latest_stats),
+                           (WEIGHT, 0.667, self.cumulative_stats)])
 
         self.graphs = ThreeGraphs()
         self.logo = TaurusLogo()
@@ -340,8 +340,8 @@ class TaurusConsole(Columns):
 
         log_block = Pile([(1, Filler(Divider('─'))), self.log_widget])
 
-        right_pane = Pile([(WEIGHT, 0.67, widget_pile),
-                           (WEIGHT, 0.33, log_block)])
+        right_pane = Pile([(WEIGHT, 0.667, widget_pile),
+                           (WEIGHT, 0.333, log_block)])
 
         columns = [(WEIGHT, 0.25, self.graphs),
                    (WEIGHT, 0.50, stats_pane),
