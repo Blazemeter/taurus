@@ -563,7 +563,7 @@ class SeleniumWidget(urwid.Pile, PrioritizedWidget):
         widgets.append(self.summary_stats)
         widgets.append(self.current_test)
         super(SeleniumWidget, self).__init__(widgets)
-        PrioritizedWidget.__init__(self, priority=1)
+        PrioritizedWidget.__init__(self, priority=10)
 
     def update(self):
         cur_test, reader_summary = ["No data received yet"] * 2

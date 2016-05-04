@@ -1050,7 +1050,7 @@ class CloudProvWidget(Pile, PrioritizedWidget):
         self.text = Text("")
         self._sessions = None
         super(CloudProvWidget, self).__init__([self.text])
-        PrioritizedWidget.__init__(self, priority=10)
+        PrioritizedWidget.__init__(self, priority=0)
 
     def update(self):
         if not self._sessions:
