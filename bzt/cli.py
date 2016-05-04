@@ -26,6 +26,7 @@ from select import select
 from tempfile import NamedTemporaryFile
 
 from colorlog import ColoredFormatter
+import yaml
 
 import bzt
 from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown
@@ -289,12 +290,22 @@ class ConfigOverrider(object):
             else:
                 self.log.debug("No value to delete: %s", item)
         else:
-            if value.isdigit():
-                value = float(value)
+            parsed_value = self.__parse_override_value(value)
+            self.log.debug("Parsed override value: %r -> %r (%s)", value, parsed_value, type(parsed_value))
+            if isinstance(parsed_value, dict):
+                dict_value = BetterDict()
+                dict_value.merge(parsed_value)
+                parsed_value = dict_value
             if isinstance(pointer, list) and parts[-1] < 0:
-                pointer.append(value)
+                pointer.append(parsed_value)
             else:
-                pointer[parts[-1]] = value
+                pointer[parts[-1]] = parsed_value
+
+    def __parse_override_value(self, override):
+        try:
+            return yaml.load(override)
+        except BaseException:
+            return override
 
     def __ensure_list_capacity(self, pointer, part, next_part=None):
         """
