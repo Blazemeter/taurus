@@ -392,7 +392,7 @@ class PassFailWidget(urwid.Pile, PrioritizedWidget):
         self.failing_criteria = []
         self.text_widget = urwid.Text("")
         super(PassFailWidget, self).__init__([self.text_widget])
-        PrioritizedWidget.__init__(self, priority=3)
+        PrioritizedWidget.__init__(self, priority=0)
 
     def __prepare_colors(self):
         """

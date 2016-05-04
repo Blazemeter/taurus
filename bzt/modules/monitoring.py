@@ -380,7 +380,7 @@ class MonitoringWidget(Pile, MonitoringListener, PrioritizedWidget):
         self.host_metrics = OrderedDict()
         self.display = Text("")
         super(MonitoringWidget, self).__init__([self.display])
-        PrioritizedWidget.__init__(self, priority=0)
+        PrioritizedWidget.__init__(self, priority=30)
 
     def monitoring_data(self, data):
         for item in data:

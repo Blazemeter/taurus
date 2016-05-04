@@ -334,7 +334,7 @@ class TaurusConsole(Columns):
         self.graphs = ThreeGraphs()
         self.logo = TaurusLogo()
 
-        ordered_widgets = sorted(sidebar_widgets, key=lambda x: x.priority, reverse=True)
+        ordered_widgets = sorted(sidebar_widgets, key=lambda x: x.priority)
         right_widgets = ListBox(SimpleListWalker([Pile([x, Divider()]) for x in ordered_widgets]))
         widget_pile = Pile([(7, self.logo), right_widgets,])
 
@@ -1118,7 +1118,7 @@ class SidebarWidget(Pile, PrioritizedWidget):
     Progress sidebar widget
     """
     def __init__(self, executor, label=None, additional_widgets=()):
-        PrioritizedWidget.__init__(self, priority=1)
+        PrioritizedWidget.__init__(self, priority=10)
         self.executor = executor
         self.duration = self.executor.get_load().duration
         self.widgets = []

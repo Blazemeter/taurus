@@ -8,6 +8,7 @@
  - fix `browser-open` regression
  - allow CLI overrides to be arbitrary YAML values
  - make log widget in console reporter smaller to leave more space for sidebar widgets
+ - order sidebar widgets by their priority
 
 ## 1.4.4 <sup>25 apr 2016</sup>
  - fix enhanced PBench schedule generation crash on Python 3
