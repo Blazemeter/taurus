@@ -26,7 +26,7 @@ import urwid
 from bzt import AutomatedShutdown
 from bzt.engine import Reporter, Service
 from bzt.modules.aggregator import KPISet, DataPoint, AggregatorListener, ResultsProvider
-from bzt.modules.console import WidgetProvider
+from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.six import string_types, viewvalues, iteritems
 from bzt.utils import load_class, dehumanize_time
 
@@ -381,18 +381,18 @@ class DataCriteria(FailCriteria):
         return res
 
 
-class PassFailWidget(urwid.Pile):
+class PassFailWidget(urwid.Pile, PrioritizedWidget):
     """
     Represents console widget for pass/fail criteria visualisation
     If criteria is failing, it will be displayed on the widget
     return urwid widget
     """
-
     def __init__(self, pass_fail_reporter):
         self.pass_fail_reporter = pass_fail_reporter
         self.failing_criteria = []
         self.text_widget = urwid.Text("")
         super(PassFailWidget, self).__init__([self.text_widget])
+        PrioritizedWidget.__init__(self, priority=0)
 
     def __prepare_colors(self):
         """

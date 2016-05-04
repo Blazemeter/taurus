@@ -31,7 +31,7 @@ from urwid import Pile, Text
 from bzt import ManualShutdown
 from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
-from bzt.modules.console import WidgetProvider
+from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.jmeter import JMeterExecutor
 from bzt.six import BytesIO, text_type, iteritems, HTTPError, urlencode, Request, urlopen, r_input, URLError, \
     string_types
@@ -1041,7 +1041,7 @@ class ResultsFromBZA(ResultsProvider):
             yield point
 
 
-class CloudProvWidget(Pile):
+class CloudProvWidget(Pile, PrioritizedWidget):
     def __init__(self, prov):
         """
         :type prov: CloudProvisioning
@@ -1050,6 +1050,7 @@ class CloudProvWidget(Pile):
         self.text = Text("")
         self._sessions = None
         super(CloudProvWidget, self).__init__([self.text])
+        PrioritizedWidget.__init__(self, priority=0)
 
     def update(self):
         if not self._sessions:
