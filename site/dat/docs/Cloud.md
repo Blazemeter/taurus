@@ -62,6 +62,28 @@ execution:
   locations-weighted: false
 ```
 
+```yaml
+-- 
+execution: 
+  - scenario: dummy 
+    concurrency:
+      local: 5
+      cloud: 1000
+    ramp-up: 10s
+    hold-for: 5m
+    locations: 
+      eu-central-1: 1
+      eu-west-1: 1
+      us-east-1: 1
+      us-west-1: 1
+      us-west-2: 1
+provisioning: cloud
+
+scenarios:
+  dummy:
+    script: Dummy.jmx    
+```
+
 ## Reporting Settings
 
 ```yaml
