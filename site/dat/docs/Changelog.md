@@ -1,14 +1,14 @@
 # Changelog
 
-## 1.5.0 (next)
+## 1.5.0 <sup>4 may 2016</sup>
  - add [Tsung](Tsung.md) executor
  - support Gatling 2.2.0
  - fix Gatling `download-link` option handling
- - add Tsung support for Mac OS (and for non-standard installations of Tsung)
  - fix `browser-open` regression
  - allow CLI overrides to be arbitrary YAML values
  - make log widget in console reporter smaller to leave more space for sidebar widgets
  - order sidebar widgets by their priority
+ - fix "junit xml reporter + passfail + monitoring" bug 
 
 ## 1.4.4 <sup>25 apr 2016</sup>
  - fix enhanced PBench schedule generation crash on Python 3
