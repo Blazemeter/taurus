@@ -49,7 +49,7 @@ execution:
     eu-east: 2
 ```
 
-To get the list of all available locations, run `bzt -locations -o modules.cloud.token=<API Key>`. The list of available locations is taken from [User API Call](https://a.blazemeter.com/api/latest/user) and may be specific for particular user. See `locations` block and `id` option for each location.
+If no locations specified for cloud execution, default value from `modules.cloud.default-location` is taken with weight of 1. To get the list of all available locations, run `bzt -locations -o modules.cloud.token=<API Key>`. The list of available locations is taken from [User API Call](https://a.blazemeter.com/api/latest/user) and may be specific for particular user. See `locations` block and `id` option for each location.
 
 By default, Taurus will calculate machines count for each location based on their limits obtained from *User API Call*. To switch to manual machines count just set option `locations-weighted` into `false`. Exact numbers of machines for each location will be used in that case:
 
@@ -113,6 +113,7 @@ execution:
 ## Specifying Where to Run for Shellexec Service
 
 In shellexec task config, the `run-at` parameter allows to set where commands will be executed. Surprisingly, `local` means the cloud worker will execute it, `cloud` means the controlling CLI will execute it.
+
 
 ## Installing Python Package Dependencies
 

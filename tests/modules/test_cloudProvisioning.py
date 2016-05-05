@@ -1,5 +1,6 @@
 import json
 import logging
+
 from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.blazemeter import CloudProvisioning, BlazeMeterClientEmul, ResultsFromBZA
@@ -63,6 +64,7 @@ class TestCloudProvisioning(BZTestCase):
         obj.parameters = obj.engine.config['execution']
 
         obj.settings["token"] = "FakeToken"
+        obj.settings['default-location'] = "us-west-1"
         obj.client = client = BlazeMeterClientEmul(obj.log)
         client.results.append(self.__get_user_info())  # user
         client.results.append({"result": []})  # tests

@@ -904,7 +904,9 @@ class CloudProvisioning(Provisioning, WidgetProvider):
         locations = executor.execution.get(self.LOC, BetterDict())
         if not locations:
             for location in available_locations.values():
-                if location['sandbox']:
+                error = ValueError("No location specified and no default-location configured")
+                def_loc = self.settings.get("default-location", error)
+                if location['sandbox'] or location['id'] == def_loc:
                     locations.merge({location['id']: 1})
         if not locations:
             self.log.warning("List of supported locations for you is: %s", sorted(available_locations.keys()))

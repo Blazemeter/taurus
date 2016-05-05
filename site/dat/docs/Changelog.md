@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.5.1
+ - add `default-location` option for cloud provisioning
+
 ## 1.5.0 <sup>4 may 2016</sup>
  - add [Tsung](Tsung.md) executor
  - support Gatling 2.2.0
