@@ -107,7 +107,7 @@ class TestCloudProvisioning(BZTestCase):
 
         self.assertEqual("None #None\n executor scenario:\n  Agents in loc-name: 10\n", widget.text.get_text()[0])
 
-    def test_delete_test_Files(self):
+    def test_delete_test_files(self):
         obj = CloudProvisioning()
         obj.engine = EngineEmul()
         obj.engine.config.merge({
@@ -122,7 +122,9 @@ class TestCloudProvisioning(BZTestCase):
         obj.parameters = obj.engine.config['execution']
 
         obj.settings.merge({"token": "FakeToken",
-                            "delete-test-files": True})
+                            "delete-test-files": True,
+                            'default-location': "us-west-1",
+        })
         obj.client = client = BlazeMeterClientEmul(obj.log)
         client.results.append(self.__get_user_info())  # user
         client.results.append({"result": [{"id": 5174715,
