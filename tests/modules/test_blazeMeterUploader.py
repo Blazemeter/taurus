@@ -66,6 +66,35 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.address = "https://a.blazemeter.com"
         obj.ping()
 
+    def test_delete_all_sessions(self):
+        client = BlazeMeterClientEmul(logging.getLogger(''))
+        # get sessions
+        client.results.append({'result': [{"id": "1", "name": "Session 1"},
+                                          {"id": "2", "name": "Session 2"}]})
+        # delete two sessions
+        client.results.append({'result': {}})
+        client.results.append({'result': {}})
+        # initialize cloud test
+        client.results.append({"marker": "ping", 'result': {}})
+        client.results.append({"marker": "projects", 'result': []})
+
+        client.results.append({"marker": "project-create", 'result': {
+            "id": time.time(),
+            "name": "boo",
+            "userId": time.time(),
+            "description": None,
+            "created": time.time(),
+            "updated": time.time(),
+            "organizationId": None
+        }})
+
+        obj = BlazeMeterUploader()
+        obj.settings.merge({'token': '123',
+                            'delete-all-previous-sessions': True})
+        obj.engine = EngineEmul()
+        obj.client = client
+        obj.prepare()
+
 
 class TestBlazeMeterClientUnicode(BZTestCase):
     def test_unicode_request(self):

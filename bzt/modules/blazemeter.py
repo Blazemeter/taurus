@@ -71,6 +71,11 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
             self.log.warning("No BlazeMeter API key provided, will upload anonymously")
         self.client.token = token
 
+        if self.settings.get("delete-all-previous-sessions", False):
+            if not token:
+                raise ValueError("Can't clear all previous sessions without token")
+            self.client.delete_all_sessions()
+
         self.client.active_session_id = self.parameters.get("session-id", None)
         self.client.test_id = self.parameters.get("test-id", None)
         self.client.user_id = self.parameters.get("user-id", None)
@@ -780,6 +785,16 @@ class BlazeMeterClient(object):
     def get_available_locations(self):
         user_info = self.get_user_info()
         return {str(x['id']): x for x in user_info['locations'] if not x['id'].startswith('harbor-')}
+
+    def delete_all_sessions(self):
+        url = self.address + "/api/latest/sessions"
+        response = self._request(url)
+        sessions = response['result']
+        session_url = self.address + "/api/latest/sessions/%s"
+        for session in sessions:
+            session_id = session["id"]
+            self.log.info("Deleting session '%s'", session["name"])
+            self._request(session_url % session_id, method='DELETE')
 
 
 class CloudProvisioning(Provisioning, WidgetProvider):
