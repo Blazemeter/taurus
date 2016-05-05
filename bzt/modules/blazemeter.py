@@ -71,11 +71,6 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
             self.log.warning("No BlazeMeter API key provided, will upload anonymously")
         self.client.token = token
 
-        if self.settings.get("delete-all-previous-sessions", False):
-            if not token:
-                raise ValueError("Can't clear all previous sessions without token")
-            self.client.delete_all_sessions()
-
         self.client.active_session_id = self.parameters.get("session-id", None)
         self.client.test_id = self.parameters.get("test-id", None)
         self.client.user_id = self.parameters.get("user-id", None)
@@ -304,6 +299,7 @@ class BlazeMeterClient(object):
         self.first_ts = sys.maxsize
         self.last_ts = 0
         self.timeout = 10
+        self.delete_files_before_test = False
 
     def _request(self, url, data=None, headers=None, checker=None, method=None):
         if not headers:
@@ -454,6 +450,9 @@ class BlazeMeterClient(object):
             hdr = {"Content-Type": " application/json"}
             resp = self._request(url, json.dumps(data), headers=hdr)
             test_id = resp['result']['id']
+
+        if self.delete_files_before_test:
+            self.delete_test_files(test_id)
 
         if configuration['type'] == 'taurus':  # FIXME: this is weird way to code, subclass it or something
             self.log.debug("Uploading files into the test: %s", resource_files)
@@ -786,15 +785,24 @@ class BlazeMeterClient(object):
         user_info = self.get_user_info()
         return {str(x['id']): x for x in user_info['locations'] if not x['id'].startswith('harbor-')}
 
-    def delete_all_sessions(self):
-        url = self.address + "/api/latest/sessions"
+    def get_test_files(self, test_id):
+        path = self.address + "/api/latest/web/elfinder/%s" % test_id
+        query = urlencode({'cmd': 'open', 'target': 's1_Lw'})
+        url = path + '?' + query
         response = self._request(url)
-        sessions = response['result']
-        session_url = self.address + "/api/latest/sessions/%s"
-        for session in sessions:
-            session_id = session["id"]
-            self.log.info("Deleting session '%s'", session["name"])
-            self._request(session_url % session_id, method='DELETE')
+        return response["files"]
+
+    def delete_test_files(self, test_id):
+        files = self.get_test_files(test_id)
+        self.log.debug("Test files: %s", [file['name'] for file in files])
+        if not files:
+            return
+        path = "/api/latest/web/elfinder/%s" % test_id
+        query = "cmd=rm&" + "&".join("targets[]=%s" % file['hash'] for file in files)
+        url = self.address + path + '?' + query
+        response = self._request(url)
+        if len(response['removed']) == len(files):
+            self.log.info("Successfully deleted %d test files", len(response['removed']))
 
 
 class CloudProvisioning(Provisioning, WidgetProvider):
@@ -847,6 +855,7 @@ class CloudProvisioning(Provisioning, WidgetProvider):
         finder = ProjectFinder(self.parameters, self.settings, self.client, self.engine)
         finder.default_test_name = "Taurus Cloud Test"
         self.test_id = finder.resolve_test_id(bza_plugin, config, rfiles)
+
         self.test_name = finder.test_name
         self.widget = CloudProvWidget(self)
 
@@ -861,6 +870,8 @@ class CloudProvisioning(Provisioning, WidgetProvider):
         self.client.address = self.settings.get("address", self.client.address)
         self.client.token = self.settings.get("token", self.client.token)
         self.client.timeout = dehumanize_time(self.settings.get("timeout", self.client.timeout))
+        self.client.delete_files_before_test = self.settings.get("delete-test-files",
+                                                                 self.client.delete_files_before_test)
         if not self.client.token:
             bmmod = self.engine.instantiate_module('blazemeter')
             self.client.token = bmmod.settings.get("token")
