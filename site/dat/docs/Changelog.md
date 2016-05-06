@@ -2,6 +2,7 @@
 
 ## 1.5.1
  - add `default-location` option for cloud provisioning
+ - delete test files before uploading new ones to the cloud
  - add `delete-test-files` option to cloud provisioning
 
 ## 1.5.0 <sup>4 may 2016</sup>

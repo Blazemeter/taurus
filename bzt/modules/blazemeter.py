@@ -299,7 +299,7 @@ class BlazeMeterClient(object):
         self.first_ts = sys.maxsize
         self.last_ts = 0
         self.timeout = 10
-        self.delete_files_before_test = False
+        self.delete_files_before_test = True
 
     def _request(self, url, data=None, headers=None, checker=None, method=None):
         if not headers:
