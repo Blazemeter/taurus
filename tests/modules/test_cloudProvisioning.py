@@ -107,6 +107,37 @@ class TestCloudProvisioning(BZTestCase):
 
         self.assertEqual("None #None\n executor scenario:\n  Agents in loc-name: 10\n", widget.text.get_text()[0])
 
+    def test_delete_test_files(self):
+        obj = CloudProvisioning()
+        obj.engine = EngineEmul()
+        obj.engine.config.merge({
+            ScenarioExecutor.EXEC: {
+                "executor": "mock",
+            },
+            "modules": {
+                "mock": ModuleMock.__module__ + "." + ModuleMock.__name__
+            },
+            "provisioning": "mock"
+        })
+        obj.parameters = obj.engine.config['execution']
+
+        obj.settings.merge({"token": "FakeToken",
+                            "delete-test-files": True,
+                            'default-location': "us-west-1",
+        })
+        obj.client = client = BlazeMeterClientEmul(obj.log)
+        client.results.append(self.__get_user_info())  # user
+        client.results.append({"result": [{"id": 5174715,
+                                           "name": "Taurus Cloud Test",
+                                           "configuration": {"type": "taurus"},}]})  # find test
+        client.results.append({"files": [{"hash": "hash1", "name": "file1"},
+                                         {"hash": "hash1", "name": "file2"}]})  # test files
+        client.results.append({"removed": ["hash1", "hash2"]})  # remove test files
+        client.results.append({})  # upload files
+
+        obj.prepare()
+        self.assertTrue(client.delete_files_before_test)
+
 
 class TestResultsFromBZA(BZTestCase):
     def test_simple(self):
