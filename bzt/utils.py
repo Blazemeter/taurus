@@ -29,6 +29,7 @@ import re
 import shlex
 import signal
 import socket
+import stat
 import subprocess
 import sys
 import tempfile
@@ -863,3 +864,9 @@ def which(filename):
         if os.path.isfile(candidate):
             candidates.append(candidate)
     return candidates
+
+
+def is_piped(file_obj):
+    "check if file-object is a pipe or a file redirect"
+    mode = os.fstat(file_obj.fileno()).st_mode
+    return stat.S_ISFIFO(mode) or stat.S_ISREG(mode)
