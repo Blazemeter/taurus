@@ -34,6 +34,7 @@ class TestCloudProvisioning(BZTestCase):
         client.results.append(self.__get_user_info())  # user
         client.results.append({"result": []})  # tests
         client.results.append({"result": {"id": id(client)}})  # create test
+        client.results.append({"files": []})  # create test
         client.results.append({})  # upload files
         client.results.append({"result": {"id": id(obj)}})  # start
         client.results.append({"result": {"id": id(obj)}})  # get master
@@ -69,6 +70,7 @@ class TestCloudProvisioning(BZTestCase):
         client.results.append(self.__get_user_info())  # user
         client.results.append({"result": []})  # tests
         client.results.append({"result": {"id": id(client)}})  # create test
+        client.results.append({"files": []})  # test files
         client.results.append({})  # upload files
 
         obj.prepare()
