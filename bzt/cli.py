@@ -22,7 +22,6 @@ import sys
 import traceback
 from logging import Formatter
 from optparse import OptionParser, Option
-from select import select
 from tempfile import NamedTemporaryFile
 
 from colorlog import ColoredFormatter
@@ -32,7 +31,7 @@ import bzt
 from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown
 from bzt.engine import Engine, Configuration, ScenarioExecutor
 from bzt.six import HTTPError, string_types, b
-from bzt.utils import run_once, is_int, BetterDict, is_windows
+from bzt.utils import run_once, is_int, BetterDict, is_windows, is_piped
 
 
 class CLI(object):
@@ -379,14 +378,12 @@ def main():
 
     executor = CLI(parsed_options)
 
-    if not is_windows():
-        readable = select([sys.stdin], [], [], 0.1)[0]
-        for stream in readable:
-            stdin = stream.read()
-            if stdin:
-                with NamedTemporaryFile(prefix="stdin_", suffix=".config", delete=False) as fhd:
-                    fhd.write(b(stdin))
-                    parsed_configs.append(fhd.name)
+    if is_piped(sys.stdin):
+        stdin = sys.stdin.read()
+        if stdin:
+            with NamedTemporaryFile(prefix="stdin_", suffix=".config", delete=False) as fhd:
+                fhd.write(b(stdin))
+                parsed_configs.append(fhd.name)
 
     try:
         code = executor.perform(parsed_configs)
