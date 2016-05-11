@@ -77,6 +77,7 @@ class TaurusNosePlugin(Plugin):
         :param err:
         :return:
         """
+        del test, capt
         self.jtl_dict["responseCode"] = "500"
         self.last_err = err
 
@@ -88,6 +89,7 @@ class TaurusNosePlugin(Plugin):
 
         :return:
         """
+        del test, capt, tbinfo
         self.jtl_dict["responseCode"] = "404"
         self.last_err = err
 
@@ -97,6 +99,7 @@ class TaurusNosePlugin(Plugin):
         :param test:
         :return:
         """
+        del test
         self.jtl_dict["responseCode"] = "300"
 
     def addSuccess(self, test, capt=None):
@@ -105,6 +108,7 @@ class TaurusNosePlugin(Plugin):
         :param test:
         :return:
         """
+        del test, capt
         self.jtl_dict["responseCode"] = "200"
         self.jtl_dict["success"] = "true"
         self.jtl_dict["responseMessage"] = "OK"
@@ -124,6 +128,7 @@ class TaurusNosePlugin(Plugin):
         :param result:
         :return:
         """
+        del result
         if not self.test_count:
             raise RuntimeError("Nothing to test.")
 
@@ -164,6 +169,7 @@ class TaurusNosePlugin(Plugin):
         :param test:
         :return:
         """
+        del test
         self.test_count += 1
         self.jtl_dict["elapsed"] = str(int(1000 * (time() - self._time)))
 
@@ -209,49 +215,57 @@ class JTLErrorWriter(object):
         new_sample = self.gen_http_sample(sample, url, resp_data)
         self.xml_writer.send(new_sample)
 
-    def gen_http_sample(self, sample, url, resp_data):
+    @staticmethod
+    def gen_http_sample(sample, url, resp_data):
         sample_element = etree.Element("httpSample", **sample)
-        sample_element.append(self.gen_resp_header())
-        sample_element.append(self.gen_req_header())
-        sample_element.append(self.gen_resp_data(resp_data))
-        sample_element.append(self.gen_cookies())
-        sample_element.append(self.gen_method())
-        sample_element.append(self.gen_query_string())
-        sample_element.append(self.gen_url(url))
+        sample_element.append(JTLErrorWriter.gen_resp_header())
+        sample_element.append(JTLErrorWriter.gen_req_header())
+        sample_element.append(JTLErrorWriter.gen_resp_data(resp_data))
+        sample_element.append(JTLErrorWriter.gen_cookies())
+        sample_element.append(JTLErrorWriter.gen_method())
+        sample_element.append(JTLErrorWriter.gen_query_string())
+        sample_element.append(JTLErrorWriter.gen_url(url))
         return sample_element
 
-    def gen_resp_header(self):
+    @staticmethod
+    def gen_resp_header():
         resp_header = etree.Element("responseHeader")
         resp_header.set("class", "java.lang.String")
         return resp_header
 
-    def gen_req_header(self):
+    @staticmethod
+    def gen_req_header():
         resp_header = etree.Element("requestHeader")
         resp_header.set("class", "java.lang.String")
         return resp_header
 
-    def gen_resp_data(self, data):
+    @staticmethod
+    def gen_resp_data(data):
         resp_data = etree.Element("responseData")
         resp_data.set("class", "java.lang.String")
         resp_data.text = data
         return resp_data
 
-    def gen_cookies(self):
+    @staticmethod
+    def gen_cookies():
         cookies = etree.Element("cookies")
         cookies.set("class", "java.lang.String")
         return cookies
 
-    def gen_method(self):
+    @staticmethod
+    def gen_method():
         method = etree.Element("method")
         method.set("class", "java.lang.String")
         return method
 
-    def gen_query_string(self):
+    @staticmethod
+    def gen_query_string():
         qstring = etree.Element("queryString")
         qstring.set("class", "java.lang.String")
         return qstring
 
-    def gen_url(self, url):
+    @staticmethod
+    def gen_url(url):
         url_element = etree.Element("java.net.URL")
         url_element.text = url
         return url_element
@@ -286,7 +300,7 @@ def run_nose(_output_file, _err_file, files, iterations, hold):
 
     start_time = int(time())
     with TaurusNosePlugin(_output_file, _err_file) as plugin:
-        for iteration in irange(0, iterations):
+        for _ in irange(0, iterations):
             nose.run(addplugins=[plugin], argv=argv)
             if 0 < hold < int(time()) - start_time:
                 break
