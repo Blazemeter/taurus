@@ -185,7 +185,7 @@ class PBenchTool(object):
             self._generate_payload_inner(scenario)
 
     @staticmethod
-    def _estimate_max_progress_rps(load, payload_count):
+    def _estimate_schedule_size_rps(load, payload_count):
         ramp_up = load.ramp_up if load.ramp_up else 0.0
 
         iterations = float(load.iterations or "inf")
@@ -216,7 +216,7 @@ class PBenchTool(object):
         return rampup_items + hold_items
 
     @staticmethod
-    def _estimate_max_progress_concurrency(load, payload_count):
+    def _estimate_schedule_size_conc(load, payload_count):
         ramp_up = load.ramp_up if load.ramp_up else 0.0
 
         if load.iterations:
@@ -232,11 +232,11 @@ class PBenchTool(object):
                 upper_iteration_limit = 1
             return upper_iteration_limit * payload_count
 
-    def _estimate_max_progress(self, load, payload_count):
+    def _estimate_schedule_size(self, load, payload_count):
         if load.throughput:
-            return self._estimate_max_progress_rps(load, payload_count)
+            return self._estimate_schedule_size_rps(load, payload_count)
         else:
-            return self._estimate_max_progress_concurrency(load, payload_count)
+            return self._estimate_schedule_size_conc(load, payload_count)
 
     @abstractmethod
     def _write_schedule_file(self, load, scheduler, sfd):
@@ -355,7 +355,7 @@ class PBenchTool(object):
 
 
 class OriginalPBenchTool(PBenchTool):
-    NL = "\n"
+    NEWLINE = "\n"
 
     def _write_schedule_file(self, load, scheduler, sfd):
         cnt = 0
@@ -368,7 +368,7 @@ class OriginalPBenchTool(PBenchTool):
 
             if scheduler.iterations > 1 and payload_entry_count is None:
                 payload_entry_count = scheduler.count
-                estimated_size = self._estimate_max_progress(load, payload_entry_count)
+                estimated_size = self._estimate_schedule_size(load, payload_entry_count)
                 self.log.debug("Estimated schedule size: %s", estimated_size)
                 if estimated_size:
                     pbar = IncrementableProgressBar(maxval=estimated_size)
@@ -377,8 +377,8 @@ class OriginalPBenchTool(PBenchTool):
             if time_offset < 0:  # special case, run worker with no delay
                 time_offset = 0.0
 
-            sfd.write(b("%s %s %s%s" % (payload_len, int(1000 * time_offset), marker, self.NL)))
-            sfd.write(b("%s%s" % (payload, self.NL)))
+            sfd.write(b("%s %s %s%s" % (payload_len, int(1000 * time_offset), marker, self.NEWLINE)))
+            sfd.write(b("%s%s" % (payload, self.NEWLINE)))
 
             cnt += 1
             if pbar:
@@ -408,7 +408,7 @@ class TaurusPBenchTool(PBenchTool):
 
             if scheduler.iterations > 1 and payload_entry_count is None:
                 payload_entry_count = scheduler.count
-                estimated_size = self._estimate_max_progress(load, payload_entry_count)
+                estimated_size = self._estimate_schedule_size(load, payload_entry_count)
                 self.log.debug("Estimated schedule size: %s", estimated_size)
                 if estimated_size:
                     pbar = IncrementableProgressBar(maxval=estimated_size)

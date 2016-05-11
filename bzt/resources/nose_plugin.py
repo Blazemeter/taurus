@@ -70,7 +70,7 @@ class TaurusNosePlugin(Plugin):
         self.out_stream.close()
         self.err_stream.close()
 
-    def addError(self, test, err, capt=None):
+    def addError(self, test, err, capt=None):  # pylint: disable=invalid-name
         """
         when a test raises an uncaught exception
         :param test:
@@ -81,7 +81,7 @@ class TaurusNosePlugin(Plugin):
         self.jtl_dict["responseCode"] = "500"
         self.last_err = err
 
-    def addFailure(self, test, err, capt=None, tbinfo=None):
+    def addFailure(self, test, err, capt=None, tbinfo=None):  # pylint: disable=invalid-name
         """
         when a test fails
         :param test:
@@ -93,7 +93,7 @@ class TaurusNosePlugin(Plugin):
         self.jtl_dict["responseCode"] = "404"
         self.last_err = err
 
-    def addSkip(self, test):
+    def addSkip(self, test):  # pylint: disable=invalid-name
         """
         when a test is skipped
         :param test:
@@ -102,7 +102,7 @@ class TaurusNosePlugin(Plugin):
         del test
         self.jtl_dict["responseCode"] = "300"
 
-    def addSuccess(self, test, capt=None):
+    def addSuccess(self, test, capt=None):  # pylint: disable=invalid-name
         """
         when a test passes
         :param test:
@@ -132,7 +132,7 @@ class TaurusNosePlugin(Plugin):
         if not self.test_count:
             raise RuntimeError("Nothing to test.")
 
-    def startTest(self, test):
+    def startTest(self, test):  # pylint: disable=invalid-name
         """
         before test run
         :param test:
@@ -163,7 +163,7 @@ class TaurusNosePlugin(Plugin):
         self.jtl_dict["allThreads"] = 1
         self.jtl_dict["success"] = "false"
 
-    def stopTest(self, test):
+    def stopTest(self, test):  # pylint: disable=invalid-name
         """
         after the test has been run
         :param test:
@@ -275,14 +275,14 @@ class JTLErrorWriter(object):
 
 
 def write_element(fds):
-    with etree.xmlfile(fds, encoding="UTF-8") as xf:
-        xf.write_declaration()
-        with xf.element('testResults', version="1.2"):
+    with etree.xmlfile(fds, encoding="UTF-8") as xfds:
+        xfds.write_declaration()
+        with xfds.element('testResults', version="1.2"):
             try:
                 while True:
-                    el = (yield)
-                    xf.write(el)
-                    xf.flush()
+                    elem = (yield)
+                    xfds.write(elem)
+                    xfds.flush()
             except GeneratorExit:
                 pass
 

@@ -543,7 +543,7 @@ class StackedGraph(Widget):
         rows = []
         for row in range(0, size[1]):
             line = []
-            groups = ["".join(grp) for _num, grp in groupby(matrix[row])]
+            groups = ["".join(grp) for _, grp in groupby(matrix[row])]
             for chunk in groups:
                 color = self.colors[int(chunk[0])]
                 char = self.chars[int(chunk[0])]
