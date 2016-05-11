@@ -758,7 +758,7 @@ class TclLibrary(RequiredTool):
         for lib_dir in lib_dirs:
             base_dir = os.path.join(lib_dir, TclLibrary.FOLDER)
             if os.path.exists(base_dir):
-                for root, _dirs, files in os.walk(base_dir):
+                for root, _, files in os.walk(base_dir):
                     if TclLibrary.INIT_TCL in files:
                         return root
 

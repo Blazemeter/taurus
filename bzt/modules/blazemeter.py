@@ -126,7 +126,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
                 if isinstance(handler, logging.FileHandler):
                     zfh.write(handler.baseFilename, os.path.basename(handler.baseFilename))
 
-            for root, _dirs, files in os.walk(self.engine.artifacts_dir):
+            for root, _, files in os.walk(self.engine.artifacts_dir):
                 for filename in files:
                     if os.path.getsize(os.path.join(root, filename)) <= max_file_size:
                         zfh.write(os.path.join(root, filename),
