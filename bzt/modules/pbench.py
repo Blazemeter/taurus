@@ -444,8 +444,7 @@ class TaurusPBenchTool(PBenchTool):
         return tpl % (self.payload_file, self.schedule_file, duration_limit)
 
     def _get_additional_modules(self):
-        res = super(TaurusPBenchTool, self)._get_additional_modules()
-        res += 'setup_t module_setup = setup_module_t {	dir = "%s" list = { taurus_source } }\n' % self.modules_path
+        res = 'setup_t module_setup = setup_module_t {	dir = "%s" list = { taurus_source } }\n' % self.modules_path
         return res
 
 
