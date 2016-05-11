@@ -349,8 +349,9 @@ class PBenchTool(object):
     def get_results_reader(self):
         return PBenchKPIReader(self.kpi_file, self.log, self.stats_file)
 
+    @abstractmethod
     def _get_additional_modules(self):
-        return ""
+        pass
 
 
 class OriginalPBenchTool(PBenchTool):
@@ -362,7 +363,8 @@ class OriginalPBenchTool(PBenchTool):
         pbar = None
         start_time = time.time()
         for item in scheduler.generate():
-            time_offset, payload_len, payload_offset, payload, marker, record_type, overall_len = item
+            # item : (time_offset, payload_len, payload_offset, payload, marker, record_type, overall_len)
+            time_offset, payload_len, _, payload, marker, _, _ = item
 
             if scheduler.iterations > 1 and payload_entry_count is None:
                 payload_entry_count = scheduler.count
@@ -388,6 +390,9 @@ class OriginalPBenchTool(PBenchTool):
     def _get_source(self, load):
         return 'source_t source_log = source_log_t { filename = "%s" }' % self.schedule_file
 
+    def _get_additional_modules(self):
+        return ""
+
 
 class TaurusPBenchTool(PBenchTool):
     def _write_schedule_file(self, load, scheduler, sfd):
@@ -398,7 +403,8 @@ class TaurusPBenchTool(PBenchTool):
         pbar = None
         start_time = time.time()
         for item in scheduler.generate():
-            time_offset, payload_len, payload_offset, payload, marker, record_type, overall_len = item
+            # item : (time_offset, payload_len, payload_offset, payload, marker, record_type, overall_len)
+            time_offset, _, payload_offset, _, _, record_type, overall_len = item
 
             if scheduler.iterations > 1 and payload_entry_count is None:
                 payload_entry_count = scheduler.count
@@ -438,8 +444,7 @@ class TaurusPBenchTool(PBenchTool):
         return tpl % (self.payload_file, self.schedule_file, duration_limit)
 
     def _get_additional_modules(self):
-        res = super(TaurusPBenchTool, self)._get_additional_modules()
-        res += 'setup_t module_setup = setup_module_t {	dir = "%s" list = { taurus_source } }\n' % self.modules_path
+        res = 'setup_t module_setup = setup_module_t {	dir = "%s" list = { taurus_source } }\n' % self.modules_path
         return res
 
 
@@ -659,6 +664,8 @@ class PBenchStatsReader(object):
         self.data = {}
 
     def read_file(self, last_pass=False):
+        del last_pass
+
         if not os.path.isfile(self.filename):
             self.log.debug("File not appeared yet: %s", self.filename)
             return False

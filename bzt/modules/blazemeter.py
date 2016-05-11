@@ -794,7 +794,7 @@ class BlazeMeterClient(object):
 
     def delete_test_files(self, test_id):
         files = self.get_test_files(test_id)
-        self.log.debug("Test files: %s", [file['name'] for file in files])
+        self.log.debug("Test files: %s", [filedict['name'] for filedict in files])
         if not files:
             return
         path = "/api/latest/web/elfinder/%s" % test_id

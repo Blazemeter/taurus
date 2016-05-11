@@ -298,7 +298,6 @@ class TsungConfig(object):
     def save(self, filename):
         self.log.debug("Saving Tsung config to: %s", filename)
         with open(filename, "wb") as fhd:
-            # TODO: dynamically generate this /usr/ path?
             tsung_dtd = self.tsung_tool.get_dtd_path()
             self.log.debug("Detected Tsung DTD: %s", tsung_dtd)
             doctype = '<!DOCTYPE tsung SYSTEM "%s">' % tsung_dtd
@@ -354,7 +353,7 @@ class TsungConfig(object):
             if not requests:
                 raise ValueError("No requests provided in scenario")
             base_addr = parse.urlparse(requests[0].url)
-            self.log.debug("default-address was not specified, using %s insted", base_addr.hostname)
+            self.log.debug("default-address was not specified, using %s instead", base_addr.hostname)
         else:
             base_addr = parse.urlparse(default_address)
         servers = etree.Element("servers")

@@ -1,10 +1,8 @@
 import io
-import itertools
 import logging
 import math
 import os
 import pprint
-import random
 import time
 
 import urwid
