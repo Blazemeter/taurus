@@ -301,7 +301,8 @@ class ConfigOverrider(object):
             else:
                 pointer[parts[-1]] = parsed_value
 
-    def __parse_override_value(self, override):
+    @staticmethod
+    def __parse_override_value(override):
         try:
             return yaml.load(override)
         except BaseException:
