@@ -70,17 +70,18 @@ class TaurusNosePlugin(Plugin):
         self.out_stream.close()
         self.err_stream.close()
 
-    def addError(self, test, err, capt=None):
+    def addError(self, test, err, capt=None):  # pylint: disable=invalid-name
         """
         when a test raises an uncaught exception
         :param test:
         :param err:
         :return:
         """
+        del test, capt
         self.jtl_dict["responseCode"] = "500"
         self.last_err = err
 
-    def addFailure(self, test, err, capt=None, tbinfo=None):
+    def addFailure(self, test, err, capt=None, tbinfo=None):  # pylint: disable=invalid-name
         """
         when a test fails
         :param test:
@@ -88,23 +89,26 @@ class TaurusNosePlugin(Plugin):
 
         :return:
         """
+        del test, capt, tbinfo
         self.jtl_dict["responseCode"] = "404"
         self.last_err = err
 
-    def addSkip(self, test):
+    def addSkip(self, test):  # pylint: disable=invalid-name
         """
         when a test is skipped
         :param test:
         :return:
         """
+        del test
         self.jtl_dict["responseCode"] = "300"
 
-    def addSuccess(self, test, capt=None):
+    def addSuccess(self, test, capt=None):  # pylint: disable=invalid-name
         """
         when a test passes
         :param test:
         :return:
         """
+        del test, capt
         self.jtl_dict["responseCode"] = "200"
         self.jtl_dict["success"] = "true"
         self.jtl_dict["responseMessage"] = "OK"
@@ -124,10 +128,11 @@ class TaurusNosePlugin(Plugin):
         :param result:
         :return:
         """
+        del result
         if not self.test_count:
             raise RuntimeError("Nothing to test.")
 
-    def startTest(self, test):
+    def startTest(self, test):  # pylint: disable=invalid-name
         """
         before test run
         :param test:
@@ -158,12 +163,13 @@ class TaurusNosePlugin(Plugin):
         self.jtl_dict["allThreads"] = 1
         self.jtl_dict["success"] = "false"
 
-    def stopTest(self, test):
+    def stopTest(self, test):  # pylint: disable=invalid-name
         """
         after the test has been run
         :param test:
         :return:
         """
+        del test
         self.test_count += 1
         self.jtl_dict["elapsed"] = str(int(1000 * (time() - self._time)))
 
@@ -209,49 +215,57 @@ class JTLErrorWriter(object):
         new_sample = self.gen_http_sample(sample, url, resp_data)
         self.xml_writer.send(new_sample)
 
-    def gen_http_sample(self, sample, url, resp_data):
+    @staticmethod
+    def gen_http_sample(sample, url, resp_data):
         sample_element = etree.Element("httpSample", **sample)
-        sample_element.append(self.gen_resp_header())
-        sample_element.append(self.gen_req_header())
-        sample_element.append(self.gen_resp_data(resp_data))
-        sample_element.append(self.gen_cookies())
-        sample_element.append(self.gen_method())
-        sample_element.append(self.gen_query_string())
-        sample_element.append(self.gen_url(url))
+        sample_element.append(JTLErrorWriter.gen_resp_header())
+        sample_element.append(JTLErrorWriter.gen_req_header())
+        sample_element.append(JTLErrorWriter.gen_resp_data(resp_data))
+        sample_element.append(JTLErrorWriter.gen_cookies())
+        sample_element.append(JTLErrorWriter.gen_method())
+        sample_element.append(JTLErrorWriter.gen_query_string())
+        sample_element.append(JTLErrorWriter.gen_url(url))
         return sample_element
 
-    def gen_resp_header(self):
+    @staticmethod
+    def gen_resp_header():
         resp_header = etree.Element("responseHeader")
         resp_header.set("class", "java.lang.String")
         return resp_header
 
-    def gen_req_header(self):
+    @staticmethod
+    def gen_req_header():
         resp_header = etree.Element("requestHeader")
         resp_header.set("class", "java.lang.String")
         return resp_header
 
-    def gen_resp_data(self, data):
+    @staticmethod
+    def gen_resp_data(data):
         resp_data = etree.Element("responseData")
         resp_data.set("class", "java.lang.String")
         resp_data.text = data
         return resp_data
 
-    def gen_cookies(self):
+    @staticmethod
+    def gen_cookies():
         cookies = etree.Element("cookies")
         cookies.set("class", "java.lang.String")
         return cookies
 
-    def gen_method(self):
+    @staticmethod
+    def gen_method():
         method = etree.Element("method")
         method.set("class", "java.lang.String")
         return method
 
-    def gen_query_string(self):
+    @staticmethod
+    def gen_query_string():
         qstring = etree.Element("queryString")
         qstring.set("class", "java.lang.String")
         return qstring
 
-    def gen_url(self, url):
+    @staticmethod
+    def gen_url(url):
         url_element = etree.Element("java.net.URL")
         url_element.text = url
         return url_element
@@ -261,14 +275,14 @@ class JTLErrorWriter(object):
 
 
 def write_element(fds):
-    with etree.xmlfile(fds, encoding="UTF-8") as xf:
-        xf.write_declaration()
-        with xf.element('testResults', version="1.2"):
+    with etree.xmlfile(fds, encoding="UTF-8") as xfds:
+        xfds.write_declaration()
+        with xfds.element('testResults', version="1.2"):
             try:
                 while True:
-                    el = (yield)
-                    xf.write(el)
-                    xf.flush()
+                    elem = (yield)
+                    xfds.write(elem)
+                    xfds.flush()
             except GeneratorExit:
                 pass
 
@@ -286,7 +300,7 @@ def run_nose(_output_file, _err_file, files, iterations, hold):
 
     start_time = int(time())
     with TaurusNosePlugin(_output_file, _err_file) as plugin:
-        for iteration in irange(0, iterations):
+        for _ in irange(0, iterations):
             nose.run(addplugins=[plugin], argv=argv)
             if 0 < hold < int(time()) - start_time:
                 break

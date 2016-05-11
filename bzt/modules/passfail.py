@@ -410,7 +410,7 @@ class PassFailWidget(urwid.Pile, PrioritizedWidget):
                 color = 'pf-3'
             elif 0.8 <= percent < 1:
                 color = 'pf-4'
-            elif 1 <= percent:
+            elif 1 <= percent:  # pylint: disable=misplaced-comparison-constant
                 color = 'pf-5'
             result.append((color, "%s\n" % failing_criteria))
 

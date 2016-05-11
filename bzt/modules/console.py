@@ -259,6 +259,7 @@ class ScrollingLog(ListBox):
         super(ScrollingLog, self).__init__(body)
         self.last_size = (0, 0)
 
+    # pylint: disable=method-hidden
     def render(self, size, focus=False):
         """
         Render the widget
@@ -436,7 +437,7 @@ class StringIONotifying(StringIO, object):
 
         :type self: StringIO
         """
-        StringIO.__init__(self)
+        StringIO.__init__(self)  # pylint: disable=non-parent-init-called
         self.listener = listener
 
     def flush(self):
@@ -542,7 +543,7 @@ class StackedGraph(Widget):
         rows = []
         for row in range(0, size[1]):
             line = []
-            groups = ["".join(grp) for _num, grp in groupby(matrix[row])]
+            groups = ["".join(grp) for _, grp in groupby(matrix[row])]
             for chunk in groups:
                 color = self.colors[int(chunk[0])]
                 char = self.chars[int(chunk[0])]

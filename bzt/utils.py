@@ -29,6 +29,7 @@ import re
 import shlex
 import signal
 import socket
+import stat
 import subprocess
 import sys
 import tempfile
@@ -435,7 +436,7 @@ class ComplexEncoder(json.JSONEncoder):
     """
     TYPES = (dict, list, tuple, text_type, string_types, integer_types, float, bool, type(None))
 
-    def default(self, obj):
+    def default(self, obj):  # pylint: disable=method-hidden
         """
         Filters out protected and private fields
 
@@ -757,7 +758,7 @@ class TclLibrary(RequiredTool):
         for lib_dir in lib_dirs:
             base_dir = os.path.join(lib_dir, TclLibrary.FOLDER)
             if os.path.exists(base_dir):
-                for root, _dirs, files in os.walk(base_dir):
+                for root, _, files in os.walk(base_dir):
                     if TclLibrary.INIT_TCL in files:
                         return root
 
@@ -803,7 +804,7 @@ class MirrorsManager(object):
 
 def open_browser(url):
     browser = webbrowser.get()
-    if type(browser) != GenericBrowser:
+    if type(browser) != GenericBrowser:  # pylint: disable=unidiomatic-typecheck
         try:
             browser.open(url)
         except BaseException as exc:
@@ -863,3 +864,9 @@ def which(filename):
         if os.path.isfile(candidate):
             candidates.append(candidate)
     return candidates
+
+
+def is_piped(file_obj):
+    "check if file-object is a pipe or a file redirect"
+    mode = os.fstat(file_obj.fileno()).st_mode
+    return stat.S_ISFIFO(mode) or stat.S_ISREG(mode)

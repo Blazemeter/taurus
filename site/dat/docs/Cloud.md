@@ -94,6 +94,19 @@ modules:
     project: Project Name  # project name or id
 ```
 
+## Deleting Old Test Files
+
+By default, Taurus will delete all test files from the cloud before uploading any new ones. You can disable
+this behaviour by setting `delete-test-files` module setting to `false`.
+
+Example:
+```yaml
+---
+modules:
+  cloud:
+    delete-test-files: false
+```
+
 ## Specifying Additional Resource Files
 If you need some additional files as part of your test and Taurus fails to detect them automatically, you can attach them to execution using `files` section:
 
