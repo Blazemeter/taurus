@@ -216,7 +216,7 @@ class LocalClient(MonitoringClient):
             return psutil.disk_io_counters()
         except RuntimeError as exc:
             self.log.debug("Failed to get disk metrics: %s", exc)
-            return psutil._common.sdiskio(0, 0, 0, 0, 0, 0)
+            return psutil._common.sdiskio(0, 0, 0, 0, 0, 0)  # pylint: disable=protected-access
 
 
 class GraphiteClient(MonitoringClient):

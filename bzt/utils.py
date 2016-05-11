@@ -435,7 +435,7 @@ class ComplexEncoder(json.JSONEncoder):
     """
     TYPES = (dict, list, tuple, text_type, string_types, integer_types, float, bool, type(None))
 
-    def default(self, obj):
+    def default(self, obj):  # pylint: disable=method-hidden
         """
         Filters out protected and private fields
 
@@ -803,7 +803,7 @@ class MirrorsManager(object):
 
 def open_browser(url):
     browser = webbrowser.get()
-    if type(browser) != GenericBrowser:
+    if type(browser) != GenericBrowser:  # pylint: disable=unidiomatic-typecheck
         try:
             browser.open(url)
         except BaseException as exc:
