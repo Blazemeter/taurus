@@ -96,4 +96,3 @@ class TestScenarioExecutor(BZTestCase):
         process = self.executor.execute(cmdline, shell=True)
         stdout, _ = process.communicate()
         self.assertEquals(self.engine.artifacts_dir, stdout.decode().strip())
-
