@@ -172,7 +172,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if os.path.isfile(script_path):  # regular file received
             file_types.add(os.path.splitext(script_path)[1].lower())
         else:  # dir received: check contained files
-            for file_name in get_files_recursive():
+            for file_name in get_files_recursive(script_path):
                 file_types.add(os.path.splitext(file_name)[1].lower())
 
         if '.java' in file_types:
