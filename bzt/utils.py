@@ -18,6 +18,7 @@ limitations under the License.
 """
 
 import csv
+import fnmatch
 import itertools
 import json
 import logging
@@ -35,7 +36,6 @@ import tempfile
 import time
 import webbrowser
 import zipfile
-import fnmatch
 from abc import abstractmethod
 from collections import defaultdict, Counter
 from subprocess import PIPE

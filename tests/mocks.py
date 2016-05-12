@@ -1,18 +1,18 @@
 """ test """
+import logging
+import os
+import random
+import sys
+import tempfile
 from _socket import SOCK_STREAM, AF_INET
 from io import StringIO
-import logging
 from logging import Handler
-import os
-import tempfile
-import sys
-import random
 
 from bzt.engine import Engine, Configuration, FileLister
-from bzt.six import u
-from bzt.utils import load_class
 from bzt.engine import Provisioning, ScenarioExecutor, Reporter
 from bzt.modules.aggregator import ResultsReader, AggregatorListener
+from bzt.six import u
+from bzt.utils import load_class
 from tests import random_sample
 
 try:

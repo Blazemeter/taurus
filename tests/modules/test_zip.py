@@ -70,7 +70,7 @@ class TestZipFolder(BZTestCase):
         obj.parameters = obj.engine.config['execution']
 
         # create archive and put it in artifact dir
-        source = __dir__() + "/../selenium/java_package"
+        # source = __dir__() + "/../selenium/java_package"
         zip_name = obj.engine.create_artifact('java_package', '.zip')
         with zipfile.ZipFile(zip_name, 'w', zipfile.ZIP_STORED) as zip_file:
             for filename in get_files_recursive(source):

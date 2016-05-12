@@ -35,10 +35,10 @@ from yaml.representer import SafeRepresenter
 
 import bzt
 from bzt import ManualShutdown, NormalShutdown, get_configs_dir
-from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler
 from bzt.six import build_opener, install_opener, urlopen, request, numeric_types, iteritems
-from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time
+from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler
 from bzt.utils import PIPE, shell_exec, get_files_recursive, get_full_path
+from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time
 
 SETTINGS = "settings"
 
@@ -889,7 +889,7 @@ class ScenarioExecutor(EngineModule):
             if os.path.isfile(source):
                 result_list.append(source)
 
-            else:   # source is dir
+            else:  # source is dir
                 if new_server:  # server supports archives
                     self.log.debug("Compress directory '%s'", source)
                     base_zip_name = os.path.basename(get_full_path(source))
