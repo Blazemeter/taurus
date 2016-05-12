@@ -240,10 +240,10 @@ scenarios:
         page_title: <title>(\w+)</title>  #  must have at least one capture group
       extract-jsonpath: # dictionary under it has form <var name>: <JSONPath expression>
         varname: $.jsonpath[0].expression
-    - http://blazedemo.com/${varname}/${page_title}  # that's how we use those variables
+    - url: http://blazedemo.com/${varname}/${page_title}  # that's how we use those variables
       extract-css-jquery: # dictionary under it has form <var name>: <CSS/JQuery selector>
         extractor1: input[name~=my_input]
-    - http://blazedemo.com/${varname}/${extractor1}.xml
+    - url: http://blazedemo.com/${varname}/${extractor1}.xml
       extract-xpath:
         title: /html/head/title
 ```
@@ -266,14 +266,14 @@ scenarios:
         varname:
           jsonpath: $.jsonpath[0]  # jsonpath expression
           default: NOT_FOUND  # default value to use when jsonpath not found
-    - http://blazedemo.com/${varname}/${page_title}
+    - url: http://blazedemo.com/${varname}/${page_title}
       extract-css-jquery:
         extractor2:
           expression: input[name=JMeter]
           attribute: value
           match-no: 1
           default: NOT_FOUND
-    - http://blazedemo.com/${varname}/${extractor2}.xml
+    - url: http://blazedemo.com/${varname}/${extractor2}.xml
       extract-xpath:
         destination:
           xpath: /order/client/address
