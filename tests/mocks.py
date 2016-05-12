@@ -1,18 +1,18 @@
 """ test """
-import logging
-import os
-import random
-import sys
-import tempfile
 from _socket import SOCK_STREAM, AF_INET
 from io import StringIO
+import logging
 from logging import Handler
+import os
+import tempfile
+import sys
+import random
 
 from bzt.engine import Engine, Configuration, FileLister
-from bzt.engine import Provisioning, ScenarioExecutor, Reporter
-from bzt.modules.aggregator import ResultsReader, AggregatorListener
 from bzt.six import u
 from bzt.utils import load_class
+from bzt.engine import Provisioning, ScenarioExecutor, Reporter
+from bzt.modules.aggregator import ResultsReader, AggregatorListener
 from tests import random_sample
 
 try:
@@ -23,13 +23,20 @@ except ImportError:
 
 
 class EngineEmul(Engine):
+    """
+    emulating engine
+    """
+
     def __init__(self):
-        super(EngineEmul, self).__init__(logging.getLogger(''))
+        Engine.__init__(self, logging.getLogger(''))
         self.config.get('settings')['artifacts-dir'] = os.path.dirname(__file__) + "/../build/test/%Y-%m-%d_%H-%M-%S.%f"
         self.create_artifacts_dir()
         self.config.merge({"provisioning": "local"})
         self.finalize_exc = None
         self.was_finalize = False
+
+    def _shutdown(self):
+        return super(EngineEmul, self)._shutdown()
 
     def dump_config(self):
         """ test """

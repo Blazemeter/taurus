@@ -22,6 +22,15 @@ class SeleniumTestCase(BZTestCase):
 
 
 class TestSeleniumJUnitRunner(SeleniumTestCase):
+    """
+    java:one/folder/project/list
+    jar:one/folder/list
+    python:one/folder/list
+    """
+
+    def setUp(self):
+        super(TestSeleniumJUnitRunner, self).setUp()
+
     def test_install_tools(self):
         """
         check installation of selenium-server, junit
@@ -572,10 +581,10 @@ class TestSeleniumStuff(SeleniumTestCase):
         while not obj.check():
             time.sleep(1)
         obj.shutdown()
-        with open(os.path.join(obj.engine.artifacts_dir, "test.err")) as fds:
+        with open(os.path.join(obj.engine.artifacts_dir, "junit.err")) as fds:
             contents = fds.read()
             self.assertEqual(1, contents.count("ok"), "file: '%s', size: %s, content: '%s'" % (fds, fds.__sizeof__(),
-                                                                                               contents))
+                             contents))
             self.assertEqual(1, contents.count("OK"))
 
     def test_fail_on_zero_results(self):
