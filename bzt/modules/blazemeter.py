@@ -37,6 +37,9 @@ from bzt.six import BytesIO, text_type, iteritems, HTTPError, urlencode, Request
     string_types
 from bzt.utils import to_json, dehumanize_time, MultiPartForm, BetterDict, open_browser
 
+from tests import __dir__
+from bzt.utils import get_files_recursive
+
 
 class BlazeMeterUploader(Reporter, AggregatorListener):
     """
@@ -884,9 +887,12 @@ class CloudProvisioning(Provisioning, WidgetProvider):
 
     def __get_rfiles(self):
         rfiles = []
+        self.engine.config['packed'] = []
+
         for executor in self.executors:
             rfiles += executor.get_resource_files()
         self.log.debug("All resource files are: %s", rfiles)
+
         return [self.engine.find_file(x) for x in rfiles]
 
     def __get_bza_test_config(self):

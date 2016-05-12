@@ -38,7 +38,7 @@ from bzt import ManualShutdown, NormalShutdown, get_configs_dir
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler
 from bzt.six import build_opener, install_opener, urlopen, request, numeric_types, iteritems
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time
-from bzt.utils import PIPE, shell_exec, get_files_recursive
+from bzt.utils import PIPE, shell_exec, get_files_recursive, get_full_path
 
 SETTINGS = "settings"
 
@@ -892,11 +892,14 @@ class ScenarioExecutor(EngineModule):
             else:   # source is dir
                 if new_server:  # server supports archives
                     self.log.debug("Compress directory '%s'", source)
-                    zip_name = source + '.zip'  # TODO: create archive in artifacts dir
+                    base_zip_name = os.path.basename(get_full_path(source))
+                    zip_name = self.engine.create_artifact(base_zip_name, '.zip')
+
                     with zipfile.ZipFile(zip_name, 'w', zipfile.ZIP_STORED) as zip_file:
                         for filename in get_files_recursive(source):
-                            zip_file.write(filename)
+                            zip_file.write(filename, filename[len(source):])
                     result_list.append(zip_name)
+                    self.engine.config['packed'].append(base_zip_name)
 
                 else:  # old server: send files
                     for filename in get_files_recursive(source):
