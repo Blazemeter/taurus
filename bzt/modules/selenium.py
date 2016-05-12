@@ -28,8 +28,8 @@ from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.console import WidgetProvider
 from bzt.modules.jmeter import JTLReader
 from bzt.six import string_types, text_type, etree
-from bzt.utils import RequiredTool, shell_exec, shutdown_process, JavaVM, TclLibrary
-from bzt.utils import dehumanize_time, MirrorsManager, is_windows, BetterDict
+from bzt.utils import RequiredTool, shell_exec, shutdown_process, JavaVM, TclLibrary, get_files_recursive
+from bzt.utils import dehumanize_time, MirrorsManager, is_windows, BetterDict, get_full_path
 
 try:
     from pyvirtualdisplay.smartdisplay import SmartDisplay as Display
@@ -47,10 +47,11 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                              "selenium-server-standalone-{version}.0.jar"
     SELENIUM_VERSION = "2.53"
 
-    JUNIT_DOWNLOAD_LINK = "http://search.maven.org/remotecontent?filepath=junit/junit/{version}/junit-{version}.jar"
+    JUNIT_DOWNLOAD_LINK = "http://search.maven.org/remotecontent?filepath=junit/junit/" \
+                          "{version}/junit-{version}.jar"
     JUNIT_VERSION = "4.12"
-    JUNIT_MIRRORS_SOURCE = "http://search.maven.org/solrsearch/select?q=g%3A%22junit%22%20AND%20a%3A%22junit%22%20" \
-                           "AND%20v%3A%22{version}%22&rows=20&wt=json".format(version=JUNIT_VERSION)
+    JUNIT_MIRRORS_SOURCE = "http://search.maven.org/solrsearch/select?q=g%3A%22junit%22%20AND%20a%3A%22" \
+                           "junit%22%20AND%20v%3A%22{version}%22&rows=20&wt=json".format(version=JUNIT_VERSION)
 
     HAMCREST_DOWNLOAD_LINK = "https://hamcrest.googlecode.com/files/hamcrest-core-1.3.jar"
 
@@ -71,6 +72,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.err_jtl = None
         self.runner_working_dir = None
         self.scenario = None
+        self.self_generated_script = False
 
     def set_virtual_display(self):
         display_conf = self.settings.get("virtual-display")
@@ -121,17 +123,15 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             runner_config['props-file'] = self.engine.create_artifact("customrunner", ".properties")
 
         runner_config["script-type"] = script_type
-        if self.runner_working_dir is None:
-            self.runner_working_dir = self.engine.create_artifact(runner_config.get("working-dir", "classes"), "")
-        runner_config["working-dir"] = self.runner_working_dir
+        runner_working_dir = self.engine.create_artifact(runner_config.get("working-dir", "classes"), "")
+        runner_config["working-dir"] = runner_working_dir
         runner_config.get("artifacts-dir", self.engine.artifacts_dir)
-        runner_config.get("working-dir", self.runner_working_dir)
         runner_config.get("report-file", self.kpi_file)
         runner_config.get("err-file", self.err_jtl)
         runner_config.get("stdout", self.engine.create_artifact("junit", ".out"))
         runner_config.get("stderr", self.engine.create_artifact("junit", ".err"))
 
-        self._cp_resource_files(self.runner_working_dir)
+        self._cp_resource_files(runner_working_dir)
 
         self.runner = runner_class(runner_config, self)
         self.runner.prepare()
@@ -143,31 +143,24 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if not self.scenario.get(Scenario.SCRIPT):
             if self.scenario.get("requests"):
                 self.scenario[Scenario.SCRIPT] = self.__tests_from_requests()
+                self.self_generated_script = True
             else:
                 raise RuntimeError("Nothing to test, no requests were provided in scenario")
 
     def _cp_resource_files(self, runner_working_dir):
-        """
-        :return:
-        """
         script = self._get_script_path()
 
-        if script is not None:
-            if os.path.isdir(script):
-                shutil.copytree(script, runner_working_dir)
+        if os.path.isdir(script):
+            shutil.copytree(script, runner_working_dir)
+        else:
+            os.makedirs(runner_working_dir)
+            if self.self_generated_script:
+                shutil.move(script, runner_working_dir)
             else:
-                os.makedirs(runner_working_dir)
                 shutil.copy2(script, runner_working_dir)
 
     @staticmethod
     def detect_script_type(script_path):
-        """
-        checks if script is java or python
-        if it's folder or single script
-
-        :param script_path: str
-        :return:
-        """
         if not isinstance(script_path, string_types) and not isinstance(script_path, text_type):
             raise ValueError("Nothing to test, no files were provided in scenario")
 
@@ -178,10 +171,9 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         if os.path.isfile(script_path):  # regular file received
             file_types.add(os.path.splitext(script_path)[1].lower())
-        else:  # dir received: check files
-            for walk_rec in os.walk(script_path):
-                for file_name in walk_rec[2]:
-                    file_types.add(os.path.splitext(file_name)[1].lower())
+        else:  # dir received: check contained files
+            for file_name in get_files_recursive():
+                file_types.add(os.path.splitext(file_name)[1].lower())
 
         if '.java' in file_types:
             file_ext = '.java'
@@ -242,21 +234,12 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         return self.widget
 
     def resource_files(self):
-        if not self.scenario:
-            self.scenario = self.get_scenario()
+        self.scenario = self.get_scenario()
 
-        if Scenario.SCRIPT not in self.scenario:
-            return []
-
-        script_path = self._get_script_path()
-
-        if os.path.isdir(script_path):
-            files = next(os.walk(script_path))
-            resources = [os.path.join(files[0], f) for f in files[2]]
+        if Scenario.SCRIPT in self.scenario:
+            return [self._get_script_path()]
         else:
-            resources = [script_path]
-
-        return resources
+            return []
 
     def __tests_from_requests(self):
         filename = self.engine.create_artifact("test_requests", ".py")
@@ -282,7 +265,7 @@ class AbstractTestRunner(object):
         self.load = executor.get_load()
         self.artifacts_dir = self.settings.get("artifacts-dir")
         self.working_dir = self.settings.get("working-dir")
-        self.log = None
+        self.log = executor.log.getChild(self.__class__.__name__)
         self.opened_descriptors = []
         self.is_failed = False
         self.env = {}
@@ -335,13 +318,15 @@ class JUnitTester(AbstractTestRunner):
         """
         super(JUnitTester, self).__init__(junit_config, executor)
         self.props_file = junit_config['props-file']
-        self.log = executor.log.getChild(self.__class__.__name__)
-        path_lambda = lambda key, val: os.path.abspath(os.path.expanduser(self.settings.get(key, val)))
+        path_lambda = lambda key, val: get_full_path(self.settings.get(key, val))
 
         self.junit_path = path_lambda("path", "~/.bzt/selenium-taurus/tools/junit/junit.jar")
         self.hamcrest_path = path_lambda("hamcrest-core", "~/.bzt/selenium-taurus/tools/junit/hamcrest-core.jar")
-        self.selenium_server_jar_path = path_lambda("selenium-server", "~/.bzt/selenium-taurus/selenium-server.jar")
-        self.junit_listener_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), os.pardir, "resources",
+        self.selenium_server_jar_path = path_lambda("selenium-server",
+                                                    "~/.bzt/selenium-taurus/selenium-server.jar")
+        self.junit_listener_path = os.path.join(get_full_path(__file__, step_up=1),
+                                                os.pardir,
+                                                "resources",
                                                 "taurus-junit-1.0.jar")
         self.target_java = str(junit_config.get("compile-target-java", "1.7"))
 
@@ -499,8 +484,7 @@ class NoseTester(AbstractTestRunner):
 
     def __init__(self, nose_config, executor):
         super(NoseTester, self).__init__(nose_config, executor)
-        self.log = executor.log.getChild(self.__class__.__name__)
-        self.plugin_path = os.path.join(os.path.abspath(os.path.dirname(__file__)),
+        self.plugin_path = os.path.join(get_full_path(__file__, step_up=1),
                                         os.pardir,
                                         "resources",
                                         "nose_plugin.py")
@@ -605,7 +589,7 @@ class JUnitJar(RequiredTool):
         self.mirror_manager = JUnitMirrorsManager(self.log, self.version)
 
     def install(self):
-        dest = os.path.dirname(os.path.expanduser(self.tool_path))
+        dest = get_full_path(self.tool_path, step_up=1)
         dest = os.path.abspath(dest)
         junit_dist = super(JUnitJar, self).install_with_mirrors(dest, ".jar")
         self.log.info("Installing %s into %s", self.tool_name, dest)
