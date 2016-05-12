@@ -234,12 +234,21 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         return self.widget
 
     def resource_files(self):
-        self.scenario = self.get_scenario()
+        if not self.scenario:
+            self.scenario = self.get_scenario()
 
-        if Scenario.SCRIPT in self.scenario:
-            return [self._get_script_path()]
-        else:
+        if Scenario.SCRIPT not in self.scenario:
             return []
+
+        script_path = self._get_script_path()
+
+        if os.path.isdir(script_path):
+            files = next(os.walk(script_path))
+            resources = [os.path.join(files[0], f) for f in files[2]]
+        else:
+            resources = [script_path]
+
+        return resources
 
     def __tests_from_requests(self):
         filename = self.engine.create_artifact("test_requests", ".py")
