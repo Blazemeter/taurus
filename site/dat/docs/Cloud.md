@@ -45,8 +45,8 @@ Cloud locations are specified per-execution. Specifying multiple cloud locations
 ---
 execution:
 - locations:
-    eu-west: 1
-    eu-east: 2
+    us-west-1: 1
+    us-east-1: 2
 ```
 
 To get the list of all available locations, run `bzt -locations -o modules.cloud.token=<API Key>`. The list of available locations is taken from [User API Call](https://a.blazemeter.com/api/latest/user) and may be specific for particular user. See `locations` block and `id` option for each location.
@@ -57,8 +57,8 @@ By default, Taurus will calculate machines count for each location based on thei
 ---
 execution:
 - locations:
-    eu-west: 2
-    eu-east: 7
+    us-west-1: 2
+    us-east-1: 7
   locations-weighted: false
 ```
 
@@ -79,7 +79,7 @@ If you need some additional files as part of your test and Taurus fails to detec
 ---
 execution:
 - locations:
-    eu-east: 1
+    us-east-1: 1
   scenario:
     script: testplan.jmx
   files:
