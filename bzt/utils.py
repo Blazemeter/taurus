@@ -18,6 +18,7 @@ limitations under the License.
 """
 
 import csv
+import fnmatch
 import itertools
 import json
 import logging
@@ -48,8 +49,18 @@ from urwid import BaseScreen
 from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, request, file_type
 
 
-def get_full_path(path):
-    return os.path.abspath(os.path.expanduser(path))
+def get_full_path(path, step_up=0):
+    res = os.path.abspath(os.path.expanduser(path))
+    for i in range(step_up):
+        res = os.path.dirname(res)
+    return res
+
+
+def get_files_recursive(dir_name, exclude_mask=''):
+    for root, dirs, files in os.walk(dir_name):
+        for _file in files:
+            if not fnmatch.fnmatch(_file, exclude_mask):
+                yield os.path.join(root, _file)
 
 
 def run_once(func):
