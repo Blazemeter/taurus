@@ -33,7 +33,7 @@ A helper tool to validate YAML: [http://wiki.ess3.net/yaml/](http://wiki.ess3.ne
 Any configuration option can be overridden from command line by using `-o`
 switch. Like this:
 ```
-bzt stress.json -o modules.jmeter.path=alternate/jmeter/bin/jmeter -o provisioning=local
+bzt stress.json -o modules.jmeter.path=alternate/jmeter/bin/jmeter -o provisioning=remote
 ```
  
 You can even start whole test without config files, just from switches. 

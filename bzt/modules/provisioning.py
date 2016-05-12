@@ -64,10 +64,10 @@ class Local(Provisioning):
 
         packed_list = self.engine.config.get('packed')
         for archive in packed_list:
-            full_archive_path = os.path.join(self.engine.artifacts_dir, archive + '.zip')
+            full_archive_path = os.path.join(self.engine.artifacts_dir, archive)
             self.log.debug('Unpacking %s', archive)
             with zipfile.ZipFile(full_archive_path, 'r') as zip_file:
-                zip_file.extractall(os.path.join(self.engine.artifacts_dir, archive))
+                zip_file.extractall(self.engine.artifacts_dir)
             os.remove(full_archive_path)
 
         for executor in self.executors:

@@ -884,12 +884,9 @@ class CloudProvisioning(Provisioning, WidgetProvider):
 
     def __get_rfiles(self):
         rfiles = []
-        self.engine.config['packed'] = []
-
         for executor in self.executors:
             rfiles += executor.get_resource_files()
         self.log.debug("All resource files are: %s", rfiles)
-
         return [self.engine.find_file(x) for x in rfiles]
 
     def __get_bza_test_config(self):

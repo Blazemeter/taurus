@@ -878,32 +878,26 @@ class ScenarioExecutor(EngineModule):
                    duration=duration, steps=steps)
 
     def get_resource_files(self):
-
-        new_server = True  # TODO: implement set up of sever property
-        result_list = []
-        source_list = self.execution.get("files", [])
+        result_list = []                                    # files for upload
+        source_list = self.execution.get("files", [])       # files for analysis
+        packed_list = self.engine.config.get('packed', [])  # files for unzipping
         if isinstance(self, FileLister):
             source_list.extend(self.resource_files())
         while source_list:
             source = source_list.pop()
             if os.path.isfile(source):
                 result_list.append(source)
-
             else:  # source is dir
-                if new_server:  # server supports archives
-                    self.log.debug("Compress directory '%s'", source)
-                    base_zip_name = os.path.basename(get_full_path(source))
-                    zip_name = self.engine.create_artifact(base_zip_name, '.zip')
+                self.log.debug("Compress directory '%s'", source)
+                base_zip_name = os.path.basename(get_full_path(source))
+                zip_name = self.engine.create_artifact(base_zip_name, '.zip')
 
-                    with zipfile.ZipFile(zip_name, 'w', zipfile.ZIP_STORED) as zip_file:
-                        for filename in get_files_recursive(source):
-                            zip_file.write(filename, filename[len(source):])
-                    result_list.append(zip_name)
-                    self.engine.config['packed'].append(base_zip_name)
-
-                else:  # old server: send files
+                relative_prefix_len = len(os.path.dirname(source))
+                with zipfile.ZipFile(zip_name, 'w', zipfile.ZIP_STORED) as zip_file:
                     for filename in get_files_recursive(source):
-                        result_list.append(filename)
+                        zip_file.write(filename, filename[relative_prefix_len:])
+                result_list.append(zip_name)
+                packed_list.append(base_zip_name + '.zip')
 
         return result_list
 
