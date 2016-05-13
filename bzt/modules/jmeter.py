@@ -721,16 +721,24 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         return body_files
 
     def __res_files_from_request(self, request):
-        files = []
-        if 'if' in request.config:
-            then_clause = request.fields['then']
-            then_files = self.__res_files_from_requests(then_clause)
-            files.extend(then_files)
-        else:
-            body_path = request.config.get('body-file')
-            if body_path:
-                files.append(body_path)
-        return files
+
+        class ResourceFilesCollector(RequestVisitor):
+            def visit_HTTPRequest(self, request):
+                files = []
+                body_file = request.config.get('body-file')
+                if body_file:
+                    files.append(body_file)
+                return files
+
+            def visit_IfBlock(self, block):
+                files = []
+                for request in block.then_clause:
+                    files.extend(self.visit(request))
+                for request in block.else_clause:
+                    files.extend(self.visit(request))
+                return files
+
+        return ResourceFilesCollector().visit(request)
 
     def __get_script(self):
         """
@@ -828,58 +836,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             tool.tool_path = os.path.join(tool.tool_path, end_str_l)
 
         return True
-
-
-class RequestsParser(object):
-    IF_BLOCK = "if"
-
-    def __init__(self, executor):
-        self.executor = executor
-
-    def __parse_request(self, req):
-        httpreq = namedtuple("HTTPReq", "url, label, method, headers, timeout, think_time, config, body")
-        logic_block = namedtuple("LogicBlock", "type, fields, config")
-        if 'if' in req:
-            condition = req.get("if")
-            # TODO: apply some checks to `condition`?
-            then_clause = req.get("then", ValueError("`then` clause is mandatory"))
-            then_requests = self.__parse_requests(then_clause)
-            fields = {
-                'if': condition,
-                'then': then_requests,
-            }
-            return logic_block(type=self.IF_BLOCK, fields=fields, config=req)
-        else:
-            url = req.get("url", ValueError("Option 'url' is mandatory for request"))
-            label = req.get("label", url)
-            method = req.get("method", "GET")
-            headers = req.get("headers", {})
-            timeout = req.get("timeout", None)
-            think_time = req.get("think-time", None)
-
-            body = None
-            bodyfile = req.get("body-file", None)
-            if bodyfile:
-                bodyfile_path = self.executor.engine.find_file(bodyfile)
-                with open(bodyfile_path) as fhd:
-                    body = fhd.read()
-            body = req.get("body", body)
-
-            return httpreq(config=req, label=label,
-                           url=url, method=method, headers=headers,
-                           timeout=timeout, think_time=think_time, body=body)
-
-    def __parse_requests(self, raw_requests):
-        for key in range(len(raw_requests)):
-            if not isinstance(raw_requests[key], dict):
-                req = ensure_is_dict(raw_requests, key, "url")
-            else:
-                req = raw_requests[key]
-            yield self.__parse_request(req)
-
-    def extract_requests(self, scenario):
-        requests = scenario.get("requests", [])
-        return list(self.__parse_requests(requests))
 
 
 class JTLReader(ResultsReader):
@@ -1374,11 +1330,12 @@ class JMeterScenarioBuilder(JMX):
 
     def __add_requests(self):
         requests = list(self.requests_parser.extract_requests(self.scenario))
-        for compiled in self.__compile_requests(requests):
+        compiled_requests = self.compile_requests(requests)
+        for compiled in compiled_requests:
             for element in compiled:
                 self.append(self.THR_GROUP_SEL, element)
 
-    def __compile_http_request(self, request):
+    def compile_http_request(self, request):
         global_timeout = self.scenario.get("timeout", None)
         global_keepalive = self.scenario.get("keepalive", True)
 
@@ -1415,30 +1372,28 @@ class JMeterScenarioBuilder(JMX):
 
         return [http, children]
 
-    def __compile_logic_block(self, block):
-        if block.type == RequestsParser.IF_BLOCK:
-            condition = block.fields['if']
-            then_clause = block.fields['then']
-            controller = JMX._get_if_controller(condition)
-            children = etree.Element("hashTree")
-            for compiled in self.__compile_requests(then_clause):
-                for element in compiled:
-                    children.append(element)
-            return [controller, children]
-        else:
-            raise ValueError("Unknown logic block %r" % block.type)
+    def compile_if_block(self, block):
+        # TODO: compile else clause
+        # TODO: pass jmeter IfController options
+        controller = JMX._get_if_controller(block.condition)
+        children = etree.Element("hashTree")
+        for compiled in self.compile_requests(block.then_clause):
+            for element in compiled:
+                children.append(element)
+        return [controller, children]
 
-    def __compile_request(self, request):
-        if 'if' in request.config:
-            return self.__compile_logic_block(request)
-        else:
-            return self.__compile_http_request(request)
+    def compile_requests(self, requests):
+        builder = self
 
-    def __compile_requests(self, requests):
-        return [
-            self.__compile_request(req)
-            for req in requests
-        ]
+        class RequestCompiler(RequestVisitor):
+            def visit_HTTPRequest(self, request):
+                return builder.compile_http_request(request)
+
+            def visit_IfBlock(self, block):
+                return builder.compile_if_block(block)
+
+        compiler = RequestCompiler()
+        return [compiler.visit(request) for request in requests]
 
     def __generate(self):
         """
@@ -1617,3 +1572,93 @@ class JMeterMirrorsManager(MirrorsManager):
             links.append(default_link)
         self.log.debug('Total mirrors: %d', len(links))
         return links
+
+
+class Request(object):
+    def __init__(self, config):
+        self.config = config
+
+
+class HTTPRequest(Request):
+    def __init__(self, url, label, method, headers, timeout, think_time, body, config):
+        super(HTTPRequest, self).__init__(config)
+        self.url = url
+        self.label = label
+        self.method = method
+        self.headers = headers
+        self.timeout = timeout
+        self.think_time = think_time
+        self.body = body
+
+    def __repr__(self):
+        return "HTTPRequest(url=%s, method=%s)" % (self.url, self.method)
+
+
+class IfBlock(Request):
+    def __init__(self, condition, then_clause, else_clause, config):
+        super(IfBlock, self).__init__(config)
+        self.condition = condition
+        self.then_clause = then_clause
+        self.else_clause = else_clause
+
+    def __repr__(self):
+        then_clause = [repr(req) for req in self.then_clause]
+        else_clause = [repr(req) for req in self.else_clause]
+        return "IfBlock(condition=%s, then=%s, else=%s)" % (self.condition, then_clause, else_clause)
+
+
+class RequestsParser(object):
+    def __init__(self, executor):
+        self.executor = executor
+
+    def __parse_request(self, req):
+        if 'if' in req:
+            condition = req.get("if")
+            # TODO: apply some checks to `condition`?
+            then_clause = req.get("then")
+            if not then_clause:
+                raise ValueError("`then` clause is mandatory for if blocks")
+            then_requests = self.__parse_requests(then_clause)
+            else_clause = req.get("else", [])
+            else_requests = self.__parse_requests(else_clause)
+            return IfBlock(condition, then_requests, else_requests, req)
+        else:
+            url = req.get("url", ValueError("Option 'url' is mandatory for request"))
+            label = req.get("label", url)
+            method = req.get("method", "GET")
+            headers = req.get("headers", {})
+            timeout = req.get("timeout", None)
+            think_time = req.get("think-time", None)
+
+            body = None
+            bodyfile = req.get("body-file", None)
+            if bodyfile:
+                bodyfile_path = self.executor.engine.find_file(bodyfile)
+                with open(bodyfile_path) as fhd:
+                    body = fhd.read()
+            body = req.get("body", body)
+
+            return HTTPRequest(url, label, method, headers, timeout, think_time, body, req)
+
+    def __parse_requests(self, raw_requests):
+        requests = []
+        for key in range(len(raw_requests)):
+            if not isinstance(raw_requests[key], dict):
+                req = ensure_is_dict(raw_requests, key, "url")
+            else:
+                req = raw_requests[key]
+            requests.append(self.__parse_request(req))
+        return requests
+
+    def extract_requests(self, scenario):
+        requests = scenario.get("requests", [])
+        return list(self.__parse_requests(requests))
+
+
+class RequestVisitor(object):
+    def visit(self, node):
+        class_name = node.__class__.__name__
+        visitor = getattr(self, 'visit_' + class_name, None)
+        if visitor is not None:
+            return visitor(node)
+        raise ValueError("Visitor for class %s not found" % class_name)
