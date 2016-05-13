@@ -17,7 +17,7 @@ class TestZipFolder(BZTestCase):
         obj.engine = EngineEmul()
 
         obj.engine.config.merge({
-            ScenarioExecutor.EXEC: {
+            "execution": {
                 "executor": "selenium",
                 "concurrency": 5500,
                 "locations": {

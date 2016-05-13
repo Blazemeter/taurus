@@ -62,7 +62,7 @@ class Local(Provisioning):
         """
         super(Local, self).prepare()
 
-        packed_list = self.engine.config.get('packed')
+        packed_list = self.engine.config.get('packed', [])
         for archive in packed_list:
             full_archive_path = os.path.join(self.engine.artifacts_dir, archive)
             self.log.debug('Unpacking %s', archive)

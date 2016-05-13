@@ -223,7 +223,7 @@ class BetterDict(defaultdict):
                 self.__ensure_list_type(obj)
 
     @classmethod
-    def traverse(cls, obj, visitor):
+    def traverse(self, obj, visitor):
         """
         Deep traverse dict with visitor
 
@@ -233,11 +233,11 @@ class BetterDict(defaultdict):
         if isinstance(obj, dict):
             for key, val in iteritems(obj):
                 visitor(val, key, obj)
-                cls.traverse(obj[key], visitor)
+                self.traverse(obj[key], visitor)
         elif isinstance(obj, list):
             for idx, val in enumerate(obj):
                 visitor(val, idx, obj)
-                cls.traverse(obj[idx], visitor)
+                self.traverse(obj[idx], visitor)
 
 
 def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False, env=None):
@@ -480,14 +480,14 @@ class ComplexEncoder(json.JSONEncoder):
         return isinstance(obj, dumpable_types)
 
     @classmethod
-    def of_basic_type(cls, val):
+    def of_basic_type(self, val):
         """
         Returns true if val is of basic type
 
         :param val:
         :return:
         """
-        return isinstance(val, cls.TYPES)
+        return isinstance(val, self.TYPES)
 
 
 def humanize_time(secs):
