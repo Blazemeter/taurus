@@ -1081,6 +1081,36 @@ class TestJMeterExecutor(BZTestCase):
         self.assertIsNotNone(condition)
         self.assertEqual(condition.text, "<cond>")
 
+    def test_request_logic_if_else(self):
+        self.obj.engine.config.merge({
+            'execution': {
+                'scenario': {
+                    "requests": [
+                        {
+                            "if": "<cond>",
+                            "then": [
+                                "http://blazedemo.com/",
+                            ],
+                            "else": [
+                                "http://demo.blazemeter.com/",
+                            ]
+                        }
+                    ],
+                }
+            },
+        })
+        self.obj.engine.config.merge({"provisioning": "local"})
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.settings.merge(self.obj.engine.config.get("modules").get("jmeter"))
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        ifs = xml_tree.findall(".//IfController")
+        self.assertEqual(2, len(ifs))
+        conditions = xml_tree.findall(".//IfController/stringProp[@name='IfController.condition']")
+        self.assertEqual(2, len(conditions))
+        self.assertEqual(conditions[0].text, "<cond>")
+        self.assertEqual(conditions[1].text, "!(<cond>)")
+
     def test_request_logic_nested_if(self):
         self.obj.engine.config.merge({
             'execution': {

@@ -1373,14 +1373,26 @@ class JMeterScenarioBuilder(JMX):
         return [http, children]
 
     def compile_if_block(self, block):
-        # TODO: compile else clause
+        elements = []
+
         # TODO: pass jmeter IfController options
-        controller = JMX._get_if_controller(block.condition)
-        children = etree.Element("hashTree")
+        if_controller = JMX._get_if_controller(block.condition)
+        then_children = etree.Element("hashTree")
         for compiled in self.compile_requests(block.then_clause):
             for element in compiled:
-                children.append(element)
-        return [controller, children]
+                then_children.append(element)
+        elements.extend([if_controller, then_children])
+
+        if block.else_clause:
+            inverted_condition = "!(" + block.condition + ")"
+            else_controller = JMX._get_if_controller(inverted_condition)
+            else_children = etree.Element("hashTree")
+            for compiled in self.compile_requests(block.else_clause):
+                for element in compiled:
+                    else_children.append(element)
+            elements.extend([else_controller, else_children])
+
+        return elements
 
     def compile_requests(self, requests):
         builder = self
