@@ -75,6 +75,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.distributed_servers = []
         self.management_port = None
         self.reader = None
+        self.requests_parser = RequestsParser(self.engine)
         self._env = {}
 
     def prepare(self):
@@ -821,6 +822,58 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         return True
 
 
+class RequestsParser(object):
+    IF_BLOCK = "if"
+
+    def __init__(self, engine):
+        self.engine = engine
+
+    def __parse_request(self, req):
+        httpreq = namedtuple("HTTPReq", "url, label, method, headers, timeout, think_time, config, body")
+        logic_block = namedtuple("LogicBlock", "type, fields, config")
+        if 'if' in req:
+            condition = req.get("if")
+            # TODO: apply some checks to `condition`?
+            then_clause = req.get("then", ValueError("`then` clause is mandatory"))
+            then_requests = self.__parse_requests(then_clause)
+            fields = {
+                'if': condition,
+                'then': then_requests,
+            }
+            return logic_block(type=self.IF_BLOCK, fields=fields, config=req)
+        else:
+            url = req.get("url", ValueError("Option 'url' is mandatory for request"))
+            label = req.get("label", url)
+            method = req.get("method", "GET")
+            headers = req.get("headers", {})
+            timeout = req.get("timeout", None)
+            think_time = req.get("think-time", None)
+
+            body = None
+            bodyfile = req.get("body-file", None)
+            if bodyfile:
+                bodyfile_path = self.engine.find_file(bodyfile)
+                with open(bodyfile_path) as fhd:
+                    body = fhd.read()
+            body = req.get("body", body)
+
+            return httpreq(config=req, label=label,
+                           url=url, method=method, headers=headers,
+                           timeout=timeout, think_time=think_time, body=body)
+
+    def __parse_requests(self, raw_requests):
+        for key in range(len(raw_requests)):
+            if not isinstance(raw_requests[key], dict):
+                req = ensure_is_dict(raw_requests, key, "url")
+            else:
+                req = raw_requests[key]
+            yield self.__parse_request(req)
+
+    def extract_requests(self, scenario):
+        requests = scenario.get("requests", [])
+        return list(self.__parse_requests(requests))
+
+
 class JTLReader(ResultsReader):
     """
     Class to read KPI JTL
@@ -1176,6 +1229,7 @@ class JMeterScenarioBuilder(JMX):
         super(JMeterScenarioBuilder, self).__init__(original)
         self.executor = executor
         self.scenario = executor.get_scenario()
+        self.requests_parser = executor.requests_parser
         self.system_props = BetterDict()
 
     def __add_managers(self):
@@ -1311,7 +1365,7 @@ class JMeterScenarioBuilder(JMX):
             return None
 
     def __add_requests(self):
-        requests = list(self.scenario.get_requests())
+        requests = list(self.requests_parser.extract_requests(self.scenario))
         for compiled in self.__compile_requests(requests):
             for element in compiled:
                 self.append(self.THR_GROUP_SEL, element)
@@ -1354,14 +1408,17 @@ class JMeterScenarioBuilder(JMX):
         return [http, children]
 
     def __compile_logic_block(self, block):
-        condition = block.if_
-        then_clause = block.then
-        controller = JMX._get_if_controller(condition)
-        children = etree.Element("hashTree")
-        for compiled in self.__compile_requests(then_clause):
-            for element in compiled:
-                children.append(element)
-        return [controller, children]
+        if block.type == RequestsParser.IF_BLOCK:
+            condition = block.fields['if']
+            then_clause = block.fields['then']
+            controller = JMX._get_if_controller(condition)
+            children = etree.Element("hashTree")
+            for compiled in self.__compile_requests(then_clause):
+                for element in compiled:
+                    children.append(element)
+            return [controller, children]
+        else:
+            raise ValueError("Unknown logic block %r" % block.type)
 
     def __compile_request(self, request):
         if 'if' in request.config:

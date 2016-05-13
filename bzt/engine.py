@@ -980,16 +980,16 @@ class Scenario(UserDict, object):
         headers = scenario.get("headers")
         return headers
 
-    def __parse_request(self, req):
-        httpreq = namedtuple("HTTPReq",
+    def get_requests(self):
+        """
+        Generator object to read requests
+        """
+        scenario = self
+        requests = scenario.get("requests", [])
+        for key in range(len(requests)):
+            req = ensure_is_dict(requests, key, "url")
+            res = namedtuple("HTTPReq",
                              ('url', 'label', 'method', 'headers', 'timeout', 'think_time', 'config', "body"))
-        logic_block = namedtuple("LogicBlock", "if_, then, config")
-        if 'if' in req:
-            condition = req.get("if")
-            then_clause = req.get("then", ValueError("`then` clause is mandatory"))
-            then_requests = self.__parse_requests(then_clause)
-            return logic_block(if_=condition, then=list(then_requests), config=req)
-        else:
             url = req.get("url", ValueError("Option 'url' is mandatory for request"))
             label = req.get("label", url)
             method = req.get("method", "GET")
@@ -1005,22 +1005,6 @@ class Scenario(UserDict, object):
                     body = fhd.read()
             body = req.get("body", body)
 
-            return httpreq(config=req, label=label,
-                           url=url, method=method, headers=headers,
-                           timeout=timeout, think_time=think_time, body=body)
-
-    def __parse_requests(self, raw_requests):
-        for key in range(len(raw_requests)):
-            if not isinstance(raw_requests[key], dict):
-                req = ensure_is_dict(raw_requests, key, "url")
-            else:
-                req = raw_requests[key]
-            yield self.__parse_request(req)
-
-    def get_requests(self):
-        """
-        Generator object to read requests/logic blocks
-        """
-        requests = self.get("requests", [])
-        for req in self.__parse_requests(requests):
-            yield req
+            yield res(config=req, label=label,
+                      url=url, method=method, headers=headers,
+                      timeout=timeout, think_time=think_time, body=body)
