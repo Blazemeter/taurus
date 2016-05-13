@@ -33,9 +33,8 @@ from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, 
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
 from bzt.modules.console import WidgetProvider
 from bzt.modules.jmeter import JMeterExecutor
-from bzt.six import BytesIO, text_type, iteritems, HTTPError, urlencode, Request, urlopen, r_input, URLError, \
-    string_types
-from bzt.utils import to_json, dehumanize_time, MultiPartForm, BetterDict, open_browser
+from bzt.six import BytesIO, text_type, iteritems, HTTPError, urlencode, Request, urlopen, r_input, URLError
+from bzt.utils import to_json, dehumanize_time, MultiPartForm, BetterDict, open_browser, make_filenames_relative
 
 
 class BlazeMeterUploader(Reporter, AggregatorListener):
@@ -818,16 +817,7 @@ class CloudProvisioning(Provisioning, WidgetProvider):
         self.__prepare_locations()
         config = self.__get_config_for_cloud()
         rfiles = self.__get_rfiles()
-
-        def file_replacer(value, key, container):
-            if isinstance(value, string_types):
-                if value in rfiles:
-                    container[key] = os.path.basename(value)
-                    if container[key] != value:
-                        self.log.debug("Replaced %s with %s", value, container[key])
-
-        BetterDict.traverse(config, file_replacer)
-
+        make_filenames_relative(rfiles, config, self.log)
         bza_plugin = self.__get_bza_test_config()
         finder = ProjectFinder(self.parameters, self.settings, self.client, self.engine)
         finder.default_test_name = "Taurus Cloud Test"

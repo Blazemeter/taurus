@@ -63,6 +63,17 @@ def get_files_recursive(dir_name, exclude_mask=''):
                 yield os.path.join(root, _file)
 
 
+def make_filenames_relative(rfiles, config, log):
+    def file_replacer(value, key, container):
+        if isinstance(value, string_types):
+            if value in rfiles:
+                container[key] = os.path.basename(value)
+                if container[key] != value:
+                    log.debug("Replaced %s with %s", value, container[key])
+
+    BetterDict.traverse(config, file_replacer)
+
+
 def run_once(func):
     """
     A decorator to run function only once
