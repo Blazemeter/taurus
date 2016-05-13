@@ -75,7 +75,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.distributed_servers = []
         self.management_port = None
         self.reader = None
-        self.requests_parser = RequestsParser(self.engine)
+        self.requests_parser = RequestsParser(self)
         self._env = {}
 
     def prepare(self):
@@ -645,7 +645,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         resource_files = set()
         # get all resource files from requests
-        files_from_requests = self.__get_res_files_from_requests()
+        files_from_requests = self.__get_res_files_from_scenario()
 
         if not self.original_jmx:
             self.original_jmx = self.__get_script()
@@ -699,30 +699,38 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                     resource_files.append(resource_element.text)
         return resource_files
 
-    def __get_res_files_from_requests(self):
-        """
-        Get post-body files from requests
-        :return file list:
-        """
-        post_body_files = []
+    def __get_res_files_from_scenario(self):
+        files = []
         scenario = self.get_scenario()
         data_sources = scenario.data.get('data-sources')
         if data_sources:
             for data_source in data_sources:
                 if isinstance(data_source, string_types):
-                    post_body_files.append(data_source)
+                    files.append(data_source)
                 elif isinstance(data_source, dict):
-                    post_body_files.append(data_source['path'])
+                    files.append(data_source['path'])
+        requests = self.requests_parser.extract_requests(scenario)
+        files.extend(self.__res_files_from_requests(requests))
+        return files
 
-        requests = scenario.data.get("requests")
-        if requests:
-            for req in requests:
-                if isinstance(req, dict):
-                    post_body_path = req.get('body-file')
+    def __res_files_from_requests(self, requests):
+        body_files = []
+        for req in requests:
+            files = self.__res_files_from_request(req)
+            body_files.extend(files)
+        return body_files
 
-                    if post_body_path:
-                        post_body_files.append(post_body_path)
-        return post_body_files
+    def __res_files_from_request(self, request):
+        files = []
+        if 'if' in request.config:
+            then_clause = request.fields['then']
+            then_files = self.__res_files_from_requests(then_clause)
+            files.extend(then_files)
+        else:
+            body_path = request.config.get('body-file')
+            if body_path:
+                files.append(body_path)
+        return files
 
     def __get_script(self):
         """
@@ -825,8 +833,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 class RequestsParser(object):
     IF_BLOCK = "if"
 
-    def __init__(self, engine):
-        self.engine = engine
+    def __init__(self, executor):
+        self.executor = executor
 
     def __parse_request(self, req):
         httpreq = namedtuple("HTTPReq", "url, label, method, headers, timeout, think_time, config, body")
@@ -852,7 +860,7 @@ class RequestsParser(object):
             body = None
             bodyfile = req.get("body-file", None)
             if bodyfile:
-                bodyfile_path = self.engine.find_file(bodyfile)
+                bodyfile_path = self.executor.engine.find_file(bodyfile)
                 with open(bodyfile_path) as fhd:
                     body = fhd.read()
             body = req.get("body", body)

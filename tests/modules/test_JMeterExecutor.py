@@ -1058,7 +1058,6 @@ class TestJMeterExecutor(BZTestCase):
     def test_request_logic_if(self):
         self.obj.engine.config.merge({
             'execution': {
-                'iterations': 1,
                 'scenario': {
                     "requests": [
                         {
@@ -1085,7 +1084,6 @@ class TestJMeterExecutor(BZTestCase):
     def test_request_logic_nested_if(self):
         self.obj.engine.config.merge({
             'execution': {
-                'iterations': 1,
                 'scenario': {
                     "requests": [
                         {
@@ -1115,6 +1113,36 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(2, len(conditions))
         self.assertEqual(conditions[0].text, "<cond1>")
         self.assertEqual(conditions[1].text, "<cond2>")
+
+    def test_resource_files_nested_requests(self):
+        self.obj.engine.config.merge({
+            'execution': {
+                'scenario': {
+                    "data-sources": [__dir__() + "/../data/test1.csv"],
+                    "requests": [
+                        {
+                            "if": "<cond1>",
+                            "then": [
+                                {
+                                    "if": "<cond2>",
+                                    "then": [
+                                        {
+                                            "url": "http://demo.blazemeter.com/",
+                                            "method": "POST",
+                                            "body-file": __dir__() + "/../jmeter/jmx/dummy.jmx",
+                                        }
+                                    ]
+                                },
+                            ],
+                        }
+                    ],
+                }
+            },
+        })
+        self.obj.engine.config.merge({"provisioning": "local"})
+        self.obj.execution = self.obj.engine.config['execution']
+        res_files = self.obj.resource_files()
+        self.assertEqual(len(res_files), 2)
 
 
 class TestJMX(BZTestCase):
