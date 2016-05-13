@@ -1055,7 +1055,7 @@ class TestJMeterExecutor(BZTestCase):
             self.assertNotEqual(orig, modified)
             self.assertEqual(os.path.basename(orig), os.path.basename(modified))
 
-    def test_conditional_request(self):
+    def test_request_logic_if(self):
         self.obj.engine.config.merge({
             'execution': {
                 'iterations': 1,
@@ -1081,6 +1081,41 @@ class TestJMeterExecutor(BZTestCase):
         condition = xml_tree.find(".//IfController/stringProp[@name='IfController.condition']")
         self.assertIsNotNone(condition)
         self.assertEqual(condition.text, "<cond>")
+
+    def test_request_logic_nested_if(self):
+        self.obj.engine.config.merge({
+            'execution': {
+                'iterations': 1,
+                'scenario': {
+                    "requests": [
+                        {
+                            "if": "<cond1>",
+                            "then": [
+                                "http://blazedemo.com/",
+                                {
+                                    "if": "<cond2>",
+                                    "then": [
+                                        "http://demo.blazemeter.com/"
+                                    ]
+                                },
+                            ],
+                        }
+                    ],
+                }
+            },
+        })
+        self.obj.engine.config.merge({"provisioning": "local"})
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.settings.merge(self.obj.engine.config.get("modules").get("jmeter"))
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        ifs = xml_tree.findall(".//IfController")
+        self.assertEqual(2, len(ifs))
+        conditions = xml_tree.findall(".//IfController/stringProp[@name='IfController.condition']")
+        self.assertEqual(2, len(conditions))
+        self.assertEqual(conditions[0].text, "<cond1>")
+        self.assertEqual(conditions[1].text, "<cond2>")
+
 
 class TestJMX(BZTestCase):
     def test_jmx_unicode_checkmark(self):
