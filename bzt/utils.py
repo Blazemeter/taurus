@@ -655,6 +655,8 @@ class RequiredTool(object):
                     socket.setdefaulttimeout(5)
                     downloader.retrieve(mirror, tool_dist.name, pbar.download_callback)
                     return tool_dist
+                except KeyboardInterrupt:
+                    raise
                 except BaseException:
                     self.log.error("Error while downloading %s", mirror)
                     continue
