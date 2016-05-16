@@ -37,7 +37,8 @@ from bzt.jmx import JMX
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.modules.provisioning import Local
-from bzt.six import iteritems, string_types, StringIO, request, etree, binary_type
+from bzt.six import iteritems, string_types, StringIO, etree, binary_type
+from bzt.six import request as http_request
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager
 from bzt.utils import shell_exec, ensure_is_dict, dehumanize_time, BetterDict, guess_csv_dialect
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
@@ -1504,7 +1505,7 @@ class JMeter(RequiredTool):
             plugin_dist = tempfile.NamedTemporaryFile(suffix=".zip", delete=False, prefix=plugin)
             plugin_download_link = self.plugin_link.format(plugin=plugin)
             self.log.info("Downloading %s", plugin_download_link)
-            downloader = request.FancyURLopener()
+            downloader = http_request.FancyURLopener()
             with ProgressBarContext() as pbar:
                 try:
                     downloader.retrieve(plugin_download_link, plugin_dist.name, pbar.download_callback)
@@ -1658,7 +1659,7 @@ class RequestsParser(object):
 
     def __parse_requests(self, raw_requests):
         requests = []
-        for key in range(len(raw_requests)):
+        for key in range(len(raw_requests)):  # pylint: disable=consider-using-enumerate
             if not isinstance(raw_requests[key], dict):
                 req = ensure_is_dict(raw_requests, key, "url")
             else:
@@ -1673,7 +1674,7 @@ class RequestsParser(object):
 
 class RequestVisitor(object):
     def visit(self, node):
-        class_name = node.__class__.__name__
+        class_name = node.__class__.__name__.lower()
         visitor = getattr(self, 'visit_' + class_name, None)
         if visitor is not None:
             return visitor(node)
@@ -1681,14 +1682,14 @@ class RequestVisitor(object):
 
 
 class ResourceFilesCollector(RequestVisitor):
-    def visit_HTTPRequest(self, request):
+    def visit_httprequest(self, request):
         files = []
         body_file = request.config.get('body-file')
         if body_file:
             files.append(body_file)
         return files
 
-    def visit_IfBlock(self, block):
+    def visit_ifblock(self, block):
         files = []
         for request in block.then_clause:
             files.extend(self.visit(request))
@@ -1696,7 +1697,7 @@ class ResourceFilesCollector(RequestVisitor):
             files.extend(self.visit(request))
         return files
 
-    def visit_LoopBlock(self, block):
+    def visit_loopblock(self, block):
         files = []
         for request in block.requests:
             files.extend(self.visit(request))
@@ -1707,11 +1708,11 @@ class RequestCompiler(RequestVisitor):
     def __init__(self, jmx_builder):
         self.jmx_builder = jmx_builder
 
-    def visit_HTTPRequest(self, request):
+    def visit_httprequest(self, request):
         return self.jmx_builder.compile_http_request(request)
 
-    def visit_IfBlock(self, block):
+    def visit_ifblock(self, block):
         return self.jmx_builder.compile_if_block(block)
 
-    def visit_LoopBlock(self, block):
+    def visit_loopblock(self, block):
         return self.jmx_builder.compile_loop_block(block)
