@@ -807,9 +807,9 @@ class JMXasDict(JMX):
         tg_executions_dict.update(self._get_tg_execution_settings(tg_etree_element))
         return tg_executions_dict, tg_scenario_dict
 
-    def __extract_requests(self, ht):
+    def __extract_requests(self, ht_element):
         requests = []
-        children = ht.iterchildren()
+        children = ht_element.iterchildren()
         while True:
             try:
                 elem = next(children)
@@ -827,9 +827,9 @@ class JMXasDict(JMX):
                 requests.extend(subrequests)
         return requests
 
-    def __extract_if_controller(self, controller, ht):
+    def __extract_if_controller(self, controller, ht_element):
         condition = self._get_string_prop(controller, "IfController.condition")
-        requests = self.__extract_requests(ht)
+        requests = self.__extract_requests(ht_element)
         return {'if': condition, 'then': requests}
 
     def _get_request_settings(self, request_element):
