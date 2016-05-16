@@ -721,23 +721,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         return body_files
 
     def __res_files_from_request(self, request):
-
-        class ResourceFilesCollector(RequestVisitor):
-            def visit_HTTPRequest(self, request):
-                files = []
-                body_file = request.config.get('body-file')
-                if body_file:
-                    files.append(body_file)
-                return files
-
-            def visit_IfBlock(self, block):
-                files = []
-                for request in block.then_clause:
-                    files.extend(self.visit(request))
-                for request in block.else_clause:
-                    files.extend(self.visit(request))
-                return files
-
         return ResourceFilesCollector().visit(request)
 
     def __get_script(self):
@@ -1395,16 +1378,7 @@ class JMeterScenarioBuilder(JMX):
         return elements
 
     def compile_requests(self, requests):
-        builder = self
-
-        class RequestCompiler(RequestVisitor):
-            def visit_HTTPRequest(self, request):
-                return builder.compile_http_request(request)
-
-            def visit_IfBlock(self, block):
-                return builder.compile_if_block(block)
-
-        compiler = RequestCompiler()
+        compiler = RequestCompiler(self)
         return [compiler.visit(request) for request in requests]
 
     def __generate(self):
@@ -1674,3 +1648,31 @@ class RequestVisitor(object):
         if visitor is not None:
             return visitor(node)
         raise ValueError("Visitor for class %s not found" % class_name)
+
+
+class ResourceFilesCollector(RequestVisitor):
+    def visit_HTTPRequest(self, request):
+        files = []
+        body_file = request.config.get('body-file')
+        if body_file:
+            files.append(body_file)
+        return files
+
+    def visit_IfBlock(self, block):
+        files = []
+        for request in block.then_clause:
+            files.extend(self.visit(request))
+        for request in block.else_clause:
+            files.extend(self.visit(request))
+        return files
+
+
+class RequestCompiler(RequestVisitor):
+    def __init__(self, jmx_builder):
+        self.jmx_builder = jmx_builder
+
+    def visit_HTTPRequest(self, request):
+        return self.jmx_builder.compile_http_request(request)
+
+    def visit_IfBlock(self, block):
+        return self.jmx_builder.compile_if_block(block)
