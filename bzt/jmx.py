@@ -921,6 +921,6 @@ class JMX(object):
         controller = etree.Element("LoopController", guiclass="LoopControllerPanel", testclass="LoopController",
                                    testname="Loop Controller")
         controller.append(JMX._bool_prop("LoopController.continue_forever", loop_forever))
-        controller.append(JMX.int_prop("LoopController.loops", loops))
+        controller.append(JMX._string_prop("LoopController.loops", str(loops)))
         return controller
 

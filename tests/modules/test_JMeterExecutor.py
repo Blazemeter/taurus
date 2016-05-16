@@ -1196,7 +1196,7 @@ class TestJMeterExecutor(BZTestCase):
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         controller = xml_tree.find(".//LoopController")
         self.assertIsNotNone(controller)
-        loops = xml_tree.find(".//LoopController/intProp[@name='LoopController.loops']")
+        loops = xml_tree.find(".//LoopController/stringProp[@name='LoopController.loops']")
         self.assertEqual(loops.text, "10")
         forever = xml_tree.find(".//LoopController/boolProp[@name='LoopController.continue_forever']")
         self.assertEqual(forever.text, "false")
@@ -1225,26 +1225,6 @@ class TestJMeterExecutor(BZTestCase):
         self.assertIsNotNone(controller)
         forever = xml_tree.find(".//LoopController/boolProp[@name='LoopController.continue_forever']")
         self.assertEqual(forever.text, "true")
-
-    def test_request_logic_loop_invalid(self):
-        self.obj.engine.config.merge({
-            'execution': {
-                'scenario': {
-                    "requests": [
-                        {
-                            "loop": "one hundred times",
-                            "do": [
-                                "http://blazedemo.com/",
-                            ],
-                        }
-                    ],
-                }
-            },
-        })
-        self.obj.engine.config.merge({"provisioning": "local"})
-        self.obj.execution = self.obj.engine.config['execution']
-        self.obj.settings.merge(self.obj.engine.config.get("modules").get("jmeter"))
-        self.assertRaises(ValueError, self.obj.prepare)
 
     def test_resource_files_loops(self):
         self.obj.engine.config.merge({

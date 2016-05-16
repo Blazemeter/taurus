@@ -1634,8 +1634,6 @@ class RequestsParser(object):
             return IfBlock(condition, then_requests, else_requests, req)
         elif 'loop' in req:
             loops = req.get("loop")
-            if not isinstance(loops, int) and not loops == "forever":
-                raise ValueError("Value of `loop` should be either integer or 'forever'")
             do_block = req.get("do")
             if not do_block:
                 raise ValueError("`do` field is mandatory for loop blocks")
