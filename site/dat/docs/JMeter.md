@@ -388,10 +388,16 @@ scenarios:
 ```
 
 
-#### Logic blocks
+#### Logic Blocks
 
-The only kind of logic block Taurus supports right now is `if` block. `if` blocks allow conditional execution of
-HTTP requests.
+
+Taurus allows to control execution flow with the following constructs:
+- `if` blocks
+- `loop` blocks
+
+##### If Blocks
+
+`if` blocks allow conditional execution of HTTP requests.
 
 Each `if` block should contain a mandatory `then` field, and an optional `else` field. Both `then` and `else` fields
 should contain lists of requests.
@@ -446,6 +452,29 @@ scenario:
     then:
       - https://example.com/${username}
 ```
+
+##### Loop Blocks
+
+`loop` blocks allow repeated execution of requests. Nested requests are to be specified with `do` field.
+
+```yaml
+scenario:
+  requests:
+  - loop: 10
+    do:
+    - http://blazedemo.com/
+```
+
+If you want to loop requests forever, you can specify string `forever` as `loop` value.
+```yaml
+scenario:
+  requests:
+  - loop: forever
+    do:
+    - http://blazedemo.com/
+```
+
+Note that `loop` blocks correspond to JMeter's `Loop Controllers`.
 
 
 ## JMeter Test Log

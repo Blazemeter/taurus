@@ -18,6 +18,11 @@ scenarios:
         - label: BD/reserve
           method: GET
           url: http://blazedemo.com/reserve.php
+    - do:
+      - label: HTTP Request
+        method: GET
+        url: http://example.com/
+      loop: 42
     - label: demo/BM
       method: GET
       url: http://demo.blazemeter.com/
