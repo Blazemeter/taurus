@@ -6,6 +6,7 @@
  - add `delete-test-files` option to cloud provisioning
  - fix reading piped config from stdin
  - don't trap KeyboardInterrupt in tool install
+ - add `if`-blocks to `scenario.requests` syntax for JMeter
 
 ## 1.5.0 <sup>4 may 2016</sup>
  - add [Tsung](Tsung.md) executor
