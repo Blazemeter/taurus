@@ -929,3 +929,9 @@ class JMX(object):
         controller.append(JMX._string_prop("LoopController.loops", str(iterations)))
         return controller
 
+    @staticmethod
+    def _get_while_controller(condition):
+        controller = etree.Element("WhileController", guiclass="WhileControllerPanel", testclass="WhileController",
+                                   testname="While Controller")
+        controller.append(JMX._string_prop("WhileController.condition", condition))
+        return controller

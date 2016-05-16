@@ -1252,6 +1252,55 @@ class TestJMeterExecutor(BZTestCase):
         res_files = self.obj.resource_files()
         self.assertEqual(len(res_files), 1)
 
+    def test_request_logic_while(self):
+        self.obj.engine.config.merge({
+            'execution': {
+                'scenario': {
+                    "requests": [
+                        {
+                            "while": "<cond>",
+                            "do": [
+                                "http://blazedemo.com/",
+                            ],
+                        }
+                    ],
+                }
+            },
+        })
+        self.obj.engine.config.merge({"provisioning": "local"})
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.settings.merge(self.obj.engine.config.get("modules").get("jmeter"))
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        if_controller = xml_tree.find(".//WhileController")
+        self.assertIsNotNone(if_controller)
+        condition = xml_tree.find(".//WhileController/stringProp[@name='WhileController.condition']")
+        self.assertIsNotNone(condition)
+        self.assertEqual(condition.text, "<cond>")
+
+    def test_request_logic_while_resources(self):
+        self.obj.engine.config.merge({
+            'execution': {
+                'scenario': {
+                    "requests": [
+                        {
+                            "while": "<cond>",
+                            "do": [
+                                {
+                                    "url": "http://demo.blazemeter.com/",
+                                    "method": "POST",
+                                    "body-file": __dir__() + "/../jmeter/jmx/dummy.jmx",
+                                }
+                            ],
+                        }
+                    ],
+                }
+            },
+        })
+        self.obj.engine.config.merge({"provisioning": "local"})
+        self.obj.execution = self.obj.engine.config['execution']
+        res_files = self.obj.resource_files()
+        self.assertEqual(len(res_files), 1)
 
 
 class TestJMX(BZTestCase):
