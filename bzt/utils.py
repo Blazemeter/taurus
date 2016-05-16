@@ -481,14 +481,14 @@ class ComplexEncoder(json.JSONEncoder):
         return isinstance(obj, dumpable_types)
 
     @classmethod
-    def of_basic_type(self, val):
+    def of_basic_type(cls, val):
         """
         Returns true if val is of basic type
 
         :param val:
         :return:
         """
-        return isinstance(val, self.TYPES)
+        return isinstance(val, cls.TYPES)
 
 
 def humanize_time(secs):
