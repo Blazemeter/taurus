@@ -1225,6 +1225,8 @@ class TestJMeterExecutor(BZTestCase):
         self.assertIsNotNone(controller)
         forever = xml_tree.find(".//LoopController/boolProp[@name='LoopController.continue_forever']")
         self.assertEqual(forever.text, "true")
+        loops = xml_tree.find(".//LoopController/stringProp[@name='LoopController.loops']")
+        self.assertEqual(loops.text, "-1")
 
     def test_resource_files_loops(self):
         self.obj.engine.config.merge({
