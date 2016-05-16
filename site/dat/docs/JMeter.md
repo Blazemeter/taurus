@@ -400,12 +400,14 @@ Here's a simple example:
 
 ```yaml
 scenario:
+  variables:
+    searchEngine: google
   requests:
-  - if: <condition>
+  - if: '"${searchEngine}" == "google"'
     then:
-    - https://google.com/
+      - https://google.com/
     else:
-    - https://bing.com/
+      - https://bing.com/
 ```
 
 Note that Taurus compiles `if` blocks to JMeter's `If Controllers`, so `<condition>` must be in JMeter's format.
