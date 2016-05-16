@@ -1,0 +1,33 @@
+---
+execution:
+- concurrency: 1
+  hold-for: 60s
+  iterations: 1
+  ramp-up: 60s
+  scenario: Thread Group
+scenarios:
+  Thread Group:
+    requests:
+    - if: condition1
+      then:
+      - label: BD
+        method: GET
+        url: http://blazedemo.com/
+      - if: condition2
+        then:
+        - label: BD/reserve
+          method: GET
+          url: http://blazedemo.com/reserve.php
+    - label: demo/BM
+      method: GET
+      url: http://demo.blazemeter.com/
+    - label: example.com/1
+      method: GET
+      url: http://example.com/1
+    - label: example.com/2
+      method: GET
+      url: http://example.com/2
+    store-cache: false
+    store-cookie: false
+    use-dns-cache-mgr: false
+

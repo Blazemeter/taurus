@@ -371,3 +371,9 @@ class TestConverter(BZTestCase):
         scenarios = yml.get("scenarios")
         scenario = scenarios[execution.get("scenario")]
         self.assertNotIn("variables", scenario)
+
+    def test_controllers_to_requests(self):
+        obj = self._get_jmx2yaml("/yaml/converter/controllers.jmx", self._get_tmp())
+        obj.process()
+        yml = yaml.load(open(__dir__() + "/yaml/converter/controllers.yml").read())
+        self.assertEqual(obj.converter.convert(obj.file_to_convert), yml)

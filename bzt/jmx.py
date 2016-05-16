@@ -908,3 +908,10 @@ class JMX(object):
                                  guiclass="ViewResultsFullVisualizer")
         self.append(self.TEST_PLAN_SEL, dbg_tree)
         self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
+
+    @staticmethod
+    def _get_if_controller(condition):
+        controller = etree.Element("IfController", guiclass="IfControllerPanel", testclass="IfController",
+                                   testname="If Controller")
+        controller.append(JMX._string_prop("IfController.condition", condition))
+        return controller

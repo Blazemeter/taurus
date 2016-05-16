@@ -644,7 +644,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         resource_files = set()
         # get all resource files from requests
-        files_from_requests = self.__get_res_files_from_requests()
+        files_from_requests = self.__get_res_files_from_scenario()
 
         if not self.original_jmx:
             self.original_jmx = self.__get_script()
@@ -698,30 +698,30 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                     resource_files.append(resource_element.text)
         return resource_files
 
-    def __get_res_files_from_requests(self):
-        """
-        Get post-body files from requests
-        :return file list:
-        """
-        post_body_files = []
+    def __get_res_files_from_scenario(self):
+        files = []
         scenario = self.get_scenario()
         data_sources = scenario.data.get('data-sources')
         if data_sources:
             for data_source in data_sources:
                 if isinstance(data_source, string_types):
-                    post_body_files.append(data_source)
+                    files.append(data_source)
                 elif isinstance(data_source, dict):
-                    post_body_files.append(data_source['path'])
+                    files.append(data_source['path'])
+        requests_parser = RequestsParser(self.engine)
+        requests = requests_parser.extract_requests(scenario)
+        files.extend(self.__res_files_from_requests(requests))
+        return files
 
-        requests = scenario.data.get("requests")
-        if requests:
-            for req in requests:
-                if isinstance(req, dict):
-                    post_body_path = req.get('body-file')
+    def __res_files_from_requests(self, requests):
+        body_files = []
+        for req in requests:
+            files = self.__res_files_from_request(req)
+            body_files.extend(files)
+        return body_files
 
-                    if post_body_path:
-                        post_body_files.append(post_body_path)
-        return post_body_files
+    def __res_files_from_request(self, request):
+        return ResourceFilesCollector().visit(request)
 
     def __get_script(self):
         """
@@ -1311,41 +1311,75 @@ class JMeterScenarioBuilder(JMX):
             return None
 
     def __add_requests(self):
+        requests_parser = RequestsParser(self.executor.engine)
+        requests = list(requests_parser.extract_requests(self.scenario))
+        compiled_requests = self.compile_requests(requests)
+        for compiled in compiled_requests:
+            for element in compiled:
+                self.append(self.THR_GROUP_SEL, element)
+
+    def compile_http_request(self, request):
         global_timeout = self.scenario.get("timeout", None)
         global_keepalive = self.scenario.get("keepalive", True)
 
-        for req in self.scenario.get_requests():
-            if req.timeout is not None:
-                timeout = self.smart_time(req.timeout)
-            elif global_timeout is not None:
-                timeout = self.smart_time(global_timeout)
-            else:
-                timeout = None
+        if request.timeout is not None:
+            timeout = self.smart_time(request.timeout)
+        elif global_timeout is not None:
+            timeout = self.smart_time(global_timeout)
+        else:
+            timeout = None
 
-            if self._get_merged_ci_headers(req, 'content-type') == 'application/json' and isinstance(req.body, dict):
-                body = json.dumps(req.body)
-            else:
-                body = req.body
+        content_type = self._get_merged_ci_headers(request, 'content-type')
+        if content_type == 'application/json' and isinstance(request.body, dict):
+            body = json.dumps(request.body)
+        else:
+            body = request.body
 
-            http = JMX._get_http_request(req.url, req.label, req.method, timeout, body, global_keepalive)
+        http = JMX._get_http_request(request.url, request.label, request.method, timeout, body, global_keepalive)
 
-            self.append(self.THR_GROUP_SEL, http)
+        children = etree.Element("hashTree")
 
-            children = etree.Element("hashTree")
-            self.append(self.THR_GROUP_SEL, children)
-            if req.headers:
-                children.append(JMX._get_header_mgr(req.headers))
-                children.append(etree.Element("hashTree"))
+        if request.headers:
+            children.append(JMX._get_header_mgr(request.headers))
+            children.append(etree.Element("hashTree"))
 
-            self.__add_think_time(children, req)
+        self.__add_think_time(children, request)
 
-            self.__add_assertions(children, req)
+        self.__add_assertions(children, request)
 
-            if timeout is not None:
-                children.append(JMX._get_dur_assertion(timeout))
-                children.append(etree.Element("hashTree"))
+        if timeout is not None:
+            children.append(JMX._get_dur_assertion(timeout))
+            children.append(etree.Element("hashTree"))
 
-            self.__add_extractors(children, req)
+        self.__add_extractors(children, request)
+
+        return [http, children]
+
+    def compile_if_block(self, block):
+        elements = []
+
+        # TODO: pass jmeter IfController options
+        if_controller = JMX._get_if_controller(block.condition)
+        then_children = etree.Element("hashTree")
+        for compiled in self.compile_requests(block.then_clause):
+            for element in compiled:
+                then_children.append(element)
+        elements.extend([if_controller, then_children])
+
+        if block.else_clause:
+            inverted_condition = "!(" + block.condition + ")"
+            else_controller = JMX._get_if_controller(inverted_condition)
+            else_children = etree.Element("hashTree")
+            for compiled in self.compile_requests(block.else_clause):
+                for element in compiled:
+                    else_children.append(element)
+            elements.extend([else_controller, else_children])
+
+        return elements
+
+    def compile_requests(self, requests):
+        compiler = RequestCompiler(self)
+        return [compiler.visit(request) for request in requests]
 
     def __generate(self):
         """
@@ -1524,3 +1558,121 @@ class JMeterMirrorsManager(MirrorsManager):
             links.append(default_link)
         self.log.debug('Total mirrors: %d', len(links))
         return links
+
+
+class Request(object):
+    def __init__(self, config):
+        self.config = config
+
+
+class HTTPRequest(Request):
+    def __init__(self, url, label, method, headers, timeout, think_time, body, config):
+        super(HTTPRequest, self).__init__(config)
+        self.url = url
+        self.label = label
+        self.method = method
+        self.headers = headers
+        self.timeout = timeout
+        self.think_time = think_time
+        self.body = body
+
+    def __repr__(self):
+        return "HTTPRequest(url=%s, method=%s)" % (self.url, self.method)
+
+
+class IfBlock(Request):
+    def __init__(self, condition, then_clause, else_clause, config):
+        super(IfBlock, self).__init__(config)
+        self.condition = condition
+        self.then_clause = then_clause
+        self.else_clause = else_clause
+
+    def __repr__(self):
+        then_clause = [repr(req) for req in self.then_clause]
+        else_clause = [repr(req) for req in self.else_clause]
+        return "IfBlock(condition=%s, then=%s, else=%s)" % (self.condition, then_clause, else_clause)
+
+
+class RequestsParser(object):
+    def __init__(self, engine):
+        self.engine = engine
+
+    def __parse_request(self, req):
+        if 'if' in req:
+            condition = req.get("if")
+            # TODO: apply some checks to `condition`?
+            then_clause = req.get("then")
+            if not then_clause:
+                raise ValueError("`then` clause is mandatory for if blocks")
+            then_requests = self.__parse_requests(then_clause)
+            else_clause = req.get("else", [])
+            else_requests = self.__parse_requests(else_clause)
+            return IfBlock(condition, then_requests, else_requests, req)
+        else:
+            url = req.get("url", ValueError("Option 'url' is mandatory for request"))
+            label = req.get("label", url)
+            method = req.get("method", "GET")
+            headers = req.get("headers", {})
+            timeout = req.get("timeout", None)
+            think_time = req.get("think-time", None)
+
+            body = None
+            bodyfile = req.get("body-file", None)
+            if bodyfile:
+                bodyfile_path = self.engine.find_file(bodyfile)
+                with open(bodyfile_path) as fhd:
+                    body = fhd.read()
+            body = req.get("body", body)
+
+            return HTTPRequest(url, label, method, headers, timeout, think_time, body, req)
+
+    def __parse_requests(self, raw_requests):
+        requests = []
+        for key in range(len(raw_requests)):
+            if not isinstance(raw_requests[key], dict):
+                req = ensure_is_dict(raw_requests, key, "url")
+            else:
+                req = raw_requests[key]
+            requests.append(self.__parse_request(req))
+        return requests
+
+    def extract_requests(self, scenario):
+        requests = scenario.get("requests", [])
+        return list(self.__parse_requests(requests))
+
+
+class RequestVisitor(object):
+    def visit(self, node):
+        class_name = node.__class__.__name__
+        visitor = getattr(self, 'visit_' + class_name, None)
+        if visitor is not None:
+            return visitor(node)
+        raise ValueError("Visitor for class %s not found" % class_name)
+
+
+class ResourceFilesCollector(RequestVisitor):
+    def visit_HTTPRequest(self, request):
+        files = []
+        body_file = request.config.get('body-file')
+        if body_file:
+            files.append(body_file)
+        return files
+
+    def visit_IfBlock(self, block):
+        files = []
+        for request in block.then_clause:
+            files.extend(self.visit(request))
+        for request in block.else_clause:
+            files.extend(self.visit(request))
+        return files
+
+
+class RequestCompiler(RequestVisitor):
+    def __init__(self, jmx_builder):
+        self.jmx_builder = jmx_builder
+
+    def visit_HTTPRequest(self, request):
+        return self.jmx_builder.compile_http_request(request)
+
+    def visit_IfBlock(self, block):
+        return self.jmx_builder.compile_if_block(block)

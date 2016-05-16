@@ -177,9 +177,14 @@ scenarios:
 
 Note that `timeout` also sets duration assertion that will mark response failed if response time was more than timeout.
 
-### HTTP Requests
+### Requests
 
-The base element for requests scenario is HTTP Request. In its simpliest form it contains just URL as string:
+Request objects can be of two kinds:
+1. Plain HTTP requests
+2. Logic blocks that allow user to control execution flow of test session.
+
+#### HTTP Requests
+The base element for requests scenario is HTTP Request. In its simplest form it contains just the URL as string:
 
 ```yaml
 ---
@@ -218,7 +223,7 @@ scenarios:
       assert: []  # explained below
 ```
 
-### Extractors
+##### Extractors
 
 Extractors are the objects that attached to request to take a piece of the response and use it in following requests.
 The concept is based on JMeter's extractors. The following types of extractors are supported:
@@ -283,7 +288,7 @@ scenarios:
           use-tolerant-parser: false
 ```
 
-### Assertions
+##### Assertions
 
 Assertions are attached to request elements and used to set fail status on the response. Fail status for the response is
 not the same as response code for JMeter.
@@ -383,7 +388,67 @@ scenarios:
 ```
 
 
-### JMeter Test Log
+#### Logic blocks
+
+The only kind of logic block Taurus supports right now is `if` block. `if` blocks allow conditional execution of
+HTTP requests.
+
+Each `if` block should contain a mandatory `then` field, and an optional `else` field. Both `then` and `else` fields
+should contain lists of requests.
+
+Here's a simple example:
+
+```yaml
+scenario:
+  variables:
+    searchEngine: google
+  requests:
+  - if: '"${searchEngine}" == "google"'
+    then:
+      - https://google.com/
+    else:
+      - https://bing.com/
+```
+
+Note that Taurus compiles `if` blocks to JMeter's `If Controllers`, so `<condition>` must be in JMeter's format.
+
+
+Logic blocks can also be nested:
+
+```yaml
+scenario:
+  requests:
+  - if: <condition1>
+    then:
+    - if: <condition2>
+      then:
+      - https://google.com/
+      else:
+      - https://yahoo.com/
+    else:
+    - https://bing.com/
+```
+
+And here's the real-world example of using `if` blocks:
+
+```yaml
+scenario:
+  requests:
+  # first request is a plain HTTP request that sets `status_code`
+  # and `username` variables
+  - url: https://api.example.com/v1/media/search
+    extract-jsonpath:
+      status_code: $.meta.code
+      username: $.data.[0].user.username
+
+  # branch on `status_code` value
+  - if: '"${status_code}" == "200"'
+    then:
+      - https://example.com/${username}
+```
+
+
+## JMeter Test Log
 You can tune JTL file verbosity with option `write-xml-jtl`. Possible values are 'error' (default), 'full', or any other value for 'none'. Keep in mind: max verbosity can seriously load your system.
 ```yaml
 ---

@@ -50,7 +50,8 @@ KNOWN_TAGS = ["hashTree", "jmeterTestPlan", "TestPlan", "ResultCollector",
               "CSVDataSet",
               "GenericController",
               "ResultCollector",
-              "Arguments"]
+              "Arguments",
+              "IfController"]
 
 
 class JMXasDict(JMX):
@@ -796,19 +797,40 @@ class JMXasDict(JMX):
         ht_element = tg_etree_element.getnext()
 
         if ht_element.tag == "hashTree":
-            request_elements = ht_element.findall(".//HTTPSamplerProxy")
-            self.log.debug("Total http samplers in tg groups: %d", len(request_elements))
-            if not request_elements:
+            requests = self.__extract_requests(ht_element)
+            self.log.debug("Total requests in tg groups: %d", len(requests))
+            if not requests:
                 self.log.warning("No requests in %s (%s)", tg_etree_element.tag, tg_etree_element.get("testname"))
-            for request_element in request_elements:
-                self.log.debug("Processing request... %s", request_element.get("testname"))
-                request_config = self._get_request_settings(request_element)
-                tg_scenario_settings["requests"].append(request_config)
-                self.log.debug("Done processing request %s", request_element.get("testname"))
+            tg_scenario_settings["requests"].extend(requests)
         tg_scenario_dict = {tg_name: tg_scenario_settings}
         tg_executions_dict = {"scenario": tg_name}
         tg_executions_dict.update(self._get_tg_execution_settings(tg_etree_element))
         return tg_executions_dict, tg_scenario_dict
+
+    def __extract_requests(self, ht_element):
+        requests = []
+        children = ht_element.iterchildren()
+        while True:
+            try:
+                elem = next(children)
+            except StopIteration:
+                break
+            if elem.tag == 'IfController':
+                hash_tree = next(children)
+                if_block = self.__extract_if_controller(elem, hash_tree)
+                requests.append(if_block)
+            elif elem.tag == 'HTTPSamplerProxy':
+                request = self._get_request_settings(elem)
+                requests.append(request)
+            else:
+                subrequests = self.__extract_requests(elem)
+                requests.extend(subrequests)
+        return requests
+
+    def __extract_if_controller(self, controller, ht_element):
+        condition = self._get_string_prop(controller, "IfController.condition")
+        requests = self.__extract_requests(ht_element)
+        return {'if': condition, 'then': requests}
 
     def _get_request_settings(self, request_element):
         """
@@ -963,7 +985,7 @@ class JMXasDict(JMX):
         for subelement in element.iter():
             if subelement.tag.lower().endswith("prop"):
                 continue
-            if subelement.tag not in KNOWN_TAGS:
+            if subelement.tag not in KNOWN_TAGS and not subelement.tag.endswith("Controller"):
                 self.log.warning("Removing unknown element: %s (%s)", subelement.tag, subelement.get("testname"))
                 self._remove_element(subelement)
                 self._clean_jmx_tree(element)
