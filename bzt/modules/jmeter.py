@@ -75,7 +75,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.distributed_servers = []
         self.management_port = None
         self.reader = None
-        self.requests_parser = RequestsParser(self)
         self._env = {}
 
     def prepare(self):
@@ -709,7 +708,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                     files.append(data_source)
                 elif isinstance(data_source, dict):
                     files.append(data_source['path'])
-        requests = self.requests_parser.extract_requests(scenario)
+        requests_parser = RequestsParser(self.engine)
+        requests = requests_parser.extract_requests(scenario)
         files.extend(self.__res_files_from_requests(requests))
         return files
 
@@ -1193,7 +1193,6 @@ class JMeterScenarioBuilder(JMX):
         super(JMeterScenarioBuilder, self).__init__(original)
         self.executor = executor
         self.scenario = executor.get_scenario()
-        self.requests_parser = executor.requests_parser
         self.system_props = BetterDict()
 
     def __add_managers(self):
@@ -1329,7 +1328,8 @@ class JMeterScenarioBuilder(JMX):
             return None
 
     def __add_requests(self):
-        requests = list(self.requests_parser.extract_requests(self.scenario))
+        requests_parser = RequestsParser(self.executor.engine)
+        requests = list(requests_parser.extract_requests(self.scenario))
         compiled_requests = self.compile_requests(requests)
         for compiled in compiled_requests:
             for element in compiled:
@@ -1620,8 +1620,8 @@ class IfBlock(Request):
 
 
 class RequestsParser(object):
-    def __init__(self, executor):
-        self.executor = executor
+    def __init__(self, engine):
+        self.engine = engine
 
     def __parse_request(self, req):
         if 'if' in req:
@@ -1645,7 +1645,7 @@ class RequestsParser(object):
             body = None
             bodyfile = req.get("body-file", None)
             if bodyfile:
-                bodyfile_path = self.executor.engine.find_file(bodyfile)
+                bodyfile_path = self.engine.find_file(bodyfile)
                 with open(bodyfile_path) as fhd:
                     body = fhd.read()
             body = req.get("body", body)
