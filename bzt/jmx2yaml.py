@@ -51,7 +51,9 @@ KNOWN_TAGS = ["hashTree", "jmeterTestPlan", "TestPlan", "ResultCollector",
               "GenericController",
               "ResultCollector",
               "Arguments",
-              "IfController"]
+              "IfController",
+              "LoopController",
+              ]
 
 
 class JMXasDict(JMX):
@@ -98,6 +100,24 @@ class JMXasDict(JMX):
         prop_element = element.find(".//stringProp[@name='" + prop_name + "']")
         if prop_element is not None and prop_element.text:
             return prop_element.text
+        else:
+            self.log.debug("stringProp %s was not found in %s element!", prop_name, element.tag)
+            return default
+
+    def _get_int_prop(self, element, prop_name, default=None):
+        """
+        Gets string prop from element
+        :param element:
+        :param prop_name:
+        :return:
+        """
+        prop_element = element.find(".//intProp[@name='" + prop_name + "']")
+        if prop_element is not None and prop_element.text:
+            if prop_element.text.isdigit():
+                return int(prop_element.text)
+            else:
+                self.log.debug("intProp %s in %s doesn't contain integer", prop_name, element.tag)
+                return default
         else:
             self.log.debug("stringProp %s was not found in %s element!", prop_name, element.tag)
             return default
@@ -819,6 +839,10 @@ class JMXasDict(JMX):
                 hash_tree = next(children)
                 if_block = self.__extract_if_controller(elem, hash_tree)
                 requests.append(if_block)
+            elif elem.tag == 'LoopController':
+                hash_tree = next(children)
+                loop_block = self.__extract_loop_controller(elem, hash_tree)
+                requests.append(loop_block)
             elif elem.tag == 'HTTPSamplerProxy':
                 request = self._get_request_settings(elem)
                 requests.append(request)
@@ -831,6 +855,13 @@ class JMXasDict(JMX):
         condition = self._get_string_prop(controller, "IfController.condition")
         requests = self.__extract_requests(ht_element)
         return {'if': condition, 'then': requests}
+
+    def __extract_loop_controller(self, controller, ht_element):
+        iterations = self._get_int_prop(controller, "LoopController.loops", 1)
+        forever = self._get_bool_prop(controller, "LoopController.continue_forever")
+        requests = self.__extract_requests(ht_element)
+        loops = 'forever' if forever else iterations
+        return {'loop': loops, 'do': requests}
 
     def _get_request_settings(self, request_element):
         """
