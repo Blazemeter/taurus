@@ -1380,8 +1380,11 @@ class JMeterScenarioBuilder(JMX):
     def compile_loop_block(self, block):
         elements = []
 
-        loop_forever = block.loops == 'forever'
-        loop_controller = JMX._get_loop_controller(block.loops, loop_forever)
+        if block.loops == 'forever':
+            iterations, loop_forever = -1, True
+        else:
+            iterations, loop_forever = block.loops, False
+        loop_controller = JMX._get_loop_controller(iterations, loop_forever)
         children = etree.Element("hashTree")
         for compiled in self.compile_requests(block.requests):
             for element in compiled:
