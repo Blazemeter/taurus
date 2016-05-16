@@ -322,8 +322,9 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         gatling_path = self.settings.get("path", "~/.bzt/gatling-taurus/bin/gatling" + EXE_SUFFIX)
         gatling_path = os.path.abspath(os.path.expanduser(gatling_path))
         self.settings["path"] = gatling_path
+        download_link = self.settings.get("download-link", GatlingExecutor.DOWNLOAD_LINK)
         gatling_version = self.settings.get("version", GatlingExecutor.VERSION)
-        required_tools.append(Gatling(gatling_path, self.log, gatling_version))
+        required_tools.append(Gatling(gatling_path, self.log, download_link, gatling_version))
 
         for tool in required_tools:
             if not tool.check_if_installed():
@@ -412,6 +413,114 @@ class DataLogReader(ResultsReader):
         self.delimiter = "\t"
         self.offset = 0
         self.dir_prefix = dir_prefix
+        self.guessed_gatling_version = None
+
+    def _extract_log_gatling_21(self, fields):
+        """
+        Extract stats from Gatling 2.1 format.
+
+        :param fields:
+        :return:
+        """
+        # $scenario  $userId  ${RequestRecordHeader.value}
+        # ${serializeGroups(groupHierarchy)}  $name
+        # 5requestStartDate  6requestEndDate
+        # 7responseStartDate  8responseEndDate
+        # 9status
+        # ${serializeMessage(message)}${serializeExtraInfo(extraInfo)}$Eol"
+
+        if fields[2].strip() == "USER":
+            if fields[3].strip() == "START":
+                self.concurrency += 1
+            elif fields[3].strip() == "END":
+                self.concurrency -= 1
+
+        if fields[2].strip() != "REQUEST":
+            return None
+
+        label = fields[4]
+        t_stamp = int(fields[8]) / 1000.0
+
+        r_time = (int(fields[8]) - int(fields[5])) / 1000.0
+        latency = (int(fields[7]) - int(fields[6])) / 1000.0
+        con_time = (int(fields[6]) - int(fields[5])) / 1000.0
+
+        if fields[-1] == 'OK':
+            r_code = '200'
+        else:
+            _tmp_rc = fields[-1].split(" ")[-1]
+            r_code = _tmp_rc if _tmp_rc.isdigit() else 'No RC'
+
+        if len(fields) >= 11 and fields[10]:
+            error = fields[10]
+        else:
+            error = None
+        return int(t_stamp), label, r_time, con_time, latency, r_code, error
+
+    def _extract_log_gatling_22(self, fields):
+        """
+        Extract stats from Gatling 2.2 format
+        :param fields:
+        :return:
+        """
+        # 0 ${RequestRecordHeader.value}
+        # 1 $scenario
+        # 2 $userId
+        # 3 ${serializeGroups(groupHierarchy)}
+        # 4 $label
+        # 5 $startTimestamp
+        # 6 $endTimestamp
+        # 7 $status
+        # [8] ${serializeMessage(message)}${serializeExtraInfo(extraInfo)}
+
+        if fields[0].strip() == "USER":
+            if fields[3].strip() == "START":
+                self.concurrency += 1
+            elif fields[3].strip() == "END":
+                self.concurrency -= 1
+
+        if fields[0].strip() != "REQUEST":
+            return None
+
+        label = fields[4]
+        t_stamp = int(fields[6]) / 1000.0
+
+        r_time = (int(fields[6]) - int(fields[5])) / 1000.0
+        latency = 0.0
+        con_time = 0.0
+
+        if fields[7] == 'OK':
+            r_code = '200'
+        else:
+            _tmp_rc = fields[-1].split(" ")[-1]
+            r_code = _tmp_rc if _tmp_rc.isdigit() else 'No RC'
+
+        if len(fields) >= 9 and fields[8]:
+            error = fields[8]
+        else:
+            error = None
+        return int(t_stamp), label, r_time, con_time, latency, r_code, error
+
+    def _guess_gatling_version(self, fields):
+        if fields[0].strip() in ["USER", "REQUEST", "RUN"]:
+            self.log.debug("Parsing Gatling 2.2 stats")
+            return "2.2"
+        elif fields[2].strip() in ["USER", "REQUEST", "RUN"]:
+            self.log.debug("Parsing Gatling 2.1 stats")
+            return "2.1"
+        else:
+            return None
+
+    def _extract_log_data(self, fields):
+        if self.guessed_gatling_version is None:
+            self.guessed_gatling_version = self._guess_gatling_version(fields)
+
+        if self.guessed_gatling_version == "2.1":
+            return self._extract_log_gatling_21(fields)
+        elif self.guessed_gatling_version == "2.2":
+            return self._extract_log_gatling_22(fields)
+        else:
+            return None
 
     def _read(self, last_pass=False):
         """
@@ -442,39 +551,12 @@ class DataLogReader(ResultsReader):
             line = line.strip()
             fields = line.split(self.delimiter)
 
-            # $scenario  $userId  ${RequestRecordHeader.value}
-            # ${serializeGroups(groupHierarchy)}  $name
-            # 5requestStartDate  6requestEndDate
-            # 7responseStartDate  8responseEndDate
-            # 9status
-            # ${serializeMessage(message)}${serializeExtraInfo(extraInfo)}$Eol"
-            if fields[2].strip() == "USER":
-                if fields[3].strip() == "START":
-                    self.concurrency += 1
-                elif fields[3].strip() == "END":
-                    self.concurrency -= 1
-
-            if fields[2].strip() != "REQUEST":
+            data = self._extract_log_data(fields)
+            if data is None:
                 continue
-            label = fields[4]
-            t_stamp = int(fields[8]) / 1000.0
 
-            r_time = (int(fields[8]) - int(fields[5])) / 1000.0
-            latency = (int(fields[7]) - int(fields[6])) / 1000.0
-            con_time = (int(fields[6]) - int(fields[5])) / 1000.0
-
-            if fields[-1] == 'OK':
-                r_code = '200'
-            else:
-                _tmp_rc = fields[-1].split(" ")[-1]
-                r_code = _tmp_rc if _tmp_rc.isdigit() else 'No RC'
-
-            if len(fields) >= 11 and fields[10]:
-                error = fields[10]
-            else:
-                error = None
-
-            yield int(t_stamp), label, self.concurrency, r_time, con_time, latency, r_code, error, ''
+            t_stamp, label, r_time, con_time, latency, r_code, error = data
+            yield t_stamp, label, self.concurrency, r_time, con_time, latency, r_code, error, ''
 
     def __open_fds(self):
         """
@@ -504,11 +586,11 @@ class Gatling(RequiredTool):
     Gatling tool
     """
 
-    def __init__(self, tool_path, parent_logger, version):
+    def __init__(self, tool_path, parent_logger, download_link, version):
         super(Gatling, self).__init__("Gatling", tool_path)
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.version = version
-        self.mirror_manager = GatlingMirrorsManager(self.log, self.version)
+        self.mirror_manager = GatlingMirrorsManager(self.log, download_link, self.version)
 
     def check_if_installed(self):
         self.log.debug("Trying Gatling: %s", self.tool_path)
@@ -536,7 +618,8 @@ class Gatling(RequiredTool):
 
 
 class GatlingMirrorsManager(MirrorsManager):
-    def __init__(self, parent_logger, gatling_version):
+    def __init__(self, parent_logger, download_link, gatling_version):
+        self.download_link = download_link
         self.gatling_version = gatling_version
         super(GatlingMirrorsManager, self).__init__(GatlingExecutor.MIRRORS_SOURCE, parent_logger)
 
@@ -551,7 +634,7 @@ class GatlingMirrorsManager(MirrorsManager):
             if select_element and self.gatling_version in select_element:
                 href_elements = href_search_pattern.findall(select_element[0])
                 links = [link.strip('href=').strip('">') for link in href_elements]
-        default_link = GatlingExecutor.DOWNLOAD_LINK.format(version=self.gatling_version)
+        default_link = self.download_link.format(version=self.gatling_version)
         if default_link not in links:
             links.append(default_link)
         self.log.debug('Total mirrors: %d', len(links))

@@ -96,7 +96,8 @@
       "class": "bzt.modules.blazemeter.BlazeMeterUploader"
     },
     "cloud": {
-      "class": "bzt.modules.blazemeter.CloudProvisioning"
+      "class": "bzt.modules.blazemeter.CloudProvisioning",
+      "default-location": "us-central1-a"
     },
     "final_stats": {
       "class": "bzt.modules.reporting.FinalStatus"
@@ -121,6 +122,9 @@
     },
     "siege": {
       "class": "bzt.modules.siege.SiegeExecutor"
+    },
+    "tsung": {
+      "class": "bzt.modules.tsung.TsungExecutor"
     }
   },
   "settings": {

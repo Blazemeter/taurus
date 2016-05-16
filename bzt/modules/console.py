@@ -259,6 +259,7 @@ class ScrollingLog(ListBox):
         super(ScrollingLog, self).__init__(body)
         self.last_size = (0, 0)
 
+    # pylint: disable=method-hidden
     def render(self, size, focus=False):
         """
         Render the widget
@@ -328,18 +329,20 @@ class TaurusConsole(Columns):
         self.latest_stats = LatestStats()
         self.cumulative_stats = CumulativeStats()
 
-        stats_pane = Pile([(WEIGHT, 0.33, self.latest_stats),
-                           (WEIGHT, 0.67, self.cumulative_stats), ])
+        stats_pane = Pile([(WEIGHT, 0.333, self.latest_stats),
+                           (WEIGHT, 0.667, self.cumulative_stats)])
 
         self.graphs = ThreeGraphs()
-
-        right_widgets = ListBox(SimpleListWalker([Pile([x, Divider()]) for x in sidebar_widgets]))
-
         self.logo = TaurusLogo()
-        right_pane = Pile([(10, self.logo),
-                           right_widgets,
-                           (1, Filler(Divider('─'))),
-                           (WEIGHT, 1, self.log_widget)])
+
+        ordered_widgets = sorted(sidebar_widgets, key=lambda x: x.priority)
+        right_widgets = ListBox(SimpleListWalker([Pile([x, Divider()]) for x in ordered_widgets]))
+        widget_pile = Pile([(7, self.logo), right_widgets,])
+
+        log_block = Pile([(1, Filler(Divider('─'))), self.log_widget])
+
+        right_pane = Pile([(WEIGHT, 0.667, widget_pile),
+                           (WEIGHT, 0.333, log_block)])
 
         columns = [(WEIGHT, 0.25, self.graphs),
                    (WEIGHT, 0.50, stats_pane),
@@ -434,7 +437,7 @@ class StringIONotifying(StringIO, object):
 
         :type self: StringIO
         """
-        StringIO.__init__(self)
+        StringIO.__init__(self)  # pylint: disable=non-parent-init-called
         self.listener = listener
 
     def flush(self):
@@ -540,7 +543,7 @@ class StackedGraph(Widget):
         rows = []
         for row in range(0, size[1]):
             line = []
-            groups = ["".join(grp) for _num, grp in groupby(matrix[row])]
+            groups = ["".join(grp) for _, grp in groupby(matrix[row])]
             for chunk in groups:
                 color = self.colors[int(chunk[0])]
                 char = self.chars[int(chunk[0])]
@@ -1106,12 +1109,17 @@ class WidgetProvider(object):
         pass
 
 
-class SidebarWidget(Pile):
+class PrioritizedWidget(object):
+    def __init__(self, priority=0):
+        self.priority = priority
+
+
+class SidebarWidget(Pile, PrioritizedWidget):
     """
     Progress sidebar widget
     """
-
     def __init__(self, executor, label=None, additional_widgets=()):
+        PrioritizedWidget.__init__(self, priority=10)
         self.executor = executor
         self.duration = self.executor.get_load().duration
         self.widgets = []

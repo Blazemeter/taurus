@@ -33,7 +33,7 @@ A helper tool to validate YAML: [http://wiki.ess3.net/yaml/](http://wiki.ess3.ne
 Any configuration option can be overridden from command line by using `-o`
 switch. Like this:
 ```
-bzt stress.json -o modules.jmeter.path=alternate/jmeter/bin/jmeter -o provisioning=remote
+bzt stress.json -o modules.jmeter.path=alternate/jmeter/bin/jmeter -o provisioning=cloud
 ```
  
 You can even start whole test without config files, just from switches. 
@@ -57,6 +57,29 @@ execution:
 The following override example creates the `data-sources` list (as it isn't specified in config) and sets the first element to `data.csv`:
 ```
 bzt -o execution.scenario.data-sources.0=data.csv config.yaml
+```
+
+Note that Taurus parses overridden values as YAML. This means that you can override all types of values: numbers,
+strings, booleans and even lists and objects. Also, YAML is a superset of JSON, so you can use JSON syntax too.
+
+Example:
+```bash
+# overriding JMeter property with a floating-point number
+bzt -o modules.jmeter.properties.pi=3.141592 script.yaml
+
+# overriding requests list in scenario
+# (note that you have to take whole override value in quotes because quotes and brackets have special meaning in shell)
+bzt -o scenarios.my-scenario.requests="['http://example.com/', 'http://blazedemo.com/']" script.yaml
+
+# overriding objects
+bzt -o scenarios.my-scenario="{default-address: 'http://blazedemo.com/', requests: ['/', '/reserve.php']}" script.yaml
+```
+
+And if you need to pass a string with quotations, you have to add an escaped level of quotes to it:
+
+```bash
+# this will set JMeter property `name` to value `"string with quotes"`.
+bzt -o modules.jmeter.properties.name='"\"string with quotes\""' script.yaml
 ```
 
 ## Aliases

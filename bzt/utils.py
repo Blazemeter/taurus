@@ -30,6 +30,7 @@ import re
 import shlex
 import signal
 import socket
+import stat
 import subprocess
 import sys
 import tempfile
@@ -446,7 +447,7 @@ class ComplexEncoder(json.JSONEncoder):
     """
     TYPES = (dict, list, tuple, text_type, string_types, integer_types, float, bool, type(None))
 
-    def default(self, obj):
+    def default(self, obj):  # pylint: disable=method-hidden
         """
         Filters out protected and private fields
 
@@ -659,12 +660,14 @@ class RequiredTool(object):
         mirrors = self.mirror_manager.mirrors()
         sock_timeout = socket.getdefaulttimeout()
         for mirror in mirrors:
-            self.log.debug("Downloading: %s", mirror)
+            self.log.info("Downloading: %s", mirror)
             with ProgressBarContext() as pbar:
                 try:
                     socket.setdefaulttimeout(5)
                     downloader.retrieve(mirror, tool_dist.name, pbar.download_callback)
                     return tool_dist
+                except KeyboardInterrupt:
+                    raise
                 except BaseException:
                     self.log.error("Error while downloading %s", mirror)
                     continue
@@ -768,7 +771,7 @@ class TclLibrary(RequiredTool):
         for lib_dir in lib_dirs:
             base_dir = os.path.join(lib_dir, TclLibrary.FOLDER)
             if os.path.exists(base_dir):
-                for root, _dirs, files in os.walk(base_dir):
+                for root, _, files in os.walk(base_dir):
                     if TclLibrary.INIT_TCL in files:
                         return root
 
@@ -814,7 +817,7 @@ class MirrorsManager(object):
 
 def open_browser(url):
     browser = webbrowser.get()
-    if not isinstance(browser, GenericBrowser):
+    if type(browser) != GenericBrowser:  # pylint: disable=unidiomatic-typecheck
         try:
             browser.open(url)
         except BaseException as exc:
@@ -863,3 +866,20 @@ class DummyScreen(BaseScreen):
             data += "%s│\n" % line
         data = self.ansi_escape.sub('', data)
         logging.info("Screen %sx%s chars:\n%s", size[0], size[1], data)
+
+
+def which(filename):
+    """unix-style `which` implementation"""
+    locations = os.environ.get("PATH").split(os.pathsep)
+    candidates = []
+    for location in locations:
+        candidate = os.path.join(location, filename)
+        if os.path.isfile(candidate):
+            candidates.append(candidate)
+    return candidates
+
+
+def is_piped(file_obj):
+    "check if file-object is a pipe or a file redirect"
+    mode = os.fstat(file_obj.fileno()).st_mode
+    return stat.S_ISFIFO(mode) or stat.S_ISREG(mode)

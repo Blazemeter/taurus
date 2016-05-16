@@ -247,8 +247,8 @@ services:
 - module: passfail
   criterias:
   - class: bzt.modules.monitoring.MonitoringCriteria
-    subject: 127.0.0.1/cpu:idle
-    condition: '<'
-    threshold: 5
+    subject: local/cpu
+    condition: '>'
+    threshold: 90
     timeframe: 5s
 ```

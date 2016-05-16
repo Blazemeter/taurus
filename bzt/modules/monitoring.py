@@ -10,7 +10,7 @@ from collections import OrderedDict, namedtuple
 import psutil
 from urwid import Pile, Text
 from bzt.engine import Service
-from bzt.modules.console import WidgetProvider
+from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.passfail import FailCriteria
 from bzt.six import iteritems, urlopen, urlencode
 from bzt.utils import dehumanize_time
@@ -216,7 +216,7 @@ class LocalClient(MonitoringClient):
             return psutil.disk_io_counters()
         except RuntimeError as exc:
             self.log.debug("Failed to get disk metrics: %s", exc)
-            return psutil._common.sdiskio(0, 0, 0, 0, 0, 0)
+            return psutil._common.sdiskio(0, 0, 0, 0, 0, 0)  # pylint: disable=protected-access
 
 
 class GraphiteClient(MonitoringClient):
@@ -375,11 +375,12 @@ class ServerAgentClient(MonitoringClient):
         return res
 
 
-class MonitoringWidget(Pile, MonitoringListener):
+class MonitoringWidget(Pile, MonitoringListener, PrioritizedWidget):
     def __init__(self):
         self.host_metrics = OrderedDict()
         self.display = Text("")
         super(MonitoringWidget, self).__init__([self.display])
+        PrioritizedWidget.__init__(self, priority=20)
 
     def monitoring_data(self, data):
         for item in data:

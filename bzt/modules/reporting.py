@@ -370,7 +370,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         return root_xml_element
 
     def __process_criteria(self, classname, fc_obj, report_urls):
-        if fc_obj.config['label']:
+        if 'label' in fc_obj.config:
             data = (fc_obj.config['subject'], fc_obj.config['label'],
                     fc_obj.config['condition'], fc_obj.config['threshold'])
             tpl = "%s of %s%s%s"

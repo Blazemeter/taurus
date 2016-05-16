@@ -22,16 +22,16 @@ import sys
 import traceback
 from logging import Formatter
 from optparse import OptionParser, Option
-from select import select
 from tempfile import NamedTemporaryFile
 
 from colorlog import ColoredFormatter
+import yaml
 
 import bzt
 from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown
 from bzt.engine import Engine, Configuration, ScenarioExecutor
 from bzt.six import HTTPError, string_types, b
-from bzt.utils import run_once, is_int, BetterDict, is_windows
+from bzt.utils import run_once, is_int, BetterDict, is_windows, is_piped
 
 
 class CLI(object):
@@ -289,12 +289,23 @@ class ConfigOverrider(object):
             else:
                 self.log.debug("No value to delete: %s", item)
         else:
-            if value.isdigit():
-                value = float(value)
+            parsed_value = self.__parse_override_value(value)
+            self.log.debug("Parsed override value: %r -> %r (%s)", value, parsed_value, type(parsed_value))
+            if isinstance(parsed_value, dict):
+                dict_value = BetterDict()
+                dict_value.merge(parsed_value)
+                parsed_value = dict_value
             if isinstance(pointer, list) and parts[-1] < 0:
-                pointer.append(value)
+                pointer.append(parsed_value)
             else:
-                pointer[parts[-1]] = value
+                pointer[parts[-1]] = parsed_value
+
+    @staticmethod
+    def __parse_override_value(override):
+        try:
+            return yaml.load(override)
+        except BaseException:
+            return override
 
     def __ensure_list_capacity(self, pointer, part, next_part=None):
         """
@@ -368,14 +379,12 @@ def main():
 
     executor = CLI(parsed_options)
 
-    if not is_windows():
-        readable = select([sys.stdin], [], [], 0.1)[0]
-        for stream in readable:
-            stdin = stream.read()
-            if stdin:
-                with NamedTemporaryFile(prefix="stdin_", suffix=".config", delete=False) as fhd:
-                    fhd.write(b(stdin))
-                    parsed_configs.append(fhd.name)
+    if is_piped(sys.stdin):
+        stdin = sys.stdin.read()
+        if stdin:
+            with NamedTemporaryFile(prefix="stdin_", suffix=".config", delete=False) as fhd:
+                fhd.write(b(stdin))
+                parsed_configs.append(fhd.name)
 
     try:
         code = executor.perform(parsed_configs)

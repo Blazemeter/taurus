@@ -45,11 +45,11 @@ Cloud locations are specified per-execution. Specifying multiple cloud locations
 ---
 execution:
 - locations:
-    eu-west: 1
-    eu-east: 2
+    us-west-1: 1
+    us-east-1: 2
 ```
 
-To get the list of all available locations, run `bzt -locations -o modules.cloud.token=<API Key>`. The list of available locations is taken from [User API Call](https://a.blazemeter.com/api/latest/user) and may be specific for particular user. See `locations` block and `id` option for each location.
+If no locations specified for cloud execution, default value from `modules.cloud.default-location` is taken with weight of 1. To get the list of all available locations, run `bzt -locations -o modules.cloud.token=<API Key>`. The list of available locations is taken from [User API Call](https://a.blazemeter.com/api/latest/user) and may be specific for particular user. See `locations` block and `id` option for each location.
 
 By default, Taurus will calculate machines count for each location based on their limits obtained from *User API Call*. To switch to manual machines count just set option `locations-weighted` into `false`. Exact numbers of machines for each location will be used in that case:
 
@@ -57,9 +57,31 @@ By default, Taurus will calculate machines count for each location based on thei
 ---
 execution:
 - locations:
-    eu-west: 2
-    eu-east: 7
+    us-west-1: 2
+    us-east-1: 7
   locations-weighted: false
+```
+
+```yaml
+-- 
+execution: 
+  - scenario: dummy 
+    concurrency:
+      local: 5
+      cloud: 1000
+    ramp-up: 10s
+    hold-for: 5m
+    locations: 
+      eu-central-1: 1
+      eu-west-1: 1
+      us-east-1: 1
+      us-west-1: 1
+      us-west-2: 1
+provisioning: cloud
+
+scenarios:
+  dummy:
+    script: Dummy.jmx    
 ```
 
 ## Reporting Settings
@@ -72,6 +94,19 @@ modules:
     project: Project Name  # project name or id
 ```
 
+## Deleting Old Test Files
+
+By default, Taurus will delete all test files from the cloud before uploading any new ones. You can disable
+this behaviour by setting `delete-test-files` module setting to `false`.
+
+Example:
+```yaml
+---
+modules:
+  cloud:
+    delete-test-files: false
+```
+
 ## Specifying Additional Resource Files
 If you need some additional files as part of your test and Taurus fails to detect them automatically, you can attach them to execution using `files` section:
 
@@ -79,7 +114,7 @@ If you need some additional files as part of your test and Taurus fails to detec
 ---
 execution:
 - locations:
-    eu-east: 1
+    us-east-1: 1
   scenario:
     script: testplan.jmx
   files:
@@ -91,6 +126,7 @@ execution:
 ## Specifying Where to Run for Shellexec Service
 
 In shellexec task config, the `run-at` parameter allows to set where commands will be executed. Surprisingly, `local` means the cloud worker will execute it, `cloud` means the controlling CLI will execute it.
+
 
 ## Installing Python Package Dependencies
 

@@ -298,3 +298,25 @@ class TestJUnitXML(BZTestCase):
         rep.parameters.merge({'test': 'test2'})
         report_info = obj.get_bza_report_info()
         self.assertEqual(report_info, [('BlazeMeter report link: url2\n', 'test2')])
+
+    def test_report_criteria_without_label(self):
+        obj = JUnitXMLReporter()
+        obj.engine = EngineEmul()
+        obj.parameters = BetterDict()
+
+        pass_fail = PassFailStatus()
+
+        criteria = DataCriteria({'stop': True, 'fail': True, 'timeframe': -1, 'threshold': '150ms',
+                                 'condition': '<', 'subject': 'avg-rt'},
+                                pass_fail)
+        pass_fail.criterias.append(criteria)
+        criteria.is_triggered = True
+
+        obj.engine.reporters.append(pass_fail)
+
+        path_from_config = tempfile.mktemp(suffix='.xml', prefix='junit-xml_passfail', dir=obj.engine.artifacts_dir)
+        obj.parameters.merge({"filename": path_from_config, "data-source": "pass-fail"})
+        obj.prepare()
+        obj.last_second = DataPoint(0)
+        obj.post_process()
+

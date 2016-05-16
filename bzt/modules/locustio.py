@@ -246,31 +246,32 @@ class SlavesReader(ResultsProvider):
     def fill_join_buffer(self, data):
         self.log.debug("Got slave data: %s", data)
         for stats_item in data['stats']:
-            for ts in stats_item['num_reqs_per_sec'].keys():
-                if ts not in self.join_buffer:
-                    self.join_buffer[ts] = {}
-                self.join_buffer[ts][data['client_id']] = data
+            for timestamp in stats_item['num_reqs_per_sec'].keys():
+                if timestamp not in self.join_buffer:
+                    self.join_buffer[timestamp] = {}
+                self.join_buffer[timestamp][data['client_id']] = data
 
-    def point_from_locust(self, ts, sid, data):
+    @staticmethod
+    def point_from_locust(timestamp, sid, data):
         """
+        :type timestamp: str
         :type sid: str
-        :type ts: str
         :type data: dict
         :rtype: DataPoint
         """
-        point = DataPoint(int(ts))
+        point = DataPoint(int(timestamp))
         point[DataPoint.SOURCE_ID] = sid
         overall = KPISet()
         for item in data['stats']:
-            if ts not in item['num_reqs_per_sec']:
+            if timestamp not in item['num_reqs_per_sec']:
                 continue
 
             kpiset = KPISet()
-            kpiset[KPISet.SAMPLE_COUNT] = item['num_reqs_per_sec'][ts]
+            kpiset[KPISet.SAMPLE_COUNT] = item['num_reqs_per_sec'][timestamp]
             kpiset[KPISet.CONCURRENCY] = data['user_count']
             if item['num_requests']:
                 avg_rt = (item['total_response_time'] / 1000.0) / item['num_requests']
-                kpiset.sum_rt = item['num_reqs_per_sec'][ts] * avg_rt
+                kpiset.sum_rt = item['num_reqs_per_sec'][timestamp] * avg_rt
             point[DataPoint.CURRENT][item['name']] = kpiset
             overall.merge_kpis(kpiset)
 

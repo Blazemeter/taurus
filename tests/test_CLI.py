@@ -1,8 +1,10 @@
 """ test """
+import logging
 import os
 import shutil
 
-from bzt.cli import CLI
+from bzt.cli import CLI, ConfigOverrider
+from bzt.engine import Configuration
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul, ModuleMock
 
@@ -121,3 +123,70 @@ class TestCLI(BZTestCase):
             if os.path.exists(artifacts_dir):
                 shutil.rmtree(artifacts_dir)
 
+
+class TestConfigOverrider(BZTestCase):
+    def setUp(self):
+        self.obj = ConfigOverrider(logging.getLogger())
+        self.config = Configuration()
+
+    def test_numbers(self):
+        self.obj.apply_overrides(["int=11", "float=3.14"], self.config)
+        self.assertEqual(self.config.get("int"), int(11))
+        self.assertEqual(self.config.get("float"), float(3.14))
+
+    def test_booleans(self):
+        self.obj.apply_overrides(["yes=true", "no=false"], self.config)
+        self.assertEqual(self.config.get("yes"), bool(True))
+        self.assertEqual(self.config.get("no"), bool(False))
+
+    def test_strings(self):
+        self.obj.apply_overrides(["plain=ima plain string",
+                                  """quoted='"ima quoted string"'""",
+                                  """empty-quoted='""'""",
+                                  '''escaped="a "b" 'c' d"''',
+                                  '''escaped-quoted="a "b" 'c' d"'''], self.config)
+        self.assertEqual(self.config.get("plain"), str("ima plain string"))
+        self.assertEqual(self.config.get("quoted"), str('''"ima quoted string"'''))
+        self.assertEqual(self.config.get("empty-quoted"), str('""'))
+        self.assertEqual(self.config.get("escaped"), str('''"a "b" 'c' d"'''))
+        self.assertEqual(self.config.get("escaped-quoted"), str('''"a "b" 'c' d"'''))
+
+    def test_strings_literals_clash(self):
+        # we want to pass literal string 'true' (and not have it converted to bool(True))
+        self.obj.apply_overrides(['yes="true"',
+                                  'list="[1,2,3]"'], self.config)
+        self.assertEqual(self.config.get("yes"), str("true"))
+        self.assertEqual(self.config.get("list"), str("[1,2,3]"))
+
+    def test_null(self):
+        self.obj.apply_overrides(['nothing=null'], self.config)
+        self.assertEqual(self.config.get("nothing"), None)
+
+    def test_objects(self):
+        self.config.merge({
+            "obj": {
+                "key": "142857",
+            },
+        })
+        self.obj.apply_overrides(['obj={"key": "value"}'], self.config)
+        self.assertEqual(self.config.get("obj").get("key"), str("value"))
+
+    def test_lists(self):
+        self.config.merge({
+            "list": ["stuff"],
+        })
+        self.obj.apply_overrides(['list=[1, 2.0, "str", []]'], self.config)
+        self.assertEqual(self.config.get("list"), list([1, 2.0, "str", []]))
+
+    def test_nested_quotation(self):
+        # bzt -o man='{"name": "Robert \"Destroyer of Worlds\" Oppenheimer"}'
+        self.obj.apply_overrides(['''man={"name": "Robert \\"Destroyer of Worlds\\" Oppenheimer"}'''], self.config)
+        self.assertEqual(self.config.get("man").get("name"), str('Robert "Destroyer of Worlds" Oppenheimer'))
+
+    def test_no_override(self):
+        self.obj.apply_overrides(['nothing='], self.config)
+        self.assertEqual(self.config.get("nothing"), None)
+
+    def test_unquoted_keys(self):
+        self.obj.apply_overrides(['obj={abc: def}'], self.config)
+        self.assertEqual(self.config.get("obj").get("abc"), str("def"))

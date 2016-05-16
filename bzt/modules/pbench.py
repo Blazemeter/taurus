@@ -185,7 +185,7 @@ class PBenchTool(object):
             self._generate_payload_inner(scenario)
 
     @staticmethod
-    def _estimate_max_progress_rps(load, payload_count):
+    def _estimate_schedule_size_rps(load, payload_count):
         ramp_up = load.ramp_up if load.ramp_up else 0.0
 
         iterations = float(load.iterations or "inf")
@@ -216,7 +216,7 @@ class PBenchTool(object):
         return rampup_items + hold_items
 
     @staticmethod
-    def _estimate_max_progress_concurrency(load, payload_count):
+    def _estimate_schedule_size_conc(load, payload_count):
         ramp_up = load.ramp_up if load.ramp_up else 0.0
 
         if load.iterations:
@@ -232,11 +232,11 @@ class PBenchTool(object):
                 upper_iteration_limit = 1
             return upper_iteration_limit * payload_count
 
-    def _estimate_max_progress(self, load, payload_count):
+    def _estimate_schedule_size(self, load, payload_count):
         if load.throughput:
-            return self._estimate_max_progress_rps(load, payload_count)
+            return self._estimate_schedule_size_rps(load, payload_count)
         else:
-            return self._estimate_max_progress_concurrency(load, payload_count)
+            return self._estimate_schedule_size_conc(load, payload_count)
 
     @abstractmethod
     def _write_schedule_file(self, load, scheduler, sfd):
@@ -349,12 +349,13 @@ class PBenchTool(object):
     def get_results_reader(self):
         return PBenchKPIReader(self.kpi_file, self.log, self.stats_file)
 
+    @abstractmethod
     def _get_additional_modules(self):
-        return ""
+        pass
 
 
 class OriginalPBenchTool(PBenchTool):
-    NL = "\n"
+    NEWLINE = "\n"
 
     def _write_schedule_file(self, load, scheduler, sfd):
         cnt = 0
@@ -362,11 +363,12 @@ class OriginalPBenchTool(PBenchTool):
         pbar = None
         start_time = time.time()
         for item in scheduler.generate():
-            time_offset, payload_len, payload_offset, payload, marker, record_type, overall_len = item
+            # item : (time_offset, payload_len, payload_offset, payload, marker, record_type, overall_len)
+            time_offset, payload_len, _, payload, marker, _, _ = item
 
             if scheduler.iterations > 1 and payload_entry_count is None:
                 payload_entry_count = scheduler.count
-                estimated_size = self._estimate_max_progress(load, payload_entry_count)
+                estimated_size = self._estimate_schedule_size(load, payload_entry_count)
                 self.log.debug("Estimated schedule size: %s", estimated_size)
                 if estimated_size:
                     pbar = IncrementableProgressBar(maxval=estimated_size)
@@ -375,8 +377,8 @@ class OriginalPBenchTool(PBenchTool):
             if time_offset < 0:  # special case, run worker with no delay
                 time_offset = 0.0
 
-            sfd.write(b("%s %s %s%s" % (payload_len, int(1000 * time_offset), marker, self.NL)))
-            sfd.write(b("%s%s" % (payload, self.NL)))
+            sfd.write(b("%s %s %s%s" % (payload_len, int(1000 * time_offset), marker, self.NEWLINE)))
+            sfd.write(b("%s%s" % (payload, self.NEWLINE)))
 
             cnt += 1
             if pbar:
@@ -388,6 +390,9 @@ class OriginalPBenchTool(PBenchTool):
     def _get_source(self, load):
         return 'source_t source_log = source_log_t { filename = "%s" }' % self.schedule_file
 
+    def _get_additional_modules(self):
+        return ""
+
 
 class TaurusPBenchTool(PBenchTool):
     def _write_schedule_file(self, load, scheduler, sfd):
@@ -398,11 +403,12 @@ class TaurusPBenchTool(PBenchTool):
         pbar = None
         start_time = time.time()
         for item in scheduler.generate():
-            time_offset, payload_len, payload_offset, payload, marker, record_type, overall_len = item
+            # item : (time_offset, payload_len, payload_offset, payload, marker, record_type, overall_len)
+            time_offset, _, payload_offset, _, _, record_type, overall_len = item
 
             if scheduler.iterations > 1 and payload_entry_count is None:
                 payload_entry_count = scheduler.count
-                estimated_size = self._estimate_max_progress(load, payload_entry_count)
+                estimated_size = self._estimate_schedule_size(load, payload_entry_count)
                 self.log.debug("Estimated schedule size: %s", estimated_size)
                 if estimated_size:
                     pbar = IncrementableProgressBar(maxval=estimated_size)
@@ -438,8 +444,7 @@ class TaurusPBenchTool(PBenchTool):
         return tpl % (self.payload_file, self.schedule_file, duration_limit)
 
     def _get_additional_modules(self):
-        res = super(TaurusPBenchTool, self)._get_additional_modules()
-        res += 'setup_t module_setup = setup_module_t {	dir = "%s" list = { taurus_source } }\n' % self.modules_path
+        res = 'setup_t module_setup = setup_module_t {	dir = "%s" list = { taurus_source } }\n' % self.modules_path
         return res
 
 
@@ -659,6 +664,8 @@ class PBenchStatsReader(object):
         self.data = {}
 
     def read_file(self, last_pass=False):
+        del last_pass
+
         if not os.path.isfile(self.filename):
             self.log.debug("File not appeared yet: %s", self.filename)
             return False

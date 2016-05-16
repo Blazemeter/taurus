@@ -335,7 +335,8 @@ class JMXasDict(JMX):
         self.log.debug('Got %s for request-defaults in %s (%s)', request_defaults, element.tag, element.get("testname"))
         return request_defaults
 
-    def _make_url(self, url_info):
+    @staticmethod
+    def _make_url(url_info):
         """
         :type url_info: urllib.ParseResults
         :return: string
@@ -912,7 +913,8 @@ class JMXasDict(JMX):
         default_tg_settings.update(self._get_throughput(testplan_element))
         return default_tg_settings
 
-    def _apply_global_tg_settings(self, defaults, tg_dict, override=True):
+    @staticmethod
+    def _apply_global_tg_settings(defaults, tg_dict, override=True):
         for default_key, default_value in defaults.items():
             if isinstance(default_value, list):
                 if default_key in tg_dict.keys():
@@ -931,7 +933,8 @@ class JMXasDict(JMX):
                     if override:
                         tg_dict[default_key] = defaults[default_key]
 
-    def _remove_element(self, element):
+    @staticmethod
+    def _remove_element(element):
         sibling = element.getnext()
         if sibling is not None and sibling.tag == "hashTree":
             sibling.getparent().remove(sibling)
