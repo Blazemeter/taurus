@@ -730,6 +730,16 @@ class Provisioning(EngineModule):
     """
     PROV = "provisioning"
 
+    def _make_filenames_relative(self, rfiles, config):
+        def file_replacer(value, key, container):
+            if isinstance(value, string_types):
+                if value in rfiles:
+                    container[key] = os.path.basename(value)
+                    if container[key] != value:
+                        self.log.debug("Replaced %s with %s", value, container[key])
+
+        BetterDict.traverse(config, file_replacer)
+
     def __init__(self):
         super(Provisioning, self).__init__()
         self.executors = []

@@ -63,17 +63,6 @@ def get_files_recursive(dir_name, exclude_mask=''):
                 yield os.path.join(root, _file)
 
 
-def make_filenames_relative(rfiles, config, log):
-    def file_replacer(value, key, container):
-        if isinstance(value, string_types):
-            if value in rfiles:
-                container[key] = os.path.basename(value)
-                if container[key] != value:
-                    log.debug("Replaced %s with %s", value, container[key])
-
-    BetterDict.traverse(config, file_replacer)
-
-
 def run_once(func):
     """
     A decorator to run function only once
@@ -234,7 +223,7 @@ class BetterDict(defaultdict):
                 self.__ensure_list_type(obj)
 
     @classmethod
-    def traverse(self, obj, visitor):
+    def traverse(cls, obj, visitor):
         """
         Deep traverse dict with visitor
 
@@ -244,11 +233,11 @@ class BetterDict(defaultdict):
         if isinstance(obj, dict):
             for key, val in iteritems(obj):
                 visitor(val, key, obj)
-                self.traverse(obj[key], visitor)
+                cls.traverse(obj[key], visitor)
         elif isinstance(obj, list):
             for idx, val in enumerate(obj):
                 visitor(val, idx, obj)
-                self.traverse(obj[idx], visitor)
+                cls.traverse(obj[idx], visitor)
 
 
 def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False, env=None):
