@@ -1377,6 +1377,19 @@ class JMeterScenarioBuilder(JMX):
 
         return elements
 
+    def compile_loop_block(self, block):
+        elements = []
+
+        loop_forever = block.loops == 'forever'
+        loop_controller = JMX._get_loop_controller(block.loops, loop_forever)
+        children = etree.Element("hashTree")
+        for compiled in self.compile_requests(block.requests):
+            for element in compiled:
+                children.append(element)
+        elements.extend([loop_controller, children])
+
+        return elements
+
     def compile_requests(self, requests):
         compiler = RequestCompiler(self)
         return [compiler.visit(request) for request in requests]
@@ -1593,6 +1606,17 @@ class IfBlock(Request):
         return "IfBlock(condition=%s, then=%s, else=%s)" % (self.condition, then_clause, else_clause)
 
 
+class LoopBlock(Request):
+    def __init__(self, loops, requests, config):
+        super(LoopBlock, self).__init__(config)
+        self.loops = loops
+        self.requests = requests
+
+    def __repr__(self):
+        requests = [repr(req) for req in self.requests]
+        return "LoopBlock(loops=%s, requests=%s)" % (self.loops, requests)
+
+
 class RequestsParser(object):
     def __init__(self, engine):
         self.engine = engine
@@ -1608,6 +1632,15 @@ class RequestsParser(object):
             else_clause = req.get("else", [])
             else_requests = self.__parse_requests(else_clause)
             return IfBlock(condition, then_requests, else_requests, req)
+        elif 'loop' in req:
+            loops = req.get("loop")
+            if not isinstance(loops, int) and not loops == "forever":
+                raise ValueError("Value of `loop` should be either integer or 'forever'")
+            do_block = req.get("do")
+            if not do_block:
+                raise ValueError("`do` field is mandatory for loop blocks")
+            do_requests = self.__parse_requests(do_block)
+            return LoopBlock(loops, do_requests, req)
         else:
             url = req.get("url", ValueError("Option 'url' is mandatory for request"))
             label = req.get("label", url)
@@ -1666,6 +1699,12 @@ class ResourceFilesCollector(RequestVisitor):
             files.extend(self.visit(request))
         return files
 
+    def visit_LoopBlock(self, block):
+        files = []
+        for request in block.requests:
+            files.extend(self.visit(request))
+        return files
+
 
 class RequestCompiler(RequestVisitor):
     def __init__(self, jmx_builder):
@@ -1676,3 +1715,6 @@ class RequestCompiler(RequestVisitor):
 
     def visit_IfBlock(self, block):
         return self.jmx_builder.compile_if_block(block)
+
+    def visit_LoopBlock(self, block):
+        return self.jmx_builder.compile_loop_block(block)

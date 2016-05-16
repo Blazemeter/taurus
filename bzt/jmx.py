@@ -915,3 +915,12 @@ class JMX(object):
                                    testname="If Controller")
         controller.append(JMX._string_prop("IfController.condition", condition))
         return controller
+
+    @staticmethod
+    def _get_loop_controller(loops, loop_forever):
+        controller = etree.Element("LoopController", guiclass="LoopControllerPanel", testclass="LoopController",
+                                   testname="Loop Controller")
+        controller.append(JMX._bool_prop("LoopController.continue_forever", loop_forever))
+        controller.append(JMX.int_prop("LoopController.loops", loops))
+        return controller
+
