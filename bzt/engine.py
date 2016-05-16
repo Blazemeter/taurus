@@ -730,19 +730,39 @@ class Provisioning(EngineModule):
     """
     PROV = "provisioning"
 
-    def _make_filenames_relative(self, rfiles, config):
-        def file_replacer(value, key, container):
-            if isinstance(value, string_types):
-                if value in rfiles:
-                    container[key] = os.path.basename(value)
-                    if container[key] != value:
-                        self.log.debug("Replaced %s with %s", value, container[key])
-
-        BetterDict.traverse(config, file_replacer)
-
     def __init__(self):
         super(Provisioning, self).__init__()
         self.executors = []
+
+    def _make_filenames_relative(self, rfiles, config):
+        def file_replacer(value, key, container):
+            if value in rfiles:
+                container[key] = os.path.basename(value)
+                if container[key] != value:
+                    self.log.debug("Replaced %s with %s", value, container[key])
+
+        BetterDict.traverse(config, file_replacer)
+
+    def _pack_dirs(self, source_list):
+        result_list = []                                    # files for upload
+        packed_list = self.engine.config.get('packed', [])  # files for unzipping
+        while source_list:
+            source = source_list.pop()
+            if os.path.isfile(source):
+                result_list.append(source)
+            else:  # source is dir
+                self.log.debug("Compress directory '%s'", source)
+                base_zip_name = os.path.basename(get_full_path(source))
+                zip_name = self.engine.create_artifact(base_zip_name, '.zip')
+
+                relative_prefix_len = len(os.path.dirname(source))
+                with zipfile.ZipFile(zip_name, 'w', zipfile.ZIP_STORED) as zip_file:
+                    for filename in get_files_recursive(source):
+                        zip_file.write(filename, filename[relative_prefix_len:])
+                result_list.append(zip_name)
+                packed_list.append(base_zip_name + '.zip')
+
+        return result_list
 
     def prepare(self):
         """
@@ -773,6 +793,13 @@ class Provisioning(EngineModule):
             instance.execution = execution
             assert isinstance(instance, ScenarioExecutor)
             self.executors.append(instance)
+
+    def _get_rfiles(self):
+        rfiles = []
+        for executor in self.executors:
+            rfiles += executor.get_resource_files()
+        self.log.debug("All resource files are: %s", rfiles)
+        return [self.engine.find_file(x) for x in rfiles]
 
 
 class FileLister(object):
@@ -888,28 +915,11 @@ class ScenarioExecutor(EngineModule):
                    duration=duration, steps=steps)
 
     def get_resource_files(self):
-        result_list = []                                    # files for upload
-        source_list = self.execution.get("files", [])       # files for analysis
-        packed_list = self.engine.config.get('packed', [])  # files for unzipping
+        files_list = self.execution.get("files", [])
         if isinstance(self, FileLister):
-            source_list.extend(self.resource_files())
-        while source_list:
-            source = source_list.pop()
-            if os.path.isfile(source):
-                result_list.append(source)
-            else:  # source is dir
-                self.log.debug("Compress directory '%s'", source)
-                base_zip_name = os.path.basename(get_full_path(source))
-                zip_name = self.engine.create_artifact(base_zip_name, '.zip')
+            files_list.extend(self.resource_files())
 
-                relative_prefix_len = len(os.path.dirname(source))
-                with zipfile.ZipFile(zip_name, 'w', zipfile.ZIP_STORED) as zip_file:
-                    for filename in get_files_recursive(source):
-                        zip_file.write(filename, filename[relative_prefix_len:])
-                result_list.append(zip_name)
-                packed_list.append(base_zip_name + '.zip')
-
-        return result_list
+        return files_list
 
     def __repr__(self):
         return "%s/%s" % (self.execution.get("executor", None), self._label if self._label else id(self))

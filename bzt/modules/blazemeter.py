@@ -839,8 +839,9 @@ class CloudProvisioning(Provisioning, WidgetProvider):
 
         self.__prepare_locations()
         config = self.__get_config_for_cloud()
-        rfiles = self.__get_rfiles()
+        rfiles = self._get_rfiles()
         self._make_filenames_relative(rfiles, config)
+        rfiles = self._pack_dirs(rfiles)
         bza_plugin = self.__get_bza_test_config()
         finder = ProjectFinder(self.parameters, self.settings, self.client, self.engine)
         finder.default_test_name = "Taurus Cloud Test"
@@ -897,13 +898,6 @@ class CloudProvisioning(Provisioning, WidgetProvider):
         assert isinstance(config, Configuration)
         config.dump(self.engine.create_artifact("cloud", ""))
         return config
-
-    def __get_rfiles(self):
-        rfiles = []
-        for executor in self.executors:
-            rfiles += executor.get_resource_files()
-        self.log.debug("All resource files are: %s", rfiles)
-        return [self.engine.find_file(x) for x in rfiles]
 
     def __get_bza_test_config(self):
         bza_plugin = {
