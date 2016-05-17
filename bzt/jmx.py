@@ -931,7 +931,7 @@ class JMX(object):
 
     @staticmethod
     def _get_while_controller(condition):
-        controller = etree.Element("WhileController", guiclass="WhileControllerPanel", testclass="WhileController",
+        controller = etree.Element("WhileController", guiclass="WhileControllerGui", testclass="WhileController",
                                    testname="While Controller")
         controller.append(JMX._string_prop("WhileController.condition", condition))
         return controller
