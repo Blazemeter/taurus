@@ -1402,6 +1402,22 @@ class JMeterScenarioBuilder(JMX):
 
         return elements
 
+    def compile_foreach_block(self, block):
+        """
+        :type block: ForEachBlock
+        """
+
+        elements = []
+
+        controller = JMX._get_foreach_controller(block.input_var, block.loop_var, block.start_index, block.end_index)
+        children = etree.Element("hashTree")
+        for compiled in self.compile_requests(block.requests):
+            for element in compiled:
+                children.append(element)
+        elements.extend([controller, children])
+
+        return elements
+
     def compile_requests(self, requests):
         compiler = RequestCompiler(self)
         return [compiler.visit(request) for request in requests]
@@ -1640,6 +1656,21 @@ class WhileBlock(Request):
         return "WhileBlock(condition=%s, requests=%s)" % (self.condition, requests)
 
 
+class ForEachBlock(Request):
+    def __init__(self, input_var, loop_var, start_index, end_index, requests, config):
+        super(ForEachBlock, self).__init__(config)
+        self.input_var = input_var
+        self.loop_var = loop_var
+        self.start_index = start_index
+        self.end_index = end_index
+        self.requests = requests
+
+    def __repr__(self):
+        requests = [repr(req) for req in self.requests]
+        fmt = "ForEachBlock(input=%s, loop_var=%s, start=%s, end=%s, requests=%s)"
+        return fmt % (self.input_var, self.loop_var, self.start_index, self.end_index, requests)
+
+
 class RequestsParser(object):
     def __init__(self, engine):
         self.engine = engine
@@ -1665,6 +1696,21 @@ class RequestsParser(object):
             do_block = req.get("do", ValueError("'do' option is mandatory for 'while' blocks"))
             do_requests = self.__parse_requests(do_block)
             return WhileBlock(condition, do_requests, req)
+        elif 'foreach' in req:
+            input_var = req.get("foreach")
+            loop_var = req.get("loop-variable")
+            range = req.get("range")
+            if range:
+                match = re.match(r"(\d+) to (\d+)", range)
+                if not match:
+                    raise ValueError("'range' value should be in format '<start> to <end>'")
+                start_index = int(match.group(1))
+                end_index = int(match.group(2))
+            else:
+                start_index = end_index = None
+            do_block = req.get("do", ValueError("'do' field is mandatory for 'foreach' blocks"))
+            do_requests = self.__parse_requests(do_block)
+            return ForEachBlock(input_var, loop_var, start_index, end_index, do_requests, req)
         else:
             url = req.get("url", ValueError("Option 'url' is mandatory for request"))
             label = req.get("label", url)
@@ -1735,6 +1781,12 @@ class ResourceFilesCollector(RequestVisitor):
             files.extend(self.visit(request))
         return files
 
+    def visit_foreachblock(self, block):
+        files = []
+        for request in block.requests:
+            files.extend(self.visit(request))
+        return files
+
 
 class RequestCompiler(RequestVisitor):
     def __init__(self, jmx_builder):
@@ -1751,3 +1803,6 @@ class RequestCompiler(RequestVisitor):
 
     def visit_whileblock(self, block):
         return self.jmx_builder.compile_while_block(block)
+
+    def visit_foreachblock(self, block):
+        return self.jmx_builder.compile_foreach_block(block)
