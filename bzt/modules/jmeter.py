@@ -1699,9 +1699,9 @@ class RequestsParser(object):
         elif 'foreach' in req:
             input_var = req.get("foreach")
             loop_var = req.get("loop-variable")
-            range = req.get("range")
+            loop_range = req.get("range")
             if range:
-                match = re.match(r"(\d+) to (\d+)", range)
+                match = re.match(r"(\d+) to (\d+)", loop_range)
                 if not match:
                     raise ValueError("'range' value should be in format '<start> to <end>'")
                 start_index = int(match.group(1))

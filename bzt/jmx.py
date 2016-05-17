@@ -928,7 +928,7 @@ class JMX(object):
         controller.append(JMX._bool_prop("LoopController.continue_forever", loop_forever))
         controller.append(JMX._string_prop("LoopController.loops", str(iterations)))
         return controller
-  
+
     @staticmethod
     def _get_foreach_controller(input_var, loop_var, start_index, stop_index):
         # TODO: useSeparator option
