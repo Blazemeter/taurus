@@ -1228,6 +1228,22 @@ class TestJMeterExecutor(BZTestCase):
         loops = xml_tree.find(".//LoopController/stringProp[@name='LoopController.loops']")
         self.assertEqual(loops.text, "-1")
 
+    def test_request_logic_loop_invalid(self):
+        self.obj.engine.config.merge({
+            'execution': {
+                'scenario': {
+                    "requests": [
+                        {
+                            "loop": 100,
+                        }
+                    ],
+                }
+            },
+            "provisioning": "local",
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        self.assertRaises(ValueError, self.obj.prepare)
+
     def test_resource_files_loops(self):
         self.obj.engine.config.merge({
             'execution': {
@@ -1277,6 +1293,22 @@ class TestJMeterExecutor(BZTestCase):
         condition = xml_tree.find(".//WhileController/stringProp[@name='WhileController.condition']")
         self.assertIsNotNone(condition)
         self.assertEqual(condition.text, "<cond>")
+
+    def test_request_logic_while_invalid(self):
+        self.obj.engine.config.merge({
+            'execution': {
+                'scenario': {
+                    "requests": [
+                        {
+                            "while": "<cond>",
+                        }
+                    ],
+                }
+            },
+            "provisioning": "local",
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        self.assertRaises(ValueError, self.obj.prepare)
 
     def test_request_logic_while_resources(self):
         self.obj.engine.config.merge({

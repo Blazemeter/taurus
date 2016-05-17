@@ -1650,23 +1650,19 @@ class RequestsParser(object):
             # TODO: apply some checks to `condition`?
             then_clause = req.get("then")
             if not then_clause:
-                raise ValueError("`then` clause is mandatory for if blocks")
+                raise ValueError("'then' clause is mandatory for 'if' blocks")
             then_requests = self.__parse_requests(then_clause)
             else_clause = req.get("else", [])
             else_requests = self.__parse_requests(else_clause)
             return IfBlock(condition, then_requests, else_requests, req)
         elif 'loop' in req:
             loops = req.get("loop")
-            do_block = req.get("do")
-            if not do_block:
-                raise ValueError("`do` field is mandatory for loop blocks")
+            do_block = req.get("do", ValueError("'do' option is mandatory for 'loop' blocks"))
             do_requests = self.__parse_requests(do_block)
             return LoopBlock(loops, do_requests, req)
         elif 'while' in req:
             condition = req.get("while")
-            do_block = req.get("do")
-            if not do_block:
-                raise ValueError("`then` clause is mandatory for if blocks")
+            do_block = req.get("do", ValueError("'do' option is mandatory for 'while' blocks"))
             do_requests = self.__parse_requests(do_block)
             return WhileBlock(condition, do_requests, req)
         else:
