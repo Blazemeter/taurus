@@ -1389,6 +1389,7 @@ class JMeterScenarioBuilder(JMX):
         elements.extend([loop_controller, children])
 
         return elements
+
     def compile_while_block(self, block):
         elements = []
 
