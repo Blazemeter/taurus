@@ -866,7 +866,8 @@ class JMXasDict(JMX):
         input_var = self._get_string_prop(controller, "ForeachController.inputVal", default="")
         loop_var = self._get_string_prop(controller, "ForeachController.returnVal", default="")
         requests = self.__extract_requests(ht_element)
-        return {'foreach': input_var, 'loop-variable': loop_var, 'do': requests}
+        iteration_str = '%s in %s' % (loop_var, input_var)
+        return {'foreach': iteration_str, 'do': requests}
 
     def _get_request_settings(self, request_element):
         """

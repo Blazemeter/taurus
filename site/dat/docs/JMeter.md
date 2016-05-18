@@ -495,14 +495,22 @@ scenario:
 
 `foreach` blocks allow you to iterate over a collection of values. They are compiled to JMeter `ForEach Controllers`.
 
+Syntax:
+```yaml
+requests:
+- foreach: <elementName> in <collection>
+  do:
+  - http://${elementName}/
+```
+
+Concrete example:
 ```yaml
 scenario:
   requests:
   - url: https://api.example.com/v1/media/search
     extract-jsonpath:
-      usernames: $.data.[:100].user.username
-  - foreach: usernames  
-    loop-variable: name  # `loop-variable` field is optional
+      usernames: $.data.[:100].user.username  # grab first 100 usernames
+  - foreach: name in usernames
     do:
     - https://example.com/user/${name}
 ```

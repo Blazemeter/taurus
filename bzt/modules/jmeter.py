@@ -1693,8 +1693,11 @@ class RequestsParser(object):
             do_requests = self.__parse_requests(do_block)
             return WhileBlock(condition, do_requests, req)
         elif 'foreach' in req:
-            input_var = req.get("foreach")
-            loop_var = req.get("loop-variable", None)
+            iteration_str = req.get("foreach")
+            match = re.match(r'(.+) in (.+)', iteration_str)
+            if not match:
+                raise ValueError("'foreach' value should be in format '<elementName> in <collection>'")
+            loop_var, input_var = match.groups()
             do_block = req.get("do", ValueError("'do' field is mandatory for 'foreach' blocks"))
             do_requests = self.__parse_requests(do_block)
             return ForEachBlock(input_var, loop_var, do_requests, req)

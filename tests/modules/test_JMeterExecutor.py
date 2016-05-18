@@ -1340,8 +1340,7 @@ class TestJMeterExecutor(BZTestCase):
                 'scenario': {
                     "requests": [
                         {
-                            "foreach": "usernames",
-                            "loop-variable": "name",
+                            "foreach": "name in usernames",
                             "do": [
                                 "http://site.com/users/${name}",
                             ],
@@ -1360,39 +1359,13 @@ class TestJMeterExecutor(BZTestCase):
         loop_var = xml_tree.find(".//ForeachController/stringProp[@name='ForeachController.returnVal']")
         self.assertEqual(loop_var.text, "name")
 
-    def test_request_logic_foreach_no_iterator(self):
-        self.obj.engine.config.merge({
-            'execution': {
-                'scenario': {
-                    "requests": [
-                        {
-                            "foreach": "usernames",
-                            "do": [
-                                "http://site.com/",
-                            ],
-                        }
-                    ],
-                }
-            },
-            "provisioning": "local",
-        })
-        self.obj.execution = self.obj.engine.config['execution']
-        self.obj.prepare()
-        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
-        self.assertIsNotNone(xml_tree.find(".//ForeachController"))
-        input = xml_tree.find(".//ForeachController/stringProp[@name='ForeachController.inputVal']")
-        self.assertEqual(input.text, "usernames")
-        loop_var = xml_tree.find(".//ForeachController/stringProp[@name='ForeachController.returnVal']")
-        self.assertEqual(loop_var.text, None)
-
     def test_request_logic_foreach_resources(self):
         self.obj.engine.config.merge({
             'execution': {
                 'scenario': {
                     "requests": [
                         {
-                            "foreach": "coll",
-                            "loop-variable": "item",
+                            "foreach": "item in coll",
                             "do": [
                                 {
                                     "url": "http://${item}.blazemeter.com/",
