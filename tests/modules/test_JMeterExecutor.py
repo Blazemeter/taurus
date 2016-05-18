@@ -1262,8 +1262,8 @@ class TestJMeterExecutor(BZTestCase):
                     ],
                 }
             },
-            "provisioning": "local",
         })
+        self.obj.engine.config.merge({"provisioning": "local"})
         self.obj.execution = self.obj.engine.config['execution']
         res_files = self.obj.resource_files()
         self.assertEqual(len(res_files), 1)
