@@ -1410,106 +1410,18 @@ class TestJMeterExecutor(BZTestCase):
         self.assertIsNotNone(parent_sample)
         self.assertEqual(parent_sample.text, "false")
 
-    def test_request_logic_while_invalid(self):
-        self.obj.engine.config.merge({
-            'execution': {
-                'scenario': {
-                    "requests": [
-                        {
-                            "while": "<cond>",
-                        }
-                    ],
-                }
-            },
-            "provisioning": "local",
-        })
-        self.obj.execution = self.obj.engine.config['execution']
-        self.assertRaises(ValueError, self.obj.prepare)
-
-    def test_request_logic_while_resources(self):
-        self.obj.engine.config.merge({
-            'execution': {
-                'scenario': {
-                    "requests": [
-                        {
-                            "while": "<cond>",
-                            "do": [
-                                {
-                                    "url": "http://demo.blazemeter.com/",
-                                    "method": "POST",
-                                    "body-file": __dir__() + "/../jmeter/jmx/dummy.jmx",
-                                }
-                            ],
-                        }
-                    ],
-                }
-            },
-        })
-        self.obj.engine.config.merge({"provisioning": "local"})
-        self.obj.execution = self.obj.engine.config['execution']
-        res_files = self.obj.resource_files()
-        self.assertEqual(len(res_files), 1)
-
-    def test_request_logic_foreach(self):
-        self.obj.engine.config.merge({
-            'execution': {
-                'scenario': {
-                    "requests": [
-                        {
-                            "foreach": "name in usernames",
-                            "do": [
-                                "http://site.com/users/${name}",
-                            ],
-                        }
-                    ],
-                }
-            },
-            "provisioning": "local",
-        })
-        self.obj.execution = self.obj.engine.config['execution']
-        self.obj.prepare()
-        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
-        self.assertIsNotNone(xml_tree.find(".//ForeachController"))
-        input = xml_tree.find(".//ForeachController/stringProp[@name='ForeachController.inputVal']")
-        self.assertEqual(input.text, "usernames")
-        loop_var = xml_tree.find(".//ForeachController/stringProp[@name='ForeachController.returnVal']")
-        self.assertEqual(loop_var.text, "name")
-
-    def test_request_logic_foreach_resources(self):
-        self.obj.engine.config.merge({
-            'execution': {
-                'scenario': {
-                    "requests": [
-                        {
-                            "foreach": "item in coll",
-                            "do": [
-                                {
-                                    "url": "http://${item}.blazemeter.com/",
-                                    "method": "POST",
-                                    "body-file": __dir__() + "/../jmeter/jmx/dummy.jmx",
-                                }
-                            ],
-                        }
-                    ],
-                }
-            },
-            "provisioning": "local",
-        })
-        self.obj.execution = self.obj.engine.config['execution']
-        res_files = self.obj.resource_files()
-        self.assertEqual(len(res_files), 1)
-
-    def test_request_logic_transaction(self):
+    def test_request_logic_transaction_resources(self):
         self.obj.engine.config.merge({
             'execution': {
                 'scenario': {
                     "requests": [
                         {
                             "transaction": "API",
-                            "do": [
-                                "http://blazedemo.com/",
-                                "http://blazedemo.com/reserve.php",
-                            ],
+                            "do": [{
+                                    "url": "http://demo.blazemeter.com/",
+                                    "method": "POST",
+                                    "body-file": __dir__() + "/../jmeter/jmx/dummy.jmx",
+                            }],
                         }
                     ],
                 }
@@ -1517,14 +1429,8 @@ class TestJMeterExecutor(BZTestCase):
             "provisioning": "local",
         })
         self.obj.execution = self.obj.engine.config['execution']
-        self.obj.prepare()
-        xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
-        controller = xml_tree.find(".//TransactionController")
-        self.assertIsNotNone(controller)
-        self.assertEqual(controller.get('testname'), "API")
-        parent_sample = xml_tree.find(".//TransactionController/boolProp[@name='TransactionController.parent']")
-        self.assertIsNotNone(parent_sample)
-        self.assertEqual(parent_sample.text, "false")
+        res_files = self.obj.resource_files()
+        self.assertEqual(len(res_files), 1)
 
 
 class TestJMX(BZTestCase):

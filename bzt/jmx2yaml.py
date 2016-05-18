@@ -55,6 +55,7 @@ KNOWN_TAGS = ["hashTree", "jmeterTestPlan", "TestPlan", "ResultCollector",
               "LoopController",
               "WhileController",
               "ForeachController",
+              "TransactionController",
               ]
 
 
@@ -835,6 +836,10 @@ class JMXasDict(JMX):
                 hash_tree = next(children)
                 block = self.__extract_foreach_controller(elem, hash_tree)
                 requests.append(block)
+            elif elem.tag == 'TransactionController':
+                hash_tree = next(children)
+                block = self.__extract_transaction_controller(elem, hash_tree)
+                requests.append(block)
             elif elem.tag == 'HTTPSamplerProxy':
                 request = self._get_request_settings(elem)
                 requests.append(request)
@@ -868,6 +873,12 @@ class JMXasDict(JMX):
         requests = self.__extract_requests(ht_element)
         iteration_str = '%s in %s' % (loop_var, input_var)
         return {'foreach': iteration_str, 'do': requests}
+
+    def __extract_transaction_controller(self, controller, ht_element):
+        name = controller.get('testname')
+        parent_sample = self._get_bool_prop(controller, "TransactionController.parent")
+        requests = self.__extract_requests(ht_element)
+        return {'transaction': name, 'generate-parent-sample': parent_sample, 'do': requests}
 
     def _get_request_settings(self, request_element):
         """
