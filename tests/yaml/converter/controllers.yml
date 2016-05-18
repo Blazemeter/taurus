@@ -32,6 +32,11 @@ scenarios:
     - label: example.com/2
       method: GET
       url: http://example.com/2
+    - do:
+      - label: HTTP Request
+        method: GET
+        url: http://google.com/
+      while: condition
     store-cache: false
     store-cookie: false
     use-dns-cache-mgr: false

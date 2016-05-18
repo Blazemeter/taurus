@@ -394,6 +394,7 @@ scenarios:
 Taurus allows to control execution flow with the following constructs:
 - `if` blocks
 - `loop` blocks
+- `while` blocks
 
 ##### If Blocks
 
@@ -475,6 +476,19 @@ scenario:
 ```
 
 Note that `loop` blocks correspond to JMeter's `Loop Controllers`.
+
+##### While Blocks
+
+`while` block is similar to `while` loops in many programming languages. It allows conditional repeated execution of
+requests. `while` blocks are compiled to JMeter's `While Controllers`.
+
+```yaml
+scenario:
+  requests:
+  - while: ${JMeterThread.last_sample_ok}
+    do:
+    - http://blazedemo.com/
+```
 
 
 ## JMeter Test Log

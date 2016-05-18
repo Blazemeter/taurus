@@ -1390,6 +1390,18 @@ class JMeterScenarioBuilder(JMX):
 
         return elements
 
+    def compile_while_block(self, block):
+        elements = []
+
+        controller = JMX._get_while_controller(block.condition)
+        children = etree.Element("hashTree")
+        for compiled in self.compile_requests(block.requests):
+            for element in compiled:
+                children.append(element)
+        elements.extend([controller, children])
+
+        return elements
+
     def compile_requests(self, requests):
         compiler = RequestCompiler(self)
         return [compiler.visit(request) for request in requests]
@@ -1617,6 +1629,17 @@ class LoopBlock(Request):
         return "LoopBlock(loops=%s, requests=%s)" % (self.loops, requests)
 
 
+class WhileBlock(Request):
+    def __init__(self, condition, requests, config):
+        super(WhileBlock, self).__init__(config)
+        self.condition = condition
+        self.requests = requests
+
+    def __repr__(self):
+        requests = [repr(req) for req in self.requests]
+        return "WhileBlock(condition=%s, requests=%s)" % (self.condition, requests)
+
+
 class RequestsParser(object):
     def __init__(self, engine):
         self.engine = engine
@@ -1627,18 +1650,21 @@ class RequestsParser(object):
             # TODO: apply some checks to `condition`?
             then_clause = req.get("then")
             if not then_clause:
-                raise ValueError("`then` clause is mandatory for if blocks")
+                raise ValueError("'then' clause is mandatory for 'if' blocks")
             then_requests = self.__parse_requests(then_clause)
             else_clause = req.get("else", [])
             else_requests = self.__parse_requests(else_clause)
             return IfBlock(condition, then_requests, else_requests, req)
         elif 'loop' in req:
             loops = req.get("loop")
-            do_block = req.get("do")
-            if not do_block:
-                raise ValueError("`do` field is mandatory for loop blocks")
+            do_block = req.get("do", ValueError("'do' option is mandatory for 'loop' blocks"))
             do_requests = self.__parse_requests(do_block)
             return LoopBlock(loops, do_requests, req)
+        elif 'while' in req:
+            condition = req.get("while")
+            do_block = req.get("do", ValueError("'do' option is mandatory for 'while' blocks"))
+            do_requests = self.__parse_requests(do_block)
+            return WhileBlock(condition, do_requests, req)
         else:
             url = req.get("url", ValueError("Option 'url' is mandatory for request"))
             label = req.get("label", url)
@@ -1703,6 +1729,12 @@ class ResourceFilesCollector(RequestVisitor):
             files.extend(self.visit(request))
         return files
 
+    def visit_whileblock(self, block):
+        files = []
+        for request in block.requests:
+            files.extend(self.visit(request))
+        return files
+
 
 class RequestCompiler(RequestVisitor):
     def __init__(self, jmx_builder):
@@ -1716,3 +1748,6 @@ class RequestCompiler(RequestVisitor):
 
     def visit_loopblock(self, block):
         return self.jmx_builder.compile_loop_block(block)
+
+    def visit_whileblock(self, block):
+        return self.jmx_builder.compile_while_block(block)
