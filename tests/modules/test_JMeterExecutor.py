@@ -1262,6 +1262,7 @@ class TestJMeterExecutor(BZTestCase):
                     ],
                 }
             },
+            "provisioning": "local",
         })
         self.obj.execution = self.obj.engine.config['execution']
         res_files = self.obj.resource_files()

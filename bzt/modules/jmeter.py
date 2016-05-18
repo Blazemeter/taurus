@@ -1677,9 +1677,7 @@ class RequestsParser(object):
         if 'if' in req:
             condition = req.get("if")
             # TODO: apply some checks to `condition`?
-            then_clause = req.get("then")
-            if not then_clause:
-                raise ValueError("'then' clause is mandatory for 'if' blocks")
+            then_clause = req.get("then", ValueError("'then' clause is mandatory for 'if' blocks"))
             then_requests = self.__parse_requests(then_clause)
             else_clause = req.get("else", [])
             else_requests = self.__parse_requests(else_clause)
