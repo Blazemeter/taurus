@@ -147,7 +147,8 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def _cp_resource_files(self, runner_working_dir):
         script = self._get_script_path()
-        os.makedirs(runner_working_dir)
+        if os.path.isfile(script):
+            os.makedirs(runner_working_dir)
 
         if script.startswith(self.engine.artifacts_dir):    # 'script' is self-generated script or unzipped directory
             shutil.move(script, runner_working_dir)
