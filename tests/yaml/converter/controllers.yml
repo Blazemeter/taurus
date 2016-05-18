@@ -27,8 +27,7 @@ scenarios:
       - label: demo/BM
         method: GET
         url: http://demo.blazemeter.com/
-      foreach: input
-      loop-variable: output
+      foreach: output in input
     - label: example.com/1
       method: GET
       url: http://example.com/1
