@@ -484,14 +484,10 @@ requests. `while` blocks are compiled to JMeter's `While Controllers`.
 
 ```yaml
 scenario:
-  variables:
-    myVar: 'true'
   requests:
-  - while: ${myVar}
+  - while: ${JMeterThread.last_sample_ok}
     do:
-    - url: http://example.com/${myVar}
-      extract-regexp:
-        myVar: <title>(.+)</title>
+    - http://blazedemo.com/
 ```
 
 
