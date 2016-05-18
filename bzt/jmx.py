@@ -934,8 +934,9 @@ class JMX(object):
         # TODO: useSeparator option
         controller = etree.Element("ForeachController", guiclass="ForeachControlPanel", testclass="ForeachController",
                                    testname="ForEach Controller")
+        return_val = loop_var if loop_var is not None else ""
         controller.append(JMX._string_prop("ForeachController.inputVal", input_var))
-        controller.append(JMX._string_prop("ForeachController.returnVal", loop_var))
+        controller.append(JMX._string_prop("ForeachController.returnVal", return_val))
         controller.append(JMX._bool_prop("ForeachController.useSeparator", True))
         return controller
 
