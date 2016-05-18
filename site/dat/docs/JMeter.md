@@ -396,6 +396,7 @@ Taurus allows to control execution flow with the following constructs:
 - `loop` blocks
 - `while` blocks
 - `foreach` blocks
+- `transaction` blocks
 
 ##### If Blocks
 
@@ -513,6 +514,35 @@ scenario:
   - foreach: name in usernames
     do:
     - https://example.com/user/${name}
+```
+
+##### Transaction Blocks
+
+`transaction` blocks allow wrapping http requests in a transaction. `transaction` blocks correspond to JMeter's
+`Transaction Controllers`.
+
+Syntax:
+```yaml
+scenario:
+  requests:
+  - transaction: <transaction name>
+    generate-parent-sample: true  # optional, 'true' by default
+    do:
+    - <request 1>
+    - <request 2>
+```
+
+Example:
+```yaml
+scenario:
+  requests:
+  - transaction: Session
+    do:
+    - http://example.com/shop
+    - http://example.com/shop/items/1
+    - http://example.com/shop/items/2
+    - http://example.com/card
+    - http://example.com/checkout
 ```
 
 ## JMeter Test Log
