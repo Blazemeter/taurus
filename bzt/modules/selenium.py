@@ -72,7 +72,6 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.err_jtl = None
         self.runner_working_dir = None
         self.scenario = None
-        self.self_generated_script = False
 
     def set_virtual_display(self):
         display_conf = self.settings.get("virtual-display")
@@ -143,19 +142,18 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if not self.scenario.get(Scenario.SCRIPT):
             if self.scenario.get("requests"):
                 self.scenario[Scenario.SCRIPT] = self.__tests_from_requests()
-                self.self_generated_script = True
             else:
                 raise RuntimeError("Nothing to test, no requests were provided in scenario")
 
     def _cp_resource_files(self, runner_working_dir):
         script = self._get_script_path()
+        os.makedirs(runner_working_dir)
 
-        if os.path.isdir(script):
-            shutil.copytree(script, runner_working_dir)
+        if script.startswith(self.engine.artifacts_dir):    # 'script' is self-generated script or unzipped directory
+            shutil.move(script, runner_working_dir)
         else:
-            os.makedirs(runner_working_dir)
-            if self.self_generated_script:
-                shutil.move(script, runner_working_dir)
+            if os.path.isdir(script):
+                shutil.copytree(script, runner_working_dir)
             else:
                 shutil.copy2(script, runner_working_dir)
 
