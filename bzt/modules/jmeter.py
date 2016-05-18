@@ -1694,7 +1694,7 @@ class RequestsParser(object):
             return WhileBlock(condition, do_requests, req)
         elif 'foreach' in req:
             input_var = req.get("foreach")
-            loop_var = req.get("loop-variable")
+            loop_var = req.get("loop-variable", None)
             do_block = req.get("do", ValueError("'do' field is mandatory for 'foreach' blocks"))
             do_requests = self.__parse_requests(do_block)
             return ForEachBlock(input_var, loop_var, do_requests, req)
