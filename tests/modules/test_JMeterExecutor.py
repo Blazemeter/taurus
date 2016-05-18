@@ -1340,7 +1340,6 @@ class TestJMeterExecutor(BZTestCase):
                     "requests": [
                         {
                             "foreach": "usernames",
-                            "range": "1 to 10",
                             "loop-variable": "name",
                             "do": [
                                 "http://site.com/users/${name}",
@@ -1359,10 +1358,6 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(input.text, "usernames")
         loop_var = xml_tree.find(".//ForeachController/stringProp[@name='ForeachController.returnVal']")
         self.assertEqual(loop_var.text, "name")
-        start = xml_tree.find(".//ForeachController/stringProp[@name='ForeachController.startIndex']")
-        self.assertEqual(start.text, "1")
-        end = xml_tree.find(".//ForeachController/stringProp[@name='ForeachController.endIndex']")
-        self.assertEqual(end.text, "10")
 
 
 class TestJMX(BZTestCase):

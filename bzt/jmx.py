@@ -930,17 +930,13 @@ class JMX(object):
         return controller
 
     @staticmethod
-    def _get_foreach_controller(input_var, loop_var, start_index, stop_index):
+    def _get_foreach_controller(input_var, loop_var):
         # TODO: useSeparator option
         controller = etree.Element("ForeachController", guiclass="ForeachControlPanel", testclass="ForeachController",
                                    testname="ForEach Controller")
         controller.append(JMX._string_prop("ForeachController.inputVal", input_var))
         controller.append(JMX._string_prop("ForeachController.returnVal", loop_var))
         controller.append(JMX._bool_prop("ForeachController.useSeparator", True))
-        if start_index is not None:
-            controller.append(JMX._string_prop("ForeachController.startIndex", start_index))
-        if stop_index is not None:
-            controller.append(JMX._string_prop("ForeachController.endIndex", stop_index))
         return controller
 
     @staticmethod

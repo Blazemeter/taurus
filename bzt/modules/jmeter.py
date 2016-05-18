@@ -1409,7 +1409,7 @@ class JMeterScenarioBuilder(JMX):
 
         elements = []
 
-        controller = JMX._get_foreach_controller(block.input_var, block.loop_var, block.start_index, block.end_index)
+        controller = JMX._get_foreach_controller(block.input_var, block.loop_var)
         children = etree.Element("hashTree")
         for compiled in self.compile_requests(block.requests):
             for element in compiled:
@@ -1657,18 +1657,16 @@ class WhileBlock(Request):
 
 
 class ForEachBlock(Request):
-    def __init__(self, input_var, loop_var, start_index, end_index, requests, config):
+    def __init__(self, input_var, loop_var, requests, config):
         super(ForEachBlock, self).__init__(config)
         self.input_var = input_var
         self.loop_var = loop_var
-        self.start_index = start_index
-        self.end_index = end_index
         self.requests = requests
 
     def __repr__(self):
         requests = [repr(req) for req in self.requests]
-        fmt = "ForEachBlock(input=%s, loop_var=%s, start=%s, end=%s, requests=%s)"
-        return fmt % (self.input_var, self.loop_var, self.start_index, self.end_index, requests)
+        fmt = "ForEachBlock(input=%s, loop_var=%s, requests=%s)"
+        return fmt % (self.input_var, self.loop_var, requests)
 
 
 class RequestsParser(object):
@@ -1699,18 +1697,9 @@ class RequestsParser(object):
         elif 'foreach' in req:
             input_var = req.get("foreach")
             loop_var = req.get("loop-variable")
-            loop_range = req.get("range")
-            if range:
-                match = re.match(r"(\d+) to (\d+)", loop_range)
-                if not match:
-                    raise ValueError("'range' value should be in format '<start> to <end>'")
-                start_index = int(match.group(1))
-                end_index = int(match.group(2))
-            else:
-                start_index = end_index = None
             do_block = req.get("do", ValueError("'do' field is mandatory for 'foreach' blocks"))
             do_requests = self.__parse_requests(do_block)
-            return ForEachBlock(input_var, loop_var, start_index, end_index, do_requests, req)
+            return ForEachBlock(input_var, loop_var, do_requests, req)
         else:
             url = req.get("url", ValueError("Option 'url' is mandatory for request"))
             label = req.get("label", url)
