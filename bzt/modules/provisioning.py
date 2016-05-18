@@ -17,9 +17,7 @@ limitations under the License.
 """
 
 import datetime
-import os
 import time
-import zipfile
 
 from bzt.engine import Provisioning
 from bzt.utils import dehumanize_time
@@ -57,19 +55,7 @@ class Local(Provisioning):
         return 0
 
     def prepare(self):
-        """
-        Call prepare on executors
-        """
         super(Local, self).prepare()
-
-        packed_list = self.engine.config.get('packed', [])
-        for archive in packed_list:
-            full_archive_path = os.path.join(self.engine.artifacts_dir, archive)
-            self.log.debug('Unpacking %s', archive)
-            with zipfile.ZipFile(full_archive_path, 'r') as zip_file:
-                zip_file.extractall(self.engine.artifacts_dir)
-            os.remove(full_archive_path)
-
         for executor in self.executors:
             self.log.debug("Preparing executor: %s", executor)
             executor.prepare()

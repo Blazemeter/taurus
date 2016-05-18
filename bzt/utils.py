@@ -85,6 +85,16 @@ def run_once(func):
     return wrapper
 
 
+def replace_in_config(config, samples, substitutes, log=None):
+    def file_replacer(value, key, container):
+        if value in samples:
+            container[key] = substitutes[samples.index(value)]
+            if container[key] != value and log:
+                log.debug("Replaced %s with %s", value, container[key])
+
+    BetterDict.traverse(config, file_replacer)
+
+
 def dehumanize_time(str_time):
     """
     Convert value like 1d4h33m12s103ms into seconds

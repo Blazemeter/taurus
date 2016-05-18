@@ -734,34 +734,36 @@ class Provisioning(EngineModule):
         super(Provisioning, self).__init__()
         self.executors = []
 
-    def _make_filenames_relative(self, rfiles, config):
-        def file_replacer(value, key, container):
-            if value in rfiles:
-                container[key] = os.path.basename(value)
-                if container[key] != value:
-                    self.log.debug("Replaced %s with %s", value, container[key])
-
-        BetterDict.traverse(config, file_replacer)
-
     def _pack_dirs(self, source_list):
-        result_list = []                                    # files for upload
-        packed_list = self.engine.config.get('packed', [])  # files for unzipping
-        while source_list:
-            source = source_list.pop()
+        from bzt.modules.services import Unpacker
+        result_list = []                                            # files for upload
+        packed_list = self.engine.setting.get(Unpacker.UNPACK, [])   # files for unzipping
+        for source in source_list:
+            source = get_full_path(source)
             if os.path.isfile(source):
                 result_list.append(source)
             else:  # source is dir
                 self.log.debug("Compress directory '%s'", source)
-                base_zip_name = os.path.basename(get_full_path(source))
-                zip_name = self.engine.create_artifact(base_zip_name, '.zip')
+                base_dir_name = os.path.basename(source)
+
+                # TODO: maybe too hard?
+                # TODO: check for multiexec
+                if base_dir_name+'.zip' in packed_list:
+                    message = 'Archive or directory "%s" occurs more than one time, rename to avoid data loss'
+                    self.log.error(message, base_dir_name)
+                    raise ValueError
+
+                zip_name = self.engine.create_artifact(base_dir_name, '.zip')
 
                 relative_prefix_len = len(os.path.dirname(source))
                 with zipfile.ZipFile(zip_name, 'w', zipfile.ZIP_STORED) as zip_file:
-                    for filename in get_files_recursive(source):
-                        zip_file.write(filename, filename[relative_prefix_len:])
+                    for _file in get_files_recursive(source):
+                        zip_file.write(_file, _file[relative_prefix_len:])
                 result_list.append(zip_name)
-                packed_list.append(base_zip_name + '.zip')
+                packed_list.append(base_dir_name+'.zip')
 
+        if packed_list:
+            self.engine.setting[Unpacker.UNPACK] = packed_list
         return result_list
 
     def prepare(self):

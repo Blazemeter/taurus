@@ -63,9 +63,11 @@ class TestZipFolder(BZTestCase):
                 "default-executor": "mock"
             },
             "modules": {
-                "mock": ModuleMock.__module__ + "." + ModuleMock.__name__
+                "mock": ModuleMock.__module__ + "." + ModuleMock.__name__,
+                "unpack": "bzt.modules.services.Unpacker"
             },
             "provisioning": "mock"
+
         })
         obj.parameters = obj.engine.config['execution']
 
