@@ -35,7 +35,6 @@ scenarios:
       - label: example.com/2
         method: GET
         url: http://example.com/2
-      generate-parent-sample: false
       transaction: My Transaction
     - do:
       - label: HTTP Request

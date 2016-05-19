@@ -947,8 +947,8 @@ class JMX(object):
         return controller
 
     @staticmethod
-    def _get_transaction_controller(transaction_name, generate_parent_sample):
+    def _get_transaction_controller(transaction_name):
         controller = etree.Element("TransactionController", guiclass="TransactionControllerGui",
                                    testclass="TransactionController", testname=transaction_name)
-        controller.append(JMX._bool_prop("TransactionController.parent", generate_parent_sample))
+        controller.append(JMX._bool_prop("TransactionController.parent", True))
         return controller

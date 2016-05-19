@@ -1406,9 +1406,6 @@ class TestJMeterExecutor(BZTestCase):
         controller = xml_tree.find(".//TransactionController")
         self.assertIsNotNone(controller)
         self.assertEqual(controller.get('testname'), "API")
-        parent_sample = xml_tree.find(".//TransactionController/boolProp[@name='TransactionController.parent']")
-        self.assertIsNotNone(parent_sample)
-        self.assertEqual(parent_sample.text, "false")
 
     def test_request_logic_transaction_resources(self):
         self.obj.engine.config.merge({

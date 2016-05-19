@@ -876,9 +876,8 @@ class JMXasDict(JMX):
 
     def __extract_transaction_controller(self, controller, ht_element):
         name = controller.get('testname')
-        parent_sample = self._get_bool_prop(controller, "TransactionController.parent")
         requests = self.__extract_requests(ht_element)
-        return {'transaction': name, 'generate-parent-sample': parent_sample, 'do': requests}
+        return {'transaction': name, 'do': requests}
 
     def _get_request_settings(self, request_element):
         """
