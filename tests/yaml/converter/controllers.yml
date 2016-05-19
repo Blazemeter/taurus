@@ -28,12 +28,14 @@ scenarios:
         method: GET
         url: http://demo.blazemeter.com/
       foreach: output in input
-    - label: example.com/1
-      method: GET
-      url: http://example.com/1
-    - label: example.com/2
-      method: GET
-      url: http://example.com/2
+    - do:
+      - label: example.com/1
+        method: GET
+        url: http://example.com/1
+      - label: example.com/2
+        method: GET
+        url: http://example.com/2
+      transaction: My Transaction
     - do:
       - label: HTTP Request
         method: GET

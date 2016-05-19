@@ -1383,6 +1383,52 @@ class TestJMeterExecutor(BZTestCase):
         res_files = self.obj.resource_files()
         self.assertEqual(len(res_files), 1)
 
+    def test_request_logic_transaction(self):
+        self.obj.engine.config.merge({
+            'execution': {
+                'scenario': {
+                    "requests": [
+                        {
+                            "transaction": "API",
+                            "do": [
+                                "http://blazedemo.com/",
+                                "http://blazedemo.com/reserve.php",
+                            ],
+                        }
+                    ],
+                }
+            },
+            "provisioning": "local",
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
+        controller = xml_tree.find(".//TransactionController")
+        self.assertIsNotNone(controller)
+        self.assertEqual(controller.get('testname'), "API")
+
+    def test_request_logic_transaction_resources(self):
+        self.obj.engine.config.merge({
+            'execution': {
+                'scenario': {
+                    "requests": [
+                        {
+                            "transaction": "API",
+                            "do": [{
+                                    "url": "http://demo.blazemeter.com/",
+                                    "method": "POST",
+                                    "body-file": __dir__() + "/../jmeter/jmx/dummy.jmx",
+                            }],
+                        }
+                    ],
+                }
+            },
+            "provisioning": "local",
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        res_files = self.obj.resource_files()
+        self.assertEqual(len(res_files), 1)
+
 
 class TestJMX(BZTestCase):
     def test_jmx_unicode_checkmark(self):

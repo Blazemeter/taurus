@@ -1418,6 +1418,16 @@ class JMeterScenarioBuilder(JMX):
 
         return elements
 
+    def compile_transaction_block(self, block):
+        elements = []
+        controller = JMX._get_transaction_controller(block.name)
+        children = etree.Element("hashTree")
+        for compiled in self.compile_requests(block.requests):
+            for element in compiled:
+                children.append(element)
+        elements.extend([controller, children])
+        return elements
+
     def compile_requests(self, requests):
         compiler = RequestCompiler(self)
         return [compiler.visit(request) for request in requests]
@@ -1669,6 +1679,18 @@ class ForEachBlock(Request):
         return fmt % (self.input_var, self.loop_var, requests)
 
 
+class TransactionBlock(Request):
+    def __init__(self, name, requests, config):
+        super(TransactionBlock, self).__init__(config)
+        self.name = name
+        self.requests = requests
+
+    def __repr__(self):
+        requests = [repr(req) for req in self.requests]
+        fmt = "TransactionBlock(name=%s, requests=%s)"
+        return fmt % (self.name, requests)
+
+
 class RequestsParser(object):
     def __init__(self, engine):
         self.engine = engine
@@ -1701,6 +1723,11 @@ class RequestsParser(object):
             do_block = req.get("do", ValueError("'do' field is mandatory for 'foreach' blocks"))
             do_requests = self.__parse_requests(do_block)
             return ForEachBlock(input_var, loop_var, do_requests, req)
+        elif 'transaction' in req:
+            name = req.get('transaction')
+            do_block = req.get('do', ValueError("'do' field is mandatory for transaction blocks"))
+            do_requests = self.__parse_requests(do_block)
+            return TransactionBlock(name, do_requests, req)
         else:
             url = req.get("url", ValueError("Option 'url' is mandatory for request"))
             label = req.get("label", url)
@@ -1777,6 +1804,12 @@ class ResourceFilesCollector(RequestVisitor):
             files.extend(self.visit(request))
         return files
 
+    def visit_transactionblock(self, block):
+        files = []
+        for request in block.requests:
+            files.extend(self.visit(request))
+        return files
+
 
 class RequestCompiler(RequestVisitor):
     def __init__(self, jmx_builder):
@@ -1796,3 +1829,6 @@ class RequestCompiler(RequestVisitor):
 
     def visit_foreachblock(self, block):
         return self.jmx_builder.compile_foreach_block(block)
+
+    def visit_transactionblock(self, block):
+        return self.jmx_builder.compile_transaction_block(block)
