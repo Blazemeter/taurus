@@ -1673,6 +1673,11 @@ class ForEachBlock(Request):
         self.loop_var = loop_var
         self.requests = requests
 
+    def __repr__(self):
+        requests = [repr(req) for req in self.requests]
+        fmt = "ForEachBlock(input=%s, loop_var=%s, requests=%s)"
+        return fmt % (self.input_var, self.loop_var, requests)
+
 
 class TransactionBlock(Request):
     def __init__(self, name, requests, config):
@@ -1713,7 +1718,7 @@ class RequestsParser(object):
             iteration_str = req.get("foreach")
             match = re.match(r'(.+) in (.+)', iteration_str)
             if not match:
-               raise ValueError("'foreach' value should be in format '<elementName> in <collection>'")
+                raise ValueError("'foreach' value should be in format '<elementName> in <collection>'")
             loop_var, input_var = match.groups()
             do_block = req.get("do", ValueError("'do' field is mandatory for 'foreach' blocks"))
             do_requests = self.__parse_requests(do_block)
