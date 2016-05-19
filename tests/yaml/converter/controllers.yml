@@ -39,9 +39,8 @@ scenarios:
     - do:
       - label: HTTP Request
         method: GET
-        url: http://example.com/2
-      generate-parent-sample: false
-      transaction: My Transaction
+        url: http://google.com/
+      while: condition
     store-cache: false
     store-cookie: false
     use-dns-cache-mgr: false
