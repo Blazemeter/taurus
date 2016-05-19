@@ -838,7 +838,7 @@ class JMXasDict(JMX):
                 requests.append(block)
             elif elem.tag == 'TransactionController':
                 hash_tree = next(children)
-                block = self.__extract_transaction_controller(elem, hash_tree)
+                block = self.__extract_trans_controller(elem, hash_tree)
                 requests.append(block)
             elif elem.tag == 'HTTPSamplerProxy':
                 request = self._get_request_settings(elem)
@@ -874,7 +874,7 @@ class JMXasDict(JMX):
         iteration_str = '%s in %s' % (loop_var, input_var)
         return {'foreach': iteration_str, 'do': requests}
 
-    def __extract_transaction_controller(self, controller, ht_element):
+    def __extract_trans_controller(self, controller, ht_element):
         name = controller.get('testname')
         requests = self.__extract_requests(ht_element)
         return {'transaction': name, 'do': requests}
