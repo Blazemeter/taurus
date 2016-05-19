@@ -54,6 +54,7 @@ KNOWN_TAGS = ["hashTree", "jmeterTestPlan", "TestPlan", "ResultCollector",
               "IfController",
               "LoopController",
               "WhileController",
+              "ForeachController",
               ]
 
 
@@ -830,6 +831,10 @@ class JMXasDict(JMX):
                 hash_tree = next(children)
                 while_block = self.__extract_while_controller(elem, hash_tree)
                 requests.append(while_block)
+            elif elem.tag == 'ForeachController':
+                hash_tree = next(children)
+                block = self.__extract_foreach_controller(elem, hash_tree)
+                requests.append(block)
             elif elem.tag == 'HTTPSamplerProxy':
                 request = self._get_request_settings(elem)
                 requests.append(request)
@@ -856,6 +861,13 @@ class JMXasDict(JMX):
         condition = self._get_string_prop(controller, "WhileController.condition")
         requests = self.__extract_requests(ht_element)
         return {'while': condition, 'do': requests}
+
+    def __extract_foreach_controller(self, controller, ht_element):
+        input_var = self._get_string_prop(controller, "ForeachController.inputVal", default="")
+        loop_var = self._get_string_prop(controller, "ForeachController.returnVal", default="")
+        requests = self.__extract_requests(ht_element)
+        iteration_str = '%s in %s' % (loop_var, input_var)
+        return {'foreach': iteration_str, 'do': requests}
 
     def _get_request_settings(self, request_element):
         """

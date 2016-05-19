@@ -395,6 +395,7 @@ Taurus allows to control execution flow with the following constructs:
 - `if` blocks
 - `loop` blocks
 - `while` blocks
+- `foreach` blocks
 
 ##### If Blocks
 
@@ -490,6 +491,29 @@ scenario:
     - http://blazedemo.com/
 ```
 
+##### Foreach Blocks
+
+`foreach` blocks allow you to iterate over a collection of values. They are compiled to JMeter `ForEach Controllers`.
+
+Syntax:
+```yaml
+requests:
+- foreach: <elementName> in <collection>
+  do:
+  - http://${elementName}/
+```
+
+Concrete example:
+```yaml
+scenario:
+  requests:
+  - url: https://api.example.com/v1/media/search
+    extract-jsonpath:
+      usernames: $.data.[:100].user.username  # grab first 100 usernames
+  - foreach: name in usernames
+    do:
+    - https://example.com/user/${name}
+```
 
 ## JMeter Test Log
 You can tune JTL file verbosity with option `write-xml-jtl`. Possible values are 'error' (default), 'full', or any other value for 'none'. Keep in mind: max verbosity can seriously load your system.

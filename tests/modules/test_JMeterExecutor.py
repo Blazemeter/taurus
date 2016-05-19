@@ -1334,6 +1334,55 @@ class TestJMeterExecutor(BZTestCase):
         res_files = self.obj.resource_files()
         self.assertEqual(len(res_files), 1)
 
+    def test_request_logic_foreach(self):
+        self.obj.engine.config.merge({
+            'execution': {
+                'scenario': {
+                    "requests": [
+                        {
+                            "foreach": "name in usernames",
+                            "do": [
+                                "http://site.com/users/${name}",
+                            ],
+                        }
+                    ],
+                }
+            },
+            "provisioning": "local",
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        self.assertIsNotNone(xml_tree.find(".//ForeachController"))
+        input = xml_tree.find(".//ForeachController/stringProp[@name='ForeachController.inputVal']")
+        self.assertEqual(input.text, "usernames")
+        loop_var = xml_tree.find(".//ForeachController/stringProp[@name='ForeachController.returnVal']")
+        self.assertEqual(loop_var.text, "name")
+
+    def test_request_logic_foreach_resources(self):
+        self.obj.engine.config.merge({
+            'execution': {
+                'scenario': {
+                    "requests": [
+                        {
+                            "foreach": "item in coll",
+                            "do": [
+                                {
+                                    "url": "http://${item}.blazemeter.com/",
+                                    "method": "POST",
+                                    "body-file": __dir__() + "/../jmeter/jmx/dummy.jmx",
+                                }
+                            ],
+                        }
+                    ],
+                }
+            },
+            "provisioning": "local",
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        res_files = self.obj.resource_files()
+        self.assertEqual(len(res_files), 1)
+
 
 class TestJMX(BZTestCase):
     def test_jmx_unicode_checkmark(self):

@@ -930,6 +930,16 @@ class JMX(object):
         return controller
 
     @staticmethod
+    def _get_foreach_controller(input_var, loop_var):
+        # TODO: useSeparator option
+        controller = etree.Element("ForeachController", guiclass="ForeachControlPanel", testclass="ForeachController",
+                                   testname="ForEach Controller")
+        controller.append(JMX._string_prop("ForeachController.inputVal", input_var))
+        controller.append(JMX._string_prop("ForeachController.returnVal", loop_var))
+        controller.append(JMX._bool_prop("ForeachController.useSeparator", True))
+        return controller
+
+    @staticmethod
     def _get_while_controller(condition):
         controller = etree.Element("WhileController", guiclass="WhileControllerGui", testclass="WhileController",
                                    testname="While Controller")

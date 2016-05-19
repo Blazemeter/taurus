@@ -23,9 +23,11 @@ scenarios:
         method: GET
         url: http://example.com/
       loop: 42
-    - label: demo/BM
-      method: GET
-      url: http://demo.blazemeter.com/
+    - do:
+      - label: demo/BM
+        method: GET
+        url: http://demo.blazemeter.com/
+      foreach: output in input
     - label: example.com/1
       method: GET
       url: http://example.com/1
