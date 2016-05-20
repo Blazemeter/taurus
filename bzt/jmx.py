@@ -959,9 +959,3 @@ class JMX(object):
                                    testclass="TransactionController", testname=transaction_name)
         controller.append(JMX._bool_prop("TransactionController.parent", True))
         return controller
-
-    @staticmethod
-    def _get_simple_controller(name):
-        return etree.Element("GenericController", guiclass="LogicControllerGui",
-                             testclass="GenericController", testname=name)
-
