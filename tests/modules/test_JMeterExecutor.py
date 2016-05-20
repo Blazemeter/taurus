@@ -16,7 +16,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.jmeter import JMeterExecutor, JTLErrorsReader, JTLReader
 from bzt.modules.jmeter import JMeterScenarioBuilder
 from bzt.six import etree, u
-from bzt.utils import EXE_SUFFIX
+from bzt.utils import EXE_SUFFIX, get_full_path
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul, RecordingHandler
 
@@ -1465,6 +1465,7 @@ class TestJMeterExecutor(BZTestCase):
         self.obj.engine.config.merge({
             'scenarios': {
                 'login': {
+                    'data-sources': [__dir__() + "/../data/test1.csv"],
                     'requests': [{
                         "url": "http://demo.blazemeter.com/",
                         "method": "POST",
@@ -1474,10 +1475,11 @@ class TestJMeterExecutor(BZTestCase):
             },
             'execution': {
                 'scenario': {
+                    'data-sources': [__dir__() + "/../data/test2.csv"],
                     "requests": [
                         {
                             "include-scenario": "login",
-                        }
+                        },
                     ],
                 }
             },
@@ -1485,8 +1487,42 @@ class TestJMeterExecutor(BZTestCase):
         })
         self.obj.execution = self.obj.engine.config['execution']
         res_files = self.obj.resource_files()
-        self.assertEqual(len(res_files), 1)
+        self.assertEqual(len(res_files), 3)
 
+    def test_logic_include_data_sources(self):
+        self.obj.engine.config.merge({
+            'scenarios': {
+                'login': {
+                    'data-sources': [__dir__() + "/../data/test1.csv"],
+                    'requests': ['http://blazedemo.com/auth/${test1}'],
+                }
+            },
+            'execution': {
+                'scenario': {
+                    "data-sources": [__dir__() + "/../data/test2.csv"],
+                    "requests": [
+                        {"include-scenario": "login"},
+                        "http://example.com/${test2}",
+                    ],
+                }
+            },
+            "provisioning": "local",
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
+        thread_group = xml_tree.find('.//hashTree[@type="tg"]')
+        scenario_dataset = xml_tree.find('.//hashTree[@type="tg"]/CSVDataSet')
+        self.assertIsNotNone(scenario_dataset)
+        filename = scenario_dataset.find('stringProp[@name="filename"]')
+        self.assertEqual(filename.text, get_full_path(__dir__() + "/../data/test2.csv"))
+        login_controler = thread_group.find('GenericController')
+        self.assertIsNotNone(login_controler)
+        login_ht = login_controler.getnext()
+        login_dataset = login_ht.find('CSVDataSet')
+        self.assertIsNotNone(login_dataset)
+        filename = scenario_dataset.find('stringProp[@name="filename"]')
+        self.assertEqual(filename.text, get_full_path(__dir__() + "/../data/test2.csv"))
 
 
 class TestJMX(BZTestCase):
