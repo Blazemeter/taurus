@@ -1429,6 +1429,65 @@ class TestJMeterExecutor(BZTestCase):
         res_files = self.obj.resource_files()
         self.assertEqual(len(res_files), 1)
 
+    def test_request_logic_include(self):
+        self.obj.engine.config.merge({
+            'scenarios': {
+                'login': {
+                    'requests': ['http://example.com/login'],
+                }
+            },
+            'execution': {
+                'scenario': {
+                    "requests": [
+                        {
+                            "include-scenario": "login",
+                        }
+                    ],
+                }
+            },
+            "provisioning": "local",
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
+        controller = xml_tree.find(".//GenericController")
+        self.assertIsNotNone(controller)
+        self.assertEqual(controller.get('testname'), "login")
+        ht = controller.getnext()
+        sampler = ht.find('HTTPSamplerProxy')
+        self.assertIsNotNone(sampler)
+        domain = sampler.find('stringProp[@name="HTTPSampler.domain"]')
+        self.assertEqual(domain.text, "example.com")
+        path = sampler.find('stringProp[@name="HTTPSampler.path"]')
+        self.assertEqual(path.text, "/login")
+
+    def test_request_logic_include_resources(self):
+        self.obj.engine.config.merge({
+            'scenarios': {
+                'login': {
+                    'requests': [{
+                        "url": "http://demo.blazemeter.com/",
+                        "method": "POST",
+                        "body-file": __dir__() + "/../jmeter/jmx/dummy.jmx",
+                    }],
+                }
+            },
+            'execution': {
+                'scenario': {
+                    "requests": [
+                        {
+                            "include-scenario": "login",
+                        }
+                    ],
+                }
+            },
+            "provisioning": "local",
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        res_files = self.obj.resource_files()
+        self.assertEqual(len(res_files), 1)
+
+
 
 class TestJMX(BZTestCase):
     def test_jmx_unicode_checkmark(self):

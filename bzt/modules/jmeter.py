@@ -722,7 +722,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         return body_files
 
     def __res_files_from_request(self, request):
-        return ResourceFilesCollector().visit(request)
+        return ResourceFilesCollector(self).visit(request)
 
     def __get_script(self):
         """
@@ -1177,23 +1177,26 @@ class JMeterScenarioBuilder(JMX):
         super(JMeterScenarioBuilder, self).__init__(original)
         self.executor = executor
         self.scenario = executor.get_scenario()
+        self.engine = executor.engine
         self.system_props = BetterDict()
 
-    def __add_managers(self):
-        headers = self.scenario.get_headers()
+    def __gen_managers(self, scenario):
+        elements = []
+        headers = scenario.get_headers()
         if headers:
-            self.append(self.TEST_PLAN_SEL, self._get_header_mgr(headers))
-            self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
-        if self.scenario.get("store-cache", True):
-            self.append(self.TEST_PLAN_SEL, self._get_cache_mgr())
-            self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
-        if self.scenario.get("store-cookie", True):
-            self.append(self.TEST_PLAN_SEL, self._get_cookie_mgr())
-            self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
-        if self.scenario.get("use-dns-cache-mgr", True):
-            self.append(self.TEST_PLAN_SEL, self.get_dns_cache_mgr())
-            self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
+            elements.append(self._get_header_mgr(headers))
+            elements.append(etree.Element("hashTree"))
+        if scenario.get("store-cache", True):
+            elements.append(self._get_cache_mgr())
+            elements.append(etree.Element("hashTree"))
+        if scenario.get("store-cookie", True):
+            elements.append(self._get_cookie_mgr())
+            elements.append(etree.Element("hashTree"))
+        if scenario.get("use-dns-cache-mgr", True):
+            elements.append(self.get_dns_cache_mgr())
+            elements.append(etree.Element("hashTree"))
             self.system_props.merge({"system-properties": {"sun.net.inetaddr.ttl": 0}})
+        return elements
 
     @staticmethod
     def smart_time(any_time):
@@ -1204,16 +1207,17 @@ class JMeterScenarioBuilder(JMX):
 
         return smart_time
 
-    def __add_defaults(self):
-        default_address = self.scenario.get("default-address", None)
-        retrieve_resources = self.scenario.get("retrieve-resources", True)
-        concurrent_pool_size = self.scenario.get("concurrent-pool-size", 4)
+    def __gen_defaults(self, scenario):
+        default_address = scenario.get("default-address", None)
+        retrieve_resources = scenario.get("retrieve-resources", True)
+        concurrent_pool_size = scenario.get("concurrent-pool-size", 4)
 
-        timeout = self.scenario.get("timeout", None)
+        timeout = scenario.get("timeout", None)
         timeout = self.smart_time(timeout)
-        self.append(self.TEST_PLAN_SEL, self._get_http_defaults(default_address, timeout,
-                                                                retrieve_resources, concurrent_pool_size))
-        self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
+        elements = [self._get_http_defaults(default_address, timeout,
+                                            retrieve_resources, concurrent_pool_size),
+                    etree.Element("hashTree")]
+        return elements
 
     def __add_think_time(self, children, req):
         global_ttime = self.scenario.get("think-time", None)
@@ -1311,13 +1315,21 @@ class JMeterScenarioBuilder(JMX):
         else:
             return None
 
-    def __add_requests(self):
-        requests_parser = RequestsParser(self.executor.engine)
-        requests = list(requests_parser.extract_requests(self.scenario))
-        compiled_requests = self.compile_requests(requests)
-        for compiled in compiled_requests:
-            for element in compiled:
-                self.append(self.THR_GROUP_SEL, element)
+    def __gen_requests(self, scenario):
+        requests_parser = RequestsParser(self.engine)
+        requests = list(requests_parser.extract_requests(scenario))
+        elements = []
+        for compiled in self.compile_requests(requests):
+            elements.extend(compiled)
+        return elements
+
+    def compile_scenario(self, scenario):
+        elements = []
+        elements.extend(self.__gen_managers(scenario))
+        elements.extend(self.__gen_defaults(scenario))
+        elements.extend(self.__gen_datasources(scenario))
+        elements.extend(self.__gen_requests(scenario))
+        return elements
 
     def compile_http_request(self, request):
         global_timeout = self.scenario.get("timeout", None)
@@ -1428,6 +1440,16 @@ class JMeterScenarioBuilder(JMX):
         elements.extend([controller, children])
         return elements
 
+    def compile_include_scenario_block(self, block):
+        elements = []
+        controller = JMX._get_simple_controller(block.scenario_name)
+        children = etree.Element("hashTree")
+        scenario = self.executor.get_scenario_by_name(block.scenario_name)
+        for element in self.compile_scenario(scenario):
+            children.append(element)
+        elements.extend([controller, children])
+        return elements
+
     def compile_requests(self, requests):
         compiler = RequestCompiler(self)
         return [compiler.visit(request) for request in requests]
@@ -1436,17 +1458,21 @@ class JMeterScenarioBuilder(JMX):
         """
         Generate the test plan
         """
+
+        thread_group = self.get_thread_group(concurrency=1, rampup=0, iterations=-1)
+        thread_group_ht = etree.Element("hashTree", type="tg")
+
         # NOTE: set realistic dns-cache and JVM prop by default?
-        self.__add_managers()
-        self.__add_defaults()
-        self.__add_datasources()
+        for element in self.compile_scenario(self.scenario):
+            thread_group_ht.append(element)
 
-        thread_group = self.get_thread_group(1, 0, -1)
+        results_tree = self._get_results_tree()
+        results_tree_ht = etree.Element("hashTree")
+
         self.append(self.TEST_PLAN_SEL, thread_group)
-        self.append(self.TEST_PLAN_SEL, etree.Element("hashTree", type="tg"))  # arbitrary trick with our own attribute
-
-        self.__add_requests()
-        self._add_results_tree()
+        self.append(self.TEST_PLAN_SEL, thread_group_ht)
+        self.append(self.TEST_PLAN_SEL, results_tree)
+        self.append(self.TEST_PLAN_SEL, results_tree_ht)
 
     def save(self, filename):
         """
@@ -1458,12 +1484,13 @@ class JMeterScenarioBuilder(JMX):
         self.__generate()
         super(JMeterScenarioBuilder, self).save(filename)
 
-    def __add_datasources(self):
-        sources = self.scenario.get("data-sources", [])
+    def __gen_datasources(self, scenario):
+        sources = scenario.get("data-sources", [])
         if not sources:
-            return
+            return []
         if not isinstance(sources, list):
             raise ValueError("data-sources is not a list")
+        elements = []
         for idx, source in enumerate(sources):
             source = ensure_is_dict(sources, idx, "path")
             source_path = self.executor.engine.find_file(source["path"])
@@ -1472,8 +1499,9 @@ class JMeterScenarioBuilder(JMX):
 
             config = JMX._get_csv_config(os.path.abspath(source_path), delimiter,
                                          source.get("quoted", False), source.get("loop", True))
-            self.append(self.TEST_PLAN_SEL, config)
-            self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
+            elements.append(config)
+            elements.append(etree.Element("hashTree"))
+        return elements
 
     def __guess_delimiter(self, path):
         with open(path) as fhd:
@@ -1690,6 +1718,11 @@ class TransactionBlock(Request):
         fmt = "TransactionBlock(name=%s, requests=%s)"
         return fmt % (self.name, requests)
 
+class IncludeScenarioBlock(Request):
+    def __init__(self, scenario_name, config):
+        super(IncludeScenarioBlock, self).__init__(config)
+        self.scenario_name = scenario_name
+
 
 class RequestsParser(object):
     def __init__(self, engine):
@@ -1728,6 +1761,9 @@ class RequestsParser(object):
             do_block = req.get('do', ValueError("'do' field is mandatory for transaction blocks"))
             do_requests = self.__parse_requests(do_block)
             return TransactionBlock(name, do_requests, req)
+        elif 'include-scenario' in req:
+            name = req.get('include-scenario')
+            return IncludeScenarioBlock(name, req)
         else:
             url = req.get("url", ValueError("Option 'url' is mandatory for request"))
             label = req.get("label", url)
@@ -1771,6 +1807,9 @@ class RequestVisitor(object):
 
 
 class ResourceFilesCollector(RequestVisitor):
+    def __init__(self, executor):
+        self.executor = executor
+
     def visit_httprequest(self, request):
         files = []
         body_file = request.config.get('body-file')
@@ -1810,6 +1849,15 @@ class ResourceFilesCollector(RequestVisitor):
             files.extend(self.visit(request))
         return files
 
+    def visit_includescenarioblock(self, block):
+        files = []
+        scenario = self.executor.get_scenario_by_name(block.scenario_name)
+        requests_parser = RequestsParser(self.executor.engine)
+        requests = list(requests_parser.extract_requests(scenario))
+        for request in requests:
+            files.extend(self.visit(request))
+        return files
+
 
 class RequestCompiler(RequestVisitor):
     def __init__(self, jmx_builder):
@@ -1832,3 +1880,6 @@ class RequestCompiler(RequestVisitor):
 
     def visit_transactionblock(self, block):
         return self.jmx_builder.compile_transaction_block(block)
+
+    def visit_includescenarioblock(self, block):
+        return self.jmx_builder.compile_include_scenario_block(block)

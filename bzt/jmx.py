@@ -909,6 +909,13 @@ class JMX(object):
         self.append(self.TEST_PLAN_SEL, dbg_tree)
         self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
 
+    def _get_results_tree(self):
+        dbg_tree = etree.Element("ResultCollector",
+                                 testname="View Results Tree",
+                                 testclass="ResultCollector",
+                                 guiclass="ViewResultsFullVisualizer")
+        return dbg_tree
+
     @staticmethod
     def _get_if_controller(condition):
         controller = etree.Element("IfController", guiclass="IfControllerPanel", testclass="IfController",
@@ -952,3 +959,9 @@ class JMX(object):
                                    testclass="TransactionController", testname=transaction_name)
         controller.append(JMX._bool_prop("TransactionController.parent", True))
         return controller
+
+    @staticmethod
+    def _get_simple_controller(name):
+        return etree.Element("GenericController", guiclass="LogicControllerGui",
+                             testclass="GenericController", testname=name)
+
