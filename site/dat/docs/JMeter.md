@@ -547,8 +547,8 @@ execution
 
 ## JMeter JVM Memory Limit
 
-By default Taurus will allow JMeter to use up to 50% of your RAM. You can tweak JMeter's memory limit with `memory-xmx`
-option. Use `K`, `M` or `G` suffixes to specify memory limit in kilobytes, megabytes or gigabytes.
+You can tweak JMeter's memory limit (aka, `-Xmx` JVM option) with `memory-xmx` setting.
+Use `K`, `M` or `G` suffixes to specify memory limit in kilobytes, megabytes or gigabytes.
 
 Example:
 ```yaml

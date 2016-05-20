@@ -966,20 +966,6 @@ class TestJMeterExecutor(BZTestCase):
         self.obj.post_process()
         self.assertIn("-Xmx2G", str(stdout))
 
-    def test_jvm_heap_default_value(self):
-        self.obj.engine.config.merge({'execution': {'iterations': 1,
-                                               'scenario': {'script': __dir__() + '/../jmeter/jmx/http.jmx'}}})
-        self.obj.engine.config.merge({"provisioning": "local"})
-        self.obj.execution = self.obj.engine.config['execution']
-        self.obj.settings.merge(self.obj.engine.config.get("modules").get("jmeter"))
-        self.obj.prepare()
-        self.obj._env['TEST_MODE'] = 'heap'
-        self.obj.startup()
-        stdout, _ = self.obj.process.communicate()
-        self.obj.shutdown()
-        self.obj.post_process()
-        self.assertIn("-Xmx", str(stdout))
-
     def test_data_sources_in_artifacts(self):
         self.obj.engine.config.merge({'execution': {'iterations': 1,
                                                'scenario': {'data-sources': ['test1.csv'],

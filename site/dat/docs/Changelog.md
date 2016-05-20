@@ -7,6 +7,7 @@
  - fix reading piped config from stdin
  - don't trap KeyboardInterrupt in tool install
  - add [logic blocks](JMeter.md#Logic-Blocks) to `scenario.requests` syntax for JMeter
+ - remove default xmx set for JMeter
 
 ## 1.5.0 <sup>4 may 2016</sup>
  - add [Tsung](Tsung.md) executor
