@@ -38,7 +38,7 @@ from bzt import ManualShutdown, NormalShutdown, get_configs_dir
 from bzt.six import build_opener, install_opener, urlopen, request, numeric_types, iteritems
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler
 from bzt.utils import PIPE, shell_exec, get_files_recursive, get_full_path
-from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time
+from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, replace_in_config
 
 SETTINGS = "settings"
 
@@ -735,9 +735,9 @@ class Provisioning(EngineModule):
         self.executors = []
 
     def _pack_dirs(self, source_list):
-        from bzt.modules.services import Unpacker   # avoid cyclic dependency with services.py
-        result_list = []    # files for upload
-        packed_list = []    # files for unpacking
+        from bzt.modules.services import Unpacker  # avoid cyclic dependency with services.py
+        result_list = []  # files for upload
+        packed_list = []  # files for unpacking
 
         for source in source_list:
             source = get_full_path(source)
@@ -749,7 +749,7 @@ class Provisioning(EngineModule):
 
                 # TODO: maybe too hard?
                 # TODO: check for multiexec
-                if base_dir_name+'.zip' in packed_list:
+                if base_dir_name + '.zip' in packed_list:
                     message = 'Archive or directory "%s" occurs more than one time, rename to avoid data loss'
                     self.log.error(message, base_dir_name)
                     raise ValueError
@@ -761,7 +761,7 @@ class Provisioning(EngineModule):
                     for _file in get_files_recursive(source):
                         zip_file.write(_file, _file[relative_prefix_len:])
                 result_list.append(zip_name)
-                packed_list.append(base_dir_name+'.zip')
+                packed_list.append(base_dir_name + '.zip')
 
         services = self.engine.config.get(Service.SERV, [])
         services.append({'module': Unpacker.UNPACK, Unpacker.FILES: packed_list})
@@ -798,12 +798,16 @@ class Provisioning(EngineModule):
             assert isinstance(instance, ScenarioExecutor)
             self.executors.append(instance)
 
-    def _get_rfiles(self):
+    def get_rfiles(self):
         rfiles = []
         for executor in self.executors:
             rfiles += executor.get_resource_files()
         self.log.debug("All resource files are: %s", rfiles)
-        return [self.engine.find_file(x) for x in rfiles]
+        rfiles = [self.engine.find_file(x) for x in rfiles]
+        prepared_files = self._pack_dirs(rfiles)
+        replace_in_config(self.engine.config, rfiles, map(os.path.basename, prepared_files), log=self.log)
+
+        return prepared_files
 
 
 class FileLister(object):

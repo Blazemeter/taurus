@@ -1,14 +1,13 @@
-import zipfile
 import json
 import os
+import zipfile
 
-
-from bzt.modules.services import Unpacker
-from tests.mocks import EngineEmul
-from bzt.modules.blazemeter import CloudProvisioning, BlazeMeterClientEmul
-from tests import BZTestCase, __dir__
-from bzt.utils import get_files_recursive
 from bzt.engine import Service
+from bzt.modules.blazemeter import CloudProvisioning, BlazeMeterClientEmul
+from bzt.modules.services import Unpacker
+from bzt.utils import get_files_recursive
+from tests import BZTestCase, __dir__
+from tests.mocks import EngineEmul
 
 
 class TestZipFolder(BZTestCase):
@@ -34,15 +33,15 @@ class TestZipFolder(BZTestCase):
         obj.parameters = obj.engine.config['execution']
         obj.settings["token"] = "FakeToken"
         obj.client = client = BlazeMeterClientEmul(obj.log)
-        client.results.append(self.__get_user_info())           # user
-        client.results.append({"result": []})                   # tests
-        client.results.append({"result": {"id": id(client)}})   # create test
-        client.results.append({"files": []})                    # create test
-        client.results.append({})                               # upload files
-        client.results.append({"result": {"id": id(obj)}})      # start
-        client.results.append({"result": {"id": id(obj)}})      # get master
-        client.results.append({"result": []})                   # get master sessions
-        client.results.append({})                               # terminate
+        client.results.append(self.__get_user_info())  # user
+        client.results.append({"result": []})  # tests
+        client.results.append({"result": {"id": id(client)}})  # create test
+        client.results.append({"files": []})  # create test
+        client.results.append({})  # upload files
+        client.results.append({"result": {"id": id(obj)}})  # start
+        client.results.append({"result": {"id": id(obj)}})  # get master
+        client.results.append({"result": []})  # get master sessions
+        client.results.append({})  # terminate
 
         obj.prepare()
 
@@ -88,5 +87,3 @@ class TestZipFolder(BZTestCase):
         result_tree = set(filename[len(destination):] for filename in get_files_recursive(destination))
         original_tree = set(filename[len(source):] for filename in get_files_recursive(source))
         self.assertEqual(result_tree, original_tree)
-
-

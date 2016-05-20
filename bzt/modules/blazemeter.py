@@ -34,7 +34,7 @@ from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, R
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.jmeter import JMeterExecutor
 from bzt.six import BytesIO, text_type, iteritems, HTTPError, urlencode, Request, urlopen, r_input, URLError
-from bzt.utils import to_json, dehumanize_time, MultiPartForm, BetterDict, open_browser, replace_in_config
+from bzt.utils import to_json, dehumanize_time, MultiPartForm, BetterDict, open_browser
 
 
 class BlazeMeterUploader(Reporter, AggregatorListener):
@@ -836,16 +836,14 @@ class CloudProvisioning(Provisioning, WidgetProvider):
         super(CloudProvisioning, self).prepare()
         self.browser_open = self.settings.get("browser-open", self.browser_open)
         self._configure_client()
-
         self.__prepare_locations()
+        rfiles = self.get_rfiles()
         config = self.__get_config_for_cloud()
-        rfiles = self._get_rfiles()
-        prepared_files = self._pack_dirs(rfiles)
-        replace_in_config(config, rfiles, map(os.path.basename, prepared_files), log=self.log)
+
         bza_plugin = self.__get_bza_test_config()
         finder = ProjectFinder(self.parameters, self.settings, self.client, self.engine)
         finder.default_test_name = "Taurus Cloud Test"
-        self.test_id = finder.resolve_test_id(bza_plugin, config, prepared_files)
+        self.test_id = finder.resolve_test_id(bza_plugin, config, rfiles)
 
         self.test_name = finder.test_name
         self.widget = CloudProvWidget(self)
