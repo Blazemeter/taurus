@@ -29,7 +29,6 @@ from collections import Counter, namedtuple
 from distutils.version import LooseVersion
 from math import ceil
 
-import psutil
 from cssselect import GenericTranslator
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
