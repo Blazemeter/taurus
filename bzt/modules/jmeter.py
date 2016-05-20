@@ -645,7 +645,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         resource_files = set()
         # get all resource files from requests
-        files_from_requests = self.__get_res_files_from_scenario()
+        scenario = self.get_scenario()
+        files_from_requests = self.res_files_from_scenario(scenario)
 
         if not self.original_jmx:
             self.original_jmx = self.__get_script()
@@ -699,9 +700,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                     resource_files.append(resource_element.text)
         return resource_files
 
-    def __get_res_files_from_scenario(self):
+    def res_files_from_scenario(self, scenario):
         files = []
-        scenario = self.get_scenario()
         data_sources = scenario.data.get('data-sources')
         if data_sources:
             for data_source in data_sources:
@@ -711,17 +711,17 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                     files.append(data_source['path'])
         requests_parser = RequestsParser(self.engine)
         requests = requests_parser.extract_requests(scenario)
-        files.extend(self.__res_files_from_requests(requests))
+        files.extend(self.res_files_from_requests(requests))
         return files
 
-    def __res_files_from_requests(self, requests):
+    def res_files_from_requests(self, requests):
         body_files = []
         for req in requests:
-            files = self.__res_files_from_request(req)
+            files = self.res_files_from_request(req)
             body_files.extend(files)
         return body_files
 
-    def __res_files_from_request(self, request):
+    def res_files_from_request(self, request):
         return ResourceFilesCollector(self).visit(request)
 
     def __get_script(self):
@@ -1718,6 +1718,7 @@ class TransactionBlock(Request):
         fmt = "TransactionBlock(name=%s, requests=%s)"
         return fmt % (self.name, requests)
 
+
 class IncludeScenarioBlock(Request):
     def __init__(self, scenario_name, config):
         super(IncludeScenarioBlock, self).__init__(config)
@@ -1808,6 +1809,9 @@ class RequestVisitor(object):
 
 class ResourceFilesCollector(RequestVisitor):
     def __init__(self, executor):
+        """
+        :param executor: JMeterExecutor
+        """
         self.executor = executor
 
     def visit_httprequest(self, request):
@@ -1850,13 +1854,8 @@ class ResourceFilesCollector(RequestVisitor):
         return files
 
     def visit_includescenarioblock(self, block):
-        files = []
         scenario = self.executor.get_scenario_by_name(block.scenario_name)
-        requests_parser = RequestsParser(self.executor.engine)
-        requests = list(requests_parser.extract_requests(scenario))
-        for request in requests:
-            files.extend(self.visit(request))
-        return files
+        return self.executor.res_files_from_scenario(scenario)
 
 
 class RequestCompiler(RequestVisitor):
