@@ -397,6 +397,7 @@ Taurus allows to control execution flow with the following constructs:
 - `while` blocks
 - `foreach` blocks
 - `transaction` blocks
+- `include-scenario` blocks
 
 ##### If Blocks
 
@@ -533,6 +534,37 @@ scenario:
     - http://example.com/card
     - http://example.com/checkout
 ```
+
+##### Include Scenario blocks
+`include-scenario` blocks allows you to include scenario in another one. You can use it to split your test plan into
+a few of independent scenarios that can be reused.
+
+Example:
+```yaml
+scenarios:
+  login:
+    data-sources:
+    - logins.csv
+    requests:
+    - url: http://example.com/login
+      method: POST
+      body:
+        user: ${username}
+        password: ${password}
+  logout:
+    requests:
+    - url: http://example.com/logout
+      method: POST
+   shop-session:
+     requests:
+     - include-scenario: login
+     - http://example.com/shop/items/1
+     - http://example.com/checkout
+     - include-scenario: logout
+```
+
+Taurus translates each `include-scenario` block to a JMeter's `Simple Controller` and puts all scenario-level
+settings and requests there.
 
 ## JMeter Test Log
 You can tune JTL file verbosity with option `write-xml-jtl`. Possible values are 'error' (default), 'full', or any other value for 'none'. Keep in mind: max verbosity can seriously load your system.
