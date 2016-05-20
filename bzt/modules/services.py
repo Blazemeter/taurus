@@ -41,11 +41,9 @@ class Unpacker(Service):
             with zipfile.ZipFile(full_archive_path, 'r') as zip_file:
                 zip_file.extractall(self.engine.artifacts_dir)
 
-            if full_archive_path.startswith(self.engine.artifacts_dir):
-                os.remove(full_archive_path)
-            else:
-                archive = os.path.join(self.engine.artifacts_dir, os.path.basename(archive))
+            # TODO: remove archive after unpacking in cloud case
 
+            archive = os.path.join(self.engine.artifacts_dir, os.path.basename(archive))
             unpacked_list.append(archive[:-4])  # TODO: replace with top-level archive content
 
         replace_in_config(self.engine.config, packed_list, unpacked_list, log=self.log)

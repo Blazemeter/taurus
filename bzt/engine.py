@@ -735,9 +735,10 @@ class Provisioning(EngineModule):
         self.executors = []
 
     def _pack_dirs(self, source_list):
-        from bzt.modules.services import Unpacker
-        result_list = []                                            # files for upload
-        packed_list = self.engine.setting.get(Unpacker.UNPACK, [])   # files for unzipping
+        from bzt.modules.services import Unpacker   # avoid cyclic dependency with services.py
+        result_list = []    # files for upload
+        packed_list = []    # files for unpacking
+
         for source in source_list:
             source = get_full_path(source)
             if os.path.isfile(source):
@@ -762,8 +763,9 @@ class Provisioning(EngineModule):
                 result_list.append(zip_name)
                 packed_list.append(base_dir_name+'.zip')
 
-        if packed_list:
-            self.engine.setting[Unpacker.UNPACK] = packed_list
+        services = self.engine.config.get(Service.SERV, [])
+        services.append({'module': Unpacker.UNPACK, Unpacker.FILES: packed_list})
+
         return result_list
 
     def prepare(self):
