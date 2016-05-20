@@ -125,18 +125,11 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             JMeterExecutor.__write_props_to_file(sys_props_file, sys_props)
             self.sys_properties_file = sys_props_file
 
-    @staticmethod
-    def __calculate_default_heap_size():
-        memory = psutil.virtual_memory()
-        memory_mb = round(float(memory.total) / 1024 / 1024)
-        memory_limit = int(memory_mb * 0.5)
-        return "%dM" % memory_limit
-
     def __set_jvm_properties(self):
-        def_heap_size = JMeterExecutor.__calculate_default_heap_size()
-        heap_size = self.settings.get("memory-xmx", def_heap_size)
-        self.log.debug("Setting JVM heap size to %s", heap_size)
-        self._env["JVM_ARGS"] = "-Xmx%s" % heap_size
+        heap_size = self.settings.get("memory-xmx", None)
+        if heap_size is not None:
+            self.log.debug("Setting JVM heap size to %s", heap_size)
+            self._env["JVM_ARGS"] = "-Xmx%s" % heap_size
 
     def __set_jmeter_properties(self, scenario):
         props = self.settings.get("properties")
