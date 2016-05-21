@@ -1,4 +1,6 @@
 # Changelog
+## (next)
+ - add unzipped folder moving ability to Selenium 
 
 ## 1.5.1
  - add `default-location` option for cloud provisioning
