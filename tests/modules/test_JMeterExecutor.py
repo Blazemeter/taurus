@@ -1524,6 +1524,51 @@ class TestJMeterExecutor(BZTestCase):
         filename = scenario_dataset.find('stringProp[@name="filename"]')
         self.assertEqual(filename.text, get_full_path(__dir__() + "/../data/test2.csv"))
 
+    def test_include_recursion(self):
+        self.obj.engine.config.merge({
+            'scenarios': {
+                'a': {
+                    'requests': [{
+                        "include-scenario": "b",
+                    }],
+                },
+                'b': {
+                    'requests': [{
+                        "include-scenario": "a",
+                    }],
+                }
+            },
+            'execution': {
+                'scenario': 'a',
+            },
+            "provisioning": "local",
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        self.assertRaises(ValueError, self.obj.prepare)
+
+    def test_include_sources_recursion(self):
+        self.obj.engine.config.merge({
+            'scenarios': {
+                'a': {
+                    'requests': [{
+                        "include-scenario": "b",
+                    }],
+                },
+                'b': {
+                    'requests': [{
+                        "include-scenario": "a",
+                    }],
+                }
+            },
+            'execution': {
+                'scenario': 'a',
+            },
+            "provisioning": "local",
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        self.assertRaises(ValueError, self.obj.resource_files)
+
+
 
 class TestJMX(BZTestCase):
     def test_jmx_unicode_checkmark(self):

@@ -77,6 +77,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.management_port = None
         self.reader = None
         self._env = {}
+        self.resource_files_collector = None
 
     def prepare(self):
         """
@@ -646,6 +647,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         resource_files = set()
         # get all resource files from requests
         scenario = self.get_scenario()
+        self.resource_files_collector = ResourceFilesCollector(self)
         files_from_requests = self.res_files_from_scenario(scenario)
 
         if not self.original_jmx:
@@ -711,18 +713,14 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                     files.append(data_source['path'])
         requests_parser = RequestsParser(self.engine)
         requests = requests_parser.extract_requests(scenario)
-        files.extend(self.res_files_from_requests(requests))
+        for req in requests:
+            files.extend(self.res_files_from_request(req))
         return files
 
-    def res_files_from_requests(self, requests):
-        body_files = []
-        for req in requests:
-            files = self.res_files_from_request(req)
-            body_files.extend(files)
-        return body_files
-
     def res_files_from_request(self, request):
-        return ResourceFilesCollector(self).visit(request)
+        if self.resource_files_collector is None:
+            self.resource_files_collector = ResourceFilesCollector(self)
+        return self.resource_files_collector.visit(request)
 
     def __get_script(self):
         """
@@ -1179,6 +1177,7 @@ class JMeterScenarioBuilder(JMX):
         self.scenario = executor.get_scenario()
         self.engine = executor.engine
         self.system_props = BetterDict()
+        self.request_compiler = None
 
     def __gen_managers(self, scenario):
         elements = []
@@ -1451,8 +1450,9 @@ class JMeterScenarioBuilder(JMX):
         return elements
 
     def compile_requests(self, requests):
-        compiler = RequestCompiler(self)
-        return [compiler.visit(request) for request in requests]
+        if self.request_compiler is None:
+            self.request_compiler = RequestCompiler(self)
+        return [self.request_compiler.visit(request) for request in requests]
 
     def __generate(self):
         """
@@ -1463,6 +1463,7 @@ class JMeterScenarioBuilder(JMX):
         thread_group_ht = etree.Element("hashTree", type="tg")
 
         # NOTE: set realistic dns-cache and JVM prop by default?
+        self.request_compiler = RequestCompiler(self)
         for element in self.compile_scenario(self.scenario):
             thread_group_ht.append(element)
 
@@ -1799,6 +1800,9 @@ class RequestsParser(object):
 
 
 class RequestVisitor(object):
+    def __init__(self):
+        self.path = []
+
     def visit(self, node):
         class_name = node.__class__.__name__.lower()
         visitor = getattr(self, 'visit_' + class_name, None)
@@ -1812,6 +1816,7 @@ class ResourceFilesCollector(RequestVisitor):
         """
         :param executor: JMeterExecutor
         """
+        super(ResourceFilesCollector, self).__init__()
         self.executor = executor
 
     def visit_httprequest(self, request):
@@ -1854,12 +1859,17 @@ class ResourceFilesCollector(RequestVisitor):
         return files
 
     def visit_includescenarioblock(self, block):
+        scenario_name = block.scenario_name
+        if scenario_name in self.path:
+            raise ValueError("Mutual recursion detected in include-scenario blocks (scenario %s)" % scenario_name)
+        self.path.append(scenario_name)
         scenario = self.executor.get_scenario_by_name(block.scenario_name)
         return self.executor.res_files_from_scenario(scenario)
 
 
 class RequestCompiler(RequestVisitor):
     def __init__(self, jmx_builder):
+        super(RequestCompiler, self).__init__()
         self.jmx_builder = jmx_builder
 
     def visit_httprequest(self, request):
@@ -1881,4 +1891,8 @@ class RequestCompiler(RequestVisitor):
         return self.jmx_builder.compile_transaction_block(block)
 
     def visit_includescenarioblock(self, block):
+        scenario_name = block.scenario_name
+        if scenario_name in self.path:
+            raise ValueError("Mutual recursion detected in include-scenario blocks (scenario %s)" % scenario_name)
+        self.path.append(scenario_name)
         return self.jmx_builder.compile_include_scenario_block(block)
