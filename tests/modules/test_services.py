@@ -70,6 +70,7 @@ class TestZipFolder(BZTestCase):
                 "cloud": "bzt.modules.blazemeter.CloudProvisioning"},
             "provisioning": "local"
         })
+        obj.engine.file_search_paths = [obj.engine.artifacts_dir]
 
         obj.parameters["files"] = ["java_package.zip"]
 

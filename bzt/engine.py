@@ -370,13 +370,13 @@ class Engine(object):
 
     def find_file(self, filename):
         """
-        Try to find file in search_path if it was specified. Helps finding files
+        Try to find file or dir in search_path if it was specified. Helps finding files
         in non-CLI environments or relative to config path
         :param filename: file basename to find
         :type filename: str
         """
         filename = os.path.expanduser(filename)
-        if os.path.isfile(filename):
+        if os.path.exists(filename):
             return filename
         elif filename.lower().startswith("http://") or filename.lower().startswith("https://"):
             parsed_url = parse.urlparse(filename)
@@ -395,11 +395,11 @@ class Engine(object):
         elif self.file_search_paths:
             for dirname in self.file_search_paths:
                 location = os.path.join(dirname, os.path.basename(filename))
-                if os.path.isfile(location):
-                    self.log.warning("Guessed location from search paths for file %s: %s", filename, location)
+                if os.path.exists(location):
+                    self.log.warning("Guessed location from search paths for %s: %s", filename, location)
                     return location
 
-        self.log.warning("Could not find file at path: %s", filename)
+        self.log.warning("Could not find location at path: %s", filename)
         return filename
 
     def _load_base_configs(self):
@@ -533,7 +533,6 @@ class Engine(object):
 
             except BaseException:
                 self.log.debug("Failed to check for updates: %s", traceback.format_exc())
-                self.log.debug("Failed to check for updates")
 
     def _load_included_configs(self):
         for config in self.config.get("included-configs", []):

@@ -16,8 +16,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import os
 import copy
+import os
 import zipfile
 
 from bzt.engine import Service
@@ -36,14 +36,14 @@ class Unpacker(Service):
         packed_list = copy.deepcopy(self.parameters.get(Unpacker.FILES, self.files))
         unpacked_list = []
         for archive in packed_list:
-            full_archive_path = os.path.join(self.engine.artifacts_dir, archive)
+            full_archive_path = self.engine.find_file(archive)
             self.log.debug('Unpacking %s', archive)
             with zipfile.ZipFile(full_archive_path, 'r') as zip_file:
                 zip_file.extractall(self.engine.artifacts_dir)
 
             # TODO: remove archive after unpacking in cloud case
 
-            archive = os.path.join(self.engine.artifacts_dir, os.path.basename(archive))
+            archive = os.path.basename(archive)
             unpacked_list.append(archive[:-4])  # TODO: replace with top-level archive content
 
         replace_in_config(self.engine.config, packed_list, unpacked_list, log=self.log)
