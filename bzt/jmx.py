@@ -909,6 +909,13 @@ class JMX(object):
         self.append(self.TEST_PLAN_SEL, dbg_tree)
         self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
 
+    def _get_results_tree(self):
+        dbg_tree = etree.Element("ResultCollector",
+                                 testname="View Results Tree",
+                                 testclass="ResultCollector",
+                                 guiclass="ViewResultsFullVisualizer")
+        return dbg_tree
+
     @staticmethod
     def _get_if_controller(condition):
         controller = etree.Element("IfController", guiclass="IfControllerPanel", testclass="IfController",

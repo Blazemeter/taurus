@@ -830,6 +830,13 @@ class ScenarioExecutor(EngineModule):
 
         return self.__scenario
 
+    def get_scenario_by_name(self, name):
+        scenarios = self.engine.config.get("scenarios")
+        if name not in scenarios:
+            raise ValueError("Scenario not found in scenarios: %s" % name)
+        scenario = scenarios.get(name)
+        return Scenario(self.engine, scenario)
+
     def get_load(self):
         """
         Helper method to read load specification

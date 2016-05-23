@@ -16,7 +16,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.jmeter import JMeterExecutor, JTLErrorsReader, JTLReader
 from bzt.modules.jmeter import JMeterScenarioBuilder
 from bzt.six import etree, u
-from bzt.utils import EXE_SUFFIX
+from bzt.utils import EXE_SUFFIX, get_full_path
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul, RecordingHandler
 
@@ -1414,6 +1414,146 @@ class TestJMeterExecutor(BZTestCase):
         self.obj.execution = self.obj.engine.config['execution']
         res_files = self.obj.resource_files()
         self.assertEqual(len(res_files), 1)
+
+    def test_request_logic_include(self):
+        self.obj.engine.config.merge({
+            'scenarios': {
+                'login': {
+                    'requests': ['http://example.com/login'],
+                }
+            },
+            'execution': {
+                'scenario': {
+                    "requests": [
+                        {
+                            "include-scenario": "login",
+                        }
+                    ],
+                }
+            },
+            "provisioning": "local",
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
+        controller = xml_tree.find(".//GenericController")
+        self.assertIsNotNone(controller)
+        self.assertEqual(controller.get('testname'), "login")
+        ht = controller.getnext()
+        sampler = ht.find('HTTPSamplerProxy')
+        self.assertIsNotNone(sampler)
+        domain = sampler.find('stringProp[@name="HTTPSampler.domain"]')
+        self.assertEqual(domain.text, "example.com")
+        path = sampler.find('stringProp[@name="HTTPSampler.path"]')
+        self.assertEqual(path.text, "/login")
+
+    def test_request_logic_include_resources(self):
+        self.obj.engine.config.merge({
+            'scenarios': {
+                'login': {
+                    'data-sources': [__dir__() + "/../data/test1.csv"],
+                    'requests': [{
+                        "url": "http://demo.blazemeter.com/",
+                        "method": "POST",
+                        "body-file": __dir__() + "/../jmeter/jmx/dummy.jmx",
+                    }],
+                }
+            },
+            'execution': {
+                'scenario': {
+                    'data-sources': [__dir__() + "/../data/test2.csv"],
+                    "requests": [
+                        {
+                            "include-scenario": "login",
+                        },
+                    ],
+                }
+            },
+            "provisioning": "local",
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        res_files = self.obj.resource_files()
+        self.assertEqual(len(res_files), 3)
+
+    def test_logic_include_data_sources(self):
+        self.obj.engine.config.merge({
+            'scenarios': {
+                'login': {
+                    'data-sources': [__dir__() + "/../data/test1.csv"],
+                    'requests': ['http://blazedemo.com/auth/${test1}'],
+                }
+            },
+            'execution': {
+                'scenario': {
+                    "data-sources": [__dir__() + "/../data/test2.csv"],
+                    "requests": [
+                        {"include-scenario": "login"},
+                        "http://example.com/${test2}",
+                    ],
+                }
+            },
+            "provisioning": "local",
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
+        thread_group = xml_tree.find('.//hashTree[@type="tg"]')
+        scenario_dataset = xml_tree.find('.//hashTree[@type="tg"]/CSVDataSet')
+        self.assertIsNotNone(scenario_dataset)
+        filename = scenario_dataset.find('stringProp[@name="filename"]')
+        self.assertEqual(filename.text, get_full_path(__dir__() + "/../data/test2.csv"))
+        login_controler = thread_group.find('GenericController')
+        self.assertIsNotNone(login_controler)
+        login_ht = login_controler.getnext()
+        login_dataset = login_ht.find('CSVDataSet')
+        self.assertIsNotNone(login_dataset)
+        filename = scenario_dataset.find('stringProp[@name="filename"]')
+        self.assertEqual(filename.text, get_full_path(__dir__() + "/../data/test2.csv"))
+
+    def test_include_recursion(self):
+        self.obj.engine.config.merge({
+            'scenarios': {
+                'a': {
+                    'requests': [{
+                        "include-scenario": "b",
+                    }],
+                },
+                'b': {
+                    'requests': [{
+                        "include-scenario": "a",
+                    }],
+                }
+            },
+            'execution': {
+                'scenario': 'a',
+            },
+            "provisioning": "local",
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        self.assertRaises(ValueError, self.obj.prepare)
+
+    def test_include_sources_recursion(self):
+        self.obj.engine.config.merge({
+            'scenarios': {
+                'a': {
+                    'requests': [{
+                        "include-scenario": "b",
+                    }],
+                },
+                'b': {
+                    'requests': [{
+                        "include-scenario": "a",
+                    }],
+                }
+            },
+            'execution': {
+                'scenario': 'a',
+            },
+            "provisioning": "local",
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        self.assertRaises(ValueError, self.obj.resource_files)
+
 
 
 class TestJMX(BZTestCase):
