@@ -1,5 +1,5 @@
 """
-Implementations for `Provisioning` classes
+Implementations for small services
 
 Copyright 2015 BlazeMeter Inc.
 
