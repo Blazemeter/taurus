@@ -16,7 +16,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.jmeter import JMeterExecutor, JTLErrorsReader, JTLReader
 from bzt.modules.jmeter import JMeterScenarioBuilder
 from bzt.six import etree, u
-from bzt.utils import EXE_SUFFIX
+from bzt.utils import EXE_SUFFIX, get_full_path
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul, RecordingHandler
 
@@ -966,20 +966,6 @@ class TestJMeterExecutor(BZTestCase):
         self.obj.post_process()
         self.assertIn("-Xmx2G", str(stdout))
 
-    def test_jvm_heap_default_value(self):
-        self.obj.engine.config.merge({'execution': {'iterations': 1,
-                                               'scenario': {'script': __dir__() + '/../jmeter/jmx/http.jmx'}}})
-        self.obj.engine.config.merge({"provisioning": "local"})
-        self.obj.execution = self.obj.engine.config['execution']
-        self.obj.settings.merge(self.obj.engine.config.get("modules").get("jmeter"))
-        self.obj.prepare()
-        self.obj._env['TEST_MODE'] = 'heap'
-        self.obj.startup()
-        stdout, _ = self.obj.process.communicate()
-        self.obj.shutdown()
-        self.obj.post_process()
-        self.assertIn("-Xmx", str(stdout))
-
     def test_data_sources_in_artifacts(self):
         self.obj.engine.config.merge({'execution': {'iterations': 1,
                                                'scenario': {'data-sources': ['test1.csv'],
@@ -1054,6 +1040,521 @@ class TestJMeterExecutor(BZTestCase):
         for orig, modified in zip(original_paths, prepared_paths):
             self.assertNotEqual(orig, modified)
             self.assertEqual(os.path.basename(orig), os.path.basename(modified))
+
+    def test_request_logic_if(self):
+        self.obj.engine.config.merge({
+            'execution': {
+                'scenario': {
+                    "requests": [
+                        {
+                            "if": "<cond>",
+                            "then": [
+                                "http://blazedemo.com/",
+                            ],
+                        }
+                    ],
+                }
+            },
+        })
+        self.obj.engine.config.merge({"provisioning": "local"})
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.settings.merge(self.obj.engine.config.get("modules").get("jmeter"))
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        if_controller = xml_tree.find(".//IfController")
+        self.assertIsNotNone(if_controller)
+        condition = xml_tree.find(".//IfController/stringProp[@name='IfController.condition']")
+        self.assertIsNotNone(condition)
+        self.assertEqual(condition.text, "<cond>")
+
+    def test_request_logic_if_else(self):
+        self.obj.engine.config.merge({
+            'execution': {
+                'scenario': {
+                    "requests": [
+                        {
+                            "if": "<cond>",
+                            "then": [
+                                "http://blazedemo.com/",
+                            ],
+                            "else": [
+                                "http://demo.blazemeter.com/",
+                            ]
+                        }
+                    ],
+                }
+            },
+        })
+        self.obj.engine.config.merge({"provisioning": "local"})
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.settings.merge(self.obj.engine.config.get("modules").get("jmeter"))
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        ifs = xml_tree.findall(".//IfController")
+        self.assertEqual(2, len(ifs))
+        conditions = xml_tree.findall(".//IfController/stringProp[@name='IfController.condition']")
+        self.assertEqual(2, len(conditions))
+        self.assertEqual(conditions[0].text, "<cond>")
+        self.assertEqual(conditions[1].text, "!(<cond>)")
+
+    def test_request_logic_nested_if(self):
+        self.obj.engine.config.merge({
+            'execution': {
+                'scenario': {
+                    "requests": [
+                        {
+                            "if": "<cond1>",
+                            "then": [
+                                "http://blazedemo.com/",
+                                {
+                                    "if": "<cond2>",
+                                    "then": [
+                                        "http://demo.blazemeter.com/"
+                                    ]
+                                },
+                            ],
+                        }
+                    ],
+                }
+            },
+        })
+        self.obj.engine.config.merge({"provisioning": "local"})
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.settings.merge(self.obj.engine.config.get("modules").get("jmeter"))
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        ifs = xml_tree.findall(".//IfController")
+        self.assertEqual(2, len(ifs))
+        conditions = xml_tree.findall(".//IfController/stringProp[@name='IfController.condition']")
+        self.assertEqual(2, len(conditions))
+        self.assertEqual(conditions[0].text, "<cond1>")
+        self.assertEqual(conditions[1].text, "<cond2>")
+
+    def test_resource_files_nested_requests(self):
+        self.obj.engine.config.merge({
+            'execution': {
+                'scenario': {
+                    "data-sources": [__dir__() + "/../data/test1.csv"],
+                    "requests": [
+                        {
+                            "if": "<cond1>",
+                            "then": [
+                                {
+                                    "if": "<cond2>",
+                                    "then": [
+                                        {
+                                            "url": "http://demo.blazemeter.com/",
+                                            "method": "POST",
+                                            "body-file": __dir__() + "/../jmeter/jmx/dummy.jmx",
+                                        }
+                                    ]
+                                },
+                            ],
+                        }
+                    ],
+                }
+            },
+        })
+        self.obj.engine.config.merge({"provisioning": "local"})
+        self.obj.execution = self.obj.engine.config['execution']
+        res_files = self.obj.resource_files()
+        self.assertEqual(len(res_files), 2)
+
+    def test_request_logic_loop(self):
+        self.obj.engine.config.merge({
+            'execution': {
+                'scenario': {
+                    "requests": [
+                        {
+                            "loop": 10,
+                            "do": [
+                                "http://blazedemo.com/",
+                            ],
+                        }
+                    ],
+                }
+            },
+        })
+        self.obj.engine.config.merge({"provisioning": "local"})
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.settings.merge(self.obj.engine.config.get("modules").get("jmeter"))
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        controller = xml_tree.find(".//LoopController")
+        self.assertIsNotNone(controller)
+        loops = xml_tree.find(".//LoopController/stringProp[@name='LoopController.loops']")
+        self.assertEqual(loops.text, "10")
+        forever = xml_tree.find(".//LoopController/boolProp[@name='LoopController.continue_forever']")
+        self.assertEqual(forever.text, "false")
+
+    def test_request_logic_loop_forever(self):
+        self.obj.engine.config.merge({
+            'execution': {
+                'scenario': {
+                    "requests": [
+                        {
+                            "loop": "forever",
+                            "do": [
+                                "http://blazedemo.com/",
+                            ],
+                        }
+                    ],
+                }
+            },
+        })
+        self.obj.engine.config.merge({"provisioning": "local"})
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.settings.merge(self.obj.engine.config.get("modules").get("jmeter"))
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        controller = xml_tree.find(".//LoopController")
+        self.assertIsNotNone(controller)
+        forever = xml_tree.find(".//LoopController/boolProp[@name='LoopController.continue_forever']")
+        self.assertEqual(forever.text, "true")
+        loops = xml_tree.find(".//LoopController/stringProp[@name='LoopController.loops']")
+        self.assertEqual(loops.text, "-1")
+
+    def test_request_logic_loop_invalid(self):
+        self.obj.engine.config.merge({
+            'execution': {
+                'scenario': {
+                    "requests": [
+                        {
+                            "loop": 100,
+                        }
+                    ],
+                }
+            },
+            "provisioning": "local",
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        self.assertRaises(ValueError, self.obj.prepare)
+
+    def test_resource_files_loops(self):
+        self.obj.engine.config.merge({
+            'execution': {
+                'scenario': {
+                    "requests": [
+                        {
+                            "loop": 100,
+                            "do": [
+                                {
+                                    "url": "http://demo.blazemeter.com/",
+                                    "method": "POST",
+                                    "body-file": __dir__() + "/../jmeter/jmx/dummy.jmx",
+                                },
+                            ],
+                        }
+                    ],
+                }
+            },
+        })
+        self.obj.engine.config.merge({"provisioning": "local"})
+        self.obj.execution = self.obj.engine.config['execution']
+        res_files = self.obj.resource_files()
+        self.assertEqual(len(res_files), 1)
+
+    def test_request_logic_while(self):
+        self.obj.engine.config.merge({
+            'execution': {
+                'scenario': {
+                    "requests": [
+                        {
+                            "while": "<cond>",
+                            "do": [
+                                "http://blazedemo.com/",
+                            ],
+                        }
+                    ],
+                }
+            },
+        })
+        self.obj.engine.config.merge({"provisioning": "local"})
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.settings.merge(self.obj.engine.config.get("modules").get("jmeter"))
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        if_controller = xml_tree.find(".//WhileController")
+        self.assertIsNotNone(if_controller)
+        condition = xml_tree.find(".//WhileController/stringProp[@name='WhileController.condition']")
+        self.assertIsNotNone(condition)
+        self.assertEqual(condition.text, "<cond>")
+
+    def test_request_logic_while_invalid(self):
+        self.obj.engine.config.merge({
+            'execution': {
+                'scenario': {
+                    "requests": [
+                        {
+                            "while": "<cond>",
+                        }
+                    ],
+                }
+            },
+            "provisioning": "local",
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        self.assertRaises(ValueError, self.obj.prepare)
+
+    def test_request_logic_while_resources(self):
+        self.obj.engine.config.merge({
+            'execution': {
+                'scenario': {
+                    "requests": [
+                        {
+                            "while": "<cond>",
+                            "do": [
+                                {
+                                    "url": "http://demo.blazemeter.com/",
+                                    "method": "POST",
+                                    "body-file": __dir__() + "/../jmeter/jmx/dummy.jmx",
+                                }
+                            ],
+                        }
+                    ],
+                }
+            },
+        })
+        self.obj.engine.config.merge({"provisioning": "local"})
+        self.obj.execution = self.obj.engine.config['execution']
+        res_files = self.obj.resource_files()
+        self.assertEqual(len(res_files), 1)
+
+    def test_request_logic_foreach(self):
+        self.obj.engine.config.merge({
+            'execution': {
+                'scenario': {
+                    "requests": [
+                        {
+                            "foreach": "name in usernames",
+                            "do": [
+                                "http://site.com/users/${name}",
+                            ],
+                        }
+                    ],
+                }
+            },
+            "provisioning": "local",
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        self.assertIsNotNone(xml_tree.find(".//ForeachController"))
+        input = xml_tree.find(".//ForeachController/stringProp[@name='ForeachController.inputVal']")
+        self.assertEqual(input.text, "usernames")
+        loop_var = xml_tree.find(".//ForeachController/stringProp[@name='ForeachController.returnVal']")
+        self.assertEqual(loop_var.text, "name")
+
+    def test_request_logic_foreach_resources(self):
+        self.obj.engine.config.merge({
+            'execution': {
+                'scenario': {
+                    "requests": [
+                        {
+                            "foreach": "item in coll",
+                            "do": [
+                                {
+                                    "url": "http://${item}.blazemeter.com/",
+                                    "method": "POST",
+                                    "body-file": __dir__() + "/../jmeter/jmx/dummy.jmx",
+                                }
+                            ],
+                        }
+                    ],
+                }
+            },
+            "provisioning": "local",
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        res_files = self.obj.resource_files()
+        self.assertEqual(len(res_files), 1)
+
+    def test_request_logic_transaction(self):
+        self.obj.engine.config.merge({
+            'execution': {
+                'scenario': {
+                    "requests": [
+                        {
+                            "transaction": "API",
+                            "do": [
+                                "http://blazedemo.com/",
+                                "http://blazedemo.com/reserve.php",
+                            ],
+                        }
+                    ],
+                }
+            },
+            "provisioning": "local",
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
+        controller = xml_tree.find(".//TransactionController")
+        self.assertIsNotNone(controller)
+        self.assertEqual(controller.get('testname'), "API")
+
+    def test_request_logic_transaction_resources(self):
+        self.obj.engine.config.merge({
+            'execution': {
+                'scenario': {
+                    "requests": [
+                        {
+                            "transaction": "API",
+                            "do": [{
+                                    "url": "http://demo.blazemeter.com/",
+                                    "method": "POST",
+                                    "body-file": __dir__() + "/../jmeter/jmx/dummy.jmx",
+                            }],
+                        }
+                    ],
+                }
+            },
+            "provisioning": "local",
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        res_files = self.obj.resource_files()
+        self.assertEqual(len(res_files), 1)
+
+    def test_request_logic_include(self):
+        self.obj.engine.config.merge({
+            'scenarios': {
+                'login': {
+                    'requests': ['http://example.com/login'],
+                }
+            },
+            'execution': {
+                'scenario': {
+                    "requests": [
+                        {
+                            "include-scenario": "login",
+                        }
+                    ],
+                }
+            },
+            "provisioning": "local",
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
+        controller = xml_tree.find(".//GenericController")
+        self.assertIsNotNone(controller)
+        self.assertEqual(controller.get('testname'), "login")
+        ht = controller.getnext()
+        sampler = ht.find('HTTPSamplerProxy')
+        self.assertIsNotNone(sampler)
+        domain = sampler.find('stringProp[@name="HTTPSampler.domain"]')
+        self.assertEqual(domain.text, "example.com")
+        path = sampler.find('stringProp[@name="HTTPSampler.path"]')
+        self.assertEqual(path.text, "/login")
+
+    def test_request_logic_include_resources(self):
+        self.obj.engine.config.merge({
+            'scenarios': {
+                'login': {
+                    'data-sources': [__dir__() + "/../data/test1.csv"],
+                    'requests': [{
+                        "url": "http://demo.blazemeter.com/",
+                        "method": "POST",
+                        "body-file": __dir__() + "/../jmeter/jmx/dummy.jmx",
+                    }],
+                }
+            },
+            'execution': {
+                'scenario': {
+                    'data-sources': [__dir__() + "/../data/test2.csv"],
+                    "requests": [
+                        {
+                            "include-scenario": "login",
+                        },
+                    ],
+                }
+            },
+            "provisioning": "local",
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        res_files = self.obj.resource_files()
+        self.assertEqual(len(res_files), 3)
+
+    def test_logic_include_data_sources(self):
+        self.obj.engine.config.merge({
+            'scenarios': {
+                'login': {
+                    'data-sources': [__dir__() + "/../data/test1.csv"],
+                    'requests': ['http://blazedemo.com/auth/${test1}'],
+                }
+            },
+            'execution': {
+                'scenario': {
+                    "data-sources": [__dir__() + "/../data/test2.csv"],
+                    "requests": [
+                        {"include-scenario": "login"},
+                        "http://example.com/${test2}",
+                    ],
+                }
+            },
+            "provisioning": "local",
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
+        thread_group = xml_tree.find('.//hashTree[@type="tg"]')
+        scenario_dataset = xml_tree.find('.//hashTree[@type="tg"]/CSVDataSet')
+        self.assertIsNotNone(scenario_dataset)
+        filename = scenario_dataset.find('stringProp[@name="filename"]')
+        self.assertEqual(filename.text, get_full_path(__dir__() + "/../data/test2.csv"))
+        login_controler = thread_group.find('GenericController')
+        self.assertIsNotNone(login_controler)
+        login_ht = login_controler.getnext()
+        login_dataset = login_ht.find('CSVDataSet')
+        self.assertIsNotNone(login_dataset)
+        filename = scenario_dataset.find('stringProp[@name="filename"]')
+        self.assertEqual(filename.text, get_full_path(__dir__() + "/../data/test2.csv"))
+
+    def test_include_recursion(self):
+        self.obj.engine.config.merge({
+            'scenarios': {
+                'a': {
+                    'requests': [{
+                        "include-scenario": "b",
+                    }],
+                },
+                'b': {
+                    'requests': [{
+                        "include-scenario": "a",
+                    }],
+                }
+            },
+            'execution': {
+                'scenario': 'a',
+            },
+            "provisioning": "local",
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        self.assertRaises(ValueError, self.obj.prepare)
+
+    def test_include_sources_recursion(self):
+        self.obj.engine.config.merge({
+            'scenarios': {
+                'a': {
+                    'requests': [{
+                        "include-scenario": "b",
+                    }],
+                },
+                'b': {
+                    'requests': [{
+                        "include-scenario": "a",
+                    }],
+                }
+            },
+            'execution': {
+                'scenario': 'a',
+            },
+            "provisioning": "local",
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        self.assertRaises(ValueError, self.obj.resource_files)
+
+
 
 class TestJMX(BZTestCase):
     def test_jmx_unicode_checkmark(self):

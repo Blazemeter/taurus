@@ -908,3 +908,54 @@ class JMX(object):
                                  guiclass="ViewResultsFullVisualizer")
         self.append(self.TEST_PLAN_SEL, dbg_tree)
         self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
+
+    def _get_results_tree(self):
+        dbg_tree = etree.Element("ResultCollector",
+                                 testname="View Results Tree",
+                                 testclass="ResultCollector",
+                                 guiclass="ViewResultsFullVisualizer")
+        return dbg_tree
+
+    @staticmethod
+    def _get_if_controller(condition):
+        controller = etree.Element("IfController", guiclass="IfControllerPanel", testclass="IfController",
+                                   testname="If Controller")
+        controller.append(JMX._string_prop("IfController.condition", condition))
+        return controller
+
+    @staticmethod
+    def _get_loop_controller(loops):
+        loop_forever = loops == 'forever'
+        if loop_forever:
+            iterations = -1
+        else:
+            iterations = loops
+        controller = etree.Element("LoopController", guiclass="LoopControllerPanel", testclass="LoopController",
+                                   testname="Loop Controller")
+        controller.append(JMX._bool_prop("LoopController.continue_forever", loop_forever))
+        controller.append(JMX._string_prop("LoopController.loops", str(iterations)))
+        return controller
+
+    @staticmethod
+    def _get_foreach_controller(input_var, loop_var):
+        # TODO: useSeparator option
+        controller = etree.Element("ForeachController", guiclass="ForeachControlPanel", testclass="ForeachController",
+                                   testname="ForEach Controller")
+        controller.append(JMX._string_prop("ForeachController.inputVal", input_var))
+        controller.append(JMX._string_prop("ForeachController.returnVal", loop_var))
+        controller.append(JMX._bool_prop("ForeachController.useSeparator", True))
+        return controller
+
+    @staticmethod
+    def _get_while_controller(condition):
+        controller = etree.Element("WhileController", guiclass="WhileControllerGui", testclass="WhileController",
+                                   testname="While Controller")
+        controller.append(JMX._string_prop("WhileController.condition", condition))
+        return controller
+
+    @staticmethod
+    def _get_transaction_controller(transaction_name):
+        controller = etree.Element("TransactionController", guiclass="TransactionControllerGui",
+                                   testclass="TransactionController", testname=transaction_name)
+        controller.append(JMX._bool_prop("TransactionController.parent", True))
+        return controller
