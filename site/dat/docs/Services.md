@@ -252,3 +252,17 @@ services:
     threshold: 90
     timeframe: 5s
 ```
+
+### Unpacker
+
+You can ask to unzip some of your files into artifacts directory before test start (only zip format are supported). It's easy with `unpacker` service:
+   
+```yaml
+---
+services:
+- module: unpacker
+  files:
+  - c:\tmp.zip
+  - /home/user/temp.zip
+```  
+ 

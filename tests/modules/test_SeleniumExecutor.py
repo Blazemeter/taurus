@@ -320,7 +320,7 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
         obj.execution = obj.engine.config['execution']
         obj.settings.merge(obj.engine.config.get("modules").get("selenium"))
 
-        self.assertEqual(len(obj.resource_files()), 2)
+        self.assertEqual(len(obj.resource_files()), 1)
 
     def test_resource_files_collection_remote_jar(self):
         obj = self.get_selenium_executor()
@@ -335,7 +335,7 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
         obj.execution = obj.engine.config['execution']
         obj.settings.merge(obj.engine.config.get("modules").get("selenium"))
 
-        self.assertEqual(len(obj.resource_files()), 2)
+        self.assertEqual(len(obj.resource_files()), 1)
 
 
 class TestSeleniumNoseRunner(BZTestCase):
@@ -455,7 +455,7 @@ class TestSeleniumNoseRunner(BZTestCase):
         obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/python/"}})
         obj.settings.merge(obj.engine.config.get("modules").get("selenium"))
 
-        self.assertEqual(len(obj.resource_files()), 2)
+        self.assertEqual(len(obj.resource_files()), 1)
 
 
 class TestSeleniumStuff(SeleniumTestCase):

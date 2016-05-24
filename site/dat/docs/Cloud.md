@@ -19,6 +19,8 @@ modules:
     browser-open: start  # auto-open browser on test start/end/both/none
 ```
 
+All folders among your resource files (scripts) will be packed automatically before sending and unpacked on cloud workers with `unpacker` service.  
+
 ## Load Settings for Cloud
 
 By default, cloud-provisioned execution will read `concurrency` and `throughput` options normally. There's a notation that allows configuring values for `local` and `cloud` at once, to remove the need to edit load settings when switching `provisioning` during test debugging from `local` to `cloud` and back:

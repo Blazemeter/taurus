@@ -34,10 +34,10 @@ from yaml.representer import SafeRepresenter
 
 import bzt
 from bzt import ManualShutdown, NormalShutdown, get_configs_dir
-from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, build_opener, \
-    install_opener, urlopen, request, numeric_types, iteritems
-from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, PIPE, \
-    shell_exec
+from bzt.six import build_opener, install_opener, urlopen, request, numeric_types, iteritems
+from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler
+from bzt.utils import PIPE, shell_exec
+from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time
 
 SETTINGS = "settings"
 
@@ -369,13 +369,13 @@ class Engine(object):
 
     def find_file(self, filename):
         """
-        Try to find file in search_path if it was specified. Helps finding files
+        Try to find file or dir in search_path if it was specified. Helps finding files
         in non-CLI environments or relative to config path
         :param filename: file basename to find
         :type filename: str
         """
         filename = os.path.expanduser(filename)
-        if os.path.isfile(filename):
+        if os.path.exists(filename):
             return filename
         elif filename.lower().startswith("http://") or filename.lower().startswith("https://"):
             parsed_url = parse.urlparse(filename)
@@ -394,11 +394,11 @@ class Engine(object):
         elif self.file_search_paths:
             for dirname in self.file_search_paths:
                 location = os.path.join(dirname, os.path.basename(filename))
-                if os.path.isfile(location):
-                    self.log.warning("Guessed location from search paths for file %s: %s", filename, location)
+                if os.path.exists(location):
+                    self.log.warning("Guessed location from search paths for %s: %s", filename, location)
                     return location
 
-        self.log.warning("Could not find file at path: %s", filename)
+        self.log.warning("Could not find location at path: %s", filename)
         return filename
 
     def _load_base_configs(self):
@@ -532,7 +532,7 @@ class Engine(object):
 
             except BaseException:
                 self.log.debug("Failed to check for updates: %s", traceback.format_exc())
-                self.log.debug("Failed to check for updates")
+                self.log.warning("Failed to check for updates")
 
     def _load_included_configs(self):
         for config in self.config.get("included-configs", []):
@@ -884,12 +884,10 @@ class ScenarioExecutor(EngineModule):
                    duration=duration, steps=steps)
 
     def get_resource_files(self):
-        """
-        Return resource files list
-        """
         files_list = self.execution.get("files", [])
         if isinstance(self, FileLister):
             files_list.extend(self.resource_files())
+
         return files_list
 
     def __repr__(self):

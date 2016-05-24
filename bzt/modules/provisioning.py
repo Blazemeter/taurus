@@ -27,6 +27,7 @@ class Local(Provisioning):
     """
     Local provisioning means we start all the tools locally
     """
+
     def _get_start_shift(self, shift):
         if shift == '':
             return 0
@@ -54,9 +55,6 @@ class Local(Provisioning):
         return 0
 
     def prepare(self):
-        """
-        Call prepare on executors
-        """
         super(Local, self).prepare()
         for executor in self.executors:
             self.log.debug("Preparing executor: %s", executor)
