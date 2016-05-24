@@ -312,10 +312,11 @@ class BlazeMeterClient(object):
         if method:
             log_method = method
 
+        url = str(url)
         self.log.debug("Request: %s %s %s", log_method, url, data[:self.logger_limit] if data else None)
         # .encode("utf-8") is probably better
         data = data.encode() if isinstance(data, text_type) else data
-        req = Request(str(url), data, headers)
+        req = Request(url, data, headers)
         if method:
             req.get_method = lambda: method
 
