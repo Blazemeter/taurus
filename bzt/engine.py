@@ -24,7 +24,6 @@ import os
 import shutil
 import time
 import traceback
-import zipfile
 from abc import abstractmethod
 from collections import namedtuple, defaultdict
 from distutils.version import LooseVersion
@@ -37,8 +36,8 @@ import bzt
 from bzt import ManualShutdown, NormalShutdown, get_configs_dir
 from bzt.six import build_opener, install_opener, urlopen, request, numeric_types, iteritems
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler
-from bzt.utils import PIPE, shell_exec, get_files_recursive, get_full_path
-from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, replace_in_config
+from bzt.utils import PIPE, shell_exec
+from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time
 
 SETTINGS = "settings"
 

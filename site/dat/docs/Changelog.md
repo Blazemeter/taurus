@@ -8,6 +8,8 @@
  - don't trap KeyboardInterrupt in tool install
  - add [logic blocks](JMeter.md#Logic-Blocks) to `scenario.requests` syntax for JMeter
  - remove default xmx set for JMeter
+ - add zipping folders treatment for remote execution
+ - add check for resources overlap (data loss danger) for remote execution
 
 ## 1.5.0 <sup>4 may 2016</sup>
  - add [Tsung](Tsung.md) executor

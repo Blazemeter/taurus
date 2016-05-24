@@ -24,18 +24,19 @@ import sys
 import time
 import traceback
 import zipfile
-import yaml
 
+import yaml
 from urwid import Pile, Text
 
 from bzt import ManualShutdown
 from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service
-from bzt.six import BytesIO, text_type, iteritems, HTTPError, urlencode, Request, urlopen, r_input, URLError
-from bzt.utils import to_json, dehumanize_time, MultiPartForm, BetterDict
-from bzt.utils import open_browser, get_full_path, get_files_recursive, replace_in_config
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.jmeter import JMeterExecutor
+from bzt.modules.services import Unpacker
+from bzt.six import BytesIO, text_type, iteritems, HTTPError, urlencode, Request, urlopen, r_input, URLError
+from bzt.utils import open_browser, get_full_path, get_files_recursive, replace_in_config
+from bzt.utils import to_json, dehumanize_time, MultiPartForm, BetterDict
 
 
 class BlazeMeterUploader(Reporter, AggregatorListener):
@@ -824,13 +825,12 @@ class MasterProvisioning(Provisioning):
                     message = 'Resource "%s" occurs more than one time, rename to avoid data loss' % base
                     raise ValueError(message)
 
-        prepared_files = self._pack_dirs(rfiles)
+        prepared_files = self.__pack_dirs(rfiles)
         replace_in_config(self.engine.config, rfiles, list(map(os.path.basename, prepared_files)), log=self.log)
 
         return prepared_files
 
-    def _pack_dirs(self, source_list):
-        from bzt.modules.services import Unpacker  # avoid cyclic dependency with services.py
+    def __pack_dirs(self, source_list):
         result_list = []  # files for upload
         packed_list = []  # files for unpacking
 

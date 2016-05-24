@@ -25,7 +25,7 @@ from bzt.utils import replace_in_config
 
 
 class Unpacker(Service):
-    UNPACK = 'unpack'
+    UNPACK = 'unpacker'
     FILES = 'files'
 
     def __init__(self):
