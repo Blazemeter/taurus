@@ -162,7 +162,7 @@ Reporter has two options:
 - `data-source` (which data source to use: `sample-labels` or `pass-fail`)
 
 If `sample-labels` used as source data, report will contain urls with test errors.
-If `pass-fail` used as source data, report will contain Pass/Fail criterias information.
+If `pass-fail` used as source data, report will contain [Pass/Fail](Services.md#Pass-Fail-Criteria) criteria information.
 
 Sample configuration:
 

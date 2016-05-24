@@ -126,7 +126,7 @@
   - added `steps` option to execution settings
   
 ## 0.2.20 <sup>5 jul 2015</sup>
-  - add `within` logic to timeframed pass-fail criterias
+  - add `within` logic to timeframed pass-fail criteria
   - added `use-dns-cache-mgr` option.
   - default-domain option renamed to default-address (scheme, hostname, port are now parsed from this option).
   
