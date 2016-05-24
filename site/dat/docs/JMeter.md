@@ -177,9 +177,14 @@ scenarios:
 
 Note that `timeout` also sets duration assertion that will mark response failed if response time was more than timeout.
 
-### HTTP Requests
+### Requests
 
-The base element for requests scenario is HTTP Request. In its simpliest form it contains just URL as string:
+Request objects can be of two kinds:
+1. Plain HTTP requests
+2. Logic blocks that allow user to control execution flow of test session.
+
+#### HTTP Requests
+The base element for requests scenario is HTTP Request. In its simplest form it contains just the URL as string:
 
 ```yaml
 ---
@@ -218,7 +223,7 @@ scenarios:
       assert: []  # explained below
 ```
 
-### Extractors
+##### Extractors
 
 Extractors are the objects that attached to request to take a piece of the response and use it in following requests.
 The concept is based on JMeter's extractors. The following types of extractors are supported:
@@ -283,7 +288,7 @@ scenarios:
           use-tolerant-parser: false
 ```
 
-### Assertions
+##### Assertions
 
 Assertions are attached to request elements and used to set fail status on the response. Fail status for the response is
 not the same as response code for JMeter.
@@ -383,7 +388,185 @@ scenarios:
 ```
 
 
-### JMeter Test Log
+#### Logic Blocks
+
+
+Taurus allows to control execution flow with the following constructs:
+- `if` blocks
+- `loop` blocks
+- `while` blocks
+- `foreach` blocks
+- `transaction` blocks
+- `include-scenario` blocks
+
+##### If Blocks
+
+`if` blocks allow conditional execution of HTTP requests.
+
+Each `if` block should contain a mandatory `then` field, and an optional `else` field. Both `then` and `else` fields
+should contain lists of requests.
+
+Here's a simple example:
+
+```yaml
+scenario:
+  variables:
+    searchEngine: google
+  requests:
+  - if: '"${searchEngine}" == "google"'
+    then:
+      - https://google.com/
+    else:
+      - https://bing.com/
+```
+
+Note that Taurus compiles `if` blocks to JMeter's `If Controllers`, so `<condition>` must be in JMeter's format.
+
+
+Logic blocks can also be nested:
+
+```yaml
+scenario:
+  requests:
+  - if: <condition1>
+    then:
+    - if: <condition2>
+      then:
+      - https://google.com/
+      else:
+      - https://yahoo.com/
+    else:
+    - https://bing.com/
+```
+
+And here's the real-world example of using `if` blocks:
+
+```yaml
+scenario:
+  requests:
+  # first request is a plain HTTP request that sets `status_code`
+  # and `username` variables
+  - url: https://api.example.com/v1/media/search
+    extract-jsonpath:
+      status_code: $.meta.code
+      username: $.data.[0].user.username
+
+  # branch on `status_code` value
+  - if: '"${status_code}" == "200"'
+    then:
+      - https://example.com/${username}
+```
+
+##### Loop Blocks
+
+`loop` blocks allow repeated execution of requests. Nested requests are to be specified with `do` field.
+
+```yaml
+scenario:
+  requests:
+  - loop: 10
+    do:
+    - http://blazedemo.com/
+```
+
+If you want to loop requests forever, you can specify string `forever` as `loop` value.
+```yaml
+scenario:
+  requests:
+  - loop: forever
+    do:
+    - http://blazedemo.com/
+```
+
+Note that `loop` blocks correspond to JMeter's `Loop Controllers`.
+
+##### While Blocks
+
+`while` block is similar to `while` loops in many programming languages. It allows conditional repeated execution of
+requests. `while` blocks are compiled to JMeter's `While Controllers`.
+
+```yaml
+scenario:
+  requests:
+  - while: ${JMeterThread.last_sample_ok}
+    do:
+    - http://blazedemo.com/
+```
+
+##### Foreach Blocks
+
+`foreach` blocks allow you to iterate over a collection of values. They are compiled to JMeter `ForEach Controllers`.
+
+Syntax:
+```yaml
+requests:
+- foreach: <elementName> in <collection>
+  do:
+  - http://${elementName}/
+```
+
+Concrete example:
+```yaml
+scenario:
+  requests:
+  - url: https://api.example.com/v1/media/search
+    extract-jsonpath:
+      usernames: $.data.[:100].user.username  # grab first 100 usernames
+  - foreach: name in usernames
+    do:
+    - https://example.com/user/${name}
+```
+
+##### Transaction Blocks
+
+`transaction` blocks allow wrapping http requests in a transaction. `transaction` blocks correspond to JMeter's
+`Transaction Controllers`.
+
+Example:
+```yaml
+scenario:
+  requests:
+  - transaction: Customer Session
+    do:
+    - http://example.com/shop
+    - http://example.com/shop/items/1
+    - http://example.com/shop/items/2
+    - http://example.com/card
+    - http://example.com/checkout
+```
+
+##### Include Scenario blocks
+`include-scenario` blocks allows you to include scenario in another one. You can use it to split your test plan into
+a few of independent scenarios that can be reused.
+
+Example:
+```yaml
+scenarios:
+  login:
+    data-sources:
+    - logins.csv
+    requests:
+    - url: http://example.com/login
+      method: POST
+      body:
+        user: ${username}
+        password: ${password}
+  logout:
+    requests:
+    - url: http://example.com/logout
+      method: POST
+   shop-session:
+     requests:
+     - include-scenario: login
+     - http://example.com/shop/items/1
+     - http://example.com/checkout
+     - include-scenario: logout
+```
+
+Taurus translates each `include-scenario` block to a JMeter's `Simple Controller` and puts all scenario-level
+settings and requests there.
+
+## JMeter Test Log
 You can tune JTL file verbosity with option `write-xml-jtl`. Possible values are 'error' (default), 'full', or any other value for 'none'. Keep in mind: max verbosity can seriously load your system.
 ```yaml
 ---
@@ -396,8 +579,8 @@ execution
 
 ## JMeter JVM Memory Limit
 
-By default Taurus will allow JMeter to use up to 50% of your RAM. You can tweak JMeter's memory limit with `memory-xmx`
-option. Use `K`, `M` or `G` suffixes to specify memory limit in kilobytes, megabytes or gigabytes.
+You can tweak JMeter's memory limit (aka, `-Xmx` JVM option) with `memory-xmx` setting.
+Use `K`, `M` or `G` suffixes to specify memory limit in kilobytes, megabytes or gigabytes.
 
 Example:
 ```yaml

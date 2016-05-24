@@ -29,7 +29,6 @@ from collections import Counter, namedtuple
 from distutils.version import LooseVersion
 from math import ceil
 
-import psutil
 from cssselect import GenericTranslator
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
@@ -37,7 +36,8 @@ from bzt.jmx import JMX
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.modules.provisioning import Local
-from bzt.six import iteritems, string_types, StringIO, request, etree, binary_type
+from bzt.six import iteritems, string_types, StringIO, etree, binary_type
+from bzt.six import request as http_request
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager
 from bzt.utils import shell_exec, ensure_is_dict, dehumanize_time, BetterDict, guess_csv_dialect
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
@@ -76,6 +76,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.management_port = None
         self.reader = None
         self._env = {}
+        self.resource_files_collector = None
 
     def prepare(self):
         """
@@ -124,18 +125,11 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             JMeterExecutor.__write_props_to_file(sys_props_file, sys_props)
             self.sys_properties_file = sys_props_file
 
-    @staticmethod
-    def __calculate_default_heap_size():
-        memory = psutil.virtual_memory()
-        memory_mb = round(float(memory.total) / 1024 / 1024)
-        memory_limit = int(memory_mb * 0.5)
-        return "%dM" % memory_limit
-
     def __set_jvm_properties(self):
-        def_heap_size = JMeterExecutor.__calculate_default_heap_size()
-        heap_size = self.settings.get("memory-xmx", def_heap_size)
-        self.log.debug("Setting JVM heap size to %s", heap_size)
-        self._env["JVM_ARGS"] = "-Xmx%s" % heap_size
+        heap_size = self.settings.get("memory-xmx", None)
+        if heap_size is not None:
+            self.log.debug("Setting JVM heap size to %s", heap_size)
+            self._env["JVM_ARGS"] = "-Xmx%s" % heap_size
 
     def __set_jmeter_properties(self, scenario):
         props = self.settings.get("properties")
@@ -644,7 +638,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         resource_files = set()
         # get all resource files from requests
-        files_from_requests = self.__get_res_files_from_requests()
+        scenario = self.get_scenario()
+        self.resource_files_collector = ResourceFilesCollector(self)
+        files_from_requests = self.res_files_from_scenario(scenario)
 
         if not self.original_jmx:
             self.original_jmx = self.__get_script()
@@ -698,30 +694,25 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                     resource_files.append(resource_element.text)
         return resource_files
 
-    def __get_res_files_from_requests(self):
-        """
-        Get post-body files from requests
-        :return file list:
-        """
-        post_body_files = []
-        scenario = self.get_scenario()
+    def res_files_from_scenario(self, scenario):
+        files = []
         data_sources = scenario.data.get('data-sources')
         if data_sources:
             for data_source in data_sources:
                 if isinstance(data_source, string_types):
-                    post_body_files.append(data_source)
+                    files.append(data_source)
                 elif isinstance(data_source, dict):
-                    post_body_files.append(data_source['path'])
+                    files.append(data_source['path'])
+        requests_parser = RequestsParser(self.engine)
+        requests = requests_parser.extract_requests(scenario)
+        for req in requests:
+            files.extend(self.res_files_from_request(req))
+        return files
 
-        requests = scenario.data.get("requests")
-        if requests:
-            for req in requests:
-                if isinstance(req, dict):
-                    post_body_path = req.get('body-file')
-
-                    if post_body_path:
-                        post_body_files.append(post_body_path)
-        return post_body_files
+    def res_files_from_request(self, request):
+        if self.resource_files_collector is None:
+            self.resource_files_collector = ResourceFilesCollector(self)
+        return self.resource_files_collector.visit(request)
 
     def __get_script(self):
         """
@@ -1176,23 +1167,27 @@ class JMeterScenarioBuilder(JMX):
         super(JMeterScenarioBuilder, self).__init__(original)
         self.executor = executor
         self.scenario = executor.get_scenario()
+        self.engine = executor.engine
         self.system_props = BetterDict()
+        self.request_compiler = None
 
-    def __add_managers(self):
-        headers = self.scenario.get_headers()
+    def __gen_managers(self, scenario):
+        elements = []
+        headers = scenario.get_headers()
         if headers:
-            self.append(self.TEST_PLAN_SEL, self._get_header_mgr(headers))
-            self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
-        if self.scenario.get("store-cache", True):
-            self.append(self.TEST_PLAN_SEL, self._get_cache_mgr())
-            self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
-        if self.scenario.get("store-cookie", True):
-            self.append(self.TEST_PLAN_SEL, self._get_cookie_mgr())
-            self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
-        if self.scenario.get("use-dns-cache-mgr", True):
-            self.append(self.TEST_PLAN_SEL, self.get_dns_cache_mgr())
-            self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
+            elements.append(self._get_header_mgr(headers))
+            elements.append(etree.Element("hashTree"))
+        if scenario.get("store-cache", True):
+            elements.append(self._get_cache_mgr())
+            elements.append(etree.Element("hashTree"))
+        if scenario.get("store-cookie", True):
+            elements.append(self._get_cookie_mgr())
+            elements.append(etree.Element("hashTree"))
+        if scenario.get("use-dns-cache-mgr", True):
+            elements.append(self.get_dns_cache_mgr())
+            elements.append(etree.Element("hashTree"))
             self.system_props.merge({"system-properties": {"sun.net.inetaddr.ttl": 0}})
+        return elements
 
     @staticmethod
     def smart_time(any_time):
@@ -1203,16 +1198,17 @@ class JMeterScenarioBuilder(JMX):
 
         return smart_time
 
-    def __add_defaults(self):
-        default_address = self.scenario.get("default-address", None)
-        retrieve_resources = self.scenario.get("retrieve-resources", True)
-        concurrent_pool_size = self.scenario.get("concurrent-pool-size", 4)
+    def __gen_defaults(self, scenario):
+        default_address = scenario.get("default-address", None)
+        retrieve_resources = scenario.get("retrieve-resources", True)
+        concurrent_pool_size = scenario.get("concurrent-pool-size", 4)
 
-        timeout = self.scenario.get("timeout", None)
+        timeout = scenario.get("timeout", None)
         timeout = self.smart_time(timeout)
-        self.append(self.TEST_PLAN_SEL, self._get_http_defaults(default_address, timeout,
-                                                                retrieve_resources, concurrent_pool_size))
-        self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
+        elements = [self._get_http_defaults(default_address, timeout,
+                                            retrieve_resources, concurrent_pool_size),
+                    etree.Element("hashTree")]
+        return elements
 
     def __add_think_time(self, children, req):
         global_ttime = self.scenario.get("think-time", None)
@@ -1310,58 +1306,166 @@ class JMeterScenarioBuilder(JMX):
         else:
             return None
 
-    def __add_requests(self):
+    def __gen_requests(self, scenario):
+        requests_parser = RequestsParser(self.engine)
+        requests = list(requests_parser.extract_requests(scenario))
+        elements = []
+        for compiled in self.compile_requests(requests):
+            elements.extend(compiled)
+        return elements
+
+    def compile_scenario(self, scenario):
+        elements = []
+        elements.extend(self.__gen_managers(scenario))
+        elements.extend(self.__gen_defaults(scenario))
+        elements.extend(self.__gen_datasources(scenario))
+        elements.extend(self.__gen_requests(scenario))
+        return elements
+
+    def compile_http_request(self, request):
         global_timeout = self.scenario.get("timeout", None)
         global_keepalive = self.scenario.get("keepalive", True)
 
-        for req in self.scenario.get_requests():
-            if req.timeout is not None:
-                timeout = self.smart_time(req.timeout)
-            elif global_timeout is not None:
-                timeout = self.smart_time(global_timeout)
-            else:
-                timeout = None
+        if request.timeout is not None:
+            timeout = self.smart_time(request.timeout)
+        elif global_timeout is not None:
+            timeout = self.smart_time(global_timeout)
+        else:
+            timeout = None
 
-            if self._get_merged_ci_headers(req, 'content-type') == 'application/json' and isinstance(req.body, dict):
-                body = json.dumps(req.body)
-            else:
-                body = req.body
+        content_type = self._get_merged_ci_headers(request, 'content-type')
+        if content_type == 'application/json' and isinstance(request.body, dict):
+            body = json.dumps(request.body)
+        else:
+            body = request.body
 
-            http = JMX._get_http_request(req.url, req.label, req.method, timeout, body, global_keepalive)
+        http = JMX._get_http_request(request.url, request.label, request.method, timeout, body, global_keepalive)
 
-            self.append(self.THR_GROUP_SEL, http)
+        children = etree.Element("hashTree")
 
-            children = etree.Element("hashTree")
-            self.append(self.THR_GROUP_SEL, children)
-            if req.headers:
-                children.append(JMX._get_header_mgr(req.headers))
-                children.append(etree.Element("hashTree"))
+        if request.headers:
+            children.append(JMX._get_header_mgr(request.headers))
+            children.append(etree.Element("hashTree"))
 
-            self.__add_think_time(children, req)
+        self.__add_think_time(children, request)
 
-            self.__add_assertions(children, req)
+        self.__add_assertions(children, request)
 
-            if timeout is not None:
-                children.append(JMX._get_dur_assertion(timeout))
-                children.append(etree.Element("hashTree"))
+        if timeout is not None:
+            children.append(JMX._get_dur_assertion(timeout))
+            children.append(etree.Element("hashTree"))
 
-            self.__add_extractors(children, req)
+        self.__add_extractors(children, request)
+
+        return [http, children]
+
+    def compile_if_block(self, block):
+        elements = []
+
+        # TODO: pass jmeter IfController options
+        if_controller = JMX._get_if_controller(block.condition)
+        then_children = etree.Element("hashTree")
+        for compiled in self.compile_requests(block.then_clause):
+            for element in compiled:
+                then_children.append(element)
+        elements.extend([if_controller, then_children])
+
+        if block.else_clause:
+            inverted_condition = "!(" + block.condition + ")"
+            else_controller = JMX._get_if_controller(inverted_condition)
+            else_children = etree.Element("hashTree")
+            for compiled in self.compile_requests(block.else_clause):
+                for element in compiled:
+                    else_children.append(element)
+            elements.extend([else_controller, else_children])
+
+        return elements
+
+    def compile_loop_block(self, block):
+        elements = []
+
+        loop_controller = JMX._get_loop_controller(block.loops)
+        children = etree.Element("hashTree")
+        for compiled in self.compile_requests(block.requests):
+            for element in compiled:
+                children.append(element)
+        elements.extend([loop_controller, children])
+
+        return elements
+
+    def compile_while_block(self, block):
+        elements = []
+
+        controller = JMX._get_while_controller(block.condition)
+        children = etree.Element("hashTree")
+        for compiled in self.compile_requests(block.requests):
+            for element in compiled:
+                children.append(element)
+        elements.extend([controller, children])
+
+        return elements
+
+    def compile_foreach_block(self, block):
+        """
+        :type block: ForEachBlock
+        """
+
+        elements = []
+
+        controller = JMX._get_foreach_controller(block.input_var, block.loop_var)
+        children = etree.Element("hashTree")
+        for compiled in self.compile_requests(block.requests):
+            for element in compiled:
+                children.append(element)
+        elements.extend([controller, children])
+
+        return elements
+
+    def compile_transaction_block(self, block):
+        elements = []
+        controller = JMX._get_transaction_controller(block.name)
+        children = etree.Element("hashTree")
+        for compiled in self.compile_requests(block.requests):
+            for element in compiled:
+                children.append(element)
+        elements.extend([controller, children])
+        return elements
+
+    def compile_include_scenario_block(self, block):
+        elements = []
+        controller = JMX._get_simple_controller(block.scenario_name)
+        children = etree.Element("hashTree")
+        scenario = self.executor.get_scenario_by_name(block.scenario_name)
+        for element in self.compile_scenario(scenario):
+            children.append(element)
+        elements.extend([controller, children])
+        return elements
+
+    def compile_requests(self, requests):
+        if self.request_compiler is None:
+            self.request_compiler = RequestCompiler(self)
+        return [self.request_compiler.visit(request) for request in requests]
 
     def __generate(self):
         """
         Generate the test plan
         """
+
+        thread_group = self.get_thread_group(concurrency=1, rampup=0, iterations=-1)
+        thread_group_ht = etree.Element("hashTree", type="tg")
+
         # NOTE: set realistic dns-cache and JVM prop by default?
-        self.__add_managers()
-        self.__add_defaults()
-        self.__add_datasources()
+        self.request_compiler = RequestCompiler(self)
+        for element in self.compile_scenario(self.scenario):
+            thread_group_ht.append(element)
 
-        thread_group = self.get_thread_group(1, 0, -1)
+        results_tree = self._get_results_tree()
+        results_tree_ht = etree.Element("hashTree")
+
         self.append(self.TEST_PLAN_SEL, thread_group)
-        self.append(self.TEST_PLAN_SEL, etree.Element("hashTree", type="tg"))  # arbitrary trick with our own attribute
-
-        self.__add_requests()
-        self._add_results_tree()
+        self.append(self.TEST_PLAN_SEL, thread_group_ht)
+        self.append(self.TEST_PLAN_SEL, results_tree)
+        self.append(self.TEST_PLAN_SEL, results_tree_ht)
 
     def save(self, filename):
         """
@@ -1373,12 +1477,13 @@ class JMeterScenarioBuilder(JMX):
         self.__generate()
         super(JMeterScenarioBuilder, self).save(filename)
 
-    def __add_datasources(self):
-        sources = self.scenario.get("data-sources", [])
+    def __gen_datasources(self, scenario):
+        sources = scenario.get("data-sources", [])
         if not sources:
-            return
+            return []
         if not isinstance(sources, list):
             raise ValueError("data-sources is not a list")
+        elements = []
         for idx, source in enumerate(sources):
             source = ensure_is_dict(sources, idx, "path")
             source_path = self.executor.engine.find_file(source["path"])
@@ -1387,8 +1492,9 @@ class JMeterScenarioBuilder(JMX):
 
             config = JMX._get_csv_config(os.path.abspath(source_path), delimiter,
                                          source.get("quoted", False), source.get("loop", True))
-            self.append(self.TEST_PLAN_SEL, config)
-            self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
+            elements.append(config)
+            elements.append(etree.Element("hashTree"))
+        return elements
 
     def __guess_delimiter(self, path):
         with open(path) as fhd:
@@ -1458,7 +1564,7 @@ class JMeter(RequiredTool):
             plugin_dist = tempfile.NamedTemporaryFile(suffix=".zip", delete=False, prefix=plugin)
             plugin_download_link = self.plugin_link.format(plugin=plugin)
             self.log.info("Downloading %s", plugin_download_link)
-            downloader = request.FancyURLopener()
+            downloader = http_request.FancyURLopener()
             with ProgressBarContext() as pbar:
                 try:
                     downloader.retrieve(plugin_download_link, plugin_dist.name, pbar.download_callback)
@@ -1524,3 +1630,261 @@ class JMeterMirrorsManager(MirrorsManager):
             links.append(default_link)
         self.log.debug('Total mirrors: %d', len(links))
         return links
+
+
+class Request(object):
+    def __init__(self, config):
+        self.config = config
+
+
+class HTTPRequest(Request):
+    def __init__(self, url, label, method, headers, timeout, think_time, body, config):
+        super(HTTPRequest, self).__init__(config)
+        self.url = url
+        self.label = label
+        self.method = method
+        self.headers = headers
+        self.timeout = timeout
+        self.think_time = think_time
+        self.body = body
+
+    def __repr__(self):
+        return "HTTPRequest(url=%s, method=%s)" % (self.url, self.method)
+
+
+class IfBlock(Request):
+    def __init__(self, condition, then_clause, else_clause, config):
+        super(IfBlock, self).__init__(config)
+        self.condition = condition
+        self.then_clause = then_clause
+        self.else_clause = else_clause
+
+    def __repr__(self):
+        then_clause = [repr(req) for req in self.then_clause]
+        else_clause = [repr(req) for req in self.else_clause]
+        return "IfBlock(condition=%s, then=%s, else=%s)" % (self.condition, then_clause, else_clause)
+
+
+class LoopBlock(Request):
+    def __init__(self, loops, requests, config):
+        super(LoopBlock, self).__init__(config)
+        self.loops = loops
+        self.requests = requests
+
+    def __repr__(self):
+        requests = [repr(req) for req in self.requests]
+        return "LoopBlock(loops=%s, requests=%s)" % (self.loops, requests)
+
+
+class WhileBlock(Request):
+    def __init__(self, condition, requests, config):
+        super(WhileBlock, self).__init__(config)
+        self.condition = condition
+        self.requests = requests
+
+    def __repr__(self):
+        requests = [repr(req) for req in self.requests]
+        return "WhileBlock(condition=%s, requests=%s)" % (self.condition, requests)
+
+
+class ForEachBlock(Request):
+    def __init__(self, input_var, loop_var, requests, config):
+        super(ForEachBlock, self).__init__(config)
+        self.input_var = input_var
+        self.loop_var = loop_var
+        self.requests = requests
+
+    def __repr__(self):
+        requests = [repr(req) for req in self.requests]
+        fmt = "ForEachBlock(input=%s, loop_var=%s, requests=%s)"
+        return fmt % (self.input_var, self.loop_var, requests)
+
+
+class TransactionBlock(Request):
+    def __init__(self, name, requests, config):
+        super(TransactionBlock, self).__init__(config)
+        self.name = name
+        self.requests = requests
+
+    def __repr__(self):
+        requests = [repr(req) for req in self.requests]
+        fmt = "TransactionBlock(name=%s, requests=%s)"
+        return fmt % (self.name, requests)
+
+
+class IncludeScenarioBlock(Request):
+    def __init__(self, scenario_name, config):
+        super(IncludeScenarioBlock, self).__init__(config)
+        self.scenario_name = scenario_name
+
+
+class RequestsParser(object):
+    def __init__(self, engine):
+        self.engine = engine
+
+    def __parse_request(self, req):
+        if 'if' in req:
+            condition = req.get("if")
+            # TODO: apply some checks to `condition`?
+            then_clause = req.get("then", ValueError("'then' clause is mandatory for 'if' blocks"))
+            then_requests = self.__parse_requests(then_clause)
+            else_clause = req.get("else", [])
+            else_requests = self.__parse_requests(else_clause)
+            return IfBlock(condition, then_requests, else_requests, req)
+        elif 'loop' in req:
+            loops = req.get("loop")
+            do_block = req.get("do", ValueError("'do' option is mandatory for 'loop' blocks"))
+            do_requests = self.__parse_requests(do_block)
+            return LoopBlock(loops, do_requests, req)
+        elif 'while' in req:
+            condition = req.get("while")
+            do_block = req.get("do", ValueError("'do' option is mandatory for 'while' blocks"))
+            do_requests = self.__parse_requests(do_block)
+            return WhileBlock(condition, do_requests, req)
+        elif 'foreach' in req:
+            iteration_str = req.get("foreach")
+            match = re.match(r'(.+) in (.+)', iteration_str)
+            if not match:
+                raise ValueError("'foreach' value should be in format '<elementName> in <collection>'")
+            loop_var, input_var = match.groups()
+            do_block = req.get("do", ValueError("'do' field is mandatory for 'foreach' blocks"))
+            do_requests = self.__parse_requests(do_block)
+            return ForEachBlock(input_var, loop_var, do_requests, req)
+        elif 'transaction' in req:
+            name = req.get('transaction')
+            do_block = req.get('do', ValueError("'do' field is mandatory for transaction blocks"))
+            do_requests = self.__parse_requests(do_block)
+            return TransactionBlock(name, do_requests, req)
+        elif 'include-scenario' in req:
+            name = req.get('include-scenario')
+            return IncludeScenarioBlock(name, req)
+        else:
+            url = req.get("url", ValueError("Option 'url' is mandatory for request"))
+            label = req.get("label", url)
+            method = req.get("method", "GET")
+            headers = req.get("headers", {})
+            timeout = req.get("timeout", None)
+            think_time = req.get("think-time", None)
+
+            body = None
+            bodyfile = req.get("body-file", None)
+            if bodyfile:
+                bodyfile_path = self.engine.find_file(bodyfile)
+                with open(bodyfile_path) as fhd:
+                    body = fhd.read()
+            body = req.get("body", body)
+
+            return HTTPRequest(url, label, method, headers, timeout, think_time, body, req)
+
+    def __parse_requests(self, raw_requests):
+        requests = []
+        for key in range(len(raw_requests)):  # pylint: disable=consider-using-enumerate
+            if not isinstance(raw_requests[key], dict):
+                req = ensure_is_dict(raw_requests, key, "url")
+            else:
+                req = raw_requests[key]
+            requests.append(self.__parse_request(req))
+        return requests
+
+    def extract_requests(self, scenario):
+        requests = scenario.get("requests", [])
+        return list(self.__parse_requests(requests))
+
+
+class RequestVisitor(object):
+    def __init__(self):
+        self.path = []
+
+    def visit(self, node):
+        class_name = node.__class__.__name__.lower()
+        visitor = getattr(self, 'visit_' + class_name, None)
+        if visitor is not None:
+            return visitor(node)
+        raise ValueError("Visitor for class %s not found" % class_name)
+
+
+class ResourceFilesCollector(RequestVisitor):
+    def __init__(self, executor):
+        """
+        :param executor: JMeterExecutor
+        """
+        super(ResourceFilesCollector, self).__init__()
+        self.executor = executor
+
+    def visit_httprequest(self, request):
+        files = []
+        body_file = request.config.get('body-file')
+        if body_file:
+            files.append(body_file)
+        return files
+
+    def visit_ifblock(self, block):
+        files = []
+        for request in block.then_clause:
+            files.extend(self.visit(request))
+        for request in block.else_clause:
+            files.extend(self.visit(request))
+        return files
+
+    def visit_loopblock(self, block):
+        files = []
+        for request in block.requests:
+            files.extend(self.visit(request))
+        return files
+
+    def visit_whileblock(self, block):
+        files = []
+        for request in block.requests:
+            files.extend(self.visit(request))
+        return files
+
+    def visit_foreachblock(self, block):
+        files = []
+        for request in block.requests:
+            files.extend(self.visit(request))
+        return files
+
+    def visit_transactionblock(self, block):
+        files = []
+        for request in block.requests:
+            files.extend(self.visit(request))
+        return files
+
+    def visit_includescenarioblock(self, block):
+        scenario_name = block.scenario_name
+        if scenario_name in self.path:
+            raise ValueError("Mutual recursion detected in include-scenario blocks (scenario %s)" % scenario_name)
+        self.path.append(scenario_name)
+        scenario = self.executor.get_scenario_by_name(block.scenario_name)
+        return self.executor.res_files_from_scenario(scenario)
+
+
+class RequestCompiler(RequestVisitor):
+    def __init__(self, jmx_builder):
+        super(RequestCompiler, self).__init__()
+        self.jmx_builder = jmx_builder
+
+    def visit_httprequest(self, request):
+        return self.jmx_builder.compile_http_request(request)
+
+    def visit_ifblock(self, block):
+        return self.jmx_builder.compile_if_block(block)
+
+    def visit_loopblock(self, block):
+        return self.jmx_builder.compile_loop_block(block)
+
+    def visit_whileblock(self, block):
+        return self.jmx_builder.compile_while_block(block)
+
+    def visit_foreachblock(self, block):
+        return self.jmx_builder.compile_foreach_block(block)
+
+    def visit_transactionblock(self, block):
+        return self.jmx_builder.compile_transaction_block(block)
+
+    def visit_includescenarioblock(self, block):
+        scenario_name = block.scenario_name
+        if scenario_name in self.path:
+            raise ValueError("Mutual recursion detected in include-scenario blocks (scenario %s)" % scenario_name)
+        self.path.append(scenario_name)
+        return self.jmx_builder.compile_include_scenario_block(block)
