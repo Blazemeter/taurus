@@ -804,7 +804,7 @@ class Provisioning(EngineModule):
         self.log.debug("All resource files are: %s", rfiles)
         rfiles = [self.engine.find_file(x) for x in rfiles]
         prepared_files = self._pack_dirs(rfiles)
-        replace_in_config(self.engine.config, rfiles, map(os.path.basename, prepared_files), log=self.log)
+        replace_in_config(self.engine.config, rfiles, list(map(os.path.basename, prepared_files)), log=self.log)
 
         return prepared_files
 
