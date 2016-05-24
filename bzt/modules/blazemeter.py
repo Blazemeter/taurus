@@ -312,6 +312,8 @@ class BlazeMeterClient(object):
         if method:
             log_method = method
 
+        url = url.encode() if isinstance(url, text_type) else url
+
         self.log.debug("Request: %s %s %s", log_method, url, data[:self.logger_limit] if data else None)
         # .encode("utf-8") is probably better
         data = data.encode() if isinstance(data, text_type) else data
