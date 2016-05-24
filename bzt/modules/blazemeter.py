@@ -803,7 +803,7 @@ class BlazeMeterClient(object):
         url = self.address + path + '?' + query
         response = self._request(url)
         if len(response['removed']) == len(files):
-            self.log.info("Successfully deleted %d test files", len(response['removed']))
+            self.log.debug("Successfully deleted %d test files", len(response['removed']))
 
 
 class MasterProvisioning(Provisioning):
