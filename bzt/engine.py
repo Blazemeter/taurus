@@ -533,6 +533,7 @@ class Engine(object):
 
             except BaseException:
                 self.log.debug("Failed to check for updates: %s", traceback.format_exc())
+                self.log.warning("Failed to check for updates")
 
     def _load_included_configs(self):
         for config in self.config.get("included-configs", []):
@@ -733,40 +734,6 @@ class Provisioning(EngineModule):
         super(Provisioning, self).__init__()
         self.executors = []
 
-    def _pack_dirs(self, source_list):
-        from bzt.modules.services import Unpacker  # avoid cyclic dependency with services.py
-        result_list = []  # files for upload
-        packed_list = []  # files for unpacking
-
-        for source in source_list:
-            source = get_full_path(source)
-            if os.path.isfile(source):
-                result_list.append(source)
-            else:  # source is dir
-                self.log.debug("Compress directory '%s'", source)
-                base_dir_name = os.path.basename(source)
-
-                # TODO: maybe too hard?
-                # TODO: check for multiexec
-                if base_dir_name + '.zip' in packed_list:
-                    message = 'Archive or directory "%s" occurs more than one time, rename to avoid data loss'
-                    self.log.error(message, base_dir_name)
-                    raise ValueError
-
-                zip_name = self.engine.create_artifact(base_dir_name, '.zip')
-
-                relative_prefix_len = len(os.path.dirname(source))
-                with zipfile.ZipFile(zip_name, 'w', zipfile.ZIP_STORED) as zip_file:
-                    for _file in get_files_recursive(source):
-                        zip_file.write(_file, _file[relative_prefix_len:])
-                result_list.append(zip_name)
-                packed_list.append(base_dir_name + '.zip')
-
-        services = self.engine.config.get(Service.SERV, [])
-        services.append({'module': Unpacker.UNPACK, Unpacker.FILES: packed_list})
-
-        return result_list
-
     def prepare(self):
         """
         Preparation in provisioning begins with reading executions list
@@ -796,17 +763,6 @@ class Provisioning(EngineModule):
             instance.execution = execution
             assert isinstance(instance, ScenarioExecutor)
             self.executors.append(instance)
-
-    def get_rfiles(self):
-        rfiles = []
-        for executor in self.executors:
-            rfiles += executor.get_resource_files()
-        self.log.debug("All resource files are: %s", rfiles)
-        rfiles = [self.engine.find_file(x) for x in rfiles]
-        prepared_files = self._pack_dirs(rfiles)
-        replace_in_config(self.engine.config, rfiles, list(map(os.path.basename, prepared_files)), log=self.log)
-
-        return prepared_files
 
 
 class FileLister(object):

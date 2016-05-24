@@ -24,17 +24,18 @@ import sys
 import time
 import traceback
 import zipfile
-
 import yaml
+
 from urwid import Pile, Text
 
 from bzt import ManualShutdown
 from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service
+from bzt.six import BytesIO, text_type, iteritems, HTTPError, urlencode, Request, urlopen, r_input, URLError
+from bzt.utils import to_json, dehumanize_time, MultiPartForm, BetterDict
+from bzt.utils import open_browser, get_full_path, get_files_recursive, replace_in_config
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.jmeter import JMeterExecutor
-from bzt.six import BytesIO, text_type, iteritems, HTTPError, urlencode, Request, urlopen, r_input, URLError
-from bzt.utils import to_json, dehumanize_time, MultiPartForm, BetterDict, open_browser
 
 
 class BlazeMeterUploader(Reporter, AggregatorListener):
@@ -804,7 +805,57 @@ class BlazeMeterClient(object):
             self.log.info("Successfully deleted %d test files", len(response['removed']))
 
 
-class CloudProvisioning(Provisioning, WidgetProvider):
+class MasterProvisioning(Provisioning):
+    def get_rfiles(self):
+        rfiles = []
+        for executor in self.executors:
+            rfiles += executor.get_resource_files()
+
+        self.log.debug("All resource files are: %s", rfiles)
+        rfiles = [self.engine.find_file(x) for x in rfiles]
+
+        rbases = [os.path.basename(get_full_path(rfile)) for rfile in rfiles]
+        rpaths = [get_full_path(rfile, step_up=1) for rfile in rfiles]
+        while rbases:
+            base, path = rbases.pop(), rpaths.pop()
+            if base in rbases:
+                index = rbases.index(base)
+                if path != rpaths[index]:
+                    message = 'Resource "%s" occurs more than one time, rename to avoid data loss' % base
+                    raise ValueError(message)
+
+        prepared_files = self._pack_dirs(rfiles)
+        replace_in_config(self.engine.config, rfiles, list(map(os.path.basename, prepared_files)), log=self.log)
+
+        return prepared_files
+
+    def _pack_dirs(self, source_list):
+        from bzt.modules.services import Unpacker  # avoid cyclic dependency with services.py
+        result_list = []  # files for upload
+        packed_list = []  # files for unpacking
+
+        for source in source_list:
+            source = get_full_path(source)
+            if os.path.isfile(source):
+                result_list.append(source)
+            else:  # source is dir
+                self.log.debug("Compress directory '%s'", source)
+                base_dir_name = os.path.basename(source)
+                zip_name = self.engine.create_artifact(base_dir_name, '.zip')
+                relative_prefix_len = len(os.path.dirname(source))
+                with zipfile.ZipFile(zip_name, 'w', zipfile.ZIP_STORED) as zip_file:
+                    for _file in get_files_recursive(source):
+                        zip_file.write(_file, _file[relative_prefix_len:])
+                result_list.append(zip_name)
+                packed_list.append(base_dir_name + '.zip')
+
+        services = self.engine.config.get(Service.SERV, [])
+        services.append({'module': Unpacker.UNPACK, Unpacker.FILES: packed_list})
+
+        return result_list
+
+
+class CloudProvisioning(MasterProvisioning, WidgetProvider):
     """
     :type client: BlazeMeterClient
     :type results_reader: ResultsFromBZA
