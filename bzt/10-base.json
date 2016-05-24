@@ -58,7 +58,7 @@
     "shellexec": {
       "class": "bzt.modules.shellexec.ShellExecutor"
     },
-    "unpack": {
+    "unpacker": {
       "class": "bzt.modules.services.Unpacker"
     },
     "selenium": {
