@@ -91,6 +91,7 @@ class TestBlazeMeterClientUnicode(BZTestCase):
         self.token = "faketoken"
         with open(__dir__() + "/../data/jmeter-dist-2.13.zip", 'rb') as fds:
             zip = fds.read()
+        # actually, we're testing that UnicodeDecodeError is not raised
         self.assertRaises(URLError, client.upload_file, "jtls_and_more.zip", zip)
 
 
