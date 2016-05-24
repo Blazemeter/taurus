@@ -849,8 +849,9 @@ class MasterProvisioning(Provisioning):
                 result_list.append(zip_name)
                 packed_list.append(base_dir_name + '.zip')
 
-        services = self.engine.config.get(Service.SERV, [])
-        services.append({'module': Unpacker.UNPACK, Unpacker.FILES: packed_list})
+        if packed_list:
+            services = self.engine.config.get(Service.SERV, [])
+            services.append({'module': Unpacker.UNPACK, Unpacker.FILES: packed_list})
 
         return result_list
 
