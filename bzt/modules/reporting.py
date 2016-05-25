@@ -353,18 +353,18 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         mods = self.engine.reporters + self.engine.services  # TODO: remove it after migrating to service
         pass_fail_objects = [_x for _x in mods if isinstance(_x, PassFailStatus)]
         self.log.debug("Processing passfail objects: %s", pass_fail_objects)
-        fail_criterias = []
+        fail_criteria = []
         for pf_obj in pass_fail_objects:
-            if pf_obj.criterias:
-                for _fc in pf_obj.criterias:
-                    fail_criterias.append(_fc)
+            if pf_obj.criteria:
+                for _fc in pf_obj.criteria:
+                    fail_criteria.append(_fc)
         root_xml_element = etree.Element("testsuite", name='bzt_pass_fail', package="bzt")
 
         bza_report_info = self.get_bza_report_info()
         classname = bza_report_info[0][1] if bza_report_info else "bzt-" + str(self.__hash__())
         report_urls = [info_item[0] for info_item in bza_report_info]
 
-        for fc_obj in fail_criterias:
+        for fc_obj in fail_criteria:
             testcase_etree = self.__process_criteria(classname, fc_obj, report_urls)
             root_xml_element.append(testcase_etree)
         return root_xml_element
