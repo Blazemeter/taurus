@@ -5,6 +5,7 @@ from io import BytesIO
 import time
 
 from tests import BZTestCase, random_datapoint, __dir__
+from bzt.six import URLError
 from bzt.modules.blazemeter import BlazeMeterUploader, BlazeMeterClient, BlazeMeterClientEmul
 from tests.mocks import EngineEmul
 import bzt.modules.blazemeter
@@ -82,6 +83,16 @@ class TestBlazeMeterClientUnicode(BZTestCase):
         bzt.modules.blazemeter.urlopen = dummy_urlopen
         blazemeter_client.upload_file(__dir__() + "/../data/unicode_file")
         bzt.modules.blazemeter.urlopen = normal_urlopen
+
+    def test_binary_unicode_error(self):
+        client = BlazeMeterClient(logging.getLogger(''))
+        client.address = u"http://127.0.0.1:58000"
+        client.active_session_id = "ffff"
+        self.token = "faketoken"
+        with open(__dir__() + "/../data/jmeter-dist-2.13.zip", 'rb') as fds:
+            zip = fds.read()
+        # actually, we're testing that UnicodeDecodeError is not raised
+        self.assertRaises(URLError, client.upload_file, "jtls_and_more.zip", zip)
 
 
 class DummyHttpResponse(object):
