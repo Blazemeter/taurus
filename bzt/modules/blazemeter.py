@@ -129,9 +129,11 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
 
             for root, _, files in os.walk(self.engine.artifacts_dir):
                 for filename in files:
-                    if os.path.getsize(os.path.join(root, filename)) <= max_file_size:
-                        zfh.write(os.path.join(root, filename),
-                                  os.path.join(os.path.relpath(root, self.engine.artifacts_dir), filename))
+                    src_file = os.path.join(root, filename)
+                    if os.path.getsize(src_file) <= max_file_size:
+                        dst_file = os.path.join(os.path.relpath(root, self.engine.artifacts_dir), filename)
+                        self.log.info("Writing %s into %s", src_file, dst_file)
+                        zfh.write(src_file, dst_file)
                     else:
                         msg = "File %s exceeds maximum size quota of %s and won't be included into upload"
                         self.log.warning(msg, filename, max_file_size)
@@ -146,7 +148,10 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         if self.client.token:
             self.log.info("Uploading all artifacts as jtls_and_more.zip ...")
             mfile = self.__get_jtls_and_more()
-            self.client.upload_file("jtls_and_more.zip", mfile.getvalue())
+            zip_content = mfile.getvalue()
+            self.log.info("jtls_and_more.zip file: (%s) %r", type(zip_content), zip_content[:256])
+            self.client.log = self.log.getChild("client")
+            self.client.upload_file("jtls_and_more.zip", zip_content)
 
         for executor in self.engine.provisioning.executors:
             if isinstance(executor, JMeterExecutor):
@@ -303,6 +308,8 @@ class BlazeMeterClient(object):
         self.delete_files_before_test = True
 
     def _request(self, url, data=None, headers=None, checker=None, method=None):
+        msg = "_request( url:(%s)=%r, data:(%s)=%r, headers=%r )"
+        self.log.info(msg, type(url), url, type(data), data[:self.logger_limit] if data else None, headers)
         if not headers:
             headers = {}
         if self.token:
@@ -315,6 +322,7 @@ class BlazeMeterClient(object):
         self.log.debug("Request: %s %s %s", log_method, url, data[:self.logger_limit] if data else None)
         # .encode("utf-8") is probably better
         data = data.encode() if isinstance(data, text_type) else data
+        self.log.info("Request data: (%s) %r", type(data), data[:self.logger_limit] if data else None)
         req = Request(url, data, headers)
         if method:
             req.get_method = lambda: method
@@ -646,8 +654,11 @@ class BlazeMeterClient(object):
 
         url = self.address + "/api/latest/image/%s/files?signature=%s"
         url = url % (self.active_session_id, self.data_signature)
-        hdr = {"Content-Type": body.get_content_type()}
-        response = self._request(url, body.form_as_bytes(), headers=hdr)
+        url=str(url)
+        hdr = {"Content-Type": str(body.get_content_type())}
+        form_data = body.form_as_bytes()
+        self.log.info("Multipart form data: (%s) %r", type(form_data), form_data[:self.logger_limit])
+        response = self._request(url, form_data, headers=hdr)
         if not response['result']:
             raise IOError("Upload failed: %s" % response)
 
