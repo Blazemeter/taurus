@@ -129,9 +129,11 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
 
             for root, _, files in os.walk(self.engine.artifacts_dir):
                 for filename in files:
-                    if os.path.getsize(os.path.join(root, filename)) <= max_file_size:
-                        zfh.write(os.path.join(root, filename),
-                                  os.path.join(os.path.relpath(root, self.engine.artifacts_dir), filename))
+                    src_file = os.path.join(root, filename)
+                    if os.path.getsize(src_file) <= max_file_size:
+                        dst_file = os.path.join(os.path.relpath(root, self.engine.artifacts_dir), filename)
+                        self.log.debug("Writing %s into %s", src_file, dst_file)
+                        zfh.write(src_file, dst_file)
                     else:
                         msg = "File %s exceeds maximum size quota of %s and won't be included into upload"
                         self.log.warning(msg, filename, max_file_size)
