@@ -2,7 +2,7 @@
   "reporting": [
     {
       "module": "passfail",
-      "criterias": [
+      "criteria": [
         "concurr>=10 for 15s, stop as non-failed",
         {
           "subject": "avg-rt",

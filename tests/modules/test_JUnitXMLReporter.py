@@ -247,10 +247,10 @@ class TestJUnitXML(BZTestCase):
                                           'timeframe': -1, 'threshold': '300ms', 'condition': '=', 'subject': 'avg-rt'},
                                          pass_fail1)
 
-        pass_fail1.criterias.append(fc1_triggered)
-        pass_fail1.criterias.append(fc1_not_triggered)
-        pass_fail2.criterias.append(fc2_triggered)
-        pass_fail2.criterias.append(fc2_not_triggered)
+        pass_fail1.criteria.append(fc1_triggered)
+        pass_fail1.criteria.append(fc1_not_triggered)
+        pass_fail2.criteria.append(fc2_triggered)
+        pass_fail2.criteria.append(fc2_not_triggered)
 
         fc1_triggered.is_triggered = True
         fc2_triggered.is_triggered = True
@@ -309,7 +309,7 @@ class TestJUnitXML(BZTestCase):
         criteria = DataCriteria({'stop': True, 'fail': True, 'timeframe': -1, 'threshold': '150ms',
                                  'condition': '<', 'subject': 'avg-rt'},
                                 pass_fail)
-        pass_fail.criterias.append(criteria)
+        pass_fail.criteria.append(criteria)
         criteria.is_triggered = True
 
         obj.engine.reporters.append(pass_fail)
