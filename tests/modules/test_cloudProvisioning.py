@@ -140,6 +140,46 @@ class TestCloudProvisioning(BZTestCase):
         obj.prepare()
         self.assertTrue(client.delete_files_before_test)
 
+    def test_cloud_config_cleanup(self):
+        obj = CloudProvisioning()
+        obj.engine = EngineEmul()
+        obj.engine.config.merge({
+            ScenarioExecutor.EXEC: {
+                "executor": "mock",
+                "concurrency": 5500,
+                "locations": {
+                    "us-east-1": 1,
+                    "us-west": 2
+                }
+            },
+            "modules": {
+                "mock": ModuleMock.__module__ + "." + ModuleMock.__name__
+            },
+            "provisioning": "mock"
+        })
+        obj.parameters = obj.engine.config['execution']
+        obj.engine.aggregator = ConsolidatingAggregator()
+
+        obj.settings["token"] = "FakeToken"
+        obj.client = client = BlazeMeterClientEmul(obj.log)
+        client.results.append(self.__get_user_info())  # user
+        client.results.append({"result": []})  # tests
+        client.results.append({"result": {"id": id(client)}})  # create test
+        client.results.append({"files": []})  # create test
+        client.results.append({})  # upload files
+        client.results.append({"result": {"id": id(obj)}})  # start
+        client.results.append({"result": {"id": id(obj)}})  # get master
+        client.results.append({"result": []})  # get master sessions
+        client.results.append({})  # terminate
+        obj.prepare()
+
+        cloud_config = obj.get_config_for_cloud()
+        execution = cloud_config["execution"][0]
+        self.assertNotIn("throughput", execution)
+        self.assertNotIn("ramp-up", execution)
+        self.assertNotIn("hold-for", execution)
+        self.assertNotIn("steps", execution)
+
 
 class TestResultsFromBZA(BZTestCase):
     def test_simple(self):
