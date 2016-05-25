@@ -148,6 +148,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
             mfile = self.__get_jtls_and_more()
             zip_content = mfile.getvalue()
             self.log.info("jtls_and_more.zip file: (%s) %r", type(zip_content), zip_content[:256])
+            self.client.log = self.log.getChild("client")
             self.client.upload_file("jtls_and_more.zip", zip_content)
 
         for executor in self.engine.provisioning.executors:
