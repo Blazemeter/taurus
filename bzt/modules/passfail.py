@@ -32,6 +32,9 @@ from bzt.utils import load_class, dehumanize_time
 
 
 class PassFailStatus(Reporter, Service, AggregatorListener, WidgetProvider):
+    """
+    :type criteria: list[FailCriterion]
+    """
     def __init__(self):
         super(PassFailStatus, self).__init__()
         self.criteria = []
