@@ -654,7 +654,8 @@ class BlazeMeterClient(object):
 
         url = self.address + "/api/latest/image/%s/files?signature=%s"
         url = url % (self.active_session_id, self.data_signature)
-        hdr = {"Content-Type": body.get_content_type()}
+        url=str(url)
+        hdr = {"Content-Type": str(body.get_content_type())}
         form_data = body.form_as_bytes()
         self.log.info("Multipart form data: (%s) %r", type(form_data), form_data[:self.logger_limit])
         response = self._request(url, form_data, headers=hdr)
