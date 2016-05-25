@@ -4,7 +4,7 @@ from collections import Counter
 
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.blazemeter import BlazeMeterUploader, CloudProvisioning, BlazeMeterClientEmul
-from bzt.modules.passfail import PassFailStatus, DataCriteria
+from bzt.modules.passfail import PassFailStatus, DataCriterion
 from bzt.modules.reporting import JUnitXMLReporter
 from bzt.six import etree
 from bzt.modules.provisioning import Local
