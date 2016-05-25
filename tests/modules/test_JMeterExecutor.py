@@ -831,6 +831,21 @@ class TestJMeterExecutor(BZTestCase):
         selector += '>elementProp>stringProp[name="Argument.value"]'
         self.assertNotEqual(jmx.get(selector)[0].text.find('store_id'), -1)
 
+    def test_json_body_requires_header(self):
+        self.obj.execution.merge({
+            "scenario": {
+                "requests": [{
+                    "url": "http://blazedemo.com",
+                    "body": {
+                        "structure": {
+                            "one": 2,
+                            "two": "1"
+                        }}}]}})
+        self.assertRaises(ValueError, self.obj.prepare)
+        jmx = JMX(self.obj.original_jmx)
+        selector = 'stringProp[name="Argument.value"]'
+        self.assertTrue(all(not jprop.text.startswith('defaultdict') for jprop in jmx.get(selector)))
+
     def test_json_body_no_app(self):
         self.obj.execution.merge({
             "scenario": {
