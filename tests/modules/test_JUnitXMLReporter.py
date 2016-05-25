@@ -230,20 +230,20 @@ class TestJUnitXML(BZTestCase):
 
         pass_fail1 = PassFailStatus()
 
-        fc1_triggered = DataCriteria({'stop': True, 'label': 'Sample 1 Triggered', 'fail': True,
+        fc1_triggered = DataCriterion({'stop': True, 'label': 'Sample 1 Triggered', 'fail': True,
                                       'timeframe': -1, 'threshold': '150ms', 'condition': '<', 'subject': 'avg-rt'},
                                      pass_fail1)
 
-        fc1_not_triggered = DataCriteria({'stop': True, 'label': 'Sample 1 Not Triggered', 'fail': True,
+        fc1_not_triggered = DataCriterion({'stop': True, 'label': 'Sample 1 Not Triggered', 'fail': True,
                                           'timeframe': -1, 'threshold': '300ms', 'condition': '>', 'subject': 'avg-rt'},
                                          pass_fail1)
 
         pass_fail2 = PassFailStatus()
 
-        fc2_triggered = DataCriteria({'stop': True, 'label': 'Sample 2 Triggered', 'fail': True, 'timeframe': -1,
+        fc2_triggered = DataCriterion({'stop': True, 'label': 'Sample 2 Triggered', 'fail': True, 'timeframe': -1,
                                       'threshold': '150ms', 'condition': '<=', 'subject': 'avg-rt'}, pass_fail1)
 
-        fc2_not_triggered = DataCriteria({'stop': True, 'label': 'Sample 2 Not Triggered', 'fail': True,
+        fc2_not_triggered = DataCriterion({'stop': True, 'label': 'Sample 2 Not Triggered', 'fail': True,
                                           'timeframe': -1, 'threshold': '300ms', 'condition': '=', 'subject': 'avg-rt'},
                                          pass_fail1)
 
@@ -306,7 +306,7 @@ class TestJUnitXML(BZTestCase):
 
         pass_fail = PassFailStatus()
 
-        criteria = DataCriteria({'stop': True, 'fail': True, 'timeframe': -1, 'threshold': '150ms',
+        criteria = DataCriterion({'stop': True, 'fail': True, 'timeframe': -1, 'threshold': '150ms',
                                  'condition': '<', 'subject': 'avg-rt'},
                                 pass_fail)
         pass_fail.criteria.append(criteria)
