@@ -954,7 +954,6 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             'hold-for': 0,
             'files': []
         }
-        # default_values = {}
         for execution in config[ScenarioExecutor.EXEC]:
             for key, value in iteritems(default_values):
                 if execution[key] == value:
