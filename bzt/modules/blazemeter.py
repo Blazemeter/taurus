@@ -800,11 +800,11 @@ class BlazeMeterClient(object):
         if not files:
             return
         path = "/api/latest/web/elfinder/%s" % test_id
-        query = "cmd=rm&" + "&".join("targets[]=%s" % file['hash'] for file in files)
+        query = "cmd=rm&" + "&".join("targets[]=%s" % fname['hash'] for fname in files)
         url = self.address + path + '?' + query
         response = self._request(url)
         if len(response['removed']) == len(files):
-            self.log.info("Successfully deleted %d test files", len(response['removed']))
+            self.log.debug("Successfully deleted %d test files", len(response['removed']))
 
 
 class MasterProvisioning(Provisioning):
@@ -850,8 +850,9 @@ class MasterProvisioning(Provisioning):
                 result_list.append(zip_name)
                 packed_list.append(base_dir_name + '.zip')
 
-        services = self.engine.config.get(Service.SERV, [])
-        services.append({'module': Unpacker.UNPACK, Unpacker.FILES: packed_list})
+        if packed_list:
+            services = self.engine.config.get(Service.SERV, [])
+            services.append({'module': Unpacker.UNPACK, Unpacker.FILES: packed_list})
 
         return result_list
 
@@ -890,7 +891,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self._configure_client()
         self.__prepare_locations()
         rfiles = self.get_rfiles()
-        config = self.__get_config_for_cloud()
+        config = self.get_config_for_cloud()
 
         bza_plugin = self.__get_bza_test_config()
         finder = ProjectFinder(self.parameters, self.settings, self.client, self.engine)
@@ -930,7 +931,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
                     self.log.warning("List of supported locations for you is: %s", sorted(available_locations.keys()))
                     raise ValueError("Invalid location requested: %s" % location)
 
-    def __get_config_for_cloud(self):
+    def get_config_for_cloud(self):
         config = copy.deepcopy(self.engine.config)
 
         if not isinstance(config[ScenarioExecutor.EXEC], list):
@@ -944,6 +945,21 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         for key in list(config.keys()):
             if key not in ("scenarios", ScenarioExecutor.EXEC, "included-configs", Service.SERV):
                 config.pop(key)
+
+        # cleanup configuration from empty values
+        default_values = {
+            'concurrency': None,
+            'iterations': None,
+            'ramp-up': None,
+            'steps': None,
+            'throughput': None,
+            'hold-for': 0,
+            'files': []
+        }
+        for execution in config[ScenarioExecutor.EXEC]:
+            for key, value in iteritems(default_values):
+                if execution[key] == value:
+                    execution.pop(key)
 
         assert isinstance(config, Configuration)
         config.dump(self.engine.create_artifact("cloud", ""))
