@@ -799,7 +799,7 @@ class BlazeMeterClient(object):
         if not files:
             return
         path = "/api/latest/web/elfinder/%s" % test_id
-        query = "cmd=rm&" + "&".join("targets[]=%s" % file['hash'] for file in files)
+        query = "cmd=rm&" + "&".join("targets[]=%s" % fname['hash'] for fname in files)
         url = self.address + path + '?' + query
         response = self._request(url)
         if len(response['removed']) == len(files):
