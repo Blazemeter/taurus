@@ -44,12 +44,16 @@ from bzt.six import StringIO
 from bzt.utils import humanize_time, is_windows
 
 try:
-    from urwid.curses_display import Screen
+    from urwid.curses_display import Screen as ConsoleScreen
 except ImportError:
-    try:
-        from bzt.modules.screen import GUIScreen as Screen
-    except ImportError:
-        from bzt.utils import DummyScreen as Screen
+    ConsoleScreen = None
+
+try:
+    from bzt.modules.screen import GUIScreen
+except ImportError:
+    GUIScreen = None
+
+from bzt.utils import DummyScreen
 
 
 class ConsoleStatusReporter(Reporter, AggregatorListener):
@@ -72,6 +76,28 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         self.console = None
         self.screen = DummyScreen(self.screen_size[0], self.screen_size[1])
 
+    def _get_screen(self):
+        screen_type = self.settings.get("screen", "console")
+
+        # we're not in a terminal, don't show UI
+        if not sys.stdout.isatty():
+            screen_type = "dummy"
+
+        if ConsoleScreen is None and GUIScreen is None:
+            screen_type = "dummy"
+        elif GUIScreen is None:
+            screen_type = "dummy"
+
+        if screen_type == "console" :
+            return ConsoleScreen()
+        elif screen_type == "gui":
+            return GUIScreen()
+        elif screen_type == "dummy":
+            cols = self.settings.get('dummy-cols', self.screen_size[0])
+            rows = self.settings.get('dummy-rows', self.screen_size[1])
+            return DummyScreen(cols, rows)
+
+
     def prepare(self):
         """
         Prepare console screen objects, logger, ask for widgets
@@ -81,12 +107,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         if self.disabled:
             return
 
-        if sys.stdout.isatty():
-            self.screen = Screen()
-        else:
-            cols = self.settings.get('dummy-cols', self.screen_size[0])
-            rows = self.settings.get('dummy-rows', self.screen_size[1])
-            self.screen = DummyScreen(cols, rows)
+        self.screen = self._get_screen()
 
         widgets = []
         modules = [self.engine.provisioning]  # must create new list to not alter existing
