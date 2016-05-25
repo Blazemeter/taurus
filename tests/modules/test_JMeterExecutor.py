@@ -831,6 +831,16 @@ class TestJMeterExecutor(BZTestCase):
         selector += '>elementProp>stringProp[name="Argument.value"]'
         self.assertNotEqual(jmx.get(selector)[0].text.find('store_id'), -1)
 
+    def test_aajson_body_dict_without_header(self):
+        self.obj.engine.config.merge(yaml.load(open(__dir__() + "/../yaml/blah.yml").read()))
+        self.obj.settings.merge(self.obj.engine.config.get("modules").get("jmeter"))
+        self.obj.execution = self.obj.engine.config['execution'][0]
+        self.assertRaises(ValueError, self.obj.prepare)
+        jmx = JMX(self.obj.original_jmx)
+        selector = 'stringProp[name="Argument.value"]'
+        def_dict = "defaultdict(None, {\'id\': 0, \'name\': \'string\'})"
+        self.assertTrue(all(jprop.text != def_dict for jprop in jmx.get(selector)))
+
     def test_json_body_no_app(self):
         self.obj.execution.merge({
             "scenario": {

@@ -1,0 +1,24 @@
+---
+execution:
+- concurrency: 1
+  scenario: Swagger Petstore
+scenarios:
+  Swagger Petstore:
+    requests:
+    - url: http://petstore.swagger.io/pet
+      method: POST
+      headers: []
+      body:
+        id: 0
+        category:
+          id: 0
+          name: string
+        name: doggie
+        photoUrls:
+        - string
+        tags:
+        - id: 0
+          name: string1
+        status: available
+    headers:
+      api_key: asd
