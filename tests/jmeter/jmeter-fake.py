@@ -53,4 +53,4 @@ elif mode == 'server':  # test_JMeterExecutor.test_shutdown_soft
 elif mode == 'heap':    # test_JMeterExecutor.test_jvm_heap*
     print(os.environ['JVM_ARGS'])
 else:                   # test if jmeter is installed
-    print('JMemeter is installed')
+    print('JMeter is installed')
