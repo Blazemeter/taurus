@@ -11,7 +11,7 @@ import psutil
 from urwid import Pile, Text
 from bzt.engine import Service
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
-from bzt.modules.passfail import FailCriteria
+from bzt.modules.passfail import FailCriterion
 from bzt.six import iteritems, urlopen, urlencode
 from bzt.utils import dehumanize_time
 
@@ -413,7 +413,7 @@ class MonitoringWidget(Pile, MonitoringListener, PrioritizedWidget):
         self._invalidate()
 
 
-class MonitoringCriteria(MonitoringListener, FailCriteria):
+class MonitoringCriteria(MonitoringListener, FailCriterion):
     def __init__(self, config, owner):
         """
         :type config: bzt.utils.BetterDict

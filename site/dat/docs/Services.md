@@ -19,7 +19,7 @@ Pass/fail criteria are specified as array of `criteria`, set through `services` 
 ---
 services:
 - module: passfail
-  criterias:
+  criteria:
   - avg-rt of Sample Label>150ms for 10s, stop as failed
   - fail of Sample Label>50% for 10s, stop as failed
 ```
@@ -56,7 +56,7 @@ The full form of the criteria is conducted by Taurus automatically from short fo
 ---
 services:
 - module: passfail
-  criterias:
+  criteria:
   - subject: avg-rt  # required
     label: 'Sample Label'  # optional, default is ''
     condition: '>'  # required
@@ -80,7 +80,7 @@ By default, Taurus uses criteria string to present it in messages. If you want t
 ---
 services:
 - module: passfail
-  criterias:
+  criteria:
     My Message: avg-rt of Sample Label>150ms for 10s, stop as failed
     Sample Label fails too much: fail of Sample Label>50% for 10s, stop as failed
 ```
@@ -239,13 +239,13 @@ The widget will possibly not display all the metrics for the long list, that's t
  
 ### Monitoring-Based Failure Criteria 
 
-Once you have working resource collecting process, you can use special failure criteria based on data from target servers. Most of parameters for criteria are same like in other [fail criterias](#Pass-Fail-Criteria). You'll have to use full format for metric specification because of the need to specify metric class `bzt.modules.monitoring.MonitoringCriteria`. For example, to stop test once local CPU is exhausted, use:
+Once you have working resource collecting process, you can use special failure criteria based on data from target servers. Most of parameters for criteria are same like in other [fail criteria](#Pass-Fail-Criteria). You'll have to use full format for metric specification because of the need to specify metric class `bzt.modules.monitoring.MonitoringCriteria`. For example, to stop test once local CPU is exhausted, use:
 
 ```yaml
 ---
 services:
 - module: passfail
-  criterias:
+  criteria:
   - class: bzt.modules.monitoring.MonitoringCriteria
     subject: local/cpu
     condition: '>'

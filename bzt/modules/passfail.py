@@ -33,18 +33,23 @@ from bzt.utils import load_class, dehumanize_time
 
 class PassFailStatus(Reporter, Service, AggregatorListener, WidgetProvider):
     """
-    :type criterias: list[FailCriteria]
+    :type criteria: list[FailCriterion]
     """
-
     def __init__(self):
         super(PassFailStatus, self).__init__()
-        self.criterias = []
+        self.criteria = []
         self.widget = None
         self.last_datapoint = None
 
     def prepare(self):
         super(PassFailStatus, self).prepare()
-        criteria = self.parameters.get("criterias", [])
+
+        # TODO: remove "criterias" support in three months
+        criterias = self.parameters.get("criterias", self.criteria)
+        if criterias:
+            self.log.warning('"criterias" section name is deprecated, use "criteria" instead')
+        criteria = self.parameters.get("criteria", criterias)
+
         if isinstance(criteria, dict):
             crit_iter = iteritems(criteria)
         else:
@@ -52,22 +57,22 @@ class PassFailStatus(Reporter, Service, AggregatorListener, WidgetProvider):
 
         for idx, crit_config in crit_iter:
             if isinstance(crit_config, string_types):
-                crit_config = DataCriteria.string_to_config(crit_config)
-                self.parameters['criterias'][idx] = crit_config
-            crit = load_class(crit_config.get('class', DataCriteria.__module__ + "." + DataCriteria.__name__))
+                crit_config = DataCriterion.string_to_config(crit_config)
+                self.parameters['criteria'][idx] = crit_config
+            crit = load_class(crit_config.get('class', DataCriterion.__module__ + "." + DataCriterion.__name__))
             crit_instance = crit(crit_config, self)
-            assert isinstance(crit_instance, FailCriteria)
+            assert isinstance(crit_instance, FailCriterion)
             if isinstance(idx, string_types):
                 crit_instance.message = idx
-            self.criterias.append(crit_instance)
+            self.criteria.append(crit_instance)
 
         if isinstance(self.engine.aggregator, ResultsProvider):
             self.engine.aggregator.add_listener(self)
 
     def post_process(self):
         super(PassFailStatus, self).post_process()
-        for crit in self.criterias:
-            if isinstance(crit, DataCriteria):
+        for crit in self.criteria:
+            if isinstance(crit, DataCriterion):
                 if crit.selector == DataPoint.CUMULATIVE:
                     crit.aggregated_second(self.last_datapoint)
                     if crit.is_triggered and crit.fail:
@@ -85,19 +90,19 @@ class PassFailStatus(Reporter, Service, AggregatorListener, WidgetProvider):
         if self.widget:
             self.widget.update()
         res = super(PassFailStatus, self).check()
-        for crit in self.criterias:
+        for crit in self.criteria:
             res = res or crit.check()
         return res
 
     def aggregated_second(self, data):
         """
-        Inform criterias of the data
+        Inform criteria of the data
 
         :type data: bzt.modules.aggregator.DataPoint
         """
         self.last_datapoint = data
-        for crit in self.criterias:
-            if isinstance(crit, DataCriteria):
+        for crit in self.criteria:
+            if isinstance(crit, DataCriterion):
                 if crit.selector != DataPoint.CUMULATIVE:
                     crit.aggregated_second(data)
 
@@ -112,7 +117,7 @@ class PassFailStatus(Reporter, Service, AggregatorListener, WidgetProvider):
         return self.widget
 
 
-class FailCriteria(object):
+class FailCriterion(object):
     def __init__(self, config, owner):
         self.owner = owner
         self.config = config
@@ -173,7 +178,7 @@ class FailCriteria(object):
         """
         if self.stop and self.is_triggered:
             if self.fail:
-                logging.info("Pass/Fail criteria triggered shutdown: %s", self)
+                logging.info("Pass/Fail criterion triggered shutdown: %s", self)
                 raise AutomatedShutdown("%s" % self)
             else:
                 return True
@@ -231,7 +236,7 @@ class FailCriteria(object):
             self.is_triggered = True
 
 
-class DataCriteria(FailCriteria):
+class DataCriterion(FailCriterion):
     """
     errors?
     duration (less or more than expected)
@@ -248,7 +253,7 @@ class DataCriteria(FailCriteria):
     """
 
     def __init__(self, config, owner):
-        super(DataCriteria, self).__init__(config, owner)
+        super(DataCriterion, self).__init__(config, owner)
         self.label = config.get('label', '')
         self.selector = DataPoint.CURRENT if self.window > 0 else DataPoint.CUMULATIVE
 
@@ -320,7 +325,7 @@ class DataCriteria(FailCriteria):
             if subj in ('hits',) or subj.startswith('succ') or subj.startswith('fail') or subj.startswith('rc'):
                 return self._within_aggregator_sum
 
-        return super(DataCriteria, self)._get_aggregator_functor(logic, subj)
+        return super(DataCriterion, self)._get_aggregator_functor(logic, subj)
 
     @staticmethod
     def string_to_config(crit_config):
@@ -384,7 +389,7 @@ class DataCriteria(FailCriteria):
 class PassFailWidget(urwid.Pile, PrioritizedWidget):
     """
     Represents console widget for pass/fail criteria visualisation
-    If criteria is failing, it will be displayed on the widget
+    If criterion is failing, it will be displayed on the widget
     return urwid widget
     """
     def __init__(self, pass_fail_reporter):
@@ -400,9 +405,9 @@ class PassFailWidget(urwid.Pile, PrioritizedWidget):
         :return:
         """
         result = []
-        for failing_criteria in self.failing_criteria:
-            if failing_criteria.window:
-                percent = failing_criteria.counting / failing_criteria.window
+        for failing_criterion in self.failing_criteria:
+            if failing_criterion.window:
+                percent = failing_criterion.counting / failing_criterion.window
             else:
                 percent = 1
             color = 'stat-txt'
@@ -412,7 +417,7 @@ class PassFailWidget(urwid.Pile, PrioritizedWidget):
                 color = 'pf-4'
             elif 1 <= percent:  # pylint: disable=misplaced-comparison-constant
                 color = 'pf-5'
-            result.append((color, "%s\n" % failing_criteria))
+            result.append((color, "%s\n" % failing_criterion))
 
         return result
 
@@ -422,7 +427,7 @@ class PassFailWidget(urwid.Pile, PrioritizedWidget):
         :return:
         """
         self.text_widget.set_text("")
-        self.failing_criteria = [x for x in self.pass_fail_reporter.criterias if x.counting > 0]
+        self.failing_criteria = [x for x in self.pass_fail_reporter.criteria if x.counting > 0]
         if self.failing_criteria:
             widget_text = self.__prepare_colors()
             self.text_widget.set_text(widget_text)

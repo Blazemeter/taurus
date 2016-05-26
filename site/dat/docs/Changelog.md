@@ -10,8 +10,11 @@
  - remove default xmx set for JMeter
  - add zipping folders treatment for remote execution
  - add check for resources overlap (data loss danger) for remote execution
+ - add raise for JSON body without corresponding header
  - cleanup config from null values before sending it to the cloud
  - pull cumulative percentiles from cloud provisioning
+ - replace 'criterias' with 'criteria', add backward compatibility
+
 
 ## 1.5.0 <sup>4 may 2016</sup>
  - add [Tsung](Tsung.md) executor
