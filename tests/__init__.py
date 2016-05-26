@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import tempfile
+from contextlib import contextmanager
 from random import random
 from unittest.case import TestCase
 
@@ -120,3 +121,13 @@ def local_paths_config():
     with open(fname, 'w') as fds:
         fds.write(jstring)
     return fname
+
+
+@contextmanager
+def patch(obj, attr, value):
+    if not hasattr(obj, attr):
+        raise AttributeError("Object %r doesn't have attribute %r", obj, attr)
+    old_value = getattr(obj, attr)
+    setattr(obj, attr, value)
+    yield
+    setattr(obj, attr, old_value)

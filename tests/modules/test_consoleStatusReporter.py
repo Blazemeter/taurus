@@ -1,11 +1,13 @@
+import sys
 import time
 
 from bzt.engine import Provisioning, ScenarioExecutor
 from bzt.modules.jmeter import JMeterExecutor
 from bzt.modules.provisioning import Local
-from bzt.modules.console import ConsoleStatusReporter
+from bzt.modules.console import ConsoleStatusReporter, ConsoleScreen, GUIScreen
 from bzt.modules.aggregator import DataPoint, KPISet
-from tests import BZTestCase, r, rc
+from bzt.utils import is_windows
+from tests import BZTestCase, r, rc, patch
 from tests.mocks import EngineEmul
 
 
@@ -89,3 +91,22 @@ class TestConsoleStatusReporter(BZTestCase):
         obj.check()
         obj.shutdown()
         obj.post_process()
+
+
+    def test_screen(self):
+        with patch(sys.stdout, 'isatty', lambda: True):
+            obj = ConsoleStatusReporter()
+            obj.settings["screen"] = "console"
+            if not is_windows():
+                self.assertIsInstance(obj._get_screen(), ConsoleScreen)
+            else:
+                self.assertIsInstance(obj._get_screen(), GUIScreen)
+
+    def test_screen_invalid(self):
+        with patch(sys.stdout, 'isatty', lambda: True):
+            obj = ConsoleStatusReporter()
+            obj.settings["screen"] = "invalid"
+            if not is_windows():
+                self.assertIsInstance(obj._get_screen(), ConsoleScreen)
+            else:
+                self.assertIsInstance(obj._get_screen(), GUIScreen)
