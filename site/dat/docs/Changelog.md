@@ -14,7 +14,8 @@
  - cleanup config from null values before sending it to the cloud
  - pull cumulative percentiles from cloud provisioning
  - replace 'criterias' with 'criteria', add backward compatibility
-
+ - make ui type configurable with `screen` option of console reporter
+ - fix console reporter crash under Windows when curses is installed
 
 ## 1.5.0 <sup>4 may 2016</sup>
  - add [Tsung](Tsung.md) executor
