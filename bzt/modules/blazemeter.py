@@ -329,6 +329,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
                         value *= 100
                     elif field == 'bytes-recv':
                         field = 'Network I/O'
+                    else:
+                        continue  # maybe one day BZA will accept all other metrics...
 
                     if not field in kpis:
                         kpis[field] = field
