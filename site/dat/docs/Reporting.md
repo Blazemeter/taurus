@@ -162,6 +162,7 @@ modules:
     report-name: My Next Test  # if you will use value 'ask', it will ask it from command line
     test: Taurus Test
     project: My Local Tests
+    send-monitoring: true  # send data from monitoring subsystem, enabled by default
 ```
 
 Note how easy is to set report settings from command line, i.e. from inside Jenkins build step:
