@@ -4,8 +4,9 @@ import shutil
 from io import BytesIO
 import time
 
+from bzt.modules.aggregator import DataPoint, KPISet
 from tests import BZTestCase, random_datapoint, __dir__
-from bzt.modules.blazemeter import BlazeMeterUploader, BlazeMeterClient, BlazeMeterClientEmul
+from bzt.modules.blazemeter import BlazeMeterUploader, BlazeMeterClient, BlazeMeterClientEmul, ResultsFromBZA
 from tests.mocks import EngineEmul
 import bzt.modules.blazemeter
 
@@ -96,3 +97,110 @@ class DummyHttpResponse(object):
 
 def dummy_urlopen(*args, **kwargs):
     return DummyHttpResponse()
+
+
+class TestResultsFromBZA(BZTestCase):
+    def test_datapoint(self):
+        client = BlazeMeterClientEmul(logging.getLogger(""))
+        client.results.append({
+            "api_version": 2,
+            "error": None,
+            "result": [
+                {
+                    "sessions": [
+                        "r-t-5746a8e38569a"
+                    ],
+                    "id": "ALL",
+                    "name": "ALL"
+                },
+                {
+                    "sessions": [
+                        "r-t-5746a8e38569a"
+                    ],
+                    "id": "e843ff89a5737891a10251cbb0db08e5",
+                    "name": "http://blazedemo.com/"
+                }
+            ]
+        })
+        client.results.append({
+            "api_version": 2,
+            "error": None,
+            "result": [
+                {
+                    "labelId": "ALL",
+                    "labelName": "ALL",
+                    "label": "ALL",
+                    "kpis": [
+                        {
+                            "n": 1,
+                            "na": 1,
+                            "ec": 0,
+                            "p90": 0,
+                            "t_avg": 817,
+                            "lt_avg": 82,
+                            "by_avg": 0,
+                            "n_avg": 1,
+                            "ec_avg": 0,
+                            "ts": 1464248743
+                        }
+                    ]
+                }
+            ]
+        })
+        client.results.append({
+            "api_version": 2,
+            "error": None,
+            "result": [
+                {
+                    "labelId": "ALL",
+                    "labelName": "ALL",
+                    "samples": 152,
+                    "avgResponseTime": 786,
+                    "90line": 836,
+                    "95line": 912,
+                    "99line": 1050,
+                    "minResponseTime": 531,
+                    "maxResponseTime": 1148,
+                    "avgLatency": 81,
+                    "geoMeanResponseTime": None,
+                    "stDev": 108,
+                    "duration": 119,
+                    "avgBytes": 0,
+                    "avgThroughput": 1.2773109243697,
+                    "medianResponseTime": 0,
+                    "errorsCount": 0,
+                    "errorsRate": 0,
+                    "hasLabelPassedThresholds": None
+                },
+                {
+                    "labelId": "e843ff89a5737891a10251cbb0db08e5",
+                    "labelName": "http://blazedemo.com/",
+                    "samples": 152,
+                    "avgResponseTime": 786,
+                    "90line": 836,
+                    "95line": 912,
+                    "99line": 1050,
+                    "minResponseTime": 531,
+                    "maxResponseTime": 1148,
+                    "avgLatency": 81,
+                    "geoMeanResponseTime": None,
+                    "stDev": 108,
+                    "duration": 119,
+                    "avgBytes": 0,
+                    "avgThroughput": 1.2773109243697,
+                    "medianResponseTime": 0,
+                    "errorsCount": 0,
+                    "errorsRate": 0,
+                    "hasLabelPassedThresholds": None
+                }
+            ]
+        })
+
+        obj = ResultsFromBZA(client)
+        obj.master_id = 0
+
+        res = list(obj.datapoints(True))
+        cumulative_ = res[0][DataPoint.CUMULATIVE]
+        total = cumulative_['']
+        percentiles_ = total[KPISet.PERCENTILES]
+        self.assertEquals(1050, percentiles_['99.0'])

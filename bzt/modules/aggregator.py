@@ -197,7 +197,13 @@ class KPISet(BetterDict):
         if src[self.CONCURRENCY]:
             self._concurrencies[sid] = src[self.CONCURRENCY]
 
-        self[self.RESP_TIMES].update(src[self.RESP_TIMES])
+        if src[self.RESP_TIMES]:
+            # using raw times to calculate percentiles
+            self[self.RESP_TIMES].update(src[self.RESP_TIMES])
+        elif not self[self.PERCENTILES]:
+            # using existing percentiles
+            self[self.PERCENTILES] = copy.deepcopy(src[self.PERCENTILES])
+
         self[self.RESP_CODES].update(src[self.RESP_CODES])
 
         for src_item in src[self.ERRORS]:

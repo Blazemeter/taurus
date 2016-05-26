@@ -805,6 +805,11 @@ class BlazeMeterClient(object):
         if len(response['removed']) == len(files):
             self.log.debug("Successfully deleted %d test files", len(response['removed']))
 
+    def get_aggregate_report(self, master_id):
+        url = self.address + "/api/latest/masters/%s/reports/aggregatereport/data" % master_id
+        res = self._request(url)
+        return res['result']
+
 
 class MasterProvisioning(Provisioning):
     def get_rfiles(self):
@@ -1080,17 +1085,13 @@ class ResultsFromBZA(ResultsProvider):
         if self.master_id is None:
             return
 
-        try:
-            data = self.client.get_kpis(self.master_id, self.min_ts)
-        except URLError:
-            self.log.warning("Failed to get result KPIs, will retry in %s seconds...", self.client.timeout)
-            self.log.debug("Full exception: %s", traceback.format_exc())
-            time.sleep(self.client.timeout)
-            data = self.client.get_kpis(self.master_id, self.min_ts)
-            self.log.info("Succeeded with retry")
+        data, aggr_raw = self.query_data()
+        aggr = {}
+        for label in aggr_raw:
+            aggr[label['labelName']] = label
 
         for label in data:
-            if label['kpis']:
+            if label['kpis'] and not final_pass:
                 label['kpis'].pop(-1)  # never take last second since it could be incomplete
 
         timestamps = []
@@ -1111,11 +1112,37 @@ class ResultsFromBZA(ResultsProvider):
                     kpiset[KPISet.SAMPLE_COUNT] = kpi['n']
                     kpiset.sum_rt += kpi['t_avg'] * kpi['n'] / 1000.0
                     kpiset.sum_lt += kpi['lt_avg'] * kpi['n'] / 1000.0
+
+                    perc_map = {'90line': 90.0, "95line": 95.0, "99line": 99.0}
+                    for field, level in iteritems(perc_map):
+                        kpiset[KPISet.PERCENTILES][str(level)] = aggr[label['label']][field]
+
                     point[DataPoint.CURRENT]['' if label['label'] == 'ALL' else label['label']] = kpiset
 
             point.recalculate()
             self.min_ts = point[DataPoint.TIMESTAMP] + 1
             yield point
+
+    def query_data(self):
+        try:
+            data = self.client.get_kpis(self.master_id, self.min_ts)
+        except URLError:
+            self.log.warning("Failed to get result KPIs, will retry in %s seconds...", self.client.timeout)
+            self.log.debug("Full exception: %s", traceback.format_exc())
+            time.sleep(self.client.timeout)
+            data = self.client.get_kpis(self.master_id, self.min_ts)
+            self.log.info("Succeeded with retry")
+
+        try:
+            aggr = self.client.get_aggregate_report(self.master_id)
+        except URLError:
+            self.log.warning("Failed to get aggregate results, will retry in %s seconds...", self.client.timeout)
+            self.log.debug("Full exception: %s", traceback.format_exc())
+            time.sleep(self.client.timeout)
+            aggr = self.client.get_aggregate_report(self.master_id)
+            self.log.info("Succeeded with retry")
+
+        return data, aggr
 
 
 class CloudProvWidget(Pile, PrioritizedWidget):
