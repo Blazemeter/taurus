@@ -202,6 +202,7 @@ class KPISet(BetterDict):
             self[self.RESP_TIMES].update(src[self.RESP_TIMES])
         elif not self[self.PERCENTILES]:
             # using existing percentiles
+            # FIXME: it's not valid to overwrite, better take average
             self[self.PERCENTILES] = copy.deepcopy(src[self.PERCENTILES])
 
         self[self.RESP_CODES].update(src[self.RESP_CODES])
