@@ -332,7 +332,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
                     else:
                         continue  # maybe one day BZA will accept all other metrics...
 
-                    if not field in kpis:
+                    if field not in kpis:
                         kpis[field] = field
 
                     src['intervals'][tstmp_key]['indicators'][field] = {
