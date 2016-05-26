@@ -82,8 +82,23 @@ reporting:
 - console
 ```
 
-There is module settings for Console Screen, containing option `disable`. It allows easy disabling fullscreen display by using [command-line](CommandLine.md) switch `-o`:
+You can configure Console reporter with its module settings:
 
+```yaml
+modules:
+  console:
+    # disable console reporter
+    disable: false
+    
+    # configure screen type
+    screen: console
+    # valid values are:
+    # - console (ncurses-based dashboard, default for *nix systems)
+    # - gui (window-based dashboard, default for Windows, requires Tkinter)
+    # - dummy (text output into console for non-tty runs)
+```
+
+You can also disable dashboard by using [command-line](CommandLine.md) `-o` switch:
 ```bash
 bzt config.yml -o modules.console.disable=true
 ```
