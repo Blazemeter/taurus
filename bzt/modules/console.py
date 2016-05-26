@@ -41,7 +41,7 @@ from bzt.engine import Reporter
 from bzt.modules.aggregator import DataPoint, KPISet, AggregatorListener, ResultsProvider
 from bzt.modules.provisioning import Local
 from bzt.six import StringIO
-from bzt.utils import humanize_time, is_windows
+from bzt.utils import humanize_time, is_windows, DummyScreen
 
 try:
     from urwid.curses_display import Screen as ConsoleScreen
@@ -52,8 +52,6 @@ try:
     from bzt.modules.screen import GUIScreen
 except ImportError:
     GUIScreen = None
-
-from bzt.utils import DummyScreen
 
 
 class ConsoleStatusReporter(Reporter, AggregatorListener):
@@ -77,26 +75,37 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         self.screen = DummyScreen(self.screen_size[0], self.screen_size[1])
 
     def _get_screen(self):
-        screen_type = self.settings.get("screen", "console")
-
-        # we're not in a terminal, don't show UI
-        if not sys.stdout.isatty():
-            screen_type = "dummy"
-
-        if ConsoleScreen is None and GUIScreen is None:
-            screen_type = "dummy"
-        elif GUIScreen is None:
-            screen_type = "dummy"
-
-        if screen_type == "console" :
+        screen_type = self._get_screen_type()
+        if screen_type == "console":
             return ConsoleScreen()
         elif screen_type == "gui":
             return GUIScreen()
-        elif screen_type == "dummy":
+        else:
             cols = self.settings.get('dummy-cols', self.screen_size[0])
             rows = self.settings.get('dummy-rows', self.screen_size[1])
             return DummyScreen(cols, rows)
 
+    def _get_screen_type(self):
+        screen_type = self.settings.get("screen", "console")
+
+        if screen_type not in ("console", "gui", "dummy"):
+            self.log.info("Invalid screen type %r, trying 'console'", screen_type)
+            screen_type = "console"
+
+        if not sys.stdout.isatty():
+            self.log.debug("Not in terminal, using dummy screen")
+            screen_type = "dummy"
+
+        if screen_type == "console":
+            if ConsoleScreen is None or is_windows():
+                self.log.debug("Can't use console' screen, trying 'gui'")
+                screen_type = "gui"
+
+        if screen_type == "gui" and GUIScreen is None:
+            self.log.debug("Can't use 'gui' screen, trying 'dummy'")
+            screen_type = "dummy"
+
+        return screen_type
 
     def prepare(self):
         """
