@@ -82,7 +82,7 @@ reporting:
 - console
 ```
 
-You can configure Console reporter with its module settings:
+Console reporter has the following settings:
 
 ```yaml
 modules:
