@@ -1596,7 +1596,7 @@ class JarCleaner(object):
         Remove old jars
         :param path: str
         """
-        self.log.info("Removing old jars from %s", path)
+        self.log.debug("Removing old jars from %s", path)
         jarlib = namedtuple("jarlib", ("file_name", "lib_name", "version"))
         jars = [fname for fname in os.listdir(path) if '-' in fname and os.path.isfile(os.path.join(path, fname))]
         jar_libs = [jarlib(file_name=jar,
@@ -1614,7 +1614,7 @@ class JarCleaner(object):
 
         for old_lib in duplicated_libraries:
             os.remove(os.path.join(path, old_lib.file_name))
-            self.log.info("Old jar removed %s", old_lib.file_name)
+            self.log.debug("Old jar removed %s", old_lib.file_name)
 
 
 class JMeterMirrorsManager(MirrorsManager):
