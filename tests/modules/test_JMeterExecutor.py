@@ -220,6 +220,7 @@ class TestJMeterExecutor(BZTestCase):
 
         jars = os.listdir(os.path.abspath(os.path.join(path, '../../lib')))
         self.assertNotIn('httpclient-4.5.jar', jars)
+        self.assertIn('httpclient-4.5.2.jar', jars)
 
         self.assertTrue(os.path.exists(path))
 
