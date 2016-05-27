@@ -196,6 +196,45 @@ class TestJMeterExecutor(BZTestCase):
         JMeterExecutor.JMETER_VER = jmeter_ver
         JMeterExecutor.MIRRORS_SOURCE = mirrors_link
 
+    def test_install_jmeter_30(self):
+        path = os.path.abspath(__dir__() + "/../../build/tmp/jmeter-taurus/bin/jmeter" + EXE_SUFFIX)
+
+        shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
+        self.assertFalse(os.path.exists(path))
+
+        jmeter_link = JMeterExecutor.JMETER_DOWNLOAD_LINK
+        jmeter_ver = JMeterExecutor.JMETER_VER
+        plugins_link = JMeterExecutor.PLUGINS_DOWNLOAD_TPL
+        mirrors_link = JMeterExecutor.MIRRORS_SOURCE
+
+        JMeterExecutor.MIRRORS_SOURCE = "file:///" + __dir__() + "/../data/unicode_file"
+        JMeterExecutor.JMETER_DOWNLOAD_LINK = "file:///" + __dir__() + "/../data/jmeter-dist-{version}.zip"
+        JMeterExecutor.PLUGINS_DOWNLOAD_TPL = "file:///" + __dir__() + "/../data/JMeterPlugins-{plugin}-1.3.0.zip"
+        JMeterExecutor.JMETER_VER = '3.0'
+
+        self.obj = get_jmeter()
+        self.obj.settings.merge({"path": path})
+        self.obj.execution.merge({"scenario": {"requests": ["http://localhost"]}})
+
+        self.obj.prepare()
+
+        jars = os.listdir(os.path.abspath(os.path.join(path, '../../lib')))
+        self.assertNotIn('httpclient-4.5.jar', jars)
+        self.assertIn('httpclient-4.5.2.jar', jars)
+
+        self.assertTrue(os.path.exists(path))
+
+        self.obj = get_jmeter()
+        self.obj.settings.merge({"path": path})
+        self.obj.execution.merge({"scenario": {"requests": ["http://localhost"]}})
+
+        self.obj.prepare()
+
+        JMeterExecutor.JMETER_DOWNLOAD_LINK = jmeter_link
+        JMeterExecutor.PLUGINS_DOWNLOAD_TPL = plugins_link
+        JMeterExecutor.JMETER_VER = jmeter_ver
+        JMeterExecutor.MIRRORS_SOURCE = mirrors_link
+
     def test_think_time_bug(self):
         self.obj.engine.config.merge({'execution': {'ramp-up': '1m', 'hold-for': '1m30s', 'concurrency': 10,
                                                'scenario':
