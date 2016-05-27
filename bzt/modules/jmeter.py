@@ -1480,7 +1480,6 @@ class JarCleaner(object):
 
     @staticmethod
     def __extract_version(jar):
-        # remove extension
         if jar.endswith('.jar'):
             jar = jar[:-4]
         return jar.split('-')[-1]
