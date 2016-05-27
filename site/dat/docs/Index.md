@@ -22,9 +22,9 @@
     1. Console Reporting
     1. Saving Test Results
     1. BlazeMeter.com Reporting
- 1. Pass/Fail Criteria
- 1. Resource Monitoring
  1. [Services Subsystem](Services.md)
+    1. Pass/Fail Criteria
+    1. Resource Monitoring
  1. [JMX to YAML converter](JMX2YAML.md)
  1. [Troubleshooting, Support and Feedback](https://groups.google.com/forum/#!forum/codename-taurus)
 
