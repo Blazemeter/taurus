@@ -77,6 +77,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         self.client.user_id = self.parameters.get("user-id", None)
         self.client.data_signature = self.parameters.get("signature", None)
         self.client.kpi_target = self.parameters.get("kpi-target", self.client.kpi_target)
+        self.client.delete_files_before_test = False
 
         if not self.client.test_id:
             try:
