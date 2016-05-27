@@ -1478,28 +1478,37 @@ class JarCleaner(object):
     def __init__(self, parent_logger):
         self.log = parent_logger.getChild(self.__class__.__name__)
 
+    @staticmethod
+    def __extract_version(jar):
+        # remove extension
+        if jar.endswith('.jar'):
+            jar = jar[:-4]
+        return jar.split('-')[-1]
+
     def clean(self, path):
         """
         Remove old jars
         :param path: str
         """
-        self.log.debug("Removing old jars from %s", path)
-        jarlib = namedtuple("jarlib", ("file_name", "lib_name"))
+        self.log.info("Removing old jars from %s", path)
+        jarlib = namedtuple("jarlib", ("file_name", "lib_name", "version"))
         jars = [fname for fname in os.listdir(path) if '-' in fname and os.path.isfile(os.path.join(path, fname))]
-        jar_libs = [jarlib(file_name=jar, lib_name='-'.join(jar.split('-')[:-1])) for jar in jars]
+        jar_libs = [jarlib(file_name=jar,
+                           lib_name='-'.join(jar.split('-')[:-1]),
+                           version=JarCleaner.__extract_version(jar))
+                    for jar in jars]
 
-        duplicated_libraries = []
+        duplicated_libraries = set()
         for jar_lib_obj in jar_libs:
-            similar_packages = [LooseVersion(_jarlib.file_name) for _jarlib in
-                                [lib for lib in jar_libs if lib.lib_name == jar_lib_obj.lib_name]]
+            similar_packages = [lib for lib in jar_libs if lib.lib_name == jar_lib_obj.lib_name]
             if len(similar_packages) > 1:
-                right_version = max(similar_packages)
+                right_version = max(similar_packages, key=lambda lib: LooseVersion(lib.version))
                 similar_packages.remove(right_version)
-                duplicated_libraries.extend([lib for lib in similar_packages if lib not in duplicated_libraries])
+                duplicated_libraries.update(similar_packages)
 
         for old_lib in duplicated_libraries:
-            os.remove(os.path.join(path, old_lib.vstring))
-            self.log.debug("Old jar removed %s", old_lib.vstring)
+            os.remove(os.path.join(path, old_lib.file_name))
+            self.log.info("Old jar removed %s", old_lib.file_name)
 
 
 class JMeterMirrorsManager(MirrorsManager):
