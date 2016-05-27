@@ -16,6 +16,7 @@
  - replace 'criterias' with 'criteria', add backward compatibility
  - make ui type configurable with `screen` option of console reporter
  - fix console reporter crash under Windows when curses is installed
+ - fix JMeter 3.0 installation issue
 
 ## 1.5.0 <sup>4 may 2016</sup>
  - add [Tsung](Tsung.md) executor
