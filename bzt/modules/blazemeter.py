@@ -322,12 +322,12 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
 
             for field, value in iteritems(item):
                 if field not in ("ts", "source"):
-                    if field == 'cpu':
+                    if field.lower().startswith('cpu'):
                         field = 'CPU'
-                    elif field == 'mem':
+                    elif field.lower().startswith('mem'):
                         field = 'Memory'
                         value *= 100
-                    elif field == 'bytes-recv':
+                    elif field == 'bytes-recv' or field.lower().startswith('net'):
                         field = 'Network I/O'
                     else:
                         continue  # maybe one day BZA will accept all other metrics...
