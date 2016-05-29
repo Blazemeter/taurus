@@ -196,7 +196,9 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
                 sess = self.client.get_session(self.client.active_session_id)
                 if 'note' in sess:
                     note += "\n" + sess['note']
-                self.client.update_session(self.client.active_session_id, {"note": note})
+
+                if note.strip():
+                    self.client.update_session(self.client.active_session_id, {"note": note.strip()})
         except KeyboardInterrupt:
             raise
         except BaseException as exc:
