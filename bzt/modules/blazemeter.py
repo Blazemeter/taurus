@@ -904,8 +904,11 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         for index, reporter in enumerate(reporting):
             reporter = ensure_is_dict(reporting, index, "module")
             cls = reporter.get('module', ValueError())
-            if cls != 'blazemeter':
+            if cls == 'blazemeter':
+                self.log.warning("Explicit blazemeter reporting is skipped for cloud")
+            else:
                 new_reporting.append(reporter)
+
         self.engine.config[Reporter.REP] = new_reporting
 
         config = self.get_config_for_cloud()
