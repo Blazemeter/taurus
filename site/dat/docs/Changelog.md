@@ -14,6 +14,7 @@
  - cleanup config from null values before sending it to the cloud
  - pull cumulative percentiles from cloud provisioning
  - replace 'criterias' with 'criteria', add backward compatibility
+ - fix double blazemeter reporting in cloud
  - make ui type configurable with `screen` option of console reporter
  - fix console reporter crash under Windows when curses is installed
 

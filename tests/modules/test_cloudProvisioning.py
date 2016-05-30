@@ -76,6 +76,40 @@ class TestCloudProvisioning(BZTestCase):
         obj.prepare()
         self.assertEquals(1, obj.executors[0].execution['locations']['us-west-1'])
 
+    def test_aaskip_reporting(self):
+        obj = CloudProvisioning()
+        obj.engine = EngineEmul()
+        obj.engine.config.merge({
+            ScenarioExecutor.EXEC: {
+                "executor": "mock",
+            },
+            "modules": {
+                "mock": ModuleMock.__module__ + "." + ModuleMock.__name__,
+                "blazemeter": ModuleMock.__module__ + "." + ModuleMock.__name__,
+                "second_reporter": ModuleMock.__module__ + "." + ModuleMock.__name__,
+                "third_reporter": ModuleMock.__module__ + "." + ModuleMock.__name__,
+            },
+            "provisioning": "mock",
+            "reporting": ["blazemeter",
+                          {"module": "blazemeter", "option": "value"},
+                          "second_reporter",
+                          {"module": "third_reporter"}]
+        })
+        obj.parameters = obj.engine.config['execution']
+
+        obj.settings["token"] = "FakeToken"
+        obj.settings['default-location'] = "us-west-1"
+        obj.client = client = BlazeMeterClientEmul(obj.log)
+        client.results.append(self.__get_user_info())  # user
+        client.results.append({"result": []})  # tests
+        client.results.append({"result": {"id": id(client)}})  # create test
+        client.results.append({"files": []})  # test files
+        client.results.append({})  # upload files
+
+        obj.prepare()
+        modules = [reporter['module'] for reporter in obj.engine.config['reporting']]
+        self.assertEquals(modules, ['second_reporter', 'third_reporter'])
+
     def __get_user_info(self):
         with open(__dir__() + "/../json/blazemeter-api-user.json") as fhd:
             return json.loads(fhd.read())
