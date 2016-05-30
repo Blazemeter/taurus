@@ -17,7 +17,7 @@
  - make ui type configurable with `screen` option of console reporter
  - fix console reporter crash under Windows when curses is installed
 
-## 1.5.1 (next)
+## 1.5.1 <sup>30 may 2016</sup>
 - fix JMeter 3.0 installation issues
 - make JMeter 3.0 the default installed version
 - fix downloading older JMeter versions from Apache archives
