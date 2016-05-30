@@ -1440,7 +1440,8 @@ class JMeter(RequiredTool):
             return False
 
     def install(self):
-        dest = os.path.join(os.path.dirname((get_full_path(self.tool_path))), os.path.pardir)
+        full_tool_path = get_full_path(self.tool_path)
+        dest = get_full_path(os.path.join(os.path.dirname(full_tool_path), os.path.pardir))
 
         with super(JMeter, self).install_with_mirrors(dest, ".zip") as jmeter_dist:
             self.log.info("Unzipping %s to %s", jmeter_dist.name, dest)
