@@ -52,8 +52,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     :type properties_file: str
     :type sys_properties_file: str
     """
-    MIRRORS_SOURCE = "http://jmeter.apache.org/download_jmeter.cgi"
-    JMETER_DOWNLOAD_LINK = "http://apache.claz.org/jmeter/binaries/apache-jmeter-{version}.zip"
+    MIRRORS_SOURCE = "https://archive.apache.org/dist/jmeter/binaries/"
+    JMETER_DOWNLOAD_LINK = "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-{version}.zip"
     JMETER_VER = "3.0"
     PLUGINS_DOWNLOAD_TPL = "http://jmeter-plugins.org/files/JMeterPlugins-{plugin}-1.4.0.zip"
     UDP_PORT_NUMBER = None
@@ -1617,21 +1617,21 @@ class JarCleaner(object):
 
 class JMeterMirrorsManager(MirrorsManager):
     def __init__(self, parent_logger, jmeter_version):
-        self.jmeter_version = jmeter_version
+        self.jmeter_version = str(jmeter_version)
         super(JMeterMirrorsManager, self).__init__(JMeterExecutor.MIRRORS_SOURCE, parent_logger)
 
     def _parse_mirrors(self):
         links = []
         if self.page_source is not None:
             self.log.debug('Parsing mirrors...')
-            select_search_pattern = re.compile(r'<select name="Preferred">.*?</select>', re.MULTILINE | re.DOTALL)
-            option_search_pattern = re.compile(r'<option value=".*?">')
-            select_element = select_search_pattern.findall(self.page_source)
+            href_search_pattern = re.compile(r'<a href="apache\-jmeter\-([^"]*?)\.zip">')
+            jmeter_versions = href_search_pattern.findall(self.page_source)
 
-            if select_element:
-                option_elements = option_search_pattern.findall(select_element[0])
-                link_tail = "/jmeter/binaries/apache-jmeter-{version}.zip".format(version=self.jmeter_version)
-                links = [link.strip('<option value="').strip('">') + link_tail for link in option_elements]
+            if self.jmeter_version in jmeter_versions:
+                archive_name = "apache-jmeter-{version}.zip".format(version=self.jmeter_version)
+                links.append(self.base_link + archive_name)
+            else:
+                self.log.warning("Can't find link for JMeter %s, will use default download-link", self.jmeter_version)
         default_link = JMeterExecutor.JMETER_DOWNLOAD_LINK.format(version=self.jmeter_version)
         if default_link not in links:
             links.append(default_link)
