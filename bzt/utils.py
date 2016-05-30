@@ -425,7 +425,7 @@ class MultiPartForm(object):
             elif isinstance(item, text_type):
                 result_list.append(item.encode())
             else:
-                raise BaseException
+                raise BaseException("Unhandled form data type: %s" % type(item))
 
         res_bytes = b("\r\n").join(result_list)
         res_bytes += b("\r\n")

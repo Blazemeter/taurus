@@ -17,6 +17,7 @@
  - fix double blazemeter reporting in cloud
  - make ui type configurable with `screen` option of console reporter
  - fix console reporter crash under Windows when curses is installed
+ - send some monitoring data into BlazeMeter reporting service
  - do not clear cloud test files when using Blazemeter reporting
 
 ## 1.5.1 <sup>30 may 2016</sup>

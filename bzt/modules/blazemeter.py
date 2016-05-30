@@ -24,6 +24,8 @@ import sys
 import time
 import traceback
 import zipfile
+import platform
+from collections import OrderedDict
 
 import yaml
 from urwid import Pile, Text
@@ -33,13 +35,14 @@ from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, 
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.jmeter import JMeterExecutor
+from bzt.modules.monitoring import Monitoring, MonitoringListener
 from bzt.modules.services import Unpacker
 from bzt.six import BytesIO, text_type, iteritems, HTTPError, urlencode, Request, urlopen, r_input, URLError
 from bzt.utils import open_browser, get_full_path, get_files_recursive, replace_in_config
 from bzt.utils import to_json, dehumanize_time, MultiPartForm, BetterDict, ensure_is_dict
 
 
-class BlazeMeterUploader(Reporter, AggregatorListener):
+class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
     """
     Reporter class
 
@@ -48,6 +51,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
 
     def __init__(self):
         super(BlazeMeterUploader, self).__init__()
+        self.monitoring = []
+        self.send_monitoring = True
         self.browser_open = 'start'
         self.client = BlazeMeterClient(self.log)
         self.test_id = ""
@@ -66,6 +71,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         self.client.data_address = self.settings.get("data-address", self.client.data_address)
         self.client.timeout = dehumanize_time(self.settings.get("timeout", self.client.timeout))
         self.send_interval = dehumanize_time(self.settings.get("send-interval", self.send_interval))
+        self.send_monitoring = self.settings.get("send-monitoring", self.send_monitoring)
         self.browser_open = self.settings.get("browser-open", self.browser_open)
         token = self.settings.get("token", "")
         if not token:
@@ -95,6 +101,10 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
 
         if isinstance(self.engine.aggregator, ResultsProvider):
             self.engine.aggregator.add_listener(self)
+
+        for service in self.engine.services:
+            if isinstance(service, Monitoring):
+                service.add_listener(self)
 
     def startup(self):
         """
@@ -214,6 +224,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
         if len(self.kpi_buffer):
             if self.client.last_ts < (time.time() - self.send_interval):
                 self.__send_data(self.kpi_buffer)
+                if self.send_monitoring:
+                    self.__send_monitoring()
                 self.kpi_buffer = []
         return super(BlazeMeterUploader, self).check()
 
@@ -227,14 +239,14 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
 
         try:
             self.client.send_kpi_data(data, do_check, is_final)
-        except IOError as _:
+        except IOError:
             self.log.debug("Error sending data: %s", traceback.format_exc())
             self.log.warning("Failed to send data, will retry in %s sec...", self.client.timeout)
             try:
                 time.sleep(self.client.timeout)
                 self.client.send_kpi_data(data, do_check, is_final)
                 self.log.info("Succeeded with retry")
-            except IOError as _:
+            except IOError:
                 self.log.error("Fatal error sending data: %s", traceback.format_exc())
                 self.log.warning("Will skip failed data and continue running")
 
@@ -258,6 +270,99 @@ class BlazeMeterUploader(Reporter, AggregatorListener):
     def set_last_status_check(self, value):
         self._last_status_check = value
         self.log.debug("Set last check time to: %s", self._last_status_check)
+
+    def monitoring_data(self, data):
+        if self.send_monitoring:
+            self.monitoring.extend(data)
+
+    def __send_monitoring(self):
+        # self.log.info("Mon: %s", self.monitoring)
+        src_name = platform.node()
+        data = self.get_monitoring_json()
+        try:
+            self.client.send_monitoring_data(src_name, data)
+        except IOError:
+            self.log.debug("Error sending data: %s", traceback.format_exc())
+            self.log.warning("Failed to send data, will retry in %s sec...", self.client.timeout)
+            try:
+                time.sleep(self.client.timeout)
+                self.client.send_monitoring_data(src_name, data)
+                self.log.info("Succeeded with retry")
+            except IOError:
+                self.log.error("Fatal error sending data: %s", traceback.format_exc())
+                self.log.warning("Will skip failed data and continue running")
+
+    def get_monitoring_json(self):
+        results = {}
+        hosts = []
+        kpis = {}
+
+        for item in self.monitoring:
+            if item['source'] == 'local':
+                item['source'] = platform.node()
+
+            src_name = item['source']
+            if src_name not in results:
+                results[src_name] = {
+                    "name": src_name,
+                    "intervals": OrderedDict()
+                }
+
+            if src_name not in hosts:
+                hosts.append(src_name)
+
+            src = results[src_name]
+            tstmp = int(item['ts']) * 1000
+            tstmp_key = '%d' % tstmp
+
+            if tstmp_key not in src['intervals']:
+                src['intervals'][tstmp_key] = {
+                    "start": tstmp,
+                    "duration": 1000,
+                    "indicators": {}
+                }
+
+            for field, value in iteritems(item):
+                if field not in ("ts", "source"):
+                    if field.lower().startswith('cpu'):
+                        field = 'CPU'
+                    elif field.lower().startswith('mem'):
+                        field = 'Memory'
+                        value *= 100
+                    elif field == 'bytes-recv' or field.lower().startswith('net'):
+                        field = 'Network I/O'
+                    else:
+                        continue  # maybe one day BZA will accept all other metrics...
+
+                    if field not in kpis:
+                        kpis[field] = field
+
+                    src['intervals'][tstmp_key]['indicators'][field] = {
+                        "value": value,
+                        "name": field,
+                        "std": 0,
+                        "mean": 0,
+                        "sum": 0,
+                        "min": 0,
+                        "max": 0,
+                        "sumOfSquares": 0,
+                        "n": 1
+                    }
+
+        kpis = {"Network I/O": "Network I/O", "Memory": "Memory", "CPU": "CPU"}
+        return {
+            "reportInfo": {
+                "sessionId": self.client.active_session_id,
+                "timestamp": time.time(),
+                "userId": self.client.user_id,
+                "testId": self.client.test_id,
+                "type": "MONITOR",
+                "testName": ""
+            },
+            "kpis": kpis,
+            "hosts": hosts,
+            "results": results
+        }
 
 
 class ProjectFinder(object):
@@ -813,6 +918,9 @@ class BlazeMeterClient(object):
         res = self._request(url)
         return res['result']
 
+    def send_monitoring_data(self, src_name, data):
+        self.upload_file('%s.monitoring.json' % src_name, to_json(data))
+
 
 class MasterProvisioning(Provisioning):
     def get_rfiles(self):
@@ -851,7 +959,7 @@ class MasterProvisioning(Provisioning):
                 base_dir_name = os.path.basename(source)
                 zip_name = self.engine.create_artifact(base_dir_name, '.zip')
                 relative_prefix_len = len(os.path.dirname(source))
-                with zipfile.ZipFile(zip_name, 'w', zipfile.ZIP_STORED) as zip_file:
+                with zipfile.ZipFile(zip_name, 'w') as zip_file:
                     for _file in get_files_recursive(source):
                         zip_file.write(_file, _file[relative_prefix_len:])
                 result_list.append(zip_name)
@@ -1168,7 +1276,7 @@ class CloudProvWidget(Pile, PrioritizedWidget):
         self.text = Text("")
         self._sessions = None
         super(CloudProvWidget, self).__init__([self.text])
-        PrioritizedWidget.__init__(self, priority=0)
+        PrioritizedWidget.__init__(self)
 
     def update(self):
         if not self._sessions:
