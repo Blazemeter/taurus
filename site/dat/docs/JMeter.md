@@ -11,9 +11,9 @@ this location, by default `~/.bzt/jmeter-taurus/bin/jmeter`. You can change this
 modules:
   jmeter:
     path: ~/.bzt/jmeter-taurus/bin/jmeter
-    download-link: http://apache.claz.org/jmeter/binaries/apache-jmeter-{version}.zip
-    version: 2.13
-    plugins-download-link: http://jmeter-plugins.org/files/JMeterPlugins-{plugin}-1.2.1.zip
+    download-link: https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-{version}.zip
+    version: 3.0
+    plugins-download-link: http://jmeter-plugins.org/files/JMeterPlugins-{plugin}-1.4.0.zip
 ```
 
 ## Run Existing JMX File
