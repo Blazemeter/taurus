@@ -54,7 +54,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     """
     MIRRORS_SOURCE = "http://jmeter.apache.org/download_jmeter.cgi"
     JMETER_DOWNLOAD_LINK = "http://apache.claz.org/jmeter/binaries/apache-jmeter-{version}.zip"
-    JMETER_VER = "2.13"
+    JMETER_VER = "3.0"
     PLUGINS_DOWNLOAD_TPL = "http://jmeter-plugins.org/files/JMeterPlugins-{plugin}-1.4.0.zip"
     UDP_PORT_NUMBER = None
 
