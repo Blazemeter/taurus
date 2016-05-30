@@ -52,9 +52,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     :type properties_file: str
     :type sys_properties_file: str
     """
-    MIRRORS_SOURCE = "http://jmeter.apache.org/download_jmeter.cgi"
-    JMETER_DOWNLOAD_LINK = "http://apache.claz.org/jmeter/binaries/apache-jmeter-{version}.zip"
-    JMETER_VER = "2.13"
+    MIRRORS_SOURCE = "https://archive.apache.org/dist/jmeter/binaries/"
+    JMETER_DOWNLOAD_LINK = "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-{version}.zip"
+    JMETER_VER = "3.0"
     PLUGINS_DOWNLOAD_TPL = "http://jmeter-plugins.org/files/JMeterPlugins-{plugin}-1.4.0.zip"
     UDP_PORT_NUMBER = None
 
@@ -778,8 +778,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         jmeter_path = self.settings.get("path", "~/.bzt/jmeter-taurus/")
         jmeter_path = get_full_path(jmeter_path)
         jmeter_version = self.settings.get("version", JMeterExecutor.JMETER_VER)
+        download_link = self.settings.get("download-link", JMeterExecutor.JMETER_DOWNLOAD_LINK)
         plugin_download_link = self.settings.get("plugins-download-link", JMeterExecutor.PLUGINS_DOWNLOAD_TPL)
-        tool = JMeter(jmeter_path, self.log, jmeter_version, plugin_download_link)
+        tool = JMeter(jmeter_path, self.log, jmeter_version, download_link, plugin_download_link)
 
         if self._need_to_install(tool):
             self.log.info("Installing %s", tool.tool_name)
@@ -1513,11 +1514,11 @@ class JMeter(RequiredTool):
     """
     JMeter tool
     """
-    def __init__(self, tool_path, parent_logger, jmeter_version, plugin_link):
+    def __init__(self, tool_path, parent_logger, jmeter_version, jmeter_download_link, plugin_link):
         super(JMeter, self).__init__("JMeter", tool_path)
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.version = jmeter_version
-        self.mirror_manager = JMeterMirrorsManager(self.log, self.version)
+        self.mirror_manager = JMeterMirrorsManager(self.log, self.version, jmeter_download_link)
         self.plugins = ["Standard", "Extras", "ExtrasLibs", "WebDriver"]
         self.plugin_link = plugin_link
 
@@ -1545,7 +1546,8 @@ class JMeter(RequiredTool):
             return False
 
     def install(self):
-        dest = os.path.join(os.path.dirname((get_full_path(self.tool_path))), os.path.pardir)
+        full_tool_path = get_full_path(self.tool_path)
+        dest = get_full_path(os.path.join(os.path.dirname(full_tool_path), os.path.pardir))
 
         with super(JMeter, self).install_with_mirrors(dest, ".zip") as jmeter_dist:
             self.log.info("Unzipping %s to %s", jmeter_dist.name, dest)
@@ -1584,48 +1586,56 @@ class JarCleaner(object):
     def __init__(self, parent_logger):
         self.log = parent_logger.getChild(self.__class__.__name__)
 
+    @staticmethod
+    def __extract_version(jar):
+        version_str = jar.split('-')[-1]
+        return version_str.replace('.jar', '')
+
     def clean(self, path):
         """
         Remove old jars
         :param path: str
         """
         self.log.debug("Removing old jars from %s", path)
-        jarlib = namedtuple("jarlib", ("file_name", "lib_name"))
+        jarlib = namedtuple("jarlib", ("file_name", "lib_name", "version"))
         jars = [fname for fname in os.listdir(path) if '-' in fname and os.path.isfile(os.path.join(path, fname))]
-        jar_libs = [jarlib(file_name=jar, lib_name='-'.join(jar.split('-')[:-1])) for jar in jars]
+        jar_libs = [jarlib(file_name=jar,
+                           lib_name='-'.join(jar.split('-')[:-1]),
+                           version=JarCleaner.__extract_version(jar))
+                    for jar in jars]
 
-        duplicated_libraries = []
+        duplicated_libraries = set()
         for jar_lib_obj in jar_libs:
-            similar_packages = [LooseVersion(_jarlib.file_name) for _jarlib in
-                                [lib for lib in jar_libs if lib.lib_name == jar_lib_obj.lib_name]]
+            similar_packages = [lib for lib in jar_libs if lib.lib_name == jar_lib_obj.lib_name]
             if len(similar_packages) > 1:
-                right_version = max(similar_packages)
+                right_version = max(similar_packages, key=lambda lib: LooseVersion(lib.version))
                 similar_packages.remove(right_version)
-                duplicated_libraries.extend([lib for lib in similar_packages if lib not in duplicated_libraries])
+                duplicated_libraries.update(similar_packages)
 
         for old_lib in duplicated_libraries:
-            os.remove(os.path.join(path, old_lib.vstring))
-            self.log.debug("Old jar removed %s", old_lib.vstring)
+            os.remove(os.path.join(path, old_lib.file_name))
+            self.log.debug("Old jar removed %s", old_lib.file_name)
 
 
 class JMeterMirrorsManager(MirrorsManager):
-    def __init__(self, parent_logger, jmeter_version):
-        self.jmeter_version = jmeter_version
+    def __init__(self, parent_logger, jmeter_version, download_link):
+        self.jmeter_version = str(jmeter_version)
+        self.download_link = download_link
         super(JMeterMirrorsManager, self).__init__(JMeterExecutor.MIRRORS_SOURCE, parent_logger)
 
     def _parse_mirrors(self):
         links = []
         if self.page_source is not None:
             self.log.debug('Parsing mirrors...')
-            select_search_pattern = re.compile(r'<select name="Preferred">.*?</select>', re.MULTILINE | re.DOTALL)
-            option_search_pattern = re.compile(r'<option value=".*?">')
-            select_element = select_search_pattern.findall(self.page_source)
+            href_search_pattern = re.compile(r'<a href="apache\-jmeter\-([^"]*?)\.zip">')
+            jmeter_versions = href_search_pattern.findall(self.page_source)
 
-            if select_element:
-                option_elements = option_search_pattern.findall(select_element[0])
-                link_tail = "/jmeter/binaries/apache-jmeter-{version}.zip".format(version=self.jmeter_version)
-                links = [link.strip('<option value="').strip('">') + link_tail for link in option_elements]
-        default_link = JMeterExecutor.JMETER_DOWNLOAD_LINK.format(version=self.jmeter_version)
+            if self.jmeter_version in jmeter_versions:
+                archive_name = "apache-jmeter-{version}.zip".format(version=self.jmeter_version)
+                links.append(self.base_link + archive_name)
+            else:
+                self.log.warning("Can't find link for JMeter %s, will use download-link", self.jmeter_version)
+        default_link = self.download_link.format(version=self.jmeter_version)
         if default_link not in links:
             links.append(default_link)
         self.log.debug('Total mirrors: %d', len(links))

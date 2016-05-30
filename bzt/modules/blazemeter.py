@@ -39,7 +39,7 @@ from bzt.modules.monitoring import Monitoring, MonitoringListener
 from bzt.modules.services import Unpacker
 from bzt.six import BytesIO, text_type, iteritems, HTTPError, urlencode, Request, urlopen, r_input, URLError
 from bzt.utils import open_browser, get_full_path, get_files_recursive, replace_in_config
-from bzt.utils import to_json, dehumanize_time, MultiPartForm, BetterDict
+from bzt.utils import to_json, dehumanize_time, MultiPartForm, BetterDict, ensure_is_dict
 
 
 class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
@@ -206,7 +206,9 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
                 sess = self.client.get_session(self.client.active_session_id)
                 if 'note' in sess:
                     note += "\n" + sess['note']
-                self.client.update_session(self.client.active_session_id, {"note": note})
+
+                if note.strip():
+                    self.client.update_session(self.client.active_session_id, {"note": note.strip()})
         except KeyboardInterrupt:
             raise
         except BaseException as exc:
@@ -405,7 +407,7 @@ class BlazeMeterClient(object):
         self.first_ts = sys.maxsize
         self.last_ts = 0
         self.timeout = 10
-        self.delete_files_before_test = True
+        self.delete_files_before_test = False
 
     def _request(self, url, data=None, headers=None, checker=None, method=None):
         if not headers:
@@ -1004,8 +1006,20 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self._configure_client()
         self.__prepare_locations()
         rfiles = self.get_rfiles()
-        config = self.get_config_for_cloud()
 
+        reporting = self.engine.config.get(Reporter.REP, [])
+        new_reporting = []
+        for index, reporter in enumerate(reporting):
+            reporter = ensure_is_dict(reporting, index, "module")
+            cls = reporter.get('module', ValueError())
+            if cls == 'blazemeter':
+                self.log.warning("Explicit blazemeter reporting is skipped for cloud")
+            else:
+                new_reporting.append(reporter)
+
+        self.engine.config[Reporter.REP] = new_reporting
+
+        config = self.get_config_for_cloud()
         bza_plugin = self.__get_bza_test_config()
         finder = ProjectFinder(self.parameters, self.settings, self.client, self.engine)
         finder.default_test_name = "Taurus Cloud Test"
@@ -1025,8 +1039,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.client.address = self.settings.get("address", self.client.address)
         self.client.token = self.settings.get("token", self.client.token)
         self.client.timeout = dehumanize_time(self.settings.get("timeout", self.client.timeout))
-        self.client.delete_files_before_test = self.settings.get("delete-test-files",
-                                                                 self.client.delete_files_before_test)
+        self.client.delete_files_before_test = self.settings.get("delete-test-files", True)
         if not self.client.token:
             bmmod = self.engine.instantiate_module('blazemeter')
             self.client.token = bmmod.settings.get("token")

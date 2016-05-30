@@ -29,7 +29,6 @@ class TestBlazeMeterUploader(BZTestCase):
         }})
         client.results.append({"marker": "tests", 'result': {}})
         client.results.append({"marker": "test-create", 'result': {'id': 'unittest1'}})
-        client.results.append({"marker": "test-files", 'files': []})
         client.results.append(
             {"marker": "sess-start", 'result': {'session': {'id': 'sess1', 'userId': 1}, 'signature': ''}})
         client.results.append({"marker": "first push", 'result': {'session': {}}})
