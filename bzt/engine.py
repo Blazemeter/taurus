@@ -586,7 +586,7 @@ class Configuration(BetterDict):
             if first_line.startswith('---'):
                 self.log.debug("Reading %s as YAML", filename)
                 return yaml.load(fds), self.YAML
-            elif first_line.startswith('{'):
+            elif first_line.strip().startswith('{'):
                 self.log.debug("Reading %s as JSON", filename)
                 return json.loads(fds.read()), self.JSON
             else:

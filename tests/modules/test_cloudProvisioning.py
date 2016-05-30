@@ -160,7 +160,7 @@ class TestCloudProvisioning(BZTestCase):
         obj.settings.merge({"token": "FakeToken",
                             "delete-test-files": True,
                             'default-location': "us-west-1",
-        })
+                            })
         obj.client = client = BlazeMeterClientEmul(obj.log)
         client.results.append(self.__get_user_info())  # user
         client.results.append({"result": [{"id": 5174715,
@@ -296,7 +296,55 @@ class TestResultsFromBZA(BZTestCase):
                 }
             ]
         })
+        client.results.append({
+            "api_version": 2,
+            "error": None,
+            "result": [
+                {
+                    "labelId": "ALL",
+                    "labelName": "ALL",
+                    "samples": 152,
+                    "avgResponseTime": 786,
+                    "90line": 836,
+                    "95line": 912,
+                    "99line": 1050,
+                    "minResponseTime": 531,
+                    "maxResponseTime": 1148,
+                    "avgLatency": 81,
+                    "geoMeanResponseTime": None,
+                    "stDev": 108,
+                    "duration": 119,
+                    "avgBytes": 0,
+                    "avgThroughput": 1.2773109243697,
+                    "medianResponseTime": 0,
+                    "errorsCount": 0,
+                    "errorsRate": 0,
+                    "hasLabelPassedThresholds": None
+                },
+                {
+                    "labelId": "e843ff89a5737891a10251cbb0db08e5",
+                    "labelName": "http://blazedemo.com/",
+                    "samples": 152,
+                    "avgResponseTime": 786,
+                    "90line": 836,
+                    "95line": 912,
+                    "99line": 1050,
+                    "minResponseTime": 531,
+                    "maxResponseTime": 1148,
+                    "avgLatency": 81,
+                    "geoMeanResponseTime": None,
+                    "stDev": 108,
+                    "duration": 119,
+                    "avgBytes": 0,
+                    "avgThroughput": 1.2773109243697,
+                    "medianResponseTime": 0,
+                    "errorsCount": 0,
+                    "errorsRate": 0,
+                    "hasLabelPassedThresholds": None
+                }
+            ]
+        })
         obj = ResultsFromBZA(client)
         obj.master_id = "master"
         results = [x for x in obj.datapoints(True)]
-        self.assertEquals(1, len(results))
+        self.assertEquals(2, len(results))

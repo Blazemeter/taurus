@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.5.1
+## 1.6.0
  - add `default-location` option for cloud provisioning
  - delete test files before uploading new ones to the cloud
  - add `delete-test-files` option to cloud provisioning
@@ -12,9 +12,11 @@
  - add check for resources overlap (data loss danger) for remote execution
  - add raise for JSON body without corresponding header
  - cleanup config from null values before sending it to the cloud
+ - pull cumulative percentiles from cloud provisioning
  - replace 'criterias' with 'criteria', add backward compatibility
  - fix double blazemeter reporting in cloud
-
+ - make ui type configurable with `screen` option of console reporter
+ - fix console reporter crash under Windows when curses is installed
 
 ## 1.5.0 <sup>4 may 2016</sup>
  - add [Tsung](Tsung.md) executor
