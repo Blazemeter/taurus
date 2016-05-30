@@ -13,6 +13,7 @@
  - add raise for JSON body without corresponding header
  - cleanup config from null values before sending it to the cloud
  - replace 'criterias' with 'criteria', add backward compatibility
+ - fix double blazemeter reporting in cloud
 
 
 ## 1.5.0 <sup>4 may 2016</sup>

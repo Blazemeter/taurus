@@ -36,7 +36,7 @@ from bzt.modules.jmeter import JMeterExecutor
 from bzt.modules.services import Unpacker
 from bzt.six import BytesIO, text_type, iteritems, HTTPError, urlencode, Request, urlopen, r_input, URLError
 from bzt.utils import open_browser, get_full_path, get_files_recursive, replace_in_config
-from bzt.utils import to_json, dehumanize_time, MultiPartForm, BetterDict
+from bzt.utils import to_json, dehumanize_time, MultiPartForm, BetterDict, ensure_is_dict
 
 
 class BlazeMeterUploader(Reporter, AggregatorListener):
@@ -891,8 +891,17 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self._configure_client()
         self.__prepare_locations()
         rfiles = self.get_rfiles()
-        config = self.get_config_for_cloud()
 
+        reporting = self.engine.config.get(Reporter.REP, [])
+        new_reporting = []
+        for index, reporter in enumerate(reporting):
+            reporter = ensure_is_dict(reporting, index, "module")
+            cls = reporter.get('module', ValueError())
+            if cls != 'blazemeter':
+                new_reporting.append(reporter)
+        self.engine.config[Reporter.REP] = new_reporting
+
+        config = self.get_config_for_cloud()
         bza_plugin = self.__get_bza_test_config()
         finder = ProjectFinder(self.parameters, self.settings, self.client, self.engine)
         finder.default_test_name = "Taurus Cloud Test"
