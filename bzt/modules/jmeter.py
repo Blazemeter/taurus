@@ -778,8 +778,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         jmeter_path = self.settings.get("path", "~/.bzt/jmeter-taurus/")
         jmeter_path = get_full_path(jmeter_path)
         jmeter_version = self.settings.get("version", JMeterExecutor.JMETER_VER)
+        download_link = self.settings.get("download-link", JMeterExecutor.JMETER_DOWNLOAD_LINK)
         plugin_download_link = self.settings.get("plugins-download-link", JMeterExecutor.PLUGINS_DOWNLOAD_TPL)
-        tool = JMeter(jmeter_path, self.log, jmeter_version, plugin_download_link)
+        tool = JMeter(jmeter_path, self.log, jmeter_version, download_link, plugin_download_link)
 
         if self._need_to_install(tool):
             self.log.info("Installing %s", tool.tool_name)
@@ -1513,11 +1514,11 @@ class JMeter(RequiredTool):
     """
     JMeter tool
     """
-    def __init__(self, tool_path, parent_logger, jmeter_version, plugin_link):
+    def __init__(self, tool_path, parent_logger, jmeter_version, jmeter_download_link, plugin_link):
         super(JMeter, self).__init__("JMeter", tool_path)
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.version = jmeter_version
-        self.mirror_manager = JMeterMirrorsManager(self.log, self.version)
+        self.mirror_manager = JMeterMirrorsManager(self.log, self.version, jmeter_download_link)
         self.plugins = ["Standard", "Extras", "ExtrasLibs", "WebDriver"]
         self.plugin_link = plugin_link
 
@@ -1616,8 +1617,9 @@ class JarCleaner(object):
 
 
 class JMeterMirrorsManager(MirrorsManager):
-    def __init__(self, parent_logger, jmeter_version):
+    def __init__(self, parent_logger, jmeter_version, download_link):
         self.jmeter_version = str(jmeter_version)
+        self.download_link = download_link
         super(JMeterMirrorsManager, self).__init__(JMeterExecutor.MIRRORS_SOURCE, parent_logger)
 
     def _parse_mirrors(self):
@@ -1631,8 +1633,8 @@ class JMeterMirrorsManager(MirrorsManager):
                 archive_name = "apache-jmeter-{version}.zip".format(version=self.jmeter_version)
                 links.append(self.base_link + archive_name)
             else:
-                self.log.warning("Can't find link for JMeter %s, will use default download-link", self.jmeter_version)
-        default_link = JMeterExecutor.JMETER_DOWNLOAD_LINK.format(version=self.jmeter_version)
+                self.log.warning("Can't find link for JMeter %s, will use download-link", self.jmeter_version)
+        default_link = self.download_link.format(version=self.jmeter_version)
         if default_link not in links:
             links.append(default_link)
         self.log.debug('Total mirrors: %d', len(links))
