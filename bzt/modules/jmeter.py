@@ -1480,9 +1480,8 @@ class JarCleaner(object):
 
     @staticmethod
     def __extract_version(jar):
-        if jar.endswith('.jar'):
-            jar = jar[:-4]
-        return jar.split('-')[-1]
+        version_str = jar.split('-')[-1]
+        return version_str.replace('.jar', '')
 
     def clean(self, path):
         """
