@@ -302,7 +302,7 @@ class BlazeMeterClient(object):
         self.first_ts = sys.maxsize
         self.last_ts = 0
         self.timeout = 10
-        self.delete_files_before_test = True
+        self.delete_files_before_test = False
 
     def _request(self, url, data=None, headers=None, checker=None, method=None):
         if not headers:
@@ -931,8 +931,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.client.address = self.settings.get("address", self.client.address)
         self.client.token = self.settings.get("token", self.client.token)
         self.client.timeout = dehumanize_time(self.settings.get("timeout", self.client.timeout))
-        self.client.delete_files_before_test = self.settings.get("delete-test-files",
-                                                                 self.client.delete_files_before_test)
+        self.client.delete_files_before_test = self.settings.get("delete-test-files", True)
         if not self.client.token:
             bmmod = self.engine.instantiate_module('blazemeter')
             self.client.token = bmmod.settings.get("token")
