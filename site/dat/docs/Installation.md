@@ -2,7 +2,7 @@
 
 ## Windows
 
-The installation process was tried on Windows 7 and Windows XP.
+The installation process was tried on all supported Windows versions (7, 8, 10).
 
 ###  Install Taurus system dependencies
 
