@@ -1,12 +1,12 @@
 # Changelog
 
-## 1.6.0
+## 1.6.0 <sup>31 may 2016</sup>
+ - add [logic blocks](JMeter.md#Logic-Blocks) to `scenario.requests` syntax for JMeter
  - add `default-location` option for cloud provisioning
  - delete test files before uploading new ones to the cloud
  - add `delete-test-files` option to cloud provisioning
  - fix reading piped config from stdin
  - don't trap KeyboardInterrupt in tool install
- - add [logic blocks](JMeter.md#Logic-Blocks) to `scenario.requests` syntax for JMeter
  - remove default xmx set for JMeter
  - add zipping folders treatment for remote execution
  - add check for resources overlap (data loss danger) for remote execution
