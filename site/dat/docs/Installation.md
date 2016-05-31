@@ -12,7 +12,10 @@ The installation process was tried on Windows 7 and Windows XP.
 ### Install Taurus Python dependencies
 
 Open Command Prompt with administrative privileges (find `Command Prompt` in main menu and chose `Run as administrator`
-from context menu). Then run the following commands:
+from context menu). Then run the following command to update Python package manager to the latest version:
+```
+python -m pip install --upgrade pip
+```
 
 #### Install `lxml` package
 
