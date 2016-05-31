@@ -9,7 +9,7 @@ The installation process was tried on Windows 7 and Windows XP.
 1. Get Python 2.7 from [http://www.python.org/downloads](http://www.python.org/downloads) and install it, don't forget to enable "Add python.exe to Path" checkbox.
 1. Get latest Java from [https://www.java.com/download/](https://www.java.com/download/) and install it.
 
-### Install Taurus Python dependencies: 
+### Install Taurus Python dependencies
 
 Open Command Prompt with administrative privileges (find `Command Prompt` in main menu and chose `Run as administrator`
 from context menu). Then run the following commands:
