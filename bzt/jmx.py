@@ -696,8 +696,10 @@ class JMX(object):
 
         if headers.lower() == 'headers':
             headers = 'true'
-        if headers.lower() == 'http-code':
+        elif headers.lower() == 'http-code':
             headers = 'code'
+        else:
+            headers = 'body'
 
         element = etree.Element("RegexExtractor", guiclass="RegexExtractorGui",
                                 testclass="RegexExtractor", testname="Get %s" % varname, enabled="true")
