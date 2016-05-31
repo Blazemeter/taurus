@@ -25,7 +25,6 @@
 - fix JMeter 3.0 installation issues
 - make JMeter 3.0 the default installed version
 - fix downloading older JMeter versions from Apache archives
->>>>>>> 50b5aba979de0b50b001dd59fca1c09b514377d9
 
 ## 1.5.0 <sup>4 may 2016</sup>
  - add [Tsung](Tsung.md) executor
