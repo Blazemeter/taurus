@@ -681,7 +681,7 @@ class JMX(object):
         return element
 
     @staticmethod
-    def _get_extractor(varname, regexp, template, match_no, default='NOT_FOUND'):
+    def _get_extractor(varname, headers, regexp, template, match_no, default='NOT_FOUND'):
         """
 
         :type varname: str
@@ -694,13 +694,22 @@ class JMX(object):
         if isinstance(template, int):
             template = '$%s$' % template
 
+        if headers.lower() == 'headers':
+            headers = 'true'
+        elif headers.lower() == 'http-code':
+            headers = 'code'
+        else:
+            headers = 'body'
+
         element = etree.Element("RegexExtractor", guiclass="RegexExtractorGui",
-                                testclass="RegexExtractor", testname="Get %s" % varname)
+                                testclass="RegexExtractor", testname="Get %s" % varname, enabled="true")
+        element.append(JMX._string_prop("RegexExtractor.useHeaders", headers))
         element.append(JMX._string_prop("RegexExtractor.refname", varname))
         element.append(JMX._string_prop("RegexExtractor.regex", regexp))
+        element.append(JMX._string_prop("Sample.scope", "parent"))
         element.append(JMX._string_prop("RegexExtractor.template", template))
-        element.append(JMX._string_prop("RegexExtractor.match_number", match_no))
         element.append(JMX._string_prop("RegexExtractor.default", default))
+        element.append(JMX._string_prop("RegexExtractor.match_number", match_no))
         return element
 
     @staticmethod
