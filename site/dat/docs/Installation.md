@@ -2,18 +2,46 @@
 
 ## Windows
 
-Tried on Windows 7 and Windows XP:
+The installation process was tried on Windows 7 and Windows XP.
 
-  1. Get Python 2.7 from [http://www.python.org/downloads](http://www.python.org/downloads) and install it, don't forget to enable "Add python.exe to Path" checkbox.
-  1. Get latest Java from [https://www.java.com/download/](https://www.java.com/download/) and install it.
-  1. Download `lxml-3.6.0-cp27-cp27m-win32.whl` package from [http://www.lfd.uci.edu/](http://www.lfd.uci.edu/~gohlke/pythonlibs/#lxml).
-  1. Open Command Prompt with administrative privileges (find `Command Prompt` in main menu and chose `Run as administrator` from context menu) and type these commands:
+###  Install Taurus system dependencies
+
+1. Get Python 2.7 from [http://www.python.org/downloads](http://www.python.org/downloads) and install it, don't forget to enable "Add python.exe to Path" checkbox.
+1. Get latest Java from [https://www.java.com/download/](https://www.java.com/download/) and install it.
+
+### Install Taurus Python dependencies: 
+
+Open Command Prompt with administrative privileges (find `Command Prompt` in main menu and chose `Run as administrator`
+from context menu). Then run the following commands:
+
+#### Install `lxml` package
+
 ```
-  pip install lxml-3.6.0-cp27-cp27m-win32.whl
-  pip install --upgrade setuptools
-  pip install bzt
+pip install lxml
 ```
-To upgrade Taurus, open Command Prompt the same way and hit
+
+If this command fails, `lxml` provides Windows installers at its [PyPI page](https://pypi.python.org/pypi/lxml/3.6.0).
+Download `lxml-3.6.0.win32-py2.7.exe` installer (or `lxml-3.6.0.win-amd64-py2.7.exe`, if you've installed 64-bit
+Python) and run it.
+
+#### Install `psutil` package
+
+```
+pip install psutil
+```
+
+If this doesn't work for you, `psutil` provides Windows installers at its [PyPI page](https://pypi.python.org/pypi/psutil).
+Download `psutil-4.2.0.win32-py2.7.exe` (or `psutil-4.2.0.win-amd64-py2.7.exe` for 64-bit installations) and install it.
+
+### Install Taurus
+
+```
+pip install bzt
+```
+
+### Upgrading Taurus
+
+To upgrade Taurus, open Command Prompt as administrator and run
 ``` 
  pip install --upgrade bzt
 ```
