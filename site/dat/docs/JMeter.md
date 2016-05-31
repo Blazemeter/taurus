@@ -243,6 +243,7 @@ scenarios:
     - url: http://blazedemo.com/  
       extract-regexp: # dictionary under it has form <var name>: <regular expression>
         page_title: <title>(\w+)</title>  #  must have at least one capture group
+        subject: body                     #  subject for search
       extract-jsonpath: # dictionary under it has form <var name>: <JSONPath expression>
         varname: $.jsonpath[0].expression
     - url: http://blazedemo.com/${varname}/${page_title}  # that's how we use those variables
@@ -252,6 +253,11 @@ scenarios:
       extract-xpath:
         title: /html/head/title
 ```
+
+Possible subjects for regexp are:
+  - `body`
+  - `headers`
+  - `http-code`
 
 The full form for extractors is:
 
