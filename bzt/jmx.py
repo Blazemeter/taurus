@@ -706,6 +706,7 @@ class JMX(object):
         element.append(JMX._string_prop("RegexExtractor.useHeaders", headers))
         element.append(JMX._string_prop("RegexExtractor.refname", varname))
         element.append(JMX._string_prop("RegexExtractor.regex", regexp))
+        element.append(JMX._string_prop("Sample.scope", "parent"))
         element.append(JMX._string_prop("RegexExtractor.template", template))
         element.append(JMX._string_prop("RegexExtractor.default", default))
         element.append(JMX._string_prop("RegexExtractor.match_number", match_no))
