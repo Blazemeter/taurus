@@ -23,9 +23,9 @@ python -m pip install --upgrade pip
 pip install lxml
 ```
 
-If this command fails, `lxml` provides Windows installers at its [PyPI page](https://pypi.python.org/pypi/lxml/3.6.0).
-Download `lxml-3.6.0.win32-py2.7.exe` installer (or `lxml-3.6.0.win-amd64-py2.7.exe`, if you've installed 64-bit
-Python) and run it.
+If this command fails, you can install `lxml` with Windows installer provided at project's
+[PyPI page](https://pypi.python.org/pypi/lxml/3.6.0). Just download `lxml-3.6.0.win32-py2.7.exe` installer (or
+`lxml-3.6.0.win-amd64-py2.7.exe`, if you've installed 64-bit Python) and run it.
 
 #### Install `psutil` package
 
@@ -33,8 +33,9 @@ Python) and run it.
 pip install psutil
 ```
 
-If this doesn't work for you, `psutil` provides Windows installers at its [PyPI page](https://pypi.python.org/pypi/psutil).
-Download `psutil-4.2.0.win32-py2.7.exe` (or `psutil-4.2.0.win-amd64-py2.7.exe` for 64-bit installations) and install it.
+If this command fails, you can install `psutil` with Windows installer provided at project's
+[PyPI page](https://pypi.python.org/pypi/psutil). Download `psutil-4.2.0.win32-py2.7.exe` file (or
+`psutil-4.2.0.win-amd64-py2.7.exe` for 64-bit Python) and install it.
 
 ### Install Taurus
 
