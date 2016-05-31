@@ -4,12 +4,12 @@
 
 Tried on Windows 7 and Windows XP:
 
-  1. Get python 2.7 from [http://www.python.org/downloads](http://www.python.org/downloads) and install it, don't forget to enable "Add python.exe to Path".
+  1. Get Python 2.7 from [http://www.python.org/downloads](http://www.python.org/downloads) and install it, don't forget to enable "Add python.exe to Path" checkbox.
   1. Get latest Java from [https://www.java.com/download/](https://www.java.com/download/) and install it.
-  1. Download `lxml-3.5.0-cp27-none-win32.whl` package from [http://www.lfd.uci.edu/](http://www.lfd.uci.edu/~gohlke/pythonlibs/#lxml).
+  1. Download `lxml-3.6.0-cp27-cp27m-win32.whl` package from [http://www.lfd.uci.edu/](http://www.lfd.uci.edu/~gohlke/pythonlibs/#lxml).
   1. Open Command Prompt with administrative privileges (find `Command Prompt` in main menu and chose `Run as administrator` from context menu) and type these commands:
 ```
-  pip install lxml-3.5.0-cp27-none-win32.whl
+  pip install lxml-3.6.0-cp27-cp27m-win32.whl
   pip install --upgrade setuptools
   pip install bzt
 ```
