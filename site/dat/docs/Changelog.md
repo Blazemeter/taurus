@@ -18,6 +18,14 @@
  - make ui type configurable with `screen` option of console reporter
  - fix console reporter crash under Windows when curses is installed
  - add subject setting to regexp extractor (similar to assertions)
+ - send some monitoring data into BlazeMeter reporting service
+ - do not clear cloud test files when using Blazemeter reporting
+
+## 1.5.1 <sup>30 may 2016</sup>
+- fix JMeter 3.0 installation issues
+- make JMeter 3.0 the default installed version
+- fix downloading older JMeter versions from Apache archives
+>>>>>>> 50b5aba979de0b50b001dd59fca1c09b514377d9
 
 ## 1.5.0 <sup>4 may 2016</sup>
  - add [Tsung](Tsung.md) executor

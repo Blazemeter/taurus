@@ -29,13 +29,12 @@ class TestBlazeMeterUploader(BZTestCase):
         }})
         client.results.append({"marker": "tests", 'result': {}})
         client.results.append({"marker": "test-create", 'result': {'id': 'unittest1'}})
-        client.results.append({"marker": "test-files", 'files': []})
         client.results.append(
             {"marker": "sess-start", 'result': {'session': {'id': 'sess1', 'userId': 1}, 'signature': ''}})
         client.results.append({"marker": "first push", 'result': {'session': {}}})
         # client.results.append(None)  # first check error stats
-        client.results.append(
-            {"marker": "second push", 'result': {'session': {"statusCode": 140, 'status': 'ENDED'}}})
+        client.results.append({"marker": "mon push", "result": True})
+        client.results.append({"marker": "second push", 'result': {'session': {"statusCode": 140, 'status': 'ENDED'}}})
         # client.results.append(None)  # second check error stats
         client.results.append({"marker": "post-proc push", 'result': {'session': {}}})
         client.results.append({"marker": "upload1", "result": True})  # post-proc error stats
@@ -52,6 +51,8 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.startup()
         for x in range(0, 31):
             obj.aggregated_second(random_datapoint(x))
+        mon = [{"ts": 1, "source": "local", "cpu": 1, "mem": 2, "bytes-recv": 100, "other": 0}]
+        obj.monitoring_data(mon)
         obj.check()
         for x in range(32, 65):
             obj.aggregated_second(random_datapoint(x))
