@@ -59,6 +59,19 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEquals('420', thr[0].text)
         self.assertEquals('631', thr[1].text)
 
+    def test_regexp_extractors(self):
+        self.obj.execution.merge(
+            {"scenario":
+                {"requests": [{
+                    "url": "http://localhost",
+                    "extract-regexp": {
+                        "test_name": "???"}}]}})
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        self.assertEqual("body", xml_tree.findall(".//stringProp[@name='RegexExtractor.useHeaders']")[0].text)
+        self.assertEqual("???", xml_tree.findall(".//stringProp[@name='RegexExtractor.regex']")[0].text)
+        self.assertEqual("parent", xml_tree.findall(".//stringProp[@name='Sample.scope']")[0].text)
+
     def test_not_jmx(self):
         self.obj.execution = {"scenario": {"script": __file__}}
         self.assertRaises(RuntimeError, self.obj.prepare)
@@ -102,17 +115,17 @@ class TestJMeterExecutor(BZTestCase):
 
     def test_datasources_with_delimiter(self):
         self.obj.execution.merge({"scenario":
-                                 {"requests": ["http://localhost"],
-                                  "data-sources": [
-                                      {"path": __dir__() + "/../data/test2.csv",
-                                       "delimiter": ","}]}})
+                                      {"requests": ["http://localhost"],
+                                       "data-sources": [
+                                           {"path": __dir__() + "/../data/test2.csv",
+                                            "delimiter": ","}]}})
         self.obj.prepare()
 
     def test_datasources_without_delimiter(self):
         self.obj.execution.merge({"scenario":
-                                 {"requests": ["http://localhost"],
-                                  "data-sources": [
-                                      {"path": __dir__() + "/../data/test2.csv"}]}})
+                                      {"requests": ["http://localhost"],
+                                       "data-sources": [
+                                           {"path": __dir__() + "/../data/test2.csv"}]}})
         self.obj.prepare()
 
     def test_path_processing(self):
@@ -237,11 +250,11 @@ class TestJMeterExecutor(BZTestCase):
 
     def test_think_time_bug(self):
         self.obj.engine.config.merge({'execution': {'ramp-up': '1m', 'hold-for': '1m30s', 'concurrency': 10,
-                                               'scenario':
-                                                   {'think-time': 0.75,
-                                                    'requests':
-                                                        ['http://blazedemo.com/',
-                                                         'http://blazedemo.com/vacation.html']}}})
+                                                    'scenario':
+                                                        {'think-time': 0.75,
+                                                         'requests':
+                                                             ['http://blazedemo.com/',
+                                                              'http://blazedemo.com/vacation.html']}}})
         self.obj.execution = self.obj.engine.config['execution']
         self.obj.prepare()
         result = open(self.obj.modified_jmx).read()
@@ -343,7 +356,7 @@ class TestJMeterExecutor(BZTestCase):
 
     def test_add_shaper_constant(self):
         self.obj.engine.config.merge({'execution': {'concurrency': 200, 'throughput': 100, 'hold-for': '1m',
-                                               'scenario': {'script': __dir__() + '/../jmeter/jmx/http.jmx'}}})
+                                                    'scenario': {'script': __dir__() + '/../jmeter/jmx/http.jmx'}}})
         self.obj.engine.config.merge({"provisioning": "local"})
         self.obj.execution = self.obj.engine.config['execution']
         self.obj.prepare()
@@ -359,8 +372,9 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual("60", shaper_coll_element.find(".//stringProp[@name='53']").text)
 
     def test_add_shaper_ramp_up(self):
-        self.obj.engine.config.merge({'execution': {'ramp-up': '1m', 'throughput': 10, 'hold-for': '2m', 'concurrency': 20,
-                                               'scenario': {'script': __dir__() + '/../jmeter/jmx/http.jmx'}}})
+        self.obj.engine.config.merge(
+            {'execution': {'ramp-up': '1m', 'throughput': 10, 'hold-for': '2m', 'concurrency': 20,
+                           'scenario': {'script': __dir__() + '/../jmeter/jmx/http.jmx'}}})
         self.obj.engine.config.merge({"provisioning": "local"})
         self.obj.execution = self.obj.engine.config['execution']
         self.obj.prepare()
@@ -388,9 +402,10 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(1, len(udv_elements))
 
     def test_user_def_vars_override(self):
-        self.obj.engine.config.merge({'execution': {'concurrency': 200, 'throughput': 100, 'hold-for': '1m', 'scenario': {
-            'variables': {'my_var': 'http://demo.blazemeter.com/api/user', 'myvar2': 'val2'},
-            'properties': {'log_level.jmeter': 'DEBUG'}, 'script': __dir__() + '/../jmeter/jmx/http.jmx'}}})
+        self.obj.engine.config.merge(
+            {'execution': {'concurrency': 200, 'throughput': 100, 'hold-for': '1m', 'scenario': {
+                'variables': {'my_var': 'http://demo.blazemeter.com/api/user', 'myvar2': 'val2'},
+                'properties': {'log_level.jmeter': 'DEBUG'}, 'script': __dir__() + '/../jmeter/jmx/http.jmx'}}})
         self.obj.execution = self.obj.engine.config['execution']
         self.obj.prepare()
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
@@ -460,12 +475,12 @@ class TestJMeterExecutor(BZTestCase):
 
     def test_dns_cache_mgr_script(self):
         self.obj.engine.config.merge({'execution': {'ramp-up': 10, 'throughput': 2, 'hold-for': 20, 'concurrency': 5,
-                                               'scenario': {'think-time': '0.75s',
-                                                            'script': __dir__() + '/../jmeter/jmx/http.jmx'}},
-                                 'modules': {'jmeter': {'system-properties': {'any_prop': 'true'},
-                                                        'properties': {'log_level.jmeter': 'WARN',
-                                                                       'log_level.jmeter.threads': 'DEBUG',
-                                                                       'my-hostname': 'www.pre-test.com'}}}})
+                                                    'scenario': {'think-time': '0.75s',
+                                                                 'script': __dir__() + '/../jmeter/jmx/http.jmx'}},
+                                      'modules': {'jmeter': {'system-properties': {'any_prop': 'true'},
+                                                             'properties': {'log_level.jmeter': 'WARN',
+                                                                            'log_level.jmeter.threads': 'DEBUG',
+                                                                            'my-hostname': 'www.pre-test.com'}}}})
         self.obj.engine.config.merge({"provisioning": "local"})
         self.obj.execution = self.obj.engine.config['execution']
         self.obj.settings.merge(self.obj.engine.config.get("modules").get("jmeter"))
@@ -484,9 +499,9 @@ class TestJMeterExecutor(BZTestCase):
         :return:
         """
         self.obj.engine.config.merge({'execution': {'steps': 5, 'concurrency': 170,
-                                               'scenario': {
-                                                   'script': __dir__() + '/../jmeter/jmx/stepping_ramp_up.jmx'},
-                                               'ramp-up': '1m', 'distributed': ['127.0.0.1'], 'hold-for': '2m'}})
+                                                    'scenario': {
+                                                        'script': __dir__() + '/../jmeter/jmx/stepping_ramp_up.jmx'},
+                                                    'ramp-up': '1m', 'distributed': ['127.0.0.1'], 'hold-for': '2m'}})
         self.obj.engine.config.merge({"provisioning": "local"})
         self.obj.execution = self.obj.engine.config['execution']
         self.obj.prepare()
@@ -512,9 +527,9 @@ class TestJMeterExecutor(BZTestCase):
         :return:
         """
         self.obj.engine.config.merge({'execution': {'steps': 5, 'concurrency': 170,
-                                               'scenario': {
-                                                   'script': __dir__() + '/../jmeter/jmx/stepping_ramp_up.jmx'},
-                                               'ramp-up': '1m', 'distributed': ['127.0.0.1'], 'hold-for': '2m'}})
+                                                    'scenario': {
+                                                        'script': __dir__() + '/../jmeter/jmx/stepping_ramp_up.jmx'},
+                                                    'ramp-up': '1m', 'distributed': ['127.0.0.1'], 'hold-for': '2m'}})
         self.obj.engine.config.merge({"provisioning": "local"})
         self.obj.execution = self.obj.engine.config['execution']
         self.obj.execution['concurrency'] = 100  # from 170 to 100
@@ -539,9 +554,9 @@ class TestJMeterExecutor(BZTestCase):
 
     def test_step_shaper(self):
         self.obj.engine.config.merge({'execution': {'steps': 5, 'concurrency': 170,
-                                               'scenario': {
-                                                   'script': __dir__() + '/../jmeter/jmx/stepping_ramp_up.jmx'},
-                                               'ramp-up': '1m', 'distributed': ['127.0.0.1'], 'hold-for': '2m'}})
+                                                    'scenario': {
+                                                        'script': __dir__() + '/../jmeter/jmx/stepping_ramp_up.jmx'},
+                                                    'ramp-up': '1m', 'distributed': ['127.0.0.1'], 'hold-for': '2m'}})
         self.obj.engine.config.merge({"provisioning": "local"})
         self.obj.execution = self.obj.engine.config['execution']
         self.obj.execution['throughput'] = 100
@@ -579,7 +594,8 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(tg_forever.text, "false")
 
     def test_force_delimiters(self):
-        self.obj.execution.merge({"iterations": 10, "scenario": {"script": __dir__() + "/../jmeter/jmx/delimiters.jmx"}})
+        self.obj.execution.merge(
+            {"iterations": 10, "scenario": {"script": __dir__() + "/../jmeter/jmx/delimiters.jmx"}})
         self.obj.prepare()
         jmx = JMX(self.obj.modified_jmx)
         delimiters = [delimiter.text for delimiter in jmx.get("CSVDataSet>stringProp[name='delimiter']")]
@@ -912,7 +928,7 @@ class TestJMeterExecutor(BZTestCase):
         jmx = JMX(self.obj.modified_jmx)
         self.assertNotEqual(jmx.get('ResultCollector[testname="Trace Writer"]'), [])
         self.assertEqual(jmx.get('ResultCollector[testname="Errors Writer"]'), [])
-        
+
     def test_jtl_errors(self):
         self.obj.execution.merge({
             "write-xml-jtl": "error",
@@ -924,7 +940,6 @@ class TestJMeterExecutor(BZTestCase):
         jmx = JMX(self.obj.modified_jmx)
         self.assertNotEqual(jmx.get('ResultCollector[testname="Errors Writer"]'), [])
         self.assertEqual(jmx.get('ResultCollector[testname="Trace Writer"]'), [])
-
 
     def test_jtl_none(self):
         self.obj.execution.merge({
@@ -1007,8 +1022,8 @@ class TestJMeterExecutor(BZTestCase):
 
     def test_jvm_heap_settings(self):
         self.obj.engine.config.merge({'execution': {'iterations': 1,
-                                               'scenario': {'script': __dir__() + '/../jmeter/jmx/http.jmx'}},
-                                 'modules': {'jmeter': {'memory-xmx': '2G'}}})
+                                                    'scenario': {'script': __dir__() + '/../jmeter/jmx/http.jmx'}},
+                                      'modules': {'jmeter': {'memory-xmx': '2G'}}})
         self.obj.engine.config.merge({"provisioning": "local"})
         self.obj.execution = self.obj.engine.config['execution']
         self.obj.settings.merge(self.obj.engine.config.get("modules").get("jmeter"))
@@ -1022,8 +1037,8 @@ class TestJMeterExecutor(BZTestCase):
 
     def test_data_sources_in_artifacts(self):
         self.obj.engine.config.merge({'execution': {'iterations': 1,
-                                               'scenario': {'data-sources': ['test1.csv'],
-                                                            'requests': ['http://blazedemo.com/${url}']}}})
+                                                    'scenario': {'data-sources': ['test1.csv'],
+                                                                 'requests': ['http://blazedemo.com/${url}']}}})
         self.obj.engine.config.merge({"provisioning": "local"})
         self.obj.execution = self.obj.engine.config['execution']
         self.obj.settings.merge(self.obj.engine.config.get("modules").get("jmeter"))
@@ -1455,9 +1470,9 @@ class TestJMeterExecutor(BZTestCase):
                         {
                             "transaction": "API",
                             "do": [{
-                                    "url": "http://demo.blazemeter.com/",
-                                    "method": "POST",
-                                    "body-file": __dir__() + "/../jmeter/jmx/dummy.jmx",
+                                "url": "http://demo.blazemeter.com/",
+                                "method": "POST",
+                                "body-file": __dir__() + "/../jmeter/jmx/dummy.jmx",
                             }],
                         }
                     ],
@@ -1609,7 +1624,6 @@ class TestJMeterExecutor(BZTestCase):
         self.assertRaises(ValueError, self.obj.resource_files)
 
 
-
 class TestJMX(BZTestCase):
     def test_jmx_unicode_checkmark(self):
         obj = JMX()
@@ -1631,3 +1645,12 @@ class TestJMX(BZTestCase):
         self.assertEqual("", res.find(".//stringProp[@name='HTTPSampler.path']").text)
         self.assertEqual("hostname", res.find(".//stringProp[@name='HTTPSampler.domain']").text)
         self.assertEqual("", res.find(".//stringProp[@name='HTTPSampler.port']").text)
+
+    def test_regexp_subject(self):
+        res = JMX._get_extractor('test_name', 'baddy', 'regexp', 1, 1, 'error')
+        self.assertEqual("body", res.find(".//stringProp[@name='RegexExtractor.useHeaders']").text)
+        res = JMX._get_extractor('test_name', 'headers', 'regexp', 1, 1, 'error')
+        self.assertEqual("true", res.find(".//stringProp[@name='RegexExtractor.useHeaders']").text)
+        res = JMX._get_extractor('test_name', 'http-code', 'regexp', 1, 1, 'error')
+        self.assertEqual("code", res.find(".//stringProp[@name='RegexExtractor.useHeaders']").text)
+        self.assertEqual("parent", res.find(".//stringProp[@name='Sample.scope']").text)
