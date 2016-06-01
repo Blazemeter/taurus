@@ -261,6 +261,7 @@ You can ask to unzip some of your files into artifacts directory before test sta
 ---
 services:
 - module: unpacker
+  run-at: local # provisioning to work on
   files:
   - c:\tmp.zip
   - /home/user/temp.zip

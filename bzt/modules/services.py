@@ -20,7 +20,7 @@ import copy
 import os
 import zipfile
 
-from bzt.engine import Service
+from bzt.engine import Service, Provisioning
 from bzt.utils import replace_in_config
 
 
@@ -33,15 +33,19 @@ class Unpacker(Service):
         self.files = []
 
     def prepare(self):
+        prov = self.engine.config.get(Provisioning.PROV)
+        runat = self.parameters.get("run-at", "local")
+        if prov != runat:
+            self.log.debug("Not running unpacker because of non-matching prov: %s != %s", prov, runat)
+            return
+
         packed_list = copy.deepcopy(self.parameters.get(Unpacker.FILES, self.files))
         unpacked_list = []
         for archive in packed_list:
             full_archive_path = self.engine.find_file(archive)
             self.log.debug('Unpacking %s', archive)
-            with zipfile.ZipFile(full_archive_path, 'r') as zip_file:
+            with zipfile.ZipFile(full_archive_path) as zip_file:
                 zip_file.extractall(self.engine.artifacts_dir)
-
-            # TODO: remove archive after unpacking in cloud case
 
             archive = os.path.basename(archive)
             unpacked_list.append(archive[:-4])  # TODO: replace with top-level archive content
