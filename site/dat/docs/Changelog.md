@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.6.1
+## 1.6.1 <sup>1 jun 2016</sup>
  - add `run-at` option for unpacker module
 
 ## 1.6.0 <sup>31 may 2016</sup>
