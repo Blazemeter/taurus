@@ -967,7 +967,7 @@ class MasterProvisioning(Provisioning):
 
         if packed_list:
             services = self.engine.config.get(Service.SERV, [])
-            services.append({'module': Unpacker.UNPACK, Unpacker.FILES: packed_list})
+            services.append({'module': Unpacker.UNPACK, Unpacker.FILES: packed_list, 'run-at': 'local'})
 
         return result_list
 
