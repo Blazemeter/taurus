@@ -5,8 +5,6 @@ TAURUS_VERSION=`python -c 'import bzt; print(bzt.VERSION)'`
 rm -rf build/installer
 mkdir -p build/installer
 
-cp installer/taurus_nsis.nsi build/installer/taurus_nsis.nsi
-
 cd build/installer
 
 ln -s "../../bzt" bzt
@@ -27,6 +25,30 @@ cp -r lxml/lxml pynsist_pkgs
 cp -r psutil/psutil pynsist_pkgs
 cp -r selenium/selenium pynsist_pkgs
 
+# create NSIS script
+cat << EOF > taurus.nsi
+[% extends "pyapp_w_pylauncher.nsi" %]
+
+[% block install_commands %]
+[[ super() ]]
+  IfFileExists "C:\etc\bzt.d\99-installID.yml" file_found file_not_found
+  file_not_found:
+  nsExec::ExecToStack '[[ python ]] -c "import uuid; print uuid.uuid4()"'
+  Pop $0  ; return code
+  Pop $1  ; output
+  FileOpen $9 C:\etc\bzt.d\99-installID.yml w
+  FileWrite $9 "---$\r$\n"
+  FileWrite $9 "install-id: "
+  FileWrite $9 $1
+  FileWrite $9 "$\r$\n"
+  FileClose $9
+  file_found:
+
+[% endblock %]
+
+EOF
+
+# Create pynsist config
 cat << EOF > installer.cfg
 [Application]
 name=Taurus
@@ -62,8 +84,9 @@ packages=bzt
 files=bzt/10-base.json > C:\etc\bzt.d\
 
 [Build]
-nsi_template=taurus_nsis.nsi
+nsi_template=taurus.nsi
 directory=.
+
 EOF
 
 pynsist installer.cfg
