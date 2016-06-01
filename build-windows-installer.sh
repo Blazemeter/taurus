@@ -2,6 +2,12 @@
 
 TAURUS_VERSION=`python -c 'import bzt; print(bzt.VERSION)'`
 
+# setup virtualenv
+virtualenv --clear build
+source build/bin/activate
+pip install --upgrade pynsist
+pip install --upgrade colorlog pyyaml psutil lxml cssselect nose urwid coverage six pylint selenium progressbar33 locustio pyvirtualdisplay
+
 rm -rf build/installer
 mkdir -p build/installer
 
@@ -89,6 +95,8 @@ directory=.
 
 EOF
 
-pynsist installer.cfg
+pynsist installer.cfg || exit 1
+
+deactivate
 
 echo "Taurus installer was saved as build/installer/Taurus_$TAURUS_VERSION.exe"
