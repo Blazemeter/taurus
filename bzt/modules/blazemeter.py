@@ -111,6 +111,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         Initiate online test
         """
         super(BlazeMeterUploader, self).startup()
+        self.client.log = self.log.getChild(self.__class__.__name__)
 
         if not self.client.active_session_id:
             try:
@@ -172,6 +173,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
             self.log.debug("No feeding session obtained, nothing to finalize")
             return
 
+        self.log.debug("KPI bulk buffer len in post-proc: %s", len(self.kpi_buffer))
         try:
             self.__send_data(self.kpi_buffer, False, True)
             self.kpi_buffer = []
