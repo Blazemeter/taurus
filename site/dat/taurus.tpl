@@ -109,7 +109,7 @@
             <div class="pull-right clearfix" style="line-height: 100%">
                 <a href="https://pypi.python.org/pypi/bzt"><img src='https://img.shields.io/pypi/v/bzt.svg' title='We are ready to be installed'/></a><br/>
                 <a href="https://codecov.io/github/Blazemeter/taurus"><img src='https://codecov.io/github/Blazemeter/taurus/coverage.svg' title='We care about quality'/></a><br/>
-                <a href="https://pypi.python.org/pypi/bzt"><img src='https://img.shields.io/github/stars/Blazemeter/taurus.svg?style=flat&label=github%20stars' title='We are ready to be installed'/></a><br/>
+                <a href="https://github.com/Blazemeter/taurus/stargazers"><img src='https://img.shields.io/github/stars/Blazemeter/taurus.svg?style=flat&label=github%20stars' title='Community likes it'/></a><br/>
             </div>
         </div>
     </div>
