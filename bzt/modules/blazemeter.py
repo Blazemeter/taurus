@@ -49,10 +49,11 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
 
     :type client: BlazeMeterClient
     """
+    MONITORING_BUFFER_LIMIT = 100
 
     def __init__(self):
         super(BlazeMeterUploader, self).__init__()
-        self.monitoring = OrderedDict()
+        self.monitoring_buffer = OrderedDict()
         self.send_monitoring = True
         self.browser_open = 'start'
         self.client = BlazeMeterClient(self.log)
@@ -279,25 +280,25 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
             self.record_monitoring_data(data)
 
     def downsample_monitoring_series(self, distance=1):
-        timestamps = self.monitoring.keys()
+        timestamps = self.monitoring_buffer.keys()
         blacklist = []
         for ts1, ts2 in zip(timestamps, timestamps[1:]):
             if ts2 - ts1 == distance:
                 if ts1 not in blacklist and ts2 not in blacklist:
                     blacklist.append(ts2)
         for item in blacklist:
-            self.monitoring.pop(item)
+            self.monitoring_buffer.pop(item)
 
     def record_monitoring_data(self, data):
         for item in data:
             ts = int(item['ts'])
-            if ts in self.monitoring:
-                self.monitoring[ts].append(item)
+            if ts in self.monitoring_buffer:
+                self.monitoring_buffer[ts].append(item)
             else:
-                self.monitoring[ts] = [item]
+                self.monitoring_buffer[ts] = [item]
 
         distance = 1
-        while len(self.monitoring) > 30:
+        while len(self.monitoring_buffer) > self.MONITORING_BUFFER_LIMIT:
             self.downsample_monitoring_series(distance)
             distance += 1
 
@@ -322,7 +323,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         hosts = []
         kpis = {}
 
-        for items in viewvalues(self.monitoring):
+        for items in viewvalues(self.monitoring_buffer):
             for item in items:
                 if item['source'] == 'local':
                     item['source'] = platform.node()

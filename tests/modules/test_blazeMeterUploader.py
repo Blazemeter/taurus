@@ -70,6 +70,13 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.address = "https://a.blazemeter.com"
         obj.ping()
 
+    def test_monitoring_buffer_downsample(self):
+        obj = BlazeMeterUploader()
+        for i in range(1000):
+            mon = [{"ts": i, "source": "local", "cpu": 1, "mem": 2, "bytes-recv": 100, "other": 0}]
+            obj.monitoring_data(mon)
+        self.assertLessEqual(len(obj.monitoring_buffer), obj.MONITORING_BUFFER_LIMIT)
+
 
 class TestBlazeMeterClientUnicode(BZTestCase):
     def test_unicode_request(self):
