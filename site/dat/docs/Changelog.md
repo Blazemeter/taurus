@@ -4,6 +4,7 @@
  - fix percentile value handling in passfail criteria
  - fix problem with sending included configs into cloud
  - fix cumulative fail criteria processing order
+ - limit the amount of monitoring data BlazeMeter uploader accumulates
 
 ## 1.6.2 <sup>8 jun 2016</sup>
  - fix passfail-related regression crash
