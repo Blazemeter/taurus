@@ -280,7 +280,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
             self.record_monitoring_data(data)
 
     def downsample_monitoring_series(self, distance=1):
-        timestamps = self.monitoring_buffer.keys()
+        timestamps = list(self.monitoring_buffer)
         blacklist = []
         for ts1, ts2 in zip(timestamps, timestamps[1:]):
             if ts2 - ts1 == distance:
