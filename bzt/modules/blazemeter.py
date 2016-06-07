@@ -38,6 +38,7 @@ from bzt.modules.jmeter import JMeterExecutor
 from bzt.modules.monitoring import Monitoring, MonitoringListener
 from bzt.modules.services import Unpacker
 from bzt.six import BytesIO, text_type, iteritems, HTTPError, urlencode, Request, urlopen, r_input, URLError
+from bzt.six import viewvalues
 from bzt.utils import open_browser, get_full_path, get_files_recursive, replace_in_config
 from bzt.utils import to_json, dehumanize_time, MultiPartForm, BetterDict, ensure_is_dict
 
@@ -51,7 +52,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
 
     def __init__(self):
         super(BlazeMeterUploader, self).__init__()
-        self.monitoring = []
+        self.monitoring = OrderedDict()
         self.send_monitoring = True
         self.browser_open = 'start'
         self.client = BlazeMeterClient(self.log)
@@ -275,10 +276,32 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
 
     def monitoring_data(self, data):
         if self.send_monitoring:
-            self.monitoring.extend(data)
+            self.record_monitoring_data(data)
+
+    def downsample_monitoring_series(self, distance=1):
+        timestamps = self.monitoring.keys()
+        blacklist = []
+        for ts1, ts2 in zip(timestamps, timestamps[1:]):
+            if ts2 - ts1 == distance:
+                if ts1 not in blacklist and ts2 not in blacklist:
+                    blacklist.append(ts2)
+        for item in blacklist:
+            self.monitoring.pop(item)
+
+    def record_monitoring_data(self, data):
+        for item in data:
+            ts = int(item['ts'])
+            if ts in self.monitoring:
+                self.monitoring[ts].append(item)
+            else:
+                self.monitoring[ts] = [item]
+
+        distance = 1
+        while len(self.monitoring) > 30:
+            self.downsample_monitoring_series(distance)
+            distance += 1
 
     def __send_monitoring(self):
-        # self.log.info("Mon: %s", self.monitoring)
         src_name = platform.node()
         data = self.get_monitoring_json()
         try:
@@ -299,33 +322,35 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         hosts = []
         kpis = {}
 
-        for item in self.monitoring:
-            if item['source'] == 'local':
-                item['source'] = platform.node()
+        for items in viewvalues(self.monitoring):
+            for item in items:
+                if item['source'] == 'local':
+                    item['source'] = platform.node()
 
-            src_name = item['source']
-            if src_name not in results:
-                results[src_name] = {
-                    "name": src_name,
-                    "intervals": OrderedDict()
-                }
+                src_name = item['source']
+                if src_name not in results:
+                    results[src_name] = {
+                        "name": src_name,
+                        "intervals": OrderedDict()
+                    }
 
-            if src_name not in hosts:
-                hosts.append(src_name)
+                if src_name not in hosts:
+                    hosts.append(src_name)
 
-            src = results[src_name]
-            tstmp = int(item['ts']) * 1000
-            tstmp_key = '%d' % tstmp
+                src = results[src_name]
+                tstmp = int(item['ts']) * 1000
+                tstmp_key = '%d' % tstmp
 
-            if tstmp_key not in src['intervals']:
-                src['intervals'][tstmp_key] = {
-                    "start": tstmp,
-                    "duration": 1000,
-                    "indicators": {}
-                }
+                if tstmp_key not in src['intervals']:
+                    src['intervals'][tstmp_key] = {
+                        "start": tstmp,
+                        "duration": 1000,
+                        "indicators": {}
+                    }
 
-            for field, value in iteritems(item):
-                if field not in ("ts", "source"):
+                for field, value in iteritems(item):
+                    if field in ("ts", "source"):
+                        continue
                     if field.lower().startswith('cpu'):
                         field = 'CPU'
                     elif field.lower().startswith('mem'):
