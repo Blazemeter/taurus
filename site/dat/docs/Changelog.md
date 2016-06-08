@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.6.2 (next)
+ - fix passfail-related regression crash
+
 ## 1.6.1 <sup>1 jun 2016</sup>
  - add `run-at` option for unpacker module
 

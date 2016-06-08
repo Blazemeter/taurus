@@ -45,7 +45,7 @@ class PassFailStatus(Reporter, Service, AggregatorListener, WidgetProvider):
         super(PassFailStatus, self).prepare()
 
         # TODO: remove "criterias" support in three months
-        criterias = self.parameters.get("criterias", self.criteria)
+        criterias = self.parameters.get("criterias", [])
         if criterias:
             self.log.warning('"criterias" section name is deprecated, use "criteria" instead')
         criteria = self.parameters.get("criteria", criterias)
