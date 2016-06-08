@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.6.3 (next)
+ - fix percentile value handling in passfail criteria
+
 ## 1.6.2 <sup>8 jun 2016</sup>
  - fix passfail-related regression crash
 

@@ -202,4 +202,22 @@ class TestPassFailStatus(BZTestCase):
         self.assertTrue(all(isinstance(obj, dict) for obj in passfail["criteria"]))
         self.assertTrue(all(isinstance(obj, dict) for obj in passfail["criterias"]))
 
+    def test_percentiles_track(self):
+        obj = PassFailStatus()
+        obj.engine = EngineEmul()
+        obj.parameters = {"criteria": ["p90>0ms"]}
+        obj.prepare()
+        self.assertGreater(len(obj.criteria), 0)
+
+        for n in range(0, 10):
+            point = random_datapoint(n)
+            obj.aggregated_second(point)
+            obj.check()
+
+        obj.shutdown()
+        try:
+            obj.post_process()
+            self.fail()
+        except AutomatedShutdown:
+            pass
 
