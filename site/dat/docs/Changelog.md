@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.6.2 (next)
+## 1.6.2 <sup>8 jun 2016</sup>
  - fix passfail-related regression crash
 
 ## 1.6.1 <sup>1 jun 2016</sup>
