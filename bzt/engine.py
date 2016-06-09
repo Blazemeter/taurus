@@ -802,19 +802,6 @@ class ScenarioExecutor(EngineModule):
 
         :return: DictOfDicts
         """
-        # if self.__scenario is None:
-        #     scenario = self.execution.get('scenario', ValueError("Scenario not configured properly"))
-        #     if not isinstance(scenario, string_types):
-        #         pass
-        #         # move scenario to scenarios
-        #         # generate label
-        #         # write text label into execution
-        #     self.__scenario = self.engine.config.get("scenarios")
-        # if name == '':
-        #     return self.__scenario
-        # else:
-        #
-
         if self.__scenario is None:
             scenario = self.execution.get('scenario', ValueError("Scenario not configured properly"))
             if isinstance(scenario, string_types):
@@ -826,7 +813,6 @@ class ScenarioExecutor(EngineModule):
                 scenario = scenarios.get(scenario)
                 self.__scenario = Scenario(self.engine, scenario)
             elif isinstance(scenario, dict):
-
                 self.__scenario = Scenario(self.engine, scenario)
             else:
                 raise ValueError("Unsupported type for scenario")
