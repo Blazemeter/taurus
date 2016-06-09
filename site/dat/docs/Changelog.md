@@ -8,6 +8,7 @@
 
 ## 1.6.1 <sup>1 jun 2016</sup>
  - add `run-at` option for unpacker module
+ - fix problem with sending included configs into cloud
 
 ## 1.6.0 <sup>31 may 2016</sup>
  - add [logic blocks](JMeter.md#Logic-Blocks) to `scenario.requests` syntax for JMeter

@@ -1071,7 +1071,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             execution[ScenarioExecutor.THRPT] = execution.get(ScenarioExecutor.THRPT).get(provisioning, None)
 
         for key in list(config.keys()):
-            if key not in ("scenarios", ScenarioExecutor.EXEC, "included-configs", Service.SERV):
+            if key not in ("scenarios", ScenarioExecutor.EXEC, Service.SERV):
                 config.pop(key)
 
         # cleanup configuration from empty values

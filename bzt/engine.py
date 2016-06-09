@@ -36,7 +36,7 @@ import bzt
 from bzt import ManualShutdown, NormalShutdown, get_configs_dir
 from bzt.six import build_opener, install_opener, urlopen, request, numeric_types, iteritems
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler
-from bzt.utils import PIPE, shell_exec
+from bzt.utils import PIPE, shell_exec, get_full_path
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time
 
 SETTINGS = "settings"
@@ -89,7 +89,10 @@ class Engine(object):
 
         merged_config = self._load_user_configs(user_configs)
 
-        self._load_included_configs()
+        if "included-configs" in self.config:
+            included_configs = [get_full_path(conf) for conf in self.config.pop("included-configs")]
+            self.config.load(included_configs)
+
         self.config.merge({"version": bzt.VERSION})
         self._set_up_proxy()
         self._check_updates()
@@ -533,12 +536,6 @@ class Engine(object):
             except BaseException:
                 self.log.debug("Failed to check for updates: %s", traceback.format_exc())
                 self.log.warning("Failed to check for updates")
-
-    def _load_included_configs(self):
-        for config in self.config.get("included-configs", []):
-            fname = os.path.abspath(self.find_file(config))
-            self.existing_artifact(fname)
-            self.config.load([fname])
 
 
 class Configuration(BetterDict):
