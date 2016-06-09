@@ -1600,6 +1600,49 @@ class TestJMeterExecutor(BZTestCase):
         })
         self.obj.execution = self.obj.engine.config['execution']
         self.assertRaises(ValueError, self.obj.prepare)
+        pass
+
+    def test_extract_scenario_local(self):
+        self.obj.engine.config.merge({
+            'scenarios': {
+                'a': {
+                    'requests': [{
+                        "include-scenario": "b",
+                    }],
+                },
+                'b': {
+                    'requests': [{
+                        'url': 'one.ru'
+                    }],
+                }
+            },
+            'execution': {'scenario': 'a'},
+            "provisioning": "local",
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
+        pass
+
+    def test_extract_scenario_cloud(self):
+        self.obj.engine.config.merge({
+            'scenarios': {
+                'a': {
+                    'requests': [{
+                        "include-scenario": "b",
+                    }],
+                },
+                'b': {
+                    'requests': [{
+                        'url': 'one.ru'
+                    }],
+                }
+            },
+            'execution': {'scenario': 'a'},
+            "provisioning": "local",
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.get_resource_files()
+        pass
 
     def test_include_sources_recursion(self):
         self.obj.engine.config.merge({

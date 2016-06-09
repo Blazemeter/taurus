@@ -36,7 +36,7 @@ import bzt
 from bzt import ManualShutdown, NormalShutdown, get_configs_dir
 from bzt.six import build_opener, install_opener, urlopen, request, numeric_types, iteritems
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler
-from bzt.utils import PIPE, shell_exec
+from bzt.utils import PIPE, shell_exec, get_full_path
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time
 
 SETTINGS = "settings"
@@ -89,7 +89,10 @@ class Engine(object):
 
         merged_config = self._load_user_configs(user_configs)
 
-        self._load_included_configs()
+        if "included-configs" in self.config:
+            included_configs = [get_full_path(conf) for conf in self.config.pop("included-configs")]
+            self.config.load(included_configs)
+
         self.config.merge({"version": bzt.VERSION})
         self._set_up_proxy()
         self._check_updates()
@@ -534,12 +537,6 @@ class Engine(object):
                 self.log.debug("Failed to check for updates: %s", traceback.format_exc())
                 self.log.warning("Failed to check for updates")
 
-    def _load_included_configs(self):
-        for config in self.config.get("included-configs", []):
-            fname = os.path.abspath(self.find_file(config))
-            self.existing_artifact(fname)
-            self.config.load([fname])
-
 
 class Configuration(BetterDict):
     """
@@ -805,6 +802,19 @@ class ScenarioExecutor(EngineModule):
 
         :return: DictOfDicts
         """
+        # if self.__scenario is None:
+        #     scenario = self.execution.get('scenario', ValueError("Scenario not configured properly"))
+        #     if not isinstance(scenario, string_types):
+        #         pass
+        #         # move scenario to scenarios
+        #         # generate label
+        #         # write text label into execution
+        #     self.__scenario = self.engine.config.get("scenarios")
+        # if name == '':
+        #     return self.__scenario
+        # else:
+        #
+
         if self.__scenario is None:
             scenario = self.execution.get('scenario', ValueError("Scenario not configured properly"))
             if isinstance(scenario, string_types):
@@ -816,6 +826,7 @@ class ScenarioExecutor(EngineModule):
                 scenario = scenarios.get(scenario)
                 self.__scenario = Scenario(self.engine, scenario)
             elif isinstance(scenario, dict):
+
                 self.__scenario = Scenario(self.engine, scenario)
             else:
                 raise ValueError("Unsupported type for scenario")
