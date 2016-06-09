@@ -45,7 +45,7 @@ class PassFailStatus(Reporter, Service, AggregatorListener, WidgetProvider):
         super(PassFailStatus, self).prepare()
 
         # TODO: remove "criterias" support in three months
-        criterias = self.parameters.get("criterias", self.criteria)
+        criterias = self.parameters.get("criterias", [])
         if criterias:
             self.log.warning('"criterias" section name is deprecated, use "criteria" instead')
         criteria = self.parameters.get("criteria", criterias)
@@ -309,7 +309,7 @@ class DataCriterion(FailCriterion):
         elif subject.startswith('p'):
             if percentage:
                 raise ValueError("Percentage threshold is not applicable for %s" % subject)
-            level = float(subject[1:])
+            level = str(float(subject[1:]))
             return lambda x: x[KPISet.PERCENTILES][level] if level in x[KPISet.PERCENTILES] else 0
         elif subject.startswith('rc'):
             count = lambda x: sum([fnmatch.fnmatch(y, subject[2:]) for y in x[KPISet.RESP_CODES].keys()])

@@ -5,6 +5,7 @@ import time
 from bzt import AutomatedShutdown
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.passfail import PassFailStatus, DataCriterion
+from bzt.utils import BetterDict
 from tests import BZTestCase, __dir__, random_datapoint
 from tests.mocks import EngineEmul
 
@@ -183,5 +184,40 @@ class TestPassFailStatus(BZTestCase):
         obj.aggregated_second(point)
         self.assertRaises(AutomatedShutdown, obj.post_process)
 
+    def test_passfail_crash(self):
+        passfail = BetterDict()
+        passfail.merge({
+            "module": "passfail",
+            "criteria": [
+                "fail>10% within 5s",
+            ]
+        })
+        obj = PassFailStatus()
+        obj.engine = EngineEmul()
+        obj.parameters = passfail
+        obj.engine.config.merge({
+            "services": [passfail],
+        })
+        obj.prepare()
+        self.assertTrue(all(isinstance(obj, dict) for obj in passfail["criteria"]))
+        self.assertTrue(all(isinstance(obj, dict) for obj in passfail["criterias"]))
 
+    def test_percentiles_track(self):
+        obj = PassFailStatus()
+        obj.engine = EngineEmul()
+        obj.parameters = {"criteria": ["p90>0ms"]}
+        obj.prepare()
+        self.assertGreater(len(obj.criteria), 0)
+
+        for n in range(0, 10):
+            point = random_datapoint(n)
+            obj.aggregated_second(point)
+            obj.check()
+
+        obj.shutdown()
+        try:
+            obj.post_process()
+            self.fail()
+        except AutomatedShutdown:
+            pass
 
