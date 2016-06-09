@@ -72,10 +72,26 @@ class TestBlazeMeterUploader(BZTestCase):
 
     def test_monitoring_buffer_downsample(self):
         obj = BlazeMeterUploader()
+        obj.engine = EngineEmul()
+        obj.client = BlazeMeterClientEmul(logging.getLogger(''))
+        obj.client.results.append({"marker": "ping", 'result': {}})
+        obj.prepare()
         for i in range(1000):
             mon = [{"ts": i, "source": "local", "cpu": 1, "mem": 2, "bytes-recv": 100, "other": 0}]
             obj.monitoring_data(mon)
-        self.assertLessEqual(len(obj.monitoring_buffer), obj.MONITORING_BUFFER_LIMIT)
+            self.assertLessEqual(len(obj.monitoring_buffer), obj.DEFAULT_MONITORING_BUFFER_LIMIT)
+
+    def test_monitoring_buffer_limit_option(self):
+        obj = BlazeMeterUploader()
+        obj.engine = EngineEmul()
+        obj.client = BlazeMeterClientEmul(logging.getLogger(''))
+        obj.client.results.append({"marker": "ping", 'result': {}})
+        obj.settings["monitoring-buffer-limit"] = 1000
+        obj.prepare()
+        for i in range(1001):
+            mon = [{"ts": i, "source": "local", "cpu": 1, "mem": 2, "bytes-recv": 100, "other": 0}]
+            obj.monitoring_data(mon)
+            self.assertLessEqual(len(obj.monitoring_buffer), 1000)
 
 
 class TestBlazeMeterClientUnicode(BZTestCase):
