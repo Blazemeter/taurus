@@ -379,7 +379,9 @@ def main():
 
     executor = CLI(parsed_options)
 
-    if is_piped(sys.stdin):
+    in_pycharm = "PYCHARM_HOSTED" in os.environ
+
+    if is_piped(sys.stdin) and not in_pycharm:
         stdin = sys.stdin.read()
         if stdin:
             with NamedTemporaryFile(prefix="stdin_", suffix=".config", delete=False) as fhd:

@@ -3,6 +3,7 @@
 ## 1.6.3 (next)
  - fix percentile value handling in passfail criteria
  - fix problem with sending included configs into cloud 
+ - add pycharm startup detection 
 
 ## 1.6.2 <sup>8 jun 2016</sup>
  - fix passfail-related regression crash
