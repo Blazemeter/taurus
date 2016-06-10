@@ -75,11 +75,10 @@ class PassFailStatus(Reporter, Service, AggregatorListener, WidgetProvider):
             if isinstance(crit, DataCriterion):
                 if crit.selector == DataPoint.CUMULATIVE:
                     crit.aggregated_second(self.last_datapoint)
-                    if crit.is_triggered and crit.fail:
-                        raise AutomatedShutdown("%s" % crit)
-                else:
-                    if crit.is_triggered and not crit.stop and crit.fail:
-                        raise AutomatedShutdown("%s" % crit)
+        for crit in self.criteria:
+            if isinstance(crit, DataCriterion):
+                if crit.is_triggered and not crit.stop and crit.fail:
+                    raise AutomatedShutdown("%s" % crit)
 
     def check(self):
         """
