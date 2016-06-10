@@ -237,12 +237,7 @@ class TestPassFailStatus(BZTestCase):
             obj.check()
 
         obj.shutdown()
-        try:
-            obj.post_process()
-            self.fail()
-        except AutomatedShutdown:
-            logging.debug("got automated shutdown")
-
+        self.assertRaises(AutomatedShutdown, obj.post_process)
         for crit in obj.criteria:
             self.assertTrue(crit.is_triggered)
 
