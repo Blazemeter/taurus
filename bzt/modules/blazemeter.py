@@ -314,8 +314,6 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
     def __send_monitoring(self):
         src_name = platform.node()
         data = self.get_monitoring_json()
-        with open(self.engine.create_artifact('monitoring', '.json'), 'w') as f:
-            f.write(json.dumps(data, indent=4))
         try:
             self.client.send_monitoring_data(src_name, data)
         except IOError:
