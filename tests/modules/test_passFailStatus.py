@@ -221,3 +221,23 @@ class TestPassFailStatus(BZTestCase):
         except AutomatedShutdown:
             pass
 
+    def test_cumulative_criteria_post_process(self):
+        obj = PassFailStatus()
+        obj.engine = EngineEmul()
+        obj.parameters = {"criteria": [
+            "p90>0ms, continue as failed",
+            "avg-rt>0ms, continue as failed",
+        ]}
+        obj.prepare()
+        self.assertEquals(len(obj.criteria), 2)
+
+        for n in range(0, 10):
+            point = random_datapoint(n)
+            obj.aggregated_second(point)
+            obj.check()
+
+        obj.shutdown()
+        self.assertRaises(AutomatedShutdown, obj.post_process)
+        for crit in obj.criteria:
+            self.assertTrue(crit.is_triggered)
+
