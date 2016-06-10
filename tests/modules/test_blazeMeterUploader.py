@@ -6,7 +6,7 @@ import time
 
 from bzt.modules.aggregator import DataPoint, KPISet
 from tests import BZTestCase, random_datapoint, __dir__
-from bzt.six import URLError
+from bzt.six import URLError, iteritems
 from bzt.modules.blazemeter import BlazeMeterUploader, BlazeMeterClient, BlazeMeterClientEmul, ResultsFromBZA
 from tests.mocks import EngineEmul
 import bzt.modules.blazemeter
@@ -76,22 +76,44 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.client = BlazeMeterClientEmul(logging.getLogger(''))
         obj.client.results.append({"marker": "ping", 'result': {}})
         obj.prepare()
-        for i in range(1000):
+        for i in range(5000):
             mon = [{"ts": i, "source": "local", "cpu": 1, "mem": 2, "bytes-recv": 100, "other": 0}]
             obj.monitoring_data(mon)
-            self.assertLessEqual(len(obj.monitoring_buffer), obj.DEFAULT_MONITORING_BUFFER_LIMIT)
+            for source, buffer in iteritems(obj.monitoring_buffer):
+                self.assertLessEqual(len(buffer), obj.DEFAULT_MONITORING_BUFFER_LIMIT)
 
     def test_monitoring_buffer_limit_option(self):
+        ITERATIONS = 1000
+        BUFFER_LIMIT = 100
         obj = BlazeMeterUploader()
         obj.engine = EngineEmul()
         obj.client = BlazeMeterClientEmul(logging.getLogger(''))
         obj.client.results.append({"marker": "ping", 'result': {}})
-        obj.settings["monitoring-buffer-limit"] = 1000
+        obj.settings["monitoring-buffer-limit"] = BUFFER_LIMIT
         obj.prepare()
-        for i in range(1001):
+        for i in range(ITERATIONS):
             mon = [{"ts": i, "source": "local", "cpu": 1, "mem": 2, "bytes-recv": 100, "other": 0}]
             obj.monitoring_data(mon)
-            self.assertLessEqual(len(obj.monitoring_buffer), 1000)
+            for source, buffer in iteritems(obj.monitoring_buffer):
+                self.assertLessEqual(len(buffer), BUFFER_LIMIT)
+        # Theorem: average distance between timestamps in monitoring buffer will always
+        # be approximately equal to ITERATIONS / BUFFER_LIMIT
+
+    def test_monitoring_buffer_downsample_sources(self):
+        obj = BlazeMeterUploader()
+        obj.engine = EngineEmul()
+        obj.client = BlazeMeterClientEmul(logging.getLogger(''))
+        obj.client.results.append({"marker": "ping", 'result': {}})
+        obj.settings["monitoring-buffer-limit"] = 10
+        obj.prepare()
+        for i in range(100):
+            mon = [
+                {"ts": i, "source": "local", "cpu": 1, "mem": 2, "bytes-recv": 100},
+                {"ts": i, "source": "server-agent", "cpu": 10, "mem": 20},
+            ]
+            obj.monitoring_data(mon)
+            for source, buffer in iteritems(obj.monitoring_buffer):
+                self.assertLessEqual(len(buffer), 10)
 
 
 class TestBlazeMeterClientUnicode(BZTestCase):

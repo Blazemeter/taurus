@@ -163,12 +163,22 @@ modules:
     test: Taurus Test
     project: My Local Tests
     send-monitoring: true  # send data from monitoring subsystem, enabled by default
+    monitoring-buffer-limit: 1000  # store up to N items in monitoring data buffer, 1000 by default
 ```
 
 Note how easy is to set report settings from command line, i.e. from inside Jenkins build step:
 ```bash
 bzt mytest.yml -o modules.blazemeter.report-name="Jenkins Build ${BUILD_NUMBER}"
 ```
+
+### Sending monitoring stats
+
+Taurus will send monitoring stats to BlazeMeter by default. This behaviour is configurable with `send-monitoring`
+option mentioned earlier.
+
+By default Taurus will store only 1000 monitoring datapoints in memory (Taurus uses downsampling algorithm to ensure
+that even limited stats are representative). If your test is very long or if you want to have high-resolution monitoring
+stats — you can increase buffer size limit with `monitoring-buffer-limit` option.
 
 ## JUnit XML Reporter
 

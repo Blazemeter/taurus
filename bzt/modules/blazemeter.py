@@ -25,7 +25,7 @@ import time
 import traceback
 import zipfile
 import platform
-from collections import OrderedDict
+from collections import defaultdict, OrderedDict
 
 import yaml
 from urwid import Pile, Text
@@ -49,11 +49,11 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
 
     :type client: BlazeMeterClient
     """
-    DEFAULT_MONITORING_BUFFER_LIMIT = 100
+    DEFAULT_MONITORING_BUFFER_LIMIT = 1000
 
     def __init__(self):
         super(BlazeMeterUploader, self).__init__()
-        self.monitoring_buffer = OrderedDict()
+        self.monitoring_buffer = defaultdict(OrderedDict)
         self.send_monitoring = True
         self.browser_open = 'start'
         self.client = BlazeMeterClient(self.log)
@@ -280,34 +280,42 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
 
     def monitoring_data(self, data):
         if self.send_monitoring:
-            self.record_monitoring_data(data)
+            self.__record_monitoring_data(data)
 
-    def downsample_monitoring_series(self, distance=1):
-        timestamps = list(self.monitoring_buffer)
-        blacklist = []
+    def __merge_closest_datapoints(self, buffer, distance=1):
+        timestamps = list(buffer)
+        to_remove = []
         for ts1, ts2 in zip(timestamps, timestamps[1:]):
             if ts2 - ts1 == distance:
-                if ts1 not in blacklist and ts2 not in blacklist:
-                    blacklist.append(ts2)
-        for item in blacklist:
-            self.monitoring_buffer.pop(item)
+                if ts1 not in to_remove and ts2 not in to_remove:
+                    to_remove.append(ts2)
+        for item in to_remove:
+            buffer.pop(item)
 
-    def record_monitoring_data(self, data):
-        for item in data:
-            ts = int(item['ts'])
-            if ts in self.monitoring_buffer:
-                self.monitoring_buffer[ts].append(item)
-            else:
-                self.monitoring_buffer[ts] = [item]
-
+    def __downsample_monitoring_data(self, buffer):
         distance = 1
-        while len(self.monitoring_buffer) > self.monitoring_buffer_limit:
-            self.downsample_monitoring_series(distance)
+        while len(buffer) > self.monitoring_buffer_limit:
+            self.__merge_closest_datapoints(buffer, distance)
             distance += 1
+
+    def __record_monitoring_data(self, data):
+        for item in data:
+            source = item.pop('source')
+            ts = int(item.pop('ts'))
+            buffer = self.monitoring_buffer[source]
+            if ts in buffer:
+                buffer[ts].update(item)
+            else:
+                buffer[ts] = item
+        for buffer in viewvalues(self.monitoring_buffer):
+            if len(buffer) > self.monitoring_buffer_limit:
+                self.__downsample_monitoring_data(buffer)
 
     def __send_monitoring(self):
         src_name = platform.node()
         data = self.get_monitoring_json()
+        with open(self.engine.create_artifact('monitoring', '.json'), 'w') as f:
+            f.write(json.dumps(data, indent=4))
         try:
             self.client.send_monitoring_data(src_name, data)
         except IOError:
@@ -326,23 +334,22 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         hosts = []
         kpis = {}
 
-        for items in viewvalues(self.monitoring_buffer):
-            for item in items:
-                if item['source'] == 'local':
-                    item['source'] = platform.node()
+        for source, buffer in iteritems(self.monitoring_buffer):
+            for timestamp, item in iteritems(buffer):
+                if source == 'local':
+                    source = platform.node()
 
-                src_name = item['source']
-                if src_name not in results:
-                    results[src_name] = {
-                        "name": src_name,
+                if source not in results:
+                    results[source] = {
+                        "name": source,
                         "intervals": OrderedDict()
                     }
 
-                if src_name not in hosts:
-                    hosts.append(src_name)
+                if source not in hosts:
+                    hosts.append(source)
 
-                src = results[src_name]
-                tstmp = int(item['ts']) * 1000
+                src = results[source]
+                tstmp = timestamp * 1000
                 tstmp_key = '%d' % tstmp
 
                 if tstmp_key not in src['intervals']:
@@ -353,8 +360,6 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
                     }
 
                 for field, value in iteritems(item):
-                    if field in ("ts", "source"):
-                        continue
                     if field.lower().startswith('cpu'):
                         field = 'CPU'
                     elif field.lower().startswith('mem'):
