@@ -248,13 +248,8 @@ class TestMonitoringBuffer(BZTestCase):
             mon = [{"ts": i, "source": "local", "cpu": cpu}]
             mon_buffer.record_data(mon)
             self.assertLessEqual(len(mon_buffer.data['local']), SIZE_LIMIT)
-        cpus = []
-        for interval, datapoint in iteritems(mon_buffer.data['local']):
-            metric = datapoint['cpu']
-            cpus.append(metric)
-        logging.debug(cpus)
 
-    def test_downsample_limit(self):
+    def test_downsample_theorem(self):
         mon_buffer = MonitoringBuffer(100)
         for i in range(5000):
             mon = [{"ts": i, "source": "local", "cpu": 1, "mem": 2, "bytes-recv": 100, "other": 0}]
