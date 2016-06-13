@@ -52,8 +52,6 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
 
     def __init__(self):
         super(BlazeMeterUploader, self).__init__()
-        self.monitoring_buffer = defaultdict(OrderedDict)
-        self.send_monitoring = True
         self.browser_open = 'start'
         self.client = BlazeMeterClient(self.log)
         self.test_id = ""
@@ -61,7 +59,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         self.send_interval = 30
         self.sess_name = None
         self._last_status_check = time.time()
-        self.monitoring_buffer_limit = 500
+        self.send_monitoring = True
+        self.monitoring_buffer = None
 
     def prepare(self):
         """
@@ -74,7 +73,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         self.client.timeout = dehumanize_time(self.settings.get("timeout", self.client.timeout))
         self.send_interval = dehumanize_time(self.settings.get("send-interval", self.send_interval))
         self.send_monitoring = self.settings.get("send-monitoring", self.send_monitoring)
-        self.monitoring_buffer_limit = self.settings.get("monitoring-buffer-limit", self.monitoring_buffer_limit)
+        monitoring_buffer_limit = self.settings.get("monitoring-buffer-limit", 500)
+        self.monitoring_buffer = MonitoringBuffer(monitoring_buffer_limit)
         self.browser_open = self.settings.get("browser-open", self.browser_open)
         token = self.settings.get("token", "")
         if not token:
@@ -279,48 +279,13 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
 
     def monitoring_data(self, data):
         if self.send_monitoring:
-            self.__record_monitoring_data(data)
-
-    @staticmethod
-    def __merge_datapoints(point1, point2):
-        datapoint = copy.copy(point1)
-        for key, value in point2.items():
-            datapoint[key] = float(datapoint[key] + value) / 2
-        return datapoint
-
-    def __merge_closest_datapoints(self, buff, distance):
-        timestamps = list(buff)
-        to_remove = []
-        for ts1, ts2 in zip(timestamps, timestamps[1:]):
-            if ts2 - ts1 == distance:
-                if ts1 not in to_remove and ts2 not in to_remove:
-                    buff[ts1] = self.__merge_datapoints(buff[ts1], buff[ts2])
-                    to_remove.append(ts2)
-        for item in to_remove:
-            buff.pop(item)
-
-    def __downsample_monitoring_data(self, buff):
-        distance = 1
-        while len(buff) > self.monitoring_buffer_limit:
-            self.__merge_closest_datapoints(buff, distance)
-            distance += 1
-
-    def __record_monitoring_data(self, data):
-        for item in data:
-            source = item.pop('source')
-            ts = int(item.pop('ts'))
-            buff = self.monitoring_buffer[source]
-            if ts in buff:
-                buff[ts].update(item)
-            else:
-                buff[ts] = item
-        for buff in viewvalues(self.monitoring_buffer):
-            if len(buff) > self.monitoring_buffer_limit:
-                self.__downsample_monitoring_data(buff)
+            self.monitoring_buffer.record_data(data)
 
     def __send_monitoring(self):
         src_name = platform.node()
-        data = self.get_monitoring_json()
+        data = self.monitoring_buffer.get_monitoring_json(self.client.active_session_id,
+                                                          self.client.user_id,
+                                                          self.client.test_id)
         try:
             self.client.send_monitoring_data(src_name, data)
         except IOError:
@@ -334,13 +299,119 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
                 self.log.error("Fatal error sending data: %s", traceback.format_exc())
                 self.log.warning("Will skip failed data and continue running")
 
-    def get_monitoring_json(self):
+
+
+class ProjectFinder(object):
+    def __init__(self, parameters, settings, client, engine):
+        super(ProjectFinder, self).__init__()
+        self.default_test_name = "Taurus Test"
+        self.client = client
+        self.parameters = parameters
+        self.settings = settings
+        self.engine = engine
+        self.test_name = None
+
+    def resolve_test_id(self, test_config, taurus_config, rfiles):
+        proj_name = self.parameters.get("project", self.settings.get("project", None))
+        if isinstance(proj_name, (int, float)):
+            proj_id = int(proj_name)
+            self.engine.log.debug("Treating project name as ID: %s", proj_id)
+        elif proj_name is not None:
+            proj_id = self.client.project_by_name(proj_name)
+        else:
+            proj_id = None
+
+        self.test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
+        return self.client.test_by_name(self.test_name, test_config, taurus_config, rfiles, proj_id)
+
+
+class Interval(object):
+    __slots__ = ['start', 'end']
+
+    def __init__(self, start, end):
+        assert start <= end
+        self.start = start
+        self.end = end
+
+    def merge_with(self, other):
+        start = min([self.start, other.start])
+        end = max([self.end, other.end])
+        return Interval(start, end)
+
+    def size(self):
+        return self.end - self.start + 1
+
+    def __str__(self):
+        return "Interval(%s, %s)" % (self.start, self.end)
+
+    __repr__ = __str__
+
+
+class MonitoringBuffer(object):
+    def __init__(self, size_limit):
+        self.size_limit = size_limit
+        self.data = defaultdict(OrderedDict)
+        # data :: dict(datasource -> dict(interval -> datapoint))
+        # datapoint :: dict(metric -> value)
+
+    def record_data(self, data):
+        for item in data:
+            source = item.pop('source')
+            ts = int(item.pop('ts'))
+            buff = self.data[source]
+            interval = Interval(ts, ts)
+            if interval in buff:  # what if this interval was already merged with another one?
+                buff[interval].update(item)
+            else:
+                buff[interval] = item
+
+        sources = list(self.data)
+        for source in sources:
+            if len(self.data[source]) > self.size_limit:
+                self.data[source] = self._downsample(self.data[source])
+
+    def _downsample(self, buff):
+        size = 1
+        while len(buff) > self.size_limit:
+            buff = self._merge_small_intervals(buff, size)
+            size += 1
+        return buff
+
+    def _merge_small_intervals(self, buff, size):
+        intervals = list(buff)
+        result = OrderedDict()
+        merged_already = set()
+        for left, right in zip(intervals, intervals[1:]):
+            if left in merged_already:
+                continue
+            if left.size() <= size:
+                interval = left.merge_with(right)
+                datapoint = self._merge_datapoints(buff[left], buff[right])
+                result[interval] = datapoint
+                merged_already.add(left)
+                merged_already.add(right)
+            else:
+                result[left] = buff[left]
+        result[intervals[-1]] = buff[intervals[-1]]
+        return result
+
+    def _merge_datapoints(self, point1, point2):
+        datapoint = copy.copy(point1)
+        for key, value in point2.items():
+            if key in datapoint:
+                result = float(datapoint[key] + value) / 2
+            else:
+                result = value
+            datapoint[key] = result
+        return datapoint
+
+    def get_monitoring_json(self, session_id, user_id, test_id):
         results = {}
         hosts = []
         kpis = {}
 
-        for source, buff in iteritems(self.monitoring_buffer):
-            for timestamp, item in iteritems(buff):
+        for source, buff in iteritems(self.data):
+            for interval, item in iteritems(buff):
                 if source == 'local':
                     source = platform.node()
 
@@ -354,13 +425,13 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
                     hosts.append(source)
 
                 src = results[source]
-                tstmp = timestamp * 1000
+                tstmp = interval.start * 1000
                 tstmp_key = '%d' % tstmp
 
                 if tstmp_key not in src['intervals']:
                     src['intervals'][tstmp_key] = {
                         "start": tstmp,
-                        "duration": 1000,
+                        "duration": interval.size() * 1000,
                         "indicators": {}
                     }
 
@@ -393,10 +464,10 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         kpis = {"Network I/O": "Network I/O", "Memory": "Memory", "CPU": "CPU"}
         return {
             "reportInfo": {
-                "sessionId": self.client.active_session_id,
+                "sessionId": session_id,
                 "timestamp": time.time(),
-                "userId": self.client.user_id,
-                "testId": self.client.test_id,
+                "userId": user_id,
+                "testId": test_id,
                 "type": "MONITOR",
                 "testName": ""
             },
@@ -404,30 +475,6 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
             "hosts": hosts,
             "results": results
         }
-
-
-class ProjectFinder(object):
-    def __init__(self, parameters, settings, client, engine):
-        super(ProjectFinder, self).__init__()
-        self.default_test_name = "Taurus Test"
-        self.client = client
-        self.parameters = parameters
-        self.settings = settings
-        self.engine = engine
-        self.test_name = None
-
-    def resolve_test_id(self, test_config, taurus_config, rfiles):
-        proj_name = self.parameters.get("project", self.settings.get("project", None))
-        if isinstance(proj_name, (int, float)):
-            proj_id = int(proj_name)
-            self.engine.log.debug("Treating project name as ID: %s", proj_id)
-        elif proj_name is not None:
-            proj_id = self.client.project_by_name(proj_name)
-        else:
-            proj_id = None
-
-        self.test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
-        return self.client.test_by_name(self.test_name, test_config, taurus_config, rfiles, proj_id)
 
 
 class BlazeMeterClient(object):

@@ -1,4 +1,5 @@
 import logging
+import math
 import os
 import shutil
 from io import BytesIO
@@ -8,6 +9,7 @@ from bzt.modules.aggregator import DataPoint, KPISet
 from tests import BZTestCase, random_datapoint, __dir__
 from bzt.six import URLError, iteritems
 from bzt.modules.blazemeter import BlazeMeterUploader, BlazeMeterClient, BlazeMeterClientEmul, ResultsFromBZA
+from bzt.modules.blazemeter import MonitoringBuffer
 from tests.mocks import EngineEmul
 import bzt.modules.blazemeter
 
@@ -70,50 +72,19 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.address = "https://a.blazemeter.com"
         obj.ping()
 
-    def test_monitoring_buffer_downsample(self):
-        obj = BlazeMeterUploader()
-        obj.engine = EngineEmul()
-        obj.client = BlazeMeterClientEmul(logging.getLogger(''))
-        obj.client.results.append({"marker": "ping", 'result': {}})
-        obj.prepare()
-        for i in range(5000):
-            mon = [{"ts": i, "source": "local", "cpu": 1, "mem": 2, "bytes-recv": 100, "other": 0}]
-            obj.monitoring_data(mon)
-            for source, buffer in iteritems(obj.monitoring_buffer):
-                self.assertLessEqual(len(buffer), obj.DEFAULT_MONITORING_BUFFER_LIMIT)
-        # Theorem: average distance between timestamps in monitoring buffer will always
-        # be approximately equal to ITERATIONS / BUFFER_LIMIT
-
     def test_monitoring_buffer_limit_option(self):
-        ITERATIONS = 1000
-        BUFFER_LIMIT = 100
         obj = BlazeMeterUploader()
         obj.engine = EngineEmul()
         obj.client = BlazeMeterClientEmul(logging.getLogger(''))
         obj.client.results.append({"marker": "ping", 'result': {}})
-        obj.settings["monitoring-buffer-limit"] = BUFFER_LIMIT
+        obj.settings["monitoring-buffer-limit"] = 100
         obj.prepare()
-        for i in range(ITERATIONS):
-            mon = [{"ts": i, "source": "local", "cpu": float(i) / ITERATIONS * 100, "mem": 2, "bytes-recv": 100, "other": 0}]
+        for i in range(1000):
+            mon = [{"ts": i, "source": "local", "cpu": float(i) / 1000 * 100, "mem": 2, "bytes-recv": 100, "other": 0}]
             obj.monitoring_data(mon)
-            for source, buffer in iteritems(obj.monitoring_buffer):
-                self.assertLessEqual(len(buffer), BUFFER_LIMIT)
+            for source, buffer in iteritems(obj.monitoring_buffer.data):
+                self.assertLessEqual(len(buffer), 100)
 
-    def test_monitoring_buffer_downsample_sources(self):
-        obj = BlazeMeterUploader()
-        obj.engine = EngineEmul()
-        obj.client = BlazeMeterClientEmul(logging.getLogger(''))
-        obj.client.results.append({"marker": "ping", 'result': {}})
-        obj.settings["monitoring-buffer-limit"] = 10
-        obj.prepare()
-        for i in range(100):
-            mon = [
-                {"ts": i, "source": "local", "cpu": 1, "mem": 2, "bytes-recv": 100},
-                {"ts": i, "source": "server-agent", "cpu": 10, "mem": 20},
-            ]
-            obj.monitoring_data(mon)
-            for source, buffer in iteritems(obj.monitoring_buffer):
-                self.assertLessEqual(len(buffer), 10)
 
 
 class TestBlazeMeterClientUnicode(BZTestCase):
@@ -262,3 +233,49 @@ class TestResultsFromBZA(BZTestCase):
         total = cumulative_['']
         percentiles_ = total[KPISet.PERCENTILES]
         self.assertEquals(1050, percentiles_['99.0'])
+
+
+class TestMonitoringBuffer(BZTestCase):
+    def to_rad(self, deg):
+        return deg * math.pi / 180
+
+    def test_harmonic(self):
+        ITERATIONS = 50
+        SIZE_LIMIT = 10
+        mon_buffer = MonitoringBuffer(SIZE_LIMIT)
+        for i in range(ITERATIONS):
+            cpu = math.sin(self.to_rad(float(i) / ITERATIONS * 180))
+            mon = [{"ts": i, "source": "local", "cpu": cpu}]
+            mon_buffer.record_data(mon)
+            self.assertLessEqual(len(mon_buffer.data['local']), SIZE_LIMIT)
+        cpus = []
+        for interval, datapoint in iteritems(mon_buffer.data['local']):
+            metric = datapoint['cpu']
+            cpus.append(metric)
+        logging.debug(cpus)
+
+    def test_downsample_limit(self):
+        mon_buffer = MonitoringBuffer(100)
+        for i in range(5000):
+            mon = [{"ts": i, "source": "local", "cpu": 1, "mem": 2, "bytes-recv": 100, "other": 0}]
+            mon_buffer.record_data(mon)
+            for source, buffer in iteritems(mon_buffer.data):
+                self.assertLessEqual(len(buffer), 100)
+                # Theorem: average interval size in monitoring buffer will always
+                # be less or equal than ITERATIONS / BUFFER_LIMIT
+                intervals = buffer.keys()
+                sizes = [int.size() for int in intervals]
+                avg_size = float(sum(sizes)) / len(sizes)
+                expected_size = 5000 / 100
+                self.assertLessEqual(avg_size, expected_size * 1.10)
+
+    def test_sources(self):
+        mon_buffer = MonitoringBuffer(10)
+        for i in range(100):
+            mon = [
+                {"ts": i, "source": "local", "cpu": 1, "mem": 2, "bytes-recv": 100},
+                {"ts": i, "source": "server-agent", "cpu": 10, "mem": 20},
+            ]
+            mon_buffer.record_data(mon)
+            for source, buffer in iteritems(mon_buffer.data):
+                self.assertLessEqual(len(buffer), 10)
