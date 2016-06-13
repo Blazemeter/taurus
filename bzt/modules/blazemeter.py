@@ -49,7 +49,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
 
     :type client: BlazeMeterClient
     """
-    DEFAULT_MONITORING_BUFFER_LIMIT = 1000
+    DEFAULT_MONITORING_BUFFER_LIMIT = 500
 
     def __init__(self):
         super(BlazeMeterUploader, self).__init__()
