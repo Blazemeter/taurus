@@ -182,6 +182,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         try:
             self.__send_data(self.kpi_buffer, False, True)
             self.kpi_buffer = []
+            self.__send_monitoring()
         finally:
             self._postproc_phase2()
 
