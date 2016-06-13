@@ -3,6 +3,7 @@ import os
 
 from bzt.engine import ScenarioExecutor
 from bzt.utils import BetterDict, EXE_SUFFIX, is_windows
+from bzt.six import string_types
 from tests import BZTestCase, __dir__, local_paths_config
 from tests.mocks import EngineEmul
 
@@ -68,6 +69,33 @@ class TestScenarioExecutor(BZTestCase):
         self.engine = EngineEmul()
         self.executor = ScenarioExecutor()
         self.executor.engine = self.engine
+
+    def test_scenario_extraction_script(self):
+        self.engine.config.merge({
+            "execution": [{
+                "scenario": {
+                    "script": "path/to/example.script",
+                    "param": "value"
+                }}]})
+        self.executor.execution = self.engine.config.get('execution')[0]
+        self.executor.get_scenario()
+        config = self.engine.config
+        self.assertEqual(config['execution'][0]['scenario'], 'example.script')
+        self.assertIn('example.script', config['scenarios'])
+
+    def test_scenario_extraction_request(self):
+        self.engine.config.merge({
+            "execution": [{
+                "scenario": {
+                    "requests": [{"url": "url.example"}],
+                    "param": "value"
+                }}]})
+        self.executor.execution = self.engine.config.get('execution')[0]
+        self.executor.get_scenario()
+        config = self.engine.config
+        scenario = config['execution'][0]['scenario']
+        self.assertTrue(isinstance(scenario, string_types))
+        self.assertIn(scenario, config['scenarios'])
 
     def test_creates_hostaliases_file(self):
         self.engine.config.merge({

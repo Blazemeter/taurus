@@ -798,46 +798,33 @@ class ScenarioExecutor(EngineModule):
 
     def get_scenario(self):
         """
-        Returns scenario dict, either inlined, or referenced by alias
+        Returns scenario dict, extract if scenario is inlined
 
         :return: DictOfDicts
         """
-        # if self.__scenario is None:
-        #     scenario = self.execution.get('scenario', ValueError("Scenario not configured properly"))
-        #     if not isinstance(scenario, string_types):
-        #         pass
-        #         # move scenario to scenarios
-        #         # generate label
-        #         # write text label into execution
-        #     self.__scenario = self.engine.config.get("scenarios")
-        # if name == '':
-        #     return self.__scenario
-        # else:
-        #
-
         if self.__scenario is None:
             scenario = self.execution.get('scenario', ValueError("Scenario not configured properly"))
-            if isinstance(scenario, string_types):
-                self._label = scenario
-                scenarios = self.engine.config.get("scenarios")
-                if scenario not in scenarios:
-                    raise ValueError("Scenario not found in scenarios: %s" % scenario)
-                ensure_is_dict(scenarios, scenario, Scenario.SCRIPT)
-                scenario = scenarios.get(scenario)
-                self.__scenario = Scenario(self.engine, scenario)
-            elif isinstance(scenario, dict):
+            scenarios = self.engine.config.get("scenarios", {})
+            if isinstance(scenario, dict):
+                label = scenario.get(Scenario.SCRIPT, None)
+                if label:
+                    label = os.path.basename(label)
 
-                self.__scenario = Scenario(self.engine, scenario)
-            else:
+                if label is None or label in scenarios:
+                    label = hashlib.md5(to_json(scenario).encode()).hexdigest()
+
+                scenarios[label] = scenario
+                scenario = label
+                self.execution['scenario'] = label
+
+            elif not isinstance(scenario, string_types):
                 raise ValueError("Unsupported type for scenario")
 
-        if self._label is None:
-            try:
-                error = ValueError("Wrong script in scenario")
-                scen = self.__scenario.get(Scenario.SCRIPT, error)
-                self._label = os.path.basename(scen)
-            except BaseException:
-                self._label = hashlib.md5(to_json(self.__scenario).encode()).hexdigest()
+            self._label = scenario
+            if scenario not in scenarios:
+                raise ValueError("Scenario not found in scenarios: %s" % scenario)
+
+            self.__scenario = Scenario(self.engine, scenarios.get(scenario))
 
         return self.__scenario
 
