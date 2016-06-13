@@ -806,9 +806,9 @@ class ScenarioExecutor(EngineModule):
             scenario = self.execution.get('scenario', ValueError("Scenario not configured properly"))
             scenarios = self.engine.config.get("scenarios", {})
             if isinstance(scenario, dict):
-                label = scenario.get(Scenario.SCRIPT, None)
-                if label:
-                    label = os.path.basename(label)
+                label = None
+                if Scenario.SCRIPT in scenario:
+                    label = os.path.basename(scenario[Scenario.SCRIPT])
 
                 if label is None or label in scenarios:
                     label = hashlib.md5(to_json(scenario).encode()).hexdigest()
