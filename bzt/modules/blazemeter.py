@@ -282,34 +282,42 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         if self.send_monitoring:
             self.__record_monitoring_data(data)
 
-    def __merge_closest_datapoints(self, buffer, distance=1):
-        timestamps = list(buffer)
+    @staticmethod
+    def __merge_datapoints(point1, point2):
+        datapoint = copy.copy(point1)
+        for key, value in point2.items():
+            datapoint[key] = float(datapoint[key] + value) / 2
+        return datapoint
+
+    def __merge_closest_datapoints(self, buff, distance):
+        timestamps = list(buff)
         to_remove = []
         for ts1, ts2 in zip(timestamps, timestamps[1:]):
             if ts2 - ts1 == distance:
                 if ts1 not in to_remove and ts2 not in to_remove:
+                    buff[ts1] = self.__merge_datapoints(buff[ts1], buff[ts2])
                     to_remove.append(ts2)
         for item in to_remove:
-            buffer.pop(item)
+            buff.pop(item)
 
-    def __downsample_monitoring_data(self, buffer):
+    def __downsample_monitoring_data(self, buff):
         distance = 1
-        while len(buffer) > self.monitoring_buffer_limit:
-            self.__merge_closest_datapoints(buffer, distance)
+        while len(buff) > self.monitoring_buffer_limit:
+            self.__merge_closest_datapoints(buff, distance)
             distance += 1
 
     def __record_monitoring_data(self, data):
         for item in data:
             source = item.pop('source')
             ts = int(item.pop('ts'))
-            buffer = self.monitoring_buffer[source]
-            if ts in buffer:
-                buffer[ts].update(item)
+            buff = self.monitoring_buffer[source]
+            if ts in buff:
+                buff[ts].update(item)
             else:
-                buffer[ts] = item
-        for buffer in viewvalues(self.monitoring_buffer):
-            if len(buffer) > self.monitoring_buffer_limit:
-                self.__downsample_monitoring_data(buffer)
+                buff[ts] = item
+        for buff in viewvalues(self.monitoring_buffer):
+            if len(buff) > self.monitoring_buffer_limit:
+                self.__downsample_monitoring_data(buff)
 
     def __send_monitoring(self):
         src_name = platform.node()
@@ -332,8 +340,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         hosts = []
         kpis = {}
 
-        for source, buffer in iteritems(self.monitoring_buffer):
-            for timestamp, item in iteritems(buffer):
+        for source, buff in iteritems(self.monitoring_buffer):
+            for timestamp, item in iteritems(buff):
                 if source == 'local':
                     source = platform.node()
 

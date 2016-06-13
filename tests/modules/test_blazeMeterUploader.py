@@ -81,6 +81,8 @@ class TestBlazeMeterUploader(BZTestCase):
             obj.monitoring_data(mon)
             for source, buffer in iteritems(obj.monitoring_buffer):
                 self.assertLessEqual(len(buffer), obj.DEFAULT_MONITORING_BUFFER_LIMIT)
+        # Theorem: average distance between timestamps in monitoring buffer will always
+        # be approximately equal to ITERATIONS / BUFFER_LIMIT
 
     def test_monitoring_buffer_limit_option(self):
         ITERATIONS = 1000
@@ -92,12 +94,10 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.settings["monitoring-buffer-limit"] = BUFFER_LIMIT
         obj.prepare()
         for i in range(ITERATIONS):
-            mon = [{"ts": i, "source": "local", "cpu": 1, "mem": 2, "bytes-recv": 100, "other": 0}]
+            mon = [{"ts": i, "source": "local", "cpu": float(i) / ITERATIONS * 100, "mem": 2, "bytes-recv": 100, "other": 0}]
             obj.monitoring_data(mon)
             for source, buffer in iteritems(obj.monitoring_buffer):
                 self.assertLessEqual(len(buffer), BUFFER_LIMIT)
-        # Theorem: average distance between timestamps in monitoring buffer will always
-        # be approximately equal to ITERATIONS / BUFFER_LIMIT
 
     def test_monitoring_buffer_downsample_sources(self):
         obj = BlazeMeterUploader()
