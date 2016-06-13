@@ -49,7 +49,6 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
 
     :type client: BlazeMeterClient
     """
-    DEFAULT_MONITORING_BUFFER_LIMIT = 500
 
     def __init__(self):
         super(BlazeMeterUploader, self).__init__()
@@ -62,7 +61,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         self.send_interval = 30
         self.sess_name = None
         self._last_status_check = time.time()
-        self.monitoring_buffer_limit = self.DEFAULT_MONITORING_BUFFER_LIMIT
+        self.monitoring_buffer_limit = 500
 
     def prepare(self):
         """
@@ -75,8 +74,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         self.client.timeout = dehumanize_time(self.settings.get("timeout", self.client.timeout))
         self.send_interval = dehumanize_time(self.settings.get("send-interval", self.send_interval))
         self.send_monitoring = self.settings.get("send-monitoring", self.send_monitoring)
-        self.monitoring_buffer_limit = self.settings.get("monitoring-buffer-limit",
-                                                         self.DEFAULT_MONITORING_BUFFER_LIMIT)
+        self.monitoring_buffer_limit = self.settings.get("monitoring-buffer-limit", self.monitoring_buffer_limit)
         self.browser_open = self.settings.get("browser-open", self.browser_open)
         token = self.settings.get("token", "")
         if not token:
