@@ -38,9 +38,8 @@ from bzt.modules.jmeter import JMeterExecutor
 from bzt.modules.monitoring import Monitoring, MonitoringListener
 from bzt.modules.services import Unpacker
 from bzt.six import BytesIO, text_type, iteritems, HTTPError, urlencode, Request, urlopen, r_input, URLError
-from bzt.six import viewvalues
 from bzt.utils import open_browser, get_full_path, get_files_recursive, replace_in_config
-from bzt.utils import to_json, dehumanize_time, MultiPartForm, BetterDict, ensure_is_dict
+from bzt.utils import to_json, dehumanize_time, MultiPartForm, BetterDict, ensure_is_dict, Interval
 
 
 class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
@@ -323,28 +322,6 @@ class ProjectFinder(object):
 
         self.test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
         return self.client.test_by_name(self.test_name, test_config, taurus_config, rfiles, proj_id)
-
-
-class Interval(object):
-    __slots__ = ['start', 'end']
-
-    def __init__(self, start, end):
-        assert start <= end
-        self.start = start
-        self.end = end
-
-    def merge_with(self, other):
-        start = min([self.start, other.start])
-        end = max([self.end, other.end])
-        return Interval(start, end)
-
-    def size(self):
-        return self.end - self.start + 1
-
-    def __str__(self):
-        return "Interval(%s, %s)" % (self.start, self.end)
-
-    __repr__ = __str__
 
 
 class MonitoringBuffer(object):
