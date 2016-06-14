@@ -337,7 +337,7 @@ class MonitoringBuffer(object):
             timestamp = int(item.pop('ts'))
             buff = self.data[source]
             interval = Interval(timestamp, timestamp)
-            if interval in buff:  # what if this interval was already merged with another one?
+            if interval in buff:
                 buff[interval].update(item)
             else:
                 buff[interval] = item
