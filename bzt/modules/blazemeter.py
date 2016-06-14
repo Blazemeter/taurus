@@ -300,30 +300,6 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
                 self.log.warning("Will skip failed data and continue running")
 
 
-class ProjectFinder(object):
-    def __init__(self, parameters, settings, client, engine):
-        super(ProjectFinder, self).__init__()
-        self.default_test_name = "Taurus Test"
-        self.client = client
-        self.parameters = parameters
-        self.settings = settings
-        self.engine = engine
-        self.test_name = None
-
-    def resolve_test_id(self, test_config, taurus_config, rfiles):
-        proj_name = self.parameters.get("project", self.settings.get("project", None))
-        if isinstance(proj_name, (int, float)):
-            proj_id = int(proj_name)
-            self.engine.log.debug("Treating project name as ID: %s", proj_id)
-        elif proj_name is not None:
-            proj_id = self.client.project_by_name(proj_name)
-        else:
-            proj_id = None
-
-        self.test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
-        return self.client.test_by_name(self.test_name, test_config, taurus_config, rfiles, proj_id)
-
-
 class MonitoringBuffer(object):
     def __init__(self, size_limit):
         self.size_limit = size_limit
@@ -448,6 +424,30 @@ class MonitoringBuffer(object):
             "hosts": hosts,
             "results": results
         }
+
+
+class ProjectFinder(object):
+    def __init__(self, parameters, settings, client, engine):
+        super(ProjectFinder, self).__init__()
+        self.default_test_name = "Taurus Test"
+        self.client = client
+        self.parameters = parameters
+        self.settings = settings
+        self.engine = engine
+        self.test_name = None
+
+    def resolve_test_id(self, test_config, taurus_config, rfiles):
+        proj_name = self.parameters.get("project", self.settings.get("project", None))
+        if isinstance(proj_name, (int, float)):
+            proj_id = int(proj_name)
+            self.engine.log.debug("Treating project name as ID: %s", proj_id)
+        elif proj_name is not None:
+            proj_id = self.client.project_by_name(proj_name)
+        else:
+            proj_id = None
+
+        self.test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
+        return self.client.test_by_name(self.test_name, test_config, taurus_config, rfiles, proj_id)
 
 
 class BlazeMeterClient(object):
