@@ -46,7 +46,7 @@ class ShellExecutor(Service):
             if run_at == self.engine.config.get(Provisioning.PROV, None):
                 cwd = task_config.get("cwd", default_cwd)
                 if cwd is None:
-                    working_dir = os.getcwd()
+                    working_dir = self.engine.default_cwd
                 elif cwd == 'artifacts-dir':
                     working_dir = self.engine.artifacts_dir
                 else:

@@ -75,6 +75,7 @@ class Engine(object):
         self.engine_loop_utilization = 0
         self.prepared = []
         self.started = []
+        self.default_cwd = None
 
     def configure(self, user_configs, read_config_files=True):
         """
@@ -895,6 +896,8 @@ class ScenarioExecutor(EngineModule):
         return settings.get("hostaliases", {})
 
     def execute(self, args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False, env=None):
+        if cwd is None:
+            cwd = self.engine.default_cwd
         aliases = self.get_hostaliases()
         hosts_file = None
         if aliases:
