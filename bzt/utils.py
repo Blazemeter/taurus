@@ -893,25 +893,3 @@ def is_piped(file_obj):
     "check if file-object is a pipe or a file redirect"
     mode = os.fstat(file_obj.fileno()).st_mode
     return stat.S_ISFIFO(mode) or stat.S_ISREG(mode)
-
-
-class Interval(object):
-    __slots__ = ['start', 'end']
-
-    def __init__(self, start, end):
-        assert start <= end
-        self.start = start
-        self.end = end
-
-    def merge_with(self, other):
-        start = min([self.start, other.start])
-        end = max([self.end, other.end])
-        return Interval(start, end)
-
-    def size(self):
-        return self.end - self.start + 1
-
-    def __str__(self):
-        return "Interval(%s, %s)" % (self.start, self.end)
-
-    __repr__ = __str__

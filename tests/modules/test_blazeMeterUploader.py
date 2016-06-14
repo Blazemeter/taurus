@@ -7,7 +7,7 @@ import time
 
 from bzt.modules.aggregator import DataPoint, KPISet
 from tests import BZTestCase, random_datapoint, __dir__
-from bzt.six import URLError, iteritems
+from bzt.six import URLError, iteritems, viewvalues
 from bzt.modules.blazemeter import BlazeMeterUploader, BlazeMeterClient, BlazeMeterClientEmul, ResultsFromBZA
 from bzt.modules.blazemeter import MonitoringBuffer
 from tests.mocks import EngineEmul
@@ -249,19 +249,18 @@ class TestMonitoringBuffer(BZTestCase):
             self.assertLessEqual(len(mon_buffer.data['local']), SIZE_LIMIT)
 
     def test_downsample_theorem(self):
+        # Theorem: average interval size in monitoring buffer will always
+        # be less or equal than ITERATIONS / BUFFER_LIMIT
         mon_buffer = MonitoringBuffer(100)
         for i in range(5000):
             mon = [{"ts": i, "source": "local", "cpu": 1, "mem": 2, "bytes-recv": 100, "other": 0}]
             mon_buffer.record_data(mon)
             for source, buffer in iteritems(mon_buffer.data):
                 self.assertLessEqual(len(buffer), 100)
-                # Theorem: average interval size in monitoring buffer will always
-                # be less or equal than ITERATIONS / BUFFER_LIMIT
-                intervals = buffer.keys()
-                sizes = [int.size() for int in intervals]
+                sizes = [item['interval'] for item in viewvalues(buffer)]
                 avg_size = float(sum(sizes)) / len(sizes)
                 expected_size = 5000 / 100
-                self.assertLessEqual(avg_size, expected_size * 1.10)
+                self.assertLessEqual(avg_size, expected_size * 1.20)
 
     def test_sources(self):
         mon_buffer = MonitoringBuffer(10)
@@ -273,3 +272,14 @@ class TestMonitoringBuffer(BZTestCase):
             mon_buffer.record_data(mon)
             for source, buffer in iteritems(mon_buffer.data):
                 self.assertLessEqual(len(buffer), 10)
+
+    def test_unpack(self):
+        ITERATIONS = 200
+        SIZE_LIMIT = 10
+        mon_buffer = MonitoringBuffer(SIZE_LIMIT)
+        for i in range(ITERATIONS):
+            mon = [{"ts": i, "source": "local", "cpu": 1}]
+            mon_buffer.record_data(mon)
+        unpacked = sum(item['interval'] for item in viewvalues(mon_buffer.data['local']))
+        self.assertEqual(unpacked, ITERATIONS)
+

@@ -38,8 +38,9 @@ from bzt.modules.jmeter import JMeterExecutor
 from bzt.modules.monitoring import Monitoring, MonitoringListener
 from bzt.modules.services import Unpacker
 from bzt.six import BytesIO, text_type, iteritems, HTTPError, urlencode, Request, urlopen, r_input, URLError
+from bzt.six import viewvalues
 from bzt.utils import open_browser, get_full_path, get_files_recursive, replace_in_config
-from bzt.utils import to_json, dehumanize_time, MultiPartForm, BetterDict, ensure_is_dict, Interval
+from bzt.utils import to_json, dehumanize_time, MultiPartForm, BetterDict, ensure_is_dict
 
 
 class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
@@ -299,7 +300,6 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
                 self.log.warning("Will skip failed data and continue running")
 
 
-
 class ProjectFinder(object):
     def __init__(self, parameters, settings, client, engine):
         super(ProjectFinder, self).__init__()
@@ -334,58 +334,54 @@ class MonitoringBuffer(object):
     def record_data(self, data):
         for item in data:
             source = item.pop('source')
-            timestamp = int(item.pop('ts'))
+            timestamp = int(item['ts'])
+            item['interval'] = 1
             buff = self.data[source]
-            interval = Interval(timestamp, timestamp)
-            if interval in buff:
-                buff[interval].update(item)
+            if timestamp in buff:
+                buff[timestamp].update(item)
             else:
-                buff[interval] = item
+                buff[timestamp] = item
 
         sources = list(self.data)
         for source in sources:
             if len(self.data[source]) > self.size_limit:
-                self.data[source] = self._downsample(self.data[source])
+                self._downsample(self.data[source])
 
     def _downsample(self, buff):
         size = 1
         while len(buff) > self.size_limit:
-            buff = self._merge_small_intervals(buff, size)
+            self._merge_small_intervals(buff, size)
             size += 1
-        return buff
 
     def _merge_small_intervals(self, buff, size):
-        intervals = list(buff)
-        result = OrderedDict()
+        timestamps = list(buff)
         merged_already = set()
-        for left, right in zip(intervals, intervals[1:]):
+        for left, right in zip(timestamps, timestamps[1:]):
             if left in merged_already:
                 continue
-            if left.size() <= size:
-                interval = left.merge_with(right)
-                datapoint = self._merge_datapoints(buff, left, right)
-                result[interval] = datapoint
+            if buff[left]['interval'] <= size:
+                buff[left] = self._merge_datapoints(buff[left], buff[right])
+                buff.pop(right)
                 merged_already.add(left)
                 merged_already.add(right)
-            else:
-                result[left] = buff[left]
-        result[intervals[-1]] = buff[intervals[-1]]
-        return result
 
-    def _merge_datapoints(self, buff, left, right):
-        left_weight, right_weight = left.size(), right.size()
-        sum_weight = float(left_weight + right_weight)
-        left_point, right_point = buff[left], buff[right]
-        datapoint = {}
-        for metric in set(list(left_point) + list(right_point)):
-            if metric in left_point and metric in right_point:
-                lval = float(left_point[metric])
-                rval = float(right_point[metric])
-                datapoint[metric] = (lval * left_weight + rval * right_weight) / sum_weight
-            elif metric in left_point:
-                datapoint[metric] = left_point[metric]
-            elif metric in right_point:
-                datapoint[metric] = right_point[metric]
+    def _merge_datapoints(self, left, right):
+        sum_size = float(left['interval'] + right['interval'])
+        datapoint = {
+            'ts': left['ts'],
+            'interval': sum_size,
+        }
+        for metric in set(list(left) + list(right)):
+            if metric in ('ts', 'interval'):
+                continue
+            if metric in left and metric in right:
+                lval = float(left[metric])
+                rval = float(right[metric])
+                datapoint[metric] = (lval * left['interval'] + rval * right['interval']) / sum_size
+            elif metric in left:
+                datapoint[metric] = left[metric]
+            elif metric in right:
+                datapoint[metric] = right[metric]
         return datapoint
 
     def get_monitoring_json(self, session_id, user_id, test_id):
@@ -394,7 +390,7 @@ class MonitoringBuffer(object):
         kpis = {}
 
         for source, buff in iteritems(self.data):
-            for interval, item in iteritems(buff):
+            for timestamp, item in iteritems(buff):
                 if source == 'local':
                     source = platform.node()
 
@@ -408,17 +404,19 @@ class MonitoringBuffer(object):
                     hosts.append(source)
 
                 src = results[source]
-                tstmp = interval.start * 1000
+                tstmp = timestamp * 1000
                 tstmp_key = '%d' % tstmp
 
                 if tstmp_key not in src['intervals']:
                     src['intervals'][tstmp_key] = {
                         "start": tstmp,
-                        "duration": interval.size() * 1000,
+                        "duration": item['interval'] * 1000,
                         "indicators": {}
                     }
 
                 for field, value in iteritems(item):
+                    if field in ('ts', 'interval'):
+                        continue
                     if field.lower().startswith('cpu'):
                         field = 'CPU'
                     elif field.lower().startswith('mem'):
