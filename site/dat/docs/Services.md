@@ -9,6 +9,9 @@ services:
     prepare: ...
 ```
 
+Note that services are processed in the same order in which they're mentioned in config. So if some service uses
+data produced by another service — you should place the producing service at the top of services list.
+
 ## Pass/Fail Criteria
 
 Every execution has pass/fail status and there is a way to set this status based on runtime criteria. Special `passfail` service offers this functionality. Another useful feature of pass/fail criteria is _auto-stop_ functionality, allowing to interrupt failed tests automatically, sparing the time and resources.
