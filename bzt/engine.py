@@ -802,29 +802,28 @@ class ScenarioExecutor(EngineModule):
 
         :return: DictOfDicts
         """
-        if self.__scenario is None:
-            scenario = self.execution.get('scenario', ValueError("Scenario not configured properly"))
-            scenarios = self.engine.config.get("scenarios", {})
-            if isinstance(scenario, dict):
-                label = None
-                if Scenario.SCRIPT in scenario:
-                    label = os.path.basename(scenario[Scenario.SCRIPT])
+        if self.__scenario is not None:
+            return self.__scenario
 
-                if label is None or label in scenarios:
-                    label = hashlib.md5(to_json(scenario).encode()).hexdigest()
+        scenarios = self.engine.config.get("scenarios", {})
+        scenario = self.execution.get('scenario', ValueError("Scenario is not configured properly"))
+        if isinstance(scenario, dict):
+            label = None
+            if Scenario.SCRIPT in scenario:
+                label = os.path.basename(scenario[Scenario.SCRIPT])
 
-                scenarios[label] = scenario
-                scenario = label
-                self.execution['scenario'] = label
+            if label is None or label in scenarios:
+                label = hashlib.md5(to_json(scenario).encode()).hexdigest()
 
-            elif not isinstance(scenario, string_types):
-                raise ValueError("Unsupported type for scenario")
+            scenarios[label] = scenario
+            scenario = label
+            self.execution['scenario'] = label
+        elif not isinstance(scenario, string_types):
+            raise ValueError("Unsupported type for scenario")
 
-            self._label = scenario
-            if scenario not in scenarios:
-                raise ValueError("Scenario not found in scenarios: %s" % scenario)
-
-            self.__scenario = Scenario(self.engine, scenarios.get(scenario))
+        self._label = scenario
+        err = ValueError("Scenario not found in scenarios: %s" % scenario)
+        self.__scenario = Scenario(self.engine, scenarios.get(scenario, err))
 
         return self.__scenario
 
