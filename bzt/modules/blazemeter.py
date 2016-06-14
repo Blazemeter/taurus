@@ -350,7 +350,7 @@ class MonitoringBuffer(object):
                 left[metric] = (left[metric] * left['interval'] + right[metric] * right['interval']) / sum_size
             else:
                 left[metric] = right[metric]
-        left['interval'] = left['interval'] + right['interval']
+        left['interval'] = sum_size
 
     def get_monitoring_json(self, session_id, user_id, test_id):
         results = {}
