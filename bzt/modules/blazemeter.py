@@ -374,14 +374,14 @@ class MonitoringBuffer(object):
 
     def _merge_datapoints(self, buff, left, right):
         left_weight, right_weight = left.size(), right.size()
-        sum_weight = left_weight + right_weight
+        sum_weight = float(left_weight + right_weight)
         left_point, right_point = buff[left], buff[right]
         datapoint = {}
         for metric in set(list(left_point) + list(right_point)):
             if metric in left_point and metric in right_point:
-                l = float(left_point[metric])
-                r = float(right_point[metric])
-                datapoint[metric] = (l * left_weight + r * right_weight) / sum_weight
+                lval = float(left_point[metric])
+                rval = float(right_point[metric])
+                datapoint[metric] = (lval * left_weight + rval * right_weight) / sum_weight
             elif metric in left_point:
                 datapoint[metric] = left_point[metric]
             elif metric in right_point:

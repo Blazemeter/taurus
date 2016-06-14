@@ -86,7 +86,6 @@ class TestBlazeMeterUploader(BZTestCase):
                 self.assertLessEqual(len(buffer), 100)
 
 
-
 class TestBlazeMeterClientUnicode(BZTestCase):
     def test_unicode_request(self):
         """
