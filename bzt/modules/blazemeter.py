@@ -334,9 +334,9 @@ class MonitoringBuffer(object):
     def record_data(self, data):
         for item in data:
             source = item.pop('source')
-            ts = int(item.pop('ts'))
+            timestamp = int(item.pop('ts'))
             buff = self.data[source]
-            interval = Interval(ts, ts)
+            interval = Interval(timestamp, timestamp)
             if interval in buff:  # what if this interval was already merged with another one?
                 buff[interval].update(item)
             else:
