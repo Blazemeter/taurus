@@ -363,7 +363,7 @@ class MonitoringBuffer(object):
                 continue
             if left.size() <= size:
                 interval = left.merge_with(right)
-                datapoint = self._merge_datapoints(buff[left], buff[right])
+                datapoint = self._merge_datapoints(buff, left, right)
                 result[interval] = datapoint
                 merged_already.add(left)
                 merged_already.add(right)
@@ -372,14 +372,20 @@ class MonitoringBuffer(object):
         result[intervals[-1]] = buff[intervals[-1]]
         return result
 
-    def _merge_datapoints(self, point1, point2):
-        datapoint = copy.copy(point1)
-        for key, value in point2.items():
-            if key in datapoint:
-                result = float(datapoint[key] + value) / 2
-            else:
-                result = value
-            datapoint[key] = result
+    def _merge_datapoints(self, buff, left, right):
+        left_weight, right_weight = left.size(), right.size()
+        sum_weight = left_weight + right_weight
+        left_point, right_point = buff[left], buff[right]
+        datapoint = {}
+        for metric in set(list(left_point) + list(right_point)):
+            if metric in left_point and metric in right_point:
+                l = float(left_point[metric])
+                r = float(right_point[metric])
+                datapoint[metric] = (l * left_weight + r * right_weight) / sum_weight
+            elif metric in left_point:
+                datapoint[metric] = left_point[metric]
+            elif metric in right_point:
+                datapoint[metric] = right_point[metric]
         return datapoint
 
     def get_monitoring_json(self, session_id, user_id, test_id):
