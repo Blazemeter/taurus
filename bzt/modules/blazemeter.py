@@ -360,29 +360,21 @@ class MonitoringBuffer(object):
             if left in merged_already:
                 continue
             if buff[left]['interval'] <= size:
-                buff[left] = self._merge_datapoints(buff[left], buff[right])
+                self._merge_datapoints(buff[left], buff[right])
                 buff.pop(right)
                 merged_already.add(left)
                 merged_already.add(right)
 
     def _merge_datapoints(self, left, right):
         sum_size = float(left['interval'] + right['interval'])
-        datapoint = {
-            'ts': left['ts'],
-            'interval': sum_size,
-        }
-        for metric in set(list(left) + list(right)):
+        for metric in set(right):
             if metric in ('ts', 'interval'):
                 continue
-            if metric in left and metric in right:
-                lval = float(left[metric])
-                rval = float(right[metric])
-                datapoint[metric] = (lval * left['interval'] + rval * right['interval']) / sum_size
-            elif metric in left:
-                datapoint[metric] = left[metric]
-            elif metric in right:
-                datapoint[metric] = right[metric]
-        return datapoint
+            if metric in left:
+                left[metric] = (left[metric] * left['interval'] + right[metric] * right['interval']) / sum_size
+            else:
+                left[metric] = right[metric]
+        left['interval'] = left['interval'] + right['interval']
 
     def get_monitoring_json(self, session_id, user_id, test_id):
         results = {}
