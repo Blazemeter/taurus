@@ -2,6 +2,7 @@
 
 ## 1.6.3 (next)
  - fix percentile value handling in passfail criteria
+ - add setting up of CWD on server side
  - fix problem with sending included configs into cloud
  - fix cumulative fail criteria processing order
 
