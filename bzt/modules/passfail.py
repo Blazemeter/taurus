@@ -35,6 +35,7 @@ class PassFailStatus(Reporter, Service, AggregatorListener, WidgetProvider):
     """
     :type criteria: list[FailCriterion]
     """
+
     def __init__(self):
         super(PassFailStatus, self).__init__()
         self.criteria = []
@@ -72,10 +73,11 @@ class PassFailStatus(Reporter, Service, AggregatorListener, WidgetProvider):
     def post_process(self):
         super(PassFailStatus, self).post_process()
 
-        for crit in self.criteria:
-            if isinstance(crit, DataCriterion):
-                if crit.selector == DataPoint.CUMULATIVE:
-                    crit.aggregated_second(self.last_datapoint)
+        if self.last_datapoint is not None:
+            for crit in self.criteria:
+                if isinstance(crit, DataCriterion):
+                    if crit.selector == DataPoint.CUMULATIVE:
+                        crit.aggregated_second(self.last_datapoint)
 
         for crit in self.criteria:
             if isinstance(crit, DataCriterion):
@@ -397,6 +399,7 @@ class PassFailWidget(urwid.Pile, PrioritizedWidget):
     If criterion is failing, it will be displayed on the widget
     return urwid widget
     """
+
     def __init__(self, pass_fail_reporter):
         self.pass_fail_reporter = pass_fail_reporter
         self.failing_criteria = []
