@@ -38,7 +38,6 @@ from bzt.modules.jmeter import JMeterExecutor
 from bzt.modules.monitoring import Monitoring, MonitoringListener
 from bzt.modules.services import Unpacker
 from bzt.six import BytesIO, text_type, iteritems, HTTPError, urlencode, Request, urlopen, r_input, URLError
-from bzt.six import viewvalues
 from bzt.utils import open_browser, get_full_path, get_files_recursive, replace_in_config
 from bzt.utils import to_json, dehumanize_time, MultiPartForm, BetterDict, ensure_is_dict
 
@@ -658,7 +657,7 @@ class BlazeMeterClient(object):
         :param is_check_response:
         :type data_buffer: list[bzt.modules.aggregator.DataPoint]
         """
-        data = []
+        labels = []
 
         for sec in data_buffer:
             self.first_ts = min(self.first_ts, sec[DataPoint.TIMESTAMP])
@@ -671,14 +670,14 @@ class BlazeMeterClient(object):
                     label = lbl
 
                 json_item = None
-                for lbl_item in data:
+                for lbl_item in labels:
                     if lbl_item["name"] == label:
                         json_item = lbl_item
                         break
 
                 if not json_item:
                     json_item = self.__label_skel(label)
-                    data.append(json_item)
+                    labels.append(json_item)
 
                 interval_item = self.__interval_json(item, sec)
                 for r_code, cnt in iteritems(item[KPISet.RESP_CODES]):
@@ -690,7 +689,7 @@ class BlazeMeterClient(object):
                 json_item['n'] = cumul[KPISet.SAMPLE_COUNT]
                 json_item["summary"] = self.__summary_json(cumul)
 
-        data = {"labels": data, "sourceID": id(self)}
+        data = {"labels": labels, "sourceID": id(self)}
         if is_final:
             data['final'] = True
 
@@ -1003,7 +1002,7 @@ class MasterProvisioning(Provisioning):
                     raise ValueError(message)
 
         prepared_files = self.__pack_dirs(rfiles)
-        replace_in_config(self.engine.config, rfiles, list(map(os.path.basename, prepared_files)), log=self.log)
+        replace_in_config(self.engine.config, rfiles, [os.path.basename(f) for f in prepared_files], log=self.log)
 
         return prepared_files
 
