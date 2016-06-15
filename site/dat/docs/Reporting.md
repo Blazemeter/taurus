@@ -171,15 +171,6 @@ Note how easy is to set report settings from command line, i.e. from inside Jenk
 bzt mytest.yml -o modules.blazemeter.report-name="Jenkins Build ${BUILD_NUMBER}"
 ```
 
-### Sending monitoring stats
-
-Taurus will send monitoring stats to BlazeMeter by default. This behaviour is configurable with `send-monitoring`
-option mentioned earlier.
-
-By default Taurus will store only 500 monitoring datapoints in memory (Taurus uses downsampling algorithm to ensure
-that even limited stats are representative). If your test is very long or if you want to have high-resolution monitoring
-stats — you can increase buffer size limit with `monitoring-buffer-limit` option.
-
 ## JUnit XML Reporter
 
 This reporter provides test results in JUnit xml format parsable by Jenkins [JUnit Plugin](https://wiki.jenkins-ci.org/display/JENKINS/JUnit+Plugin).
