@@ -382,6 +382,14 @@ class JUnitTester(AbstractTestRunner):
         Compile .java files
         """
         self.log.debug("Compiling .java files started")
+
+        jar_path = os.path.join(self.executor.engine.artifacts_dir,
+                                self.working_dir,
+                                self.settings.get("jar-name", "compiled.jar"))
+        if os.path.exists(jar_path):
+            self.log.debug(".java files are already compiled, skipping")
+            return
+
         java_files = []
 
         for dir_entry in os.walk(self.working_dir):
