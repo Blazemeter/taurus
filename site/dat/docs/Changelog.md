@@ -2,8 +2,10 @@
 
 ## 1.6.3 (next)
  - fix percentile value handling in passfail criteria
+ - add setting up of CWD on server side
  - fix problem with sending included configs into cloud
  - fix cumulative fail criteria processing order
+ - limit the amount of monitoring data BlazeMeter uploader accumulates
  - fix passfail criteria with no last datapoint available
 
 ## 1.6.2 <sup>8 jun 2016</sup>

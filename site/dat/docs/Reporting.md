@@ -163,6 +163,7 @@ modules:
     test: Taurus Test
     project: My Local Tests
     send-monitoring: true  # send data from monitoring subsystem, enabled by default
+    monitoring-buffer-limit: 500  # store up to N items in monitoring data buffer, 500 by default
 ```
 
 Note how easy is to set report settings from command line, i.e. from inside Jenkins build step:
