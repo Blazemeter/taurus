@@ -134,14 +134,14 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self._verify_script()
 
         self.runner_working_dir = self.engine.create_artifact("classes", "")
-        kpi_file = self.engine.create_artifact("selenium_tests_report", ".csv")
-        err_file = self.engine.create_artifact("selenium_tests_err", ".xml")
-        self.runner = self._create_runner(self.runner_working_dir, kpi_file, err_file)
+        self.kpi_file = self.engine.create_artifact("selenium_tests_report", ".csv")
+        self.err_file = self.engine.create_artifact("selenium_tests_err", ".xml")
+        self.runner = self._create_runner(self.runner_working_dir, self.kpi_file, self.err_file)
 
         self._cp_resource_files(self.runner_working_dir)
 
         self.runner.prepare()
-        self.reader = self._create_reader(kpi_file, err_file)
+        self.reader = self._create_reader(self.kpi_file, self.err_file)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
