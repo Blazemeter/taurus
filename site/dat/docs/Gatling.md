@@ -10,7 +10,10 @@ In Taurus you have two way for run it: with native gatling script or with usual 
 ---
 execution:
 - executor: gatling
-  scenario:
+  scenario: sample
+  
+scenarios:
+  sample:
     script: tests/gatling/BasicSimulation.scala
     simulation: tests.gatling.BasicSimulation
 ```
@@ -62,7 +65,10 @@ execution:
   concurrency: 3
   ramp-up: 2
   hold-for: 10
-  scenario:
+  scenario: complex_sample
+  
+scenarios:
+  complex_sample
     default-address: blazedemo.com
     headers:
       HEADER_1: VALUE_1

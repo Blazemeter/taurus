@@ -117,11 +117,14 @@ If you need some additional files as part of your test and Taurus fails to detec
 execution:
 - locations:
     us-east-1: 1
-  scenario:
-    script: testplan.jmx
+  scenario: test_sample    
   files:
   - path/to/file1.csv
   - path/to/file2.csv
+  
+scenarios:
+  test_sample:
+    script: testplan.jmx  
 ```
 
 
@@ -150,7 +153,8 @@ execution:
 - executor: locust
   scenario: locust-scen
   files:
-  - my-modules.zip      
+  - my-modules.zip
+        
 services:
 - module: shellexec
   prepare: 

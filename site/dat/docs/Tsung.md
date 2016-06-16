@@ -46,7 +46,10 @@ execution:
 - executor: tsung
   concurrency: 100
   hold-for: 1m
-  scenario:
+  scenario: sample
+  
+scenarios:
+  sample:
     default-address: http://blazedemo.com
     requests:
       - /
@@ -58,8 +61,11 @@ Example of using user's Tsung config:
 ---
 execution:
 - executor: tsung
-  scenario:
-    script: tsung/http_simple.xml
+  scenario: sample
+   
+scenarios:
+  sample:
+    tsung/http_simple.xml
 ```
 
 If you specify both `scenario.script` and load profile (`concurrency` and `hold-for`) — Taurus will copy your Tsung
@@ -72,7 +78,10 @@ execution:
 - executor: tsung
   concurrency: 100
   hold-for: 5m
-  scenario:
+  scenario: sample
+  
+scenarios:
+  sample:
     script: tsung/http_simple.xml
 ```
 
@@ -82,11 +91,8 @@ Here's the example of various HTTP requests features that Taurus supports:
 
 ```yaml
 ---
-execution:
-- executor: tsung
-  concurrency: 50
-  hold-for: 5m
-  scenario:
+scenarios:
+  features:
     default-address: http://blazedemo.com  # base address for HTTP requests
 
     think-time: 1s  # delay to make after executing this request, applies to all requests, default value is 0

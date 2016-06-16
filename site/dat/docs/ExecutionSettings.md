@@ -5,8 +5,7 @@ Execution objects represent actual underlying tool executions. You can launch un
 ```yaml
 ---
 execution:
-  scenario:
-    script: my-existing.jmx
+  scenario: scenario_name    
 ```
 
 is equivalent for 
@@ -14,8 +13,7 @@ is equivalent for
 ```yaml
 ---
 execution:
-- scenario:
-    script: my-existing.jmx
+- scenario: scenario_name
 ```
 
 However, users are encouraged to use array notation always to leverage the arrays auto-join capability when combining multiple config files into one. See [config merge rules](CommandLine.md#configuration-files-processing) for more details on this.
@@ -54,6 +52,7 @@ Execution has several options to set load profile settings. Support for options 
  - `iterations` - limit scenario iterations number
  - `throughput` - apply RPS shaper, limiting maximum RPS to throughput
  - `steps` - allows users to apply stepping ramp-up for concurrency and rps. Requires JMeter plugins to be installed!
+ - `scenario` - name of scenario that described in `scenarios` part (see below)
 
 ```yaml
 ---
@@ -63,26 +62,15 @@ execution:
   hold-for: 2m
   iterations: 1000
   throughput: 20
+  scenario: scenario_name
 ```
 
 ## Scenario
 
-Scenario is a sequence of steps that is used to build script for underlying tool (e.g. generate JMX file for JMeter). Scenarios can be specified directly inside execution section. However, it is recommended to use special `scenarios` top-level config element to declare
-scenarios and access them through aliases. Some examples:
+Scenario is a sequence of steps that is used to build script for underlying tool (e.g. generate JMX file for JMeter). It is described in special `scenarios` top-level config element. Some examples:
 
 ```yaml
 ---
-# embedded scenario
-execution:
-- scenario:
-    requests:
-      - http://localhost/1
-      - http://localhost/2
-```
-
-```yaml
----
-# referenced scenario
 scenarios:
   get-requests:
     requests:
@@ -121,7 +109,10 @@ execution:
 - concurrency: 10
   hold-for: 20s
   start-at: '2020-03-25 23:15'  # must be string
-  scenario: 
+  scenario: sample
+  
+scenarios:
+  sample:
     requests:
     - http://blazedemo.com/
 ```

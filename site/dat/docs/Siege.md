@@ -25,7 +25,10 @@ execution:
 - executor: siege
   concurrency: 3 
   repetition: 10
-  scenario:
+  scenario: simplest
+
+scenarios:
+  simplest:
     requests:
     - http://blazedemo.com/
 ```
@@ -37,7 +40,10 @@ execution:
 - executor: siege
   concurrency: 100
   repetition: 5
-  scenario:
+  scenario: simplest
+
+scenarios: 
+  simplest:
     requests:
     - http://blazedemo.com/
 ```
@@ -49,7 +55,10 @@ execution:
 - executor: siege
   concurrency: 50
   hold-for: 5m
-  scenario:
+  scenario: external_urls
+  
+scenarios:
+  external_urls:
     think-time: 15s
     script: ~/tests/nodes.list
 ```
@@ -57,12 +66,13 @@ execution:
 Variables example:
 ```yaml
 ---
-scenario:
-  requests:
-  - variables:
-    - HOST0: 'http://mainhost.com/'
-    - url: '$(HOST0)page1.html'
-    - url: '$(HOST0)dir/page2.html'
+scenarios:
+  variables_usage:
+    requests:
+    - variables:
+      - HOST0: 'http://mainhost.com/'
+      - url: '$(HOST0)page1.html'
+      - url: '$(HOST0)dir/page2.html'
 ```
 
 

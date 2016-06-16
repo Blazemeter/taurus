@@ -16,7 +16,10 @@ execution:
   concurrency: 10
   ramp-up: 1m
   iterations: 1000
-  scenario:
+  scenario: example
+
+scenarios:
+  example:
     default-address: http://blazedemo.com
     script: sample.py
 ```

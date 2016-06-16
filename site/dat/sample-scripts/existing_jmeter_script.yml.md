@@ -3,7 +3,10 @@
 execution:
 - iterations: 50
   concurrency: 10
-  scenario: 
+  scenario: with_script
+
+scenarios:
+  with_script:
     script: my-existing.jmx
     
 services:

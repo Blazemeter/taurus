@@ -57,7 +57,10 @@ Minimal working scenario:
 ---
 execution:
 - executor: selenium
-  scenario:
+  scenario: simple
+
+scenarios:
+  simple:
     script: /home/user/selenium_tests.java
 ```
 
@@ -67,7 +70,10 @@ or
 ---
 execution:
 - executor: selenium
-  scenario:
+  scenario: simple
+  
+scenarios: 
+  simple
     script: /home/user/folder/
 ```
 
@@ -78,16 +84,21 @@ Extended scenario with runner options:
 execution:
 - executor: selenium
   iterations: 5
-  scenario:
+  scenario: complex
+  
+scenarios:
+  complex:
     script: /home/user/tests/my_test.java
     additional-classpath:  # optional, following libs will be added to java classpath
     - /home/user/lib_one.jar
-    - /home/user/lib_two.jar
+    - /home/user/lib_two.jar    
+    
 modules:
   selenium:
     selenium-tools:
       junit:
         jar-name: compiled_jar_from_provided_sources.jar
+        
 reporting:
 - module: junit-xml
 ```
@@ -103,10 +114,8 @@ Supported features:
 Sample request scenario
 ```yaml
 ---
-execution:
-- executor: selenium
-  hold-for: 5m
-  scenario:
+scenarios:
+  request_example:
     browser: Firefox  # available browsers are: ["Firefox", "Chrome", "Ie", "Opera"]
     timeout: 10  #  global scenario timeout for connecting, receiving results, 30 seconds by default
     think-time: 1s500ms  # global scenario delay between each request

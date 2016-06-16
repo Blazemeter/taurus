@@ -21,7 +21,10 @@ execution:
   concurrency: 3
   ramp-up: 10
   iterations: 20
-  scenario:
+  scenario: script_sample
+  
+scenarios:
+  script_sample:
     script: tests/grinder/helloworld.py
     properties-file: tests/grinder/grinder.properties
     properties:
@@ -31,7 +34,10 @@ execution:
   concurrency: 2
   ramp-up: 5
   iterations: 10
-  scenario:
+  scenario: request_sample
+  
+scenarios:
+  request_sample:
     requests:
     - http://demo.blazemeter.com/
     - http://demo.blazemeter.com/api

@@ -20,7 +20,10 @@ modules:
 ```yaml
 ---
 execution:
-- scenario:
+- scenario: simple
+
+scenarios:
+  simple:
     script: tests/jmx/dummy.jmx
 ```
 
@@ -50,8 +53,8 @@ Scenario-level properties are set like this:
 
 ```yaml
 ---
-execution:
-- scenario: 
+scenarios:
+  prop_example: 
     properties:
         my-hostname: www.prod.com
         log_level.jmeter: DEBUG
@@ -79,7 +82,10 @@ execution:
   - host1.mynet.com
   - host2.mynet.com
   - host3.mynet.com
-  scenario:
+  scenario: some_scenario
+  
+scenarios:
+  some_scenario:
     script: my-test.jmx
 ```
 For accurate load calculation don't forget to choose different hostname values for slave hosts. 
@@ -93,8 +99,8 @@ JMeter executor allows you to apply some modifications to the JMX file before ru
 
 ```yaml
 ---
-execution:
-- scenario:
+scenarios:
+  modification_example:
     script: tests/jmx/dummy.jmx
     variables: # add User Defined Variables component to test plan, 
                # overriding other global variables
@@ -415,15 +421,16 @@ should contain lists of requests.
 Here's a simple example:
 
 ```yaml
-scenario:
-  variables:
-    searchEngine: google
-  requests:
-  - if: '"${searchEngine}" == "google"'
-    then:
-      - https://google.com/
-    else:
-      - https://bing.com/
+scenarios:
+  if_example:
+    variables:
+      searchEngine: google
+    requests:
+    - if: '"${searchEngine}" == "google"'
+      then:
+        - https://google.com/
+      else:
+        - https://bing.com/
 ```
 
 Note that Taurus compiles `if` blocks to JMeter's `If Controllers`, so `<condition>` must be in JMeter's format.
@@ -432,35 +439,37 @@ Note that Taurus compiles `if` blocks to JMeter's `If Controllers`, so `<conditi
 Logic blocks can also be nested:
 
 ```yaml
-scenario:
-  requests:
-  - if: <condition1>
-    then:
-    - if: <condition2>
+scenarios:
+  nested_example:
+    requests:
+    - if: <condition1>
       then:
-      - https://google.com/
+      - if: <condition2>
+        then:
+        - https://google.com/
+        else:
+        - https://yahoo.com/
       else:
-      - https://yahoo.com/
-    else:
-    - https://bing.com/
+      - https://bing.com/
 ```
 
 And here's the real-world example of using `if` blocks:
 
 ```yaml
-scenario:
-  requests:
-  # first request is a plain HTTP request that sets `status_code`
-  # and `username` variables
-  - url: https://api.example.com/v1/media/search
-    extract-jsonpath:
-      status_code: $.meta.code
-      username: $.data.[0].user.username
+scenarios:
+  complex:
+    requests:
+    # first request is a plain HTTP request that sets `status_code`
+    # and `username` variables
+    - url: https://api.example.com/v1/media/search
+      extract-jsonpath:
+        status_code: $.meta.code
+        username: $.data.[0].user.username
 
-  # branch on `status_code` value
-  - if: '"${status_code}" == "200"'
-    then:
-      - https://example.com/${username}
+    # branch on `status_code` value
+    - if: '"${status_code}" == "200"'
+      then:
+        - https://example.com/${username}
 ```
 
 ##### Loop Blocks
@@ -468,20 +477,22 @@ scenario:
 `loop` blocks allow repeated execution of requests. Nested requests are to be specified with `do` field.
 
 ```yaml
-scenario:
-  requests:
-  - loop: 10
-    do:
-    - http://blazedemo.com/
+scenarios:
+  loop_example:
+    requests:
+    - loop: 10
+      do:
+      - http://blazedemo.com/
 ```
 
 If you want to loop requests forever, you can specify string `forever` as `loop` value.
 ```yaml
-scenario:
-  requests:
-  - loop: forever
-    do:
-    - http://blazedemo.com/
+scenarios:
+  forever_example:
+    requests:
+    - loop: forever
+      do:
+      - http://blazedemo.com/
 ```
 
 Note that `loop` blocks correspond to JMeter's `Loop Controllers`.
@@ -492,11 +503,12 @@ Note that `loop` blocks correspond to JMeter's `Loop Controllers`.
 requests. `while` blocks are compiled to JMeter's `While Controllers`.
 
 ```yaml
-scenario:
-  requests:
-  - while: ${JMeterThread.last_sample_ok}
-    do:
-    - http://blazedemo.com/
+scenarios:
+  while_example:
+    requests:
+    - while: ${JMeterThread.last_sample_ok}
+      do:
+      - http://blazedemo.com/
 ```
 
 ##### Foreach Blocks
@@ -513,14 +525,15 @@ requests:
 
 Concrete example:
 ```yaml
-scenario:
-  requests:
-  - url: https://api.example.com/v1/media/search
-    extract-jsonpath:
-      usernames: $.data.[:100].user.username  # grab first 100 usernames
-  - foreach: name in usernames
-    do:
-    - https://example.com/user/${name}
+scenarios:
+  complex_foreach:
+    requests:
+    - url: https://api.example.com/v1/media/search
+      extract-jsonpath:
+        usernames: $.data.[:100].user.username  # grab first 100 usernames
+    - foreach: name in usernames
+      do:
+      - https://example.com/user/${name}
 ```
 
 ##### Transaction Blocks
@@ -530,15 +543,16 @@ scenario:
 
 Example:
 ```yaml
-scenario:
-  requests:
-  - transaction: Customer Session
-    do:
-    - http://example.com/shop
-    - http://example.com/shop/items/1
-    - http://example.com/shop/items/2
-    - http://example.com/card
-    - http://example.com/checkout
+scenarios:
+  transaction_example:
+    requests:
+    - transaction: Customer Session
+      do:
+      - http://example.com/shop
+      - http://example.com/shop/items/1
+      - http://example.com/shop/items/2
+      - http://example.com/card
+      - http://example.com/checkout
 ```
 
 ##### Include Scenario blocks
@@ -578,7 +592,10 @@ You can tune JTL file verbosity with option `write-xml-jtl`. Possible values are
 ---
 execution
 - write-xml-jtl: full
-  scenario:
+  scenario: simple_script
+  
+scenarios:
+  simple_script:
     script: my.jmx
 
 ```
@@ -591,12 +608,6 @@ Use `K`, `M` or `G` suffixes to specify memory limit in kilobytes, megabytes or 
 Example:
 ```yaml
 ---
-execution
-- executor: jmeter
-  hold-for: 5m
-  scenario:
-    script: my_test.jmx
-    
 modules:
   jmeter:
     memory-xmx: 4G  # allow JMeter to use up to 4G of memory
