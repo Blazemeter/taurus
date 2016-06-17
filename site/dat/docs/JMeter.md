@@ -122,21 +122,9 @@ Scenario that has `requests` element makes Taurus to generate the script for und
 
 The `requests` element must contain a list of requests, each with its settings and child elements (assertions, extractors). Also there are additional configuration elements for requests-based scenario, described below.
 
-Scenario is the sequence of steps and some settings that will be used by underlying tools (JMeter, Grinder, Gatling) on execution stage. There is two ways to specify scenarios for executions: _inline in execution_ and _referred by alias_.
+Scenario is the sequence of steps and some settings that will be used by underlying tools (JMeter, Grinder, Gatling) on execution stage. 
 
-Inline form is useful for quick start and for single-config executions, full scenario is set in `scenario` item of `execution`:
-
-```yaml
----
-execution:
-- scenario:
-    # scenario is specified inline
-    requests:
-    - http://localhost/1
-    - http://localhost/2
-```
-
-Referred form is useful when you use separate configs to store scenarios and executions, it is recommended for all cases. Scenarios are listed in top-level `scenarios` element and referred from executions by their alias:
+Scenarios are listed in top-level `scenarios` element and referred from executions by their alias:
 
 ```yaml
 ---
@@ -149,7 +137,6 @@ scenarios:
 execution:
 - scenario: get-requests  # alias from above is used 
 ```
-
 
 ### Global Settings
 

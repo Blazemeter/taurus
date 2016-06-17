@@ -65,10 +65,10 @@ execution:
    
 scenarios:
   sample:
-    tsung/http_simple.xml
+    script: tsung/http_simple.xml
 ```
 
-If you specify both `scenario.script` and load profile (`concurrency` and `hold-for`) — Taurus will copy your Tsung
+If you specify both scenario `script` and load profile (`concurrency` and `hold-for`) — Taurus will copy your Tsung
 configuration and overwrite `<load>` section. The rest of your Tsung config will be preserved.
 
 Example:
