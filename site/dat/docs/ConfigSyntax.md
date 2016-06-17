@@ -133,11 +133,11 @@ engine will perfectly deal with it. For example, following JSON file:
   "execution": [
     {
       "executor": "jmeter",
-      "scenario": sample
+      "scenario": "sample"
     }
   ],
   "scenarios": {
-     sample: {
+     "sample": {
        "script": {
          "path": "tests/jmx/dummy.jmx"
        }
