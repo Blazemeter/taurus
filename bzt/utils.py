@@ -52,13 +52,13 @@ from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_
 
 def get_full_path(path, step_up=0):
     res = os.path.abspath(os.path.expanduser(path))
-    for i in range(step_up):
+    for _ in range(step_up):
         res = os.path.dirname(res)
     return res
 
 
 def get_files_recursive(dir_name, exclude_mask=''):
-    for root, dirs, files in os.walk(dir_name):
+    for root, _, files in os.walk(dir_name):
         for _file in files:
             if not fnmatch.fnmatch(_file, exclude_mask):
                 yield os.path.join(root, _file)
@@ -664,7 +664,7 @@ class RequiredTool(object):
                 raise exc
 
     def install_with_mirrors(self, dest, suffix):
-        self.log.info("Will try to install %s into %s", self.tool_name, dest)
+        self.log.info("Will install %s into %s", self.tool_name, dest)
         downloader = request.FancyURLopener()
         tool_dist = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)  # delete=False because of Windows
         mirrors = self.mirror_manager.mirrors()

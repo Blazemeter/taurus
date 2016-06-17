@@ -25,7 +25,7 @@ import time
 import traceback
 import zipfile
 import platform
-from collections import OrderedDict
+from collections import defaultdict, OrderedDict
 
 import yaml
 from urwid import Pile, Text
@@ -51,8 +51,6 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
 
     def __init__(self):
         super(BlazeMeterUploader, self).__init__()
-        self.monitoring = []
-        self.send_monitoring = True
         self.browser_open = 'start'
         self.client = BlazeMeterClient(self.log)
         self.test_id = ""
@@ -60,6 +58,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         self.send_interval = 30
         self.sess_name = None
         self._last_status_check = time.time()
+        self.send_monitoring = True
+        self.monitoring_buffer = None
 
     def prepare(self):
         """
@@ -72,6 +72,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         self.client.timeout = dehumanize_time(self.settings.get("timeout", self.client.timeout))
         self.send_interval = dehumanize_time(self.settings.get("send-interval", self.send_interval))
         self.send_monitoring = self.settings.get("send-monitoring", self.send_monitoring)
+        monitoring_buffer_limit = self.settings.get("monitoring-buffer-limit", 500)
+        self.monitoring_buffer = MonitoringBuffer(monitoring_buffer_limit)
         self.browser_open = self.settings.get("browser-open", self.browser_open)
         token = self.settings.get("token", "")
         if not token:
@@ -177,6 +179,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         try:
             self.__send_data(self.kpi_buffer, False, True)
             self.kpi_buffer = []
+            self.__send_monitoring()
         finally:
             self._postproc_phase2()
 
@@ -275,12 +278,13 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
 
     def monitoring_data(self, data):
         if self.send_monitoring:
-            self.monitoring.extend(data)
+            self.monitoring_buffer.record_data(data)
 
     def __send_monitoring(self):
-        # self.log.info("Mon: %s", self.monitoring)
         src_name = platform.node()
-        data = self.get_monitoring_json()
+        data = self.monitoring_buffer.get_monitoring_json(self.client.active_session_id,
+                                                          self.client.user_id,
+                                                          self.client.test_id)
         try:
             self.client.send_monitoring_data(src_name, data)
         except IOError:
@@ -294,38 +298,92 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
                 self.log.error("Fatal error sending data: %s", traceback.format_exc())
                 self.log.warning("Will skip failed data and continue running")
 
-    def get_monitoring_json(self):
+
+class MonitoringBuffer(object):
+    def __init__(self, size_limit):
+        self.size_limit = size_limit
+        self.data = defaultdict(OrderedDict)
+        # data :: dict(datasource -> dict(interval -> datapoint))
+        # datapoint :: dict(metric -> value)
+
+    def record_data(self, data):
+        for item in data:
+            source = item.pop('source')
+            timestamp = int(item['ts'])
+            item['interval'] = 1
+            buff = self.data[source]
+            if timestamp in buff:
+                buff[timestamp].update(item)
+            else:
+                buff[timestamp] = item
+
+        sources = list(self.data)
+        for source in sources:
+            if len(self.data[source]) > self.size_limit:
+                self._downsample(self.data[source])
+
+    def _downsample(self, buff):
+        size = 1
+        while len(buff) > self.size_limit:
+            self._merge_small_intervals(buff, size)
+            size += 1
+
+    def _merge_small_intervals(self, buff, size):
+        timestamps = list(buff)
+        merged_already = set()
+        for left, right in zip(timestamps, timestamps[1:]):
+            if left in merged_already:
+                continue
+            if buff[left]['interval'] <= size:
+                self._merge_datapoints(buff[left], buff[right])
+                buff.pop(right)
+                merged_already.add(left)
+                merged_already.add(right)
+
+    def _merge_datapoints(self, left, right):
+        sum_size = float(left['interval'] + right['interval'])
+        for metric in set(right):
+            if metric in ('ts', 'interval'):
+                continue
+            if metric in left:
+                left[metric] = (left[metric] * left['interval'] + right[metric] * right['interval']) / sum_size
+            else:
+                left[metric] = right[metric]
+        left['interval'] = sum_size
+
+    def get_monitoring_json(self, session_id, user_id, test_id):
         results = {}
         hosts = []
         kpis = {}
 
-        for item in self.monitoring:
-            if item['source'] == 'local':
-                item['source'] = platform.node()
+        for source, buff in iteritems(self.data):
+            for timestamp, item in iteritems(buff):
+                if source == 'local':
+                    source = platform.node()
 
-            src_name = item['source']
-            if src_name not in results:
-                results[src_name] = {
-                    "name": src_name,
-                    "intervals": OrderedDict()
-                }
+                if source not in results:
+                    results[source] = {
+                        "name": source,
+                        "intervals": OrderedDict()
+                    }
 
-            if src_name not in hosts:
-                hosts.append(src_name)
+                if source not in hosts:
+                    hosts.append(source)
 
-            src = results[src_name]
-            tstmp = int(item['ts']) * 1000
-            tstmp_key = '%d' % tstmp
+                src = results[source]
+                tstmp = timestamp * 1000
+                tstmp_key = '%d' % tstmp
 
-            if tstmp_key not in src['intervals']:
-                src['intervals'][tstmp_key] = {
-                    "start": tstmp,
-                    "duration": 1000,
-                    "indicators": {}
-                }
+                if tstmp_key not in src['intervals']:
+                    src['intervals'][tstmp_key] = {
+                        "start": tstmp,
+                        "duration": item['interval'] * 1000,
+                        "indicators": {}
+                    }
 
-            for field, value in iteritems(item):
-                if field not in ("ts", "source"):
+                for field, value in iteritems(item):
+                    if field in ('ts', 'interval'):
+                        continue
                     if field.lower().startswith('cpu'):
                         field = 'CPU'
                     elif field.lower().startswith('mem'):
@@ -354,10 +412,10 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         kpis = {"Network I/O": "Network I/O", "Memory": "Memory", "CPU": "CPU"}
         return {
             "reportInfo": {
-                "sessionId": self.client.active_session_id,
+                "sessionId": session_id,
                 "timestamp": time.time(),
-                "userId": self.client.user_id,
-                "testId": self.client.test_id,
+                "userId": user_id,
+                "testId": test_id,
                 "type": "MONITOR",
                 "testName": ""
             },
@@ -599,7 +657,7 @@ class BlazeMeterClient(object):
         :param is_check_response:
         :type data_buffer: list[bzt.modules.aggregator.DataPoint]
         """
-        data = []
+        labels = []
 
         for sec in data_buffer:
             self.first_ts = min(self.first_ts, sec[DataPoint.TIMESTAMP])
@@ -612,14 +670,14 @@ class BlazeMeterClient(object):
                     label = lbl
 
                 json_item = None
-                for lbl_item in data:
+                for lbl_item in labels:
                     if lbl_item["name"] == label:
                         json_item = lbl_item
                         break
 
                 if not json_item:
                     json_item = self.__label_skel(label)
-                    data.append(json_item)
+                    labels.append(json_item)
 
                 interval_item = self.__interval_json(item, sec)
                 for r_code, cnt in iteritems(item[KPISet.RESP_CODES]):
@@ -631,7 +689,7 @@ class BlazeMeterClient(object):
                 json_item['n'] = cumul[KPISet.SAMPLE_COUNT]
                 json_item["summary"] = self.__summary_json(cumul)
 
-        data = {"labels": data, "sourceID": id(self)}
+        data = {"labels": labels, "sourceID": id(self)}
         if is_final:
             data['final'] = True
 
@@ -944,7 +1002,7 @@ class MasterProvisioning(Provisioning):
                     raise ValueError(message)
 
         prepared_files = self.__pack_dirs(rfiles)
-        replace_in_config(self.engine.config, rfiles, list(map(os.path.basename, prepared_files)), log=self.log)
+        replace_in_config(self.engine.config, rfiles, [os.path.basename(f) for f in prepared_files], log=self.log)
 
         return prepared_files
 

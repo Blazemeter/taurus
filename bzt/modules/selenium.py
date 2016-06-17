@@ -103,15 +103,9 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             return None
         return self.engine.find_file(script)
 
-    def prepare(self):
-        self.set_virtual_display()
-        self.scenario = self.get_scenario()
-        self._verify_script()
-        self.kpi_file = self.engine.create_artifact("selenium_tests_report", ".csv")
-        self.err_jtl = self.engine.create_artifact("selenium_tests_err", ".xml")
+    def _create_runner(self, working_dir, kpi_file, err_file):
         script_path = self._get_script_path()
         script_type = self.detect_script_type(script_path)
-
         runner_config = BetterDict()
 
         if script_type == ".py":
@@ -123,19 +117,31 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             runner_config['props-file'] = self.engine.create_artifact("customrunner", ".properties")
 
         runner_config["script-type"] = script_type
-        runner_working_dir = self.engine.create_artifact(runner_config.get("working-dir", "classes"), "")
-        runner_config["working-dir"] = runner_working_dir
+        runner_config["working-dir"] = working_dir
         runner_config.get("artifacts-dir", self.engine.artifacts_dir)
-        runner_config.get("report-file", self.kpi_file)
-        runner_config.get("err-file", self.err_jtl)
+        runner_config.get("report-file", kpi_file)
+        runner_config.get("err-file", err_file)
         runner_config.get("stdout", self.engine.create_artifact("junit", ".out"))
         runner_config.get("stderr", self.engine.create_artifact("junit", ".err"))
+        return runner_class(runner_config, self)
 
-        self._cp_resource_files(runner_working_dir)
+    def _create_reader(self, kpi_file, err_file):
+        return JTLReader(kpi_file, self.log, err_file)
 
-        self.runner = runner_class(runner_config, self)
+    def prepare(self):
+        self.set_virtual_display()
+        self.scenario = self.get_scenario()
+        self._verify_script()
+
+        self.runner_working_dir = self.engine.create_artifact("classes", "")
+        self.kpi_file = self.engine.create_artifact("selenium_tests_report", ".csv")
+        self.err_file = self.engine.create_artifact("selenium_tests_err", ".xml")
+        self.runner = self._create_runner(self.runner_working_dir, self.kpi_file, self.err_file)
+
+        self._cp_resource_files(self.runner_working_dir)
+
         self.runner.prepare()
-        self.reader = JTLReader(self.kpi_file, self.log, self.err_jtl)
+        self.reader = self._create_reader(self.kpi_file, self.err_file)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
@@ -195,6 +201,14 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.runner.env = self.additional_env
         self.runner.run_tests()
 
+    def check_virtual_display(self):
+        if self.virtual_display:
+            if not self.virtual_display.is_alive():
+                self.log.info("Virtual display out: %s", self.virtual_display.stdout)
+                self.log.warning("Virtual display err: %s", self.virtual_display.stderr)
+                raise RuntimeError("Virtual display failed: %s" % self.virtual_display.return_code)
+
+
     def check(self):
         """
         check if test completed
@@ -203,13 +217,14 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if self.widget:
             self.widget.update()
 
-        if self.virtual_display:
-            if not self.virtual_display.is_alive():
-                self.log.info("Virtual display out: %s", self.virtual_display.stdout)
-                self.log.warning("Virtual display err: %s", self.virtual_display.stderr)
-                raise RuntimeError("Virtual display failed: %s" % self.virtual_display.return_code)
+        self.check_virtual_display()
 
         return self.runner.is_finished()
+
+    def report_test_duration(self):
+        if self.start_time:
+            self.end_time = time.time()
+            self.log.debug("Selenium tests ran for %s seconds", self.end_time - self.start_time)
 
     def shutdown(self):
         """
@@ -217,10 +232,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :return:
         """
         self.runner.shutdown()
-
-        if self.start_time:
-            self.end_time = time.time()
-            self.log.debug("Selenium tests ran for %s seconds", self.end_time - self.start_time)
+        self.report_test_duration()
 
     def post_process(self):
         self.free_virtual_display()
@@ -370,6 +382,14 @@ class JUnitTester(AbstractTestRunner):
         Compile .java files
         """
         self.log.debug("Compiling .java files started")
+
+        jar_path = os.path.join(self.executor.engine.artifacts_dir,
+                                self.working_dir,
+                                self.settings.get("jar-name", "compiled.jar"))
+        if os.path.exists(jar_path):
+            self.log.debug(".java files are already compiled, skipping")
+            return
+
         java_files = []
 
         for dir_entry in os.walk(self.working_dir):
