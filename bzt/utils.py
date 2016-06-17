@@ -664,7 +664,7 @@ class RequiredTool(object):
                 raise exc
 
     def install_with_mirrors(self, dest, suffix):
-        self.log.info("Will try to install %s into %s", self.tool_name, dest)
+        self.log.info("Will install %s into %s", self.tool_name, dest)
         downloader = request.FancyURLopener()
         tool_dist = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)  # delete=False because of Windows
         mirrors = self.mirror_manager.mirrors()
