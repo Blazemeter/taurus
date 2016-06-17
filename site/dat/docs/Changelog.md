@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.6.3 (next)
+## 1.6.3 <sup>17 jun 2016</sup>
  - fix percentile value handling in passfail criteria
  - add setting up of CWD on server side
  - fix problem with sending included configs into cloud
