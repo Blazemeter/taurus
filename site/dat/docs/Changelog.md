@@ -4,7 +4,7 @@
  - fix percentile value handling in passfail criteria
  - fix problem with sending included configs into cloud
  - fix cumulative fail criteria processing order
- - add extraction of `scenario` dictionary into `scenarios` section 
+ - add extraction of `scenario` dictionary into `scenarios` section, remove inlined scenarios mentions from docs
 
 ## 1.6.2 <sup>8 jun 2016</sup>
  - fix passfail-related regression crash

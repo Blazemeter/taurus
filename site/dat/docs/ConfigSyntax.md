@@ -142,6 +142,7 @@ engine will perfectly deal with it. For example, following JSON file:
          "path": "tests/jmx/dummy.jmx"
        }
      }
+  }
   "provisioning": "local",
   "aggregator": "aggregator",
   "reporting": [
