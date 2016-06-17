@@ -19,7 +19,10 @@ execution:
 - concurrency: 10
   hold-for: 5m
   ramp-up: 2m
-  scenario:
+  scenario: sample
+  
+scenarios:
+  sample:
     headers:
         Connection: close
     requests:
@@ -130,13 +133,16 @@ engine will perfectly deal with it. For example, following JSON file:
   "execution": [
     {
       "executor": "jmeter",
-      "scenario": {
-        "script": {
-          "path": "tests/jmx/dummy.jmx"
-        }
-      }
+      "scenario": sample
     }
   ],
+  "scenarios": {
+     sample: {
+       "script": {
+         "path": "tests/jmx/dummy.jmx"
+       }
+     }
+  }
   "provisioning": "local",
   "aggregator": "aggregator",
   "reporting": [
@@ -161,18 +167,25 @@ is equivalent to YAML:
 ```yaml
 ---
 aggregator: aggregator
+
 execution:
 - executor: jmeter
-  scenario:
+  scenario: jmx_sample
+  
+scenarios:
+  jmx_sample:
     jmx:
       path: tests/jmx/dummy.jmx
+      
 modules:
   jmeter:
     class: bzt.modules.jmeter.JMeterExecutor
     path: build/jmeter/bin/jmeter
     properties:
       jmeter.save.saveservice.autoflush: 'true'
+      
 provisioning: local
+
 reporting:
 - module: status
 ```
@@ -188,9 +201,12 @@ Hint: YAML config files on Linux/MacOS allows a trick of self-executing config. 
 ---
 execution:
 - hold-for: 1m
-  scenario:
-  requests:
-   - http://blazedemo.com/
+  scenario: simple
+  
+scenarios:
+  simple:
+    requests:
+     - http://blazedemo.com/
 ```
 
 Then add execution flag to the file:
@@ -231,7 +247,10 @@ Here's an example of using `hostaliases`:
 ```yaml
 ---
 execution:
-- scenario:
+- scenario: host_sample
+
+scenarios:
+  host_sample:
     requests:
       - url: http://staging-env/
         headers:

@@ -5,6 +5,7 @@
  - add setting up of CWD on server side
  - fix problem with sending included configs into cloud
  - fix cumulative fail criteria processing order
+ - add extraction of `scenario` dictionary into `scenarios` section, remove inlined scenarios mentions from docs
  - limit the amount of monitoring data BlazeMeter uploader accumulates
  - fix passfail criteria with no last datapoint available
 

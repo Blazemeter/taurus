@@ -17,7 +17,10 @@ Then use it like this:
 ---
 execution:
 - executor: pbench
-  scenario:
+  scenario: simple_usage
+
+scenarios:
+  simple_usage:  
     default-address: http://blazedemo.com/
     requests:
     - /

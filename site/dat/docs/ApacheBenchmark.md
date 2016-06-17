@@ -23,7 +23,10 @@ Simplest working example:
 ---
 execution:
 - executor: ab
-  scenario:
+  scenario: simple
+
+scenarios:
+  simple:
     requests:
     - http://blazedemo.com/
 ```
@@ -34,7 +37,10 @@ Example of `hold-for` usage:
 execution:
 - executor: ab
   hold-for: 30s
-  scenario:
+  scenario: simple
+
+scenarios:
+  simple:  
     requests:
     - http://blazedemo.com/
 ```
@@ -48,7 +54,11 @@ execution:
   iterations: 1000
   headers:
     - Content-Type: text/plain
-  scenario:
+  scenario: complex
+  
+
+scenarios:
+  complex:  
     keepalive: false
     requests:
       - url: http://blazedemo.com/

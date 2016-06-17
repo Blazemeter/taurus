@@ -26,12 +26,14 @@ execution:
 - concurrency: 10
   ramp-up: 1m
   hold-for: 1m30s
-
-  scenario:
+  scenario: simple
+  
+scenarios:
+  simple:
     think-time: 0.75
     requests:
-      - http://blazedemo.com/
-      - http://blazedemo.com/vacation.html
+    - http://blazedemo.com/
+    - http://blazedemo.com/vacation.html
 ```
 
 Then run `bzt test.yml`. After the tool finishes, observe resulting summary stats in console log (more reporting options [here](http://gettaurus.org/docs/Reporting.md)). All artifact files from the run will be placed in the directory mentioned in console log. Read more on command-line tool usage [here](http://gettaurus.org/docs/CommandLine.md).

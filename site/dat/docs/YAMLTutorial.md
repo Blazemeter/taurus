@@ -13,7 +13,10 @@ execution:
 - concurrency: 10
   hold-for: 5m
   ramp-up: 2m
-  scenario:
+  scenario: yaml_example
+  
+scenarios:
+  yaml_example:
     retrieve-resources: false
     requests:
       - http://example.com/
@@ -39,14 +42,17 @@ braces). Other than that, JSON and YAML are very similar. Here's the same YAML d
             "concurrency": 10,
             "hold-for": "5m",
             "ramp-up": "2m",
-            "scenario": {
-                "retrieve-resources": false,
+            "scenario": "json_example" 
+        }
+    ],
+    "scenarios": {
+        "json_example": {
+            "retrieve-resources": false,
                 "requests": [
                     "http://example.com/"
                 ]
-            }
-        }
-    ],
+        }            
+    },
     "reporting": [
         {
             "module": "final_stats"

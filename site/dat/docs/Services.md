@@ -106,9 +106,11 @@ services:
   post-process:
   - rm /tmp/test1
   - rm /tmp/test2
+  
 execution:
 - scenario: tg1
   hold-for: 10s
+  
 scenarios:
   tg1:
     requests:

@@ -35,30 +35,25 @@ switch. Like this:
 ```
 bzt stress.json -o modules.jmeter.path=alternate/jmeter/bin/jmeter -o provisioning=cloud
 ```
- 
-You can even start whole test without config files, just from switches. 
-Like this to launch existing JMX with no modifications:
-```
-bzt -o execution.scenario.jmx=my_plan.jmx
-```
-
 Rule for composing the override path is simple: it is built from dictionary keys and array indexes, separated by dot (`.`). If the array index is `-1` then list is appended.
 
 Consider the following Taurus configuration:
 ```yaml
 ---
 execution:
-  concurrency: 100
+- concurrency: 100
   hold-for: 60s
-  scenario:
+  scenario: sample
+
+scenarios:
+  sample:
     timeout: 500ms
     keepalive: true
 ```
 The following override example creates the `data-sources` list (as it isn't specified in config) and sets the first element to `data.csv`:
 ```
-bzt -o execution.scenario.data-sources.0=data.csv config.yaml
+bzt -o scenarios.sample.data-sources.0=data.csv config.yaml
 ```
-
 Note that Taurus parses overridden values as YAML. This means that you can override all types of values: numbers,
 strings, booleans and even lists and objects. Also, YAML is a superset of JSON, so you can use JSON syntax too.
 
@@ -74,9 +69,7 @@ bzt -o scenarios.my-scenario.requests="['http://example.com/', 'http://blazedemo
 # overriding objects
 bzt -o scenarios.my-scenario="{default-address: 'http://blazedemo.com/', requests: ['/', '/reserve.php']}" script.yaml
 ```
-
 And if you need to pass a string with quotations, you have to add an escaped level of quotes to it:
-
 ```bash
 # this will set JMeter property `name` to value `"string with quotes"`.
 bzt -o modules.jmeter.properties.name='"\"string with quotes\""' script.yaml
