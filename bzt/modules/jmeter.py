@@ -96,7 +96,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         is_jmx_generated = False
 
         if Scenario.SCRIPT in scenario and scenario[Scenario.SCRIPT]:
-            self.original_jmx = self.__get_script()
+            self.original_jmx = self.get_script_path()
         elif scenario.get("requests"):
             self.original_jmx = self.__jmx_from_requests()
             is_jmx_generated = True
@@ -643,7 +643,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         files_from_requests = self.res_files_from_scenario(scenario)
 
         if not self.original_jmx:
-            self.original_jmx = self.__get_script()
+            self.original_jmx = self.get_script_path()
 
         if self.original_jmx and os.path.exists(self.original_jmx):
             jmx = JMX(self.original_jmx)
@@ -713,21 +713,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if self.resource_files_collector is None:
             self.resource_files_collector = ResourceFilesCollector(self)
         return self.resource_files_collector.visit(request)
-
-    def __get_script(self):
-        """
-
-        :return: script path
-        """
-        scenario = self.get_scenario()
-        if Scenario.SCRIPT not in scenario:
-            return None
-
-        fname = scenario[Scenario.SCRIPT]
-        if fname is not None:
-            return self.engine.find_file(fname)
-        else:
-            return None
 
     def __apply_modifications(self, jmx):
         """
@@ -1436,7 +1421,7 @@ class JMeterScenarioBuilder(JMX):
         elements = []
         controller = JMX._get_simple_controller(block.scenario_name)
         children = etree.Element("hashTree")
-        scenario = self.executor.get_scenario_by_name(block.scenario_name)
+        scenario = self.executor.get_scenario(name=block.scenario_name)
         for element in self.compile_scenario(scenario):
             children.append(element)
         elements.extend([controller, children])
@@ -1865,7 +1850,7 @@ class ResourceFilesCollector(RequestVisitor):
         if scenario_name in self.path:
             raise ValueError("Mutual recursion detected in include-scenario blocks (scenario %s)" % scenario_name)
         self.path.append(scenario_name)
-        scenario = self.executor.get_scenario_by_name(block.scenario_name)
+        scenario = self.executor.get_scenario_by(name=block.scenario_name)
         return self.executor.res_files_from_scenario(scenario)
 
 

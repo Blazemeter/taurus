@@ -97,14 +97,8 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if self.engine in SeleniumExecutor.SHARED_VIRTUAL_DISPLAY:
             del SeleniumExecutor.SHARED_VIRTUAL_DISPLAY[self.engine]
 
-    def _get_script_path(self):
-        script = self.scenario.get(Scenario.SCRIPT)
-        if not script:
-            return None
-        return self.engine.find_file(script)
-
     def _create_runner(self, working_dir, kpi_file, err_file):
-        script_path = self._get_script_path()
+        script_path = self.get_script_path()
         script_type = self.detect_script_type(script_path)
         runner_config = BetterDict()
 
@@ -154,7 +148,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 raise RuntimeError("Nothing to test, no requests were provided in scenario")
 
     def _cp_resource_files(self, runner_working_dir):
-        script = self._get_script_path()
+        script = self.get_script_path()
 
         if os.path.isdir(script):
             shutil.copytree(script, runner_working_dir)
@@ -249,7 +243,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.scenario = self.get_scenario()
 
         if Scenario.SCRIPT in self.scenario:
-            return [self._get_script_path()]
+            return [self.get_script_path()]
         else:
             return []
 

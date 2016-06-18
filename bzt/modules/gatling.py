@@ -184,7 +184,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         scenario = self.get_scenario()
 
         if Scenario.SCRIPT in scenario:
-            self.script = self.__get_script()
+            self.script = self.get_script_path()
         elif "requests" in scenario:
             self.get_scenario()['simulation'], self.script = self.__generate_script()
         else:
@@ -342,7 +342,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def resource_files(self):
         if not self.script:
-            self.script = self.__get_script()
+            self.script = self.get_script_path()
         resource_files = []
 
         if self.script and os.path.exists(self.script):
@@ -377,27 +377,17 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             found_samples = search_pattern.findall(script_contents)
             for found_sample in found_samples:
                 param_list = found_sample.split(",")
-                param_index = 0 if "separatedValues" in search_pattern.pattern else -1  # first or last param
+
+                # first or last param
+                if "separatedValues" in search_pattern.pattern:
+                    param_index = 0
+                else:
+                    param_index = -1
+
                 file_path = re.compile(r'\".*?\"').findall(param_list[param_index])[0].strip('"')
                 resource_files.append(file_path)
 
         return resource_files
-
-    def __get_script(self):
-        """
-        get script name
-        :return:
-        """
-        scenario = self.get_scenario()
-        if Scenario.SCRIPT not in scenario:
-            return None
-
-        fname = scenario[Scenario.SCRIPT]
-        if fname is not None:
-            return self.engine.find_file(fname)
-        else:
-            return None
-
 
 class DataLogReader(ResultsReader):
     """ Class to read KPI from data log """
