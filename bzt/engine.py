@@ -820,7 +820,7 @@ class ScenarioExecutor(EngineModule):
         if name is None:    # get current scenario
             label = self.execution.get('scenario', ValueError("Scenario is not configured properly"))
 
-            if label not in scenarios:   # need to extract
+            if isinstance(label, dict) or label not in scenarios:   # need to extract
                 self.log.info("Extract %s into scenarios" % label)
                 scenario = label
                 path = self.get_script_path(scenario)
