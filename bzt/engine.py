@@ -800,11 +800,10 @@ class ScenarioExecutor(EngineModule):
     def get_script_path(self, scenario=None):
         if scenario is None:
             scenario = self.get_scenario()
-        script = scenario.get(Scenario.SCRIPT, None)
-        if script is not None:
-            script = self.engine.find_file(script)
-
-        return script
+        if Scenario.SCRIPT in scenario:
+            return self.engine.find_file(scenario.get(Scenario.SCRIPT))
+        else:
+            return None
 
     def get_scenario(self, name=None):
         """
