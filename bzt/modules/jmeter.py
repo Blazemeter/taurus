@@ -1850,7 +1850,7 @@ class ResourceFilesCollector(RequestVisitor):
         if scenario_name in self.path:
             raise ValueError("Mutual recursion detected in include-scenario blocks (scenario %s)" % scenario_name)
         self.path.append(scenario_name)
-        scenario = self.executor.get_scenario_by(name=block.scenario_name)
+        scenario = self.executor.get_scenario(name=block.scenario_name)
         return self.executor.res_files_from_scenario(scenario)
 
 
