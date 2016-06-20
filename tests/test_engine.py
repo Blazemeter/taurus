@@ -83,6 +83,17 @@ class TestScenarioExecutor(BZTestCase):
         self.assertEqual(config['execution'][0]['scenario'], 'example.script')
         self.assertIn('example.script', config['scenarios'])
 
+    def test_scenario_is_script(self):
+        self.engine.config.merge({
+            "execution": [{
+                "scenario": "path/to/example.script"
+                }]})
+        self.executor.execution = self.engine.config.get('execution')[0]
+        self.executor.get_scenario()
+        config = self.engine.config
+        self.assertEqual(config['execution'][0]['scenario'], 'example.script')
+        self.assertIn('example.script', config['scenarios'])
+
     def test_scenario_extraction_request(self):
         self.engine.config.merge({
             "execution": [{
