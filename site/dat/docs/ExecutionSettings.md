@@ -67,18 +67,27 @@ execution:
 
 ## Scenario
 
-Scenario is a sequence of steps that is used to build script for underlying tool (e.g. generate JMX file for JMeter). It is described in special `scenarios` top-level config element. Some examples:
+Scenario is a sequence of steps that is used to build script for underlying tool (e.g. generate JMX file for JMeter). It is described in special `scenarios` top-level config element. There are three examples of scenario syntax:
 
 ```yaml
 ---
 scenarios:
-  get-requests:
+  get-requests:                     # normal form: scenario is dictionary
     requests:
       - http://localhost/1
-      - http://localhost/2
+      - http://localhost/2  
+  only-script: grinder_script.py    # short form: just script
 
 execution:
-- scenario: get-requests
+- concurrency: 10
+  hold-for: 1m
+  scenario: get-requests  
+- executor: gatling
+  concurrency: 5
+  iterations: 10
+  scenario: only-script
+- hold-for: 20s
+  scenario: my_jmx_file.jmx         # shortest form: only script file name  
 ```
 
 ## Startup delay
