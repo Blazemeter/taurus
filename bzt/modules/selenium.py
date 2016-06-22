@@ -150,7 +150,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.script = self.__tests_from_requests()
             self.self_generated_script = True
         else:
-            raise RuntimeError("Nothing to test, no requests were provided in scenario")
+            raise ValueError("Nothing to test, no requests were provided in scenario")
 
     def _cp_resource_files(self, runner_working_dir):
         script = self._get_script_path()
