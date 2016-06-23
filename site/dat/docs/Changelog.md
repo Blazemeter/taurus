@@ -9,6 +9,7 @@
  - add short script syntax (`<scenario>: <script>`)
  - limit the amount of monitoring data BlazeMeter uploader accumulates
  - fix passfail criteria with no last datapoint available
+ - add custom gatling launcher for jar usage ability
 
 ## 1.6.2 <sup>8 jun 2016</sup>
  - fix passfail-related regression crash

@@ -205,6 +205,9 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         with open(modified_launcher, 'w') as modified:
             modified.writelines(modified_lines)
 
+        if not is_windows():
+            os.chmod(modified_launcher, 0o755)
+
         return modified_launcher, jar_string
 
     def prepare(self):
