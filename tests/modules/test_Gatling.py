@@ -42,9 +42,8 @@ class TestGatlingExecutor(BZTestCase):
         with open(modified_launcher) as modified:
             modified_lines = modified.readlines()
 
-        self.assertIn('/fake_grinder.jar', jar_files)
-        self.assertIn('/another_dummy.jar', jar_files)
-        self.assertIn('/dummy.jar', jar_files)
+        self.assertIn('fake_grinder.jar', jar_files)
+        self.assertIn('another_dummy.jar', jar_files)
 
         for line in modified_lines:
             self.assertFalse(line.startswith('set COMPILATION_CLASSPATH=""'))
