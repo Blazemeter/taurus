@@ -51,7 +51,7 @@ class TestEngine(BZTestCase):
 
         log = logging.getLogger('')
         log.warning('test_double_exec: files list')
-        log.warning(list((_file, os.stat(_file).st_size) for _file in files))
+        log.warning(str(list((_file, os.stat(_file).st_size) for _file in files)))
 
         self.obj.post_process()
 
