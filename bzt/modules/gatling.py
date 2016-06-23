@@ -249,11 +249,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         Should start the tool as fast as possible.
         """
 
-        simulation = self.get_scenario().get("simulation", "")
-        if not simulation:
-            # TODO: guess simulation from script file
-            raise ValueError("No simulation set")
-
+        simulation = self.get_scenario().get("simulation")
         datadir = os.path.realpath(self.engine.artifacts_dir)
 
         if os.path.isfile(self.script):
@@ -263,7 +259,9 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         cmdline = [self.launcher]
         cmdline += ["-sf", script_path, "-df", datadir, "-rf ", datadir]
-        cmdline += ["-on", self.dir_prefix, "-m", "-s", simulation]
+        cmdline += ["-on", self.dir_prefix, "-m"]
+        if simulation:
+            cmdline += ["-s", simulation]
 
         self.start_time = time.time()
         out = self.engine.create_artifact("gatling-stdout", ".log")
