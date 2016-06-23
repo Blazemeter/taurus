@@ -19,7 +19,10 @@ class TestGatlingExecutor(BZTestCase):
 
     def test_external_jar_wrong_launcher(self):
         obj = self.getGatling()
-        obj.execution.merge({'files': ['one.jar'], 'scenario': 'tests/gatling/bs'})
+        obj.execution.merge({'files':
+                                 ['tests/grinder/fake_grinder.jar',
+                                  'tests/selenium/jar'],
+                             'scenario': 'tests/gatling/bs'})
         self.assertRaises(ValueError, obj.prepare)
 
     def test_external_jar_right_launcher(self):
@@ -28,7 +31,10 @@ class TestGatlingExecutor(BZTestCase):
         path = os.path.abspath(__dir__() + "/../gatling/model-launcher/gatling" + EXE_SUFFIX)
         obj.settings.merge({"path": path})
 
-        obj.execution.merge({'files': ['one.jar', 'two.jar'], 'scenario': 'tests/gatling/bs'})
+        obj.execution.merge({'files':
+                                 ['tests/grinder/fake_grinder.jar',
+                                  'tests/selenium/jar'],
+                             'scenario': 'tests/gatling/bs'})
         obj.prepare()
 
         jar_files = obj.jar_list
@@ -36,8 +42,10 @@ class TestGatlingExecutor(BZTestCase):
         with open(modified_launcher) as modified:
             modified_lines = modified.readlines()
 
-        self.assertIn('one.jar', jar_files)
-        self.assertIn('two.jar', jar_files)
+        self.assertIn('/fake_grinder.jar', jar_files)
+        self.assertIn('/another_dummy.jar', jar_files)
+        self.assertIn('/dummy.jar', jar_files)
+
         for line in modified_lines:
             self.assertFalse(line.startswith('set COMPILATION_CLASSPATH=""'))
             self.assertTrue(not line.startswith('COMPILATION_CLASSPATH=') or
