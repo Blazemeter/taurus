@@ -1,5 +1,7 @@
 """ unit test """
 import os
+import glob
+import logging
 
 from bzt.engine import ScenarioExecutor
 from bzt.utils import BetterDict, EXE_SUFFIX, is_windows
@@ -44,6 +46,13 @@ class TestEngine(BZTestCase):
             executor._env['TEST_MODE'] = 'files'
 
         self.obj.run()
+
+        files = list(glob.glob(self.obj.artifacts_dir + '/*.jtl'))
+
+        log = logging.getLogger('')
+        log.warning('test_double_exec: files list')
+        log.warning(list((_file, os.stat(_file).st_size) for _file in files))
+
         self.obj.post_process()
 
     def test_unknown_module(self):

@@ -28,9 +28,20 @@ class TestGatlingExecutor(BZTestCase):
         path = os.path.abspath(__dir__() + "/../gatling/model-launcher/gatling" + EXE_SUFFIX)
         obj.settings.merge({"path": path})
 
-        obj.execution.merge({'files': ['one.jar'], 'scenario': 'tests/gatling/bs'})
+        obj.execution.merge({'files': ['one.jar', 'two.jar'], 'scenario': 'tests/gatling/bs'})
         obj.prepare()
-        pass
+
+        jar_files = obj.jar_list
+        modified_launcher = obj.launcher
+        with open(modified_launcher) as modified:
+            modified_lines = modified.readlines()
+
+        self.assertIn('one.jar', jar_files)
+        self.assertIn('two.jar', jar_files)
+        for line in modified_lines:
+            self.assertFalse(line.startswith('set COMPILATION_CLASSPATH=""'))
+            self.assertTrue(not line.startswith('COMPILATION_CLASSPATH=') or
+                            line.endswith('":${COMPILATION_CLASSPATH}"\n'))
 
     def test_install_Gatling(self):
         path = os.path.abspath(__dir__() + "/../../build/tmp/gatling-taurus/bin/gatling" + EXE_SUFFIX)
