@@ -17,6 +17,21 @@ class TestGatlingExecutor(BZTestCase):
         obj.settings.merge({"path": path})
         return obj
 
+    def test_external_jar_wrong_launcher(self):
+        obj = self.getGatling()
+        obj.execution.merge({'files': ['one.jar'], 'scenario': 'tests/gatling/bs'})
+        self.assertRaises(ValueError, obj.prepare)
+
+    def test_external_jar_right_launcher(self):
+        obj = self.getGatling()
+
+        path = os.path.abspath(__dir__() + "/../gatling/model-launcher/gatling" + EXE_SUFFIX)
+        obj.settings.merge({"path": path})
+
+        obj.execution.merge({'files': ['one.jar'], 'scenario': 'tests/gatling/bs'})
+        obj.prepare()
+        pass
+
     def test_install_Gatling(self):
         path = os.path.abspath(__dir__() + "/../../build/tmp/gatling-taurus/bin/gatling" + EXE_SUFFIX)
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)

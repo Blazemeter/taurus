@@ -186,27 +186,38 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         origin_dir = get_full_path(origin_launcher, step_up=2)
         with open(origin_launcher) as origin:
             origin_lines = origin.readlines()
+
+        modified_lines = []
         if is_windows():
-            modified_lines = ['set GATLING_HOME="%s"' % origin_dir]
+            first_line = 'set GATLING_HOME="%s"\n' % origin_dir
             separator = ';'
+
         else:
-            modified_lines = ['GATLING_HOME="%s"' % origin_dir]
+            first_line = 'GATLING_HOME="%s"\n' % origin_dir
             separator = ':'
 
-        jar_string = separator + separator.join(jar_files)
-
+        mod_success = False
         for line in origin_lines:
             if line.startswith('set COMPILATION_CLASSPATH=""'):
-                    continue
+                mod_success = True
+                continue
             if line.startswith('COMPILATION_CLASSPATH='):
-                line += ":${COMPILATION_CLASSPATH}"
+                mod_success = True
+                line = line.rstrip() + '":${COMPILATION_CLASSPATH}"\n'
             modified_lines.append(line)
+
+        if not mod_success:
+            raise ValueError("Can't modify gatling launcher for jar usage, ability isn't supported")
+
+        modified_lines.insert(1, first_line)
 
         with open(modified_launcher, 'w') as modified:
             modified.writelines(modified_lines)
 
         if not is_windows():
             os.chmod(modified_launcher, 0o755)
+
+        jar_string = separator + separator.join(jar_files)
 
         return modified_launcher, jar_string
 
