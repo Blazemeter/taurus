@@ -891,7 +891,7 @@ class ScenarioExecutor(EngineModule):
                    duration=duration, steps=steps)
 
     def get_resource_files(self):
-        files_list = self.execution.get("files", [])
+        files_list = self.execution.get("files", [])[:]
         if isinstance(self, FileLister):
             files_list.extend(self.resource_files())
 

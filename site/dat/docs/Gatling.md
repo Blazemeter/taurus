@@ -118,7 +118,23 @@ modules:
     properties:
       gatling.data.file.bufferSize: 512  # output buffer size, 256 bytes by default      
 ```
+## External Java libraries usage
 
+Thanks to Taurus you can use external Java classes in your scala code. For this add required jar files or contained dir to `files` list:
+```yaml
+---
+execution:
+- executor: gatling
+  concurrency: 10
+  hold-for: 1h
+  scenario: example
+  files: 
+  - first.jar
+  - second.jar
+scenarios: 
+  example:
+    script: my_file.scala
+    
 ## Gatling 2.2.0 Support
 
 Taurus works with Gatling 2.2.0. However, with Gatling 2.2.0 it's not possible to extract such network stats

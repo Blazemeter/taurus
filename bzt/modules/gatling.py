@@ -225,9 +225,16 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self._check_installed()
         scenario = self.get_scenario()
 
+        jar_files = []
         files = self.execution.get('files', [])
-        jar_files = [_file.lower() for _file in files if _file.lower().endswith('.jar')]
-        # TODO: what about jars from directories?
+        for _file in files:
+            if os.path.isfile(_file) and _file.lower().endswith('.jar'):
+                jar_files.append(_file)
+            elif os.path.isdir(_file):
+                for element in os.listdir(_file):
+                    element = os.path.join(_file, element)
+                    if os.path.isfile(element) and element.lower().endswith('.jar'):
+                        jar_files.append(element)
 
         if jar_files:
             self.launcher, self.jar_list = self.__build_launcher(jar_files)
