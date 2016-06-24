@@ -451,6 +451,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         return resource_files
 
+
 class DataLogReader(ResultsReader):
     """ Class to read KPI from data log """
 

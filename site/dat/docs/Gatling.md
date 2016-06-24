@@ -131,6 +131,7 @@ execution:
   files: 
   - first.jar
   - second.jar
+  - folder_with_jars
 scenarios: 
   example:
     script: my_file.scala
