@@ -72,6 +72,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.err_jtl = None
         self.runner_working_dir = None
         self.scenario = None
+        self.script = None
         self.self_generated_script = False
 
     def set_virtual_display(self):
@@ -98,10 +99,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             del SeleniumExecutor.SHARED_VIRTUAL_DISPLAY[self.engine]
 
     def _get_script_path(self):
-        script = self.scenario.get(Scenario.SCRIPT)
-        if not script:
-            return None
-        return self.engine.find_file(script)
+        return self.engine.find_file(self.script)
 
     def _create_runner(self, working_dir, kpi_file, err_file):
         script_path = self._get_script_path()
@@ -146,12 +144,13 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.engine.aggregator.add_underling(self.reader)
 
     def _verify_script(self):
-        if not self.scenario.get(Scenario.SCRIPT):
-            if self.scenario.get("requests"):
-                self.scenario[Scenario.SCRIPT] = self.__tests_from_requests()
-                self.self_generated_script = True
-            else:
-                raise RuntimeError("Nothing to test, no requests were provided in scenario")
+        if Scenario.SCRIPT in self.scenario:
+            self.script = self.scenario.get(Scenario.SCRIPT)
+        elif "requests" in self.scenario:
+            self.script = self.__tests_from_requests()
+            self.self_generated_script = True
+        else:
+            raise ValueError("Nothing to test, no requests were provided in scenario")
 
     def _cp_resource_files(self, runner_working_dir):
         script = self._get_script_path()
@@ -242,16 +241,17 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def get_widget(self):
         if not self.widget:
-            self.widget = SeleniumWidget(self.scenario.get(Scenario.SCRIPT), self.runner.settings.get("stdout"))
+            self.widget = SeleniumWidget(self.script, self.runner.settings.get("stdout"))
         return self.widget
 
     def resource_files(self):
         self.scenario = self.get_scenario()
-
-        if Scenario.SCRIPT in self.scenario:
-            return [self._get_script_path()]
-        else:
-            return []
+        self._verify_script()
+        script_path = self._get_script_path()
+        resources = []
+        if script_path is not None:
+            resources.append(script_path)
+        return resources
 
     def __tests_from_requests(self):
         filename = self.engine.create_artifact("test_requests", ".py")
