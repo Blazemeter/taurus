@@ -2,6 +2,8 @@
 
 ## 1.6.4 (next)
  - rely on Gatling simulation auto-detection mechanism when `simulation` field is not set
+ - fix 'non-existent scenario' error case
+ - fix config cleanup in cloud provisioning
  - fix Selenium crash when used in multi-execution with a shared scenario
 
 ## 1.6.3 <sup>17 jun 2016</sup>

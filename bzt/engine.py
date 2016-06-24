@@ -806,7 +806,7 @@ class ScenarioExecutor(EngineModule):
         if self.__scenario is not None:
             return self.__scenario
 
-        scenarios = self.engine.config.get("scenarios", {})
+        scenarios = self.engine.config.get("scenarios")
         scenario = self.execution.get('scenario', ValueError("Scenario is not configured properly"))
         if isinstance(scenario, dict):
             label = None

@@ -97,6 +97,14 @@ class TestScenarioExecutor(BZTestCase):
         self.assertTrue(isinstance(scenario, string_types))
         self.assertIn(scenario, config['scenarios'])
 
+    def test_scenario_not_found(self):
+        self.engine.config.merge({
+            "execution": [{
+                "scenario": "non-existent"
+            }]})
+        self.executor.execution = self.engine.config.get('execution')[0]
+        self.assertRaises(ValueError, self.executor.get_scenario)
+
     def test_creates_hostaliases_file(self):
         self.engine.config.merge({
             "settings": {
