@@ -378,6 +378,8 @@ class Engine(object):
         :param filename: file basename to find
         :type filename: str
         """
+        if not filename:
+            return None
         filename = os.path.expanduser(filename)
         if os.path.exists(filename):
             return filename
@@ -403,7 +405,7 @@ class Engine(object):
                     return location
 
         self.log.warning("Could not find location at path: %s", filename)
-        return None
+        return filename
 
     def _load_base_configs(self):
         base_configs = []
@@ -819,9 +821,10 @@ class ScenarioExecutor(EngineModule):
         if name is None:    # get current scenario
             label = self.execution.get('scenario', ValueError("Scenario is not configured properly"))
 
-            if isinstance(label, dict) or (                                         # dict or
-                    isinstance(label, string_types) and (                           # path to real file:
-                        label not in scenarios and self.engine.find_file(label))):  # need to extract
+            if isinstance(label, dict) or (                             # dict or path
+                    isinstance(label, string_types) and (               # to real file:
+                        label not in scenarios and                      # need to extract
+                        os.path.exists(self.engine.find_file(label)))):
 
                 self.log.info("Extract %s into scenarios" % label)
                 scenario = label
@@ -1018,8 +1021,8 @@ class Scenario(UserDict, object):
 
             body = None
             bodyfile = req.get("body-file", None)
-            if bodyfile:
-                bodyfile_path = self.engine.find_file(bodyfile)
+            bodyfile_path = self.engine.find_file(bodyfile)
+            if bodyfile_path:
                 with open(bodyfile_path) as fhd:
                     body = fhd.read()
             body = req.get("body", body)
