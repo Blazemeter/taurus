@@ -403,7 +403,7 @@ class Engine(object):
                     return location
 
         self.log.warning("Could not find location at path: %s", filename)
-        return filename
+        return None
 
     def _load_base_configs(self):
         base_configs = []
@@ -814,12 +814,15 @@ class ScenarioExecutor(EngineModule):
         if name is None and self.__scenario is not None:
             return self.__scenario
 
-        scenarios = self.engine.config.get("scenarios", BetterDict())
+        scenarios = self.engine.config.get("scenarios")
 
         if name is None:    # get current scenario
             label = self.execution.get('scenario', ValueError("Scenario is not configured properly"))
 
-            if isinstance(label, dict) or label not in scenarios:   # need to extract
+            if isinstance(label, dict) or (                                         # dict or
+                    isinstance(label, string_types) and (                           # path to real file:
+                        label not in scenarios and self.engine.find_file(label))):  # need to extract
+
                 self.log.info("Extract %s into scenarios" % label)
                 scenario = label
                 path = self.get_script_path(scenario=Scenario(self.engine, scenario))

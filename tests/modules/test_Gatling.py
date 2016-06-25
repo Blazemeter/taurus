@@ -190,7 +190,12 @@ class TestGatlingExecutor(BZTestCase):
         obj = self.getGatling()
         obj.execution.merge({"scenario": {"script": __dir__() + "/../gatling/bs/BasicSimulation.scala"}})
         obj.prepare()
-        self.assertRaises(ValueError, obj.startup)
+        try:
+            obj.startup()
+            while not obj.check():
+                time.sleep(obj.engine.check_interval)
+        finally:
+            obj.shutdown()
 
     def test_full_Gatling(self):
         obj = self.getGatling()
