@@ -643,3 +643,14 @@ class TestSeleniumStuff(SeleniumTestCase):
             }
         })
         obj.prepare()
+
+    def test_do_not_modify_scenario_script(self):
+        obj = SeleniumExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({
+            "scenario": {
+                "requests": ["address"],
+            }
+        })
+        obj.prepare()
+        self.assertNotIn("script", obj.get_scenario())

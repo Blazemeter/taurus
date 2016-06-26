@@ -378,6 +378,8 @@ class Engine(object):
         :param filename: file basename to find
         :type filename: str
         """
+        if not filename:
+            return None
         filename = os.path.expanduser(filename)
         if os.path.exists(filename):
             return filename
@@ -814,12 +816,16 @@ class ScenarioExecutor(EngineModule):
         if name is None and self.__scenario is not None:
             return self.__scenario
 
-        scenarios = self.engine.config.get("scenarios", BetterDict())
+        scenarios = self.engine.config.get("scenarios")
 
         if name is None:    # get current scenario
             label = self.execution.get('scenario', ValueError("Scenario is not configured properly"))
 
-            if isinstance(label, dict) or label not in scenarios:   # need to extract
+            if isinstance(label, dict) or (                             # dict or path
+                    isinstance(label, string_types) and (               # to real file:
+                        label not in scenarios and                      # need to extract
+                        os.path.exists(self.engine.find_file(label)))):
+
                 self.log.info("Extract %s into scenarios" % label)
                 scenario = label
                 path = self.get_script_path(scenario=Scenario(self.engine, scenario))
@@ -1015,8 +1021,8 @@ class Scenario(UserDict, object):
 
             body = None
             bodyfile = req.get("body-file", None)
-            if bodyfile:
-                bodyfile_path = self.engine.find_file(bodyfile)
+            bodyfile_path = self.engine.find_file(bodyfile)
+            if bodyfile_path:
                 with open(bodyfile_path) as fhd:
                     body = fhd.read()
             body = req.get("body", body)

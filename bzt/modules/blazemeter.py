@@ -1144,7 +1144,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         }
         for execution in config[ScenarioExecutor.EXEC]:
             for key, value in iteritems(default_values):
-                if execution[key] == value:
+                if key in execution and execution[key] == value:
                     execution.pop(key)
 
         assert isinstance(config, Configuration)
