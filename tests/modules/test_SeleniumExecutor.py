@@ -605,7 +605,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.execution.merge({
             "scenario": {
                 "default-address": "http://blazedemo.com",
-                "requests": ["/", "/reserve.php"],
+                "requests": ["/", "http://absolute.address.com/somepage","/reserve.php"],
             }
         })
         self.obj.prepare()
@@ -613,4 +613,5 @@ class TestSeleniumStuff(SeleniumTestCase):
             script = fds.read()
         urls = re.findall(r"get\('(.+)'\)", script)
         self.assertEqual("http://blazedemo.com/", urls[0])
-        self.assertEqual("http://blazedemo.com/reserve.php", urls[1])
+        self.assertEqual("http://absolute.address.com/somepage", urls[1])
+        self.assertEqual("http://blazedemo.com/reserve.php", urls[2])
