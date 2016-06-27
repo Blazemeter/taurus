@@ -1,4 +1,5 @@
 import os
+import re
 import shutil
 import time
 
@@ -599,3 +600,18 @@ class TestSeleniumStuff(SeleniumTestCase):
         })
         self.obj.prepare()
         self.assertNotIn("script", self.obj.get_scenario())
+
+    def test_default_address_gen(self):
+        self.obj.execution.merge({
+            "scenario": {
+                "default-address": "http://blazedemo.com",
+                "requests": ["/", "http://absolute.address.com/somepage","/reserve.php"],
+            }
+        })
+        self.obj.prepare()
+        with open(os.path.join(self.obj.runner_working_dir, os.path.basename(self.obj.script))) as fds:
+            script = fds.read()
+        urls = re.findall(r"get\('(.+)'\)", script)
+        self.assertEqual("http://blazedemo.com/", urls[0])
+        self.assertEqual("http://absolute.address.com/somepage", urls[1])
+        self.assertEqual("http://blazedemo.com/reserve.php", urls[2])

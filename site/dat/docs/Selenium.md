@@ -119,8 +119,9 @@ scenarios:
     browser: Firefox  # available browsers are: ["Firefox", "Chrome", "Ie", "Opera"]
     timeout: 10  #  global scenario timeout for connecting, receiving results, 30 seconds by default
     think-time: 1s500ms  # global scenario delay between each request
+    default-address: http://demo.blazemeter.com  # specify a base address, so you can use short urls in requests
     requests:
-    - url: http://demo.blazemeter.com/  # url to open, only get method is supported
+    - url: /  # url to open, only get method is supported
       assert:
       - contains:
         - blazemeter  # list of search patterns

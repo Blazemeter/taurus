@@ -27,7 +27,7 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.jmeter import JTLReader
-from bzt.six import string_types, text_type, etree
+from bzt.six import string_types, text_type, etree, parse
 from bzt.utils import RequiredTool, shell_exec, shutdown_process, JavaVM, TclLibrary, get_files_recursive
 from bzt.utils import dehumanize_time, MirrorsManager, is_windows, BetterDict, get_full_path
 
@@ -716,15 +716,21 @@ class SeleniumScriptBuilder(NoseTest):
         test_method = self.gen_test_method()
         test_class.append(test_method)
         scenario_timeout = self.scenario.get("timeout", 30)
+        default_address = self.scenario.get("default-address", None)
 
         for req in requests:
+            parsed_url = parse.urlparse(req.url)
+            if default_address is not None and not parsed_url.netloc:
+                url = default_address + req.url
+            else:
+                url = req.url
 
-            test_method.append(self.gen_comment("start request: %s" % req.url))
+            test_method.append(self.gen_comment("start request: %s" % url))
 
             if req.timeout is not None:
                 test_method.append(self.gen_impl_wait(req.timeout))
 
-            test_method.append(self.gen_method_statement("self.driver.get('%s')" % req.url))
+            test_method.append(self.gen_method_statement("self.driver.get('%s')" % url))
             think_time = req.think_time if req.think_time else self.scenario.get("think-time", None)
 
             if think_time is not None:
@@ -738,7 +744,7 @@ class SeleniumScriptBuilder(NoseTest):
             if req.timeout is not None:
                 test_method.append(self.gen_impl_wait(scenario_timeout))
 
-            test_method.append(self.gen_comment("end request: %s" % req.url))
+            test_method.append(self.gen_comment("end request: %s" % url))
             test_method.append(self.__gen_new_line())
         test_class.append(self.gen_teardown_method())
 
