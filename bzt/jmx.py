@@ -528,7 +528,7 @@ class JMX(object):
         udv_collection_prop = JMX._collection_prop("Arguments.arguments")
 
         for var_name in sorted(udv_dict.keys()):
-            udv_element_prop = JMX._element_prop(var_name, "Argument")
+            udv_element_prop = JMX._element_prop(str(var_name), "Argument")
             udv_arg_name_prop = JMX._string_prop("Argument.name", var_name)
             udv_arg_value_prop = JMX._string_prop("Argument.value", udv_dict[var_name])
             udv_arg_desc_prop = JMX._string_prop("Argument.desc", "")

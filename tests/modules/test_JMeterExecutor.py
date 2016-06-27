@@ -1654,3 +1654,8 @@ class TestJMX(BZTestCase):
         res = JMX._get_extractor('test_name', 'http-code', 'regexp', 1, 1, 'error')
         self.assertEqual("code", res.find(".//stringProp[@name='RegexExtractor.useHeaders']").text)
         self.assertEqual("parent", res.find(".//stringProp[@name='Sample.scope']").text)
+
+    def test_int_udv(self):
+        res = JMX()
+        data = {"varname2": "1", "varname": 1, 2: 3}
+        res.add_user_def_vars_elements(data)
