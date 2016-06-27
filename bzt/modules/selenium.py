@@ -27,7 +27,7 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.jmeter import JTLReader
-from bzt.six import string_types, text_type, etree
+from bzt.six import string_types, text_type, etree, parse
 from bzt.utils import RequiredTool, shell_exec, shutdown_process, JavaVM, TclLibrary, get_files_recursive
 from bzt.utils import dehumanize_time, MirrorsManager, is_windows, BetterDict, get_full_path
 
@@ -719,8 +719,8 @@ class SeleniumScriptBuilder(NoseTest):
         default_address = self.scenario.get("default-address", None)
 
         for req in requests:
-
-            if default_address is not None:
+            parsed_url = parse.urlparse(req.url)
+            if default_address is not None and not parsed_url.netloc:
                 url = default_address + req.url
             else:
                 url = req.url
