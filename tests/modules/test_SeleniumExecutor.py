@@ -346,7 +346,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/python/"}})
         self.obj.prepare()
         python_scripts = os.listdir(self.obj.runner.working_dir)
-        self.assertEqual(len(python_scripts), 2)
+        self.assertEqual(len(python_scripts), 3)
 
     def test_selenium_startup_shutdown_python_single(self):
         """
@@ -401,7 +401,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         self.obj.shutdown()
         prepared_files = os.listdir(self.obj.runner.working_dir)
         python_files = [fname for fname in prepared_files if fname.endswith(".py")]
-        self.assertEqual(2, len(python_files))
+        self.assertEqual(3, len(python_files))
         self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
 
     def runner_fail_no_test_found(self):
