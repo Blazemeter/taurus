@@ -829,8 +829,8 @@ class ScenarioExecutor(EngineModule):
                 self.log.debug("Extract %s into scenarios" % label)
                 scenario = label
                 if isinstance(scenario, string_types):
-                    label = {Scenario.SCRIPT: scenario}
-                path = self.get_script_path(Scenario(self.engine, label))
+                    scenario = {Scenario.SCRIPT: scenario}
+                path = self.get_script_path(Scenario(self.engine, scenario))
                 if path is not None:
                     label = os.path.basename(path)
                 if path is None or label in scenarios:
