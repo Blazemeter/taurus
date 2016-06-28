@@ -432,6 +432,24 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
 
         self.assertEqual(len(self.obj.resource_files()), 1)
 
+    def test_script_renaming(self):
+        """
+        Check that if script does't start with 'test' -
+        it gets renamed to 'test_xxx'
+        """
+        self.obj.engine.config.merge({
+            ScenarioExecutor.EXEC: {
+                "executor": "selenium",
+                "scenario": {"script": __dir__() + "/../selenium/python/bad_name.py"}
+            }
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
+        self.obj.startup()
+        while not self.obj.check():
+            time.sleep(self.obj.engine.check_interval)
+        self.obj.shutdown()
+
 
 class TestSeleniumStuff(SeleniumTestCase):
     def test_empty_scenario(self):
