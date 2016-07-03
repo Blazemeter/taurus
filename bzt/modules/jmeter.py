@@ -1006,9 +1006,9 @@ class JTLErrorsReader(object):
             return
 
         if not self.fds:
-            if os.path.exists(self.filename):
+            if os.path.exists(self.filename) and os.path.getsize(self.filename):  # getsize check to not stuck on mac
                 self.log.debug("Opening %s", self.filename)
-                self.fds = open(self.filename, 'rb')  # NOTE: maybe we have the same mac problem with seek() needed
+                self.fds = open(self.filename, 'rb')
             else:
                 self.log.debug("File not exists: %s", self.filename)
                 return
