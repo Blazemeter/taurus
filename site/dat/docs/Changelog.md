@@ -15,6 +15,7 @@
  - add extraction of `scenario` dictionary into `scenarios` section, remove inlined scenarios mentions from docs
  - limit the amount of monitoring data BlazeMeter uploader accumulates
  - fix passfail criteria with no last datapoint available
+ - force str for env vars in all shellexecs
 
 ## 1.6.2 <sup>8 jun 2016</sup>
  - fix passfail-related regression crash

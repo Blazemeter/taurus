@@ -276,6 +276,10 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False
     if isinstance(args, string_types) and not shell:
         args = shlex.split(args, posix=not is_windows())
     logging.getLogger(__name__).debug("Executing shell: %s", args)
+
+    if env:
+        env = {k: str(v) for k, v in iteritems(env)}
+
     if is_windows():
         return Popen(args, stdout=stdout, stderr=stderr, stdin=stdin, bufsize=0, cwd=cwd, shell=shell, env=env)
     else:

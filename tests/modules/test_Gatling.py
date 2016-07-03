@@ -73,6 +73,14 @@ class TestGatlingExecutor(BZTestCase):
         artifacts = os.listdir(obj.engine.artifacts_dir)
         self.assertNotIn(script, artifacts)
 
+    def test_env_type(self):
+        obj = self.getGatling()
+        script = "LocalBasicSimulation.scala"
+        obj.execution.merge({"concurrency": 2, "scenario": {"script": __dir__() + "/../gatling/" + script}})
+        obj.prepare()
+        obj.engine.artifacts_dir = unicode(obj.engine.artifacts_dir)
+        obj.startup()
+
     def test_requests_1(self):
         obj = self.getGatling()
         obj.execution.merge({
@@ -275,5 +283,3 @@ class TestDataLogReader(BZTestCase):
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 4)
         self.assertEqual(obj.guessed_gatling_version, "2.2")
-
-
