@@ -1014,12 +1014,14 @@ class JTLErrorsReader(object):
                 return
 
         self.fds.seek(self.offset)
-        try:
-            self.parser.feed(self.fds.read(1024 * 1024))  # "Huge input lookup" error without capping :)
-        except etree.XMLSyntaxError as exc:
-            self.failed_processing = True
-            self.log.debug("Error reading errors.jtl: %s", traceback.format_exc())
-            self.log.warning("Failed to parse errors XML: %s", exc)
+        read = self.fds.read(1024 * 1024)
+        if read.strip():
+            try:
+                self.parser.feed(read)  # "Huge input lookup" error without capping :)
+            except etree.XMLSyntaxError as exc:
+                self.failed_processing = True
+                self.log.debug("Error reading errors.jtl: %s", traceback.format_exc())
+                self.log.warning("Failed to parse errors XML: %s", exc)
 
         self.offset = self.fds.tell()
         for _action, elem in self.parser.read_events():
