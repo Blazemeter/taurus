@@ -47,7 +47,7 @@ from progressbar import ProgressBar, Percentage, Bar, ETA
 from psutil import Popen
 from urwid import BaseScreen
 
-from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, request, file_type
+from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, request, file_type, PY2
 
 
 def get_full_path(path, step_up=0):
@@ -277,7 +277,7 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False
         args = shlex.split(args, posix=not is_windows())
     logging.getLogger(__name__).debug("Executing shell: %s", args)
 
-    if env:
+    if env and not PY2:
         env = {k: str(v) for k, v in iteritems(env)}
 
     if is_windows():
