@@ -140,16 +140,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         """
         if self.disabled:
             if self._last_datapoint:
-                cur = self._last_datapoint[DataPoint.CURRENT]['']
-                line = "Current: %s vu\t%s succ\t%s fail\t%.3f avg rt"
-                stats = (cur[KPISet.CONCURRENCY], cur[KPISet.SUCCESSES], cur[KPISet.FAILURES],
-                         cur[KPISet.AVG_RESP_TIME])
-
-                cumul = self._last_datapoint[DataPoint.CUMULATIVE]['']
-                line += "\t/\t"  # separator
-                line += "Cumulative: %.3f avg rt, %d%% failures"
-                stats += (cumul[KPISet.AVG_RESP_TIME], 100 * (cumul[KPISet.FAILURES] / cumul[KPISet.SAMPLE_COUNT]))
-                self.log.info(line % stats)
+                self.__print_one_line_stats()
                 self._last_datapoint = None
             return False
 
@@ -159,6 +150,17 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         self.__start_screen()
         self.__update_screen()
         return False
+
+    def __print_one_line_stats(self):
+        cur = self._last_datapoint[DataPoint.CURRENT]['']
+        line = "Current: %s vu\t%s succ\t%s fail\t%.3f avg rt"
+        stats = (cur[KPISet.CONCURRENCY], cur[KPISet.SUCCESSES], cur[KPISet.FAILURES],
+                 cur[KPISet.AVG_RESP_TIME])
+        cumul = self._last_datapoint[DataPoint.CUMULATIVE]['']
+        line += "\t/\t"  # separator
+        line += "Cumulative: %.3f avg rt, %d%% failures"
+        stats += (cumul[KPISet.AVG_RESP_TIME], 100 * (cumul[KPISet.FAILURES] / cumul[KPISet.SAMPLE_COUNT]))
+        self.log.info(line % stats)
 
     def __start_screen(self):
         """
