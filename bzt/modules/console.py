@@ -1101,12 +1101,12 @@ class TaurusLogo(Pile):
     def __init__(self):
         self.idx = 0
         b_txt = BigText("Taurus", Thin6x6Font())
-        b_txt = Padding(b_txt, CENTER, width=CLIP)
-        b_txt = Filler(b_txt)
+        pad = Padding(b_txt, CENTER, width=CLIP)
+        filled = Filler(pad)
 
         self.byb = Filler(Text('', align=CENTER))
         parts = [
-            (5, b_txt),
+            (5, filled),
             (1, self.byb),
         ]
         super(TaurusLogo, self).__init__(parts)
@@ -1147,6 +1147,7 @@ class PrioritizedWidget(object):
 class SidebarWidget(Pile, PrioritizedWidget):
     """
     Progress sidebar widget
+    :type progress: urwid.Widget
     """
     def __init__(self, executor, label=None, additional_widgets=()):
         PrioritizedWidget.__init__(self, priority=10)
