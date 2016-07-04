@@ -11,6 +11,7 @@
  - automatically rename Selenium Python script if it has undiscoverable name
  - fix null global headers failure
  - add `upload-files` option to JMeter requests for multipart/form-data uploads
+ - add `on-eof` data-source option to JMeter
 
 ## 1.6.3 <sup>17 jun 2016</sup>
  - fix percentile value handling in passfail criteria
