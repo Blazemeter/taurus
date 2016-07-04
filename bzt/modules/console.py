@@ -63,7 +63,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
     # NOTE: maybe should use separate thread for screen re-painting
     def __init__(self):
         super(ConsoleStatusReporter, self).__init__()
-        self.__report_wait_logged = False
+        self._last_datapoint = None
         self.__streams_redirected = False
         self.logger_handlers = []
         self.orig_streams = {}
@@ -112,6 +112,9 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         Prepare console screen objects, logger, ask for widgets
         """
         super(ConsoleStatusReporter, self).prepare()
+        if isinstance(self.engine.aggregator, ResultsProvider):
+            self.engine.aggregator.add_listener(self)
+
         self.disabled = self.settings.get("disable", False)
         if self.disabled:
             return
@@ -130,26 +133,34 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
 
         self.console = TaurusConsole(widgets)
         self.screen.register_palette(self.console.palette)
-        if isinstance(self.engine.aggregator, ResultsProvider):
-            self.engine.aggregator.add_listener(self)
 
     def check(self):
         """
         Repaint the screen
         """
         if self.disabled:
-            self.log.info("Test is running...")
+            if self._last_datapoint:
+                self.__print_one_line_stats()
+                self._last_datapoint = None
             return False
 
         if not self.data_started:
-            if not self.__report_wait_logged:
-                self.log.info("Waiting to get first results...")
-                self.__report_wait_logged = True
             return False
 
         self.__start_screen()
         self.__update_screen()
         return False
+
+    def __print_one_line_stats(self):
+        cur = self._last_datapoint[DataPoint.CURRENT]['']
+        line = "Current: %s vu\t%s succ\t%s fail\t%.3f avg rt"
+        stats = (cur[KPISet.CONCURRENCY], cur[KPISet.SUCCESSES], cur[KPISet.FAILURES],
+                 cur[KPISet.AVG_RESP_TIME])
+        cumul = self._last_datapoint[DataPoint.CUMULATIVE]['']
+        line += "\t/\t"  # separator
+        line += "Cumulative: %.3f avg rt, %d%% failures"
+        stats += (cumul[KPISet.AVG_RESP_TIME], 100 * (cumul[KPISet.FAILURES] / cumul[KPISet.SAMPLE_COUNT]))
+        self.log.info(line % stats)
 
     def __start_screen(self):
         """
@@ -188,6 +199,9 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         :type data: bzt.modules.aggregator.DataPoint
         :return:
         """
+        self._last_datapoint = data
+        self.data_started = True
+
         if self.disabled:
             return
 
@@ -196,7 +210,9 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         except BaseException:
             self.log.warn("Failed to add datapoint to display: %s", traceback.format_exc())
 
-        self.data_started = True
+    def startup(self):
+        super(ConsoleStatusReporter, self).startup()
+        self.log.info("Waiting for results...")
 
     def shutdown(self):
         """
@@ -367,7 +383,7 @@ class TaurusConsole(Columns):
 
         ordered_widgets = sorted(sidebar_widgets, key=lambda x: x.priority)
         right_widgets = ListBox(SimpleListWalker([Pile([x, Divider()]) for x in ordered_widgets]))
-        widget_pile = Pile([(7, self.logo), right_widgets,])
+        widget_pile = Pile([(7, self.logo), right_widgets, ])
 
         log_block = Pile([(1, Filler(Divider('─'))), self.log_widget])
 
@@ -1101,12 +1117,12 @@ class TaurusLogo(Pile):
     def __init__(self):
         self.idx = 0
         b_txt = BigText("Taurus", Thin6x6Font())
-        b_txt = Padding(b_txt, CENTER, width=CLIP)
-        b_txt = Filler(b_txt)
+        pad = Padding(b_txt, CENTER, width=CLIP)
+        filled = Filler(pad)
 
         self.byb = Filler(Text('', align=CENTER))
         parts = [
-            (5, b_txt),
+            (5, filled),
             (1, self.byb),
         ]
         super(TaurusLogo, self).__init__(parts)
@@ -1147,7 +1163,9 @@ class PrioritizedWidget(object):
 class SidebarWidget(Pile, PrioritizedWidget):
     """
     Progress sidebar widget
+    :type progress: urwid.Widget
     """
+
     def __init__(self, executor, label=None, additional_widgets=()):
         PrioritizedWidget.__init__(self, priority=10)
         self.executor = executor

@@ -236,7 +236,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                     if os.path.isfile(element) and element.lower().endswith('.jar'):
                         jar_files.append(element)
 
-        if jar_files:
+        if is_windows() or jar_files:
             self.launcher, self.jar_list = self.__build_launcher(jar_files)
         else:
             self.launcher = self.settings["path"]

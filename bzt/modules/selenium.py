@@ -165,7 +165,16 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             if self.self_generated_script:
                 shutil.move(script, runner_working_dir)
             else:
-                shutil.copy2(script, runner_working_dir)
+                script_type = self.detect_script_type(script)
+                script_name = os.path.basename(script)
+                if script_type == ".py" and not script_name.lower().startswith('test'):
+                    target_name = 'test_' + script_name
+                    msg = "Script '%s' won't be discovered by nosetests, renaming script to %s"
+                    self.log.warning(msg, script_name, target_name)
+                else:
+                    target_name = script_name
+                target_path = os.path.join(runner_working_dir, target_name)
+                shutil.copy2(script, target_path)
 
     @staticmethod
     def detect_script_type(script_path):
