@@ -275,8 +275,8 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         else:
             script_path = self.script
 
-        cmdline = [self.launcher]
-        cmdline += ["-sf", script_path, "-df", datadir, "-rf ", datadir]
+        cmdline = [self.settings["path"]]
+        cmdline += ["-sf", script_path, "-df", datadir, "-rf", datadir]
         cmdline += ["-on", self.dir_prefix, "-m"]
         if simulation:
             cmdline += ["-s", simulation]
@@ -309,7 +309,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         java_opts = ''.join([" -D%s=%s" % (key, params_for_scala[key]) for key in params_for_scala])
         java_opts += ' ' + env.get('JAVA_OPTS', '') + ' ' + self.settings.get('java-opts', '')
-        env.merge({"JAVA_OPTS": java_opts})
+        env.merge({"JAVA_OPTS": java_opts, "NO_PAUSE": "1"})
 
         if self.jar_list:
             java_classpath = env.get('JAVA_CLASSPATH', '')
