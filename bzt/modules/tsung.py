@@ -53,7 +53,7 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.tool_path = self._check_installed()
 
         if Scenario.SCRIPT in scenario and scenario[Scenario.SCRIPT]:
-            script = self._get_script()
+            script = self.get_script_path()
             if not script or not os.path.exists(script):
                 raise ValueError("Tsung script '%s' doesn't exist" % script)
             self.tsung_config = self.__modify_user_tsung_config(script)
@@ -76,17 +76,6 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         self.__out = open(self.engine.create_artifact("tsung", ".out"), 'w')
         self.__err = open(self.engine.create_artifact("tsung", ".err"), 'w')
-
-    def _get_script(self):
-        scenario = self.get_scenario()
-        if Scenario.SCRIPT not in scenario:
-            return None
-
-        fname = scenario[Scenario.SCRIPT]
-        if fname is not None:
-            return self.engine.find_file(fname)
-        else:
-            return None
 
     def __modify_user_tsung_config(self, user_config_path):
         modified_config_path = self.engine.create_artifact("tsung-config", ".xml")
@@ -159,7 +148,7 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         resource_files = []
         scenario = self.get_scenario()
         if Scenario.SCRIPT in scenario and scenario[Scenario.SCRIPT]:
-            script = self._get_script()
+            script = self.get_script_path()
             if not script or not os.path.exists(script):
                 raise ValueError("Tsung script '%s' doesn't exist" % script)
             resource_files.append(script)

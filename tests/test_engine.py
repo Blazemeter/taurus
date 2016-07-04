@@ -74,14 +74,25 @@ class TestScenarioExecutor(BZTestCase):
         self.engine.config.merge({
             "execution": [{
                 "scenario": {
-                    "script": "path/to/example.script",
+                    "script": "tests/selenium/python/test_blazemeter_fail.py",
                     "param": "value"
                 }}]})
         self.executor.execution = self.engine.config.get('execution')[0]
         self.executor.get_scenario()
         config = self.engine.config
-        self.assertEqual(config['execution'][0]['scenario'], 'example.script')
-        self.assertIn('example.script', config['scenarios'])
+        self.assertEqual(config['execution'][0]['scenario'], 'test_blazemeter_fail.py')
+        self.assertIn('test_blazemeter_fail.py', config['scenarios'])
+
+    def test_scenario_is_script(self):
+        self.engine.config.merge({
+            "execution": [{
+                "scenario": "tests/selenium/python/test_blazemeter_fail.py"
+                }]})
+        self.executor.execution = self.engine.config.get('execution')[0]
+        self.executor.get_scenario()
+        config = self.engine.config
+        self.assertEqual(config['execution'][0]['scenario'], 'test_blazemeter_fail.py')
+        self.assertIn('test_blazemeter_fail.py', config['scenarios'])
 
     def test_scenario_extraction_request(self):
         self.engine.config.merge({

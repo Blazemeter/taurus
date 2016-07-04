@@ -13,6 +13,7 @@
  - fix problem with sending included configs into cloud
  - fix cumulative fail criteria processing order
  - add extraction of `scenario` dictionary into `scenarios` section, remove inlined scenarios mentions from docs
+ - add short script syntax (`<scenario>: <script>`)
  - limit the amount of monitoring data BlazeMeter uploader accumulates
  - fix passfail criteria with no last datapoint available
  - force str for env vars in all shellexecs

@@ -96,7 +96,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         is_jmx_generated = False
 
         if Scenario.SCRIPT in scenario and scenario[Scenario.SCRIPT]:
-            self.original_jmx = self.__get_script()
+            self.original_jmx = self.get_script_path()
         elif scenario.get("requests"):
             self.original_jmx = self.__jmx_from_requests()
             is_jmx_generated = True
@@ -643,7 +643,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         files_from_requests = self.res_files_from_scenario(scenario)
 
         if not self.original_jmx:
-            self.original_jmx = self.__get_script()
+            self.original_jmx = self.get_script_path()
 
         if self.original_jmx and os.path.exists(self.original_jmx):
             jmx = JMX(self.original_jmx)
@@ -713,21 +713,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if self.resource_files_collector is None:
             self.resource_files_collector = ResourceFilesCollector(self)
         return self.resource_files_collector.visit(request)
-
-    def __get_script(self):
-        """
-
-        :return: script path
-        """
-        scenario = self.get_scenario()
-        if Scenario.SCRIPT not in scenario:
-            return None
-
-        fname = scenario[Scenario.SCRIPT]
-        if fname is not None:
-            return self.engine.find_file(fname)
-        else:
-            return None
 
     def __apply_modifications(self, jmx):
         """
@@ -989,6 +974,7 @@ class JTLErrorsReader(object):
         self.filename = filename
         self.fds = None
         self.buffer = BetterDict()
+        self.failed_processing = False
 
     def __del__(self):
         if self.fds:
@@ -1000,21 +986,27 @@ class JTLErrorsReader(object):
 
         :return:
         """
+
+        if self.failed_processing:
+            return
+
         if not self.fds:
-            if os.path.exists(self.filename):
+            if os.path.exists(self.filename) and os.path.getsize(self.filename):  # getsize check to not stuck on mac
                 self.log.debug("Opening %s", self.filename)
-                self.fds = open(self.filename, 'rb')  # NOTE: maybe we have the same mac problem with seek() needed
+                self.fds = open(self.filename, 'rb')
             else:
                 self.log.debug("File not exists: %s", self.filename)
                 return
 
         self.fds.seek(self.offset)
-        try:
-            self.parser.feed(self.fds.read(1024 * 1024))  # "Huge input lookup" error without capping :)
-        except etree.XMLSyntaxError as exc:
-            # FIXME: once failed, it cannot restore. we should stop errors processing then
-            self.log.debug("Error reading errors.jtl: %s", traceback.format_exc())
-            self.log.warning("Failed to parse errors XML: %s", exc)
+        read = self.fds.read(1024 * 1024)
+        if read.strip():
+            try:
+                self.parser.feed(read)  # "Huge input lookup" error without capping :)
+            except etree.XMLSyntaxError as exc:
+                self.failed_processing = True
+                self.log.debug("Error reading errors.jtl: %s", traceback.format_exc())
+                self.log.warning("Failed to parse errors XML: %s", exc)
 
         self.offset = self.fds.tell()
         for _action, elem in self.parser.read_events():
@@ -1436,7 +1428,7 @@ class JMeterScenarioBuilder(JMX):
         elements = []
         controller = JMX._get_simple_controller(block.scenario_name)
         children = etree.Element("hashTree")
-        scenario = self.executor.get_scenario_by_name(block.scenario_name)
+        scenario = self.executor.get_scenario(name=block.scenario_name)
         for element in self.compile_scenario(scenario):
             children.append(element)
         elements.extend([controller, children])
@@ -1514,6 +1506,7 @@ class JMeter(RequiredTool):
     """
     JMeter tool
     """
+
     def __init__(self, tool_path, parent_logger, jmeter_version, jmeter_download_link, plugin_link):
         super(JMeter, self).__init__("JMeter", tool_path)
         self.log = parent_logger.getChild(self.__class__.__name__)
@@ -1865,7 +1858,7 @@ class ResourceFilesCollector(RequestVisitor):
         if scenario_name in self.path:
             raise ValueError("Mutual recursion detected in include-scenario blocks (scenario %s)" % scenario_name)
         self.path.append(scenario_name)
-        scenario = self.executor.get_scenario_by_name(block.scenario_name)
+        scenario = self.executor.get_scenario(name=block.scenario_name)
         return self.executor.res_files_from_scenario(scenario)
 
 
