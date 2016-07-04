@@ -460,7 +460,8 @@ class JMXasDict(JMX):
                     if stop_prop is not None:
                         data_source_dict["stop-on-eof"] = stop_prop
                     else:
-                        self.log.warning("'Stop Thread on EOF' property was not set in %s, using default False", data_source.tag)
+                        self.log.warning("'Stop Thread on EOF' property was not set in %s, using default False",
+                                         data_source.tag)
                         data_source_dict["stop-on-eof"] = False
 
                     data_sources.append(data_source_dict)
