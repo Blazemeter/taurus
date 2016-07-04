@@ -4,6 +4,7 @@ import shutil
 import time
 
 from bzt.modules.gatling import GatlingExecutor, DataLogReader
+from bzt.six import u
 from bzt.utils import EXE_SUFFIX
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul
@@ -105,6 +106,14 @@ class TestGatlingExecutor(BZTestCase):
         obj.prepare()
         artifacts = os.listdir(obj.engine.artifacts_dir)
         self.assertNotIn(script, artifacts)
+
+    def test_env_type(self):
+        obj = self.getGatling()
+        script = "LocalBasicSimulation.scala"
+        obj.execution.merge({"concurrency": 2, "scenario": {"script": __dir__() + "/../gatling/" + script}})
+        obj.prepare()
+        obj.engine.artifacts_dir = u(obj.engine.artifacts_dir)
+        obj.startup()
 
     def test_requests_1(self):
         obj = self.getGatling()
@@ -308,5 +317,3 @@ class TestDataLogReader(BZTestCase):
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 4)
         self.assertEqual(obj.guessed_gatling_version, "2.2")
-
-

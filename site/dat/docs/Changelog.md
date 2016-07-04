@@ -5,6 +5,8 @@
  - fix 'non-existent scenario' error case
  - fix config cleanup in cloud provisioning
  - fix Selenium crash when used in multi-execution with a shared scenario
+ - add `default-address` scenario option to Selenium
+ - add custom gatling launcher for jar usage ability
 
 ## 1.6.3 <sup>17 jun 2016</sup>
  - fix percentile value handling in passfail criteria
@@ -15,7 +17,7 @@
  - add short script syntax (`<scenario>: <script>`)
  - limit the amount of monitoring data BlazeMeter uploader accumulates
  - fix passfail criteria with no last datapoint available
- - add custom gatling launcher for jar usage ability
+ - force str for env vars in all shellexecs
 
 ## 1.6.2 <sup>8 jun 2016</sup>
  - fix passfail-related regression crash
