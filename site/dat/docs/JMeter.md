@@ -166,6 +166,7 @@ scenarios:
       delimiter: ';'  # CSV delimiter, auto-detected by default
       quoted: false  # allow quoted data
       loop: true  # loop over in case of end-of-file reached
+      stop-on-eof: false  # stop test execution if end-of-file is reached (requires `loop` to be `false`)
 ```
 
 Note that `timeout` also sets duration assertion that will mark response failed if response time was more than timeout.

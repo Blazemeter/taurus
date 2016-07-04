@@ -320,10 +320,12 @@ class TestJMeterExecutor(BZTestCase):
                         'path': csv_file,
                         'loop': False,
                         'quoted': True,
+                        'stop-on-eof': False,
                     }, {
                         'path': csv_file_uni,
                         'loop': False,
                         'quoted': True,
+                        'stop-on-eof': True,
                     }],
                 }
             }
@@ -1716,6 +1718,34 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(files[0].find('stringProp[@name="File.mimetype"]').text, "audio/mpeg")
         self.assertEqual(files[1].find('stringProp[@name="File.mimetype"]').text, "application/pdf")
         self.assertEqual(files[2].find('stringProp[@name="File.mimetype"]').text, "application/octet-stream")
+
+    def test_data_sources_jmx_gen(self):
+        self.obj.engine.config.merge({
+            'execution': {
+                'scenario': {
+                    "data-sources": [{
+                        "path": __dir__() + "/../data/test1.csv",
+                        "loop": True,
+                        "stop-on-eof": False,
+                    }],
+                    "requests": [
+                        "http://example.com/${test1}",
+                    ],
+                }
+            },
+            "provisioning": "local",
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
+        dataset = xml_tree.find('.//hashTree[@type="tg"]/CSVDataSet')
+        self.assertIsNotNone(dataset)
+        filename = dataset.find('stringProp[@name="filename"]')
+        self.assertEqual(filename.text, get_full_path(__dir__() + "/../data/test1.csv"))
+        loop = dataset.find('boolProp[@name="recycle"]')
+        self.assertEqual(loop.text, "true")
+        stop = dataset.find('boolProp[@name="stopThread"]')
+        self.assertEqual(stop.text, "false")
 
 
 class TestJMX(BZTestCase):
