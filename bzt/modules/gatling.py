@@ -275,7 +275,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         else:
             script_path = self.script
 
-        cmdline = [self.settings["path"]]
+        cmdline = [self.launcher]
         cmdline += ["-sf", script_path, "-df", datadir, "-rf", datadir]
         cmdline += ["-on", self.dir_prefix, "-m"]
         if simulation:
