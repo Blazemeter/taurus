@@ -4,6 +4,7 @@ import shutil
 import time
 
 from bzt.modules.gatling import GatlingExecutor, DataLogReader
+from bzt.six import u
 from bzt.utils import EXE_SUFFIX
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul
@@ -78,7 +79,7 @@ class TestGatlingExecutor(BZTestCase):
         script = "LocalBasicSimulation.scala"
         obj.execution.merge({"concurrency": 2, "scenario": {"script": __dir__() + "/../gatling/" + script}})
         obj.prepare()
-        obj.engine.artifacts_dir = unicode(obj.engine.artifacts_dir)
+        obj.engine.artifacts_dir = u(obj.engine.artifacts_dir)
         obj.startup()
 
     def test_requests_1(self):
