@@ -974,6 +974,7 @@ class JTLErrorsReader(object):
         self.filename = filename
         self.fds = None
         self.buffer = BetterDict()
+        self.failed_processing = False
 
     def __del__(self):
         if self.fds:
@@ -985,21 +986,27 @@ class JTLErrorsReader(object):
 
         :return:
         """
+
+        if self.failed_processing:
+            return
+
         if not self.fds:
-            if os.path.exists(self.filename):
+            if os.path.exists(self.filename) and os.path.getsize(self.filename):  # getsize check to not stuck on mac
                 self.log.debug("Opening %s", self.filename)
-                self.fds = open(self.filename, 'rb')  # NOTE: maybe we have the same mac problem with seek() needed
+                self.fds = open(self.filename, 'rb')
             else:
                 self.log.debug("File not exists: %s", self.filename)
                 return
 
         self.fds.seek(self.offset)
-        try:
-            self.parser.feed(self.fds.read(1024 * 1024))  # "Huge input lookup" error without capping :)
-        except etree.XMLSyntaxError as exc:
-            # FIXME: once failed, it cannot restore. we should stop errors processing then
-            self.log.debug("Error reading errors.jtl: %s", traceback.format_exc())
-            self.log.warning("Failed to parse errors XML: %s", exc)
+        read = self.fds.read(1024 * 1024)
+        if read.strip():
+            try:
+                self.parser.feed(read)  # "Huge input lookup" error without capping :)
+            except etree.XMLSyntaxError as exc:
+                self.failed_processing = True
+                self.log.debug("Error reading errors.jtl: %s", traceback.format_exc())
+                self.log.warning("Failed to parse errors XML: %s", exc)
 
         self.offset = self.fds.tell()
         for _action, elem in self.parser.read_events():
@@ -1499,6 +1506,7 @@ class JMeter(RequiredTool):
     """
     JMeter tool
     """
+
     def __init__(self, tool_path, parent_logger, jmeter_version, jmeter_download_link, plugin_link):
         super(JMeter, self).__init__("JMeter", tool_path)
         self.log = parent_logger.getChild(self.__class__.__name__)
