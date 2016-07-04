@@ -2,10 +2,10 @@ import sys
 import time
 
 from bzt.engine import Provisioning, ScenarioExecutor
+from bzt.modules.aggregator import DataPoint, KPISet
+from bzt.modules.console import ConsoleStatusReporter, ConsoleScreen, GUIScreen
 from bzt.modules.jmeter import JMeterExecutor
 from bzt.modules.provisioning import Local
-from bzt.modules.console import ConsoleStatusReporter, ConsoleScreen, GUIScreen
-from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.utils import is_windows
 from tests import BZTestCase, r, rc
 from tests.mocks import EngineEmul
@@ -29,6 +29,7 @@ class TestConsoleStatusReporter(BZTestCase):
         overall[KPISet.PERCENTILES]['99'] = r(50)
         overall[KPISet.PERCENTILES]['100'] = r(100)
         overall[KPISet.RESP_CODES][rc()] = 1
+        point[DataPoint.CUMULATIVE][''] = overall
         return point
 
     def test_1(self):
@@ -87,6 +88,32 @@ class TestConsoleStatusReporter(BZTestCase):
             obj.aggregated_second(point)
             obj.check()
             self.assertTrue(obj.screen.started)
+
+        obj.check()
+        obj.shutdown()
+        obj.post_process()
+
+    def test_disabled(self):
+        obj = ConsoleStatusReporter()
+        obj.engine = EngineEmul()
+        obj.engine.provisioning = Local()
+        obj.engine.config[Provisioning.PROV] = ''
+        jmeter = JMeterExecutor()
+        jmeter.engine = obj.engine
+        jmeter.start_time = time.time()
+        jmeter.execution[ScenarioExecutor.HOLD_FOR] = 10
+        obj.engine.provisioning.executors = [jmeter]
+        obj.settings["disable"] = True
+        obj.settings['dummy_cols'] = 160
+        obj.settings['dummy_rows'] = 40
+        obj.prepare()
+        obj.startup()
+
+        for n in range(0, 10):
+            point = self.__get_datapoint(0)
+            obj.aggregated_second(point)
+            obj.check()
+            self.assertFalse(obj.screen.started)
 
         obj.check()
         obj.shutdown()
