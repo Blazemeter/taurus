@@ -346,7 +346,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/python/"}})
         self.obj.prepare()
         python_scripts = os.listdir(self.obj.runner.working_dir)
-        self.assertEqual(len(python_scripts), 2)
+        self.assertEqual(len(python_scripts), 3)
 
     def test_selenium_startup_shutdown_python_single(self):
         """
@@ -401,7 +401,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         self.obj.shutdown()
         prepared_files = os.listdir(self.obj.runner.working_dir)
         python_files = [fname for fname in prepared_files if fname.endswith(".py")]
-        self.assertEqual(2, len(python_files))
+        self.assertEqual(3, len(python_files))
         self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
 
     def runner_fail_no_test_found(self):
@@ -431,6 +431,25 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         self.obj.settings.merge(self.obj.engine.config.get("modules").get("selenium"))
 
         self.assertEqual(len(self.obj.resource_files()), 1)
+
+    def test_script_renaming(self):
+        """
+        Check that if script does't start with 'test' -
+        it gets renamed to 'test_xxx'
+        """
+        self.obj.engine.config.merge({
+            ScenarioExecutor.EXEC: {
+                "executor": "selenium",
+                "scenario": {"script": __dir__() + "/../selenium/python/bad_name.py"}
+            }
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
+        self.obj.startup()
+        while not self.obj.check():
+            time.sleep(self.obj.engine.check_interval)
+        self.obj.shutdown()
+        self.assertTrue(os.path.exists(os.path.join(self.obj.runner_working_dir, "test_bad_name.py")))
 
 
 class TestSeleniumStuff(SeleniumTestCase):
