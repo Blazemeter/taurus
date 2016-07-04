@@ -189,9 +189,8 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         modified_lines = []
         if is_windows():
-            first_line = 'set GATLING_HOME="%s"\n' % origin_dir
+            first_line = 'set "GATLING_HOME=%s"\n' % origin_dir
             separator = ';'
-
         else:
             first_line = 'GATLING_HOME="%s"\n' % origin_dir
             separator = ':'
