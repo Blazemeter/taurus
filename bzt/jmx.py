@@ -879,7 +879,7 @@ class JMX(object):
         return element
 
     @staticmethod
-    def _get_csv_config(path, delimiter, is_quoted, is_recycle, stop_on_eof):
+    def _get_csv_config(path, delimiter, is_quoted, on_eof):
         """
 
         :type path: str
@@ -890,11 +890,20 @@ class JMX(object):
         """
         element = etree.Element("CSVDataSet", guiclass="TestBeanGUI",
                                 testclass="CSVDataSet", testname="CSV %s" % os.path.basename(path))
+        if on_eof == "loop":
+            recycle = True
+            stop = False
+        elif on_eof == "stop":
+            recycle = False
+            stop = True
+        else:
+            recycle = False
+            stop = False
         element.append(JMX._string_prop("filename", path))
         element.append(JMX._string_prop("delimiter", delimiter))
         element.append(JMX._bool_prop("quotedData", is_quoted))
-        element.append(JMX._bool_prop("recycle", is_recycle))
-        element.append(JMX._bool_prop("stopThread", stop_on_eof))
+        element.append(JMX._bool_prop("recycle", recycle))
+        element.append(JMX._bool_prop("stopThread", stop))
 
         return element
 

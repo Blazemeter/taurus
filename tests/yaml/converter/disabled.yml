@@ -16,8 +16,7 @@ scenarios:
     - delimiter: ','
       path: not_found.csv
       quoted: false
-      loop: true
-      stop-on-eof: false
+      on-eof: "loop"
     headers:
       global_header: global_value
       tg1: v1
@@ -98,8 +97,7 @@ scenarios:
     - delimiter: ','
       path: not_found.csv
       quoted: false
-      loop: true
-      stop-on-eof: false
+      on-eof: "loop"
     headers:
       global_header: global_value
     requests:

@@ -165,8 +165,11 @@ scenarios:
     - path: path/to/another.csv  # this is full form, path option is required
       delimiter: ';'  # CSV delimiter, auto-detected by default
       quoted: false  # allow quoted data
-      loop: true  # loop over in case of end-of-file reached
-      stop-on-eof: false  # stop test execution if end-of-file is reached (requires `loop` to be `false`)
+      on-eof: loop  # what to do if end-of-file is reached.
+                    # Possible values are:
+                    # - 'loop' - start CSV file from the beginning,
+                    # - 'stop' - stop execution after data source is exhausted
+                    # - 'continue' - continue the test with default values
 ```
 
 Note that `timeout` also sets duration assertion that will mark response failed if response time was more than timeout.

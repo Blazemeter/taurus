@@ -1725,8 +1725,7 @@ class TestJMeterExecutor(BZTestCase):
                 'scenario': {
                     "data-sources": [{
                         "path": __dir__() + "/../data/test1.csv",
-                        "loop": True,
-                        "stop-on-eof": False,
+                        "on-eof": "loop"
                     }],
                     "requests": [
                         "http://example.com/${test1}",
