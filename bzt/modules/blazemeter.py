@@ -80,7 +80,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
             self.log.warning("No BlazeMeter API key provided, will upload anonymously")
         self.client.token = token
 
-        self.client.active_session_id = self.parameters.get("session-id", None)
+        self.client.session_id = self.parameters.get("session-id", None)
         self.client.test_id = self.parameters.get("test-id", None)
         self.client.user_id = self.parameters.get("user-id", None)
         self.client.data_signature = self.parameters.get("signature", None)
@@ -115,7 +115,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         super(BlazeMeterUploader, self).startup()
         self.client.log = self.log.getChild(self.__class__.__name__)
 
-        if not self.client.active_session_id:
+        if not self.client.session_id:
             try:
                 url = self.client.start_online(self.test_id, self.sess_name)
                 self.log.info("Started data feeding: %s", url)
@@ -171,7 +171,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         """
         Upload results if possible
         """
-        if not self.client.active_session_id:
+        if not self.client.session_id:
             self.log.debug("No feeding session obtained, nothing to finalize")
             return
 
@@ -208,12 +208,12 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
             self.client.end_online()
             if self.engine.stopping_reason:
                 note = "%s: %s" % (self.engine.stopping_reason.__class__.__name__, str(self.engine.stopping_reason))
-                sess = self.client.get_session(self.client.active_session_id)
+                sess = self.client.get_session()
                 if 'note' in sess:
                     note += "\n" + sess['note']
 
                 if note.strip():
-                    self.client.update_session(self.client.active_session_id, {"note": note.strip()})
+                    self.client.update_session(self.client.session_id, {"note": note.strip()})
         except KeyboardInterrupt:
             raise
         except BaseException as exc:
@@ -239,7 +239,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         :param data: list[bzt.modules.aggregator.DataPoint]
         :return:
         """
-        if not self.client.active_session_id:
+        if not self.client.session_id:
             return
 
         try:
@@ -282,7 +282,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
 
     def __send_monitoring(self):
         src_name = platform.node()
-        data = self.monitoring_buffer.get_monitoring_json(self.client.active_session_id,
+        data = self.monitoring_buffer.get_monitoring_json(self.client.session_id,
                                                           self.client.user_id,
                                                           self.client.test_id)
         try:
@@ -462,7 +462,8 @@ class BlazeMeterClient(object):
         self.address = "https://a.blazemeter.com"
         self.data_address = "https://data.blazemeter.com"
         self.results_url = None
-        self.active_session_id = None  # FIXME: it's not good using it for both session id and master ID
+        self.session_id = None
+        self.master_id = None
         self.data_signature = None
         self.first_ts = sys.maxsize
         self.last_ts = 0
@@ -520,14 +521,14 @@ class BlazeMeterClient(object):
 
         resp = self._request(url, data)
 
-        self.active_session_id = str(resp['result']['session']['id'])
+        self.session_id = str(resp['result']['session']['id'])
         self.data_signature = str(resp['result']['signature'])
         self.test_id = test_id
         self.user_id = str(resp['result']['session']['userId'])
         if self.token:
-            self.results_url = self.address + '/app/#reports/%s' % self.active_session_id
+            self.results_url = self.address + '/app/#reports/%s' % self.session_id
             if session_name:
-                url = self.address + "/api/latest/sessions/%s" % self.active_session_id
+                url = self.address + "/api/latest/sessions/%s" % self.session_id
                 self._request(url, to_json({"name": str(session_name)}),
                               headers={"Content-Type": "application/json"}, method='PATCH')
         else:
@@ -550,31 +551,31 @@ class BlazeMeterClient(object):
         resp = self._request(url, data)
 
         self.log.debug("Response: %s", resp['result'])
-        self.active_session_id = str(resp['result']['id'])
-        self.results_url = self.address + '/app/#reports/%s' % self.active_session_id
+        self.master_id = str(resp['result']['id'])
+        self.results_url = self.address + '/app/#reports/%s' % self.master_id
         return self.results_url
 
     def end_online(self):
         """
         Finish online test
         """
-        if not self.active_session_id:
+        if not self.session_id:
             self.log.debug("Feeding not started, so not stopping")
         else:
             self.log.info("Ending data feeding...")
             if self.token:
                 url = self.address + "/api/latest/sessions/%s/terminate"
-                self._request(url % self.active_session_id)
+                self._request(url % self.session_id)
             else:
                 url = self.address + "/api/latest/sessions/%s/terminateExternal"
-                data = {"signature": self.data_signature, "testId": self.test_id, "sessionId": self.active_session_id}
-                self._request(url % self.active_session_id, json.dumps(data))
+                data = {"signature": self.data_signature, "testId": self.test_id, "sessionId": self.session_id}
+                self._request(url % self.session_id, json.dumps(data))
 
-    def end_master(self, master_id):
-        if master_id:
+    def end_master(self):
+        if self.master_id:
             self.log.info("Ending cloud test...")
             url = self.address + "/api/latest/masters/%s/terminate"
-            self._request(url % master_id)
+            self._request(url % self.master_id)
 
     def project_by_name(self, proj_name):
         """
@@ -694,7 +695,7 @@ class BlazeMeterClient(object):
             data['final'] = True
 
         url = self.data_address + "/submit.php?session_id=%s&signature=%s&test_id=%s&user_id=%s"
-        url = url % (self.active_session_id, self.data_signature, self.test_id, self.user_id)
+        url = url % (self.session_id, self.data_signature, self.test_id, self.user_id)
         url += "&pq=0&target=%s&update=1" % self.kpi_target
         hdr = {"Content-Type": " application/json"}
         response = self._request(url, to_json(data), headers=hdr)
@@ -813,7 +814,7 @@ class BlazeMeterClient(object):
             body.add_file_as_string('file', filename, contents)
 
         url = self.address + "/api/latest/image/%s/files?signature=%s"
-        url = url % (self.active_session_id, self.data_signature)
+        url = url % (self.session_id, self.data_signature)
         hdr = {"Content-Type": str(body.get_content_type())}
         response = self._request(url, body.form_as_bytes(), headers=hdr)
         if not response['result']:
@@ -832,7 +833,7 @@ class BlazeMeterClient(object):
         if not recent[DataPoint.CUMULATIVE][''][KPISet.ERRORS]:
             return
 
-        errors = self.__errors_skel(recent[DataPoint.TIMESTAMP], self.active_session_id, self.test_id, self.user_id)
+        errors = self.__errors_skel(recent[DataPoint.TIMESTAMP], self.session_id, self.test_id, self.user_id)
         for label, label_data in iteritems(recent[DataPoint.CUMULATIVE]):
             if not label_data[KPISet.ERRORS]:
                 continue
@@ -893,21 +894,24 @@ class BlazeMeterClient(object):
             "embeddedResources": [],
         }
 
-    def get_session(self, session_id):
-        sess = self._request(self.address + '/api/latest/sessions/%s' % session_id)
+    def get_session(self):
+        sess = self._request(self.address + '/api/latest/sessions/%s' % self.session_id)
         return sess['result']
 
-    def get_master(self, master_id):
-        sess = self._request(self.address + '/api/latest/masters/%s' % master_id)
+    def get_master(self):
+        sess = self._request(self.address + '/api/latest/masters/%s' % self.master_id)
         return sess['result']
 
-    def get_master_status(self, master_id):
-        sess = self._request(self.address + '/api/latest/masters/%s/status' % master_id)
+    def get_master_status(self):
+        sess = self._request(self.address + '/api/latest/masters/%s/status' % self.master_id)
         return sess['result']
 
-    def get_master_sessions(self, master_id):
-        sess = self._request(self.address + '/api/latest/masters/%s/sessions' % master_id)
-        return sess['result']['sessions'] if 'sessions' in sess['result'] else sess['result']
+    def get_master_sessions(self):
+        sess = self._request(self.address + '/api/latest/masters/%s/sessions' % self.master_id)
+        if 'sessions' in sess['result']:
+            return sess['result']['sessions']
+        else:
+            return sess['result']
 
     def get_projects(self):
         data = self._request(self.address + '/api/latest/projects')
@@ -944,9 +948,9 @@ class BlazeMeterClient(object):
         res = self._request(url)
         return res['result']
 
-    def update_session(self, active_session_id, data):
+    def update_session(self, session_id, data):
         hdr = {"Content-Type": "application/json"}
-        data = self._request(self.address + '/api/latest/sessions/%s' % active_session_id, to_json(data),
+        data = self._request(self.address + '/api/latest/sessions/%s' % session_id, to_json(data),
                              headers=hdr, method="PUT")
         return data['result']
 
@@ -1151,7 +1155,8 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         config.dump(self.engine.create_artifact("cloud", ""))
         return config
 
-    def __get_bza_test_config(self):
+    @staticmethod
+    def __get_bza_test_config():
         bza_plugin = {
             "type": "taurus",
             "plugins": {
@@ -1186,12 +1191,12 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
     def check(self):
         # TODO: throttle down requests
         try:
-            master = self.client.get_master_status(self.client.active_session_id)
+            master = self.client.get_master_status()
         except URLError:
             self.log.warning("Failed to get test status, will retry in %s seconds...", self.client.timeout)
             self.log.debug("Full exception: %s", traceback.format_exc())
             time.sleep(self.client.timeout)
-            master = self.client.get_master_status(self.client.active_session_id)
+            master = self.client.get_master_status()
             self.log.info("Succeeded with retry")
 
         if "status" in master and master['status'] != self.__last_master_status:
@@ -1199,22 +1204,22 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             self.log.info("Cloud test status: %s", self.__last_master_status)
 
         if self.results_reader is not None and 'progress' in master and master['progress'] >= 100:
-            self.results_reader.master_id = self.client.active_session_id
+            self.results_reader.master_id = self.client.master_id
 
         if 'progress' in master and master['progress'] > 100:
             self.log.info("Test was stopped in the cloud: %s", master['status'])
-            status = self.client.get_master(self.client.active_session_id)
+            status = self.client.get_master()
             if 'note' in status and status['note']:
                 self.log.warning("Cloud test has probably failed with message: %s", status['note'])
 
-            self.client.active_session_id = None
+            self.client.master_id = None
             return True
 
         self.widget.update()
         return super(CloudProvisioning, self).check()
 
     def post_process(self):
-        self.client.end_master(self.client.active_session_id)
+        self.client.end_master()
         if self.client.results_url:
             if self.browser_open in ('end', 'both'):
                 open_browser(self.client.results_url)
@@ -1340,7 +1345,7 @@ class CloudProvWidget(Pile, PrioritizedWidget):
 
     def update(self):
         if not self._sessions:
-            self._sessions = self.prov.client.get_master_sessions(self.prov.client.active_session_id)
+            self._sessions = self.prov.client.get_master_sessions()
             if not self._sessions:
                 return
 
@@ -1356,7 +1361,7 @@ class CloudProvWidget(Pile, PrioritizedWidget):
             except KeyError:
                 self._sessions = None
 
-        txt = "%s #%s\n" % (self.prov.test_name, self.prov.client.active_session_id)
+        txt = "%s #%s\n" % (self.prov.test_name, self.prov.client.master_id)
         for executor, scenarios in iteritems(mapping):
             txt += " %s" % executor
             for scenario, locations in iteritems(scenarios):

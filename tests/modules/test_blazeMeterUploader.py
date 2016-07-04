@@ -94,7 +94,7 @@ class TestBlazeMeterClientUnicode(BZTestCase):
 
         blazemeter_client = BlazeMeterClient(logging.getLogger(''))
         blazemeter_client.address = "http://127.0.0.1:58000"
-        blazemeter_client.active_session_id = "ffff"
+        blazemeter_client.session_id = "ffff"
         self.token = "faketoken"
         normal_urlopen = bzt.modules.blazemeter.urlopen
         bzt.modules.blazemeter.urlopen = dummy_urlopen
@@ -104,7 +104,7 @@ class TestBlazeMeterClientUnicode(BZTestCase):
     def test_binary_unicode_error(self):
         client = BlazeMeterClient(logging.getLogger(''))
         client.address = u"http://127.0.0.1:58000"
-        client.active_session_id = "ffff"
+        client.session_id = "ffff"
         self.token = "faketoken"
         with open(__dir__() + "/../data/jmeter-dist-2.13.zip", 'rb') as fds:
             zip_content = fds.read()
