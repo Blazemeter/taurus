@@ -128,7 +128,6 @@ class TestConverter(BZTestCase):
         yml = yaml.load(open(yml).read())
         datasets = yml.get("scenarios").get("Thread Group one").get("data-sources")
         local_csv = [dataset for dataset in datasets if dataset.get('path') == 'local.csv'][0]
-        obj.log.debug(local_csv)
         self.assertEqual(local_csv['loop'], False)
         self.assertEqual(local_csv['stop-on-eof'], True)
         self.assertEqual(local_csv['delimiter'], ',')
