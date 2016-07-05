@@ -320,12 +320,10 @@ class TestJMeterExecutor(BZTestCase):
                         'path': csv_file,
                         'loop': False,
                         'quoted': True,
-                        'stop-on-eof': False,
                     }, {
                         'path': csv_file_uni,
                         'loop': False,
                         'quoted': True,
-                        'stop-on-eof': True,
                     }],
                 }
             }
