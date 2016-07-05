@@ -1719,7 +1719,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(files[1].find('stringProp[@name="File.mimetype"]').text, "application/pdf")
         self.assertEqual(files[2].find('stringProp[@name="File.mimetype"]').text, "application/octet-stream")
 
-    def test_data_sources_jmx_gen(self):
+    def test_data_sources_jmx_gen_loop(self):
         self.obj.engine.config.merge({
             'execution': {
                 'scenario': {
@@ -1743,6 +1743,60 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(filename.text, get_full_path(__dir__() + "/../data/test1.csv"))
         loop = dataset.find('boolProp[@name="recycle"]')
         self.assertEqual(loop.text, "true")
+        stop = dataset.find('boolProp[@name="stopThread"]')
+        self.assertEqual(stop.text, "false")
+
+    def test_data_sources_jmx_gen_stop(self):
+        self.obj.engine.config.merge({
+            'execution': {
+                'scenario': {
+                    "data-sources": [{
+                        "path": __dir__() + "/../data/test1.csv",
+                        "on-eof": "stop"
+                    }],
+                    "requests": [
+                        "http://example.com/${test1}",
+                    ],
+                }
+            },
+            "provisioning": "local",
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
+        dataset = xml_tree.find('.//hashTree[@type="tg"]/CSVDataSet')
+        self.assertIsNotNone(dataset)
+        filename = dataset.find('stringProp[@name="filename"]')
+        self.assertEqual(filename.text, get_full_path(__dir__() + "/../data/test1.csv"))
+        loop = dataset.find('boolProp[@name="recycle"]')
+        self.assertEqual(loop.text, "false")
+        stop = dataset.find('boolProp[@name="stopThread"]')
+        self.assertEqual(stop.text, "true")
+
+    def test_data_sources_jmx_gen_continue(self):
+        self.obj.engine.config.merge({
+            'execution': {
+                'scenario': {
+                    "data-sources": [{
+                        "path": __dir__() + "/../data/test1.csv",
+                        "on-eof": "continue"
+                    }],
+                    "requests": [
+                        "http://example.com/${test1}",
+                    ],
+                }
+            },
+            "provisioning": "local",
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
+        dataset = xml_tree.find('.//hashTree[@type="tg"]/CSVDataSet')
+        self.assertIsNotNone(dataset)
+        filename = dataset.find('stringProp[@name="filename"]')
+        self.assertEqual(filename.text, get_full_path(__dir__() + "/../data/test1.csv"))
+        loop = dataset.find('boolProp[@name="recycle"]')
+        self.assertEqual(loop.text, "false")
         stop = dataset.find('boolProp[@name="stopThread"]')
         self.assertEqual(stop.text, "false")
 
