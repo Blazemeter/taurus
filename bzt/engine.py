@@ -800,6 +800,9 @@ class ScenarioExecutor(EngineModule):
         self._label = None
 
     def get_script_path(self, scenario=None):
+        """
+        :type scenario: Scenario
+        """
         if scenario is None:
             scenario = self.get_scenario()
         if Scenario.SCRIPT in scenario:
@@ -821,11 +824,8 @@ class ScenarioExecutor(EngineModule):
         if name is None:  # get current scenario
             label = self.execution.get('scenario', ValueError("Scenario is not configured properly"))
 
-            if isinstance(label, dict) or (  # dict or path
-                        isinstance(label, string_types) and (  # to real file:
-                                    label not in scenarios and  # need to extract
-                                os.path.exists(self.engine.find_file(label)))):
-
+            existing_not_label = label not in scenarios and os.path.exists(self.engine.find_file(label))
+            if isinstance(label, dict) or (isinstance(label, string_types) and existing_not_label):
                 self.log.debug("Extract %s into scenarios" % label)
                 scenario = label
                 if isinstance(scenario, string_types):
