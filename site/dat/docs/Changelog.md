@@ -9,6 +9,7 @@
  - add custom gatling launcher for jar usage ability
  - fix gatling path fail on Windows
  - automatically rename Selenium Python script if it has undiscoverable name
+ - fix null global headers failure
 
 ## 1.6.3 <sup>17 jun 2016</sup>
  - fix percentile value handling in passfail criteria

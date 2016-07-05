@@ -1629,9 +1629,7 @@ class TestJMeterExecutor(BZTestCase):
                 'scenario': {
                     "headers": None,
                     "requests": [
-                        {
-                            "http://blazedemo.com/",
-                        }
+                        "http://blazedemo.com/",
                     ],
                 }
             },

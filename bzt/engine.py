@@ -818,13 +818,13 @@ class ScenarioExecutor(EngineModule):
 
         scenarios = self.engine.config.get("scenarios")
 
-        if name is None:    # get current scenario
+        if name is None:  # get current scenario
             label = self.execution.get('scenario', ValueError("Scenario is not configured properly"))
 
-            if isinstance(label, dict) or (                             # dict or path
-                    isinstance(label, string_types) and (               # to real file:
-                        label not in scenarios and                      # need to extract
-                        os.path.exists(self.engine.find_file(label)))):
+            if isinstance(label, dict) or (  # dict or path
+                        isinstance(label, string_types) and (  # to real file:
+                                    label not in scenarios and  # need to extract
+                                os.path.exists(self.engine.find_file(label)))):
 
                 self.log.debug("Extract %s into scenarios" % label)
                 scenario = label
@@ -841,7 +841,7 @@ class ScenarioExecutor(EngineModule):
                 self.execution['scenario'] = label
 
             self._label = label
-        else:              # get scenario by name
+        else:  # get scenario by name
             label = name
 
         err = ValueError("Scenario not found in scenarios: %s" % label)
@@ -1001,7 +1001,7 @@ class Scenario(UserDict, object):
         """
         scenario = self
         headers = scenario.get("headers")
-        return headers
+        return headers if headers else {}
 
     def get_requests(self):
         """
