@@ -464,7 +464,7 @@ class JMXasDict(JMX):
 
                     if loop_prop:
                         data_source_dict["loop"] = True
-                    else:
+                    elif stop_prop:
                         data_source_dict["loop"] = False
 
                     data_sources.append(data_source_dict)
