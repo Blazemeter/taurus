@@ -830,7 +830,8 @@ class ScenarioExecutor(EngineModule):
                 self.log.debug("Extract %s into scenarios" % label)
                 scenario = label
                 if isinstance(scenario, string_types):
-                    scenario = {Scenario.SCRIPT: scenario}
+                    scenario = BetterDict()
+                    scenario.merge({Scenario.SCRIPT: scenario})
                 path = self.get_script_path(Scenario(self.engine, scenario))
                 if path is not None:
                     label = os.path.basename(path)
