@@ -7,6 +7,8 @@
  - fix Selenium crash when used in multi-execution with a shared scenario
  - add `default-address` scenario option to Selenium
  - fix master_id choosing for cloud reporting 
+ - add custom gatling launcher for jar usage ability
+ - fix gatling path fail on Windows
  - automatically rename Selenium Python script if it has undiscoverable name
 
 ## 1.6.3 <sup>17 jun 2016</sup>

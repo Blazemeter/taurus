@@ -24,7 +24,7 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.utils import BetterDict, TclLibrary, MirrorsManager, EXE_SUFFIX, dehumanize_time, get_full_path
-from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, shutdown_process, ensure_is_dict
+from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, shutdown_process, ensure_is_dict, is_windows
 
 
 class GatlingScriptBuilder(object):
@@ -177,11 +177,67 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.widget = None
         self.simulation_started = False
         self.dir_prefix = ''
+        self.launcher = None
+        self.jar_list = ''
+
+    def __build_launcher(self):
+        modified_launcher = self.engine.create_artifact('gatling-launcher', EXE_SUFFIX)
+        origin_launcher = get_full_path(self.settings['path'])
+        origin_dir = get_full_path(origin_launcher, step_up=2)
+        with open(origin_launcher) as origin:
+            origin_lines = origin.readlines()
+
+        modified_lines = []
+
+        mod_success = False
+        for line in origin_lines:
+            if is_windows() and line.startswith('set COMPILATION_CLASSPATH=""'):
+                mod_success = True
+                continue
+            if not is_windows() and line.startswith('COMPILATION_CLASSPATH='):
+                mod_success = True
+                line = line.rstrip() + '":${COMPILATION_CLASSPATH}"\n'
+            modified_lines.append(line)
+
+        if not mod_success:
+            raise ValueError("Can't modify gatling launcher for jar usage, ability isn't supported")
+
+        if is_windows():
+            first_line = 'set "GATLING_HOME=%s"\n' % origin_dir
+        else:
+            first_line = 'GATLING_HOME="%s"\n' % origin_dir
+        modified_lines.insert(1, first_line)
+
+        with open(modified_launcher, 'w') as modified:
+            modified.writelines(modified_lines)
+
+        if not is_windows():
+            os.chmod(modified_launcher, 0o755)
+
+        return modified_launcher
 
     def prepare(self):
         self._check_installed()
-
         scenario = self.get_scenario()
+
+        jar_files = []
+        files = self.execution.get('files', [])
+        for _file in files:
+            if os.path.isfile(_file) and _file.lower().endswith('.jar'):
+                jar_files.append(_file)
+            elif os.path.isdir(_file):
+                for element in os.listdir(_file):
+                    element = os.path.join(_file, element)
+                    if os.path.isfile(element) and element.lower().endswith('.jar'):
+                        jar_files.append(element)
+        if jar_files:
+            separator = os.pathsep
+            self.jar_list = separator + separator.join(jar_files)
+
+        if is_windows() or jar_files:
+            self.launcher = self.__build_launcher()
+        else:
+            self.launcher = self.settings["path"]
 
         if Scenario.SCRIPT in scenario:
             self.script = self.get_script_path()
@@ -217,8 +273,8 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         else:
             script_path = self.script
 
-        cmdline = [self.settings["path"]]
-        cmdline += ["-sf", script_path, "-df", datadir, "-rf ", datadir]
+        cmdline = [self.launcher]
+        cmdline += ["-sf", script_path, "-df", datadir, "-rf", datadir]
         cmdline += ["-on", self.dir_prefix, "-m"]
         if simulation:
             cmdline += ["-s", simulation]
@@ -251,8 +307,14 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         java_opts = ''.join([" -D%s=%s" % (key, params_for_scala[key]) for key in params_for_scala])
         java_opts += ' ' + env.get('JAVA_OPTS', '') + ' ' + self.settings.get('java-opts', '')
+        env.merge({"JAVA_OPTS": java_opts, "NO_PAUSE": "TRUE"})
 
-        env.merge({"JAVA_OPTS": java_opts})
+        if self.jar_list:
+            java_classpath = env.get('JAVA_CLASSPATH', '')
+            compilation_classpath = env.get('COMPILATION_CLASSPATH', '')
+            java_classpath += self.jar_list
+            compilation_classpath += self.jar_list
+            env.merge({'JAVA_CLASSPATH': java_classpath, 'COMPILATION_CLASSPATH': compilation_classpath})
 
         self.process = self.execute(cmdline, stdout=self.stdout_file, stderr=self.stderr_file, env=env)
 
@@ -386,6 +448,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 resource_files.append(file_path)
 
         return resource_files
+
 
 class DataLogReader(ResultsReader):
     """ Class to read KPI from data log """
