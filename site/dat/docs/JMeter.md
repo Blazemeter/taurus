@@ -205,9 +205,7 @@ scenarios:
         param2: value2
       body-file: path/to/file.txt  # this file contents will be used as post body
 
-      multipart-form: false  # use multipart/form-data for POST
-
-      upload-files:  # attach files to multipart form
+      upload-files:  # attach files to form (and enable multipart/form-data)
       - param: summaryReport  # form parameter name
         path: report.pdf  # path to file
         mime-type: application/pdf  # Taurus will guess MIME type automatically
