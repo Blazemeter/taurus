@@ -191,10 +191,10 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         mod_success = False
         for line in origin_lines:
-            if line.startswith('set COMPILATION_CLASSPATH=""'):
+            if is_windows() and line.startswith('set COMPILATION_CLASSPATH=""'):
                 mod_success = True
                 continue
-            if line.startswith('COMPILATION_CLASSPATH='):
+            if not is_windows() and line.startswith('COMPILATION_CLASSPATH='):
                 mod_success = True
                 line = line.rstrip() + '":${COMPILATION_CLASSPATH}"\n'
             modified_lines.append(line)
