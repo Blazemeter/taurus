@@ -261,7 +261,7 @@ class JMX(object):
                              guiclass="ArgumentsPanel", testclass="Arguments")
 
     @staticmethod
-    def _get_http_request(url, label, method, timeout, body, keepalive, multipart, files):
+    def _get_http_request(url, label, method, timeout, body, keepalive, files=None):
         """
         Generates HTTP request
         :type method: str
@@ -293,14 +293,14 @@ class JMX(object):
         proxy.append(JMX._bool_prop("HTTPSampler.use_keepalive", keepalive))
         proxy.append(JMX._bool_prop("HTTPSampler.follow_redirects", True))
 
-        proxy.append(JMX._bool_prop("HTTPSampler.DO_MULTIPART_POST", multipart))
-        proxy.append(JMX._bool_prop("HTTPSampler.BROWSER_COMPATIBLE_MULTIPART", multipart))
-
         if timeout is not None:
             proxy.append(JMX._string_prop("HTTPSampler.connect_timeout", timeout))
             proxy.append(JMX._string_prop("HTTPSampler.response_timeout", timeout))
 
         if files:
+            proxy.append(JMX._bool_prop("HTTPSampler.DO_MULTIPART_POST", True))
+            proxy.append(JMX._bool_prop("HTTPSampler.BROWSER_COMPATIBLE_MULTIPART", True))
+
             files_prop = JMX._element_prop("HTTPsampler.Files", "HTTPFileArgs")
             files_coll = JMX._collection_prop("HTTPFileArgs.files")
             for file_dict in files:

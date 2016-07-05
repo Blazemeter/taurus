@@ -1333,7 +1333,7 @@ class JMeterScenarioBuilder(JMX):
             body = request.body
 
         http = JMX._get_http_request(request.url, request.label, request.method, timeout, body, global_keepalive,
-                                     request.multipart_form, request.upload_files)
+                                     request.upload_files)
 
         children = etree.Element("hashTree")
 
@@ -1642,7 +1642,7 @@ class Request(object):
 
 
 class HTTPRequest(Request):
-    def __init__(self, url, label, method, headers, timeout, think_time, body, multipart, upload_files, config):
+    def __init__(self, url, label, method, headers, timeout, think_time, body, upload_files, config):
         super(HTTPRequest, self).__init__(config)
         self.url = url
         self.label = label
@@ -1651,7 +1651,6 @@ class HTTPRequest(Request):
         self.timeout = timeout
         self.think_time = think_time
         self.body = body
-        self.multipart_form = multipart
         self.upload_files = upload_files
 
     def __repr__(self):
@@ -1780,9 +1779,7 @@ class RequestsParser(object):
                     body = fhd.read()
             body = req.get("body", body)
 
-            multipart = req.get("multipart-form", False)
             upload_files = req.get("upload-files", [])
-
             for file_dict in upload_files:
                 file_dict.get("param", ValueError("Items from upload-files must specify parameter name"))
                 path = file_dict.get('path', ValueError("Items from upload-files must specify path to file"))
@@ -1790,7 +1787,7 @@ class RequestsParser(object):
                 if mime is None:
                     raise ValueError("Taurus can't detect MIME type for file %s, please specify it manually", path)
 
-            return HTTPRequest(url, label, method, headers, timeout, think_time, body, multipart, upload_files, req)
+            return HTTPRequest(url, label, method, headers, timeout, think_time, body, upload_files, req)
 
     def __parse_requests(self, raw_requests):
         requests = []

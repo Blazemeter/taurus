@@ -10,7 +10,7 @@
  - fix gatling path fail on Windows
  - automatically rename Selenium Python script if it has undiscoverable name
  - fix null global headers failure
- - add `multipart-form` and `upload-files` options to JMeter requests
+ - add `upload-files` option to JMeter requests for multipart/form-data uploads
 
 ## 1.6.3 <sup>17 jun 2016</sup>
  - fix percentile value handling in passfail criteria
