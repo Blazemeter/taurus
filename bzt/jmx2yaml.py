@@ -205,7 +205,8 @@ class JMXasDict(JMX):
 
         raw_body = self._get_bool_prop(element, 'HTTPSampler.postBodyRaw')
         if raw_body:
-            xpath = GenericTranslator().css_to_xpath("elementProp>collectionProp>elementProp")
+            query = 'elementProp[name="HTTPsampler.Arguments"]>collectionProp>elementProp'
+            xpath = GenericTranslator().css_to_xpath(query)
             http_args_element = element.xpath(xpath)[0]
             body = self._get_string_prop(http_args_element, 'Argument.value')
             if body:
@@ -215,7 +216,8 @@ class JMXasDict(JMX):
                 return {}
         else:
             body_params = {}
-            xpath = GenericTranslator().css_to_xpath("elementProp>collectionProp>elementProp")
+            query = 'elementProp[name="HTTPsampler.Arguments"]>collectionProp>elementProp'
+            xpath = GenericTranslator().css_to_xpath(query)
             http_args_collection = element.xpath(xpath)
             for element in http_args_collection:
                 val = self._get_string_prop(element, 'Argument.value')
@@ -228,6 +230,29 @@ class JMXasDict(JMX):
                 return {"body": body_params}
             else:
                 return {}
+
+    def _get_upload_files(self, element):
+        """
+        Extract upload files from element
+        :param element:
+        :return: dict
+        """
+        query = 'elementProp[name="HTTPsampler.Files"]>collectionProp'
+        xpath = GenericTranslator().css_to_xpath(query)
+        colls = element.xpath(xpath)
+        if not colls:
+            return {}
+
+        upload_files = []
+        for elem in colls[0]:
+            path = self._get_string_prop(elem, 'File.path')
+            param = self._get_string_prop(elem, 'File.paramname')
+            mime = self._get_string_prop(elem, 'File.mimetype')
+            if path is None or param is None:
+                continue
+            upload_files.append({'param': param, 'path': path, 'mime-type': mime})
+
+        return {'upload-files': upload_files}
 
     def _get_headers(self, element):
         """
@@ -888,6 +913,7 @@ class JMXasDict(JMX):
         request_config = {}
         request_config.update(self._get_request_base(request_element))
         request_config.update(self._get_request_body(request_element))
+        request_config.update(self._get_upload_files(request_element))
         request_config.update(self._get_headers(request_element))
         request_config.update(self.__get_constant_timer(request_element))
         request_config.update(self._get_request_timeout(request_element))

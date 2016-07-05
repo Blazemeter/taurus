@@ -205,6 +205,11 @@ scenarios:
         param2: value2
       body-file: path/to/file.txt  # this file contents will be used as post body
 
+      upload-files:  # attach files to form (and enable multipart/form-data)
+      - param: summaryReport  # form parameter name
+        path: report.pdf  # path to file
+        mime-type: application/pdf  # optional, Taurus will attempt to guess it automatically
+
       headers:  # local headers that override global
         Authentication: Token 1234567890
         Referer: http://taurus.blazemeter/docs

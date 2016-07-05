@@ -261,7 +261,7 @@ class JMX(object):
                              guiclass="ArgumentsPanel", testclass="Arguments")
 
     @staticmethod
-    def _get_http_request(url, label, method, timeout, body, keepalive):
+    def _get_http_request(url, label, method, timeout, body, keepalive, files=()):
         """
         Generates HTTP request
         :type method: str
@@ -296,6 +296,22 @@ class JMX(object):
         if timeout is not None:
             proxy.append(JMX._string_prop("HTTPSampler.connect_timeout", timeout))
             proxy.append(JMX._string_prop("HTTPSampler.response_timeout", timeout))
+
+        if files:
+            proxy.append(JMX._bool_prop("HTTPSampler.DO_MULTIPART_POST", True))
+            proxy.append(JMX._bool_prop("HTTPSampler.BROWSER_COMPATIBLE_MULTIPART", True))
+
+            files_prop = JMX._element_prop("HTTPsampler.Files", "HTTPFileArgs")
+            files_coll = JMX._collection_prop("HTTPFileArgs.files")
+            for file_dict in files:
+                file_elem = JMX._element_prop(file_dict['path'], "HTTPFileArg")
+                file_elem.append(JMX._string_prop("File.path", file_dict['path']))
+                file_elem.append(JMX._string_prop("File.paramname", file_dict["param"]))
+                file_elem.append(JMX._string_prop("File.mimetype", file_dict['mime-type']))
+                files_coll.append(file_elem)
+            files_prop.append(files_coll)
+            proxy.append(files_prop)
+
         return proxy
 
     @staticmethod
