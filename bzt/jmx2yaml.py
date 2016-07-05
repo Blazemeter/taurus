@@ -463,11 +463,9 @@ class JMXasDict(JMX):
                         stop_prop = False
 
                     if loop_prop:
-                        data_source_dict["on-eof"] = "loop"
-                    elif stop_prop:
-                        data_source_dict["on-eof"] = "stop"
+                        data_source_dict["loop"] = True
                     else:
-                        data_source_dict["on-eof"] = "continue"
+                        data_source_dict["loop"] = False
 
                     data_sources.append(data_source_dict)
         if data_sources:

@@ -1725,7 +1725,7 @@ class TestJMeterExecutor(BZTestCase):
                 'scenario': {
                     "data-sources": [{
                         "path": __dir__() + "/../data/test1.csv",
-                        "on-eof": "loop"
+                        "loop": True
                     }],
                     "requests": [
                         "http://example.com/${test1}",
@@ -1752,7 +1752,7 @@ class TestJMeterExecutor(BZTestCase):
                 'scenario': {
                     "data-sources": [{
                         "path": __dir__() + "/../data/test1.csv",
-                        "on-eof": "stop"
+                        "loop": False
                     }],
                     "requests": [
                         "http://example.com/${test1}",
@@ -1772,33 +1772,6 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(loop.text, "false")
         stop = dataset.find('boolProp[@name="stopThread"]')
         self.assertEqual(stop.text, "true")
-
-    def test_data_sources_jmx_gen_continue(self):
-        self.obj.engine.config.merge({
-            'execution': {
-                'scenario': {
-                    "data-sources": [{
-                        "path": __dir__() + "/../data/test1.csv",
-                        "on-eof": "continue"
-                    }],
-                    "requests": [
-                        "http://example.com/${test1}",
-                    ],
-                }
-            },
-            "provisioning": "local",
-        })
-        self.obj.execution = self.obj.engine.config['execution']
-        self.obj.prepare()
-        xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
-        dataset = xml_tree.find('.//hashTree[@type="tg"]/CSVDataSet')
-        self.assertIsNotNone(dataset)
-        filename = dataset.find('stringProp[@name="filename"]')
-        self.assertEqual(filename.text, get_full_path(__dir__() + "/../data/test1.csv"))
-        loop = dataset.find('boolProp[@name="recycle"]')
-        self.assertEqual(loop.text, "false")
-        stop = dataset.find('boolProp[@name="stopThread"]')
-        self.assertEqual(stop.text, "false")
 
 
 class TestJMX(BZTestCase):
