@@ -450,12 +450,23 @@ class JMXasDict(JMX):
                     else:
                         self.log.warning("Quoted property was not set in %s, using default False", data_source.tag)
                         data_source_dict["quoted"] = False
+
                     loop_prop = self._get_bool_prop(data_source, 'recycle')
-                    if loop_prop is not None:
-                        data_source_dict["recycle"] = loop_prop
-                    else:
+                    if loop_prop is None:
                         self.log.warning("Loop property was not set in %s, using default False", data_source.tag)
-                        data_source_dict["recycle"] = False
+                        loop_prop = False
+
+                    stop_prop = self._get_bool_prop(data_source, 'stopThread')
+                    if stop_prop is None:
+                        self.log.warning("'Stop Thread on EOF' property was not set in %s, using default False",
+                                         data_source.tag)
+                        stop_prop = False
+
+                    if loop_prop:
+                        data_source_dict["loop"] = True
+                    elif stop_prop:
+                        data_source_dict["loop"] = False
+
                     data_sources.append(data_source_dict)
         if data_sources:
             self.log.debug('Got %s for data_sources in %s (%s)', data_sources, element.tag, element.get("testname"))

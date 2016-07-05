@@ -879,7 +879,7 @@ class JMX(object):
         return element
 
     @staticmethod
-    def _get_csv_config(path, delimiter, is_quoted, is_recycle):
+    def _get_csv_config(path, delimiter, is_quoted, loop):
         """
 
         :type path: str
@@ -893,7 +893,9 @@ class JMX(object):
         element.append(JMX._string_prop("filename", path))
         element.append(JMX._string_prop("delimiter", delimiter))
         element.append(JMX._bool_prop("quotedData", is_quoted))
-        element.append(JMX._bool_prop("recycle", is_recycle))
+        element.append(JMX._bool_prop("recycle", loop))
+        element.append(JMX._bool_prop("stopThread", not loop))
+
         return element
 
     def set_enabled(self, sel, state):

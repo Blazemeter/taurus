@@ -121,6 +121,17 @@ class TestConverter(BZTestCase):
         self.assertEqual(len(local_csv_tg_one), 1)
         self.assertEqual(len(local_csv_tg_two), 0)
 
+    def test_parse_csv_dataset(self):
+        yml = self._get_tmp()
+        obj = self._get_jmx2yaml("/yaml/converter/global_copy.jmx", yml)
+        obj.process()
+        yml = yaml.load(open(yml).read())
+        datasets = yml.get("scenarios").get("Thread Group one").get("data-sources")
+        local_csv = [dataset for dataset in datasets if dataset.get('path') == 'local.csv'][0]
+        self.assertEqual(local_csv['loop'], False)
+        self.assertEqual(local_csv['delimiter'], ',')
+        self.assertEqual(local_csv['quoted'], False)
+
     def test_copy_global_headers(self):
         yml = self._get_tmp()
         obj = self._get_jmx2yaml("/yaml/converter/global_copy.jmx", yml)
