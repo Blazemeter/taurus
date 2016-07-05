@@ -824,8 +824,9 @@ class ScenarioExecutor(EngineModule):
         if name is None:  # get current scenario
             label = self.execution.get('scenario', ValueError("Scenario is not configured properly"))
 
-            existing_not_label = label not in scenarios and os.path.exists(self.engine.find_file(label))
-            if isinstance(label, dict) or (isinstance(label, string_types) and existing_not_label):
+            is_script = isinstance(label, string_types) and label not in scenarios and \
+                        os.path.exists(self.engine.find_file(label))
+            if isinstance(label, dict) or is_script:
                 self.log.debug("Extract %s into scenarios" % label)
                 scenario = label
                 if isinstance(scenario, string_types):
