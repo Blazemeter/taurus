@@ -1695,6 +1695,9 @@ class TestJMeterExecutor(BZTestCase):
                             }, {
                                 "path": "report.pdf",
                                 "param": "report",
+                            }, {
+                                "path": "unknown.file",
+                                "param": "stuff",
                             }]
                         }
                     ],
@@ -1709,29 +1712,10 @@ class TestJMeterExecutor(BZTestCase):
         self.assertIsNotNone(request)
         file_query = 'elementProp[@name="HTTPsampler.Files"]/collectionProp[@name="HTTPFileArgs.files"]/elementProp'
         files = request.findall(file_query)
-        self.assertEqual(len(files), 2)
+        self.assertEqual(len(files), 3)
         self.assertEqual(files[0].find('stringProp[@name="File.mimetype"]').text, "audio/mpeg")
         self.assertEqual(files[1].find('stringProp[@name="File.mimetype"]').text, "application/pdf")
-
-    def test_upload_files_mime_autodetect_fail(self):
-        self.obj.engine.config.merge({
-            'execution': {
-                'scenario': {
-                    "requests": [
-                        {
-                            "url": "http://blazedemo.com/",
-                            "upload-files": [{
-                                "path": "unknown",
-                                "param": "stats",
-                            }]
-                        }
-                    ],
-                }
-            },
-            "provisioning": "local",
-        })
-        self.obj.execution = self.obj.engine.config['execution']
-        self.assertRaises(ValueError, self.obj.prepare)
+        self.assertEqual(files[2].find('stringProp[@name="File.mimetype"]').text, "application/octet-stream")
 
 
 class TestJMX(BZTestCase):
