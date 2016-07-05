@@ -208,7 +208,7 @@ scenarios:
       upload-files:  # attach files to form (and enable multipart/form-data)
       - param: summaryReport  # form parameter name
         path: report.pdf  # path to file
-        mime-type: application/pdf  # Taurus will guess MIME type automatically
+        mime-type: application/pdf  # optional, Taurus will attempt to guess it automatically
 
       headers:  # local headers that override global
         Authentication: Token 1234567890
