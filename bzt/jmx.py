@@ -261,7 +261,7 @@ class JMX(object):
                              guiclass="ArgumentsPanel", testclass="Arguments")
 
     @staticmethod
-    def _get_http_request(url, label, method, timeout, body, keepalive, files=None):
+    def _get_http_request(url, label, method, timeout, body, keepalive, files=()):
         """
         Generates HTTP request
         :type method: str

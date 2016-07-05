@@ -18,6 +18,7 @@ limitations under the License.
 import csv
 import fnmatch
 import json
+import mimetypes
 import os
 import re
 import socket
@@ -38,7 +39,7 @@ from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.modules.provisioning import Local
 from bzt.six import iteritems, string_types, StringIO, etree, binary_type
 from bzt.six import request as http_request
-from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, guess_mime
+from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager
 from bzt.utils import shell_exec, ensure_is_dict, dehumanize_time, BetterDict, guess_csv_dialect
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
 
@@ -1783,7 +1784,7 @@ class RequestsParser(object):
             for file_dict in upload_files:
                 file_dict.get("param", ValueError("Items from upload-files must specify parameter name"))
                 path = file_dict.get('path', ValueError("Items from upload-files must specify path to file"))
-                mime = file_dict.get('mime-type', guess_mime(path))
+                mime = file_dict.get('mime-type', mimetypes.guess_type(path)[0])
                 if mime is None:
                     raise ValueError("Taurus can't detect MIME type for file %s, please specify it manually" % path)
 
