@@ -1,6 +1,7 @@
 # Changelog
 
-## 1.6.4 (next)
+## 1.6.4 <sup>05 jul 2016</sup>
+ - add short script syntax (`<scenario>: <script>`)
  - rely on Gatling simulation auto-detection mechanism when `simulation` field is not set
  - fix 'non-existent scenario' error case
  - fix config cleanup in cloud provisioning
@@ -12,6 +13,7 @@
  - fix null global headers failure
  - add `upload-files` option to JMeter requests for multipart/form-data uploads
  - `loop: false` in JMeter data source now means 'stop thread after CSV is exhausted'
+ - force str for env vars in all shellexecs
 
 ## 1.6.3 <sup>17 jun 2016</sup>
  - fix percentile value handling in passfail criteria
