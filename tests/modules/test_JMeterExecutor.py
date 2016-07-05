@@ -1623,6 +1623,23 @@ class TestJMeterExecutor(BZTestCase):
         self.obj.execution = self.obj.engine.config['execution']
         self.assertRaises(ValueError, self.obj.resource_files)
 
+    def test_request_null_headers(self):
+        self.obj.engine.config.merge({
+            'execution': {
+                'scenario': {
+                    "headers": None,
+                    "requests": [
+                        {
+                            "http://blazedemo.com/",
+                        }
+                    ],
+                }
+            },
+            "provisioning": "local",
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
+
 
 class TestJMX(BZTestCase):
     def test_jmx_unicode_checkmark(self):
