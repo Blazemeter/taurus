@@ -828,10 +828,12 @@ class ScenarioExecutor(EngineModule):
                         os.path.exists(self.engine.find_file(label))
             if isinstance(label, dict) or is_script:
                 self.log.debug("Extract %s into scenarios" % label)
-                scenario = label
-                if isinstance(scenario, string_types):
+                if isinstance(label, string_types):
                     scenario = BetterDict()
-                    scenario.merge({Scenario.SCRIPT: scenario})
+                    scenario.merge({Scenario.SCRIPT: label})
+                else:
+                    scenario = label
+
                 path = self.get_script_path(Scenario(self.engine, scenario))
                 if path is not None:
                     label = os.path.basename(path)
