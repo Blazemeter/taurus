@@ -800,6 +800,9 @@ class ScenarioExecutor(EngineModule):
         self._label = None
 
     def get_script_path(self, scenario=None):
+        """
+        :type scenario: Scenario
+        """
         if scenario is None:
             scenario = self.get_scenario()
         if Scenario.SCRIPT in scenario:
@@ -818,18 +821,19 @@ class ScenarioExecutor(EngineModule):
 
         scenarios = self.engine.config.get("scenarios")
 
-        if name is None:    # get current scenario
+        if name is None:  # get current scenario
             label = self.execution.get('scenario', ValueError("Scenario is not configured properly"))
 
-            if isinstance(label, dict) or (                             # dict or path
-                    isinstance(label, string_types) and (               # to real file:
-                        label not in scenarios and                      # need to extract
-                        os.path.exists(self.engine.find_file(label)))):
-
+            is_script = isinstance(label, string_types) and label not in scenarios and \
+                        os.path.exists(self.engine.find_file(label))
+            if isinstance(label, dict) or is_script:
                 self.log.debug("Extract %s into scenarios" % label)
-                scenario = label
-                if isinstance(scenario, string_types):
-                    scenario = {Scenario.SCRIPT: scenario}
+                if isinstance(label, string_types):
+                    scenario = BetterDict()
+                    scenario.merge({Scenario.SCRIPT: label})
+                else:
+                    scenario = label
+
                 path = self.get_script_path(Scenario(self.engine, scenario))
                 if path is not None:
                     label = os.path.basename(path)
@@ -841,7 +845,7 @@ class ScenarioExecutor(EngineModule):
                 self.execution['scenario'] = label
 
             self._label = label
-        else:              # get scenario by name
+        else:  # get scenario by name
             label = name
 
         err = ValueError("Scenario not found in scenarios: %s" % label)
@@ -1001,7 +1005,7 @@ class Scenario(UserDict, object):
         """
         scenario = self
         headers = scenario.get("headers")
-        return headers
+        return headers if headers else {}
 
     def get_requests(self):
         """

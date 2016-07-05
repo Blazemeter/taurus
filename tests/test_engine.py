@@ -2,8 +2,8 @@
 import os
 
 from bzt.engine import ScenarioExecutor
-from bzt.utils import BetterDict, EXE_SUFFIX, is_windows
 from bzt.six import string_types
+from bzt.utils import BetterDict, EXE_SUFFIX, is_windows
 from tests import BZTestCase, __dir__, local_paths_config
 from tests.mocks import EngineEmul
 
@@ -87,7 +87,7 @@ class TestScenarioExecutor(BZTestCase):
         self.engine.config.merge({
             "execution": [{
                 "scenario": "tests/selenium/python/test_blazemeter_fail.py"
-                }]})
+            }]})
         self.executor.execution = self.engine.config.get('execution')[0]
         self.executor.get_scenario()
         config = self.engine.config
