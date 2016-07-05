@@ -1638,6 +1638,99 @@ class TestJMeterExecutor(BZTestCase):
         self.obj.execution = self.obj.engine.config['execution']
         self.obj.prepare()
 
+    def test_multipart_file_upload(self):
+        self.obj.engine.config.merge({
+            'execution': {
+                'scenario': {
+                    "requests": [
+                        {
+                            "url": "http://blazedemo.com/",
+                            "method": "POST",
+                            "multipart-form": True,
+                            "upload-files": [{
+                                "path": "stats.csv",
+                                "param": "stats",
+                                "mime-type": "text/csv",
+                            }, {
+                                "path": "report.pdf",
+                                "param": "report",
+                                "mime-type": "application/pdf",
+                            }]
+                        }
+                    ],
+                }
+            },
+            "provisioning": "local",
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
+        request = xml_tree.find('.//HTTPSamplerProxy')
+        self.assertIsNotNone(request)
+        file_query = 'elementProp[@name="HTTPsampler.Files"]/collectionProp[@name="HTTPFileArgs.files"]/elementProp'
+        files = request.findall(file_query)
+        self.assertEqual(len(files), 2)
+        self.assertEqual(files[0].get('name'), "stats.csv")
+        self.assertEqual(files[0].find('stringProp[@name="File.path"]').text, "stats.csv")
+        self.assertEqual(files[0].find('stringProp[@name="File.paramname"]').text, "stats")
+        self.assertEqual(files[0].find('stringProp[@name="File.mimetype"]').text, "text/csv")
+        self.assertEqual(files[1].get('name'), "report.pdf")
+        self.assertEqual(files[1].find('stringProp[@name="File.path"]').text, "report.pdf")
+        self.assertEqual(files[1].find('stringProp[@name="File.paramname"]').text, "report")
+        self.assertEqual(files[1].find('stringProp[@name="File.mimetype"]').text, "application/pdf")
+
+    def test_upload_files_mime_autodetect(self):
+        self.obj.engine.config.merge({
+            'execution': {
+                'scenario': {
+                    "requests": [
+                        {
+                            "url": "http://blazedemo.com/",
+                            "method": "POST",
+                            "upload-files": [{
+                                "path": "stats.csv",
+                                "param": "stats",
+                            }, {
+                                "path": "report.pdf",
+                                "param": "report",
+                            }]
+                        }
+                    ],
+                }
+            },
+            "provisioning": "local",
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
+        request = xml_tree.find('.//HTTPSamplerProxy')
+        self.assertIsNotNone(request)
+        file_query = 'elementProp[@name="HTTPsampler.Files"]/collectionProp[@name="HTTPFileArgs.files"]/elementProp'
+        files = request.findall(file_query)
+        self.assertEqual(len(files), 2)
+        self.assertEqual(files[0].find('stringProp[@name="File.mimetype"]').text, "text/csv")
+        self.assertEqual(files[1].find('stringProp[@name="File.mimetype"]').text, "application/pdf")
+
+    def test_upload_files_mime_autodetect_fail(self):
+        self.obj.engine.config.merge({
+            'execution': {
+                'scenario': {
+                    "requests": [
+                        {
+                            "url": "http://blazedemo.com/",
+                            "upload-files": [{
+                                "path": "unknown",
+                                "param": "stats",
+                            }]
+                        }
+                    ],
+                }
+            },
+            "provisioning": "local",
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        self.assertRaises(ValueError, self.obj.prepare)
+
 
 class TestJMX(BZTestCase):
     def test_jmx_unicode_checkmark(self):
