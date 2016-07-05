@@ -144,6 +144,7 @@ class Engine(object):
             self.stopping_reason = exc if not self.stopping_reason else self.stopping_reason
             raise
         finally:
+            self.log.warning("Please wait for graceful shutdown...")
             self._shutdown()
 
     def _check_modules_list(self):
