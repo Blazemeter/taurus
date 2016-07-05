@@ -5,7 +5,7 @@ import time
 
 from bzt.modules.gatling import GatlingExecutor, DataLogReader
 from bzt.six import u
-from bzt.utils import EXE_SUFFIX
+from bzt.utils import EXE_SUFFIX, get_full_path
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul
 
@@ -20,10 +20,11 @@ class TestGatlingExecutor(BZTestCase):
 
     def test_external_jar_wrong_launcher(self):
         obj = self.getGatling()
-        obj.execution.merge({'files':
-                                 ['tests/grinder/fake_grinder.jar',
-                                  'tests/selenium/jar'],
-                             'scenario': 'tests/gatling/bs'})
+        obj.execution.merge({
+            'files': [
+                'tests/grinder/fake_grinder.jar',
+                'tests/selenium/jar'],
+            'scenario': 'tests/gatling/bs'})
         self.assertRaises(ValueError, obj.prepare)
 
     def test_external_jar_right_launcher(self):
@@ -32,11 +33,16 @@ class TestGatlingExecutor(BZTestCase):
         path = os.path.abspath(__dir__() + "/../gatling/model-launcher/gatling" + EXE_SUFFIX)
         obj.settings.merge({"path": path})
 
-        obj.execution.merge({'files':
-                                 ['tests/grinder/fake_grinder.jar',
-                                  'tests/selenium/jar'],
-                             'scenario': 'tests/gatling/bs'})
+        obj.execution.merge({
+            'files': [
+                'tests/grinder/fake_grinder.jar',
+                'tests/selenium/jar'],
+            'scenario': {
+                "script": __dir__() + "/../gatling/BasicSimulation.scala",
+                "simulation": "mytest.BasicSimulation"}})
         obj.prepare()
+        obj.startup()
+        obj.shutdown()
 
         jar_files = obj.jar_list
         modified_launcher = obj.launcher
@@ -50,6 +56,15 @@ class TestGatlingExecutor(BZTestCase):
             self.assertFalse(line.startswith('set COMPILATION_CLASSPATH=""'))
             self.assertTrue(not line.startswith('COMPILATION_CLASSPATH=') or
                             line.endswith('":${COMPILATION_CLASSPATH}"\n'))
+
+        with open(obj.engine.artifacts_dir + '/gatling-stdout.log') as stdout:
+            out_lines = stdout.readlines()
+
+        out_lines = [out_line.rstrip() for out_line in out_lines]
+        self.assertEqual(out_lines[0], get_full_path(obj.settings['path'], step_up=2))  # $GATLING_HOME
+        self.assertIn('fake_grinder.jar', out_lines[1])                                 # $COMPILATION_CLASSPATH
+        self.assertIn('another_dummy.jar', out_lines[1])                                # $COMPILATION_CLASSPATH
+        self.assertEqual(out_lines[2], 'TRUE')                                          # $NO_PAUSE
 
     def test_install_Gatling(self):
         path = os.path.abspath(__dir__() + "/../../build/tmp/gatling-taurus/bin/gatling" + EXE_SUFFIX)

@@ -118,9 +118,9 @@ modules:
     properties:
       gatling.data.file.bufferSize: 512  # output buffer size, 256 bytes by default      
 ```
-## External Java libraries usage
+## External Java Libraries Usage
 
-Thanks to Taurus you can use external Java classes in your scala code. For this add required jar files or contained dir to `files` list:
+Thanks to Taurus you can use additional Java classes in your scala code. For this add required jar files or contained dir to `files` list:
 ```yaml
 ---
 execution:

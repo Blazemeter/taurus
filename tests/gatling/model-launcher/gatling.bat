@@ -1,8 +1,15 @@
 @ECHO OFF
 setlocal
 
+set "DEFAULT_GATLING_HOME=FALSE"
+if not defined GATLING_HOME set GATLING_HOME=%DEFAULT_GATLING_HOME%
+
 set USER_ARGS=%*
 
 rem set GATLING_HOME automatically if possible
 
 set COMPILATION_CLASSPATH=""
+
+echo %GATLING_HOME%
+echo %COMPILATION_CLASSPATH%
+echo %NO_PAUSE%

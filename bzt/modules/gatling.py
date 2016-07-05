@@ -178,9 +178,9 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.simulation_started = False
         self.dir_prefix = ''
         self.launcher = None
-        self.jar_list = []
+        self.jar_list = ''
 
-    def __build_launcher(self, jar_files):
+    def __build_launcher(self):
         modified_launcher = self.engine.create_artifact('gatling-launcher', EXE_SUFFIX)
         origin_launcher = get_full_path(self.settings['path'])
         origin_dir = get_full_path(origin_launcher, step_up=2)
@@ -188,12 +188,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             origin_lines = origin.readlines()
 
         modified_lines = []
-        if is_windows():
-            first_line = 'set "GATLING_HOME=%s"\n' % origin_dir
-            separator = ';'
-        else:
-            first_line = 'GATLING_HOME="%s"\n' % origin_dir
-            separator = ':'
 
         mod_success = False
         for line in origin_lines:
@@ -208,6 +202,10 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if not mod_success:
             raise ValueError("Can't modify gatling launcher for jar usage, ability isn't supported")
 
+        if is_windows():
+            first_line = 'set "GATLING_HOME=%s"\n' % origin_dir
+        else:
+            first_line = 'GATLING_HOME="%s"\n' % origin_dir
         modified_lines.insert(1, first_line)
 
         with open(modified_launcher, 'w') as modified:
@@ -216,9 +214,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if not is_windows():
             os.chmod(modified_launcher, 0o755)
 
-        jar_string = separator + separator.join(jar_files)
-
-        return modified_launcher, jar_string
+        return modified_launcher
 
     def prepare(self):
         self._check_installed()
@@ -234,9 +230,12 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                     element = os.path.join(_file, element)
                     if os.path.isfile(element) and element.lower().endswith('.jar'):
                         jar_files.append(element)
+        if jar_files:
+            separator = os.pathsep
+            self.jar_list = separator + separator.join(jar_files)
 
         if is_windows() or jar_files:
-            self.launcher, self.jar_list = self.__build_launcher(jar_files)
+            self.launcher = self.__build_launcher()
         else:
             self.launcher = self.settings["path"]
 
@@ -308,7 +307,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         java_opts = ''.join([" -D%s=%s" % (key, params_for_scala[key]) for key in params_for_scala])
         java_opts += ' ' + env.get('JAVA_OPTS', '') + ' ' + self.settings.get('java-opts', '')
-        env.merge({"JAVA_OPTS": java_opts, "NO_PAUSE": "1"})
+        env.merge({"JAVA_OPTS": java_opts, "NO_PAUSE": "TRUE"})
 
         if self.jar_list:
             java_classpath = env.get('JAVA_CLASSPATH', '')
