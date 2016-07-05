@@ -20,6 +20,17 @@ class TestGatlingExecutor(BZTestCase):
 
     def test_external_jar_wrong_launcher(self):
         obj = self.getGatling()
+
+        modified_launcher = obj.engine.create_artifact('wrong-gatling', EXE_SUFFIX)
+        origin_launcher = get_full_path(obj.settings['path'])
+        with open(origin_launcher) as orig_file:
+            orig_lines = orig_file.readlines()
+        mod_lines = [line for line in orig_lines if not 'COMPILATION_CLASSPATH' in line]
+        with open(modified_launcher, 'w') as mod_file:
+            mod_file.writelines(mod_lines)
+
+        obj.settings.merge({"path": modified_launcher})
+
         obj.execution.merge({
             'files': [
                 'tests/grinder/fake_grinder.jar',
@@ -30,8 +41,6 @@ class TestGatlingExecutor(BZTestCase):
     def test_external_jar_right_launcher(self):
         obj = self.getGatling()
 
-        path = os.path.abspath(__dir__() + "/../gatling/model-launcher/gatling" + EXE_SUFFIX)
-        obj.settings.merge({"path": path})
 
         obj.execution.merge({
             'files': [
@@ -61,10 +70,10 @@ class TestGatlingExecutor(BZTestCase):
             out_lines = stdout.readlines()
 
         out_lines = [out_line.rstrip() for out_line in out_lines]
-        self.assertEqual(out_lines[0], get_full_path(obj.settings['path'], step_up=2))  # $GATLING_HOME
-        self.assertIn('fake_grinder.jar', out_lines[1])                                 # $COMPILATION_CLASSPATH
-        self.assertIn('another_dummy.jar', out_lines[1])                                # $COMPILATION_CLASSPATH
-        self.assertEqual(out_lines[2], 'TRUE')                                          # $NO_PAUSE
+        self.assertEqual(out_lines[-3], get_full_path(obj.settings['path'], step_up=2))  # $GATLING_HOME
+        self.assertIn('fake_grinder.jar', out_lines[-2])                                 # $COMPILATION_CLASSPATH
+        self.assertIn('another_dummy.jar', out_lines[-2])                                # $COMPILATION_CLASSPATH
+        self.assertEqual(out_lines[-1], 'TRUE')                                          # $NO_PAUSE
 
     def test_install_Gatling(self):
         path = os.path.abspath(__dir__() + "/../../build/tmp/gatling-taurus/bin/gatling" + EXE_SUFFIX)
