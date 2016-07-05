@@ -1785,7 +1785,7 @@ class RequestsParser(object):
                 path = file_dict.get('path', ValueError("Items from upload-files must specify path to file"))
                 mime = file_dict.get('mime-type', guess_mime(path))
                 if mime is None:
-                    raise ValueError("Taurus can't detect MIME type for file %s, please specify it manually", path)
+                    raise ValueError("Taurus can't detect MIME type for file %s, please specify it manually" % path)
 
             return HTTPRequest(url, label, method, headers, timeout, think_time, body, upload_files, req)
 

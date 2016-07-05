@@ -1690,7 +1690,7 @@ class TestJMeterExecutor(BZTestCase):
                             "url": "http://blazedemo.com/",
                             "method": "POST",
                             "upload-files": [{
-                                "path": "stats.csv",
+                                "path": "sound.mp3",
                                 "param": "stats",
                             }, {
                                 "path": "report.pdf",
@@ -1710,7 +1710,7 @@ class TestJMeterExecutor(BZTestCase):
         file_query = 'elementProp[@name="HTTPsampler.Files"]/collectionProp[@name="HTTPFileArgs.files"]/elementProp'
         files = request.findall(file_query)
         self.assertEqual(len(files), 2)
-        self.assertEqual(files[0].find('stringProp[@name="File.mimetype"]').text, "text/csv")
+        self.assertEqual(files[0].find('stringProp[@name="File.mimetype"]').text, "audio/mpeg")
         self.assertEqual(files[1].find('stringProp[@name="File.mimetype"]').text, "application/pdf")
 
     def test_upload_files_mime_autodetect_fail(self):
