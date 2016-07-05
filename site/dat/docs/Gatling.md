@@ -68,7 +68,7 @@ execution:
   scenario: complex_sample
   
 scenarios:
-  complex_sample
+  complex_sample:
     default-address: blazedemo.com
     headers:
       HEADER_1: VALUE_1
