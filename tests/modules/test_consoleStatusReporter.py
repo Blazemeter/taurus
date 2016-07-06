@@ -120,23 +120,21 @@ class TestConsoleStatusReporter(BZTestCase):
         obj.post_process()
 
     def test_screen(self):
-        isatty = sys.stdout.isatty
-        sys.stdout.isatty = lambda: True
         obj = ConsoleStatusReporter()
         obj.settings["screen"] = "console"
-        if not is_windows():
-            self.assertIsInstance(obj._get_screen(), ConsoleScreen)
+        if not sys.stdout.isatty():
+            self.assertEqual(obj._get_screen_type(), "dummy")
+        elif is_windows():
+            self.assertEqual(obj._get_screen(), "gui")
         else:
-            self.assertIsInstance(obj._get_screen(), GUIScreen)
-        sys.stdout.isatty = isatty
+            self.assertEqual(obj._get_screen_type(), "console")
 
     def test_screen_invalid(self):
-        isatty = sys.stdout.isatty
-        sys.stdout.isatty = lambda: True
         obj = ConsoleStatusReporter()
         obj.settings["screen"] = "invalid"
-        if not is_windows():
-            self.assertIsInstance(obj._get_screen(), ConsoleScreen)
+        if not sys.stdout.isatty():
+            self.assertEqual(obj._get_screen_type(), "dummy")
+        elif is_windows():
+            self.assertEqual(obj._get_screen(), "gui")
         else:
-            self.assertIsInstance(obj._get_screen(), GUIScreen)
-        sys.stdout.isatty = isatty
+            self.assertEqual(obj._get_screen_type(), "console")

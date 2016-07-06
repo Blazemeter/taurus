@@ -853,9 +853,9 @@ class DummyScreen(BaseScreen):
     Null-object for Screen on non-tty output
     """
 
-    def __init__(self):
+    def __init__(self, rows=120, cols=40):
         super(DummyScreen, self).__init__()
-        self.size = (120, 40)
+        self.size = (rows, cols)
         self.ansi_escape = re.compile(r'\x1b[^m]*m')
 
     def get_cols_rows(self):
