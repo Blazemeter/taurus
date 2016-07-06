@@ -18,10 +18,10 @@
     1. [ApacheBenchmark Executor](ApacheBenchmark.md)
     1. [Tsung Executor](Tsung.md)
  1. [Cloud Provisioned Test Execution](Cloud.md)
- 1. Observing Test Results
-    1. Console Reporting
+ 1. [Generating Test Reports](Reporting.md)
+    1. Observing Live Test Stats in Your Terminal
     1. Saving Test Results
-    1. BlazeMeter.com Reporting
+    1. Online Interactive Reports
  1. [Services Subsystem](Services.md)
     1. Pass/Fail Criteria
     1. Resource Monitoring
