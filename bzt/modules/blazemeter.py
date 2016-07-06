@@ -214,6 +214,10 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
 
                 if note.strip():
                     self.client.update_session({"note": note.strip()})
+
+                    master = self.client.update_master({})
+                    note = master.get('note', '') + ' ' + note
+
                     self.client.update_master({"note": note.strip()})
         except KeyboardInterrupt:
             raise
