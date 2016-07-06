@@ -165,7 +165,7 @@ scenarios:
     - path: path/to/another.csv  # this is full form, path option is required
       delimiter: ';'  # CSV delimiter, auto-detected by default
       quoted: false  # allow quoted data
-      loop: true  # loop over in case of end-of-file reached
+      loop: true  # loop over in case of end-of-file reached if true, stop thread if false
 ```
 
 Note that `timeout` also sets duration assertion that will mark response failed if response time was more than timeout.
@@ -204,6 +204,11 @@ scenarios:
         param1: value1
         param2: value2
       body-file: path/to/file.txt  # this file contents will be used as post body
+
+      upload-files:  # attach files to form (and enable multipart/form-data)
+      - param: summaryReport  # form parameter name
+        path: report.pdf  # path to file
+        mime-type: application/pdf  # optional, Taurus will attempt to guess it automatically
 
       headers:  # local headers that override global
         Authentication: Token 1234567890

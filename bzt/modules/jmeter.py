@@ -18,6 +18,7 @@ limitations under the License.
 import csv
 import fnmatch
 import json
+import mimetypes
 import os
 import re
 import socket
@@ -233,6 +234,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.log.debug("JMeter worked for %s seconds", self.end_time - self.start_time)
 
     def post_process(self):
+        self.engine.existing_artifact(self.modified_jmx, True)
         if self.reader and not self.reader.buffer and self.start_time is not None:
             msg = "Empty results JTL, most likely JMeter failed: %s"
             raise RuntimeWarning(msg % self.kpi_jtl)
@@ -1332,7 +1334,8 @@ class JMeterScenarioBuilder(JMX):
         else:
             body = request.body
 
-        http = JMX._get_http_request(request.url, request.label, request.method, timeout, body, global_keepalive)
+        http = JMX._get_http_request(request.url, request.label, request.method, timeout, body, global_keepalive,
+                                     request.upload_files)
 
         children = etree.Element("hashTree")
 
@@ -1641,7 +1644,7 @@ class Request(object):
 
 
 class HTTPRequest(Request):
-    def __init__(self, url, label, method, headers, timeout, think_time, body, config):
+    def __init__(self, url, label, method, headers, timeout, think_time, body, upload_files, config):
         super(HTTPRequest, self).__init__(config)
         self.url = url
         self.label = label
@@ -1650,6 +1653,7 @@ class HTTPRequest(Request):
         self.timeout = timeout
         self.think_time = think_time
         self.body = body
+        self.upload_files = upload_files
 
     def __repr__(self):
         return "HTTPRequest(url=%s, method=%s)" % (self.url, self.method)
@@ -1777,7 +1781,14 @@ class RequestsParser(object):
                     body = fhd.read()
             body = req.get("body", body)
 
-            return HTTPRequest(url, label, method, headers, timeout, think_time, body, req)
+            upload_files = req.get("upload-files", [])
+            for file_dict in upload_files:
+                file_dict.get("param", ValueError("Items from upload-files must specify parameter name"))
+                path = file_dict.get('path', ValueError("Items from upload-files must specify path to file"))
+                mime = mimetypes.guess_type(path)[0] or "application/octet-stream"
+                file_dict.get('mime-type', mime)
+
+            return HTTPRequest(url, label, method, headers, timeout, think_time, body, upload_files, req)
 
     def __parse_requests(self, raw_requests):
         requests = []

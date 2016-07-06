@@ -16,7 +16,7 @@ scenarios:
     - delimiter: ','
       path: not_found.csv
       quoted: false
-      recycle: true
+      loop: true
     headers:
       global_header: global_value
       tg1: v1
@@ -82,6 +82,13 @@ scenarios:
       think-time: 500ms
       timeout: 200ms
       url: http://192.168.0.1/
+    - url: http://blazedemo.com/
+      label: request with files
+      method: POST
+      upload-files:
+      - param: attachment
+        path: file.txt
+        mime-type: text/plain
     store-cache: false
     store-cookie: false
     use-dns-cache-mgr: true
@@ -90,7 +97,7 @@ scenarios:
     - delimiter: ','
       path: not_found.csv
       quoted: false
-      recycle: true
+      loop: true
     headers:
       global_header: global_value
     requests:

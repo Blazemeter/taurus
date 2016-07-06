@@ -1623,6 +1623,154 @@ class TestJMeterExecutor(BZTestCase):
         self.obj.execution = self.obj.engine.config['execution']
         self.assertRaises(ValueError, self.obj.resource_files)
 
+    def test_request_null_headers(self):
+        self.obj.engine.config.merge({
+            'execution': {
+                'scenario': {
+                    "headers": None,
+                    "requests": [
+                        "http://blazedemo.com/",
+                    ],
+                }
+            },
+            "provisioning": "local",
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
+
+    def test_multipart_file_upload(self):
+        self.obj.engine.config.merge({
+            'execution': {
+                'scenario': {
+                    "requests": [
+                        {
+                            "url": "http://blazedemo.com/",
+                            "method": "POST",
+                            "multipart-form": True,
+                            "upload-files": [{
+                                "path": "stats.csv",
+                                "param": "stats",
+                                "mime-type": "text/csv",
+                            }, {
+                                "path": "report.pdf",
+                                "param": "report",
+                                "mime-type": "application/pdf",
+                            }]
+                        }
+                    ],
+                }
+            },
+            "provisioning": "local",
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
+        request = xml_tree.find('.//HTTPSamplerProxy')
+        self.assertIsNotNone(request)
+        self.assertEqual(request.find('boolProp[@name="HTTPSampler.DO_MULTIPART_POST"]').text, 'true')
+        self.assertEqual(request.find('boolProp[@name="HTTPSampler.BROWSER_COMPATIBLE_MULTIPART"]').text, 'true')
+        file_query = 'elementProp[@name="HTTPsampler.Files"]/collectionProp[@name="HTTPFileArgs.files"]/elementProp'
+        files = request.findall(file_query)
+        self.assertEqual(len(files), 2)
+        self.assertEqual(files[0].get('name'), "stats.csv")
+        self.assertEqual(files[0].find('stringProp[@name="File.path"]').text, "stats.csv")
+        self.assertEqual(files[0].find('stringProp[@name="File.paramname"]').text, "stats")
+        self.assertEqual(files[0].find('stringProp[@name="File.mimetype"]').text, "text/csv")
+        self.assertEqual(files[1].get('name'), "report.pdf")
+        self.assertEqual(files[1].find('stringProp[@name="File.path"]').text, "report.pdf")
+        self.assertEqual(files[1].find('stringProp[@name="File.paramname"]').text, "report")
+        self.assertEqual(files[1].find('stringProp[@name="File.mimetype"]').text, "application/pdf")
+
+    def test_upload_files_mime_autodetect(self):
+        self.obj.engine.config.merge({
+            'execution': {
+                'scenario': {
+                    "requests": [
+                        {
+                            "url": "http://blazedemo.com/",
+                            "method": "POST",
+                            "upload-files": [{
+                                "path": "sound.mp3",
+                                "param": "stats",
+                            }, {
+                                "path": "report.pdf",
+                                "param": "report",
+                            }, {
+                                "path": "unknown.file",
+                                "param": "stuff",
+                            }]
+                        }
+                    ],
+                }
+            },
+            "provisioning": "local",
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
+        request = xml_tree.find('.//HTTPSamplerProxy')
+        self.assertIsNotNone(request)
+        file_query = 'elementProp[@name="HTTPsampler.Files"]/collectionProp[@name="HTTPFileArgs.files"]/elementProp'
+        files = request.findall(file_query)
+        self.assertEqual(len(files), 3)
+        self.assertEqual(files[0].find('stringProp[@name="File.mimetype"]').text, "audio/mpeg")
+        self.assertEqual(files[1].find('stringProp[@name="File.mimetype"]').text, "application/pdf")
+        self.assertEqual(files[2].find('stringProp[@name="File.mimetype"]').text, "application/octet-stream")
+
+    def test_data_sources_jmx_gen_loop(self):
+        self.obj.engine.config.merge({
+            'execution': {
+                'scenario': {
+                    "data-sources": [{
+                        "path": __dir__() + "/../data/test1.csv",
+                        "loop": True
+                    }],
+                    "requests": [
+                        "http://example.com/${test1}",
+                    ],
+                }
+            },
+            "provisioning": "local",
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
+        dataset = xml_tree.find('.//hashTree[@type="tg"]/CSVDataSet')
+        self.assertIsNotNone(dataset)
+        filename = dataset.find('stringProp[@name="filename"]')
+        self.assertEqual(filename.text, get_full_path(__dir__() + "/../data/test1.csv"))
+        loop = dataset.find('boolProp[@name="recycle"]')
+        self.assertEqual(loop.text, "true")
+        stop = dataset.find('boolProp[@name="stopThread"]')
+        self.assertEqual(stop.text, "false")
+
+    def test_data_sources_jmx_gen_stop(self):
+        self.obj.engine.config.merge({
+            'execution': {
+                'scenario': {
+                    "data-sources": [{
+                        "path": __dir__() + "/../data/test1.csv",
+                        "loop": False
+                    }],
+                    "requests": [
+                        "http://example.com/${test1}",
+                    ],
+                }
+            },
+            "provisioning": "local",
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
+        dataset = xml_tree.find('.//hashTree[@type="tg"]/CSVDataSet')
+        self.assertIsNotNone(dataset)
+        filename = dataset.find('stringProp[@name="filename"]')
+        self.assertEqual(filename.text, get_full_path(__dir__() + "/../data/test1.csv"))
+        loop = dataset.find('boolProp[@name="recycle"]')
+        self.assertEqual(loop.text, "false")
+        stop = dataset.find('boolProp[@name="stopThread"]')
+        self.assertEqual(stop.text, "true")
+
 
 class TestJMX(BZTestCase):
     def test_jmx_unicode_checkmark(self):

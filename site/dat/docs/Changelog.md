@@ -1,6 +1,7 @@
 # Changelog
 
-## 1.6.4 (next)
+## 1.6.4 <sup>05 jul 2016</sup>
+ - add short script syntax (`<scenario>: \<script>`)
  - rely on Gatling simulation auto-detection mechanism when `simulation` field is not set
  - fix 'non-existent scenario' error case
  - fix config cleanup in cloud provisioning
@@ -10,14 +11,16 @@
  - add custom gatling launcher for jar usage ability
  - fix gatling path fail on Windows
  - automatically rename Selenium Python script if it has undiscoverable name
+ - fix null global headers failure
+ - add `upload-files` option to JMeter requests for multipart/form-data uploads
+ - `loop: false` in JMeter data source now means 'stop thread after CSV is exhausted'
+ - force str for env vars in all shellexecs
 
 ## 1.6.3 <sup>17 jun 2016</sup>
  - fix percentile value handling in passfail criteria
  - add setting up of CWD on server side
  - fix problem with sending included configs into cloud
  - fix cumulative fail criteria processing order
- - add extraction of `scenario` dictionary into `scenarios` section, remove inlined scenarios mentions from docs
- - add short script syntax (`<scenario>: <script>`)
  - limit the amount of monitoring data BlazeMeter uploader accumulates
  - fix passfail criteria with no last datapoint available
  - force str for env vars in all shellexecs

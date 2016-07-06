@@ -24,8 +24,8 @@ from logging import Formatter
 from optparse import OptionParser, Option
 from tempfile import NamedTemporaryFile
 
-from colorlog import ColoredFormatter
 import yaml
+from colorlog import ColoredFormatter
 
 import bzt
 from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown
@@ -168,7 +168,6 @@ class CLI(object):
                     assert isinstance(exc, HTTPError)
                     self.log.warning("Response from %s: %s", exc.geturl(), exc.read())
                 self.log.error("%s: %s", type(exc).__name__, exc)
-            self.log.warning("Please wait for graceful shutdown...")
             exit_code = 1
         finally:
             try:
@@ -220,7 +219,7 @@ class CLI(object):
             config = Configuration()
 
             for jmx_file in jmxes:
-                config.get(ScenarioExecutor.EXEC, []).append({"executor": "jmeter", "scenario": {"script": jmx_file}})
+                config.get(ScenarioExecutor.EXEC, []).append({"executor": "jmeter", "scenario": jmx_file})
 
             config.dump(fname, Configuration.JSON)
 
