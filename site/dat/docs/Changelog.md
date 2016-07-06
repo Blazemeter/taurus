@@ -1,7 +1,7 @@
 # Changelog
 
 ## 1.6.4 <sup>05 jul 2016</sup>
- - add short script syntax (`<scenario>: <script>`)
+ - add short script syntax (`<scenario>: \<script>`)
  - rely on Gatling simulation auto-detection mechanism when `simulation` field is not set
  - fix 'non-existent scenario' error case
  - fix config cleanup in cloud provisioning
@@ -20,8 +20,6 @@
  - add setting up of CWD on server side
  - fix problem with sending included configs into cloud
  - fix cumulative fail criteria processing order
- - add extraction of `scenario` dictionary into `scenarios` section, remove inlined scenarios mentions from docs
- - add short script syntax (`<scenario>: <script>`)
  - limit the amount of monitoring data BlazeMeter uploader accumulates
  - fix passfail criteria with no last datapoint available
  - force str for env vars in all shellexecs
