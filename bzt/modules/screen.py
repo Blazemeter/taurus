@@ -46,6 +46,7 @@ class GUIScreen(BaseScreen):
         self.title = "Taurus Status"
         self.text = None
         self.font = None
+        self.window_closed = False
 
     def get_cols_rows(self):
         """
@@ -120,7 +121,10 @@ class GUIScreen(BaseScreen):
         :type canvas: urwid.Canvas
         """
         if not self.root:
-            raise ManualShutdown("GUI window was closed")
+            if not self.window_closed:
+                self.window_closed = True
+                raise ManualShutdown("GUI window was closed")
+            return
 
         # enable changes
         self.text.config(state=tkinter.NORMAL)

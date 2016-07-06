@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.6.5 (next)
+ - fix non-graceful shutdown on GUI window close
+
 ## 1.6.4 <sup>05 jul 2016</sup>
  - add short script syntax (`<scenario>: \<script>`)
  - rely on Gatling simulation auto-detection mechanism when `simulation` field is not set

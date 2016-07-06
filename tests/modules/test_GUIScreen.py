@@ -3,6 +3,7 @@ from unittest import TestCase
 
 from urwid.canvas import Canvas
 
+from bzt.engine import ManualShutdown
 from bzt.modules.console import TaurusConsole
 
 try:
@@ -60,3 +61,20 @@ class TestGUIScreen(TestCase):
             self.assertEqual(obj.font['size'], old_font_size)
 
         obj.stop()
+
+    def test_window_closed(self):
+        lines = [((x[0], None, "%s\n" % x[0]),) for x in TaurusConsole.palette]
+        canvas = TestCanvas(lines)
+        obj = Screen()
+        obj.register_palette(TaurusConsole.palette)
+        obj.start()
+        for _ in range(5):
+            obj.draw_screen((1, 1), canvas)
+            time.sleep(0.1)
+        # closing the window
+        obj.closed_window()
+        # first call to draw_screen should raise ManualShutdown
+        self.assertRaises(ManualShutdown, obj.draw_screen, (1, 1), canvas)
+        # consecutive calls to draw_screen shouldn't raise
+        obj.draw_screen((1, 1), canvas)
+        obj.draw_screen((1, 1), canvas)
