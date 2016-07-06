@@ -30,7 +30,6 @@ from logging import StreamHandler
 from urwid import Text, Pile, WEIGHT, Filler, Columns, Widget, CanvasCombine, LineBox, ListBox, RIGHT, CENTER, BOTTOM, \
     CLIP, GIVEN, ProgressBar
 from urwid.decoration import Padding
-from urwid.display_common import BaseScreen
 from urwid.font import Thin6x6Font
 from urwid.graphics import BigText
 from urwid.listbox import SimpleListWalker
@@ -44,14 +43,14 @@ from bzt.six import StringIO
 from bzt.utils import humanize_time, is_windows, DummyScreen
 
 try:
-    from urwid.curses_display import Screen as ConsoleScreen
-except ImportError:
-    ConsoleScreen = None
-
-try:
     from bzt.modules.screen import GUIScreen
 except ImportError:
-    GUIScreen = None
+    Screen = DummyScreen
+
+try:
+    from urwid.curses_display import Screen as ConsoleScreen
+except ImportError:
+    ConsoleScreen = GUIScreen
 
 
 class ConsoleStatusReporter(Reporter, AggregatorListener):
@@ -97,11 +96,11 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
             screen_type = "dummy"
 
         if screen_type == "console":
-            if ConsoleScreen is None or is_windows():
+            if ConsoleScreen is DummyScreen or is_windows():
                 self.log.debug("Can't use console' screen, trying 'gui'")
                 screen_type = "gui"
 
-        if screen_type == "gui" and GUIScreen is None:
+        if screen_type == "gui" and GUIScreen is DummyScreen:
             self.log.debug("Can't use 'gui' screen, trying 'dummy'")
             screen_type = "dummy"
 
@@ -430,43 +429,6 @@ class TaurusConsole(Columns):
         Update ticking widgets
         """
         self.logo.tick()
-
-
-class DummyScreen(BaseScreen):
-    """
-    Null-object for Screen on non-tty output
-    """
-
-    def __init__(self, cols, rows):
-        super(DummyScreen, self).__init__()
-        self.size = (cols, rows)
-        self.ansi_escape = re.compile(r'\x1b[^m]*m')
-
-    def get_cols_rows(self):
-        """
-        Dummy cols and rows
-
-        :return:
-        """
-        return self.size
-
-    def draw_screen(self, size, canvas):
-        """
-
-        :param size:
-        :type canvas: urwid.Canvas
-        """
-        data = ""
-        for char in canvas.content():
-            line = ""
-            for part in char:
-                if isinstance(part[2], str):
-                    line += part[2]
-                else:
-                    line += part[2].decode()
-            data += "%s│\n" % line
-        data = self.ansi_escape.sub('', data)
-        logging.info("Screen %sx%s chars:\n%s", size[0], size[1], data)
 
 
 class StringIONotifying(StringIO, object):
