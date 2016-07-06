@@ -214,6 +214,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
 
                 if note.strip():
                     self.client.update_session({"note": note.strip()})
+                    self.client.update_master({"note": note.strip()})
         except KeyboardInterrupt:
             raise
         except BaseException as exc:
@@ -952,6 +953,12 @@ class BlazeMeterClient(object):
     def update_session(self, data):
         hdr = {"Content-Type": "application/json"}
         data = self._request(self.address + '/api/latest/sessions/%s' % self.session_id, to_json(data),
+                             headers=hdr, method="PUT")
+        return data['result']
+
+    def update_master(self, data):
+        hdr = {"Content-Type": "application/json"}
+        data = self._request(self.address + '/api/latest/masters/%s' % self.master_id, to_json(data),
                              headers=hdr, method="PUT")
         return data['result']
 
