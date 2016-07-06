@@ -15,6 +15,29 @@ import bzt.modules.blazemeter
 
 
 class TestBlazeMeterUploader(BZTestCase):
+    def test_notes(self):
+        client = BlazeMeterClientEmul(logging.getLogger(''))
+        client.results.append({"marker": "ping", 'result': {}})
+        client.results.append({"marker": "projects", 'result': []})
+        client.results.append({"marker": "tests", 'result': {}})
+        client.results.append({"marker": "test-create", 'result': {'id': 'unittest1'}})
+        client.results.append({"marker": "post-proc push", 'result': {'session': {}}})
+        client.results.append({"marker": "upload1", "result": True})  # post-proc error stats
+        client.results.append({"marker": "terminate", 'result': {'session': {}}})
+
+        obj = BlazeMeterUploader()
+        obj.parameters['project'] = 'Proj name'
+        obj.settings['token'] = '123'
+        obj.settings['browser-open'] = 'none'
+        obj.engine = EngineEmul()
+        obj.client = client
+        obj.prepare()
+        obj.startup()
+        obj.check()
+        obj.shutdown()
+        obj.engine.stopping_reason = ValueError('wrong value')
+        obj.post_process()
+
     def test_check(self):
         client = BlazeMeterClientEmul(logging.getLogger(''))
         client.results.append({"marker": "ping", 'result': {}})
@@ -38,10 +61,8 @@ class TestBlazeMeterUploader(BZTestCase):
                  'master': {'id': 'master1', 'userId': 1},
                  'signature': ''}})
         client.results.append({"marker": "first push", 'result': {'session': {}}})
-        # client.results.append(None)  # first check error stats
         client.results.append({"marker": "mon push", "result": True})
         client.results.append({"marker": "second push", 'result': {'session': {"statusCode": 140, 'status': 'ENDED'}}})
-        # client.results.append(None)  # second check error stats
         client.results.append({"marker": "post-proc push", 'result': {'session': {}}})
         client.results.append({"marker": "upload1", "result": True})  # post-proc error stats
         client.results.append({"marker": "terminate", 'result': {'session': {}}})
@@ -62,11 +83,7 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.check()
         for x in range(32, 65):
             obj.aggregated_second(random_datapoint(x))
-        try:
-            obj.check()
-            self.fail()
-        except KeyboardInterrupt:
-            pass
+        self.assertRaises(KeyboardInterrupt, obj.check)
         obj.aggregated_second(random_datapoint(10))
         obj.shutdown()
         obj.post_process()
