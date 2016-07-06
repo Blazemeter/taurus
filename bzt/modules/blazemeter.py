@@ -20,11 +20,11 @@ import json
 import logging
 import math
 import os
+import platform
 import sys
 import time
 import traceback
 import zipfile
-import platform
 from collections import defaultdict, OrderedDict
 
 import yaml
@@ -213,7 +213,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
                     note += "\n" + sess['note']
 
                 if note.strip():
-                    self.client.update_session(self.client.session_id, {"note": note.strip()})
+                    self.client.update_session({"note": note.strip()})
         except KeyboardInterrupt:
             raise
         except BaseException as exc:
@@ -522,11 +522,12 @@ class BlazeMeterClient(object):
         resp = self._request(url, data)
 
         self.session_id = str(resp['result']['session']['id'])
+        self.master_id = str(resp['result']['master']['id'])
         self.data_signature = str(resp['result']['signature'])
         self.test_id = test_id
         self.user_id = str(resp['result']['session']['userId'])
         if self.token:
-            self.results_url = self.address + '/app/#reports/%s' % self.session_id
+            self.results_url = self.address + '/app/#reports/%s' % self.master_id
             if session_name:
                 url = self.address + "/api/latest/sessions/%s" % self.session_id
                 self._request(url, to_json({"name": str(session_name)}),
@@ -948,9 +949,9 @@ class BlazeMeterClient(object):
         res = self._request(url)
         return res['result']
 
-    def update_session(self, session_id, data):
+    def update_session(self, data):
         hdr = {"Content-Type": "application/json"}
-        data = self._request(self.address + '/api/latest/sessions/%s' % session_id, to_json(data),
+        data = self._request(self.address + '/api/latest/sessions/%s' % self.session_id, to_json(data),
                              headers=hdr, method="PUT")
         return data['result']
 
