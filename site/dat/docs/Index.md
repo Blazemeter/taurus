@@ -23,6 +23,7 @@
     1. [Online Interactive Reports](BlazemeterReporter.md)
  1. [Services Subsystem](Services.md)
     1. [Pass/Fail Criteria](PassFail.md)
+    1. [ShellExec Service](ShellExec.md)
     1. [Resource Monitoring](Monitoring.md)
  1. [JMX to YAML converter](JMX2YAML.md)
  1. [Troubleshooting, Support and Feedback](https://groups.google.com/forum/#!forum/codename-taurus)
