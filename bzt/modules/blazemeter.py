@@ -217,8 +217,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
             if self.engine.stopping_reason:
                 exc_class = self.engine.stopping_reason.__class__.__name__
                 note = "%s: %s" % (exc_class, str(self.engine.stopping_reason))
-                self.__append_note("session", note)
-                self.__append_note("master", note)
+                self.client.append_note_to_session(note)
+                self.client.append_note_to_master(note)
 
         except KeyboardInterrupt:
             raise
@@ -604,6 +604,22 @@ class BlazeMeterClient(object):
             self.log.info("Creating project '%s'...", proj_name)
             return self.create_project(proj_name)
 
+    def append_note_to_master(self, note):
+        data = self.get_master()
+        if 'note' in data:
+            note = data['note'] + '\n' + note
+        note = note.strip()
+        if note:
+            self.update_master({'note': note})
+
+    def append_note_to_session(self, note):
+        data = self.get_session()
+        if 'note' in data:
+            note = data['note'] + '\n' + note
+        note = note.strip()
+        if note:
+            self.update_session({'note': note})
+
     def test_by_name(self, name, configuration, taurus_config, resource_files, proj_id):
         """
 
@@ -901,25 +917,24 @@ class BlazeMeterClient(object):
             "embeddedResources": [],
         }
 
-    def get(self, obj):
-        if obj == 'master':
-            req = self._request(self.address + '/api/latest/masters/%s' % self.master_id)
-        elif obj == 'session':
-            req = self._request(self.address + '/api/latest/sessions/%s' % self.session_id)
-        else:
-            raise ValueError("BlazeMeterClient: wrong object type '%s'", obj)
+    def get_master(self):
+        req = self._request(self.address + '/api/latest/masters/%s' % self.master_id)
         return req['result']
 
-    def update(self, obj, data):
+    def get_session(self):
+        req = self._request(self.address + '/api/latest/sessions/%s' % self.session_id)
+        return req['result']
+
+    def update_master(self, data):
         hdr = {"Content-Type": "application/json"}
-        if obj == 'master':
-            req = self._request(self.address + '/api/latest/masters/%s' % self.master_id,
-                                to_json(data), headers=hdr, method="PUT")
-        elif obj == 'session':
-            req = self._request(self.address + '/api/latest/sessions/%s' % self.session_id,
-                                to_json(data), headers=hdr, method="PUT")
-        else:
-            raise ValueError("BlazeMeterClient: wrong object type '%s'", obj)
+        req = self._request(self.address + '/api/latest/masters/%s' % self.master_id,
+                            to_json(data), headers=hdr, method="PUT")
+        return req['result']
+
+    def update_session(self,data):
+        hdr = {"Content-Type": "application/json"}
+        req = self._request(self.address + '/api/latest/sessions/%s' % self.session_id,
+                            to_json(data), headers=hdr, method="PUT")
         return req['result']
 
     def get_master_status(self):
