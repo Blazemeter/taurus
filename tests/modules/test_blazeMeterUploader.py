@@ -15,6 +15,52 @@ import bzt.modules.blazemeter
 
 
 class TestBlazeMeterUploader(BZTestCase):
+    def test_some_errors(self):
+        client = BlazeMeterClientEmul(logging.getLogger(''))
+        client.results.append({"marker": "ping", 'result': {}})
+        client.results.append({"marker": "projects", 'result': []})
+        client.results.append({"marker": "project-create", 'result': {
+            "id": time.time(),
+            "name": "boo",
+            "userId": time.time(),
+            "description": None,
+            "created": time.time(),
+            "updated": time.time(),
+            "organizationId": None
+        }})
+        client.results.append({"marker": "tests", 'result': {}})
+        client.results.append({"marker": "test-create", 'result': {'id': 'unittest1'}})
+        client.results.append(
+            {"marker": "sess-start",
+             "result": {
+                 'session': {'id': 'sess1', 'userId': 1},
+                 'master': {'id': 'master1', 'userId': 1},
+                 'signature': ''}})
+        client.results.append({"marker": "post-proc push", 'result': {'session': {}}})
+        client.results.append({"marker": "upload1", "result": True})  # post-proc error stats
+        client.results.append({"marker": "terminate", 'result': {'session': {}}})
+        client.results.append({"marker": "terminate2", 'result': {'session': {}}})
+        client.results.append({"marker": "sess-e", "result": {'session': {'id': 'sess1', 'note': 'n'}}})
+        client.results.append({"marker": "sess-e", "result": {'session': {}}})
+        client.results.append({"marker": "sess-e", "result": {'master': {'id': 'sess1', 'note': 'n'}}})
+        client.results.append({"marker": "sess-e", "result": {'master': {}}})
+        client.results.append({"marker": "upload-file", "result": {}})
+
+        obj = BlazeMeterUploader()
+        obj.parameters['project'] = 'Proj name'
+        obj.settings['token'] = '123'
+        obj.settings['browser-open'] = 'none'
+        obj.engine = EngineEmul()
+        obj.client = client
+        obj.prepare()
+        obj.startup()
+        obj.engine.stopping_reason = ValueError('wrong value')
+        obj.aggregated_second(random_datapoint(10))
+        obj.kpi_buffer[-1][DataPoint.CUMULATIVE][''][KPISet.ERRORS] = [
+            {'msg': 'Forbidden', 'cnt': 7373, 'type': KPISet.ERRTYPE_ASSERT, 'urls': [], KPISet.RESP_CODES: '403'},
+            {'msg': 'Allowed', 'cnt': 7373, 'type': KPISet.ERRTYPE_ERROR, 'urls': [], KPISet.RESP_CODES: '403'}]
+        obj.post_process()
+
     def test_check(self):
         client = BlazeMeterClientEmul(logging.getLogger(''))
         client.results.append({"marker": "ping", 'result': {}})
@@ -32,12 +78,14 @@ class TestBlazeMeterUploader(BZTestCase):
         client.results.append({"marker": "tests", 'result': {}})
         client.results.append({"marker": "test-create", 'result': {'id': 'unittest1'}})
         client.results.append(
-            {"marker": "sess-start", 'result': {'session': {'id': 'sess1', 'userId': 1}, 'signature': ''}})
+            {"marker": "sess-start",
+             "result": {
+                 'session': {'id': 'sess1', 'userId': 1},
+                 'master': {'id': 'master1', 'userId': 1},
+                 'signature': ''}})
         client.results.append({"marker": "first push", 'result': {'session': {}}})
-        # client.results.append(None)  # first check error stats
         client.results.append({"marker": "mon push", "result": True})
         client.results.append({"marker": "second push", 'result': {'session': {"statusCode": 140, 'status': 'ENDED'}}})
-        # client.results.append(None)  # second check error stats
         client.results.append({"marker": "post-proc push", 'result': {'session': {}}})
         client.results.append({"marker": "upload1", "result": True})  # post-proc error stats
         client.results.append({"marker": "terminate", 'result': {'session': {}}})
@@ -58,11 +106,7 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.check()
         for x in range(32, 65):
             obj.aggregated_second(random_datapoint(x))
-        try:
-            obj.check()
-            self.fail()
-        except KeyboardInterrupt:
-            pass
+        self.assertRaises(KeyboardInterrupt, obj.check)
         obj.aggregated_second(random_datapoint(10))
         obj.shutdown()
         obj.post_process()
@@ -94,7 +138,7 @@ class TestBlazeMeterClientUnicode(BZTestCase):
 
         blazemeter_client = BlazeMeterClient(logging.getLogger(''))
         blazemeter_client.address = "http://127.0.0.1:58000"
-        blazemeter_client.active_session_id = "ffff"
+        blazemeter_client.session_id = "ffff"
         self.token = "faketoken"
         normal_urlopen = bzt.modules.blazemeter.urlopen
         bzt.modules.blazemeter.urlopen = dummy_urlopen
@@ -104,7 +148,7 @@ class TestBlazeMeterClientUnicode(BZTestCase):
     def test_binary_unicode_error(self):
         client = BlazeMeterClient(logging.getLogger(''))
         client.address = u"http://127.0.0.1:58000"
-        client.active_session_id = "ffff"
+        client.session_id = "ffff"
         self.token = "faketoken"
         with open(__dir__() + "/../data/jmeter-dist-2.13.zip", 'rb') as fds:
             zip_content = fds.read()
