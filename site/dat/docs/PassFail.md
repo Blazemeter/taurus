@@ -11,8 +11,8 @@ Pass/fail criteria are specified as array of `criteria`, set through `services` 
 services:
 - module: passfail
   criteria:
-  - avg-rt of Sample Label>150ms for 10s, stop as failed
-  - fail of Sample Label>50% for 10s, stop as failed
+  - avg-rt of IndexPage>150ms for 10s, stop as failed
+  - fail of CheckoutPage>50% for 10s, stop as failed
 ```
 
 The above example use short form for criteria, its general format is
@@ -61,7 +61,7 @@ services:
     stop: true  # optional, default is true
 ```
 
-### Custom Messages for Criteria
+## Custom Messages for Criteria
 
 By default, Taurus uses criteria string to present it in messages. If you want
 to change the message, you can do one of:
@@ -78,13 +78,12 @@ services:
     Sample Label fails too much: fail of Sample Label>50% for 10s, stop as failed
 ```
 
-### Monitoring-Based Failure Criteria 
+## Monitoring-Based Failure Criteria 
 
-You can use special failure criteria based on monitoring data from target
-servers. Most of parameters for criteria are same like in other [fail criteria](#Pass-Fail-Criteria).
-You'll have to use full format for metric specification because of the need
-to specify metric class `bzt.modules.monitoring.MonitoringCriteria`. For
-example, to stop test once local CPU is exhausted, use:
+You can use special failure criteria based on monitoring data from target servers. Most of
+parameters for criteria are same like in other fail criteria. You'll have to use full format
+for metric specification because of the need to specify metric class `bzt.modules.monitoring.MonitoringCriteria`.
+For example, to stop test once local CPU is exhausted, use:
 
 ```yaml
 ---

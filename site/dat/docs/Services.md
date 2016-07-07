@@ -45,12 +45,7 @@ You can learn more about Pass/Fail Service at its [page](PassFail.md)
 ## Shell Executor Service Module
 
 Shell executor is used to perform additional shell commands at various test execution phases.
-Taurus provides the following hooks to bind your shell commands to:
-- `prepare`, when test is configured and all test data is prepared
-- `startup`, when load test begins
-- `check`, every `check-interval` seconds after test is started and before it's finished
-- `shutdown`, when load test ends
-- `post-process`, when all tests ended and reports are generated
+Taurus provides hooks to all Taurus [text execution phases](Lifecycle.md).
 
 Sample configuration:
 ```yaml
@@ -143,7 +138,7 @@ services:
     - memory
 ```
 
-You can learn more about Monitoring Service at its [page](PassFail.md)
+You can learn more about Monitoring Service at its [page](Monitoring.md)
 
 ### Unpacker
 

@@ -31,17 +31,21 @@ services:
 
 ## Sidebar Widget
 
-Once you have resource monitoring enabled, you'll be presented with small sidebar widget that informs you on latest data from monitoring agents:
+Once you have resource monitoring enabled, you'll be presented with small sidebar widget that
+informs you on latest data from monitoring agents:
 
 [](monitoring-widget.png)
 
-The widget will possibly not display all the metrics for the long list, that's the limitation of screen height :)
+The widget will possibly not display all the metrics for the long list, that's the limitation of
+screen height :)
 
-## Using ServerAgent To Collect Monitoring Stats From Server
- 
-Shortly, you need to launch small Java application on each of your target servers and then
-specify [metrics](http://jmeter-plugins.org/wiki/PerfMonMetrics/) to collect under `services`
-item. For example: 
+## ServerAgent
+
+[ServerAgent](http://jmeter-plugins.org/wiki/PerfMonAgent/) is a small Java application that
+collects server health stats and makes them accessible through network connection. To use it,
+you need to install and launch ServerAgent on each of your target servers and then specify
+[metrics](http://jmeter-plugins.org/wiki/PerfMonMetrics/) to collect under `services` item.
+For example: 
 ```yaml
 ---
 services:

@@ -26,7 +26,7 @@ reporting:
 Taurus provides the following reporter modules:
 - `console`, that shows live test stats in your terminal
 - `blazemeter`, that provides interactive online test reports
-- `final_stats`, that provides post-test summary stats
+- `final\_stats`, that provides post-test summary stats
 - `junit-xml`, that generates test stats in JUnit-compatible format
 
 ## Console Reporter
@@ -100,8 +100,7 @@ Reporter has two options:
 - `data-source` (which data source to use: `sample-labels` or `pass-fail`)
 
 If `sample-labels` used as source data, report will contain urls with test errors.
-If `pass-fail` used as source data, report will contain [Pass/Fail](Services.md#Pass-Fail-Criteria)
-criteria information.
+If `pass-fail` used as source data, report will contain [Pass/Fail](PassFail.md) criteria information.
 
 Sample configuration:
 
