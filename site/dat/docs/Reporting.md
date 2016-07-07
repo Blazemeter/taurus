@@ -32,7 +32,7 @@ Taurus provides the following reporter modules:
 ## Console Reporter
 
 The `console` reporter provides a nice in-terminal dashboard with live test stats and is enabled by default.
-You can read more about it on its own [page](ConsoleReporting.md).
+You can read more about it on its own [page](ConsoleReporter.md).
 
 ## BlazeMeter Reporter
 
@@ -40,7 +40,7 @@ The `blazemeter` reporter uploads all tests stats into [BlazeMeter.com](http://b
 which provides a nice UI to store and analyze test results. You can enable it with `-report` command
 line option or by adding `blazemeter` item to `reporting` section of your config.
 
-You can learn more about BlazeMeter reporter on its own [page](BlazemeterReporting.md).
+You can learn more about BlazeMeter reporter on its own [page](BlazemeterReporter.md).
 
 ## Final Stats Reporter
 
