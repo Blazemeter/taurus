@@ -1,4 +1,3 @@
-import logging
 import os
 import re
 import socket
@@ -38,7 +37,6 @@ def files():
     shutil.copy(jtl_file, os.path.join(artifacts_dir, matches[0]))
 
 
-logging.basicConfig(level=logging.DEBUG, filename='/tmp/bzt/fake_tool.log')
 mode = get_mode()
 
 # mode is gotten via environment variable $TEST_MODE
