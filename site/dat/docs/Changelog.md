@@ -1,9 +1,8 @@
 # Changelog
 ## 1.6.5 <sup>next</sup>
- - fix master_id choosing for cloud reporting 
-
-## 1.6.5 (next)
+ - fix master_id choosing for cloud reporting
  - fix non-graceful shutdown on GUI window close
+ - restructure reporting and services docs
 
 ## 1.6.4 <sup>05 jul 2016</sup>
  - add short script syntax (`<scenario>: \<script>`)
