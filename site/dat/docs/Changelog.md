@@ -1,8 +1,6 @@
 # Changelog
-## 1.6.5 <sup>next</sup>
+## 1.6.5 <sup>(next)</sup>
  - fix master_id choosing for cloud reporting 
-
-## 1.6.5 (next)
  - fix non-graceful shutdown on GUI window close
 
 ## 1.6.4 <sup>05 jul 2016</sup>
