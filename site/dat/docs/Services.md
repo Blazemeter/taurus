@@ -40,7 +40,7 @@ services:
   - fail of CheckoutPage>50% for 10s, stop as failed
 ```
 
-You can read more about Pass/Fail Service at its [page](PassFail.md)
+You can learn more about Pass/Fail Service at its [page](PassFail.md)
 
 ## Shell Executor Service Module
 
@@ -132,7 +132,18 @@ It may be useful to attach monitoring data from both servers and load generators
 report for further analysis. You can achieve that with `monitoring` service.
 Here's a quick example.
 
-[More about monitoring service](Monitoring.md)
+```yaml
+services:
+- module: monitoring
+  server-agent:  # collect data from remote server which has ServerAgent running
+  - address: 192.168.1.3:4444
+    metrics:
+    - cpu
+    - disks
+    - memory
+```
+
+You can learn more about Monitoring Service at its [page](PassFail.md)
 
 ### Unpacker
 
