@@ -31,18 +31,18 @@ Taurus provides the following reporter modules:
 
 ## Console Reporter
 
-This reporter provides a nice in-terminal dashboard with live test stats and is enabled by default.
+The `console` reporter provides a nice in-terminal dashboard with live test stats and is enabled by default.
 You can read more about it on its own [page](ConsoleReporting.md).
 
 ## BlazeMeter Reporter
 
-This reporter uploads all tests stats data into BlazeMeter service, which provides a nice UI
-to store and analyze test results. You can enable it with `-report` command line option or
-by adding `blazemeter` item to `reporting` section of your config.
+The `blazemeter` reporter uploads all tests stats into [BlazeMeter.com](http://blazemeter.com) service,
+which provides a nice UI to store and analyze test results. You can enable it with `-report` command
+line option or by adding `blazemeter` item to `reporting` section of your config.
 
 You can learn more about BlazeMeter reporter on its own [page](BlazemeterReporting.md).
 
-## `final_stats` Reporter
+## Final Stats Reporter
 
 This simple reporter just prints a few basic KPIs in the console log after test execution,
 for example:
@@ -92,7 +92,7 @@ Field names with explanations:
  -   `rc_200` - counts for specific response codes
  -   `perc_0.0` .. `perc_100.0` - percentile levels for response time, 0 is also minimum response time, 100 is maximum
 
-## `junit-xml` Reporter
+## JUnit XML Reporter
 
 This reporter provides test results in JUnit XML format parseable by Jenkins [JUnit Plugin](https://wiki.jenkins-ci.org/display/JENKINS/JUnit+Plugin).
 Reporter has two options:
