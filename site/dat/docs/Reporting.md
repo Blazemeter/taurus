@@ -1,6 +1,10 @@
-# Reporting & Results Processing
+# Generating Test Reports
 
-Reporting functionality in Taurus is delegated to special modules category. There is special [internal facility](#results-reading-and-aggregating-facility) that reads results from [executors](ExecutionSettings.md), aggregates them and feeds to configured reporters. Reporters are specified as list under top-level config key `reporting`, by default it is configured with two reporters:
+Reporting functionality in Taurus is delegated to special modules category. There is special
+[internal facility](#results-reading-and-aggregating-facility) that reads results from
+[executors](ExecutionSettings.md), aggregates them and feeds to configured reporters.
+Reporters are specified as list under top-level config key `reporting`, by default it is
+configured with two reporters:
 
 ```yaml
 ---
@@ -9,7 +13,8 @@ reporting:
 - console
 ```
 
-The example above uses a shorthand form for specifying reporters. Full form is using dictionaries and allows specifying some additional settings for reporters:
+The example above uses a shorthand form for specifying reporters. Full form is using dictionaries
+and allows specifying some additional settings for reporters:
 
 ```yaml
 ---
@@ -20,17 +25,27 @@ reporting:
 
 Taurus provides the following reporter modules:
 - `console`, that shows live test stats in your terminal
+- `blazemeter`, that provides interactive online test reports
 - `final_stats`, that provides post-test summary stats
 - `junit-xml`, that generates test stats in JUnit-compatible format
-- `blazemeter`, that provides interactive online test reports
 
+## Console Reporter
 
-Possible reporting modules are listed below.
+This reporter provides a nice in-terminal dashboard with live test stats and is enabled by default.
+You can read more about it on its own [page](ConsoleReporting.md).
+
+## BlazeMeter Reporter
+
+This reporter uploads all tests stats data into BlazeMeter service, which provides a nice UI
+to store and analyze test results. You can enable it with `-report` command line option or
+by adding `blazemeter` item to `reporting` section of your config.
+
+You can learn more about BlazeMeter reporter on its own [page](BlazemeterReporting.md).
 
 ## `final_stats` Reporter
 
-This is the simplest reporter that just prints few basic KPIs in the
-console log after test execution, for example:
+This simple reporter just prints a few basic KPIs in the console log after test execution,
+for example:
 ```
 18:04:24 INFO: Samples count: 367, 8.17% failures
 18:04:24 INFO: Average times: total 0.385, latency 0.115, connect 0.000
@@ -43,8 +58,7 @@ console log after test execution, for example:
 18:04:24 INFO: Percentile 100.0%: 3.641
 ```
 
-This reporter is enabled by default. You can tweak its behaviour with
-the following options:
+This reporter is enabled by default. You can tweak its behaviour with the following options:
 
 ```yaml
 ---
@@ -60,42 +74,34 @@ reporting:
 
 ### Dump Summary for Jenkins Plot Plugin
 
-Two options `dump-csv` and `dump-xml` allows to export final cumulative
-stats into files that can be used by [Jenkins Plot Plugin](https://wiki.jenkins-ci.org/display/JENKINS/Plot+Plugin)
-to plot historical data inside Jenkins. Prefer CSV as it is much easier
-to use with Plot Plugin. XML format also can be used with other tools
-to automate results processing.
+Two options `dump-csv` and `dump-xml` allows to export final cumulative stats into files that can be used
+by [Jenkins Plot Plugin](https://wiki.jenkins-ci.org/display/JENKINS/Plot+Plugin) to plot historical data
+inside Jenkins. Prefer CSV as it is much easier to use with Plot Plugin. XML format also can be used with
+other tools to automate results processing.
 
 Field names with explanations:
-
  -   `label` - is the sample group for which this CSV line presents the stats. Empty label means total of all labels
  -   `concurrency` - average number of Virtual Users
  -   `throughput` - total count of all samples
- -   `succ` - total count of not-failed samples   
+ -   `succ` - total count of not-failed samples
  -   `fail`  - total count of saved samples
- -   `avg_rt` - average response time  
- -   `stdev_rt` - standard deviation of response time  
+ -   `avg_rt` - average response time
+ -   `stdev_rt` - standard deviation of response time
  -   `avg_ct` - average connect time if present
  -   `avg_lt`  - average latency if present 
  -   `rc_200` - counts for specific response codes
  -   `perc_0.0` .. `perc_100.0` - percentile levels for response time, 0 is also minimum response time, 100 is maximum
 
-## `console` Reporter
-
-[Console Reporter](ConsoleReporting.md)
-
 ## `junit-xml` Reporter
 
-This reporter provides test results in JUnit xml format parsable by
-Jenkins [JUnit Plugin](https://wiki.jenkins-ci.org/display/JENKINS/JUnit+Plugin).
+This reporter provides test results in JUnit XML format parseable by Jenkins [JUnit Plugin](https://wiki.jenkins-ci.org/display/JENKINS/JUnit+Plugin).
 Reporter has two options:
 - `filename` (full path to report file, optional. By default `xunit.xml` in artifacts dir)
 - `data-source` (which data source to use: `sample-labels` or `pass-fail`)
 
-If `sample-labels` used as source data, report will contain urls with
-test errors.
-If `pass-fail` used as source data, report will contain
-[Pass/Fail](Services.md#Pass-Fail-Criteria) criteria information.
+If `sample-labels` used as source data, report will contain urls with test errors.
+If `pass-fail` used as source data, report will contain [Pass/Fail](Services.md#Pass-Fail-Criteria)
+criteria information.
 
 Sample configuration:
 
@@ -106,7 +112,6 @@ reporting:
   filename: /path_to_file/file.xml
   data-source: pass-fail
 ```
-
 
 ## Results Reading and Aggregating Facility
 
@@ -145,7 +150,3 @@ modules:
     - 99.9
     - 100.0
 ```
-
-## `blazemeter` Reporter
-
-[BlazeMeter Reporter](BlazemeterReporting.md)

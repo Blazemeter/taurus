@@ -1,24 +1,56 @@
 # Services Subsystem
 
-When you need to perform some actions before test starts, after test starts, or in parallel with running test, you should use services subsystem in Taurus. To configure services, use `services` top-level section of config with list of service module configs:
+When you need to perform some actions before test starts, after test starts, or in parallel with
+running test, you should use services subsystem in Taurus. To configure services, use `services`
+top-level section of config with list of service module configs:
+
+Services are configured with `services` toplevel section. `services` section contains a list of
+services to run:
+```yaml
+---
+services:
+- module: shellexec:
+  post-process: ...
+- module: monitoring
+  server-agent:
+  - address: 127.0.0.1:4444
+    metrics:
+    - cpu
+    - disks
+    - memory
+```
+
+Taurus provides the following services:
+- `passfail` allows you to set test status based on runtime criteria
+- `shellexec` used to execute additional shell commands when test is executed
+- `monitoring` allows including monitoring data in test reports
+
+## Pass/Fail Service
+
+Pass/Fail Service is used to dynamically update test status based on some runtime criteria. For
+example, you can use it to automatically fail the test when response time exceeds some limit.
+Here's a sample:
 
 ```yaml
 ---
 services:
-- shellexec:
-    prepare: ...
+- module: passfail
+  criteria:
+  - avg-rt of IndexPage>150ms for 10s, stop as failed
+  - fail of CheckoutPage>50% for 10s, stop as failed
 ```
 
-Taurus provides the following services:
-- `passfail` service allows you to set test status based on runtime criteria
-- `shellexec` service is used to execute additional shell commands when test is executed
-- `monitoring` service allows including monitoring data in test reports
-
-## Pass/Fail Criteria
-
-[More about Pass/Fail Service](PassFail.md)
+You can read more about Pass/Fail Service at its [page](PassFail.md)
 
 ## Shell Executor Service Module
+
+Shell executor is used to perform additional shell commands at various test execution phases.
+Taurus provides the following hooks to bind your shell commands to:
+- `prepare`, when test is configured and all test data is prepared
+- `startup`, when load test begins
+- `check`, every `check-interval` seconds after test is started and before it's finished
+- `shutdown`, when load test ends
+- `post-process`, when all tests ended and reports are generated
 
 Sample configuration:
 ```yaml
@@ -75,13 +107,14 @@ services:
   - pwd
   - echo something
 ```
+
 Notes:
  - Non-background tasks are not allowed on startup stage.
  - Background tasks will be shut down forcefully on mirror stages (see [Lifecycle](Lifecycle.md)) if they were not finished yet.
  - Background tasks on Check stage will not start until same previous task completed.
  - Special environment variable `TAURUS\_ARTIFACTS\_DIR` is set for every command, containing path to current artifacts directory
- - there is module setting `default-cwd` for `shellexec` module that allows to change `cwd` default value for all tasks
- - there is module setting `env` which contains dictionary for additional environment variables for commands
+ - There is module setting `default-cwd` for `shellexec` module that allows to change `cwd` default value for all tasks
+ - There is module setting `env` which contains dictionary for additional environment variables for commands
 
 ```yaml
 ---
@@ -94,6 +127,10 @@ modules:
 ```
  
 ## Resource Monitoring Service
+
+It may be useful to attach monitoring data from both servers and load generators in the test
+report for further analysis. You can achieve that with `monitoring` service.
+Here's a quick example.
 
 [More about monitoring service](Monitoring.md)
 

@@ -1,7 +1,7 @@
-## Console Screen
+# Console Reporter
 
-This reporter module shows full screen dashboard with some KPIs and even
- graphs in ASCII-art. Check this out:
+This reporter module shows full screen dashboard with some KPIs and even graphs in ASCII-art.
+Check this out:
 
 ![Console Screen](console-rsz.png)
 
@@ -24,12 +24,12 @@ modules:
 ```
 
 You can also disable this reporter by using]
+
 [command-line](CommandLine.md) `-o` switch:
 ```bash
 bzt config.yml -o modules.console.disable=true
 ```
 
-On Windows, Console Screen is shown in separate window and users may
-change font size by holding Ctrl key and using mouse wheel. Two
-additional options are `dummy-cols` and `dummy-rows`, they affect the
-size of _dummy_ screen that is used by `dummy` screen.
+On Windows, Console Screen is shown in separate window and users may change font size by holding
+Ctrl key and using mouse wheel. Two additional options are `dummy-cols` and `dummy-rows`, they
+affect the size of _dummy_ screen that is used by `dummy` screen.

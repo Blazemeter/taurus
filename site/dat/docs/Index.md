@@ -19,12 +19,11 @@
     1. [Tsung Executor](Tsung.md)
  1. [Cloud Provisioned Test Execution](Cloud.md)
  1. [Generating Test Reports](Reporting.md)
-    1. Observing Live Test Stats in Your Terminal
-    1. Saving Test Results
-    1. Online Interactive Reports
+    1. [Observing Live Test Stats in Your Terminal](ConsoleReporting.md)
+    1. [Online Interactive Reports](BlazemeterReporting.md)
  1. [Services Subsystem](Services.md)
-    1. Pass/Fail Criteria
-    1. Resource Monitoring
+    1. [Pass/Fail Criteria](PassFail.md)
+    1. [Resource Monitoring](Monitoring.md)
  1. [JMX to YAML converter](JMX2YAML.md)
  1. [Troubleshooting, Support and Feedback](https://groups.google.com/forum/#!forum/codename-taurus)
 

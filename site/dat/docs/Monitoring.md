@@ -1,12 +1,14 @@
 # Resource Monitoring Service
 
-A frequest task for tests is to monitor target server's health. Monitoring service is built to collect data from those remote servers. At this time followind sources are supported:
+A frequent task for tests is to monitor target server's health. Monitoring service is built
+to collect data from those remote servers. At this time the following sources are supported:
  - local health stats, enabled by default
- - [ServerAgent](http://jmeter-plugins.org/wiki/PerfMonAgent/) - technology that is used by JMeter users for long time and
- - [Graphite](https://graphite.readthedocs.org/en/latest/).
-Also you can use `local` monitoring (enabled by default) for check tester system state.
+ - [ServerAgent](http://jmeter-plugins.org/wiki/PerfMonAgent/) — technology that is used by JMeter users for long time and
+ - [Graphite](https://graphite.readthedocs.org/en/latest/)
 
-### Local Monitoring Stats
+## Local Monitoring Stats
+
+This service collects local health stats from computer running Taurus. It is enabled by default.
 
 Following metrics are collected locally: 
 - `cpu` - total CPU usage %
@@ -26,10 +28,20 @@ services:
     - disk-space
     - engine-loop
 ```
-  
-### Using ServerAgent To Collect Monitoring Stats From Server
+
+## Sidebar Widget
+
+Once you have resource monitoring enabled, you'll be presented with small sidebar widget that informs you on latest data from monitoring agents:
+
+[](monitoring-widget.png)
+
+The widget will possibly not display all the metrics for the long list, that's the limitation of screen height :)
+
+## Using ServerAgent To Collect Monitoring Stats From Server
  
-Shortly, you need to unzip and launch small Java server on each of your target servers and then specify [metrics](http://jmeter-plugins.org/wiki/PerfMonMetrics/) to collect under `services` item. For example: 
+Shortly, you need to launch small Java application on each of your target servers and then
+specify [metrics](http://jmeter-plugins.org/wiki/PerfMonMetrics/) to collect under `services`
+item. For example: 
 ```yaml
 ---
 services:
@@ -43,10 +55,11 @@ services:
 
 ```
 
-### Graphite 
+## Graphite 
 
 Graphite data source uses graphite The Render URL API to receive metrics.
-In this example you can see usage optional server `label`, `timeout` for graphite answers, `interval` between requests and interesting graphite data range definition with parameters `from`/`until`.
+In this example you can see usage optional server `label`, `timeout` for graphite answers, `interval`
+between requests and interesting graphite data range definition with parameters `from`/`until`.
 ```yaml
 ---
 services:
@@ -65,13 +78,4 @@ services:
     metrics:
     - production.hardware.cpuUsage
     - groupByNode(myserv_comp_org.cpu.?.cpu.*.value, 4, 'avg')
-``` 
-
-### Sidebar Widget
-
-Once you have resource monitoring enabled, you'll be presented with small sidebar widget that informs you on latest data from monitoring agents:
-
-[](monitoring-widget.png)
-
-The widget will possibly not display all the metrics for the long list, that's the limitation of screen height :)
-
+```

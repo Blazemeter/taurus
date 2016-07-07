@@ -1,9 +1,11 @@
 # Pass/Fail Criteria
 
-Every execution has pass/fail status and there is a way to set this status based on runtime criteria. Special `passfail` service offers this functionality. Another useful feature of pass/fail criteria is _auto-stop_ functionality, allowing to interrupt failed tests automatically, sparing the time and resources.
+Every execution has pass/fail status and there is a way to set this status based on runtime criteria.
+Special `passfail` service offers this functionality. Another useful feature of pass/fail criteria
+is _auto-stop_ functionality, allowing to interrupt failed tests automatically, sparing the time and
+resources.
 
 Pass/fail criteria are specified as array of `criteria`, set through `services` item in config:
-
 ```yaml
 ---
 services:
@@ -13,7 +15,8 @@ services:
   - fail of Sample Label>50% for 10s, stop as failed
 ```
 
-The above example use short form for criteria, its general format is `subject of label{condition}threshold {logic} timeframe, action as status`, where:
+The above example use short form for criteria, its general format is
+`subject of label{condition}threshold {logic} timeframe, action as status`, where:
 
   - `subject` is the KPI that will be compared, listed below
   - `label` is sample label, empty for overall
@@ -27,7 +30,6 @@ The above example use short form for criteria, its general format is `subject of
 Any non-required parameters might be omitted, the minimal form is `subject{condition}threshold`. 
 
 Possible subjects are:
-
  - `avg-rt` - average response time, e.g. `avg-rt>2s500ms`
  - `avg-lt`- average latency, e.g. `avg-lt for mylabel>2`
  - `avg-ct` - average connect time, e.g. `avg-ct>100ms`
@@ -39,7 +41,8 @@ Possible subjects are:
  - `rc...` - response codes criteria, supports percentage threshold, response code may be specified using wildcards `?` and `\*`, e.g. `rc500>20 for 5s, stop as failed`, `rc4??>20%`, `rc\*>=10 for 1m`, `rcException>99% for 1m, continue as failed`, 
 
 
-The full form of the criteria is conducted by Taurus automatically from short form. You can also specify it as this:
+The full form of the criteria is conducted by Taurus automatically from short form. You can also
+specify it as this:
 
 ```yaml
 ---
@@ -60,7 +63,8 @@ services:
 
 ### Custom Messages for Criteria
 
-By default, Taurus uses criteria string to present it in messages. If you want to change the message, you can do one of:
+By default, Taurus uses criteria string to present it in messages. If you want
+to change the message, you can do one of:
  - set `message` field for full form of criteria
  - set message by prepending it to criteria string, like this: `My message: avg-rt>10s`
  - use dictionary instead of array to specify message and criteria, like this:
@@ -76,7 +80,11 @@ services:
 
 ### Monitoring-Based Failure Criteria 
 
-Once you have working resource collecting process, you can use special failure criteria based on data from target servers. Most of parameters for criteria are same like in other [fail criteria](#Pass-Fail-Criteria). You'll have to use full format for metric specification because of the need to specify metric class `bzt.modules.monitoring.MonitoringCriteria`. For example, to stop test once local CPU is exhausted, use:
+You can use special failure criteria based on monitoring data from target
+servers. Most of parameters for criteria are same like in other [fail criteria](#Pass-Fail-Criteria).
+You'll have to use full format for metric specification because of the need
+to specify metric class `bzt.modules.monitoring.MonitoringCriteria`. For
+example, to stop test once local CPU is exhausted, use:
 
 ```yaml
 ---
