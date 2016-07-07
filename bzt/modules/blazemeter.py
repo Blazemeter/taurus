@@ -203,6 +203,14 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
 
             self._postproc_phase3()
 
+    def __append_note(self, obj, note):
+        data = self.client.get(obj)
+        if 'note' in data:
+            note = data['note'] + '\n' + note
+        note = note.strip()
+        if note:
+            self.client.update(obj, {'note': note})
+
     def _postproc_phase3(self):
         try:
             self.client.end_online()

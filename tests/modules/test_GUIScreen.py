@@ -1,14 +1,16 @@
 import time
-from unittest import TestCase
+from unittest import TestCase, skipIf
 
 from urwid.canvas import Canvas
 
+from bzt.engine import ManualShutdown
 from bzt.modules.console import TaurusConsole
+from bzt.utils import DummyScreen
 
 try:
     from bzt.modules.screen import GUIScreen as Screen
 except:
-    from bzt.utils import DummyScreen as Screen
+    Screen = DummyScreen
 
 
 class TestCanvas(Canvas):
@@ -60,3 +62,21 @@ class TestGUIScreen(TestCase):
             self.assertEqual(obj.font['size'], old_font_size)
 
         obj.stop()
+
+    @skipIf(Screen is DummyScreen, "skip test if GUI window isn't available")
+    def test_window_closed(self):
+        lines = [((x[0], None, "%s\n" % x[0]),) for x in TaurusConsole.palette]
+        canvas = TestCanvas(lines)
+        obj = Screen()
+        obj.register_palette(TaurusConsole.palette)
+        obj.start()
+        for _ in range(5):
+            obj.draw_screen((1, 1), canvas)
+            time.sleep(0.1)
+        # closing the window
+        obj.closed_window()
+        # first call to draw_screen should raise ManualShutdown
+        self.assertRaises(ManualShutdown, obj.draw_screen, (1, 1), canvas)
+        # consecutive calls to draw_screen shouldn't raise
+        obj.draw_screen((1, 1), canvas)
+        obj.draw_screen((1, 1), canvas)

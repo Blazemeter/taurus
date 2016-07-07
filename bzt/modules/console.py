@@ -45,7 +45,7 @@ from bzt.utils import humanize_time, is_windows, DummyScreen
 try:
     from bzt.modules.screen import GUIScreen
 except ImportError:
-    Screen = DummyScreen
+    GUIScreen = DummyScreen
 
 try:
     from urwid.curses_display import Screen as ConsoleScreen
