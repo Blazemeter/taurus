@@ -15,15 +15,36 @@ import bzt.modules.blazemeter
 
 
 class TestBlazeMeterUploader(BZTestCase):
-    def test_notes(self):
+    def test_some_errors(self):
         client = BlazeMeterClientEmul(logging.getLogger(''))
         client.results.append({"marker": "ping", 'result': {}})
         client.results.append({"marker": "projects", 'result': []})
+        client.results.append({"marker": "project-create", 'result': {
+            "id": time.time(),
+            "name": "boo",
+            "userId": time.time(),
+            "description": None,
+            "created": time.time(),
+            "updated": time.time(),
+            "organizationId": None
+        }})
         client.results.append({"marker": "tests", 'result': {}})
         client.results.append({"marker": "test-create", 'result': {'id': 'unittest1'}})
+        client.results.append(
+            {"marker": "sess-start",
+             "result": {
+                 'session': {'id': 'sess1', 'userId': 1},
+                 'master': {'id': 'master1', 'userId': 1},
+                 'signature': ''}})
         client.results.append({"marker": "post-proc push", 'result': {'session': {}}})
         client.results.append({"marker": "upload1", "result": True})  # post-proc error stats
         client.results.append({"marker": "terminate", 'result': {'session': {}}})
+        client.results.append({"marker": "terminate2", 'result': {'session': {}}})
+        client.results.append({"marker": "sess-e", "result": {'session': {'id': 'sess1', 'note': 'n'}}})
+        client.results.append({"marker": "sess-e", "result": {'session': {}}})
+        client.results.append({"marker": "sess-e", "result": {'master': {'id': 'sess1', 'note': 'n'}}})
+        client.results.append({"marker": "sess-e", "result": {'master': {}}})
+        client.results.append({"marker": "upload-file", "result": {}})
 
         obj = BlazeMeterUploader()
         obj.parameters['project'] = 'Proj name'
@@ -33,9 +54,11 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.client = client
         obj.prepare()
         obj.startup()
-        obj.check()
-        obj.shutdown()
         obj.engine.stopping_reason = ValueError('wrong value')
+        obj.aggregated_second(random_datapoint(10))
+        obj.kpi_buffer[-1][DataPoint.CUMULATIVE][''][KPISet.ERRORS] = [
+            {'msg': 'Forbidden', 'cnt': 7373, 'type': KPISet.ERRTYPE_ASSERT, 'urls': [], KPISet.RESP_CODES: '403'},
+            {'msg': 'Allowed', 'cnt': 7373, 'type': KPISet.ERRTYPE_ERROR, 'urls': [], KPISet.RESP_CODES: '403'}]
         obj.post_process()
 
     def test_check(self):
