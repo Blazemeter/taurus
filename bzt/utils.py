@@ -833,12 +833,12 @@ class MirrorsManager(object):
 
 
 def open_browser(url):
-    browser = webbrowser.get()
-    if type(browser) != GenericBrowser:  # pylint: disable=unidiomatic-typecheck
-        try:
+    try:
+        browser = webbrowser.get()
+        if type(browser) != GenericBrowser:  # pylint: disable=unidiomatic-typecheck
             browser.open(url)
-        except BaseException as exc:
-            logging.warning("Can't open link in browser: %s", exc)
+    except BaseException as exc:
+        logging.warning("Can't open link in browser: %s", exc)
 
 
 def is_windows():
