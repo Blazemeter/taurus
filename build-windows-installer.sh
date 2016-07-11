@@ -7,6 +7,8 @@ virtualenv --clear build
 source build/bin/activate
 pip install --upgrade pynsist
 
+python setup.py sdist
+
 rm -rf build/nsis
 mkdir -p build/nsis
 
@@ -17,10 +19,19 @@ cat << EOF > taurus.nsi
 [% block install_commands %]
 [[ super() ]]
   nsExec::ExecToLog 'py -m pip install --upgrade pip'
-  nsExec::ExecToLog 'py -m pip install --upgrade bzt==${TAURUS_VERSION}'
-
+  nsExec::ExecToLog 'py -m pip install "\$INSTDIR\bzt-${TAURUS_VERSION}.tar.gz"'
 [% endblock %]
 
+[% block uninstall_commands %]
+[[ super() ]]
+  nsExec::ExecToLog 'py -m pip uninstall -y bzt'
+[% endblock %]
+
+EOF
+
+cat << EOF > /tmp/fakerunner.py
+from bzt import cli
+cli.main()
 EOF
 
 # Create pynsist config
@@ -29,7 +40,7 @@ cat << EOF > installer.cfg
 name=Taurus
 version=${TAURUS_VERSION}
 # entry_point=bzt.cli:main
-script=scripts/bztrunner.py
+script=/tmp/fakerunner.py
 console=true
 
 [Command bzt]
@@ -41,6 +52,9 @@ entry_point=bzt.jmx2yaml:main
 [Python]
 version=2.7.12
 bitness=32
+
+[Include]
+files=dist/bzt-${TAURUS_VERSION}.tar.gz
 
 [Build]
 nsi_template=taurus.nsi
