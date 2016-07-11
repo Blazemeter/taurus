@@ -4,6 +4,7 @@
  - fix non-graceful shutdown on GUI window close
  - restructure reporting and services docs
  - do not crash when attempting to open browser in browserless env
+ - update Gatling script sample in docs
 
 ## 1.6.4 <sup>05 jul 2016</sup>
  - add short script syntax (`<scenario>: \<script>`)
