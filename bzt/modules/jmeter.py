@@ -55,8 +55,11 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     """
     MIRRORS_SOURCE = "https://archive.apache.org/dist/jmeter/binaries/"
     JMETER_DOWNLOAD_LINK = "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-{version}.zip"
+    PLUGINS_MANAGER = 'https://repo1.maven.org/maven2/kg/apc/jmeter-plugins-manager/0.8/jmeter-plugins-manager-0.8.jar'
+    CMDRUNNER = 'http://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.0/cmdrunner-2.0.jar'
+    PLUGINS = ["jpgc-casutg", "jpgc-dummy", "jpgc-ffw", "jpgc-fifo", "jpgc-functions",
+               "jpgc-json", "jpgc-perfmon", "jpgc-prmctl", "jpgc-tst"]
     JMETER_VER = "3.0"
-    PLUGINS_DOWNLOAD_TPL = "http://jmeter-plugins.org/files/JMeterPlugins-{plugin}-1.4.0.zip"
     UDP_PORT_NUMBER = None
 
     def __init__(self):
@@ -766,8 +769,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         jmeter_path = get_full_path(jmeter_path)
         jmeter_version = self.settings.get("version", JMeterExecutor.JMETER_VER)
         download_link = self.settings.get("download-link", JMeterExecutor.JMETER_DOWNLOAD_LINK)
-        plugin_download_link = self.settings.get("plugins-download-link", JMeterExecutor.PLUGINS_DOWNLOAD_TPL)
-        tool = JMeter(jmeter_path, self.log, jmeter_version, download_link, plugin_download_link)
+        plugins = self.settings.get("plugins", [])
+        plugins += JMeterExecutor.PLUGINS
+        tool = JMeter(jmeter_path, self.log, jmeter_version, download_link, plugins)
 
         if self._need_to_install(tool):
             self.log.info("Installing %s", tool.tool_name)
@@ -1509,14 +1513,12 @@ class JMeter(RequiredTool):
     """
     JMeter tool
     """
-
-    def __init__(self, tool_path, parent_logger, jmeter_version, jmeter_download_link, plugin_link):
+    def __init__(self, tool_path, parent_logger, jmeter_version, jmeter_download_link, plugins):
         super(JMeter, self).__init__("JMeter", tool_path)
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.version = jmeter_version
         self.mirror_manager = JMeterMirrorsManager(self.log, self.version, jmeter_download_link)
-        self.plugins = ["Standard", "Extras", "ExtrasLibs", "WebDriver"]
-        self.plugin_link = plugin_link
+        self.plugins = plugins
 
     def check_if_installed(self):
         self.log.debug("Trying jmeter: %s", self.tool_path)
@@ -1541,10 +1543,7 @@ class JMeter(RequiredTool):
             self.log.debug("JMeter check failed.")
             return False
 
-    def install(self):
-        full_tool_path = get_full_path(self.tool_path)
-        dest = get_full_path(os.path.join(os.path.dirname(full_tool_path), os.path.pardir))
-
+    def __install_jmeter(self, dest):
         with super(JMeter, self).install_with_mirrors(dest, ".zip") as jmeter_dist:
             self.log.info("Unzipping %s to %s", jmeter_dist.name, dest)
             unzip(jmeter_dist.name, dest, 'apache-jmeter-%s' % self.version)
@@ -1558,22 +1557,53 @@ class JMeter(RequiredTool):
         if not self.check_if_installed():
             raise RuntimeError("Unable to run %s after installation!" % self.tool_name)
 
-        for plugin in self.plugins:
-            plugin_dist = tempfile.NamedTemporaryFile(suffix=".zip", delete=False, prefix=plugin)
-            plugin_download_link = self.plugin_link.format(plugin=plugin)
-            self.log.info("Downloading %s", plugin_download_link)
-            downloader = http_request.FancyURLopener()
-            with ProgressBarContext() as pbar:
-                try:
-                    downloader.retrieve(plugin_download_link, plugin_dist.name, pbar.download_callback)
-                except BaseException as exc:
-                    self.log.error("Error while downloading %s", plugin_download_link)
-                    raise exc
+    def __download_additions(self, dest):
+        direct_install = [  # name, source link and destination
+            ['Plugins Manager', JMeterExecutor.PLUGINS_MANAGER, '/lib/ext/jmeter-plugins-manager-0.8.jar'],
+            ['cmdrunner', JMeterExecutor.CMDRUNNER, '/lib/cmdrunner-2.0.jar']]
 
-            self.log.info("Unzipping %s", plugin_dist.name)
-            unzip(plugin_dist.name, dest)
-            plugin_dist.close()
-            os.remove(plugin_dist.name)
+        downloader = http_request.FancyURLopener()
+        with ProgressBarContext() as pbar:
+            try:
+                for tool in direct_install:
+                    self.log.info("Downloading %s from %s", tool[0], tool[1])
+                    downloader.retrieve(tool[1], dest+tool[2], pbar.download_callback)
+            except BaseException as exc:
+                self.log.error("Error while downloading %s", tool[0])
+                raise exc
+
+    def __install_plugins_manager(self, dest):
+        installer = "org.jmeterplugins.repository.PluginManagerCMDInstaller"
+        cmd = ["java", "-cp", dest+"/lib/ext/jmeter-plugins-manager-0.8.jar", installer]
+        self.log.debug("Trying: %s", cmd)
+        try:
+            proc = shell_exec(cmd)
+            out, err = proc.communicate()
+            self.log.debug("Install PluginsManager: %s / %s", out, err)
+        except BaseException as exc:
+            self.log.debug("Failed to install PluginsManager: %s", exc)
+            raise RuntimeError
+
+    def __install_plugins(self, dest):
+        plugin_str = ",".join(self.plugins)
+        cmd = [dest+"/bin/PluginsManagerCMD"+EXE_SUFFIX, 'install', plugin_str]
+        self.log.debug("Trying: %s", cmd)
+        try:
+            proc = shell_exec(cmd)
+            out, err = proc.communicate()
+            self.log.debug("Install plugins: %s / %s", out, err)
+        except BaseException as exc:
+            self.log.debug("Failed to install plugins: %s", exc)
+            raise RuntimeError
+
+    def install(self):
+        dest = get_full_path(self.tool_path, step_up=2)
+
+        self.__install_jmeter(dest)
+        self.__download_additions(dest)
+        self.__install_plugins_manager(dest)
+        self.__install_plugins(dest)
+
         cleaner = JarCleaner(self.log)
         cleaner.clean(os.path.join(dest, 'lib'))
 

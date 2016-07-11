@@ -176,7 +176,7 @@ class TestJMeterExecutor(BZTestCase):
 
         jmeter_link = JMeterExecutor.JMETER_DOWNLOAD_LINK
         jmeter_ver = JMeterExecutor.JMETER_VER
-        plugins_link = JMeterExecutor.PLUGINS_DOWNLOAD_TPL
+        plugins_link = JMeterExecutor.PLUGINS
         mirrors_link = JMeterExecutor.MIRRORS_SOURCE
 
         JMeterExecutor.MIRRORS_SOURCE = "file:///" + __dir__() + "/../data/unicode_file"
