@@ -147,7 +147,6 @@ class BetterDict(defaultdict):
 
     def __init__(self, **kwargs):
         super(BetterDict, self).__init__(**kwargs)
-        self.log = logging.getLogger(self.__class__.__name__)
 
     def get(self, key, default=defaultdict):
         """
@@ -187,15 +186,11 @@ class BetterDict(defaultdict):
                 if key[1:] in self:
                     self.pop(key[1:])
                 key = key[1:]
-                self.log.debug("Overridden key: %s", key)
 
             if len(key) and key[0] == '^':  # eliminate flag
                 # TODO: improve logic - use val contents to see what to eliminate
                 if key[1:] in self:
                     self.pop(key[1:])
-                    self.log.debug("Removed key: %s", key)
-                else:
-                    self.log.debug("No key to remove: %s", key)
                 continue
 
             if isinstance(val, dict):
@@ -207,7 +202,6 @@ class BetterDict(defaultdict):
                 elif isinstance(dst, dict):
                     raise ValueError("Mix of DictOfDict and dict is forbidden")
                 else:
-                    self.log.warning("Overwritten key: %s", key)
                     self[key] = val
             elif isinstance(val, list):
                 self.__ensure_list_type(val)
@@ -216,7 +210,6 @@ class BetterDict(defaultdict):
                 if isinstance(self[key], list):
                     self[key].extend(val)
                 else:
-                    self.log.warning("Overridden key: %s", key)
                     self[key] = val
             else:
                 self[key] = val
@@ -834,12 +827,12 @@ class MirrorsManager(object):
 
 
 def open_browser(url):
-    browser = webbrowser.get()
-    if type(browser) != GenericBrowser:  # pylint: disable=unidiomatic-typecheck
-        try:
+    try:
+        browser = webbrowser.get()
+        if type(browser) != GenericBrowser:  # pylint: disable=unidiomatic-typecheck
             browser.open(url)
-        except BaseException as exc:
-            logging.warning("Can't open link in browser: %s", exc)
+    except BaseException as exc:
+        logging.warning("Can't open link in browser: %s", exc)
 
 
 def is_windows():

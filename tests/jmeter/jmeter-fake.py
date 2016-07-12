@@ -1,19 +1,19 @@
 import os
-
-
-# import logging
+import re
+import socket
+import shutil
+import sys
 
 
 def get_mode():
     return os.environ.get("TEST_MODE")
+
 
 def get_artifacts_dir():
     return os.environ.get("TAURUS_ARTIFACTS_DIR", ".")
 
 
 def udp_server():
-    import socket
-
     udp_sock = socket.socket(type=socket.SOCK_DGRAM)
     udp_sock.bind(('localhost', 8089))
     print("UDP Server started..")
@@ -27,23 +27,17 @@ def udp_server():
 
 
 def files():
-    import shutil
     artifacts_dir = get_artifacts_dir()
     jmeter_path = os.path.dirname(__file__)
     jtl_file = jmeter_path + '/jtl/tranctl.jtl'
-    file_name = 'kpi'
-    suffix = ''
-    i = 0
-    while os.path.isfile(os.path.join(artifacts_dir, file_name + suffix + '.jtl')):
-        i += 1
-        suffix = '-%i' % i
-    shutil.copy(jtl_file, os.path.join(artifacts_dir, file_name + suffix + '.jtl'))
+    jmx = [x for x in sys.argv if x.endswith('.jmx')][0]
+    with open(jmx, 'r') as fds:
+        jmx_content = fds.read()
+    matches = re.findall(r'<stringProp name="filename">(.+kpi(?:\-\d+)?\.jtl)<', jmx_content)
+    shutil.copy(jtl_file, os.path.join(artifacts_dir, matches[0]))
 
 
-# logging.basicConfig(level=logging.ERROR, filename='/tmp/bzt/fake_tool.log')
 mode = get_mode()
-
-# logging.debug('mode=%s', mode)
 
 # mode is gotten via environment variable $TEST_MODE
 if mode == 'files':     # test_engine
