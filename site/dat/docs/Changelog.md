@@ -5,6 +5,7 @@
  - restructure reporting and services docs
  - do not crash when attempting to open browser in browserless env
  - update Gatling script sample in docs
+ - solve slow post-processing by making reading speed of kpi.jtl adaptive
 
 ## 1.6.4 <sup>05 jul 2016</sup>
  - add short script syntax (`<scenario>: \<script>`)
