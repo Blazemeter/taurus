@@ -730,6 +730,7 @@ class ProgressBarContext(ProgressBar):
             super(ProgressBarContext, self).update(value)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        del exc_type, exc_val, exc_tb
         if sys.stdout.isatty():
             self.finish()
 
