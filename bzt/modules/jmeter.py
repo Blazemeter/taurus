@@ -55,7 +55,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     """
     MIRRORS_SOURCE = "https://archive.apache.org/dist/jmeter/binaries/"
     JMETER_DOWNLOAD_LINK = "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-{version}.zip"
-    PLUGINS_MANAGER = 'https://repo1.maven.org/maven2/kg/apc/jmeter-plugins-manager/0.8/jmeter-plugins-manager-0.8.jar'
+    PLUGINS_MANAGER = 'http://search.maven.org/remotecontent?filepath=' \
+                      'kg/apc/jmeter-plugins-manager/0.8/jmeter-plugins-manager-0.8.jar'
     CMDRUNNER = 'http://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.0/cmdrunner-2.0.jar'
     PLUGINS = ["jpgc-casutg", "jpgc-dummy", "jpgc-ffw", "jpgc-fifo", "jpgc-functions",
                "jpgc-json", "jpgc-perfmon", "jpgc-prmctl", "jpgc-tst"]
@@ -769,8 +770,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         jmeter_path = get_full_path(jmeter_path)
         jmeter_version = self.settings.get("version", JMeterExecutor.JMETER_VER)
         download_link = self.settings.get("download-link", JMeterExecutor.JMETER_DOWNLOAD_LINK)
-        plugins = self.settings.get("plugins", [])
-        plugins += JMeterExecutor.PLUGINS
+        plugins = self.settings.get("plugins", JMeterExecutor.PLUGINS)
         tool = JMeter(jmeter_path, self.log, jmeter_version, download_link, plugins)
 
         if self._need_to_install(tool):
@@ -1513,6 +1513,7 @@ class JMeter(RequiredTool):
     """
     JMeter tool
     """
+
     def __init__(self, tool_path, parent_logger, jmeter_version, jmeter_download_link, plugins):
         super(JMeter, self).__init__("JMeter", tool_path)
         self.log = parent_logger.getChild(self.__class__.__name__)
@@ -1559,22 +1560,23 @@ class JMeter(RequiredTool):
 
     def __download_additions(self, dest):
         direct_install = [  # name, source link and destination
-            ['Plugins Manager', JMeterExecutor.PLUGINS_MANAGER, '/lib/ext/jmeter-plugins-manager-0.8.jar'],
-            ['cmdrunner', JMeterExecutor.CMDRUNNER, '/lib/cmdrunner-2.0.jar']]
+            [JMeterExecutor.PLUGINS_MANAGER, '/lib/ext/jmeter-plugins-manager-0.8.jar'],
+            [JMeterExecutor.CMDRUNNER, '/lib/cmdrunner-2.0.jar']]
 
         downloader = http_request.FancyURLopener()
         with ProgressBarContext() as pbar:
             try:
                 for tool in direct_install:
-                    self.log.info("Downloading %s from %s", tool[0], tool[1])
-                    downloader.retrieve(tool[1], dest+tool[2], pbar.download_callback)
+                    _file = os.path.basename(tool[0])
+                    self.log.info("Downloading %s from %s", _file, tool[0])
+                    downloader.retrieve(tool[0], dest + tool[1], pbar.download_callback)
             except BaseException as exc:
-                self.log.error("Error while downloading %s", tool[0])
+                self.log.error("Error while downloading %s", _file)
                 raise exc
 
     def __install_plugins_manager(self, dest):
         installer = "org.jmeterplugins.repository.PluginManagerCMDInstaller"
-        cmd = ["java", "-cp", dest+"/lib/ext/jmeter-plugins-manager-0.8.jar", installer]
+        cmd = ["java", "-cp", dest + "/lib/ext/jmeter-plugins-manager-0.8.jar", installer]
         self.log.debug("Trying: %s", cmd)
         try:
             proc = shell_exec(cmd)
@@ -1586,7 +1588,7 @@ class JMeter(RequiredTool):
 
     def __install_plugins(self, dest):
         plugin_str = ",".join(self.plugins)
-        cmd = [dest+"/bin/PluginsManagerCMD"+EXE_SUFFIX, 'install', plugin_str]
+        cmd = [dest + "/bin/PluginsManagerCMD" + EXE_SUFFIX, 'install', plugin_str]
         self.log.debug("Trying: %s", cmd)
         try:
             proc = shell_exec(cmd)

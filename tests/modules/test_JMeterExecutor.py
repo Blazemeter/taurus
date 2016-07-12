@@ -30,6 +30,16 @@ def get_jmeter():
     return obj
 
 
+def get_jmeter_executor_vars():
+    return (JMeterExecutor.JMETER_DOWNLOAD_LINK, JMeterExecutor.JMETER_VER, JMeterExecutor.PLUGINS,
+            JMeterExecutor.MIRRORS_SOURCE, JMeterExecutor.CMDRUNNER, JMeterExecutor.PLUGINS_MANAGER)
+
+
+def set_jmeter_executor_vars(jmeter_vars):
+    (JMeterExecutor.JMETER_DOWNLOAD_LINK, JMeterExecutor.JMETER_VER, JMeterExecutor.PLUGINS,
+        JMeterExecutor.MIRRORS_SOURCE, JMeterExecutor.CMDRUNNER, JMeterExecutor.PLUGINS_MANAGER) = jmeter_vars
+
+
 class TestJMeterExecutor(BZTestCase):
     def setUp(self):
         self.obj = get_jmeter()
@@ -37,6 +47,7 @@ class TestJMeterExecutor(BZTestCase):
     def tearDown(self):
         if self.obj.modified_jmx and os.path.exists(self.obj.modified_jmx):
             os.remove(self.obj.modified_jmx)
+
 
     def test_jmx(self):
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/dummy.jmx"}})
@@ -168,31 +179,32 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(JMeterExecutor._need_to_install(fake), True)
         self.assertEqual(fake.tool_path, os.path.join('*', end_str))
 
-    def test_install_jmeter(self):
+    def test_install_jmeter_2_13(self):
+
         path = os.path.abspath(__dir__() + "/../../build/tmp/jmeter-taurus/bin/jmeter" + EXE_SUFFIX)
 
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
         self.assertFalse(os.path.exists(path))
 
-        jmeter_link = JMeterExecutor.JMETER_DOWNLOAD_LINK
-        jmeter_ver = JMeterExecutor.JMETER_VER
-        plugins_link = JMeterExecutor.PLUGINS
-        mirrors_link = JMeterExecutor.MIRRORS_SOURCE
+        jmeter_vars = get_jmeter_executor_vars()
+        set_jmeter_executor_vars(jmeter_vars)
 
         JMeterExecutor.MIRRORS_SOURCE = "file:///" + __dir__() + "/../data/unicode_file"
         JMeterExecutor.JMETER_DOWNLOAD_LINK = "file:///" + __dir__() + "/../data/jmeter-dist-{version}.zip"
-        JMeterExecutor.PLUGINS_DOWNLOAD_TPL = "file:///" + __dir__() + "/../data/JMeterPlugins-{plugin}-1.3.0.zip"
+        JMeterExecutor.PLUGINS_MANAGER = "file:///" + __dir__() + "/../data/jmeter-plugins-manager.jar"
+        JMeterExecutor.CMDRUNNER = "file:///" + __dir__() + "/../data/jmeter-plugins-manager.jar"
+        JMeterExecutor.PLUGINS = ['Alice', 'Bob']
         JMeterExecutor.JMETER_VER = '2.13'
 
-        self.obj = get_jmeter()
         self.obj.settings.merge({"path": path})
         self.obj.execution.merge({"scenario": {"requests": ["http://localhost"]}})
 
         self.obj.prepare()
 
         jars = os.listdir(os.path.abspath(os.path.join(path, '../../lib')))
-        old_jars = ['httpcore-4.2.5.jar', 'httpmime-4.2.6.jar', 'xercesImpl-2.9.1.jar', 'commons-jexl-1.1.jar',
-                    'httpclient-4.2.6.jar']
+        old_jars = [
+            'httpcore-4.2.5.jar', 'httpmime-4.2.6.jar', 'xercesImpl-2.9.1.jar',
+            'commons-jexl-1.1.jar', 'httpclient-4.2.6.jar']
         for old_jar in old_jars:
             self.assertNotIn(old_jar, jars)
 
@@ -204,28 +216,23 @@ class TestJMeterExecutor(BZTestCase):
 
         self.obj.prepare()
 
-        JMeterExecutor.JMETER_DOWNLOAD_LINK = jmeter_link
-        JMeterExecutor.PLUGINS_DOWNLOAD_TPL = plugins_link
-        JMeterExecutor.JMETER_VER = jmeter_ver
-        JMeterExecutor.MIRRORS_SOURCE = mirrors_link
+        set_jmeter_executor_vars(jmeter_vars)
 
-    def test_install_jmeter_30(self):
+    def test_install_jmeter_3_0(self):
         path = os.path.abspath(__dir__() + "/../../build/tmp/jmeter-taurus/bin/jmeter" + EXE_SUFFIX)
 
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
         self.assertFalse(os.path.exists(path))
 
-        jmeter_link = JMeterExecutor.JMETER_DOWNLOAD_LINK
-        jmeter_ver = JMeterExecutor.JMETER_VER
-        plugins_link = JMeterExecutor.PLUGINS_DOWNLOAD_TPL
-        mirrors_link = JMeterExecutor.MIRRORS_SOURCE
+        jmeter_vars = get_jmeter_executor_vars()
 
         JMeterExecutor.MIRRORS_SOURCE = "file:///" + __dir__() + "/../data/unicode_file"
         JMeterExecutor.JMETER_DOWNLOAD_LINK = "file:///" + __dir__() + "/../data/jmeter-dist-{version}.zip"
-        JMeterExecutor.PLUGINS_DOWNLOAD_TPL = "file:///" + __dir__() + "/../data/JMeterPlugins-{plugin}-1.3.0.zip"
+        JMeterExecutor.PLUGINS_MANAGER = "file:///" + __dir__() + "/../data/jmeter-plugins-manager.jar"
+        JMeterExecutor.CMDRUNNER = "file:///" + __dir__() + "/../data/jmeter-plugins-manager.jar"
+        JMeterExecutor.PLUGINS = ['Alice', 'Bob']
         JMeterExecutor.JMETER_VER = '3.0'
 
-        self.obj = get_jmeter()
         self.obj.settings.merge({"path": path})
         self.obj.execution.merge({"scenario": {"requests": ["http://localhost"]}})
 
@@ -242,11 +249,7 @@ class TestJMeterExecutor(BZTestCase):
         self.obj.execution.merge({"scenario": {"requests": ["http://localhost"]}})
 
         self.obj.prepare()
-
-        JMeterExecutor.JMETER_DOWNLOAD_LINK = jmeter_link
-        JMeterExecutor.PLUGINS_DOWNLOAD_TPL = plugins_link
-        JMeterExecutor.JMETER_VER = jmeter_ver
-        JMeterExecutor.MIRRORS_SOURCE = mirrors_link
+        set_jmeter_executor_vars(jmeter_vars)
 
     def test_think_time_bug(self):
         self.obj.engine.config.merge({'execution': {'ramp-up': '1m', 'hold-for': '1m30s', 'concurrency': 10,
