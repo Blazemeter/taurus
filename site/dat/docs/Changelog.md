@@ -1,4 +1,8 @@
 # Changelog
+
+## 1.6.6 (next)
+ - optimize aggregator by removing excessive calls to `BetterDict.get()`
+
 ## 1.6.5 <sup>12 jul 2016</sup>
  - fix master_id choosing for cloud reporting 
  - fix non-graceful shutdown on GUI window close
