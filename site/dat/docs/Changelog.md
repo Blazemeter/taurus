@@ -1,5 +1,5 @@
 # Changelog
-## 1.6.5 <sup>(next)</sup>
+## 1.6.5 <sup>12 jul 2016</sup>
  - fix master_id choosing for cloud reporting 
  - fix non-graceful shutdown on GUI window close
  - restructure reporting and services docs
