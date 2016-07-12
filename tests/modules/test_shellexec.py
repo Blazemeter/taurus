@@ -33,6 +33,7 @@ class TestBlockingTasks(TaskTestCase):
         self.obj.shutdown()
 
     def test_nonbackground_prepare(self):
+        self.fail()
         task = {"command": "echo hello", "background": True}
         task2 = 'sleep 1'
         self.obj.parameters.merge({"prepare": [task, task2]})
