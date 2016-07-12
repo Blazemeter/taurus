@@ -151,7 +151,7 @@ class CLI(object):
                 overrider.apply_overrides(self.options.option, self.engine.config)
 
             self.engine.create_artifacts_dir(configs, merged_config)
-            self.engine.default_cwd = None
+            self.engine.default_cwd = os.getcwd()
             self.engine.prepare()
             self.engine.run()
             exit_code = 0
