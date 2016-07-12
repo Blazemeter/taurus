@@ -1,32 +1,28 @@
 #!/bin/bash
+set -euo pipefail
 
-TAURUS_VERSION=`python -c 'import bzt; print(bzt.VERSION)'`
+TAURUS_DIST="$1"
+TAURUS_DIST_BASENAME=$(basename "$TAURUS_DIST")
+TAURUS_DIST_VERSION=$(echo -n "$TAURUS_DIST_BASENAME" | python -c 'import re, sys; print re.match(r"bzt\-([\d\.]+)\.tar\.gz", sys.stdin.read()).group(1)')
+BUILD_DIR=$(realpath build/nsis)
 
-# setup virtualenv
-virtualenv --clear build
-source build/bin/activate
-pip install --upgrade pynsist
-
-python setup.py sdist
-
-rm -rf build/nsis
-mkdir -p build/nsis
+rm -rf "$BUILD_DIR"
+mkdir -p "$BUILD_DIR"
 
 # create NSIS script
-cat << EOF > taurus.nsi
+cat << EOF > "$BUILD_DIR/taurus.nsi"
 [% extends "pyapp_w_pylauncher.nsi" %]
 
 [% block install_commands %]
 [[ super() ]]
   nsExec::ExecToLog 'py -m pip install --upgrade pip'
-  nsExec::ExecToLog 'py -m pip install "\$INSTDIR\bzt-${TAURUS_VERSION}.tar.gz"'
+  nsExec::ExecToLog 'py -m pip install "\$INSTDIR\\${TAURUS_DIST_BASENAME}"'
 [% endblock %]
 
 [% block uninstall_commands %]
 [[ super() ]]
   nsExec::ExecToLog 'py -m pip uninstall -y bzt'
 [% endblock %]
-
 EOF
 
 cat << EOF > /tmp/fakerunner.py
@@ -35,10 +31,10 @@ cli.main()
 EOF
 
 # Create pynsist config
-cat << EOF > installer.cfg
+cat << EOF > "$BUILD_DIR/installer.cfg"
 [Application]
 name=Taurus
-version=${TAURUS_VERSION}
+version=${TAURUS_DIST_VERSION}
 # entry_point=bzt.cli:main
 script=/tmp/fakerunner.py
 console=true
@@ -54,13 +50,11 @@ version=2.7.12
 bitness=32
 
 [Include]
-files=dist/bzt-${TAURUS_VERSION}.tar.gz
+files=$(realpath "$TAURUS_DIST")
 
 [Build]
 nsi_template=taurus.nsi
-directory=build/nsis
+directory=${BUILD_DIR}
 EOF
 
-pynsist installer.cfg
-
-deactivate
+pynsist "$BUILD_DIR/installer.cfg"
