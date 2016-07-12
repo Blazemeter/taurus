@@ -10,6 +10,7 @@ from tests.mocks import EngineEmul, RecordingHandler
 
 
 class TaskTestCase(BZTestCase):
+
     def setUp(self):
         self.obj = ShellExecutor()
         self.obj.parameters = BetterDict()
