@@ -30,6 +30,7 @@ class EngineEmul(Engine):
         self.config.merge({"provisioning": "local"})
         self.finalize_exc = None
         self.was_finalize = False
+        self.default_cwd = os.getcwd()
 
     def dump_config(self):
         """ test """
