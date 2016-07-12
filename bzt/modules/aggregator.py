@@ -105,13 +105,12 @@ class KPISet(BetterDict):
         """
         # TODO: introduce a flag to not count failed in resp times? or offer it always?
         cnc, r_time, con_time, latency, r_code, error, trname = sample
-        self[self.SAMPLE_COUNT] = self.get(self.SAMPLE_COUNT, 0) + 1
+        self[self.SAMPLE_COUNT] += 1
         if cnc:
             self._concurrencies[trname] = cnc
 
         if r_code is not None:
-            resp_codes = self.get(self.RESP_CODES)
-            resp_codes[r_code] = resp_codes.get(r_code, 0) + 1
+            self[self.RESP_CODES][r_code] += 1
 
             # count times only if we have RCs
             if con_time:
@@ -120,14 +119,14 @@ class KPISet(BetterDict):
             self.sum_rt += r_time
 
         if error is not None:
-            self[self.FAILURES] = self.get(self.FAILURES, 0) + 1
+            self[self.FAILURES] += 1
 
             item = self.error_item_skel(error, r_code, 1, KPISet.ERRTYPE_ERROR, Counter())
-            self.inc_list(self.get(self.ERRORS), ("msg", error), item)
+            self.inc_list(self[self.ERRORS], ("msg", error), item)
         else:
-            self[self.SUCCESSES] = self.get(self.SUCCESSES, 0) + 1
+            self[self.SUCCESSES] += 1
 
-        self.get(self.RESP_TIMES)[r_time] += 1
+        self[self.RESP_TIMES][r_time] += 1
         # TODO: max/min rt? there is percentiles...
         # TODO: throughput if interval is not 1s
 
@@ -454,7 +453,7 @@ class ResultsReader(ResultsProvider):
             else:
                 raise ValueError("Unsupported results from reader: %s" % result)
 
-    def __aggreagate_current(self, datapoint, samples):
+    def __aggregate_current(self, datapoint, samples):
         """
         :param datapoint: DataPoint
         :param samples: list of samples
@@ -469,7 +468,11 @@ class ResultsReader(ResultsProvider):
             if self.generalize_labels:
                 label = self.__generalize_label(label)
 
-            label = current.get(label, KPISet(self.track_percentiles))
+            if label in current:
+                label = current[label]
+            else:
+                label = current.get(label, KPISet(self.track_percentiles))
+
             # empty means overall
             label.add_sample((r_time, concur, con_time, latency, r_code, error, trname))
         overall = KPISet(self.track_percentiles)
@@ -508,7 +511,7 @@ class ResultsReader(ResultsProvider):
             self.log.debug("Aggregating: %s", timestamp)
             samples = self.buffer.pop(timestamp)
             datapoint = self.__get_new_datapoint(timestamp)
-            self.__aggreagate_current(datapoint, samples)
+            self.__aggregate_current(datapoint, samples)
             yield datapoint
 
             if not timestamps:
