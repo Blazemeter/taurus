@@ -105,9 +105,6 @@
     "final_stats": {
       "class": "bzt.modules.reporting.FinalStatus"
     },
-    "fail-criteria": {
-      "class": "bzt.modules.passfail.PassFailStatus"
-    },
     "passfail": {
       "class": "bzt.modules.passfail.PassFailStatus"
     },
