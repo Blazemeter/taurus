@@ -25,7 +25,7 @@ cat << EOF > "$BUILD_DIR/taurus.nsi"
 
 [% block install_commands %]
 [[ super() ]]
-  nsExec::ExecToLog 'py -m pip install --upgrade pip'
+  nsExec::ExecToLog 'py -m pip install --upgrade pip==8.1.2'
   nsExec::ExecToLog 'py -m pip install "\$INSTDIR\\${TAURUS_DIST_BASENAME}"'
 [% endblock %]
 
