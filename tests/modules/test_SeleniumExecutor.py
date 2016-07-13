@@ -563,7 +563,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.assertRaises(RuntimeWarning, self.obj.post_process)
 
     def test_junit_mirrors(self):
-        dummy_installation_path = __dir__() + "/../../../build/tmp/selenium-taurus"
+        dummy_installation_path = __dir__() + "/../../build/tmp/selenium-taurus"
         shutil.rmtree(os.path.dirname(dummy_installation_path), ignore_errors=True)
         obj = SeleniumExecutor()
         objjm = JUnitJar(os.path.join(dummy_installation_path, "tools", "junit", "junit.jar"), obj.log,

@@ -888,6 +888,7 @@ class IncrementalCSVReader(object):
         self.offset = 0
         self.filename = filename
         self.fds = None
+        self.read_speed = 1024 * 1024
 
     def read(self, last_pass=False):
         """
@@ -905,11 +906,14 @@ class IncrementalCSVReader(object):
         if last_pass:
             lines = self.fds.readlines()  # unlimited
         else:
-            lines = self.fds.readlines(1024 * 1024)  # 1MB limit to read
-
+            lines = self.fds.readlines(int(self.read_speed))
         self.offset = self.fds.tell()
-
-        self.log.debug("Read lines: %s / %s bytes", len(lines), len(''.join(lines)))
+        bytes_read = sum(len(line) for line in lines)
+        self.log.debug("Read lines: %s / %s bytes (at speed %s)", len(lines), bytes_read, self.read_speed)
+        if sum(len(line) for line in lines) >= self.read_speed:
+            self.read_speed *= 2
+        elif bytes_read < self.read_speed / 2:
+            self.read_speed = max(self.read_speed / 2, 1024 * 1024)
 
         for line in lines:
             if not line.endswith("\n"):

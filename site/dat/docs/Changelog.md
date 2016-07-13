@@ -1,9 +1,15 @@
 # Changelog
-## 1.6.5 <sup>(next)</sup>
+
+## 1.6.6 (next)
+ - optimize aggregator by removing excessive calls to `BetterDict.get()`
+
+## 1.6.5 <sup>12 jul 2016</sup>
  - fix master_id choosing for cloud reporting 
  - fix non-graceful shutdown on GUI window close
  - restructure reporting and services docs
  - do not crash when attempting to open browser in browserless env
+ - update Gatling script sample in docs
+ - solve slow post-processing by making reading speed of kpi.jtl adaptive
 
 ## 1.6.4 <sup>05 jul 2016</sup>
  - add short script syntax (`<scenario>: \<script>`)
