@@ -12,16 +12,13 @@ modules:
   jmeter:
     path: ~/.bzt/jmeter-taurus/bin/jmeter
     download-link: https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-{version}.zip
-    version: 3.0    
+    version: 3.0
+    plugins:
+    - jpgc-json=2.2
+    - jmeter-ftp
+    - jpgc-casutg
 ```
-There is one more `plugins` option that lets you describe list of plugins you want to use. If `plugins` option isn't found following plugins will be installed: jpgc-casutg, jpgc-dummy, jpgc-ffw, jpgc-fifo, jpgc-functions, jpgc-json, jpgc-perfmon, jpgc-prmctl, jpgc-tst. Plugin installation is performed by jmeter-plugins-manager. If you use proxy don't forget add it's parameters into `JMeter Properties` (see below):
-```
----
-modules:
-  jmeter:
-    proxy: myproxy.com
-    port: 80
-```      
+`plugins` option lets you describe list of JMeter plugins you want to use. If `plugins` option isn't found only following plugins will be installed: jpgc-casutg, jpgc-dummy, jpgc-ffw, jpgc-fifo, jpgc-functions, jpgc-json, jpgc-perfmon, jpgc-prmctl, jpgc-tst. Keep in mind: you can change plugins list only for clean installation. If you already have JMeter placed at `path` you need to remove it for plugins installation purpose.    
     
 ## Run Existing JMX File
 ```yaml

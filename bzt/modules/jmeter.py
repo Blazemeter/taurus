@@ -1570,9 +1570,9 @@ class JMeter(RequiredTool):
                     _file = os.path.basename(tool[0])
                     self.log.info("Downloading %s from %s", _file, tool[0])
                     downloader.retrieve(tool[0], tool[1], pbar.download_callback)
-            except BaseException as exc:
+            except BaseException:
                 self.log.error("Error while downloading %s", _file)
-                raise exc
+                raise
 
     def __install_plugins_manager(self, plugins_manager_path):
         installer = "org.jmeterplugins.repository.PluginManagerCMDInstaller"
@@ -1582,27 +1582,41 @@ class JMeter(RequiredTool):
             proc = shell_exec(cmd)
             out, err = proc.communicate()
             self.log.debug("Install PluginsManager: %s / %s", out, err)
-        except BaseException as exc:
-            self.log.debug("Failed to install PluginsManager: %s", exc)
-            raise RuntimeError
+        except BaseException:
+            self.log.error("Failed to install PluginsManager")
+            raise
 
     def __install_plugins(self, plugins_manager_cmd):
         plugin_str = ",".join(self.plugins)
         cmd = [plugins_manager_cmd, 'install', plugin_str]
         self.log.debug("Trying: %s", cmd)
         try:
+            # prepare proxy settings
+            #
+            # settings = self.engine.config.get('settings')
+            # if settings.get('proxy'):
+            #     proxy = settings.get('proxy')
+            #     addr = proxy.get('address')
+            #     user = proxy.get('username')
+            #     passw = proxy.get('password')
+            #     env = BetterDict()
+            #     env.merge(dict(os.environ))
+            #     env['JVM_ARGS'] = env.get('JVM_ARGS', '') + ' ' + '-'
+
             proc = shell_exec(cmd)
             out, err = proc.communicate()
             self.log.debug("Install plugins: %s / %s", out, err)
-        except BaseException as exc:
-            self.log.debug("Failed to install plugins: %s", exc)
-            raise RuntimeError
+        except BaseException:
+            self.log.error("Failed to install plugins %s", plugin_str)
+            raise
 
     def install(self):
         dest = get_full_path(self.tool_path, step_up=2)
         sep = os.path.sep
-        plugins_manager_path = os.path.join(dest, sep, 'lib', sep, 'ext', sep, 'jmeter-plugins-manager-0.8.jar')
-        cmdrunner_path = os.path.join(dest, sep, 'lib', sep, 'cmdrunner-2.0.jar')
+        plugins_manager_name = os.path.basename(JMeterExecutor.PLUGINS_MANAGER)
+        cmdrunner_name = os.path.basename(JMeterExecutor.CMDRUNNER)
+        plugins_manager_path = os.path.join(dest, sep, 'lib', sep, 'ext', sep, plugins_manager_name)
+        cmdrunner_path = os.path.join(dest, sep, 'lib', sep, cmdrunner_name)
         direct_install_tools = [  # source link and destination
             [JMeterExecutor.PLUGINS_MANAGER, plugins_manager_path],
             [JMeterExecutor.CMDRUNNER, cmdrunner_path]]
