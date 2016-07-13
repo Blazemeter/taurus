@@ -33,7 +33,7 @@ After installation is finished, you can run Taurus with `bzt` from command promp
 Open Command Prompt with administrative privileges (find `Command Prompt` in main menu and chose `Run as administrator`
 from context menu). Then run the following command to update Python package manager to the latest version:
 ```
-python -m pip install --upgrade pip
+pip install --upgrade pip
 ```
 
 ##### Install `lxml` package
