@@ -1,10 +1,20 @@
 #!/bin/bash
 set -euo pipefail
 
+usage () {
+    echo "$0 - Windows installer builder for Taurus"
+    echo
+    echo "Usage: $0 <taurus-source-distribution>"
+    exit 1
+}
+
+[ "$#" -eq 1 ] || usage
+
 TAURUS_DIST="$1"
 TAURUS_DIST_BASENAME=$(basename "$TAURUS_DIST")
 TAURUS_DIST_VERSION=$(echo -n "$TAURUS_DIST_BASENAME" | python -c 'import re, sys; print re.match(r"bzt\-([\d\.]+)\.tar\.gz", sys.stdin.read()).group(1)')
 BUILD_DIR=$(realpath build/nsis)
+INSTALLER_NAME="Taurus_${TAURUS_DIST_VERSION}.exe"
 
 rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR"
@@ -55,6 +65,8 @@ files=$(realpath "$TAURUS_DIST")
 [Build]
 nsi_template=taurus.nsi
 directory=${BUILD_DIR}
+installer_name=${INSTALLER_NAME}
 EOF
 
 pynsist "$BUILD_DIR/installer.cfg"
+# Installer was saved to ${BUILD_DIR}/${INSTALLER_NAME}
