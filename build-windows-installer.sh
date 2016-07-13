@@ -1,20 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 
-usage () {
-    echo "$0 - Windows installer builder for Taurus"
-    echo
-    echo "Usage: $0 <taurus-source-distribution>"
-    exit 1
-}
-
-[ "$#" -eq 1 ] || usage
-
-TAURUS_DIST="$1"
-TAURUS_DIST_BASENAME=$(basename "$TAURUS_DIST")
-TAURUS_DIST_VERSION=$(echo -n "$TAURUS_DIST_BASENAME" | python -c 'import re, sys; print re.match(r"bzt\-([\d\.]+)\.tar\.gz", sys.stdin.read()).group(1)')
+TAURUS_VERSION=$(python -c 'import bzt; print(bzt.VERSION)')
+INSTALLER_NAME="TaurusInstaller.exe"
 BUILD_DIR=$(realpath build/nsis)
-INSTALLER_NAME="Taurus_${TAURUS_DIST_VERSION}.exe"
 
 rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR"
@@ -26,7 +15,7 @@ cat << EOF > "$BUILD_DIR/taurus.nsi"
 [% block install_commands %]
 [[ super() ]]
   nsExec::ExecToLog 'py -m pip install --upgrade pip==8.1.2'
-  nsExec::ExecToLog 'py -m pip install "\$INSTDIR\\${TAURUS_DIST_BASENAME}"'
+  nsExec::ExecToLog 'py -m pip install bzt>=${TAURUS_VERSION}'
 [% endblock %]
 
 [% block uninstall_commands %]
@@ -44,7 +33,7 @@ EOF
 cat << EOF > "$BUILD_DIR/installer.cfg"
 [Application]
 name=Taurus
-version=${TAURUS_DIST_VERSION}
+version=${TAURUS_VERSION}
 # entry_point=bzt.cli:main
 script=/tmp/fakerunner.py
 console=true
@@ -58,9 +47,6 @@ entry_point=bzt.jmx2yaml:main
 [Python]
 version=2.7.12
 bitness=32
-
-[Include]
-files=$(realpath "$TAURUS_DIST")
 
 [Build]
 nsi_template=taurus.nsi
