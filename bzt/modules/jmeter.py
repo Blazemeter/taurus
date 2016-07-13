@@ -1558,25 +1558,21 @@ class JMeter(RequiredTool):
         if not self.check_if_installed():
             raise RuntimeError("Unable to run %s after installation!" % self.tool_name)
 
-    def __download_additions(self, dest):
-        direct_install = [  # name, source link and destination
-            [JMeterExecutor.PLUGINS_MANAGER, '/lib/ext/jmeter-plugins-manager-0.8.jar'],
-            [JMeterExecutor.CMDRUNNER, '/lib/cmdrunner-2.0.jar']]
-
+    def __download_additions(self, tools):
         downloader = http_request.FancyURLopener()
         with ProgressBarContext() as pbar:
             try:
-                for tool in direct_install:
+                for tool in tools:
                     _file = os.path.basename(tool[0])
                     self.log.info("Downloading %s from %s", _file, tool[0])
-                    downloader.retrieve(tool[0], dest + tool[1], pbar.download_callback)
+                    downloader.retrieve(tool[0], tool[1], pbar.download_callback)
             except BaseException as exc:
                 self.log.error("Error while downloading %s", _file)
                 raise exc
 
-    def __install_plugins_manager(self, dest):
+    def __install_plugins_manager(self, plugins_manager_path):
         installer = "org.jmeterplugins.repository.PluginManagerCMDInstaller"
-        cmd = ["java", "-cp", dest + "/lib/ext/jmeter-plugins-manager-0.8.jar", installer]
+        cmd = ["java", "-cp", plugins_manager_path, installer]
         self.log.debug("Trying: %s", cmd)
         try:
             proc = shell_exec(cmd)
@@ -1586,9 +1582,9 @@ class JMeter(RequiredTool):
             self.log.debug("Failed to install PluginsManager: %s", exc)
             raise RuntimeError
 
-    def __install_plugins(self, dest):
+    def __install_plugins(self, plugins_manager_cmd):
         plugin_str = ",".join(self.plugins)
-        cmd = [dest + "/bin/PluginsManagerCMD" + EXE_SUFFIX, 'install', plugin_str]
+        cmd = [plugins_manager_cmd, 'install', plugin_str]
         self.log.debug("Trying: %s", cmd)
         try:
             proc = shell_exec(cmd)
@@ -1600,11 +1596,18 @@ class JMeter(RequiredTool):
 
     def install(self):
         dest = get_full_path(self.tool_path, step_up=2)
+        sep = os.path.sep
+        plugins_manager_path = os.path.join(dest, sep, 'lib', sep, 'ext', sep, 'jmeter-plugins-manager-0.8.jar')
+        cmdrunner_path = os.path.join(dest, sep, 'lib', sep, 'cmdrunner-2.0.jar')
+        direct_install_tools = [  # source link and destination
+            [JMeterExecutor.PLUGINS_MANAGER, plugins_manager_path],
+            [JMeterExecutor.CMDRUNNER, cmdrunner_path]]
+        plugins_manager_cmd = os.path.join(dest, sep, 'bin', sep, 'PluginsManagerSMD' + EXE_SUFFIX)
 
         self.__install_jmeter(dest)
-        self.__download_additions(dest)
-        self.__install_plugins_manager(dest)
-        self.__install_plugins(dest)
+        self.__download_additions(direct_install_tools)
+        self.__install_plugins_manager(plugins_manager_path)
+        self.__install_plugins(plugins_manager_cmd)
 
         cleaner = JarCleaner(self.log)
         cleaner.clean(os.path.join(dest, 'lib'))
