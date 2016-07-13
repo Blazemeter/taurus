@@ -8,7 +8,7 @@ you can install Taurus manually with pip, Python package manager.
 
 The installation process was tried on all supported Windows versions (7, 8, 10).
 
-### Installing Taurus with prebuilt installer
+### Installing Taurus With Prebuilt Installer
 
 Download and installer and run it on your system. It will install the following components:
 - Python 2.7
@@ -21,14 +21,14 @@ Notes:
 
 After installation is finished, you can run Taurus with `bzt` from command prompt.
 
-### Installing Taurus manually
+### Installing Taurus Manually
 
-####  Install Taurus system dependencies
+####  Install Taurus System Dependencies
 
 1. Get Python 2.7 from [http://www.python.org/downloads](http://www.python.org/downloads) and install it, don't forget to enable "Add python.exe to Path" checkbox.
 1. Get latest Java from [https://www.java.com/download/](https://www.java.com/download/) and install it.
 
-#### Install Taurus Python dependencies
+#### Install Taurus Python Dependencies
 
 Open Command Prompt with administrative privileges (find `Command Prompt` in main menu and chose `Run as administrator`
 from context menu). Then run the following command to update Python package manager to the latest version:
@@ -36,7 +36,7 @@ from context menu). Then run the following command to update Python package mana
 pip install --upgrade pip
 ```
 
-##### Install `lxml` package
+##### Install `lxml` Package
 
 ```
 pip install lxml
@@ -46,7 +46,7 @@ If this command fails, you can install `lxml` with Windows installer provided at
 [PyPI page](https://pypi.python.org/pypi/lxml/3.6.0). Just download `lxml-3.6.0.win32-py2.7.exe` installer (or
 `lxml-3.6.0.win-amd64-py2.7.exe`, if you've installed 64-bit Python) and run it.
 
-##### Install `psutil` package
+##### Install `psutil` Package
 
 ```
 pip install psutil
