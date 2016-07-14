@@ -39,7 +39,17 @@
         "summariser.name": "",
         "mode": "Stripped"
       },
-      "path": "~/.bzt/jmeter-taurus/"
+      "path": "~/.bzt/jmeter-taurus/",
+      "plugins": [
+        "jpgc-casutg",
+        "jpgc-dummy",
+        "jpgc-ffw",
+        "jpgc-fifo",
+        "jpgc-functions",
+        "jpgc-json",
+        "jpgc-perfmon",
+        "jpgc-prmctl",
+        "jpgc-tst"]
     },
     "jtl-loader": "bzt.modules.jmeter.JMeterJTLLoaderExecutor",
     "grinder": {

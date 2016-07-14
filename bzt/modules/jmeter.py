@@ -58,8 +58,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     PLUGINS_MANAGER = 'http://search.maven.org/remotecontent?filepath=' \
                       'kg/apc/jmeter-plugins-manager/0.8/jmeter-plugins-manager-0.8.jar'
     CMDRUNNER = 'http://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.0/cmdrunner-2.0.jar'
-    PLUGINS = ["jpgc-casutg", "jpgc-dummy", "jpgc-ffw", "jpgc-fifo", "jpgc-functions",
-               "jpgc-json", "jpgc-perfmon", "jpgc-prmctl", "jpgc-tst"]
     JMETER_VER = "3.0"
     UDP_PORT_NUMBER = None
 
@@ -134,7 +132,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         heap_size = self.settings.get("memory-xmx", None)
         if heap_size is not None:
             self.log.debug("Setting JVM heap size to %s", heap_size)
-            self._env["JVM_ARGS"] = os.environ.get("JVM_ARGS", "") + " " + "-Xmx%s" % heap_size
+            jvm_args = os.environ.get("JVM_ARGS", "")
+            if jvm_args:
+                jvm_args += ' '
+            self._env["JVM_ARGS"] = jvm_args + "-Xmx%s" % heap_size
 
     def __set_jmeter_properties(self, scenario):
         props = self.settings.get("properties")
@@ -770,7 +771,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         jmeter_path = get_full_path(jmeter_path)
         jmeter_version = self.settings.get("version", JMeterExecutor.JMETER_VER)
         download_link = self.settings.get("download-link", JMeterExecutor.JMETER_DOWNLOAD_LINK)
-        plugins = self.settings.get("plugins", JMeterExecutor.PLUGINS)
+        plugins = self.settings.get("plugins", [])
         proxy = self.engine.config.get('settings').get('proxy')
         tool = JMeter(jmeter_path, self.log, jmeter_version, download_link, plugins, proxy)
 
@@ -1597,7 +1598,7 @@ class JMeter(RequiredTool):
             if self.proxy_settings and self.proxy_settings.get('address'):
                 proxy_url = parse.urlsplit(self.proxy_settings.get("address"))
                 self.log.debug("Using proxy settings: %s", proxy_url)
-                host = "%s://%s" % (proxy_url.scheme, proxy_url.hostname)
+                host = proxy_url.hostname
                 port = proxy_url.port
                 if not port:
                     port = 80
@@ -1611,7 +1612,12 @@ class JMeter(RequiredTool):
 
                 env = BetterDict()
                 env.merge(dict(os.environ))
-                env['JVM_ARGS'] = env.get('JVM_ARGS', '') + ' ' + host_to_jvm + ' ' + auth_to_jvm
+                jvm_args = env.get('JVM_ARGS', '')
+                if jvm_args:
+                    jvm_args += ' '
+                if auth_to_jvm:
+                    auth_to_jvm += ' '
+                env['JVM_ARGS'] = env.get('JVM_ARGS', '') + host_to_jvm + auth_to_jvm
 
             proc = shell_exec(cmd)
             out, err = proc.communicate()
