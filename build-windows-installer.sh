@@ -2,7 +2,7 @@
 set -euo pipefail
 
 TAURUS_VERSION=$(python -c 'import bzt; print(bzt.VERSION)')
-INSTALLER_NAME="TaurusInstaller_x64.exe"
+INSTALLER_NAME="TaurusInstaller_$TAURUS_VERSION_x64.exe"
 BUILD_DIR=$(realpath build/nsis)
 
 rm -rf "$BUILD_DIR"
