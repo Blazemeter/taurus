@@ -50,7 +50,7 @@ bitness=64
 
 [Build]
 nsi_template=taurus.nsi
-directory=${BUILD_DIR}
+directory=.
 installer_name=${INSTALLER_NAME}
 EOF
 
