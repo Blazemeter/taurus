@@ -16,7 +16,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.jmeter import JMeterExecutor, JTLErrorsReader, JTLReader
 from bzt.modules.jmeter import JMeterScenarioBuilder
 from bzt.six import etree, u
-from bzt.utils import EXE_SUFFIX, get_full_path
+from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul, RecordingHandler
 
@@ -30,13 +30,25 @@ def get_jmeter():
     return obj
 
 
+def get_jmeter_executor_vars():
+    return (JMeterExecutor.JMETER_DOWNLOAD_LINK, JMeterExecutor.JMETER_VER,
+            JMeterExecutor.MIRRORS_SOURCE, JMeterExecutor.CMDRUNNER, JMeterExecutor.PLUGINS_MANAGER)
+
+
+def set_jmeter_executor_vars(jmeter_vars):
+    (JMeterExecutor.JMETER_DOWNLOAD_LINK, JMeterExecutor.JMETER_VER,
+        JMeterExecutor.MIRRORS_SOURCE, JMeterExecutor.CMDRUNNER, JMeterExecutor.PLUGINS_MANAGER) = jmeter_vars
+
+
 class TestJMeterExecutor(BZTestCase):
     def setUp(self):
         self.obj = get_jmeter()
+        pass
 
     def tearDown(self):
         if self.obj.modified_jmx and os.path.exists(self.obj.modified_jmx):
             os.remove(self.obj.modified_jmx)
+
 
     def test_jmx(self):
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/dummy.jmx"}})
@@ -85,7 +97,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertRaises(RuntimeError, self.obj.prepare)
 
     def test_requests(self):
-        self.obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
+        self.obj.engine.config.merge(json.loads(open(__dir__() + "/../json/get-post.json").read()))
         self.obj.execution = self.obj.engine.config['execution']
         self.obj.prepare()
         self.obj.log.debug("%s: %s", self.obj.modified_jmx, open(self.obj.modified_jmx).read())
@@ -168,31 +180,38 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(JMeterExecutor._need_to_install(fake), True)
         self.assertEqual(fake.tool_path, os.path.join('*', end_str))
 
-    def test_install_jmeter(self):
+    def test_install_jmeter_2_13(self):
+
         path = os.path.abspath(__dir__() + "/../../build/tmp/jmeter-taurus/bin/jmeter" + EXE_SUFFIX)
 
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
         self.assertFalse(os.path.exists(path))
 
-        jmeter_link = JMeterExecutor.JMETER_DOWNLOAD_LINK
-        jmeter_ver = JMeterExecutor.JMETER_VER
-        plugins_link = JMeterExecutor.PLUGINS_DOWNLOAD_TPL
-        mirrors_link = JMeterExecutor.MIRRORS_SOURCE
+        jmeter_vars = get_jmeter_executor_vars()
+        set_jmeter_executor_vars(jmeter_vars)
 
         JMeterExecutor.MIRRORS_SOURCE = "file:///" + __dir__() + "/../data/unicode_file"
         JMeterExecutor.JMETER_DOWNLOAD_LINK = "file:///" + __dir__() + "/../data/jmeter-dist-{version}.zip"
-        JMeterExecutor.PLUGINS_DOWNLOAD_TPL = "file:///" + __dir__() + "/../data/JMeterPlugins-{plugin}-1.3.0.zip"
+        JMeterExecutor.PLUGINS_MANAGER = "file:///" + __dir__() + "/../data/jmeter-plugins-manager.jar"
+        JMeterExecutor.CMDRUNNER = "file:///" + __dir__() + "/../data/jmeter-plugins-manager.jar"
+        JMeterExecutor.PLUGINS = ['Alice', 'Bob']
         JMeterExecutor.JMETER_VER = '2.13'
 
-        self.obj = get_jmeter()
         self.obj.settings.merge({"path": path})
+        self.obj.engine.config.merge({
+            "settings": {
+                "proxy": {
+                    "address": "http://myproxy.com:8080",
+                    "username": "user",
+                    "password": "pass"}}})
         self.obj.execution.merge({"scenario": {"requests": ["http://localhost"]}})
 
         self.obj.prepare()
 
         jars = os.listdir(os.path.abspath(os.path.join(path, '../../lib')))
-        old_jars = ['httpcore-4.2.5.jar', 'httpmime-4.2.6.jar', 'xercesImpl-2.9.1.jar', 'commons-jexl-1.1.jar',
-                    'httpclient-4.2.6.jar']
+        old_jars = [
+            'httpcore-4.2.5.jar', 'httpmime-4.2.6.jar', 'xercesImpl-2.9.1.jar',
+            'commons-jexl-1.1.jar', 'httpclient-4.2.6.jar']
         for old_jar in old_jars:
             self.assertNotIn(old_jar, jars)
 
@@ -204,29 +223,30 @@ class TestJMeterExecutor(BZTestCase):
 
         self.obj.prepare()
 
-        JMeterExecutor.JMETER_DOWNLOAD_LINK = jmeter_link
-        JMeterExecutor.PLUGINS_DOWNLOAD_TPL = plugins_link
-        JMeterExecutor.JMETER_VER = jmeter_ver
-        JMeterExecutor.MIRRORS_SOURCE = mirrors_link
+        set_jmeter_executor_vars(jmeter_vars)
 
-    def test_install_jmeter_30(self):
+    def test_install_jmeter_3_0(self):
         path = os.path.abspath(__dir__() + "/../../build/tmp/jmeter-taurus/bin/jmeter" + EXE_SUFFIX)
 
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
         self.assertFalse(os.path.exists(path))
 
-        jmeter_link = JMeterExecutor.JMETER_DOWNLOAD_LINK
-        jmeter_ver = JMeterExecutor.JMETER_VER
-        plugins_link = JMeterExecutor.PLUGINS_DOWNLOAD_TPL
-        mirrors_link = JMeterExecutor.MIRRORS_SOURCE
+        jmeter_vars = get_jmeter_executor_vars()
 
         JMeterExecutor.MIRRORS_SOURCE = "file:///" + __dir__() + "/../data/unicode_file"
         JMeterExecutor.JMETER_DOWNLOAD_LINK = "file:///" + __dir__() + "/../data/jmeter-dist-{version}.zip"
-        JMeterExecutor.PLUGINS_DOWNLOAD_TPL = "file:///" + __dir__() + "/../data/JMeterPlugins-{plugin}-1.3.0.zip"
+        JMeterExecutor.PLUGINS_MANAGER = "file:///" + __dir__() + "/../data/jmeter-plugins-manager.jar"
+        JMeterExecutor.CMDRUNNER = "file:///" + __dir__() + "/../data/jmeter-plugins-manager.jar"
+        JMeterExecutor.PLUGINS = ['Alice', 'Bob']
         JMeterExecutor.JMETER_VER = '3.0'
 
-        self.obj = get_jmeter()
         self.obj.settings.merge({"path": path})
+        self.obj.engine.config.merge({
+            "settings": {
+                "proxy": {
+                    "address": "http://myproxy.com:8080",
+                    "username": "user",
+                    "password": "pass"}}})
         self.obj.execution.merge({"scenario": {"requests": ["http://localhost"]}})
 
         self.obj.prepare()
@@ -242,11 +262,7 @@ class TestJMeterExecutor(BZTestCase):
         self.obj.execution.merge({"scenario": {"requests": ["http://localhost"]}})
 
         self.obj.prepare()
-
-        JMeterExecutor.JMETER_DOWNLOAD_LINK = jmeter_link
-        JMeterExecutor.PLUGINS_DOWNLOAD_TPL = plugins_link
-        JMeterExecutor.JMETER_VER = jmeter_ver
-        JMeterExecutor.MIRRORS_SOURCE = mirrors_link
+        set_jmeter_executor_vars(jmeter_vars)
 
     def test_think_time_bug(self):
         self.obj.engine.config.merge({'execution': {'ramp-up': '1m', 'hold-for': '1m30s', 'concurrency': 10,
@@ -261,7 +277,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertIn('<stringProp name="ConstantTimer.delay">750</stringProp>', result)
 
     def test_body_parse(self):
-        self.obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
+        self.obj.engine.config.merge(json.loads(open(__dir__() + "/../json/get-post.json").read()))
         self.obj.execution = self.obj.engine.config['execution']
         self.obj.prepare()
 
@@ -286,7 +302,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(len(res_files), 2)
 
     def test_resource_files_from_requests_local_prov(self):
-        self.obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
+        self.obj.engine.config.merge(json.loads(open(__dir__() + "/../json/get-post.json").read()))
         self.obj.execution = self.obj.engine.config['execution']
         self.obj.prepare()
         files = ['jmeter-bzt.properties', 'modified_requests.jmx']
@@ -335,7 +351,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertIn(csv_file_uni, resource_files)
 
     def test_http_request_defaults(self):
-        self.obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
+        self.obj.engine.config.merge(json.loads(open(__dir__() + "/../json/get-post.json").read()))
         self.obj.execution = self.obj.engine.config['execution']
         self.obj.prepare()
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
@@ -394,7 +410,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual("120", shaper_coll_element.findall(".//stringProp[@name='53']")[1].text)
 
     def test_user_def_vars_from_requests(self):
-        self.obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
+        self.obj.engine.config.merge(json.loads(open(__dir__() + "/../json/get-post.json").read()))
         self.obj.execution = self.obj.engine.config['execution']
         self.obj.prepare()
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
@@ -439,7 +455,7 @@ class TestJMeterExecutor(BZTestCase):
             self.assertEqual('true', writer.find('objProp/value/hostname').text)
 
     def test_distributed_th_hostnames_complex(self):
-        self.obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
+        self.obj.engine.config.merge(json.loads(open(__dir__() + "/../json/get-post.json").read()))
         self.obj.execution = self.obj.engine.config['execution']
         self.obj.settings.merge(self.obj.engine.config.get("modules").get("jmeter"))
         self.obj.distributed_servers = ["127.0.0.1", "127.0.0.1"]
@@ -460,7 +476,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertNotIn("system.properties", arts)
 
     def test_dns_cache_mgr_requests(self):
-        self.obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
+        self.obj.engine.config.merge(json.loads(open(__dir__() + "/../json/get-post.json").read()))
         self.obj.execution = self.obj.engine.config['execution']
         self.obj.settings.merge(self.obj.engine.config.get("modules").get("jmeter"))
         self.obj.prepare()
@@ -663,7 +679,7 @@ class TestJMeterExecutor(BZTestCase):
         handler = RecordingHandler()
         self.obj.log.addHandler(handler)
 
-        self.obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
+        self.obj.engine.config.merge(json.loads(open(__dir__() + "/../json/get-post.json").read()))
         self.obj.execution = self.obj.engine.config['execution']
         self.obj.prepare()
         target_jmx = os.path.join(self.obj.engine.artifacts_dir, "requests.jmx")
@@ -689,7 +705,7 @@ class TestJMeterExecutor(BZTestCase):
     def test_xpath_extractor(self):
         handler = RecordingHandler()
         self.obj.log.addHandler(handler)
-        self.obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
+        self.obj.engine.config.merge(json.loads(open(__dir__() + "/../json/get-post.json").read()))
         self.obj.execution = self.obj.engine.config['execution']
         self.obj.prepare()
         target_jmx = os.path.join(self.obj.engine.artifacts_dir, "requests.jmx")
@@ -719,7 +735,7 @@ class TestJMeterExecutor(BZTestCase):
     def test_xpath_assertion(self):
         handler = RecordingHandler()
         self.obj.log.addHandler(handler)
-        self.obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
+        self.obj.engine.config.merge(json.loads(open(__dir__() + "/../json/get-post.json").read()))
         self.obj.execution = self.obj.engine.config['execution']
         self.obj.prepare()
         target_jmx = os.path.join(self.obj.engine.artifacts_dir, "requests.jmx")
