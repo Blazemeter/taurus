@@ -2,22 +2,41 @@
 
 ## Windows
 
+There are two ways two install Taurus on Windows. The recommended way is to use the prebuilt installer
+that will install Python and latest Taurus on your PC. However, if you already have Python installed,
+you can install Taurus manually with pip, Python package manager.
+
 The installation process was tried on all supported Windows versions (7, 8, 10).
 
-###  Install Taurus system dependencies
+### Installing Taurus With Prebuilt Installer
+
+Download an [installer](/msi/TaurusInstaller_TAURUS_VERSION_x64.exe) and run it on your system. It will install the following components:
+- Python 2.7
+- PyLauncher, needed to launch Python programs
+- Taurus
+
+Notes:
+- Installed Python will be added to PATH as `py` command
+- Installed `pip` is not added to PATH, but you can run it with `py -m pip install --upgrade bzt`.
+
+After installation is finished, you can run Taurus with `bzt` from command prompt.
+
+### Installing Taurus Manually
+
+####  Install Taurus System Dependencies
 
 1. Get Python 2.7 from [http://www.python.org/downloads](http://www.python.org/downloads) and install it, don't forget to enable "Add python.exe to Path" checkbox.
 1. Get latest Java from [https://www.java.com/download/](https://www.java.com/download/) and install it.
 
-### Install Taurus Python dependencies
+#### Install Taurus Python Dependencies
 
 Open Command Prompt with administrative privileges (find `Command Prompt` in main menu and chose `Run as administrator`
 from context menu). Then run the following command to update Python package manager to the latest version:
 ```
-python -m pip install --upgrade pip
+pip install --upgrade pip
 ```
 
-#### Install `lxml` package
+##### Install `lxml` Package
 
 ```
 pip install lxml
@@ -27,7 +46,7 @@ If this command fails, you can install `lxml` with Windows installer provided at
 [PyPI page](https://pypi.python.org/pypi/lxml/3.6.0). Just download `lxml-3.6.0.win32-py2.7.exe` installer (or
 `lxml-3.6.0.win-amd64-py2.7.exe`, if you've installed 64-bit Python) and run it.
 
-#### Install `psutil` package
+##### Install `psutil` Package
 
 ```
 pip install psutil
@@ -37,7 +56,7 @@ If this command fails, you can install `psutil` with Windows installer provided 
 [PyPI page](https://pypi.python.org/pypi/psutil). Download `psutil-4.2.0.win32-py2.7.exe` file (or
 `psutil-4.2.0.win-amd64-py2.7.exe` for 64-bit Python) and install it.
 
-### Install Taurus
+##### Install Taurus
 
 ```
 pip install bzt
