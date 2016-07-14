@@ -38,7 +38,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataP
 from bzt.modules.console import WidgetProvider, SidebarWidget
 from bzt.modules.provisioning import Local
 from bzt.six import iteritems, string_types, StringIO, etree, binary_type
-from bzt.six import request as http_request
+from bzt.six import parse, request as http_request
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager
 from bzt.utils import shell_exec, ensure_is_dict, dehumanize_time, BetterDict, guess_csv_dialect
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
@@ -134,7 +134,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         heap_size = self.settings.get("memory-xmx", None)
         if heap_size is not None:
             self.log.debug("Setting JVM heap size to %s", heap_size)
-            self._env["JVM_ARGS"] = "-Xmx%s" % heap_size
+            self._env["JVM_ARGS"] = os.environ.get("JVM_ARGS", "") + " " + "-Xmx%s" % heap_size
 
     def __set_jmeter_properties(self, scenario):
         props = self.settings.get("properties")
@@ -771,7 +771,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         jmeter_version = self.settings.get("version", JMeterExecutor.JMETER_VER)
         download_link = self.settings.get("download-link", JMeterExecutor.JMETER_DOWNLOAD_LINK)
         plugins = self.settings.get("plugins", JMeterExecutor.PLUGINS)
-        tool = JMeter(jmeter_path, self.log, jmeter_version, download_link, plugins)
+        proxy = self.engine.config.get('settings').get('proxy')
+        tool = JMeter(jmeter_path, self.log, jmeter_version, download_link, plugins, proxy)
 
         if self._need_to_install(tool):
             self.log.info("Installing %s", tool.tool_name)
@@ -1518,12 +1519,13 @@ class JMeter(RequiredTool):
     JMeter tool
     """
 
-    def __init__(self, tool_path, parent_logger, jmeter_version, jmeter_download_link, plugins):
+    def __init__(self, tool_path, parent_logger, jmeter_version, jmeter_download_link, plugins, proxy):
         super(JMeter, self).__init__("JMeter", tool_path)
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.version = jmeter_version
         self.mirror_manager = JMeterMirrorsManager(self.log, self.version, jmeter_download_link)
         self.plugins = plugins
+        self.proxy_settings = proxy
 
     def check_if_installed(self):
         self.log.debug("Trying jmeter: %s", self.tool_path)
@@ -1592,16 +1594,24 @@ class JMeter(RequiredTool):
         self.log.debug("Trying: %s", cmd)
         try:
             # prepare proxy settings
-            #
-            # settings = self.engine.config.get('settings')
-            # if settings.get('proxy'):
-            #     proxy = settings.get('proxy')
-            #     addr = proxy.get('address')
-            #     user = proxy.get('username')
-            #     passw = proxy.get('password')
-            #     env = BetterDict()
-            #     env.merge(dict(os.environ))
-            #     env['JVM_ARGS'] = env.get('JVM_ARGS', '') + ' ' + '-'
+            if self.proxy_settings and self.proxy_settings.get('address'):
+                proxy_url = parse.urlsplit(self.proxy_settings.get("address"))
+                self.log.debug("Using proxy settings: %s", proxy_url)
+                host = "%s://%s" % (proxy_url.scheme, proxy_url.hostname)
+                port = proxy_url.port
+                if not port:
+                    port = 80
+                username = self.proxy_settings.get('username')
+                password = self.proxy_settings.get('password')
+                host_to_jvm = '-Dhttp.proxyHost=%s -Dhttp.proxyPort=%s', host, port
+                if username and password:
+                    auth_to_jvm = '-Dhttp.proxyUsername="%s" -Dhttp.proxyPassword="%s"', username, password
+                else:
+                    auth_to_jvm = ''
+
+                env = BetterDict()
+                env.merge(dict(os.environ))
+                env['JVM_ARGS'] = env.get('JVM_ARGS', '') + ' ' + host_to_jvm + ' ' + auth_to_jvm
 
             proc = shell_exec(cmd)
             out, err = proc.communicate()

@@ -18,7 +18,7 @@ modules:
     - jmeter-ftp
     - jpgc-casutg
 ```
-`plugins` option lets you describe list of JMeter plugins you want to use. If `plugins` option isn't found only following plugins will be installed: jpgc-casutg, jpgc-dummy, jpgc-ffw, jpgc-fifo, jpgc-functions, jpgc-json, jpgc-perfmon, jpgc-prmctl, jpgc-tst. Keep in mind: you can change plugins list only for clean installation. If you already have JMeter placed at `path` you need to remove it for plugins installation purpose.    
+`plugins` option lets you describe list of JMeter plugins you want to use. If `plugins` option isn't found only following plugins will be installed: jpgc-casutg, jpgc-dummy, jpgc-ffw, jpgc-fifo, jpgc-functions, jpgc-json, jpgc-perfmon, jpgc-prmctl, jpgc-tst. Keep in mind: you can change plugins list only for clean installation. If you already have JMeter placed at `path` you need to remove it for plugins installation purpose.  
     
 ## Run Existing JMX File
 ```yaml

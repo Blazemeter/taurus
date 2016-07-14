@@ -16,7 +16,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.jmeter import JMeterExecutor, JTLErrorsReader, JTLReader
 from bzt.modules.jmeter import JMeterScenarioBuilder
 from bzt.six import etree, u
-from bzt.utils import EXE_SUFFIX, get_full_path
+from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul, RecordingHandler
 
@@ -43,6 +43,7 @@ def set_jmeter_executor_vars(jmeter_vars):
 class TestJMeterExecutor(BZTestCase):
     def setUp(self):
         self.obj = get_jmeter()
+        pass
 
     def tearDown(self):
         if self.obj.modified_jmx and os.path.exists(self.obj.modified_jmx):
@@ -96,7 +97,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertRaises(RuntimeError, self.obj.prepare)
 
     def test_requests(self):
-        self.obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
+        self.obj.engine.config.merge(json.loads(open(__dir__() + "/../json/get-post.json").read()))
         self.obj.execution = self.obj.engine.config['execution']
         self.obj.prepare()
         self.obj.log.debug("%s: %s", self.obj.modified_jmx, open(self.obj.modified_jmx).read())
@@ -264,7 +265,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertIn('<stringProp name="ConstantTimer.delay">750</stringProp>', result)
 
     def test_body_parse(self):
-        self.obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
+        self.obj.engine.config.merge(json.loads(open(__dir__() + "/../json/get-post.json").read()))
         self.obj.execution = self.obj.engine.config['execution']
         self.obj.prepare()
 
@@ -289,7 +290,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(len(res_files), 2)
 
     def test_resource_files_from_requests_local_prov(self):
-        self.obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
+        self.obj.engine.config.merge(json.loads(open(__dir__() + "/../json/get-post.json").read()))
         self.obj.execution = self.obj.engine.config['execution']
         self.obj.prepare()
         files = ['jmeter-bzt.properties', 'modified_requests.jmx']
@@ -338,7 +339,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertIn(csv_file_uni, resource_files)
 
     def test_http_request_defaults(self):
-        self.obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
+        self.obj.engine.config.merge(json.loads(open(__dir__() + "/../json/get-post.json").read()))
         self.obj.execution = self.obj.engine.config['execution']
         self.obj.prepare()
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
@@ -397,7 +398,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual("120", shaper_coll_element.findall(".//stringProp[@name='53']")[1].text)
 
     def test_user_def_vars_from_requests(self):
-        self.obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
+        self.obj.engine.config.merge(json.loads(open(__dir__() + "/../json/get-post.json").read()))
         self.obj.execution = self.obj.engine.config['execution']
         self.obj.prepare()
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
@@ -442,7 +443,7 @@ class TestJMeterExecutor(BZTestCase):
             self.assertEqual('true', writer.find('objProp/value/hostname').text)
 
     def test_distributed_th_hostnames_complex(self):
-        self.obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
+        self.obj.engine.config.merge(json.loads(open(__dir__() + "/../json/get-post.json").read()))
         self.obj.execution = self.obj.engine.config['execution']
         self.obj.settings.merge(self.obj.engine.config.get("modules").get("jmeter"))
         self.obj.distributed_servers = ["127.0.0.1", "127.0.0.1"]
@@ -463,7 +464,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertNotIn("system.properties", arts)
 
     def test_dns_cache_mgr_requests(self):
-        self.obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
+        self.obj.engine.config.merge(json.loads(open(__dir__() + "/../json/get-post.json").read()))
         self.obj.execution = self.obj.engine.config['execution']
         self.obj.settings.merge(self.obj.engine.config.get("modules").get("jmeter"))
         self.obj.prepare()
@@ -666,7 +667,7 @@ class TestJMeterExecutor(BZTestCase):
         handler = RecordingHandler()
         self.obj.log.addHandler(handler)
 
-        self.obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
+        self.obj.engine.config.merge(json.loads(open(__dir__() + "/../json/get-post.json").read()))
         self.obj.execution = self.obj.engine.config['execution']
         self.obj.prepare()
         target_jmx = os.path.join(self.obj.engine.artifacts_dir, "requests.jmx")
@@ -692,7 +693,7 @@ class TestJMeterExecutor(BZTestCase):
     def test_xpath_extractor(self):
         handler = RecordingHandler()
         self.obj.log.addHandler(handler)
-        self.obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
+        self.obj.engine.config.merge(json.loads(open(__dir__() + "/../json/get-post.json").read()))
         self.obj.execution = self.obj.engine.config['execution']
         self.obj.prepare()
         target_jmx = os.path.join(self.obj.engine.artifacts_dir, "requests.jmx")
@@ -722,7 +723,7 @@ class TestJMeterExecutor(BZTestCase):
     def test_xpath_assertion(self):
         handler = RecordingHandler()
         self.obj.log.addHandler(handler)
-        self.obj.engine.config = json.loads(open(__dir__() + "/../json/get-post.json").read())
+        self.obj.engine.config.merge(json.loads(open(__dir__() + "/../json/get-post.json").read()))
         self.obj.execution = self.obj.engine.config['execution']
         self.obj.prepare()
         target_jmx = os.path.join(self.obj.engine.artifacts_dir, "requests.jmx")
