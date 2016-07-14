@@ -198,6 +198,12 @@ class TestJMeterExecutor(BZTestCase):
         JMeterExecutor.JMETER_VER = '2.13'
 
         self.obj.settings.merge({"path": path})
+        self.obj.engine.config.merge({
+            "settings": {
+                "proxy": {
+                    "address": "http://myproxy.com:8080",
+                    "username": "user",
+                    "password": "pass"}}})
         self.obj.execution.merge({"scenario": {"requests": ["http://localhost"]}})
 
         self.obj.prepare()
@@ -235,6 +241,12 @@ class TestJMeterExecutor(BZTestCase):
         JMeterExecutor.JMETER_VER = '3.0'
 
         self.obj.settings.merge({"path": path})
+        self.obj.engine.config.merge({
+            "settings": {
+                "proxy": {
+                    "address": "http://myproxy.com:8080",
+                    "username": "user",
+                    "password": "pass"}}})
         self.obj.execution.merge({"scenario": {"requests": ["http://localhost"]}})
 
         self.obj.prepare()

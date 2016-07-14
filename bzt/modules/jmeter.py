@@ -1603,9 +1603,9 @@ class JMeter(RequiredTool):
                     port = 80
                 username = self.proxy_settings.get('username')
                 password = self.proxy_settings.get('password')
-                host_to_jvm = '-Dhttp.proxyHost=%s -Dhttp.proxyPort=%s', host, port
+                host_to_jvm = '-Dhttp.proxyHost=%s -Dhttp.proxyPort=%s' % (host, port)
                 if username and password:
-                    auth_to_jvm = '-Dhttp.proxyUsername="%s" -Dhttp.proxyPassword="%s"', username, password
+                    auth_to_jvm = '-Dhttp.proxyUsername="%s" -Dhttp.proxyPassword="%s"' % (username, password)
                 else:
                     auth_to_jvm = ''
 
@@ -1622,15 +1622,14 @@ class JMeter(RequiredTool):
 
     def install(self):
         dest = get_full_path(self.tool_path, step_up=2)
-        sep = os.path.sep
         plugins_manager_name = os.path.basename(JMeterExecutor.PLUGINS_MANAGER)
         cmdrunner_name = os.path.basename(JMeterExecutor.CMDRUNNER)
-        plugins_manager_path = os.path.join(dest, sep, 'lib', sep, 'ext', sep, plugins_manager_name)
-        cmdrunner_path = os.path.join(dest, sep, 'lib', sep, cmdrunner_name)
+        plugins_manager_path = os.path.join(dest, 'lib', 'ext', plugins_manager_name)
+        cmdrunner_path = os.path.join(dest, 'lib', cmdrunner_name)
         direct_install_tools = [  # source link and destination
             [JMeterExecutor.PLUGINS_MANAGER, plugins_manager_path],
             [JMeterExecutor.CMDRUNNER, cmdrunner_path]]
-        plugins_manager_cmd = os.path.join(dest, sep, 'bin', sep, 'PluginsManagerSMD' + EXE_SUFFIX)
+        plugins_manager_cmd = os.path.join(dest, 'bin', 'PluginsManagerCMD' + EXE_SUFFIX)
 
         self.__install_jmeter(dest)
         self.__download_additions(direct_install_tools)
