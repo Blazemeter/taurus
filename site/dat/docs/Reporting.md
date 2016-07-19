@@ -85,12 +85,12 @@ Field names with explanations:
  -   `throughput` - total count of all samples
  -   `succ` - total count of not-failed samples
  -   `fail`  - total count of saved samples
- -   `avg_rt` - average response time
- -   `stdev_rt` - standard deviation of response time
- -   `avg_ct` - average connect time if present
- -   `avg_lt`  - average latency if present 
- -   `rc_200` - counts for specific response codes
- -   `perc_0.0` .. `perc_100.0` - percentile levels for response time, 0 is also minimum response time, 100 is maximum
+ -   `avg\_rt` - average response time
+ -   `stdev\_rt` - standard deviation of response time
+ -   `avg\_ct` - average connect time if present
+ -   `avg\_lt`  - average latency if present 
+ -   `rc\_200` - counts for specific response codes
+ -   `perc\_0.0` .. `perc\_100.0` - percentile levels for response time, 0 is also minimum response time, 100 is maximum
 
 ## JUnit XML Reporter
 
