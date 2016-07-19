@@ -135,6 +135,9 @@
     },
     "tsung": {
       "class": "bzt.modules.tsung.TsungExecutor"
+    },
+    "nose": {
+      "class": "bzt.modules.nose.NoseExecutor"
     }
   },
   "settings": {
