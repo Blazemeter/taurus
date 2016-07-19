@@ -21,9 +21,9 @@ import time
 import urwid
 
 from bzt.engine import ScenarioExecutor, FileLister
-from bzt.modules.aggregator import ConsolidatingAggregator
+from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
-from bzt.modules.jmeter import JTLReader
+from bzt.modules.jmeter import IncrementalCSVReader
 from bzt.utils import shutdown_process, get_full_path
 
 
@@ -39,8 +39,7 @@ class NoseExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.end_time = None
         self.widget = None
         self.reader = None
-        self.kpi_file = None
-        self.err_jtl = None
+        self.test_report = None
         self.nose_stdout = None
         self.nose_stderr = None
         self.plugin_path = os.path.join(get_full_path(__file__, step_up=2),
@@ -52,19 +51,18 @@ class NoseExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.test_dir = self.execution.get("test-dir", ValueError("You must provide 'test-dir' field"))
         self.log.info("Test dir: %s", self.test_dir)
 
-        self.kpi_file = self.engine.create_artifact("selenium_tests_report", ".csv")
-        self.err_file = self.engine.create_artifact("selenium_tests_err", ".xml")
+        self.test_report = self.engine.create_artifact("nose_report", ".csv")
         self.nose_stdout = open(self.engine.create_artifact("nose", ".out"), "wt")
         self.nose_stderr = open(self.engine.create_artifact("nose", ".err"), "wt")
 
-        self.reader = JTLReader(self.kpi_file, self.log, self.err_file)
+        self.reader = ReportReader(self.test_report, self.log)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
     def startup(self):
         self.start_time = time.time()
         executable = self.execution.get("python", sys.executable)
-        nose_command_line = [executable, self.plugin_path, '-k', self.kpi_file, '-e', self.err_file]
+        nose_command_line = [executable, self.plugin_path, '--report-file', self.test_report]
         nose_command_line += [self.test_dir]
 
         self.process = self.execute(nose_command_line, stdout=self.nose_stdout, stderr=self.nose_stderr)
@@ -88,7 +86,7 @@ class NoseExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     def report_test_duration(self):
         if self.start_time:
             self.end_time = time.time()
-            self.log.debug("Selenium tests ran for %s seconds", self.end_time - self.start_time)
+            self.log.debug("Nose tests ran for %s seconds", self.end_time - self.start_time)
 
     def shutdown(self):
         shutdown_process(self.process, self.log)
@@ -100,10 +98,32 @@ class NoseExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if self.nose_stderr:
             self.nose_stderr.close()
         if self.reader and not self.reader.read_records:
-            raise RuntimeWarning("Empty results, most likely Selenium failed")
+            raise RuntimeWarning("Empty results, most likely Nose failed")
 
     def resource_files(self):
         raise NotImplemented()
+
+
+class ReportReader(ResultsReader):
+    def __init__(self, filename, parent_logger):
+        super(ReportReader, self).__init__()
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.csvreader = IncrementalCSVReader(self.log, filename)
+        self.read_records = 0
+
+    def _read(self, last_pass=False):
+        for row in self.csvreader.read(last_pass):
+            self.read_records += 1
+            tstmp = float(row["start_time"])
+            label = row["id"]
+            concur = 1
+            rtm = float(row["duration"])
+            cnn = 0
+            ltc = 0
+            rcd = row["status"]
+            error = row["error_msg"]
+            trname = None
+            yield tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname
 
 
 class NoseWidget(urwid.Pile, PrioritizedWidget):
