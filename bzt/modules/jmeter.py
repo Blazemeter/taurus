@@ -1706,7 +1706,7 @@ class JMeterMirrorsManager(MirrorsManager):
         default_link = self.default_download_link.format(version=self.jmeter_version)
         if default_link not in links:
             links.append(default_link)
-        self.log.info('mirrors: %s', links)
+        self.log.debug('Total mirrors: %d', len(links))
         return links
 
 
