@@ -157,9 +157,17 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         :return:
         """
         if self.client.token:
-            self.log.info("Uploading all artifacts as jtls_and_more.zip ...")
+            artifacts_zip = "artifacts.zip"
             mfile = self.__get_jtls_and_more()
-            self.client.upload_file("jtls_and_more.zip", mfile.getvalue())
+            self.log.info("Uploading all artifacts as %s ...", artifacts_zip)
+            self.client.upload_file(artifacts_zip, mfile.getvalue())
+
+            for handler in self.engine.log.parent.handlers:
+                if isinstance(handler, logging.FileHandler):
+                    self.log.info("Uploading %s", handler.baseFilename)
+                    self.client.upload_file(handler.baseFilename)
+                    # TODO: add numbering for machineID to file names
+                    # TODO: final tail upload here
 
         for executor in self.engine.provisioning.executors:
             if isinstance(executor, JMeterExecutor):
@@ -931,7 +939,7 @@ class BlazeMeterClient(object):
                             to_json(data), headers=hdr, method="PUT")
         return req['result']
 
-    def update_session(self,data):
+    def update_session(self, data):
         hdr = {"Content-Type": "application/json"}
         req = self._request(self.address + '/api/latest/sessions/%s' % self.session_id,
                             to_json(data), headers=hdr, method="PUT")
