@@ -98,12 +98,13 @@ class FinalStatus(Reporter, AggregatorListener):
         reports percentiles
         """
 
-        fmt = "Average times: total %.3f, latency %.3f, connect %.3f"
-        self.log.info(fmt, summary_kpi_set[KPISet.AVG_RESP_TIME], summary_kpi_set[KPISet.AVG_LATENCY],
-                      summary_kpi_set[KPISet.AVG_CONN_TIME])
+        if summary_kpi_set[KPISet.SAMPLE_COUNT]:
+            fmt = "Average times: total %.3f, latency %.3f, connect %.3f"
+            self.log.info(fmt, summary_kpi_set[KPISet.AVG_RESP_TIME], summary_kpi_set[KPISet.AVG_LATENCY],
+                          summary_kpi_set[KPISet.AVG_CONN_TIME])
 
-        for key in sorted(summary_kpi_set[KPISet.PERCENTILES].keys(), key=float):
-            self.log.info("Percentile %.1f%%: %.3f", float(key), summary_kpi_set[KPISet.PERCENTILES][key])
+            for key in sorted(summary_kpi_set[KPISet.PERCENTILES].keys(), key=float):
+                self.log.info("Percentile %.1f%%: %.3f", float(key), summary_kpi_set[KPISet.PERCENTILES][key])
 
     def __report_failed_labels(self, cumulative):
         """

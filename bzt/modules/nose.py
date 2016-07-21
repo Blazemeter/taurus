@@ -13,7 +13,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-
 import os
 import sys
 import time
@@ -21,17 +20,12 @@ import time
 import urwid
 
 from bzt.engine import ScenarioExecutor, FileLister
-from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
-from bzt.modules.jmeter import IncrementalCSVReader
+from bzt.modules.functional import ReportReader
 from bzt.utils import shutdown_process, get_full_path
 
 
 class NoseExecutor(ScenarioExecutor, WidgetProvider, FileLister):
-    """
-    Nose executor
-    """
-
     def __init__(self):
         super(NoseExecutor, self).__init__()
         self.process = None
@@ -56,8 +50,7 @@ class NoseExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.nose_stderr = open(self.engine.create_artifact("nose", ".err"), "wt")
 
         self.reader = ReportReader(self.test_report, self.log)
-        if isinstance(self.engine.aggregator, ConsolidatingAggregator):
-            self.engine.aggregator.add_underling(self.reader)
+        self.engine.aggregator.add_underling(self.reader)
 
     def startup(self):
         self.start_time = time.time()
@@ -104,34 +97,12 @@ class NoseExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         raise NotImplemented()
 
 
-class ReportReader(ResultsReader):
-    def __init__(self, filename, parent_logger):
-        super(ReportReader, self).__init__()
-        self.log = parent_logger.getChild(self.__class__.__name__)
-        self.csvreader = IncrementalCSVReader(self.log, filename)
-        self.read_records = 0
-
-    def _read(self, last_pass=False):
-        for row in self.csvreader.read(last_pass):
-            self.read_records += 1
-            tstmp = float(row["start_time"])
-            label = row["id"]
-            concur = 1
-            rtm = float(row["duration"])
-            cnn = 0
-            ltc = 0
-            rcd = row["status"]
-            error = row["error_msg"]
-            trname = None
-            yield tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname
-
-
 class NoseWidget(urwid.Pile, PrioritizedWidget):
     def __init__(self, label, runner_output):
         widgets = []
         self.script_name = urwid.Text("Tests: %s" % label)
-        self.summary_stats = urwid.Text("")
-        self.current_test = urwid.Text("")
+        self.summary_stats = urwid.Text("No data received yet")
+        self.current_test = urwid.Text("No data received yet")
         self.runner_output = runner_output
         widgets.append(self.script_name)
         widgets.append(self.summary_stats)
@@ -140,7 +111,6 @@ class NoseWidget(urwid.Pile, PrioritizedWidget):
         PrioritizedWidget.__init__(self, priority=10)
 
     def update(self):
-        cur_test = reader_summary = "No data received yet"
         if os.path.exists(self.runner_output):
             with open(self.runner_output, "rt") as fds:
                 lines = fds.readlines()
@@ -149,9 +119,9 @@ class NoseWidget(urwid.Pile, PrioritizedWidget):
                     if line and "," in line:
                         try:
                             cur_test, reader_summary = line.split(",")
+                            self.current_test.set_text(cur_test)
+                            self.summary_stats.set_text(reader_summary)
+                            self._invalidate()
                         except ValueError:
-                            pass
+                            return
 
-        self.current_test.set_text(cur_test)
-        self.summary_stats.set_text(reader_summary)
-        self._invalidate()

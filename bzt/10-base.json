@@ -135,9 +135,6 @@
     },
     "tsung": {
       "class": "bzt.modules.tsung.TsungExecutor"
-    },
-    "nose": {
-      "class": "bzt.modules.nose.NoseExecutor"
     }
   },
   "settings": {
@@ -164,6 +161,19 @@
           "dump-locations": true
         }
       }
+    },
+    "functional": {
+      "modules": {
+        "functional-stats": {
+          "class": "bzt.modules.functional.FunctionalStatsReporter"
+        },
+        "nose": {
+          "class": "bzt.modules.nose.NoseExecutor"
+        }
+      },
+      "reporting": [
+        "functional-stats"
+      ]
     }
   }
 }
