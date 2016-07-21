@@ -107,6 +107,11 @@ class Recorder(Service):
                 executor.additional_env['https_proxy'] = "http://%s/" % self.proxy
 
         self.log.debug('Start BlazeMeter recorder')
+        req = requests.post(self.API_URL + '/clearRecording', headers=self.headers)
+        if req.status_code != 200:
+            json_content = json.loads(req.content)
+            raise RuntimeError('%s', json_content['error']['message'])
+
         req = requests.post(self.API_URL + '/startRecording', headers=self.headers)
         if req.status_code != 200:
             json_content = json.loads(req.content)
@@ -122,15 +127,19 @@ class Recorder(Service):
 
     def post_process(self):
         super(Recorder, self).post_process()
-        self.log.debug("Stop BlazeMeter recorder")
-        req = requests.get(self.API_URL + '/jmx', headers=self.headers)
-
-        if req.status_code != 200:
+        self.log.debug("Prepare JMX file")
+        while True:
+            req = requests.get(self.API_URL, headers=self.headers)
             json_content = json.loads(req.content)
-            raise RuntimeError('%s', json_content['error']['message'])
-        else:
-            jmx_file = self.engine.create_artifact('generated', '.jmx')
-            with open(jmx_file, 'w') as _file:
-                _file.writelines(req.content)
+            if req.status_code != 200:
+                raise RuntimeError('%s', json_content['error']['message'])
+            if json_content['result']['smartjmx'] == "available":
+                break
+            time.sleep(1)
 
-            self.log.debug("JMX saved into %s", jmx_file)
+        req = requests.get(self.API_URL + '/jmx?smart=true', headers=self.headers)
+        jmx_file = self.engine.create_artifact('generated', '.jmx')
+        with open(jmx_file, 'w') as _file:
+            _file.writelines(req.content)
+
+        self.log.debug("JMX saved into %s", jmx_file)
