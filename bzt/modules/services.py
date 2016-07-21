@@ -66,7 +66,7 @@ class Recorder(Service):
         self.api_delay = 5
         self.api_url = 'https://a.blazemeter.com/api/latest/mitmproxies'
 
-    def __api_request(self, path='', method='GET', check=True):
+    def api_request(self, path='', method='GET', check=True):
         if method == 'GET':
             req = requests.get(self.api_url + path, headers=self.headers)
         elif method == 'POST':
@@ -91,23 +91,23 @@ class Recorder(Service):
 
         self.headers = {"X-Api-Key": token}
 
-        req = self.__api_request(check=False)
+        req = self.api_request(check=False)
 
         if req.status_code == 404:
             self.log.info('Proxy not found, create it')
-            req = self.__api_request(method='POST')
+            req = self.api_request(method='POST')
             json_content = json.loads(req.content)
         elif req.status_code == 200:
             self.log.info('Proxy found')
             json_content = json.loads(req.content)
             if json_content['result']['status'] == 'active':
                 self.log.info('Proxy is active, stop it')
-                self.__api_request('/stopRecording', 'POST')
+                self.api_request('/stopRecording', 'POST')
         else:
             json_content = json.loads(req.content)
             raise RuntimeError('%s', json_content['error']['message'])
 
-        self.__api_request('/clearRecording', 'POST')
+        self.api_request('/clearRecording', 'POST')
 
         host = json_content['result']['host']
         port = json_content['result']['port']
@@ -123,25 +123,25 @@ class Recorder(Service):
 
         self.log.info('Start BlazeMeter recorder')
 
-        self.__api_request('/startRecording', 'POST')
+        self.api_request('/startRecording', 'POST')
 
     def shutdown(self):
         super(Recorder, self).shutdown()
         self.log.info("Stop BlazeMeter recorder")
-        self.__api_request('/stopRecording', 'POST')
+        self.api_request('/stopRecording', 'POST')
 
     def post_process(self):
         super(Recorder, self).post_process()
         self.log.info("Waiting for JMX")
         while True:
-            req = self.__api_request()
+            req = self.api_request()
             json_content = json.loads(req.content)
             if json_content['result']['smartjmx'] == "available":
                 break
             time.sleep(self.api_delay)
 
         self.log.info('JMX ready')
-        req = self.__api_request('/jmx?smart=true')
+        req = self.api_request('/jmx?smart=true')
         jmx_file = self.engine.create_artifact('generated', '.jmx')
         with open(jmx_file, 'w') as _file:
             _file.writelines(req.content)
