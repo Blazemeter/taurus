@@ -59,40 +59,55 @@ class Unpacker(Service):
 
 
 class Recorder(Service):
-    API_URL = 'https://a.blazemeter.com/api/latest/mitmproxies'
-
     def __init__(self):
         super(Recorder, self).__init__()
         self.proxy = None
         self.headers = {}
+        self.api_delay = 5
+        self.api_url = 'https://a.blazemeter.com/api/latest/mitmproxies'
+
+    def __api_request(self, path='', method='GET', check=True):
+        if method == 'GET':
+            req = requests.get(self.api_url + path, headers=self.headers)
+        elif method == 'POST':
+            req = requests.post(self.api_url + path, headers=self.headers)
+        else:
+            raise RuntimeError('Unsupported method: %s', method)
+
+        if check and req.status_code != 200:
+            json_content = json.loads(req.content)
+            raise RuntimeError('%s', json_content['error']['message'])
+        return req
 
     def prepare(self):
         super(Recorder, self).prepare()
-        token = self.parameters.get('token')
+        self.api_url = self.settings.get('api-url', self.api_url)
+        token = self.settings.get('token')
         if not token:
             token = self.engine.config.get('modules').get('blazemeter').get('token')
-
-        if not token:
-            token = self.engine.config.get('modules').get('cloud').get('token')
 
         if not token:
             raise ValueError("You need token for recording")
 
         self.headers = {"X-Api-Key": token}
-        self.log.debug('Create Blazemeter proxy')
-        while True:
-            req = requests.delete(self.API_URL, headers=self.headers)
-            if req.status_code == 404:
-                break
-            if req.status_code != 200:
-                json_content = json.loads(req.content)
-                raise RuntimeError('%s', json_content['error']['message'])
-            time.sleep(1)
 
-        req = requests.post(self.API_URL, headers=self.headers)
-        json_content = json.loads(req.content)
-        if req.status_code != 200:
+        req = self.__api_request(check=False)
+
+        if req.status_code == 404:
+            self.log.info('Proxy not found, create it')
+            req = self.__api_request(method='POST')
+            json_content = json.loads(req.content)
+        elif req.status_code == 200:
+            self.log.info('Proxy found')
+            json_content = json.loads(req.content)
+            if json_content['result']['status'] == 'active':
+                self.log.info('Proxy is active, stop it')
+                self.__api_request('/stopRecording', 'POST')
+        else:
+            json_content = json.loads(req.content)
             raise RuntimeError('%s', json_content['error']['message'])
+
+        self.__api_request('/clearRecording', 'POST')
 
         host = json_content['result']['host']
         port = json_content['result']['port']
@@ -106,40 +121,29 @@ class Recorder(Service):
                 executor.additional_env['http_proxy'] = "http://%s/" % self.proxy
                 executor.additional_env['https_proxy'] = "http://%s/" % self.proxy
 
-        self.log.debug('Start BlazeMeter recorder')
-        req = requests.post(self.API_URL + '/clearRecording', headers=self.headers)
-        if req.status_code != 200:
-            json_content = json.loads(req.content)
-            raise RuntimeError('%s', json_content['error']['message'])
+        self.log.info('Start BlazeMeter recorder')
 
-        req = requests.post(self.API_URL + '/startRecording', headers=self.headers)
-        if req.status_code != 200:
-            json_content = json.loads(req.content)
-            raise RuntimeError('%s', json_content['error']['message'])
+        self.__api_request('/startRecording', 'POST')
 
     def shutdown(self):
         super(Recorder, self).shutdown()
-        self.log.debug("Stop BlazeMeter recorder")
-        req = requests.post(self.API_URL + '/stopRecording', headers=self.headers)
-        if req.status_code != 200:
-            json_content = json.loads(req.content)
-            raise RuntimeError('%s', json_content['error']['message'])
+        self.log.info("Stop BlazeMeter recorder")
+        self.__api_request('/stopRecording', 'POST')
 
     def post_process(self):
         super(Recorder, self).post_process()
-        self.log.debug("Prepare JMX file")
+        self.log.info("Waiting for JMX")
         while True:
-            req = requests.get(self.API_URL, headers=self.headers)
+            req = self.__api_request()
             json_content = json.loads(req.content)
-            if req.status_code != 200:
-                raise RuntimeError('%s', json_content['error']['message'])
             if json_content['result']['smartjmx'] == "available":
                 break
-            time.sleep(1)
+            time.sleep(self.api_delay)
 
-        req = requests.get(self.API_URL + '/jmx?smart=true', headers=self.headers)
+        self.log.info('JMX ready')
+        req = self.__api_request('/jmx?smart=true')
         jmx_file = self.engine.create_artifact('generated', '.jmx')
         with open(jmx_file, 'w') as _file:
             _file.writelines(req.content)
 
-        self.log.debug("JMX saved into %s", jmx_file)
+        self.log.info("JMX saved into %s", jmx_file)
