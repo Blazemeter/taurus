@@ -1,14 +1,15 @@
-import csv
+import json
 import sys
+import time
 import traceback
+from collections import OrderedDict
 from optparse import OptionParser
-from time import time
 
 import nose
 from nose.plugins import Plugin
 
 
-CSV_HEADER = ["id", "description", "start_time", "duration", "status", "error_msg", "error_trace"]
+REPORT_ITEM_KEYS = ["label", "status", "description", "start_time", "duration", "error_msg", "error_trace"]
 
 
 class BZTPlugin(Plugin):
@@ -24,19 +25,45 @@ class BZTPlugin(Plugin):
         self.output_file = output_file
         self.test_count = 0
         self.success_count = 0
-        self.csv_writer = None
         self.test_dict = None
         self.out_stream = None
-        self._time = None
 
     def __enter__(self):
         self.out_stream = open(self.output_file, "wt", buffering=1)
-        self.csv_writer = csv.DictWriter(self.out_stream, delimiter=',', fieldnames=CSV_HEADER)
-        self.csv_writer.writeheader()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.out_stream.close()
+
+    def begin(self):
+        """
+        Before any test runs
+        open descriptor here
+        :return:
+        """
+        self._module_name = ""
+
+    def finalize(self, result):
+        """
+        After all tests
+        :param result:
+        :return:
+        """
+        del result
+        if not self.test_count:
+            raise RuntimeError("Nothing to test.")
+
+    def startTest(self, test):
+        """
+        before test run
+        :param test:
+        :return:
+        """
+        self.last_err = None
+        self.test_dict = OrderedDict((key, None) for key in REPORT_ITEM_KEYS)
+        self.test_dict["label"] = test.id()
+        self.test_dict["description"] = test.shortDescription()
+        self.test_dict["start_time"] = time.time()
 
     def addError(self, test, error):
         """
@@ -69,7 +96,6 @@ class BZTPlugin(Plugin):
         :param test:
         :return:
         """
-        del test
         self.test_dict["status"] = "SKIPPED"
 
     def addSuccess(self, test):
@@ -78,42 +104,8 @@ class BZTPlugin(Plugin):
         :param test:
         :return:
         """
-        del test
         self.test_dict["status"] = "PASSED"
         self.success_count += 1
-
-    def begin(self):
-        """
-        Before any test runs
-        open descriptor here
-        :return:
-        """
-        self._module_name = ""
-
-    def finalize(self, result):
-        """
-        After all tests
-        :param result:
-        :return:
-        """
-        del result
-        if not self.test_count:
-            raise RuntimeError("Nothing to test.")
-
-    def startTest(self, test):
-        """
-        before test run
-        :param test:
-        :return:
-        """
-        test_name = test.id()
-
-        self.last_err = None
-        self._time = time()
-        self.test_dict = {}.fromkeys(CSV_HEADER, None)
-        self.test_dict["id"] = test_name
-        self.test_dict["description"] = test.shortDescription()
-        self.test_dict["start_time"] = "%0.6f" % time()
 
     def stopTest(self, test):
         """
@@ -121,16 +113,15 @@ class BZTPlugin(Plugin):
         :param test:
         :return:
         """
-        del test
         self.test_count += 1
-        self.test_dict["duration"] = "%0.6f" % (time() - float(self.test_dict["start_time"]))
-        self.csv_writer.writerow(self.test_dict)
+        self.test_dict["duration"] = time.time() - self.test_dict["start_time"]
+        self.out_stream.write("%s\n" % json.dumps(self.test_dict))
+        self.out_stream.flush()
 
         report_pattern = "%s,Total:%d Passed:%d Failed:%d\n"
         sys.stdout.write(report_pattern % (
-            self.test_dict["id"], self.test_count, self.success_count, self.test_count - self.success_count))
+            self.test_dict["label"], self.test_count, self.success_count, self.test_count - self.success_count))
 
-        self.out_stream.flush()
 
 
 def run_nose(report_file, files):
