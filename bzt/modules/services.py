@@ -19,8 +19,12 @@ limitations under the License.
 import copy
 import os
 import zipfile
+import json
+import requests
 
-from bzt.engine import Service, Provisioning
+from bzt.engine import Provisioning
+from bzt.engine import Service
+from bzt.modules.selenium import SeleniumExecutor
 from bzt.utils import replace_in_config
 
 
@@ -51,3 +55,70 @@ class Unpacker(Service):
             unpacked_list.append(archive[:-4])  # TODO: replace with top-level archive content
 
         replace_in_config(self.engine.config, packed_list, unpacked_list, log=self.log)
+
+
+class Recorder(Service):
+    def __init__(self):
+        super(Recorder, self).__init__()
+        self.proxy = None
+        self.headers = {}
+        self.base_url = 'https://a.blazemeter.com/api/latest/mitmproxies'
+
+    def prepare(self):
+        super(Recorder, self).prepare()
+        token = self.parameters.get('token', ValueError("You need token for recording"))
+        self.headers = {"X-Api-Key": token}
+        self.log.debug('Create Blazemeter proxy')
+        while True:
+            req = requests.delete(self.base_url, headers=self.headers)
+            if req.status_code == 404:
+                break
+            if req.status_code != 200:
+                json_content = json.loads(req.content)
+                raise RuntimeError('%s', json_content['error']['message'])
+
+        req = requests.post(self.base_url, headers=self.headers)
+        json_content = json.loads(req.content)
+        if req.status_code != 200:
+            raise RuntimeError('%s', json_content['error']['message'])
+
+        host = json_content['result']['host']
+        port = json_content['result']['port']
+
+        self.proxy = '%s:%s' % (host, port)
+
+    def startup(self):
+        super(Recorder, self).startup()
+        for executor in self.engine.provisioning.executors:
+            if isinstance(executor, SeleniumExecutor):
+                executor.additional_env['http_proxy'] = "http://%s/" % self.proxy
+                executor.additional_env['https_proxy'] = "http://%s/" % self.proxy
+
+        self.log.debug('Start BlazeMeter recorder')
+        req = requests.post(self.base_url + '/startRecording', headers=self.headers)
+        if req.status_code != 200:
+            json_content = json.loads(req.content)
+            raise RuntimeError('%s', json_content['error']['message'])
+
+    def shutdown(self):
+        super(Recorder, self).shutdown()
+        self.log.debug("Stop BlazeMeter recorder")
+        req = requests.post(self.base_url + '/stopRecording', headers=self.headers)
+        if req.status_code != 200:
+            json_content = json.loads(req.content)
+            raise RuntimeError('%s', json_content['error']['message'])
+
+    def post_process(self):
+        super(Recorder, self).post_process()
+        self.log.debug("Stop BlazeMeter recorder")
+        req = requests.get(self.base_url + '/jmx', headers=self.headers)
+
+        if req.status_code != 200:
+            json_content = json.loads(req.content)
+            raise RuntimeError('%s', json_content['error']['message'])
+        else:
+            jmx_file = self.engine.create_artifact('generated', '.jmx')
+            with open(jmx_file, 'w') as _file:
+                _file.writelines(req.content)
+
+            self.log.debug("JMX saved into %s", jmx_file)

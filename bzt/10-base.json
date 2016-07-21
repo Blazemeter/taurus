@@ -30,6 +30,9 @@
     "ab": {
       "class": "bzt.modules.ab.ApacheBenchmarkExecutor"
     },
+    "recorder": {
+      "class": "bzt.modules.services.Recorder"
+    },
     "jmeter": {
       "class": "bzt.modules.jmeter.JMeterExecutor",
       "properties": {
