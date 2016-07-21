@@ -22,7 +22,7 @@ from bzt.engine import Reporter
 from bzt.modules.aggregator import ResultsProvider, ResultsReader, DataPoint, AggregatorListener, KPISet
 
 
-class LdjsonReader(object):
+class LDJSONReader(object):
     def __init__(self, filename, parent_log):
         self.log = parent_log.getChild(self.__class__.__name__)
         self.filename = filename
@@ -64,11 +64,12 @@ class LdjsonReader(object):
 class ReportReader(ResultsReader):
     REPORT_ITEM_KEYS = ["label", "status", "description", "start_time", "duration", "error_msg", "error_trace"]
     TEST_STATUSES = ("PASSED", "FAILED", "BROKEN", "SKIPPED")
+    FAILING_TESTS_STATUSES = ("FAILED", "BROKEN")
 
     def __init__(self, filename, parent_logger):
         super(ReportReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
-        self.json_reader = LdjsonReader(filename, self.log)
+        self.json_reader = LDJSONReader(filename, self.log)
         self.read_records = 0
 
     def _read(self, last_pass=False):
@@ -95,8 +96,16 @@ class FunctionalStatsReporter(Reporter, AggregatorListener):
         if self.last_sec:
             cumulative = self.last_sec[DataPoint.CUMULATIVE][""]
             self.__report_count(cumulative)
+            if self.settings.get('print-stack-trace', False):
+                self.__report_failed_tests(cumulative)
 
     def __report_count(self, cumulative_kpi):
         self.log.info("Test count: %s", cumulative_kpi[KPISet.TEST_COUNT])
         for status in ReportReader.TEST_STATUSES:
             self.log.info("%s: %s test(s)", status, cumulative_kpi[KPISet.TEST_STATUSES][status])
+
+    def __report_failed_tests(self, cumulative_kpi):
+        for test in cumulative_kpi[KPISet.TESTS]:
+            if test['status'] in ReportReader.FAILING_TESTS_STATUSES:
+                self.log.info("Test %s is %s: %s", test['label'], test['status'], test['error_msg'])
+                self.log.info("Stack trace: %s" % test['error_trace'])

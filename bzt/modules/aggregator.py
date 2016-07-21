@@ -48,6 +48,7 @@ class KPISet(BetterDict):
     ERRTYPE_ASSERT = 1
     TEST_COUNT = "test_count"
     TEST_STATUSES = "test_statuses"
+    TESTS = "tests"
 
     def __init__(self, perc_levels=()):
         super(KPISet, self).__init__()
@@ -72,6 +73,7 @@ class KPISet(BetterDict):
         # func test stats
         self.get(self.TEST_COUNT, 0)
         self.get(self.TEST_STATUSES, Counter())
+        self.get(self.TESTS, [])
 
         self._concurrencies = BetterDict()  # NOTE: shouldn't it be Counter?
 
@@ -137,9 +139,10 @@ class KPISet(BetterDict):
         # TODO: throughput if interval is not 1s
 
     def add_sample_func(self, sample):
+        test_status = sample['status']
         self[self.TEST_COUNT] += 1
-        status = sample['status']
-        self[self.TEST_STATUSES][status] += 1
+        self[self.TEST_STATUSES][test_status] += 1
+        self[self.TESTS].append(sample)
 
     @staticmethod
     def inc_list(values, selector, value):
@@ -222,6 +225,7 @@ class KPISet(BetterDict):
 
         self[self.TEST_COUNT] += src[self.TEST_COUNT]
         self[self.TEST_STATUSES].update(src[self.TEST_STATUSES])
+        self[self.TESTS].extend(src[self.TESTS])
 
     @staticmethod
     def from_dict(obj):
