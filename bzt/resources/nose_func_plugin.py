@@ -41,7 +41,7 @@ class BZTPlugin(Plugin):
         open descriptor here
         :return:
         """
-        self._module_name = ""
+        pass
 
     def finalize(self, result):
         """
