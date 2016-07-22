@@ -51,6 +51,28 @@ class KPISet(BetterDict):
     TEST_FAILED = "test_failed"
     TESTS = "tests"
 
+    LOAD_METRICS = [
+        ERRORS,
+        SAMPLE_COUNT,
+        CONCURRENCY,
+        SUCCESSES,
+        FAILURES,
+        RESP_TIMES,
+        AVG_RESP_TIME,
+        STDEV_RESP_TIME,
+        AVG_LATENCY,
+        AVG_CONN_TIME,
+        PERCENTILES,
+        RESP_CODES,
+    ]
+
+    FUNC_METRICS = [
+        TEST_COUNT,
+        TEST_STATUSES,
+        TEST_FAILED,
+        TESTS,
+    ]
+
     def __init__(self, perc_levels=()):
         super(KPISet, self).__init__()
         self.sum_rt = 0

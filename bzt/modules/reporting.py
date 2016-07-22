@@ -140,7 +140,8 @@ class FinalStatus(Reporter, AggregatorListener):
 
     def __get_xml_summary(self, label, kpiset):
         elem = etree.Element("Group", label=label)
-        for kpi_name, kpi_val in iteritems(kpiset):
+        for kpi_name in kpiset.LOAD_METRICS:
+            kpi_val = kpiset[kpi_name]
             if kpi_name in ('errors', 'rt'):
                 continue
 
@@ -192,7 +193,7 @@ class FinalStatus(Reporter, AggregatorListener):
         kpi_copy = copy.deepcopy(kpiset)
         # sort label
         res = OrderedDict()
-        for key in sorted(kpi_copy.keys()):
+        for key in sorted(KPISet.LOAD_METRICS):
             res[key] = kpi_copy[key]
 
         for level, val in iteritems(kpiset[KPISet.PERCENTILES]):
