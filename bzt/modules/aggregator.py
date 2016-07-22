@@ -48,6 +48,7 @@ class KPISet(BetterDict):
     ERRTYPE_ASSERT = 1
     TEST_COUNT = "test_count"
     TEST_STATUSES = "test_statuses"
+    TEST_FAILED = "test_failed"
     TESTS = "tests"
 
     def __init__(self, perc_levels=()):
@@ -73,6 +74,7 @@ class KPISet(BetterDict):
         # func test stats
         self.get(self.TEST_COUNT, 0)
         self.get(self.TEST_STATUSES, Counter())
+        self.get(self.TEST_FAILED, [])
         self.get(self.TESTS, [])
 
         self._concurrencies = BetterDict()  # NOTE: shouldn't it be Counter?
@@ -143,6 +145,8 @@ class KPISet(BetterDict):
         self[self.TEST_COUNT] += 1
         self[self.TEST_STATUSES][test_status] += 1
         self[self.TESTS].append(sample)
+        if test_status in ('BROKEN', 'FAILED'):
+            self[self.TEST_FAILED].append(sample)
 
     @staticmethod
     def inc_list(values, selector, value):
@@ -226,6 +230,7 @@ class KPISet(BetterDict):
         self[self.TEST_COUNT] += src[self.TEST_COUNT]
         self[self.TEST_STATUSES].update(src[self.TEST_STATUSES])
         self[self.TESTS].extend(src[self.TESTS])
+        self[self.TEST_FAILED].extend(src[self.TEST_FAILED])
 
     @staticmethod
     def from_dict(obj):
