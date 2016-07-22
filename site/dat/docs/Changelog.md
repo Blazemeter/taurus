@@ -4,6 +4,7 @@
  - optimize aggregator by removing excessive calls to `BetterDict.get()`
  - use JMeter Plugins Manager for installation of plugins
  - build installer for Windows to simplify installation process
+ - add recorder service to convert tests from Selenium to JMeter  
 
 ## 1.6.5 <sup>12 jul 2016</sup>
  - fix master_id choosing for cloud reporting 

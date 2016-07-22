@@ -105,3 +105,25 @@ services:
   - /home/user/temp.zip
 ```  
  
+### Recorder
+
+It's possible to convert selenium test into JMeter JMX files. For this purpose taurus uses BlazeMeter recorder so you need valid token. Lets see example config:
+```yaml
+---
+execution:
+- executor: selenium
+  scenario: sel
+
+scenarios:
+  sel:
+    script: example.scala
+
+services:
+- module: recorder
+
+modules:
+  recorder:
+    token: 3dcdff10e6beeb03995b
+
+```
+After execution it you'll find generated.jmx in artifacts dir.
