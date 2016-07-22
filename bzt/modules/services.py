@@ -64,13 +64,13 @@ class Recorder(Service):
         self.proxy = None
         self.headers = {}
         self.api_delay = 5
-        self.api_url = 'https://a.blazemeter.com/api/latest/mitmproxies'
+        self.address = 'https://a.blazemeter.com/api/latest/mitmproxies'
 
     def api_request(self, path='', method='GET', check=True):
         if method == 'GET':
-            req = requests.get(self.api_url + path, headers=self.headers)
+            req = requests.get(self.address + path, headers=self.headers)
         elif method == 'POST':
-            req = requests.post(self.api_url + path, headers=self.headers)
+            req = requests.post(self.address + path, headers=self.headers)
         else:
             raise RuntimeError('Unsupported method: %s', method)
 
@@ -81,7 +81,7 @@ class Recorder(Service):
 
     def prepare(self):
         super(Recorder, self).prepare()
-        self.api_url = self.settings.get('api-url', self.api_url)
+        self.address = self.settings.get('address', self.address)
         token = self.settings.get('token')
         if not token:
             token = self.engine.config.get('modules').get('blazemeter').get('token')
@@ -121,7 +121,7 @@ class Recorder(Service):
                 executor.additional_env['http_proxy'] = "http://%s/" % self.proxy
                 executor.additional_env['https_proxy'] = "http://%s/" % self.proxy
 
-        self.log.info('Start BlazeMeter recorder')
+        self.log.info('Starting BlazeMeter recorder...')
 
         self.api_request('/startRecording', 'POST')
 
@@ -140,7 +140,6 @@ class Recorder(Service):
                 break
             time.sleep(self.api_delay)
 
-        self.log.info('JMX ready')
         req = self.api_request('/jmx?smart=true')
         jmx_file = self.engine.create_artifact('generated', '.jmx')
         with open(jmx_file, 'w') as _file:
