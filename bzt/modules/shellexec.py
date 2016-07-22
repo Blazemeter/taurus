@@ -170,6 +170,7 @@ class Task(object):
             self.process.wait()
             self.check()
             self.process = None
+            self.ret_code = None
 
     def check(self):
         if not self.process or self.ret_code is not None:
