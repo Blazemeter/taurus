@@ -39,11 +39,11 @@ class NoseExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.plugin_path = os.path.join(get_full_path(__file__, step_up=2),
                                         "resources",
                                         "nose_func_plugin.py")
-        self.test_dir = None
+        self.test_suite = None
 
     def prepare(self):
-        self.test_dir = self.execution.get("test-dir", ValueError("You must provide 'test-dir' field"))
-        self.log.info("Test dir: %s", self.test_dir)
+        self.test_suite = self.execution.get("test-suite", ValueError("You must provide 'test-suite' option"))
+        self.log.info("Test option: %s", self.test_suite)
 
         self.test_report = self.engine.create_artifact("nose_report", ".csv")
         self.nose_stdout = open(self.engine.create_artifact("nose", ".out"), "wt")
@@ -55,14 +55,13 @@ class NoseExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     def startup(self):
         self.start_time = time.time()
         executable = self.execution.get("python", sys.executable)
-        nose_command_line = [executable, self.plugin_path, '--report-file', self.test_report]
-        nose_command_line += [self.test_dir]
+        nose_command_line = [executable, self.plugin_path, '--report-file', self.test_report, self.test_suite]
 
         self.process = self.execute(nose_command_line, stdout=self.nose_stdout, stderr=self.nose_stderr)
 
     def get_widget(self):
         if self.widget is None:
-            self.widget = NoseWidget(self.test_dir, self.nose_stdout.name)
+            self.widget = NoseWidget(self.test_suite, self.nose_stdout.name)
         return self.widget
 
     def check(self):
@@ -71,9 +70,9 @@ class NoseExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         ret_code = self.process.poll()
         if ret_code is None:
             return False
-        self.log.debug("nose exit code: %s", ret_code)
+        self.log.debug("Nose exit code: %s", ret_code)
         if ret_code != 0:
-            raise RuntimeError("nose exited with non-zero code")
+            raise RuntimeError("Nose exited with non-zero code")
         return True
 
     def report_test_duration(self):
