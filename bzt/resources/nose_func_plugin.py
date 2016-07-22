@@ -61,7 +61,7 @@ class BZTPlugin(Plugin):
         """
         self.last_err = None
         self.test_dict = OrderedDict((key, None) for key in REPORT_ITEM_KEYS)
-        self.test_dict["label"] = test.id()
+        self.test_dict["label"] = ".".join(test.id().split('.')[-2:])
         self.test_dict["description"] = test.shortDescription()
         self.test_dict["start_time"] = time.time()
 
