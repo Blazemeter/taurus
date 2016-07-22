@@ -41,7 +41,7 @@ class BZTPlugin(Plugin):
         open descriptor here
         :return:
         """
-        self._module_name = ""
+        pass
 
     def finalize(self, result):
         """
@@ -59,7 +59,6 @@ class BZTPlugin(Plugin):
         :param test:
         :return:
         """
-        self.last_err = None
         self.test_dict = OrderedDict((key, None) for key in REPORT_ITEM_KEYS)
         self.test_dict["label"] = ".".join(test.id().split('.')[-2:])
         self.test_dict["description"] = test.shortDescription()

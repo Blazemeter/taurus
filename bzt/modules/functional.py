@@ -15,7 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import json
-import logging
 import os
 import time
 
@@ -25,7 +24,7 @@ from urwid import Columns, Text, Padding
 from bzt.engine import Reporter
 from bzt.modules.aggregator import ResultsProvider, ResultsReader, DataPoint, AggregatorListener, KPISet
 from bzt.modules.console import ConsoleStatusReporter, TaurusConsole
-from bzt.modules.console import ScrollingLog, LatestStats, CumulativeStats, ThreeGraphs, TaurusLogo, StatsColumn
+from bzt.modules.console import ScrollingLog, TaurusLogo, StatsColumn
 from bzt.utils import humanize_time
 
 
@@ -115,7 +114,7 @@ class FunctionalStatsReporter(Reporter, AggregatorListener):
         for test in cumulative_kpi[KPISet.TESTS]:
             if test['status'] in ReportReader.FAILING_TESTS_STATUSES:
                 self.log.info("Test %s is %s: %s", test['label'], test['status'], test['error_msg'])
-                self.log.info("Stack trace: %s" % test['error_trace'])
+                self.log.info("Stack trace: %s", test['error_trace'])
 
 
 class FunctionalConsoleReporter(ConsoleStatusReporter):
@@ -154,7 +153,7 @@ class FunctionalConsole(TaurusConsole):
         columns = [(WEIGHT, 0.25, Pile([])),
                    (WEIGHT, 0.50, stats_pane),
                    (WEIGHT, 0.25, right_pane)]
-        super(TaurusConsole, self).__init__(columns)
+        super(FunctionalConsole, self).__init__(columns)
 
     def add_data(self, data):
         """
