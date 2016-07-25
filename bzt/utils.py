@@ -683,10 +683,12 @@ class RequiredTool(object):
                     socket.setdefaulttimeout(sock_timeout)
         raise RuntimeError("%s download failed: No more links to try" % self.tool_name)
 
-    def install_with_link(self, suffix):
+    def install_with_link(self, dest, suffix):
+        self.log.info("Will install %s into %s", self.tool_name, dest)
         return self.download_archive([self.download_link], suffix)
 
-    def install_with_mirrors(self, suffix):
+    def install_with_mirrors(self, dest, suffix):
+        self.log.info("Will install %s into %s", self.tool_name, dest)
         mirrors = self.mirror_manager.mirrors()
         return self.download_archive(mirrors, suffix)
 
