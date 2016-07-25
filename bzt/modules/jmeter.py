@@ -1552,10 +1552,11 @@ class JMeter(RequiredTool):
             return False
 
     def __install_jmeter(self, dest):
+        self.log.info("Will install %s into %s", self.tool_name, dest)
         if self.download_link:
-            jmeter_dist = super(JMeter, self).install_at_dest(dest, ".zip")
+            jmeter_dist = super(JMeter, self).install_with_link(".zip")
         else:
-            jmeter_dist =  super(JMeter, self).install_with_mirrors(dest, ".zip")
+            jmeter_dist =  super(JMeter, self).install_with_mirrors(".zip")
         self.log.info("Unzipping %s to %s", jmeter_dist.name, dest)
         unzip(jmeter_dist.name, dest, 'apache-jmeter-%s' % self.version)
         jmeter_dist.close()
