@@ -113,7 +113,8 @@ Instructions are tested on Ubuntu 14.04 (Trusty) minimal install, but should wor
 
 ```
 sudo apt-get update
-sudo apt-get install python default-jre-headless python-tk python-pip python-dev libxml2-dev libxslt-dev zlib1g-dev
+sudo apt-get install python default-jre-headless python-tk python-pip python-dev \
+  libxml2-dev libxslt-dev zlib1g-dev
 sudo pip install bzt
 ```
 Upgrading to latest is as simple as this:
@@ -152,7 +153,8 @@ sudo yum -y install python-pip
 Install corresponding libraries for CentOS
 
 ```bash
-sudo yum install java-1.7.0-openjdk-headless.x86_64 python-devel.x86_64 libxml2-devel.x86_64 libxslt-devel.x86_64 zlib.x86_64 gcc.x86_64
+sudo yum install java-1.7.0-openjdk-headless.x86_64 python-devel.x86_64 \
+  libxml2-devel.x86_64 libxslt-devel.x86_64 zlib.x86_64 gcc.x86_64
 ```
 
 You could search by 'yum search xxxxx' where 'xxxxx' represents the name of the library.
