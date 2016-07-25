@@ -773,7 +773,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         user_download_link = self.settings.get("download-link", None)
         plugins = self.settings.get("plugins", [])
         proxy = self.engine.config.get('settings').get('proxy')
-        tool = JMeter(jmeter_path, self.log, jmeter_version, self.MIRRORS_SOURCE, user_download_link, plugins, proxy)
+        tool = JMeter(jmeter_path, self.log, jmeter_version, user_download_link, plugins, proxy)
 
         if self._need_to_install(tool):
             self.log.info("Installing %s", tool.tool_name)
@@ -1520,11 +1520,11 @@ class JMeter(RequiredTool):
     JMeter tool
     """
 
-    def __init__(self, tool_path, parent_logger, jmeter_version, mirror_broker, user_download_link, plugins, proxy):
+    def __init__(self, tool_path, parent_logger, jmeter_version, user_download_link, plugins, proxy):
         super(JMeter, self).__init__("JMeter", tool_path, user_download_link)
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.version = jmeter_version
-        self.mirror_manager = JMeterMirrorsManager(self.log, self.version, mirror_broker)
+        self.mirror_manager = JMeterMirrorsManager(self.log, self.version)
         self.plugins = plugins
         self.proxy_settings = proxy
 
@@ -1685,9 +1685,9 @@ class JarCleaner(object):
 
 
 class JMeterMirrorsManager(MirrorsManager):
-    def __init__(self, parent_logger, jmeter_version, mirror_broker):
+    def __init__(self, parent_logger, jmeter_version):
         self.jmeter_version = str(jmeter_version)
-        super(JMeterMirrorsManager, self).__init__(mirror_broker, parent_logger)
+        super(JMeterMirrorsManager, self).__init__(JMeterExecutor.MIRRORS_SOURCE, parent_logger)
 
     def _parse_mirrors(self):
         links = []
