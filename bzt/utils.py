@@ -683,7 +683,26 @@ class RequiredTool(object):
                     continue
                 finally:
                     socket.setdefaulttimeout(sock_timeout)
-        raise RuntimeError("%s download failed: No more mirrors to try", self.tool_name)
+        raise RuntimeError("%s download failed: No more mirrors to try" % self.tool_name)
+
+    def install_with_link(self, dest, suffix):
+        self.log.info("Will install %s into %s", self.tool_name, dest)
+        downloader = request.FancyURLopener()
+        tool_dist = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)  # delete=False because of Windows
+        sock_timeout = socket.getdefaulttimeout()
+        self.log.info("Downloading: %s", self.download_link)
+        with ProgressBarContext() as pbar:
+            try:
+                socket.setdefaulttimeout(5)
+                downloader.retrieve(self.download_link, tool_dist.name, pbar.download_callback)
+                return tool_dist
+            except KeyboardInterrupt:
+                raise
+            except BaseException:
+                self.log.error("Error while downloading %s", self.download_link)
+            finally:
+                socket.setdefaulttimeout(sock_timeout)
+        raise RuntimeError("%s download failed" % self.tool_name)
 
 
 class JavaVM(RequiredTool):
@@ -892,5 +911,6 @@ def which(filename):
 
 def is_piped(file_obj):
     "check if file-object is a pipe or a file redirect"
+    return False
     mode = os.fstat(file_obj.fileno()).st_mode
     return stat.S_ISFIFO(mode) or stat.S_ISREG(mode)

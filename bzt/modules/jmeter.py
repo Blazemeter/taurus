@@ -53,7 +53,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     :type properties_file: str
     :type sys_properties_file: str
     """
-    MIRRORS_SOURCE = "https://archive.apache.org/dist/jmeter/binaries/"
+    MIRRORS_SOURCE = "http://jmeter.apache.org/download_jmeter.cgi"
     JMETER_DOWNLOAD_LINK = "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-{version}.zip"
     PLUGINS_MANAGER = 'http://search.maven.org/remotecontent?filepath=' \
                       'kg/apc/jmeter-plugins-manager/0.8/jmeter-plugins-manager-0.8.jar'
@@ -771,10 +771,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         jmeter_path = get_full_path(jmeter_path)
         jmeter_version = self.settings.get("version", JMeterExecutor.JMETER_VER)
         user_download_link = self.settings.get("download-link", None)
-        default_download_link = JMeterExecutor.JMETER_DOWNLOAD_LINK
+        mirror_broker = self.settings.get("mirror-broker", self.MIRRORS_SOURCE)
         plugins = self.settings.get("plugins", [])
         proxy = self.engine.config.get('settings').get('proxy')
-        tool = JMeter(jmeter_path, self.log, jmeter_version, user_download_link, default_download_link, plugins, proxy)
+        tool = JMeter(jmeter_path, self.log, jmeter_version, mirror_broker, user_download_link, plugins, proxy)
 
         if self._need_to_install(tool):
             self.log.info("Installing %s", tool.tool_name)
@@ -1521,11 +1521,11 @@ class JMeter(RequiredTool):
     JMeter tool
     """
 
-    def __init__(self, tool_path, parent_logger, jmeter_version, user_download_link, def_download_link, plugins, proxy):
-        super(JMeter, self).__init__("JMeter", tool_path)
+    def __init__(self, tool_path, parent_logger, jmeter_version, mirror_broker, user_download_link, plugins, proxy):
+        super(JMeter, self).__init__("JMeter", tool_path, user_download_link)
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.version = jmeter_version
-        self.mirror_manager = JMeterMirrorsManager(self.log, self.version, user_download_link, def_download_link)
+        self.mirror_manager = JMeterMirrorsManager(self.log, self.version, mirror_broker)
         self.plugins = plugins
         self.proxy_settings = proxy
 
@@ -1553,10 +1553,13 @@ class JMeter(RequiredTool):
             return False
 
     def __install_jmeter(self, dest):
-        with super(JMeter, self).install_with_mirrors(dest, ".zip") as jmeter_dist:
-            self.log.info("Unzipping %s to %s", jmeter_dist.name, dest)
-            unzip(jmeter_dist.name, dest, 'apache-jmeter-%s' % self.version)
-
+        if self.download_link:
+            jmeter_dist = super(JMeter, self).install_at_dest(dest, ".zip")
+        else:
+            jmeter_dist =  super(JMeter, self).install_with_mirrors(dest, ".zip")
+        self.log.info("Unzipping %s to %s", jmeter_dist.name, dest)
+        unzip(jmeter_dist.name, dest, 'apache-jmeter-%s' % self.version)
+        jmeter_dist.close()
         os.remove(jmeter_dist.name)
 
         # set exec permissions
@@ -1683,31 +1686,26 @@ class JarCleaner(object):
 
 
 class JMeterMirrorsManager(MirrorsManager):
-    def __init__(self, parent_logger, jmeter_version, user_download_link, def_download_link):
+    def __init__(self, parent_logger, jmeter_version, mirror_broker):
         self.jmeter_version = str(jmeter_version)
-        self.user_download_link = user_download_link
-        self.default_download_link = def_download_link
-        super(JMeterMirrorsManager, self).__init__(JMeterExecutor.MIRRORS_SOURCE, parent_logger)
+        super(JMeterMirrorsManager, self).__init__(mirror_broker, parent_logger)
 
     def _parse_mirrors(self):
         links = []
         if self.page_source is not None:
             self.log.debug('Parsing mirrors...')
-            href_search_pattern = re.compile(r'<a href="apache\-jmeter\-([^"]*?)\.zip">')
-            jmeter_versions = href_search_pattern.findall(self.page_source)
-
-            if self.jmeter_version in jmeter_versions:
-                archive_name = "apache-jmeter-{version}.zip".format(version=self.jmeter_version)
-                links.append(self.base_link + archive_name)
-            else:
-                self.log.warning("Can't find link for JMeter %s, will use download-link", self.jmeter_version)
-        if self.user_download_link is not None:
-            links.insert(0, self.user_download_link)
-        default_link = self.default_download_link.format(version=self.jmeter_version)
-        if default_link not in links:
-            links.append(default_link)
+            select_search_pattern = re.compile(r'<select name="Preferred">.*?</select>', re.MULTILINE | re.DOTALL)
+            option_search_pattern = re.compile(r'<option value=".*?">')
+            select_element = select_search_pattern.findall(self.page_source)
+            if select_element:
+                option_elements = option_search_pattern.findall(select_element[0])
+                link_tail = "/jmeter/binaries/apache-jmeter-{version}.zip".format(version=self.jmeter_version)
+                links = [link.strip('<option value="').strip('">') + link_tail for link in option_elements]
+        links.append(JMeterExecutor.JMETER_DOWNLOAD_LINK.format(version=self.jmeter_version))
         self.log.debug('Total mirrors: %d', len(links))
-        return links
+        # place HTTPS links first, preserving the order of HTTP links
+        sorted_links = sorted(links, key=lambda l: l.startswith("https"), reverse=True)
+        return sorted_links
 
 
 class Request(object):
