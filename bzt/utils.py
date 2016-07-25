@@ -667,17 +667,17 @@ class RequiredTool(object):
         downloader = request.FancyURLopener()
         tool_dist = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)  # delete=False because of Windows
         sock_timeout = socket.getdefaulttimeout()
-        for mirror in links:
-            self.log.info("Downloading: %s", mirror)
+        for link in links:
+            self.log.info("Downloading: %s", link)
             with ProgressBarContext() as pbar:
                 try:
                     socket.setdefaulttimeout(5)
-                    downloader.retrieve(mirror, tool_dist.name, pbar.download_callback)
+                    downloader.retrieve(link, tool_dist.name, pbar.download_callback)
                     return tool_dist
                 except KeyboardInterrupt:
                     raise
                 except BaseException:
-                    self.log.error("Error while downloading %s", mirror)
+                    self.log.error("Error while downloading %s", link)
                     continue
                 finally:
                     socket.setdefaulttimeout(sock_timeout)

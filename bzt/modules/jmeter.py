@@ -770,10 +770,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         jmeter_path = self.settings.get("path", "~/.bzt/jmeter-taurus/")
         jmeter_path = get_full_path(jmeter_path)
         jmeter_version = self.settings.get("version", JMeterExecutor.JMETER_VER)
-        user_download_link = self.settings.get("download-link", None)
+        download_link = self.settings.get("download-link", None)
         plugins = self.settings.get("plugins", [])
         proxy = self.engine.config.get('settings').get('proxy')
-        tool = JMeter(jmeter_path, self.log, jmeter_version, user_download_link, plugins, proxy)
+        tool = JMeter(jmeter_path, self.log, jmeter_version, download_link, plugins, proxy)
 
         if self._need_to_install(tool):
             self.log.info("Installing %s", tool.tool_name)
@@ -1520,8 +1520,8 @@ class JMeter(RequiredTool):
     JMeter tool
     """
 
-    def __init__(self, tool_path, parent_logger, jmeter_version, user_download_link, plugins, proxy):
-        super(JMeter, self).__init__("JMeter", tool_path, user_download_link)
+    def __init__(self, tool_path, parent_logger, jmeter_version, jmeter_download_link, plugins, proxy):
+        super(JMeter, self).__init__("JMeter", tool_path, jmeter_download_link)
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.version = jmeter_version
         self.mirror_manager = JMeterMirrorsManager(self.log, self.version)
