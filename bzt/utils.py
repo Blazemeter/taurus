@@ -899,6 +899,5 @@ def which(filename):
 
 def is_piped(file_obj):
     "check if file-object is a pipe or a file redirect"
-    return False
     mode = os.fstat(file_obj.fileno()).st_mode
     return stat.S_ISFIFO(mode) or stat.S_ISREG(mode)
