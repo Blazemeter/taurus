@@ -771,10 +771,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         jmeter_path = get_full_path(jmeter_path)
         jmeter_version = self.settings.get("version", JMeterExecutor.JMETER_VER)
         user_download_link = self.settings.get("download-link", None)
-        mirror_broker = self.settings.get("mirror-broker", self.MIRRORS_SOURCE)
         plugins = self.settings.get("plugins", [])
         proxy = self.engine.config.get('settings').get('proxy')
-        tool = JMeter(jmeter_path, self.log, jmeter_version, mirror_broker, user_download_link, plugins, proxy)
+        tool = JMeter(jmeter_path, self.log, jmeter_version, self.MIRRORS_SOURCE, user_download_link, plugins, proxy)
 
         if self._need_to_install(tool):
             self.log.info("Installing %s", tool.tool_name)
