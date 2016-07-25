@@ -1,4 +1,5 @@
 import os
+import re
 import time
 from subprocess import CalledProcessError
 
@@ -55,6 +56,20 @@ class TestBlockingTasks(TaskTestCase):
         task = {"command": "pwd", "out": None}
         self.obj.parameters.merge({"prepare": [task]})
         self.obj.prepare()
+
+    def test_repeated_stdout_capture(self):
+        task = {"command": "echo hello", "background": False}
+        self.obj.parameters.merge({"check": [task]})
+        try:
+            self.obj.prepare()
+            self.obj.startup()
+            self.obj.check()
+            self.assertEqual(1, len(re.findall("Output for echo hello", self.log_recorder.debug_buff.getvalue())))
+            self.obj.check()
+            self.assertEqual(2, len(re.findall("Output for echo hello", self.log_recorder.debug_buff.getvalue())))
+        except ValueError:
+            self.fail()
+
 
 
 class TestNonBlockingTasks(TaskTestCase):
