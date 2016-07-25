@@ -53,11 +53,11 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     :type properties_file: str
     :type sys_properties_file: str
     """
-    MIRRORS_SOURCE = "http://jmeter.apache.org/download_jmeter.cgi"
+    MIRRORS_SOURCE = "https://jmeter.apache.org/download_jmeter.cgi"
     JMETER_DOWNLOAD_LINK = "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-{version}.zip"
-    PLUGINS_MANAGER = 'http://search.maven.org/remotecontent?filepath=' \
+    PLUGINS_MANAGER = 'https://search.maven.org/remotecontent?filepath=' \
                       'kg/apc/jmeter-plugins-manager/0.8/jmeter-plugins-manager-0.8.jar'
-    CMDRUNNER = 'http://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.0/cmdrunner-2.0.jar'
+    CMDRUNNER = 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.0/cmdrunner-2.0.jar'
     JMETER_VER = "3.0"
     UDP_PORT_NUMBER = None
 
