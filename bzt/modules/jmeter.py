@@ -995,8 +995,6 @@ class JTLErrorsReader(object):
     def read_file(self):
         """
         Read the next part of the file
-
-        :return:
         """
 
         if self.failed_processing:
@@ -1042,9 +1040,6 @@ class JTLErrorsReader(object):
     def get_data(self, max_ts):
         """
         Get accumulated errors data up to specified timestamp
-
-        :param max_ts:
-        :return:
         """
         result = BetterDict()
         for t_stamp in sorted(self.buffer.keys()):
@@ -1138,6 +1133,8 @@ class JTLErrorsReader(object):
     def __get_failed_assertion(self, element):
         """
         Returns first failed assertion, or None
+
+        :rtype lxml.etree.Element
         """
         assertions = [elem for elem in element.iterchildren() if elem.tag == "assertionResult"]
         for assertion in assertions:
@@ -1574,14 +1571,14 @@ class JMeter(RequiredTool):
     def __download_additions(self, tools):
         downloader = http_request.FancyURLopener()
         with ProgressBarContext() as pbar:
-            try:
-                for tool in tools:
-                    _file = os.path.basename(tool[0])
+            for tool in tools:
+                _file = os.path.basename(tool[0])
+                try:
                     self.log.info("Downloading %s from %s", _file, tool[0])
                     downloader.retrieve(tool[0], tool[1], pbar.download_callback)
-            except BaseException:
-                self.log.error("Error while downloading %s", _file)
-                raise
+                except BaseException:
+                    self.log.error("Error while downloading %s", _file)
+                    raise
 
     def __install_plugins_manager(self, plugins_manager_path):
         installer = "org.jmeterplugins.repository.PluginManagerCMDInstaller"
@@ -1602,28 +1599,29 @@ class JMeter(RequiredTool):
         try:
             # prepare proxy settings
             if self.proxy_settings and self.proxy_settings.get('address'):
+                env = BetterDict()
+                env.merge(dict(os.environ))
+                jvm_args = env.get('JVM_ARGS', '')
+
                 proxy_url = parse.urlsplit(self.proxy_settings.get("address"))
                 self.log.debug("Using proxy settings: %s", proxy_url)
                 host = proxy_url.hostname
                 port = proxy_url.port
                 if not port:
                     port = 80
+
+                jvm_args += ' -Dhttp.proxyHost=%s -Dhttp.proxyPort=%s' % (host, port)  # TODO: remove it after pmgr 0.9
+                jvm_args += ' -Dhttps.proxyHost=%s -Dhttps.proxyPort=%s' % (host, port)
+
                 username = self.proxy_settings.get('username')
                 password = self.proxy_settings.get('password')
-                host_to_jvm = '-Dhttp.proxyHost=%s -Dhttp.proxyPort=%s' % (host, port)
-                if username and password:
-                    auth_to_jvm = '-Dhttp.proxyUsername="%s" -Dhttp.proxyPassword="%s"' % (username, password)
-                else:
-                    auth_to_jvm = ''
 
-                env = BetterDict()
-                env.merge(dict(os.environ))
-                jvm_args = env.get('JVM_ARGS', '')
-                if jvm_args:
-                    jvm_args += ' '
-                if auth_to_jvm:
-                    auth_to_jvm += ' '
-                env['JVM_ARGS'] = env.get('JVM_ARGS', '') + host_to_jvm + auth_to_jvm
+                if username and password:
+                    # property names correspond to
+                    # https://github.com/apache/jmeter/blob/trunk/src/core/org/apache/jmeter/JMeter.java#L110
+                    jvm_args += ' -Dhttp.proxyUser="%s" -Dhttp.proxyPass="%s"' % (username, password)
+
+                env['JVM_ARGS'] = jvm_args
 
             proc = shell_exec(cmd)
             out, err = proc.communicate()
@@ -1678,7 +1676,7 @@ class JarCleaner(object):
         for jar_lib_obj in jar_libs:
             similar_packages = [lib for lib in jar_libs if lib.lib_name == jar_lib_obj.lib_name]
             if len(similar_packages) > 1:
-                right_version = max(similar_packages, key=lambda lib: LooseVersion(lib.version))
+                right_version = max(similar_packages, key=lambda l: LooseVersion(l.version))
                 similar_packages.remove(right_version)
                 duplicated_libraries.update(similar_packages)
 
