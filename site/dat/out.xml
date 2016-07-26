@@ -1,5 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <url title="Taurus" template="dat/taurus.tpl"
+     description="Taurus tool is an Open Source test automation framework, providing simple YAML-based configuration format with DSL, executed through command-line and scalable through cloud resource providers. It uses JMeter as default load generator and perfectly fits into Jenkins CI."
+     keywords="Open Source,Test Automation,Load Testing,Continuous Integration,JMeter,Selenium,Gatling,Grinder,Tsung,Yandex.Tank,ApacheBenchmark,Locust.io,command-line tool,test reporting,load test scaling,DevOps,Jenkins"
      syntax="PWE\Modules\SimpleWiki\GitHubMarkdownSyntax\Config" start_page="Index" wiki_file_ext="md"
      files_base="/" download_link="/.."
      class="PWE\Modules\HTMLPage\HTMLPage" src="index.html">
