@@ -237,6 +237,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
                 self.__send_data(self.kpi_buffer)
                 if self.send_monitoring:
                     self.__send_monitoring()
+                    self.__send_custom_metrics()
                 self.kpi_buffer = []
         return super(BlazeMeterUploader, self).check()
 
@@ -299,6 +300,21 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
             try:
                 time.sleep(self.client.timeout)
                 self.client.send_monitoring_data(src_name, data)
+                self.log.info("Succeeded with retry")
+            except IOError:
+                self.log.error("Fatal error sending data: %s", traceback.format_exc())
+                self.log.warning("Will skip failed data and continue running")
+
+    def __send_custom_metrics(self):
+        data = self.monitoring_buffer.get_metrics_json()
+        try:
+            self.client.send_custom_metrics(data)
+        except IOError:
+            self.log.debug("Error sending data: %s", traceback.format_exc())
+            self.log.warning("Failed to send data, will retry in %s sec...", self.client.timeout)
+            try:
+                time.sleep(self.client.timeout)
+                self.client.send_custom_metrics(data)
                 self.log.info("Succeeded with retry")
             except IOError:
                 self.log.error("Fatal error sending data: %s", traceback.format_exc())
@@ -429,6 +445,34 @@ class MonitoringBuffer(object):
             "hosts": hosts,
             "results": results
         }
+
+    def get_metrics_json(self):
+        datapoints = {}
+
+        for source, buff in iteritems(self.data):
+            for timestamp, item in iteritems(buff):
+                if source == 'local':
+                    source = platform.node()
+
+                if timestamp not in datapoints:
+                    datapoints[timestamp] = {}
+
+                for field, value in iteritems(item):
+                    if field in ('ts', 'interval'):
+                        continue
+                    if field.lower().startswith('cpu'):
+                        field = 'custom-cpu'
+                    else:
+                        continue
+
+                    datapoints[timestamp][source + "/" + field] = value
+
+        results = []
+        for timestamp in sorted(datapoints):
+            datapoint = datapoints[timestamp]
+            datapoint["ts"] = timestamp
+            results.append(datapoint)
+        return {"datapoints": results}
 
 
 class ProjectFinder(object):
@@ -1013,6 +1057,11 @@ class BlazeMeterClient(object):
 
     def send_monitoring_data(self, src_name, data):
         self.upload_file('%s.monitoring.json' % src_name, to_json(data))
+
+    def send_custom_metrics(self, data):
+        url = self.address + "/api/latest/data/masters/%s/custom-metrics" % self.master_id
+        res = self._request(url, to_json(data), method="POST")
+        return res['result']
 
 
 class MasterProvisioning(Provisioning):
