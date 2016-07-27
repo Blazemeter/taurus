@@ -462,11 +462,27 @@ class MonitoringBuffer(object):
                 for field, value in iteritems(item):
                     if field in ('ts', 'interval'):
                         continue
-                    datapoints[timestamp]["metrics/" + source + "/" + field] = value
+                    if field.lower().startswith('cpu'):
+                        prefix = 'System'
+                        field = 'CPU'
+                    elif field.lower().startswith('mem'):
+                        prefix = 'System'
+                        field = 'Memory'
+                        value *= 100
+                    elif field.lower().startswith('disk'):
+                        prefix = 'Disk'
+                    elif field == 'bytes-recv' or field.lower().startswith('net'):
+                        prefix = 'Network'
+                    else:
+                        prefix = 'Monitoring'
+g
+                    label = "/".join([source, prefix, field])
+                    datapoints[timestamp][label] = value
 
         results = []
         for timestamp in sorted(datapoints):
-            datapoint = datapoints[timestamp]
+            datapoint = OrderedDict([(metric, datapoints[timestamp][metric])
+                                     for metric in sorted(datapoints[timestamp])])
             datapoint["ts"] = timestamp
             results.append(datapoint)
         return {"datapoints": results}
