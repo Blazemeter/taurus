@@ -313,6 +313,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
             self.log.debug("Error sending data: %s", traceback.format_exc())
             self.log.warning("Failed to send data, will retry in %s sec...", self.client.timeout)
             try:
+                # NOTE: this pauses the whole Taurus engine for N seconds (10 by default)
+                # We probably shouldn't do that.
                 time.sleep(self.client.timeout)
                 self.client.send_custom_metrics(data)
                 self.log.info("Succeeded with retry")
@@ -460,12 +462,7 @@ class MonitoringBuffer(object):
                 for field, value in iteritems(item):
                     if field in ('ts', 'interval'):
                         continue
-                    if field.lower().startswith('cpu'):
-                        field = 'custom-cpu'
-                    else:
-                        continue
-
-                    datapoints[timestamp][source + "/" + field] = value
+                    datapoints[timestamp]["metrics/" + source + "/" + field] = value
 
         results = []
         for timestamp in sorted(datapoints):
@@ -1060,8 +1057,8 @@ class BlazeMeterClient(object):
 
     def send_custom_metrics(self, data):
         url = self.address + "/api/latest/data/masters/%s/custom-metrics" % self.master_id
-        res = self._request(url, to_json(data), method="POST")
-        return res['result']
+        res = self._request(url, to_json(data), headers={"Content-Type": "application/json"}, method="POST")
+        return res
 
 
 class MasterProvisioning(Provisioning):
