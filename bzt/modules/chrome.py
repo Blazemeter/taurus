@@ -97,15 +97,72 @@ class ChromeMetricExtractor(object):
         self.process_names = {}  # pid -> str
         self.process_labels = {}  # pid -> str
         self.memory_per_process = defaultdict(OrderedDict)  # pid -> (ts -> float)
+        self.resources = defaultdict(dict)  # download_id -> dict(start_time, request_id, end_time)
+        self.requests = defaultdict(dict)  # request_id -> dict(send_req_time, recv_resp_time, recv_data_time, mime,
+        #                                                       status_code, size, did_fail, finish_time, network_time)
+        self.page_load_times = {}
 
     def feed_event(self, event):
         if event.get("timestamp") and self.tracing_start_ts is None:
             self.tracing_start_ts = event["timestamp"]
+
         if event.get("cat") == "disabled-by-default-memory-infra":
             if event.get("name") == "periodic_interval":
                 self.process_memory_event(event)
         elif event.get("cat") == "__metadata":
             self.process_metadata_event(event)
+        elif event.get("cat") == "blink.net":
+            self.process_network_event(event)
+        elif event.get("cat") == "devtools.timeline":
+            self.process_devtools_event(event)
+        elif event.get("cat") == "blink.user_timing":
+            self.process_user_timing_event(event)
+
+    def process_user_timing_event(self, event):
+        if event.get("name") == "loadEventStart":
+            ts = float(event['ts']) / 1000000
+            if self.tracing_start_ts is not None:
+                ts = ts - self.tracing_start_ts
+            self.page_load_times[event['pid']] = ts
+
+    def process_devtools_event(self, event):
+        if event.get("name") == "ResourceSendRequest":
+            ts = float(event["ts"]) / 1000000
+            request_id = event["args"]["data"]["requestId"]
+            self.requests[request_id]["send_req_time"] = ts
+            self.requests[request_id]["method"] = event["args"]["data"]["requestMethod"]
+            self.requests[request_id]["url"] = event["args"]["data"]["url"]
+        elif event.get("name") == "ResourceReceiveResponse":
+            ts = float(event["ts"]) / 1000000
+            request_id = event["args"]["data"]["requestId"]
+            self.requests[request_id]["recv_resp_time"] = ts
+            self.requests[request_id]["mime"] = event["args"]["data"]["mimeType"]
+            self.requests[request_id]["status_code"] = event["args"]["data"]["statusCode"]
+        elif event.get("name") == "ResourceReceivedData":
+            ts = float(event["ts"]) / 1000000
+            request_id = event["args"]["data"]["requestId"]
+            self.requests[request_id]["recv_data_time"] = ts
+            self.requests[request_id]["size"] = event["args"]["data"]["encodedDataLength"]
+        elif event.get("name") == "ResourceFinish":
+            ts = float(event["ts"]) / 1000000
+            request_id = event["args"]["data"]["requestId"]
+            self.requests[request_id]["finish_time"] = ts
+            self.requests[request_id]["did_fail"] = event["args"]["data"]["didFail"]
+            if event["args"]["data"].get("networkTime"):
+                self.requests[request_id]["network_time"] = event["args"]["data"]["networkTime"]
+
+    def process_network_event(self, event):
+        if event.get("name") == "Resource":
+            if event.get("ph") == "S":  # download starts
+                ts = float(event["ts"]) / 1000000
+                download_id = event["id"]
+                request_id = event["args"]["data"]["requestId"]
+                self.resources[download_id]["start_time"] = ts
+                self.resources[download_id]["request_id"] = request_id
+            elif event.get("ph") == "F":  # download finished
+                ts = float(event["ts"]) / 1000000
+                download_id = event["id"]
+                self.resources[download_id]["end_time"] = ts
 
     def process_metadata_event(self, event):
         pid = event["pid"]
@@ -126,17 +183,39 @@ class ChromeMetricExtractor(object):
         resident_mbytes = float(int(totals['resident_set_bytes'], 16)) / 1024 / 1024
         self.memory_per_process[pid][ts] = resident_mbytes
 
+    def calc_memory_metrics(self):
+        for pid in sorted(self.memory_per_process):
+            for ts, value in iteritems(self.memory_per_process[pid]):
+                name = self.process_names.get(pid, pid)
+                if pid in self.process_labels:
+                    name += "(%s)" % self.process_labels[pid]
+                metric = '%s-mem-mb' % name
+                yield ts, metric, value
+
+    def calc_network_metrics(self):
+        if self.requests:
+            total = 0.0
+            for request_id in sorted(self.requests, key=float):  # TODO: what if it isn't float?
+                request = self.requests[request_id]
+                payload_size = request.get("size", 0)
+                total += payload_size
+            total /= 1024 * 1024
+            yield 0.0, "total-download", total
+
+    def calc_user_timing_metrics(self):
+        for pid, page_load_ts in iteritems(self.page_load_times):
+            if pid in self.process_labels:
+                yield 0.0, "page-load", page_load_ts
+
     def get_metrics(self):
         # yields (offset, metric, value)
         # offset is number of seconds since the start of Chrome
-        if self.memory_per_process:
-            for pid in sorted(self.memory_per_process):
-                for ts, value in iteritems(self.memory_per_process[pid]):
-                    name = self.process_names.get(pid, pid)
-                    if pid in self.process_labels:
-                        name += "(%s)" % self.process_labels[pid]
-                    metric = '%s-mem-mb' % name
-                    yield ts, metric, value
+        for metric in self.calc_memory_metrics():
+            yield metric
+        for metric in self.calc_network_metrics():
+            yield metric
+        for metric in self.calc_user_timing_metrics():
+            yield metric
 
 
 class ChromeLogClient(MonitoringClient):
