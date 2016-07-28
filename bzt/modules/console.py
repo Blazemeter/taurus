@@ -137,6 +137,8 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         """
         Repaint the screen
         """
+        self.data_started = True
+
         if self.disabled:
             if self._last_datapoint:
                 self.__print_one_line_stats()
@@ -1173,4 +1175,8 @@ class SidebarWidget(Pile, PrioritizedWidget):
             if isinstance(self.progress, ProgressBar):
                 # noinspection PyUnresolvedReferences
                 self.progress.set_completion(elapsed)
+        else:
+            elapsed = self.executor.delay - (time.time() - self.executor.engine.provisioning.start_time)
+            if elapsed >= 0:
+                self.elapsed.set_text("Delayed: %s" % humanize_time(elapsed))
         self._invalidate()
