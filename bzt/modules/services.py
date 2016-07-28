@@ -58,9 +58,9 @@ class Unpacker(Service):
         replace_in_config(self.engine.config, packed_list, unpacked_list, log=self.log)
 
 
-class Recorder(Service):
+class Proxy2JMX(Service):
     def __init__(self):
-        super(Recorder, self).__init__()
+        super(Proxy2JMX, self).__init__()
         self.proxy = None
         self.headers = {}
         self.api_delay = 5
@@ -80,7 +80,7 @@ class Recorder(Service):
         return req
 
     def prepare(self):
-        super(Recorder, self).prepare()
+        super(Proxy2JMX, self).prepare()
         self.address = self.settings.get('address', self.address)
         token = self.settings.get('token')
         if not token:
@@ -115,7 +115,7 @@ class Recorder(Service):
         self.proxy = '%s:%s' % (host, port)
 
     def startup(self):
-        super(Recorder, self).startup()
+        super(Proxy2JMX, self).startup()
         for executor in self.engine.provisioning.executors:
             if isinstance(executor, SeleniumExecutor):
                 executor.additional_env['http_proxy'] = "http://%s/" % self.proxy
@@ -126,12 +126,12 @@ class Recorder(Service):
         self.api_request('/startRecording', 'POST')
 
     def shutdown(self):
-        super(Recorder, self).shutdown()
+        super(Proxy2JMX, self).shutdown()
         self.log.info("Stop BlazeMeter recorder")
         self.api_request('/stopRecording', 'POST')
 
     def post_process(self):
-        super(Recorder, self).post_process()
+        super(Proxy2JMX, self).post_process()
         self.log.info("Waiting for JMX")
         while True:
             req = self.api_request()

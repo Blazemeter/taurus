@@ -4,14 +4,14 @@ import zipfile
 
 from bzt.engine import Service, Provisioning
 from bzt.modules.blazemeter import CloudProvisioning, BlazeMeterClientEmul
-from bzt.modules.services import Unpacker, Recorder
+from bzt.modules.services import Unpacker, Proxy2JMX
 from bzt.utils import get_files_recursive
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul
 from bzt.modules.selenium import SeleniumExecutor
 
 
-class RecorderEmul(Recorder):
+class Proxy2JMXEmul(Proxy2JMX):
     responses = []
 
     def api_request(self, path='', method='GET', check=True):
@@ -24,16 +24,16 @@ class ResponseEmul:
         self.content = content
 
 
-class TestRecorder(BZTestCase):
+class TestProxy2JMX(BZTestCase):
     def test_no_token(self):
-        obj = RecorderEmul()
+        obj = Proxy2JMXEmul()
         obj.engine = EngineEmul()
         obj.engine.config.merge({})
         obj.settings = obj.engine.config.get('recorder')
         self.assertRaises(ValueError, obj.prepare)
 
     def test_full(self):
-        obj = RecorderEmul()
+        obj = Proxy2JMXEmul()
         obj.api_delay = 1
         obj.responses = [
             ResponseEmul(404, ''),
@@ -65,7 +65,7 @@ class TestRecorder(BZTestCase):
         self.assertEqual(lines[0].strip(), 'only one string')
 
     def test_existing_proxy(self):
-        obj = RecorderEmul()
+        obj = Proxy2JMXEmul()
         obj.api_delay = 1
         obj.responses = [
             ResponseEmul(200, '{"result" : {"port": "port1", "host": "host1", "status": "active"}}'),
