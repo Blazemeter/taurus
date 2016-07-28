@@ -1,0 +1,25 @@
+---
+scenarios:
+  req:
+    timeout: 5s
+    requests:
+      - http://blazedemo.com/
+      - http://blazedemo.com/pricing
+      - http://blazedemo.com/features
+      - http://blazedemo.com/blog
+
+execution:
+  - scenario: req
+    executor: selenium-enhanced
+    concurrency: 2
+    hold-for: 5m
+
+  - scenario: req
+    executor: jmeter
+    concurrency: 2
+    hold-for: 5m
+
+selenium:
+  virtual-display1:
+    width: 1280
+    height: 800
