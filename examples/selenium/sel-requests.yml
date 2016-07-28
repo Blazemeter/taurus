@@ -10,16 +10,16 @@ scenarios:
 
 execution:
   - scenario: req
-    executor: selenium-enhanced
+    executor: selenium
     concurrency: 2
     hold-for: 5m
 
-  - scenario: req
-    executor: jmeter
-    concurrency: 2
-    hold-for: 5m
+#  - scenario: req
+#    executor: jmeter
+#    concurrency: 2
+#    hold-for: 5m
 
 selenium:
-  virtual-display1:
+  virtual-display:
     width: 1280
     height: 800
