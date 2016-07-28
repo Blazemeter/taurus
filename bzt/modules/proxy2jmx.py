@@ -1,7 +1,7 @@
 """
-Implementations for small services
+Implementations for proxy2jmx service
 
-Copyright 2015 BlazeMeter Inc.
+Copyright 2016 BlazeMeter Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
