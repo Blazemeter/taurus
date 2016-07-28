@@ -4,6 +4,7 @@
  
 # Articles
  1. [Solving JMeter Test Execution Problem](JMeter1)
+ 1. [Handling pre/post test actions of a load test](ShellexecHooks)
 
 
 # Third-Party Articles
@@ -14,11 +15,12 @@
 
 # Videos
 
-The most recent video is: [Meetup on April 7, 2016: Test Automation with JMeter, Jenkins and Taurus](https://www.youtube.com/watch?v=UoOcxlYDRbM&feature=youtu.be)
+The most recent video is: [Meetup on June 28, 2016: How to Simplify Load Testing JMeter and Beyond](https://www.youtube.com/watch?v=phUmBjPneSc)
 
-<iframe width="700" height="394" src="https://www.youtube.com/embed/UoOcxlYDRbM" frameborder="0" allowfullscreen></iframe>
+<iframe width="700" height="394" src="https://www.youtube.com/embed/phUmBjPneSc" frameborder="0" allowfullscreen></iframe>
  
 Other Videos:
+ 1. [Test Automation with JMeter, Jenkins and Taurus](https://www.youtube.com/watch?v=UoOcxlYDRbM)
  1. [BlazeMeter Meetup - How to Scale Test Automation with Jenkins & JMeter Using Taurus](https://www.youtube.com/watch?v=8oYzvNRRQi4)
  1. [Scaling Test Automation with Jenkins + JMeter + Taurus](https://www.youtube.com/watch?v=QuY0Qcdd90A)
  1. [The Secret to Scaling Test Automation w Jenkins & JMeter at Jenkins UC Israel 2015](https://www.youtube.com/watch?v=JnCYGBN4FTw)

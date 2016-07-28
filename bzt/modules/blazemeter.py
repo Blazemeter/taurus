@@ -931,7 +931,7 @@ class BlazeMeterClient(object):
                             to_json(data), headers=hdr, method="PUT")
         return req['result']
 
-    def update_session(self,data):
+    def update_session(self, data):
         hdr = {"Content-Type": "application/json"}
         req = self._request(self.address + '/api/latest/sessions/%s' % self.session_id,
                             to_json(data), headers=hdr, method="PUT")
@@ -1322,22 +1322,29 @@ class ResultsFromBZA(ResultsProvider):
                     if kpi['ts'] != tstmp:
                         continue
 
-                    kpiset = KPISet()
-                    kpiset[KPISet.FAILURES] = kpi['ec']
-                    kpiset[KPISet.CONCURRENCY] = kpi['na']
-                    kpiset[KPISet.SAMPLE_COUNT] = kpi['n']
-                    kpiset.sum_rt += kpi['t_avg'] * kpi['n'] / 1000.0
-                    kpiset.sum_lt += kpi['lt_avg'] * kpi['n'] / 1000.0
+                    label_str = label['label']
+                    if label_str not in aggr:
+                        self.log.warning("Skipping inconsistent data from API for label: %s", label_str)
+                        continue
 
-                    perc_map = {'90line': 90.0, "95line": 95.0, "99line": 99.0}
-                    for field, level in iteritems(perc_map):
-                        kpiset[KPISet.PERCENTILES][str(level)] = aggr[label['label']][field]
-
-                    point[DataPoint.CURRENT]['' if label['label'] == 'ALL' else label['label']] = kpiset
+                    kpiset = self.__get_kpiset(aggr, kpi, label_str)
+                    point[DataPoint.CURRENT]['' if label_str == 'ALL' else label_str] = kpiset
 
             point.recalculate()
             self.min_ts = point[DataPoint.TIMESTAMP] + 1
             yield point
+
+    def __get_kpiset(self, aggr, kpi, label):
+        kpiset = KPISet()
+        kpiset[KPISet.FAILURES] = kpi['ec']
+        kpiset[KPISet.CONCURRENCY] = kpi['na']
+        kpiset[KPISet.SAMPLE_COUNT] = kpi['n']
+        kpiset.sum_rt += kpi['t_avg'] * kpi['n'] / 1000.0
+        kpiset.sum_lt += kpi['lt_avg'] * kpi['n'] / 1000.0
+        perc_map = {'90line': 90.0, "95line": 95.0, "99line": 99.0}
+        for field, level in iteritems(perc_map):
+            kpiset[KPISet.PERCENTILES][str(level)] = aggr[label][field]
+        return kpiset
 
     def query_data(self):
         try:
