@@ -5,6 +5,5 @@ execution:
   scenario:
     script: dir
 
-services:
- - proxy2jmx
- 
+#services:
+#- proxy2jmx
