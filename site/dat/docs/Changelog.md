@@ -4,6 +4,7 @@
  - optimize aggregator by removing excessive calls to `BetterDict.get()`
  - use JMeter Plugins Manager for installation of plugins
  - build installer for Windows to simplify installation process
+ - add Proxy2JMX service to convert tests from Selenium to JMeter format
  - fix occasional crash from inconsistent API result for cloud test KPIs
  - prefer user-supplied `download-link` over default download link for JMeter
 
