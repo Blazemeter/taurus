@@ -135,6 +135,9 @@
     },
     "tsung": {
       "class": "bzt.modules.tsung.TsungExecutor"
+    },
+    "chrome-profiler": {
+      "class": "bzt.modules.chrome.ChromeProfiler"
     }
   },
   "settings": {
