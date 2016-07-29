@@ -227,7 +227,7 @@ class ChromeMetricExtractor(object):
                 payload_size = request.get("size", 0)
                 total += payload_size
             total /= 1024 * 1024
-            yield 0.0, "total-download", total
+            yield 0.0, "total-download-mb", total
 
     def calc_user_timing_metrics(self):
         for pid, page_load_ts in iteritems(self.page_load_times):
@@ -238,7 +238,7 @@ class ChromeMetricExtractor(object):
         for pid in sorted(self.js_heap_size_used):
             if pid in self.process_labels:
                 for ts, value in iteritems(self.js_heap_size_used[pid]):
-                    metric = 'js-heap-size-used'
+                    metric = 'js-heap-size-used-mb'
                     yield ts, metric, value
         for pid in sorted(self.js_event_listeners):
             if pid in self.process_labels:
@@ -247,22 +247,25 @@ class ChromeMetricExtractor(object):
                     yield ts, metric, value
 
     def calc_gc_metrics(self):
-        total_gc_time = 0.0
-        for pid, gc_record in iteritems(self.gc_times):
-            if pid in self.process_labels:
-                if 'gc_start_time' in gc_record and 'gc_end_time' in gc_record:
-                    gc_duration = gc_record['gc_end_time'] - gc_record['gc_start_time']
-                    total_gc_time += gc_duration
-        yield self.tracing_duration, 'gc-time', total_gc_time
+        if self.gc_times:
+            total_gc_time = 0.0
+            for pid, gc_record in iteritems(self.gc_times):
+                if pid in self.process_labels:
+                    if 'gc_start_time' in gc_record and 'gc_end_time' in gc_record:
+                        gc_duration = gc_record['gc_end_time'] - gc_record['gc_start_time']
+                        total_gc_time += gc_duration
+            yield self.tracing_duration, 'gc-time', total_gc_time
 
     def get_metrics(self):
         # yields (offset, metric, value)
         # offset is number of seconds since the start of Chrome
-        for metric in itertools.chain(self.calc_memory_metrics(),
-                                      self.calc_network_metrics(),
-                                      self.calc_user_timing_metrics(),
-                                      self.calc_js_metrics(),
-                                      self.calc_gc_metrics()):
+        for metric in itertools.chain(
+                self.calc_memory_metrics(),
+                self.calc_network_metrics(),
+                self.calc_user_timing_metrics(),
+                self.calc_js_metrics(),
+                self.calc_gc_metrics(),
+        ):
             yield metric
 
 
