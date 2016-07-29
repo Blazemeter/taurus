@@ -214,12 +214,10 @@ class ChromeMetricExtractor(object):
 
     def calc_memory_metrics(self):
         for pid in sorted(self.memory_per_process):
-            for ts, value in iteritems(self.memory_per_process[pid]):
-                name = self.process_names.get(pid, pid)
-                if pid in self.process_labels:
-                    name += "(%s)" % self.process_labels[pid]
-                metric = '%s-mem-mb' % name
-                yield ts, metric, value
+            if pid in self.process_labels:
+                for ts, value in iteritems(self.memory_per_process[pid]):
+                    metric = 'resident-memory-mb'
+                    yield ts, metric, value
 
     def calc_network_metrics(self):
         if self.requests:
