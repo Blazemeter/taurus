@@ -157,7 +157,9 @@ class ChromeMetricExtractor(object):
             ts = self.convert_ts(event['ts'])
             request_id = event["args"]["data"]["requestId"]
             self.requests[request_id]["recv_data_time"] = ts
-            self.requests[request_id]["size"] = event["args"]["data"]["encodedDataLength"]
+            data_len = event["args"]["data"]["encodedDataLength"]
+            size = self.requests[request_id].get("size", 0)
+            self.requests[request_id]["size"] = size + data_len
         elif event.get("name") == "ResourceFinish":
             ts = self.convert_ts(event['ts'])
             request_id = event["args"]["data"]["requestId"]
