@@ -13,6 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import itertools
 import json
 import logging
 from collections import defaultdict, OrderedDict
@@ -101,6 +102,8 @@ class ChromeMetricExtractor(object):
         self.requests = defaultdict(dict)  # request_id -> dict(send_req_time, recv_resp_time, recv_data_time, mime,
         #                                                       status_code, size, did_fail, finish_time, network_time)
         self.page_load_times = {}
+        self.js_heap_size_used = defaultdict(OrderedDict)  # pid -> (ts -> heap_size)
+        self.js_event_listeners = defaultdict(OrderedDict)  # pid -> (ts -> int)
 
     def feed_event(self, event):
         if event.get("timestamp") and self.tracing_start_ts is None:
@@ -113,7 +116,7 @@ class ChromeMetricExtractor(object):
             self.process_metadata_event(event)
         elif event.get("cat") == "blink.net":
             self.process_network_event(event)
-        elif event.get("cat") == "devtools.timeline":
+        elif event.get("cat") in ["devtools.timeline", "disabled-by-default-devtools.timeline"]:
             self.process_devtools_event(event)
         elif event.get("cat") == "blink.user_timing":
             self.process_user_timing_event(event)
@@ -150,6 +153,11 @@ class ChromeMetricExtractor(object):
             self.requests[request_id]["did_fail"] = event["args"]["data"]["didFail"]
             if event["args"]["data"].get("networkTime"):
                 self.requests[request_id]["network_time"] = event["args"]["data"]["networkTime"]
+        elif event.get("name") == "UpdateCounters":
+            ts = float(event["ts"]) / 1000000
+            pid = event["pid"]
+            self.js_event_listeners[pid][ts] = event["args"]["data"]["jsEventListeners"]
+            self.js_heap_size_used[pid][ts] = float(event["args"]["data"]["jsHeapSizeUsed"]) / 1024 / 1024
 
     def process_network_event(self, event):
         if event.get("name") == "Resource":
@@ -204,17 +212,29 @@ class ChromeMetricExtractor(object):
 
     def calc_user_timing_metrics(self):
         for pid, page_load_ts in iteritems(self.page_load_times):
-            if pid in self.process_labels:
+            if pid in self.process_labels:  # if it's a renderer process for a tab
                 yield 0.0, "page-load", page_load_ts
+                break  # NOTE: should we break here?
+
+    def calc_js_metrics(self):
+        for pid in sorted(self.js_heap_size_used):
+            if pid in self.process_labels:
+                for ts, value in iteritems(self.js_heap_size_used[pid]):
+                    metric = '%s-js-heap-size-used' % pid
+                    yield ts, metric, value
+        for pid in sorted(self.js_event_listeners):
+            if pid in self.process_labels:
+                for ts, value in iteritems(self.js_event_listeners[pid]):
+                    metric = '%s-js-event-listeners' % pid
+                    yield ts, metric, value
 
     def get_metrics(self):
         # yields (offset, metric, value)
         # offset is number of seconds since the start of Chrome
-        for metric in self.calc_memory_metrics():
-            yield metric
-        for metric in self.calc_network_metrics():
-            yield metric
-        for metric in self.calc_user_timing_metrics():
+        for metric in itertools.chain(self.calc_memory_metrics(),
+                                      self.calc_network_metrics(),
+                                      self.calc_user_timing_metrics(),
+                                      self.calc_js_metrics()):
             yield metric
 
 
