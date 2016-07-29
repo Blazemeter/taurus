@@ -109,7 +109,10 @@ class ChromeMetricExtractor(object):
 
     def convert_ts(self, ts):
         if self.tracing_start_ts is not None:
-            return float(ts) / 1000000 - self.tracing_start_ts
+            offset = float(ts) / 1000000 - self.tracing_start_ts
+            return round(offset, 1)
+        else:
+            return 0.0
 
     def feed_event(self, event):
         if event.get("timestamp") and self.tracing_start_ts is None:
