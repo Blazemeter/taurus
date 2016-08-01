@@ -180,6 +180,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
             self.__send_data(self.kpi_buffer, False, True)
             self.kpi_buffer = []
             self.__send_monitoring()
+            self.__send_custom_metrics()
         finally:
             self._postproc_phase2()
 
@@ -475,7 +476,7 @@ class MonitoringBuffer(object):
                         prefix = 'Network'
                     else:
                         prefix = 'Monitoring'
-g
+
                     label = "/".join([source, prefix, field])
                     datapoints[timestamp][label] = value
 
