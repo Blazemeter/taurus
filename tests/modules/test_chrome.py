@@ -131,12 +131,14 @@ class TestChromeProfiler(BZTestCase):
         obj.startup()
         obj.check()
 
-        listeners = listener.metrics_of_type(MetricExtractor.METRIC_MEMORY_TAB)
-        self.assertEqual(len(listeners), 1)
-        self.assertAlmostEqual(listeners[0][MetricExtractor.METRIC_MEMORY_TAB], 96.8, delta=0.1)
+        browser = listener.metrics_of_type(MetricExtractor.METRIC_MEMORY_BROWSER)
+        per_tab = listener.metrics_of_type(MetricExtractor.METRIC_MEMORY_TAB)
 
-        # TODO: browser memory footprint
+        self.assertEqual(len(browser), 1)
+        self.assertAlmostEqual(browser[0][MetricExtractor.METRIC_MEMORY_BROWSER], 96.8, delta=0.1)
 
+        self.assertEqual(len(per_tab), 1)
+        self.assertAlmostEqual(per_tab[0][MetricExtractor.METRIC_MEMORY_TAB], 96.8, delta=0.1)
 
 
 class RecordingListener(MonitoringListener):

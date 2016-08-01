@@ -15,7 +15,6 @@ limitations under the License.
 """
 import itertools
 import json
-import logging
 from collections import defaultdict, OrderedDict
 from os import path
 
@@ -239,14 +238,32 @@ class MetricExtractor(object):
     def calc_memory_metrics(self):
         """
         Calculate memory metrics:
-        - memory-tab-mb - memory consumption of main Chrome tab
-        - memory-browser-mb - memory consumption of all Chrome processes (TODO)
+        - METRIC_MEMORY_TAB - memory consumption of main Chrome tab
+        - METRIC_MEMORY_BROWSER - memory consumption of all Chrome processes (TODO)
         :return:
         """
-        for pid in sorted(self.memory_per_process):
-            if pid in self.process_labels:
-                for ts, value in iteritems(self.memory_per_process[pid]):
-                    yield ts, self.METRIC_MEMORY_TAB, value
+        # aggregate memory stats by timestamp (integer)
+        # TODO: sub-second granularity
+        memory_per_ts = dict()  # ts -> (pid -> [memory measurement])
+        for pid in self.memory_per_process:
+            for ts, value in iteritems(self.memory_per_process[pid]):
+                base_ts = int(ts)
+                if base_ts not in memory_per_ts:
+                    memory_per_ts[base_ts] = {}
+                if pid not in memory_per_ts[base_ts]:
+                    memory_per_ts[base_ts][pid] = []
+                memory_per_ts[base_ts][pid].append(value)
+
+        average = lambda xs: float(sum(xs)) / len(xs)
+        tab_process_pid = next(iter(self.process_labels))
+        for ts in sorted(memory_per_ts):
+            process_mems = memory_per_ts[ts]
+            # report tab memory
+            tab_memory_at_ts = average(process_mems[tab_process_pid])
+            yield ts, self.METRIC_MEMORY_TAB, tab_memory_at_ts
+            # report browser memory
+            browser_memory_at_ts = sum(average(per_process) for _, per_process in iteritems(process_mems))
+            yield ts, self.METRIC_MEMORY_BROWSER, browser_memory_at_ts
 
     def calc_network_metrics(self):
         """
@@ -355,11 +372,6 @@ class ChromeClient(MonitoringClient):
 
         res = []
         for offset, metric, value in self.extractor.get_metrics():
-            if isinstance(value, float):
-                svalue = "%.6f" % value
-            else:
-                svalue = str(value)
-            self.log.info("%s: %s=%s", offset, metric, svalue)
             item = {
                 "ts": start_time + offset,
                 "source": "chrome",
