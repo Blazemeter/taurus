@@ -122,8 +122,7 @@ class ChromeMetricExtractor(object):
             self.tracing_duration = max(self.tracing_duration, ts)
 
         if event.get("cat") == "disabled-by-default-memory-infra":
-            if event.get("name") == "periodic_interval":
-                self.process_memory_event(event)
+            self.process_memory_event(event)
         elif event.get("cat") == "__metadata":
             self.process_metadata_event(event)
         elif event.get("cat") == "blink.net":
@@ -134,6 +133,7 @@ class ChromeMetricExtractor(object):
             self.process_devtools_event(event)
         elif event.get("cat") == "blink.user_timing":
             self.process_user_timing_event(event)
+        # NOTE: system_stats category can also be interesting
 
     def process_user_timing_event(self, event):
         if event.get("name") == "loadEventStart":
@@ -170,6 +170,7 @@ class ChromeMetricExtractor(object):
         elif event.get("name") == "UpdateCounters":
             ts = self.convert_ts(event['ts'])
             pid = event["pid"]
+            # TODO: extract DOM counters: "documents" and "nodes"
             self.js_event_listeners[pid][ts] = event["args"]["data"]["jsEventListeners"]
             self.js_heap_size_used[pid][ts] = float(event["args"]["data"]["jsHeapSizeUsed"]) / 1024 / 1024
         elif event.get("name") in ["MajorGC", "MinorGC"]:
@@ -203,20 +204,21 @@ class ChromeMetricExtractor(object):
             self.process_labels[pid] = event['args']['labels']
 
     def process_memory_event(self, event):
-        pid = event["pid"]
-        ts = self.convert_ts(event['ts'])
-        dumps = event['args']['dumps']
-        if 'process_totals' not in dumps:
-            return
-        totals = dumps['process_totals']
-        resident_mbytes = float(int(totals['resident_set_bytes'], 16)) / 1024 / 1024
-        self.memory_per_process[pid][ts] = resident_mbytes
+        if event.get("name") == "periodic_interval":
+            pid = event["pid"]
+            ts = self.convert_ts(event['ts'])
+            dumps = event['args']['dumps']
+            if 'process_totals' not in dumps:
+                return
+            totals = dumps['process_totals']
+            resident_mbytes = float(int(totals['resident_set_bytes'], 16)) / 1024 / 1024
+            self.memory_per_process[pid][ts] = resident_mbytes
 
     def calc_memory_metrics(self):
         for pid in sorted(self.memory_per_process):
             if pid in self.process_labels:
                 for ts, value in iteritems(self.memory_per_process[pid]):
-                    metric = 'resident-memory-mb'
+                    metric = 'memory-tab-mb'
                     yield ts, metric, value
 
     def calc_network_metrics(self):
