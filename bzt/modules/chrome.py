@@ -31,7 +31,7 @@ class ChromeProfiler(Monitoring):
     def prepare(self):
         log_file = self.parameters.get('trace-file', "trace.json")
         log_path = path.join(self.engine.artifacts_dir, log_file)
-        self.client = ChromeLogClient(log_path, self.log)
+        self.client = ChromeClient(log_path, self.log)
         self.client.engine = self.engine
         self.client.connect()
 
@@ -58,7 +58,7 @@ class ChromeProfiler(Monitoring):
         super(Monitoring, self).post_process()
 
 
-class ChromeTraceReader(object):
+class TraceReader(object):
     def __init__(self, filename, parent_log):
         self.log = parent_log.getChild(self.__class__.__name__)
         self.filename = filename
@@ -92,10 +92,28 @@ class ChromeTraceReader(object):
             self.fds.close()
 
 
-class ChromeMetricExtractor(object):
+class MetricExtractor(object):
+    METRIC_PAGE_LOAD_TIME = 'load-page-time'
+    METRIC_FULL_LOAD_TIME = 'load-full-time'
+
+    METRIC_MEMORY_TAB = 'memory-tab-mb'
+    METRIC_MEMORY_BROWSER = 'memory-browser-mb'
+
+    METRIC_NETWORK_FOOTPRINT = 'network-footprint-mb'
+    METRIC_NETWORK_REQUESTS = 'network-http-requests'
+    METRIC_NETWORK_TTFB = 'network-time-to-first-byte'
+
+    METRIC_JS_GC_TIME = 'js-gc-time'
+    METRIC_JS_HEAP_SIZE = 'js-heap-size'
+    METRIC_JS_EVENT_LISTENERS = 'js-event-listeners'
+
+    METRIC_DOM_NODES = 'dom-nodes'
+    METRIC_DOM_DOCUMENTS = 'dom-documents'
+
     def __init__(self):
         self.tracing_start_ts = None
         self.tracing_duration = 0.0
+
         self.process_names = {}  # pid -> str
         self.process_labels = {}  # pid -> str
         self.memory_per_process = defaultdict(OrderedDict)  # pid -> (ts -> float)
@@ -106,11 +124,14 @@ class ChromeMetricExtractor(object):
         self.js_heap_size_used = defaultdict(OrderedDict)  # pid -> (ts -> heap_size)
         self.js_event_listeners = defaultdict(OrderedDict)  # pid -> (ts -> int)
         self.gc_times = defaultdict(dict)  # pid -> dict(gc_start_time, heap_before_gc, gc_end_time, heap_after_gc)
+        self.dom_documents = defaultdict(OrderedDict)  # pid -> (ts -> dom document count)
+        self.dom_nodes = defaultdict(OrderedDict)  # pid -> (ts -> dom node count)
 
     def convert_ts(self, ts):
         if self.tracing_start_ts is not None:
             offset = float(ts) / 1000000 - self.tracing_start_ts
-            return round(offset, 1)
+            rounded = round(offset, 1)
+            return max(rounded, 0.0)
         else:
             return 0.0
 
@@ -170,9 +191,10 @@ class ChromeMetricExtractor(object):
         elif event.get("name") == "UpdateCounters":
             ts = self.convert_ts(event['ts'])
             pid = event["pid"]
-            # TODO: extract DOM counters: "documents" and "nodes"
             self.js_event_listeners[pid][ts] = event["args"]["data"]["jsEventListeners"]
             self.js_heap_size_used[pid][ts] = float(event["args"]["data"]["jsHeapSizeUsed"]) / 1024 / 1024
+            self.dom_documents[pid][ts] = event["args"]["data"]["documents"]
+            self.dom_nodes[pid][ts] = event["args"]["data"]["nodes"]
         elif event.get("name") in ["MajorGC", "MinorGC"]:
             ts = self.convert_ts(event['ts'])
             pid = event["pid"]
@@ -215,13 +237,25 @@ class ChromeMetricExtractor(object):
             self.memory_per_process[pid][ts] = resident_mbytes
 
     def calc_memory_metrics(self):
+        """
+        Calculate memory metrics:
+        - memory-tab-mb - memory consumption of main Chrome tab
+        - memory-browser-mb - memory consumption of all Chrome processes (TODO)
+        :return:
+        """
         for pid in sorted(self.memory_per_process):
             if pid in self.process_labels:
                 for ts, value in iteritems(self.memory_per_process[pid]):
-                    metric = 'memory-tab-mb'
-                    yield ts, metric, value
+                    yield ts, self.METRIC_MEMORY_TAB, value
 
     def calc_network_metrics(self):
+        """
+        Calculate network metrics:
+        - network-footprint-mb - total download size per Chrome session
+        - network-time-to-first-byte - time when first HTTP response data arrived (TODO)
+        - network-http-requests - number of HTTP requests made (TODO)
+        :return:
+        """
         if self.requests:
             total = 0.0
             for request_id in sorted(self.requests, key=float):  # TODO: what if it isn't float?
@@ -229,26 +263,34 @@ class ChromeMetricExtractor(object):
                 payload_size = request.get("size", 0)
                 total += payload_size
             total /= 1024 * 1024
-            yield 0.0, "total-download-mb", total
+            yield 0.0, self.METRIC_NETWORK_FOOTPRINT, total
 
-    def calc_user_timing_metrics(self):
+    def calc_loading_metrics(self):
+        """
+        Calculate loading metrics:
+        - load-page-time - time to JS 'load' event
+        - load-full-time - time to full load (when all HTTP activity is silent for 2s) (TODO)
+        """
         for pid, page_load_ts in iteritems(self.page_load_times):
             if pid in self.process_labels:  # if it's a renderer process for a tab
-                yield self.tracing_duration, "page-load", page_load_ts
+                yield self.tracing_duration, self.METRIC_PAGE_LOAD_TIME, page_load_ts
 
     def calc_js_metrics(self):
+        """
+        Calculate JS-related metrics:
+        - js-gc-time - time spent doing GC
+        - js-event-listeners - number of active event listeners
+        - js-heap-size - V8 heap size over time (TODO)
+        :return:
+        """
         for pid in sorted(self.js_heap_size_used):
             if pid in self.process_labels:
                 for ts, value in iteritems(self.js_heap_size_used[pid]):
-                    metric = 'js-heap-size-used-mb'
-                    yield ts, metric, value
+                    yield ts, self.METRIC_JS_HEAP_SIZE, value
         for pid in sorted(self.js_event_listeners):
             if pid in self.process_labels:
                 for ts, value in iteritems(self.js_event_listeners[pid]):
-                    metric = 'js-event-listeners'
-                    yield ts, metric, value
-
-    def calc_gc_metrics(self):
+                    yield ts, self.METRIC_JS_EVENT_LISTENERS, value
         if self.gc_times:
             total_gc_time = 0.0
             for pid, gc_record in iteritems(self.gc_times):
@@ -256,28 +298,44 @@ class ChromeMetricExtractor(object):
                     if 'gc_start_time' in gc_record and 'gc_end_time' in gc_record:
                         gc_duration = gc_record['gc_end_time'] - gc_record['gc_start_time']
                         total_gc_time += gc_duration
-            yield self.tracing_duration, 'gc-time', total_gc_time
+            yield self.tracing_duration, self.METRIC_JS_GC_TIME, total_gc_time
+
+    def calc_dom_metrics(self):
+        """
+        Calculate DOM-related metrics:
+        - dom-nodes - count of DOM nodes
+        - dom-documents - count of DOM documents
+        :return:
+        """
+        for pid in self.dom_documents:
+            if pid in self.process_labels:
+                for ts, value in iteritems(self.dom_documents[pid]):
+                    yield ts, self.METRIC_DOM_DOCUMENTS, value
+        for pid in self.dom_nodes:
+            if pid in self.process_labels:
+                for ts, value in iteritems(self.dom_nodes[pid]):
+                    yield ts, self.METRIC_DOM_NODES, value
 
     def get_metrics(self):
         # yields (offset, metric, value)
         # offset is number of seconds since the start of Chrome
         for metric in itertools.chain(
-                self.calc_memory_metrics(),
-                self.calc_network_metrics(),
-                self.calc_user_timing_metrics(),
-                self.calc_js_metrics(),
-                self.calc_gc_metrics(),
+            self.calc_memory_metrics(),
+            self.calc_network_metrics(),
+            self.calc_loading_metrics(),
+            self.calc_dom_metrics(),
+            self.calc_js_metrics(),
         ):
             yield metric
 
 
-class ChromeLogClient(MonitoringClient):
+class ChromeClient(MonitoringClient):
     def __init__(self, log_file, parent_logger):
-        super(ChromeLogClient, self).__init__()
+        super(ChromeClient, self).__init__()
         self.log_file = log_file
         self.log = parent_logger.getChild(self.__class__.__name__)
-        self.reader = ChromeTraceReader(log_file, self.log)
-        self.extractor = ChromeMetricExtractor()
+        self.reader = TraceReader(log_file, self.log)
+        self.extractor = MetricExtractor()
         self.engine = None
 
     def connect(self):
@@ -293,7 +351,7 @@ class ChromeLogClient(MonitoringClient):
         # TODO: find a better way to find when Chrome was started
         if not path.exists(self.log_file):
             return []
-        start_time = path.getctime(self.log_file)  #
+        start_time = path.getctime(self.log_file)
 
         res = []
         for offset, metric, value in self.extractor.get_metrics():
