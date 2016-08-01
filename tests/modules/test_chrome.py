@@ -110,11 +110,17 @@ class TestChromeProfiler(BZTestCase):
         obj.startup()
         obj.check()
 
-        listeners = listener.metrics_of_type(MetricExtractor.METRIC_NETWORK_FOOTPRINT)
-        self.assertEqual(len(listeners), 1)
-        self.assertAlmostEqual(listeners[0][MetricExtractor.METRIC_NETWORK_FOOTPRINT], 0.012, delta=0.001)
+        footprint = listener.metrics_of_type(MetricExtractor.METRIC_NETWORK_FOOTPRINT)
+        self.assertEqual(len(footprint), 1)
+        self.assertAlmostEqual(footprint[0][MetricExtractor.METRIC_NETWORK_FOOTPRINT], 0.012, delta=0.001)
 
-        # TODO: ttfb and requests number
+        ttfb = listener.metrics_of_type(MetricExtractor.METRIC_NETWORK_TTFB)
+        self.assertEqual(len(ttfb), 1)
+        self.assertAlmostEqual(ttfb[0][MetricExtractor.METRIC_NETWORK_TTFB], 0.0)
+
+        reqs_count = listener.metrics_of_type(MetricExtractor.METRIC_NETWORK_REQUESTS)
+        self.assertEqual(len(reqs_count), 1)
+        self.assertEqual(reqs_count[0][MetricExtractor.METRIC_NETWORK_REQUESTS], 6)
 
     def test_memory_metrics(self):
         obj = ChromeProfiler()

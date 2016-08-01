@@ -239,7 +239,7 @@ class MetricExtractor(object):
         """
         Calculate memory metrics:
         - METRIC_MEMORY_TAB - memory consumption of main Chrome tab
-        - METRIC_MEMORY_BROWSER - memory consumption of all Chrome processes (TODO)
+        - METRIC_MEMORY_BROWSER - memory consumption of all Chrome processes
         :return:
         """
         # aggregate memory stats by timestamp (integer)
@@ -268,19 +268,28 @@ class MetricExtractor(object):
     def calc_network_metrics(self):
         """
         Calculate network metrics:
-        - network-footprint-mb - total download size per Chrome session
-        - network-time-to-first-byte - time when first HTTP response data arrived (TODO)
-        - network-http-requests - number of HTTP requests made (TODO)
+        - METRIC_NETWORK_FOOTPRINT - total download size per Chrome session
+        - METRIC_NETWORK_TTFB - time when first HTTP response data arrived
+        - METRIC_NETWORK_REQUESTS - number of HTTP requests made
         :return:
         """
         if self.requests:
+            requests = list(req for _, req in iteritems(self.requests))
+            # calculate network footprint
             total = 0.0
-            for request_id in sorted(self.requests, key=float):  # TODO: what if it isn't float?
-                request = self.requests[request_id]
+            for request in requests:
                 payload_size = request.get("size", 0)
                 total += payload_size
             total /= 1024 * 1024
-            yield 0.0, self.METRIC_NETWORK_FOOTPRINT, total
+            yield self.tracing_duration, self.METRIC_NETWORK_FOOTPRINT, total
+
+            # calculate time to first byte
+            first = min(requests, key=lambda r: r.get("recv_data_time", float("inf")))
+            ttfb = first['recv_data_time']
+            yield self.tracing_duration, self.METRIC_NETWORK_TTFB, ttfb
+
+            # calculate requests count
+            yield self.tracing_duration, self.METRIC_NETWORK_REQUESTS, len(requests)
 
     def calc_loading_metrics(self):
         """
