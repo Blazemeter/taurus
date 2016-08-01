@@ -294,12 +294,11 @@ class MetricExtractor(object):
     def calc_loading_metrics(self):
         """
         Calculate loading metrics:
-        - load-page-time - time to JS 'load' event
+        - METRIC_PAGE_LOAD_TIME - time to JS 'load' event
         - load-full-time - time to full load (when all HTTP activity is silent for 2s) (TODO)
         """
-        for pid, page_load_ts in iteritems(self.page_load_times):
-            if pid in self.process_labels:  # if it's a renderer process for a tab
-                yield self.tracing_duration, self.METRIC_PAGE_LOAD_TIME, page_load_ts
+        tab_process_pid = next(iter(self.process_labels))
+        yield self.tracing_duration, self.METRIC_PAGE_LOAD_TIME, self.page_load_times[tab_process_pid]
 
     def calc_js_metrics(self):
         """
