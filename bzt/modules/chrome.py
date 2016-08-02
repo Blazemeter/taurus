@@ -287,10 +287,16 @@ class MetricExtractor(object):
         """
         Calculate loading metrics:
         - METRIC_PAGE_LOAD_TIME - time to JS 'load' event
-        - load-full-time - time to full load (when all HTTP activity is silent for 2s) (TODO)
+        - METRIC_FULL_LOAD_TIME - time to full load (when all HTTP activity is finished)
         """
         tab_process_pid = next(iter(self.process_labels))
         yield self.tracing_duration, self.METRIC_PAGE_LOAD_TIME, self.page_load_times[tab_process_pid]
+
+        if self.requests:
+            requests = list(req for _, req in iteritems(self.requests))
+            last = max(requests, key=lambda r: r.get("finish_time", float("-inf")))
+            last_request_time = last['finish_time']
+            yield self.tracing_duration, self.METRIC_FULL_LOAD_TIME, last_request_time
 
     @staticmethod
     def reaggregate_by_ts(per_pid_stats):
