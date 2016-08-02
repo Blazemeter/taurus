@@ -122,7 +122,7 @@ class MetricExtractor(object):
         self.page_load_times = {}
         self.js_heap_size_used = defaultdict(OrderedDict)  # pid -> (ts -> heap_size)
         self.js_event_listeners = defaultdict(OrderedDict)  # pid -> (ts -> int)
-        self.gc_times = defaultdict(dict)  # pid -> dict(gc_start_time, heap_before_gc, gc_end_time, heap_after_gc)
+        self.gc_times = defaultdict(list)  # pid -> [dict(gc_start_time, heap_before_gc, gc_end_time, heap_after_gc)]
         self.dom_documents = defaultdict(OrderedDict)  # pid -> (ts -> dom document count)
         self.dom_nodes = defaultdict(OrderedDict)  # pid -> (ts -> dom node count)
 
@@ -202,11 +202,13 @@ class MetricExtractor(object):
             ts = self.convert_ts(event['ts'])
             pid = event["pid"]
             if event.get("ph") == "B":  # GC begin
-                self.gc_times[pid]['gc_start_time'] = ts
-                self.gc_times[pid]['heap_before_gc'] = float(event['args']['usedHeapSizeBefore']) / 1024 / 1024
+                item = {'gc_start_time': event['ts'],
+                        'heap_before_gc': float(event['args']['usedHeapSizeBefore']) / 1024 / 1024}
+                self.gc_times[pid].append(item)
             elif event.get("ph") == "E":  # GC end
-                self.gc_times[pid]['gc_end_time'] = ts
-                self.gc_times[pid]['heap_after_gc'] = float(event['args']['usedHeapSizeAfter']) / 1024 / 1024
+                if self.gc_times[pid]:
+                    self.gc_times[pid][-1]['gc_end_time'] = event['ts']
+                    self.gc_times[pid][-1]['heap_after_gc'] = float(event['args']['usedHeapSizeAfter']) / 1024 / 1024
 
     def process_network_event(self, event):
         if event.get("name") == "Resource":
@@ -342,11 +344,11 @@ class MetricExtractor(object):
 
         if self.gc_times:
             total_gc_time = 0.0
-            for pid, gc_record in iteritems(self.gc_times):
-                if pid in self.process_labels:
-                    if 'gc_start_time' in gc_record and 'gc_end_time' in gc_record:
-                        gc_duration = gc_record['gc_end_time'] - gc_record['gc_start_time']
-                        total_gc_time += gc_duration
+            gcs = self.gc_times[tab_process_pid]
+            for gc_record in gcs:
+                if 'gc_start_time' in gc_record and 'gc_end_time' in gc_record:
+                    gc_duration = float(gc_record['gc_end_time'] - gc_record['gc_start_time']) / 1000000
+                    total_gc_time += gc_duration
             yield self.tracing_duration, self.METRIC_JS_GC_TIME, total_gc_time
 
     def calc_dom_metrics(self):
