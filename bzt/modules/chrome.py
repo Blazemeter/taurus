@@ -13,6 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import copy
 import itertools
 import json
 from collections import defaultdict, OrderedDict
@@ -109,6 +110,13 @@ class MetricExtractor(object):
 
     METRIC_DOM_NODES = 'dom-nodes'
     METRIC_DOM_DOCUMENTS = 'dom-documents'
+
+    DISCRETE_METRICS = (METRIC_PAGE_LOAD_TIME, METRIC_FULL_LOAD_TIME,
+                        METRIC_NETWORK_FOOTPRINT, METRIC_NETWORK_REQUESTS, METRIC_NETWORK_TTFB,
+                        METRIC_JS_GC_TIME)
+    CONTINUOUS_METRICS = (METRIC_MEMORY_TAB, METRIC_MEMORY_BROWSER,
+                          METRIC_JS_HEAP_SIZE, METRIC_JS_EVENT_LISTENERS,
+                          METRIC_DOM_DOCUMENTS, METRIC_DOM_NODES)
 
     def __init__(self):
         self.tracing_start_ts = None
@@ -422,6 +430,8 @@ class ChromeClient(MonitoringClient):
                 "source": "chrome",
                 metric: value
             }
+            if metric in MetricExtractor.DISCRETE_METRICS:
+                item['tabular'] = True
             res.append(item)
         self.log.info("tracing duration: %s", self.extractor.tracing_duration)
         return res
@@ -442,12 +452,15 @@ class MetricReporter(Reporter, MonitoringListener):
                 module.add_listener(self)
 
     def monitoring_data(self, data):
-        self.data.extend(data)
+        self.data.extend(copy.deepcopy(data))
 
     def post_process(self):
         self.log.info("Chrome metrics:")
         for item in sorted(self.data, key=lambda i: i["ts"]):
             ts = item.pop("ts")
-            source = item.pop("source")
-            for metric, value in iteritems(item):
-                self.log.info("%s: %s = %s", ts, metric, value)
+            if item.get("source") == "chrome":
+                item.pop("source")
+                if "tabular" in item:
+                    item.pop("tabular")
+                for metric, value in iteritems(item):
+                    self.log.info("%s: %s = %s", ts, metric, value)
