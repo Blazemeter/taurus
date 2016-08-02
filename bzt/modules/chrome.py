@@ -350,14 +350,18 @@ class MetricExtractor(object):
         - METRIC_DOM_NODES - count of DOM documents
         :return:
         """
-        for pid in self.dom_documents:
-            if pid in self.process_labels:
-                for ts, value in iteritems(self.dom_documents[pid]):
-                    yield ts, self.METRIC_DOM_DOCUMENTS, value
-        for pid in self.dom_nodes:
-            if pid in self.process_labels:
-                for ts, value in iteritems(self.dom_nodes[pid]):
-                    yield ts, self.METRIC_DOM_NODES, value
+        tab_process_pid = next(iter(self.process_labels))
+        docs_per_ts = self.reaggregate_by_ts(self.dom_documents)
+        for ts in sorted(docs_per_ts):
+            docs_at_ts = docs_per_ts[ts]
+            docs_in_tab = docs_at_ts[tab_process_pid]
+            yield ts, self.METRIC_DOM_DOCUMENTS, round(docs_in_tab)
+
+        nodes_per_ts = self.reaggregate_by_ts(self.dom_nodes)
+        for ts in sorted(nodes_per_ts):
+            nodes_at_ts = nodes_per_ts[ts]
+            nodes_in_tab = nodes_at_ts[tab_process_pid]
+            yield ts, self.METRIC_DOM_NODES, round(nodes_in_tab)
 
     def get_metrics(self):
         # yields (offset, metric, value)

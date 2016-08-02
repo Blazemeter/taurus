@@ -57,13 +57,13 @@ class TestChromeProfiler(BZTestCase):
         obj.check()
 
         dom_docs = listener.metrics_of_type(MetricExtractor.METRIC_DOM_DOCUMENTS)
-        self.assertEqual(len(dom_docs), 22)
-        self.assertEqual(dom_docs[0][MetricExtractor.METRIC_DOM_DOCUMENTS], 1)
+        self.assertEqual(len(dom_docs), 5)
+        self.assertEqual(dom_docs[0][MetricExtractor.METRIC_DOM_DOCUMENTS], 2)
         self.assertEqual(dom_docs[-1][MetricExtractor.METRIC_DOM_DOCUMENTS], 2)
 
         dom_docs = listener.metrics_of_type(MetricExtractor.METRIC_DOM_NODES)
-        self.assertEqual(len(dom_docs), 22)
-        self.assertEqual(dom_docs[0][MetricExtractor.METRIC_DOM_NODES], 4)
+        self.assertEqual(len(dom_docs), 5)
+        self.assertEqual(dom_docs[0][MetricExtractor.METRIC_DOM_NODES], 47)
         self.assertEqual(dom_docs[-1][MetricExtractor.METRIC_DOM_NODES], 121)
 
     def test_js_metrics(self):
