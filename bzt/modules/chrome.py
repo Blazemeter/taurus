@@ -125,6 +125,7 @@ class MetricExtractor(object):
         self.gc_times = defaultdict(list)  # pid -> [dict(gc_start_time, heap_before_gc, gc_end_time, heap_after_gc)]
         self.dom_documents = defaultdict(OrderedDict)  # pid -> (ts -> dom document count)
         self.dom_nodes = defaultdict(OrderedDict)  # pid -> (ts -> dom node count)
+        self.events = defaultdict(dict)  # pid -> (ts -> event_name)
 
     def convert_ts(self, ts):
         if self.tracing_start_ts is not None:
@@ -209,6 +210,11 @@ class MetricExtractor(object):
                 if self.gc_times[pid]:
                     self.gc_times[pid][-1]['gc_end_time'] = event['ts']
                     self.gc_times[pid][-1]['heap_after_gc'] = float(event['args']['usedHeapSizeAfter']) / 1024 / 1024
+        elif event.get("name") == "EventDispatch":
+            ts = self.convert_ts(event['ts'])
+            pid = event["pid"]
+            event_name = event["args"]["data"]["type"]
+            self.events[pid][ts] = event_name
 
     def process_network_event(self, event):
         if event.get("name") == "Resource":
