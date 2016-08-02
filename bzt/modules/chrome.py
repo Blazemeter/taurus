@@ -141,17 +141,21 @@ class MetricExtractor(object):
             ts = self.convert_ts(event['ts'])
             self.tracing_duration = max(self.tracing_duration, ts)
 
-        if event.get("cat") == "disabled-by-default-memory-infra":
+        if not "cat" in event:
+            return
+
+        categories = event.get("cat").split(",")
+
+        if "disabled-by-default-memory-infra" in categories:
             self.process_memory_event(event)
-        elif event.get("cat") == "__metadata":
+        elif "__metadata" in categories:
             self.process_metadata_event(event)
-        elif event.get("cat") == "blink.net":
+        elif "blink.net" in categories:
             self.process_network_event(event)
-        elif event.get("cat") in ["devtools.timeline", "disabled-by-default-devtools.timeline"]:
+        elif any(c in categories for c in ["devtools.timeline",
+                                           "disabled-by-default-devtools.timeline"]):
             self.process_devtools_event(event)
-        elif event.get("cat") == "devtools.timeline,v8":
-            self.process_devtools_event(event)
-        elif event.get("cat") == "blink.user_timing":
+        elif "blink.user_timing" in categories:
             self.process_user_timing_event(event)
         # NOTE: system_stats category can also be interesting
 
@@ -303,9 +307,9 @@ class MetricExtractor(object):
     def calc_js_metrics(self):
         """
         Calculate JS-related metrics:
-        - js-gc-time - time spent doing GC
-        - js-event-listeners - number of active event listeners
-        - js-heap-size - V8 heap size over time (TODO)
+        - METRIC_JS_GC_TIME - time spent doing GC
+        - METRIC_JS_EVENT_LISTENERS - number of active event listeners
+        - METRIC_JS_HEAP_SIZE - V8 heap size over time (TODO)
         :return:
         """
         for pid in sorted(self.js_heap_size_used):
@@ -328,8 +332,8 @@ class MetricExtractor(object):
     def calc_dom_metrics(self):
         """
         Calculate DOM-related metrics:
-        - dom-nodes - count of DOM nodes
-        - dom-documents - count of DOM documents
+        - METRIC_DOM_DOCUMENTS - count of DOM nodes
+        - METRIC_DOM_NODES - count of DOM documents
         :return:
         """
         for pid in self.dom_documents:

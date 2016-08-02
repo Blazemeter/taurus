@@ -151,10 +151,10 @@ class RecordingListener(MonitoringListener):
     def __init__(self):
         self.data = []
 
-    def metrics_of_type(self, *types):
+    def metrics_of_type(self, m_type):
         return [
             point for point in self.data
-            if any(type in point for type in types)
+            if m_type in point
         ]
 
     def monitoring_data(self, data):
