@@ -46,11 +46,11 @@ class Proxy2JMX(Service):
         elif method == 'POST':
             req = requests.post(self.address + path, headers=self.headers)
         else:
-            raise RuntimeError('Unsupported method: %s', method)
+            raise RuntimeError('Unsupported method: %s' % method)
 
         if check and req.status_code != 200:
             json_content = json.loads(req.content)
-            raise RuntimeError('%s', json_content['error']['message'])
+            raise RuntimeError('API request failed: %s' % json_content['error']['message'])
         return req
 
     def __get_certificates(self):
@@ -126,7 +126,7 @@ class Proxy2JMX(Service):
                 self.api_request('/stopRecording', 'POST')
         else:
             json_content = json.loads(req.content)
-            raise RuntimeError('%s', json_content['error']['message'])
+            raise RuntimeError('API request failed: %s' % json_content['error']['message'])
 
         self.api_request('/clearRecording', 'POST')
 

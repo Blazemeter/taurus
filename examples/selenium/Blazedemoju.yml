@@ -1,0 +1,15 @@
+---
+scenarios:
+  bdm:
+    script: Blazedemoju.java
+
+execution:
+  - executor: selenium
+    scenario: bdm
+    iterations: 5
+
+modules:
+  selenium:
+    selenium-tools:
+      junit: 
+        compile-target-java: 1.8

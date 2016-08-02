@@ -1,0 +1,9 @@
+---
+execution:
+  executor: selenium
+  hold-for: 5m
+  scenario:
+    script: dir
+
+#services:
+#- proxy2jmx
