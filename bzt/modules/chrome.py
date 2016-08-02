@@ -246,27 +246,15 @@ class MetricExtractor(object):
         - METRIC_MEMORY_BROWSER - memory consumption of all Chrome processes
         :return:
         """
-        # aggregate memory stats by timestamp (integer)
-        # TODO: sub-second granularity
-        memory_per_ts = dict()  # ts -> (pid -> [memory measurement])
-        for pid in self.memory_per_process:
-            for ts, value in iteritems(self.memory_per_process[pid]):
-                base_ts = int(ts)
-                if base_ts not in memory_per_ts:
-                    memory_per_ts[base_ts] = {}
-                if pid not in memory_per_ts[base_ts]:
-                    memory_per_ts[base_ts][pid] = []
-                memory_per_ts[base_ts][pid].append(value)
-
-        average = lambda xs: float(sum(xs)) / len(xs)
+        memory_per_ts = self.reaggregate_by_ts(self.memory_per_process)  # ts -> (pid -> memory)
         tab_process_pid = next(iter(self.process_labels))
         for ts in sorted(memory_per_ts):
             process_mems = memory_per_ts[ts]
             # report tab memory
-            tab_memory_at_ts = average(process_mems[tab_process_pid])
+            tab_memory_at_ts = process_mems[tab_process_pid]
             yield ts, self.METRIC_MEMORY_TAB, tab_memory_at_ts
             # report browser memory
-            browser_memory_at_ts = sum(average(per_process) for _, per_process in iteritems(process_mems))
+            browser_memory_at_ts = sum(per_process for _, per_process in iteritems(process_mems))
             yield ts, self.METRIC_MEMORY_BROWSER, browser_memory_at_ts
 
     def calc_network_metrics(self):
@@ -304,22 +292,48 @@ class MetricExtractor(object):
         tab_process_pid = next(iter(self.process_labels))
         yield self.tracing_duration, self.METRIC_PAGE_LOAD_TIME, self.page_load_times[tab_process_pid]
 
+    @staticmethod
+    def reaggregate_by_ts(per_pid_stats):
+        # TODO: sub-second granularity
+        per_ts = dict()  # ts -> (pid -> [measurement at ts])
+        for pid in per_pid_stats:
+            for ts, value in iteritems(per_pid_stats[pid]):
+                base_ts = int(ts)
+                if base_ts not in per_ts:
+                    per_ts[base_ts] = {}
+                if pid not in per_ts[base_ts]:
+                    per_ts[base_ts][pid] = []
+                per_ts[base_ts][pid].append(value)
+        return {
+            ts: {
+                pid: float(sum(pid_measurements)) / len(pid_measurements)
+                for pid, pid_measurements in iteritems(stats_per_ts)
+            }
+            for ts, stats_per_ts in iteritems(per_ts)
+        }
+
     def calc_js_metrics(self):
         """
         Calculate JS-related metrics:
-        - METRIC_JS_GC_TIME - time spent doing GC
+        - METRIC_JS_GC_TIME - time spent doing GC (TODO)
         - METRIC_JS_EVENT_LISTENERS - number of active event listeners
         - METRIC_JS_HEAP_SIZE - V8 heap size over time (TODO)
         :return:
         """
-        for pid in sorted(self.js_heap_size_used):
-            if pid in self.process_labels:
-                for ts, value in iteritems(self.js_heap_size_used[pid]):
-                    yield ts, self.METRIC_JS_HEAP_SIZE, value
-        for pid in sorted(self.js_event_listeners):
-            if pid in self.process_labels:
-                for ts, value in iteritems(self.js_event_listeners[pid]):
-                    yield ts, self.METRIC_JS_EVENT_LISTENERS, value
+
+        heap_per_ts = self.reaggregate_by_ts(self.js_heap_size_used)
+        tab_process_pid = next(iter(self.process_labels))
+        for ts in sorted(heap_per_ts):
+            process_heap = heap_per_ts[ts]
+            tab_heap_at_ts = process_heap[tab_process_pid]
+            yield ts, self.METRIC_JS_HEAP_SIZE, tab_heap_at_ts
+
+        listeners_per_ts = self.reaggregate_by_ts(self.js_event_listeners)
+        for ts in sorted(listeners_per_ts):
+            listeners_at_ts = listeners_per_ts[ts]
+            listeners = listeners_at_ts[tab_process_pid]
+            yield ts, self.METRIC_JS_EVENT_LISTENERS, round(listeners)
+
         if self.gc_times:
             total_gc_time = 0.0
             for pid, gc_record in iteritems(self.gc_times):

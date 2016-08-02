@@ -82,18 +82,18 @@ class TestChromeProfiler(BZTestCase):
         obj.check()
 
         listeners = listener.metrics_of_type(MetricExtractor.METRIC_JS_EVENT_LISTENERS)
-        self.assertEqual(len(listeners), 22)
-        self.assertEqual(listeners[0][MetricExtractor.METRIC_JS_EVENT_LISTENERS], 0)
+        self.assertEqual(len(listeners), 5)
+        self.assertEqual(listeners[0][MetricExtractor.METRIC_JS_EVENT_LISTENERS], 2)
         self.assertEqual(listeners[-1][MetricExtractor.METRIC_JS_EVENT_LISTENERS], 6)
 
         gc_time = listener.metrics_of_type(MetricExtractor.METRIC_JS_GC_TIME)
         self.assertEqual(len(gc_time), 1)
-        self.assertEqual(gc_time[0][MetricExtractor.METRIC_JS_GC_TIME], 0.0)  # TODO
+        self.assertEqual(gc_time[0][MetricExtractor.METRIC_JS_GC_TIME], 0.0)
 
         heap_size = listener.metrics_of_type(MetricExtractor.METRIC_JS_HEAP_SIZE)
-        self.assertEqual(len(heap_size), 22)
-        self.assertAlmostEqual(heap_size[0][MetricExtractor.METRIC_JS_HEAP_SIZE], 0.9, delta=0.1)
-        self.assertAlmostEqual(heap_size[-1][MetricExtractor.METRIC_JS_HEAP_SIZE], 2.8, delta=0.1)  # TODO
+        self.assertEqual(len(heap_size), 5)
+        self.assertAlmostEqual(heap_size[0][MetricExtractor.METRIC_JS_HEAP_SIZE], 2, delta=0.1)
+        self.assertAlmostEqual(heap_size[-1][MetricExtractor.METRIC_JS_HEAP_SIZE], 2.8, delta=0.1)
 
     def test_network_metrics(self):
         obj = ChromeProfiler()
