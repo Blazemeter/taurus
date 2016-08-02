@@ -181,6 +181,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
             self.kpi_buffer = []
             self.__send_monitoring()
             self.__send_custom_metrics()
+            self.__send_custom_tables()
         finally:
             self._postproc_phase2()
 
@@ -318,6 +319,23 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
                 # We probably shouldn't do that.
                 time.sleep(self.client.timeout)
                 self.client.send_custom_metrics(data)
+                self.log.info("Succeeded with retry")
+            except IOError:
+                self.log.error("Fatal error sending data: %s", traceback.format_exc())
+                self.log.warning("Will skip failed data and continue running")
+
+    def __send_custom_tables(self):
+        data = self.monitoring_buffer.get_metrics_table_json()
+        try:
+            self.client.send_custom_tables(data)
+        except IOError:
+            self.log.debug("Error sending data: %s", traceback.format_exc())
+            self.log.warning("Failed to send data, will retry in %s sec...", self.client.timeout)
+            try:
+                # NOTE: this pauses the whole Taurus engine for N seconds (10 by default)
+                # We probably shouldn't do that.
+                time.sleep(self.client.timeout)
+                self.client.send_custom_tables(data)
                 self.log.info("Succeeded with retry")
             except IOError:
                 self.log.error("Fatal error sending data: %s", traceback.format_exc())
@@ -461,7 +479,7 @@ class MonitoringBuffer(object):
                     datapoints[timestamp] = {}
 
                 for field, value in iteritems(item):
-                    if field in ('ts', 'interval'):
+                    if field in ('ts', 'interval', 'tabular'):
                         continue
                     if field.lower().startswith('cpu'):
                         prefix = 'System'
@@ -472,7 +490,7 @@ class MonitoringBuffer(object):
                         value *= 100
                     elif field.lower().startswith('disk'):
                         prefix = 'Disk'
-                    elif field == 'bytes-recv' or field.lower().startswith('net'):
+                    elif field.lower().startswith('bytes-') or field.lower().startswith('net'):
                         prefix = 'Network'
                     else:
                         prefix = 'Monitoring'
@@ -487,6 +505,26 @@ class MonitoringBuffer(object):
             datapoint["ts"] = timestamp
             results.append(datapoint)
         return {"datapoints": results}
+
+    def get_metrics_table_json(self):
+        table_items = {}
+        for source, buff in iteritems(self.data):
+            for timestamp, item in iteritems(buff):
+                if "tabular" not in item:
+                    continue
+                for field, value in iteritems(item):
+                    if field in ('ts', 'interval', 'tabular'):
+                        continue
+                    table_items[field] = value
+        return {
+            "tables": [
+                {
+                    "id":"A",
+                    "name":"Metrics",
+                    "data": table_items
+                }
+            ]
+        }
 
 
 class ProjectFinder(object):
@@ -1075,6 +1113,12 @@ class BlazeMeterClient(object):
     def send_custom_metrics(self, data):
         url = self.address + "/api/latest/data/masters/%s/custom-metrics" % self.master_id
         res = self._request(url, to_json(data), headers={"Content-Type": "application/json"}, method="POST")
+        return res
+
+    def send_custom_tables(self, data):
+        url = self.address + "/api/latest/data/masters/%s/custom-table" % self.master_id
+        res = self._request(url, to_json(data), headers={"Content-Type": "application/json"}, method="POST")
+        self.log.info("Response: %s", res)
         return res
 
 
