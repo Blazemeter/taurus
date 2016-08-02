@@ -92,7 +92,7 @@ class TestChromeProfiler(BZTestCase):
 
         gc_time = listener.metrics_of_type(MetricExtractor.METRIC_JS_GC_TIME)
         self.assertEqual(len(gc_time), 1)
-        self.assertEqual(gc_time[0][MetricExtractor.METRIC_JS_GC_TIME], 0.0)
+        self.assertAlmostEqual(gc_time[0][MetricExtractor.METRIC_JS_GC_TIME], 0.0136, delta=0.0001)
 
         heap_size = listener.metrics_of_type(MetricExtractor.METRIC_JS_HEAP_SIZE)
         self.assertEqual(len(heap_size), 5)

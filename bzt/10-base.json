@@ -138,6 +138,9 @@
     },
     "chrome-profiler": {
       "class": "bzt.modules.chrome.ChromeProfiler"
+    },
+    "chrome-metric-reporter": {
+      "class": "bzt.modules.chrome.MetricReporter"
     }
   },
   "settings": {

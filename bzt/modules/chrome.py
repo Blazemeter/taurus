@@ -18,7 +18,8 @@ import json
 from collections import defaultdict, OrderedDict
 from os import path
 
-from bzt.modules.monitoring import Monitoring, MonitoringClient
+from bzt.engine import Reporter
+from bzt.modules.monitoring import Monitoring, MonitoringClient, MonitoringListener
 from bzt.six import iteritems
 
 
@@ -427,3 +428,26 @@ class ChromeClient(MonitoringClient):
 
     def disconnect(self):
         pass
+
+
+class MetricReporter(Reporter, MonitoringListener):
+    def __init__(self):
+        super(MetricReporter, self).__init__()
+        MonitoringListener.__init__(self)
+        self.data = []
+
+    def prepare(self):
+        for module in self.engine.services:
+            if isinstance(module, ChromeProfiler):
+                module.add_listener(self)
+
+    def monitoring_data(self, data):
+        self.data.extend(data)
+
+    def post_process(self):
+        self.log.info("Chrome metrics:")
+        for item in sorted(self.data, key=lambda i: i["ts"]):
+            ts = item.pop("ts")
+            source = item.pop("source")
+            for metric, value in iteritems(item):
+                self.log.info("%s: %s = %s", ts, metric, value)
