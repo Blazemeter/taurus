@@ -510,16 +510,15 @@ class MonitoringBuffer(object):
         table_items = {}
         for source, buff in iteritems(self.data):
             for timestamp, item in iteritems(buff):
-                if "tabular" not in item:
-                    continue
-                for field, value in iteritems(item):
-                    if field in ('ts', 'interval', 'tabular'):
-                        continue
-                    table_items[field] = value
+                if "tabular" in item:
+                    for field, value in iteritems(item):
+                        if field in ('ts', 'interval', 'tabular'):
+                            continue
+                        table_items[field] = value
         return {
             "tables": [
                 {
-                    "id":"A",
+                    "id":"Metrics",
                     "name":"Metrics",
                     "data": table_items
                 }
