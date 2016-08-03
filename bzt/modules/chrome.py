@@ -199,8 +199,8 @@ class MetricExtractor(object):
             return 0.0
 
     def feed_event(self, event):
-        if event.get("timestamp") and self.tracing_start_ts is None:
-            self.tracing_start_ts = event["timestamp"]
+        if event.get("ts") and self.tracing_start_ts is None:
+            self.tracing_start_ts = float(event["ts"]) / 1000000
         if event.get("ts"):
             ts = self.convert_ts(event['ts'])
             self.tracing_duration = max(self.tracing_duration, ts)
