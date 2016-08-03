@@ -144,6 +144,7 @@ class ChromePerfLogReader(object):
 class MetricExtractor(object):
     METRIC_PAGE_LOAD_TIME = 'load-page-time'
     METRIC_FULL_LOAD_TIME = 'load-full-time'
+    METRIC_FIRST_PAINT_TIME = 'first-paint-time'
 
     METRIC_MEMORY_TAB = 'memory-tab-mb'
     METRIC_MEMORY_BROWSER = 'memory-browser-mb'
@@ -161,7 +162,7 @@ class MetricExtractor(object):
     METRIC_DOM_DOCUMENTS = 'dom-documents'
 
     DISCRETE_METRICS = (
-        METRIC_PAGE_LOAD_TIME, METRIC_FULL_LOAD_TIME,
+        METRIC_PAGE_LOAD_TIME, METRIC_FULL_LOAD_TIME, METRIC_FIRST_PAINT_TIME,
         METRIC_NETWORK_FOOTPRINT, METRIC_NETWORK_REQUESTS, METRIC_NETWORK_TTFB, METRIC_NETWORK_XHR_REQUESTS,
         METRIC_JS_GC_TIME,
     )
@@ -174,6 +175,11 @@ class MetricExtractor(object):
     def __init__(self):
         self.tracing_start_ts = None
         self.tracing_duration = 0.0
+
+        self.tracing_page_id = None
+        self.commit_load_events = defaultdict(dict)  # pid -> (ts -> page id)
+        self.composite_layers_events = defaultdict(list)  # pid -> [ts]
+        self.draw_frame_events = defaultdict(list)  # pid -> [ts]
 
         self.process_names = {}  # pid -> str
         self.process_labels = {}  # pid -> str
@@ -216,7 +222,8 @@ class MetricExtractor(object):
         elif "blink.net" in categories:
             self.process_network_event(event)
         elif any(c in categories for c in ["devtools.timeline",
-                                           "disabled-by-default-devtools.timeline"]):
+                                           "disabled-by-default-devtools.timeline",
+                                           "disabled-by-default-devtools.timeline.frame"]):
             self.process_devtools_event(event)
         elif "blink.user_timing" in categories:
             self.process_user_timing_event(event)
@@ -283,6 +290,23 @@ class MetricExtractor(object):
             pid = event["pid"]
             url = event["args"]["data"]["url"]
             self.xhr_requests[pid][ts] = url
+        elif event.get("name") == "TracingStartedInPage":
+            page_id = event["args"]["data"]["page"]
+            if self.tracing_page_id is None:
+                self.tracing_page_id = page_id
+        elif event.get("name") == "CommitLoad":
+            pid = event["pid"]
+            ts = self.convert_ts(event["ts"])
+            page_id = event["args"]["data"]["page"]
+            self.commit_load_events[pid][ts] = page_id
+        elif event.get("name") == "CompositeLayers":
+            pid = event["pid"]
+            ts = self.convert_ts(event["ts"])
+            self.composite_layers_events[pid].append(ts)
+        elif event.get("name") == "DrawFrame":
+            pid = event["pid"]
+            ts = self.convert_ts(event["ts"])
+            self.draw_frame_events[pid].append(ts)
 
     def process_network_event(self, event):
         if event.get("name") == "Resource":
@@ -340,6 +364,7 @@ class MetricExtractor(object):
         - METRIC_NETWORK_FOOTPRINT - total download size per Chrome session
         - METRIC_NETWORK_TTFB - time when first HTTP response data arrived
         - METRIC_NETWORK_REQUESTS - number of HTTP requests made
+        - METRIC_NETWORK_XHR_REQUESTS - number of XHR requests made
         :return:
         """
         if self.requests:
@@ -372,16 +397,38 @@ class MetricExtractor(object):
         Calculate loading metrics:
         - METRIC_PAGE_LOAD_TIME - time to JS 'load' event
         - METRIC_FULL_LOAD_TIME - time to full load (when all HTTP activity is finished)
+        - METRIC_FIRST_PAINT_TIME - time to first paint event
         """
-        tab_process_pid = next(iter(self.process_labels))
-        if tab_process_pid in self.page_load_times:
-            yield self.tracing_duration, self.METRIC_PAGE_LOAD_TIME, self.page_load_times[tab_process_pid]
+        tab_pid = next(iter(self.process_labels))
+        if tab_pid in self.page_load_times:
+            yield self.tracing_duration, self.METRIC_PAGE_LOAD_TIME, self.page_load_times[tab_pid]
 
         if self.requests:
             requests = list(req for _, req in iteritems(self.requests))
             last = max(requests, key=lambda r: r.get("finish_time", float("-inf")))
             last_request_time = last['finish_time']
             yield self.tracing_duration, self.METRIC_FULL_LOAD_TIME, last_request_time
+
+        if self.tracing_page_id:
+            commit_loads = [
+                offset
+                for offset, page_id in iteritems(self.commit_load_events[tab_pid])
+                if page_id == self.tracing_page_id
+            ]
+            last_commit_load = max(commit_loads)
+            next_composite_layers = None
+            for composite_ts in sorted(self.composite_layers_events[tab_pid]):
+                if composite_ts >= last_commit_load:
+                    next_composite_layers = composite_ts
+                    break
+            if next_composite_layers:
+                next_draw_frame = None
+                for draw_frame_ts in sorted(self.draw_frame_events[tab_pid]):
+                    if draw_frame_ts >= next_composite_layers:
+                        next_draw_frame = draw_frame_ts
+                        break
+                if next_draw_frame:
+                    yield self.tracing_duration, self.METRIC_FIRST_PAINT_TIME, next_draw_frame
 
     @staticmethod
     def reaggregate_by_ts(per_pid_stats):
