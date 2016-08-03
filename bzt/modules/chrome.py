@@ -30,9 +30,10 @@ class ChromeProfiler(Monitoring):
         self.client = None
 
     def prepare(self):
-        log_file = self.parameters.get('trace-file', "trace.json")
-        log_path = path.join(self.engine.artifacts_dir, log_file)
-        self.client = ChromeClient(log_path, self.log)
+        trace_file = self.parameters.get('trace-file', "trace.json")
+        trace_path = path.join(self.engine.artifacts_dir, trace_file)
+
+        self.client = ChromeClient(trace_path, self.log)
         self.client.engine = self.engine
         self.client.connect()
 
@@ -59,13 +60,13 @@ class ChromeProfiler(Monitoring):
         super(Monitoring, self).post_process()
 
 
-class TraceReader(object):
+class TraceJSONReader(object):
     def __init__(self, filename, parent_log):
         self.log = parent_log.getChild(self.__class__.__name__)
         self.filename = filename
         self.fds = None
 
-    def read_trace(self):
+    def extract_events(self):
         if not self.fds and not self.__open_fds():
             self.log.debug("No data to start reading yet")
             return
@@ -102,6 +103,7 @@ class MetricExtractor(object):
 
     METRIC_NETWORK_FOOTPRINT = 'network-footprint-mb'
     METRIC_NETWORK_REQUESTS = 'network-http-requests'
+    METRIC_NETWORK_XHR_REQUESTS = 'network-xhr-requests'
     METRIC_NETWORK_TTFB = 'network-time-to-first-byte'
 
     METRIC_JS_GC_TIME = 'js-gc-time'
@@ -111,12 +113,16 @@ class MetricExtractor(object):
     METRIC_DOM_NODES = 'dom-nodes'
     METRIC_DOM_DOCUMENTS = 'dom-documents'
 
-    DISCRETE_METRICS = (METRIC_PAGE_LOAD_TIME, METRIC_FULL_LOAD_TIME,
-                        METRIC_NETWORK_FOOTPRINT, METRIC_NETWORK_REQUESTS, METRIC_NETWORK_TTFB,
-                        METRIC_JS_GC_TIME)
-    CONTINUOUS_METRICS = (METRIC_MEMORY_TAB, METRIC_MEMORY_BROWSER,
-                          METRIC_JS_HEAP_SIZE, METRIC_JS_EVENT_LISTENERS,
-                          METRIC_DOM_DOCUMENTS, METRIC_DOM_NODES)
+    DISCRETE_METRICS = (
+        METRIC_PAGE_LOAD_TIME, METRIC_FULL_LOAD_TIME,
+        METRIC_NETWORK_FOOTPRINT, METRIC_NETWORK_REQUESTS, METRIC_NETWORK_TTFB, METRIC_NETWORK_XHR_REQUESTS,
+        METRIC_JS_GC_TIME,
+    )
+    CONTINUOUS_METRICS = (
+        METRIC_MEMORY_TAB, METRIC_MEMORY_BROWSER,
+        METRIC_JS_HEAP_SIZE, METRIC_JS_EVENT_LISTENERS,
+        METRIC_DOM_DOCUMENTS, METRIC_DOM_NODES
+    )
 
     def __init__(self):
         self.tracing_start_ts = None
@@ -270,16 +276,17 @@ class MetricExtractor(object):
         - METRIC_MEMORY_BROWSER - memory consumption of all Chrome processes
         :return:
         """
-        memory_per_ts = self.reaggregate_by_ts(self.memory_per_process)  # ts -> (pid -> memory)
         tab_process_pid = next(iter(self.process_labels))
-        for ts in sorted(memory_per_ts):
-            process_mems = memory_per_ts[ts]
-            # report tab memory
-            tab_memory_at_ts = process_mems[tab_process_pid]
-            yield ts, self.METRIC_MEMORY_TAB, tab_memory_at_ts
-            # report browser memory
-            browser_memory_at_ts = sum(per_process for _, per_process in iteritems(process_mems))
-            yield ts, self.METRIC_MEMORY_BROWSER, browser_memory_at_ts
+        if tab_process_pid in self.memory_per_process:
+            memory_per_ts = self.reaggregate_by_ts(self.memory_per_process)  # ts -> (pid -> memory)
+            for ts in sorted(memory_per_ts):
+                process_mems = memory_per_ts[ts]
+                # report tab memory
+                tab_memory_at_ts = process_mems[tab_process_pid]
+                yield ts, self.METRIC_MEMORY_TAB, tab_memory_at_ts
+                # report browser memory
+                browser_memory_at_ts = sum(per_process for _, per_process in iteritems(process_mems))
+                yield ts, self.METRIC_MEMORY_BROWSER, browser_memory_at_ts
 
     def calc_network_metrics(self):
         """
@@ -307,6 +314,13 @@ class MetricExtractor(object):
             # calculate requests count
             yield self.tracing_duration, self.METRIC_NETWORK_REQUESTS, len(requests)
 
+        if self.xhr_requests:
+            tab_process_pid = next(iter(self.process_labels))
+            if tab_process_pid in self.xhr_requests:
+                requests_from_tab = self.xhr_requests[tab_process_pid]
+                # calculate requests count
+                yield self.tracing_duration, self.METRIC_NETWORK_XHR_REQUESTS, len(requests_from_tab)
+
     def calc_loading_metrics(self):
         """
         Calculate loading metrics:
@@ -314,7 +328,8 @@ class MetricExtractor(object):
         - METRIC_FULL_LOAD_TIME - time to full load (when all HTTP activity is finished)
         """
         tab_process_pid = next(iter(self.process_labels))
-        yield self.tracing_duration, self.METRIC_PAGE_LOAD_TIME, self.page_load_times[tab_process_pid]
+        if tab_process_pid in self.page_load_times:
+            yield self.tracing_duration, self.METRIC_PAGE_LOAD_TIME, self.page_load_times[tab_process_pid]
 
         if self.requests:
             requests = list(req for _, req in iteritems(self.requests))
@@ -351,20 +366,22 @@ class MetricExtractor(object):
         :return:
         """
 
-        heap_per_ts = self.reaggregate_by_ts(self.js_heap_size_used)
         tab_process_pid = next(iter(self.process_labels))
-        for ts in sorted(heap_per_ts):
-            process_heap = heap_per_ts[ts]
-            tab_heap_at_ts = process_heap[tab_process_pid]
-            yield ts, self.METRIC_JS_HEAP_SIZE, tab_heap_at_ts
+        if tab_process_pid in self.js_heap_size_used:
+            heap_per_ts = self.reaggregate_by_ts(self.js_heap_size_used)
+            for ts in sorted(heap_per_ts):
+                process_heap = heap_per_ts[ts]
+                tab_heap_at_ts = process_heap[tab_process_pid]
+                yield ts, self.METRIC_JS_HEAP_SIZE, tab_heap_at_ts
 
-        listeners_per_ts = self.reaggregate_by_ts(self.js_event_listeners)
-        for ts in sorted(listeners_per_ts):
-            listeners_at_ts = listeners_per_ts[ts]
-            listeners = listeners_at_ts[tab_process_pid]
-            yield ts, self.METRIC_JS_EVENT_LISTENERS, round(listeners)
+        if tab_process_pid in self.js_event_listeners:
+            listeners_per_ts = self.reaggregate_by_ts(self.js_event_listeners)
+            for ts in sorted(listeners_per_ts):
+                listeners_at_ts = listeners_per_ts[ts]
+                listeners = listeners_at_ts[tab_process_pid]
+                yield ts, self.METRIC_JS_EVENT_LISTENERS, round(listeners)
 
-        if self.gc_times:
+        if tab_process_pid in self.gc_times:
             total_gc_time = 0.0
             gcs = self.gc_times[tab_process_pid]
             for gc_record in gcs:
@@ -381,17 +398,19 @@ class MetricExtractor(object):
         :return:
         """
         tab_process_pid = next(iter(self.process_labels))
-        docs_per_ts = self.reaggregate_by_ts(self.dom_documents)
-        for ts in sorted(docs_per_ts):
-            docs_at_ts = docs_per_ts[ts]
-            docs_in_tab = docs_at_ts[tab_process_pid]
-            yield ts, self.METRIC_DOM_DOCUMENTS, round(docs_in_tab)
+        if tab_process_pid in self.dom_documents:
+            docs_per_ts = self.reaggregate_by_ts(self.dom_documents)
+            for ts in sorted(docs_per_ts):
+                docs_at_ts = docs_per_ts[ts]
+                docs_in_tab = docs_at_ts[tab_process_pid]
+                yield ts, self.METRIC_DOM_DOCUMENTS, round(docs_in_tab)
 
-        nodes_per_ts = self.reaggregate_by_ts(self.dom_nodes)
-        for ts in sorted(nodes_per_ts):
-            nodes_at_ts = nodes_per_ts[ts]
-            nodes_in_tab = nodes_at_ts[tab_process_pid]
-            yield ts, self.METRIC_DOM_NODES, round(nodes_in_tab)
+        if tab_process_pid in self.dom_nodes:
+            nodes_per_ts = self.reaggregate_by_ts(self.dom_nodes)
+            for ts in sorted(nodes_per_ts):
+                nodes_at_ts = nodes_per_ts[ts]
+                nodes_in_tab = nodes_at_ts[tab_process_pid]
+                yield ts, self.METRIC_DOM_NODES, round(nodes_in_tab)
 
     def get_metrics(self):
         # yields (offset, metric, value)
@@ -407,11 +426,11 @@ class MetricExtractor(object):
 
 
 class ChromeClient(MonitoringClient):
-    def __init__(self, log_file, parent_logger):
+    def __init__(self, chrome_trace, parent_logger):
         super(ChromeClient, self).__init__()
-        self.log_file = log_file
         self.log = parent_logger.getChild(self.__class__.__name__)
-        self.reader = TraceReader(log_file, self.log)
+        self.trace_file = chrome_trace
+        self.reader = TraceJSONReader(chrome_trace, self.log)
         self.extractor = MetricExtractor()
         self.engine = None
 
@@ -422,13 +441,13 @@ class ChromeClient(MonitoringClient):
         pass
 
     def get_data(self):
-        for event in self.reader.read_trace():
+        for event in self.reader.extract_events():
             self.extractor.feed_event(event)
 
         # TODO: find a better way to find when Chrome was started
-        if not path.exists(self.log_file):
+        if not path.exists(self.trace_file):
             return []
-        start_time = path.getctime(self.log_file)
+        start_time = path.getctime(self.trace_file)
 
         res = []
         for offset, metric, value in self.extractor.get_metrics():

@@ -126,6 +126,9 @@ class TestChromeProfiler(BZTestCase):
         self.assertEqual(len(reqs_count), 1)
         self.assertEqual(reqs_count[0][MetricExtractor.METRIC_NETWORK_REQUESTS], 6)
 
+        xhr_reqs = listener.metrics_of_type(MetricExtractor.METRIC_NETWORK_XHR_REQUESTS)
+        self.assertEqual(len(xhr_reqs), 0)
+
     def test_memory_metrics(self):
         obj = ChromeProfiler()
         obj.engine = EngineEmul()
