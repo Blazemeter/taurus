@@ -507,19 +507,22 @@ class MonitoringBuffer(object):
         return {"datapoints": results}
 
     def get_metrics_table_json(self):
-        table_items = {}
+        table_items = []
         for source, buff in iteritems(self.data):
             for timestamp, item in iteritems(buff):
                 if "tabular" in item:
                     for field, value in iteritems(item):
                         if field in ('ts', 'interval', 'tabular'):
                             continue
-                        table_items[field] = value
+                        row = OrderedDict()
+                        row["metric"] = field
+                        row["value"] = value
+                        table_items.append(row)
         return {
             "tables": [
                 {
                     "id":"Metrics",
-                    "name":"Metrics",
+                    "name":"Metrics table",
                     "data": table_items
                 }
             ]
