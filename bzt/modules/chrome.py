@@ -193,8 +193,7 @@ class MetricExtractor(object):
     def convert_ts(self, ts):
         if self.tracing_start_ts is not None:
             offset = float(ts) / 1000000 - self.tracing_start_ts
-            rounded = round(offset, 1)
-            return max(rounded, 0.0)
+            return max(offset, 0.0)
         else:
             return 0.0
 

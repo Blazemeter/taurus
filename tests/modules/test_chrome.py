@@ -39,11 +39,11 @@ class TestChromeProfiler(BZTestCase):
 
         page_load = listener.metrics_of_type(MetricExtractor.METRIC_PAGE_LOAD_TIME)
         self.assertEqual(len(page_load), 1)
-        self.assertEqual(page_load[0][MetricExtractor.METRIC_PAGE_LOAD_TIME], 0.3)
+        self.assertAlmostEqual(page_load[0][MetricExtractor.METRIC_PAGE_LOAD_TIME], 0.32, delta=0.01)
 
         full_load = listener.metrics_of_type(MetricExtractor.METRIC_FULL_LOAD_TIME)
         self.assertEqual(len(full_load), 1)
-        self.assertEqual(full_load[0][MetricExtractor.METRIC_FULL_LOAD_TIME], 0.3)
+        self.assertAlmostEqual(full_load[0][MetricExtractor.METRIC_FULL_LOAD_TIME], 0.32, delta=0.01)
 
     def test_dom_metrics(self):
         obj = ChromeProfiler()
@@ -67,7 +67,7 @@ class TestChromeProfiler(BZTestCase):
 
         dom_docs = listener.metrics_of_type(MetricExtractor.METRIC_DOM_NODES)
         self.assertEqual(len(dom_docs), 5)
-        self.assertEqual(dom_docs[0][MetricExtractor.METRIC_DOM_NODES], 47)
+        self.assertEqual(dom_docs[0][MetricExtractor.METRIC_DOM_NODES], 44)
         self.assertEqual(dom_docs[-1][MetricExtractor.METRIC_DOM_NODES], 121)
 
     def test_js_metrics(self):
@@ -96,7 +96,7 @@ class TestChromeProfiler(BZTestCase):
 
         heap_size = listener.metrics_of_type(MetricExtractor.METRIC_JS_HEAP_SIZE)
         self.assertEqual(len(heap_size), 5)
-        self.assertAlmostEqual(heap_size[0][MetricExtractor.METRIC_JS_HEAP_SIZE], 2, delta=0.1)
+        self.assertAlmostEqual(heap_size[0][MetricExtractor.METRIC_JS_HEAP_SIZE], 2.1, delta=0.1)
         self.assertAlmostEqual(heap_size[-1][MetricExtractor.METRIC_JS_HEAP_SIZE], 2.8, delta=0.1)
 
     def test_network_metrics(self):
@@ -120,7 +120,7 @@ class TestChromeProfiler(BZTestCase):
 
         ttfb = listener.metrics_of_type(MetricExtractor.METRIC_NETWORK_TTFB)
         self.assertEqual(len(ttfb), 1)
-        self.assertAlmostEqual(ttfb[0][MetricExtractor.METRIC_NETWORK_TTFB], 0.0)
+        self.assertAlmostEqual(ttfb[0][MetricExtractor.METRIC_NETWORK_TTFB], 0.017, delta=0.001)
 
         reqs_count = listener.metrics_of_type(MetricExtractor.METRIC_NETWORK_REQUESTS)
         self.assertEqual(len(reqs_count), 1)
