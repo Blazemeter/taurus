@@ -16,6 +16,7 @@ limitations under the License.
 import copy
 import itertools
 import json
+import re
 from collections import defaultdict, OrderedDict
 from os import path
 
@@ -79,6 +80,52 @@ class TraceJSONReader(object):
 
         for event in events:
             yield event
+
+    def __open_fds(self):
+        if not path.isfile(self.filename):
+            return False
+        fsize = path.getsize(self.filename)
+        if not fsize:
+            return False
+        self.fds = open(self.filename, 'rt', buffering=1)
+        return True
+
+    def __del__(self):
+        if self.fds is not None:
+            self.fds.close()
+
+
+class ChromePerfLogReader(object):
+    TRACING_EVENT_RE = re.compile(r"^\[(\d+\.\d+)\]\[(\w+)\]: DEVTOOLS EVENT Tracing.dataCollected \{$")
+
+    def __init__(self, filename, parent_log):
+        self.log = parent_log.getChild(self.__class__.__name__)
+        self.filename = filename
+        self.fds = None
+        self.data_buffer = ""
+
+    def extract_events(self):
+        if not self.fds and not self.__open_fds():
+            self.log.debug("No data to start reading yet")
+            return
+
+        lines = self.fds.readlines()
+        for line in lines:
+            if self.TRACING_EVENT_RE.match(line):
+                self.data_buffer = "{"
+                continue
+
+            if self.data_buffer:
+                self.data_buffer += line
+
+            try:
+                trace_events = json.loads(self.data_buffer)
+                for event in trace_events["value"]:
+                    if isinstance(event, dict):
+                        yield event
+                self.data_buffer = ""
+            except ValueError:
+                continue
 
     def __open_fds(self):
         if not path.isfile(self.filename):
