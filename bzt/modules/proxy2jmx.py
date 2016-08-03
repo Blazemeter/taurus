@@ -30,6 +30,8 @@ from bzt.modules.selenium import SeleniumExecutor
 
 class Proxy2JMX(Service):
     CERT_DOWNLOAD_LINK = "http://bz/cert/"
+    CERT_FILE_NAME = 'mitmproxy-ca-cert'
+    CERT_NICK = 'mitmproxy'
 
     def __init__(self):
         super(Proxy2JMX, self).__init__()
@@ -39,6 +41,8 @@ class Proxy2JMX(Service):
         self.certutil = None
         self.certificates = ['pem', 'p12']
         self.address = 'https://a.blazemeter.com/api/latest/mitmproxies'
+        self.chrome_cert_path = False
+        self.firefox_cert_path = False
 
     def api_request(self, path='', method='GET', check=True):
         if method == 'GET':
@@ -53,12 +57,12 @@ class Proxy2JMX(Service):
             raise RuntimeError('API request failed: %s' % json_content['error']['message'])
         return req
 
-    def __get_certificates(self):
+    def __download_certificates(self):
         downloader = http_request.FancyURLopener(proxies={"http":  self.proxy})
 
         for cert in self.certificates:
             link = Proxy2JMX.CERT_DOWNLOAD_LINK + cert
-            _file = self.engine.create_artifact('mitmproxy-ca-cert', '.'+cert)
+            _file = self.engine.create_artifact(Proxy2JMX.CERT_FILE_NAME, '.'+cert)
             try:
                 self.log.info("Downloading %s from %s", cert, Proxy2JMX.CERT_DOWNLOAD_LINK+cert)
                 downloader.retrieve(link, _file)
@@ -66,30 +70,15 @@ class Proxy2JMX(Service):
                 self.log.error("Error while downloading %s", cert)
                 raise
 
-    def __certutul(self, nss_dir, cert_file, cert_nick):
-        pass
-        # TODO: check NSS db
-
-        # add cert if not found
-        params = [self.certutil.tool_path, '-d', nss_dir, '-A', '-t', 'TC', '-i', cert_file, '-n', cert_nick]
-        subprocess = shell_exec(params)
-        output = subprocess.communicate()
-        self.log.debug("%s output: %s", self.certutil.tool_name, output)
-        if subprocess.returncode == 0:
-            self.log.debug('Installation %s into %s succeeded' % (cert_nick, nss_dir))
-        else:
-            self.log.debug('Installation %s into %s failed' % (cert_nick, nss_dir))
-
-        # TODO: remove if it was added by taurus
-
-    def __chrome_setup(self, home_dir):
+    def __setup_chrome(self, home_dir):
         self.log.debug('Chrome certificate setup')
         if not is_windows():
-            nssdb_path = os.path.join(home_dir, '.pki', 'nssdb')
-            cert_file = os.path.join(self.engine.artifacts_dir, 'mitmproxy-ca-cert.pem')
-            self.__certutul(nssdb_path, cert_file, 'mitmproxy')
+            nssdb_path = 'sql:' + os.path.join(home_dir, '.pki', 'nssdb')   # Chrome uses system MySQL base
+            cert_file = os.path.join(self.engine.artifacts_dir, Proxy2JMX.CERT_FILE_NAME + '.pem')
+            if self.certutil.add_cert(nssdb_path, cert_file, Proxy2JMX.CERT_NICK):
+                self.chrome_cert_path = nssdb_path
 
-    def __firefox_setup(self, home_dir):
+    def __setup_firefox(self, home_dir):
         self.log.debug('Firefox certificate setup')
         if not is_windows():
             if not home_dir:
@@ -107,9 +96,20 @@ class Proxy2JMX(Service):
             else:
                 self.log.debug('Firefox profile not found')
                 return
-            nssdb_path = os.path.join(home_dir, '.mozilla', 'firefox', _file)
-            cert_file = os.path.join(self.engine.artifacts_dir, 'mitmproxy-ca-cert.pem')
-            self.__certutul(nssdb_path, cert_file, 'mitmproxy')
+            nssdb_path = os.path.join(home_dir, '.mozilla', 'firefox', _file)   # Firefox uses its own BerkeleyDB
+            cert_file = os.path.join(self.engine.artifacts_dir, Proxy2JMX.CERT_FILE_NAME + '.pem')
+            if self.certutil.add_cert(nssdb_path, cert_file, Proxy2JMX.CERT_NICK):
+                self.firefox_cert_path = nssdb_path
+
+    def __clean_chrome(self):
+        if self.chrome_cert_path:
+            self.log.debug('Chrome certificate cleaning')
+            self.certutil.del_cert(self.chrome_cert_path)
+
+    def __clean_firefox(self):
+        if self.firefox_cert_path:
+            self.log.debug('Firefox certificate cleaning')
+            self.certutil.del_cert(self.firefox_cert_path)
 
     def __get_proxy(self):
         req = self.api_request(check=False)
@@ -145,19 +145,17 @@ class Proxy2JMX(Service):
             raise ValueError("You must provide your API token to use Proxy Recorder")
 
         self.headers = {"X-Api-Key": token}
-
         self.proxy = self.__get_proxy()
-
         self.certutil = Certutil(self.log)
         if not self.certutil.check_if_installed():
             self.log.info('Certutil not found, certificate setup is impossible')
             return
 
-        self.__get_certificates()
+        self.__download_certificates()
         environ = BetterDict()
         environ.merge(dict(os.environ))
-        self.__chrome_setup(environ.get('HOME'))
-        self.__firefox_setup(environ.get('HOME'))
+        self.__setup_chrome(environ.get('HOME'))
+        self.__setup_firefox(environ.get('HOME'))
 
     def startup(self):
         super(Proxy2JMX, self).startup()
@@ -167,7 +165,6 @@ class Proxy2JMX(Service):
                 executor.additional_env['https_proxy'] = "http://%s/" % self.proxy
 
         self.log.info('Starting BlazeMeter recorder...')
-
         self.api_request('/startRecording', 'POST')
 
     def shutdown(self):
@@ -191,6 +188,8 @@ class Proxy2JMX(Service):
             _file.writelines(req.content)
 
         self.log.info("JMX saved into %s", jmx_file)
+        self.__clean_chrome()
+        self.__clean_firefox()
 
 
 class Certutil(RequiredTool):
@@ -206,3 +205,37 @@ class Certutil(RequiredTool):
         except OSError:
             return False
         return True
+
+    def add_cert(self, nss_dir, cert_file, cert_nick):
+        self.log.debug('Certificate installation')
+        if not self.__cert_installed(nss_dir, cert_nick):   # add cert if not found
+            params = [self.tool_path, '-d', nss_dir, '-A', '-t', 'TC', '-i', cert_file, '-n', cert_nick]
+            subprocess = shell_exec(params)
+            if subprocess.returncode == 0:
+                self.log.debug('Installation %s into %s succeeded' % (cert_nick, nss_dir))
+                return True
+            else:
+                self.log.debug('Installation %s into %s failed' % (cert_nick, nss_dir))
+                return False
+
+    def __cert_installed(self, nss_dir, cert_nick):
+        # check NSS db
+        params = [self.tool_path, '-d', nss_dir, '-L', '-n', cert_nick]
+        subprocess = shell_exec(params)
+        if subprocess.returncode == 0:
+            self.log.debug('Certificate %s found in %s' % (cert_nick, nss_dir))
+            return True
+        else:
+            self.log.debug('Certificate %s not found in %s' % (cert_nick, nss_dir))
+            return False
+
+    def del_cert(self, nss_dir, cert_nick):
+        self.log.debug('Certificate removing')
+        if self.__cert_installed(nss_dir, cert_nick):
+            params = [self.tool_path, '-d', nss_dir, '-D', '-n', cert_nick]
+            subprocess = shell_exec(params)
+            if subprocess.returncode == 0:
+                self.log.debug('Removing %s from %s succeeded' % (cert_nick, nss_dir))
+            else:
+                self.log.debug('Removing %s from %s failed' % (cert_nick, nss_dir))
+
