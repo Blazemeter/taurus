@@ -135,6 +135,7 @@ class MetricExtractor(object):
         self.dom_documents = defaultdict(OrderedDict)  # pid -> (ts -> dom document count)
         self.dom_nodes = defaultdict(OrderedDict)  # pid -> (ts -> dom node count)
         self.events = defaultdict(dict)  # pid -> (ts -> event_name)
+        self.xhr_requests = defaultdict(dict)  # pid -> (ts -> url)
 
     def convert_ts(self, ts):
         if self.tracing_start_ts is not None:
@@ -224,6 +225,12 @@ class MetricExtractor(object):
             pid = event["pid"]
             event_name = event["args"]["data"]["type"]
             self.events[pid][ts] = event_name
+        elif event.get("name") == "XHRLoad":
+            # we can also track XHRReadyStateChange event to track all state changes
+            ts = self.convert_ts(event['ts'])
+            pid = event["pid"]
+            url = event["args"]["data"]["url"]
+            self.xhr_requests[pid][ts] = url
 
     def process_network_event(self, event):
         if event.get("name") == "Resource":
