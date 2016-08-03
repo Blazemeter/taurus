@@ -39,7 +39,11 @@ class TestChromeProfiler(BZTestCase):
 
         page_load = listener.metrics_of_type(MetricExtractor.METRIC_PAGE_LOAD_TIME)
         self.assertEqual(len(page_load), 1)
-        self.assertAlmostEqual(page_load[0][MetricExtractor.METRIC_PAGE_LOAD_TIME], 6.68, delta=0.01)
+        self.assertAlmostEqual(page_load[0][MetricExtractor.METRIC_PAGE_LOAD_TIME], 5.27, delta=0.01)
+
+        dom_load = listener.metrics_of_type(MetricExtractor.METRIC_DOM_CONTENT_LOADED_TIME)
+        self.assertEqual(len(dom_load), 1)
+        self.assertAlmostEqual(dom_load[0][MetricExtractor.METRIC_DOM_CONTENT_LOADED_TIME], 3.00, delta=0.01)
 
         full_load = listener.metrics_of_type(MetricExtractor.METRIC_FULL_LOAD_TIME)
         self.assertEqual(len(full_load), 1)

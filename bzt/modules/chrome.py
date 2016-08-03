@@ -143,6 +143,7 @@ class ChromePerfLogReader(object):
 
 class MetricExtractor(object):
     METRIC_PAGE_LOAD_TIME = 'load-page-time'
+    METRIC_DOM_CONTENT_LOADED_TIME = 'dom-content-loaded-time'
     METRIC_FULL_LOAD_TIME = 'load-full-time'
     METRIC_FIRST_PAINT_TIME = 'first-paint-time'
 
@@ -162,7 +163,7 @@ class MetricExtractor(object):
     METRIC_DOM_DOCUMENTS = 'dom-documents'
 
     DISCRETE_METRICS = (
-        METRIC_PAGE_LOAD_TIME, METRIC_FULL_LOAD_TIME, METRIC_FIRST_PAINT_TIME,
+        METRIC_PAGE_LOAD_TIME, METRIC_FULL_LOAD_TIME, METRIC_FIRST_PAINT_TIME, METRIC_DOM_CONTENT_LOADED_TIME,
         METRIC_NETWORK_FOOTPRINT, METRIC_NETWORK_REQUESTS, METRIC_NETWORK_TTFB, METRIC_NETWORK_XHR_REQUESTS,
         METRIC_JS_GC_TIME,
     )
@@ -180,6 +181,8 @@ class MetricExtractor(object):
         self.commit_load_events = defaultdict(dict)  # pid -> (ts -> page id)
         self.composite_layers_events = defaultdict(list)  # pid -> [ts]
         self.draw_frame_events = defaultdict(list)  # pid -> [ts]
+        self.load_events = defaultdict(dict)  # pid -> (ts -> frame id)
+        self.dom_content_loaded_events = defaultdict(dict)  # pid -> (ts -> frame id)
 
         self.process_names = {}  # pid -> str
         self.process_labels = {}  # pid -> str
@@ -187,7 +190,6 @@ class MetricExtractor(object):
         self.resources = defaultdict(dict)  # download_id -> dict(start_time, request_id, end_time)
         self.requests = defaultdict(dict)  # request_id -> dict(send_req_time, recv_resp_time, recv_data_time, mime,
         #                                                       status_code, size, did_fail, finish_time, network_time)
-        self.page_load_times = {}
         self.js_heap_size_used = defaultdict(OrderedDict)  # pid -> (ts -> heap_size)
         self.js_event_listeners = defaultdict(OrderedDict)  # pid -> (ts -> int)
         self.gc_times = defaultdict(list)  # pid -> [dict(gc_start_time, heap_before_gc, gc_end_time, heap_after_gc)]
@@ -231,8 +233,15 @@ class MetricExtractor(object):
 
     def process_user_timing_event(self, event):
         if event.get("name") == "loadEventStart":
+            pid = event['pid']
             ts = self.convert_ts(event['ts'])
-            self.page_load_times[event['pid']] = ts
+            frame = event["args"]["frame"]
+            self.load_events[pid][ts] = frame
+        elif event.get("name") == "domContentLoadedEventStart":
+            pid = event['pid']
+            ts = self.convert_ts(event['ts'])
+            frame = event["args"]["frame"]
+            self.dom_content_loaded_events[pid][ts] = frame
 
     def process_devtools_event(self, event):
         if event.get("name") == "ResourceSendRequest":
@@ -398,10 +407,21 @@ class MetricExtractor(object):
         - METRIC_PAGE_LOAD_TIME - time to JS 'load' event
         - METRIC_FULL_LOAD_TIME - time to full load (when all HTTP activity is finished)
         - METRIC_FIRST_PAINT_TIME - time to first paint event
+        - METRIC_DOM_CONTENT_LOADED_TIME - time to 'DOMContentLoad' event
         """
         tab_pid = next(iter(self.process_labels))
-        if tab_pid in self.page_load_times:
-            yield self.tracing_duration, self.METRIC_PAGE_LOAD_TIME, self.page_load_times[tab_pid]
+
+        if tab_pid in self.load_events and self.tracing_page_id:
+            page_load = min(ts
+                            for ts, frame_id in iteritems(self.load_events[tab_pid])
+                            if frame_id == self.tracing_page_id)
+            yield self.tracing_duration, self.METRIC_PAGE_LOAD_TIME, page_load
+
+        if tab_pid in self.dom_content_loaded_events and self.tracing_page_id:
+            dom_load = max(ts
+                            for ts, frame_id in iteritems(self.dom_content_loaded_events[tab_pid])
+                            if frame_id == self.tracing_page_id)
+            yield self.tracing_duration, self.METRIC_DOM_CONTENT_LOADED_TIME, dom_load
 
         if self.requests:
             requests = list(req for _, req in iteritems(self.requests))
