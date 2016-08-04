@@ -87,26 +87,29 @@ class ChromeProfiler(Monitoring):
                 js_rows.append(row)
 
         requests = self.get_requests_stats()
-        for req in sorted(requests, key=lambda r: r.get("send_req_time")):
-            # [dict(send_req_time, method, url, recv_resp_time,
-            #      recv_data_time, mime, status_code, size, did_fail,
-            #      finish_time, network_time, pid)]
-            row = OrderedDict()
-            row["Start time"] = req.get("send_req_time")
-            row["End time"] = req.get("finish_time")
-            row["Method"] = req.get("method")
-            row["URL"] = req.get("url")
-            row["HTTP Status"] = req.get("status_code")
-            row["MIME"] = req.get("mime")
-            if all(value for _, value in iteritems(row)):
-                http_rows.append(row)
+        if requests:
+            for req in sorted(requests, key=lambda r: r.get("send_req_time")):
+                # [dict(send_req_time, method, url, recv_resp_time,
+                #      recv_data_time, mime, status_code, size, did_fail,
+                #      finish_time, network_time, pid)]
+                row = OrderedDict()
+                row["Start time"] = req.get("send_req_time")
+                row["End time"] = req.get("finish_time")
+                row["Method"] = req.get("method")
+                row["URL"] = req.get("url")
+                row["HTTP Status"] = req.get("status_code", "unknown")
+                row["MIME"] = req.get("mime", "unknown")
+                row["Size"] = req.get("size")
+                if not any(value is None for _, value in iteritems(row)):
+                    http_rows.append(row)
 
         ajax = self.get_ajax_stats()
-        for ts, url in sorted(ajax):
-            row = OrderedDict()
-            row["Start time"] = ts
-            row["URL"] = url
-            ajax_rows.append(row)
+        if ajax:
+            for ts, url in sorted(ajax):
+                row = OrderedDict()
+                row["Start time"] = ts
+                row["URL"] = url
+                ajax_rows.append(row)
 
         tables = []
         if times_rows:
