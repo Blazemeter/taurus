@@ -33,7 +33,7 @@ from urwid import Pile, Text
 from bzt import ManualShutdown
 from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
-from bzt.modules.chrome import ChromeProfiler
+from bzt.modules.chrome import ChromeProfiler, Metrics
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.jmeter import JMeterExecutor
 from bzt.modules.monitoring import Monitoring, MonitoringListener
@@ -489,19 +489,34 @@ class MonitoringBuffer(object):
                 for field, value in iteritems(item):
                     if field in ('ts', 'interval'):
                         continue
-                    if field.lower().startswith('cpu'):
-                        prefix = 'System'
-                        field = 'CPU'
-                    elif field.lower().startswith('mem'):
-                        prefix = 'System'
-                        field = 'Memory'
-                        value *= 100
-                    elif field.lower().startswith('disk'):
-                        prefix = 'Disk'
-                    elif field.lower().startswith('bytes-') or field.lower().startswith('net'):
-                        prefix = 'Network'
+                    if source == 'chrome':
+                        if Metrics.is_time_metric(field):
+                            prefix = "Time"
+                        elif Metrics.is_network_metric(field):
+                            prefix = "Network"
+                        elif Metrics.is_dom_metric(field):
+                            prefix = "DOM"
+                        elif Metrics.is_js_metric(field):
+                            prefix = "JS"
+                        elif Metrics.is_memory_metric(field):
+                            prefix = "Memory"
+                        else:
+                            prefix = "Metrics"
+                        field = Metrics.metric_label(field)
                     else:
-                        prefix = 'Monitoring'
+                        if field.lower().startswith('cpu'):
+                            prefix = 'System'
+                            field = 'CPU'
+                        elif field.lower().startswith('mem'):
+                            prefix = 'System'
+                            field = 'Memory'
+                            value *= 100
+                        elif field.lower().startswith('disk'):
+                            prefix = 'Disk'
+                        elif field.lower().startswith('bytes-') or field.lower().startswith('net'):
+                            prefix = 'Network'
+                        else:
+                            prefix = 'Monitoring'
 
                     label = "/".join([source, prefix, field])
                     datapoints[timestamp][label] = value
