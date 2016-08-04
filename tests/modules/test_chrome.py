@@ -102,11 +102,6 @@ class TestChromeProfiler(BZTestCase):
         self.assertEqual(len(gc_time), 1)
         self.assertAlmostEqual(gc_time[0][Metrics.JS_GC_TIME], 0.0464, delta=0.0001)
 
-        heap_size = listener.metrics_of_type(Metrics.JS_HEAP_SIZE)
-        self.assertEqual(len(heap_size), 16)
-        self.assertAlmostEqual(heap_size[0][Metrics.JS_HEAP_SIZE], 0.89, delta=0.1)
-        self.assertAlmostEqual(heap_size[-1][Metrics.JS_HEAP_SIZE], 50.76, delta=0.1)
-
     def test_network_metrics(self):
         obj = ChromeProfiler()
         obj.engine = EngineEmul()
@@ -155,12 +150,18 @@ class TestChromeProfiler(BZTestCase):
 
         browser = listener.metrics_of_type(Metrics.MEMORY_BROWSER)
         per_tab = listener.metrics_of_type(Metrics.MEMORY_TAB)
+        heap_size = listener.metrics_of_type(Metrics.MEMORY_JS_HEAP)
 
         self.assertEqual(len(browser), 1)
         self.assertAlmostEqual(browser[0][Metrics.MEMORY_BROWSER], 97.25, delta=0.1)
 
         self.assertEqual(len(per_tab), 1)
         self.assertAlmostEqual(per_tab[0][Metrics.MEMORY_TAB], 97.25, delta=0.1)
+
+        self.assertEqual(len(heap_size), 16)
+        self.assertAlmostEqual(heap_size[0][Metrics.MEMORY_JS_HEAP], 0.89, delta=0.1)
+        self.assertAlmostEqual(heap_size[-1][Metrics.MEMORY_JS_HEAP], 50.76, delta=0.1)
+
 
 
 class RecordingListener(MonitoringListener):

@@ -149,6 +149,7 @@ class Metrics:
 
     MEMORY_TAB = 'memory-tab-mb'
     MEMORY_BROWSER = 'memory-browser-mb'
+    MEMORY_JS_HEAP = 'memory-js-heap'
 
     NETWORK_FOOTPRINT = 'network-footprint-mb'
     NETWORK_REQUESTS = 'network-http-requests'
@@ -156,7 +157,6 @@ class Metrics:
     NETWORK_TTFB = 'network-time-to-first-byte'
 
     JS_GC_TIME = 'js-gc-time'
-    JS_HEAP_SIZE = 'js-heap-size'
     JS_EVENT_LISTENERS = 'js-event-listeners'
 
     DOM_NODES = 'dom-nodes'
@@ -182,6 +182,7 @@ class Metrics:
 
         MEMORY_TAB: "Memory consumption of a tab",
         MEMORY_BROWSER: "Memory consumption of a browser",
+        MEMORY_JS_HEAP: "Memory allocated by JS engine",
 
         NETWORK_FOOTPRINT: "Newtork footprint of a page",
         NETWORK_REQUESTS: "Number of HTTP requests (including AJAX)",
@@ -189,7 +190,6 @@ class Metrics:
         NETWORK_TTFB: "Time to first byte",
 
         JS_GC_TIME: "Time spent doing GC in JS engine",
-        JS_HEAP_SIZE: "Memory allocated by JS engine",
         JS_EVENT_LISTENERS: "Number of DOM event listeners",
 
         DOM_NODES: "Number of DOM nodes",
@@ -214,11 +214,11 @@ class Metrics:
 
     @classmethod
     def is_memory_metric(cls, metric):
-        return metric in (cls.MEMORY_TAB, cls.MEMORY_BROWSER)
+        return metric in (cls.MEMORY_TAB, cls.MEMORY_BROWSER, cls.MEMORY_JS_HEAP)
 
     @classmethod
     def is_js_metric(cls, metric):
-        return metric in (cls.JS_GC_TIME, cls.JS_HEAP_SIZE, cls.JS_EVENT_LISTENERS)
+        return metric in (cls.JS_GC_TIME, cls.JS_EVENT_LISTENERS)
 
     @classmethod
     def is_dom_metric(cls, metric):
@@ -542,7 +542,7 @@ class MetricExtractor(object):
             for ts in sorted(heap_per_ts):
                 process_heap = heap_per_ts[ts]
                 tab_heap_at_ts = process_heap[tab_process_pid]
-                yield ts, Metrics.JS_HEAP_SIZE, tab_heap_at_ts
+                yield ts, Metrics.MEMORY_JS_HEAP, tab_heap_at_ts
 
         if tab_process_pid in self.js_event_listeners:
             listeners_per_ts = self.reaggregate_by_ts(self.js_event_listeners)
