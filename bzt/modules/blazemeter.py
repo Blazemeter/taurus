@@ -33,7 +33,7 @@ from urwid import Pile, Text
 from bzt import ManualShutdown
 from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
-from bzt.modules.chrome import Metrics
+from bzt.modules.chrome import ChromeProfiler
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.jmeter import JMeterExecutor
 from bzt.modules.monitoring import Monitoring, MonitoringListener
@@ -326,8 +326,9 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
                 self.log.warning("Will skip failed data and continue running")
 
     def __send_custom_tables(self):
-        data = self.monitoring_buffer.get_metrics_table_json()
-        self.log.info("Tables data: %s", to_json(data))
+        data = self.get_metrics_table_json()
+        if not data:
+            return
         try:
             self.client.send_custom_tables(data)
         except IOError:
@@ -342,6 +343,11 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
             except IOError:
                 self.log.error("Fatal error sending custom tables: %s", traceback.format_exc())
                 self.log.warning("Will skip failed data and continue running")
+
+    def get_metrics_table_json(self):
+        for module in self.engine.services:
+            if isinstance(module, ChromeProfiler):
+                return module.get_metrics_tables_json()
 
 
 class MonitoringBuffer(object):
@@ -483,8 +489,6 @@ class MonitoringBuffer(object):
                 for field, value in iteritems(item):
                     if field in ('ts', 'interval'):
                         continue
-                    if Metrics.is_discrete(field):
-                        continue
                     if field.lower().startswith('cpu'):
                         prefix = 'System'
                         field = 'CPU'
@@ -509,43 +513,6 @@ class MonitoringBuffer(object):
             datapoint["ts"] = timestamp
             results.append(datapoint)
         return {"datapoints": results}
-
-    def get_metrics_table_json(self):
-        network_rows = []
-        times_rows = []
-        js_rows = []
-
-        for source, buff in iteritems(self.data):
-            if source != "chrome":
-                continue
-            for timestamp, item in iteritems(buff):
-                for field, value in iteritems(item):
-                    if field in ('ts', 'interval'):
-                        continue
-                    if not Metrics.is_discrete(field):
-                        continue
-                    row = OrderedDict()
-                    row["Label"] = Metrics.metric_label(field)
-                    row["Value"] = value
-                    if Metrics.is_network_metric(field):
-                        network_rows.append(row)
-                    elif Metrics.is_time_metric(field):
-                        times_rows.append(row)
-                    elif Metrics.is_js_metric(field):
-                        js_rows.append(row)
-        tables = []
-        if times_rows:
-            tables.append({"id": "Timeline", "name": "Timeline Metrics", "description": "Timeline metrics",
-                           "data": sorted(times_rows, key=lambda x: x['Label'])})
-        if network_rows:
-            tables.append({"id": "Network", "name": "Network Metrics", "description": "Network metrics",
-                           "data": sorted(network_rows, key=lambda x: x['Label'])})
-        if js_rows:
-            tables.append({"id": "JS", "name": "JS Metrics", "description": "JavaScript metrics",
-                           "data": sorted(js_rows, key=lambda x: x['Label'])})
-        return {
-            "tables": tables
-        }
 
 
 class ProjectFinder(object):
@@ -1139,7 +1106,6 @@ class BlazeMeterClient(object):
     def send_custom_tables(self, data):
         url = self.address + "/api/latest/data/masters/%s/custom-table" % self.master_id
         res = self._request(url, to_json(data), headers={"Content-Type": "application/json"}, method="POST")
-        self.log.info("Response: %s", res)
         return res
 
 

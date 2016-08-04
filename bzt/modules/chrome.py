@@ -13,8 +13,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import copy
-import itertools
 import json
 import re
 from collections import defaultdict, OrderedDict
@@ -56,6 +54,80 @@ class ChromeProfiler(Monitoring):
                 listener.monitoring_data(results)
         self.client.disconnect()
         super(Monitoring, self).shutdown()
+
+    def get_aggr_metrics(self):
+        if self.client is not None:
+            return self.client.get_aggr_metrics()
+
+    def get_requests_stats(self):
+        if self.client is not None:
+            return self.client.get_requests_stats()
+
+    def get_ajax_stats(self):
+        if self.client is not None:
+            return self.client.get_ajax_stats()
+
+    def get_metrics_tables_json(self):
+        network_rows = []
+        times_rows = []
+        js_rows = []
+        http_rows = []
+        ajax_rows = []
+
+        metrics = self.get_aggr_metrics()
+        for metric, value in iteritems(metrics):
+            row = OrderedDict()
+            row["Label"] = Metrics.metric_label(metric)
+            row["Value"] = value
+            if Metrics.is_network_metric(metric):
+                network_rows.append(row)
+            elif Metrics.is_time_metric(metric):
+                times_rows.append(row)
+            elif Metrics.is_js_metric(metric):
+                js_rows.append(row)
+
+        requests = self.get_requests_stats()
+        for req in sorted(requests, key=lambda r: r.get("send_req_time")):
+            # [dict(send_req_time, method, url, recv_resp_time,
+            #      recv_data_time, mime, status_code, size, did_fail,
+            #      finish_time, network_time, pid)]
+            row = OrderedDict()
+            row["Start time"] = req.get("send_req_time")
+            row["End time"] = req.get("finish_time")
+            row["Method"] = req.get("method")
+            row["URL"] = req.get("url")
+            row["HTTP Status"] = req.get("status_code")
+            row["MIME"] = req.get("mime")
+            if all(value for _, value in iteritems(row)):
+                http_rows.append(row)
+
+        ajax = self.get_ajax_stats()
+        for ts, url in sorted(ajax):
+            row = OrderedDict()
+            row["Start time"] = ts
+            row["URL"] = url
+            ajax_rows.append(row)
+
+        tables = []
+        if times_rows:
+            tables.append({"id": "Time", "name": "Load Time Metrics", "description": "Load time metrics",
+                           "data": sorted(times_rows, key=lambda x: x['Label'])})
+        if network_rows:
+            tables.append({"id": "Network", "name": "Network Metrics", "description": "Network metrics",
+                           "data": sorted(network_rows, key=lambda x: x['Label'])})
+        if js_rows:
+            tables.append({"id": "JS", "name": "JS Metrics", "description": "JavaScript metrics",
+                           "data": sorted(js_rows, key=lambda x: x['Label'])})
+        if http_rows:
+            tables.append({"id": "HTTP", "name": "HTTP Requests", "description": "HTTP requests",
+                           "data": http_rows})
+        if ajax_rows:
+            tables.append({"id": "AJAX", "name": "AJAX Requests", "description": "AJAX requests",
+                           "data": ajax_rows})
+
+        return {
+            "tables": tables
+        }
 
     def post_process(self):
         super(Monitoring, self).post_process()
@@ -162,29 +234,17 @@ class Metrics:
     DOM_NODES = 'dom-nodes'
     DOM_DOCUMENTS = 'dom-documents'
 
-    DISCRETE_METRICS = (
-        PAGE_LOAD_TIME,
-        FULL_LOAD_TIME,
-        FIRST_PAINT_TIME,
-        DOM_CONTENT_LOADED_TIME,
-        NETWORK_FOOTPRINT,
-        NETWORK_REQUESTS,
-        NETWORK_TTFB,
-        NETWORK_XHR_REQUESTS,
-        JS_GC_TIME,
-    )
-
     METRIC_LABELS = {
         PAGE_LOAD_TIME: "Time to page load",
         DOM_CONTENT_LOADED_TIME: "Time to DOMContentLoad event",
         FULL_LOAD_TIME: "Time to full page load",
-        FIRST_PAINT_TIME: "Time to first paint event",
+        FIRST_PAINT_TIME: "Time to first paint",
 
         MEMORY_TAB: "Memory consumption of a tab",
         MEMORY_BROWSER: "Memory consumption of a browser",
         MEMORY_JS_HEAP: "Memory allocated by JS engine",
 
-        NETWORK_FOOTPRINT: "Newtork footprint of a page",
+        NETWORK_FOOTPRINT: "Network footprint of a page",
         NETWORK_REQUESTS: "Number of HTTP requests (including AJAX)",
         NETWORK_XHR_REQUESTS: "Number of AJAX requests",
         NETWORK_TTFB: "Time to first byte",
@@ -195,14 +255,6 @@ class Metrics:
         DOM_NODES: "Number of DOM nodes",
         DOM_DOCUMENTS: "Number of DOM documents",
     }
-
-    @classmethod
-    def is_discrete(cls, metric):
-        return metric in cls.DISCRETE_METRICS
-
-    @classmethod
-    def is_continuous(cls, metric):
-        return not cls.is_discrete(metric)
 
     @classmethod
     def is_network_metric(cls, metric):
@@ -245,15 +297,16 @@ class MetricExtractor(object):
         self.process_labels = {}  # pid -> str
         self.memory_per_process = defaultdict(OrderedDict)  # pid -> (ts -> float)
         self.resources = defaultdict(dict)  # download_id -> dict(start_time, request_id, end_time)
-        self.requests = defaultdict(dict)  # request_id -> dict(send_req_time, recv_resp_time, recv_data_time, mime,
-        #                                                       status_code, size, did_fail, finish_time, network_time)
+        self.requests = defaultdict(dict)  # request_id -> dict(pid, send_req_time, method, url, recv_resp_time,
+        #                                                       recv_data_time, mime, status_code, size, did_fail,
+        #                                                       finish_time, network_time)
         self.js_heap_size_used = defaultdict(OrderedDict)  # pid -> (ts -> heap_size)
         self.js_event_listeners = defaultdict(OrderedDict)  # pid -> (ts -> int)
         self.gc_times = defaultdict(list)  # pid -> [dict(gc_start_time, heap_before_gc, gc_end_time, heap_after_gc)]
         self.dom_documents = defaultdict(OrderedDict)  # pid -> (ts -> dom document count)
         self.dom_nodes = defaultdict(OrderedDict)  # pid -> (ts -> dom node count)
         self.events = defaultdict(dict)  # pid -> (ts -> event_name)
-        self.xhr_requests = defaultdict(dict)  # pid -> (ts -> url)
+        self.xhr_requests = defaultdict(list)  # pid -> [(ts, url)]
 
     def convert_ts(self, ts):
         if self.tracing_start_ts is not None:
@@ -302,9 +355,11 @@ class MetricExtractor(object):
 
     def process_devtools_event(self, event):
         if event.get("name") == "ResourceSendRequest":
+            pid = event['pid']
             ts = self.convert_ts(event['ts'])
             request_id = event["args"]["data"]["requestId"]
             self.requests[request_id]["send_req_time"] = ts
+            self.requests[request_id]["pid"] = pid
             self.requests[request_id]["method"] = event["args"]["data"]["requestMethod"]
             self.requests[request_id]["url"] = event["args"]["data"]["url"]
         elif event.get("name") == "ResourceReceiveResponse":
@@ -355,7 +410,7 @@ class MetricExtractor(object):
             ts = self.convert_ts(event['ts'])
             pid = event["pid"]
             url = event["args"]["data"]["url"]
-            self.xhr_requests[pid][ts] = url
+            self.xhr_requests[pid].append((ts, url))
         elif event.get("name") == "TracingStartedInPage":
             page_id = event["args"]["data"]["page"]
             if self.tracing_page_id is None:
@@ -405,108 +460,6 @@ class MetricExtractor(object):
             resident_mbytes = float(int(totals['resident_set_bytes'], 16)) / 1024 / 1024
             self.memory_per_process[pid][ts] = resident_mbytes
 
-    def calc_memory_metrics(self):
-        """
-        Calculate memory metrics:
-        - METRIC_MEMORY_TAB - memory consumption of main Chrome tab
-        - METRIC_MEMORY_BROWSER - memory consumption of all Chrome processes
-        :return:
-        """
-        tab_process_pid = next(iter(self.process_labels))
-        if tab_process_pid in self.memory_per_process:
-            memory_per_ts = self.reaggregate_by_ts(self.memory_per_process)  # ts -> (pid -> memory)
-            for ts in sorted(memory_per_ts):
-                process_mems = memory_per_ts[ts]
-                # report tab memory
-                tab_memory_at_ts = process_mems[tab_process_pid]
-                yield ts, Metrics.MEMORY_TAB, tab_memory_at_ts
-                # report browser memory
-                browser_memory_at_ts = sum(per_process for _, per_process in iteritems(process_mems))
-                yield ts, Metrics.MEMORY_BROWSER, browser_memory_at_ts
-
-    def calc_network_metrics(self):
-        """
-        Calculate network metrics:
-        - METRIC_NETWORK_FOOTPRINT - total download size per Chrome session
-        - METRIC_NETWORK_TTFB - time when first HTTP response data arrived
-        - METRIC_NETWORK_REQUESTS - number of HTTP requests made
-        - METRIC_NETWORK_XHR_REQUESTS - number of XHR requests made
-        :return:
-        """
-        if self.requests:
-            requests = list(req for _, req in iteritems(self.requests))
-            # calculate network footprint
-            total = 0.0
-            for request in requests:
-                payload_size = request.get("size", 0)
-                total += payload_size
-            total /= 1024 * 1024
-            yield self.tracing_duration, Metrics.NETWORK_FOOTPRINT, total
-
-            # calculate time to first byte
-            first = min(requests, key=lambda r: r.get("recv_data_time", float("inf")))
-            ttfb = first['recv_data_time']
-            yield self.tracing_duration, Metrics.NETWORK_TTFB, ttfb
-
-            # calculate requests count
-            yield self.tracing_duration, Metrics.NETWORK_REQUESTS, len(requests)
-
-        if self.xhr_requests:
-            tab_process_pid = next(iter(self.process_labels))
-            if tab_process_pid in self.xhr_requests:
-                requests_from_tab = self.xhr_requests[tab_process_pid]
-                # calculate requests count
-                yield self.tracing_duration, Metrics.NETWORK_XHR_REQUESTS, len(requests_from_tab)
-
-    def calc_loading_metrics(self):
-        """
-        Calculate loading metrics:
-        - METRIC_PAGE_LOAD_TIME - time to JS 'load' event
-        - METRIC_FULL_LOAD_TIME - time to full load (when all HTTP activity is finished)
-        - METRIC_FIRST_PAINT_TIME - time to first paint event
-        - METRIC_DOM_CONTENT_LOADED_TIME - time to 'DOMContentLoad' event
-        """
-        tab_pid = next(iter(self.process_labels))
-
-        if tab_pid in self.load_events and self.tracing_page_id:
-            page_load = min(ts
-                            for ts, frame_id in iteritems(self.load_events[tab_pid])
-                            if frame_id == self.tracing_page_id)
-            yield self.tracing_duration, Metrics.PAGE_LOAD_TIME, page_load
-
-        if tab_pid in self.dom_content_loaded_events and self.tracing_page_id:
-            dom_load = max(ts
-                            for ts, frame_id in iteritems(self.dom_content_loaded_events[tab_pid])
-                            if frame_id == self.tracing_page_id)
-            yield self.tracing_duration, Metrics.DOM_CONTENT_LOADED_TIME, dom_load
-
-        if self.requests:
-            requests = list(req for _, req in iteritems(self.requests))
-            last = max(requests, key=lambda r: r.get("finish_time", float("-inf")))
-            last_request_time = last['finish_time']
-            yield self.tracing_duration, Metrics.FULL_LOAD_TIME, last_request_time
-
-        if self.tracing_page_id:
-            commit_loads = [
-                offset
-                for offset, page_id in iteritems(self.commit_load_events[tab_pid])
-                if page_id == self.tracing_page_id
-            ]
-            last_commit_load = max(commit_loads)
-            next_composite_layers = None
-            for composite_ts in sorted(self.composite_layers_events[tab_pid]):
-                if composite_ts >= last_commit_load:
-                    next_composite_layers = composite_ts
-                    break
-            if next_composite_layers:
-                next_draw_frame = None
-                for draw_frame_ts in sorted(self.draw_frame_events[tab_pid]):
-                    if draw_frame_ts >= next_composite_layers:
-                        next_draw_frame = draw_frame_ts
-                        break
-                if next_draw_frame:
-                    yield self.tracing_duration, Metrics.FIRST_PAINT_TIME, next_draw_frame
-
     @staticmethod
     def reaggregate_by_ts(per_pid_stats):
         # TODO: sub-second granularity
@@ -527,15 +480,97 @@ class MetricExtractor(object):
             for ts, stats_per_ts in iteritems(per_ts)
         }
 
-    def calc_js_metrics(self):
-        """
-        Calculate JS-related metrics:
-        - METRIC_JS_GC_TIME - time spent doing GC (TODO)
-        - METRIC_JS_EVENT_LISTENERS - number of active event listeners
-        - METRIC_JS_HEAP_SIZE - V8 heap size over time (TODO)
-        :return:
-        """
+    def calc_memory_stats(self):
+        tab_process_pid = next(iter(self.process_labels))
+        if tab_process_pid in self.memory_per_process:
+            memory_per_ts = self.reaggregate_by_ts(self.memory_per_process)  # ts -> (pid -> memory)
+            for ts in sorted(memory_per_ts):
+                process_mems = memory_per_ts[ts]
+                tab_memory_at_ts = process_mems[tab_process_pid]
+                yield ts, Metrics.MEMORY_TAB, tab_memory_at_ts
+                browser_memory_at_ts = sum(per_process for _, per_process in iteritems(process_mems))
+                yield ts, Metrics.MEMORY_BROWSER, browser_memory_at_ts
 
+    def aggr_network_footprint(self):
+        if self.requests:
+            requests = list(req for _, req in iteritems(self.requests))
+            # calculate network footprint
+            total = 0.0
+            for request in requests:
+                payload_size = request.get("size", 0)
+                total += payload_size
+            total /= 1024 * 1024
+            yield Metrics.NETWORK_FOOTPRINT, total
+
+    def aggr_time_to_first_byte(self):
+        tab_pid = next(iter(self.process_labels))
+        if self.requests:
+            requests = list(req for _, req in iteritems(self.requests) if req.get("pid") == tab_pid)
+            # calculate time to first byte
+            first = min(requests, key=lambda r: r.get("recv_data_time", float("inf")))
+            ttfb = first['recv_data_time']
+            yield Metrics.NETWORK_TTFB, ttfb
+
+    def aggr_network_requests(self):
+        tab_pid = next(iter(self.process_labels))
+        if self.requests:
+            requests = list(req for _, req in iteritems(self.requests) if req.get("pid") == tab_pid)
+            yield Metrics.NETWORK_REQUESTS, len(requests)
+
+    def aggr_xhr_requests(self):
+        if self.xhr_requests:
+            tab_process_pid = next(iter(self.process_labels))
+            if tab_process_pid in self.xhr_requests:
+                requests_from_tab = self.xhr_requests[tab_process_pid]
+                yield Metrics.NETWORK_XHR_REQUESTS, len(requests_from_tab)
+
+    def aggr_page_load_time(self):
+        tab_pid = next(iter(self.process_labels))
+        if tab_pid in self.load_events and self.tracing_page_id:
+            page_load = min(ts
+                            for ts, frame_id in iteritems(self.load_events[tab_pid])
+                            if frame_id == self.tracing_page_id)
+            yield Metrics.PAGE_LOAD_TIME, page_load
+
+    def aggr_dom_content_loaded_time(self):
+        tab_pid = next(iter(self.process_labels))
+        if tab_pid in self.dom_content_loaded_events and self.tracing_page_id:
+            dom_load = max(ts
+                           for ts, frame_id in iteritems(self.dom_content_loaded_events[tab_pid])
+                           if frame_id == self.tracing_page_id)
+            yield Metrics.DOM_CONTENT_LOADED_TIME, dom_load
+
+    def aggr_full_load_time(self):
+        if self.requests:
+            requests = list(req for _, req in iteritems(self.requests))
+            last = max(requests, key=lambda r: r.get("finish_time", float("-inf")))
+            last_request_time = last['finish_time']
+            yield Metrics.FULL_LOAD_TIME, last_request_time
+
+    def aggr_first_paint_time(self):
+        tab_pid = next(iter(self.process_labels))
+        if self.tracing_page_id:
+            commit_loads = [
+                offset
+                for offset, page_id in iteritems(self.commit_load_events[tab_pid])
+                if page_id == self.tracing_page_id
+            ]
+            last_commit_load = max(commit_loads)
+            next_composite_layers = None
+            for composite_ts in sorted(self.composite_layers_events[tab_pid]):
+                if composite_ts >= last_commit_load:
+                    next_composite_layers = composite_ts
+                    break
+            if next_composite_layers:
+                next_draw_frame = None
+                for draw_frame_ts in sorted(self.draw_frame_events[tab_pid]):
+                    if draw_frame_ts >= next_composite_layers:
+                        next_draw_frame = draw_frame_ts
+                        break
+                if next_draw_frame:
+                    yield Metrics.FIRST_PAINT_TIME, next_draw_frame
+
+    def calc_js_heap_size(self):
         tab_process_pid = next(iter(self.process_labels))
         if tab_process_pid in self.js_heap_size_used:
             heap_per_ts = self.reaggregate_by_ts(self.js_heap_size_used)
@@ -544,6 +579,8 @@ class MetricExtractor(object):
                 tab_heap_at_ts = process_heap[tab_process_pid]
                 yield ts, Metrics.MEMORY_JS_HEAP, tab_heap_at_ts
 
+    def calc_js_event_listeners(self):
+        tab_process_pid = next(iter(self.process_labels))
         if tab_process_pid in self.js_event_listeners:
             listeners_per_ts = self.reaggregate_by_ts(self.js_event_listeners)
             for ts in sorted(listeners_per_ts):
@@ -551,6 +588,8 @@ class MetricExtractor(object):
                 listeners = listeners_at_ts[tab_process_pid]
                 yield ts, Metrics.JS_EVENT_LISTENERS, round(listeners)
 
+    def aggr_gc_time(self):
+        tab_process_pid = next(iter(self.process_labels))
         if tab_process_pid in self.gc_times:
             total_gc_time = 0.0
             gcs = self.gc_times[tab_process_pid]
@@ -558,15 +597,9 @@ class MetricExtractor(object):
                 if 'gc_start_time' in gc_record and 'gc_end_time' in gc_record:
                     gc_duration = float(gc_record['gc_end_time'] - gc_record['gc_start_time']) / 1000000
                     total_gc_time += gc_duration
-            yield self.tracing_duration, Metrics.JS_GC_TIME, total_gc_time
+            yield Metrics.JS_GC_TIME, total_gc_time
 
-    def calc_dom_metrics(self):
-        """
-        Calculate DOM-related metrics:
-        - METRIC_DOM_DOCUMENTS - count of DOM nodes
-        - METRIC_DOM_NODES - count of DOM documents
-        :return:
-        """
+    def calc_dom_documents(self):
         tab_process_pid = next(iter(self.process_labels))
         if tab_process_pid in self.dom_documents:
             docs_per_ts = self.reaggregate_by_ts(self.dom_documents)
@@ -575,6 +608,8 @@ class MetricExtractor(object):
                 docs_in_tab = docs_at_ts[tab_process_pid]
                 yield ts, Metrics.DOM_DOCUMENTS, round(docs_in_tab)
 
+    def calc_dom_nodes(self):
+        tab_process_pid = next(iter(self.process_labels))
         if tab_process_pid in self.dom_nodes:
             nodes_per_ts = self.reaggregate_by_ts(self.dom_nodes)
             for ts in sorted(nodes_per_ts):
@@ -583,16 +618,30 @@ class MetricExtractor(object):
                 yield ts, Metrics.DOM_NODES, round(nodes_in_tab)
 
     def get_metrics(self):
-        # yields (offset, metric, value)
+        # yields (offset, metric, value) for all metrics that are defined in time
         # offset is number of seconds since the start of Chrome
-        for metric in itertools.chain(
-            self.calc_memory_metrics(),
-            self.calc_network_metrics(),
-            self.calc_loading_metrics(),
-            self.calc_dom_metrics(),
-            self.calc_js_metrics(),
-        ):
-            yield metric
+        for prop in dir(self):
+            if prop.startswith('calc_'):
+                calc_method = getattr(self, prop)
+                for metric in calc_method():
+                    yield metric
+
+    def get_aggr_metrics(self):
+        # yields (metric, value) for metrics that are reported one time
+        for prop in dir(self):
+            if prop.startswith('aggr_'):
+                aggr_method = getattr(self, prop)
+                for metric in aggr_method():
+                    yield metric
+
+    def get_requests_stats(self):
+        tab_process_pid = next(iter(self.process_labels))
+        return [req for _, req in iteritems(self.requests) if req.get("pid") == tab_process_pid]
+
+    def get_ajax_stats(self):
+        tab_process_pid = next(iter(self.process_labels))
+        if tab_process_pid in self.xhr_requests:
+            return self.xhr_requests[tab_process_pid]
 
 
 class ChromeClient(MonitoringClient):
@@ -603,6 +652,7 @@ class ChromeClient(MonitoringClient):
         self.reader = TraceJSONReader(chrome_trace, self.log)
         self.extractor = MetricExtractor()
         self.engine = None
+        self.metric_cache = dict()
 
     def connect(self):
         pass
@@ -621,38 +671,75 @@ class ChromeClient(MonitoringClient):
 
         res = []
         for offset, metric, value in self.extractor.get_metrics():
+            self.metric_cache[metric] = value
             item = {
                 "ts": start_time + offset,
                 "source": "chrome",
                 metric: value
             }
             res.append(item)
-        self.log.info("tracing duration: %s", self.extractor.tracing_duration)
         return res
+
+    def get_aggr_metrics(self):
+        res = {}
+        for metric, value in iteritems(self.metric_cache):
+            res[metric] = value
+        for metric, value in self.extractor.get_aggr_metrics():
+            res[metric] = value
+        return res
+
+    def get_requests_stats(self):
+        return self.extractor.get_requests_stats()
+
+    def get_ajax_stats(self):
+        return self.extractor.get_ajax_stats()
 
     def disconnect(self):
         pass
 
 
-class MetricReporter(Reporter, MonitoringListener):
+class MetricReporter(Reporter):
     def __init__(self):
         super(MetricReporter, self).__init__()
         MonitoringListener.__init__(self)
-        self.data = []
+        self.chrome_profiler = None
 
     def prepare(self):
         for module in self.engine.services:
             if isinstance(module, ChromeProfiler):
-                module.add_listener(self)
-
-    def monitoring_data(self, data):
-        self.data.extend(copy.deepcopy(data))
+                self.chrome_profiler = module
 
     def post_process(self):
-        self.log.info("Chrome metrics:")
-        for item in sorted(self.data, key=lambda i: i["ts"]):
-            ts = item.pop("ts")
-            if item.get("source") == "chrome":
-                item.pop("source")
-                for metric, value in iteritems(item):
-                    self.log.info("%s: %s = %s", ts, metric, value)
+        if self.chrome_profiler is None:
+            return
+
+        metrics = self.chrome_profiler.get_aggr_metrics()
+        if metrics is not None:
+            self.log.info("Chrome metrics:")
+            for metric in sorted(metrics):
+                label = Metrics.metric_label(metric)
+                self.log.info("%s = %s", label, metrics[metric])
+
+        requests = self.chrome_profiler.get_requests_stats()
+        if requests:
+            self.log.info("HTTP requests:")
+            # dict(send_req_time, method, url, recv_resp_time,
+            #      recv_data_time, mime, status_code, size, did_fail,
+            #      finish_time, network_time, pid)
+            for req in sorted(requests, key=lambda r: r.get("send_req_time")):
+                start_time = req.get("send_req_time")
+                method = req.get("method")
+                url = req.get("url")
+                status = req.get("status_code")
+                if all([start_time, method, url, status]):
+                    if len(url) > 50:
+                        url = url[:50] + "..."
+                    self.log.info("At %.2fs: %s %s - %s", start_time, method, url, status)
+
+        ajax_requests = self.chrome_profiler.get_ajax_stats()
+        if ajax_requests:
+            self.log.info("AJAX requests:")
+            for ts, url in sorted(ajax_requests):
+                if len(url) > 60:
+                    url = url[:60] + "..."
+                self.log.info("At %.2fs: %s", ts, url)
