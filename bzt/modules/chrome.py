@@ -140,6 +140,7 @@ class ChromePerfLogReader(object):
         if self.fds is not None:
             self.fds.close()
 
+
 class Metrics:
     PAGE_LOAD_TIME = 'load-page-time'
     DOM_CONTENT_LOADED_TIME = 'dom-content-loaded-time'
@@ -161,24 +162,71 @@ class Metrics:
     DOM_NODES = 'dom-nodes'
     DOM_DOCUMENTS = 'dom-documents'
 
+    DISCRETE_METRICS = (
+        PAGE_LOAD_TIME,
+        FULL_LOAD_TIME,
+        FIRST_PAINT_TIME,
+        DOM_CONTENT_LOADED_TIME,
+        NETWORK_FOOTPRINT,
+        NETWORK_REQUESTS,
+        NETWORK_TTFB,
+        NETWORK_XHR_REQUESTS,
+        JS_GC_TIME,
+    )
+
+    METRIC_LABELS = {
+        PAGE_LOAD_TIME: "Time to page load",
+        DOM_CONTENT_LOADED_TIME: "Time to DOMContentLoad event",
+        FULL_LOAD_TIME: "Time to full page load",
+        FIRST_PAINT_TIME: "Time to first paint event",
+
+        MEMORY_TAB: "Memory consumption of a tab",
+        MEMORY_BROWSER: "Memory consumption of a browser",
+
+        NETWORK_FOOTPRINT: "Newtork footprint of a page",
+        NETWORK_REQUESTS: "Number of HTTP requests (including AJAX)",
+        NETWORK_XHR_REQUESTS: "Number of AJAX requests",
+        NETWORK_TTFB: "Time to first byte",
+
+        JS_GC_TIME: "Time spent doing GC in JS engine",
+        JS_HEAP_SIZE: "Memory allocated by JS engine",
+        JS_EVENT_LISTENERS: "Number of DOM event listeners",
+
+        DOM_NODES: "Number of DOM nodes",
+        DOM_DOCUMENTS: "Number of DOM documents",
+    }
+
     @classmethod
     def is_discrete(cls, metric):
-        DISCRETE_METRICS = (
-            cls.PAGE_LOAD_TIME,
-            cls.FULL_LOAD_TIME,
-            cls.FIRST_PAINT_TIME,
-            cls.DOM_CONTENT_LOADED_TIME,
-            cls.NETWORK_FOOTPRINT,
-            cls.NETWORK_REQUESTS,
-            cls.NETWORK_TTFB,
-            cls.NETWORK_XHR_REQUESTS,
-            cls.JS_GC_TIME,
-        )
-        return metric in DISCRETE_METRICS
+        return metric in cls.DISCRETE_METRICS
 
     @classmethod
     def is_continuous(cls, metric):
         return not cls.is_discrete(metric)
+
+    @classmethod
+    def is_network_metric(cls, metric):
+        return metric in (cls.NETWORK_FOOTPRINT, cls.NETWORK_REQUESTS, cls.NETWORK_XHR_REQUESTS, cls.NETWORK_TTFB)
+
+    @classmethod
+    def is_time_metric(cls, metric):
+        return metric in (cls.PAGE_LOAD_TIME, cls.FULL_LOAD_TIME, cls.FIRST_PAINT_TIME, cls.DOM_CONTENT_LOADED_TIME)
+
+    @classmethod
+    def is_memory_metric(cls, metric):
+        return metric in (cls.MEMORY_TAB, cls.MEMORY_BROWSER)
+
+    @classmethod
+    def is_js_metric(cls, metric):
+        return metric in (cls.JS_GC_TIME, cls.JS_HEAP_SIZE, cls.JS_EVENT_LISTENERS)
+
+    @classmethod
+    def is_dom_metric(cls, metric):
+        return metric in (cls.DOM_DOCUMENTS, cls.DOM_NODES)
+
+    @classmethod
+    def metric_label(cls, metric):
+        return cls.METRIC_LABELS.get(metric, metric)
 
 
 class MetricExtractor(object):
@@ -578,8 +626,6 @@ class ChromeClient(MonitoringClient):
                 "source": "chrome",
                 metric: value
             }
-            if Metrics.is_discrete(metric):
-                item['tabular'] = True
             res.append(item)
         self.log.info("tracing duration: %s", self.extractor.tracing_duration)
         return res
@@ -608,7 +654,5 @@ class MetricReporter(Reporter, MonitoringListener):
             ts = item.pop("ts")
             if item.get("source") == "chrome":
                 item.pop("source")
-                if "tabular" in item:
-                    item.pop("tabular")
                 for metric, value in iteritems(item):
                     self.log.info("%s: %s = %s", ts, metric, value)

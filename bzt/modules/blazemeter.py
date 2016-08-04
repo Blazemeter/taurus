@@ -33,6 +33,7 @@ from urwid import Pile, Text
 from bzt import ManualShutdown
 from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
+from bzt.modules.chrome import Metrics
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.jmeter import JMeterExecutor
 from bzt.modules.monitoring import Monitoring, MonitoringListener
@@ -298,13 +299,13 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
             self.client.send_monitoring_data(src_name, data)
         except IOError:
             self.log.debug("Error sending data: %s", traceback.format_exc())
-            self.log.warning("Failed to send data, will retry in %s sec...", self.client.timeout)
+            self.log.warning("Failed to send monitoring data, will retry in %s sec...", self.client.timeout)
             try:
                 time.sleep(self.client.timeout)
                 self.client.send_monitoring_data(src_name, data)
                 self.log.info("Succeeded with retry")
             except IOError:
-                self.log.error("Fatal error sending data: %s", traceback.format_exc())
+                self.log.error("Fatal error sending monitoring data: %s", traceback.format_exc())
                 self.log.warning("Will skip failed data and continue running")
 
     def __send_custom_metrics(self):
@@ -313,7 +314,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
             self.client.send_custom_metrics(data)
         except IOError:
             self.log.debug("Error sending data: %s", traceback.format_exc())
-            self.log.warning("Failed to send data, will retry in %s sec...", self.client.timeout)
+            self.log.warning("Failed to send custom metrics, will retry in %s sec...", self.client.timeout)
             try:
                 # NOTE: this pauses the whole Taurus engine for N seconds (10 by default)
                 # We probably shouldn't do that.
@@ -321,16 +322,17 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
                 self.client.send_custom_metrics(data)
                 self.log.info("Succeeded with retry")
             except IOError:
-                self.log.error("Fatal error sending data: %s", traceback.format_exc())
+                self.log.error("Fatal error sending custom metrics: %s", traceback.format_exc())
                 self.log.warning("Will skip failed data and continue running")
 
     def __send_custom_tables(self):
         data = self.monitoring_buffer.get_metrics_table_json()
+        self.log.info("Tables data: %s", to_json(data))
         try:
             self.client.send_custom_tables(data)
         except IOError:
             self.log.debug("Error sending data: %s", traceback.format_exc())
-            self.log.warning("Failed to send data, will retry in %s sec...", self.client.timeout)
+            self.log.warning("Failed to send custom tables, will retry in %s sec...", self.client.timeout)
             try:
                 # NOTE: this pauses the whole Taurus engine for N seconds (10 by default)
                 # We probably shouldn't do that.
@@ -338,7 +340,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
                 self.client.send_custom_tables(data)
                 self.log.info("Succeeded with retry")
             except IOError:
-                self.log.error("Fatal error sending data: %s", traceback.format_exc())
+                self.log.error("Fatal error sending custom tables: %s", traceback.format_exc())
                 self.log.warning("Will skip failed data and continue running")
 
 
@@ -479,7 +481,9 @@ class MonitoringBuffer(object):
                     datapoints[timestamp] = {}
 
                 for field, value in iteritems(item):
-                    if field in ('ts', 'interval', 'tabular'):
+                    if field in ('ts', 'interval'):
+                        continue
+                    if Metrics.is_discrete(field):
                         continue
                     if field.lower().startswith('cpu'):
                         prefix = 'System'
@@ -507,25 +511,40 @@ class MonitoringBuffer(object):
         return {"datapoints": results}
 
     def get_metrics_table_json(self):
-        table_items = []
+        network_rows = []
+        times_rows = []
+        js_rows = []
+
         for source, buff in iteritems(self.data):
+            if source != "chrome":
+                continue
             for timestamp, item in iteritems(buff):
-                if "tabular" in item:
-                    for field, value in iteritems(item):
-                        if field in ('ts', 'interval', 'tabular'):
-                            continue
-                        row = OrderedDict()
-                        row["metric"] = field
-                        row["value"] = value
-                        table_items.append(row)
+                for field, value in iteritems(item):
+                    if field in ('ts', 'interval'):
+                        continue
+                    if not Metrics.is_discrete(field):
+                        continue
+                    row = OrderedDict()
+                    row["Label"] = Metrics.metric_label(field)
+                    row["Value"] = value
+                    if Metrics.is_network_metric(field):
+                        network_rows.append(row)
+                    elif Metrics.is_time_metric(field):
+                        times_rows.append(row)
+                    elif Metrics.is_js_metric(field):
+                        js_rows.append(row)
+        tables = []
+        if times_rows:
+            tables.append({"id": "Timeline", "name": "Timeline Metrics", "description": "Timeline metrics",
+                           "data": sorted(times_rows, key=lambda x: x['Label'])})
+        if network_rows:
+            tables.append({"id": "Network", "name": "Network Metrics", "description": "Network metrics",
+                           "data": sorted(network_rows, key=lambda x: x['Label'])})
+        if js_rows:
+            tables.append({"id": "JS", "name": "JS Metrics", "description": "JavaScript metrics",
+                           "data": sorted(js_rows, key=lambda x: x['Label'])})
         return {
-            "tables": [
-                {
-                    "id":"Metrics",
-                    "name":"Metrics table",
-                    "data": table_items
-                }
-            ]
+            "tables": tables
         }
 
 
