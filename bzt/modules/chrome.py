@@ -71,6 +71,7 @@ class ChromeProfiler(Monitoring):
         network_rows = []
         times_rows = []
         js_rows = []
+        dom_rows = []
         http_rows = []
         ajax_rows = []
 
@@ -83,6 +84,8 @@ class ChromeProfiler(Monitoring):
                 network_rows.append(row)
             elif Metrics.is_time_metric(metric):
                 times_rows.append(row)
+            elif Metrics.is_dom_metric(metric):
+                dom_rows.append(row)
             elif Metrics.is_js_metric(metric):
                 js_rows.append(row)
 
@@ -113,19 +116,28 @@ class ChromeProfiler(Monitoring):
 
         tables = []
         if times_rows:
-            tables.append({"id": "Time", "name": "Load Time Metrics", "description": "Load time metrics",
+            tables.append({"id": "Time", "name": "Load Time Metrics",
+                           "description": "Page load performance metrics.",
                            "data": sorted(times_rows, key=lambda x: x['Label'])})
         if network_rows:
-            tables.append({"id": "Network", "name": "Network Metrics", "description": "Network metrics",
+            tables.append({"id": "Network", "name": "Network Metrics",
+                           "description": "Network performance metrics",
                            "data": sorted(network_rows, key=lambda x: x['Label'])})
         if js_rows:
-            tables.append({"id": "JS", "name": "JS Metrics", "description": "JavaScript metrics",
+            tables.append({"id": "JS", "name": "JS Metrics",
+                           "description": "JavaScript performance metrics",
                            "data": sorted(js_rows, key=lambda x: x['Label'])})
+        if dom_rows:
+            tables.append({"id": "DOM", "name": "DOM Metrics",
+                           "description": "DOM performance metrics",
+                           "data": sorted(dom_rows, key=lambda x: x['Label'])})
         if http_rows:
-            tables.append({"id": "HTTP", "name": "HTTP Requests", "description": "HTTP requests",
+            tables.append({"id": "HTTP", "name": "HTTP Requests",
+                           "description": "HTTP requests made by page",
                            "data": http_rows})
         if ajax_rows:
-            tables.append({"id": "AJAX", "name": "AJAX Requests", "description": "AJAX requests",
+            tables.append({"id": "AJAX", "name": "AJAX Requests",
+                           "description": "AJAX requests made by page",
                            "data": ajax_rows})
 
         return {
