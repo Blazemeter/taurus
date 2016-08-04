@@ -140,39 +140,48 @@ class ChromePerfLogReader(object):
         if self.fds is not None:
             self.fds.close()
 
+class Metrics:
+    PAGE_LOAD_TIME = 'load-page-time'
+    DOM_CONTENT_LOADED_TIME = 'dom-content-loaded-time'
+    FULL_LOAD_TIME = 'load-full-time'
+    FIRST_PAINT_TIME = 'first-paint-time'
+
+    MEMORY_TAB = 'memory-tab-mb'
+    MEMORY_BROWSER = 'memory-browser-mb'
+
+    NETWORK_FOOTPRINT = 'network-footprint-mb'
+    NETWORK_REQUESTS = 'network-http-requests'
+    NETWORK_XHR_REQUESTS = 'network-xhr-requests'
+    NETWORK_TTFB = 'network-time-to-first-byte'
+
+    JS_GC_TIME = 'js-gc-time'
+    JS_HEAP_SIZE = 'js-heap-size'
+    JS_EVENT_LISTENERS = 'js-event-listeners'
+
+    DOM_NODES = 'dom-nodes'
+    DOM_DOCUMENTS = 'dom-documents'
+
+    @classmethod
+    def is_discrete(cls, metric):
+        DISCRETE_METRICS = (
+            cls.PAGE_LOAD_TIME,
+            cls.FULL_LOAD_TIME,
+            cls.FIRST_PAINT_TIME,
+            cls.DOM_CONTENT_LOADED_TIME,
+            cls.NETWORK_FOOTPRINT,
+            cls.NETWORK_REQUESTS,
+            cls.NETWORK_TTFB,
+            cls.NETWORK_XHR_REQUESTS,
+            cls.JS_GC_TIME,
+        )
+        return metric in DISCRETE_METRICS
+
+    @classmethod
+    def is_continuous(cls, metric):
+        return not cls.is_discrete(metric)
+
 
 class MetricExtractor(object):
-    METRIC_PAGE_LOAD_TIME = 'load-page-time'
-    METRIC_DOM_CONTENT_LOADED_TIME = 'dom-content-loaded-time'
-    METRIC_FULL_LOAD_TIME = 'load-full-time'
-    METRIC_FIRST_PAINT_TIME = 'first-paint-time'
-
-    METRIC_MEMORY_TAB = 'memory-tab-mb'
-    METRIC_MEMORY_BROWSER = 'memory-browser-mb'
-
-    METRIC_NETWORK_FOOTPRINT = 'network-footprint-mb'
-    METRIC_NETWORK_REQUESTS = 'network-http-requests'
-    METRIC_NETWORK_XHR_REQUESTS = 'network-xhr-requests'
-    METRIC_NETWORK_TTFB = 'network-time-to-first-byte'
-
-    METRIC_JS_GC_TIME = 'js-gc-time'
-    METRIC_JS_HEAP_SIZE = 'js-heap-size'
-    METRIC_JS_EVENT_LISTENERS = 'js-event-listeners'
-
-    METRIC_DOM_NODES = 'dom-nodes'
-    METRIC_DOM_DOCUMENTS = 'dom-documents'
-
-    DISCRETE_METRICS = (
-        METRIC_PAGE_LOAD_TIME, METRIC_FULL_LOAD_TIME, METRIC_FIRST_PAINT_TIME, METRIC_DOM_CONTENT_LOADED_TIME,
-        METRIC_NETWORK_FOOTPRINT, METRIC_NETWORK_REQUESTS, METRIC_NETWORK_TTFB, METRIC_NETWORK_XHR_REQUESTS,
-        METRIC_JS_GC_TIME,
-    )
-    CONTINUOUS_METRICS = (
-        METRIC_MEMORY_TAB, METRIC_MEMORY_BROWSER,
-        METRIC_JS_HEAP_SIZE, METRIC_JS_EVENT_LISTENERS,
-        METRIC_DOM_DOCUMENTS, METRIC_DOM_NODES
-    )
-
     def __init__(self):
         self.tracing_start_ts = None
         self.tracing_duration = 0.0
@@ -362,10 +371,10 @@ class MetricExtractor(object):
                 process_mems = memory_per_ts[ts]
                 # report tab memory
                 tab_memory_at_ts = process_mems[tab_process_pid]
-                yield ts, self.METRIC_MEMORY_TAB, tab_memory_at_ts
+                yield ts, Metrics.MEMORY_TAB, tab_memory_at_ts
                 # report browser memory
                 browser_memory_at_ts = sum(per_process for _, per_process in iteritems(process_mems))
-                yield ts, self.METRIC_MEMORY_BROWSER, browser_memory_at_ts
+                yield ts, Metrics.MEMORY_BROWSER, browser_memory_at_ts
 
     def calc_network_metrics(self):
         """
@@ -384,22 +393,22 @@ class MetricExtractor(object):
                 payload_size = request.get("size", 0)
                 total += payload_size
             total /= 1024 * 1024
-            yield self.tracing_duration, self.METRIC_NETWORK_FOOTPRINT, total
+            yield self.tracing_duration, Metrics.NETWORK_FOOTPRINT, total
 
             # calculate time to first byte
             first = min(requests, key=lambda r: r.get("recv_data_time", float("inf")))
             ttfb = first['recv_data_time']
-            yield self.tracing_duration, self.METRIC_NETWORK_TTFB, ttfb
+            yield self.tracing_duration, Metrics.NETWORK_TTFB, ttfb
 
             # calculate requests count
-            yield self.tracing_duration, self.METRIC_NETWORK_REQUESTS, len(requests)
+            yield self.tracing_duration, Metrics.NETWORK_REQUESTS, len(requests)
 
         if self.xhr_requests:
             tab_process_pid = next(iter(self.process_labels))
             if tab_process_pid in self.xhr_requests:
                 requests_from_tab = self.xhr_requests[tab_process_pid]
                 # calculate requests count
-                yield self.tracing_duration, self.METRIC_NETWORK_XHR_REQUESTS, len(requests_from_tab)
+                yield self.tracing_duration, Metrics.NETWORK_XHR_REQUESTS, len(requests_from_tab)
 
     def calc_loading_metrics(self):
         """
@@ -415,19 +424,19 @@ class MetricExtractor(object):
             page_load = min(ts
                             for ts, frame_id in iteritems(self.load_events[tab_pid])
                             if frame_id == self.tracing_page_id)
-            yield self.tracing_duration, self.METRIC_PAGE_LOAD_TIME, page_load
+            yield self.tracing_duration, Metrics.PAGE_LOAD_TIME, page_load
 
         if tab_pid in self.dom_content_loaded_events and self.tracing_page_id:
             dom_load = max(ts
                             for ts, frame_id in iteritems(self.dom_content_loaded_events[tab_pid])
                             if frame_id == self.tracing_page_id)
-            yield self.tracing_duration, self.METRIC_DOM_CONTENT_LOADED_TIME, dom_load
+            yield self.tracing_duration, Metrics.DOM_CONTENT_LOADED_TIME, dom_load
 
         if self.requests:
             requests = list(req for _, req in iteritems(self.requests))
             last = max(requests, key=lambda r: r.get("finish_time", float("-inf")))
             last_request_time = last['finish_time']
-            yield self.tracing_duration, self.METRIC_FULL_LOAD_TIME, last_request_time
+            yield self.tracing_duration, Metrics.FULL_LOAD_TIME, last_request_time
 
         if self.tracing_page_id:
             commit_loads = [
@@ -448,7 +457,7 @@ class MetricExtractor(object):
                         next_draw_frame = draw_frame_ts
                         break
                 if next_draw_frame:
-                    yield self.tracing_duration, self.METRIC_FIRST_PAINT_TIME, next_draw_frame
+                    yield self.tracing_duration, Metrics.FIRST_PAINT_TIME, next_draw_frame
 
     @staticmethod
     def reaggregate_by_ts(per_pid_stats):
@@ -485,14 +494,14 @@ class MetricExtractor(object):
             for ts in sorted(heap_per_ts):
                 process_heap = heap_per_ts[ts]
                 tab_heap_at_ts = process_heap[tab_process_pid]
-                yield ts, self.METRIC_JS_HEAP_SIZE, tab_heap_at_ts
+                yield ts, Metrics.JS_HEAP_SIZE, tab_heap_at_ts
 
         if tab_process_pid in self.js_event_listeners:
             listeners_per_ts = self.reaggregate_by_ts(self.js_event_listeners)
             for ts in sorted(listeners_per_ts):
                 listeners_at_ts = listeners_per_ts[ts]
                 listeners = listeners_at_ts[tab_process_pid]
-                yield ts, self.METRIC_JS_EVENT_LISTENERS, round(listeners)
+                yield ts, Metrics.JS_EVENT_LISTENERS, round(listeners)
 
         if tab_process_pid in self.gc_times:
             total_gc_time = 0.0
@@ -501,7 +510,7 @@ class MetricExtractor(object):
                 if 'gc_start_time' in gc_record and 'gc_end_time' in gc_record:
                     gc_duration = float(gc_record['gc_end_time'] - gc_record['gc_start_time']) / 1000000
                     total_gc_time += gc_duration
-            yield self.tracing_duration, self.METRIC_JS_GC_TIME, total_gc_time
+            yield self.tracing_duration, Metrics.JS_GC_TIME, total_gc_time
 
     def calc_dom_metrics(self):
         """
@@ -516,14 +525,14 @@ class MetricExtractor(object):
             for ts in sorted(docs_per_ts):
                 docs_at_ts = docs_per_ts[ts]
                 docs_in_tab = docs_at_ts[tab_process_pid]
-                yield ts, self.METRIC_DOM_DOCUMENTS, round(docs_in_tab)
+                yield ts, Metrics.DOM_DOCUMENTS, round(docs_in_tab)
 
         if tab_process_pid in self.dom_nodes:
             nodes_per_ts = self.reaggregate_by_ts(self.dom_nodes)
             for ts in sorted(nodes_per_ts):
                 nodes_at_ts = nodes_per_ts[ts]
                 nodes_in_tab = nodes_at_ts[tab_process_pid]
-                yield ts, self.METRIC_DOM_NODES, round(nodes_in_tab)
+                yield ts, Metrics.DOM_NODES, round(nodes_in_tab)
 
     def get_metrics(self):
         # yields (offset, metric, value)
@@ -569,7 +578,7 @@ class ChromeClient(MonitoringClient):
                 "source": "chrome",
                 metric: value
             }
-            if metric in MetricExtractor.DISCRETE_METRICS:
+            if Metrics.is_discrete(metric):
                 item['tabular'] = True
             res.append(item)
         self.log.info("tracing duration: %s", self.extractor.tracing_duration)
