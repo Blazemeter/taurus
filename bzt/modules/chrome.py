@@ -17,12 +17,10 @@ import copy
 import json
 import re
 from collections import defaultdict, OrderedDict
-from datetime import datetime
 from os import path
 
 from bzt.engine import Reporter
 from bzt.modules.monitoring import Monitoring, MonitoringClient, MonitoringListener
-from bzt.modules.selenium import SeleniumExecutor
 from bzt.six import iteritems
 from bzt.utils import epoch_to_str
 
@@ -58,6 +56,9 @@ class ChromeProfiler(Monitoring):
                 listener.monitoring_data(results)
         self.client.disconnect()
         super(Monitoring, self).shutdown()
+
+    def post_process(self):
+        super(Monitoring, self).post_process()
 
     def get_aggr_metrics(self):
         if self.client is not None:
@@ -150,9 +151,6 @@ class ChromeProfiler(Monitoring):
             "tables": tables
         }
 
-    def post_process(self):
-        super(Monitoring, self).post_process()
-
 
 class TraceJSONReader(object):
     def __init__(self, filename, parent_log):
@@ -180,7 +178,7 @@ class TraceJSONReader(object):
         fsize = path.getsize(self.filename)
         if not fsize:
             return False
-        self.fds = open(self.filename, 'rt', buffering=1)
+        self.fds = open(self.filename, 'r')
         return True
 
     def __del__(self):
@@ -272,7 +270,7 @@ class Metrics:
         NETWORK_TTFB: "Time to first byte",
 
         JS_GC_TIME: "Time spent doing GC in JS engine",
-        JS_CPU_UTILIZATION: "Percentage of CPU time spent executing JS",
+        JS_CPU_UTILIZATION: "JavaScript CPU utilization",
         JS_EVENT_LISTENERS: "Number of DOM event listeners",
 
         DOM_NODES: "Number of DOM nodes",
@@ -305,7 +303,9 @@ class Metrics:
 
 
 class MetricExtractor(object):
-    def __init__(self):
+    def __init__(self, parent_log):
+        self.log = parent_log.getChild(self.__class__.__name__)
+        self.start_time = None
         self.tracing_start_ts = None
         self.tracing_duration = 0.0
 
@@ -481,11 +481,14 @@ class MetricExtractor(object):
                 self.resources[download_id]["end_time"] = ts
 
     def process_metadata_event(self, event):
-        pid = event["pid"]
         if event.get("name") == "process_name":
+            pid = event["pid"]
             self.process_names[pid] = event['args']['name']
         elif event.get("name") == "process_labels":
+            pid = event["pid"]
             self.process_labels[pid] = event['args']['labels']
+        elif event.get("name") == "start_time":
+            self.start_time = event['args']['timestamp']
 
     def process_memory_event(self, event):
         if event.get("name") == "periodic_interval":
@@ -712,38 +715,41 @@ class ChromeClient(MonitoringClient):
         super(ChromeClient, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.trace_file = chrome_trace
+        self.trace_file_ctime = None
         self.reader = TraceJSONReader(chrome_trace, self.log)
-        self.extractor = MetricExtractor()
+        self.extractor = MetricExtractor(self.log)
         self.engine = None
         self.metric_cache = dict()
-        self.selenium_executor = None
 
     def connect(self):
         pass
 
     def start(self):
-        for module in self.engine.provisioning.executors:
-            if isinstance(module, SeleniumExecutor):
-                if self.selenium_executor is None:
-                    self.selenium_executor = module
-                else:
-                    self.log.warning("Chrome performance instruction doesn't support multiple executors.")
-                    self.log.warning("Using the first Selenium executor")
-                    break
-        if self.selenium_executor is None:
-            self.log.error("Selenium executor not found, can't extract metrics")
-
+        pass
 
     def get_data(self):
+        if not path.exists(self.trace_file):
+            return []
+
+        ctime = path.getctime(self.trace_file)
+        if self.trace_file_ctime is None:
+            self.log.debug("Recording trace file ctime %s", epoch_to_str(ctime))
+            self.trace_file_ctime = ctime
+        elif self.trace_file_ctime != ctime and abs(self.trace_file_ctime - ctime) >= 2.0:
+            self.log.debug("Trace file ctime updated, resetting reader and extractor, %s", epoch_to_str(ctime))
+            self.trace_file_ctime = ctime
+            self.reader = TraceJSONReader(self.trace_file, self.log)
+            self.extractor = MetricExtractor(self.log)
+
         for event in self.reader.extract_events():
             self.extractor.feed_event(event)
 
-        if self.selenium_executor is None:
+        if self.extractor.start_time is None:
             return []
 
-        start_time = self.selenium_executor.start_time
+        start_time = self.extractor.start_time
 
-        res = []
+        datapoints = []
         for offset, metric, value in self.extractor.get_metrics():
             self.metric_cache[metric] = value
             item = {
@@ -751,8 +757,9 @@ class ChromeClient(MonitoringClient):
                 "source": "chrome",
                 metric: value
             }
-            res.append(item)
-        return res
+            datapoints.append(item)
+
+        return datapoints
 
     def get_aggr_metrics(self):
         res = {}
@@ -763,9 +770,9 @@ class ChromeClient(MonitoringClient):
         return res
 
     def get_requests_stats(self):
-        if self.selenium_executor is None:
+        if self.extractor.start_time is None:
             return []
-        start_time = self.selenium_executor.start_time
+        start_time = self.extractor.start_time
         res = []
         for request in self.extractor.get_requests_stats():
             rcopy = copy.copy(request)
@@ -777,9 +784,9 @@ class ChromeClient(MonitoringClient):
         return res
 
     def get_ajax_stats(self):
-        if self.selenium_executor is None:
+        if self.extractor.start_time is None:
             return []
-        start_time = self.selenium_executor.start_time
+        start_time = self.extractor.start_time
         return [(start_time + ts, url)
                 for ts, url in self.extractor.get_ajax_stats()]
 
