@@ -1,7 +1,9 @@
+import time
 import shutil
 
-from bzt.modules.monitoring import MonitoringListener
 from bzt.modules.chrome import ChromeProfiler, Metrics
+from bzt.modules.monitoring import MonitoringListener
+from bzt.modules.selenium import SeleniumExecutor
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul
 
@@ -49,6 +51,9 @@ class TestChromeProfiler(BZTestCase):
     def test_calc_metrics(self):
         obj = ChromeProfiler()
         obj.engine = EngineEmul()
+        selenium = SeleniumExecutor()
+        selenium.start_time = time.time()
+        obj.engine.provisioning.executors.append(selenium)
         obj.parameters.merge({
             "trace-file": "trace.json",
         })

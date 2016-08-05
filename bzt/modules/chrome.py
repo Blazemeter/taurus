@@ -13,14 +13,18 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import copy
 import json
 import re
 from collections import defaultdict, OrderedDict
+from datetime import datetime
 from os import path
 
 from bzt.engine import Reporter
 from bzt.modules.monitoring import Monitoring, MonitoringClient, MonitoringListener
+from bzt.modules.selenium import SeleniumExecutor
 from bzt.six import iteritems
+from bzt.utils import epoch_to_str
 
 
 class ChromeProfiler(Monitoring):
@@ -104,13 +108,15 @@ class ChromeProfiler(Monitoring):
                 row["MIME"] = req.get("mime", "unknown")
                 row["Size"] = req.get("size")
                 if not any(value is None for _, value in iteritems(row)):
+                    row["Start time"] = epoch_to_str(row["Start time"])
+                    row["End time"] = epoch_to_str(row["End time"])
                     http_rows.append(row)
 
         ajax = self.get_ajax_stats()
         if ajax:
             for ts, url in sorted(ajax):
                 row = OrderedDict()
-                row["Start time"] = ts
+                row["Start time"] = epoch_to_str(ts)
                 row["URL"] = url
                 ajax_rows.append(row)
 
@@ -655,11 +661,17 @@ class MetricExtractor(object):
 
     def get_ajax_stats(self):
         tab_process_pid = next(iter(self.process_labels))
-        if tab_process_pid in self.xhr_requests:
-            return self.xhr_requests[tab_process_pid]
+        return self.xhr_requests.get(tab_process_pid, [])
 
 
 class ChromeClient(MonitoringClient):
+    """
+    Chrome performance client
+
+    :type extractor: MetricExtractor
+    :type reader: TraceJSONReader
+    :type engine: bzt.Engine
+    """
     def __init__(self, chrome_trace, parent_logger):
         super(ChromeClient, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
@@ -668,21 +680,32 @@ class ChromeClient(MonitoringClient):
         self.extractor = MetricExtractor()
         self.engine = None
         self.metric_cache = dict()
+        self.selenium_executor = None
 
     def connect(self):
         pass
 
     def start(self):
-        pass
+        for module in self.engine.provisioning.executors:
+            if isinstance(module, SeleniumExecutor):
+                if self.selenium_executor is None:
+                    self.selenium_executor = module
+                else:
+                    self.log.warning("Chrome performance instruction doesn't support multiple executors.")
+                    self.log.warning("Using the first Selenium executor")
+                    break
+        if self.selenium_executor is None:
+            self.log.error("Selenium executor not found, can't extract metrics")
+
 
     def get_data(self):
         for event in self.reader.extract_events():
             self.extractor.feed_event(event)
 
-        # TODO: find a better way to find when Chrome was started
-        if not path.exists(self.trace_file):
+        if self.selenium_executor is None:
             return []
-        start_time = path.getctime(self.trace_file)
+
+        start_time = self.selenium_executor.start_time
 
         res = []
         for offset, metric, value in self.extractor.get_metrics():
@@ -704,10 +727,25 @@ class ChromeClient(MonitoringClient):
         return res
 
     def get_requests_stats(self):
-        return self.extractor.get_requests_stats()
+        if self.selenium_executor is None:
+            return []
+        start_time = self.selenium_executor.start_time
+        res = []
+        for request in self.extractor.get_requests_stats():
+            rcopy = copy.copy(request)
+            offset_fields = ["send_req_time", "recv_resp_time", "recv_data_time", "finish_time"]
+            for field in offset_fields:
+                if field in rcopy:
+                    rcopy[field] = start_time + rcopy[field]
+            res.append(rcopy)
+        return res
 
     def get_ajax_stats(self):
-        return self.extractor.get_ajax_stats()
+        if self.selenium_executor is None:
+            return []
+        start_time = self.selenium_executor.start_time
+        return [(start_time + ts, url)
+                for ts, url in self.extractor.get_ajax_stats()]
 
     def disconnect(self):
         pass
@@ -749,7 +787,7 @@ class MetricReporter(Reporter):
                 if all([start_time, method, url, status]):
                     if len(url) > 50:
                         url = url[:50] + "..."
-                    self.log.info("At %.2fs: %s %s - %s", start_time, method, url, status)
+                    self.log.info("%s: %s %s - %s", epoch_to_str(start_time), method, url, status)
 
         ajax_requests = self.chrome_profiler.get_ajax_stats()
         if ajax_requests:
@@ -757,4 +795,4 @@ class MetricReporter(Reporter):
             for ts, url in sorted(ajax_requests):
                 if len(url) > 60:
                     url = url[:60] + "..."
-                self.log.info("At %.2fs: %s", ts, url)
+                self.log.info("%s: %s", epoch_to_str(ts), url)
