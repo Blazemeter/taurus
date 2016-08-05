@@ -94,6 +94,13 @@ class TestChromeProfiler(BZTestCase):
         self.assertAlmostEqual(heap_size[0][Metrics.MEMORY_JS_HEAP], 0.89, delta=0.1)
         self.assertAlmostEqual(heap_size[-1][Metrics.MEMORY_JS_HEAP], 50.76, delta=0.1)
 
+        js_cpu = listener.metrics_of_type(Metrics.JS_CPU_UTILIZATION)
+        self.assertEqual(len(js_cpu), 15)
+        self.assertAlmostEqual(js_cpu[0][Metrics.JS_CPU_UTILIZATION], 26.0, delta=0.1)
+        self.assertAlmostEqual(js_cpu[1][Metrics.JS_CPU_UTILIZATION], 98.4, delta=0.1)
+        self.assertAlmostEqual(js_cpu[2][Metrics.JS_CPU_UTILIZATION], 132.4, delta=0.1)
+        self.assertAlmostEqual(js_cpu[-1][Metrics.JS_CPU_UTILIZATION], 1.6, delta=0.1)
+
 
 class RecordingListener(MonitoringListener):
     def __init__(self):

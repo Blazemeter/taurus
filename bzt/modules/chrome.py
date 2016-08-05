@@ -251,6 +251,7 @@ class Metrics:
 
     JS_GC_TIME = 'js-gc-time'
     JS_EVENT_LISTENERS = 'js-event-listeners'
+    JS_CPU_UTILIZATION = 'js-cpu-utilization'
 
     DOM_NODES = 'dom-nodes'
     DOM_DOCUMENTS = 'dom-documents'
@@ -271,6 +272,7 @@ class Metrics:
         NETWORK_TTFB: "Time to first byte",
 
         JS_GC_TIME: "Time spent doing GC in JS engine",
+        JS_CPU_UTILIZATION: "Percentage of CPU time spent executing JS",
         JS_EVENT_LISTENERS: "Number of DOM event listeners",
 
         DOM_NODES: "Number of DOM nodes",
@@ -291,7 +293,7 @@ class Metrics:
 
     @classmethod
     def is_js_metric(cls, metric):
-        return metric in (cls.JS_GC_TIME, cls.JS_EVENT_LISTENERS)
+        return metric in (cls.JS_GC_TIME, cls.JS_EVENT_LISTENERS, cls.JS_CPU_UTILIZATION)
 
     @classmethod
     def is_dom_metric(cls, metric):
@@ -328,6 +330,7 @@ class MetricExtractor(object):
         self.dom_nodes = defaultdict(OrderedDict)  # pid -> (ts -> dom node count)
         self.events = defaultdict(dict)  # pid -> (ts -> event_name)
         self.xhr_requests = defaultdict(list)  # pid -> [(ts, url)]
+        self.complete_events = defaultdict(list)  # pid -> [(ts, name, duration)]
 
     def convert_ts(self, ts):
         if self.tracing_start_ts is not None:
@@ -337,6 +340,8 @@ class MetricExtractor(object):
             return 0.0
 
     def feed_event(self, event):
+        # see https://docs.google.com/document/d/1CvAClvFfyA5R-PhYUmn5OOQtYMH4h6I0nSsKchNAySU/edit#
+        # for trace event format
         if event.get("ts") and self.tracing_start_ts is None:
             self.tracing_start_ts = float(event["ts"]) / 1000000
         if event.get("ts"):
@@ -349,6 +354,8 @@ class MetricExtractor(object):
         categories = event.get("cat").split(",")
 
         if "disabled-by-default-memory-infra" in categories:
+            # NOTE: system_stats category can also be interesting
+            # as it dumps stats about OS memory/swap consumption and disk activity
             self.process_memory_event(event)
         elif "__metadata" in categories:
             self.process_metadata_event(event)
@@ -360,7 +367,17 @@ class MetricExtractor(object):
             self.process_devtools_event(event)
         elif "blink.user_timing" in categories:
             self.process_user_timing_event(event)
-        # NOTE: system_stats category can also be interesting
+
+        if "v8" in categories:
+            self.process_v8_event(event)
+
+    def process_v8_event(self, event):
+        if event.get("ph") == "X":
+            pid = event['pid']
+            ts = self.convert_ts(event['ts'])
+            name = event['name']
+            duration = event.get('dur', 1)
+            self.complete_events[pid].append((ts, name, duration))
 
     def process_user_timing_event(self, event):
         if event.get("name") == "loadEventStart":
@@ -482,7 +499,7 @@ class MetricExtractor(object):
             self.memory_per_process[pid][ts] = resident_mbytes
 
     @staticmethod
-    def reaggregate_by_ts(per_pid_stats):
+    def reaggregate_by_ts(per_pid_stats, aggregate_by=lambda xs: float(sum(xs)) / len(xs)):
         # TODO: sub-second granularity
         per_ts = dict()  # ts -> (pid -> [measurement at ts])
         for pid in per_pid_stats:
@@ -495,7 +512,7 @@ class MetricExtractor(object):
                 per_ts[base_ts][pid].append(value)
         return {
             ts: {
-                pid: float(sum(pid_measurements)) / len(pid_measurements)
+                pid: aggregate_by(pid_measurements)
                 for pid, pid_measurements in iteritems(stats_per_ts)
             }
             for ts, stats_per_ts in iteritems(per_ts)
@@ -637,6 +654,25 @@ class MetricExtractor(object):
                 nodes_at_ts = nodes_per_ts[ts]
                 nodes_in_tab = nodes_at_ts[tab_process_pid]
                 yield ts, Metrics.DOM_NODES, round(nodes_in_tab)
+
+    def calc_js_cpu_utilization(self):
+        tab_pid = next(iter(self.process_labels))
+        if tab_pid not in self.complete_events:
+            return
+        v8_events = self.complete_events[tab_pid]
+
+        # reaggregate by 1 second
+        per_ts = dict()  # ts -> (pid -> [measurement at ts])
+        for ts, _, duration in v8_events:
+            base_ts = int(ts)
+            if base_ts not in per_ts:
+                per_ts[base_ts] = []
+            per_ts[base_ts].append(duration)
+
+        # yield timeline
+        for ts in sorted(per_ts):
+            cpu_at_ts = float(sum(per_ts[ts])) / 1000000
+            yield ts, Metrics.JS_CPU_UTILIZATION, cpu_at_ts * 100
 
     def get_metrics(self):
         # yields (offset, metric, value) for all metrics that are defined in time
