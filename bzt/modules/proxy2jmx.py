@@ -90,7 +90,8 @@ class Proxy2JMX(Service):
             if isinstance(executor, SeleniumExecutor):
                 executor.additional_env['http_proxy'] = self.proxy
                 executor.additional_env['https_proxy'] = self.proxy
-                self.label = executor.label
+                if executor.label:
+                    self.label = executor.label
 
         self.log.info('Starting BlazeMeter recorder...')
 
