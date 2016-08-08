@@ -460,7 +460,6 @@ class MetricExtractor(object):
             if self.tracing_page_id is None:
                 self.tracing_page_id = page_id
             if self.tracing_tab_pid is None:
-                self.log.info("Tracing started at %ss", self.convert_ts(event["ts"]))
                 self.tracing_tab_pid = pid
         elif event.get("name") == "CommitLoad":
             pid = event["pid"]
