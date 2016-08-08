@@ -19,7 +19,7 @@ execution:
 #    concurrency: 2
 #    hold-for: 5m
 
-selenium:
+selenium1:
   virtual-display:
     width: 1280
     height: 800

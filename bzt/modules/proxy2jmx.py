@@ -32,6 +32,7 @@ class Proxy2JMX(Service):
         self.headers = {}
         self.api_delay = 5
         self.address = 'https://a.blazemeter.com/api/latest/mitmproxies'
+        self.label = 'generated'
 
     def api_request(self, path='', method='GET', check=True):
         if method == 'GET':
@@ -89,6 +90,7 @@ class Proxy2JMX(Service):
             if isinstance(executor, SeleniumExecutor):
                 executor.additional_env['http_proxy'] = self.proxy
                 executor.additional_env['https_proxy'] = self.proxy
+                self.label = executor.label
 
         self.log.info('Starting BlazeMeter recorder...')
 
@@ -110,7 +112,7 @@ class Proxy2JMX(Service):
             time.sleep(self.api_delay)
 
         req = self.api_request('/jmx?smart=true')
-        jmx_file = self.engine.create_artifact('generated', '.jmx')
+        jmx_file = self.engine.create_artifact(self.label, '.jmx')
         with open(jmx_file, 'w') as _file:
             _file.writelines(req.content)
 
