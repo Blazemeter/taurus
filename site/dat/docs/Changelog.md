@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.6.6 (next)
+## 1.6.6 <sup>08 aug 2016</sup>
  - optimize aggregator by removing excessive calls to `BetterDict.get()`
  - use JMeter Plugins Manager for installation of plugins
  - build installer for Windows to simplify installation process
