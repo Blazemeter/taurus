@@ -20,7 +20,7 @@ from collections import defaultdict, OrderedDict
 from os import path
 
 from bzt.engine import Reporter
-from bzt.modules.monitoring import Monitoring, MonitoringClient, MonitoringListener
+from bzt.modules.monitoring import Monitoring, MonitoringClient
 from bzt.six import iteritems
 from bzt.utils import epoch_to_str
 
@@ -75,6 +75,10 @@ class ChromeProfiler(Monitoring):
     def get_tab_label(self):
         if self.client is not None:
             return self.client.get_tab_label()
+
+    def get_js_function_call_stats(self):
+        if self.client is not None:
+            return self.client.get_js_function_call_stats()
 
     def get_metrics_tables_json(self):
         network_rows = []
@@ -335,7 +339,8 @@ class MetricExtractor(object):
         self.dom_nodes = defaultdict(OrderedDict)  # pid -> (ts -> dom node count)
         self.events = defaultdict(dict)  # pid -> (ts -> event_name)
         self.xhr_requests = defaultdict(list)  # pid -> [(ts, url)]
-        self.complete_events = defaultdict(list)  # pid -> [(ts, name, duration)]
+        self.v8_complete_events = defaultdict(list)  # pid -> [(ts, name, duration)]
+        self.js_function_calls = defaultdict(list)  # pid -> [(ts, function name, duration)]
 
     def convert_ts(self, ts):
         if self.tracing_start_ts is not None:
@@ -362,17 +367,16 @@ class MetricExtractor(object):
             # NOTE: system_stats category can also be interesting
             # as it dumps stats about OS memory/swap consumption and disk activity
             self.process_memory_event(event)
-        elif "__metadata" in categories:
+        if "__metadata" in categories:
             self.process_metadata_event(event)
-        elif "blink.net" in categories:
+        if "blink.net" in categories:
             self.process_network_event(event)
-        elif any(c in categories for c in ["devtools.timeline",
-                                           "disabled-by-default-devtools.timeline",
-                                           "disabled-by-default-devtools.timeline.frame"]):
+        if any(c in categories for c in ["devtools.timeline",
+                                         "disabled-by-default-devtools.timeline",
+                                         "disabled-by-default-devtools.timeline.frame"]):
             self.process_devtools_event(event)
-        elif "blink.user_timing" in categories:
+        if "blink.user_timing" in categories:
             self.process_user_timing_event(event)
-
         if "v8" in categories:
             self.process_v8_event(event)
 
@@ -382,7 +386,13 @@ class MetricExtractor(object):
             ts = self.convert_ts(event['ts'])
             name = event['name']
             duration = event.get('dur', 1)
-            self.complete_events[pid].append((ts, name, duration))
+            self.v8_complete_events[pid].append((ts, name, duration))
+        if event.get("name") == "FunctionCall":
+            pid = event['pid']
+            ts = self.convert_ts(event['ts'])
+            function_name = event['args']['data']['functionName'] + ":" + event['args']['data']['scriptName']
+            duration = event.get('dur', event.get('tdur', 1))
+            self.js_function_calls[pid].append((ts, function_name, duration))
 
     def process_user_timing_event(self, event):
         if event.get("name") == "loadEventStart":
@@ -706,13 +716,13 @@ class MetricExtractor(object):
             yield ts, Metrics.DOM_NODES, round(nodes_in_tab)
 
     def calc_js_cpu_utilization(self):
-        if self.tracing_tab_pid not in self.complete_events:
+        if self.tracing_tab_pid not in self.v8_complete_events:
             msg = ("No JS timing events were recorded for Chrome tab. "
                    "Ensure that 'v8' category is enabled.")
             self.log.warning(msg)
             return
 
-        v8_events = self.complete_events[self.tracing_tab_pid]
+        v8_events = self.v8_complete_events[self.tracing_tab_pid]
 
         # reaggregate by 1 second
         per_ts = dict()  # ts -> (pid -> [measurement at ts])
@@ -758,6 +768,19 @@ class MetricExtractor(object):
 
     def get_tab_label(self):
         return self.process_labels.get(self.tracing_tab_pid, self.tracing_tab_pid)
+
+    def get_js_function_call_stats(self):
+        fun_stats = dict()
+        names = set()
+        for _, name, duration in self.js_function_calls[self.tracing_tab_pid]:
+            if name not in fun_stats:
+                fun_stats[name] = {"calls": 0, "duration": 0.0}
+            fun_stats[name]["calls"] += 1
+            fun_stats[name]["duration"] += duration
+            names.add(name)
+        for name in names:
+            fun_stats[name]["duration"] /= 1000000
+        return fun_stats
 
 
 class ChromeClient(MonitoringClient):
@@ -850,6 +873,9 @@ class ChromeClient(MonitoringClient):
     def get_tab_label(self):
         return self.extractor.get_tab_label()
 
+    def get_js_function_call_stats(self):
+        return self.extractor.get_js_function_call_stats()
+
     def disconnect(self):
         pass
 
@@ -896,3 +922,13 @@ class MetricReporter(Reporter):
                 if len(url) > 60:
                     url = url[:60] + "..."
                 self.log.info("%s: %s", epoch_to_str(ts), url)
+
+        fun_stats = self.chrome_profiler.get_js_function_call_stats()
+        if fun_stats:
+            self.log.info("Top JS functions:")
+            lstats = [(name, stat) for name, stat in fun_stats.items()]
+            by_duration = sorted(lstats, key=lambda (_, stat): stat["duration"], reverse=True)
+            for name, stat in by_duration[:10]:
+                if len(name) > 60:
+                    name = name[:60] + "..."
+                self.log.info("%s: calls=%s, duration=%s", name, stat["calls"], stat["duration"])
