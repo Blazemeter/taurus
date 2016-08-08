@@ -46,7 +46,7 @@ class TestProxy2JMX(BZTestCase):
         obj.settings = obj.engine.config.get('modules').get('recorder')
 
         obj.prepare()
-        self.assertEqual(obj.proxy, 'host1:port1')
+        self.assertEqual(obj.proxy, 'http://host1:port1')
         obj.engine.provisioning.executors = [SeleniumExecutor()]
         obj.startup()
         obj.shutdown()
@@ -73,4 +73,4 @@ class TestProxy2JMX(BZTestCase):
         obj.settings = obj.engine.config.get('modules').get('recorder')
 
         obj.prepare()
-        self.assertEqual(obj.proxy, 'host1:port1')
+        self.assertEqual(obj.proxy, 'http://host1:port1')

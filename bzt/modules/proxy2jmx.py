@@ -46,18 +46,7 @@ class Proxy2JMX(Service):
             raise RuntimeError('API request failed: %s' % json_content['error']['message'])
         return req
 
-    def prepare(self):
-        super(Proxy2JMX, self).prepare()
-        self.address = self.settings.get('address', self.address)
-        token = self.settings.get('token')
-        if not token:
-            token = self.engine.config.get('modules').get('blazemeter').get('token')
-
-        if not token:
-            raise ValueError("You must provide your API token to use Proxy Recorder")
-
-        self.headers = {"X-Api-Key": token}
-
+    def __get_proxy(self):
         req = self.api_request(check=False)
 
         if req.status_code == 404:
@@ -79,14 +68,27 @@ class Proxy2JMX(Service):
         host = json_content['result']['host']
         port = json_content['result']['port']
 
-        self.proxy = '%s:%s' % (host, port)
+        return 'http://%s:%s' % (host, port)
+
+    def prepare(self):
+        super(Proxy2JMX, self).prepare()
+        self.address = self.settings.get('address', self.address)
+        token = self.settings.get('token')
+        if not token:
+            token = self.engine.config.get('modules').get('blazemeter').get('token')
+
+        if not token:
+            raise ValueError("You must provide your API token to use Proxy Recorder")
+
+        self.headers = {"X-Api-Key": token}
+        self.proxy = self.__get_proxy()
 
     def startup(self):
         super(Proxy2JMX, self).startup()
         for executor in self.engine.provisioning.executors:
             if isinstance(executor, SeleniumExecutor):
-                executor.additional_env['http_proxy'] = "http://%s/" % self.proxy
-                executor.additional_env['https_proxy'] = "http://%s/" % self.proxy
+                executor.additional_env['http_proxy'] = self.proxy
+                executor.additional_env['https_proxy'] = self.proxy
 
         self.log.info('Starting BlazeMeter recorder...')
 
