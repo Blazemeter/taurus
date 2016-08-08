@@ -1142,16 +1142,17 @@ class SidebarWidget(Pile, PrioritizedWidget):
         self.widgets = []
         self.additional_widgets = additional_widgets
         self.widgets.extend(self.additional_widgets)
+        self.finished = False
 
         if label is not None:
             self.widgets.append(Text(label))
         else:
             self.widgets.append(Text("%s" % executor))
 
-        if self.duration is not None and self.duration != 0:
+        if self.duration:
             self.progress = ProgressBar('pb-en', 'pb-dis', done=self.duration)
         else:
-            self.progress = Text("Running...")
+            self.progress = Text("")
         self.widgets.append(self.progress)
 
         self.elapsed = Text("Elapsed: N/A")
@@ -1163,7 +1164,9 @@ class SidebarWidget(Pile, PrioritizedWidget):
         """
         Refresh widget values
         """
-        if self.executor.start_time is not None:
+        if self.finished:
+            return
+        if self.executor.start_time:
             elapsed = time.time() - self.executor.start_time
             self.elapsed.set_text("Elapsed: %s" % humanize_time(elapsed))
 
@@ -1172,16 +1175,25 @@ class SidebarWidget(Pile, PrioritizedWidget):
                 if eta >= 0:
                     self.eta.set_text("ETA: %s" % humanize_time(eta))
                 else:
-                    over = elapsed - self.duration
-                    self.eta.set_text("Overtime: %s" % humanize_time(over))
-            else:
-                self.eta.set_text("")
+                    self.eta.set_text("Overtime: %s" % humanize_time(-eta))
 
-            if isinstance(self.progress, ProgressBar):
-                # noinspection PyUnresolvedReferences
                 self.progress.set_completion(elapsed)
+            else:
+                self.progress.set_text("Running...")
+
+            if self.executor.check():
+                self.finished = True
+                if not self.duration:
+                    self.progress.set_text("Finished")
+                    self.eta.set_text("")
         else:
-            elapsed = self.executor.delay - (time.time() - self.executor.engine.provisioning.start_time)
-            if elapsed >= 0:
-                self.elapsed.set_text("Delayed: %s" % humanize_time(elapsed))
+            delayed = self.executor.delay - (time.time() - self.executor.engine.provisioning.start_time)
+            if delayed >= 0:
+                self.elapsed.set_text("Delay: %s" % humanize_time(delayed))
+                if self.duration:
+                    eta = self.duration + delayed
+                    self.eta.set_text("ETA: %s" % humanize_time(eta))
+                else:
+                    self.progress.set_text("Waiting...")
+
         self._invalidate()
