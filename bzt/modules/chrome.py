@@ -532,8 +532,9 @@ class MetricExtractor(object):
 
     def calc_memory_stats(self):
         if self.tracing_tab_pid not in self.memory_per_process:
-            msg = "Can't extract memory stats for Chrome tab (pid=%s). Ensure that'memory-infra' category is enabled."
-            self.log.warning(msg % self.tracing_tab_pid)
+            msg = ("Can't extract memory stats for Chrome tab. "
+                   "Ensure that 'disabled-by-default-memory-infra' category is enabled.")
+            self.log.warning(msg)
             return
         memory_per_ts = self.reaggregate_by_ts(self.memory_per_process)  # ts -> (pid -> memory)
         for ts in sorted(memory_per_ts):
@@ -555,9 +556,9 @@ class MetricExtractor(object):
     def aggr_time_to_first_byte(self):
         tab_requests = list(req for _, req in iteritems(self.requests) if req.get("pid") == self.tracing_tab_pid)
         if not tab_requests:
-            msg = ("No requests were recorded for Chrome tab (pid=%s)."
+            msg = ("No requests were recorded for Chrome tab. "
                    "Ensure that 'devtools.timeline' category is enabled.")
-            self.log.warning(msg % self.tracing_tab_pid)
+            self.log.warning(msg)
             return
         first = min(tab_requests, key=lambda r: r.get("recv_data_time", float("inf")))
         ttfb = first['recv_data_time']
@@ -573,14 +574,14 @@ class MetricExtractor(object):
 
     def aggr_page_load_time(self):
         if self.tracing_tab_pid not in self.load_events:
-            msg = ("No 'load' events were recorded for Chrome tab."
+            msg = ("No 'load' events were recorded for Chrome tab. "
                    "Ensure that 'blink.user_timing' category is enabled.")
-            self.log.warning(msg % self.tracing_tab_pid)
+            self.log.warning(msg)
             return
         if not self.tracing_page_id:
-            msg = ("No 'load' events were recorded for Chrome tab."
+            msg = ("No 'load' events were recorded for Chrome tab. "
                    "Ensure that 'blink.user_timing' category is enabled.")
-            self.log.warning(msg % self.tracing_tab_pid)
+            self.log.warning(msg)
             return
 
         page_load = min(ts
@@ -590,14 +591,14 @@ class MetricExtractor(object):
 
     def aggr_dom_content_loaded_time(self):
         if self.tracing_tab_pid not in self.load_events:
-            msg = ("No 'DOMContentLoad' events were recorded for Chrome tab."
+            msg = ("No 'DOMContentLoad' events were recorded for Chrome tab. "
                    "Ensure that 'blink.user_timing' category is enabled.")
             self.log.warning(msg)
             return
         if not self.tracing_page_id:
-            msg = ("No 'load' events were recorded for Chrome tab (pid=%s)."
+            msg = ("No 'load' events were recorded for Chrome tab. "
                    "Ensure that 'blink.user_timing' category is enabled.")
-            self.log.warning(msg % self.tracing_tab_pid)
+            self.log.warning(msg)
             return
 
         dom_load = max(ts
@@ -608,9 +609,9 @@ class MetricExtractor(object):
     def aggr_full_load_time(self):
         tab_requests = list(req for _, req in iteritems(self.requests) if req.get("pid") == self.tracing_tab_pid)
         if not tab_requests:
-            msg = ("No requests were recorded for Chrome tab (pid=%s)."
+            msg = ("No requests were recorded for Chrome tab. "
                    "Ensure that 'devtools.timeline' category is enabled.")
-            self.log.warning(msg % self.tracing_tab_pid)
+            self.log.warning(msg)
             return
         last = max(tab_requests, key=lambda r: r.get("finish_time", float("-inf")))
         last_request_time = last['finish_time']
@@ -618,9 +619,9 @@ class MetricExtractor(object):
 
     def aggr_first_paint_time(self):
         if not self.tracing_page_id:
-            msg = ("No paint events were recorded for Chrome tab"
+            msg = ("No paint events were recorded for Chrome tab. "
                    "Ensure that 'devtools.timeline' category is enabled.")
-            self.log.warning(msg % self.tracing_tab_pid)
+            self.log.warning(msg)
             return
 
         commit_loads = [
@@ -645,9 +646,9 @@ class MetricExtractor(object):
 
     def calc_js_heap_size(self):
         if self.tracing_tab_pid not in self.js_heap_size_used:
-            msg = ("No heap size data was recorded for Chrome tab"
+            msg = ("No heap size data was recorded for Chrome tab. "
                    "Ensure that 'devtools.timeline' category is enabled.")
-            self.log.warning(msg % self.tracing_tab_pid)
+            self.log.warning(msg)
             return
         heap_per_ts = self.reaggregate_by_ts(self.js_heap_size_used)
         for ts in sorted(heap_per_ts):
@@ -657,9 +658,9 @@ class MetricExtractor(object):
 
     def calc_js_event_listeners(self):
         if self.tracing_tab_pid not in self.js_event_listeners:
-            msg = ("No event listener stats were recorded for Chrome tab"
+            msg = ("No event listener stats were recorded for Chrome tab. "
                    "Ensure that 'devtools.timeline' category is enabled.")
-            self.log.warning(msg % self.tracing_tab_pid)
+            self.log.warning(msg)
             return
         listeners_per_ts = self.reaggregate_by_ts(self.js_event_listeners)
         for ts in sorted(listeners_per_ts):
@@ -669,9 +670,9 @@ class MetricExtractor(object):
 
     def aggr_gc_time(self):
         if self.tracing_tab_pid not in self.gc_times:
-            msg = ("No GC events were recorded for Chrome tab"
+            msg = ("No GC events were recorded for Chrome tab. "
                    "Ensure that 'devtools.timeline' category is enabled.")
-            self.log.warning(msg % self.tracing_tab_pid)
+            self.log.warning(msg)
             return
         total_gc_time = 0.0
         gcs = self.gc_times[self.tracing_tab_pid]
@@ -683,9 +684,9 @@ class MetricExtractor(object):
 
     def calc_dom_documents(self):
         if self.tracing_tab_pid not in self.dom_documents:
-            msg = ("No DOM stats were recorded for Chrome tab"
+            msg = ("No DOM stats were recorded for Chrome tab. "
                    "Ensure that 'devtools.timeline' category is enabled.")
-            self.log.warning(msg % self.tracing_tab_pid)
+            self.log.warning(msg)
             return
         docs_per_ts = self.reaggregate_by_ts(self.dom_documents)
         for ts in sorted(docs_per_ts):
@@ -695,9 +696,9 @@ class MetricExtractor(object):
 
     def calc_dom_nodes(self):
         if self.tracing_tab_pid not in self.dom_nodes:
-            msg = ("No DOM stats were recorded for Chrome tab"
+            msg = ("No DOM stats were recorded for Chrome tab. "
                    "Ensure that 'devtools.timeline' category is enabled.")
-            self.log.warning(msg % self.tracing_tab_pid)
+            self.log.warning(msg)
             return
         nodes_per_ts = self.reaggregate_by_ts(self.dom_nodes)
         for ts in sorted(nodes_per_ts):
@@ -707,9 +708,9 @@ class MetricExtractor(object):
 
     def calc_js_cpu_utilization(self):
         if self.tracing_tab_pid not in self.complete_events:
-            msg = ("No JS timing events were recorded for Chrome tab"
+            msg = ("No JS timing events were recorded for Chrome tab. "
                    "Ensure that 'v8' category is enabled.")
-            self.log.warning(msg % self.tracing_tab_pid)
+            self.log.warning(msg)
             return
 
         v8_events = self.complete_events[self.tracing_tab_pid]
@@ -857,7 +858,6 @@ class ChromeClient(MonitoringClient):
 class MetricReporter(Reporter):
     def __init__(self):
         super(MetricReporter, self).__init__()
-        MonitoringListener.__init__(self)
         self.chrome_profiler = None
 
     def prepare(self):
@@ -880,9 +880,6 @@ class MetricReporter(Reporter):
         requests = self.chrome_profiler.get_requests_stats()
         if requests:
             self.log.info("HTTP requests:")
-            # dict(send_req_time, method, url, recv_resp_time,
-            #      recv_data_time, mime, status_code, size, did_fail,
-            #      finish_time, network_time, pid)
             for req in sorted(requests, key=lambda r: r.get("send_req_time")):
                 start_time = req.get("send_req_time")
                 method = req.get("method")
