@@ -71,6 +71,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         self.data_started = False
         self.disabled = False
         self.console = None
+        self.sidebar_widgets = []
         self.screen = DummyScreen(self.screen_size[0], self.screen_size[1])
 
     def _get_screen(self):
@@ -128,7 +129,10 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
             modules += self.engine.provisioning.executors
         for module in modules:
             if isinstance(module, WidgetProvider):
-                widgets.append(module.get_widget())
+                widget = module.get_widget()
+                widgets.append(widget)
+                if isinstance(widget, SidebarWidget):
+                    self.sidebar_widgets.append(widget)
 
         self.console = TaurusConsole(widgets)
         self.screen.register_palette(self.console.palette)
@@ -138,7 +142,8 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         Repaint the screen
         """
         self.data_started = True
-
+        for widget in self.sidebar_widgets:
+            widget.update()
         if self.disabled:
             if self._last_datapoint:
                 self.__print_one_line_stats()
