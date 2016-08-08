@@ -927,7 +927,7 @@ class MetricReporter(Reporter):
         if fun_stats:
             self.log.info("Top JS functions:")
             lstats = [(name, stat) for name, stat in fun_stats.items()]
-            by_duration = sorted(lstats, key=lambda (_, stat): stat["duration"], reverse=True)
+            by_duration = sorted(lstats, key=lambda namestat: namestat[1]["duration"], reverse=True)
             for name, stat in by_duration[:10]:
                 if len(name) > 60:
                     name = name[:60] + "..."
