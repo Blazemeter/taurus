@@ -72,6 +72,10 @@ class ChromeProfiler(Monitoring):
         if self.client is not None:
             return self.client.get_ajax_stats()
 
+    def get_tab_label(self):
+        if self.client is not None:
+            return self.client.get_tab_label()
+
     def get_metrics_tables_json(self):
         network_rows = []
         times_rows = []
@@ -310,6 +314,7 @@ class MetricExtractor(object):
         self.tracing_duration = 0.0
 
         self.tracing_page_id = None
+        self.tracing_tab_pid = None
         self.commit_load_events = defaultdict(dict)  # pid -> (ts -> page id)
         self.composite_layers_events = defaultdict(list)  # pid -> [ts]
         self.draw_frame_events = defaultdict(list)  # pid -> [ts]
@@ -450,9 +455,13 @@ class MetricExtractor(object):
             url = event["args"]["data"]["url"]
             self.xhr_requests[pid].append((ts, url))
         elif event.get("name") == "TracingStartedInPage":
+            pid = event["pid"]
             page_id = event["args"]["data"]["page"]
             if self.tracing_page_id is None:
                 self.tracing_page_id = page_id
+            if self.tracing_tab_pid is None:
+                self.log.info("Tracing started at %ss", self.convert_ts(event["ts"]))
+                self.tracing_tab_pid = pid
         elif event.get("name") == "CommitLoad":
             pid = event["pid"]
             ts = self.convert_ts(event["ts"])
@@ -522,147 +531,188 @@ class MetricExtractor(object):
         }
 
     def calc_memory_stats(self):
-        tab_process_pid = next(iter(self.process_labels))
-        if tab_process_pid in self.memory_per_process:
-            memory_per_ts = self.reaggregate_by_ts(self.memory_per_process)  # ts -> (pid -> memory)
-            for ts in sorted(memory_per_ts):
-                process_mems = memory_per_ts[ts]
-                tab_memory_at_ts = process_mems[tab_process_pid]
-                yield ts, Metrics.MEMORY_TAB, tab_memory_at_ts
-                browser_memory_at_ts = sum(per_process for _, per_process in iteritems(process_mems))
-                yield ts, Metrics.MEMORY_BROWSER, browser_memory_at_ts
+        if self.tracing_tab_pid not in self.memory_per_process:
+            msg = "Can't extract memory stats for Chrome tab (pid=%s). Ensure that'memory-infra' category is enabled."
+            self.log.warning(msg % self.tracing_tab_pid)
+            return
+        memory_per_ts = self.reaggregate_by_ts(self.memory_per_process)  # ts -> (pid -> memory)
+        for ts in sorted(memory_per_ts):
+            process_mems = memory_per_ts[ts]
+            tab_memory_at_ts = process_mems[self.tracing_tab_pid]
+            yield ts, Metrics.MEMORY_TAB, tab_memory_at_ts
+            browser_memory_at_ts = sum(per_process for _, per_process in iteritems(process_mems))
+            yield ts, Metrics.MEMORY_BROWSER, browser_memory_at_ts
 
     def aggr_network_footprint(self):
-        if self.requests:
-            requests = list(req for _, req in iteritems(self.requests))
-            # calculate network footprint
-            total = 0.0
-            for request in requests:
-                payload_size = request.get("size", 0)
-                total += payload_size
-            total /= 1024 * 1024
-            yield Metrics.NETWORK_FOOTPRINT, total
+        tab_requests = list(req for _, req in iteritems(self.requests) if req.get("pid") == self.tracing_tab_pid)
+        total = 0.0
+        for request in tab_requests:
+            payload_size = request.get("size", 0)
+            total += payload_size
+        total /= 1024 * 1024
+        yield Metrics.NETWORK_FOOTPRINT, total
 
     def aggr_time_to_first_byte(self):
-        tab_pid = next(iter(self.process_labels))
-        if self.requests:
-            requests = list(req for _, req in iteritems(self.requests) if req.get("pid") == tab_pid)
-            # calculate time to first byte
-            first = min(requests, key=lambda r: r.get("recv_data_time", float("inf")))
-            ttfb = first['recv_data_time']
-            yield Metrics.NETWORK_TTFB, ttfb
+        tab_requests = list(req for _, req in iteritems(self.requests) if req.get("pid") == self.tracing_tab_pid)
+        if not tab_requests:
+            msg = ("No requests were recorded for Chrome tab (pid=%s)."
+                   "Ensure that 'devtools.timeline' category is enabled.")
+            self.log.warning(msg % self.tracing_tab_pid)
+            return
+        first = min(tab_requests, key=lambda r: r.get("recv_data_time", float("inf")))
+        ttfb = first['recv_data_time']
+        yield Metrics.NETWORK_TTFB, ttfb
 
     def aggr_network_requests(self):
-        tab_pid = next(iter(self.process_labels))
-        if self.requests:
-            requests = list(req for _, req in iteritems(self.requests) if req.get("pid") == tab_pid)
-            yield Metrics.NETWORK_REQUESTS, len(requests)
+        tab_requests = list(req for _, req in iteritems(self.requests) if req.get("pid") == self.tracing_tab_pid)
+        yield Metrics.NETWORK_REQUESTS, len(tab_requests)
 
     def aggr_xhr_requests(self):
-        if self.xhr_requests:
-            tab_process_pid = next(iter(self.process_labels))
-            if tab_process_pid in self.xhr_requests:
-                requests_from_tab = self.xhr_requests[tab_process_pid]
-                yield Metrics.NETWORK_XHR_REQUESTS, len(requests_from_tab)
+        tab_xhr_requests = self.xhr_requests.get(self.tracing_tab_pid, [])
+        yield Metrics.NETWORK_XHR_REQUESTS, len(tab_xhr_requests)
 
     def aggr_page_load_time(self):
-        tab_pid = next(iter(self.process_labels))
-        if tab_pid in self.load_events and self.tracing_page_id:
-            page_load = min(ts
-                            for ts, frame_id in iteritems(self.load_events[tab_pid])
-                            if frame_id == self.tracing_page_id)
-            yield Metrics.PAGE_LOAD_TIME, page_load
+        if self.tracing_tab_pid not in self.load_events:
+            msg = ("No 'load' events were recorded for Chrome tab."
+                   "Ensure that 'blink.user_timing' category is enabled.")
+            self.log.warning(msg % self.tracing_tab_pid)
+            return
+        if not self.tracing_page_id:
+            msg = ("No 'load' events were recorded for Chrome tab."
+                   "Ensure that 'blink.user_timing' category is enabled.")
+            self.log.warning(msg % self.tracing_tab_pid)
+            return
+
+        page_load = min(ts
+                        for ts, frame_id in iteritems(self.load_events[self.tracing_tab_pid])
+                        if frame_id == self.tracing_page_id)
+        yield Metrics.PAGE_LOAD_TIME, page_load
 
     def aggr_dom_content_loaded_time(self):
-        tab_pid = next(iter(self.process_labels))
-        if tab_pid in self.dom_content_loaded_events and self.tracing_page_id:
-            dom_load = max(ts
-                           for ts, frame_id in iteritems(self.dom_content_loaded_events[tab_pid])
-                           if frame_id == self.tracing_page_id)
-            yield Metrics.DOM_CONTENT_LOADED_TIME, dom_load
+        if self.tracing_tab_pid not in self.load_events:
+            msg = ("No 'DOMContentLoad' events were recorded for Chrome tab."
+                   "Ensure that 'blink.user_timing' category is enabled.")
+            self.log.warning(msg)
+            return
+        if not self.tracing_page_id:
+            msg = ("No 'load' events were recorded for Chrome tab (pid=%s)."
+                   "Ensure that 'blink.user_timing' category is enabled.")
+            self.log.warning(msg % self.tracing_tab_pid)
+            return
+
+        dom_load = max(ts
+                       for ts, frame_id in iteritems(self.dom_content_loaded_events[self.tracing_tab_pid])
+                       if frame_id == self.tracing_page_id)
+        yield Metrics.DOM_CONTENT_LOADED_TIME, dom_load
 
     def aggr_full_load_time(self):
-        if self.requests:
-            requests = list(req for _, req in iteritems(self.requests))
-            last = max(requests, key=lambda r: r.get("finish_time", float("-inf")))
-            last_request_time = last['finish_time']
-            yield Metrics.FULL_LOAD_TIME, last_request_time
+        tab_requests = list(req for _, req in iteritems(self.requests) if req.get("pid") == self.tracing_tab_pid)
+        if not tab_requests:
+            msg = ("No requests were recorded for Chrome tab (pid=%s)."
+                   "Ensure that 'devtools.timeline' category is enabled.")
+            self.log.warning(msg % self.tracing_tab_pid)
+            return
+        last = max(tab_requests, key=lambda r: r.get("finish_time", float("-inf")))
+        last_request_time = last['finish_time']
+        yield Metrics.FULL_LOAD_TIME, last_request_time
 
     def aggr_first_paint_time(self):
-        tab_pid = next(iter(self.process_labels))
-        if self.tracing_page_id:
-            commit_loads = [
-                offset
-                for offset, page_id in iteritems(self.commit_load_events[tab_pid])
-                if page_id == self.tracing_page_id
-            ]
-            last_commit_load = max(commit_loads)
-            next_composite_layers = None
-            for composite_ts in sorted(self.composite_layers_events[tab_pid]):
-                if composite_ts >= last_commit_load:
-                    next_composite_layers = composite_ts
+        if not self.tracing_page_id:
+            msg = ("No paint events were recorded for Chrome tab"
+                   "Ensure that 'devtools.timeline' category is enabled.")
+            self.log.warning(msg % self.tracing_tab_pid)
+            return
+
+        commit_loads = [
+            offset
+            for offset, page_id in iteritems(self.commit_load_events[self.tracing_tab_pid])
+            if page_id == self.tracing_page_id
+        ]
+        last_commit_load = max(commit_loads)
+        next_composite_layers = None
+        for composite_ts in sorted(self.composite_layers_events[self.tracing_tab_pid]):
+            if composite_ts >= last_commit_load:
+                next_composite_layers = composite_ts
+                break
+        if next_composite_layers:
+            next_draw_frame = None
+            for draw_frame_ts in sorted(self.draw_frame_events[self.tracing_tab_pid]):
+                if draw_frame_ts >= next_composite_layers:
+                    next_draw_frame = draw_frame_ts
                     break
-            if next_composite_layers:
-                next_draw_frame = None
-                for draw_frame_ts in sorted(self.draw_frame_events[tab_pid]):
-                    if draw_frame_ts >= next_composite_layers:
-                        next_draw_frame = draw_frame_ts
-                        break
-                if next_draw_frame:
-                    yield Metrics.FIRST_PAINT_TIME, next_draw_frame
+            if next_draw_frame:
+                yield Metrics.FIRST_PAINT_TIME, next_draw_frame
 
     def calc_js_heap_size(self):
-        tab_process_pid = next(iter(self.process_labels))
-        if tab_process_pid in self.js_heap_size_used:
-            heap_per_ts = self.reaggregate_by_ts(self.js_heap_size_used)
-            for ts in sorted(heap_per_ts):
-                process_heap = heap_per_ts[ts]
-                tab_heap_at_ts = process_heap[tab_process_pid]
-                yield ts, Metrics.MEMORY_JS_HEAP, tab_heap_at_ts
+        if self.tracing_tab_pid not in self.js_heap_size_used:
+            msg = ("No heap size data was recorded for Chrome tab"
+                   "Ensure that 'devtools.timeline' category is enabled.")
+            self.log.warning(msg % self.tracing_tab_pid)
+            return
+        heap_per_ts = self.reaggregate_by_ts(self.js_heap_size_used)
+        for ts in sorted(heap_per_ts):
+            process_heap = heap_per_ts[ts]
+            tab_heap_at_ts = process_heap[self.tracing_tab_pid]
+            yield ts, Metrics.MEMORY_JS_HEAP, tab_heap_at_ts
 
     def calc_js_event_listeners(self):
-        tab_process_pid = next(iter(self.process_labels))
-        if tab_process_pid in self.js_event_listeners:
-            listeners_per_ts = self.reaggregate_by_ts(self.js_event_listeners)
-            for ts in sorted(listeners_per_ts):
-                listeners_at_ts = listeners_per_ts[ts]
-                listeners = listeners_at_ts[tab_process_pid]
-                yield ts, Metrics.JS_EVENT_LISTENERS, round(listeners)
+        if self.tracing_tab_pid not in self.js_event_listeners:
+            msg = ("No event listener stats were recorded for Chrome tab"
+                   "Ensure that 'devtools.timeline' category is enabled.")
+            self.log.warning(msg % self.tracing_tab_pid)
+            return
+        listeners_per_ts = self.reaggregate_by_ts(self.js_event_listeners)
+        for ts in sorted(listeners_per_ts):
+            listeners_at_ts = listeners_per_ts[ts]
+            listeners = listeners_at_ts[self.tracing_tab_pid]
+            yield ts, Metrics.JS_EVENT_LISTENERS, round(listeners)
 
     def aggr_gc_time(self):
-        tab_process_pid = next(iter(self.process_labels))
-        if tab_process_pid in self.gc_times:
-            total_gc_time = 0.0
-            gcs = self.gc_times[tab_process_pid]
-            for gc_record in gcs:
-                if 'gc_start_time' in gc_record and 'gc_end_time' in gc_record:
-                    gc_duration = float(gc_record['gc_end_time'] - gc_record['gc_start_time']) / 1000000
-                    total_gc_time += gc_duration
-            yield Metrics.JS_GC_TIME, total_gc_time
+        if self.tracing_tab_pid not in self.gc_times:
+            msg = ("No GC events were recorded for Chrome tab"
+                   "Ensure that 'devtools.timeline' category is enabled.")
+            self.log.warning(msg % self.tracing_tab_pid)
+            return
+        total_gc_time = 0.0
+        gcs = self.gc_times[self.tracing_tab_pid]
+        for gc_record in gcs:
+            if 'gc_start_time' in gc_record and 'gc_end_time' in gc_record:
+                gc_duration = float(gc_record['gc_end_time'] - gc_record['gc_start_time']) / 1000000
+                total_gc_time += gc_duration
+        yield Metrics.JS_GC_TIME, total_gc_time
 
     def calc_dom_documents(self):
-        tab_process_pid = next(iter(self.process_labels))
-        if tab_process_pid in self.dom_documents:
-            docs_per_ts = self.reaggregate_by_ts(self.dom_documents)
-            for ts in sorted(docs_per_ts):
-                docs_at_ts = docs_per_ts[ts]
-                docs_in_tab = docs_at_ts[tab_process_pid]
-                yield ts, Metrics.DOM_DOCUMENTS, round(docs_in_tab)
+        if self.tracing_tab_pid not in self.dom_documents:
+            msg = ("No DOM stats were recorded for Chrome tab"
+                   "Ensure that 'devtools.timeline' category is enabled.")
+            self.log.warning(msg % self.tracing_tab_pid)
+            return
+        docs_per_ts = self.reaggregate_by_ts(self.dom_documents)
+        for ts in sorted(docs_per_ts):
+            docs_at_ts = docs_per_ts[ts]
+            docs_in_tab = docs_at_ts[self.tracing_tab_pid]
+            yield ts, Metrics.DOM_DOCUMENTS, round(docs_in_tab)
 
     def calc_dom_nodes(self):
-        tab_process_pid = next(iter(self.process_labels))
-        if tab_process_pid in self.dom_nodes:
-            nodes_per_ts = self.reaggregate_by_ts(self.dom_nodes)
-            for ts in sorted(nodes_per_ts):
-                nodes_at_ts = nodes_per_ts[ts]
-                nodes_in_tab = nodes_at_ts[tab_process_pid]
-                yield ts, Metrics.DOM_NODES, round(nodes_in_tab)
+        if self.tracing_tab_pid not in self.dom_nodes:
+            msg = ("No DOM stats were recorded for Chrome tab"
+                   "Ensure that 'devtools.timeline' category is enabled.")
+            self.log.warning(msg % self.tracing_tab_pid)
+            return
+        nodes_per_ts = self.reaggregate_by_ts(self.dom_nodes)
+        for ts in sorted(nodes_per_ts):
+            nodes_at_ts = nodes_per_ts[ts]
+            nodes_in_tab = nodes_at_ts[self.tracing_tab_pid]
+            yield ts, Metrics.DOM_NODES, round(nodes_in_tab)
 
     def calc_js_cpu_utilization(self):
-        tab_pid = next(iter(self.process_labels))
-        if tab_pid not in self.complete_events:
+        if self.tracing_tab_pid not in self.complete_events:
+            msg = ("No JS timing events were recorded for Chrome tab"
+                   "Ensure that 'v8' category is enabled.")
+            self.log.warning(msg % self.tracing_tab_pid)
             return
-        v8_events = self.complete_events[tab_pid]
+
+        v8_events = self.complete_events[self.tracing_tab_pid]
 
         # reaggregate by 1 second
         per_ts = dict()  # ts -> (pid -> [measurement at ts])
@@ -680,6 +730,9 @@ class MetricExtractor(object):
     def get_metrics(self):
         # yields (offset, metric, value) for all metrics that are defined in time
         # offset is number of seconds since the start of Chrome
+        if self.tracing_tab_pid is None:
+            self.log.warning("No tracing data recorded for Chrome tab.")
+            return
         for prop in dir(self):
             if prop.startswith('calc_'):
                 calc_method = getattr(self, prop)
@@ -688,6 +741,9 @@ class MetricExtractor(object):
 
     def get_aggr_metrics(self):
         # yields (metric, value) for metrics that are reported one time
+        if self.tracing_tab_pid is None:
+            self.log.warning("No tracing data recorded for Chrome tab.")
+            return
         for prop in dir(self):
             if prop.startswith('aggr_'):
                 aggr_method = getattr(self, prop)
@@ -695,12 +751,13 @@ class MetricExtractor(object):
                     yield metric
 
     def get_requests_stats(self):
-        tab_process_pid = next(iter(self.process_labels))
-        return [req for _, req in iteritems(self.requests) if req.get("pid") == tab_process_pid]
+        return [req for _, req in iteritems(self.requests) if req.get("pid") == self.tracing_tab_pid]
 
     def get_ajax_stats(self):
-        tab_process_pid = next(iter(self.process_labels))
-        return self.xhr_requests.get(tab_process_pid, [])
+        return self.xhr_requests.get(self.tracing_tab_pid, [])
+
+    def get_tab_label(self):
+        return self.process_labels.get(self.tracing_tab_pid, self.tracing_tab_pid)
 
 
 class ChromeClient(MonitoringClient):
@@ -790,6 +847,9 @@ class ChromeClient(MonitoringClient):
         return [(start_time + ts, url)
                 for ts, url in self.extractor.get_ajax_stats()]
 
+    def get_tab_label(self):
+        return self.extractor.get_tab_label()
+
     def disconnect(self):
         pass
 
@@ -811,7 +871,8 @@ class MetricReporter(Reporter):
 
         metrics = self.chrome_profiler.get_aggr_metrics()
         if metrics is not None:
-            self.log.info("Chrome metrics:")
+            tab_label = self.chrome_profiler.get_tab_label()
+            self.log.info("Chrome metrics for tab '%s':", tab_label)
             for metric in sorted(metrics):
                 label = Metrics.metric_label(metric)
                 self.log.info("%s = %s", label, metrics[metric])
