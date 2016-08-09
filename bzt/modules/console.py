@@ -70,7 +70,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         self.screen_size = (140, 35)
         self.disabled = False
         self.console = None
-        self.sidebar_widgets = []
+        self.executor_widgets = []
         self.screen = DummyScreen(self.screen_size[0], self.screen_size[1])
 
     def _get_screen(self):
@@ -131,7 +131,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
                 widget = module.get_widget()
                 widgets.append(widget)
                 if isinstance(widget, ExecutorWidget):
-                    self.sidebar_widgets.append(widget)
+                    self.executor_widgets.append(widget)
 
         self.console = TaurusConsole(widgets)
         self.screen.register_palette(self.console.palette)
@@ -140,7 +140,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         """
         Repaint the screen
         """
-        for widget in self.sidebar_widgets:
+        for widget in self.executor_widgets:
             widget.update()
         if self.disabled:
             if self._last_datapoint:
@@ -338,7 +338,7 @@ class TaurusConsole(Columns):
     """
     Root screen widget
 
-    :type sidebar_widgets: list[widget.Widget]
+    :type executor_widgets: list[widget.Widget]
     :type log_widget: ScrollingLog
     """
     palette = [
@@ -369,7 +369,7 @@ class TaurusConsole(Columns):
         ('colder', 'dark cyan', ''),
     ]
 
-    def __init__(self, sidebar_widgets):
+    def __init__(self, executor_widgets):
         self.log_widget = ScrollingLog()
 
         self.latest_stats = LatestStats()
@@ -381,7 +381,7 @@ class TaurusConsole(Columns):
         self.graphs = ThreeGraphs()
         self.logo = TaurusLogo()
 
-        ordered_widgets = sorted(sidebar_widgets, key=lambda x: x.priority)
+        ordered_widgets = sorted(executor_widgets, key=lambda x: x.priority)
         right_widgets = ListBox(SimpleListWalker([Pile([x, Divider()]) for x in ordered_widgets]))
         widget_pile = Pile([(7, self.logo), right_widgets, ])
 
@@ -1105,7 +1105,7 @@ class TaurusLogo(Pile):
 
 class WidgetProvider(object):
     """
-    Mixin for classes that provide sidebar widgets
+    Mixin for classes that provide executor widgets
     """
 
     @abstractmethod
@@ -1125,7 +1125,7 @@ class PrioritizedWidget(object):
 
 class ExecutorWidget(Pile, PrioritizedWidget):
     """
-    Progress sidebar widget
+    Progress executor widget
     :type progress: urwid.Widget
     """
 
