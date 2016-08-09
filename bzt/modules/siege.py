@@ -23,7 +23,7 @@ from os import path
 
 from bzt.engine import ScenarioExecutor, Scenario
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
-from bzt.modules.console import WidgetProvider, SidebarWidget
+from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.six import iteritems
 from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time
 
@@ -143,7 +143,7 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider):
                 label = "Siege Benchmark"
             else:
                 label = None
-            self.widget = SidebarWidget(self, label)
+            self.widget = ExecutorWidget(self, label)
         return self.widget
 
     def shutdown(self):

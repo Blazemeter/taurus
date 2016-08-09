@@ -75,6 +75,7 @@ class Engine(object):
         self.engine_loop_utilization = 0
         self.prepared = []
         self.started = []
+        self.finished = []
         self.default_cwd = None
 
     def configure(self, user_configs, read_config_files=True):

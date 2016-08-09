@@ -35,7 +35,7 @@ from cssselect import GenericTranslator
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.jmx import JMX
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
-from bzt.modules.console import WidgetProvider, SidebarWidget
+from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.provisioning import Local
 from bzt.six import iteritems, string_types, StringIO, etree, binary_type
 from bzt.six import parse, request as http_request
@@ -614,7 +614,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         if not self.widget:
             label = "%s" % self
-            self.widget = SidebarWidget(self, "JMeter: " + label.split('/')[1])
+            self.widget = ExecutorWidget(self, "JMeter: " + label.split('/')[1])
         return self.widget
 
     def __modify_resources_paths_in_jmx(self, jmx, file_list):

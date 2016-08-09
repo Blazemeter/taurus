@@ -90,7 +90,7 @@ class TestConsoleStatusReporter(BZTestCase):
         obj.engine.provisioning.executors = [jmeter]
         obj.settings["disable"] = False
         obj.settings['dummy_cols'] = 160
-        obj.settings['dummy_rows'] = 40
+        obj.settings['dummy_rows'] = 401
         obj.prepare()
         obj.startup()
 

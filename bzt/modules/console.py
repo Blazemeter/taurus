@@ -130,7 +130,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
             if isinstance(module, WidgetProvider):
                 widget = module.get_widget()
                 widgets.append(widget)
-                if isinstance(widget, SidebarWidget):
+                if isinstance(widget, ExecutorWidget):
                     self.sidebar_widgets.append(widget)
 
         self.console = TaurusConsole(widgets)
@@ -1123,7 +1123,7 @@ class PrioritizedWidget(object):
         self.priority = priority
 
 
-class SidebarWidget(Pile, PrioritizedWidget):
+class ExecutorWidget(Pile, PrioritizedWidget):
     """
     Progress sidebar widget
     :type progress: urwid.Widget
@@ -1152,7 +1152,7 @@ class SidebarWidget(Pile, PrioritizedWidget):
         self.elapsed = Text("Elapsed: N/A")
         self.eta = Text("ETA: N/A", align=RIGHT)
         self.widgets.append(Columns([self.elapsed, self.eta]))
-        super(SidebarWidget, self).__init__(self.widgets)
+        super(ExecutorWidget, self).__init__(self.widgets)
 
     def update(self):
         """
@@ -1175,7 +1175,7 @@ class SidebarWidget(Pile, PrioritizedWidget):
             else:
                 self.progress.set_text("Running...")
 
-            if self.executor.check():
+            if self.executor in self.executor.engine.finished:
                 self.finished = True
                 if not self.duration:
                     self.progress.set_text("Finished")
