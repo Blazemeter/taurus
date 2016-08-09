@@ -1,13 +1,14 @@
+import os
 import sys
 import time
 
 from bzt.engine import Provisioning, ScenarioExecutor
 from bzt.modules.aggregator import DataPoint, KPISet
-from bzt.modules.console import ConsoleStatusReporter, ConsoleScreen, GUIScreen
+from bzt.modules.console import ConsoleStatusReporter
 from bzt.modules.jmeter import JMeterExecutor
 from bzt.modules.provisioning import Local
-from bzt.utils import is_windows
-from tests import BZTestCase, r, rc
+from bzt.utils import is_windows, EXE_SUFFIX
+from tests import BZTestCase, r, rc, __dir__
 from tests.mocks import EngineEmul
 
 
@@ -32,15 +33,24 @@ class TestConsoleStatusReporter(BZTestCase):
         point[DataPoint.CUMULATIVE][''] = overall
         return point
 
+    def get_jmeter(self):
+        dir_name = os.path.dirname(__file__)
+        path = dir_name + "/../jmeter/jmeter-loader" + EXE_SUFFIX
+        obj = JMeterExecutor()
+        obj.settings.merge({'path': path})
+        obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/dummy.jmx"}})
+        return obj
+
     def test_1(self):
         obj = ConsoleStatusReporter()
         obj.engine = EngineEmul()
         obj.engine.provisioning = Local()
         obj.engine.config[Provisioning.PROV] = ''
-        jmeter = JMeterExecutor()
+        jmeter = self.get_jmeter()
         jmeter.engine = obj.engine
-        jmeter.start_time = time.time()
         jmeter.execution[ScenarioExecutor.HOLD_FOR] = 10
+        jmeter.prepare()
+        jmeter.startup()
         obj.engine.provisioning.executors = [jmeter]
         obj.settings["disable"] = False
         obj.settings['dummy_cols'] = 160
@@ -72,10 +82,11 @@ class TestConsoleStatusReporter(BZTestCase):
         obj.engine = EngineEmul()
         obj.engine.provisioning = Local()
         obj.engine.config[Provisioning.PROV] = ''
-        jmeter = JMeterExecutor()
+        jmeter = self.get_jmeter()
         jmeter.engine = obj.engine
-        jmeter.start_time = time.time()
         jmeter.execution[ScenarioExecutor.HOLD_FOR] = 10
+        jmeter.prepare()
+        jmeter.startup()
         obj.engine.provisioning.executors = [jmeter]
         obj.settings["disable"] = False
         obj.settings['dummy_cols'] = 160
