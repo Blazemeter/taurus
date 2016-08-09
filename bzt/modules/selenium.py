@@ -21,7 +21,7 @@ import sys
 import time
 from abc import abstractmethod
 
-import urwid
+from urwid import Text, Pile
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator
@@ -568,12 +568,12 @@ class NoseTester(AbstractTestRunner):
                                              env=env)
 
 
-class SeleniumWidget(urwid.Pile, PrioritizedWidget):
+class SeleniumWidget(Pile, PrioritizedWidget):
     def __init__(self, script, runner_output):
         widgets = []
-        self.script_name = urwid.Text("Tests: %s" % script)
-        self.summary_stats = urwid.Text("")
-        self.current_test = urwid.Text("")
+        self.script_name = Text("Tests: %s" % script)
+        self.summary_stats = Text("")
+        self.current_test = Text("")
         self.runner_output = runner_output
         widgets.append(self.script_name)
         widgets.append(self.summary_stats)

@@ -21,7 +21,7 @@ import re
 from abc import abstractmethod
 from collections import OrderedDict
 
-import urwid
+from urwid import Pile, Text
 
 from bzt import AutomatedShutdown
 from bzt.engine import Reporter, Service
@@ -393,7 +393,7 @@ class DataCriterion(FailCriterion):
         return res
 
 
-class PassFailWidget(urwid.Pile, PrioritizedWidget):
+class PassFailWidget(Pile, PrioritizedWidget):
     """
     Represents console widget for pass/fail criteria visualisation
     If criterion is failing, it will be displayed on the widget
@@ -403,7 +403,7 @@ class PassFailWidget(urwid.Pile, PrioritizedWidget):
     def __init__(self, pass_fail_reporter):
         self.pass_fail_reporter = pass_fail_reporter
         self.failing_criteria = []
-        self.text_widget = urwid.Text("")
+        self.text_widget = Text("")
         super(PassFailWidget, self).__init__([self.text_widget])
         PrioritizedWidget.__init__(self, priority=0)
 

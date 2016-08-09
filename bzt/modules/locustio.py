@@ -125,9 +125,6 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def check(self):
         # TODO: when we're in master mode and get no results and exceeded duration - shut down then
-        if self.widget:
-            self.widget.update()
-
         retcode = self.process.poll()
         if retcode is not None:
             self.log.info("Locust exit code: %s", retcode)

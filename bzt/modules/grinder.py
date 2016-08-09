@@ -181,9 +181,6 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :return: bool
         :raise RuntimeWarning:
         """
-        if self.widget:
-            self.widget.update()
-
         self.retcode = self.process.poll()
         if self.retcode is not None:
             if self.retcode != 0:

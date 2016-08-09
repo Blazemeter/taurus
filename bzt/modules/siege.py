@@ -127,9 +127,6 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider):
         self.process = self.execute(args, stdout=self.__out, stderr=self.__err, env=env)
 
     def check(self):
-        if self.widget:
-            self.widget.update()
-
         ret_code = self.process.poll()
         if ret_code is None:
             return False

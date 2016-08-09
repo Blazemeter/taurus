@@ -326,9 +326,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :return: bool
         :raise RuntimeWarning:
         """
-        if self.widget:
-            self.widget.update()
-
         self.retcode = self.process.poll()
 
         if not self.simulation_started:

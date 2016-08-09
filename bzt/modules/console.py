@@ -68,7 +68,6 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         self.orig_streams = {}
         self.temp_stream = StringIONotifying(self.log_updated)
         self.screen_size = (140, 35)
-        self.data_started = False
         self.disabled = False
         self.console = None
         self.sidebar_widgets = []
@@ -141,16 +140,12 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         """
         Repaint the screen
         """
-        self.data_started = True
         for widget in self.sidebar_widgets:
             widget.update()
         if self.disabled:
             if self._last_datapoint:
                 self.__print_one_line_stats()
                 self._last_datapoint = None
-            return False
-
-        if not self.data_started:
             return False
 
         self.__start_screen()
@@ -173,7 +168,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         Start GUIScreen on windows or urwid.curses_display on *nix
         :return:
         """
-        if self.data_started and not self.screen.started:
+        if not self.screen.started:
             self.__redirect_streams()
             self.screen.start()
             self.log.info("Waiting for finish...")
@@ -206,7 +201,6 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         :return:
         """
         self._last_datapoint = data
-        self.data_started = True
 
         if self.disabled:
             return
@@ -256,7 +250,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
             if not is_windows():
                 self.__detect_console_logger()
 
-        if self.data_started and not self.screen.started:
+        if not self.screen.started:
             if self.orig_streams:
                 raise RuntimeError("Orig streams already set")
             elif self.logger_handlers and not self.orig_streams:

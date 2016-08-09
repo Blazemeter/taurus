@@ -66,10 +66,6 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.pbench.start(self.pbench.config_file)
 
     def check(self):
-
-        if self.widget:
-            self.widget.update()
-
         retcode = self.pbench.process.poll()
         if retcode is not None:
             if retcode != 0:
