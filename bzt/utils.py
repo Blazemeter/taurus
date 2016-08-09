@@ -663,27 +663,34 @@ class RequiredTool(object):
             except BaseException as exc:
                 raise exc
 
-    def install_with_mirrors(self, dest, suffix):
-        self.log.info("Will install %s into %s", self.tool_name, dest)
+    def download_archive(self, links, suffix):
         downloader = request.FancyURLopener()
         tool_dist = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)  # delete=False because of Windows
-        mirrors = self.mirror_manager.mirrors()
         sock_timeout = socket.getdefaulttimeout()
-        for mirror in mirrors:
-            self.log.info("Downloading: %s", mirror)
+        for link in links:
+            self.log.info("Downloading: %s", link)
             with ProgressBarContext() as pbar:
                 try:
                     socket.setdefaulttimeout(5)
-                    downloader.retrieve(mirror, tool_dist.name, pbar.download_callback)
+                    downloader.retrieve(link, tool_dist.name, pbar.download_callback)
                     return tool_dist
                 except KeyboardInterrupt:
                     raise
                 except BaseException:
-                    self.log.error("Error while downloading %s", mirror)
+                    self.log.error("Error while downloading %s", link)
                     continue
                 finally:
                     socket.setdefaulttimeout(sock_timeout)
-        raise RuntimeError("%s download failed: No more mirrors to try", self.tool_name)
+        raise RuntimeError("%s download failed: No more links to try" % self.tool_name)
+
+    def install_with_link(self, dest, suffix):
+        self.log.info("Will install %s into %s", self.tool_name, dest)
+        return self.download_archive([self.download_link], suffix)
+
+    def install_with_mirrors(self, dest, suffix):
+        self.log.info("Will install %s into %s", self.tool_name, dest)
+        mirrors = self.mirror_manager.mirrors()
+        return self.download_archive(mirrors, suffix)
 
 
 class JavaVM(RequiredTool):

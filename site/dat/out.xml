@@ -1,19 +1,22 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<url title="Taurus" template="dat/taurus.tpl" custom_logo="/img/tau.png"
+<url title="Taurus" template="dat/taurus.tpl"
+     description="Taurus tool is an Open Source test automation framework, providing simple YAML-based configuration format with DSL, executed through command-line and scalable through cloud resource providers. It uses JMeter as default load generator and perfectly fits into Jenkins CI."
+     keywords="Open Source,Test Automation,Load Testing,Continuous Integration,JMeter,Selenium,Gatling,Grinder,Tsung,Yandex.Tank,ApacheBenchmark,Locust.io,command-line tool,test reporting,load test scaling,DevOps,Jenkins"
+     syntax="PWE\Modules\SimpleWiki\GitHubMarkdownSyntax\Config" start_page="Index" wiki_file_ext="md"
+     files_base="/" download_link="/.."
      class="PWE\Modules\HTMLPage\HTMLPage" src="index.html">
-    <url link="install" menu="1" title="Installation"
-         class="PWE\Modules\RedirectAccepted\RedirectAccepted"
-         base="/docs/Installation" accept="1"/>
 
-    <url link="docs" accept="1" menu="1" title="User Manual" class="PWE\Modules\SimpleWiki\SimpleWiki"
-         wiki_dir="docs" start_page="Index" wiki_file_ext="md" img_path_prepend="/dat/docs/img/"
-         files_base="/" download_link="/.."
-         syntax="PWE\Modules\SimpleWiki\GitHubMarkdownSyntax\Config"/>
+    <url link="install" accept="1" menu="1" title="Installation" no_sidebar_file="1"
+         class="PWE\Modules\SimpleWiki\SimpleWiki" wiki_dir="docs" single_page="Installation"
+    />
 
-    <url link="kb" accept="1" menu="1" title="Knowledge Base" class="PWE\Modules\SimpleWiki\SimpleWiki"
-         wiki_dir="kb" start_page="Index" wiki_file_ext="md" img_path_prepend="/dat/kb/img/"
-         files_base="/" download_link="/.."
-         syntax="PWE\Modules\SimpleWiki\GitHubMarkdownSyntax\Config"/>
+    <url link="docs" accept="1" menu="1" title="User Manual"
+         class="PWE\Modules\SimpleWiki\SimpleWiki" wiki_dir="docs" img_path_prepend="/dat/docs/img/"
+    />
+
+    <url link="kb" accept="1" menu="1" title="Knowledge Base"
+         class="PWE\Modules\SimpleWiki\SimpleWiki" wiki_dir="kb" img_path_prepend="/dat/kb/img/"
+    />
 
     <url link="support" menu="1" title="Support Forums" accept="1"
          class="PWE\Modules\RedirectAccepted\RedirectAccepted"
