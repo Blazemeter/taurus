@@ -75,7 +75,6 @@ class Engine(object):
         self.engine_loop_utilization = 0
         self.prepared = []
         self.started = []
-        self.finished = []
         self.default_cwd = None
 
     def configure(self, user_configs, read_config_files=True):
@@ -154,9 +153,7 @@ class Engine(object):
         for module in modules:
             if module in self.started:
                 self.log.debug("Checking %s", module)
-                if module.check():
-                    finished = True
-                    self.finished.append(module)
+                finished |= module.check()
         return finished
 
     def _wait(self):

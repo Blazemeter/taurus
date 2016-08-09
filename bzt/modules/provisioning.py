@@ -27,6 +27,9 @@ class Local(Provisioning):
     """
     Local provisioning means we start all the tools locally
     """
+    def __init__(self):
+        super(Local, self).__init__()
+        self.finished_modules = []
 
     def _get_start_shift(self, shift):
         if shift == '':
@@ -84,9 +87,9 @@ class Local(Provisioning):
 
         self._start_modules()
         for executor in self.executors:
-            if executor in self.engine.started and executor not in self.engine.finished:
+            if executor in self.engine.started and executor not in self.finished_modules:
                 if executor.check():
-                    self.engine.finished.append(executor)
+                    self.finished_modules.append(executor)
                 else:
                     finished = False
 
