@@ -45,12 +45,18 @@ class TestConsoleStatusReporter(BZTestCase):
         obj = ConsoleStatusReporter()
         obj.engine = EngineEmul()
         obj.engine.provisioning = Local()
+        obj.engine.provisioning.start_time = time.time()
         obj.engine.config[Provisioning.PROV] = ''
         jmeter = self.get_jmeter()
         jmeter.engine = obj.engine
         jmeter.execution[ScenarioExecutor.HOLD_FOR] = 10
+        jmeter.execution.merge({'hold-for': 0, 'ramp-up': 0})
+        jmeter.delay = 10
         jmeter.prepare()
+        widget = jmeter.get_widget()
+        widget.update()
         jmeter.startup()
+        widget.update()
         obj.engine.provisioning.executors = [jmeter]
         obj.settings["disable"] = False
         obj.settings['dummy_cols'] = 160
@@ -81,12 +87,17 @@ class TestConsoleStatusReporter(BZTestCase):
         obj = ConsoleStatusReporter()
         obj.engine = EngineEmul()
         obj.engine.provisioning = Local()
+        obj.engine.provisioning.start_time = time.time()
         obj.engine.config[Provisioning.PROV] = ''
         jmeter = self.get_jmeter()
         jmeter.engine = obj.engine
         jmeter.execution[ScenarioExecutor.HOLD_FOR] = 10
+        jmeter.delay = 10
         jmeter.prepare()
+        widget = jmeter.get_widget()
+        widget.update()
         jmeter.startup()
+        widget.update()
         obj.engine.provisioning.executors = [jmeter]
         obj.settings["disable"] = False
         obj.settings['dummy_cols'] = 160
