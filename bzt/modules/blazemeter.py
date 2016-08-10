@@ -136,10 +136,6 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         mfile = BytesIO()
         max_file_size = self.settings.get('artifact-upload-size-limit', 10) * 1024 * 1024  # 10MB
         with zipfile.ZipFile(mfile, mode='w', compression=zipfile.ZIP_DEFLATED, allowZip64=True) as zfh:
-            for handler in self.engine.log.parent.handlers:
-                if isinstance(handler, logging.FileHandler):
-                    zfh.write(handler.baseFilename, os.path.basename(handler.baseFilename))
-
             for root, _, files in os.walk(self.engine.artifacts_dir):
                 for filename in files:
                     if os.path.getsize(os.path.join(root, filename)) <= max_file_size:
@@ -172,12 +168,6 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
                     with open(fname) as _file:
                         self.client.upload_file(modified_name, _file.read())
                     # TODO: final tail upload here
-
-        for executor in self.engine.provisioning.executors:
-            if isinstance(executor, JMeterExecutor):
-                if executor.jmeter_log:
-                    self.log.info("Uploading %s", executor.jmeter_log)
-                    self.client.upload_file(executor.jmeter_log)
 
     def post_process(self):
         """
