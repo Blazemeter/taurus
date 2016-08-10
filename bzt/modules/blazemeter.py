@@ -161,7 +161,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
     def __upload_artifacts(self):
         """
         If token provided, upload artifacts folder contents and bzt.log
-        
+
         :return:
         """
         if self.client.token:
