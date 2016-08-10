@@ -160,8 +160,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
 
     def __upload_artifacts(self):
         """
-        If token provided, upload artifacts folder contents and jmeter_log
-        else: jmeter_log only
+        If token provided, upload artifacts folder contents and bzt.log
+        
         :return:
         """
         if self.client.token:
@@ -183,7 +183,6 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
                     modified_name = fhead + suffix + ftail
                     with open(fname) as _file:
                         self.client.upload_file(modified_name, _file.read())
-                    # TODO: final tail upload here
 
     def post_process(self):
         """
