@@ -157,6 +157,12 @@
         }
       }
     },
+    "local": {
+      "provisioning": "local"
+    },
+    "cloud": {
+      "provisioning": "cloud"
+    },
     "locations": {
       "provisioning": "cloud",
       "modules": {

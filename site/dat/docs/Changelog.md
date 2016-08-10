@@ -1,4 +1,7 @@
 # Changelog
+## 1.6.7 (next)
+ - add worker id to cloud log file names
+ - add `cloud` and `local` aliases 
 
 ## 1.6.6 <sup>08 aug 2016</sup>
  - optimize aggregator by removing excessive calls to `BetterDict.get()`
@@ -7,7 +10,6 @@
  - add Proxy2JMX service to convert tests from Selenium to JMeter format
  - fix occasional crash from inconsistent API result for cloud test KPIs
  - prefer user-supplied `download-link` over default download link for JMeter
- - add worker id to cloud log file names
 
 ## 1.6.5 <sup>12 jul 2016</sup>
  - fix master_id choosing for cloud reporting 
