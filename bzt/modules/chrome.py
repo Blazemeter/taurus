@@ -794,6 +794,9 @@ class CPUProfileReader(object):
         self.profile_start_time = 0
         self.profile_end_time = 0
         self.total_hit_count = 0
+        self.timestamps = []
+        self.samples = []
+        self.head = None
 
     def _transform_profile_tree(self, root):
         def compute_hit_count_for_subtree(tree):
@@ -825,15 +828,184 @@ class CPUProfileReader(object):
             id_map[source_node['id']] = target_node["id"]
             parent_node_stack.extend([parent_node for _ in source_node['children']])
             source_node_stack.extend(source_node['children'])
-        # self.samples = [id_map[sample] for sample in self.samples]
+        self.samples = [id_map[sample] for sample in self.samples]
         return result_root
 
-    def build_js_stats(self, root):
+    def _sort_samples(self):
+        timestamps = self.timestamps
+        if not timestamps:
+            return
+        samples = self.samples
+        indices = [index for index, _ in enumerate(timestamps)]
+        indices.sort(key=lambda ind: timestamps[ind])
+        for i in range(len(timestamps)):
+            index = indices[i]
+            if index == i:
+                continue
+            saved_timestamp = timestamps[i]
+            saved_sample = samples[i]
+            current_index = i
+            while index != i:
+                samples[current_index] = samples[index]
+                timestamps[current_index] = timestamps[index]
+                current_index = index
+                index = indices[index]
+                indices[current_index] = current_index
+            samples[current_index] = saved_sample
+            timestamps[current_index] = saved_timestamp
+
+    def _normalize_timestamps(self):
+        timestamps = self.timestamps
+        timestamps = [ts / 1000 for ts in timestamps]
+        last_ts = timestamps[len(timestamps) - 1]
+        avg_sample = (last_ts - timestamps[0]) / (len(timestamps) - 1)
+        self.timestamps.append(last_ts + avg_sample)
+        self.profile_start_time = timestamps[0]
+        last_ts = timestamps[len(timestamps) - 1]
+        self.profile_end_time = last_ts
+
+    def _build_id_to_node_map(self):
+        self._id_to_node = {}
+        stack = [self.head]
+        while stack:
+            node = stack.pop()
+            self._id_to_node[node["id"]] = node
+            stack.extend(node["children"])
+
+    def _extract_meta_nodes(self):
+        toplevel_nodes = self.head["children"]
+        gc_node = program_node = idle_node = None
+        for node in toplevel_nodes:
+            if gc_node and program_node and idle_node:
+                break
+            if node['functionName'] == "(garbage collector)":
+                gc_node = node
+            elif node['functionName'] == "(program)":
+                program_node = node
+            elif node['functionName'] == "(idle)":
+                idle_node = node
+        self.gc_node = gc_node
+        self.idle_node = idle_node
+        self.program_node = program_node
+
+    def _for_each_frame(self, open_frame_cb, close_frame_cb, start_time=0, stop_time=float("inf")):
+        if not self.head or not self.samples:
+            return
+        samples = self.samples
+        timestamps = self.timestamps
+        id_to_node = self._id_to_node
+        gc_node = self.gc_node
+        samples_count = len(self.samples)
+        start_index = min(timestamps)  # TODO: minimal timestamp that is greater that start_time
+        stack_top = 0
+        stack_nodes = []
+        prev_id = self.head["id"]
+        sample_time = timestamps[samples_count]
+        gc_parent_node = None
+
+        node = None
+
+        self.stack_start_times = [0.0] * (self.max_depth + 2)
+        self.stack_children_duration = [0.0] * (self.max_depth + 2)
+
+        for sample_index in range(start_index, samples_count):
+            sample_time = timestamps[sample_index]
+            if sample_time >= stop_time:
+                break
+            id = samples[sample_index]
+            if id == prev_id:
+                continue
+            node = id_to_node[id]
+            prev_node = id_to_node[prev_id]
+
+            if node == gc_node:
+                gc_parent_node = prev_node
+                open_frame_cb(gc_parent_node.depth + 1, gc_node, sample_time)
+                stack_top += 1
+                self.stack_start_times[stack_top] = sample_time
+                self.stack_children_duration[stack_top] = 0.0
+                prev_id = id
+                continue
+
+            if prev_node == gc_node:
+                start = self.stack_start_times[stack_top]
+                duration = sample_time - start
+                self.stack_children_duration[stack_top - 1] += duration
+                close_frame_cb(gc_parent_node.depth + 1, gc_node, start, duration, duration - self.stack_children_duration[stack_top])
+                stack_top -= 1
+                prev_node = gc_parent_node
+                prev_id = prev_node["id"]
+                gc_parent_node = None
+
+            while node["depth"] > prev_node["depth"]:
+                stack_nodes.append(node)
+                node = node["parent"]
+
+            while prev_node != node:
+                start = self.stack_start_times[stack_top]
+                duration = sample_time - start
+                self.stack_children_duration[stack_top - 1] += duration
+                close_frame_cb(prev_node["depth"], prev_node, start, duration, duration - self.stack_children_duration[stack_top])
+                stack_top -= 1
+                if node["depth"] == prev_node["depth"]:
+                    stack_nodes.append(node)
+                    node = node["parent"]
+                prev_node = prev_node["parent"]
+
+            while stack_nodes:
+                node = stack_nodes.pop()
+                open_frame_cb(node["depth"], node, sample_time)
+                stack_top += 1
+                self.stack_start_times[stack_top] = sample_time
+                self.stack_children_duration[stack_top] = 0.0
+
+            prev_id = id
+
+        if id_to_node[prev_id] == gc_node:
+            start = self.stack_start_times[stack_top]
+            duration = sample_time - start
+            self.stack_children_duration[stack_top - 1] += duration
+            close_frame_cb(gc_parent_node["depth"] + 1, node, start, duration, duration - self.stack_children_duration[stack_top])
+            stack_top -= 1
+
+        node = id_to_node[prev_id]
+        while node["parent"]:
+            start = self.stack_start_times[stack_top]
+            duration = sample_time - start
+            self.stack_children_duration[stack_top - 1] += duration
+            close_frame_cb(node["depth"], node, start, duration, duration - self.stack_children_duration[stack_top])
+            stack_top -= 1
+
+    def _calculate_totals(self, root):
+        root["total"] = reduce(lambda acc, node: acc + self._calculate_totals(node),
+                               root["children"],
+                               root.get("self", 0))  # TODO: ["self"] instead of soft .get
+        return root["total"]
+
+    def _assign_depths_and_parents(self):
+        root = self.head
+        root["depth"] = -1
+        root["parent"] = None
+        self.max_depth = 0
+        nodes_to_traverse = [root]
+        while nodes_to_traverse:
+            parent = nodes_to_traverse.pop()
+            depth = parent["depth"] + 1
+            if depth > self.max_depth:
+                self.max_depth = depth
+            children = parent["children"]
+            for child in children:
+                child["depth"] = depth
+                child["parent"] = parent
+                if child["children"]:
+                    nodes_to_traverse.append(child)
+
+    def build_js_stats(self):
         special_funs = ["", "(idle)", "(program)", "(garbage collector)", "(root)"]
         func_entry = namedtuple("func_entry", "name, url, line_no")
 
         fun_stats = {}  # func_entry -> dict(ncalls, perc_time, ...)
-        stack = [root]
+        stack = [self.head]
         while stack:
             node = stack.pop()
             fun_key = func_entry(node['functionName'], node['url'], node['lineNumber'])
@@ -860,14 +1032,47 @@ class CPUProfileReader(object):
 
         return stats, totals
 
-    def extract_js_calls(self):
+    def calculate_timeline(self):
+        self.prepare()
+
+        entries = []
+        stack = []
+        max_depth = 5
+
+        def on_open_frame():
+            stack.append(len(entries))
+            entries.append(None)
+
+        def on_close_frame(depth, node, start_time, total_time, self_time):
+            global max_depth
+            index = stack.pop()
+            entries[index] = dict(depth=depth, node=node, start_time=start_time, total_time=total_time, self_time=self_time)
+            max_depth = max(max_depth, depth)
+
+        self._for_each_frame(on_open_frame, on_close_frame)
+
+        return entries
+
+    def prepare(self):
         with open(self.filename) as fds:
             profile = json.load(fds)
         head = profile["head"]
         self.profile_start_time = profile["startTime"]
         self.profile_end_time = profile["endTime"]
-        head = self._transform_profile_tree(head)
-        return self.build_js_stats(head)
+        self.timestamps = profile["timestamps"]
+        self.samples = profile["samples"]
+        self.head = self._transform_profile_tree(head)
+        self.total = self._calculate_totals(self.head)
+        self._assign_depths_and_parents()
+        self._extract_meta_nodes()
+        if self.samples:
+            self._build_id_to_node_map()
+            self._sort_samples()
+            self._normalize_timestamps()
+
+    def extract_js_calls(self):
+        self.prepare()
+        return self.build_js_stats()
 
 
 class ChromeClient(MonitoringClient):
