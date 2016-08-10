@@ -180,6 +180,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
             self.__send_data(self.kpi_buffer, False, True)
             self.kpi_buffer = []
             self.__send_monitoring()
+            self.__send_custom_metrics()
+            self.__send_custom_tables()
         finally:
             self._postproc_phase2()
 
@@ -237,6 +239,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
                 self.__send_data(self.kpi_buffer)
                 if self.send_monitoring:
                     self.__send_monitoring()
+                    self.__send_custom_metrics()
                 self.kpi_buffer = []
         return super(BlazeMeterUploader, self).check()
 
@@ -299,6 +302,40 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
             try:
                 time.sleep(self.client.timeout)
                 self.client.send_monitoring_data(src_name, data)
+                self.log.info("Succeeded with retry")
+            except IOError:
+                self.log.error("Fatal error sending data: %s", traceback.format_exc())
+                self.log.warning("Will skip failed data and continue running")
+
+    def __send_custom_metrics(self):
+        data = self.monitoring_buffer.get_metrics_json()
+        try:
+            self.client.send_custom_metrics(data)
+        except IOError:
+            self.log.debug("Error sending data: %s", traceback.format_exc())
+            self.log.warning("Failed to send data, will retry in %s sec...", self.client.timeout)
+            try:
+                # NOTE: this pauses the whole Taurus engine for N seconds (10 by default)
+                # We probably shouldn't do that.
+                time.sleep(self.client.timeout)
+                self.client.send_custom_metrics(data)
+                self.log.info("Succeeded with retry")
+            except IOError:
+                self.log.error("Fatal error sending data: %s", traceback.format_exc())
+                self.log.warning("Will skip failed data and continue running")
+
+    def __send_custom_tables(self):
+        data = self.monitoring_buffer.get_metrics_table_json()
+        try:
+            self.client.send_custom_tables(data)
+        except IOError:
+            self.log.debug("Error sending data: %s", traceback.format_exc())
+            self.log.warning("Failed to send data, will retry in %s sec...", self.client.timeout)
+            try:
+                # NOTE: this pauses the whole Taurus engine for N seconds (10 by default)
+                # We probably shouldn't do that.
+                time.sleep(self.client.timeout)
+                self.client.send_custom_tables(data)
                 self.log.info("Succeeded with retry")
             except IOError:
                 self.log.error("Fatal error sending data: %s", traceback.format_exc())
@@ -428,6 +465,65 @@ class MonitoringBuffer(object):
             "kpis": kpis,
             "hosts": hosts,
             "results": results
+        }
+
+    def get_metrics_json(self):
+        datapoints = {}
+
+        for source, buff in iteritems(self.data):
+            for timestamp, item in iteritems(buff):
+                if source == 'local':
+                    source = platform.node()
+
+                if timestamp not in datapoints:
+                    datapoints[timestamp] = {}
+
+                for field, value in iteritems(item):
+                    if field in ('ts', 'interval', 'tabular'):
+                        continue
+                    if field.lower().startswith('cpu'):
+                        prefix = 'System'
+                        field = 'CPU'
+                    elif field.lower().startswith('mem'):
+                        prefix = 'System'
+                        field = 'Memory'
+                        value *= 100
+                    elif field.lower().startswith('disk'):
+                        prefix = 'Disk'
+                    elif field.lower().startswith('bytes-') or field.lower().startswith('net'):
+                        prefix = 'Network'
+                    else:
+                        prefix = 'Monitoring'
+
+                    label = "/".join([source, prefix, field])
+                    datapoints[timestamp][label] = value
+
+        results = []
+        for timestamp in sorted(datapoints):
+            datapoint = OrderedDict([(metric, datapoints[timestamp][metric])
+                                     for metric in sorted(datapoints[timestamp])])
+            datapoint["ts"] = timestamp
+            results.append(datapoint)
+        return {"datapoints": results}
+
+    def get_metrics_table_json(self):
+        table_items = {}
+        for source, buff in iteritems(self.data):
+            for timestamp, item in iteritems(buff):
+                if "tabular" not in item:
+                    continue
+                for field, value in iteritems(item):
+                    if field in ('ts', 'interval', 'tabular'):
+                        continue
+                    table_items[field] = value
+        return {
+            "tables": [
+                {
+                    "id":"A",
+                    "name":"Metrics",
+                    "data": table_items
+                }
+            ]
         }
 
 
@@ -1013,6 +1109,17 @@ class BlazeMeterClient(object):
 
     def send_monitoring_data(self, src_name, data):
         self.upload_file('%s.monitoring.json' % src_name, to_json(data))
+
+    def send_custom_metrics(self, data):
+        url = self.address + "/api/latest/data/masters/%s/custom-metrics" % self.master_id
+        res = self._request(url, to_json(data), headers={"Content-Type": "application/json"}, method="POST")
+        return res
+
+    def send_custom_tables(self, data):
+        url = self.address + "/api/latest/data/masters/%s/custom-table" % self.master_id
+        res = self._request(url, to_json(data), headers={"Content-Type": "application/json"}, method="POST")
+        self.log.info("Response: %s", res)
+        return res
 
 
 class MasterProvisioning(Provisioning):
