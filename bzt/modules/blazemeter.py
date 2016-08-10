@@ -157,16 +157,20 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         :return:
         """
         if self.client.token:
-            artifacts_zip = "artifacts.zip"
+            worker_index = os.environ.get('TAURUS_INDEX_ALL', 'no_index')
+            artifacts_zip = "artifacts.%s.zip" % worker_index
             mfile = self.__get_jtls_and_more()
             self.log.info("Uploading all artifacts as %s ...", artifacts_zip)
             self.client.upload_file(artifacts_zip, mfile.getvalue())
 
             for handler in self.engine.log.parent.handlers:
                 if isinstance(handler, logging.FileHandler):
-                    self.log.info("Uploading %s", handler.baseFilename)
-                    self.client.upload_file(handler.baseFilename)
-                    # TODO: add numbering for machineID to file names
+                    fname = logging.FileHandler
+                    self.log.info("Uploading %s", fname)
+                    fhead, ftail = os.path.split(fname)
+                    modified_name = '.'.join([fhead, worker_index, ftail])
+                    with open(fname) as _file:
+                        self.client.upload_file(modified_name, _file.read())
                     # TODO: final tail upload here
 
         for executor in self.engine.provisioning.executors:
