@@ -17,6 +17,7 @@ import copy
 import json
 import re
 from collections import defaultdict, OrderedDict, namedtuple
+from functools import reduce
 from os import path
 
 from bzt.engine import Reporter
