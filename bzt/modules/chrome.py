@@ -14,12 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import copy
-import csv
 import json
-import logging
 import re
-import subprocess
-from collections import defaultdict, OrderedDict
+from collections import defaultdict, OrderedDict, namedtuple
 from os import path
 
 from bzt.engine import Reporter
@@ -35,9 +32,12 @@ class ChromeProfiler(Monitoring):
 
     def prepare(self):
         trace_file = self.parameters.get('trace-file', "trace.json")
+        cpuprofile_file = self.parameters.get('cpuprofile', None)
         trace_path = path.join(self.engine.artifacts_dir, trace_file)
+        if cpuprofile_file:
+            cpuprofile_file = path.join(self.engine.artifacts_dir, cpuprofile_file)
 
-        self.client = ChromeClient(trace_path, self.log)
+        self.client = ChromeClient(trace_path, cpuprofile_file, self.log)
         self.client.engine = self.engine
         self.client.connect()
 
@@ -243,470 +243,6 @@ class ChromePerfLogReader(object):
             self.fds.close()
 
 
-class SplayTreeNode(object):
-    def __init__(self, key, value):
-        self.key = key
-        self.value = value
-        self.left = None
-        self.right = None
-
-
-class SplayTree(object):
-    def __init__(self):
-        self.root = None
-
-    def is_empty(self):
-        return not self.root
-
-    def insert(self, key, value):
-        if self.is_empty():
-            self.root = SplayTreeNode(key, value)
-            return
-        self.splay(key)
-        if self.root.key == key:
-            return
-        node = SplayTreeNode(key, value)
-        if key > self.root.key:
-            node.left = self.root
-            node.right = self.root.right
-            self.root.right = None
-        else:
-            node.right = self.root
-            node.left = self.root.left
-            self.root.left = None
-        self.root = node
-
-    def remove(self, key):
-        if self.is_empty():
-            return
-        self.splay(key)
-        if self.root.key != key:
-            return
-        removed = self.root
-        if not self.root.left:
-            self.root = self.root.right
-        else:
-            right = self.root.right
-            self.root = self.root.left
-            self.splay(key)
-            self.root.right = right
-        return removed
-
-    def find(self, key):
-        if self.is_empty():
-            return None
-        self.splay(key)
-        if self.root.key == key:
-            return self.root
-        return None
-
-    def find_max(self):
-        if self.is_empty():
-            return None
-        current = self.root
-        while current.right is not None:
-            current = current.right
-        return current
-
-    def find_min(self):
-        if self.is_empty():
-            return None
-        current = self.root
-        while current.left is not None:
-            current = current.left
-        return current
-
-    def find_greatests_less_than(self, key):
-        if self.is_empty():
-            return None
-        self.splay(key)
-        if self.root.key <= key:
-            return self.root
-        else:
-            tmp = self.root
-            self.root = self.root.left
-            result = self.find_max()
-            self.root = tmp
-            return result
-
-    def export_value_list(self):
-        result = []
-        nodes_to_visit = [self.root]
-        while len(nodes_to_visit) > 0:
-            node = nodes_to_visit.pop()
-            if not node:
-                continue
-            result.append(node.value)
-            nodes_to_visit.append(node.left)
-            nodes_to_visit.append(node.right)
-        return result
-
-    def splay(self, key):
-        if self.is_empty():
-            return
-        dummy = left = right = SplayTreeNode(None, None)
-        current = self.root
-        while True:
-            if key < current.key:
-                if not current.left:
-                    break
-                if key < current.left.key:
-                    tmp = current.left
-                    current.left = tmp.right
-                    tmp.right = current
-                    current = tmp
-                    if not current.left:
-                        break
-                right.left = current
-                right = current
-                current = current.left
-            elif key > current.key:
-                if not current.right:
-                    break
-                if key > current.right.key:
-                    tmp = current.right
-                    current.right = tmp.left
-                    tmp.left = current
-                    current = tmp
-                    if not current.right:
-                        break
-                left.right = current
-                left = current
-                current = current.right
-            else:
-                break
-        left.right = current.left
-        right.left = current.right
-        current.left = dummy.right
-        current.right = dummy.left
-        self.root = current
-
-
-class V8CodeMap(object):
-    PAGE_ALIGNMENT = 12
-    PAGE_SIZE = 1 << 12
-
-    def __init__(self):
-        self.statics = SplayTree()
-        self.dynamics = SplayTree()
-        self.libraries = SplayTree()
-        self.pages = {}
-
-    def add_code(self, start, entry):
-        self.delete_all_covered_nodes(self.dynamics, start, start + entry.size)
-        self.dynamics.insert(start, entry)
-
-    def add_static_code(self, start, entry):
-        self.statics.insert(start, entry)
-
-    def add_library(self, start, entry):
-        self.mark_pages(start, start + entry.size)
-        self.libraries.insert(start, entry)
-
-    @staticmethod
-    def rshift(val, n):
-        return (val % 0x100000000) >> n
-
-    def mark_pages(self, start, end):
-        addr = start
-        while addr <= end:
-            page = self.rshift(addr, self.PAGE_ALIGNMENT)
-            self.pages[page] = 1
-            addr += self.PAGE_SIZE
-
-    def delete_all_covered_nodes(self, tree, start, end):
-        to_delete = []
-        addr = end - 1
-        while addr >= start:
-            node = tree.find_greatests_less_than(addr)
-            if not node:
-                break
-            start2= node.key
-            end2 = start2 + node.value.size
-            if start2 < end and start < end2:
-                to_delete.append(start2)
-            addr = start2 - 1
-        for addr in to_delete:
-            tree.remove(addr)
-
-    def find_dynamic_entry_by_start_addr(self, addr):
-        node = self.dynamics.find(addr)
-        if node:
-            return node.value
-
-    def find_in_tree(self, tree, addr):
-        node = tree.find_greatests_less_than(addr)
-        if node and self.is_address_belongs_to(addr, node):
-            return node.value
-        else:
-            return None
-
-    @staticmethod
-    def is_address_belongs_to(addr, node):
-        return node.key <= addr < (node.key + node.value.size)
-
-    def find_entry(self, addr):
-        page_addr = self.rshift(addr, self.PAGE_ALIGNMENT)
-        if page_addr in self.pages:
-            return self.find_in_tree(self.statics, addr) or self.find_in_tree(self.libraries, addr)
-
-        min_kv = self.dynamics.find_min()
-        max_kv = self.dynamics.find_max()
-        if max_kv is not None and min_kv.key <= addr < (max_kv.key + max_kv.value.size):
-            dyna_entry = self.find_in_tree(self.dynamics, addr)
-            # TODO: handle cases when entry name was updated
-            return dyna_entry
-        return None
-
-
-class CodeEntry(object):
-    def __init__(self, size, name=None):
-        self.size = size
-        self.name = name or ''
-        self.tick_count = 0
-        self.stacks = {}
-
-    def tick(self, stack):
-        self.tick_count += 1
-        if stack:
-            stack.insert(0, self.get_name())
-            stack_key = tuple(stack)
-            self.stacks[stack_key] = self.stacks.setdefault(stack_key, 0) + 1
-
-    def get_name(self):
-        return self.name
-
-    def __repr__(self):
-        return "CodeEntry(size=%s, name=%s)" % (self.size, self.name)
-
-
-class DynamicCodeEntry(CodeEntry):
-    def __init__(self, size, type, name):
-        super(DynamicCodeEntry, self).__init__(size, name)
-        self.type = type
-
-    def get_name(self):
-        return self.type + ": " + self.name
-
-    def __repr__(self):
-        return "DynamicCodeEntry(type=%s, size=%s, name=%s)" % (self.type, self.size, self.name)
-
-
-class DynamicFuncCodeEntry(CodeEntry):
-    def __init__(self, size, type, func, opt_state):
-        super(DynamicFuncCodeEntry, self).__init__(size)
-        self.type = type
-        self.func = func
-        self.opt_state = opt_state
-
-    def get_name(self):
-        name = self.func.get_name()
-        return self.type + ": " + self.opt_state + name
-
-    def __repr__(self):
-        tmpl = "DynamicFuncCodeEntry(type=%s, func=%s, opt_state=%s, size=%s)"
-        return tmpl % (self.type, self.func, self.opt_state, self.size)
-
-
-class FunctionEntry(CodeEntry):
-    def __init__(self, name):
-        super(FunctionEntry, self).__init__(0, name)
-
-    def get_name(self):
-        name = self.name
-        if not name:
-            name = '<anonymous>'
-        elif name[0] == ' ':
-            name = '<anonymous>' + name
-        return name
-
-    def __repr__(self):
-        return "FunctionEntry(name=%s)" % self.name
-
-
-class V8Profile(object):
-    def __init__(self):
-        self.codemap = V8CodeMap()
-        self.stacks = []
-
-    def add_code(self, type, name, start, size):
-        entry = DynamicCodeEntry(size, type, name)
-        self.codemap.add_code(start, entry)
-        return entry
-
-    def add_static_code(self, name, start_addr, end_addr):
-        entry = CodeEntry(end_addr - start_addr, name)
-        self.codemap.add_static_code(start_addr, entry)
-        return entry
-
-    def add_library(self, name, start_addr, end_addr):
-        entry = CodeEntry(end_addr - start_addr, name)
-        self.codemap.add_library(start_addr, entry)
-        return entry
-
-    def add_func_code(self, type, name, start, size, func_addr, opt_state):
-        func = self.codemap.find_dynamic_entry_by_start_addr(func_addr)
-        if not func:
-            func = FunctionEntry(name)
-            self.codemap.add_code(func_addr, func)
-        elif func.name != name:
-            func.name = name
-
-        entry = self.codemap.find_dynamic_entry_by_start_addr(start)
-        if entry:
-            # code was recompiled, update optimization state
-            if entry.size == size and entry.func == func:
-                entry.opt_state = opt_state
-        else:
-            entry = DynamicFuncCodeEntry(size, type, func, opt_state)
-            self.codemap.add_code(start, entry)
-
-        return entry
-
-    def find_entry(self, addr):
-        return self.codemap.find_entry(addr)
-
-    def resolve_and_filter_funcs(self, stack):
-        result = []
-        for addr in stack:
-            entry = self.codemap.find_entry(addr)
-            if entry:
-                name = entry.get_name()
-                result.append(name)
-            else:
-                # TODO: handle unknown code in stack
-                pass
-        return result
-
-    def record_tick(self, stack):
-        resolved_stack = self.resolve_and_filter_funcs(stack)
-        self.stacks.append(resolved_stack)
-        # self.bottom_up_tree.add_path(resolved_stack)
-        # self.top_down_tree.add_path(reversed(resolved_stack))
-
-    # TODO: move code. delete code, etc
-
-
-class V8LogReader(object):
-    def __init__(self, filename, parent_log):
-        self.log = parent_log.getChild(self.__class__.__name__)
-        self.filename = filename
-        self.fds = None
-        # aggregates
-        self.profile = V8Profile()
-        self.ticks = 0
-        self.current_time = 0
-        self.rests = []
-
-    def __open_fds(self):
-        if self.fds is None:
-            self.fds = open(self.filename)
-
-    def parse(self):
-        self.__open_fds()
-        reader = csv.reader(self.fds)
-        for row in reader:
-            row_name = row[0]
-            if row_name == 'code-creation':
-                self.process_code_creation(row)
-            elif row_name == 'tick':
-                self.process_tick(row)
-            elif row_name == 'current-time':
-                self.process_current_time(row)
-            elif row_name == 'shared-library':
-                self.process_shared_library(row)
-            else:
-                pass
-
-    def process_code_creation(self, args):
-        type = args[1]
-        kind = int(args[2], 16)
-        start_addr = int(args[3], 16)
-        size = int(args[4], 16)
-        name = args[5]
-        maybe_func = args[6:]
-        if maybe_func:
-            func_addr = int(maybe_func[0], 16)
-            opt_state = maybe_func[1]  # "" - compiled, "~" - optimizable, "*" - optimized
-            self.profile.add_func_code(type, name, start_addr, size, func_addr, opt_state)
-        else:
-            self.profile.add_code(type, name, start_addr, size)
-
-    def process_tick(self, args):
-        pc = int(args[1], 16)
-        ns_offset = int(args[2])
-        is_external_callback = int(args[3])
-        tos_or_external_callback = int(args[4], 16)
-        vm_state = int(args[5], 16)
-        stack = args[6:]
-
-        self.ticks += 1
-
-        if is_external_callback:
-            pc = tos_or_external_callback
-            tos_or_external_callback = 0
-        elif tos_or_external_callback:
-            func_entry = self.profile.find_entry(tos_or_external_callback)
-            if not func_entry or not isinstance(func_entry, DynamicFuncCodeEntry):
-                tos_or_external_callback = 0
-
-        processed_stack = self.process_stack(pc, tos_or_external_callback, stack)
-
-        entry = self.profile.find_entry(pc)
-        if entry:
-            entry.tick(processed_stack)
-
-        # logging.debug("%s -> %s", stack, processed_stack)
-        self.profile.record_tick(processed_stack)
-
-    def extract_shared_library_functions(self, filename, start, end):
-        command = 'nm -C -n "%s"; nm -C -n -D "%s"' % (filename, filename)
-        process = subprocess.Popen(command, shell=True,
-                                   stdout=subprocess.PIPE,
-                                   stderr=subprocess.STDOUT)
-        pipe = process.stdout
-
-        prev_entry = None
-
-        try:
-            for line in pipe:
-                row = re.match('^([0-9a-fA-F]{8}) . (.*)$', line)
-                if row:
-                    addr = int(row.group(1), 16)
-                    if addr < start and addr < end - start:
-                        addr += start
-                    name = row.group(2)
-                    yield addr, name
-                    self.cpp_entries.insert(addr, tickprocessor.CodeEntry(addr, row.group(2)))
-        finally:
-            pipe.close()
-
-    def process_shared_library(self, args):
-        name = args[1]
-        start_addr = int(args[2], 16)
-        end_addr = int(args[3], 16)
-        entry = self.profile.add_library(name, start_addr, end_addr)
-        # TODO: add static code cpp entries
-        for fun_name, fun_start, fun_end in self.extract_shared_library_functions(name, start_addr, end_addr):
-            self.profile.add_static_code(fun_name, fun_start, fun_end)
-
-    @staticmethod
-    def process_stack(pc, func, stack):
-        full_stack = [pc, func] if func else [pc]
-        prev_frame = pc
-        for frame in stack:
-            first_char = frame[0]
-            if first_char in "+-":
-                prev_frame += int(frame, 16)
-                full_stack.append(prev_frame)
-            elif first_char != "o":
-                full_stack.append(int(frame, 16))
-        return full_stack
-
-    def process_current_time(self, args):
-        self.current_time = int(args[1])
-
-
 class Metrics:
     PAGE_LOAD_TIME = 'load-page-time'
     DOM_CONTENT_LOADED_TIME = 'dom-content-loaded-time'
@@ -807,8 +343,6 @@ class MetricExtractor(object):
         self.events = defaultdict(dict)  # pid -> (ts -> event_name)
         self.xhr_requests = defaultdict(list)  # pid -> [(ts, url)]
         self.v8_complete_events = defaultdict(list)  # pid -> [(ts, name, duration)]
-        self.js_function_calls = defaultdict(list)  # pid -> [(ts, function name, duration)]
-        self.v8_cpu_profile = defaultdict(list)  # pid -> [(ts, event name, args)]
 
     def convert_ts(self, ts):
         if self.tracing_start_ts is not None:
@@ -856,19 +390,6 @@ class MetricExtractor(object):
             name = event['name']
             duration = event.get('dur', 1)
             self.v8_complete_events[pid].append((ts, name, duration))
-
-        if event.get("name") == "FunctionCall":
-            pid = event['pid']
-            ts = self.convert_ts(event['ts'])
-            function_name = event['args']['data']['functionName'] + ":" + event['args']['data']['scriptName']
-            duration = event.get('dur', event.get('tdur', 1))
-            self.js_function_calls[pid].append((ts, function_name, duration))
-        elif event.get("name") in ("JitCodeAdded", "JitCodeMoved", "V8Sample"):
-            pid = event['pid']
-            ts = self.convert_ts(event['ts'])
-            name = event["name"]
-            args = event["args"]
-            self.v8_cpu_profile[pid].append((ts, name, args))
 
     def process_user_timing_event(self, event):
         if event.get("name") == "loadEventStart":
@@ -1245,18 +766,74 @@ class MetricExtractor(object):
     def get_tab_label(self):
         return self.process_labels.get(self.tracing_tab_pid, self.tracing_tab_pid)
 
-    def get_js_function_call_stats(self):
-        fun_stats = dict()
-        names = set()
-        for _, name, duration in self.js_function_calls[self.tracing_tab_pid]:
-            if name not in fun_stats:
-                fun_stats[name] = {"calls": 0, "duration": 0.0}
-            fun_stats[name]["calls"] += 1
-            fun_stats[name]["duration"] += duration
-            names.add(name)
-        for name in names:
-            fun_stats[name]["duration"] /= 1000000
-        return fun_stats
+
+class CPUProfileReader(object):
+    "Reader for .cpuprofile files produced by Chrome"
+    def __init__(self, filename, parent_logger):
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.filename = filename
+        self.profile_start_time = 0
+        self.profile_end_time = 0
+        self.total_hit_count = 0
+
+    def _transform_profile_tree(self, root):
+        def compute_hit_count_for_subtree(tree):
+            return reduce(lambda acc, node: acc + compute_hit_count_for_subtree(node),
+                          tree['children'],
+                          tree['hitCount'])
+
+        def is_native_node(node):
+            return node.get("url") and node.get("url").startswith("native ")
+
+        self.total_hit_count = compute_hit_count_for_subtree(root)
+        sample_time = float(self.profile_end_time - self.profile_start_time) / self.total_hit_count
+
+        id_map = {root['id']: root['id']}
+        result_root = copy.deepcopy(root)
+        result_root["self"] = result_root["hitCount"] * sample_time
+        parent_node_stack = [result_root for _ in root['children']]
+        source_node_stack = root['children']
+        while source_node_stack:
+            parent_node = parent_node_stack.pop()
+            source_node = source_node_stack.pop()
+            target_node = copy.deepcopy(source_node)
+            target_node["self"] = target_node["hitCount"] * sample_time
+            if is_native_node(source_node):
+                parent_node['children'].append(target_node)
+                parent_node = target_node
+            else:
+                parent_node["self"] += target_node["self"]
+            id_map[source_node['id']] = target_node["id"]
+            parent_node_stack.extend([parent_node for _ in source_node['children']])
+            source_node_stack.extend(source_node['children'])
+        # self.samples = [id_map[sample] for sample in self.samples]
+        return result_root
+
+    def calculate_js_calls(self, root):
+        special_funs = ["(idle)", "(program)", "(garbage collector)", "(root)"]
+        func_entry = namedtuple("func_entry", "name, script, calls")
+        stack = [root]
+        hit_counts = {}
+        while stack:
+            node = stack.pop()
+            fun_name = node['functionName']
+            if fun_name and fun_name not in special_funs:
+                hit_count = node['hitCount'] or 1
+                if fun_name not in hit_counts:
+                    hit_counts[fun_name] = hit_count
+                else:
+                    hit_counts[fun_name] += hit_count
+            stack.extend(node['children'])
+        return hit_counts
+
+    def extract_js_calls(self):
+        with open(self.filename) as fds:
+            profile = json.load(fds)
+        head = profile["head"]
+        self.profile_start_time = profile["startTime"]
+        self.profile_end_time = profile["endTime"]
+        head = self._transform_profile_tree(head)
+        return self.calculate_js_calls(head)
 
 
 class ChromeClient(MonitoringClient):
@@ -1265,15 +842,21 @@ class ChromeClient(MonitoringClient):
 
     :type extractor: MetricExtractor
     :type reader: TraceJSONReader
+    :type cpuprofile_reader: CPUProfileReader
     :type engine: bzt.Engine
     """
-    def __init__(self, chrome_trace, parent_logger):
+    def __init__(self, trace_file, cpuprofile_file, parent_logger):
         super(ChromeClient, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
-        self.trace_file = chrome_trace
+        self.trace_file = trace_file
+        self.cpuprofile_file = cpuprofile_file
         self.trace_file_ctime = None
-        self.reader = TraceJSONReader(chrome_trace, self.log)
+        self.reader = TraceJSONReader(trace_file, self.log)
         self.extractor = MetricExtractor(self.log)
+        if cpuprofile_file:
+            self.cpuprofile_reader = CPUProfileReader(cpuprofile_file, self.log)
+        else:
+            self.cpuprofile_reader = None
         self.engine = None
         self.metric_cache = dict()
 
@@ -1350,7 +933,8 @@ class ChromeClient(MonitoringClient):
         return self.extractor.get_tab_label()
 
     def get_js_function_call_stats(self):
-        return self.extractor.get_js_function_call_stats()
+        if self.cpuprofile_reader is not None:
+            return self.cpuprofile_reader.extract_js_calls()
 
     def disconnect(self):
         pass
@@ -1402,9 +986,6 @@ class MetricReporter(Reporter):
         fun_stats = self.chrome_profiler.get_js_function_call_stats()
         if fun_stats:
             self.log.info("Top JS functions:")
-            lstats = [(name, stat) for name, stat in fun_stats.items()]
-            by_duration = sorted(lstats, key=lambda namestat: namestat[1]["duration"], reverse=True)
-            for name, stat in by_duration[:10]:
-                if len(name) > 60:
-                    name = name[:60] + "..."
-                self.log.info("%s: calls=%s, duration=%s", name, stat["calls"], stat["duration"])
+            stats = [(name, calls) for name, calls in fun_stats.items()]
+            for name, calls in sorted(stats, key=lambda fs: fs[1], reverse=True):
+                self.log.info("%s: calls=%s", name, calls)
