@@ -22,7 +22,7 @@ import time
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
-from bzt.modules.console import WidgetProvider, SidebarWidget
+from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.utils import BetterDict, TclLibrary, MirrorsManager, EXE_SUFFIX, dehumanize_time, get_full_path
 from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, shutdown_process, ensure_is_dict, is_windows
 
@@ -326,9 +326,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :return: bool
         :raise RuntimeWarning:
         """
-        if self.widget:
-            self.widget.update()
-
         self.retcode = self.process.poll()
 
         if not self.simulation_started:
@@ -397,7 +394,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 label = "Script: %s" % os.path.basename(self.script)
             else:
                 label = None
-            self.widget = SidebarWidget(self, label)
+            self.widget = ExecutorWidget(self, label)
         return self.widget
 
     def resource_files(self):

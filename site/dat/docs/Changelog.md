@@ -1,9 +1,12 @@
 # Changelog
 
-## 1.6.6 (next)
+## 1.6.6 <sup>08 aug 2016</sup>
  - optimize aggregator by removing excessive calls to `BetterDict.get()`
  - use JMeter Plugins Manager for installation of plugins
  - build installer for Windows to simplify installation process
+ - add Proxy2JMX service to convert tests from Selenium to JMeter format
+ - fix occasional crash from inconsistent API result for cloud test KPIs
+ - prefer user-supplied `download-link` over default download link for JMeter
 
 ## 1.6.5 <sup>12 jul 2016</sup>
  - fix master_id choosing for cloud reporting 

@@ -1,0 +1,15 @@
+#! /usr/local/bin/bzt
+---
+execution:
+  - executor: selenium
+    hold-for: 3m
+    scenario:
+      script: selenium1.java
+    locations:
+      us-west-1: 1
+
+modules:
+  selenium:
+    virtual-display:
+      width: 1024
+      height: 768

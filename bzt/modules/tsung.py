@@ -23,9 +23,9 @@ import traceback
 
 from bzt.engine import FileLister, Scenario, ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
-from bzt.modules.console import WidgetProvider, SidebarWidget
-from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time, which
+from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.six import etree, parse, iteritems
+from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time, which
 
 
 class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
@@ -111,9 +111,6 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.process = self.execute(args, stdout=self.__out, stderr=self.__err)
 
     def check(self):
-        if self.widget:
-            self.widget.update()
-
         ret_code = self.process.poll()
         if ret_code is None:
 
@@ -141,7 +138,7 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def get_widget(self):
         if not self.widget:
-            self.widget = SidebarWidget(self, self.tsung_controller_id)
+            self.widget = ExecutorWidget(self, self.tsung_controller_id)
         return self.widget
 
     def resource_files(self):
