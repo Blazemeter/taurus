@@ -809,22 +809,37 @@ class CPUProfileReader(object):
         # self.samples = [id_map[sample] for sample in self.samples]
         return result_root
 
-    def calculate_js_calls(self, root):
-        special_funs = ["(idle)", "(program)", "(garbage collector)", "(root)"]
-        func_entry = namedtuple("func_entry", "name, script, calls")
+    def build_js_stats(self, root):
+        special_funs = ["", "(idle)", "(program)", "(garbage collector)", "(root)"]
+        func_entry = namedtuple("func_entry", "name, url, line_no")
+
+        fun_stats = {}  # func_entry -> dict(ncalls, perc_time, ...)
         stack = [root]
-        hit_counts = {}
         while stack:
             node = stack.pop()
-            fun_name = node['functionName']
-            if fun_name and fun_name not in special_funs:
-                hit_count = node['hitCount'] or 1
-                if fun_name not in hit_counts:
-                    hit_counts[fun_name] = hit_count
-                else:
-                    hit_counts[fun_name] += hit_count
+            fun_key = func_entry(node['functionName'], node['url'], node['lineNumber'])
+            hit_count = node['hitCount'] or 1
+            if fun_key not in fun_stats:
+                fun_stats[fun_key] = {"ncalls": 0}
+            fun_stats[fun_key]["ncalls"] += hit_count
             stack.extend(node['children'])
-        return hit_counts
+
+        stats = {}
+        for func, stat in iteritems(fun_stats):
+            # skip special functions
+            if func.name in special_funs:
+                continue
+            # do not track functions that take occupy < 2% of total hits
+            if float(stat["ncalls"]) / self.total_hit_count <= 0.02:
+                continue
+            stat["perc_calls"] = "%.2f%%" % (float(stat["ncalls"]) / self.total_hit_count * 100)
+            stats[func] = stat
+
+        totals = {"hit_count": self.total_hit_count,
+                  "start_time": self.profile_start_time,
+                  "end_time": self.profile_end_time}
+
+        return stats, totals
 
     def extract_js_calls(self):
         with open(self.filename) as fds:
@@ -833,7 +848,7 @@ class CPUProfileReader(object):
         self.profile_start_time = profile["startTime"]
         self.profile_end_time = profile["endTime"]
         head = self._transform_profile_tree(head)
-        return self.calculate_js_calls(head)
+        return self.build_js_stats(head)
 
 
 class ChromeClient(MonitoringClient):
@@ -983,9 +998,11 @@ class MetricReporter(Reporter):
                     url = url[:60] + "..."
                 self.log.info("%s: %s", epoch_to_str(ts), url)
 
-        fun_stats = self.chrome_profiler.get_js_function_call_stats()
-        if fun_stats:
-            self.log.info("Top JS functions:")
-            stats = [(name, calls) for name, calls in fun_stats.items()]
-            for name, calls in sorted(stats, key=lambda fs: fs[1], reverse=True):
-                self.log.info("%s: calls=%s", name, calls)
+        js_stats = self.chrome_profiler.get_js_function_call_stats()
+        if js_stats:
+            call_stats, totals = js_stats
+            self.log.info("JS function calls:")
+            stats = [(func, calls) for func, calls in iteritems(call_stats)]
+            for func, stat in sorted(stats, key=lambda fs: fs[1], reverse=True):
+                self.log.info("%s (%s:%s) : ncalls=%s, perc_calls=%s", func.name, func.url, func.line_no,
+                              stat["ncalls"], stat["perc_calls"])

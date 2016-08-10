@@ -1,9 +1,9 @@
 import logging
 import shutil
 
-from bzt.modules.chrome import ChromeProfiler, Metrics, V8LogReader
+from bzt.modules.chrome import ChromeProfiler, Metrics, CPUProfileReader
 from bzt.modules.monitoring import MonitoringListener
-from bzt.six import StringIO
+from bzt.six import iteritems
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul
 
@@ -98,40 +98,13 @@ class TestChromeProfiler(BZTestCase):
         self.assertAlmostEqual(js_cpu[2][Metrics.JS_CPU_UTILIZATION], 132.4, delta=0.1)
         self.assertAlmostEqual(js_cpu[-1][Metrics.JS_CPU_UTILIZATION], 1.6, delta=0.1)
 
-    def test_profile_parsing(self):
-        obj = V8LogReader(__dir__() + "/../chrome/factorial.profile", logging.getLogger())
-        obj.parse()
-
-        profile = obj.profile
-        codemap = profile.codemap
-        tree = codemap.dynamics
-
-        for stack in profile.stacks:
-            logging.debug(stack)
-
-        pass
-
-    def test_profile_parser(self):
-        lines = [
-            'code-creation,LazyCompile,0,0x2904d560,876,"Instantiate native apinatives.js:9:21",0x56b190c8,~',
-            'code-creation,LazyCompile,0,0x2905d0c0,1800,"InstantiateFunction native apinatives.js:26:29",0x56b19124,',
-            'tick,0x7fd7f75c,518328,0,0x81d86da8,2,0x2904d6e8',
-            'tick,0x7fc6fe34,528674,0,0x3,0,0x2905d304,0x2904d6e8',
-            'tick,0x7fd2a534,536213,0,0x81d8d080,0,0x2905d304,0x2904d6e8',
-            'code-creation,Script,0,0x2906a7c0,792,"http://www.google.com/",0x5b12fe50,~',
-            'tick,0xb6f51d30,794049,0,0xb6f7b368,2,0x2906a914',
-            'tick,0xb6f51d30,799146,0,0xb6f7b368,0,0x2906a914'
-        ]
-        buff = StringIO("\n".join(lines))
-        obj = V8LogReader("dummy", logging.getLogger())
-        obj.fds = buff
-        obj.parse()
-
-        profile = obj.profile
-        codemap = profile.codemap
-        tree = codemap.dynamics
-
-        pass
+    def test_cpuprofile_reader(self):
+        obj = CPUProfileReader(__dir__() + "/../chrome/js.cpuprofile", logging.getLogger())
+        stats, totals = obj.extract_js_calls()
+        self.assertEqual(len(stats), 5)
+        snowflake = next(stat for func, stat in iteritems(stats) if func.name == "drawSnowflake")
+        self.assertEqual(snowflake["ncalls"], 1116)
+        self.assertEqual(snowflake["perc_calls"], "22.48%")
 
 
 class RecordingListener(MonitoringListener):
