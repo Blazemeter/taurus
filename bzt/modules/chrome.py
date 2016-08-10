@@ -90,6 +90,7 @@ class ChromeProfiler(Monitoring):
         dom_rows = []
         http_rows = []
         ajax_rows = []
+        js_trace_rows = []
 
         metrics = self.get_aggr_metrics()
         for metric, value in iteritems(metrics):
@@ -132,6 +133,18 @@ class ChromeProfiler(Monitoring):
                 row["URL"] = url
                 ajax_rows.append(row)
 
+        js_stats = self.get_js_function_call_stats()
+        if js_stats:
+            call_stats, totals = js_stats
+            stats = [(func, calls) for func, calls in iteritems(call_stats)]
+            for func, stat in sorted(stats, key=lambda fs: fs[1], reverse=True):
+                row = OrderedDict()
+                row["Function"] = func.name
+                row["Source"] = "%s:%s" % (func.url, func.line_no)
+                row["Calls"] = stat["ncalls"]
+                row["Call percentage"] = stat["perc_calls"]
+                js_trace_rows.append(row)
+
         tables = []
         if times_rows:
             tables.append({"id": "Time", "name": "Load Time Metrics",
@@ -157,6 +170,11 @@ class ChromeProfiler(Monitoring):
             tables.append({"id": "AJAX", "name": "AJAX Requests",
                            "description": "AJAX requests made by page",
                            "data": ajax_rows})
+
+        if js_trace_rows:
+            tables.append({"id": "JSTrace", "name": "JavaScript Function Calls",
+                           "description": "JavaScript function call stats",
+                           "data": js_trace_rows})
 
         return {
             "tables": tables
@@ -271,12 +289,12 @@ class Metrics:
         FULL_LOAD_TIME: "Time to full page load",
         FIRST_PAINT_TIME: "Time to first paint",
 
-        MEMORY_TAB: "Memory consumption of a tab",
-        MEMORY_BROWSER: "Memory consumption of a browser",
-        MEMORY_JS_HEAP: "Memory allocated by JS engine",
+        MEMORY_TAB: "Tab memory consumption",
+        MEMORY_BROWSER: "Browser memory consumption",
+        MEMORY_JS_HEAP: "JS heap size",
 
-        NETWORK_FOOTPRINT: "Network footprint of a page",
-        NETWORK_REQUESTS: "Number of HTTP requests (including AJAX)",
+        NETWORK_FOOTPRINT: "Network footprint",
+        NETWORK_REQUESTS: "Number of HTTP requests",
         NETWORK_XHR_REQUESTS: "Number of AJAX requests",
         NETWORK_TTFB: "Time to first byte",
 
