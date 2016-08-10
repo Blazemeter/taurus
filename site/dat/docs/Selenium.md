@@ -73,7 +73,7 @@ execution:
   scenario: simple
   
 scenarios: 
-  simple
+  simple:
     script: /home/user/folder/
 ```
 
