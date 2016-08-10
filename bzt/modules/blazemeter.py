@@ -154,7 +154,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
                         msg = "File %s exceeds maximum size quota of %s and won't be included into upload"
                         self.log.warning(msg, filename, max_file_size)
 
-            for filename in logs:
+            for filename in logs:   # upload logs unconditionally
                 zfh.write(filename, os.path.basename(filename))
         return mfile
 
