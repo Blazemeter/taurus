@@ -153,8 +153,12 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         :return:
         """
         if self.client.token:
-            worker_index = os.environ.get('TAURUS_INDEX_ALL', 'no_index')
-            artifacts_zip = "artifacts.%s.zip" % worker_index
+            worker_index = self.engine.config.get('modules').get('shellexec').get('env').get('TAURUS_INDEX_ALL', '')
+            if worker_index:
+                suffix = '-' + worker_index
+            else:
+                suffix = ''
+            artifacts_zip = "artifacts%s.zip" % suffix
             mfile = self.__get_jtls_and_more()
             self.log.info("Uploading all artifacts as %s ...", artifacts_zip)
             self.client.upload_file(artifacts_zip, mfile.getvalue())
@@ -164,7 +168,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
                     fname = logging.FileHandler
                     self.log.info("Uploading %s", fname)
                     fhead, ftail = os.path.split(fname)
-                    modified_name = '.'.join([fhead, worker_index, ftail])
+                    modified_name = fhead + suffix + ftail
                     with open(fname) as _file:
                         self.client.upload_file(modified_name, _file.read())
                     # TODO: final tail upload here
