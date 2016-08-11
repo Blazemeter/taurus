@@ -83,6 +83,7 @@ scenarios:
     default-address: http://blazedemo.com
     timeout: 10s  # important setting, affects for how long its workers are busy with request
     script: payload.src
+    keepalive: true # set HTTP connection reuse (true is default)
 ```
 
 Where `payload.src` is a file of following format:
