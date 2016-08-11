@@ -291,8 +291,10 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         if scenario.get('timeout', None) is not None:
             params_for_scala['gatling.http.ahc.requestTimeout'] = int(dehumanize_time(scenario.get('timeout')) * 1000)
-        if scenario.get('keepalive', None) is not None:
-            params_for_scala['gatling.http.ahc.keepAlive'] = scenario.get('keepalive').lower()
+        if scenario.get('keepalive', True):
+            params_for_scala['gatling.http.ahc.keepAlive'] = 'true'
+        else:
+            params_for_scala['gatling.http.ahc.keepAlive'] = 'false'
         if load.concurrency is not None:
             params_for_scala['concurrency'] = load.concurrency
         if load.ramp_up is not None:

@@ -2,6 +2,7 @@
 ## 1.6.7 (next)
  - add worker id to cloud log file names
  - add `cloud` and `local` aliases 
+ - fix Gatling keepalive type cast bug
 
 ## 1.6.6 <sup>08 aug 2016</sup>
  - optimize aggregator by removing excessive calls to `BetterDict.get()`
