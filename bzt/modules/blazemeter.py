@@ -1238,7 +1238,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
     def check(self):
         # TODO: throttle down requests
         if self.detach:
-            self.log.info('Detach mode: stop Taurus after test initiate...')
+            self.log.warning('Detaching Taurus from started test...')
             return True
         try:
             master = self.client.get_master_status()

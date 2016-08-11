@@ -163,6 +163,13 @@
     "cloud": {
       "provisioning": "cloud"
     },
+    "detach": {
+      "modules": {
+        "cloud": {
+          "detach": true
+        }
+      }
+    },
     "locations": {
       "provisioning": "cloud",
       "modules": {
