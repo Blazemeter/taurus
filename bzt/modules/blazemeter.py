@@ -34,7 +34,6 @@ from bzt import ManualShutdown
 from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
-from bzt.modules.jmeter import JMeterExecutor
 from bzt.modules.monitoring import Monitoring, MonitoringListener
 from bzt.modules.services import Unpacker
 from bzt.six import BytesIO, text_type, iteritems, HTTPError, urlencode, Request, urlopen, r_input, URLError
@@ -1232,7 +1231,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         super(CloudProvisioning, self).startup()
         self.client.start_taurus(self.test_id)
         self.log.info("Started cloud test: %s", self.client.results_url)
-        if not self.detach and self.client.results_url:
+        if self.client.results_url:
             if self.browser_open in ('start', 'both'):
                 open_browser(self.client.results_url)
 
@@ -1272,9 +1271,9 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
     def post_process(self):
         if not self.detach:
             self.client.end_master()
-            if self.client.results_url:
-                if self.browser_open in ('end', 'both'):
-                    open_browser(self.client.results_url)
+        if self.client.results_url:
+            if self.browser_open in ('end', 'both'):
+                open_browser(self.client.results_url)
 
     def weight_locations(self, locations, load, available_locations):
         total = float(sum(locations.values()))

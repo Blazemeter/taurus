@@ -114,7 +114,7 @@ class TestCloudProvisioning(BZTestCase):
         obj.prepare()
         self.assertEquals(1, obj.executors[0].execution['locations']['us-west-1'])
 
-    def test_aaskip_reporting(self):
+    def test_skip_reporting(self):
         obj = CloudProvisioning()
         obj.engine = EngineEmul()
         obj.engine.config.merge({
