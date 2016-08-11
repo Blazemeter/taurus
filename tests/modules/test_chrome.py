@@ -101,7 +101,7 @@ class TestChromeProfiler(BZTestCase):
     def test_cpuprofile_reader(self):
         obj = CPUProfileReader(__dir__() + "/../chrome/js.cpuprofile", logging.getLogger())
         stats = obj.extract_js_call_stats()
-        self.assertEqual(len(stats), 5)
+        self.assertEqual(len(stats), 29)
         snowflake = next(stat for func, stat in iteritems(stats) if func.name == "drawSnowflake")
         self.assertEqual(snowflake["ncalls"], 1116)
         self.assertEqual(snowflake["perc_calls"], "22.48%")

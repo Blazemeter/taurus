@@ -139,7 +139,8 @@ class ChromeProfiler(Monitoring):
         if js_stats:
             call_stats = js_stats
             stats = [(func, calls) for func, calls in iteritems(call_stats)]
-            for func, stat in sorted(stats, key=lambda fs: fs[1], reverse=True):
+            counter = 0
+            for func, stat in sorted(stats, key=lambda fs: fs[1]["total_time"], reverse=True):
                 row = OrderedDict()
                 row["Function"] = func.name
                 row["Source"] = func.url
@@ -149,6 +150,9 @@ class ChromeProfiler(Monitoring):
                 row["Self time"] = stat["self_time"]
                 row["Self percentage"] = stat["perc_self"]
                 js_trace_rows.append(row)
+                counter += 1
+                if counter >= 100:
+                    break
 
         tables = []
         if times_rows:
@@ -792,9 +796,9 @@ class MetricExtractor(object):
 
 class CPUProfileReader(object):
     "Reader for .cpuprofile files produced by Chrome"
-    def __init__(self, filename, parent_logger):
+    def __init__(self, profile_file, parent_logger):
         self.log = parent_logger.getChild(self.__class__.__name__)
-        self.filename = filename
+        self.profile_file = profile_file
         self.profile_start_time = 0
         self.profile_end_time = 0
         self.total_hit_count = 0
@@ -1011,9 +1015,6 @@ class CPUProfileReader(object):
             # skip special functions
             if func.name in special_funs:
                 continue
-            # do not track functions that take occupy < 2% of total hits
-            if float(stat["ncalls"]) / self.total_hit_count <= 0.02:
-                continue
             stat["perc_calls"] = "%.2f%%" % (float(stat["ncalls"]) / self.total_hit_count * 100)
             stats[func] = stat
 
@@ -1042,8 +1043,8 @@ class CPUProfileReader(object):
 
         return stats
 
-    def prepare(self):
-        with open(self.filename) as fds:
+    def process_cpuprofile(self):
+        with open(self.profile_file) as fds:
             profile = json.load(fds)
         head = profile["head"]
         self.profile_start_time = profile["startTime"]
@@ -1060,7 +1061,10 @@ class CPUProfileReader(object):
             self._normalize_timestamps()
 
     def extract_js_call_stats(self):
-        self.prepare()
+        if not path.exists(self.profile_file):
+            self.log.warning("CPU profile file doesn't exist, can't extract call stats")
+            return None
+        self.process_cpuprofile()
         call_number_stats = self.build_call_number_stats()
         call_time_stats = self.build_call_time_stats()
         stats = {}
@@ -1197,13 +1201,16 @@ class MetricReporter(Reporter):
         metrics = self.chrome_profiler.get_aggr_metrics()
         if metrics is not None:
             tab_label = self.chrome_profiler.get_tab_label()
-            self.log.info("Chrome metrics for tab '%s':", tab_label)
-            for metric in sorted(metrics):
-                label = Metrics.metric_label(metric)
-                self.log.info("%s = %s", label, metrics[metric])
+            if tab_label is not None:
+                self.log.info("Chrome metrics for tab '%s':", tab_label)
+                self.log.info("")
+                for metric in sorted(metrics):
+                    label = Metrics.metric_label(metric)
+                    self.log.info("%s = %s", label, metrics[metric])
 
         requests = self.chrome_profiler.get_requests_stats()
         if requests:
+            self.log.info("")
             self.log.info("HTTP requests:")
             for req in sorted(requests, key=lambda r: r.get("send_req_time")):
                 start_time = req.get("send_req_time")
@@ -1217,6 +1224,7 @@ class MetricReporter(Reporter):
 
         ajax_requests = self.chrome_profiler.get_ajax_stats()
         if ajax_requests:
+            self.log.info("")
             self.log.info("AJAX requests:")
             for ts, url in sorted(ajax_requests):
                 if len(url) > 60:
@@ -1226,9 +1234,14 @@ class MetricReporter(Reporter):
         js_stats = self.chrome_profiler.get_js_function_call_stats()
         if js_stats:
             call_stats = js_stats
-            self.log.info("JS function calls:")
+            self.log.info("")
+            self.log.info("Longest JS function calls (first 20):")
             stats = [(func, calls) for func, calls in iteritems(call_stats)]
-            for func, stat in sorted(stats, key=lambda fs: fs[1], reverse=True):
+            counter = 0
+            for func, stat in sorted(stats, key=lambda fs: fs[1]["total_time"], reverse=True):
                 tmpl = "%s (%s) : ncalls=%s, perc_calls=%s, total_time=%s, self_time=%s, perc_self=%s"
                 self.log.info(tmpl, func.name, func.url, stat["ncalls"], stat["perc_calls"],
                               stat["total_time"], stat["self_time"], stat["perc_self"])
+                counter += 1
+                if counter >= 20:
+                    break
