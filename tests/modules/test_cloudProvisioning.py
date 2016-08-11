@@ -51,6 +51,43 @@ class TestCloudProvisioning(BZTestCase):
         obj.shutdown()
         obj.post_process()
 
+    def test_detach(self):
+        obj = CloudProvisioning()
+        obj.engine = EngineEmul()
+        obj.engine.config.merge({
+            ScenarioExecutor.EXEC: {
+                "executor": "mock",
+                "concurrency": 55,
+                "locations": {
+                    "us-east-1": 1,
+                    "us-west": 2
+                }
+            },
+            "modules": {
+                "mock": ModuleMock.__module__ + "." + ModuleMock.__name__
+            },
+            "provisioning": "mock"
+        })
+        obj.parameters = obj.engine.config['execution']
+
+        obj.settings["token"] = "FakeToken"
+        obj.settings["detach"] = True
+        obj.client = client = BlazeMeterClientEmul(obj.log)
+        client.results.append(self.__get_user_info())  # user
+        client.results.append({"result": []})  # tests
+        client.results.append({"result": {"id": id(client)}})  # create test
+        client.results.append({"files": []})  # create test
+        client.results.append({})  # upload files
+        client.results.append({"result": {"id": id(obj)}})  # start
+
+        obj.prepare()
+        self.assertEqual(1, len(client.results))
+        obj.startup()
+        self.assertEqual([], client.results)
+        obj.check()
+        obj.shutdown()
+        obj.post_process()
+
     def test_no_settings(self):
         obj = CloudProvisioning()
         obj.engine = EngineEmul()

@@ -17,9 +17,10 @@ modules:
     token: ******  # API key
     timeout: 10s  # BlazeMeter API client timeout
     browser-open: start  # auto-open browser on test start/end/both/none
+    detach: false   # run cloud test and exit
 ```
 
-All folders among your resource files (scripts) will be packed automatically before sending and unpacked on cloud workers with `unpacker` service.  
+All folders among your resource files (scripts) will be packed automatically before sending and unpacked on cloud workers with `unpacker` service. `detach` attribute lets you stop Taurus without waiting for test results.  
 
 ## Load Settings for Cloud
 
