@@ -1069,6 +1069,8 @@ class CPUProfileReader(object):
         call_time_stats = self.build_call_time_stats()
         stats = {}
         for func in call_number_stats:
+            if func not in call_time_stats:
+                continue
             num_stat = call_number_stats[func]
             time_stat = call_time_stats[func]
             self_time = time_stat["self_time"] / 1000000
