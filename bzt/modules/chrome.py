@@ -13,6 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import bisect
 import copy
 import json
 import re
@@ -136,14 +137,17 @@ class ChromeProfiler(Monitoring):
 
         js_stats = self.get_js_function_call_stats()
         if js_stats:
-            call_stats, totals = js_stats
+            call_stats = js_stats
             stats = [(func, calls) for func, calls in iteritems(call_stats)]
             for func, stat in sorted(stats, key=lambda fs: fs[1], reverse=True):
                 row = OrderedDict()
                 row["Function"] = func.name
-                row["Source"] = "%s:%s" % (func.url, func.line_no)
+                row["Source"] = func.url
                 row["Calls"] = stat["ncalls"]
                 row["Call percentage"] = stat["perc_calls"]
+                row["Total time"] = stat["total_time"]
+                row["Self time"] = stat["self_time"]
+                row["Self percentage"] = stat["perc_self"]
                 js_trace_rows.append(row)
 
         tables = []
@@ -872,6 +876,14 @@ class CPUProfileReader(object):
             self._id_to_node[node["id"]] = node
             stack.extend(node["children"])
 
+    @staticmethod
+    def _lower_bound(value, values):
+        index = bisect.bisect_left(values, value)
+        if index > 0:
+            return index - 1
+        else:
+            return index
+
     def _extract_meta_nodes(self):
         toplevel_nodes = self.head["children"]
         gc_node = program_node = idle_node = None
@@ -894,21 +906,16 @@ class CPUProfileReader(object):
         samples = self.samples
         timestamps = self.timestamps
         id_to_node = self._id_to_node
-        gc_node = self.gc_node
         samples_count = len(self.samples)
-        start_index = min(timestamps)  # TODO: minimal timestamp that is greater that start_time
+        start_index = self._lower_bound(start_time, timestamps) # TODO: minimal timestamp that is greater that start_time
         stack_top = 0
         stack_nodes = []
         prev_id = self.head["id"]
-        sample_time = timestamps[samples_count]
-        gc_parent_node = None
-
-        node = None
 
         self.stack_start_times = [0.0] * (self.max_depth + 2)
         self.stack_children_duration = [0.0] * (self.max_depth + 2)
 
-        for sample_index in range(start_index, samples_count):
+        for sample_index in range(start_index, samples_count, 1):
             sample_time = timestamps[sample_index]
             if sample_time >= stop_time:
                 break
@@ -917,25 +924,6 @@ class CPUProfileReader(object):
                 continue
             node = id_to_node[id]
             prev_node = id_to_node[prev_id]
-
-            if node == gc_node:
-                gc_parent_node = prev_node
-                open_frame_cb(gc_parent_node.depth + 1, gc_node, sample_time)
-                stack_top += 1
-                self.stack_start_times[stack_top] = sample_time
-                self.stack_children_duration[stack_top] = 0.0
-                prev_id = id
-                continue
-
-            if prev_node == gc_node:
-                start = self.stack_start_times[stack_top]
-                duration = sample_time - start
-                self.stack_children_duration[stack_top - 1] += duration
-                close_frame_cb(gc_parent_node.depth + 1, gc_node, start, duration, duration - self.stack_children_duration[stack_top])
-                stack_top -= 1
-                prev_node = gc_parent_node
-                prev_id = prev_node["id"]
-                gc_parent_node = None
 
             while node["depth"] > prev_node["depth"]:
                 stack_nodes.append(node)
@@ -961,21 +949,6 @@ class CPUProfileReader(object):
 
             prev_id = id
 
-        if id_to_node[prev_id] == gc_node:
-            start = self.stack_start_times[stack_top]
-            duration = sample_time - start
-            self.stack_children_duration[stack_top - 1] += duration
-            close_frame_cb(gc_parent_node["depth"] + 1, node, start, duration, duration - self.stack_children_duration[stack_top])
-            stack_top -= 1
-
-        node = id_to_node[prev_id]
-        while node["parent"]:
-            start = self.stack_start_times[stack_top]
-            duration = sample_time - start
-            self.stack_children_duration[stack_top - 1] += duration
-            close_frame_cb(node["depth"], node, start, duration, duration - self.stack_children_duration[stack_top])
-            stack_top -= 1
-
     def _calculate_totals(self, root):
         root["total"] = reduce(lambda acc, node: acc + self._calculate_totals(node),
                                root["children"],
@@ -1000,15 +973,33 @@ class CPUProfileReader(object):
                 if child["children"]:
                     nodes_to_traverse.append(child)
 
-    def build_js_stats(self):
+    def _calculate_timeline(self):
+        timeline = []
+        stack = []
+        self.__max_depth = 5
+
+        def on_open_frame(depth, node, sample_time):
+            stack.append(len(timeline))
+            timeline.append(None)
+
+        def on_close_frame(depth, node, start_time, total_time, self_time):
+            index = stack.pop()
+            timeline[index] = dict(depth=depth, node=node, start_time=start_time, total_time=total_time, self_time=self_time)
+            self.__max_depth = max(self.__max_depth, depth)
+
+        self._for_each_frame(on_open_frame, on_close_frame)
+
+        return timeline
+
+    def build_call_number_stats(self):
         special_funs = ["", "(idle)", "(program)", "(garbage collector)", "(root)"]
-        func_entry = namedtuple("func_entry", "name, url, line_no")
+        func_entry = namedtuple("func_entry", "name, url")
 
         fun_stats = {}  # func_entry -> dict(ncalls, perc_time, ...)
         stack = [self.head]
         while stack:
             node = stack.pop()
-            fun_key = func_entry(node['functionName'], node['url'], node['lineNumber'])
+            fun_key = func_entry(node['functionName'], node['url'])
             hit_count = node['hitCount'] or 1
             if fun_key not in fun_stats:
                 fun_stats[fun_key] = {"ncalls": 0}
@@ -1026,32 +1017,30 @@ class CPUProfileReader(object):
             stat["perc_calls"] = "%.2f%%" % (float(stat["ncalls"]) / self.total_hit_count * 100)
             stats[func] = stat
 
-        totals = {"hit_count": self.total_hit_count,
-                  "start_time": self.profile_start_time,
-                  "end_time": self.profile_end_time}
+        return stats
 
-        return stats, totals
+    def build_call_time_stats(self):
+        special_funs = ["", "(idle)", "(program)", "(garbage collector)", "(root)"]
+        func_entry = namedtuple("func_entry", "name, url")
+        timeline = self._calculate_timeline()
 
-    def calculate_timeline(self):
-        self.prepare()
+        stats = {}
 
-        entries = []
-        stack = []
-        max_depth = 5
+        for item in timeline:
+            if item is None:
+                continue
+            node = item["node"]
+            func = func_entry(node["functionName"], node["url"])
+            if func.name is special_funs:
+                continue
+            self_time = item["self_time"]
+            total_time = item["total_time"]
+            if func not in stats:
+                stats[func] = {"self_time": 0.0, "total_time": 0.0}
+            stats[func]["self_time"] += self_time
+            stats[func]["total_time"] += total_time
 
-        def on_open_frame():
-            stack.append(len(entries))
-            entries.append(None)
-
-        def on_close_frame(depth, node, start_time, total_time, self_time):
-            global max_depth
-            index = stack.pop()
-            entries[index] = dict(depth=depth, node=node, start_time=start_time, total_time=total_time, self_time=self_time)
-            max_depth = max(max_depth, depth)
-
-        self._for_each_frame(on_open_frame, on_close_frame)
-
-        return entries
+        return stats
 
     def prepare(self):
         with open(self.filename) as fds:
@@ -1070,9 +1059,21 @@ class CPUProfileReader(object):
             self._sort_samples()
             self._normalize_timestamps()
 
-    def extract_js_calls(self):
+    def extract_js_call_stats(self):
         self.prepare()
-        return self.build_js_stats()
+        call_number_stats = self.build_call_number_stats()
+        call_time_stats = self.build_call_time_stats()
+        stats = {}
+        for func in call_number_stats:
+            num_stat = call_number_stats[func]
+            time_stat = call_time_stats[func]
+            self_time = time_stat["self_time"] / 1000000
+            total_time = time_stat["total_time"] / 1000000
+            perc_self = "%.2f%%" % (self_time / total_time * 100)
+            stats[func] = {"ncalls": num_stat["ncalls"], "perc_calls": num_stat["perc_calls"],
+                           "self_time": self_time, "total_time": total_time, "perc_self": perc_self}
+
+        return stats
 
 
 class ChromeClient(MonitoringClient):
@@ -1173,7 +1174,7 @@ class ChromeClient(MonitoringClient):
 
     def get_js_function_call_stats(self):
         if self.cpuprofile_reader is not None:
-            return self.cpuprofile_reader.extract_js_calls()
+            return self.cpuprofile_reader.extract_js_call_stats()
 
     def disconnect(self):
         pass
@@ -1224,9 +1225,10 @@ class MetricReporter(Reporter):
 
         js_stats = self.chrome_profiler.get_js_function_call_stats()
         if js_stats:
-            call_stats, totals = js_stats
+            call_stats = js_stats
             self.log.info("JS function calls:")
             stats = [(func, calls) for func, calls in iteritems(call_stats)]
             for func, stat in sorted(stats, key=lambda fs: fs[1], reverse=True):
-                self.log.info("%s (%s:%s) : ncalls=%s, perc_calls=%s", func.name, func.url, func.line_no,
-                              stat["ncalls"], stat["perc_calls"])
+                tmpl = "%s (%s) : ncalls=%s, perc_calls=%s, total_time=%s, self_time=%s, perc_self=%s"
+                self.log.info(tmpl, func.name, func.url, stat["ncalls"], stat["perc_calls"],
+                              stat["total_time"], stat["self_time"], stat["perc_self"])

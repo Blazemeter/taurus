@@ -100,11 +100,14 @@ class TestChromeProfiler(BZTestCase):
 
     def test_cpuprofile_reader(self):
         obj = CPUProfileReader(__dir__() + "/../chrome/js.cpuprofile", logging.getLogger())
-        stats, totals = obj.extract_js_calls()
+        stats = obj.extract_js_call_stats()
         self.assertEqual(len(stats), 5)
         snowflake = next(stat for func, stat in iteritems(stats) if func.name == "drawSnowflake")
         self.assertEqual(snowflake["ncalls"], 1116)
         self.assertEqual(snowflake["perc_calls"], "22.48%")
+        self.assertAlmostEqual(snowflake["total_time"], 1.84, delta=0.01)
+        self.assertAlmostEqual(snowflake["self_time"], 1.20, delta=0.01)
+        self.assertEqual(snowflake["perc_self"], "65.29%")
 
 
 class RecordingListener(MonitoringListener):
