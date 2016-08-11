@@ -87,11 +87,17 @@ class Local(Provisioning):
 
         self._start_modules()
         for executor in self.executors:
-            if executor in self.engine.started and executor not in self.finished_modules:
-                if executor.check():
-                    self.finished_modules.append(executor)
-                else:
-                    finished = False
+            if executor in self.finished_modules:
+                continue
+
+            if executor not in self.engine.started:
+                finished = False
+                continue
+
+            if executor.check():
+                self.finished_modules.append(executor)
+            else:
+                finished = False
 
         return finished
 
