@@ -1202,8 +1202,8 @@ class MetricReporter(Reporter):
         if metrics is not None:
             tab_label = self.chrome_profiler.get_tab_label()
             if tab_label is not None:
-                self.log.info("Chrome metrics for tab '%s':", tab_label)
                 self.log.info("")
+                self.log.info("Chrome metrics for tab '%s':", tab_label)
                 for metric in sorted(metrics):
                     label = Metrics.metric_label(metric)
                     self.log.info("%s = %s", label, metrics[metric])
@@ -1212,7 +1212,7 @@ class MetricReporter(Reporter):
         if requests:
             self.log.info("")
             self.log.info("HTTP requests:")
-            for req in sorted(requests, key=lambda r: r.get("send_req_time")):
+            for index, req in enumerate(sorted(requests, key=lambda r: r.get("send_req_time")), 1):
                 start_time = req.get("send_req_time")
                 method = req.get("method")
                 url = req.get("url")
@@ -1220,16 +1220,17 @@ class MetricReporter(Reporter):
                 if all([start_time, method, url, status]):
                     if len(url) > 50:
                         url = url[:50] + "..."
-                    self.log.info("%s: %s %s - %s", epoch_to_str(start_time), method, url, status)
+                    self.log.info("%s. %s: %s %s - %s", index, epoch_to_str(start_time), method, url, status)
 
         ajax_requests = self.chrome_profiler.get_ajax_stats()
         if ajax_requests:
             self.log.info("")
             self.log.info("AJAX requests:")
-            for ts, url in sorted(ajax_requests):
+            for index, req in enumerate(sorted(ajax_requests), 1):
+                ts, url = req
                 if len(url) > 60:
                     url = url[:60] + "..."
-                self.log.info("%s: %s", epoch_to_str(ts), url)
+                self.log.info("%s. %s: %s", index, epoch_to_str(ts), url)
 
         js_stats = self.chrome_profiler.get_js_function_call_stats()
         if js_stats:
@@ -1237,11 +1238,10 @@ class MetricReporter(Reporter):
             self.log.info("")
             self.log.info("Longest JS function calls (first 20):")
             stats = [(func, calls) for func, calls in iteritems(call_stats)]
-            counter = 0
-            for func, stat in sorted(stats, key=lambda fs: fs[1]["total_time"], reverse=True):
-                tmpl = "%s (%s) : ncalls=%s, perc_calls=%s, total_time=%s, self_time=%s, perc_self=%s"
-                self.log.info(tmpl, func.name, func.url, stat["ncalls"], stat["perc_calls"],
+            for index, funcstat in enumerate(sorted(stats, key=lambda fs: fs[1]["total_time"], reverse=True), 1):
+                func, stat = funcstat
+                tmpl = "%s. %s (%s) : ncalls=%s, perc_calls=%s, total_time=%s, self_time=%s, perc_self=%s"
+                self.log.info(tmpl, index, func.name, func.url, stat["ncalls"], stat["perc_calls"],
                               stat["total_time"], stat["self_time"], stat["perc_self"])
-                counter += 1
-                if counter >= 20:
+                if index >= 20:
                     break
