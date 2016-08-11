@@ -34,7 +34,6 @@ from bzt import ManualShutdown
 from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
-from bzt.modules.jmeter import JMeterExecutor
 from bzt.modules.monitoring import Monitoring, MonitoringListener
 from bzt.modules.services import Unpacker
 from bzt.six import BytesIO, text_type, iteritems, HTTPError, urlencode, Request, urlopen, r_input, URLError
@@ -1099,6 +1098,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.__last_master_status = None
         self.browser_open = 'start'
         self.widget = None
+        self.detach = False
 
     def prepare(self):
         if self.settings.get("dump-locations", False):
@@ -1113,6 +1113,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
         super(CloudProvisioning, self).prepare()
         self.browser_open = self.settings.get("browser-open", self.browser_open)
+        self.detach = self.settings.get("detach", self.detach)
         self._configure_client()
         self.__prepare_locations()
         rfiles = self.get_rfiles()
@@ -1236,6 +1237,9 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
     def check(self):
         # TODO: throttle down requests
+        if self.detach:
+            self.log.warning('Detaching Taurus from started test...')
+            return True
         try:
             master = self.client.get_master_status()
         except URLError:
@@ -1265,7 +1269,8 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         return super(CloudProvisioning, self).check()
 
     def post_process(self):
-        self.client.end_master()
+        if not self.detach:
+            self.client.end_master()
         if self.client.results_url:
             if self.browser_open in ('end', 'both'):
                 open_browser(self.client.results_url)
