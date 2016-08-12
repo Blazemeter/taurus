@@ -806,7 +806,7 @@ class ScenarioExecutor(EngineModule):
         """
         if scenario is None:
             scenario = self.get_scenario()
-        if Scenario.SCRIPT in scenario:
+        if Scenario.SCRIPT in scenario and scenario[Scenario.SCRIPT]:
             return self.engine.find_file(scenario.get(Scenario.SCRIPT))
         else:
             return None

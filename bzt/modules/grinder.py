@@ -128,7 +128,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         scenario = self.get_scenario()
 
-        if Scenario.SCRIPT in scenario:
+        if Scenario.SCRIPT in scenario  and scenario[Scenario.SCRIPT]:
             self.script = self.engine.find_file(scenario[Scenario.SCRIPT])
             self.engine.existing_artifact(self.script)
         elif "requests" in scenario:

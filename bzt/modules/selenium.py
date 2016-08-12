@@ -147,7 +147,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.engine.aggregator.add_underling(self.reader)
 
     def _verify_script(self):
-        if Scenario.SCRIPT in self.scenario:
+        if Scenario.SCRIPT in self.scenario and self.scenario.get(Scenario.SCRIPT):
             self.script = self.scenario.get(Scenario.SCRIPT)
         elif "requests" in self.scenario:
             self.script = self.__tests_from_requests()
