@@ -5,6 +5,7 @@
  - fix delay trouble in provisioning
  - fix Gatling keepalive type cast bug
  - add `detach` mode to Cloud Provisioning
+ - fix grinder in the cloud with requests scenario
 
 ## 1.6.6 <sup>08 aug 2016</sup>
  - optimize aggregator by removing excessive calls to `BetterDict.get()`

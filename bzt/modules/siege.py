@@ -60,7 +60,7 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider):
             rc_file.writelines('\n'.join(config_params))
             rc_file.close()
 
-        if Scenario.SCRIPT in self.scenario:
+        if Scenario.SCRIPT in self.scenario and self.scenario[Scenario.SCRIPT]:
             self.__url_name = self.engine.find_file(self.scenario[Scenario.SCRIPT])
             self.engine.existing_artifact(self.__url_name)
         elif 'requests' in self.scenario:
@@ -78,7 +78,7 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider):
 
     def resource_files(self):
         resource_files = []
-        if Scenario.SCRIPT in self.scenario:
+        if Scenario.SCRIPT in self.scenario and self.scenario[Scenario.SCRIPT]:
             resource_files.append(self.engine.find_file(self.scenario[Scenario.SCRIPT]))
         return resource_files
 

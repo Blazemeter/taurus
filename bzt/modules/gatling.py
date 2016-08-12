@@ -239,7 +239,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         else:
             self.launcher = self.settings["path"]
 
-        if Scenario.SCRIPT in scenario:
+        if Scenario.SCRIPT in scenario and scenario[Scenario.SCRIPT]:
             self.script = self.get_script_path()
         elif "requests" in scenario:
             self.get_scenario()['simulation'], self.script = self.__generate_script()
