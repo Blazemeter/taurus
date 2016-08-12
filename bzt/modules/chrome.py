@@ -18,7 +18,6 @@ import copy
 import json
 import re
 from collections import defaultdict, OrderedDict, namedtuple
-from functools import reduce
 from os import path
 
 from bzt.engine import Reporter
@@ -45,14 +44,13 @@ class ChromeProfiler(Monitoring):
 
     def startup(self):
         self.client.start()
-        super(Monitoring, self).startup()
 
     def check(self):
         results = self.client.get_data()
         if results:
             for listener in self.listeners:
                 listener.monitoring_data(results)
-        return super(Monitoring, self).check()
+        return False  # profiling never stops
 
     def shutdown(self):
         results = self.client.get_data()
@@ -60,10 +58,6 @@ class ChromeProfiler(Monitoring):
             for listener in self.listeners:
                 listener.monitoring_data(results)
         self.client.disconnect()
-        super(Monitoring, self).shutdown()
-
-    def post_process(self):
-        super(Monitoring, self).post_process()
 
     def get_aggr_metrics(self):
         if self.client is not None:
@@ -129,9 +123,9 @@ class ChromeProfiler(Monitoring):
 
         ajax = self.get_ajax_stats()
         if ajax:
-            for ts, url in sorted(ajax):
+            for req_time, url in sorted(ajax):
                 row = OrderedDict()
-                row["Start time"] = epoch_to_str(ts)
+                row["Start time"] = epoch_to_str(req_time)
                 row["URL"] = url
                 ajax_rows.append(row)
 
@@ -270,7 +264,7 @@ class ChromePerfLogReader(object):
             self.fds.close()
 
 
-class Metrics:
+class Metrics(object):
     PAGE_LOAD_TIME = 'load-page-time'
     DOM_CONTENT_LOADED_TIME = 'dom-content-loaded-time'
     FULL_LOAD_TIME = 'load-full-time'
@@ -371,9 +365,9 @@ class MetricExtractor(object):
         self.xhr_requests = defaultdict(list)  # pid -> [(ts, url)]
         self.v8_complete_events = defaultdict(list)  # pid -> [(ts, name, duration)]
 
-    def convert_ts(self, ts):
+    def convert_ts(self, timestamp):
         if self.tracing_start_ts is not None:
-            offset = float(ts) / 1000000 - self.tracing_start_ts
+            offset = float(timestamp) / 1000000 - self.tracing_start_ts
             return max(offset, 0.0)
         else:
             return 0.0
@@ -384,8 +378,8 @@ class MetricExtractor(object):
         if event.get("ts") and self.tracing_start_ts is None:
             self.tracing_start_ts = float(event["ts"]) / 1000000
         if event.get("ts"):
-            ts = self.convert_ts(event['ts'])
-            self.tracing_duration = max(self.tracing_duration, ts)
+            ets = self.convert_ts(event['ts'])
+            self.tracing_duration = max(self.tracing_duration, ets)
 
         if not "cat" in event:
             return
@@ -413,61 +407,60 @@ class MetricExtractor(object):
         # record all complete events
         if event.get("ph") == "X":
             pid = event['pid']
-            ts = self.convert_ts(event['ts'])
+            ets = self.convert_ts(event['ts'])
             name = event['name']
             duration = event.get('dur', 1)
-            self.v8_complete_events[pid].append((ts, name, duration))
+            self.v8_complete_events[pid].append((ets, name, duration))
 
     def process_user_timing_event(self, event):
         if event.get("name") == "loadEventStart":
             pid = event['pid']
-            ts = self.convert_ts(event['ts'])
+            ets = self.convert_ts(event['ts'])
             frame = event["args"]["frame"]
-            self.load_events[pid][ts] = frame
+            self.load_events[pid][ets] = frame
         elif event.get("name") == "domContentLoadedEventStart":
             pid = event['pid']
-            ts = self.convert_ts(event['ts'])
+            ets = self.convert_ts(event['ts'])
             frame = event["args"]["frame"]
-            self.dom_content_loaded_events[pid][ts] = frame
+            self.dom_content_loaded_events[pid][ets] = frame
 
     def process_devtools_event(self, event):
         if event.get("name") == "ResourceSendRequest":
             pid = event['pid']
-            ts = self.convert_ts(event['ts'])
+            ets = self.convert_ts(event['ts'])
             request_id = event["args"]["data"]["requestId"]
-            self.requests[request_id]["send_req_time"] = ts
+            self.requests[request_id]["send_req_time"] = ets
             self.requests[request_id]["pid"] = pid
             self.requests[request_id]["method"] = event["args"]["data"]["requestMethod"]
             self.requests[request_id]["url"] = event["args"]["data"]["url"]
         elif event.get("name") == "ResourceReceiveResponse":
-            ts = self.convert_ts(event['ts'])
+            ets = self.convert_ts(event['ts'])
             request_id = event["args"]["data"]["requestId"]
-            self.requests[request_id]["recv_resp_time"] = ts
+            self.requests[request_id]["recv_resp_time"] = ets
             self.requests[request_id]["mime"] = event["args"]["data"]["mimeType"]
             self.requests[request_id]["status_code"] = event["args"]["data"]["statusCode"]
         elif event.get("name") == "ResourceReceivedData":
-            ts = self.convert_ts(event['ts'])
+            ets = self.convert_ts(event['ts'])
             request_id = event["args"]["data"]["requestId"]
-            self.requests[request_id]["recv_data_time"] = ts
+            self.requests[request_id]["recv_data_time"] = ets
             data_len = event["args"]["data"]["encodedDataLength"]
             size = self.requests[request_id].get("size", 0)
             self.requests[request_id]["size"] = size + data_len
         elif event.get("name") == "ResourceFinish":
-            ts = self.convert_ts(event['ts'])
+            ets = self.convert_ts(event['ts'])
             request_id = event["args"]["data"]["requestId"]
-            self.requests[request_id]["finish_time"] = ts
+            self.requests[request_id]["finish_time"] = ets
             self.requests[request_id]["did_fail"] = event["args"]["data"]["didFail"]
             if event["args"]["data"].get("networkTime"):
                 self.requests[request_id]["network_time"] = event["args"]["data"]["networkTime"]
         elif event.get("name") == "UpdateCounters":
-            ts = self.convert_ts(event['ts'])
+            ets = self.convert_ts(event['ts'])
             pid = event["pid"]
-            self.js_event_listeners[pid][ts] = event["args"]["data"]["jsEventListeners"]
-            self.js_heap_size_used[pid][ts] = float(event["args"]["data"]["jsHeapSizeUsed"]) / 1024 / 1024
-            self.dom_documents[pid][ts] = event["args"]["data"]["documents"]
-            self.dom_nodes[pid][ts] = event["args"]["data"]["nodes"]
+            self.js_event_listeners[pid][ets] = event["args"]["data"]["jsEventListeners"]
+            self.js_heap_size_used[pid][ets] = float(event["args"]["data"]["jsHeapSizeUsed"]) / 1024 / 1024
+            self.dom_documents[pid][ets] = event["args"]["data"]["documents"]
+            self.dom_nodes[pid][ets] = event["args"]["data"]["nodes"]
         elif event.get("name") in ["MajorGC", "MinorGC"]:
-            ts = self.convert_ts(event['ts'])
             pid = event["pid"]
             if event.get("ph") == "B":  # GC begin
                 item = {'gc_start_time': event['ts'],
@@ -478,16 +471,16 @@ class MetricExtractor(object):
                     self.gc_times[pid][-1]['gc_end_time'] = event['ts']
                     self.gc_times[pid][-1]['heap_after_gc'] = float(event['args']['usedHeapSizeAfter']) / 1024 / 1024
         elif event.get("name") == "EventDispatch":
-            ts = self.convert_ts(event['ts'])
+            ets = self.convert_ts(event['ts'])
             pid = event["pid"]
             event_name = event["args"]["data"]["type"]
-            self.events[pid][ts] = event_name
+            self.events[pid][ets] = event_name
         elif event.get("name") == "XHRLoad":
             # we can also track XHRReadyStateChange event to track all state changes
-            ts = self.convert_ts(event['ts'])
+            ets = self.convert_ts(event['ts'])
             pid = event["pid"]
             url = event["args"]["data"]["url"]
-            self.xhr_requests[pid].append((ts, url))
+            self.xhr_requests[pid].append((ets, url))
         elif event.get("name") == "TracingStartedInPage":
             pid = event["pid"]
             page_id = event["args"]["data"]["page"]
@@ -497,30 +490,30 @@ class MetricExtractor(object):
                 self.tracing_tab_pid = pid
         elif event.get("name") == "CommitLoad":
             pid = event["pid"]
-            ts = self.convert_ts(event["ts"])
+            ets = self.convert_ts(event["ts"])
             page_id = event["args"]["data"]["page"]
-            self.commit_load_events[pid][ts] = page_id
+            self.commit_load_events[pid][ets] = page_id
         elif event.get("name") == "CompositeLayers":
             pid = event["pid"]
-            ts = self.convert_ts(event["ts"])
-            self.composite_layers_events[pid].append(ts)
+            ets = self.convert_ts(event["ts"])
+            self.composite_layers_events[pid].append(ets)
         elif event.get("name") == "DrawFrame":
             pid = event["pid"]
-            ts = self.convert_ts(event["ts"])
-            self.draw_frame_events[pid].append(ts)
+            ets = self.convert_ts(event["ts"])
+            self.draw_frame_events[pid].append(ets)
 
     def process_network_event(self, event):
         if event.get("name") == "Resource":
             if event.get("ph") == "S":  # download starts
-                ts = self.convert_ts(event['ts'])
+                ets = self.convert_ts(event['ts'])
                 download_id = event["id"]
                 request_id = event["args"]["data"]["requestId"]
-                self.resources[download_id]["start_time"] = ts
+                self.resources[download_id]["start_time"] = ets
                 self.resources[download_id]["request_id"] = request_id
             elif event.get("ph") == "F":  # download finished
-                ts = self.convert_ts(event['ts'])
+                ets = self.convert_ts(event['ts'])
                 download_id = event["id"]
-                self.resources[download_id]["end_time"] = ts
+                self.resources[download_id]["end_time"] = ets
 
     def process_metadata_event(self, event):
         if event.get("name") == "process_name":
@@ -535,21 +528,21 @@ class MetricExtractor(object):
     def process_memory_event(self, event):
         if event.get("name") == "periodic_interval":
             pid = event["pid"]
-            ts = self.convert_ts(event['ts'])
+            ets = self.convert_ts(event['ts'])
             dumps = event['args']['dumps']
             if 'process_totals' not in dumps:
                 return
             totals = dumps['process_totals']
             resident_mbytes = float(int(totals['resident_set_bytes'], 16)) / 1024 / 1024
-            self.memory_per_process[pid][ts] = resident_mbytes
+            self.memory_per_process[pid][ets] = resident_mbytes
 
     @staticmethod
     def reaggregate_by_ts(per_pid_stats, aggregate_by=lambda xs: float(sum(xs)) / len(xs)):
         # TODO: sub-second granularity
         per_ts = dict()  # ts -> (pid -> [measurement at ts])
         for pid in per_pid_stats:
-            for ts, value in iteritems(per_pid_stats[pid]):
-                base_ts = int(ts)
+            for offset, value in iteritems(per_pid_stats[pid]):
+                base_ts = int(offset)
                 if base_ts not in per_ts:
                     per_ts[base_ts] = {}
                 if pid not in per_ts[base_ts]:
@@ -570,12 +563,12 @@ class MetricExtractor(object):
             self.log.warning(msg)
             return
         memory_per_ts = self.reaggregate_by_ts(self.memory_per_process)  # ts -> (pid -> memory)
-        for ts in sorted(memory_per_ts):
-            process_mems = memory_per_ts[ts]
+        for offset in sorted(memory_per_ts):
+            process_mems = memory_per_ts[offset]
             tab_memory_at_ts = process_mems[self.tracing_tab_pid]
-            yield ts, Metrics.MEMORY_TAB, tab_memory_at_ts
+            yield offset, Metrics.MEMORY_TAB, tab_memory_at_ts
             browser_memory_at_ts = sum(per_process for _, per_process in iteritems(process_mems))
-            yield ts, Metrics.MEMORY_BROWSER, browser_memory_at_ts
+            yield offset, Metrics.MEMORY_BROWSER, browser_memory_at_ts
 
     def aggr_network_footprint(self):
         tab_requests = list(req for _, req in iteritems(self.requests) if req.get("pid") == self.tracing_tab_pid)
@@ -684,10 +677,10 @@ class MetricExtractor(object):
             self.log.warning(msg)
             return
         heap_per_ts = self.reaggregate_by_ts(self.js_heap_size_used)
-        for ts in sorted(heap_per_ts):
-            process_heap = heap_per_ts[ts]
+        for offset in sorted(heap_per_ts):
+            process_heap = heap_per_ts[offset]
             tab_heap_at_ts = process_heap[self.tracing_tab_pid]
-            yield ts, Metrics.MEMORY_JS_HEAP, tab_heap_at_ts
+            yield offset, Metrics.MEMORY_JS_HEAP, tab_heap_at_ts
 
     def calc_js_event_listeners(self):
         if self.tracing_tab_pid not in self.js_event_listeners:
@@ -696,10 +689,10 @@ class MetricExtractor(object):
             self.log.warning(msg)
             return
         listeners_per_ts = self.reaggregate_by_ts(self.js_event_listeners)
-        for ts in sorted(listeners_per_ts):
-            listeners_at_ts = listeners_per_ts[ts]
+        for offset in sorted(listeners_per_ts):
+            listeners_at_ts = listeners_per_ts[offset]
             listeners = listeners_at_ts[self.tracing_tab_pid]
-            yield ts, Metrics.JS_EVENT_LISTENERS, round(listeners)
+            yield offset, Metrics.JS_EVENT_LISTENERS, round(listeners)
 
     def aggr_gc_time(self):
         if self.tracing_tab_pid not in self.gc_times:
@@ -722,10 +715,10 @@ class MetricExtractor(object):
             self.log.warning(msg)
             return
         docs_per_ts = self.reaggregate_by_ts(self.dom_documents)
-        for ts in sorted(docs_per_ts):
-            docs_at_ts = docs_per_ts[ts]
+        for offset in sorted(docs_per_ts):
+            docs_at_ts = docs_per_ts[offset]
             docs_in_tab = docs_at_ts[self.tracing_tab_pid]
-            yield ts, Metrics.DOM_DOCUMENTS, round(docs_in_tab)
+            yield offset, Metrics.DOM_DOCUMENTS, round(docs_in_tab)
 
     def calc_dom_nodes(self):
         if self.tracing_tab_pid not in self.dom_nodes:
@@ -734,10 +727,10 @@ class MetricExtractor(object):
             self.log.warning(msg)
             return
         nodes_per_ts = self.reaggregate_by_ts(self.dom_nodes)
-        for ts in sorted(nodes_per_ts):
-            nodes_at_ts = nodes_per_ts[ts]
+        for offset in sorted(nodes_per_ts):
+            nodes_at_ts = nodes_per_ts[offset]
             nodes_in_tab = nodes_at_ts[self.tracing_tab_pid]
-            yield ts, Metrics.DOM_NODES, round(nodes_in_tab)
+            yield offset, Metrics.DOM_NODES, round(nodes_in_tab)
 
     def calc_js_cpu_utilization(self):
         if self.tracing_tab_pid not in self.v8_complete_events:
@@ -750,16 +743,16 @@ class MetricExtractor(object):
 
         # reaggregate by 1 second
         per_ts = dict()  # ts -> (pid -> [measurement at ts])
-        for ts, _, duration in v8_events:
-            base_ts = int(ts)
+        for ets, _, duration in v8_events:
+            base_ts = int(ets)
             if base_ts not in per_ts:
                 per_ts[base_ts] = []
             per_ts[base_ts].append(duration)
 
         # yield timeline
-        for ts in sorted(per_ts):
-            cpu_at_ts = float(sum(per_ts[ts])) / 1000000
-            yield ts, Metrics.JS_CPU_UTILIZATION, cpu_at_ts * 100
+        for ets in sorted(per_ts):
+            cpu_at_ts = float(sum(per_ts[ets])) / 1000000
+            yield ets, Metrics.JS_CPU_UTILIZATION, cpu_at_ts * 100
 
     def get_metrics(self):
         # yields (offset, metric, value) for all metrics that are defined in time
@@ -805,12 +798,15 @@ class CPUProfileReader(object):
         self.timestamps = []
         self.samples = []
         self.head = None
+        self._id_to_node = {}
+        self.max_depth = 0
 
     def _transform_profile_tree(self, root):
         def compute_hit_count_for_subtree(tree):
-            return reduce(lambda acc, node: acc + compute_hit_count_for_subtree(node),
-                          tree['children'],
-                          tree['hitCount'])
+            acc = tree['hitCount']
+            for child in tree["children"]:
+                acc += compute_hit_count_for_subtree(child)
+            return acc
 
         def is_native_node(node):
             return node.get("url") and node.get("url").startswith("native ")
@@ -846,7 +842,8 @@ class CPUProfileReader(object):
         samples = self.samples
         indices = [index for index, _ in enumerate(timestamps)]
         indices.sort(key=lambda ind: timestamps[ind])
-        for i in range(len(timestamps)):
+        timestamps_count = len(timestamps)
+        for i in range(timestamps_count):
             index = indices[i]
             if index == i:
                 continue
@@ -873,36 +870,22 @@ class CPUProfileReader(object):
         self.profile_end_time = last_ts
 
     def _build_id_to_node_map(self):
-        self._id_to_node = {}
+        id_to_node = {}
         stack = [self.head]
         while stack:
             node = stack.pop()
-            self._id_to_node[node["id"]] = node
+            id_to_node[node["id"]] = node
             stack.extend(node["children"])
+        return id_to_node
 
     @staticmethod
-    def _lower_bound(value, values):
-        index = bisect.bisect_left(values, value)
+    def _lower_bound(limit, values):
+        "returns minimal value `x` from `values` that is greater than `limit`"
+        index = bisect.bisect_left(values, limit)
         if index > 0:
             return index - 1
         else:
             return index
-
-    def _extract_meta_nodes(self):
-        toplevel_nodes = self.head["children"]
-        gc_node = program_node = idle_node = None
-        for node in toplevel_nodes:
-            if gc_node and program_node and idle_node:
-                break
-            if node['functionName'] == "(garbage collector)":
-                gc_node = node
-            elif node['functionName'] == "(program)":
-                program_node = node
-            elif node['functionName'] == "(idle)":
-                idle_node = node
-        self.gc_node = gc_node
-        self.idle_node = idle_node
-        self.program_node = program_node
 
     def _for_each_frame(self, open_frame_cb, close_frame_cb, start_time=0, stop_time=float("inf")):
         if not self.head or not self.samples:
@@ -911,22 +894,22 @@ class CPUProfileReader(object):
         timestamps = self.timestamps
         id_to_node = self._id_to_node
         samples_count = len(self.samples)
-        start_index = self._lower_bound(start_time, timestamps) # TODO: minimal timestamp that is greater that start_time
+        start_index = self._lower_bound(start_time, timestamps)
         stack_top = 0
         stack_nodes = []
         prev_id = self.head["id"]
 
-        self.stack_start_times = [0.0] * (self.max_depth + 2)
-        self.stack_children_duration = [0.0] * (self.max_depth + 2)
+        stack_start_times = [0.0] * (self.max_depth + 2)
+        stack_children_duration = [0.0] * (self.max_depth + 2)
 
         for sample_index in range(start_index, samples_count, 1):
             sample_time = timestamps[sample_index]
             if sample_time >= stop_time:
                 break
-            id = samples[sample_index]
-            if id == prev_id:
+            sample_id = samples[sample_index]
+            if sample_id == prev_id:
                 continue
-            node = id_to_node[id]
+            node = id_to_node[sample_id]
             prev_node = id_to_node[prev_id]
 
             while node["depth"] > prev_node["depth"]:
@@ -934,10 +917,11 @@ class CPUProfileReader(object):
                 node = node["parent"]
 
             while prev_node != node:
-                start = self.stack_start_times[stack_top]
+                start = stack_start_times[stack_top]
                 duration = sample_time - start
-                self.stack_children_duration[stack_top - 1] += duration
-                close_frame_cb(prev_node["depth"], prev_node, start, duration, duration - self.stack_children_duration[stack_top])
+                stack_children_duration[stack_top - 1] += duration
+                close_frame_cb(prev_node["depth"], prev_node, start, duration,
+                               duration - stack_children_duration[stack_top])
                 stack_top -= 1
                 if node["depth"] == prev_node["depth"]:
                     stack_nodes.append(node)
@@ -948,15 +932,16 @@ class CPUProfileReader(object):
                 node = stack_nodes.pop()
                 open_frame_cb(node["depth"], node, sample_time)
                 stack_top += 1
-                self.stack_start_times[stack_top] = sample_time
-                self.stack_children_duration[stack_top] = 0.0
+                stack_start_times[stack_top] = sample_time
+                stack_children_duration[stack_top] = 0.0
 
-            prev_id = id
+            prev_id = sample_id
 
     def _calculate_totals(self, root):
-        root["total"] = reduce(lambda acc, node: acc + self._calculate_totals(node),
-                               root["children"],
-                               root.get("self", 0))  # TODO: ["self"] instead of soft .get
+        acc = root.get("self", 0)
+        for child in root["children"]:
+            acc += self._calculate_totals(child)
+        root["total"] = acc
         return root["total"]
 
     def _assign_depths_and_parents(self):
@@ -980,7 +965,7 @@ class CPUProfileReader(object):
     def _calculate_timeline(self):
         timeline = []
         stack = []
-        self.__max_depth = 5
+        # we can track max call depth here, it might be a useful metrics
 
         def on_open_frame(depth, node, sample_time):
             stack.append(len(timeline))
@@ -989,7 +974,6 @@ class CPUProfileReader(object):
         def on_close_frame(depth, node, start_time, total_time, self_time):
             index = stack.pop()
             timeline[index] = dict(depth=depth, node=node, start_time=start_time, total_time=total_time, self_time=self_time)
-            self.__max_depth = max(self.__max_depth, depth)
 
         self._for_each_frame(on_open_frame, on_close_frame)
 
@@ -1052,11 +1036,10 @@ class CPUProfileReader(object):
         self.timestamps = profile["timestamps"]
         self.samples = profile["samples"]
         self.head = self._transform_profile_tree(head)
-        self.total = self._calculate_totals(self.head)
+        self._calculate_totals(self.head)
         self._assign_depths_and_parents()
-        self._extract_meta_nodes()
         if self.samples:
-            self._build_id_to_node_map()
+            self._id_to_node = self._build_id_to_node_map()
             self._sort_samples()
             self._normalize_timestamps()
 
@@ -1229,10 +1212,10 @@ class MetricReporter(Reporter):
             self.log.info("")
             self.log.info("AJAX requests:")
             for index, req in enumerate(sorted(ajax_requests), 1):
-                ts, url = req
+                timestamp, url = req
                 if len(url) > 60:
                     url = url[:60] + "..."
-                self.log.info("%s. %s: %s", index, epoch_to_str(ts), url)
+                self.log.info("%s. %s: %s", index, epoch_to_str(timestamp), url)
 
         js_stats = self.chrome_profiler.get_js_function_call_stats()
         if js_stats:
@@ -1243,7 +1226,10 @@ class MetricReporter(Reporter):
             for index, funcstat in enumerate(sorted(stats, key=lambda fs: fs[1]["total_time"], reverse=True), 1):
                 func, stat = funcstat
                 tmpl = "%s. %s (%s) : ncalls=%s, perc_calls=%s, total_time=%s, self_time=%s, perc_self=%s"
-                self.log.info(tmpl, index, func.name, func.url, stat["ncalls"], stat["perc_calls"],
+                url = func.url
+                if len(url) > 60:
+                    url = url[:50] + "..." + url[-7:]
+                self.log.info(tmpl, index, func.name, url, stat["ncalls"], stat["perc_calls"],
                               stat["total_time"], stat["self_time"], stat["perc_self"])
                 if index >= 20:
                     break
