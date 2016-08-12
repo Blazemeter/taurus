@@ -7,6 +7,7 @@
  - add `detach` mode to Cloud Provisioning
  - fix grinder in the cloud with requests scenario
  - add `waiting for data...` into titles of console blocks
+ - add webdriver.log for requests-based Selenium tests
 
 ## 1.6.6 <sup>08 aug 2016</sup>
  - optimize aggregator by removing excessive calls to `BetterDict.get()`
