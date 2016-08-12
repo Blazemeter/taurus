@@ -20,7 +20,8 @@ import copy
 import os
 import zipfile
 
-from bzt.engine import Service, Provisioning
+from bzt.engine import Provisioning
+from bzt.engine import Service
 from bzt.utils import replace_in_config
 
 

@@ -15,9 +15,9 @@
 
 # Videos
 
-The most recent video is: [Meetup on June 28, 2016: How to Simplify Load Testing JMeter and Beyond](https://www.youtube.com/watch?v=phUmBjPneSc)
+The most recent video is: [Meetup on June 28, 2016: How to Simplify Load Testing JMeter and Beyond](https://www.youtube.com/watch?v=EFIWFfvKolw)
 
-<iframe width="700" height="394" src="https://www.youtube.com/embed/phUmBjPneSc" frameborder="0" allowfullscreen></iframe>
+<iframe width="700" height="394" src="https://www.youtube.com/embed/EFIWFfvKolw" frameborder="0" allowfullscreen></iframe>
  
 Other Videos:
  1. [Test Automation with JMeter, Jenkins and Taurus](https://www.youtube.com/watch?v=UoOcxlYDRbM)

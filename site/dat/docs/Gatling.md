@@ -16,9 +16,11 @@ scenarios:
   sample:
     script: tests/gatling/BasicSimulation.scala
     simulation: tests.gatling.BasicSimulation
+    keepalive: true
 ```
 
 The `simulation` option is canonical class name for main simulation class. It will be passed as-is to gatling with `-s` option.
+Also you can use `keepalive` scenario attribute to set appropriate HTTP feature. 
 
 ## Load Configuration
 

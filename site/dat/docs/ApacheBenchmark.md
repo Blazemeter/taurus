@@ -8,7 +8,7 @@ Taurus supports the following features of Apache Benchmark:
  - `concurrency`: number of multiple requests to make at a time (defaults to 1).
  - `hold-for`: run load testing for specified duration
  - `headers`: headers to attach to HTTP request
- - `keepalive`: use HTTP KeepAlive feature
+ - `keepalive`: use HTTP KeepAlive feature (you can use it on two levels - global for whole scenario and local for some requests)
 
 Keep in mind the following rules when using `executor: ab`:
  - You cannot specify more than one request in `requests` section.

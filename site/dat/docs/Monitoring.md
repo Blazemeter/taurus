@@ -51,7 +51,8 @@ For example:
 services:
 - module: monitoring
   server-agent:
-  - address: 127.0.0.1:4444
+  - address: 192.168.0.1:4444
+    label: target-server  # if you specify label, it will be used in reports instead of ip:port
     metrics:
     - cpu
     - disks

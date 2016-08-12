@@ -798,7 +798,7 @@ class ScenarioExecutor(EngineModule):
         self.provisioning = None
         self.execution = BetterDict()
         self.__scenario = None
-        self._label = None
+        self.label = None
 
     def get_script_path(self, scenario=None):
         """
@@ -806,7 +806,7 @@ class ScenarioExecutor(EngineModule):
         """
         if scenario is None:
             scenario = self.get_scenario()
-        if Scenario.SCRIPT in scenario:
+        if Scenario.SCRIPT in scenario and scenario[Scenario.SCRIPT]:
             return self.engine.find_file(scenario.get(Scenario.SCRIPT))
         else:
             return None
@@ -845,7 +845,7 @@ class ScenarioExecutor(EngineModule):
                 scenarios[label] = scenario
                 self.execution['scenario'] = label
 
-            self._label = label
+            self.label = label
         else:  # get scenario by name
             label = name
 
@@ -912,7 +912,7 @@ class ScenarioExecutor(EngineModule):
         return files_list
 
     def __repr__(self):
-        return "%s/%s" % (self.execution.get("executor", None), self._label if self._label else id(self))
+        return "%s/%s" % (self.execution.get("executor", None), self.label if self.label else id(self))
 
     def get_hostaliases(self):
         settings = self.engine.config.get(SETTINGS, {})

@@ -1,0 +1,80 @@
+---
+scenarios:
+  blazedemo:
+
+execution:
+
+- executor: jmeter
+  concurrency: 1
+  hold-for: 5m
+  scenario: 
+    requests:
+      - url: http://blazedemo.com/
+        label: jmeter
+
+- executor: selenium
+  concurrency: 1
+  hold-for: 5m
+  scenario: 
+    requests:
+      - url: http://blazedemo.com/
+        label: selenium
+
+- executor: gatling
+  concurrency: 1
+  hold-for: 5m
+  scenario: 
+    requests:
+      - url: http://blazedemo.com/
+        label: gatling
+
+- executor: pbench
+  concurrency: 1
+  hold-for: 5m
+  scenario: 
+    requests:
+      - url: http://blazedemo.com/
+        label: pbench
+
+- executor: ab
+  concurrency: 1
+  hold-for: 5m
+  scenario: 
+    requests:
+      - url: http://blazedemo.com/
+        label: ab
+
+# has bug preventint to work with requests in the cloud
+#- executor: grinder
+#  concurrency: 1
+#  hold-for: 5m
+#  scenario: 
+#    requests:
+#      - url: http://blazedemo.com/
+#        label: grinder
+
+- executor: siege
+  concurrency: 1
+  hold-for: 5m
+  scenario: 
+    requests:
+      - url: http://blazedemo.com/
+        label: siege
+
+# Locust does not support requests scenarios yet        
+#- executor: locust
+#  concurrency: 1
+#  hold-for: 5m
+#  scenario: 
+#    requests:
+#      - url: http://blazedemo.com/
+#        label: locust
+
+# Tsung is not yet installd on cloud images
+#- executor: tsung
+#  concurrency: 1
+#  hold-for: 5m
+#  scenario: 
+#    requests:
+#      - url: http://blazedemo.com/
+#        label: tsung

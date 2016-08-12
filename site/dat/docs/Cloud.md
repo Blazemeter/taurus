@@ -16,10 +16,10 @@ modules:
   cloud:
     token: ******  # API key
     timeout: 10s  # BlazeMeter API client timeout
-    browser-open: start  # auto-open browser on test start/end/both/none
+    browser-open: start  # auto-open browser on test start/end/both/none    
 ```
 
-All folders among your resource files (scripts) will be packed automatically before sending and unpacked on cloud workers with `unpacker` service.  
+All folders among your resource files (scripts) will be packed automatically before sending and unpacked on cloud workers with `unpacker` service.   
 
 ## Load Settings for Cloud
 
@@ -37,7 +37,19 @@ execution:
     cloud: 10000
 ```
 
-Then you can just switch `provisioning` and load settings will be taken accordingly. For example, running `bzt config.yml -o provisioning=cloud` is an easy way to toggle on `cloud` provisioning. The `concurrency` and `througput` are always *total* value for execution, no matter how many locations will be involved.
+Then you can just switch `provisioning` and load settings will be taken accordingly. For example, running `bzt config.yml -o provisioning=cloud` is an easy way to toggle on `cloud` provisioning. Short form `bzt config.yml -cloud` is available and contrariwise you can turn off cloud provisioning by the similar way: `bzt config.yml -local`   
+The `concurrency` and `througput` are always *total* value for execution, no matter how many locations will be involved.
+
+## Detach Mode
+You can start Cloud test and stop Taurus without waiting for test results with attribute `detach`:
+```yaml
+---
+modules:
+  cloud:
+    token: ******    
+    detach: true # run cloud test and exit    
+```
+or use appropriate alias for this: `bzt config.yml -cloud -detach`
 
 ## Configuring Cloud Locations
 

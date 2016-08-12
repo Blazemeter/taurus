@@ -30,6 +30,9 @@
     "ab": {
       "class": "bzt.modules.ab.ApacheBenchmarkExecutor"
     },
+    "proxy2jmx": {
+      "class": "bzt.modules.proxy2jmx.Proxy2JMX"
+    },
     "jmeter": {
       "class": "bzt.modules.jmeter.JMeterExecutor",
       "properties": {
@@ -157,6 +160,19 @@
       "modules": {
         "jmeter": {
           "gui": true
+        }
+      }
+    },
+    "local": {
+      "provisioning": "local"
+    },
+    "cloud": {
+      "provisioning": "cloud"
+    },
+    "detach": {
+      "modules": {
+        "cloud": {
+          "detach": true
         }
       }
     },

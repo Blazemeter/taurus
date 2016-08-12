@@ -1,0 +1,11 @@
+---
+scenarios:
+  jmxvals:
+    script: jmxvals.jmx
+    properties:
+      users: 50
+      rampup: 2
+      loops: 8
+
+execution: 
+  scenario: jmxvals

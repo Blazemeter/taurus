@@ -22,7 +22,7 @@ import time
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
-from bzt.modules.console import WidgetProvider, SidebarWidget
+from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.six import iteritems
 from bzt.utils import shell_exec, MirrorsManager
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, TclLibrary
@@ -128,7 +128,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         scenario = self.get_scenario()
 
-        if Scenario.SCRIPT in scenario:
+        if Scenario.SCRIPT in scenario  and scenario[Scenario.SCRIPT]:
             self.script = self.engine.find_file(scenario[Scenario.SCRIPT])
             self.engine.existing_artifact(self.script)
         elif "requests" in scenario:
@@ -181,9 +181,6 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :return: bool
         :raise RuntimeWarning:
         """
-        if self.widget:
-            self.widget.update()
-
         self.retcode = self.process.poll()
         if self.retcode is not None:
             if self.retcode != 0:
@@ -252,7 +249,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 label = "Script: %s" % os.path.basename(self.script)
             else:
                 label = None
-            self.widget = SidebarWidget(self, label)
+            self.widget = ExecutorWidget(self, label)
         return self.widget
 
     def resource_files(self):

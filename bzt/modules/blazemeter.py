@@ -35,7 +35,6 @@ from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, 
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
 from bzt.modules.chrome import ChromeProfiler, Metrics
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
-from bzt.modules.jmeter import JMeterExecutor
 from bzt.modules.monitoring import Monitoring, MonitoringListener
 from bzt.modules.services import Unpacker
 from bzt.six import BytesIO, text_type, iteritems, HTTPError, urlencode, Request, urlopen, r_input, URLError
@@ -135,38 +134,55 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         :return: BytesIO
         """
         mfile = BytesIO()
+
+        logs = set()
+        for handler in self.engine.log.parent.handlers:
+            if isinstance(handler, logging.FileHandler):
+                logs.add(handler.baseFilename)
+
         max_file_size = self.settings.get('artifact-upload-size-limit', 10) * 1024 * 1024  # 10MB
         with zipfile.ZipFile(mfile, mode='w', compression=zipfile.ZIP_DEFLATED, allowZip64=True) as zfh:
-            for handler in self.engine.log.parent.handlers:
-                if isinstance(handler, logging.FileHandler):
-                    zfh.write(handler.baseFilename, os.path.basename(handler.baseFilename))
-
             for root, _, files in os.walk(self.engine.artifacts_dir):
                 for filename in files:
-                    if os.path.getsize(os.path.join(root, filename)) <= max_file_size:
-                        zfh.write(os.path.join(root, filename),
-                                  os.path.join(os.path.relpath(root, self.engine.artifacts_dir), filename))
+                    full_path = os.path.join(root, filename)
+                    if full_path in logs:
+                        logs.remove(full_path)
+
+                    if os.path.getsize(full_path) <= max_file_size:
+                        zfh.write(full_path, os.path.join(os.path.relpath(root, self.engine.artifacts_dir), filename))
                     else:
                         msg = "File %s exceeds maximum size quota of %s and won't be included into upload"
                         self.log.warning(msg, filename, max_file_size)
+
+            for filename in logs:   # upload logs unconditionally
+                zfh.write(filename, os.path.basename(filename))
         return mfile
 
     def __upload_artifacts(self):
         """
-        If token provided, upload artifacts folder contents and jmeter_log
-        else: jmeter_log only
+        If token provided, upload artifacts folder contents and bzt.log
+
         :return:
         """
         if self.client.token:
-            self.log.info("Uploading all artifacts as jtls_and_more.zip ...")
+            worker_index = self.engine.config.get('modules').get('shellexec').get('env').get('TAURUS_INDEX_ALL', '')
+            if worker_index:
+                suffix = '-' + worker_index
+            else:
+                suffix = ''
+            artifacts_zip = "artifacts%s.zip" % suffix
             mfile = self.__get_jtls_and_more()
-            self.client.upload_file("jtls_and_more.zip", mfile.getvalue())
+            self.log.info("Uploading all artifacts as %s ...", artifacts_zip)
+            self.client.upload_file(artifacts_zip, mfile.getvalue())
 
-        for executor in self.engine.provisioning.executors:
-            if isinstance(executor, JMeterExecutor):
-                if executor.jmeter_log:
-                    self.log.info("Uploading %s", executor.jmeter_log)
-                    self.client.upload_file(executor.jmeter_log)
+            for handler in self.engine.log.parent.handlers:
+                if isinstance(handler, logging.FileHandler):
+                    fname = handler.baseFilename
+                    self.log.info("Uploading %s", fname)
+                    fhead, ftail = os.path.split(fname)
+                    modified_name = fhead + suffix + ftail
+                    with open(fname) as _file:
+                        self.client.upload_file(modified_name, _file.read())
 
     def post_process(self):
         """
@@ -1191,6 +1207,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.__last_master_status = None
         self.browser_open = 'start'
         self.widget = None
+        self.detach = False
 
     def prepare(self):
         if self.settings.get("dump-locations", False):
@@ -1205,6 +1222,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
         super(CloudProvisioning, self).prepare()
         self.browser_open = self.settings.get("browser-open", self.browser_open)
+        self.detach = self.settings.get("detach", self.detach)
         self._configure_client()
         self.__prepare_locations()
         rfiles = self.get_rfiles()
@@ -1328,6 +1346,9 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
     def check(self):
         # TODO: throttle down requests
+        if self.detach:
+            self.log.warning('Detaching Taurus from started test...')
+            return True
         try:
             master = self.client.get_master_status()
         except URLError:
@@ -1357,7 +1378,8 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         return super(CloudProvisioning, self).check()
 
     def post_process(self):
-        self.client.end_master()
+        if not self.detach:
+            self.client.end_master()
         if self.client.results_url:
             if self.browser_open in ('end', 'both'):
                 open_browser(self.client.results_url)
