@@ -586,7 +586,7 @@ class BoxedGraph(LineBox):
     def __init__(self, title, colors):
         self.graph = StackedGraph(colors)
         self.orig_title = title
-        super(BoxedGraph, self).__init__(self.graph, title)
+        super(BoxedGraph, self).__init__(self.graph, " waiting for data... ")
 
     def format_title(self, text):
         """
@@ -627,7 +627,7 @@ class LatestStats(LineBox):
             [self.avg_times, self.percentiles, self.rcodes], dividechars=1)
         padded = Padding(original_widget, align=CENTER)
         super(LatestStats, self).__init__(padded,
-                                          self.title)
+                                          self.title + ': waiting for data...')
 
     def add_data(self, data):
         """
@@ -649,6 +649,7 @@ class CumulativeStats(LineBox):
     """
     Cumulative stats block
     """
+    title = "Cumulative Stats"
 
     def __init__(self):
         self.data = DataPoint(0)
@@ -665,7 +666,7 @@ class CumulativeStats(LineBox):
             self.labels_pile
         ])
         padded = Padding(original_widget, align=CENTER)
-        super(CumulativeStats, self).__init__(padded, " Cumulative Stats ")
+        super(CumulativeStats, self).__init__(padded, self.title + ': waiting for data...')
 
     def add_data(self, data):
         """
@@ -683,7 +684,7 @@ class CumulativeStats(LineBox):
             self._start_time = data.get('ts')
         duration = humanize_time(time.time() - self._start_time)
 
-        self.title_widget.set_text(" Cumulative Stats after %s " % duration)
+        self.title_widget.set_text(self.title + " %s" % duration)
 
 
 class PercentilesList(ListBox):
