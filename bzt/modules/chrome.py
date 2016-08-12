@@ -198,7 +198,7 @@ class TraceJSONReader(object):
         try:
             events = json.load(self.fds)
         except ValueError:
-            self.log.debug("Can't parse trace, it might not be full")
+            self.log.debug("Can't parse trace, it might be not full")
             return
 
         for event in events:

@@ -1,14 +1,17 @@
 import logging
 import shutil
+import time
 
-from bzt.modules.chrome import ChromeProfiler, Metrics, CPUProfileReader
+from bzt.modules.chrome import ChromeProfiler, Metrics, CPUProfileReader, MetricReporter
 from bzt.modules.monitoring import MonitoringListener
+from bzt.modules.selenium import SeleniumExecutor
 from bzt.six import iteritems
 from tests import BZTestCase, __dir__
-from tests.mocks import EngineEmul
+from tests.mocks import EngineEmul, RecordingHandler
+from tests.modules.test_SeleniumExecutor import SeleniumTestCase
 
 
-class TestChromeProfiler(BZTestCase):
+class TestMetricExtraction(BZTestCase):
     def test_extraction(self):
         obj = ChromeProfiler()
         obj.engine = EngineEmul()
@@ -98,7 +101,9 @@ class TestChromeProfiler(BZTestCase):
         self.assertAlmostEqual(js_cpu[2][Metrics.JS_CPU_UTILIZATION], 132.4, delta=0.1)
         self.assertAlmostEqual(js_cpu[-1][Metrics.JS_CPU_UTILIZATION], 1.6, delta=0.1)
 
-    def test_cpuprofile_reader(self):
+
+class TestCPUPRofileReader(BZTestCase):
+    def test_cpuprofile_stats(self):
         obj = CPUProfileReader(__dir__() + "/../chrome/js.cpuprofile", logging.getLogger())
         stats = obj.extract_js_call_stats()
         self.assertEqual(len(stats), 29)
@@ -108,6 +113,85 @@ class TestChromeProfiler(BZTestCase):
         self.assertAlmostEqual(snowflake["total_time"], 1.84, delta=0.01)
         self.assertAlmostEqual(snowflake["self_time"], 1.20, delta=0.01)
         self.assertEqual(snowflake["perc_self"], "65.29%")
+
+
+class TestMetricReporter(BZTestCase):
+    def test_metrics_reporting(self):
+        engine = EngineEmul()
+        profiler = ChromeProfiler()
+        profiler.engine = engine
+        profiler.parameters.merge({
+            "trace-file": "trace.json",
+            "cpuprofile": "js.cpuprofile",
+        })
+        shutil.copy(__dir__() + "/../chrome/trace.json", engine.artifacts_dir)
+        shutil.copy(__dir__() + "/../chrome/js.cpuprofile", engine.artifacts_dir)
+
+        log_recorder = RecordingHandler()
+        reporter = MetricReporter()
+        reporter.log.addHandler(log_recorder)
+        reporter.engine = engine
+
+        engine.services.append(profiler)
+        engine.reporters.append(reporter)
+
+        reporter.prepare()
+        profiler.prepare()
+        reporter.startup()
+        profiler.startup()
+        profiler.check()
+        reporter.check()
+
+        reporter.shutdown()
+        reporter.post_process()
+
+        info_buff = log_recorder.info_buff.getvalue()
+
+        self.assertIn("Chrome metrics for tab 'JMeter and Performance Testing for DevOps I BlazeMeter'", info_buff)
+
+        for name, label in iteritems(Metrics.METRIC_LABELS):
+            self.assertIn(label, info_buff)
+
+        self.assertIn("HTTP requests:", info_buff)
+        self.assertIn("AJAX requests:", info_buff)
+
+        self.assertIn("Longest JS function calls", info_buff)
+        for fun in ("drawSnowflake", "getSegmentAngle", "submitSnowflakeResults"):
+            self.assertIn(fun, info_buff)
+
+        profiler.log.removeHandler(log_recorder)
+
+
+class TestChromeProfiler(SeleniumTestCase):
+    def test_full(self):
+        self.obj.engine.config.merge({
+            "execution": {
+                "executor": "selenium",
+                "iterations": 3,
+                "scenario": {"script": __dir__() + "/../chrome/test_trace.py"}
+            },
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        profiler = ChromeProfiler()
+        profiler.engine = self.engine_obj
+        profiler.parameters.merge({
+            "trace-file": "trace.json",
+            "cpuprofile": "js.cpuprofile",
+        })
+
+        profiler.prepare()
+        self.obj.prepare()
+        profiler.startup()
+        self.obj.startup()
+        while not self.obj.check():
+            profiler.check()
+            time.sleep(1)
+        self.obj.shutdown()
+        profiler.shutdown()
+        profiler.post_process()
+
+        self.assertIsNotNone(profiler.get_tab_label())
+        self.assertIsNotNone(profiler.get_aggr_metrics())
 
 
 class RecordingListener(MonitoringListener):
