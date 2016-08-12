@@ -22,3 +22,5 @@ modules:
 ```
 
 After execution it you'll find JMX in artifacts dir with the name of your scenario, for example above it will be `sel.jmx`.
+
+<iframe width="700" height="394" src="https://www.youtube.com/embed/zuZkCHW259U" frameborder="0" allowfullscreen></iframe>
