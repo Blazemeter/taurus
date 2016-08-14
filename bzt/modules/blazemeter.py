@@ -25,6 +25,7 @@ import sys
 import time
 import traceback
 import zipfile
+from ssl import SSLError
 from collections import defaultdict, OrderedDict
 
 import yaml
@@ -1242,7 +1243,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             return True
         try:
             master = self.client.get_master_status()
-        except URLError:
+        except (URLError, SSLError):
             self.log.warning("Failed to get test status, will retry in %s seconds...", self.client.timeout)
             self.log.debug("Full exception: %s", traceback.format_exc())
             time.sleep(self.client.timeout)
