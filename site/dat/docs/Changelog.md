@@ -6,6 +6,7 @@
  - fix Gatling keepalive type cast bug
  - add `detach` mode to Cloud Provisioning
  - fix grinder in the cloud with requests scenario
+ - add `xml-jtl-flags` option for tuning of logging verbosity
  - add `waiting for data...` into titles of console blocks
  - fix SSL error handling for cloud provisioning
 
