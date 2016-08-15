@@ -208,39 +208,14 @@ class JMX(object):
         return JMX.__jtl_writer(filename, "KPI Writer", flags)
 
     @staticmethod
-    def new_xml_listener(filename, is_full):
+    def new_xml_listener(filename, is_full, flags):
         """
 
         :param is_full: bool
         :param filename: str
+        :param flags: dict
         :return:
         """
-        flags = {
-            "xml": True,
-            "fieldNames": True,
-            "time": True,
-            "timestamp": True,
-            "latency": True,
-            "success": True,
-            "label": True,
-            "code": True,
-            "message": True,
-            "threadName": True,
-            "dataType": True,
-            "encoding": True,
-            "assertions": True,
-            "subresults": True,
-            "responseData": True,
-            "samplerData": True,
-            "responseHeaders": True,
-            "requestHeaders": True,
-            "responseDataOnError": True,
-            "saveAssertionResultsFailureMessage": True,
-            "bytes": True,
-            "threadCounts": True,
-            "url": True
-        }
-
         if is_full:
             writer = JMX.__jtl_writer(filename, "Trace Writer", flags)
         else:

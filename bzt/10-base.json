@@ -52,7 +52,32 @@
         "jpgc-json",
         "jpgc-perfmon",
         "jpgc-prmctl",
-        "jpgc-tst"]
+        "jpgc-tst"],
+      "xml-jtl-flags": {
+            "xml": true,
+            "fieldNames": true,
+            "time": true,
+            "timestamp": true,
+            "latency": true,
+            "success": true,
+            "label": true,
+            "code": true,
+            "message": true,
+            "threadName": true,
+            "dataType": true,
+            "encoding": true,
+            "assertions": true,
+            "subresults": true,
+            "responseData": false,
+            "samplerData": false,
+            "responseHeaders": true,
+            "requestHeaders": true,
+            "responseDataOnError": true,
+            "saveAssertionResultsFailureMessage": true,
+            "bytes": true,
+            "threadCounts": true,
+            "url": true
+        }
     },
     "jtl-loader": "bzt.modules.jmeter.JMeterJTLLoaderExecutor",
     "grinder": {

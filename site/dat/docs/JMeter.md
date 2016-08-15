@@ -586,7 +586,7 @@ settings and requests there.
 You can tune JTL file verbosity with option `write-xml-jtl`. Possible values are 'error' (default), 'full', or any other value for 'none'. Keep in mind: max verbosity can seriously load your system.
 ```yaml
 ---
-execution
+execution:
 - write-xml-jtl: full
   scenario: simple_script
   
