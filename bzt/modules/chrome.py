@@ -16,6 +16,7 @@ limitations under the License.
 import bisect
 import copy
 import json
+from abc import abstractmethod
 from collections import defaultdict, OrderedDict, namedtuple
 from datetime import datetime
 from os import path
@@ -41,6 +42,12 @@ def to_mb(bytes_value):
 
 
 class ChromeProfiler(Monitoring):
+    """
+    Chrome profiler module
+
+    :type client: ChromeClient
+    """
+
     def __init__(self):
         super(ChromeProfiler, self).__init__()
         self.client = None
@@ -52,7 +59,10 @@ class ChromeProfiler(Monitoring):
         if cpuprofile_file:
             cpuprofile_file = path.join(self.engine.artifacts_dir, cpuprofile_file)
 
-        self.client = ChromeClient(trace_path, cpuprofile_file, self.log)
+        self.client = ChromeClient(self.log)
+        self.client.add_collector(TracingMetricsCollector(trace_path, self.log))
+        if cpuprofile_file:
+            self.client.add_collector(CPUProfileReader(cpuprofile_file, self.log))
         self.client.engine = self.engine
         self.client.connect()
 
@@ -60,6 +70,7 @@ class ChromeProfiler(Monitoring):
         self.client.start()
 
     def check(self):
+        self.client.process_data()
         results = self.client.get_data()
         if results:
             for listener in self.listeners:
@@ -67,6 +78,7 @@ class ChromeProfiler(Monitoring):
         return False  # profiling never stops
 
     def shutdown(self):
+        self.client.process_data()
         results = self.client.get_data()
         if results:
             for listener in self.listeners:
@@ -74,90 +86,27 @@ class ChromeProfiler(Monitoring):
         self.client.disconnect()
 
     def get_aggr_metrics(self):
+        self.client.process_data()
+        return self.client.get_aggr_metrics()
+
+    def get_custom_tables(self):
+        self.client.process_data()
         if self.client is not None:
-            return self.client.get_aggr_metrics()
+            return self.client.get_custom_tables()
+
+    def get_tab_label(self):
+        self.client.process_data()
+        if self.client is not None:
+            return self.client.get_tab_label()
 
     def get_metric_label(self, metric):
         if self.client is not None:
             return self.client.get_metric_label(metric)
 
-    def get_custom_tables(self):
-        if self.client is not None:
-            return self.client.get_custom_tables()
-
-    def get_tab_label(self):
-        if self.client is not None:
-            return self.client.get_tab_label()
-
-    def get_js_function_call_stats(self):
-        if self.client is not None:
-            return self.client.get_js_function_call_stats()
-
     def get_custom_tables_json(self):
-        js_trace_rows = []
-
-        js_stats = self.get_js_function_call_stats()
-        if js_stats:
-            call_stats = js_stats
-            stats = [(func, calls) for func, calls in iteritems(call_stats)]
-            counter = 0
-            for func, stat in sorted(stats, key=lambda fs: fs[1]["total_time"], reverse=True):
-                row = OrderedDict()
-                row["Function"] = func.name
-                row["Source"] = func.url
-                row["Calls"] = stat["ncalls"]
-                row["Call percentage"] = stat["perc_calls"]
-                row["Total time"] = stat["total_time"]
-                row["Self time"] = stat["self_time"]
-                row["Self percentage"] = stat["perc_self"]
-                js_trace_rows.append(row)
-                counter += 1
-                if counter >= 100:
-                    break
-
-        tables = self.get_custom_tables()
-        if js_trace_rows:
-            tables.append({"id": "JSTrace", "name": "JavaScript Function Calls",
-                           "description": "JavaScript function call stats",
-                           "data": js_trace_rows})
-
         return {
-            "tables": tables
+            "tables": self.get_custom_tables()
         }
-
-
-class TraceJSONReader(object):
-    def __init__(self, filename, parent_log):
-        self.log = parent_log.getChild(self.__class__.__name__)
-        self.filename = filename
-        self.fds = None
-
-    def extract_events(self):
-        if not self.fds and not self.__open_fds():
-            self.log.debug("No data to start reading yet")
-            return
-
-        try:
-            events = json.load(self.fds)
-        except ValueError:
-            self.log.debug("Can't parse trace, it might be not full")
-            return
-
-        for event in events:
-            yield event
-
-    def __open_fds(self):
-        if not path.isfile(self.filename):
-            return False
-        fsize = path.getsize(self.filename)
-        if not fsize:
-            return False
-        self.fds = open(self.filename, 'r')
-        return True
-
-    def __del__(self):
-        if self.fds is not None:
-            self.fds.close()
 
 
 class MetricExtractor(object):
@@ -172,6 +121,10 @@ class MetricExtractor(object):
 
     def offset_to_epoch(self, offset):
         return self.collector.start_time + offset
+
+    def reset(self):
+        self.tracing_tab_pid = None
+        self.tracing_page_id = None
 
     @staticmethod
     def aggregate_by_ts(pid_stats, aggregate_func=average):
@@ -222,6 +175,12 @@ class DOMMetricsExtractor(MetricExtractor):
         self.dom_documents = defaultdict(OrderedDict)  # pid -> (timestamp -> documents)
         self.dom_nodes = defaultdict(OrderedDict)  # pid -> (timestamp -> nodes)
         self.event_listeners = defaultdict(OrderedDict)  # pid -> (timestamp -> listeners)
+
+    def reset(self):
+        super(DOMMetricsExtractor, self).reset()
+        self.dom_documents.clear()
+        self.dom_nodes.clear()
+        self.event_listeners.clear()
 
     def categories(self):
         return super(DOMMetricsExtractor, self).categories() | {"disabled-by-default-devtools.timeline"}
@@ -313,6 +272,11 @@ class NetworkMetricsExtractor(MetricExtractor):
         #                                                       recv_data_time, mime, status_code, size, did_fail,
         #                                                       finish_time, network_time)
         self.xhr_requests = defaultdict(list)  # pid -> [(ts, url)]
+
+    def reset(self):
+        super(NetworkMetricsExtractor, self).reset()
+        self.requests.clear()
+        self.xhr_requests.clear()
 
     def categories(self):
         return super(NetworkMetricsExtractor, self).categories() | {"devtools.timeline"}
@@ -450,6 +414,10 @@ class MemoryMetricsExtractor(MetricExtractor):
         super(MemoryMetricsExtractor, self).__init__(collector, log)
         self.memory_per_process = defaultdict(dict)
 
+    def reset(self):
+        super(MemoryMetricsExtractor, self).reset()
+        self.memory_per_process.clear()
+
     def categories(self):
         return super(MemoryMetricsExtractor, self).categories() | {"disabled-by-default-memory-infra"}
 
@@ -476,7 +444,7 @@ class MemoryMetricsExtractor(MetricExtractor):
         per_ts = dict()  # ts -> (pid -> [measurement at ts])
         for pid in per_pid_stats:
             for offset, value in iteritems(per_pid_stats[pid]):
-                base_ts = int(offset)
+                base_ts = int(offset / 1000000)
                 if base_ts not in per_ts:
                     per_ts[base_ts] = {}
                 if pid not in per_ts[base_ts]:
@@ -518,6 +486,12 @@ class JavaScriptMetricsExtractor(MetricExtractor):
         self.gc_times = defaultdict(list)
         self.v8_complete_events = defaultdict(list)
         self.used_heap = defaultdict(dict)  # pid -> (timestamp -> heap_size)
+
+    def reset(self):
+        super(JavaScriptMetricsExtractor, self).reset()
+        self.gc_times.clear()
+        self.v8_complete_events.clear()
+        self.used_heap.clear()
 
     def categories(self):
         return super(JavaScriptMetricsExtractor, self).categories() | {"v8", "disabled-by-default-devtools.timeline"}
@@ -622,6 +596,10 @@ class TabNameExtractor(MetricExtractor):
         super(TabNameExtractor, self).__init__(collector, log)
         self.process_labels = {}
 
+    def reset(self):
+        super(TabNameExtractor, self).reset()
+        self.process_labels.clear()
+
     def categories(self):
         return super(TabNameExtractor, self).categories() | {"__metadata"}
 
@@ -654,6 +632,14 @@ class LoadTimeMetricsExtractor(MetricExtractor):
         self.draw_frame_events = defaultdict(list)  # pid -> [ts]
         self.load_events = defaultdict(dict)  # pid -> (ts -> frame id)
         self.dom_content_loaded_events = defaultdict(dict)  # pid -> (ts -> frame id)
+
+    def reset(self):
+        super(LoadTimeMetricsExtractor, self).reset()
+        self.commit_load_events.clear()
+        self.composite_layers_events.clear()
+        self.draw_frame_events.clear()
+        self.load_events.clear()
+        self.dom_content_loaded_events.clear()
 
     def categories(self):
         cats = {"blink.user_timing",
@@ -761,21 +747,76 @@ class LoadTimeMetricsExtractor(MetricExtractor):
         return [table]
 
 
-class MetricCollector(object):
+class TracingProcessor(object):
+    def __init__(self, filename, log):
+        self.data_file = filename
+        self.log = log.getChild(self.__class__.__name__)
+        self.data_file_ctime = None
+
+    def process_file(self):
+        "Read (or reread) and process file"
+        should_process = False
+        if path.exists(self.data_file):
+            ctime = path.getctime(self.data_file)
+            if self.data_file_ctime is None:
+                self.log.debug("Recording file %s ctime %s", self.data_file, epoch_to_str(ctime))
+                self.data_file_ctime = ctime
+                should_process = True
+            elif self.data_file_ctime != ctime and abs(self.data_file_ctime - ctime) >= 2.0:
+                self.log.debug("File %s ctime updated, resetting, (%s)", self.data_file, epoch_to_str(ctime))
+                self.data_file_ctime = ctime
+                self.reset_cache()
+                should_process = True
+        if should_process:
+            self.process_data()
+
+    @abstractmethod
+    def reset_cache(self):
+        pass
+
+    @abstractmethod
+    def process_data(self):
+        pass
+
+    @abstractmethod
+    def get_metric_label(self, metric):
+        pass
+
+    @abstractmethod
+    def get_metrics(self):
+        "Calculate metrics that are defined over time"
+        pass
+
+    @abstractmethod
+    def get_aggr_metrics(self):
+        "Calculate aggregated metrics (defined once per test run)"
+        pass
+
+    @abstractmethod
+    def get_custom_tables(self):
+        "Create custom tables with metrics"
+        pass
+
+
+class TracingMetricsCollector(TracingProcessor):
     """
     Chrome performance client
 
-    :type extractors: [MetricExtractor]
+    :type extractors: list[MetricExtractor]
     """
-    def __init__(self, parent_log):
-        self.log = parent_log.getChild(self.__class__.__name__)
+    def __init__(self, data_path, parent_log):
+        super(TracingMetricsCollector, self).__init__(data_path, parent_log)
+
+        # epoch timestamp of Chrome start
+        # (used to convert offsets from Chrome start into epoch timestamps)
         self.start_time = None
+
+        # Chrome clock tracing start offset and duration
+        # (used to convert timestamps from trace events into offsets in seconds)
         self.tracing_start_ts = None
         self.tracing_duration = 0.0
 
-        self.process_names = {}  # pid -> str
-        self.process_labels = {}  # pid -> str
-
+        # list of metrics extractors
         self.extractors = [
             DOMMetricsExtractor(self, self.log),
             MemoryMetricsExtractor(self, self.log),
@@ -785,6 +826,9 @@ class MetricCollector(object):
             LoadTimeMetricsExtractor(self, self.log),
         ]
 
+    def add_extractors(self, extractors):
+        self.extractors.extend(extractors)
+
     def convert_ts(self, timestamp):
         if self.tracing_start_ts is not None:
             offset = float(timestamp) / 1000000 - self.tracing_start_ts
@@ -792,7 +836,22 @@ class MetricCollector(object):
         else:
             return 0.0
 
-    def feed_event(self, event):
+    def process_data(self):
+        with open(self.data_file, 'r') as f:
+            try:
+                events = json.load(f)
+            except ValueError:
+                self.data_file_ctime = None
+                return
+
+        for event in events:
+            self.process_event(event)
+
+    def reset_cache(self):
+        for extractor in self.extractors:
+            extractor.reset()
+
+    def process_event(self, event):
         # see https://docs.google.com/document/d/1CvAClvFfyA5R-PhYUmn5OOQtYMH4h6I0nSsKchNAySU/edit#
         # for trace event format
         if event.get("ts") and self.tracing_start_ts is None:
@@ -844,11 +903,20 @@ class MetricCollector(object):
                 return extractor.get_tab_label()
 
 
-class CPUProfileReader(object):
+class CPUProfileReader(TracingProcessor):
     "Reader for .cpuprofile files produced by Chrome"
     def __init__(self, profile_file, parent_logger):
-        self.log = parent_logger.getChild(self.__class__.__name__)
-        self.profile_file = profile_file
+        super(CPUProfileReader, self).__init__(profile_file, parent_logger)
+        self.profile_start_time = 0
+        self.profile_end_time = 0
+        self.total_hit_count = 0
+        self.timestamps = []
+        self.samples = []
+        self.head = None
+        self._id_to_node = {}
+        self.max_depth = 0
+
+    def reset_cache(self):
         self.profile_start_time = 0
         self.profile_end_time = 0
         self.total_hit_count = 0
@@ -1084,9 +1152,13 @@ class CPUProfileReader(object):
 
         return stats
 
-    def process_cpuprofile(self):
-        with open(self.profile_file) as fds:
-            profile = json.load(fds)
+    def process_data(self):
+        try:
+            with open(self.data_file) as fds:
+                profile = json.load(fds)
+        except ValueError:
+            self.data_file_ctime = None
+            return
         head = profile["head"]
         self.profile_start_time = profile["startTime"]
         self.profile_end_time = profile["endTime"]
@@ -1101,10 +1173,9 @@ class CPUProfileReader(object):
             self._normalize_timestamps()
 
     def extract_js_call_stats(self):
-        if not path.exists(self.profile_file):
+        if not path.exists(self.data_file):
             self.log.warning("CPU profile file doesn't exist, can't extract call stats")
             return None
-        self.process_cpuprofile()
         call_number_stats = self.build_call_number_stats()
         call_time_stats = self.build_call_time_stats()
         stats = {}
@@ -1118,32 +1189,59 @@ class CPUProfileReader(object):
             perc_self = "%.2f%%" % (self_time / total_time * 100)
             stats[func] = {"ncalls": num_stat["ncalls"], "perc_calls": num_stat["perc_calls"],
                            "self_time": self_time, "total_time": total_time, "perc_self": perc_self}
-
         return stats
+
+    def get_metric_label(self, metric):
+        pass
+
+    def get_metrics(self):
+        return iter([])
+
+    def get_aggr_metrics(self):
+        return iter([])
+
+    def get_custom_tables(self):
+        tables = []
+        call_stats = self.extract_js_call_stats()
+        if call_stats:
+            stats = [(func, calls) for func, calls in iteritems(call_stats)]
+            by_total_time = sorted(stats, key=lambda fs: fs[1]["total_time"], reverse=True)
+            rows = []
+            for index, funcstat in enumerate(by_total_time[:100]):
+                func, stat = funcstat
+                row = OrderedDict()
+                row["Function"] = func.name
+                row["Source"] = func.url
+                row["Calls"] = stat["ncalls"]
+                row["Call percentage"] = stat["perc_calls"]
+                row["Total time"] = stat["total_time"]
+                row["Self time"] = stat["self_time"]
+                row["Self percentage"] = stat["perc_self"]
+                rows.append(row)
+            tables.append({"id": "Trace", "name": "JavaScript function calls",
+                           "description": "Longest JavaScript function calls",
+                           "data": rows})
+        return tables
 
 
 class ChromeClient(MonitoringClient):
     """
     Chrome performance client
 
-    :type extractor: MetricCollector
+    :type extractor: TracingMetricsCollector
     :type reader: TraceJSONReader
     :type cpuprofile_reader: CPUProfileReader
     :type engine: bzt.Engine
+    :type collectors: list[TracingProcessor]
     """
-    def __init__(self, trace_file, cpuprofile_file, parent_logger):
+    def __init__(self, parent_logger):
         super(ChromeClient, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
-        self.trace_file = trace_file
-        self.cpuprofile_file = cpuprofile_file
-        self.trace_file_ctime = None
-        self.reader = TraceJSONReader(trace_file, self.log)
-        self.extractor = MetricCollector(self.log)
-        if cpuprofile_file:
-            self.cpuprofile_reader = CPUProfileReader(cpuprofile_file, self.log)
-        else:
-            self.cpuprofile_reader = None
         self.engine = None
+        self.collectors = []
+
+    def add_collector(self, collector):
+        self.collectors.append(collector)
 
     def connect(self):
         pass
@@ -1151,57 +1249,61 @@ class ChromeClient(MonitoringClient):
     def start(self):
         pass
 
+    def process_data(self):
+        for collector in self.collectors:
+            collector.process_file()
+
+    def get_start_time(self):
+        for collector in self.collectors:
+            if isinstance(collector, TracingMetricsCollector):
+                return collector.start_time
+
     def get_data(self):
-        if not path.exists(self.trace_file):
+        start_time = self.get_start_time()
+        if start_time is None:
             return []
-
-        ctime = path.getctime(self.trace_file)
-        if self.trace_file_ctime is None:
-            self.log.debug("Recording trace file ctime %s", epoch_to_str(ctime))
-            self.trace_file_ctime = ctime
-        elif self.trace_file_ctime != ctime and abs(self.trace_file_ctime - ctime) >= 2.0:
-            self.log.debug("Trace file ctime updated, resetting reader and extractor, %s", epoch_to_str(ctime))
-            self.trace_file_ctime = ctime
-            self.reader = TraceJSONReader(self.trace_file, self.log)
-            self.extractor = MetricCollector(self.log)
-
-        for event in self.reader.extract_events():
-            self.extractor.feed_event(event)
-
-        if self.extractor.start_time is None:
-            return []
-
-        start_time = self.extractor.start_time
-
         datapoints = []
-        for offset, metric, value in self.extractor.get_metrics():
+        for offset, metric, value in self.get_metrics():
             item = {
                 "ts": start_time + offset,
                 "source": "chrome",
                 metric: value
             }
             datapoints.append(item)
-
         return datapoints
+
+    def get_metrics(self):
+        for collector in self.collectors:
+            # noinspection PyTypeChecker
+            for metric in collector.get_metrics():
+                yield metric
 
     def get_aggr_metrics(self):
         res = {}
-        for metric, value in self.extractor.get_aggr_metrics():
-            res[metric] = value
+        for collector in self.collectors:
+            # noinspection PyTypeChecker
+            for metric, value in collector.get_aggr_metrics():
+                res[metric] = value
         return res
 
     def get_metric_label(self, metric):
-        return self.extractor.get_metric_label(metric)
+        for collector in self.collectors:
+            label = collector.get_metric_label(metric)
+            if label:
+                return label
 
     def get_custom_tables(self):
-        return self.extractor.get_custom_tables()
+        tables = []
+        for collector in self.collectors:
+            # noinspection PyTypeChecker
+            for table in collector.get_custom_tables():
+                tables.append(table)
+        return tables
 
     def get_tab_label(self):
-        return self.extractor.get_tab_label()
-
-    def get_js_function_call_stats(self):
-        if self.cpuprofile_reader is not None:
-            return self.cpuprofile_reader.extract_js_call_stats()
+        for collector in self.collectors:
+            if isinstance(collector, TracingMetricsCollector):
+                return collector.get_tab_label()
 
     def disconnect(self):
         pass
@@ -1236,20 +1338,3 @@ class MetricReporter(Reporter):
             self.log.info(" | ".join(title for title, _ in iteritems(first_row)))
             for row in rows:
                 self.log.info(" | ".join(str(value) for _, value in iteritems(row)))
-
-        js_stats = self.chrome_profiler.get_js_function_call_stats()
-        if js_stats:
-            call_stats = js_stats
-            self.log.info("")
-            self.log.info("Longest JS function calls (first 20):")
-            stats = [(func, calls) for func, calls in iteritems(call_stats)]
-            for index, funcstat in enumerate(sorted(stats, key=lambda fs: fs[1]["total_time"], reverse=True), 1):
-                func, stat = funcstat
-                tmpl = "%s. %s (%s) : ncalls=%s, perc_calls=%s, total_time=%s, self_time=%s, perc_self=%s"
-                url = func.url
-                if len(url) > 60:
-                    url = url[:50] + "..." + url[-7:]
-                self.log.info(tmpl, index, func.name, url, stat["ncalls"], stat["perc_calls"],
-                              stat["total_time"], stat["self_time"], stat["perc_self"])
-                if index >= 20:
-                    break

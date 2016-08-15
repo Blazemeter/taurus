@@ -110,6 +110,7 @@ class TestMetricExtraction(BZTestCase):
 class TestCPUPRofileReader(BZTestCase):
     def test_cpuprofile_stats(self):
         obj = CPUProfileReader(__dir__() + "/../chrome/js.cpuprofile", logging.getLogger())
+        obj.process_file()
         stats = obj.extract_js_call_stats()
         self.assertEqual(len(stats), 29)
         snowflake = next(stat for func, stat in iteritems(stats) if func.name == "drawSnowflake")
@@ -160,7 +161,7 @@ class TestMetricReporter(BZTestCase):
         self.assertIn("HTTP requests:", info_buff)
         self.assertIn("AJAX requests:", info_buff)
 
-        self.assertIn("Longest JS function calls", info_buff)
+        self.assertIn("JavaScript Function Calls", info_buff)
         for fun in ("drawSnowflake", "getSegmentAngle", "submitSnowflakeResults"):
             self.assertIn(fun, info_buff)
 
