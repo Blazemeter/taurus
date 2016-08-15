@@ -74,6 +74,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.scenario = None
         self.script = None
         self.self_generated_script = False
+        self.methods = BetterDict()
 
     def set_virtual_display(self):
         display_conf = self.settings.get("virtual-display")
@@ -270,7 +271,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         nose_test = SeleniumScriptBuilder(self.scenario, self.log)
         if self.virtual_display:
             nose_test.window_size = self.virtual_display.size
-        nose_test.gen_test_case()
+        self.methods.merge(nose_test.gen_test_case())
         nose_test.save(filename)
         return filename
 
@@ -682,6 +683,8 @@ from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import NoAlertPresentException
 """
+    MODS = """unittest.TestLoader.sortTestMethodsUsing = None
+"""
 
     def __init__(self):
         self.root = etree.Element("NoseTest")
@@ -691,6 +694,11 @@ from selenium.common.exceptions import NoAlertPresentException
         imports = etree.Element("imports")
         imports.text = NoseTest.IMPORTS
         return imports
+
+    def get_mods(self):
+        mods = etree.Element("mods")
+        mods.text = NoseTest.MODS
+        return mods
 
     def gen_class_definition(self, class_name, inherits_from, indent="0"):
         def_tmpl = "class {class_name}({inherits_from}):"
@@ -709,7 +717,6 @@ from selenium.common.exceptions import NoAlertPresentException
         statement_elem.text = statement
         return statement_elem
 
-
 class SeleniumScriptBuilder(NoseTest):
     def __init__(self, scenario, parent_logger):
         super(SeleniumScriptBuilder, self).__init__()
@@ -721,16 +728,42 @@ class SeleniumScriptBuilder(NoseTest):
         self.log.debug("Generating Test Case test method")
         imports = self.add_imports()
         self.root.append(imports)
+        mods = self.get_mods()
+        self.root.append(mods)
         test_class = self.gen_class_definition("TestRequests", ["unittest.TestCase"])
         self.root.append(test_class)
-        test_class.append(self.gen_setup_method())
+        first_test = True
+
         requests = self.scenario.get_requests()
-        test_method = self.gen_test_method()
-        test_class.append(test_method)
         scenario_timeout = self.scenario.get("timeout", 30)
         default_address = self.scenario.get("default-address", None)
 
+        counter = 0
+        methods = {}
+
         for req in requests:
+            name = 'test_%05d' % counter
+            test_method = self.gen_test_method(name)
+            methods[name] = req.url
+            counter += 1
+            test_class.append(test_method)
+            if first_test:
+                first_test = False
+                self.log.debug("Generating init code")
+                browsers = ["Firefox", "Chrome", "Ie", "Opera"]
+                browser = self.scenario.get("browser", "Firefox")
+                if browser not in browsers:
+                    raise ValueError("Unsupported browser name: %s" % browser)
+                test_method.append(self.gen_method_statement("self.driver=webdriver.%s()" % browser))
+                scenario_timeout = self.scenario.get("timeout", 30)
+                test_method.append(self.gen_impl_wait(scenario_timeout))
+                if self.window_size:
+                    statement = self.gen_method_statement("self.driver.set_window_size(%s, %s)" % self.window_size)
+                    test_method.append(statement)
+                else:
+                    test_method.append(self.gen_method_statement("self.driver.maximize_window()"))
+                test_method.append(self.__gen_new_line())
+
             parsed_url = parse.urlparse(req.url)
             if default_address is not None and not parsed_url.netloc:
                 url = default_address + req.url
@@ -758,24 +791,12 @@ class SeleniumScriptBuilder(NoseTest):
 
             test_method.append(self.gen_comment("end request: %s" % url))
             test_method.append(self.__gen_new_line())
-        test_class.append(self.gen_teardown_method())
-
-    def gen_setup_method(self):
-        self.log.debug("Generating setUp test method")
-        browsers = ["Firefox", "Chrome", "Ie", "Opera"]
-        browser = self.scenario.get("browser", "Firefox")
-        if browser not in browsers:
-            raise ValueError("Unsupported browser name: %s" % browser)
-        setup_method_def = self.gen_method_definition("setUp", ["self"])
-        setup_method_def.append(self.gen_method_statement("self.driver=webdriver.%s()" % browser))
-        scenario_timeout = self.scenario.get("timeout", 30)
-        setup_method_def.append(self.gen_impl_wait(scenario_timeout))
-        if self.window_size:
-            setup_method_def.append(self.gen_method_statement("self.driver.set_window_size(%s, %s)" % self.window_size))
         else:
-            setup_method_def.append(self.gen_method_statement("self.driver.maximize_window()"))
-        setup_method_def.append(self.__gen_new_line())
-        return setup_method_def
+            if not first_test:
+                self.log.debug("Generating finalize code")
+                test_method.append(self.gen_method_statement("self.driver.quit()"))
+
+        return methods
 
     def gen_impl_wait(self, timeout):
         return self.gen_method_statement("self.driver.implicitly_wait(%s)" % dehumanize_time(timeout))
@@ -783,16 +804,10 @@ class SeleniumScriptBuilder(NoseTest):
     def gen_comment(self, comment):
         return self.gen_method_statement("# %s" % comment)
 
-    def gen_test_method(self):
-        self.log.debug("Generating test method")
-        test_method = self.gen_method_definition("test_method", ["self"])
+    def gen_test_method(self, name):
+        self.log.debug("Generating test method %s", name)
+        test_method = self.gen_method_definition(name, ["self"])
         return test_method
-
-    def gen_teardown_method(self):
-        self.log.debug("Generating tearDown test method")
-        tear_down_method_def = self.gen_method_definition("tearDown", ["self"])
-        tear_down_method_def.append(self.gen_method_statement("self.driver.quit()"))
-        return tear_down_method_def
 
     def gen_assertion(self, assertion_config):
         self.log.debug("Generating assertion, config: %s", assertion_config)
