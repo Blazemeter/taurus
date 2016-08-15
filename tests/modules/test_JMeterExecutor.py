@@ -968,6 +968,25 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(jmx.get('ResultCollector[testname="Trace Writer"]'), [])
         self.assertEqual(jmx.get('ResultCollector[testname="Errors Writer"]'), [])
 
+    def test_jtl_flags(self):
+        self.obj.execution.merge({
+            "write-xml-jtl": "error",
+            "scenario": {
+                "requests": [{
+                    "url": "http://blazedemo.com",
+                }]}})
+        self.obj.settings.merge({'xml-jtl-flags': {
+            'responseData': True,
+            'message': False}})
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        writers = xml_tree.findall(".//ResultCollector[@testname='Errors Writer']")
+        self.assertEqual(1, len(writers))
+        self.assertEqual('false', writers[0].find('objProp/value/samplerData').text)
+        self.assertEqual('false', writers[0].find('objProp/value/message').text)
+        self.assertEqual('true', writers[0].find('objProp/value/responseData').text)
+        self.assertEqual('true', writers[0].find('objProp/value/bytes').text)
+
     def test_jmx_modification_unicode(self):
         cfg_selector = ('Home Page>HTTPsampler.Arguments>Arguments.arguments'
                         '>param>Argument.value')
