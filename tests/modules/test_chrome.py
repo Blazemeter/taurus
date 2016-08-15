@@ -3,7 +3,7 @@ import shutil
 import time
 import unittest
 
-from bzt.modules.chrome import ChromeProfiler, Metrics, CPUProfileReader, MetricReporter
+from bzt.modules.chrome import ChromeProfiler, CPUProfileReader, MetricReporter
 from bzt.modules.monitoring import MonitoringListener
 from bzt.six import iteritems
 from tests import BZTestCase, __dir__
@@ -41,15 +41,20 @@ class TestMetricExtraction(BZTestCase):
         obj.check()
 
         metrics = obj.get_aggr_metrics()
-        self.assertAlmostEqual(metrics[Metrics.PAGE_LOAD_TIME], 5.27, delta=0.01)
-        self.assertAlmostEqual(metrics[Metrics.DOM_CONTENT_LOADED_TIME], 3.00, delta=0.01)
-        self.assertAlmostEqual(metrics[Metrics.FULL_LOAD_TIME], 8.25, delta=0.01)
-        self.assertAlmostEqual(metrics[Metrics.FIRST_PAINT_TIME], 2.83, delta=0.01)
-        self.assertAlmostEqual(metrics[Metrics.NETWORK_FOOTPRINT], 2.952, delta=0.001)
-        self.assertAlmostEqual(metrics[Metrics.NETWORK_TTFB], 1.45, delta=0.001)
-        self.assertEqual(metrics[Metrics.NETWORK_REQUESTS], 200)
-        self.assertEqual(metrics[Metrics.NETWORK_XHR_REQUESTS], 21)
-        self.assertAlmostEqual(metrics[Metrics.JS_GC_TIME], 0.0464, delta=0.0001)
+
+        self.assertAlmostEqual(metrics["time-load-time"], 5.27, delta=0.01)
+        self.assertAlmostEqual(metrics["time-dom-content-load-time"], 3.00, delta=0.01)
+        self.assertAlmostEqual(metrics["time-first-paint-time"], 2.83, delta=0.01)
+        self.assertAlmostEqual(metrics["time-full-load-time"], 8.25, delta=0.01)
+        self.assertAlmostEqual(metrics["network-footprint"], 2.952, delta=0.001)
+        self.assertAlmostEqual(metrics["network-time-to-first-byte"], 1.45, delta=0.001)
+        self.assertEqual(metrics["network-http-requests"], 200)
+        self.assertEqual(metrics["network-xhr-requests"], 21)
+        self.assertAlmostEqual(metrics["js-total-gc-time"], 0.0464, delta=0.0001)
+        self.assertAlmostEqual(metrics["js-average-heap"], 34.8, delta=0.1)
+        self.assertEqual(metrics["dom-final-documents"], 15)
+        self.assertEqual(metrics["dom-final-nodes"], 1989)
+        self.assertEqual(metrics["dom-final-event-listeners"], 469)
 
     def test_calc_metrics(self):
         obj = ChromeProfiler()
@@ -66,40 +71,40 @@ class TestMetricExtraction(BZTestCase):
         obj.startup()
         obj.check()
 
-        dom_docs = listener.metrics_of_type(Metrics.DOM_DOCUMENTS)
+        dom_docs = listener.metrics_of_type("dom-documents")
         self.assertEqual(len(dom_docs), 16)
-        self.assertEqual(dom_docs[0][Metrics.DOM_DOCUMENTS], 1)
-        self.assertEqual(dom_docs[-1][Metrics.DOM_DOCUMENTS], 15)
+        self.assertEqual(dom_docs[0]["dom-documents"], 1)
+        self.assertEqual(dom_docs[-1]["dom-documents"], 15)
 
-        dom_nodes = listener.metrics_of_type(Metrics.DOM_NODES)
+        dom_nodes = listener.metrics_of_type("dom-nodes")
         self.assertEqual(len(dom_nodes), 16)
-        self.assertEqual(dom_nodes[0][Metrics.DOM_NODES], 4)
-        self.assertEqual(dom_nodes[-1][Metrics.DOM_NODES], 1989)
+        self.assertEqual(dom_nodes[0]["dom-nodes"], 4)
+        self.assertEqual(dom_nodes[-1]["dom-nodes"], 1989)
 
-        listeners = listener.metrics_of_type(Metrics.JS_EVENT_LISTENERS)
+        listeners = listener.metrics_of_type("dom-event-listeners")
         self.assertEqual(len(listeners), 16)
-        self.assertEqual(listeners[0][Metrics.JS_EVENT_LISTENERS], 0)
-        self.assertEqual(listeners[-1][Metrics.JS_EVENT_LISTENERS], 470)
+        self.assertEqual(listeners[0]["dom-event-listeners"], 0)
+        self.assertEqual(listeners[-1]["dom-event-listeners"], 469)
 
-        browser = listener.metrics_of_type(Metrics.MEMORY_BROWSER)
+        browser = listener.metrics_of_type("memory-browser")
         self.assertEqual(len(browser), 1)
-        self.assertAlmostEqual(browser[0][Metrics.MEMORY_BROWSER], 97.25, delta=0.1)
+        self.assertAlmostEqual(browser[0]["memory-browser"], 97.25, delta=0.1)
 
-        per_tab = listener.metrics_of_type(Metrics.MEMORY_TAB)
+        per_tab = listener.metrics_of_type("memory-tab")
         self.assertEqual(len(per_tab), 1)
-        self.assertAlmostEqual(per_tab[0][Metrics.MEMORY_TAB], 97.25, delta=0.1)
+        self.assertAlmostEqual(per_tab[0]["memory-tab"], 97.25, delta=0.1)
 
-        heap_size = listener.metrics_of_type(Metrics.MEMORY_JS_HEAP)
+        heap_size = listener.metrics_of_type("js-heap-usage")
         self.assertEqual(len(heap_size), 16)
-        self.assertAlmostEqual(heap_size[0][Metrics.MEMORY_JS_HEAP], 0.89, delta=0.1)
-        self.assertAlmostEqual(heap_size[-1][Metrics.MEMORY_JS_HEAP], 50.76, delta=0.1)
+        self.assertAlmostEqual(heap_size[0]["js-heap-usage"], 0.89, delta=0.1)
+        self.assertAlmostEqual(heap_size[-1]["js-heap-usage"], 50.76, delta=0.1)
 
-        js_cpu = listener.metrics_of_type(Metrics.JS_CPU_UTILIZATION)
+        js_cpu = listener.metrics_of_type("js-cpu-usage")
         self.assertEqual(len(js_cpu), 15)
-        self.assertAlmostEqual(js_cpu[0][Metrics.JS_CPU_UTILIZATION], 26.0, delta=0.1)
-        self.assertAlmostEqual(js_cpu[1][Metrics.JS_CPU_UTILIZATION], 98.4, delta=0.1)
-        self.assertAlmostEqual(js_cpu[2][Metrics.JS_CPU_UTILIZATION], 132.4, delta=0.1)
-        self.assertAlmostEqual(js_cpu[-1][Metrics.JS_CPU_UTILIZATION], 1.6, delta=0.1)
+        self.assertAlmostEqual(js_cpu[0]["js-cpu-usage"], 26.0, delta=0.1)
+        self.assertAlmostEqual(js_cpu[1]["js-cpu-usage"], 98.4, delta=0.1)
+        self.assertAlmostEqual(js_cpu[2]["js-cpu-usage"], 132.4, delta=0.1)
+        self.assertAlmostEqual(js_cpu[-1]["js-cpu-usage"], 1.6, delta=0.1)
 
 
 class TestCPUPRofileReader(BZTestCase):
@@ -149,9 +154,9 @@ class TestMetricReporter(BZTestCase):
 
         self.assertIn("Chrome metrics for tab 'JMeter and Performance Testing for DevOps I BlazeMeter'", info_buff)
 
-        for name, label in iteritems(Metrics.METRIC_LABELS):
-            self.assertIn(label, info_buff)
-
+        self.assertIn("Page load times:", info_buff)
+        self.assertIn("Network metrics:", info_buff)
+        self.assertIn("JavaScript metrics:", info_buff)
         self.assertIn("HTTP requests:", info_buff)
         self.assertIn("AJAX requests:", info_buff)
 

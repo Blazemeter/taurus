@@ -39,7 +39,6 @@ import webbrowser
 import zipfile
 from abc import abstractmethod
 from collections import defaultdict, Counter
-from datetime import datetime
 from subprocess import PIPE
 from webbrowser import GenericBrowser
 
@@ -902,7 +901,3 @@ def is_piped(file_obj):
     "check if file-object is a pipe or a file redirect"
     mode = os.fstat(file_obj.fileno()).st_mode
     return stat.S_ISFIFO(mode) or stat.S_ISREG(mode)
-
-
-def epoch_to_str(timestamp):
-    return datetime.fromtimestamp(timestamp).strftime('%d/%m/%Y %H:%M:%S.%f')[:-3]

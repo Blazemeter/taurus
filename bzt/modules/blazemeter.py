@@ -33,7 +33,7 @@ from urwid import Pile, Text
 from bzt import ManualShutdown
 from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
-from bzt.modules.chrome import ChromeProfiler, Metrics
+from bzt.modules.chrome import ChromeProfiler
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.monitoring import Monitoring, MonitoringListener
 from bzt.modules.services import Unpacker
@@ -325,7 +325,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
                 self.log.warning("Will skip failed data and continue running")
 
     def __send_custom_metrics(self):
-        data = self.monitoring_buffer.get_metrics_json()
+        data = self.get_custom_metrics_json()
         try:
             self.client.send_custom_metrics(data)
         except IOError:
@@ -342,7 +342,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
                 self.log.warning("Will skip failed data and continue running")
 
     def __send_custom_tables(self):
-        data = self.get_metrics_table_json()
+        data = self.get_custom_tables_json()
         if not data:
             return
         try:
@@ -360,10 +360,69 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
                 self.log.error("Fatal error sending custom tables: %s", traceback.format_exc())
                 self.log.warning("Will skip failed data and continue running")
 
-    def get_metrics_table_json(self):
+    def get_custom_metrics_json(self):
+        datapoints = {}
+
+        for source, buff in iteritems(self.monitoring_buffer.data):
+            for timestamp, item in iteritems(buff):
+                if source == 'local':
+                    source = platform.node()
+
+                if timestamp not in datapoints:
+                    datapoints[timestamp] = {}
+
+                for field, value in iteritems(item):
+                    if field in ('ts', 'interval'):
+                        continue
+                    if source == 'chrome':
+                        if field.startswith("time"):
+                            prefix = "Time"
+                        elif field.startswith("network"):
+                            prefix = "Network"
+                        elif field.startswith("dom"):
+                            prefix = "DOM"
+                        elif field.startswith("js"):
+                            prefix = "JS"
+                        elif field.startswith("memory"):
+                            prefix = "Memory"
+                        else:
+                            prefix = "Metrics"
+                        field = self.get_chrome_metric_kpi_label(field)
+                    else:
+                        if field.lower().startswith('cpu'):
+                            prefix = 'System'
+                            field = 'CPU'
+                        elif field.lower().startswith('mem'):
+                            prefix = 'System'
+                            field = 'Memory'
+                            value *= 100
+                        elif field.lower().startswith('disk'):
+                            prefix = 'Disk'
+                        elif field.lower().startswith('bytes-') or field.lower().startswith('net'):
+                            prefix = 'Network'
+                        else:
+                            prefix = 'Monitoring'
+
+                    label = "/".join([source, prefix, field])
+                    datapoints[timestamp][label] = value
+
+        results = []
+        for timestamp in sorted(datapoints):
+            datapoint = OrderedDict([(metric, datapoints[timestamp][metric])
+                                     for metric in sorted(datapoints[timestamp])])
+            datapoint["ts"] = timestamp
+            results.append(datapoint)
+        return {"datapoints": results}
+
+    def get_chrome_metric_kpi_label(self, metric):
         for module in self.engine.services:
             if isinstance(module, ChromeProfiler):
-                return module.get_metrics_tables_json()
+                return module.get_metric_label(metric)
+
+    def get_custom_tables_json(self):
+        for module in self.engine.services:
+            if isinstance(module, ChromeProfiler):
+                return module.get_custom_tables_json()
 
 
 class MonitoringBuffer(object):
@@ -490,60 +549,6 @@ class MonitoringBuffer(object):
             "hosts": hosts,
             "results": results
         }
-
-    def get_metrics_json(self):
-        datapoints = {}
-
-        for source, buff in iteritems(self.data):
-            for timestamp, item in iteritems(buff):
-                if source == 'local':
-                    source = platform.node()
-
-                if timestamp not in datapoints:
-                    datapoints[timestamp] = {}
-
-                for field, value in iteritems(item):
-                    if field in ('ts', 'interval'):
-                        continue
-                    if source == 'chrome':
-                        if Metrics.is_time_metric(field):
-                            prefix = "Time"
-                        elif Metrics.is_network_metric(field):
-                            prefix = "Network"
-                        elif Metrics.is_dom_metric(field):
-                            prefix = "DOM"
-                        elif Metrics.is_js_metric(field):
-                            prefix = "JS"
-                        elif Metrics.is_memory_metric(field):
-                            prefix = "Memory"
-                        else:
-                            prefix = "Metrics"
-                        field = Metrics.metric_label(field)
-                    else:
-                        if field.lower().startswith('cpu'):
-                            prefix = 'System'
-                            field = 'CPU'
-                        elif field.lower().startswith('mem'):
-                            prefix = 'System'
-                            field = 'Memory'
-                            value *= 100
-                        elif field.lower().startswith('disk'):
-                            prefix = 'Disk'
-                        elif field.lower().startswith('bytes-') or field.lower().startswith('net'):
-                            prefix = 'Network'
-                        else:
-                            prefix = 'Monitoring'
-
-                    label = "/".join([source, prefix, field])
-                    datapoints[timestamp][label] = value
-
-        results = []
-        for timestamp in sorted(datapoints):
-            datapoint = OrderedDict([(metric, datapoints[timestamp][metric])
-                                     for metric in sorted(datapoints[timestamp])])
-            datapoint["ts"] = timestamp
-            results.append(datapoint)
-        return {"datapoints": results}
 
 
 class ProjectFinder(object):
