@@ -24,6 +24,7 @@ from os import path
 from bzt.engine import Reporter
 from bzt.modules.monitoring import Monitoring, MonitoringClient
 from bzt.six import iteritems
+from bzt.utils import load_class
 
 
 def epoch_to_str(timestamp):
@@ -53,17 +54,21 @@ class ChromeProfiler(Monitoring):
         self.client = None
 
     def prepare(self):
-        trace_file = self.parameters.get('trace-file', "trace.json")
-        cpuprofile_file = self.parameters.get('cpuprofile', None)
-        trace_path = path.join(self.engine.artifacts_dir, trace_file)
-        if cpuprofile_file:
-            cpuprofile_file = path.join(self.engine.artifacts_dir, cpuprofile_file)
+        processors = self.parameters.get("processors", [])
+
+        if not processors:
+            processors.append({"class": "bzt.modules.chrome.TraceProcessor", "file": "trace.json"})
 
         self.client = ChromeClient(self.log)
-        self.client.add_collector(TracingMetricsCollector(trace_path, self.log))
-        if cpuprofile_file:
-            self.client.add_collector(CPUProfileReader(cpuprofile_file, self.log))
         self.client.engine = self.engine
+
+        for proc in processors:
+            filename = proc.get("file", ValueError("You must specify file name for processor"))
+            klass = load_class(proc.get("class", ValueError("You must specify class for performance processor")))
+            full_path = path.join(self.engine.artifacts_dir, filename)
+            processor = klass(full_path, self.log)
+            self.client.add_processor(processor)
+
         self.client.connect()
 
     def startup(self):
@@ -110,17 +115,17 @@ class ChromeProfiler(Monitoring):
 
 
 class MetricExtractor(object):
-    def __init__(self, collector, log):
-        self.collector = collector
+    def __init__(self, processor, log):
+        self.processor = processor
         self.log = log.getChild(self.__class__.__name__)
         self.tracing_tab_pid = None
         self.tracing_page_id = None
 
     def convert_ts(self, timestamp):
-        return self.collector.convert_ts(timestamp)
+        return self.processor.convert_ts(timestamp)
 
     def offset_to_epoch(self, offset):
-        return self.collector.start_time + offset
+        return self.processor.start_time + offset
 
     def reset(self):
         self.tracing_tab_pid = None
@@ -170,8 +175,8 @@ class DOMMetricsExtractor(MetricExtractor):
     FINAL_DOM_DOCUMENTS = 'dom-final-documents'
     FINAL_DOM_NODES = 'dom-final-nodes'
 
-    def __init__(self, collector, log):
-        super(DOMMetricsExtractor, self).__init__(collector, log)
+    def __init__(self, processor, log):
+        super(DOMMetricsExtractor, self).__init__(processor, log)
         self.dom_documents = defaultdict(OrderedDict)  # pid -> (timestamp -> documents)
         self.dom_nodes = defaultdict(OrderedDict)  # pid -> (timestamp -> nodes)
         self.event_listeners = defaultdict(OrderedDict)  # pid -> (timestamp -> listeners)
@@ -266,8 +271,8 @@ class NetworkMetricsExtractor(MetricExtractor):
     TIME_TO_FIRST_BYTE = 'network-time-to-first-byte'
     FULL_LOAD_TIME = 'time-full-load-time'
 
-    def __init__(self, collector, log):
-        super(NetworkMetricsExtractor, self).__init__(collector, log)
+    def __init__(self, processor, log):
+        super(NetworkMetricsExtractor, self).__init__(processor, log)
         self.requests = defaultdict(dict)  # request_id -> dict(pid, send_req_time, method, url, recv_resp_time,
         #                                                       recv_data_time, mime, status_code, size, did_fail,
         #                                                       finish_time, network_time)
@@ -410,8 +415,8 @@ class MemoryMetricsExtractor(MetricExtractor):
     BROWSER_MEMORY = 'memory-browser'
     TAB_MEMORY = 'memory-tab'
 
-    def __init__(self, collector, log):
-        super(MemoryMetricsExtractor, self).__init__(collector, log)
+    def __init__(self, processor, log):
+        super(MemoryMetricsExtractor, self).__init__(processor, log)
         self.memory_per_process = defaultdict(dict)
 
     def reset(self):
@@ -481,8 +486,8 @@ class JavaScriptMetricsExtractor(MetricExtractor):
     AVERAGE_JS_HEAP = 'js-average-heap'
     TOTAL_GC_TIME = 'js-total-gc-time'
 
-    def __init__(self, collector, log):
-        super(JavaScriptMetricsExtractor, self).__init__(collector, log)
+    def __init__(self, processor, log):
+        super(JavaScriptMetricsExtractor, self).__init__(processor, log)
         self.gc_times = defaultdict(list)
         self.v8_complete_events = defaultdict(list)
         self.used_heap = defaultdict(dict)  # pid -> (timestamp -> heap_size)
@@ -592,8 +597,8 @@ class JavaScriptMetricsExtractor(MetricExtractor):
 
 
 class TabNameExtractor(MetricExtractor):
-    def __init__(self, collector, log):
-        super(TabNameExtractor, self).__init__(collector, log)
+    def __init__(self, processor, log):
+        super(TabNameExtractor, self).__init__(processor, log)
         self.process_labels = {}
 
     def reset(self):
@@ -625,8 +630,8 @@ class LoadTimeMetricsExtractor(MetricExtractor):
     DOM_CONTENT_LOAD_TIME = "time-dom-content-load-time"
     FIRST_PAINT_TIME = "time-first-paint-time"
 
-    def __init__(self, collector, log):
-        super(LoadTimeMetricsExtractor, self).__init__(collector, log)
+    def __init__(self, processor, log):
+        super(LoadTimeMetricsExtractor, self).__init__(processor, log)
         self.commit_load_events = defaultdict(dict)  # pid -> (ts -> page id)
         self.composite_layers_events = defaultdict(list)  # pid -> [ts]
         self.draw_frame_events = defaultdict(list)  # pid -> [ts]
@@ -685,8 +690,8 @@ class LoadTimeMetricsExtractor(MetricExtractor):
     def calc_page_load_time(self):
         if self.tracing_tab_pid in self.load_events:
             page_load_ts = min(ts
-                            for ts, frame_id in iteritems(self.load_events[self.tracing_tab_pid])
-                            if frame_id == self.tracing_page_id)
+                               for ts, frame_id in iteritems(self.load_events[self.tracing_tab_pid])
+                               if frame_id == self.tracing_page_id)
             return self.convert_ts(page_load_ts)
 
     def calc_dom_content_load_time(self):
@@ -747,7 +752,7 @@ class LoadTimeMetricsExtractor(MetricExtractor):
         return [table]
 
 
-class TracingProcessor(object):
+class PerformanceDataProcessor(object):
     def __init__(self, filename, log):
         self.data_file = filename
         self.log = log.getChild(self.__class__.__name__)
@@ -798,14 +803,14 @@ class TracingProcessor(object):
         pass
 
 
-class TracingMetricsCollector(TracingProcessor):
+class TraceProcessor(PerformanceDataProcessor):
     """
     Chrome performance client
 
     :type extractors: list[MetricExtractor]
     """
     def __init__(self, data_path, parent_log):
-        super(TracingMetricsCollector, self).__init__(data_path, parent_log)
+        super(TraceProcessor, self).__init__(data_path, parent_log)
 
         # epoch timestamp of Chrome start
         # (used to convert offsets from Chrome start into epoch timestamps)
@@ -837,9 +842,9 @@ class TracingMetricsCollector(TracingProcessor):
             return 0.0
 
     def process_data(self):
-        with open(self.data_file, 'r') as f:
+        with open(self.data_file, 'r') as fds:
             try:
-                events = json.load(f)
+                events = json.load(fds)
             except ValueError:
                 self.data_file_ctime = None
                 return
@@ -903,10 +908,10 @@ class TracingMetricsCollector(TracingProcessor):
                 return extractor.get_tab_label()
 
 
-class CPUProfileReader(TracingProcessor):
+class CPUProfileProcessor(PerformanceDataProcessor):
     "Reader for .cpuprofile files produced by Chrome"
     def __init__(self, profile_file, parent_logger):
-        super(CPUProfileReader, self).__init__(profile_file, parent_logger)
+        super(CPUProfileProcessor, self).__init__(profile_file, parent_logger)
         self.profile_start_time = 0
         self.profile_end_time = 0
         self.total_hit_count = 0
@@ -1207,7 +1212,7 @@ class CPUProfileReader(TracingProcessor):
             stats = [(func, calls) for func, calls in iteritems(call_stats)]
             by_total_time = sorted(stats, key=lambda fs: fs[1]["total_time"], reverse=True)
             rows = []
-            for index, funcstat in enumerate(by_total_time[:100]):
+            for _, funcstat in enumerate(by_total_time[:100]):
                 func, stat = funcstat
                 row = OrderedDict()
                 row["Function"] = func.name
@@ -1228,20 +1233,17 @@ class ChromeClient(MonitoringClient):
     """
     Chrome performance client
 
-    :type extractor: TracingMetricsCollector
-    :type reader: TraceJSONReader
-    :type cpuprofile_reader: CPUProfileReader
     :type engine: bzt.Engine
-    :type collectors: list[TracingProcessor]
+    :type processors: list[PerformanceDataProcessor]
     """
     def __init__(self, parent_logger):
         super(ChromeClient, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.engine = None
-        self.collectors = []
+        self.processors = []
 
-    def add_collector(self, collector):
-        self.collectors.append(collector)
+    def add_processor(self, proc):
+        self.processors.append(proc)
 
     def connect(self):
         pass
@@ -1250,13 +1252,13 @@ class ChromeClient(MonitoringClient):
         pass
 
     def process_data(self):
-        for collector in self.collectors:
-            collector.process_file()
+        for processor in self.processors:
+            processor.process_file()
 
     def get_start_time(self):
-        for collector in self.collectors:
-            if isinstance(collector, TracingMetricsCollector):
-                return collector.start_time
+        for processor in self.processors:
+            if isinstance(processor, TraceProcessor):
+                return processor.start_time
 
     def get_data(self):
         start_time = self.get_start_time()
@@ -1273,37 +1275,37 @@ class ChromeClient(MonitoringClient):
         return datapoints
 
     def get_metrics(self):
-        for collector in self.collectors:
+        for processor in self.processors:
             # noinspection PyTypeChecker
-            for metric in collector.get_metrics():
+            for metric in processor.get_metrics():
                 yield metric
 
     def get_aggr_metrics(self):
         res = {}
-        for collector in self.collectors:
+        for processor in self.processors:
             # noinspection PyTypeChecker
-            for metric, value in collector.get_aggr_metrics():
+            for metric, value in processor.get_aggr_metrics():
                 res[metric] = value
         return res
 
     def get_metric_label(self, metric):
-        for collector in self.collectors:
-            label = collector.get_metric_label(metric)
+        for processor in self.processors:
+            label = processor.get_metric_label(metric)
             if label:
                 return label
 
     def get_custom_tables(self):
         tables = []
-        for collector in self.collectors:
+        for processor in self.processors:
             # noinspection PyTypeChecker
-            for table in collector.get_custom_tables():
+            for table in processor.get_custom_tables():
                 tables.append(table)
         return tables
 
     def get_tab_label(self):
-        for collector in self.collectors:
-            if isinstance(collector, TracingMetricsCollector):
-                return collector.get_tab_label()
+        for processor in self.processors:
+            if isinstance(processor, TraceProcessor):
+                return processor.get_tab_label()
 
     def disconnect(self):
         pass

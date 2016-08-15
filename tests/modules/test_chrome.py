@@ -3,7 +3,7 @@ import shutil
 import time
 import unittest
 
-from bzt.modules.chrome import ChromeProfiler, CPUProfileReader, MetricReporter
+from bzt.modules.chrome import ChromeProfiler, CPUProfileProcessor, MetricReporter
 from bzt.modules.monitoring import MonitoringListener
 from bzt.six import iteritems
 from tests import BZTestCase, __dir__
@@ -109,7 +109,7 @@ class TestMetricExtraction(BZTestCase):
 
 class TestCPUPRofileReader(BZTestCase):
     def test_cpuprofile_stats(self):
-        obj = CPUProfileReader(__dir__() + "/../chrome/js.cpuprofile", logging.getLogger())
+        obj = CPUProfileProcessor(__dir__() + "/../chrome/js.cpuprofile", logging.getLogger())
         obj.process_file()
         stats = obj.extract_js_call_stats()
         self.assertEqual(len(stats), 29)
@@ -127,8 +127,13 @@ class TestMetricReporter(BZTestCase):
         profiler = ChromeProfiler()
         profiler.engine = engine
         profiler.parameters.merge({
-            "trace-file": "trace.json",
-            "cpuprofile": "js.cpuprofile",
+            "processors": [{
+                "class": "bzt.modules.chrome.TraceProcessor",
+                "file": "trace.json",
+            }, {
+                "file": "js.cpuprofile",
+                "class": "bzt.modules.chrome.CPUProfileProcessor",
+            }],
         })
         shutil.copy(__dir__() + "/../chrome/trace.json", engine.artifacts_dir)
         shutil.copy(__dir__() + "/../chrome/js.cpuprofile", engine.artifacts_dir)
@@ -161,7 +166,7 @@ class TestMetricReporter(BZTestCase):
         self.assertIn("HTTP requests:", info_buff)
         self.assertIn("AJAX requests:", info_buff)
 
-        self.assertIn("JavaScript Function Calls", info_buff)
+        self.assertIn("JavaScript function calls", info_buff)
         for fun in ("drawSnowflake", "getSegmentAngle", "submitSnowflakeResults"):
             self.assertIn(fun, info_buff)
 
@@ -182,8 +187,13 @@ class TestChromeProfiler(SeleniumTestCase):
         profiler = ChromeProfiler()
         profiler.engine = self.engine_obj
         profiler.parameters.merge({
-            "trace-file": "trace.json",
-            "cpuprofile": "js.cpuprofile",
+            "processors": [{
+                "class": "bzt.modules.chrome.TraceProcessor",
+                "file": "trace.json",
+            }, {
+                "file": "js.cpuprofile",
+                "class": "bzt.modules.chrome.CPUProfileProcessor",
+            }],
         })
 
         profiler.prepare()
