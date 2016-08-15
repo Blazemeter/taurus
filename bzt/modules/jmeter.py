@@ -531,32 +531,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         jtl_log_level = self.execution.get('write-xml-jtl', 'error')
 
-        default_flags = {
-            "xml": True,
-            "fieldNames": True,
-            "time": True,
-            "timestamp": True,
-            "latency": True,
-            "success": True,
-            "label": True,
-            "code": True,
-            "message": True,
-            "threadName": True,
-            "dataType": True,
-            "encoding": True,
-            "assertions": True,
-            "subresults": True,
-            "responseData": False,
-            "samplerData": False,
-            "responseHeaders": True,
-            "requestHeaders": True,
-            "responseDataOnError": True,
-            "saveAssertionResultsFailureMessage": True,
-            "bytes": True,
-            "threadCounts": True,
-            "url": True
-        }
-        flags = self.settings.get('xml-jtl-flags', default_flags)
+        flags = self.settings.get('xml-jtl-flags')
 
         if jtl_log_level == 'error':
             self.log_jtl = self.engine.create_artifact("error", ".jtl")
