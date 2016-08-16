@@ -1,11 +1,9 @@
-import logging
 import shutil
 import time
 import unittest
 
-from bzt.modules.chrome import ChromeProfiler, CPUProfileProcessor, MetricReporter
+from bzt.modules.chrome import ChromeProfiler, MetricReporter
 from bzt.modules.monitoring import MonitoringListener
-from bzt.six import iteritems
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul, RecordingHandler
 from tests.modules.test_SeleniumExecutor import SeleniumTestCase
@@ -110,39 +108,6 @@ class TestMetricExtraction(BZTestCase):
         self.assertAlmostEqual(js_cpu[-1]["js-cpu-usage"], 1.6, delta=0.1)
 
 
-class TestCPUPRofileReader(BZTestCase):
-    def test_cpuprofile_stats(self):
-        obj = ChromeProfiler()
-        obj.engine = EngineEmul()
-        obj.parameters.merge({
-            "processors": [{
-                "class": "bzt.modules.chrome.CPUProfileProcessor",
-                "file": "js.cpuprofile",
-            }],
-        })
-        listener = RecordingListener()
-        obj.add_listener(listener)
-
-        shutil.copy(__dir__() + "/../chrome/js.cpuprofile", obj.engine.artifacts_dir)
-
-        obj.prepare()
-        obj.startup()
-        obj.check()
-
-        profile_processor = obj.client.processors[0]
-        self.assertIsInstance(profile_processor, CPUProfileProcessor)
-
-        stats = profile_processor.extract_js_call_stats()
-        self.assertEqual(len(stats), 29)
-
-        snowflake = next(stat for func, stat in iteritems(stats) if func.name == "drawSnowflake")
-        self.assertEqual(snowflake["ncalls"], 1116)
-        self.assertEqual(snowflake["perc_calls"], "22.48%")
-        self.assertAlmostEqual(snowflake["total_time"], 1.84, delta=0.01)
-        self.assertAlmostEqual(snowflake["self_time"], 1.20, delta=0.01)
-        self.assertEqual(snowflake["perc_self"], "65.29%")
-
-
 class TestMetricReporter(BZTestCase):
     def test_metrics_reporting(self):
         engine = EngineEmul()
@@ -152,13 +117,9 @@ class TestMetricReporter(BZTestCase):
             "processors": [{
                 "class": "bzt.modules.chrome.TraceProcessor",
                 "file": "trace.json",
-            }, {
-                "file": "js.cpuprofile",
-                "class": "bzt.modules.chrome.CPUProfileProcessor",
             }],
         })
         shutil.copy(__dir__() + "/../chrome/trace.json", engine.artifacts_dir)
-        shutil.copy(__dir__() + "/../chrome/js.cpuprofile", engine.artifacts_dir)
 
         log_recorder = RecordingHandler()
         reporter = MetricReporter()
@@ -188,10 +149,6 @@ class TestMetricReporter(BZTestCase):
         self.assertIn("HTTP requests:", info_buff)
         self.assertIn("AJAX requests:", info_buff)
 
-        self.assertIn("JavaScript function calls", info_buff)
-        for fun in ("drawSnowflake", "getSegmentAngle", "submitSnowflakeResults"):
-            self.assertIn(fun, info_buff)
-
         profiler.log.removeHandler(log_recorder)
 
 
@@ -212,9 +169,6 @@ class TestChromeProfiler(SeleniumTestCase):
             "processors": [{
                 "class": "bzt.modules.chrome.TraceProcessor",
                 "file": "trace.json",
-            }, {
-                "file": "js.cpuprofile",
-                "class": "bzt.modules.chrome.CPUProfileProcessor",
             }],
         })
 
@@ -231,6 +185,7 @@ class TestChromeProfiler(SeleniumTestCase):
 
         self.assertIsNotNone(profiler.get_tab_label())
         self.assertIsNotNone(profiler.get_aggr_metrics())
+        self.assertTrue(profiler.get_custom_tables())
 
 
 class RecordingListener(MonitoringListener):

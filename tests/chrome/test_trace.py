@@ -35,7 +35,6 @@ class ChromeTest(unittest.TestCase):
             },
         )
         self.start_time = time.time()
-        self.driver.execute_script(":startProfile")
 
     def test_local_fractals(self):
         self.driver.get('http://blazedemo.com/')
@@ -51,11 +50,6 @@ class ChromeTest(unittest.TestCase):
                     lines.append(json.dumps(event['message']['params']))
             f.write(",\n".join(lines))
             f.write("\n]\n")
-        # save Chrome CPU profile (viewable by Chrome devtools)
-        profile = self.driver.execute_script(":endProfile")
-        if profile:
-            with open("js.cpuprofile", 'w') as f:
-                f.write(json.dumps(profile["profile"]))
         # close browser
         self.driver.quit()
 
