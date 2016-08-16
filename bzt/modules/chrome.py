@@ -52,10 +52,7 @@ class ChromeProfiler(Monitoring):
         self.client = None
 
     def prepare(self):
-        processors = self.parameters.get("processors", [])
-
-        if not processors:
-            processors.append({"class": "bzt.modules.chrome.TraceProcessor", "file": "trace.json"})
+        processors = self.parameters.get("processors", [{"class": "bzt.modules.chrome.TraceProcessor"}])
 
         self.client = ChromeClient(self.log)
         self.client.engine = self.engine
