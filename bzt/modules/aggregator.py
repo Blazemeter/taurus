@@ -353,7 +353,7 @@ class ResultsProvider(object):
     :type listeners: list[AggregatorListener]
     """
 
-    def __init__(self):
+    def __init__(self, translate_table=None):
         super(ResultsProvider, self).__init__()
         self.cumulative = BetterDict()
         self.track_percentiles = []
@@ -363,6 +363,16 @@ class ResultsProvider(object):
         self.max_buffer_len = float('inf')
         self.buffer_multiplier = 2
         self.buffer_scale_idx = None
+        if translate_table:
+            self.translate_table = translate_table
+        else:
+            self.translate_table = {}
+
+    def translate(self, arg):
+        if arg in self.translate_table:
+            return self.translate_table[arg]
+        else:
+            return arg
 
     def add_listener(self, listener):
         """
@@ -419,8 +429,8 @@ class ResultsReader(ResultsProvider):
         (re.compile(r"\b\d{2,}\b"), "N")
     ]
 
-    def __init__(self, perc_levels=()):
-        super(ResultsReader, self).__init__()
+    def __init__(self, perc_levels=(), translate_table=None):
+        super(ResultsReader, self).__init__(translate_table=translate_table)
         self.generalize_labels = False
         self.ignored_labels = []
         self.log = logging.getLogger(self.__class__.__name__)
