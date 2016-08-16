@@ -4,6 +4,7 @@ import unittest
 
 from bzt.modules.chrome import ChromeProfiler, MetricReporter
 from bzt.modules.monitoring import MonitoringListener
+from bzt.six import iteritems
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul, RecordingHandler
 from tests.modules.test_SeleniumExecutor import SeleniumTestCase
@@ -21,6 +22,30 @@ class TestMetricExtraction(BZTestCase):
         obj.prepare()
         obj.startup()
         obj.check()
+        obj.shutdown()
+        obj.post_process()
+
+    def test_reread(self):
+        obj = ChromeProfiler()
+        obj.engine = EngineEmul()
+        listener = RecordingListener()
+        obj.add_listener(listener)
+
+        shutil.copy(__dir__() + "/../chrome/trace.json", obj.engine.artifacts_dir)
+
+        obj.prepare()
+        obj.startup()
+        for _ in range(3):
+            obj.check()
+            time.sleep(1)
+
+        shutil.copy(__dir__() + "/../chrome/trace.json", obj.engine.artifacts_dir)
+        for _ in range(3):
+            obj.check()
+            time.sleep(1)
+
+        obj.shutdown()
+        obj.post_process()
 
     def test_aggr_metrics(self):
         obj = ChromeProfiler()
@@ -39,6 +64,9 @@ class TestMetricExtraction(BZTestCase):
         obj.check()
 
         metrics = obj.get_aggr_metrics()
+
+        for metric, _ in iteritems(metrics):
+            self.assertIsNotNone(obj.get_metric_label(metric))
 
         self.assertAlmostEqual(metrics["time-load-time"], 5.27, delta=0.01)
         self.assertAlmostEqual(metrics["time-dom-content-load-time"], 3.00, delta=0.01)
