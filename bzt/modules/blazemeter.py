@@ -27,6 +27,7 @@ import traceback
 import zipfile
 from ssl import SSLError
 from collections import defaultdict, OrderedDict
+from functools import wraps
 
 import yaml
 from urwid import Pile, Text
@@ -41,6 +42,28 @@ from bzt.modules.services import Unpacker
 from bzt.six import BytesIO, text_type, iteritems, HTTPError, urlencode, Request, urlopen, r_input, URLError
 from bzt.utils import open_browser, get_full_path, get_files_recursive, replace_in_config
 from bzt.utils import to_json, dehumanize_time, MultiPartForm, BetterDict, ensure_is_dict
+
+
+def send_with_retry(method):
+    @wraps(method)
+    def _impl(self, *args, **kwargs):
+        if not isinstance(self, BlazeMeterUploader):
+            raise ValueError("send_with_retry should only be applied to BlazeMeterUploader methods")
+
+        try:
+            method(self, *args, **kwargs)
+        except IOError:
+            self.log.debug("Error sending data: %s", traceback.format_exc())
+            self.log.warning("Failed to send data, will retry in %s sec...", self.client.timeout)
+            try:
+                time.sleep(self.client.timeout)
+                method(self, *args, **kwargs)
+                self.log.info("Succeeded with retry")
+            except IOError:
+                self.log.error("Fatal error sending data: %s", traceback.format_exc())
+                self.log.warning("Will skip failed data and continue running")
+
+    return _impl
 
 
 class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
@@ -315,36 +338,25 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         if self.send_monitoring:
             self.monitoring_buffer.record_data(data)
 
-    def send_with_retry(self, sender_func, *args):
-        try:
-            sender_func(*args)
-        except IOError:
-            self.log.debug("Error sending data: %s", traceback.format_exc())
-            self.log.warning("Failed to send data, will retry in %s sec...", self.client.timeout)
-            try:
-                time.sleep(self.client.timeout)
-                sender_func(*args)
-                self.log.info("Succeeded with retry")
-            except IOError:
-                self.log.error("Fatal error sending data: %s", traceback.format_exc())
-                self.log.warning("Will skip failed data and continue running")
-
+    @send_with_retry
     def __send_monitoring(self):
         src_name = platform.node()
         data = self.monitoring_buffer.get_monitoring_json(self.client.session_id,
                                                           self.client.user_id,
                                                           self.client.test_id)
-        self.send_with_retry(self.client.send_monitoring_data, src_name, data)
+        self.client.send_monitoring_data(src_name, data)
 
+    @send_with_retry
     def __send_custom_metrics(self):
         data = self.get_custom_metrics_json()
-        self.send_with_retry(self.client.send_custom_metrics, data)
+        self.client.send_custom_metrics(data)
 
+    @send_with_retry
     def __send_custom_tables(self):
         data = self.get_custom_tables_json()
         if not data:
             return
-        self.send_with_retry(self.client.send_custom_tables, data)
+        self.client.send_custom_tables(data)
 
     def get_custom_metrics_json(self):
         datapoints = {}
