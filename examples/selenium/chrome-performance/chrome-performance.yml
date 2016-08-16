@@ -10,7 +10,7 @@ execution:
 
 scenarios:
   simple:
-    script: test_chrome_perf.py
+    script: chrome_performance.py
 
 services:
 - module: chrome-profiler
