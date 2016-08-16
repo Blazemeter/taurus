@@ -1,6 +1,7 @@
 import logging
 import shutil
 import time
+import unittest
 
 from bzt.modules.chrome import ChromeProfiler, CPUProfileProcessor, MetricReporter
 from bzt.modules.monitoring import MonitoringListener
@@ -176,7 +177,7 @@ class TestMetricReporter(BZTestCase):
 
 
 class TestChromeProfiler(SeleniumTestCase):
-#    @unittest.skip("CI has no chromedriver, pity")
+    @unittest.skip("CI has no chromedriver, pity")
     def test_full(self):
         self.obj.engine.config.merge({
             "execution": {

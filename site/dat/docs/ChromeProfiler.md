@@ -10,7 +10,7 @@ Calculated metrics will be automatically attached to BlazeMeter reports and plot
 report. There also exists a reporter (named `chrome-metric-reporter`) that will print all
 calculated metrics to the terminal at the end of the test.
 
-Here's an example of Taurus configuration to use this service:
+Here's an example of Taurus configuration that uses profiler service:
 ```yaml
 ---
 execution:
@@ -23,8 +23,9 @@ scenarios:
 
 services:
 - module: chrome-profiler
-  trace-file: trace.json  # trace file to use, more on that below
-  cpuprofile: js.cpuprofile  # cpu profile file to use, more on that below
+  procesors:
+  - class: bzt.modules.chrome.TraceProcessor
+    file: trace.json  # trace file to extract metrics from, more on that below
 
 reporting:
 - module: chrome-metric-reporter
@@ -40,7 +41,6 @@ Your Selenium test script (be it Java or Python) has to satisfy the following cr
 - It has to use Chrome (obviously)
 - It should set up Chrome to log tracing data
 - It should write Chrome trace data to file in artifacts dir (filename is specified with `trace-file` service option)
-- It should also write Chrome CPU Profile data to file in artifacts dir (filename is specified with `cpuprofile` service option)
 
 Here's an example of Python-based Selenium test script that does all listed things:
 
@@ -85,8 +85,6 @@ class ChromeTest(unittest.TestCase):
             },
         )
         self.start_time = time.time()
-        # start recording Chrome CPU Profile
-        self.driver.execute_script(":startProfile")
 
     def test_local_fractals(self):
         self.driver.get('https://github.com/')
@@ -101,11 +99,6 @@ class ChromeTest(unittest.TestCase):
                 if event['message']['method'] == 'Tracing.dataCollected':
                     trace.append(event['message']['params'])
             f.write(json.dumps(trace))
-        # save Chrome CPU profile (viewable by Chrome devtools)
-        profile = self.driver.execute_script(":endProfile")
-        if profile:
-            with open("js.cpuprofile", 'w') as f:
-                f.write(json.dumps(profile["profile"]))
         # close browser
         self.driver.quit()
 
