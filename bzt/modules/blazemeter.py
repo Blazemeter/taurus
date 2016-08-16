@@ -76,7 +76,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         self.send_interval = dehumanize_time(self.settings.get("send-interval", self.send_interval))
         self.send_monitoring = self.settings.get("send-monitoring", self.send_monitoring)
         self.send_custom_metrics = self.settings.get("send-custom-metrics", self.send_custom_metrics)
-        self.send_custom_tables = self.settings.get("send-custom_tables", self.send_custom_tables)
+        self.send_custom_tables = self.settings.get("send-custom-tables", self.send_custom_tables)
         monitoring_buffer_limit = self.settings.get("monitoring-buffer-limit", 500)
         self.monitoring_buffer = MonitoringBuffer(monitoring_buffer_limit)
         self.browser_open = self.settings.get("browser-open", self.browser_open)
