@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import json
+import re
 import os
 import shutil
 import subprocess
@@ -712,6 +713,12 @@ from selenium.common.exceptions import NoAlertPresentException
         method_def_element.text = def_tmpl.format(method_name=method_name, params=",".join(params))
         return method_def_element
 
+    def gen_decorator_statement(self, decorator_name, indent="4"):
+        def_tmpl = "@{decorator_name}"
+        decorator_element = etree.Element("decorator_statement", indent=indent)
+        decorator_element.text = def_tmpl.format(decorator_name=decorator_name)
+        return decorator_element
+
     def gen_method_statement(self, statement, indent="8"):
         statement_elem = etree.Element("statement", indent=indent)
         statement_elem.text = statement
@@ -733,16 +740,18 @@ class SeleniumScriptBuilder(NoseTest):
         self.root.append(mods)
         test_class = self.gen_class_definition("TestRequests", ["unittest.TestCase"])
         self.root.append(test_class)
-        test_class.append(self.gen_setup_method())
+        test_class.append(self.gen_setupclass_method())
+        test_class.append(self.gen_teardownclass_method())
+
+        counter = 0
+        methods = {}
         requests = self.scenario.get_requests()
         scenario_timeout = self.scenario.get("timeout", 30)
         default_address = self.scenario.get("default-address", None)
 
-        counter = 0
-        methods = {}
-
         for req in requests:
-            method_name = 'test_%05d' % counter
+            mod_url = re.sub('[^0-9a-zA-Z]+', '_', req.url[:30])
+            method_name = 'test_%05d_%s' % (counter, mod_url)
             test_method = self.gen_test_method(method_name)
             methods[method_name] = req.url
             counter += 1
@@ -776,29 +785,30 @@ class SeleniumScriptBuilder(NoseTest):
             test_method.append(self.gen_comment("end request: %s" % url))
             test_method.append(self.__gen_new_line())
 
-        test_class.append(self.gen_teardown_method())
         return methods
 
-    def gen_setup_method(self):
+    def gen_setupclass_method(self):
         self.log.debug("Generating setUp test method")
         browsers = ["Firefox", "Chrome", "Ie", "Opera"]
         browser = self.scenario.get("browser", "Firefox")
         if browser not in browsers:
             raise ValueError("Unsupported browser name: %s" % browser)
-        setup_method_def = self.gen_method_definition("setUp", ["self"])
-        setup_method_def.append(self.gen_method_statement("self.driver=webdriver.%s()" % browser))
+
+        setup_method_def = self.gen_decorator_statement('classmethod')
+        setup_method_def.append(self.gen_method_definition("setUpClass", ["cls"]))
+        setup_method_def.append(self.gen_method_statement("cls.driver=webdriver.%s()" % browser))
         scenario_timeout = self.scenario.get("timeout", 30)
-        setup_method_def.append(self.gen_impl_wait(scenario_timeout))
+        setup_method_def.append(self.gen_impl_wait(scenario_timeout, target='cls'))
         if self.window_size:
-            setup_method_def.append(
-                self.gen_method_statement("self.driver.set_window_size(%s, %s)" % self.window_size))
+            statement = self.gen_method_statement("cls.driver.set_window_size(%s, %s)" % self.window_size)
+            setup_method_def.append(statement)
         else:
-            setup_method_def.append(self.gen_method_statement("self.driver.maximize_window()"))
+            setup_method_def.append(self.gen_method_statement("cls.driver.maximize_window()"))
         setup_method_def.append(self.__gen_new_line())
         return setup_method_def
 
-    def gen_impl_wait(self, timeout):
-        return self.gen_method_statement("self.driver.implicitly_wait(%s)" % dehumanize_time(timeout))
+    def gen_impl_wait(self, timeout, target='self'):
+        return self.gen_method_statement("%s.driver.implicitly_wait(%s)" % (target, dehumanize_time(timeout)))
 
     def gen_comment(self, comment):
         return self.gen_method_statement("# %s" % comment)
@@ -808,10 +818,12 @@ class SeleniumScriptBuilder(NoseTest):
         test_method = self.gen_method_definition(name, ["self"])
         return test_method
 
-    def gen_teardown_method(self):
+    def gen_teardownclass_method(self):
         self.log.debug("Generating tearDown test method")
-        tear_down_method_def = self.gen_method_definition("tearDown", ["self"])
-        tear_down_method_def.append(self.gen_method_statement("self.driver.quit()"))
+        tear_down_method_def = self.gen_decorator_statement('classmethod')
+        tear_down_method_def.append(self.gen_method_definition("tearDownClass", ["cls"]))
+        tear_down_method_def.append(self.gen_method_statement("cls.driver.quit()"))
+        tear_down_method_def.append(self.__gen_new_line())
         return tear_down_method_def
 
     def gen_assertion(self, assertion_config):
