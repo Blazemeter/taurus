@@ -180,42 +180,6 @@ class TestMetricReporter(BZTestCase):
         profiler.log.removeHandler(log_recorder)
 
 
-class TestChromeProfiler(SeleniumTestCase):
-    @unittest.skip("CI has no chromedriver, pity")
-    def test_full(self):
-        self.obj.engine.config.merge({
-            "execution": {
-                "executor": "selenium",
-                "iterations": 3,
-                "scenario": {"script": __dir__() + "/../chrome/test_trace.py"}
-            },
-        })
-        self.obj.execution = self.obj.engine.config['execution']
-        profiler = ChromeProfiler()
-        profiler.engine = self.engine_obj
-        profiler.parameters.merge({
-            "processors": [{
-                "class": "bzt.modules.chrome.TraceProcessor",
-                "file": "trace.json",
-            }],
-        })
-
-        profiler.prepare()
-        self.obj.prepare()
-        profiler.startup()
-        self.obj.startup()
-        while not self.obj.check():
-            profiler.check()
-            time.sleep(1)
-        self.obj.shutdown()
-        profiler.shutdown()
-        profiler.post_process()
-
-        self.assertIsNotNone(profiler.get_tab_label())
-        self.assertIsNotNone(profiler.get_aggr_metrics())
-        self.assertTrue(profiler.get_custom_tables())
-
-
 class RecordingListener(MonitoringListener):
     def __init__(self):
         self.data = []
