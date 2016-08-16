@@ -126,7 +126,10 @@ class TestMetricReporter(BZTestCase):
             "processors": {
                 "trace": {
                     "class": "bzt.modules.chrome.TraceProcessor",
-                    "extractors": ["bzt.modules.chrome.MemoryMetricsExtractor"]
+                    "extractors": [
+                        "bzt.modules.chrome.TabNameExtractor",
+                        "bzt.modules.chrome.MemoryMetricsExtractor",
+                    ]
                 }
             }
         })

@@ -271,7 +271,6 @@ class TabNameExtractor(MetricExtractor):
 
     def process_event(self, trace_event):
         super(TabNameExtractor, self).process_event(trace_event)
-
         if trace_event["name"] == "process_labels":
             pid = trace_event["pid"]
             label = trace_event["args"]["labels"]
@@ -363,11 +362,9 @@ class TraceProcessor(PerformanceDataProcessor):
 
         # list of metrics extractors
         # tab name extractor is always on
-        self.extractors = [
-            TabNameExtractor(self, self.log),
-        ]
-        extractors = self.config.get("extractors", ["bzt.modules.chrome.MemoryMetricsExtractor"])
-        self.instantiate_extractors(extractors)
+        self.extractors = []
+
+        self.instantiate_extractors(self.config.get("extractors", []))
 
     def instantiate_extractors(self, extractors):
         for extractor_fqn in extractors:
@@ -550,8 +547,7 @@ class MetricReporter(Reporter):
         metrics = self.chrome_profiler.get_aggr_metrics()
         if metrics is not None:
             tab_label = self.chrome_profiler.get_tab_label()
-            if tab_label is not None:
-                self.log.info("Chrome metrics for tab '%s':", tab_label)
+            self.log.info("Chrome metrics for tab '%s':", tab_label)
 
         for table in self.chrome_profiler.get_custom_tables():
             self.log.info(table["name"] + ":")
