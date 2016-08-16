@@ -61,6 +61,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         self._last_status_check = time.time()
         self.send_monitoring = True
         self.monitoring_buffer = None
+        self.send_custom_metrics = False
+        self.send_custom_tables = False
 
     def prepare(self):
         """
@@ -73,6 +75,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         self.client.timeout = dehumanize_time(self.settings.get("timeout", self.client.timeout))
         self.send_interval = dehumanize_time(self.settings.get("send-interval", self.send_interval))
         self.send_monitoring = self.settings.get("send-monitoring", self.send_monitoring)
+        self.send_custom_metrics = self.settings.get("send-custom-metrics", self.send_custom_metrics)
+        self.send_custom_tables = self.settings.get("send-custom_tables", self.send_custom_tables)
         monitoring_buffer_limit = self.settings.get("monitoring-buffer-limit", 500)
         self.monitoring_buffer = MonitoringBuffer(monitoring_buffer_limit)
         self.browser_open = self.settings.get("browser-open", self.browser_open)
@@ -197,9 +201,12 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         try:
             self.__send_data(self.kpi_buffer, False, True)
             self.kpi_buffer = []
-            self.__send_monitoring()
-            self.__send_custom_metrics()
-            self.__send_custom_tables()
+            if self.send_monitoring:
+                self.__send_monitoring()
+            if self.send_custom_metrics:
+                self.__send_custom_metrics()
+            if self.send_custom_tables:
+                self.__send_custom_tables()
         finally:
             self._postproc_phase2()
 
@@ -257,6 +264,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
                 self.__send_data(self.kpi_buffer)
                 if self.send_monitoring:
                     self.__send_monitoring()
+                if self.send_custom_metrics:
                     self.__send_custom_metrics()
                 self.kpi_buffer = []
         return super(BlazeMeterUploader, self).check()
