@@ -221,7 +221,6 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 self.log.warning("Virtual display err: %s", self.virtual_display.stderr)
                 raise RuntimeError("Virtual display failed: %s" % self.virtual_display.return_code)
 
-
     def check(self):
         """
         check if test completed
@@ -269,7 +268,8 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def __tests_from_requests(self):
         filename = self.engine.create_artifact("test_requests", ".py")
-        nose_test = SeleniumScriptBuilder(self.scenario, self.log)
+        wdlog = self.engine.create_artifact('webdriver', '.log')
+        nose_test = SeleniumScriptBuilder(self.scenario, self.log, wdlog)
         if self.virtual_display:
             nose_test.window_size = self.virtual_display.size
         self.generated_methods.merge(nose_test.gen_test_case())
@@ -726,11 +726,12 @@ from selenium.common.exceptions import NoAlertPresentException
 
 
 class SeleniumScriptBuilder(NoseTest):
-    def __init__(self, scenario, parent_logger):
+    def __init__(self, scenario, parent_logger, wdlog):
         super(SeleniumScriptBuilder, self).__init__()
         self.window_size = None
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.scenario = scenario
+        self.wdlog = wdlog
 
     def gen_test_case(self):
         self.log.debug("Generating Test Case test method")
@@ -797,6 +798,15 @@ class SeleniumScriptBuilder(NoseTest):
         setup_method_def = self.gen_decorator_statement('classmethod')
         setup_method_def.append(self.gen_method_definition("setUpClass", ["cls"]))
         setup_method_def.append(self.gen_method_statement("cls.driver=webdriver.%s()" % browser))
+
+        if browser == 'Firefox':
+            setup_method_def.append(self.gen_method_statement("profile = webdriver.%sProfile();" % browser))
+            log_set = self.gen_method_statement("profile.set_preference('webdriver.log.file', '%s');" % self.wdlog)
+            setup_method_def.append(log_set)
+            setup_method_def.append(self.gen_method_statement("cls.driver=webdriver.%s(profile)" % browser))
+        else:
+            setup_method_def.append(self.gen_method_statement("cls.driver=webdriver.%s()" % browser))
+
         scenario_timeout = self.scenario.get("timeout", 30)
         setup_method_def.append(self.gen_impl_wait(scenario_timeout, target='cls'))
         if self.window_size:
