@@ -106,3 +106,63 @@ class ChromeTest(unittest.TestCase):
 if __name__ == '__main__':
     unittest.main()
 ```
+
+## Example of performance stats output
+
+Here's the sample of output provided by Chrome profiler service:
+
+```
+14:05:10 INFO: Chrome metrics for tab 'How people build software · GitHub':
+14:05:10 INFO: 
+14:05:10 INFO: DOM metrics:
+14:05:10 INFO: Label | Value
+14:05:10 INFO: Number of DOM documents at the end | 2
+14:05:10 INFO: Number of DOM nodes at the end | 722
+14:05:10 INFO: Number of event listeners at the end | 38
+14:05:10 INFO: 
+14:05:10 INFO: Network metrics:
+14:05:10 INFO: Label | Value
+14:05:10 INFO: Number of HTTP requests | 21
+14:05:10 INFO: Network footprint | 0.81
+14:05:10 INFO: Time to first byte | 0.60
+14:05:10 INFO: Number of AJAX requests | 1
+14:05:10 INFO: Time for full page load | 1.83
+14:05:10 INFO: 
+14:05:10 INFO: HTTP requests:
+14:05:10 INFO: Start time | End time | Method | URL | HTTP Status | MIME | Size
+14:05:10 INFO: 14:05:07.094 | 14:05:07.586 | GET | https://github.com/ | 200 | text/html | 9974
+14:05:10 INFO: 14:05:07.591 | 14:05:07.855 | GET | https://assets-cdn.github.com/assets/frameworks-be4c6e0e4... | 200 | text/css | 46393
+14:05:10 INFO: 14:05:07.592 | 14:05:07.844 | GET | https://assets-cdn.github.com/assets/github-2fc372026e1af... | 200 | text/css | 69064
+14:05:10 INFO: 14:05:07.592 | 14:05:07.765 | GET | https://assets-cdn.github.com/assets/site-c31d97cdffdd1a1... | 200 | text/css | 9020
+14:05:10 INFO: 14:05:07.592 | 14:05:07.998 | GET | https://assets-cdn.github.com/assets/frameworks-ff9877ee4... | 200 | application/javascript | 106258
+14:05:10 INFO: 14:05:07.592 | 14:05:07.999 | GET | https://assets-cdn.github.com/assets/github-3aee017820ac6... | 200 | application/javascript | 123282
+14:05:10 INFO: 14:05:07.592 | 14:05:07.997 | GET | https://assets-cdn.github.com/images/modules/site/univers... | 200 | image/png | 69211
+14:05:10 INFO: 14:05:07.592 | 14:05:08.001 | GET | https://assets-cdn.github.com/images/modules/site/home-il... | 200 | image/png | 6747
+14:05:10 INFO: 14:05:07.592 | 14:05:08.004 | GET | https://assets-cdn.github.com/images/modules/site/home-il... | 200 | image/png | 14277
+14:05:10 INFO: 14:05:07.592 | 14:05:08.004 | GET | https://assets-cdn.github.com/images/modules/site/home-il... | 200 | image/png | 10936
+14:05:10 INFO: 14:05:07.592 | 14:05:08.005 | GET | https://assets-cdn.github.com/images/modules/site/home-il... | 200 | image/png | 19421
+14:05:10 INFO: 14:05:07.592 | 14:05:08.101 | GET | https://assets-cdn.github.com/images/modules/site/org_exa... | 200 | image/png | 97808
+14:05:10 INFO: 14:05:07.592 | 14:05:08.000 | GET | https://assets-cdn.github.com/assets/frameworks-ff9877ee4... | 200 | application/javascript | 106258
+14:05:10 INFO: 14:05:07.592 | 14:05:08.000 | GET | https://assets-cdn.github.com/assets/github-3aee017820ac6... | 200 | application/javascript | 0
+14:05:10 INFO: 14:05:07.874 | 14:05:08.006 | GET | https://assets-cdn.github.com/images/modules/site/home-he... | 200 | image/jpeg | 116611
+14:05:10 INFO: 14:05:07.877 | 14:05:08.002 | GET | https://assets-cdn.github.com/static/fonts/roboto/roboto-... | 200 | application/x-font-woff | 14002
+14:05:10 INFO: 14:05:07.879 | 14:05:08.003 | GET | https://assets-cdn.github.com/static/fonts/roboto/roboto-... | 200 | application/x-font-woff | 13951
+14:05:10 INFO: 14:05:07.882 | 14:05:08.003 | GET | https://assets-cdn.github.com/static/fonts/roboto/roboto-... | 200 | application/x-font-woff | 13892
+14:05:10 INFO: 14:05:08.232 | 14:05:08.435 | POST | https://www.google-analytics.com/r/collect | 200 | image/gif | 324
+14:05:10 INFO: 14:05:08.233 | 14:05:08.809 | GET | https://collector.githubapp.com/github/page_view?dimensio... | 200 | image/gif | 545
+14:05:10 INFO: 
+14:05:10 INFO: AJAX requests:
+14:05:10 INFO: Start time | URL
+14:05:10 INFO: 14:05:08.435 | https://www.google-analytics.com/r/collect
+14:05:10 INFO: 
+14:05:10 INFO: JavaScript metrics:
+14:05:10 INFO: Label | Value
+14:05:10 INFO: Time spent doing GC in JS engine | 0.02
+14:05:10 INFO: Average JS heap size | 5.54
+14:05:10 INFO: 
+14:05:10 INFO: Page load times:
+14:05:10 INFO: Label | Value
+14:05:10 INFO: Time to page load | 1.83
+14:05:10 INFO: Time to DOMContentLoad event | 1.10
+14:05:10 INFO: Time to first paint | 1.03
+```
