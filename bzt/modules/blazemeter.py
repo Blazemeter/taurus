@@ -315,59 +315,36 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         if self.send_monitoring:
             self.monitoring_buffer.record_data(data)
 
+    def send_with_retry(self, sender_func, *args):
+        try:
+            sender_func(*args)
+        except IOError:
+            self.log.debug("Error sending data: %s", traceback.format_exc())
+            self.log.warning("Failed to send data, will retry in %s sec...", self.client.timeout)
+            try:
+                time.sleep(self.client.timeout)
+                sender_func(*args)
+                self.log.info("Succeeded with retry")
+            except IOError:
+                self.log.error("Fatal error sending data: %s", traceback.format_exc())
+                self.log.warning("Will skip failed data and continue running")
+
     def __send_monitoring(self):
         src_name = platform.node()
         data = self.monitoring_buffer.get_monitoring_json(self.client.session_id,
                                                           self.client.user_id,
                                                           self.client.test_id)
-        try:
-            self.client.send_monitoring_data(src_name, data)
-        except IOError:
-            self.log.debug("Error sending data: %s", traceback.format_exc())
-            self.log.warning("Failed to send monitoring data, will retry in %s sec...", self.client.timeout)
-            try:
-                time.sleep(self.client.timeout)
-                self.client.send_monitoring_data(src_name, data)
-                self.log.info("Succeeded with retry")
-            except IOError:
-                self.log.error("Fatal error sending monitoring data: %s", traceback.format_exc())
-                self.log.warning("Will skip failed data and continue running")
+        self.send_with_retry(self.client.send_monitoring_data, src_name, data)
 
     def __send_custom_metrics(self):
         data = self.get_custom_metrics_json()
-        try:
-            self.client.send_custom_metrics(data)
-        except IOError:
-            self.log.debug("Error sending data: %s", traceback.format_exc())
-            self.log.warning("Failed to send custom metrics, will retry in %s sec...", self.client.timeout)
-            try:
-                # NOTE: this pauses the whole Taurus engine for N seconds (10 by default)
-                # We probably shouldn't do that.
-                time.sleep(self.client.timeout)
-                self.client.send_custom_metrics(data)
-                self.log.info("Succeeded with retry")
-            except IOError:
-                self.log.error("Fatal error sending custom metrics: %s", traceback.format_exc())
-                self.log.warning("Will skip failed data and continue running")
+        self.send_with_retry(self.client.send_custom_metrics, data)
 
     def __send_custom_tables(self):
         data = self.get_custom_tables_json()
         if not data:
             return
-        try:
-            self.client.send_custom_tables(data)
-        except IOError:
-            self.log.debug("Error sending data: %s", traceback.format_exc())
-            self.log.warning("Failed to send custom tables, will retry in %s sec...", self.client.timeout)
-            try:
-                # NOTE: this pauses the whole Taurus engine for N seconds (10 by default)
-                # We probably shouldn't do that.
-                time.sleep(self.client.timeout)
-                self.client.send_custom_tables(data)
-                self.log.info("Succeeded with retry")
-            except IOError:
-                self.log.error("Fatal error sending custom tables: %s", traceback.format_exc())
-                self.log.warning("Will skip failed data and continue running")
+        self.send_with_retry(self.client.send_custom_tables, data)
 
     def get_custom_metrics_json(self):
         datapoints = {}

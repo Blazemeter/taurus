@@ -88,10 +88,10 @@ class TestBlazeMeterUploader(BZTestCase):
         client.results.append({"marker": "custom metrics push", "result": True})
         client.results.append({"marker": "second push", 'result': {'session': {"statusCode": 140, 'status': 'ENDED'}}})
         client.results.append({"marker": "post-proc push", 'result': {'session': {}}})
-        client.results.append({"marker": "post process monitoring push", "result": True})  # post-proc error stats
         client.results.append({"marker": "post process monitoring push", "result": True})
         client.results.append({"marker": "post process custom metrics push", "result": True})
-        client.results.append({"marker": "post process custom tables push", "result": True})
+        client.results.append({"marker": "artifacts push", 'result': True})
+        client.results.append({"marker": "logs push", 'result': True})
         client.results.append({"marker": "terminate", 'result': {'session': {}}})
 
         obj = BlazeMeterUploader()
