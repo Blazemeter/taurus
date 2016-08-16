@@ -52,13 +52,13 @@ class ChromeProfiler(Monitoring):
         self.client = None
 
     def prepare(self):
-        processors = self.parameters.get("processors", [{"class": "bzt.modules.chrome.TraceProcessor"}])
-
         self.client = ChromeClient(self.log)
         self.client.engine = self.engine
 
-        for proc in processors:
-            klass = load_class(proc.get("class", ValueError("You must specify class for performance processor")))
+        processors = self.settings.get("processors", {})
+        for proc_name, proc in iteritems(processors):
+            class_fqn = proc.get("class", ValueError("Class for performance processor %s is not specified" % proc_name))
+            klass = load_class(class_fqn)
             processor = klass(proc, self.client, self.log)
             self.client.add_processor(processor)
 
@@ -366,14 +366,11 @@ class TraceProcessor(PerformanceDataProcessor):
         self.extractors = [
             TabNameExtractor(self, self.log),
         ]
-        extractors = self.config.get("extractors", [{"class": "bzt.modules.chrome.MemoryMetricsExtractor"}])
+        extractors = self.config.get("extractors", ["bzt.modules.chrome.MemoryMetricsExtractor"])
         self.instantiate_extractors(extractors)
 
-    def instantiate_extractors(self, extractor_objs):
-        for extra_obj in extractor_objs:
-            extractor_fqn = extra_obj.get("class")
-            if extractor_fqn is None:
-                raise ValueError("You must specify tracing extractor class")
+    def instantiate_extractors(self, extractors):
+        for extractor_fqn in extractors:
             extractor_class = load_class(extractor_fqn)
             extractor = extractor_class(self, self.log)
             self.extractors.append(extractor)
@@ -559,6 +556,8 @@ class MetricReporter(Reporter):
         for table in self.chrome_profiler.get_custom_tables():
             self.log.info(table["name"] + ":")
             rows = table["data"]
+            if not rows:
+                continue
             first_row = rows[0]
             self.log.info(" | ".join(title for title, _ in iteritems(first_row)))
             for row in rows:

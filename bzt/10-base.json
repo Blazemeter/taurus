@@ -140,7 +140,15 @@
       "class": "bzt.modules.tsung.TsungExecutor"
     },
     "chrome-profiler": {
-      "class": "bzt.modules.chrome.ChromeProfiler"
+      "class": "bzt.modules.chrome.ChromeProfiler",
+      "processors": {
+        "trace": {
+          "class": "bzt.modules.chrome.TraceProcessor",
+          "extractors": [
+            "bzt.modules.chrome.MemoryMetricsExtractor"
+          ]
+        }
+      }
     },
     "chrome-metric-reporter": {
       "class": "bzt.modules.chrome.MetricReporter"

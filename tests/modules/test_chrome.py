@@ -13,6 +13,14 @@ class TestMetricExtraction(BZTestCase):
     def test_extraction(self):
         obj = ChromeProfiler()
         obj.engine = EngineEmul()
+        obj.settings.merge({
+            "processors": {
+                "trace": {
+                    "class": "bzt.modules.chrome.TraceProcessor",
+                    "extractors": ["bzt.modules.chrome.MemoryMetricsExtractor"]
+                }
+            }
+        })
         listener = RecordingListener()
         obj.add_listener(listener)
 
@@ -27,6 +35,14 @@ class TestMetricExtraction(BZTestCase):
     def test_reread(self):
         obj = ChromeProfiler()
         obj.engine = EngineEmul()
+        obj.settings.merge({
+            "processors": {
+                "trace": {
+                    "class": "bzt.modules.chrome.TraceProcessor",
+                    "extractors": ["bzt.modules.chrome.MemoryMetricsExtractor"]
+                }
+            }
+        })
         listener = RecordingListener()
         obj.add_listener(listener)
 
@@ -49,11 +65,13 @@ class TestMetricExtraction(BZTestCase):
     def test_aggr_metrics(self):
         obj = ChromeProfiler()
         obj.engine = EngineEmul()
-        obj.parameters.merge({
-            "processors": [{
-                "class": "bzt.modules.chrome.TraceProcessor",
-                "file": "trace.json",
-            }],
+        obj.settings.merge({
+            "processors": {
+                "trace": {
+                    "class": "bzt.modules.chrome.TraceProcessor",
+                    "extractors": ["bzt.modules.chrome.MemoryMetricsExtractor"]
+                }
+            }
         })
 
         shutil.copy(__dir__() + "/../chrome/trace.json", obj.engine.artifacts_dir)
@@ -73,11 +91,13 @@ class TestMetricExtraction(BZTestCase):
     def test_calc_metrics(self):
         obj = ChromeProfiler()
         obj.engine = EngineEmul()
-        obj.parameters.merge({
-            "processors": [{
-                "class": "bzt.modules.chrome.TraceProcessor",
-                "file": "trace.json",
-            }],
+        obj.settings.merge({
+            "processors": {
+                "trace": {
+                    "class": "bzt.modules.chrome.TraceProcessor",
+                    "extractors": ["bzt.modules.chrome.MemoryMetricsExtractor"]
+                }
+            }
         })
         listener = RecordingListener()
         obj.add_listener(listener)
@@ -102,11 +122,13 @@ class TestMetricReporter(BZTestCase):
         engine = EngineEmul()
         profiler = ChromeProfiler()
         profiler.engine = engine
-        profiler.parameters.merge({
-            "processors": [{
-                "class": "bzt.modules.chrome.TraceProcessor",
-                "file": "trace.json",
-            }],
+        profiler.settings.merge({
+            "processors": {
+                "trace": {
+                    "class": "bzt.modules.chrome.TraceProcessor",
+                    "extractors": ["bzt.modules.chrome.MemoryMetricsExtractor"]
+                }
+            }
         })
         shutil.copy(__dir__() + "/../chrome/trace.json", engine.artifacts_dir)
 
