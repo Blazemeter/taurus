@@ -751,10 +751,14 @@ class SeleniumScriptBuilder(NoseTest):
         default_address = self.scenario.get("default-address", None)
 
         for req in requests:
-            mod_url = re.sub('[^0-9a-zA-Z]+', '_', req.url[:30])
-            method_name = 'test_%05d_%s' % (counter, mod_url)
+            if req.label:
+                label = req.label
+            else:
+                label = req.url
+            mod_label = re.sub('[^0-9a-zA-Z]+', '_', label[:30])
+            method_name = 'test_%05d_%s' % (counter, mod_label)
             test_method = self.gen_test_method(method_name)
-            methods[method_name] = req.url
+            methods[method_name] = label
             counter += 1
             test_class.append(test_method)
 
