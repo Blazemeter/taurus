@@ -886,6 +886,15 @@ class DummyScreen(BaseScreen):
         logging.info("Screen %sx%s chars:\n%s", size[0], size[1], data)
 
 
+class Translator(object):
+    def __init__(self, translate_table=None):
+        self.translate_table = translate_table
+
+    @abstractmethod
+    def translate(self, arg):
+        pass
+
+
 def which(filename):
     """unix-style `which` implementation"""
     locations = os.environ.get("PATH").split(os.pathsep)
@@ -901,3 +910,4 @@ def is_piped(file_obj):
     "check if file-object is a pipe or a file redirect"
     mode = os.fstat(file_obj.fileno()).st_mode
     return stat.S_ISFIFO(mode) or stat.S_ISREG(mode)
+

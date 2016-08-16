@@ -452,6 +452,14 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         self.assertTrue(os.path.exists(os.path.join(self.obj.runner_working_dir, "test_bad_name.py")))
 
 
+class CSVReaderEmul(object):
+    def __init__(self):
+        self.data = []
+
+    def read(self, lastpass=False):
+        yield self.data.pop(0)
+
+
 class TestSeleniumStuff(SeleniumTestCase):
     def test_empty_scenario(self):
         """
@@ -579,6 +587,45 @@ class TestSeleniumStuff(SeleniumTestCase):
             }
         })
         self.obj.resource_files()
+
+    def test_a_labels_translation(self):
+        self.obj.engine.config.merge({
+            "scenarios": {
+                "req_sel": {
+                    "requests": [
+                        "http://blazedemo.com",
+                        {
+                            'url': 'http://blazemeter.com',
+                            'label': 'Main Page'
+                        }]}}})
+        self.obj.execution.merge({
+            "scenario": "req_sel"})
+        self.obj.prepare()
+        gen_methods = self.obj.generated_methods
+        name1 = 'test_00000_http_blazedemo_com'
+        url1 = 'http://blazedemo.com'
+        name2 = 'test_00001_Main_Page'
+        label2 = 'Main Page'
+        name3 = 'test_00002_just_for_lulz'
+        label3 = 'just_for_lulz'
+        self.assertEqual(url1, gen_methods[name1])
+        self.assertEqual(label2, gen_methods[name2])
+        self.obj.reader.csvreader = CSVReaderEmul()
+        self.obj.reader.csvreader.data.append({
+            'Latency': '0', 'allThreads': '1', 'success': 'true',
+            'timeStamp': '2', 'label': name1, 'responseCode': '200', 'elapsed': '1'})
+        self.obj.reader.csvreader.data.append({
+            'Latency': '0', 'allThreads': '1', 'success': 'true',
+            'timeStamp': '2', 'label': name2, 'responseCode': '200', 'elapsed': '1'})
+        self.obj.reader.csvreader.data.append({
+            'Latency': '0', 'allThreads': '1', 'success': 'true',
+            'timeStamp': '2', 'label': name3, 'responseCode': '200', 'elapsed': '1'})
+        res = list(self.obj.reader._read())
+        self.assertIn(url1, res[0])
+        res = list(self.obj.reader._read())
+        self.assertIn(label2, res[0])
+        res = list(self.obj.reader._read())
+        self.assertIn(label3, res[0])
 
     def test_dont_copy_local_script_to_artifacts(self):
         "ensures that .java file is not copied into artifacts-dir"

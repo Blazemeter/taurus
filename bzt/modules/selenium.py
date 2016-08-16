@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import json
-import re
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -30,7 +30,7 @@ from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.jmeter import JTLReader
 from bzt.six import string_types, text_type, etree, parse
 from bzt.utils import RequiredTool, shell_exec, shutdown_process, JavaVM, TclLibrary, get_files_recursive
-from bzt.utils import dehumanize_time, MirrorsManager, is_windows, BetterDict, get_full_path
+from bzt.utils import dehumanize_time, MirrorsManager, is_windows, BetterDict, get_full_path, Translator
 
 try:
     from pyvirtualdisplay.smartdisplay import SmartDisplay as Display
@@ -128,8 +128,8 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         runner_config.get("stderr", self.engine.create_artifact("junit", ".err"))
         return runner_class(runner_config, self)
 
-    def _create_reader(self, kpi_file, err_file, translate_table=None):
-        return JTLReader(kpi_file, self.log, err_file, translate_table=translate_table)
+    def _create_reader(self, kpi_file, err_file, translator=None):
+        return JTLReader(kpi_file, self.log, err_file, translator=translator)
 
     def prepare(self):
         self.set_virtual_display()
@@ -144,7 +144,8 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self._cp_resource_files(self.runner_working_dir)
 
         self.runner.prepare()
-        self.reader = self._create_reader(self.kpi_file, self.err_file, translate_table=self.generated_methods)
+        translator = SeleniumLabelTranslator(self.generated_methods)
+        self.reader = self._create_reader(self.kpi_file, self.err_file, translator=translator)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
@@ -275,6 +276,18 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.generated_methods.merge(nose_test.gen_test_case())
         nose_test.save(filename)
         return filename
+
+
+class SeleniumLabelTranslator(Translator):
+    def translate(self, arg):
+        if self.translate_table and arg in self.translate_table:  # start fresh generated script:
+            return self.translate_table[arg]  # replace method names with labels
+
+        if isinstance(arg, string_types):  # start previously generated script: remove prefix
+            if arg.startswith('test_') and arg[5:10].isdigit():
+                return arg[11:]
+
+        return arg
 
 
 class AbstractTestRunner(object):
