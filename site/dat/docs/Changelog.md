@@ -10,6 +10,7 @@
  - add `waiting for data...` into titles of console blocks
  - fix SSL error handling for cloud provisioning
  - add Chrome profiler [service](ChromeProfiler.md) and reporter
+ - add webdriver.log for requests-based Selenium tests
 
 ## 1.6.6 <sup>08 aug 2016</sup>
  - optimize aggregator by removing excessive calls to `BetterDict.get()`
