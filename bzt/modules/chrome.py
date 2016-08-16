@@ -63,10 +63,8 @@ class ChromeProfiler(Monitoring):
         self.client.engine = self.engine
 
         for proc in processors:
-            filename = proc.get("file", ValueError("You must specify file name for processor"))
             klass = load_class(proc.get("class", ValueError("You must specify class for performance processor")))
-            full_path = path.join(self.engine.artifacts_dir, filename)
-            processor = klass(full_path, self.log)
+            processor = klass(proc, self.client, self.log)
             self.client.add_processor(processor)
 
         self.client.connect()
@@ -751,7 +749,8 @@ class LoadTimeMetricsExtractor(MetricExtractor):
 
 
 class PerformanceDataProcessor(object):
-    def __init__(self, filename, log):
+    def __init__(self, filename, chrome_client, log):
+        self.chrome_client = chrome_client
         self.data_file = filename
         self.log = log.getChild(self.__class__.__name__)
         self.data_file_ctime = None
@@ -809,8 +808,19 @@ class TraceProcessor(PerformanceDataProcessor):
 
     :type extractors: list[MetricExtractor]
     """
-    def __init__(self, data_path, parent_log):
-        super(TraceProcessor, self).__init__(data_path, parent_log)
+    EXTRACTORS = {
+        'dom': DOMMetricsExtractor,
+        'memory': MemoryMetricsExtractor,
+        'network': NetworkMetricsExtractor,
+        'js': JavaScriptMetricsExtractor,
+        'timing': LoadTimeMetricsExtractor,
+    }
+
+    def __init__(self, config, chrome_client, parent_log):
+        trace_file_path = path.join(chrome_client.engine.artifacts_dir, config.get("file", "trace.json"))
+        super(TraceProcessor, self).__init__(trace_file_path, chrome_client, parent_log)
+
+        self.config = config
 
         # epoch timestamp of Chrome start
         # (used to convert offsets from Chrome start into epoch timestamps)
@@ -823,16 +833,20 @@ class TraceProcessor(PerformanceDataProcessor):
 
         # list of metrics extractors
         self.extractors = [
-            DOMMetricsExtractor(self, self.log),
-            MemoryMetricsExtractor(self, self.log),
-            NetworkMetricsExtractor(self, self.log),
-            JavaScriptMetricsExtractor(self, self.log),
             TabNameExtractor(self, self.log),
-            LoadTimeMetricsExtractor(self, self.log),
         ]
+        extractors = self.config.get("extractors", ["dom", "memory", "network", "js", "timing"])
+        self.instantiate_extractors(extractors)
 
-    def add_extractors(self, extractors):
-        self.extractors.extend(extractors)
+    def instantiate_extractors(self, extractor_names):
+        for name in extractor_names:
+            extractor_class = self.EXTRACTORS.get(name)
+            if extractor_class is None:
+                self.log.error("Invalid trace extractor name: %s", name)
+                self.log.info("Avaliable extractors: %s", [name for name, _ in iteritems(self.EXTRACTORS)])
+                raise ValueError("Invalid trace extractor name: %s" % name)
+            extractor = extractor_class(self, self.log)
+            self.extractors.append(extractor)
 
     def convert_ts(self, timestamp):
         if self.tracing_start_ts is not None:
@@ -912,8 +926,12 @@ class TraceProcessor(PerformanceDataProcessor):
 
 class CPUProfileProcessor(PerformanceDataProcessor):
     "Reader for .cpuprofile files produced by Chrome"
-    def __init__(self, profile_file, parent_logger):
-        super(CPUProfileProcessor, self).__init__(profile_file, parent_logger)
+    def __init__(self, config, chrome_client, parent_log):
+        cpuprofile = config.get("file")
+        if not "file":
+            raise ValueError("You must specify 'file' option for CPUProfile processor")
+        cpuprofile_path = path.join(chrome_client.engine.artifacts_dir, cpuprofile)
+        super(CPUProfileProcessor, self).__init__(cpuprofile_path, chrome_client, parent_log)
         self.profile_start_time = 0
         self.profile_end_time = 0
         self.total_hit_count = 0

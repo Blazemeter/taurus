@@ -112,10 +112,29 @@ class TestMetricExtraction(BZTestCase):
 
 class TestCPUPRofileReader(BZTestCase):
     def test_cpuprofile_stats(self):
-        obj = CPUProfileProcessor(__dir__() + "/../chrome/js.cpuprofile", logging.getLogger())
-        obj.process_file()
-        stats = obj.extract_js_call_stats()
+        obj = ChromeProfiler()
+        obj.engine = EngineEmul()
+        obj.parameters.merge({
+            "processors": [{
+                "class": "bzt.modules.chrome.CPUProfileProcessor",
+                "file": "js.cpuprofile",
+            }],
+        })
+        listener = RecordingListener()
+        obj.add_listener(listener)
+
+        shutil.copy(__dir__() + "/../chrome/js.cpuprofile", obj.engine.artifacts_dir)
+
+        obj.prepare()
+        obj.startup()
+        obj.check()
+
+        profile_processor = obj.client.processors[0]
+        self.assertIsInstance(profile_processor, CPUProfileProcessor)
+
+        stats = profile_processor.extract_js_call_stats()
         self.assertEqual(len(stats), 29)
+
         snowflake = next(stat for func, stat in iteritems(stats) if func.name == "drawSnowflake")
         self.assertEqual(snowflake["ncalls"], 1116)
         self.assertEqual(snowflake["perc_calls"], "22.48%")
