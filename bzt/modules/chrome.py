@@ -90,6 +90,9 @@ class ChromeProfiler(Monitoring):
                 listener.monitoring_data(results)
         self.client.disconnect()
 
+    def post_process(self):
+        pass
+
     def get_aggr_metrics(self):
         self.client.process_data()
         return self.client.get_aggr_metrics()
@@ -131,12 +134,11 @@ class MetricExtractor(object):
         self.tracing_tab_pid = None
         self.tracing_page_id = None
 
-    @staticmethod
-    def aggregate_by_ts(pid_stats, aggregate_func=average):
+    def aggregate_by_ts(self, pid_stats, aggregate_func=average):
         # TODO: configurable granularity?
         per_ts = dict()  # ts -> [measurement at ts]
         for offset, value in iteritems(pid_stats):
-            base_ts = int(offset / 1000000)
+            base_ts = int(self.convert_ts(offset))
             if base_ts not in per_ts:
                 per_ts[base_ts] = []
             per_ts[base_ts].append(value)
@@ -210,8 +212,6 @@ class DOMMetricsExtractor(MetricExtractor):
     def calc_metrics(self):
         tab_pid = self.tracing_tab_pid
         if tab_pid not in self.dom_documents or tab_pid not in self.dom_nodes:
-            msg = "No event listener data was recorded for Chrome tab. Ensure that %s categories are enabled"
-            self.log.warning(msg % list(self.categories()))
             return
 
         docs_per_ts = self.aggregate_by_ts(self.dom_documents[tab_pid])
@@ -232,8 +232,6 @@ class DOMMetricsExtractor(MetricExtractor):
     def calc_aggregates(self):
         tab_pid = self.tracing_tab_pid
         if tab_pid not in self.dom_documents or tab_pid not in self.dom_nodes:
-            msg = "No DOM data was recorded for Chrome tab. Ensure that %s categories are enabled"
-            self.log.warning(msg % list(self.categories()))
             return
 
         docs_per_ts = self.aggregate_by_ts(self.dom_documents[tab_pid])
@@ -334,8 +332,6 @@ class NetworkMetricsExtractor(MetricExtractor):
         tab_pid = self.tracing_tab_pid
         tab_requests = list(req for _, req in iteritems(self.requests) if req.get("pid") == tab_pid)
         if not tab_requests:
-            msg = "No network stats were recorded for Chrome tab. Ensure that %s categories are enabled"
-            self.log.warning(msg % list(self.categories()))
             return
 
         yield self.NETWORK_REQUESTS, len(tab_requests)
@@ -435,7 +431,7 @@ class MemoryMetricsExtractor(MetricExtractor):
 
         if trace_event.get("name") == "periodic_interval":
             pid = trace_event["pid"]
-            ets = self.convert_ts(trace_event['ts'])
+            ets = trace_event['ts']
             dumps = trace_event['args']['dumps']
             if 'process_totals' not in dumps:
                 return
@@ -443,13 +439,12 @@ class MemoryMetricsExtractor(MetricExtractor):
             resident_mbytes = to_mb(int(totals['resident_set_bytes'], 16))
             self.memory_per_process[pid][ets] = resident_mbytes
 
-    @staticmethod
-    def reaggregate_by_ts(per_pid_stats, aggregate_by=average):
+    def reaggregate_by_ts(self, per_pid_stats, aggregate_func=average):
         # TODO: sub-second granularity
         per_ts = dict()  # ts -> (pid -> [measurement at ts])
         for pid in per_pid_stats:
             for offset, value in iteritems(per_pid_stats[pid]):
-                base_ts = int(offset / 1000000)
+                base_ts = int(self.convert_ts(offset))
                 if base_ts not in per_ts:
                     per_ts[base_ts] = {}
                 if pid not in per_ts[base_ts]:
@@ -457,7 +452,7 @@ class MemoryMetricsExtractor(MetricExtractor):
                 per_ts[base_ts][pid].append(value)
         return {
             ts: {
-                pid: aggregate_by(pid_measurements)
+                pid: aggregate_func(pid_measurements)
                 for pid, pid_measurements in iteritems(stats_per_ts)
             }
             for ts, stats_per_ts in iteritems(per_ts)
@@ -466,8 +461,6 @@ class MemoryMetricsExtractor(MetricExtractor):
     def calc_metrics(self):
         tab_pid = self.tracing_tab_pid
         if tab_pid not in self.memory_per_process:
-            msg = "No memory stats was recorded for Chrome tab. Ensure that %s categories are enabled"
-            self.log.warning(msg % list(self.categories()))
             return
 
         memory_per_ts = self.reaggregate_by_ts(self.memory_per_process)  # ts -> (pid -> memory)
@@ -512,7 +505,7 @@ class JavaScriptMetricsExtractor(MetricExtractor):
     def process_event(self, trace_event):
         super(JavaScriptMetricsExtractor, self).process_event(trace_event)
 
-        cats = trace_event["cat"].split(",")
+        cats = trace_event.get("cat", "").split(",")
 
         if "v8" in cats and trace_event.get("ph") == "X":
             pid = trace_event['pid']
@@ -540,8 +533,6 @@ class JavaScriptMetricsExtractor(MetricExtractor):
     def calc_metrics(self):
         tab_pid = self.tracing_tab_pid
         if tab_pid not in self.v8_complete_events or tab_pid not in self.used_heap:
-            msg = "No JS stats was recorded for Chrome tab. Ensure that %s categories are enabled"
-            self.log.warning(msg % list(self.categories()))
             return
 
         heap_per_ts = self.aggregate_by_ts(self.used_heap[self.tracing_tab_pid])
@@ -559,14 +550,13 @@ class JavaScriptMetricsExtractor(MetricExtractor):
             per_ts[base_ts].append(duration)
         # yield timeline
         for ets in sorted(per_ts):
-            cpu_at_ts = float(sum(per_ts[ets])) / 1000000
-            yield ets, self.CPU_USAGE, cpu_at_ts * 100
+            usage = sum(per_ts[ets])
+            cpu_at_ts = float(usage) / 1000000
+            yield float(ets), self.CPU_USAGE, cpu_at_ts * 100
 
     def calc_aggregates(self):
         tab_pid = self.tracing_tab_pid
         if tab_pid not in self.gc_times or tab_pid not in self.used_heap:
-            msg = "No JS stats was recorded for Chrome tab. Ensure that %s categories are enabled"
-            self.log.warning(msg % list(self.categories()))
             return
 
         total_gc_time = 0.0
@@ -705,17 +695,25 @@ class LoadTimeMetricsExtractor(MetricExtractor):
         # "consider first DrawFrame that happens after first CompositeLayers
         #  that follows the last CommitLoad event to be first paint" (Chromium sources)
         tab_pid = self.tracing_tab_pid
+        if not tab_pid in self.commit_load_events:
+            return None
         commit_loads = [
             offset
             for offset, page_id in iteritems(self.commit_load_events[tab_pid])
             if page_id == self.tracing_page_id
         ]
+        if not commit_loads:
+            return None
         last_commit_load = max(commit_loads)
         next_composite_layers = None
+        if tab_pid not in self.composite_layers_events:
+            return None
         for composite_ts in sorted(self.composite_layers_events[tab_pid]):
             if composite_ts >= last_commit_load:
                 next_composite_layers = composite_ts
                 break
+        if tab_pid not in self.draw_frame_events:
+            return None
         if next_composite_layers:
             next_draw_frame = None
             for draw_frame_ts in sorted(self.draw_frame_events[tab_pid]):
@@ -757,6 +755,7 @@ class PerformanceDataProcessor(object):
         self.data_file = filename
         self.log = log.getChild(self.__class__.__name__)
         self.data_file_ctime = None
+        self.should_reread = False
 
     def process_file(self):
         "Read (or reread) and process file"
@@ -772,7 +771,8 @@ class PerformanceDataProcessor(object):
                 self.data_file_ctime = ctime
                 self.reset_cache()
                 should_process = True
-        if should_process:
+        if should_process or self.should_reread:
+            self.should_reread = False
             self.process_data()
 
     @abstractmethod
@@ -846,7 +846,7 @@ class TraceProcessor(PerformanceDataProcessor):
             try:
                 events = json.load(fds)
             except ValueError:
-                self.data_file_ctime = None
+                self.should_reread = True
                 return
 
         for event in events:
@@ -855,6 +855,9 @@ class TraceProcessor(PerformanceDataProcessor):
     def reset_cache(self):
         for extractor in self.extractors:
             extractor.reset()
+        self.start_time = None
+        self.tracing_start_ts = None
+        self.tracing_duration = 0.0
 
     def process_event(self, event):
         # see https://docs.google.com/document/d/1CvAClvFfyA5R-PhYUmn5OOQtYMH4h6I0nSsKchNAySU/edit#
@@ -865,7 +868,7 @@ class TraceProcessor(PerformanceDataProcessor):
             ets = self.convert_ts(event['ts'])
             self.tracing_duration = max(self.tracing_duration, ets)
 
-        categories = event.get("cat").split(",")
+        categories = event.get("cat", "").split(",")
 
         if "__metadata" in categories and event.get("name") == "start_time":
             self.start_time = event["args"]["timestamp"]
@@ -885,7 +888,6 @@ class TraceProcessor(PerformanceDataProcessor):
         # offset is number of seconds since the start of Chrome
         for extractor in self.extractors:
             for offset, metric, value in extractor.calc_metrics():
-                offset = self.convert_ts(offset)
                 yield offset, metric, value
 
     def get_aggr_metrics(self):
@@ -1162,7 +1164,7 @@ class CPUProfileProcessor(PerformanceDataProcessor):
             with open(self.data_file) as fds:
                 profile = json.load(fds)
         except ValueError:
-            self.data_file_ctime = None
+            self.should_reread = True
             return
         head = profile["head"]
         self.profile_start_time = profile["startTime"]

@@ -1,7 +1,6 @@
 import logging
 import shutil
 import time
-import unittest
 
 from bzt.modules.chrome import ChromeProfiler, CPUProfileProcessor, MetricReporter
 from bzt.modules.monitoring import MonitoringListener
@@ -15,9 +14,6 @@ class TestMetricExtraction(BZTestCase):
     def test_extraction(self):
         obj = ChromeProfiler()
         obj.engine = EngineEmul()
-        obj.parameters.merge({
-            "trace-file": "trace.json",
-        })
         listener = RecordingListener()
         obj.add_listener(listener)
 
@@ -31,7 +27,10 @@ class TestMetricExtraction(BZTestCase):
         obj = ChromeProfiler()
         obj.engine = EngineEmul()
         obj.parameters.merge({
-            "trace-file": "trace.json",
+            "processors": [{
+                "class": "bzt.modules.chrome.TraceProcessor",
+                "file": "trace.json",
+            }],
         })
 
         shutil.copy(__dir__() + "/../chrome/trace.json", obj.engine.artifacts_dir)
@@ -51,16 +50,19 @@ class TestMetricExtraction(BZTestCase):
         self.assertEqual(metrics["network-http-requests"], 200)
         self.assertEqual(metrics["network-xhr-requests"], 21)
         self.assertAlmostEqual(metrics["js-total-gc-time"], 0.0464, delta=0.0001)
-        self.assertAlmostEqual(metrics["js-average-heap"], 34.8, delta=0.1)
+        self.assertAlmostEqual(metrics["js-average-heap"], 35.4, delta=0.1)
         self.assertEqual(metrics["dom-final-documents"], 15)
         self.assertEqual(metrics["dom-final-nodes"], 1989)
-        self.assertEqual(metrics["dom-final-event-listeners"], 469)
+        self.assertEqual(metrics["dom-final-event-listeners"], 470)
 
     def test_calc_metrics(self):
         obj = ChromeProfiler()
         obj.engine = EngineEmul()
         obj.parameters.merge({
-            "trace-file": "trace.json",
+            "processors": [{
+                "class": "bzt.modules.chrome.TraceProcessor",
+                "file": "trace.json",
+            }],
         })
         listener = RecordingListener()
         obj.add_listener(listener)
@@ -84,7 +86,7 @@ class TestMetricExtraction(BZTestCase):
         listeners = listener.metrics_of_type("dom-event-listeners")
         self.assertEqual(len(listeners), 16)
         self.assertEqual(listeners[0]["dom-event-listeners"], 0)
-        self.assertEqual(listeners[-1]["dom-event-listeners"], 469)
+        self.assertEqual(listeners[-1]["dom-event-listeners"], 470)
 
         browser = listener.metrics_of_type("memory-browser")
         self.assertEqual(len(browser), 1)
@@ -174,7 +176,7 @@ class TestMetricReporter(BZTestCase):
 
 
 class TestChromeProfiler(SeleniumTestCase):
-    @unittest.skip("CI has no chromedriver, pity")
+#    @unittest.skip("CI has no chromedriver, pity")
     def test_full(self):
         self.obj.engine.config.merge({
             "execution": {
