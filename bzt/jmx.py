@@ -22,7 +22,7 @@ from itertools import chain
 
 from cssselect import GenericTranslator
 
-from bzt.engine import Scenario
+from bzt.engine import Scenario, BetterDict
 from bzt.six import etree, iteritems, string_types, parse, text_type, numeric_types
 
 
@@ -208,14 +208,15 @@ class JMX(object):
         return JMX.__jtl_writer(filename, "KPI Writer", flags)
 
     @staticmethod
-    def new_xml_listener(filename, is_full):
+    def new_xml_listener(filename, is_full, user_flags):
         """
 
         :param is_full: bool
         :param filename: str
+        :param user_flags: BetterDict
         :return:
         """
-        flags = {
+        default_flags = {
             "xml": True,
             "fieldNames": True,
             "time": True,
@@ -230,8 +231,8 @@ class JMX(object):
             "encoding": True,
             "assertions": True,
             "subresults": True,
-            "responseData": True,
-            "samplerData": True,
+            "responseData": False,
+            "samplerData": False,
             "responseHeaders": True,
             "requestHeaders": True,
             "responseDataOnError": True,
@@ -240,6 +241,9 @@ class JMX(object):
             "threadCounts": True,
             "url": True
         }
+        flags = BetterDict()
+        flags.merge(default_flags)
+        flags.merge(user_flags)
 
         if is_full:
             writer = JMX.__jtl_writer(filename, "Trace Writer", flags)

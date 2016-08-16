@@ -507,10 +507,11 @@ class Engine(object):
             self.log.debug("Using proxy settings: %s", proxy_url)
             username = proxy_settings.get("username")
             pwd = proxy_settings.get("password")
+            scheme = proxy_url.scheme if proxy_url.scheme else 'http'
             if username and pwd:
-                proxy_uri = "%s://%s:%s@%s" % (proxy_url.scheme, username, pwd, proxy_url.netloc)
+                proxy_uri = "%s://%s:%s@%s" % (scheme, username, pwd, proxy_url.netloc)
             else:
-                proxy_uri = "%s://%s" % (proxy_url.scheme, proxy_url.netloc)
+                proxy_uri = "%s://%s" % (scheme, proxy_url.netloc)
             proxy_handler = ProxyHandler({"https": proxy_uri, "http": proxy_uri})
             opener = build_opener(proxy_handler)
             install_opener(opener)

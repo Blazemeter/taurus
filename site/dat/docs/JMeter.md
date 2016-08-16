@@ -583,10 +583,10 @@ Taurus translates each `include-scenario` block to a JMeter's `Simple Controller
 settings and requests there.
 
 ## JMeter Test Log
-You can tune JTL file verbosity with option `write-xml-jtl`. Possible values are 'error' (default), 'full', or any other value for 'none'. Keep in mind: max verbosity can seriously load your system.
+You can tune JTL file content with option `write-xml-jtl`. Possible values are 'error' (default), 'full', or any other value for 'none'. Keep in mind: max `full` logging can seriously load your system.
 ```yaml
 ---
-execution
+execution:
 - write-xml-jtl: full
   scenario: simple_script
   
@@ -595,6 +595,38 @@ scenarios:
     script: my.jmx
 
 ```
+Another way to adjust verbosity is to change flags in `xml-jtl-flags` dictionary. Next example shows all flags with default values (you don't have to use full dictionary if you want to change some from them):
+```yaml
+---
+settings:
+  jmeter:
+    xml-jtl-flags:
+      xml: true
+      fieldNames: true
+      time: true
+      timestamp: true
+      latency: true
+      success: true
+      label: true
+      code: true
+      message: true
+      threadName: true
+      dataType: true
+      encoding: true
+      assertions: true
+      subresults: true
+      responseData: false
+      samplerData: false
+      responseHeaders: true
+      requestHeaders: true
+      responseDataOnError: true
+      saveAssertionResultsFailureMessage: true
+      bytes: true
+      threadCounts: true
+      url: true      
+```
+
+Remember: some logging information might be used by `[assertions](#Assertions)` so change log verbosity can affect them. 
 
 ## JMeter JVM Memory Limit
 
