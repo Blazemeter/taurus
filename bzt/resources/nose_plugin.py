@@ -282,7 +282,8 @@ def write_element(fds):
                 while True:
                     elem = (yield)
                     xfds.write(elem)
-                    xfds.flush()
+                    if hasattr(xfds, 'flush'):
+                        xfds.flush()
             except GeneratorExit:
                 pass
 
