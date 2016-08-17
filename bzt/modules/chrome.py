@@ -73,7 +73,7 @@ class ChromeProfiler(Monitoring):
         if results:
             for listener in self.listeners:
                 listener.monitoring_data(results)
-        return False  # profiling never stops
+        return False
 
     def shutdown(self):
         self.client.process_data()
