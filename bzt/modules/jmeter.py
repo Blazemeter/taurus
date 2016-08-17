@@ -833,7 +833,8 @@ class JTLReader(ResultsReader):
 
         for row in self.csvreader.read(last_pass):
             label = row["label"]
-            label = self.translator.translate(label)
+            if self.translator:
+                label = self.translator.translate(label)
             if self.is_distributed:
                 concur = int(row["grpThreads"])
                 trname = row["Hostname"] + row["threadName"][:row["threadName"].rfind('-')]
