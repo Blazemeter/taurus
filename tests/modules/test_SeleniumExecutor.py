@@ -457,8 +457,8 @@ class CSVReaderEmul(object):
         self.data = []
 
     def read(self, lastpass=False):
-        yield self.data.pop(0)
-
+        for line in self.data:
+            yield line
 
 class TestSeleniumStuff(SeleniumTestCase):
     def test_empty_scenario(self):
@@ -622,10 +622,8 @@ class TestSeleniumStuff(SeleniumTestCase):
             'timeStamp': '2', 'label': name3, 'responseCode': '200', 'elapsed': '1'})
         res = list(self.obj.reader._read())
         self.assertIn(url1, res[0])
-        res = list(self.obj.reader._read())
-        self.assertIn(label2, res[0])
-        res = list(self.obj.reader._read())
-        self.assertIn(label3, res[0])
+        self.assertIn(label2, res[1])
+        self.assertIn(label3, res[2])
 
     def test_dont_copy_local_script_to_artifacts(self):
         "ensures that .java file is not copied into artifacts-dir"
