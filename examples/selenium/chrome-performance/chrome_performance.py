@@ -2,8 +2,8 @@ import json
 import time
 from selenium import webdriver
 import unittest
- 
- 
+
+
 # Chrome tracing categories that are required to calculate performance stats
 trace_cats = [
     "blink.net",
@@ -14,15 +14,15 @@ trace_cats = [
     "disabled-by-default-devtools.timeline",
     "disabled-by-default-devtools.timeline.frame",
 ]
- 
+
 # Chrome arguments to enable logging performance data
 args = [
     "--no-sandbox",
     "--enable-tracing",
     "--native",
 ]
- 
- 
+
+
 class ChromeTest(unittest.TestCase):
     def setUp(self):
         # configure chromedriver to redirect Chrome tracing data to performance logs
@@ -38,10 +38,10 @@ class ChromeTest(unittest.TestCase):
             },
         )
         self.start_time = time.time()
- 
-    def test_local_fractals(self):
+
+    def test_chrome_trace(self):
         self.driver.get('https://github.com/')
- 
+
     def tearDown(self):
         # save chrome tracing data (viewable by chrome://tracing) to 'trace.json' file
         with open(r"trace.json", 'w') as f:
@@ -54,7 +54,7 @@ class ChromeTest(unittest.TestCase):
             f.write(json.dumps(trace))
         # close browser
         self.driver.quit()
- 
- 
+
+
 if __name__ == '__main__':
     unittest.main()
