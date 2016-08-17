@@ -416,6 +416,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         for module in self.engine.services:
             if isinstance(module, ChromeProfiler):
                 return module.get_metric_label(metric)
+        return metric
 
     def get_custom_tables_json(self):
         for module in self.engine.services:
@@ -1416,6 +1417,8 @@ class BlazeMeterClientEmul(BlazeMeterClient):
         self.log.debug("Request %s: %s", url, data)
         res = self.results.pop(0)
         self.log.debug("Response: %s", res)
+        if isinstance(res, BaseException):
+            raise res
         return res
 
 
