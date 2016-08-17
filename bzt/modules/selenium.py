@@ -771,7 +771,7 @@ class SeleniumScriptBuilder(NoseTest):
 
         if browser == 'Firefox':
             setup_method_def.append(self.gen_method_statement("profile = webdriver.FirefoxProfile()"))
-            log_set = self.gen_method_statement("profile.set_preference('webdriver.log.file', r'%s')" % self.wdlog)
+            log_set = self.gen_method_statement("profile.set_preference('webdriver.log.file', %s)" % repr(self.wdlog))
             setup_method_def.append(log_set)
             setup_method_def.append(self.gen_method_statement("self.driver = webdriver.Firefox(profile)"))
         else:
