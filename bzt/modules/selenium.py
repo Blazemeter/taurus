@@ -697,9 +697,6 @@ from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import NoAlertPresentException
 """
-    MODS = """unittest.TestLoader.sortTestMethodsUsing = cmp
-"""
-
     def __init__(self):
         self.root = etree.Element("NoseTest")
         self.tree = etree.ElementTree(self.root)
@@ -708,11 +705,6 @@ from selenium.common.exceptions import NoAlertPresentException
         imports = etree.Element("imports")
         imports.text = NoseTest.IMPORTS
         return imports
-
-    def get_mods(self):
-        mods = etree.Element("mods")
-        mods.text = NoseTest.MODS
-        return mods
 
     def gen_class_definition(self, class_name, inherits_from, indent="0"):
         def_tmpl = "class {class_name}({inherits_from}):"
@@ -750,8 +742,6 @@ class SeleniumScriptBuilder(NoseTest):
         self.log.debug("Generating Test Case test method")
         imports = self.add_imports()
         self.root.append(imports)
-        mods = self.get_mods()
-        self.root.append(mods)
         test_class = self.gen_class_definition("TestRequests", ["unittest.TestCase"])
         self.root.append(test_class)
         test_class.append(self.gen_setupclass_method())
@@ -814,7 +804,6 @@ class SeleniumScriptBuilder(NoseTest):
 
         setup_method_def = self.gen_decorator_statement('classmethod')
         setup_method_def.append(self.gen_method_definition("setUpClass", ["cls"]))
-        setup_method_def.append(self.gen_method_statement("cls.driver=webdriver.%s()" % browser))
 
         if browser == 'Firefox':
             setup_method_def.append(self.gen_method_statement("profile = webdriver.FirefoxProfile()"))
