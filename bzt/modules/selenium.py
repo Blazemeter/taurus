@@ -128,7 +128,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         runner_config.get("stderr", self.engine.create_artifact("junit", ".err"))
         return runner_class(runner_config, self)
 
-    def _create_reader(self, kpi_file, err_file, translator=None):
+    def _create_reader(self, kpi_file, err_file, translator):
         return JTLReader(kpi_file, self.log, err_file, translator=translator)
 
     def prepare(self):
@@ -145,7 +145,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         self.runner.prepare()
         translator = SeleniumLabelTranslator(self.generated_methods)
-        self.reader = self._create_reader(self.kpi_file, self.err_file, translator=translator)
+        self.reader = self._create_reader(self.kpi_file, self.err_file, translator)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
@@ -697,6 +697,7 @@ from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import NoAlertPresentException
 """
+
     def __init__(self):
         self.root = etree.Element("NoseTest")
         self.tree = etree.ElementTree(self.root)
