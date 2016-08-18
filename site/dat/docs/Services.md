@@ -24,6 +24,7 @@ Taurus provides the following services:
 - `passfail` allows you to set test status based on runtime criteria
 - `shellexec` used to execute additional shell commands when test is executed
 - `monitoring` allows including monitoring data in test reports
+- `chrome-profiler` allows to extract performance metrics from Chrome running Selenium tests
 
 ## Pass/Fail Service
 
@@ -92,9 +93,27 @@ services:
 
 You can learn more about Monitoring Service at its [page](Monitoring.md)
 
+## Chrome Profiler Service
+
+This service allows you to extract frontend performance stats from Chrome.
+
+It calculates the following metrics:
+- page load metrics (time to 'load' event, time to full page load, etc)
+- network metrics (page footprint, time to first byte, number of HTTP requests, etc)
+- memory metrics (how much memory was consumed by browser, tab, JavaScript engine)
+- JavaScript CPU utilization
+- all HTTP requests that were made by browser tab
+- all AJAX requests
+- JavaScript functions that browser spent most of the time executing
+
+Service also comes with a reporter (named `chrome-metric-reporter`) that will print
+performance metrics extracted from Chrome to terminal at the end of the test.
+
+You can learn more about `chrome-profiler` service at its [own page](ChromeProfiler.md).
+
 ## Unpacker
 
-You can ask to unzip some of your files into artifacts directory before test start (only zip format are supported). It's easy with `unpacker` service:
+You can ask Taurus to unzip some of your files into artifacts directory before test starts (only zip format is supported). It's easy with `unpacker` service:
    
 ```yaml
 ---

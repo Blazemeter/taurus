@@ -817,12 +817,13 @@ class SeleniumScriptBuilder(NoseTest):
         setup_method_def.append(self.gen_method_statement("cls.driver=webdriver.%s()" % browser))
 
         if browser == 'Firefox':
-            setup_method_def.append(self.gen_method_statement("profile = webdriver.%sProfile();" % browser))
-            log_set = self.gen_method_statement("profile.set_preference('webdriver.log.file', '%s');" % self.wdlog)
+            setup_method_def.append(self.gen_method_statement("profile = webdriver.FirefoxProfile()"))
+            statement = "profile.set_preference('webdriver.log.file', %s)" % repr(self.wdlog)
+            log_set = self.gen_method_statement(statement)
             setup_method_def.append(log_set)
-            setup_method_def.append(self.gen_method_statement("cls.driver=webdriver.%s(profile)" % browser))
+            setup_method_def.append(self.gen_method_statement("cls.driver = webdriver.Firefox(profile)"))
         else:
-            setup_method_def.append(self.gen_method_statement("cls.driver=webdriver.%s()" % browser))
+            setup_method_def.append(self.gen_method_statement("cls.driver = webdriver.%s()" % browser))
 
         scenario_timeout = self.scenario.get("timeout", 30)
         setup_method_def.append(self.gen_impl_wait(scenario_timeout, target='cls'))
