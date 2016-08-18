@@ -68,9 +68,9 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         self.orig_streams = {}
         self.temp_stream = StringIONotifying(self.log_updated)
         self.screen_size = (140, 35)
-        self.data_started = False
         self.disabled = False
         self.console = None
+        self.executor_widgets = []
         self.screen = DummyScreen(self.screen_size[0], self.screen_size[1])
 
     def _get_screen(self):
@@ -131,7 +131,10 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
             modules += self.engine.provisioning.executors
         for module in modules:
             if isinstance(module, WidgetProvider):
-                widgets.append(module.get_widget())
+                widget = module.get_widget()
+                widgets.append(widget)
+                if isinstance(widget, ExecutorWidget):
+                    self.executor_widgets.append(widget)
 
         self.console = self._create_console(widgets)
         self.screen.register_palette(self.console.palette)
@@ -140,13 +143,12 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         """
         Repaint the screen
         """
+        for widget in self.executor_widgets:
+            widget.update()
         if self.disabled:
             if self._last_datapoint:
                 self.__print_one_line_stats()
                 self._last_datapoint = None
-            return False
-
-        if not self.data_started:
             return False
 
         self.__start_screen()
@@ -169,7 +171,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         Start GUIScreen on windows or urwid.curses_display on *nix
         :return:
         """
-        if self.data_started and not self.screen.started:
+        if not self.screen.started:
             self.__redirect_streams()
             self.screen.start()
             self.log.info("Waiting for finish...")
@@ -202,7 +204,6 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         :return:
         """
         self._last_datapoint = data
-        self.data_started = True
 
         if self.disabled:
             return
@@ -252,7 +253,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
             if not is_windows():
                 self.__detect_console_logger()
 
-        if self.data_started and not self.screen.started:
+        if not self.screen.started:
             if self.orig_streams:
                 raise RuntimeError("Orig streams already set")
             elif self.logger_handlers and not self.orig_streams:
@@ -340,7 +341,7 @@ class TaurusConsole(Columns):
     """
     Root screen widget
 
-    :type sidebar_widgets: list[widget.Widget]
+    :type executor_widgets: list[widget.Widget]
     :type log_widget: ScrollingLog
     """
     palette = [
@@ -371,7 +372,7 @@ class TaurusConsole(Columns):
         ('colder', 'dark cyan', ''),
     ]
 
-    def __init__(self, sidebar_widgets):
+    def __init__(self, executor_widgets):
         self.log_widget = ScrollingLog()
 
         self.latest_stats = LatestStats()
@@ -383,7 +384,7 @@ class TaurusConsole(Columns):
         self.graphs = ThreeGraphs()
         self.logo = TaurusLogo()
 
-        ordered_widgets = sorted(sidebar_widgets, key=lambda x: x.priority)
+        ordered_widgets = sorted(executor_widgets, key=lambda x: x.priority)
         right_widgets = ListBox(SimpleListWalker([Pile([x, Divider()]) for x in ordered_widgets]))
         widget_pile = Pile([(7, self.logo), right_widgets, ])
 
@@ -588,7 +589,7 @@ class BoxedGraph(LineBox):
     def __init__(self, title, colors):
         self.graph = StackedGraph(colors)
         self.orig_title = title
-        super(BoxedGraph, self).__init__(self.graph, title)
+        super(BoxedGraph, self).__init__(self.graph, " waiting for data... ")
 
     def format_title(self, text):
         """
@@ -629,7 +630,7 @@ class LatestStats(LineBox):
             [self.avg_times, self.percentiles, self.rcodes], dividechars=1)
         padded = Padding(original_widget, align=CENTER)
         super(LatestStats, self).__init__(padded,
-                                          self.title)
+                                          self.title + ': waiting for data...')
 
     def add_data(self, data):
         """
@@ -651,6 +652,7 @@ class CumulativeStats(LineBox):
     """
     Cumulative stats block
     """
+    title = "Cumulative Stats"
 
     def __init__(self):
         self.data = DataPoint(0)
@@ -667,7 +669,7 @@ class CumulativeStats(LineBox):
             self.labels_pile
         ])
         padded = Padding(original_widget, align=CENTER)
-        super(CumulativeStats, self).__init__(padded, " Cumulative Stats ")
+        super(CumulativeStats, self).__init__(padded, self.title + ': waiting for data...')
 
     def add_data(self, data):
         """
@@ -685,7 +687,7 @@ class CumulativeStats(LineBox):
             self._start_time = data.get('ts')
         duration = humanize_time(time.time() - self._start_time)
 
-        self.title_widget.set_text(" Cumulative Stats after %s " % duration)
+        self.title_widget.set_text(self.title + " %s" % duration)
 
 
 class PercentilesList(ListBox):
@@ -1107,7 +1109,7 @@ class TaurusLogo(Pile):
 
 class WidgetProvider(object):
     """
-    Mixin for classes that provide sidebar widgets
+    Mixin for classes that provide executor widgets
     """
 
     @abstractmethod
@@ -1125,9 +1127,9 @@ class PrioritizedWidget(object):
         self.priority = priority
 
 
-class SidebarWidget(Pile, PrioritizedWidget):
+class ExecutorWidget(Pile, PrioritizedWidget):
     """
-    Progress sidebar widget
+    Progress executor widget
     :type progress: urwid.Widget
     """
 
@@ -1138,28 +1140,31 @@ class SidebarWidget(Pile, PrioritizedWidget):
         self.widgets = []
         self.additional_widgets = additional_widgets
         self.widgets.extend(self.additional_widgets)
+        self.finished = False
 
         if label is not None:
             self.widgets.append(Text(label))
         else:
             self.widgets.append(Text("%s" % executor))
 
-        if self.duration is not None and self.duration != 0:
+        if self.duration:
             self.progress = ProgressBar('pb-en', 'pb-dis', done=self.duration)
         else:
-            self.progress = Text("Running...")
+            self.progress = Text("")
         self.widgets.append(self.progress)
 
         self.elapsed = Text("Elapsed: N/A")
         self.eta = Text("ETA: N/A", align=RIGHT)
         self.widgets.append(Columns([self.elapsed, self.eta]))
-        super(SidebarWidget, self).__init__(self.widgets)
+        super(ExecutorWidget, self).__init__(self.widgets)
 
     def update(self):
         """
         Refresh widget values
         """
-        if self.executor.start_time is not None:
+        if self.finished:
+            return
+        if self.executor.start_time:
             elapsed = time.time() - self.executor.start_time
             self.elapsed.set_text("Elapsed: %s" % humanize_time(elapsed))
 
@@ -1168,12 +1173,25 @@ class SidebarWidget(Pile, PrioritizedWidget):
                 if eta >= 0:
                     self.eta.set_text("ETA: %s" % humanize_time(eta))
                 else:
-                    over = elapsed - self.duration
-                    self.eta.set_text("Overtime: %s" % humanize_time(over))
-            else:
-                self.eta.set_text("")
+                    self.eta.set_text("Overtime: %s" % humanize_time(-eta))
 
-            if isinstance(self.progress, ProgressBar):
-                # noinspection PyUnresolvedReferences
                 self.progress.set_completion(elapsed)
+            else:
+                self.progress.set_text("Running...")
+
+            if self.executor in self.executor.engine.provisioning.finished_modules:
+                self.finished = True
+                if not self.duration:
+                    self.progress.set_text("Finished")
+                    self.eta.set_text("")
+        else:
+            delayed = self.executor.delay - (time.time() - self.executor.engine.provisioning.start_time)
+            if delayed >= 0:
+                self.elapsed.set_text("Delay: %s" % humanize_time(delayed))
+                if self.duration:
+                    eta = self.duration + delayed
+                    self.eta.set_text("ETA: %s" % humanize_time(eta))
+                else:
+                    self.progress.set_text("Waiting...")
+
         self._invalidate()

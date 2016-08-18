@@ -19,7 +19,7 @@ import psutil
 from bzt import resources
 from bzt.engine import ScenarioExecutor, FileLister, Scenario
 from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet, ConsolidatingAggregator
-from bzt.modules.console import WidgetProvider, SidebarWidget
+from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.six import string_types, urlencode, iteritems, parse, StringIO, b, viewvalues
 from bzt.utils import shell_exec, shutdown_process, BetterDict, dehumanize_time, RequiredTool, \
     IncrementableProgressBar
@@ -28,7 +28,7 @@ from bzt.utils import shell_exec, shutdown_process, BetterDict, dehumanize_time,
 class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     """
     :type pbench: PBenchTool
-    :type widget: SidebarWidget
+    :type widget: ExecutorWidget
     """
 
     def __init__(self):
@@ -66,10 +66,6 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.pbench.start(self.pbench.config_file)
 
     def check(self):
-
-        if self.widget:
-            self.widget.update()
-
         retcode = self.pbench.process.poll()
         if retcode is not None:
             if retcode != 0:
@@ -89,7 +85,7 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if not self.widget:
             proto = "https" if self.pbench.use_ssl else 'http'
             label = "Target: %s://%s:%s" % (proto, self.pbench.hostname, self.pbench.port)
-            self.widget = SidebarWidget(self, label)
+            self.widget = ExecutorWidget(self, label)
         return self.widget
 
     def shutdown(self):

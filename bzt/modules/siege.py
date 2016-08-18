@@ -23,7 +23,7 @@ from os import path
 
 from bzt.engine import ScenarioExecutor, Scenario
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
-from bzt.modules.console import WidgetProvider, SidebarWidget
+from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.six import iteritems
 from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time
 
@@ -60,7 +60,7 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider):
             rc_file.writelines('\n'.join(config_params))
             rc_file.close()
 
-        if Scenario.SCRIPT in self.scenario:
+        if Scenario.SCRIPT in self.scenario and self.scenario[Scenario.SCRIPT]:
             self.__url_name = self.engine.find_file(self.scenario[Scenario.SCRIPT])
             self.engine.existing_artifact(self.__url_name)
         elif 'requests' in self.scenario:
@@ -78,7 +78,7 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider):
 
     def resource_files(self):
         resource_files = []
-        if Scenario.SCRIPT in self.scenario:
+        if Scenario.SCRIPT in self.scenario and self.scenario[Scenario.SCRIPT]:
             resource_files.append(self.engine.find_file(self.scenario[Scenario.SCRIPT]))
         return resource_files
 
@@ -127,9 +127,6 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider):
         self.process = self.execute(args, stdout=self.__out, stderr=self.__err, env=env)
 
     def check(self):
-        if self.widget:
-            self.widget.update()
-
         ret_code = self.process.poll()
         if ret_code is None:
             return False
@@ -146,7 +143,7 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider):
                 label = "Siege Benchmark"
             else:
                 label = None
-            self.widget = SidebarWidget(self, label)
+            self.widget = ExecutorWidget(self, label)
         return self.widget
 
     def shutdown(self):

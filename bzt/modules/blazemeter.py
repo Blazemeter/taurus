@@ -25,7 +25,9 @@ import sys
 import time
 import traceback
 import zipfile
+from ssl import SSLError
 from collections import defaultdict, OrderedDict
+from functools import wraps
 
 import yaml
 from urwid import Pile, Text
@@ -33,13 +35,35 @@ from urwid import Pile, Text
 from bzt import ManualShutdown
 from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
+from bzt.modules.chrome import ChromeProfiler
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
-from bzt.modules.jmeter import JMeterExecutor
 from bzt.modules.monitoring import Monitoring, MonitoringListener
 from bzt.modules.services import Unpacker
 from bzt.six import BytesIO, text_type, iteritems, HTTPError, urlencode, Request, urlopen, r_input, URLError
 from bzt.utils import open_browser, get_full_path, get_files_recursive, replace_in_config
 from bzt.utils import to_json, dehumanize_time, MultiPartForm, BetterDict, ensure_is_dict
+
+
+def send_with_retry(method):
+    @wraps(method)
+    def _impl(self, *args, **kwargs):
+        if not isinstance(self, BlazeMeterUploader):
+            raise ValueError("send_with_retry should only be applied to BlazeMeterUploader methods")
+
+        try:
+            method(self, *args, **kwargs)
+        except IOError:
+            self.log.debug("Error sending data: %s", traceback.format_exc())
+            self.log.warning("Failed to send data, will retry in %s sec...", self.client.timeout)
+            try:
+                time.sleep(self.client.timeout)
+                method(self, *args, **kwargs)
+                self.log.info("Succeeded with retry")
+            except IOError:
+                self.log.error("Fatal error sending data: %s", traceback.format_exc())
+                self.log.warning("Will skip failed data and continue running")
+
+    return _impl
 
 
 class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
@@ -60,6 +84,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         self._last_status_check = time.time()
         self.send_monitoring = True
         self.monitoring_buffer = None
+        self.send_custom_metrics = False
+        self.send_custom_tables = False
 
     def prepare(self):
         """
@@ -72,6 +98,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         self.client.timeout = dehumanize_time(self.settings.get("timeout", self.client.timeout))
         self.send_interval = dehumanize_time(self.settings.get("send-interval", self.send_interval))
         self.send_monitoring = self.settings.get("send-monitoring", self.send_monitoring)
+        self.send_custom_metrics = self.settings.get("send-custom-metrics", self.send_custom_metrics)
+        self.send_custom_tables = self.settings.get("send-custom-tables", self.send_custom_tables)
         monitoring_buffer_limit = self.settings.get("monitoring-buffer-limit", 500)
         self.monitoring_buffer = MonitoringBuffer(monitoring_buffer_limit)
         self.browser_open = self.settings.get("browser-open", self.browser_open)
@@ -134,38 +162,55 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         :return: BytesIO
         """
         mfile = BytesIO()
+
+        logs = set()
+        for handler in self.engine.log.parent.handlers:
+            if isinstance(handler, logging.FileHandler):
+                logs.add(handler.baseFilename)
+
         max_file_size = self.settings.get('artifact-upload-size-limit', 10) * 1024 * 1024  # 10MB
         with zipfile.ZipFile(mfile, mode='w', compression=zipfile.ZIP_DEFLATED, allowZip64=True) as zfh:
-            for handler in self.engine.log.parent.handlers:
-                if isinstance(handler, logging.FileHandler):
-                    zfh.write(handler.baseFilename, os.path.basename(handler.baseFilename))
-
             for root, _, files in os.walk(self.engine.artifacts_dir):
                 for filename in files:
-                    if os.path.getsize(os.path.join(root, filename)) <= max_file_size:
-                        zfh.write(os.path.join(root, filename),
-                                  os.path.join(os.path.relpath(root, self.engine.artifacts_dir), filename))
+                    full_path = os.path.join(root, filename)
+                    if full_path in logs:
+                        logs.remove(full_path)
+
+                    if os.path.getsize(full_path) <= max_file_size:
+                        zfh.write(full_path, os.path.join(os.path.relpath(root, self.engine.artifacts_dir), filename))
                     else:
                         msg = "File %s exceeds maximum size quota of %s and won't be included into upload"
                         self.log.warning(msg, filename, max_file_size)
+
+            for filename in logs:   # upload logs unconditionally
+                zfh.write(filename, os.path.basename(filename))
         return mfile
 
     def __upload_artifacts(self):
         """
-        If token provided, upload artifacts folder contents and jmeter_log
-        else: jmeter_log only
+        If token provided, upload artifacts folder contents and bzt.log
+
         :return:
         """
         if self.client.token:
-            self.log.info("Uploading all artifacts as jtls_and_more.zip ...")
+            worker_index = self.engine.config.get('modules').get('shellexec').get('env').get('TAURUS_INDEX_ALL', '')
+            if worker_index:
+                suffix = '-' + worker_index
+            else:
+                suffix = ''
+            artifacts_zip = "artifacts%s.zip" % suffix
             mfile = self.__get_jtls_and_more()
-            self.client.upload_file("jtls_and_more.zip", mfile.getvalue())
+            self.log.info("Uploading all artifacts as %s ...", artifacts_zip)
+            self.client.upload_file(artifacts_zip, mfile.getvalue())
 
-        for executor in self.engine.provisioning.executors:
-            if isinstance(executor, JMeterExecutor):
-                if executor.jmeter_log:
-                    self.log.info("Uploading %s", executor.jmeter_log)
-                    self.client.upload_file(executor.jmeter_log)
+            for handler in self.engine.log.parent.handlers:
+                if isinstance(handler, logging.FileHandler):
+                    fname = handler.baseFilename
+                    self.log.info("Uploading %s", fname)
+                    fhead, ftail = os.path.split(fname)
+                    modified_name = fhead + suffix + ftail
+                    with open(fname) as _file:
+                        self.client.upload_file(modified_name, _file.read())
 
     def post_process(self):
         """
@@ -179,7 +224,12 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         try:
             self.__send_data(self.kpi_buffer, False, True)
             self.kpi_buffer = []
-            self.__send_monitoring()
+            if self.send_monitoring:
+                self.__send_monitoring()
+            if self.send_custom_metrics:
+                self.__send_custom_metrics()
+            if self.send_custom_tables:
+                self.__send_custom_tables()
         finally:
             self._postproc_phase2()
 
@@ -237,6 +287,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
                 self.__send_data(self.kpi_buffer)
                 if self.send_monitoring:
                     self.__send_monitoring()
+                if self.send_custom_metrics:
+                    self.__send_custom_metrics()
                 self.kpi_buffer = []
         return super(BlazeMeterUploader, self).check()
 
@@ -286,23 +338,90 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         if self.send_monitoring:
             self.monitoring_buffer.record_data(data)
 
+    @send_with_retry
     def __send_monitoring(self):
         src_name = platform.node()
         data = self.monitoring_buffer.get_monitoring_json(self.client.session_id,
                                                           self.client.user_id,
                                                           self.client.test_id)
-        try:
-            self.client.send_monitoring_data(src_name, data)
-        except IOError:
-            self.log.debug("Error sending data: %s", traceback.format_exc())
-            self.log.warning("Failed to send data, will retry in %s sec...", self.client.timeout)
-            try:
-                time.sleep(self.client.timeout)
-                self.client.send_monitoring_data(src_name, data)
-                self.log.info("Succeeded with retry")
-            except IOError:
-                self.log.error("Fatal error sending data: %s", traceback.format_exc())
-                self.log.warning("Will skip failed data and continue running")
+        self.client.send_monitoring_data(src_name, data)
+
+    @send_with_retry
+    def __send_custom_metrics(self):
+        data = self.get_custom_metrics_json()
+        self.client.send_custom_metrics(data)
+
+    @send_with_retry
+    def __send_custom_tables(self):
+        data = self.get_custom_tables_json()
+        if not data:
+            return
+        self.client.send_custom_tables(data)
+
+    def get_custom_metrics_json(self):
+        datapoints = {}
+
+        for source, buff in iteritems(self.monitoring_buffer.data):
+            for timestamp, item in iteritems(buff):
+                if source == 'local':
+                    source = platform.node()
+
+                if timestamp not in datapoints:
+                    datapoints[timestamp] = {}
+
+                for field, value in iteritems(item):
+                    if field in ('ts', 'interval'):
+                        continue
+                    if source == 'chrome':
+                        if field.startswith("time"):
+                            prefix = "Time"
+                        elif field.startswith("network"):
+                            prefix = "Network"
+                        elif field.startswith("dom"):
+                            prefix = "DOM"
+                        elif field.startswith("js"):
+                            prefix = "JS"
+                        elif field.startswith("memory"):
+                            prefix = "Memory"
+                        else:
+                            prefix = "Metrics"
+                        field = self.get_chrome_metric_kpi_label(field)
+                    else:
+                        if field.lower().startswith('cpu'):
+                            prefix = 'System'
+                            field = 'CPU'
+                        elif field.lower().startswith('mem'):
+                            prefix = 'System'
+                            field = 'Memory'
+                            value *= 100
+                        elif field.lower().startswith('disk'):
+                            prefix = 'Disk'
+                        elif field.lower().startswith('bytes-') or field.lower().startswith('net'):
+                            prefix = 'Network'
+                        else:
+                            prefix = 'Monitoring'
+
+                    label = "/".join([source, prefix, field])
+                    datapoints[timestamp][label] = value
+
+        results = []
+        for timestamp in sorted(datapoints):
+            datapoint = OrderedDict([(metric, datapoints[timestamp][metric])
+                                     for metric in sorted(datapoints[timestamp])])
+            datapoint["ts"] = timestamp
+            results.append(datapoint)
+        return {"datapoints": results}
+
+    def get_chrome_metric_kpi_label(self, metric):
+        for module in self.engine.services:
+            if isinstance(module, ChromeProfiler):
+                return module.get_metric_label(metric)
+        return metric
+
+    def get_custom_tables_json(self):
+        for module in self.engine.services:
+            if isinstance(module, ChromeProfiler):
+                return module.get_custom_tables_json()
 
 
 class MonitoringBuffer(object):
@@ -931,7 +1050,7 @@ class BlazeMeterClient(object):
                             to_json(data), headers=hdr, method="PUT")
         return req['result']
 
-    def update_session(self,data):
+    def update_session(self, data):
         hdr = {"Content-Type": "application/json"}
         req = self._request(self.address + '/api/latest/sessions/%s' % self.session_id,
                             to_json(data), headers=hdr, method="PUT")
@@ -1014,6 +1133,16 @@ class BlazeMeterClient(object):
     def send_monitoring_data(self, src_name, data):
         self.upload_file('%s.monitoring.json' % src_name, to_json(data))
 
+    def send_custom_metrics(self, data):
+        url = self.address + "/api/latest/data/masters/%s/custom-metrics" % self.master_id
+        res = self._request(url, to_json(data), headers={"Content-Type": "application/json"}, method="POST")
+        return res
+
+    def send_custom_tables(self, data):
+        url = self.address + "/api/latest/data/masters/%s/custom-table" % self.master_id
+        res = self._request(url, to_json(data), headers={"Content-Type": "application/json"}, method="POST")
+        return res
+
 
 class MasterProvisioning(Provisioning):
     def get_rfiles(self):
@@ -1082,6 +1211,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.__last_master_status = None
         self.browser_open = 'start'
         self.widget = None
+        self.detach = False
 
     def prepare(self):
         if self.settings.get("dump-locations", False):
@@ -1096,6 +1226,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
         super(CloudProvisioning, self).prepare()
         self.browser_open = self.settings.get("browser-open", self.browser_open)
+        self.detach = self.settings.get("detach", self.detach)
         self._configure_client()
         self.__prepare_locations()
         rfiles = self.get_rfiles()
@@ -1219,9 +1350,12 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
     def check(self):
         # TODO: throttle down requests
+        if self.detach:
+            self.log.warning('Detaching Taurus from started test...')
+            return True
         try:
             master = self.client.get_master_status()
-        except URLError:
+        except (URLError, SSLError):
             self.log.warning("Failed to get test status, will retry in %s seconds...", self.client.timeout)
             self.log.debug("Full exception: %s", traceback.format_exc())
             time.sleep(self.client.timeout)
@@ -1248,7 +1382,8 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         return super(CloudProvisioning, self).check()
 
     def post_process(self):
-        self.client.end_master()
+        if not self.detach:
+            self.client.end_master()
         if self.client.results_url:
             if self.browser_open in ('end', 'both'):
                 open_browser(self.client.results_url)
@@ -1282,6 +1417,8 @@ class BlazeMeterClientEmul(BlazeMeterClient):
         self.log.debug("Request %s: %s", url, data)
         res = self.results.pop(0)
         self.log.debug("Response: %s", res)
+        if isinstance(res, BaseException):
+            raise res
         return res
 
 
@@ -1322,22 +1459,29 @@ class ResultsFromBZA(ResultsProvider):
                     if kpi['ts'] != tstmp:
                         continue
 
-                    kpiset = KPISet()
-                    kpiset[KPISet.FAILURES] = kpi['ec']
-                    kpiset[KPISet.CONCURRENCY] = kpi['na']
-                    kpiset[KPISet.SAMPLE_COUNT] = kpi['n']
-                    kpiset.sum_rt += kpi['t_avg'] * kpi['n'] / 1000.0
-                    kpiset.sum_lt += kpi['lt_avg'] * kpi['n'] / 1000.0
+                    label_str = label['label']
+                    if label_str not in aggr:
+                        self.log.warning("Skipping inconsistent data from API for label: %s", label_str)
+                        continue
 
-                    perc_map = {'90line': 90.0, "95line": 95.0, "99line": 99.0}
-                    for field, level in iteritems(perc_map):
-                        kpiset[KPISet.PERCENTILES][str(level)] = aggr[label['label']][field]
-
-                    point[DataPoint.CURRENT]['' if label['label'] == 'ALL' else label['label']] = kpiset
+                    kpiset = self.__get_kpiset(aggr, kpi, label_str)
+                    point[DataPoint.CURRENT]['' if label_str == 'ALL' else label_str] = kpiset
 
             point.recalculate()
             self.min_ts = point[DataPoint.TIMESTAMP] + 1
             yield point
+
+    def __get_kpiset(self, aggr, kpi, label):
+        kpiset = KPISet()
+        kpiset[KPISet.FAILURES] = kpi['ec']
+        kpiset[KPISet.CONCURRENCY] = kpi['na']
+        kpiset[KPISet.SAMPLE_COUNT] = kpi['n']
+        kpiset.sum_rt += kpi['t_avg'] * kpi['n'] / 1000.0
+        kpiset.sum_lt += kpi['lt_avg'] * kpi['n'] / 1000.0
+        perc_map = {'90line': 90.0, "95line": 95.0, "99line": 99.0}
+        for field, level in iteritems(perc_map):
+            kpiset[KPISet.PERCENTILES][str(level)] = aggr[label][field]
+        return kpiset
 
     def query_data(self):
         try:

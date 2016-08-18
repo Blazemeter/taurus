@@ -507,10 +507,11 @@ class Engine(object):
             self.log.debug("Using proxy settings: %s", proxy_url)
             username = proxy_settings.get("username")
             pwd = proxy_settings.get("password")
+            scheme = proxy_url.scheme if proxy_url.scheme else 'http'
             if username and pwd:
-                proxy_uri = "%s://%s:%s@%s" % (proxy_url.scheme, username, pwd, proxy_url.netloc)
+                proxy_uri = "%s://%s:%s@%s" % (scheme, username, pwd, proxy_url.netloc)
             else:
-                proxy_uri = "%s://%s" % (proxy_url.scheme, proxy_url.netloc)
+                proxy_uri = "%s://%s" % (scheme, proxy_url.netloc)
             proxy_handler = ProxyHandler({"https": proxy_uri, "http": proxy_uri})
             opener = build_opener(proxy_handler)
             install_opener(opener)
@@ -798,7 +799,7 @@ class ScenarioExecutor(EngineModule):
         self.provisioning = None
         self.execution = BetterDict()
         self.__scenario = None
-        self._label = None
+        self.label = None
 
     def get_script_path(self, scenario=None):
         """
@@ -806,7 +807,7 @@ class ScenarioExecutor(EngineModule):
         """
         if scenario is None:
             scenario = self.get_scenario()
-        if Scenario.SCRIPT in scenario:
+        if Scenario.SCRIPT in scenario and scenario[Scenario.SCRIPT]:
             return self.engine.find_file(scenario.get(Scenario.SCRIPT))
         else:
             return None
@@ -845,7 +846,7 @@ class ScenarioExecutor(EngineModule):
                 scenarios[label] = scenario
                 self.execution['scenario'] = label
 
-            self._label = label
+            self.label = label
         else:  # get scenario by name
             label = name
 
@@ -912,7 +913,7 @@ class ScenarioExecutor(EngineModule):
         return files_list
 
     def __repr__(self):
-        return "%s/%s" % (self.execution.get("executor", None), self._label if self._label else id(self))
+        return "%s/%s" % (self.execution.get("executor", None), self.label if self.label else id(self))
 
     def get_hostaliases(self):
         settings = self.engine.config.get(SETTINGS, {})

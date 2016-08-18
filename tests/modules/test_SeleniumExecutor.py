@@ -624,7 +624,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.execution.merge({
             "scenario": {
                 "default-address": "http://blazedemo.com",
-                "requests": ["/", "http://absolute.address.com/somepage","/reserve.php"],
+                "requests": ["/", "http://absolute.address.com/somepage", "/reserve.php"],
             }
         })
         self.obj.prepare()

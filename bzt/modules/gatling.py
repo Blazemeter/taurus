@@ -22,7 +22,7 @@ import time
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
-from bzt.modules.console import WidgetProvider, SidebarWidget
+from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.utils import BetterDict, TclLibrary, MirrorsManager, EXE_SUFFIX, dehumanize_time, get_full_path
 from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, shutdown_process, ensure_is_dict, is_windows
 
@@ -239,7 +239,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         else:
             self.launcher = self.settings["path"]
 
-        if Scenario.SCRIPT in scenario:
+        if Scenario.SCRIPT in scenario and scenario[Scenario.SCRIPT]:
             self.script = self.get_script_path()
         elif "requests" in scenario:
             self.get_scenario()['simulation'], self.script = self.__generate_script()
@@ -291,8 +291,10 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         if scenario.get('timeout', None) is not None:
             params_for_scala['gatling.http.ahc.requestTimeout'] = int(dehumanize_time(scenario.get('timeout')) * 1000)
-        if scenario.get('keepalive', None) is not None:
-            params_for_scala['gatling.http.ahc.keepAlive'] = scenario.get('keepalive').lower()
+        if scenario.get('keepalive', True):
+            params_for_scala['gatling.http.ahc.keepAlive'] = 'true'
+        else:
+            params_for_scala['gatling.http.ahc.keepAlive'] = 'false'
         if load.concurrency is not None:
             params_for_scala['concurrency'] = load.concurrency
         if load.ramp_up is not None:
@@ -326,9 +328,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :return: bool
         :raise RuntimeWarning:
         """
-        if self.widget:
-            self.widget.update()
-
         self.retcode = self.process.poll()
 
         if not self.simulation_started:
@@ -397,7 +396,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 label = "Script: %s" % os.path.basename(self.script)
             else:
                 label = None
-            self.widget = SidebarWidget(self, label)
+            self.widget = ExecutorWidget(self, label)
         return self.widget
 
     def resource_files(self):

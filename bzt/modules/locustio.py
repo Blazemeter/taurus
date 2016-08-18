@@ -25,7 +25,7 @@ from subprocess import STDOUT
 
 from bzt.engine import ScenarioExecutor, FileLister, Scenario
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsProvider, DataPoint, KPISet
-from bzt.modules.console import WidgetProvider, SidebarWidget
+from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.jmeter import JTLReader
 from bzt.six import PY3, iteritems
 from bzt.utils import shutdown_process, RequiredTool, BetterDict
@@ -113,21 +113,18 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         Add progress widget to console screen sidebar
 
-        :rtype: SidebarWidget
+        :rtype: ExecutorWidget
         """
         if not self.widget:
             if self.locustfile is not None:
                 label = "Script: %s" % os.path.basename(self.locustfile)
             else:
                 label = None
-            self.widget = SidebarWidget(self, label)
+            self.widget = ExecutorWidget(self, label)
         return self.widget
 
     def check(self):
         # TODO: when we're in master mode and get no results and exceeded duration - shut down then
-        if self.widget:
-            self.widget.update()
-
         retcode = self.process.poll()
         if retcode is not None:
             self.log.info("Locust exit code: %s", retcode)

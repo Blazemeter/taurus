@@ -16,7 +16,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.jmeter import JMeterExecutor, JTLErrorsReader, JTLReader
 from bzt.modules.jmeter import JMeterScenarioBuilder
 from bzt.six import etree, u
-from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict
+from bzt.utils import EXE_SUFFIX, get_full_path
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul, RecordingHandler
 
@@ -37,7 +37,7 @@ def get_jmeter_executor_vars():
 
 def set_jmeter_executor_vars(jmeter_vars):
     (JMeterExecutor.JMETER_DOWNLOAD_LINK, JMeterExecutor.JMETER_VER,
-        JMeterExecutor.MIRRORS_SOURCE, JMeterExecutor.CMDRUNNER, JMeterExecutor.PLUGINS_MANAGER) = jmeter_vars
+     JMeterExecutor.MIRRORS_SOURCE, JMeterExecutor.CMDRUNNER, JMeterExecutor.PLUGINS_MANAGER) = jmeter_vars
 
 
 class TestJMeterExecutor(BZTestCase):
@@ -48,7 +48,6 @@ class TestJMeterExecutor(BZTestCase):
     def tearDown(self):
         if self.obj.modified_jmx and os.path.exists(self.obj.modified_jmx):
             os.remove(self.obj.modified_jmx)
-
 
     def test_jmx(self):
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/dummy.jmx"}})
@@ -968,6 +967,25 @@ class TestJMeterExecutor(BZTestCase):
         jmx = JMX(self.obj.modified_jmx)
         self.assertEqual(jmx.get('ResultCollector[testname="Trace Writer"]'), [])
         self.assertEqual(jmx.get('ResultCollector[testname="Errors Writer"]'), [])
+
+    def test_jtl_flags(self):
+        self.obj.execution.merge({
+            "write-xml-jtl": "error",
+            "scenario": {
+                "requests": [{
+                    "url": "http://blazedemo.com",
+                }]}})
+        self.obj.settings.merge({'xml-jtl-flags': {
+            'responseData': True,
+            'message': False}})
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        writers = xml_tree.findall(".//ResultCollector[@testname='Errors Writer']")
+        self.assertEqual(1, len(writers))
+        self.assertEqual('false', writers[0].find('objProp/value/samplerData').text)
+        self.assertEqual('false', writers[0].find('objProp/value/message').text)
+        self.assertEqual('true', writers[0].find('objProp/value/responseData').text)
+        self.assertEqual('true', writers[0].find('objProp/value/bytes').text)
 
     def test_jmx_modification_unicode(self):
         cfg_selector = ('Home Page>HTTPsampler.Arguments>Arguments.arguments'

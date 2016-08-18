@@ -8,7 +8,7 @@ RUN apt-get -y --force-yes install default-jre-headless
 RUN apt-get -y --force-yes install xvfb
 RUN apt-get -y --force-yes install libyaml-dev
 RUN apt-get -y --force-yes install siege
-RUN pip install bzt
+RUN pip install bzt==1.6.5
 RUN echo '{"install-id": "Docker"}' > /etc/bzt.d/99-zinstallID.json
 RUN echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json
 RUN echo '{"modules": {"console": {"disable": true}}}' > /etc/bzt.d/90-no-console.json

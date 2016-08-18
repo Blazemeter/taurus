@@ -1,0 +1,9 @@
+---
+execution:
+  executor: selenium
+  iterations: 1
+  scenario:
+    script: dir
+
+services:
+- proxy2jmx
