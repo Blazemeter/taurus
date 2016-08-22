@@ -60,9 +60,11 @@ class TestBlazeMeterUploader(BZTestCase):
             {'msg': 'Forbidden', 'cnt': 7373, 'type': KPISet.ERRTYPE_ASSERT, 'urls': [], KPISet.RESP_CODES: '403'},
             {'msg': 'Allowed', 'cnt': 7373, 'type': KPISet.ERRTYPE_ERROR, 'urls': [], KPISet.RESP_CODES: '403'}]
         obj.post_process()
+        self.assertEqual(0, len(client.results))
 
     def test_check(self):
         client = BlazeMeterClientEmul(logging.getLogger(''))
+        client.timeout = 1
         client.results.append({"marker": "ping", 'result': {}})
         client.results.append({"marker": "projects", 'result': []})
 
@@ -84,17 +86,24 @@ class TestBlazeMeterUploader(BZTestCase):
                  'master': {'id': 'master1', 'userId': 1},
                  'signature': ''}})
         client.results.append({"marker": "first push", 'result': {'session': {}}})
+        client.results.append(IOError("monitoring push expected fail"))
         client.results.append({"marker": "mon push", "result": True})
+        client.results.append(IOError("custom metric push expected fail"))
+        client.results.append({"marker": "custom metrics push", "result": True})
         client.results.append({"marker": "second push", 'result': {'session': {"statusCode": 140, 'status': 'ENDED'}}})
         client.results.append({"marker": "post-proc push", 'result': {'session': {}}})
-        client.results.append({"marker": "upload1", "result": True})  # post-proc error stats
-        client.results.append({"marker": "upload2", "result": True})
+        client.results.append({"marker": "post process monitoring push", "result": True})
+        client.results.append({"marker": "post process custom metrics push", "result": True})
+        client.results.append({"marker": "artifacts push", 'result': True})
+        client.results.append({"marker": "logs push", 'result': True})
         client.results.append({"marker": "terminate", 'result': {'session': {}}})
 
         obj = BlazeMeterUploader()
         obj.parameters['project'] = 'Proj name'
         obj.settings['token'] = '123'
         obj.settings['browser-open'] = 'none'
+        obj.settings['send-custom-metrics'] = True
+        obj.settings['send-custom-tables'] = True
         obj.engine = EngineEmul()
         shutil.copy(__file__, obj.engine.artifacts_dir + os.path.basename(__file__))
         obj.client = client
@@ -102,7 +111,8 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.startup()
         for x in range(0, 31):
             obj.aggregated_second(random_datapoint(x))
-        mon = [{"ts": 1, "source": "local", "cpu": 1, "mem": 2, "bytes-recv": 100, "other": 0}]
+        mon = [{"ts": 1, "source": "local", "cpu": 1, "mem": 2, "bytes-recv": 100, "other": 0},
+               {"ts": 1, "source": "chrome", "memory": 32, "cpu": 23}]
         obj.monitoring_data(mon)
         obj.check()
         for x in range(32, 65):
@@ -113,6 +123,7 @@ class TestBlazeMeterUploader(BZTestCase):
         log_file = obj.engine.create_artifact('log', '.tmp')
         obj.engine.log.parent.handlers.append(logging.FileHandler(log_file))
         obj.post_process()
+        self.assertEqual(0, len(client.results))
 
     def test_ping(self):
         obj = BlazeMeterClient(logging.getLogger(''))
@@ -131,6 +142,7 @@ class TestBlazeMeterUploader(BZTestCase):
             obj.monitoring_data(mon)
             for source, buffer in iteritems(obj.monitoring_buffer.data):
                 self.assertLessEqual(len(buffer), 100)
+        self.assertEqual(0, len(obj.client.results))
 
 
 class TestBlazeMeterClientUnicode(BZTestCase):
