@@ -586,28 +586,29 @@ class NoseTester(AbstractTestRunner):
 class SeleniumWidget(Pile, PrioritizedWidget):
     def __init__(self, script, runner_output):
         widgets = []
-        self.script_name = Text("Tests: %s" % script)
-        self.summary_stats = Text("")
-        self.current_test = Text("")
+        self.script_name = Text("Selenium: %s" % os.path.basename(script))
+        self.summary_stats = Text("Delayed...")
         self.runner_output = runner_output
         widgets.append(self.script_name)
         widgets.append(self.summary_stats)
-        widgets.append(self.current_test)
         super(SeleniumWidget, self).__init__(widgets)
         PrioritizedWidget.__init__(self, priority=10)
 
     def update(self):
-        cur_test, reader_summary = ["No data received yet"] * 2
+        reader_summary = ''
         if os.path.exists(self.runner_output):
             with open(self.runner_output, "rt") as fds:
                 lines = fds.readlines()
                 if lines:
                     line = lines[-1]
                     if line and "," in line:
-                        cur_test, reader_summary = line.split(",")
+                        reader_summary = line.split(",")[-1]
 
-        self.current_test.set_text(cur_test)
-        self.summary_stats.set_text(reader_summary)
+        if reader_summary:
+            self.summary_stats.set_text(reader_summary)
+        else:
+            self.summary_stats.set_text('In progress...')
+
         self._invalidate()
 
 
