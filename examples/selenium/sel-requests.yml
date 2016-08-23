@@ -1,25 +1,25 @@
 ---
 scenarios:
   req:
+#    browser: Chrome
     timeout: 5s
     requests:
-      - http://blazedemo.com/
-      - http://blazedemo.com/pricing
-      - http://blazedemo.com/features
-      - http://blazedemo.com/blog
+      - url: http://blazedemo.com/
+        label: home page
+      - http://blazedemo.com/vacation.html
 
 execution:
   - scenario: req
     executor: selenium
-    concurrency: 2
+    #concurrency: 2
     hold-for: 5m
+    locations:
+      us-west-1: 1
+      us-east-1: 1
+      eu-west-1: 1
 
-#  - scenario: req
-#    executor: jmeter
-#    concurrency: 2
-#    hold-for: 5m
+#services:
+#- capturehar
+#- module: shellexec
+#  prepare: sleep 600
 
-selenium1:
-  virtual-display:
-    width: 1280
-    height: 800

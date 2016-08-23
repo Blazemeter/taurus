@@ -77,7 +77,7 @@ execution:
 ```
 
 ```yaml
--- 
+---
 execution: 
   - scenario: dummy 
     concurrency:
