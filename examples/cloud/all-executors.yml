@@ -16,9 +16,19 @@ execution:
   concurrency: 1
   hold-for: 5m
   scenario: 
+    browser: Firefox
     requests:
       - url: http://blazedemo.com/
-        label: selenium
+        label: selenium-firefox
+
+- executor: selenium
+  concurrency: 1
+  hold-for: 5m
+  scenario: 
+    browser: Chrome
+    requests:
+      - url: http://blazedemo.com/
+        label: selenium-chrome
 
 - executor: gatling
   concurrency: 1
