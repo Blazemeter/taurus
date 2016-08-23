@@ -811,8 +811,8 @@ class JTLReader(ResultsReader):
     :type errors_reader: JTLErrorsReader
     """
 
-    def __init__(self, filename, parent_logger, errors_filename, translator=None):
-        super(JTLReader, self).__init__(translator=translator)
+    def __init__(self, filename, parent_logger, errors_filename):
+        super(JTLReader, self).__init__()
         self.is_distributed = False
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.csvreader = IncrementalCSVReader(self.log, filename)
@@ -833,8 +833,6 @@ class JTLReader(ResultsReader):
 
         for row in self.csvreader.read(last_pass):
             label = row["label"]
-            if self.translator:
-                label = self.translator.translate(label)
             if self.is_distributed:
                 concur = int(row["grpThreads"])
                 trname = row["Hostname"] + row["threadName"][:row["threadName"].rfind('-')]

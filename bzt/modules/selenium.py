@@ -30,7 +30,7 @@ from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.jmeter import JTLReader
 from bzt.six import string_types, text_type, etree, parse
 from bzt.utils import RequiredTool, shell_exec, shutdown_process, JavaVM, TclLibrary, get_files_recursive
-from bzt.utils import dehumanize_time, MirrorsManager, is_windows, BetterDict, get_full_path, Translator
+from bzt.utils import dehumanize_time, MirrorsManager, is_windows, BetterDict, get_full_path
 
 try:
     from pyvirtualdisplay.smartdisplay import SmartDisplay as Display
@@ -128,8 +128,8 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         runner_config.get("stderr", self.engine.create_artifact("junit", ".err"))
         return runner_class(runner_config, self)
 
-    def _create_reader(self, kpi_file, err_file, translator):
-        return JTLReader(kpi_file, self.log, err_file, translator=translator)
+    def _create_reader(self, kpi_file, err_file, translation_table):
+        return SeleniumReader(kpi_file, self.log, err_file, translation_table)
 
     def prepare(self):
         self.set_virtual_display()
@@ -144,8 +144,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self._cp_resource_files(self.runner_working_dir)
 
         self.runner.prepare()
-        translator = SeleniumLabelTranslator(self.generated_methods)
-        self.reader = self._create_reader(self.kpi_file, self.err_file, translator)
+        self.reader = self._create_reader(self.kpi_file, self.err_file, self.generated_methods)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
@@ -276,18 +275,6 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.generated_methods.merge(nose_test.gen_test_case())
         nose_test.save(filename)
         return filename
-
-
-class SeleniumLabelTranslator(Translator):
-    def translate(self, arg):
-        if self.translate_table and arg in self.translate_table:  # start fresh generated script:
-            return self.translate_table[arg]  # replace method names with labels
-
-        if isinstance(arg, string_types):  # start previously generated script: remove prefix
-            if arg.startswith('test_') and arg[5:10].isdigit():
-                return arg[11:]
-
-        return arg
 
 
 class AbstractTestRunner(object):
@@ -912,3 +899,26 @@ class JUnitMirrorsManager(MirrorsManager):
             links.append(default_link)
         self.log.debug('Total mirrors: %d', len(links))
         return links
+
+
+class SeleniumReader(JTLReader):
+    def __init__(self, filename, parent_logger, errors_filename, translation_table=None):
+        super(SeleniumReader, self).__init__(filename, parent_logger, errors_filename)
+        if translation_table:
+            self.translation_table = translation_table
+        else:
+            self.translation_table = {}
+
+    def _read(self, last_pass=False):
+        for data in super(SeleniumReader, self)._read(last_pass):
+            tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname = data
+
+            if self.translation_table and label in self.translation_table:  # start fresh generated script:
+                label = self.translation_table[label]  # replace method names with labels
+
+            if isinstance(label, string_types):  # start previously generated script: remove prefix
+                if label.startswith('test_') and label[5:10].isdigit():
+                    label = label[11:]
+
+            data = tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname
+            yield data
