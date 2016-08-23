@@ -1,10 +1,10 @@
 # Changelog
-## 1.6.7 (next)
- - add worker id to cloud log file names
+## 1.6.7  <sup>23 aug 2016</sup>
  - add `cloud` and `local` aliases 
+ - add `detach` mode to Cloud Provisioning
+ - add worker id to cloud log file names
  - fix delay trouble in provisioning
  - fix Gatling keepalive type cast bug
- - add `detach` mode to Cloud Provisioning
  - fix grinder in the cloud with requests scenario
  - add `xml-jtl-flags` option for tuning of logging verbosity
  - add `waiting for data...` into titles of console blocks
