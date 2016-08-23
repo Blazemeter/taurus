@@ -25,9 +25,8 @@ from abc import abstractmethod
 from urwid import Text, Pile
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
-from bzt.modules.aggregator import ConsolidatingAggregator
+from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
-from bzt.modules.jmeter import JTLReader
 from bzt.six import string_types, text_type, etree, parse
 from bzt.utils import RequiredTool, shell_exec, shutdown_process, JavaVM, TclLibrary, get_files_recursive
 from bzt.utils import dehumanize_time, MirrorsManager, is_windows, BetterDict, get_full_path
@@ -129,7 +128,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         return runner_class(runner_config, self)
 
     def _create_reader(self, kpi_file, err_file):
-        return SeleniumReader(kpi_file, self.log, err_file, self.generated_methods)
+        return SeleniumReportReader(kpi_file, self.log, self.generated_methods)
 
     def prepare(self):
         self.set_virtual_display()
@@ -543,8 +542,7 @@ class NoseTester(AbstractTestRunner):
         run python tests
         """
         executable = self.settings.get("interpreter", sys.executable)
-        nose_command_line = [executable, self.plugin_path, '-k', self.settings.get("report-file"),
-                             '-e', self.settings.get("err-file")]
+        nose_command_line = [executable, self.plugin_path, '--report-file', self.settings.get("report-file")]
 
         if self.load.iterations:
             nose_command_line += ['-i', str(self.load.iterations)]
@@ -594,7 +592,7 @@ class SeleniumWidget(Pile, PrioritizedWidget):
         if reader_summary:
             self.summary_stats.set_text(reader_summary)
         else:
-            self.summary_stats.set_text('In progress...')
+           self.summary_stats.set_text('In progress...')
 
         self._invalidate()
 
@@ -901,24 +899,83 @@ class JUnitMirrorsManager(MirrorsManager):
         return links
 
 
-class SeleniumReader(JTLReader):
-    def __init__(self, filename, parent_logger, errors_filename, translation_table=None):
-        super(SeleniumReader, self).__init__(filename, parent_logger, errors_filename)
-        if translation_table:
-            self.translation_table = translation_table
+class LDJSONReader(object):
+    def __init__(self, filename, parent_log):
+        self.log = parent_log.getChild(self.__class__.__name__)
+        self.filename = filename
+        self.fds = None
+        self.partial_buffer = ""
+
+    def read(self, last_pass=False):
+        if not self.fds and not self.__open_fds():
+            self.log.debug("No data to start reading yet")
+            return
+
+        if last_pass:
+            lines = self.fds.readlines()  # unlimited
         else:
-            self.translation_table = {}
+            lines = self.fds.readlines(1024 * 1024)
+
+        for line in lines:
+            if not line.endswith("\n"):
+                self.partial_buffer += line
+                continue
+            line = "%s%s" % (self.partial_buffer, line)
+            self.partial_buffer = ""
+            yield json.loads(line)
+
+    def __open_fds(self):
+        if not os.path.isfile(self.filename):
+            return False
+        fsize = os.path.getsize(self.filename)
+        if not fsize:
+            return False
+        self.fds = open(self.filename, 'rt', buffering=1)
+        return True
+
+    def __del__(self):
+        if self.fds is not None:
+            self.fds.close()
+
+
+class SeleniumReportReader(ResultsReader):
+    REPORT_ITEM_KEYS = ["label", "status", "description", "start_time", "duration", "error_msg", "error_trace"]
+    TEST_STATUSES = ("PASSED", "FAILED", "BROKEN", "SKIPPED")
+    FAILING_TESTS_STATUSES = ("FAILED", "BROKEN")
+
+    def __init__(self, filename, parent_logger, translation_table=None):
+        super(SeleniumReportReader, self).__init__()
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.json_reader = LDJSONReader(filename, self.log)
+        self.translation_table = translation_table or {}
+        self.log.info("Translation table: %s", self.translation_table)
+        self.read_records = 0
+
+    def process_label(self, label):
+        if label in self.translation_table:
+            return self.translation_table[label]
+
+        if isinstance(label, string_types):
+            if label.startswith('test_') and label[5:10].isdigit():
+                return label[11:]
+
+        return label
 
     def _read(self, last_pass=False):
-        for data in super(SeleniumReader, self)._read(last_pass):
-            tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname = data
+        for row in self.json_reader.read(last_pass):
+            if any(key not in row for key in self.REPORT_ITEM_KEYS):
+                self.log.warning("Record %s doesn't conform to a schema, skipping", row)
+                continue
+            self.read_records += 1
 
-            if self.translation_table and label in self.translation_table:  # start fresh generated script:
-                label = self.translation_table[label]  # replace method names with labels
+            tstmp = int(row["start_time"])
+            label = self.process_label(row["label"])
+            concur = 1
+            rtm = row["duration"]
+            cnn = 0
+            ltc = 0
+            rcd = "400" if row["status"] in self.FAILING_TESTS_STATUSES else "200"
+            error = row["error_msg"]
+            trname = ""
 
-            if isinstance(label, string_types):  # start previously generated script: remove prefix
-                if label.startswith('test_') and label[5:10].isdigit():
-                    label = label[11:]
-
-            data = tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname
-            yield data
+            yield tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname
