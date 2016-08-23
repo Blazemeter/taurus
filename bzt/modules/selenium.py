@@ -128,8 +128,8 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         runner_config.get("stderr", self.engine.create_artifact("junit", ".err"))
         return runner_class(runner_config, self)
 
-    def _create_reader(self, kpi_file, err_file, translation_table):
-        return SeleniumReader(kpi_file, self.log, err_file, translation_table)
+    def _create_reader(self, kpi_file, err_file):
+        return SeleniumReader(kpi_file, self.log, err_file, self.generated_methods)
 
     def prepare(self):
         self.set_virtual_display()
@@ -144,7 +144,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self._cp_resource_files(self.runner_working_dir)
 
         self.runner.prepare()
-        self.reader = self._create_reader(self.kpi_file, self.err_file, self.generated_methods)
+        self.reader = self._create_reader(self.kpi_file, self.err_file)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
