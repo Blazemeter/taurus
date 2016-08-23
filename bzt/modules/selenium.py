@@ -15,6 +15,7 @@ limitations under the License.
 """
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -74,6 +75,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.scenario = None
         self.script = None
         self.self_generated_script = False
+        self.generated_methods = BetterDict()
 
     def set_virtual_display(self):
         display_conf = self.settings.get("virtual-display")
@@ -127,7 +129,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         return runner_class(runner_config, self)
 
     def _create_reader(self, kpi_file, err_file):
-        return JTLReader(kpi_file, self.log, err_file)
+        return SeleniumReader(kpi_file, self.log, err_file, self.generated_methods)
 
     def prepare(self):
         self.set_virtual_display()
@@ -270,7 +272,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         nose_test = SeleniumScriptBuilder(self.scenario, self.log, wdlog)
         if self.virtual_display:
             nose_test.window_size = self.virtual_display.size
-        nose_test.gen_test_case()
+        self.generated_methods.merge(nose_test.gen_test_case())
         nose_test.save(filename)
         return filename
 
@@ -571,28 +573,29 @@ class NoseTester(AbstractTestRunner):
 class SeleniumWidget(Pile, PrioritizedWidget):
     def __init__(self, script, runner_output):
         widgets = []
-        self.script_name = Text("Tests: %s" % script)
-        self.summary_stats = Text("")
-        self.current_test = Text("")
+        self.script_name = Text("Selenium: %s" % os.path.basename(script))
+        self.summary_stats = Text("Delayed...")
         self.runner_output = runner_output
         widgets.append(self.script_name)
         widgets.append(self.summary_stats)
-        widgets.append(self.current_test)
         super(SeleniumWidget, self).__init__(widgets)
         PrioritizedWidget.__init__(self, priority=10)
 
     def update(self):
-        cur_test, reader_summary = ["No data received yet"] * 2
+        reader_summary = ''
         if os.path.exists(self.runner_output):
             with open(self.runner_output, "rt") as fds:
                 lines = fds.readlines()
                 if lines:
                     line = lines[-1]
                     if line and "," in line:
-                        cur_test, reader_summary = line.split(",")
+                        reader_summary = line.split(",")[-1]
 
-        self.current_test.set_text(cur_test)
-        self.summary_stats.set_text(reader_summary)
+        if reader_summary:
+            self.summary_stats.set_text(reader_summary)
+        else:
+            self.summary_stats.set_text('In progress...')
+
         self._invalidate()
 
 
@@ -704,6 +707,12 @@ from selenium.common.exceptions import NoAlertPresentException
         method_def_element.text = def_tmpl.format(method_name=method_name, params=",".join(params))
         return method_def_element
 
+    def gen_decorator_statement(self, decorator_name, indent="4"):
+        def_tmpl = "@{decorator_name}"
+        decorator_element = etree.Element("decorator_statement", indent=indent)
+        decorator_element.text = def_tmpl.format(decorator_name=decorator_name)
+        return decorator_element
+
     def gen_method_statement(self, statement, indent="8"):
         statement_elem = etree.Element("statement", indent=indent)
         statement_elem.text = statement
@@ -724,14 +733,27 @@ class SeleniumScriptBuilder(NoseTest):
         self.root.append(imports)
         test_class = self.gen_class_definition("TestRequests", ["unittest.TestCase"])
         self.root.append(test_class)
-        test_class.append(self.gen_setup_method())
+        test_class.append(self.gen_setupclass_method())
+        test_class.append(self.gen_teardownclass_method())
+
+        counter = 0
+        methods = {}
         requests = self.scenario.get_requests()
-        test_method = self.gen_test_method()
-        test_class.append(test_method)
         scenario_timeout = self.scenario.get("timeout", 30)
         default_address = self.scenario.get("default-address", None)
 
         for req in requests:
+            if req.label:
+                label = req.label
+            else:
+                label = req.url
+            mod_label = re.sub('[^0-9a-zA-Z]+', '_', label[:30])
+            method_name = 'test_%05d_%s' % (counter, mod_label)
+            test_method = self.gen_test_method(method_name)
+            methods[method_name] = label
+            counter += 1
+            test_class.append(test_method)
+
             parsed_url = parse.urlparse(req.url)
             if default_address is not None and not parsed_url.netloc:
                 url = default_address + req.url
@@ -759,48 +781,55 @@ class SeleniumScriptBuilder(NoseTest):
 
             test_method.append(self.gen_comment("end request: %s" % url))
             test_method.append(self.__gen_new_line())
-        test_class.append(self.gen_teardown_method())
 
-    def gen_setup_method(self):
+        return methods
+
+    def gen_setupclass_method(self):
         self.log.debug("Generating setUp test method")
         browsers = ["Firefox", "Chrome", "Ie", "Opera"]
         browser = self.scenario.get("browser", "Firefox")
         if browser not in browsers:
             raise ValueError("Unsupported browser name: %s" % browser)
-        setup_method_def = self.gen_method_definition("setUp", ["self"])
+
+        setup_method_def = self.gen_decorator_statement('classmethod')
+        setup_method_def.append(self.gen_method_definition("setUpClass", ["cls"]))
 
         if browser == 'Firefox':
             setup_method_def.append(self.gen_method_statement("profile = webdriver.FirefoxProfile()"))
-            log_set = self.gen_method_statement("profile.set_preference('webdriver.log.file', %s)" % repr(self.wdlog))
+            statement = "profile.set_preference('webdriver.log.file', %s)" % repr(self.wdlog)
+            log_set = self.gen_method_statement(statement)
             setup_method_def.append(log_set)
-            setup_method_def.append(self.gen_method_statement("self.driver = webdriver.Firefox(profile)"))
+            setup_method_def.append(self.gen_method_statement("cls.driver = webdriver.Firefox(profile)"))
         else:
-            setup_method_def.append(self.gen_method_statement("self.driver = webdriver.%s()" % browser))
+            setup_method_def.append(self.gen_method_statement("cls.driver = webdriver.%s()" % browser))
 
         scenario_timeout = self.scenario.get("timeout", 30)
-        setup_method_def.append(self.gen_impl_wait(scenario_timeout))
+        setup_method_def.append(self.gen_impl_wait(scenario_timeout, target='cls'))
         if self.window_size:
-            setup_method_def.append(self.gen_method_statement("self.driver.set_window_size(%s, %s)" % self.window_size))
+            statement = self.gen_method_statement("cls.driver.set_window_size(%s, %s)" % self.window_size)
+            setup_method_def.append(statement)
         else:
-            setup_method_def.append(self.gen_method_statement("self.driver.maximize_window()"))
+            setup_method_def.append(self.gen_method_statement("cls.driver.maximize_window()"))
         setup_method_def.append(self.__gen_new_line())
         return setup_method_def
 
-    def gen_impl_wait(self, timeout):
-        return self.gen_method_statement("self.driver.implicitly_wait(%s)" % dehumanize_time(timeout))
+    def gen_impl_wait(self, timeout, target='self'):
+        return self.gen_method_statement("%s.driver.implicitly_wait(%s)" % (target, dehumanize_time(timeout)))
 
     def gen_comment(self, comment):
         return self.gen_method_statement("# %s" % comment)
 
-    def gen_test_method(self):
-        self.log.debug("Generating test method")
-        test_method = self.gen_method_definition("test_method", ["self"])
+    def gen_test_method(self, name):
+        self.log.debug("Generating test method %s", name)
+        test_method = self.gen_method_definition(name, ["self"])
         return test_method
 
-    def gen_teardown_method(self):
+    def gen_teardownclass_method(self):
         self.log.debug("Generating tearDown test method")
-        tear_down_method_def = self.gen_method_definition("tearDown", ["self"])
-        tear_down_method_def.append(self.gen_method_statement("self.driver.quit()"))
+        tear_down_method_def = self.gen_decorator_statement('classmethod')
+        tear_down_method_def.append(self.gen_method_definition("tearDownClass", ["cls"]))
+        tear_down_method_def.append(self.gen_method_statement("cls.driver.quit()"))
+        tear_down_method_def.append(self.__gen_new_line())
         return tear_down_method_def
 
     def gen_assertion(self, assertion_config):
@@ -870,3 +899,26 @@ class JUnitMirrorsManager(MirrorsManager):
             links.append(default_link)
         self.log.debug('Total mirrors: %d', len(links))
         return links
+
+
+class SeleniumReader(JTLReader):
+    def __init__(self, filename, parent_logger, errors_filename, translation_table=None):
+        super(SeleniumReader, self).__init__(filename, parent_logger, errors_filename)
+        if translation_table:
+            self.translation_table = translation_table
+        else:
+            self.translation_table = {}
+
+    def _read(self, last_pass=False):
+        for data in super(SeleniumReader, self)._read(last_pass):
+            tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname = data
+
+            if self.translation_table and label in self.translation_table:  # start fresh generated script:
+                label = self.translation_table[label]  # replace method names with labels
+
+            if isinstance(label, string_types):  # start previously generated script: remove prefix
+                if label.startswith('test_') and label[5:10].isdigit():
+                    label = label[11:]
+
+            data = tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname
+            yield data
