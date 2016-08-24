@@ -46,6 +46,32 @@ class KPISet(BetterDict):
     RESP_CODES = "rc"
     ERRTYPE_ERROR = 0
     ERRTYPE_ASSERT = 1
+    TEST_COUNT = "test_count"
+    TEST_STATUSES = "test_statuses"
+    TEST_FAILED = "test_failed"
+    TESTS = "tests"
+
+    LOAD_METRICS = [
+        ERRORS,
+        SAMPLE_COUNT,
+        CONCURRENCY,
+        SUCCESSES,
+        FAILURES,
+        RESP_TIMES,
+        AVG_RESP_TIME,
+        STDEV_RESP_TIME,
+        AVG_LATENCY,
+        AVG_CONN_TIME,
+        PERCENTILES,
+        RESP_CODES,
+    ]
+
+    FUNC_METRICS = [
+        TEST_COUNT,
+        TEST_STATUSES,
+        TEST_FAILED,
+        TESTS,
+    ]
 
     def __init__(self, perc_levels=()):
         super(KPISet, self).__init__()
@@ -67,6 +93,12 @@ class KPISet(BetterDict):
         self.get(self.RESP_TIMES, Counter())
         self.get(self.RESP_CODES, Counter())
         self.get(self.PERCENTILES)
+        # func test stats
+        self.get(self.TEST_COUNT, 0)
+        self.get(self.TEST_STATUSES, Counter())
+        self.get(self.TEST_FAILED, [])
+        self.get(self.TESTS, [])
+
         self._concurrencies = BetterDict()  # NOTE: shouldn't it be Counter?
 
     def __deepcopy__(self, memo):
@@ -129,6 +161,14 @@ class KPISet(BetterDict):
         self[self.RESP_TIMES][r_time] += 1
         # TODO: max/min rt? there is percentiles...
         # TODO: throughput if interval is not 1s
+
+    def add_sample_func(self, sample):
+        test_status = sample['status']
+        self[self.TEST_COUNT] += 1
+        self[self.TEST_STATUSES][test_status] += 1
+        self[self.TESTS].append(sample)
+        if test_status in ('BROKEN', 'FAILED'):
+            self[self.TEST_FAILED].append(sample)
 
     @staticmethod
     def inc_list(values, selector, value):
@@ -208,6 +248,11 @@ class KPISet(BetterDict):
 
         for src_item in src[self.ERRORS]:
             self.inc_list(self[self.ERRORS], ('msg', src_item['msg']), src_item)
+
+        self[self.TEST_COUNT] += src[self.TEST_COUNT]
+        self[self.TEST_STATUSES].update(src[self.TEST_STATUSES])
+        self[self.TESTS].extend(src[self.TESTS])
+        self[self.TEST_FAILED].extend(src[self.TEST_FAILED])
 
     @staticmethod
     def from_dict(obj):
@@ -450,6 +495,14 @@ class ResultsReader(ResultsProvider):
                 if t_stamp not in self.buffer:
                     self.buffer[t_stamp] = []
                 self.buffer[t_stamp].append((label, conc, r_time, con_time, latency, r_code, error, trname))
+            elif isinstance(result, dict):
+                t_stamp = int(result['start_time'])
+                if t_stamp < self.min_timestamp:
+                    self.log.info("Putting sample %s into %s", t_stamp, self.min_timestamp)
+                    t_stamp = self.min_timestamp
+                if t_stamp not in self.buffer:
+                    self.buffer[t_stamp] = []
+                self.buffer[t_stamp].append(result)
             else:
                 raise ValueError("Unsupported results from reader: %s" % result)
 
@@ -461,20 +514,28 @@ class ResultsReader(ResultsProvider):
         """
         current = datapoint[DataPoint.CURRENT]
         for sample in samples:
-            label, r_time, concur, con_time, latency, r_code, error, trname = sample
-            if label == '':
-                label = '[empty]'
+            if isinstance(sample, (tuple, list)):
+                label, r_time, concur, con_time, latency, r_code, error, trname = sample
+                if label == '':
+                    label = '[empty]'
 
-            if self.generalize_labels:
-                label = self.__generalize_label(label)
+                if self.generalize_labels:
+                    label = self.__generalize_label(label)
 
-            if label in current:
-                label = current[label]
-            else:
-                label = current.get(label, KPISet(self.track_percentiles))
+                if label in current:
+                    label = current[label]
+                else:
+                    label = current.get(label, KPISet(self.track_percentiles))
 
-            # empty means overall
-            label.add_sample((r_time, concur, con_time, latency, r_code, error, trname))
+                # empty means overall
+                label.add_sample((r_time, concur, con_time, latency, r_code, error, trname))
+            elif isinstance(sample, dict):
+                label = sample['label']
+                if label in current:
+                    label = current[label]
+                else:
+                    label = current.get(label, KPISet(self.track_percentiles))
+                label.add_sample_func(sample)
         overall = KPISet(self.track_percentiles)
         for label in current.values():
             overall.merge_kpis(label, datapoint[DataPoint.SOURCE_ID])
@@ -496,13 +557,15 @@ class ResultsReader(ResultsProvider):
 
         if self.cumulative and self.track_percentiles:
             old_len = self.buffer_len
-            chosen_timing = self.cumulative[''][KPISet.PERCENTILES][self.buffer_scale_idx]
-            self.buffer_len = round(chosen_timing * self.buffer_multiplier)
+            percentiles = self.cumulative[''][KPISet.PERCENTILES]
+            if self.buffer_scale_idx in percentiles:
+                chosen_timing = self.cumulative[''][KPISet.PERCENTILES][self.buffer_scale_idx]
+                self.buffer_len = round(chosen_timing * self.buffer_multiplier)
 
-            self.buffer_len = max(self.min_buffer_len, self.buffer_len)
-            self.buffer_len = min(self.max_buffer_len, self.buffer_len)
-            if self.buffer_len != old_len:
-                self.log.info("Changed data analysis delay to %ds", self.buffer_len)
+                self.buffer_len = max(self.min_buffer_len, self.buffer_len)
+                self.buffer_len = min(self.max_buffer_len, self.buffer_len)
+                if self.buffer_len != old_len:
+                    self.log.info("Changed data analysis delay to %ds", self.buffer_len)
 
         timestamps = sorted(self.buffer.keys())
         while final_pass or (timestamps[-1] >= (timestamps[0] + self.buffer_len)):

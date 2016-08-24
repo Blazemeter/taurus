@@ -98,12 +98,13 @@ class FinalStatus(Reporter, AggregatorListener):
         reports percentiles
         """
 
-        fmt = "Average times: total %.3f, latency %.3f, connect %.3f"
-        self.log.info(fmt, summary_kpi_set[KPISet.AVG_RESP_TIME], summary_kpi_set[KPISet.AVG_LATENCY],
-                      summary_kpi_set[KPISet.AVG_CONN_TIME])
+        if summary_kpi_set[KPISet.SAMPLE_COUNT]:
+            fmt = "Average times: total %.3f, latency %.3f, connect %.3f"
+            self.log.info(fmt, summary_kpi_set[KPISet.AVG_RESP_TIME], summary_kpi_set[KPISet.AVG_LATENCY],
+                          summary_kpi_set[KPISet.AVG_CONN_TIME])
 
-        for key in sorted(summary_kpi_set[KPISet.PERCENTILES].keys(), key=float):
-            self.log.info("Percentile %.1f%%: %.3f", float(key), summary_kpi_set[KPISet.PERCENTILES][key])
+            for key in sorted(summary_kpi_set[KPISet.PERCENTILES].keys(), key=float):
+                self.log.info("Percentile %.1f%%: %.3f", float(key), summary_kpi_set[KPISet.PERCENTILES][key])
 
     def __report_failed_labels(self, cumulative):
         """
@@ -139,7 +140,8 @@ class FinalStatus(Reporter, AggregatorListener):
 
     def __get_xml_summary(self, label, kpiset):
         elem = etree.Element("Group", label=label)
-        for kpi_name, kpi_val in iteritems(kpiset):
+        for kpi_name in kpiset.LOAD_METRICS:
+            kpi_val = kpiset[kpi_name]
             if kpi_name in ('errors', 'rt'):
                 continue
 
@@ -191,7 +193,7 @@ class FinalStatus(Reporter, AggregatorListener):
         kpi_copy = copy.deepcopy(kpiset)
         # sort label
         res = OrderedDict()
-        for key in sorted(kpi_copy.keys()):
+        for key in sorted(KPISet.LOAD_METRICS):
             res[key] = kpi_copy[key]
 
         for level, val in iteritems(kpiset[KPISet.PERCENTILES]):

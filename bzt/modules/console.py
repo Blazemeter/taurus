@@ -106,6 +106,9 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
 
         return screen_type
 
+    def _create_console(self, sidebar_widgets):
+        return TaurusConsole(sidebar_widgets)
+
     def prepare(self):
         """
         Prepare console screen objects, logger, ask for widgets
@@ -133,7 +136,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
                 if isinstance(widget, ExecutorWidget):
                     self.executor_widgets.append(widget)
 
-        self.console = TaurusConsole(widgets)
+        self.console = self._create_console(widgets)
         self.screen.register_palette(self.console.palette)
 
     def check(self):

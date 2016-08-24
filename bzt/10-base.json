@@ -192,6 +192,26 @@
           "dump-locations": true
         }
       }
+    },
+    "functional": {
+      "modules": {
+        "functional-console": {
+          "class": "bzt.modules.functional.FunctionalConsoleReporter"
+        },
+        "functional-stats": {
+          "class": "bzt.modules.functional.FunctionalStatsReporter"
+        },
+        "nose": {
+          "class": "bzt.modules.nose.NoseExecutor"
+        },
+        "console": {
+          "disabled": true
+        }
+      },
+      "reporting": [
+        "functional-stats",
+        "functional-console"
+      ]
     }
   }
 }
