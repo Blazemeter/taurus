@@ -55,6 +55,8 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     HAMCREST_DOWNLOAD_LINK = "https://hamcrest.googlecode.com/files/hamcrest-core-1.3.jar"
 
+    JSON_JAR_DOWNLOAD_LINK = "http://central.maven.org/maven2/org/json/json/20160810/json-20160810.jar"
+
     SUPPORTED_TYPES = [".py", ".jar", ".java"]
 
     SHARED_VIRTUAL_DISPLAY = {}
@@ -347,6 +349,7 @@ class JUnitTester(AbstractTestRunner):
 
         self.junit_path = path_lambda("path", "~/.bzt/selenium-taurus/tools/junit/junit.jar")
         self.hamcrest_path = path_lambda("hamcrest-core", "~/.bzt/selenium-taurus/tools/junit/hamcrest-core.jar")
+        self.json_jar_path = path_lambda("json-jar", "~/.bzt/selenium-taurus/tools/junit/json.jar")
         self.selenium_server_jar_path = path_lambda("selenium-server",
                                                     "~/.bzt/selenium-taurus/selenium-server.jar")
         self.junit_listener_path = os.path.join(get_full_path(__file__, step_up=1),
@@ -356,7 +359,7 @@ class JUnitTester(AbstractTestRunner):
         self.target_java = str(junit_config.get("compile-target-java", "1.7"))
 
         self.base_class_path = [self.selenium_server_jar_path, self.junit_path, self.junit_listener_path,
-                                self.hamcrest_path]
+                                self.hamcrest_path, self.json_jar_path]
         self.base_class_path.extend(self.scenario.get("additional-classpath", []))
 
     def prepare(self):
@@ -386,6 +389,7 @@ class JUnitTester(AbstractTestRunner):
         self.required_tools.append(SeleniumServerJar(self.selenium_server_jar_path, link, self.log))
         self.required_tools.append(JUnitJar(self.junit_path, self.log, SeleniumExecutor.JUNIT_VERSION))
         self.required_tools.append(HamcrestJar(self.hamcrest_path, SeleniumExecutor.HAMCREST_DOWNLOAD_LINK))
+        self.required_tools.append(JsonJar(self.json_jar_path, SeleniumExecutor.JSON_JAR_DOWNLOAD_LINK))
         self.required_tools.append(JUnitListenerJar(self.junit_listener_path, ""))
 
         self.check_tools()
@@ -480,8 +484,7 @@ class JUnitTester(AbstractTestRunner):
         self.base_class_path.extend(jar_list)
 
         with open(self.props_file, 'wt') as props:
-            props.write("kpi_log=%s\n" % self.settings.get("report-file").replace(os.path.sep, '/'))
-            props.write("error_log=%s\n" % self.settings.get("err-file").replace(os.path.sep, '/'))
+            props.write("report_file=%s\n" % self.settings.get("report-file").replace(os.path.sep, '/'))
 
             if self.load.iterations:
                 props.write("iterations=%s\n" % self.load.iterations)
@@ -640,6 +643,11 @@ class JUnitJar(RequiredTool):
 class HamcrestJar(RequiredTool):
     def __init__(self, tool_path, download_link):
         super(HamcrestJar, self).__init__("HamcrestJar", tool_path, download_link)
+
+
+class JsonJar(RequiredTool):
+    def __init__(self, tool_path, download_link):
+        super(JsonJar, self).__init__("JsonJar", tool_path, download_link)
 
 
 class JavaC(RequiredTool):
@@ -943,12 +951,18 @@ class SeleniumReportReader(ResultsReader):
     TEST_STATUSES = ("PASSED", "FAILED", "BROKEN", "SKIPPED")
     FAILING_TESTS_STATUSES = ("FAILED", "BROKEN")
 
+    STATUS_TO_CODE = {
+        "PASSED": "200",
+        "SKIPPED": "300",
+        "BROKEN": "400",
+        "FAILED": "500",
+    }
+
     def __init__(self, filename, parent_logger, translation_table=None):
         super(SeleniumReportReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.json_reader = LDJSONReader(filename, self.log)
         self.translation_table = translation_table or {}
-        self.log.info("Translation table: %s", self.translation_table)
         self.read_records = 0
 
     def process_label(self, label):
@@ -974,8 +988,8 @@ class SeleniumReportReader(ResultsReader):
             rtm = row["duration"]
             cnn = 0
             ltc = 0
-            rcd = "400" if row["status"] in self.FAILING_TESTS_STATUSES else "200"
-            error = row["error_msg"]
+            rcd = row["status"]
+            error = row["error_msg"] if row["status"] in self.FAILING_TESTS_STATUSES else None
             trname = ""
 
             yield tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname

@@ -14,15 +14,15 @@ else:
     irange = range
 
 REPORT_ITEM_KEYS = [
-    "label",
-    "file",
-    "full_name",
-    "status",
-    "description",
-    "start_time",
-    "duration",
-    "error_msg",
-    "error_trace"
+    "label",  # test label (test method name)
+    "file",  # file location of test
+    "full_name",  # full test name (package.module.class.method)
+    "status",  # test status (PASSED/FAILED/BROKEN/SKIPPED)
+    "description",  # test description (from a docstring)
+    "start_time",  # test start time
+    "duration",  # test duration
+    "error_msg",  # short error message
+    "error_trace"  # traceback of a failure
 ]
 
 
@@ -141,6 +141,7 @@ class BZTPlugin(Plugin):
         report_pattern = "%s,Total:%d Passed:%d Failed:%d\n"
         sys.stdout.write(report_pattern % (
             self.test_dict["label"], self.test_count, self.success_count, self.test_count - self.success_count))
+
 
 
 def run_nose(report_file, files, iterations, hold):

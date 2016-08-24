@@ -1,78 +1,97 @@
 package taurusjunit;
 
 public class Sample {
-    private boolean success = true;
-    private String trace = "";
-    private String message = "OK";
-    private int responseCode = 200;
-    private long elapsed = 0;
-    private final long timestamp = System.currentTimeMillis();
+    public static final String STATUS_PASSED = "PASSED";
+    public static final String STATUS_FAILED = "FAILED";
+    public static final String STATUS_BROKEN = "BROKEN";
+    public static final String STATUS_SKIPPED = "SKIPPED";
+
+    private final long startTime = System.currentTimeMillis() / 1000;
+    private double duration = 0;
+    private String status = STATUS_PASSED;
     private String label = "";
-    private String threadName = "";
+    private String file = "";
+    private String fullName = "";
+    private String errorMessage = "";
+    private String errorTrace = "";
+    private String description = "";
 
     public boolean isSuccessful() {
-        return success;
+        return this.status.equals(STATUS_PASSED);
     }
 
     @Override
     public String toString() {
-        return timestamp + " " + responseCode + " " + message;
+        return String.format("%d: %s - %s", startTime, label, status);
     }
 
-    public void setSuccess(boolean success) {
-        this.success = success;
+    public long getStartTime() {
+        return startTime;
     }
 
-    public void setElapsed(long elapsed) {
-        this.elapsed = elapsed;
+    public double getDuration() {
+        return duration;
     }
 
-    public void setLabel(String label) {
-        this.label = label;
+    public void setDuration(double duration) {
+        this.duration = duration;
     }
 
-    public void setThreadName(String threadName) {
-        this.threadName = threadName;
+    public String getStatus() {
+        return status;
     }
 
-    public void setTrace(String trace) {
-        this.trace = trace == null ? "" : trace;
-    }
-
-    public String getTrace() {
-        return trace;
-    }
-
-    public void setMessage(String message) {
-        this.message = message == null ? "" : message;
-    }
-
-    public void setResponseCode(int responseCode) {
-        this.responseCode = responseCode;
-    }
-
-    public long getTimestamp() {
-        return timestamp;
-    }
-
-    public long getElapsed() {
-        return elapsed;
+    public void setStatus(String status) {
+        this.status = status;
     }
 
     public String getLabel() {
         return label;
     }
 
-    public int getResponseCode() {
-        return responseCode;
+    public void setLabel(String label) {
+        this.label = label;
     }
 
-    public String getResponseMessage() {
-        return message;
+    public String getErrorMessage() {
+        return errorMessage;
     }
 
-    public String getThreadName() {
-        return threadName;
+    public void setErrorMessage(String message) {
+        this.errorMessage = message == null ? "" : message;
+    }
+
+    public String getErrorTrace() {
+        return errorTrace;
+    }
+
+    public void setErrorTrace(String trace) {
+        this.errorTrace = trace == null ? "" : trace;
+    }
+
+    public String getFile() {
+        return file;
+    }
+
+    public void setFile(String file) {
+        this.file = file == null ? "" : file;
+    }
+
+    public String getFullName() {
+        return fullName;
+    }
+
+    public void setFullName(String fullName) {
+        this.fullName = fullName == null ? "" : fullName;
+
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description == null ? "" : description;
     }
 }
 
