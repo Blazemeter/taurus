@@ -473,7 +473,7 @@ class BlazeMeterClient(object):
         self.data_signature = None
         self.first_ts = sys.maxsize
         self.last_ts = 0
-        self.timeout = 10
+        self.timeout = 30
         self.delete_files_before_test = False
 
     def _request(self, url, data=None, headers=None, checker=None, method=None):
@@ -985,7 +985,7 @@ class BlazeMeterClient(object):
 
     def get_available_locations(self):
         user_info = self.get_user_info()
-        return {str(x['id']): x for x in user_info['locations'] if not x['id'].startswith('harbor-')}
+        return {str(x['id']): x for x in user_info['locations']}
 
     def get_test_files(self, test_id):
         path = self.address + "/api/latest/web/elfinder/%s" % test_id
