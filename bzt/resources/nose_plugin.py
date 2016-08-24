@@ -13,7 +13,17 @@ if sys.version_info[0] == 2:
 else:
     irange = range
 
-REPORT_ITEM_KEYS = ["label", "status", "description", "start_time", "duration", "error_msg", "error_trace"]
+REPORT_ITEM_KEYS = [
+    "label",
+    "file",
+    "full_name",
+    "status",
+    "description",
+    "start_time",
+    "duration",
+    "error_msg",
+    "error_trace"
+]
 
 
 class BZTPlugin(Plugin):
@@ -65,9 +75,13 @@ class BZTPlugin(Plugin):
         """
         self.test_dict = OrderedDict((key, None) for key in REPORT_ITEM_KEYS)
 
-        fqn = test.id().split('.')
-        class_name, method_name = fqn[-2:]
-        self.test_dict["label"] = method_name
+        test_file, module_name, class_method = test.address()
+        test_fqn = test.id()  # [package].module.class.method
+        test_method = test_fqn.split('.')[-1]
+
+        self.test_dict["file"] = test_file
+        self.test_dict["label"] = test_method
+        self.test_dict["full_name"] = test_fqn
         self.test_dict["description"] = test.shortDescription()
         self.test_dict["start_time"] = time.time()
 
