@@ -44,7 +44,7 @@ public class CustomListener extends RunListener {
 
     public void testFinished(Description description) throws java.lang.Exception {
         log.info(String.format("finished %s", description.getDisplayName()));
-        double duration = (System.currentTimeMillis() - started) / 1000;
+        double duration = (System.currentTimeMillis() - started) / 1000.0;
         pendingSample.setDuration(duration);
         reporter.writeSample(pendingSample);
 
