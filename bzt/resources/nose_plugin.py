@@ -143,9 +143,8 @@ class BZTPlugin(Plugin):
             self.test_dict["label"], self.test_count, self.success_count, self.test_count - self.success_count))
 
 
-
 def run_nose(report_file, files, iterations, hold):
-    argv = [__file__, '-q']
+    argv = [__file__, '-v']
     argv.extend(files)
     argv.extend(['--with-bzt_plugin', '--nocapture'])
 

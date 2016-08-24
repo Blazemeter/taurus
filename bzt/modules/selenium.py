@@ -951,13 +951,6 @@ class SeleniumReportReader(ResultsReader):
     TEST_STATUSES = ("PASSED", "FAILED", "BROKEN", "SKIPPED")
     FAILING_TESTS_STATUSES = ("FAILED", "BROKEN")
 
-    STATUS_TO_CODE = {
-        "PASSED": "200",
-        "SKIPPED": "300",
-        "BROKEN": "400",
-        "FAILED": "500",
-    }
-
     def __init__(self, filename, parent_logger, translation_table=None):
         super(SeleniumReportReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
@@ -978,7 +971,7 @@ class SeleniumReportReader(ResultsReader):
     def _read(self, last_pass=False):
         for row in self.json_reader.read(last_pass):
             if any(key not in row for key in self.REPORT_ITEM_KEYS):
-                self.log.warning("Record %s doesn't conform to a schema, skipping", row)
+                self.log.warning("Record doesn't conform to schema, skipping: %s", row)
                 continue
             self.read_records += 1
 
