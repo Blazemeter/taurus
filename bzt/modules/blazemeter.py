@@ -1393,7 +1393,12 @@ class CloudProvWidget(Pile, PrioritizedWidget):
                 name_split = session['name'].split('/')
                 location = session['configuration']['location']
                 count = session['configuration']['serversCount']
-                mapping.get(name_split[0]).get(name_split[1])[location] = count
+                ex_item = mapping.get(name_split[0])
+                if len(name_split) > 1:
+                    script_item = ex_item.get(name_split[1])
+                else:
+                    script_item = ex_item.get("N/A", [])
+                script_item[location] = count
             except KeyError:
                 self._sessions = None
 
