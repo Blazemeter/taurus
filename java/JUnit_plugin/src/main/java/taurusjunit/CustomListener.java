@@ -16,7 +16,7 @@ public class CustomListener extends RunListener {
 
     private long testCount = 0;
     private long failedCount = 0;
-    private final static String report_tmpl = "%s.%s,Total:%d Pass:%d Failed:%d\n";
+    private final static String report_tmpl = "%s.%s,Total:%d Passed:%d Failed:%d\n";
 
     public CustomListener(TaurusReporter reporter) {
         super();
@@ -62,6 +62,14 @@ public class CustomListener extends RunListener {
 
     public void testFailure(Failure failure) throws java.lang.Exception {
         log.severe(String.format("failed %s", failure.toString()));
+        pendingSample.setStatus(Sample.STATUS_BROKEN);
+        String exceptionName = failure.getException().getClass().getName();
+        pendingSample.setErrorMessage(exceptionName + ": " + failure.getMessage());
+        pendingSample.setErrorTrace(Utils.getStackTrace(failure.getException()));
+    }
+
+    public void testAssumptionFailure(Failure failure) {
+        log.severe(String.format("assert failed %s", failure.toString()));
         pendingSample.setStatus(Sample.STATUS_FAILED);
         String exceptionName = failure.getException().getClass().getName();
         pendingSample.setErrorMessage(exceptionName + ": " + failure.getMessage());
