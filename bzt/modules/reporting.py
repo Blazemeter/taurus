@@ -23,7 +23,7 @@ from collections import OrderedDict
 from datetime import datetime
 
 from bzt.engine import Reporter
-from bzt.modules.aggregator import DataPoint, KPISet, AggregatorListener, ResultsProvider
+from bzt.modules.aggregator import DataPoint, KPISet, FuncKPISet, AggregatorListener, ResultsProvider
 from bzt.modules.blazemeter import BlazeMeterUploader, CloudProvisioning
 from bzt.modules.passfail import PassFailStatus
 from bzt.six import etree, iteritems, string_types
@@ -71,19 +71,39 @@ class FinalStatus(Reporter, AggregatorListener):
         if self.last_sec:
             summary_kpi = self.last_sec[DataPoint.CUMULATIVE][""]
 
-            if self.parameters.get("summary", True):
-                self.__report_samples_count(summary_kpi)
-            if self.parameters.get("percentiles", True):
-                self.__report_percentiles(summary_kpi)
+            if isinstance(summary_kpi, KPISet):
+                if self.parameters.get("summary", True):
+                    self.__report_samples_count(summary_kpi)
+                if self.parameters.get("percentiles", True):
+                    self.__report_percentiles(summary_kpi)
 
-            if self.parameters.get("failed-labels", False):
-                self.__report_failed_labels(self.last_sec[DataPoint.CUMULATIVE])
+                if self.parameters.get("failed-labels", False):
+                    self.__report_failed_labels(self.last_sec[DataPoint.CUMULATIVE])
 
-            if self.parameters.get("dump-xml", None):
-                self.__dump_xml(self.parameters.get("dump-xml"))
+                if self.parameters.get("dump-xml", None):
+                    self.__dump_xml(self.parameters.get("dump-xml"))
 
-            if self.parameters.get("dump-csv", None):
-                self.__dump_csv(self.parameters.get("dump-csv"))
+                if self.parameters.get("dump-csv", None):
+                    self.__dump_csv(self.parameters.get("dump-csv"))
+            elif isinstance(summary_kpi, FuncKPISet):
+                if self.parameters.get("summary", True):
+                    self.__report_count(summary_kpi)
+                if self.settings.get('failed-tests', False):
+                    self.__report_failed_tests(summary_kpi)
+
+    def __report_count(self, cumulative_kpi):
+        self.log.info("Test count: %s", cumulative_kpi[FuncKPISet.TESTS_COUNT])
+        for status in cumulative_kpi[FuncKPISet.TEST_STATUSES]:
+            count = cumulative_kpi[FuncKPISet.TEST_STATUSES][status]
+            label = "test" if count != 11 and count % 10 == 1 else "tests"
+            self.log.info("%s: %s %s", status, count, label)
+
+    def __report_failed_tests(self, cumulative_kpi):
+        for test in cumulative_kpi[FuncKPISet.TESTS]:
+            if test['status'] in ("BROKEN", "FAILED"):
+                self.log.info("Test %s is %s: %s", test['label'], test['status'], test['error_msg'])
+                if self.settings.get('stack-traces', False) and test['error_trace']:
+                    self.log.info("Stack trace: %s", test['error_trace'])
 
     def __report_samples_count(self, summary_kpi_set):
         """

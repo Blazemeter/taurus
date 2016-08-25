@@ -274,6 +274,54 @@ class KPISet(BetterDict):
         return percentiles, stdev
 
 
+class FuncKPISet(BetterDict):
+    TESTS_COUNT = "tests_count"  # number of tests
+    TEST_STATUSES = "test_results" # number of tests by status ({failed: 10, passed: 100, broken: 5, skipped: 3})
+    TESTS = "tests"  # raw test results
+
+    def __init__(self):
+        super(BetterDict, self).__init__()
+        self.sum_time = 0.0
+        self.get(self.TESTS_COUNT, 0)
+        self.get(self.TEST_STATUSES, Counter())
+        self.get(self.TESTS, [])
+
+    def __deepcopy__(self, memo):
+        mycopy = FuncKPISet()
+        mycopy.sum_time = self.sum_time
+        for key, val in iteritems(self):
+            mycopy[key] = copy.deepcopy(val, memo)
+        return mycopy
+
+    def add_sample(self, sample):
+        assert isinstance(sample, dict)
+        status = sample["status"]
+        self.sum_time += sample["duration"]
+        self[self.TESTS_COUNT] += 1
+        self[self.TEST_STATUSES][status] += 1
+        self[self.TESTS].append(sample)
+
+    def recalculate(self):
+        # nothing to recalculate
+        pass
+
+    def merge_kpis(self, src, sid=None):
+        assert isinstance(src, FuncKPISet)
+        src.recalculate()
+        self.sum_time += src.sum_time
+        self[self.TESTS_COUNT] += src[self.TESTS_COUNT]
+        self[self.TEST_STATUSES].update(src[self.TEST_STATUSES])
+        self[self.TESTS].extend(src[self.TESTS])
+
+    @staticmethod
+    def from_dict(obj):
+        inst = FuncKPISet()
+        for key, val in iteritems(obj):
+            inst[key] = val
+        inst.sum_time = sum(sample["duration"] for sample in obj[inst.TESTS])
+        return inst
+
+
 class DataPoint(BetterDict):
     """
     Represents an aggregate data poing
@@ -287,7 +335,7 @@ class DataPoint(BetterDict):
     CUMULATIVE = "cumulative"
     SUBRESULTS = "subresults"
 
-    def __init__(self, ts, perc_levels=()):
+    def __init__(self, ts, perc_levels=(), func_mode=False):
         """
 
         :type ts: int
@@ -295,6 +343,7 @@ class DataPoint(BetterDict):
         """
         super(DataPoint, self).__init__()
         self.perc_levels = perc_levels
+        self.func_mode = func_mode
         self[self.SOURCE_ID] = None
         self[self.TIMESTAMP] = ts
         self[self.CUMULATIVE] = BetterDict()
@@ -302,10 +351,22 @@ class DataPoint(BetterDict):
         self[self.SUBRESULTS] = []
 
     def __deepcopy__(self, memo):
-        new = DataPoint(self[self.TIMESTAMP], self.perc_levels)
+        new = DataPoint(self[self.TIMESTAMP], self.perc_levels, self.func_mode)
         for key in self.keys():
             new[key] = copy.deepcopy(self[key])
         return new
+
+    def __create_kpi_set(self):
+        if self.func_mode:
+            return FuncKPISet()
+        else:
+            return KPISet(self.perc_levels)
+
+    def __kpi_set_from_dict(self, val):
+        if self.func_mode:
+            return FuncKPISet.from_dict(val)
+        else:
+            return KPISet.from_dict(val)
 
     def __merge_kpis(self, src, dst, sid):
         """
@@ -315,9 +376,9 @@ class DataPoint(BetterDict):
         :return:
         """
         for label, val in iteritems(src):
-            dest = dst.get(label, KPISet(self.perc_levels))
+            dest = dst.get(label, self.__create_kpi_set())
             if not isinstance(val, KPISet):
-                val = KPISet.from_dict(val)
+                val = self.__kpi_set_from_dict(val)
                 val.perc_levels = self.perc_levels
             dest.merge_kpis(val, sid)
 
@@ -353,7 +414,7 @@ class ResultsProvider(object):
     :type listeners: list[AggregatorListener]
     """
 
-    def __init__(self):
+    def __init__(self, func_mode=False):
         super(ResultsProvider, self).__init__()
         self.cumulative = BetterDict()
         self.track_percentiles = []
@@ -363,6 +424,7 @@ class ResultsProvider(object):
         self.max_buffer_len = float('inf')
         self.buffer_multiplier = 2
         self.buffer_scale_idx = None
+        self.func_mode = func_mode
 
     def add_listener(self, listener):
         """
@@ -372,13 +434,19 @@ class ResultsProvider(object):
         """
         self.listeners.append(listener)
 
+    def _create_kpiset(self):
+        if self.func_mode:
+            return FuncKPISet()
+        else:
+            return KPISet(self.track_percentiles)
+
     def __merge_to_cumulative(self, current):
         """
         Merge current KPISet to cumulative
         :param current: KPISet
         """
         for label, data in iteritems(current):
-            cumul = self.cumulative.get(label, KPISet(self.track_percentiles))
+            cumul = self.cumulative.get(label, self._create_kpiset())
             cumul.merge_kpis(data)
             cumul.recalculate()
 
@@ -419,7 +487,7 @@ class ResultsReader(ResultsProvider):
         (re.compile(r"\b\d{2,}\b"), "N")
     ]
 
-    def __init__(self, perc_levels=()):
+    def __init__(self, perc_levels=(), func_mode=False):
         super(ResultsReader, self).__init__()
         self.generalize_labels = False
         self.ignored_labels = []
@@ -427,6 +495,7 @@ class ResultsReader(ResultsProvider):
         self.buffer = {}
         self.min_timestamp = 0
         self.track_percentiles = perc_levels
+        self.func_mode = func_mode
 
     def __process_readers(self, final_pass=False):
         """
@@ -439,7 +508,7 @@ class ResultsReader(ResultsProvider):
                 self.log.debug("No data from reader")
                 break
             elif isinstance(result, list) or isinstance(result, tuple):
-                t_stamp, label, conc, r_time, con_time, latency, r_code, error, trname = result
+                t_stamp, label = result[:2]
 
                 if label in self.ignored_labels:
                     continue
@@ -449,7 +518,7 @@ class ResultsReader(ResultsProvider):
 
                 if t_stamp not in self.buffer:
                     self.buffer[t_stamp] = []
-                self.buffer[t_stamp].append((label, conc, r_time, con_time, latency, r_code, error, trname))
+                self.buffer[t_stamp].append((label,) + result[2:])
             else:
                 raise ValueError("Unsupported results from reader: %s" % result)
 
@@ -461,7 +530,7 @@ class ResultsReader(ResultsProvider):
         """
         current = datapoint[DataPoint.CURRENT]
         for sample in samples:
-            label, r_time, concur, con_time, latency, r_code, error, trname = sample
+            label = sample[0]
             if label == '':
                 label = '[empty]'
 
@@ -471,11 +540,13 @@ class ResultsReader(ResultsProvider):
             if label in current:
                 label = current[label]
             else:
-                label = current.get(label, KPISet(self.track_percentiles))
+                label = current.get(label, self._create_kpiset())
 
-            # empty means overall
-            label.add_sample((r_time, concur, con_time, latency, r_code, error, trname))
-        overall = KPISet(self.track_percentiles)
+            if self.func_mode:
+                label.add_sample(sample[1])
+            else:
+                label.add_sample(sample[1:])
+        overall = self._create_kpiset()
         for label in current.values():
             overall.merge_kpis(label, datapoint[DataPoint.SOURCE_ID])
         current[''] = overall
@@ -494,15 +565,16 @@ class ResultsReader(ResultsProvider):
         if not self.buffer:
             return
 
-        if self.cumulative and self.track_percentiles:
-            old_len = self.buffer_len
-            chosen_timing = self.cumulative[''][KPISet.PERCENTILES][self.buffer_scale_idx]
-            self.buffer_len = round(chosen_timing * self.buffer_multiplier)
+        if not self.func_mode:
+            if self.cumulative and self.track_percentiles:
+                old_len = self.buffer_len
+                chosen_timing = self.cumulative[''][KPISet.PERCENTILES][self.buffer_scale_idx]
+                self.buffer_len = round(chosen_timing * self.buffer_multiplier)
 
-            self.buffer_len = max(self.min_buffer_len, self.buffer_len)
-            self.buffer_len = min(self.max_buffer_len, self.buffer_len)
-            if self.buffer_len != old_len:
-                self.log.info("Changed data analysis delay to %ds", self.buffer_len)
+                self.buffer_len = max(self.min_buffer_len, self.buffer_len)
+                self.buffer_len = min(self.max_buffer_len, self.buffer_len)
+                if self.buffer_len != old_len:
+                    self.log.info("Changed data analysis delay to %ds", self.buffer_len)
 
         timestamps = sorted(self.buffer.keys())
         while final_pass or (timestamps[-1] >= (timestamps[0] + self.buffer_len)):
@@ -521,7 +593,7 @@ class ResultsReader(ResultsProvider):
         """
         :rtype: DataPoint
         """
-        point = DataPoint(timestamp, self.track_percentiles)
+        point = DataPoint(timestamp, self.track_percentiles, self.func_mode)
         point[DataPoint.SOURCE_ID] = id(self)
         return point
 
@@ -557,12 +629,15 @@ class ConsolidatingAggregator(EngineModule, ResultsProvider):
         self.ignored_labels = []
         self.underlings = []
         self.buffer = BetterDict()
+        self.func_mode = False
 
     def prepare(self):
         """
         Read aggregation options
         """
         super(ConsolidatingAggregator, self).prepare()
+
+        self.func_mode = self.settings.get("functional-mode", self.func_mode)
 
         # make unique & sort
         percentiles = self.settings.get("percentiles", self.track_percentiles)
@@ -614,6 +689,7 @@ class ConsolidatingAggregator(EngineModule, ResultsProvider):
             underling.max_buffer_len = self.max_buffer_len
             underling.buffer_multiplier = self.buffer_multiplier
             underling.buffer_scale_idx = self.buffer_scale_idx
+            underling.func_mode = self.func_mode
 
         self.underlings.append(underling)
 
@@ -663,7 +739,7 @@ class ConsolidatingAggregator(EngineModule, ResultsProvider):
             tstamp = timestamps.pop(0)
             self.log.debug("Merging into %s", tstamp)
             points_to_consolidate = self.buffer.pop(tstamp)
-            point = DataPoint(tstamp, self.track_percentiles)
+            point = DataPoint(tstamp, self.track_percentiles, self.func_mode)
             for subresult in points_to_consolidate:
                 self.log.debug("Merging %s", subresult[DataPoint.TIMESTAMP])
                 point.merge_point(subresult)

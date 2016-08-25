@@ -37,9 +37,9 @@ from urwid.widget import Divider
 
 import bzt
 from bzt.engine import Reporter
-from bzt.modules.aggregator import DataPoint, KPISet, AggregatorListener, ResultsProvider
+from bzt.modules.aggregator import DataPoint, KPISet, FuncKPISet, AggregatorListener, ResultsProvider
 from bzt.modules.provisioning import Local
-from bzt.six import StringIO
+from bzt.six import StringIO, iteritems
 from bzt.utils import humanize_time, is_windows, DummyScreen
 
 try:
@@ -154,14 +154,20 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
 
     def __print_one_line_stats(self):
         cur = self._last_datapoint[DataPoint.CURRENT]['']
-        line = "Current: %s vu\t%s succ\t%s fail\t%.3f avg rt"
-        stats = (cur[KPISet.CONCURRENCY], cur[KPISet.SUCCESSES], cur[KPISet.FAILURES],
-                 cur[KPISet.AVG_RESP_TIME])
         cumul = self._last_datapoint[DataPoint.CUMULATIVE]['']
-        line += "\t/\t"  # separator
-        line += "Cumulative: %.3f avg rt, %d%% failures"
-        stats += (cumul[KPISet.AVG_RESP_TIME], 100 * (cumul[KPISet.FAILURES] / cumul[KPISet.SAMPLE_COUNT]))
-        self.log.info(line % stats)
+        if isinstance(cumul, KPISet):
+            line = "Current: %s vu\t%s succ\t%s fail\t%.3f avg rt"
+            stats = (cur[KPISet.CONCURRENCY], cur[KPISet.SUCCESSES], cur[KPISet.FAILURES],
+                     cur[KPISet.AVG_RESP_TIME])
+            line += "\t/\t"  # separator
+            line += "Cumulative: %.3f avg rt, %d%% failures"
+            stats += (cumul[KPISet.AVG_RESP_TIME], 100 * (cumul[KPISet.FAILURES] / cumul[KPISet.SAMPLE_COUNT]))
+            self.log.info(line % stats)
+        elif isinstance(cumul, FuncKPISet):
+            test_count = cumul[FuncKPISet.TESTS_COUNT]
+            stats = ", ".join("%s %s" % (count, status.lower())
+                              for status, count in iteritems(cumul[FuncKPISet.TEST_STATUSES]))
+            self.log.info("%d tests executed: %s", test_count, stats)
 
     def __start_screen(self):
         """

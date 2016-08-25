@@ -192,6 +192,19 @@
           "dump-locations": true
         }
       }
+    },
+    "func": {
+      "modules": {
+        "selenium": {
+          "functional-mode": true
+        },
+        "consolidator": {
+          "functional-mode": true
+        },
+        "console": {
+          "disable": true
+        }
+      }
     }
   }
 }

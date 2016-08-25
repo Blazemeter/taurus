@@ -127,8 +127,14 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         runner_config.get("stderr", self.engine.create_artifact("junit", ".err"))
         return runner_class(runner_config, self)
 
+    def _functional_mode_enabled(self):
+        return self.settings.get("functional-mode", False)
+
     def _create_reader(self, report_file):
-        return LoadSamplesReader(report_file, self.log, self.generated_methods)
+        if self._functional_mode_enabled():
+            return FuncSamplesReader(report_file, self.log, self.generated_methods)
+        else:
+            return LoadSamplesReader(report_file, self.log, self.generated_methods)
 
     def prepare(self):
         self.set_virtual_display()
@@ -1003,3 +1009,10 @@ class LoadSamplesReader(SeleniumReportReader):
         error = item["error_msg"] if item["status"] in self.FAILING_TESTS_STATUSES else None
         trname = ""
         return tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname
+
+
+class FuncSamplesReader(SeleniumReportReader):
+    def extract_sample(self, item):
+        tstmp = int(item["start_time"])
+        label = item["label"]
+        return tstmp, label, item
