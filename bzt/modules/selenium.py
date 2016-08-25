@@ -70,8 +70,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.runner = None
         self.widget = None
         self.reader = None
-        self.kpi_file = None
-        self.err_jtl = None
+        self.report_file = None
         self.runner_working_dir = None
         self.scenario = None
         self.script = None
@@ -107,7 +106,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         else:
             return self.engine.find_file(self.script)
 
-    def _create_runner(self, working_dir, kpi_file, err_file):
+    def _create_runner(self, working_dir, report_file):
         script_path = self.get_script_path()
         script_type = self.detect_script_type(script_path)
         runner_config = BetterDict()
@@ -123,14 +122,13 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         runner_config["script-type"] = script_type
         runner_config["working-dir"] = working_dir
         runner_config.get("artifacts-dir", self.engine.artifacts_dir)
-        runner_config.get("report-file", kpi_file)
-        runner_config.get("err-file", err_file)
+        runner_config.get("report-file", report_file)
         runner_config.get("stdout", self.engine.create_artifact("junit", ".out"))
         runner_config.get("stderr", self.engine.create_artifact("junit", ".err"))
         return runner_class(runner_config, self)
 
-    def _create_reader(self, kpi_file, err_file):
-        return SeleniumReportReader(kpi_file, self.log, self.generated_methods)
+    def _create_reader(self, report_file):
+        return LoadSamplesReader(report_file, self.log, self.generated_methods)
 
     def prepare(self):
         self.set_virtual_display()
@@ -138,14 +136,13 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self._verify_script()
 
         self.runner_working_dir = self.engine.create_artifact("classes", "")
-        self.kpi_file = self.engine.create_artifact("selenium_tests_report", ".csv")
-        self.err_file = self.engine.create_artifact("selenium_tests_err", ".xml")
-        self.runner = self._create_runner(self.runner_working_dir, self.kpi_file, self.err_file)
+        self.report_file = self.engine.create_artifact("selenium_tests_report", ".ldjson")
+        self.runner = self._create_runner(self.runner_working_dir, self.report_file)
 
         self._cp_resource_files(self.runner_working_dir)
 
         self.runner.prepare()
-        self.reader = self._create_reader(self.kpi_file, self.err_file)
+        self.reader = self._create_reader(self.report_file)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
@@ -971,21 +968,29 @@ class SeleniumReportReader(ResultsReader):
 
         return label
 
+    @abstractmethod
+    def extract_sample(self, item):
+        pass
+
     def _read(self, last_pass=False):
         for row in self.json_reader.read(last_pass):
             if any(key not in row for key in self.REPORT_ITEM_KEYS):
                 self.log.warning("Record doesn't conform to schema, skipping: %s", row)
                 continue
             self.read_records += 1
+            sample = self.extract_sample(row)
+            yield sample
 
-            tstmp = int(row["start_time"])
-            label = self.process_label(row["label"])
-            concur = 1
-            rtm = row["duration"]
-            cnn = 0
-            ltc = 0
-            rcd = row["status"]
-            error = row["error_msg"] if row["status"] in self.FAILING_TESTS_STATUSES else None
-            trname = ""
 
-            yield tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname
+class LoadSamplesReader(SeleniumReportReader):
+    def extract_sample(self, item):
+        tstmp = int(item["start_time"])
+        label = self.process_label(item["label"])
+        concur = 1
+        rtm = item["duration"]
+        cnn = 0
+        ltc = 0
+        rcd = item["status"]
+        error = item["error_msg"] if item["status"] in self.FAILING_TESTS_STATUSES else None
+        trname = ""
+        return tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname
