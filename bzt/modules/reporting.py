@@ -101,7 +101,7 @@ class FinalStatus(Reporter, AggregatorListener):
     def __report_failed_tests(self, cumulative_kpi):
         for test in cumulative_kpi[FuncKPISet.TESTS]:
             if test['status'] in ("BROKEN", "FAILED"):
-                self.log.info("Test %s is %s: %s", test['label'], test['status'], test['error_msg'])
+                self.log.info("%s test %s: %s", test['status'].lower().capitalize(), test['label'], test['error_msg'])
                 if self.settings.get('stack-traces', False) and test['error_trace']:
                     self.log.info("Stack trace: %s", test['error_trace'])
 
