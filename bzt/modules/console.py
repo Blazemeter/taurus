@@ -1054,13 +1054,13 @@ class RCodesList(ListBox):
                 part,
                 overall[KPISet.RESP_CODES][key],
             )
-            if key[0] == '2' or key == 'PASSED':
+            if key[0] == '2':
                 style = 'stat-2xx'
-            elif key[0] == '3' or key == 'SKIPPED':
+            elif key[0] == '3':
                 style = 'stat-3xx'
-            elif key[0] == '4' or key == 'BROKEN':
+            elif key[0] == '4':
                 style = 'stat-4xx'
-            elif key[0] == '5' or key == 'FAILED':
+            elif key[0] == '5':
                 style = 'stat-5xx'
             else:
                 style = "stat-nonhttp"

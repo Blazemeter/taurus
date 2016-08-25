@@ -55,7 +55,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     HAMCREST_DOWNLOAD_LINK = "https://hamcrest.googlecode.com/files/hamcrest-core-1.3.jar"
 
-    JSON_JAR_DOWNLOAD_LINK = "http://central.maven.org/maven2/org/json/json/20160810/json-20160810.jar"
+    JSON_JAR_DOWNLOAD_LINK = "http://search.maven.org/remotecontent?filepath=org/json/json/20160810/json-20160810.jar"
 
     SUPPORTED_TYPES = [".py", ".jar", ".java"]
 
@@ -912,16 +912,19 @@ class LDJSONReader(object):
         self.filename = filename
         self.fds = None
         self.partial_buffer = ""
+        self.offset = 0
 
     def read(self, last_pass=False):
         if not self.fds and not self.__open_fds():
             self.log.debug("No data to start reading yet")
             return
 
+        self.fds.seek(self.offset)
         if last_pass:
             lines = self.fds.readlines()  # unlimited
         else:
             lines = self.fds.readlines(1024 * 1024)
+        self.offset = self.fds.tell()
 
         for line in lines:
             if not line.endswith("\n"):
@@ -982,6 +985,13 @@ class SeleniumReportReader(ResultsReader):
 
 
 class LoadSamplesReader(SeleniumReportReader):
+    STATUS_TO_CODE = {
+        "PASSED": "200",
+        "SKIPPED": "300",
+        "FAILED": "400",
+        "BROKEN": "500",
+    }
+
     def extract_sample(self, item):
         tstmp = int(item["start_time"])
         label = self.process_label(item["label"])
@@ -989,7 +999,7 @@ class LoadSamplesReader(SeleniumReportReader):
         rtm = item["duration"]
         cnn = 0
         ltc = 0
-        rcd = item["status"]
+        rcd = self.STATUS_TO_CODE.get(item["status"], "UNKNOWN")
         error = item["error_msg"] if item["status"] in self.FAILING_TESTS_STATUSES else None
         trname = ""
         return tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname
