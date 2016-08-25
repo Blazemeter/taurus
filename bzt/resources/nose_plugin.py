@@ -67,7 +67,7 @@ class BZTPlugin(Plugin):
         if not self.test_count:
             raise RuntimeError("Nothing to test.")
 
-    def startTest(self, test):
+    def startTest(self, test):  # pylint: disable=invalid-name
         """
         before test run
         :param test:
@@ -75,7 +75,7 @@ class BZTPlugin(Plugin):
         """
         self.test_dict = OrderedDict((key, None) for key in REPORT_ITEM_KEYS)
 
-        test_file, module_name, class_method = test.address()
+        test_file, _, _ = test.address()  # file path, module name, class.method
         test_fqn = test.id()  # [package].module.class.method
         test_method = test_fqn.split('.')[-1]
 
@@ -85,7 +85,7 @@ class BZTPlugin(Plugin):
         self.test_dict["description"] = test.shortDescription()
         self.test_dict["start_time"] = time.time()
 
-    def addError(self, test, error):
+    def addError(self, test, error):  # pylint: disable=invalid-name
         """
         when a test raises an uncaught exception
         :param test:
@@ -97,7 +97,7 @@ class BZTPlugin(Plugin):
         self.test_dict["error_msg"] = ''.join(traceback.format_exception_only(exc_type, exc)).rstrip()
         self.test_dict["error_trace"] = ''.join(traceback.format_exception(exc_type, exc, trace)).rstrip()
 
-    def addFailure(self, test, error):
+    def addFailure(self, test, error):  # pylint: disable=invalid-name
         """
         when a test fails
         :param test:
@@ -110,7 +110,7 @@ class BZTPlugin(Plugin):
         self.test_dict["error_msg"] = ''.join(traceback.format_exception_only(exc_type, exc)).rstrip()
         self.test_dict["error_trace"] = ''.join(traceback.format_exception(exc_type, exc, trace)).rstrip()
 
-    def addSkip(self, test):
+    def addSkip(self, test):  # pylint: disable=invalid-name
         """
         when a test is skipped
         :param test:
@@ -118,7 +118,7 @@ class BZTPlugin(Plugin):
         """
         self.test_dict["status"] = "SKIPPED"
 
-    def addSuccess(self, test):
+    def addSuccess(self, test):  # pylint: disable=invalid-name
         """
         when a test passes
         :param test:
@@ -127,7 +127,7 @@ class BZTPlugin(Plugin):
         self.test_dict["status"] = "PASSED"
         self.success_count += 1
 
-    def stopTest(self, test):
+    def stopTest(self, test):  # pylint: disable=invalid-name
         """
         after the test has been run
         :param test:
