@@ -7,7 +7,8 @@ import time
 import yaml
 
 from bzt.engine import ScenarioExecutor, Provisioning
-from bzt.modules.selenium import SeleniumExecutor, JUnitJar, LoadSamplesReader
+from bzt.modules.selenium import SeleniumExecutor, JUnitJar, LoadSamplesReader, LDJSONReader
+from bzt.six import StringIO
 from tests import BZTestCase, local_paths_config, __dir__
 from tests.mocks import EngineEmul
 
@@ -698,3 +699,18 @@ class TestReportReader(BZTestCase):
         self.assertEqual(items[2][6], '200')
         self.assertEqual(items[3][1], 'testUnexp')
         self.assertEqual(items[3][6], 'UNKNOWN')
+
+    def test_reader_buffering(self):
+        first_part = '{"a": 1, "b": 2}\n{"a": 2,'
+        second_part = '"b": 3}\n{"a": 3, "b": 4}\n'
+        reader = LDJSONReader("yip", logging.getLogger())
+        buffer = StringIO(first_part)
+        reader.fds = buffer
+
+        items = list(reader.read(last_pass=False))
+        self.assertEqual(len(items), 1)
+
+        buffer.write(second_part)
+        items = list(reader.read(last_pass=False))
+        self.assertEqual(len(items), 2)
+
