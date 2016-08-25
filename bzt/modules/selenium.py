@@ -586,16 +586,15 @@ class SeleniumWidget(Pile, PrioritizedWidget):
                 lines = fds.readlines()
                 if lines:
                     line = lines[-1]
-                    if not line.endswith("\n"):
-                        if len(lines) > 1:
-                            line = lines[-2]
+                    if not line.endswith("\n") and len(lines) > 1:
+                        line = lines[-2]
                     if line and "," in line:
                         reader_summary = line.split(",")[-1]
 
         if reader_summary:
             self.summary_stats.set_text(reader_summary)
         else:
-           self.summary_stats.set_text('In progress...')
+            self.summary_stats.set_text('In progress...')
 
         self._invalidate()
 
