@@ -589,6 +589,9 @@ class SeleniumWidget(Pile, PrioritizedWidget):
                 lines = fds.readlines()
                 if lines:
                     line = lines[-1]
+                    if not line.endswith("\n"):
+                        if len(lines) > 1:
+                            line = lines[-2]
                     if line and "," in line:
                         reader_summary = line.split(",")[-1]
 
