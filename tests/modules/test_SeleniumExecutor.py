@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 import shutil
@@ -6,7 +7,7 @@ import time
 import yaml
 
 from bzt.engine import ScenarioExecutor, Provisioning
-from bzt.modules.selenium import SeleniumExecutor, JUnitJar
+from bzt.modules.selenium import SeleniumExecutor, JUnitJar, LoadSamplesReader
 from tests import BZTestCase, local_paths_config, __dir__
 from tests.mocks import EngineEmul
 
@@ -682,3 +683,16 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.assertEqual("http://blazedemo.com/", urls[0])
         self.assertEqual("http://absolute.address.com/somepage", urls[1])
         self.assertEqual("http://blazedemo.com/reserve.php", urls[2])
+
+
+class TestReportReader(BZTestCase):
+    def test_report_reader(self):
+        reader = LoadSamplesReader(__dir__() + "/../selenium/report.ldjson", logging.getLogger())
+        items = list(reader._read())
+        self.assertEqual(3, len(items))
+        self.assertEqual(items[0][1], 'testFailure')
+        self.assertEqual(items[0][6], 'FAILED')
+        self.assertEqual(items[1][1], 'testBroken')
+        self.assertEqual(items[1][6], 'BROKEN')
+        self.assertEqual(items[2][1], 'testSuccess')
+        self.assertEqual(items[2][6], 'PASSED')
