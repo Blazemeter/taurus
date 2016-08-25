@@ -999,7 +999,7 @@ class LoadSamplesReader(SeleniumReportReader):
         rtm = item["duration"]
         cnn = 0
         ltc = 0
-        rcd = self.STATUS_TO_CODE.get(item["status"])
+        rcd = self.STATUS_TO_CODE.get(item["status"], "UNKNOWN")
         error = item["error_msg"] if item["status"] in self.FAILING_TESTS_STATUSES else None
         trname = ""
         return tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname
