@@ -281,14 +281,12 @@ class FuncKPISet(BetterDict):
 
     def __init__(self):
         super(BetterDict, self).__init__()
-        self.sum_time = 0.0
         self.get(self.TESTS_COUNT, 0)
         self.get(self.TEST_STATUSES, Counter())
         self.get(self.TESTS, [])
 
     def __deepcopy__(self, memo):
         mycopy = FuncKPISet()
-        mycopy.sum_time = self.sum_time
         for key, val in iteritems(self):
             mycopy[key] = copy.deepcopy(val, memo)
         return mycopy
@@ -296,7 +294,6 @@ class FuncKPISet(BetterDict):
     def add_sample(self, sample):
         assert isinstance(sample, dict)
         status = sample["status"]
-        self.sum_time += sample["duration"]
         self[self.TESTS_COUNT] += 1
         self[self.TEST_STATUSES][status] += 1
         self[self.TESTS].append(sample)
@@ -308,7 +305,6 @@ class FuncKPISet(BetterDict):
     def merge_kpis(self, src, sid=None):
         assert isinstance(src, FuncKPISet)
         src.recalculate()
-        self.sum_time += src.sum_time
         self[self.TESTS_COUNT] += src[self.TESTS_COUNT]
         self[self.TEST_STATUSES].update(src[self.TEST_STATUSES])
         self[self.TESTS].extend(src[self.TESTS])
@@ -318,7 +314,6 @@ class FuncKPISet(BetterDict):
         inst = FuncKPISet()
         for key, val in iteritems(obj):
             inst[key] = val
-        inst.sum_time = sum(sample["duration"] for sample in obj[inst.TESTS])
         return inst
 
 

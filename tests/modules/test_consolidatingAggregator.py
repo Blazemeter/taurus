@@ -1,4 +1,6 @@
-from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet
+from collections import Counter
+
+from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet, FuncKPISet
 
 from tests import BZTestCase, r
 from tests.mocks import MockReader
@@ -75,3 +77,59 @@ class TestConsolidatingAggregator(BZTestCase):
         mock.data.append((6 + offset, "", 1, r(), r(), r(), 200, None, ''))
         mock.data.append((5 + offset, "", 1, r(), r(), r(), 200, None, ''))
         return mock
+
+
+class TestFuncKPIAggregation(BZTestCase):
+    def get_reader(self, offset=0):
+        items = [
+            {"start_time": 1 + offset, "label": "test1", "duration": r(), "status": "PASSED"},
+            {"start_time": 2 + offset, "label": "test2", "duration": r(), "status": "FAILED"},
+            {"start_time": 2 + offset, "label": "test3", "duration": r(), "status": "BROKEN"},
+            {"start_time": 3 + offset, "label": "test1", "duration": r(), "status": "PASSED"},
+            {"start_time": 3 + offset, "label": "test3", "duration": r(), "status": "SKIPPED"},
+            {"start_time": 4 + offset, "label": "test2", "duration": r(), "status": "PASSED"},
+            {"start_time": 4 + offset, "label": "test1", "duration": r(), "status": "BROKEN"},
+            {"start_time": 6 + offset, "label": "test1", "duration": r(), "status": "SKIPPED"},
+            {"start_time": 6 + offset, "label": "test3", "duration": r(), "status": "FAILED"},
+            {"start_time": 6 + offset, "label": "test2", "duration": r(), "status": "PASSED"},
+            {"start_time": 5 + offset, "label": "test1", "duration": r(), "status": "BROKEN"},
+        ]
+        mock = MockReader()
+        mock.func_mode = True
+        for item in items:
+            mock.data.append((item["start_time"], item["label"], item))
+        return mock
+
+    def test_mock(self):
+        # check mock reader
+        reader = self.get_reader()
+        first = list(reader.datapoints())
+        second = list(reader.datapoints(True))
+        self.assertEquals([1, 2, 3, 4], [x[DataPoint.TIMESTAMP] for x in first])
+        self.assertEquals([5, 6], [x[DataPoint.TIMESTAMP] for x in second])
+        for point in first + second:
+            val = point[DataPoint.CURRENT]['']
+            self.assertGreater(val[FuncKPISet.TESTS_COUNT], 0)
+
+    def test_merging(self):
+        dst = DataPoint(0, func_mode=True)
+        src = DataPoint(0, func_mode=True)
+
+        src[DataPoint.CUMULATIVE].get('', FuncKPISet())
+        src[DataPoint.CUMULATIVE][''][FuncKPISet.TESTS_COUNT] = 10
+        src[DataPoint.CUMULATIVE][''][FuncKPISet.TEST_STATUSES] = Counter({"BROKEN": 2, "PASSED": 8})
+        src[DataPoint.CUMULATIVE][''][FuncKPISet.TESTS] = [3]
+
+        dst[DataPoint.CUMULATIVE].get('', FuncKPISet())
+        dst[DataPoint.CUMULATIVE][''][FuncKPISet.TESTS_COUNT] = 2
+        dst[DataPoint.CUMULATIVE][''][FuncKPISet.TEST_STATUSES] = Counter({"BROKEN": 0, "PASSED": 2})
+        dst[DataPoint.CUMULATIVE][''][FuncKPISet.TESTS] = [1, 2]
+
+        dst.merge_point(src)
+
+        cumul = dst[DataPoint.CUMULATIVE]['']
+
+        self.assertEquals(12, cumul[FuncKPISet.TESTS_COUNT])
+        self.assertEquals(2, cumul[FuncKPISet.TEST_STATUSES]["BROKEN"])
+        self.assertEquals(10, cumul[FuncKPISet.TEST_STATUSES]["PASSED"])
+        self.assertEquals([1, 2, 3], cumul[FuncKPISet.TESTS])
