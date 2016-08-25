@@ -21,6 +21,12 @@
             <version>2.48.2</version>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>org.json</groupId>
+            <artifactId>json</artifactId>
+            <version>20160810</version>
+        </dependency>
     </dependencies>
 
     <build>
