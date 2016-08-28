@@ -25,9 +25,8 @@ from abc import abstractmethod
 from urwid import Text, Pile
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
-from bzt.modules.aggregator import ConsolidatingAggregator
+from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
-from bzt.modules.jmeter import JTLReader
 from bzt.six import string_types, text_type, etree, parse
 from bzt.utils import RequiredTool, shell_exec, shutdown_process, JavaVM, TclLibrary, get_files_recursive
 from bzt.utils import dehumanize_time, MirrorsManager, is_windows, BetterDict, get_full_path
@@ -56,6 +55,8 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     HAMCREST_DOWNLOAD_LINK = "https://hamcrest.googlecode.com/files/hamcrest-core-1.3.jar"
 
+    JSON_JAR_DOWNLOAD_LINK = "http://search.maven.org/remotecontent?filepath=org/json/json/20160810/json-20160810.jar"
+
     SUPPORTED_TYPES = [".py", ".jar", ".java"]
 
     SHARED_VIRTUAL_DISPLAY = {}
@@ -69,8 +70,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.runner = None
         self.widget = None
         self.reader = None
-        self.kpi_file = None
-        self.err_jtl = None
+        self.report_file = None
         self.runner_working_dir = None
         self.scenario = None
         self.script = None
@@ -106,7 +106,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         else:
             return self.engine.find_file(self.script)
 
-    def _create_runner(self, working_dir, kpi_file, err_file):
+    def _create_runner(self, working_dir, report_file):
         script_path = self.get_script_path()
         script_type = self.detect_script_type(script_path)
         runner_config = BetterDict()
@@ -122,14 +122,13 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         runner_config["script-type"] = script_type
         runner_config["working-dir"] = working_dir
         runner_config.get("artifacts-dir", self.engine.artifacts_dir)
-        runner_config.get("report-file", kpi_file)
-        runner_config.get("err-file", err_file)
+        runner_config.get("report-file", report_file)
         runner_config.get("stdout", self.engine.create_artifact("junit", ".out"))
         runner_config.get("stderr", self.engine.create_artifact("junit", ".err"))
         return runner_class(runner_config, self)
 
-    def _create_reader(self, kpi_file, err_file):
-        return SeleniumReader(kpi_file, self.log, err_file, self.generated_methods)
+    def _create_reader(self, report_file):
+        return LoadSamplesReader(report_file, self.log, self.generated_methods)
 
     def prepare(self):
         self.set_virtual_display()
@@ -137,14 +136,13 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self._verify_script()
 
         self.runner_working_dir = self.engine.create_artifact("classes", "")
-        self.kpi_file = self.engine.create_artifact("selenium_tests_report", ".csv")
-        self.err_file = self.engine.create_artifact("selenium_tests_err", ".xml")
-        self.runner = self._create_runner(self.runner_working_dir, self.kpi_file, self.err_file)
+        self.report_file = self.engine.create_artifact("selenium_tests_report", ".ldjson")
+        self.runner = self._create_runner(self.runner_working_dir, self.report_file)
 
         self._cp_resource_files(self.runner_working_dir)
 
         self.runner.prepare()
-        self.reader = self._create_reader(self.kpi_file, self.err_file)
+        self.reader = self._create_reader(self.report_file)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
@@ -348,6 +346,7 @@ class JUnitTester(AbstractTestRunner):
 
         self.junit_path = path_lambda("path", "~/.bzt/selenium-taurus/tools/junit/junit.jar")
         self.hamcrest_path = path_lambda("hamcrest-core", "~/.bzt/selenium-taurus/tools/junit/hamcrest-core.jar")
+        self.json_jar_path = path_lambda("json-jar", "~/.bzt/selenium-taurus/tools/junit/json.jar")
         self.selenium_server_jar_path = path_lambda("selenium-server",
                                                     "~/.bzt/selenium-taurus/selenium-server.jar")
         self.junit_listener_path = os.path.join(get_full_path(__file__, step_up=1),
@@ -357,7 +356,7 @@ class JUnitTester(AbstractTestRunner):
         self.target_java = str(junit_config.get("compile-target-java", "1.7"))
 
         self.base_class_path = [self.selenium_server_jar_path, self.junit_path, self.junit_listener_path,
-                                self.hamcrest_path]
+                                self.hamcrest_path, self.json_jar_path]
         self.base_class_path.extend(self.scenario.get("additional-classpath", []))
 
     def prepare(self):
@@ -387,6 +386,7 @@ class JUnitTester(AbstractTestRunner):
         self.required_tools.append(SeleniumServerJar(self.selenium_server_jar_path, link, self.log))
         self.required_tools.append(JUnitJar(self.junit_path, self.log, SeleniumExecutor.JUNIT_VERSION))
         self.required_tools.append(HamcrestJar(self.hamcrest_path, SeleniumExecutor.HAMCREST_DOWNLOAD_LINK))
+        self.required_tools.append(JsonJar(self.json_jar_path, SeleniumExecutor.JSON_JAR_DOWNLOAD_LINK))
         self.required_tools.append(JUnitListenerJar(self.junit_listener_path, ""))
 
         self.check_tools()
@@ -481,8 +481,7 @@ class JUnitTester(AbstractTestRunner):
         self.base_class_path.extend(jar_list)
 
         with open(self.props_file, 'wt') as props:
-            props.write("kpi_log=%s\n" % self.settings.get("report-file").replace(os.path.sep, '/'))
-            props.write("error_log=%s\n" % self.settings.get("err-file").replace(os.path.sep, '/'))
+            props.write("report_file=%s\n" % self.settings.get("report-file").replace(os.path.sep, '/'))
 
             if self.load.iterations:
                 props.write("iterations=%s\n" % self.load.iterations)
@@ -543,8 +542,7 @@ class NoseTester(AbstractTestRunner):
         run python tests
         """
         executable = self.settings.get("interpreter", sys.executable)
-        nose_command_line = [executable, self.plugin_path, '-k', self.settings.get("report-file"),
-                             '-e', self.settings.get("err-file")]
+        nose_command_line = [executable, self.plugin_path, '--report-file', self.settings.get("report-file")]
 
         if self.load.iterations:
             nose_command_line += ['-i', str(self.load.iterations)]
@@ -588,6 +586,8 @@ class SeleniumWidget(Pile, PrioritizedWidget):
                 lines = fds.readlines()
                 if lines:
                     line = lines[-1]
+                    if not line.endswith("\n") and len(lines) > 1:
+                        line = lines[-2]
                     if line and "," in line:
                         reader_summary = line.split(",")[-1]
 
@@ -642,6 +642,11 @@ class JUnitJar(RequiredTool):
 class HamcrestJar(RequiredTool):
     def __init__(self, tool_path, download_link):
         super(HamcrestJar, self).__init__("HamcrestJar", tool_path, download_link)
+
+
+class JsonJar(RequiredTool):
+    def __init__(self, tool_path, download_link):
+        super(JsonJar, self).__init__("JsonJar", tool_path, download_link)
 
 
 class JavaC(RequiredTool):
@@ -901,24 +906,100 @@ class JUnitMirrorsManager(MirrorsManager):
         return links
 
 
-class SeleniumReader(JTLReader):
-    def __init__(self, filename, parent_logger, errors_filename, translation_table=None):
-        super(SeleniumReader, self).__init__(filename, parent_logger, errors_filename)
-        if translation_table:
-            self.translation_table = translation_table
+class LDJSONReader(object):
+    def __init__(self, filename, parent_log):
+        self.log = parent_log.getChild(self.__class__.__name__)
+        self.filename = filename
+        self.fds = None
+        self.partial_buffer = ""
+        self.offset = 0
+
+    def read(self, last_pass=False):
+        if not self.fds and not self.__open_fds():
+            self.log.debug("No data to start reading yet")
+            return
+
+        self.fds.seek(self.offset)
+        if last_pass:
+            lines = self.fds.readlines()  # unlimited
         else:
-            self.translation_table = {}
+            lines = self.fds.readlines(1024 * 1024)
+        self.offset = self.fds.tell()
+
+        for line in lines:
+            if not line.endswith("\n"):
+                self.partial_buffer += line
+                continue
+            line = "%s%s" % (self.partial_buffer, line)
+            self.partial_buffer = ""
+            yield json.loads(line)
+
+    def __open_fds(self):
+        if not os.path.isfile(self.filename):
+            return False
+        fsize = os.path.getsize(self.filename)
+        if not fsize:
+            return False
+        self.fds = open(self.filename, 'rt', buffering=1)
+        return True
+
+    def __del__(self):
+        if self.fds is not None:
+            self.fds.close()
+
+
+class SeleniumReportReader(ResultsReader):
+    REPORT_ITEM_KEYS = ["label", "status", "description", "start_time", "duration", "error_msg", "error_trace"]
+    TEST_STATUSES = ("PASSED", "FAILED", "BROKEN", "SKIPPED")
+    FAILING_TESTS_STATUSES = ("FAILED", "BROKEN")
+
+    def __init__(self, filename, parent_logger, translation_table=None):
+        super(SeleniumReportReader, self).__init__()
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.json_reader = LDJSONReader(filename, self.log)
+        self.translation_table = translation_table or {}
+        self.read_records = 0
+
+    def process_label(self, label):
+        if label in self.translation_table:
+            return self.translation_table[label]
+
+        if isinstance(label, string_types):
+            if label.startswith('test_') and label[5:10].isdigit():
+                return label[11:]
+
+        return label
+
+    @abstractmethod
+    def extract_sample(self, item):
+        pass
 
     def _read(self, last_pass=False):
-        for data in super(SeleniumReader, self)._read(last_pass):
-            tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname = data
+        for row in self.json_reader.read(last_pass):
+            if any(key not in row for key in self.REPORT_ITEM_KEYS):
+                self.log.warning("Record doesn't conform to schema, skipping: %s", row)
+                continue
+            self.read_records += 1
+            sample = self.extract_sample(row)
+            yield sample
 
-            if self.translation_table and label in self.translation_table:  # start fresh generated script:
-                label = self.translation_table[label]  # replace method names with labels
 
-            if isinstance(label, string_types):  # start previously generated script: remove prefix
-                if label.startswith('test_') and label[5:10].isdigit():
-                    label = label[11:]
+class LoadSamplesReader(SeleniumReportReader):
+    STATUS_TO_CODE = {
+        "PASSED": "200",
+        "SKIPPED": "300",
+        "FAILED": "400",
+        "BROKEN": "500",
+    }
 
-            data = tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname
-            yield data
+    def extract_sample(self, item):
+        tstmp = int(item["start_time"])
+        label = self.process_label(item["label"])
+        concur = 1
+        rtm = item["duration"]
+        cnn = 0
+        ltc = 0
+        rcd = self.STATUS_TO_CODE.get(item["status"], "UNKNOWN")
+        error = item["error_msg"] if item["status"] in self.FAILING_TESTS_STATUSES else None
+        trname = ""
+        return tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname

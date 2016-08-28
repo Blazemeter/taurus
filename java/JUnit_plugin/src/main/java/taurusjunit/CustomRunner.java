@@ -16,8 +16,7 @@ import java.util.logging.Logger;
 
 public class CustomRunner {
     private static final Logger log = Logger.getLogger(CustomRunner.class.getName());
-    public static final String KPI_LOG = "kpi_log";
-    public static final String ERROR_LOG = "error_log";
+    public static final String REPORT_FILE = "report_file";
     public static final String TARGET_PREFIX = "target_";
     public static final String ITERATIONS = "iterations";
     public static final String HOLD = "hold_for";
@@ -42,9 +41,8 @@ public class CustomRunner {
         }
 
         log.info("Running with classes: " + classes.toString());
-        JTLReporter jtlReporter = new JTLReporter(props.getProperty(KPI_LOG));
-        JTLErrorReporter jtlErrorReporter = new JTLErrorReporter(props.getProperty(ERROR_LOG));
-        CustomListener custom_listener = new CustomListener(jtlReporter, jtlErrorReporter);
+        TaurusReporter reporter = new TaurusReporter(props.getProperty(REPORT_FILE));
+        CustomListener custom_listener = new CustomListener(reporter);
         JUnitCore runner = new JUnitCore();
         runner.addListener(custom_listener);
 
@@ -68,8 +66,7 @@ public class CustomRunner {
             }
         }
 
-        jtlReporter.close();
-        jtlErrorReporter.close();
+        reporter.close();
     }
 
     protected static ArrayList<Class> getClasses(Properties props) {

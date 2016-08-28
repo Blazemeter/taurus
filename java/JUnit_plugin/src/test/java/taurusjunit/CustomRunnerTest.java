@@ -16,18 +16,14 @@ public class CustomRunnerTest extends TestCase {
     }
 
     public void testMain() throws Exception {
-        File log = File.createTempFile("log", ".jtl");
-        log.deleteOnExit();
-
-        File err = File.createTempFile("err", ".jtl");
-        err.deleteOnExit();
+        File report = File.createTempFile("report", ".ldjson");
+        report.deleteOnExit();
 
         URL res = Thread.currentThread().getContextClassLoader().getResource("dummy.jar");
         assert res != null;
 
         Properties props = new Properties();
-        props.setProperty(CustomRunner.KPI_LOG, log.getAbsolutePath());
-        props.setProperty(CustomRunner.ERROR_LOG, err.getAbsolutePath());
+        props.setProperty(CustomRunner.REPORT_FILE, report.getAbsolutePath());
         props.setProperty(CustomRunner.TARGET_PREFIX + "jar", res.getPath());
 
         File propsFile = File.createTempFile("runner", ".properties");
@@ -37,23 +33,18 @@ public class CustomRunnerTest extends TestCase {
         String[] args = {propsFile.getAbsolutePath()};
         CustomRunner.main(args);
 
-        assertEquals(3, getLinesCount(log));
-        assertEquals(8, getLinesCount(err));
+        assertEquals(2, getLinesCount(report));
     }
 
     public void testIterations() throws Exception {
-        File log = File.createTempFile("log", ".jtl");
-        log.deleteOnExit();
-
-        File err = File.createTempFile("err", ".jtl");
-        err.deleteOnExit();
+        File report = File.createTempFile("report", ".ldjson");
+        report.deleteOnExit();
 
         URL res = Thread.currentThread().getContextClassLoader().getResource("dummy.jar");
         assert res != null;
 
         Properties props = new Properties();
-        props.setProperty(CustomRunner.KPI_LOG, log.getAbsolutePath());
-        props.setProperty(CustomRunner.ERROR_LOG, err.getAbsolutePath());
+        props.setProperty(CustomRunner.REPORT_FILE, report.getAbsolutePath());
         props.setProperty(CustomRunner.TARGET_PREFIX + "jar", res.getPath());
         props.setProperty(CustomRunner.ITERATIONS, String.valueOf(3));
 
@@ -64,23 +55,18 @@ public class CustomRunnerTest extends TestCase {
         String[] args = {propsFile.getAbsolutePath()};
         CustomRunner.main(args);
 
-        assertEquals(7, getLinesCount(log));
-        assertEquals(24, getLinesCount(err));
+        assertEquals(2 * 3, getLinesCount(report));
     }
 
     public void testHold() throws Exception {
-        File log = File.createTempFile("log", ".jtl");
-        log.deleteOnExit();
-
-        File err = File.createTempFile("err", ".jtl");
-        err.deleteOnExit();
+        File report = File.createTempFile("report", ".ldjson");
+        report.deleteOnExit();
 
         URL res = Thread.currentThread().getContextClassLoader().getResource("dummy.jar");
         assert res != null;
 
         Properties props = new Properties();
-        props.setProperty(CustomRunner.KPI_LOG, log.getAbsolutePath());
-        props.setProperty(CustomRunner.ERROR_LOG, err.getAbsolutePath());
+        props.setProperty(CustomRunner.REPORT_FILE, report.getAbsolutePath());
         props.setProperty(CustomRunner.TARGET_PREFIX + "jar", res.getPath());
         props.setProperty(CustomRunner.HOLD, String.valueOf(60));
 
@@ -91,23 +77,18 @@ public class CustomRunnerTest extends TestCase {
         String[] args = {propsFile.getAbsolutePath()};
         CustomRunner.main(args);
 
-        assertTrue(3 < getLinesCount(log));
-        assertTrue(8 < getLinesCount(err));
+        assertTrue(2 < getLinesCount(report));
     }
 
     public void testHoldIterations() throws Exception {
-        File log = File.createTempFile("log", ".jtl");
-        log.deleteOnExit();
-
-        File err = File.createTempFile("err", ".jtl");
-        err.deleteOnExit();
+        File report = File.createTempFile("report", ".ldjson");
+        report.deleteOnExit();
 
         URL res = Thread.currentThread().getContextClassLoader().getResource("dummy.jar");
         assert res != null;
 
         Properties props = new Properties();
-        props.setProperty(CustomRunner.KPI_LOG, log.getAbsolutePath());
-        props.setProperty(CustomRunner.ERROR_LOG, err.getAbsolutePath());
+        props.setProperty(CustomRunner.REPORT_FILE, report.getAbsolutePath());
         props.setProperty(CustomRunner.TARGET_PREFIX + "jar", res.getPath());
         props.setProperty(CustomRunner.HOLD, String.valueOf(60));
         props.setProperty(CustomRunner.ITERATIONS, String.valueOf(1));
@@ -119,7 +100,6 @@ public class CustomRunnerTest extends TestCase {
         String[] args = {propsFile.getAbsolutePath()};
         CustomRunner.main(args);
 
-        assertEquals(3, getLinesCount(log));
-        assertEquals(8, getLinesCount(err));
+        assertEquals(2, getLinesCount(report));
     }
 }

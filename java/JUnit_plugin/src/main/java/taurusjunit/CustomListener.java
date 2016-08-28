@@ -11,18 +11,16 @@ public class CustomListener extends RunListener {
 
     private static final Logger log = Logger.getLogger(CustomListener.class.getName());
     private Sample pendingSample;
-    private JTLReporter reporter;
-    private JTLErrorReporter err_reporter;
+    private TaurusReporter reporter;
     private long started = 0;
 
-    private long test_count = 0;
-    private long failed_count = 0;
-    private final static String report_tmpl = "%s.%s,Total:%d Pass:%d Failed:%d\n";
+    private long testCount = 0;
+    private long failedCount = 0;
+    private final static String report_tmpl = "%s.%s,Total:%d Passed:%d Failed:%d\n";
 
-    public CustomListener(JTLReporter jtlReporter, JTLErrorReporter jtlErrorReporter) {
+    public CustomListener(TaurusReporter reporter) {
         super();
-        reporter = jtlReporter;
-        err_reporter = jtlErrorReporter;
+        this.reporter = reporter;
     }
 
     public void testRunStarted(Description description) {
@@ -38,49 +36,50 @@ public class CustomListener extends RunListener {
         started = System.currentTimeMillis();
         pendingSample = new Sample();
         pendingSample.setLabel(description.getMethodName());
-        pendingSample.setThreadName(description.getClassName());
-        test_count += 1;
+        pendingSample.setFullName(description.getClassName() + "." + description.getMethodName());
+        pendingSample.setFile("");
+        pendingSample.setDescription("");
+        testCount += 1;
     }
 
     public void testFinished(Description description) throws java.lang.Exception {
         log.info(String.format("finished %s", description.getDisplayName()));
-        pendingSample.setElapsed(System.currentTimeMillis() - started);
+        double duration = (System.currentTimeMillis() - started) / 1000.0;
+        pendingSample.setDuration(duration);
         reporter.writeSample(pendingSample);
 
-        if (pendingSample.getResponseCode() != 200) {
-            err_reporter.add_sample(pendingSample);
-            failed_count += 1;
+        if (!pendingSample.isSuccessful()) {
+            failedCount += 1;
         }
         pendingSample = null;
         System.out.printf(report_tmpl,
                 description.getClassName(),
                 description.getMethodName(),
-                test_count,
-                test_count - failed_count,
-                failed_count);
+                testCount,
+                testCount - failedCount,
+                failedCount);
     }
 
     public void testFailure(Failure failure) throws java.lang.Exception {
         log.severe(String.format("failed %s", failure.toString()));
-        pendingSample.setSuccess(false);
-        pendingSample.setTrace(failure.getMessage());
-        pendingSample.setMessage(failure.getException().getClass().getName());
-        pendingSample.setResponseCode(500);
+        pendingSample.setStatus(Sample.STATUS_BROKEN);
+        String exceptionName = failure.getException().getClass().getName();
+        pendingSample.setErrorMessage(exceptionName + ": " + failure.getMessage());
+        pendingSample.setErrorTrace(Utils.getStackTrace(failure.getException()));
     }
 
     public void testAssumptionFailure(Failure failure) {
-        log.warning(String.format("failed assert %s", failure.getDescription()));
-        pendingSample.setSuccess(false);
-        pendingSample.setTrace(failure.getMessage());
-        pendingSample.setMessage(failure.getException().getClass().getName());
-        pendingSample.setResponseCode(400);
+        log.severe(String.format("assert failed %s", failure.toString()));
+        pendingSample.setStatus(Sample.STATUS_FAILED);
+        String exceptionName = failure.getException().getClass().getName();
+        pendingSample.setErrorMessage(exceptionName + ": " + failure.getMessage());
+        pendingSample.setErrorTrace(Utils.getStackTrace(failure.getException()));
     }
 
     public void testIgnored(Description description) throws java.lang.Exception {
         log.warning(String.format("ignored %s", description.getDisplayName()));
-        pendingSample.setSuccess(false);
-        pendingSample.setMessage(description.getDisplayName());
-        pendingSample.setResponseCode(300);
+        pendingSample.setStatus(Sample.STATUS_SKIPPED);
+        pendingSample.setErrorMessage(description.getDisplayName());
     }
 
 }

@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 import shutil
@@ -6,7 +7,8 @@ import time
 import yaml
 
 from bzt.engine import ScenarioExecutor, Provisioning
-from bzt.modules.selenium import SeleniumExecutor, JUnitJar
+from bzt.modules.selenium import SeleniumExecutor, JUnitJar, LoadSamplesReader, LDJSONReader
+from bzt.six import StringIO
 from tests import BZTestCase, local_paths_config, __dir__
 from tests.mocks import EngineEmul
 
@@ -452,13 +454,14 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         self.assertTrue(os.path.exists(os.path.join(self.obj.runner_working_dir, "test_bad_name.py")))
 
 
-class CSVReaderEmul(object):
+class LDJSONReaderEmul(object):
     def __init__(self):
         self.data = []
 
     def read(self, lastpass=False):
         for line in self.data:
             yield line
+
 
 class TestSeleniumStuff(SeleniumTestCase):
     def test_empty_scenario(self):
@@ -610,16 +613,18 @@ class TestSeleniumStuff(SeleniumTestCase):
         label3 = 'just_for_lulz'
         self.assertEqual(url1, gen_methods[name1])
         self.assertEqual(label2, gen_methods[name2])
-        self.obj.reader.csvreader = CSVReaderEmul()
-        self.obj.reader.csvreader.data.append({
-            'Latency': '0', 'allThreads': '1', 'success': 'true',
-            'timeStamp': '2', 'label': name1, 'responseCode': '200', 'elapsed': '1'})
-        self.obj.reader.csvreader.data.append({
-            'Latency': '0', 'allThreads': '1', 'success': 'true',
-            'timeStamp': '2', 'label': name2, 'responseCode': '200', 'elapsed': '1'})
-        self.obj.reader.csvreader.data.append({
-            'Latency': '0', 'allThreads': '1', 'success': 'true',
-            'timeStamp': '2', 'label': name3, 'responseCode': '200', 'elapsed': '1'})
+        self.obj.reader.json_reader = LDJSONReaderEmul()
+        self.obj.reader.json_reader.data.extend([
+            {
+                'label': name1, 'start_time': 1472049887, 'duration': 1.0, 'status': 'PASSED',
+                'file': None, 'error_msg': None, 'error_trace': None, 'full_name': '', 'description': ''
+            }, {
+                'label': name2, 'start_time': 1472049888, 'duration': 1.0, 'status': 'PASSED',
+                'file': None, 'error_msg': None, 'error_trace': None, 'full_name': '', 'description': ''
+            }, {
+                'label': name3, 'start_time': 1472049889, 'duration': 1.0, 'status': 'PASSED',
+                'file': None, 'error_msg': None, 'error_trace': None, 'full_name': '', 'description': ''
+            }])
         res = list(self.obj.reader._read())
         self.assertIn(url1, res[0])
         self.assertIn(label2, res[1])
@@ -679,3 +684,33 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.assertEqual("http://blazedemo.com/", urls[0])
         self.assertEqual("http://absolute.address.com/somepage", urls[1])
         self.assertEqual("http://blazedemo.com/reserve.php", urls[2])
+
+
+class TestReportReader(BZTestCase):
+    def test_report_reader(self):
+        reader = LoadSamplesReader(__dir__() + "/../selenium/report.ldjson", logging.getLogger())
+        items = list(reader._read())
+        self.assertEqual(4, len(items))
+        self.assertEqual(items[0][1], 'testFailure')
+        self.assertEqual(items[0][6], '400')
+        self.assertEqual(items[1][1], 'testBroken')
+        self.assertEqual(items[1][6], '500')
+        self.assertEqual(items[2][1], 'testSuccess')
+        self.assertEqual(items[2][6], '200')
+        self.assertEqual(items[3][1], 'testUnexp')
+        self.assertEqual(items[3][6], 'UNKNOWN')
+
+    def test_reader_buffering(self):
+        first_part = '{"a": 1, "b": 2}\n{"a": 2,'
+        second_part = '"b": 3}\n{"a": 3, "b": 4}\n'
+        reader = LDJSONReader("yip", logging.getLogger())
+        buffer = StringIO(first_part)
+        reader.fds = buffer
+
+        items = list(reader.read(last_pass=False))
+        self.assertEqual(len(items), 1)
+
+        buffer.write(second_part)
+        items = list(reader.read(last_pass=False))
+        self.assertEqual(len(items), 2)
+
