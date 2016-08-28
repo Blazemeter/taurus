@@ -25,5 +25,5 @@ Other Videos:
  1. [Scaling Test Automation with Jenkins + JMeter + Taurus](https://www.youtube.com/watch?v=QuY0Qcdd90A)
  1. [The Secret to Scaling Test Automation w Jenkins & JMeter at Jenkins UC Israel 2015](https://www.youtube.com/watch?v=JnCYGBN4FTw)
  1. [OpenShift Commons Briefing #28: Continuous Performance Testing for OpenShift Applications](https://www.youtube.com/watch?v=toMDGhQ96GA)
- 1. [Performance Test Automation With JMeter & Taurus](https://www.youtube.com/watch?v=6Z-Bxm_-qhc)
+ 1. [Performance Test Automation With JMeter & Taurus](https://www.youtube.com/watch?v=8KmO5mIkBzk)
  1. [Performance Testing Bootcamp with JMeter & Taurus](https://www.youtube.com/watch?v=rwccqwaHT9U)

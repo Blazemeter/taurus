@@ -13,6 +13,17 @@ services:
   criteria:
   - avg-rt of IndexPage>150ms for 10s, stop as failed
   - fail of CheckoutPage>50% for 10s, stop as failed
+
+scenarios:
+  simple:
+  - label: IndexPage
+    url: http://blazedemo.com/
+  - label: CheckoutPage
+    url: http://blazedemo.com/checkout.php
+
+execution:
+  scenario: simple
+  hold-for: 1m
 ```
 
 The above example use short form for criteria, its general format is
