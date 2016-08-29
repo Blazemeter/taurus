@@ -1,4 +1,8 @@
 # Changelog
+
+## 1.6.8
+ - fix hamcrest installation for Java-based Selenium tests
+
 ## 1.6.7  <sup>23 aug 2016</sup>
  - add `cloud` and `local` aliases 
  - add `detach` mode to Cloud Provisioning
