@@ -12,6 +12,7 @@
  - add Chrome profiler [service](ChromeProfiler.md) and reporter
  - add webdriver.log for requests-based Selenium tests
  - make Selenim test labels clearer
+ - fix Jmeter fail with unusual jmx property type
 
 ## 1.6.6 <sup>08 aug 2016</sup>
  - optimize aggregator by removing excessive calls to `BetterDict.get()`
