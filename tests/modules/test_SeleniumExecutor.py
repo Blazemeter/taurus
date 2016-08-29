@@ -7,7 +7,7 @@ import time
 import yaml
 
 from bzt.engine import ScenarioExecutor, Provisioning
-from bzt.modules.selenium import SeleniumExecutor, JUnitJar, LoadSamplesReader, LDJSONReader
+from bzt.modules.selenium import SeleniumExecutor, JUnitJar, LoadSamplesReader, LDJSONReader, FuncSamplesReader
 from bzt.six import StringIO
 from tests import BZTestCase, local_paths_config, __dir__
 from tests.mocks import EngineEmul
@@ -687,7 +687,7 @@ class TestSeleniumStuff(SeleniumTestCase):
 
 
 class TestReportReader(BZTestCase):
-    def test_report_reader(self):
+    def test_load_reader(self):
         reader = LoadSamplesReader(__dir__() + "/../selenium/report.ldjson", logging.getLogger())
         items = list(reader._read())
         self.assertEqual(4, len(items))
@@ -699,6 +699,17 @@ class TestReportReader(BZTestCase):
         self.assertEqual(items[2][6], '200')
         self.assertEqual(items[3][1], 'testUnexp')
         self.assertEqual(items[3][6], 'UNKNOWN')
+
+    def test_func_reader(self):
+        reader = FuncSamplesReader(__dir__() + "/../selenium/report.ldjson", logging.getLogger())
+        items = list(reader._read())
+        self.assertEqual(4, len(items))
+        self.assertEqual(items[0][1], 'testFailure')
+        self.assertEqual(items[0][2]["status"], "FAILED")
+        self.assertEqual(items[1][1], 'testBroken')
+        self.assertEqual(items[1][2]["status"], "BROKEN")
+        self.assertEqual(items[2][1], 'testSuccess')
+        self.assertEqual(items[2][2]["status"], "PASSED")
 
     def test_reader_buffering(self):
         first_part = '{"a": 1, "b": 2}\n{"a": 2,'
