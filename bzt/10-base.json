@@ -200,9 +200,6 @@
         },
         "consolidator": {
           "functional-mode": true
-        },
-        "console": {
-          "disable": true
         }
       }
     }
