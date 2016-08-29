@@ -295,12 +295,11 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :param ramp_up: int ramp_up period
         :return:
         """
-        rampup_sel = "stringProp[name='ThreadGroup.ramp_time']"
-        xpath = GenericTranslator().css_to_xpath(rampup_sel)
+        rampup_sel = ".//*[@name='ThreadGroup.ramp_time']"
 
         for group in jmx.enabled_thread_groups():
-            prop = group.xpath(xpath)
-            prop[0].text = str(ramp_up)
+            prop = group.find(rampup_sel)
+            prop.text = str(ramp_up)
 
     @staticmethod
     def __apply_stepping_ramp_up(jmx, load):
@@ -369,21 +368,20 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :return:
         """
         # TODO: what to do when they used non-standard thread groups?
-        tnum_sel = "stringProp[name='ThreadGroup.num_threads']"
-        tnum_xpath = GenericTranslator().css_to_xpath(tnum_sel)
+        tnum_sel = ".//*[@name='ThreadGroup.num_threads']"
 
         orig_sum = 0.0
         for group in jmx.enabled_thread_groups():
-            othreads = group.xpath(tnum_xpath)
-            orig_sum += int(othreads[0].text)
+            othread = group.find(tnum_sel)
+            orig_sum += int(othread.text)
         self.log.debug("Original threads: %s", orig_sum)
         leftover = concurrency
         for group in jmx.enabled_thread_groups():
-            othreads = group.xpath(tnum_xpath)
-            orig = int(othreads[0].text)
+            othread = group.find(tnum_sel)
+            orig = int(othread.text)
             new = int(round(concurrency * orig / orig_sum))
             leftover -= new
-            othreads[0].text = str(new)
+            othread.text = str(new)
         if leftover < 0:
             msg = "Had to add %s more threads to maintain thread group proportion"
             self.log.warning(msg, -leftover)
@@ -1087,7 +1085,7 @@ class JTLErrorsReader(object):
             url = Counter()
         errtype = KPISet.ERRTYPE_ERROR
         massert = elem.xpath(self.assertionMessage)
-        if len(massert):
+        if massert:
             errtype = KPISet.ERRTYPE_ASSERT
             message = massert[0].text
         err_item = KPISet.error_item_skel(message, r_code, 1, errtype, url)
