@@ -1,0 +1,42 @@
+﻿<?xml version='1.0' encoding='UTF-8'?>
+<jmeterTestPlan>
+  <hashTree>
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="for test only">
+      <elementProp elementType="Arguments" guiclass="ArgumentsPanel" name="TestPlan.user_defined_variables" testclass="Arguments"/>
+    </TestPlan>
+    <hashTree>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="ThreadGroup1">
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp elementType="LoopController" guiclass="LoopControlPanel" name="ThreadGroup.main_controller" testclass="LoopController">
+          <boolProp name="LoopController.continue_forever">true</boolProp>
+          <intProp name="LoopController.loops">-1</intProp></elementProp>
+        <intProp name="ThreadGroup.num_threads">2</intProp>
+        <stringProp name="ThreadGroup.ramp_time"/>
+        <stringProp name="ThreadGroup.start_time"/>
+        <stringProp name="ThreadGroup.end_time"/>
+        <boolProp name="ThreadGroup.scheduler">true</boolProp>
+        <longProp name="ThreadGroup.duration">5</longProp>
+      </ThreadGroup>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="ThreadGroup2">
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp elementType="LoopController" guiclass="LoopControlPanel" name="ThreadGroup.main_controller" testclass="LoopController">
+          <boolProp name="LoopController.continue_forever">true</boolProp>
+          <intProp name="LoopController.loops">-1</intProp></elementProp>
+        <stringProp name="ThreadGroup.num_threads">4</stringProp>
+        <stringProp name="ThreadGroup.ramp_time"/>
+        <stringProp name="ThreadGroup.start_time"/>
+        <stringProp name="ThreadGroup.end_time"/>
+        <boolProp name="ThreadGroup.scheduler">true</boolProp>
+        <longProp name="ThreadGroup.duration">5</longProp>
+      </ThreadGroup>
+      <hashTree type="tg">
+        <hashTree/>
+        <hashTree/>
+        <hashTree/>
+        <hashTree/>
+        <hashTree/>
+      </hashTree>
+      <hashTree/>
+    <hashTree/></hashTree>
+  </hashTree>
+</jmeterTestPlan>
