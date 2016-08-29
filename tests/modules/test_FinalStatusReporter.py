@@ -5,7 +5,7 @@ from tests import BZTestCase, random_datapoint
 from tests.mocks import EngineEmul, RecordingHandler
 from bzt.modules.reporting import FinalStatus
 from bzt.utils import BetterDict
-from bzt.modules.aggregator import DataPoint, KPISet, FuncKPISet
+from bzt.modules.aggregator import DataPoint, KPISet
 
 
 class TestFinalStatusReporter(BZTestCase):
@@ -88,51 +88,6 @@ class TestFinalStatusReporter(BZTestCase):
         obj.aggregated_second(random_datapoint(time.time()))
         obj.post_process()
         self.assertIn("XML", log_recorder.info_buff.getvalue())
-
-    def test_func_mode(self):
-        obj = FinalStatus()
-        log_recorder = RecordingHandler()
-        obj.log.addHandler(log_recorder)
-
-        obj.aggregated_second(self.__get_func_datapoint())
-        obj.post_process()
-        logs = log_recorder.info_buff.getvalue()
-        self.assertIn("Test count: 3\n", logs)
-        self.assertIn("BROKEN: 1 test\n", logs)
-        self.assertIn("PASSED: 2 tests\n", logs)
-        self.assertNotIn("test1", logs)
-        self.assertNotIn("STACKTRACE", logs)
-        obj.log.removeHandler(log_recorder)
-
-    def test_func_mode_failed_tests(self):
-        obj = FinalStatus()
-        obj.settings.merge({"failed-tests": True, "stack-traces": True})
-        log_recorder = RecordingHandler()
-        obj.log.addHandler(log_recorder)
-
-        obj.aggregated_second(self.__get_func_datapoint())
-        obj.post_process()
-        logs = log_recorder.info_buff.getvalue()
-        self.assertIn("Test count: 3\n", logs)
-        self.assertIn("BROKEN: 1 test\n", logs)
-        self.assertIn("PASSED: 2 tests\n", logs)
-        self.assertIn("Broken test test1: AssertionError", logs)
-        self.assertIn("Stack trace: STACKTRACE", logs)
-        obj.log.removeHandler(log_recorder)
-
-    def __get_func_datapoint(self):
-        datapoint = DataPoint(None, None, func_mode=True)
-        cumul_data = datapoint[DataPoint.CUMULATIVE]
-        cumul_data[""] = FuncKPISet.from_dict(
-            {FuncKPISet.TESTS_COUNT: 3,
-             FuncKPISet.TEST_STATUSES: Counter({"BROKEN": 1, "PASSED": 2}),
-             FuncKPISet.TESTS: [
-                 {"label": "test1", "start_time": 0, "duration": 0.22, "status": "BROKEN",
-                  "error_msg": "AssertionError", "error_trace": "STACKTRACE"},
-                 {"label": "test2", "start_time": 1, "duration": 0.10, "status": "PASSED"},
-                 {"label": "test2", "start_time": 2, "duration": 0.11, "status": "PASSED"}
-             ]})
-        return datapoint
 
     def __get_datapoint(self):
         datapoint = DataPoint(None, None)
