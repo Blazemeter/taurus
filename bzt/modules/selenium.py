@@ -25,7 +25,7 @@ from abc import abstractmethod
 from urwid import Text, Pile
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
-from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
+from bzt.modules.aggregator import ConsolidatingAggregator, FunctionalAggregator, ResultsReader, FunctionalResultsReader
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.six import string_types, text_type, etree, parse
 from bzt.utils import RequiredTool, shell_exec, shutdown_process, JavaVM, TclLibrary, get_files_recursive
@@ -127,8 +127,16 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         runner_config.get("stderr", self.engine.create_artifact("junit", ".err"))
         return runner_class(runner_config, self)
 
-    def _create_reader(self, report_file):
-        return LoadSamplesReader(report_file, self.log, self.generated_methods)
+    def _register_reader(self, report_file):
+        if self.engine.is_functional_mode():
+            reader = FuncSamplesReader(report_file, self.log)
+            if isinstance(self.engine.aggregator, FunctionalAggregator):
+                self.engine.aggregator.add_underling(reader)
+        else:
+            reader = LoadSamplesReader(report_file, self.log, self.generated_methods)
+            if isinstance(self.engine.aggregator, ConsolidatingAggregator):
+                self.engine.aggregator.add_underling(reader)
+        return reader
 
     def prepare(self):
         self.set_virtual_display()
@@ -142,9 +150,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self._cp_resource_files(self.runner_working_dir)
 
         self.runner.prepare()
-        self.reader = self._create_reader(self.report_file)
-        if isinstance(self.engine.aggregator, ConsolidatingAggregator):
-            self.engine.aggregator.add_underling(self.reader)
+        self.reader = self._register_reader(self.report_file)
 
     def _verify_script(self):
         if Scenario.SCRIPT in self.scenario and self.scenario.get(Scenario.SCRIPT):
@@ -948,7 +954,7 @@ class LDJSONReader(object):
             self.fds.close()
 
 
-class SeleniumReportReader(ResultsReader):
+class SeleniumReportReader(object):
     REPORT_ITEM_KEYS = ["label", "status", "description", "start_time", "duration", "error_msg", "error_trace"]
     TEST_STATUSES = ("PASSED", "FAILED", "BROKEN", "SKIPPED")
     FAILING_TESTS_STATUSES = ("FAILED", "BROKEN")
@@ -958,7 +964,6 @@ class SeleniumReportReader(ResultsReader):
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.json_reader = LDJSONReader(filename, self.log)
         self.translation_table = translation_table or {}
-        self.read_records = 0
 
     def process_label(self, label):
         if label in self.translation_table:
@@ -970,21 +975,15 @@ class SeleniumReportReader(ResultsReader):
 
         return label
 
-    @abstractmethod
-    def extract_sample(self, item):
-        pass
-
-    def _read(self, last_pass=False):
+    def read(self, last_pass=False):
         for row in self.json_reader.read(last_pass):
             if any(key not in row for key in self.REPORT_ITEM_KEYS):
                 self.log.warning("Record doesn't conform to schema, skipping: %s", row)
                 continue
-            self.read_records += 1
-            sample = self.extract_sample(row)
-            yield sample
+            yield row
 
 
-class LoadSamplesReader(SeleniumReportReader):
+class LoadSamplesReader(ResultsReader):
     STATUS_TO_CODE = {
         "PASSED": "200",
         "SKIPPED": "300",
@@ -992,14 +991,36 @@ class LoadSamplesReader(SeleniumReportReader):
         "BROKEN": "500",
     }
 
+    def __init__(self, filename, parent_logger, translation_table):
+        super(LoadSamplesReader, self).__init__()
+        self.report_reader = SeleniumReportReader(filename, parent_logger, translation_table)
+        self.read_records = 0
+
     def extract_sample(self, item):
         tstmp = int(item["start_time"])
-        label = self.process_label(item["label"])
+        label = self.report_reader.process_label(item["label"])
         concur = 1
         rtm = item["duration"]
         cnn = 0
         ltc = 0
         rcd = self.STATUS_TO_CODE.get(item["status"], "UNKNOWN")
-        error = item["error_msg"] if item["status"] in self.FAILING_TESTS_STATUSES else None
+        error = item["error_msg"] if item["status"] in SeleniumReportReader.FAILING_TESTS_STATUSES else None
         trname = ""
         return tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname
+
+    def _read(self, last_pass=False):
+        for row in self.report_reader.read(last_pass):
+            self.read_records += 1
+            sample = self.extract_sample(row)
+            yield sample
+
+
+class FuncSamplesReader(FunctionalResultsReader):
+    def __init__(self, filename, parent_logger):
+        self.report_reader = SeleniumReportReader(filename, parent_logger)
+        self.read_records = 0
+
+    def read(self, last_pass=False):
+        for row in self.report_reader.read(last_pass):
+            self.read_records += 1
+            yield row

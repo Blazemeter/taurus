@@ -320,6 +320,9 @@ class Engine(object):
         for artifact in existing_artifacts:
             self.existing_artifact(artifact)
 
+    def is_functional_mode(self):
+        return self.config.get("settings").get("aggregator") == "functional-aggregator"
+
     def __load_module(self, alias):
         """
         Load module class by alias

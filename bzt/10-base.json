@@ -153,6 +153,9 @@
     },
     "chrome-metric-reporter": {
       "class": "bzt.modules.chrome.MetricReporter"
+    },
+    "functional-aggregator": {
+      "class": "bzt.modules.aggregator.FunctionalAggregator"
     }
   },
   "settings": {
@@ -191,6 +194,11 @@
         "cloud": {
           "dump-locations": true
         }
+      }
+    },
+    "func": {
+      "settings": {
+        "aggregator": "functional-aggregator"
       }
     }
   }
