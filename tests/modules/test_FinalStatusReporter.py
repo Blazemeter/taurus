@@ -121,7 +121,7 @@ class TestFinalStatusReporter(BZTestCase):
         obj.log.removeHandler(log_recorder)
 
     def __get_func_datapoint(self):
-        datapoint = DataPoint(None, None)
+        datapoint = DataPoint(None, None, func_mode=True)
         cumul_data = datapoint[DataPoint.CUMULATIVE]
         cumul_data[""] = FuncKPISet.from_dict(
             {FuncKPISet.TESTS_COUNT: 3,
