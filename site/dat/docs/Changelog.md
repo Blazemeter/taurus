@@ -2,6 +2,7 @@
 
 ## 1.6.8
  - fix hamcrest installation for Java-based Selenium tests
+ - fix Jmeter fail with unusual jmx property type
 
 ## 1.6.7  <sup>23 aug 2016</sup>
  - add `cloud` and `local` aliases 
@@ -16,7 +17,6 @@
  - add Chrome profiler [service](ChromeProfiler.md) and reporter
  - add webdriver.log for requests-based Selenium tests
  - make Selenim test labels clearer
- - fix Jmeter fail with unusual jmx property type
 
 ## 1.6.6 <sup>08 aug 2016</sup>
  - optimize aggregator by removing excessive calls to `BetterDict.get()`
