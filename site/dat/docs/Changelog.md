@@ -2,6 +2,7 @@
 
 ## 1.6.8
  - fix hamcrest installation for Java-based Selenium tests
+ - fix Jmeter fail with unusual jmx property type
 
 ## 1.6.7  <sup>23 aug 2016</sup>
  - add `cloud` and `local` aliases 
