@@ -295,7 +295,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :param ramp_up: int ramp_up period
         :return:
         """
-        rampup_sel = ".//stringProp[@name='ThreadGroup.ramp_time']"
+        rampup_sel = ".//*[@name='ThreadGroup.ramp_time']"
 
         for group in jmx.enabled_thread_groups():
             prop = group.find(rampup_sel)
