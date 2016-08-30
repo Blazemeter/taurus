@@ -35,6 +35,7 @@ from cssselect import GenericTranslator
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.jmx import JMX
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
+from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.provisioning import Local
 from bzt.six import iteritems, string_types, StringIO, etree, binary_type
@@ -117,6 +118,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.reader = JTLReader(self.kpi_jtl, self.log, self.log_jtl)
+            self.reader.is_distributed = len(self.distributed_servers) > 0
+            self.engine.aggregator.add_underling(self.reader)
+        elif isinstance(self.engine.aggregator, FunctionalAggregator):
+            self.reader = FuncJTLReader(self.kpi_jtl, self.log, self.log_jtl)
             self.reader.is_distributed = len(self.distributed_servers) > 0
             self.engine.aggregator.add_underling(self.reader)
 
@@ -237,7 +242,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def post_process(self):
         self.engine.existing_artifact(self.modified_jmx, True)
-        if self.reader and not self.reader.buffer and self.start_time is not None:
+        if self.reader and not self.reader.read_records and self.start_time is not None:
             msg = "Empty results JTL, most likely JMeter failed: %s"
             raise RuntimeWarning(msg % self.kpi_jtl)
 
@@ -871,6 +876,58 @@ class JTLReader(ResultsReader):
                         label_data[KPISet.ERRORS] = {}
 
             yield point
+
+
+class FuncJTLReader(FunctionalResultsReader):
+    """
+    Class to read KPI JTL
+    :type errors_reader: JTLErrorsReader
+    """
+
+    def __init__(self, filename, parent_logger, errors_filename):
+        super(FuncJTLReader, self).__init__()
+        self.is_distributed = False
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.csvreader = IncrementalCSVReader(self.log, filename)
+        self.read_records = 0
+        if errors_filename:
+            self.errors_reader = JTLErrorsReader(errors_filename, parent_logger)
+        else:
+            self.errors_reader = None
+
+    def read(self, last_pass=False):
+        """
+        Generator method that returns next portion of data
+
+        :type last_pass: bool
+        """
+        if self.errors_reader:
+            self.errors_reader.read_file()
+
+        for row in self.csvreader.read(last_pass):
+            self.read_records += 1
+
+            label = row["label"]
+            suite_name = "JMeter"
+            tstmp = int(float(row["timeStamp"]) / 1000)
+            elapsed = float(row["elapsed"]) / 1000
+
+            if row["success"] == "true":
+                status = "PASSED"
+                error_msg = ""
+            else:
+                status = "FAILED"
+                error_msg = row["responseMessage"]
+
+            entry = {
+                "label": label,
+                "start_time": tstmp,
+                "suite": suite_name,
+                "duration": elapsed,
+                "status": status,
+                "error_message": error_msg,
+            }
+            yield entry
 
 
 class IncrementalCSVReader(object):
