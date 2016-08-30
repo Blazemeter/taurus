@@ -66,10 +66,8 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         super(SeleniumExecutor, self).__init__()
         self.additional_env = {}
         self.virtual_display = None
-        self.start_time = None
         self.end_time = None
         self.runner = None
-        self.widget = None
         self.reader = None
         self.report_file = None
         self.runner_working_dir = None

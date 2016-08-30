@@ -45,8 +45,6 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.tsung_controller_id = None
         self.tsung_artifacts_basedir = None
         self.stats_reader = None
-        self.start_time = None
-        self.widget = None
 
     def prepare(self):
         scenario = self.get_scenario()
