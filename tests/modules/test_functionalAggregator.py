@@ -29,8 +29,7 @@ class TestFunctionalAggregator(BZTestCase):
         obj.add_underling(reader)
         obj.process_readers()
         tree = obj.cumulative_results
-        self.assertIn("Tests1", tree)
-        self.assertEqual(len(tree.get("Tests1")), 8)
-        self.assertIn("Tests2", tree)
-        self.assertEqual(len(tree.get("Tests2")), 3)
+        self.assertEqual(["Tests2", "Tests1"], tree.test_suites())
+        self.assertEqual(len(tree.test_cases("Tests1")), 8)
+        self.assertEqual(len(tree.test_cases("Tests2")), 3)
         obj.post_process()
