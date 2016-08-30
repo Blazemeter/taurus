@@ -34,6 +34,8 @@ class FunctionalAggregator(Aggregator):
 
         for reader in self.underlings:
             for sample in reader.read(last_pass):
+                assert "label" in sample
+                assert "suite" in sample
                 new_results.add_sample(sample)
 
         if new_results:
@@ -54,7 +56,7 @@ class ResultsTree(BetterDict):
         super(ResultsTree, self).__init__()
 
     def add_sample(self, sample):
-        test_suite = sample["full_name"].split(".")[-2]
+        test_suite = sample["suite"]
         self.get(test_suite, []).append(sample)
 
     def test_suites(self):

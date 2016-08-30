@@ -16,17 +16,17 @@ class TestFunctionalAggregator(BZTestCase):
     def get_reader(self, offset=0):
         mock = MockFunctionalReader()
         mock.data = [
-            {"start_time": 1 + offset, "label": "test1", "full_name": "Tests1.test1", "status": "PASSED"},
-            {"start_time": 2 + offset, "label": "test2", "full_name": "Tests1.test2", "status": "FAILED"},
-            {"start_time": 2 + offset, "label": "test3", "full_name": "Tests2.test3", "status": "BROKEN"},
-            {"start_time": 3 + offset, "label": "test1", "full_name": "Tests1.test1", "status": "PASSED"},
-            {"start_time": 3 + offset, "label": "test3", "full_name": "Tests2.test3", "status": "SKIPPED"},
-            {"start_time": 4 + offset, "label": "test2", "full_name": "Tests1.test2", "status": "PASSED"},
-            {"start_time": 4 + offset, "label": "test1", "full_name": "Tests1.test1", "status": "BROKEN"},
-            {"start_time": 6 + offset, "label": "test1", "full_name": "Tests1.test1", "status": "SKIPPED"},
-            {"start_time": 6 + offset, "label": "test3", "full_name": "Tests2.test3", "status": "FAILED"},
-            {"start_time": 6 + offset, "label": "test2", "full_name": "Tests1.test2", "status": "PASSED"},
-            {"start_time": 5 + offset, "label": "test1", "full_name": "Tests1.test1", "status": "BROKEN"},
+            {"start_time": 1 + offset, "label": "test1", "suite": "Tests1", "status": "PASSED"},
+            {"start_time": 2 + offset, "label": "test2", "suite": "Tests1", "status": "FAILED"},
+            {"start_time": 2 + offset, "label": "test3", "suite": "Tests2", "status": "BROKEN"},
+            {"start_time": 3 + offset, "label": "test1", "suite": "Tests1", "status": "PASSED"},
+            {"start_time": 3 + offset, "label": "test3", "suite": "Tests2", "status": "SKIPPED"},
+            {"start_time": 4 + offset, "label": "test2", "suite": "Tests1", "status": "PASSED"},
+            {"start_time": 4 + offset, "label": "test1", "suite": "Tests1", "status": "BROKEN"},
+            {"start_time": 6 + offset, "label": "test1", "suite": "Tests1", "status": "SKIPPED"},
+            {"start_time": 6 + offset, "label": "test3", "suite": "Tests2", "status": "FAILED"},
+            {"start_time": 6 + offset, "label": "test2", "suite": "Tests1", "status": "PASSED"},
+            {"start_time": 5 + offset, "label": "test1", "suite": "Tests1", "status": "BROKEN"},
         ]
         return mock
 

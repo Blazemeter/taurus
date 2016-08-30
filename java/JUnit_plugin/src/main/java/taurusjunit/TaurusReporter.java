@@ -25,6 +25,7 @@ public class TaurusReporter {
         try {
             JSONObject obj = new JSONObject();
             obj.put("label", sample.getLabel());
+            obj.put("suite", sample.getSuite());
             obj.put("start_time", sample.getStartTime());
             obj.put("duration", sample.getDuration());
             obj.put("status", sample.getStatus());

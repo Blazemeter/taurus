@@ -957,7 +957,7 @@ class LDJSONReader(object):
 
 
 class SeleniumReportReader(object):
-    REPORT_ITEM_KEYS = ["label", "full_name", "file", "status", "description", "start_time", "duration",
+    REPORT_ITEM_KEYS = ["label", "suite", "full_name", "file", "status", "description", "start_time", "duration",
                         "error_msg", "error_trace"]
     TEST_STATUSES = ("PASSED", "FAILED", "BROKEN", "SKIPPED")
     FAILING_TESTS_STATUSES = ("FAILED", "BROKEN")
@@ -981,7 +981,7 @@ class SeleniumReportReader(object):
     def read(self, last_pass=False):
         for row in self.json_reader.read(last_pass):
             if any(key not in row for key in self.REPORT_ITEM_KEYS):
-                self.log.warning("Record doesn't conform to schema, skipping: %s", row)
+                self.log.warning("Test record doesn't conform to schema, skipping: %s", row)
                 continue
 
             row["label"] = self.process_label(row["label"])

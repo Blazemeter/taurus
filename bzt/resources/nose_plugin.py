@@ -15,6 +15,7 @@ else:
 
 REPORT_ITEM_KEYS = [
     "label",  # test label (test method name)
+    "suite",  # test suite name (class name)
     "file",  # file location of test
     "full_name",  # full test name (package.module.class.method)
     "status",  # test status (PASSED/FAILED/BROKEN/SKIPPED)
@@ -77,10 +78,11 @@ class BZTPlugin(Plugin):
 
         test_file, _, _ = test.address()  # file path, module name, class.method
         test_fqn = test.id()  # [package].module.class.method
-        test_method = test_fqn.split('.')[-1]
+        class_name, method_name = test_fqn.split('.')[-2:]
 
         self.test_dict["file"] = test_file
-        self.test_dict["label"] = test_method
+        self.test_dict["label"] = method_name
+        self.test_dict["suite"] = class_name
         self.test_dict["full_name"] = test_fqn
         self.test_dict["description"] = test.shortDescription()
         self.test_dict["start_time"] = time.time()

@@ -10,6 +10,7 @@ public class Sample {
     private double duration = 0;
     private String status = STATUS_PASSED;
     private String label = "";
+    private String suite = "";
     private String file = "";
     private String fullName = "";
     private String errorMessage = "";
@@ -92,6 +93,14 @@ public class Sample {
 
     public void setDescription(String description) {
         this.description = description == null ? "" : description;
+    }
+
+    public String getSuite() {
+        return suite;
+    }
+
+    public void setSuite(String suite) {
+        this.suite = suite == null ? "" : suite;
     }
 }
 

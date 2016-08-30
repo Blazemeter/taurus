@@ -36,6 +36,7 @@ public class CustomListener extends RunListener {
         started = System.currentTimeMillis();
         pendingSample = new Sample();
         pendingSample.setLabel(description.getMethodName());
+        pendingSample.setSuite(description.getClassName());
         pendingSample.setFullName(description.getClassName() + "." + description.getMethodName());
         pendingSample.setFile("");
         pendingSample.setDescription("");
