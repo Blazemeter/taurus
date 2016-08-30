@@ -321,7 +321,7 @@ class Engine(object):
             self.existing_artifact(artifact)
 
     def is_functional_mode(self):
-        return self.config.get("settings").get("aggregator") == "functional-aggregator"
+        return self.config.get(SETTINGS).get("aggregator", None) == "functional-aggregator"
 
     def __load_module(self, alias):
         """
