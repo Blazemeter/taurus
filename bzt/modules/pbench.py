@@ -34,8 +34,6 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     def __init__(self):
         super(PBenchExecutor, self).__init__()
         self.pbench = None
-        self.widget = None
-        self.start_time = None
 
     def prepare(self):
         self._prepare_pbench()

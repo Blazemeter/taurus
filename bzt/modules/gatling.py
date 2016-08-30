@@ -168,13 +168,11 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         super(GatlingExecutor, self).__init__()
         self.script = None
         self.process = None
-        self.start_time = None
         self.end_time = None
         self.retcode = None
         self.reader = None
         self.stdout_file = None
         self.stderr_file = None
-        self.widget = None
         self.simulation_started = False
         self.dir_prefix = ''
         self.launcher = None

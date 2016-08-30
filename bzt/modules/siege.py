@@ -40,8 +40,6 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider):
         self.tool_path = None
         self.scenario = None
         self.reader = None
-        self.start_time = None
-        self.widget = None
 
     def prepare(self):
         self.scenario = self.get_scenario()

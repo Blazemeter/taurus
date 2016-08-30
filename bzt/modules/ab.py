@@ -23,11 +23,12 @@ from os import path
 
 from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
+from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.six import iteritems
 from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time
 
 
-class ApacheBenchmarkExecutor(ScenarioExecutor):
+class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider):
     """
     Apache Benchmark executor module
     """
@@ -42,7 +43,6 @@ class ApacheBenchmarkExecutor(ScenarioExecutor):
         self.tool_path = None
         self.scenario = None
         self.reader = None
-        self.start_time = None
 
     def prepare(self):
         self.scenario = self.get_scenario()
@@ -57,6 +57,17 @@ class ApacheBenchmarkExecutor(ScenarioExecutor):
 
         self.__out = open(out_file_name, 'w')
         self.__err = open(self.engine.create_artifact("ab", ".err"), 'w')
+
+    def get_widget(self):
+        """
+        Add progress widget to console screen sidebar
+
+        :return:
+        """
+        if not self.widget:
+            label = "%s" % self
+            self.widget = ExecutorWidget(self, "ab: " + label.split('/')[1])
+        return self.widget
 
     def startup(self):
         args = [self.tool_path]
