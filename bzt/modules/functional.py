@@ -43,17 +43,6 @@ class FunctionalAggregator(EngineModule):
     def post_process(self):
         self.process_samples(last_pass=True)
 
-        def to_dict(value):
-            if isinstance(value, dict):
-                return {
-                    k: to_dict(v) for k, v in value.items()
-                }
-            elif isinstance(value, list):
-                return [to_dict(v) for v in value]
-            else:
-                return value
-
-        self.log.debug("Test results:\n" + pformat(to_dict(self.results_tree)))
         suites = self.results_tree.test_suites()
         cases = [case for suite in suites for case in self.results_tree.test_cases(suite)]
         self.log.info("%d tests were executed", len(cases))
@@ -75,7 +64,7 @@ class ResultsTree(BetterDict):
         return tree
 
     def test_suites(self):
-        return [key for key, value in iteritems(self)]
+        return [key for key, _ in iteritems(self)]
 
     def test_cases(self, suite_name):
         return self.get(suite_name, [])
