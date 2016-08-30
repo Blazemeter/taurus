@@ -616,13 +616,13 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.reader.report_reader.json_reader = LDJSONReaderEmul()
         self.obj.reader.report_reader.json_reader.data.extend([
             {
-                'label': name1, 'start_time': 1472049887, 'duration': 1.0, 'status': 'PASSED',
+                'label': name1, 'start_time': 1472049887, 'duration': 1.0, 'status': 'PASSED', 'suite': 'Tests',
                 'file': None, 'error_msg': None, 'error_trace': None, 'full_name': '', 'description': ''
             }, {
-                'label': name2, 'start_time': 1472049888, 'duration': 1.0, 'status': 'PASSED',
+                'label': name2, 'start_time': 1472049888, 'duration': 1.0, 'status': 'PASSED', 'suite': 'Tests',
                 'file': None, 'error_msg': None, 'error_trace': None, 'full_name': '', 'description': ''
             }, {
-                'label': name3, 'start_time': 1472049889, 'duration': 1.0, 'status': 'PASSED',
+                'label': name3, 'start_time': 1472049889, 'duration': 1.0, 'status': 'PASSED', 'suite': 'Tests',
                 'file': None, 'error_msg': None, 'error_trace': None, 'full_name': '', 'description': ''
             }])
         res = list(self.obj.reader._read())
