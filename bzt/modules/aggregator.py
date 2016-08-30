@@ -21,7 +21,6 @@ import math
 import re
 from abc import abstractmethod
 from collections import Counter
-from pprint import pformat
 
 from bzt.engine import EngineModule
 from bzt.six import iteritems
