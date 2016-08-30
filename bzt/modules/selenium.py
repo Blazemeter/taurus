@@ -131,7 +131,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def _register_reader(self, report_file):
         if self.engine.is_functional_mode():
-            reader = FuncSamplesReader(report_file, self.log)
+            reader = FuncSamplesReader(report_file, self.log, self.generated_methods)
             if isinstance(self.engine.aggregator, FunctionalAggregator):
                 self.engine.aggregator.add_underling(reader)
         else:
@@ -1021,8 +1021,8 @@ class LoadSamplesReader(ResultsReader):
 
 
 class FuncSamplesReader(FunctionalResultsReader):
-    def __init__(self, filename, parent_logger):
-        self.report_reader = SeleniumReportReader(filename, parent_logger)
+    def __init__(self, filename, parent_logger, translation_table):
+        self.report_reader = SeleniumReportReader(filename, parent_logger, translation_table)
         self.read_records = 0
 
     def read(self, last_pass=False):

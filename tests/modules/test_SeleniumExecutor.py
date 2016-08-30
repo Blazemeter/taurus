@@ -715,7 +715,7 @@ class TestReportReader(BZTestCase):
         self.assertEqual(len(items), 2)
 
     def test_func_reader(self):
-        reader = FuncSamplesReader(__dir__() + "/../selenium/report.ldjson", logging.getLogger())
+        reader = FuncSamplesReader(__dir__() + "/../selenium/report.ldjson", logging.getLogger(), None)
         items = list(reader.read())
         self.assertEqual(4, len(items))
         self.assertEqual(items[0]["label"], 'testFailure')
