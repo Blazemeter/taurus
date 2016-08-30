@@ -1,10 +1,10 @@
 from abc import abstractmethod
 
-from bzt.engine import EngineModule
+from bzt.engine import Aggregator
 from bzt.utils import BetterDict, iteritems
 
 
-class FunctionalAggregator(EngineModule):
+class FunctionalAggregator(Aggregator):
     """
     :type listeners: list[FunctionalAggregatorListener]
     :type underlings: list[FunctionalResultsReader]
@@ -48,6 +48,9 @@ class FunctionalAggregator(EngineModule):
     def post_process(self):
         self.process_readers(last_pass=True)
 
+    def is_functional(self):
+        return True
+
 
 class ResultsTree(BetterDict):
     def __init__(self):
@@ -68,7 +71,7 @@ class FunctionalResultsReader(object):
     @abstractmethod
     def read(self, last_pass=False):
         "Yields functional samples"
-        pass
+        yield
 
 
 class FunctionalAggregatorListener(object):

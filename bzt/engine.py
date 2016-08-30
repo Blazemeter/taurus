@@ -40,7 +40,6 @@ from bzt.utils import PIPE, shell_exec, get_full_path
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time
 
 SETTINGS = "settings"
-FUNCTIONAL_CONSOLIDATOR = "functional-consolidator"
 
 
 class Engine(object):
@@ -322,7 +321,7 @@ class Engine(object):
             self.existing_artifact(artifact)
 
     def is_functional_mode(self):
-        return self.config.get(SETTINGS).get("aggregator", None) == FUNCTIONAL_CONSOLIDATOR
+        return self.aggregator is not None and self.aggregator.is_functional()
 
     def __load_module(self, alias):
         """
@@ -961,6 +960,12 @@ class Service(EngineModule):
     """
 
     SERV = "services"
+
+
+class Aggregator(EngineModule):
+    @abstractmethod
+    def is_functional(self):
+        pass
 
 
 class Scenario(UserDict, object):
