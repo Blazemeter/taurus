@@ -48,9 +48,6 @@ class FunctionalAggregator(Aggregator):
     def post_process(self):
         self.process_readers(last_pass=True)
 
-    def is_functional(self):
-        return True
-
 
 class ResultsTree(BetterDict):
     def __init__(self):
