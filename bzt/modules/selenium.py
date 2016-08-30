@@ -980,6 +980,8 @@ class SeleniumReportReader(object):
             if any(key not in row for key in self.REPORT_ITEM_KEYS):
                 self.log.warning("Record doesn't conform to schema, skipping: %s", row)
                 continue
+
+            row["label"] = self.process_label(row["label"])
             yield row
 
 
@@ -998,7 +1000,7 @@ class LoadSamplesReader(ResultsReader):
 
     def extract_sample(self, item):
         tstmp = int(item["start_time"])
-        label = self.report_reader.process_label(item["label"])
+        label = item["label"]
         concur = 1
         rtm = item["duration"]
         cnn = 0
