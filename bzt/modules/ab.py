@@ -61,20 +61,17 @@ class ApacheBenchmarkExecutor(ScenarioExecutor):
     def startup(self):
         args = [self.tool_path]
         load = self.get_load()
+        load_iterations = load.iterations if load.iterations is not None else 1
+        load_concurrency = load.concurrency if load.concurrency is not None else 1
 
         if load.hold:
             hold = int(ceil(dehumanize_time(load.hold)))
             args += ['-t', str(hold)]
-        elif load.iterations:
-            args += ['-n', str(load.iterations)]
         else:
-            args += ['-n', '1']  # 1 iteration by default
+            args += ['-n', str(load_iterations * load_concurrency)]     # ab waits for total number of iterations
 
-        load_concurrency = load.concurrency if load.concurrency is not None else 1
         args += ['-c', str(load_concurrency)]
-
         args += ['-d']  # do not print 'Processed *00 requests' every 100 requests or so
-
         args += ['-g', str(self.__tsv_file_name)]  # dump stats to TSV file
 
         # add global scenario headers
@@ -116,7 +113,6 @@ class ApacheBenchmarkExecutor(ScenarioExecutor):
         ret_code = self.process.poll()
         if ret_code is None:
             return False
-        self.log.info("ab tool exit code: %s", ret_code)
         if ret_code != 0:
             raise RuntimeError("ab tool exited with non-zero code")
         return True
@@ -192,9 +188,9 @@ class TSVDataReader(ResultsReader):
             _url = self.url_label
             _concur = self.concurrency
             _tstamp = int(log_vals[1])  # timestamp - moment of request sending
-            _con_time = float(log_vals[2])  # connection time
-            _etime = float(log_vals[4])  # elapsed time
-            _latency = float(log_vals[5])  # latency (aka waittime)
+            _con_time = float(log_vals[2])/1000  # connection time
+            _etime = float(log_vals[4])/1000  # elapsed time
+            _latency = float(log_vals[5])/1000  # latency (aka waittime)
 
             yield _tstamp, _url, _concur, _etime, _con_time, _latency, _rstatus, _error, ''
 
