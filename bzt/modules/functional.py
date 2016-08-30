@@ -1,11 +1,16 @@
 from abc import abstractmethod
-from pprint import pformat
 
 from bzt.engine import EngineModule
 from bzt.utils import BetterDict, iteritems
 
 
 class FunctionalAggregator(EngineModule):
+    """
+    :type listeners: list[FunctionalAggregatorListener]
+    :type underlings: list[FunctionalResultsReader]
+    :type cumulative_results: ResultsTree
+    """
+
     def __init__(self):
         super(FunctionalAggregator, self).__init__()
         self.underlings = []
@@ -24,7 +29,7 @@ class FunctionalAggregator(EngineModule):
         # TODO: setup, read settings
         pass
 
-    def process_samples(self, last_pass=False):
+    def process_readers(self, last_pass=False):
         new_results = ResultsTree()
 
         for reader in self.underlings:
@@ -34,18 +39,14 @@ class FunctionalAggregator(EngineModule):
         self.cumulative_results.merge(new_results)
 
         for listener in self.listeners:
-            listener.new_results(new_results, self.cumulative_results)
+            listener.aggregated_results(new_results, self.cumulative_results)
 
     def check(self):
-        self.process_samples()
+        self.process_readers()
         return False
 
     def post_process(self):
-        self.process_samples(last_pass=True)
-
-        suites = self.cumulative_results.test_suites()
-        cases = [case for suite in suites for case in self.cumulative_results.test_cases(suite)]
-        self.log.info("%d tests from %d test suites were executed", len(cases), len(suites))
+        self.process_readers(last_pass=True)
 
 
 class ResultsTree(BetterDict):
@@ -72,7 +73,7 @@ class FunctionalResultsReader(object):
 
 class FunctionalAggregatorListener(object):
     @abstractmethod
-    def new_results(self, results, cumulative_results):
+    def aggregated_results(self, results, cumulative_results):
         """
         Callback that gets called every time aggregator processes new test results.
         :type results: ResultsTree

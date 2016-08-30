@@ -154,7 +154,7 @@
     "chrome-metric-reporter": {
       "class": "bzt.modules.chrome.MetricReporter"
     },
-    "functional-aggregator": {
+    "functional-consolidator": {
       "class": "bzt.modules.functional.FunctionalAggregator"
     }
   },
@@ -198,7 +198,7 @@
     },
     "func": {
       "settings": {
-        "aggregator": "functional-aggregator"
+        "aggregator": "functional-consolidator"
       }
     }
   }

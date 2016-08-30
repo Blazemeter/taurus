@@ -957,7 +957,8 @@ class LDJSONReader(object):
 
 
 class SeleniumReportReader(object):
-    REPORT_ITEM_KEYS = ["label", "status", "description", "start_time", "duration", "error_msg", "error_trace"]
+    REPORT_ITEM_KEYS = ["label", "full_name", "file", "status", "description", "start_time", "duration",
+                        "error_msg", "error_trace"]
     TEST_STATUSES = ("PASSED", "FAILED", "BROKEN", "SKIPPED")
     FAILING_TESTS_STATUSES = ("FAILED", "BROKEN")
 
