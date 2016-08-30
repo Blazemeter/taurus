@@ -10,7 +10,7 @@ class FunctionalAggregator(EngineModule):
         super(FunctionalAggregator, self).__init__()
         self.underlings = []
         self.listeners = []
-        self.results_tree = ResultsTree()
+        self.cumulative_results = ResultsTree()
 
     def add_underling(self, reader):
         assert isinstance(reader, FunctionalResultsReader)
@@ -25,16 +25,16 @@ class FunctionalAggregator(EngineModule):
         pass
 
     def process_samples(self, last_pass=False):
-        new_samples = []
+        new_results = ResultsTree()
+
         for reader in self.underlings:
             for sample in reader.read(last_pass):
-                new_samples.append(sample)
+                new_results.add_sample(sample)
 
-        new_tree = ResultsTree.from_samples(new_samples)
-        self.results_tree.merge(new_tree)
+        self.cumulative_results.merge(new_results)
 
         for listener in self.listeners:
-            listener.new_results(new_tree, self.results_tree)
+            listener.new_results(new_results, self.cumulative_results)
 
     def check(self):
         self.process_samples()
@@ -43,9 +43,9 @@ class FunctionalAggregator(EngineModule):
     def post_process(self):
         self.process_samples(last_pass=True)
 
-        suites = self.results_tree.test_suites()
-        cases = [case for suite in suites for case in self.results_tree.test_cases(suite)]
-        self.log.info("%d tests were executed", len(cases))
+        suites = self.cumulative_results.test_suites()
+        cases = [case for suite in suites for case in self.cumulative_results.test_cases(suite)]
+        self.log.info("%d tests from %d test suites were executed", len(cases), len(suites))
 
 
 class ResultsTree(BetterDict):
@@ -55,13 +55,6 @@ class ResultsTree(BetterDict):
     def add_sample(self, sample):
         test_suite = sample["full_name"].split(".")[-2]
         self.get(test_suite, []).append(sample)
-
-    @classmethod
-    def from_samples(cls, samples):
-        tree = cls()
-        for sample in samples:
-            tree.add_sample(sample)
-        return tree
 
     def test_suites(self):
         return [key for key, _ in iteritems(self)]
