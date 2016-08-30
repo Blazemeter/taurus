@@ -10,7 +10,7 @@
          class="PWE\Modules\SimpleWiki\SimpleWiki" wiki_dir="docs" single_page="Installation"
     />
 
-    <url link="docs" accept="1" menu="1" title="User Manual"
+    <url link="docs" accept="1" menu="1" title="User Manual" files_base="."
          class="PWE\Modules\SimpleWiki\SimpleWiki" wiki_dir="docs" img_path_prepend="/dat/docs/img/"
     />
 

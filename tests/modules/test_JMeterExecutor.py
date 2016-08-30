@@ -1144,6 +1144,27 @@ class TestJMeterExecutor(BZTestCase):
             self.assertNotEqual(orig, modified)
             self.assertEqual(os.path.basename(orig), os.path.basename(modified))
 
+    def test_jmx_paths_remote_prov(self):
+        "Ensures that file paths in JMX are modified during remote prov"
+        script = __dir__() + "/../jmeter/jmx/int_threads.jmx"
+        self.obj.engine.config.merge({
+            'execution': {
+                'iterations': 1,
+                'concurrency': 3,
+                'scenario': {
+                    "script": script,
+                }
+            },
+            'provisioning': 'test',
+        })
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
+        prepared = JMX(self.obj.modified_jmx)
+        tnum_sel = ".//*[@name='ThreadGroup.num_threads']"
+        prepared_threads = prepared.tree.xpath(tnum_sel)
+        self.assertEqual(1, int(prepared_threads[0].text))
+        self.assertEqual(2, int(prepared_threads[1].text))
+
     def test_request_logic_if(self):
         self.obj.engine.config.merge({
             'execution': {
