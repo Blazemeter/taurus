@@ -65,7 +65,7 @@ class BasicSimulation extends Simulation {
 
 If your scenario don't contains `script` parameter and contains at least one element of `requests` Taurus will build scala script for test. This script will be placed in `[artifact-dir](ConfigSyntax/#Top-Level-Settings)`: you can modify it and use with Gatling later.
 
-Following features are supported: `default-address`, `requests`, `headers` on scenario and request levels, `body` of request, `think-time` and params that described in `[Load Configuration](#Load Configuration)`.
+Following features are supported: `default-address`, `requests`, `headers` on scenario and request levels, `body` of request, `think-time` and params that described in `[Load Configuration](#Load-Configuration)`.
 Some asserts can be added to request. Assert describes templates and area for search (`contains` and `subject` accordingly), regexp and inverse marks. You can look for particular response code in `http-code` part or for string and regular expression in `body` of request.
  Next yaml example shows the way these features can be used and ready to conversion to scala automatically:
 
@@ -122,14 +122,22 @@ scenarios:
  -  `version`: "2.1.7"
     Gatling version, 2.1.7 by default
 
- - `properties`: dictionary for tuning of gatling tool behaviour (see list of available parameters in gatling documentation). Following example shows setting output buffer size:
+ - `properties`: dictionary for tuning of gatling tool behaviour (see list of available parameters in gatling documentation) and sending your own variables into Scala program:
 
 ```yaml
 ---
 modules:
   gatling:
     properties:
-      gatling.data.file.bufferSize: 512  # output buffer size, 256 bytes by default
+      gatling.data.file.bufferSize: 512 # output buffer size, 256 bytes by default
+      your_variable: 1024               # user variable
+```
+You can read values of variables in Scala code similar to `[Load Configuration](#Load-Configuration)` style:
+
+```scala
+class BasicSimulation extends Simulation {
+  val your_scala_variable = Integer.getInteger("your_variable", 0).toInt
+}
 ```
 
 ## External Java Libraries Usage
