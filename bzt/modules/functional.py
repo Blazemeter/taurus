@@ -12,7 +12,7 @@ class FunctionalAggregator(Aggregator):
     """
 
     def __init__(self):
-        super(FunctionalAggregator, self).__init__()
+        super(FunctionalAggregator, self).__init__(is_functional=True)
         self.underlings = []
         self.listeners = []
         self.cumulative_results = ResultsTree()

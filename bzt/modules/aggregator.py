@@ -551,7 +551,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
 
     # TODO: switch to underling-count-based completeness criteria
     def __init__(self):
-        Aggregator.__init__(self)
+        Aggregator.__init__(self, is_functional=False)
         ResultsProvider.__init__(self)
         self.generalize_labels = False
         self.ignored_labels = []
@@ -670,9 +670,6 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
             point.recalculate()
             yield point
 
-    def is_functional(self):
-        return False
-
 
 class NoneAggregator(Aggregator, ResultsProvider):
     """
@@ -680,11 +677,8 @@ class NoneAggregator(Aggregator, ResultsProvider):
     """
 
     def __init__(self):
-        Aggregator.__init__(self)
+        Aggregator.__init__(self, is_functional=False)
         ResultsProvider.__init__(self)
-
-    def is_functional(self):
-        return False
 
     def _calculate_datapoints(self, final_pass=False):
         pass

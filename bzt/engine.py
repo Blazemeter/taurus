@@ -321,7 +321,7 @@ class Engine(object):
             self.existing_artifact(artifact)
 
     def is_functional_mode(self):
-        return self.aggregator is not None and self.aggregator.is_functional()
+        return self.aggregator is not None and self.aggregator.is_functional
 
     def __load_module(self, alias):
         """
@@ -963,9 +963,9 @@ class Service(EngineModule):
 
 
 class Aggregator(EngineModule):
-    @abstractmethod
-    def is_functional(self):
-        pass
+    def __init__(self, is_functional):
+        super(Aggregator, self).__init__()
+        self.is_functional = is_functional
 
 
 class Scenario(UserDict, object):
