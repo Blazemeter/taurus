@@ -10,7 +10,7 @@ from logging import Handler
 
 from bzt.engine import Engine, Configuration, FileLister
 from bzt.engine import Provisioning, ScenarioExecutor, Reporter
-from bzt.modules.aggregator import ResultsReader, AggregatorListener
+from bzt.modules.aggregator import ResultsReader, AggregatorListener, FunctionalResultsReader
 from bzt.six import u
 from bzt.utils import load_class
 from tests import random_sample
@@ -178,6 +178,16 @@ class MockReader(ResultsReader, AggregatorListener):
                 raise AssertionError("TS sequence wrong: %s>=%s" % (self.results[-1]["ts"], data["ts"]))
         logging.info("Data: %s", data)
         self.results.append(data)
+
+
+class MockFunctionalReader(FunctionalResultsReader):
+    def __init__(self):
+        super(MockFunctionalReader, self).__init__()
+        self.data = []
+
+    def read(self, last_pass=False):
+        while self.data:
+            yield self.data.pop(0)
 
 
 # noinspection PyUnusedLocal
