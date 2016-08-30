@@ -36,10 +36,10 @@ class FunctionalAggregator(Aggregator):
             for sample in reader.read(last_pass):
                 new_results.add_sample(sample)
 
-        self.cumulative_results.merge(new_results)
-
-        for listener in self.listeners:
-            listener.aggregated_results(new_results, self.cumulative_results)
+        if new_results:
+            self.cumulative_results.merge(new_results)
+            for listener in self.listeners:
+                listener.aggregated_results(new_results, self.cumulative_results)
 
     def check(self):
         self.process_readers()
