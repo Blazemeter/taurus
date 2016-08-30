@@ -155,7 +155,7 @@
       "class": "bzt.modules.chrome.MetricReporter"
     },
     "functional-aggregator": {
-      "class": "bzt.modules.aggregator.FunctionalAggregator"
+      "class": "bzt.modules.functional.FunctionalAggregator"
     }
   },
   "settings": {

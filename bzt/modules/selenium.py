@@ -25,8 +25,9 @@ from abc import abstractmethod
 from urwid import Text, Pile
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
-from bzt.modules.aggregator import ConsolidatingAggregator, FunctionalAggregator, ResultsReader, FunctionalResultsReader
+from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
+from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator
 from bzt.six import string_types, text_type, etree, parse
 from bzt.utils import RequiredTool, shell_exec, shutdown_process, JavaVM, TclLibrary, get_files_recursive
 from bzt.utils import dehumanize_time, MirrorsManager, is_windows, BetterDict, get_full_path

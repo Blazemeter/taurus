@@ -1,10 +1,10 @@
-from bzt.modules.aggregator import FunctionalAggregator
+from bzt.modules.functional import FunctionalAggregator
 
 from tests import BZTestCase
 from tests.mocks import MockFunctionalReader
 
 
-class TestConsolidatingAggregator(BZTestCase):
+class TestFunctionalAggregator(BZTestCase):
     def get_reader(self, offset=0):
         mock = MockFunctionalReader()
         mock.data = [
@@ -33,3 +33,4 @@ class TestConsolidatingAggregator(BZTestCase):
         self.assertEqual(len(tree.get("Tests1")), 8)
         self.assertIn("Tests2", tree)
         self.assertEqual(len(tree.get("Tests2")), 3)
+        obj.post_process()

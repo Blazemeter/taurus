@@ -10,7 +10,8 @@ from logging import Handler
 
 from bzt.engine import Engine, Configuration, FileLister
 from bzt.engine import Provisioning, ScenarioExecutor, Reporter
-from bzt.modules.aggregator import ResultsReader, AggregatorListener, FunctionalResultsReader
+from bzt.modules.aggregator import ResultsReader, AggregatorListener
+from bzt.modules.functional import FunctionalResultsReader
 from bzt.six import u
 from bzt.utils import load_class
 from tests import random_sample
