@@ -35,7 +35,7 @@ from cssselect import GenericTranslator
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.jmx import JMX
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
-from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader
+from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader, FunctionalSample
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.provisioning import Local
 from bzt.six import iteritems, string_types, StringIO, etree, binary_type
@@ -919,15 +919,11 @@ class FuncJTLReader(FunctionalResultsReader):
                 status = "FAILED"
                 error_msg = row["responseMessage"]
 
-            entry = {
-                "label": label,
-                "start_time": tstmp,
-                "suite": suite_name,
-                "duration": elapsed,
-                "status": status,
-                "error_message": error_msg,
-            }
-            yield entry
+            sample = FunctionalSample(test_case=label, test_suite=suite_name, status=status,
+                                      start_time=tstmp, duration=elapsed,
+                                      error_msg=error_msg, error_trace=None,
+                                      extras={})
+            yield sample
 
 
 class IncrementalCSVReader(object):

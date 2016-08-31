@@ -38,8 +38,6 @@ public class CustomListener extends RunListener {
         pendingSample.setLabel(description.getMethodName());
         pendingSample.setSuite(description.getClassName());
         pendingSample.setFullName(description.getClassName() + "." + description.getMethodName());
-        pendingSample.setFile("");
-        pendingSample.setDescription("");
         testCount += 1;
     }
 

@@ -27,7 +27,7 @@ from urwid import Text, Pile
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
-from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator
+from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator, FunctionalSample
 from bzt.six import string_types, text_type, etree, parse
 from bzt.utils import RequiredTool, shell_exec, shutdown_process, JavaVM, TclLibrary, get_files_recursive
 from bzt.utils import dehumanize_time, MirrorsManager, is_windows, BetterDict, get_full_path
@@ -957,8 +957,8 @@ class LDJSONReader(object):
 
 
 class SeleniumReportReader(object):
-    REPORT_ITEM_KEYS = ["label", "suite", "full_name", "file", "status", "description", "start_time", "duration",
-                        "error_msg", "error_trace"]
+    REPORT_ITEM_KEYS = ["test_case", "test_suite", "status", "start_time", "duration",
+                        "error_msg", "error_trace", "extras"]
     TEST_STATUSES = ("PASSED", "FAILED", "BROKEN", "SKIPPED")
     FAILING_TESTS_STATUSES = ("FAILED", "BROKEN")
 
@@ -980,11 +980,14 @@ class SeleniumReportReader(object):
 
     def read(self, last_pass=False):
         for row in self.json_reader.read(last_pass):
-            if any(key not in row for key in self.REPORT_ITEM_KEYS):
-                self.log.warning("Test record doesn't conform to schema, skipping: %s", row)
-                continue
+            #if any(key not in row for key in self.REPORT_ITEM_KEYS):
+            for key in self.REPORT_ITEM_KEYS:
+                if key not in row:
+                    self.log.debug("Unexpected test record: %s", row)
+                    self.log.warning("Test record doesn't conform to schema, skipping, %s", key)
+                    continue
 
-            row["label"] = self.process_label(row["label"])
+            row["test_case"] = self.process_label(row["test_case"])
             yield row
 
 
@@ -1003,7 +1006,7 @@ class LoadSamplesReader(ResultsReader):
 
     def extract_sample(self, item):
         tstmp = int(item["start_time"])
-        label = item["label"]
+        label = item["test_case"]
         concur = 1
         rtm = item["duration"]
         cnn = 0
@@ -1028,4 +1031,8 @@ class FuncSamplesReader(FunctionalResultsReader):
     def read(self, last_pass=False):
         for row in self.report_reader.read(last_pass):
             self.read_records += 1
-            yield row
+            sample = FunctionalSample(test_case=row["test_case"], test_suite=row["test_suite"],
+                                      status=row["status"], start_time=row["start_time"], duration=row["duration"],
+                                      error_msg=row["error_msg"], error_trace=row["error_trace"],
+                                      extras=row.get("extras", {}))
+            yield sample

@@ -1,7 +1,9 @@
+import os
 from abc import abstractmethod
+from collections import namedtuple
 
 from bzt.engine import Aggregator
-from bzt.utils import BetterDict, iteritems
+from bzt.utils import BetterDict, iteritems, to_json
 
 
 class FunctionalAggregator(Aggregator):
@@ -34,8 +36,6 @@ class FunctionalAggregator(Aggregator):
 
         for reader in self.underlings:
             for sample in reader.read(last_pass):
-                assert "label" in sample
-                assert "suite" in sample
                 new_results.add_sample(sample)
 
         if new_results:
@@ -49,6 +49,22 @@ class FunctionalAggregator(Aggregator):
 
     def post_process(self):
         self.process_readers(last_pass=True)
+        suites = self.cumulative_results.test_suites()
+        cases = [case for suite in suites for case in self.cumulative_results.test_cases(suite)]
+        self.log.info("Executed %d tests in %d test suites", len(cases), len(suites))
+        with open(os.path.join(self.engine.artifacts_dir, 'cumulative.json'), 'w') as fds:
+            fds.write(to_json(self.cumulative_results))
+
+
+FunctionalSample = namedtuple('Sample', 'test_case,test_suite,status,start_time,duration,error_msg,error_trace,extras')
+# test_case: str - name of test case (method)
+# test_suite: str - name of test suite (class)
+# status: str - test status (PASSED / FAILED / BROKEN / SKIPPED)
+# start_time: float - epoch
+# duration: float - test duration (in seconds)
+# error_msg: str - one-line error message
+# error_trace: str - error stacktrace
+# extras: dict - additional test info (description, file, full_name)
 
 
 class ResultsTree(BetterDict):
@@ -56,7 +72,10 @@ class ResultsTree(BetterDict):
         super(ResultsTree, self).__init__()
 
     def add_sample(self, sample):
-        test_suite = sample["suite"]
+        """
+        :type sample: FunctionalSample
+        """
+        test_suite = sample.test_suite
         self.get(test_suite, []).append(sample)
 
     def test_suites(self):
