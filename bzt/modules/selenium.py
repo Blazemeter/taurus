@@ -132,7 +132,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     def prepare(self):
         self.set_virtual_display()
         self.scenario = self.get_scenario()
-        self._verify_script()
+        self.__setup_script()
 
         self.runner_working_dir = self.engine.create_artifact("classes", "")
         self.report_file = self.engine.create_artifact("selenium_tests_report", ".ldjson")
@@ -145,7 +145,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
-    def _verify_script(self):
+    def __setup_script(self):
         if Scenario.SCRIPT in self.scenario and self.scenario.get(Scenario.SCRIPT):
             self.script = self.scenario.get(Scenario.SCRIPT)
         elif "requests" in self.scenario:
@@ -256,7 +256,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def resource_files(self):
         self.scenario = self.get_scenario()
-        self._verify_script()
+        self.__setup_script()
         script_path = self.get_script_path()
         resources = []
         if script_path is not None:
@@ -269,7 +269,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         nose_test = SeleniumScriptBuilder(self.scenario, self.log, wdlog)
         if self.virtual_display:
             nose_test.window_size = self.virtual_display.size
-        self.generated_methods.merge(nose_test.gen_test_case())
+        self.generated_methods.merge(nose_test.build_source_code())
         nose_test.save(filename)
         return filename
 
@@ -681,7 +681,63 @@ class TaurusNosePlugin(RequiredTool):
         raise NotImplementedError()
 
 
-class NoseTest(object):
+class PythonGenerator(object):
+    IMPORTS = ''
+
+    def __init__(self, scenario, parent_logger):
+        self.root = etree.Element("PythonCode")
+        self.tree = etree.ElementTree(self.root)
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.scenario = scenario
+
+    def add_imports(self):
+        imports = etree.Element("imports")
+        imports.text = self.IMPORTS
+        return imports
+
+    @abstractmethod
+    def build_source_code(self):
+        pass
+
+    @staticmethod
+    def gen_class_definition(class_name, inherits_from, indent="0"):
+        def_tmpl = "class {class_name}({inherits_from}):"
+        class_def_element = etree.Element("class_definition", indent=indent)
+        class_def_element.text = def_tmpl.format(class_name=class_name, inherits_from="".join(inherits_from))
+        return class_def_element
+
+    @staticmethod
+    def gen_method_definition(method_name, params, indent="4"):
+        def_tmpl = "def {method_name}({params}):"
+        method_def_element = etree.Element("method_definition", indent=indent)
+        method_def_element.text = def_tmpl.format(method_name=method_name, params=",".join(params))
+        return method_def_element
+
+    @staticmethod
+    def gen_decorator_statement(decorator_name, indent="4"):
+        def_tmpl = "@{decorator_name}"
+        decorator_element = etree.Element("decorator_statement", indent=indent)
+        decorator_element.text = def_tmpl.format(decorator_name=decorator_name)
+        return decorator_element
+
+    @staticmethod
+    def gen_statement(statement, indent="8"):
+        statement_elem = etree.Element("statement", indent=indent)
+        statement_elem.text = statement
+        return statement_elem
+
+    def gen_comment(self, comment, indent="8"):
+        return self.gen_statement("# %s" % comment, indent)
+
+    def save(self, filename):
+        with open(filename, 'wt') as fds:
+            for child in self.root.iter():
+                if child.text is not None:
+                    indent = int(child.get('indent', "0"))
+                    fds.write(" " * indent + child.text + "\n")
+
+
+class SeleniumScriptBuilder(PythonGenerator):
     IMPORTS = """import unittest
 import re
 from time import sleep
@@ -690,49 +746,13 @@ from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import NoAlertPresentException
 """
 
-    def __init__(self):
-        self.root = etree.Element("NoseTest")
-        self.tree = etree.ElementTree(self.root)
-
-    def add_imports(self):
-        imports = etree.Element("imports")
-        imports.text = NoseTest.IMPORTS
-        return imports
-
-    def gen_class_definition(self, class_name, inherits_from, indent="0"):
-        def_tmpl = "class {class_name}({inherits_from}):"
-        class_def_element = etree.Element("class_definition", indent=indent)
-        class_def_element.text = def_tmpl.format(class_name=class_name, inherits_from="".join(inherits_from))
-        return class_def_element
-
-    def gen_method_definition(self, method_name, params, indent="4"):
-        def_tmpl = "def {method_name}({params}):"
-        method_def_element = etree.Element("method_definition", indent=indent)
-        method_def_element.text = def_tmpl.format(method_name=method_name, params=",".join(params))
-        return method_def_element
-
-    def gen_decorator_statement(self, decorator_name, indent="4"):
-        def_tmpl = "@{decorator_name}"
-        decorator_element = etree.Element("decorator_statement", indent=indent)
-        decorator_element.text = def_tmpl.format(decorator_name=decorator_name)
-        return decorator_element
-
-    def gen_method_statement(self, statement, indent="8"):
-        statement_elem = etree.Element("statement", indent=indent)
-        statement_elem.text = statement
-        return statement_elem
-
-
-class SeleniumScriptBuilder(NoseTest):
     def __init__(self, scenario, parent_logger, wdlog):
-        super(SeleniumScriptBuilder, self).__init__()
+        super(SeleniumScriptBuilder, self).__init__(scenario, parent_logger)
         self.window_size = None
-        self.log = parent_logger.getChild(self.__class__.__name__)
-        self.scenario = scenario
         self.wdlog = wdlog
 
-    def gen_test_case(self):
-        self.log.debug("Generating Test Case test method")
+    def build_source_code(self):
+        self.log.debug("Generating Test Case test methods")
         imports = self.add_imports()
         self.root.append(imports)
         test_class = self.gen_class_definition("TestRequests", ["unittest.TestCase"])
@@ -769,11 +789,11 @@ class SeleniumScriptBuilder(NoseTest):
             if req.timeout is not None:
                 test_method.append(self.gen_impl_wait(req.timeout))
 
-            test_method.append(self.gen_method_statement("self.driver.get('%s')" % url))
+            test_method.append(self.gen_statement("self.driver.get('%s')" % url))
             think_time = req.think_time if req.think_time else self.scenario.get("think-time", None)
 
             if think_time is not None:
-                test_method.append(self.gen_method_statement("sleep(%s)" % dehumanize_time(think_time)))
+                test_method.append(self.gen_statement("sleep(%s)" % dehumanize_time(think_time)))
 
             if "assert" in req.config:
                 test_method.append(self.__gen_assert_page())
@@ -799,29 +819,26 @@ class SeleniumScriptBuilder(NoseTest):
         setup_method_def.append(self.gen_method_definition("setUpClass", ["cls"]))
 
         if browser == 'Firefox':
-            setup_method_def.append(self.gen_method_statement("profile = webdriver.FirefoxProfile()"))
+            setup_method_def.append(self.gen_statement("profile = webdriver.FirefoxProfile()"))
             statement = "profile.set_preference('webdriver.log.file', %s)" % repr(self.wdlog)
-            log_set = self.gen_method_statement(statement)
+            log_set = self.gen_statement(statement)
             setup_method_def.append(log_set)
-            setup_method_def.append(self.gen_method_statement("cls.driver = webdriver.Firefox(profile)"))
+            setup_method_def.append(self.gen_statement("cls.driver = webdriver.Firefox(profile)"))
         else:
-            setup_method_def.append(self.gen_method_statement("cls.driver = webdriver.%s()" % browser))
+            setup_method_def.append(self.gen_statement("cls.driver = webdriver.%s()" % browser))
 
         scenario_timeout = self.scenario.get("timeout", 30)
         setup_method_def.append(self.gen_impl_wait(scenario_timeout, target='cls'))
         if self.window_size:
-            statement = self.gen_method_statement("cls.driver.set_window_size(%s, %s)" % self.window_size)
+            statement = self.gen_statement("cls.driver.set_window_size(%s, %s)" % self.window_size)
             setup_method_def.append(statement)
         else:
-            setup_method_def.append(self.gen_method_statement("cls.driver.maximize_window()"))
+            setup_method_def.append(self.gen_statement("cls.driver.maximize_window()"))
         setup_method_def.append(self.__gen_new_line())
         return setup_method_def
 
     def gen_impl_wait(self, timeout, target='self'):
-        return self.gen_method_statement("%s.driver.implicitly_wait(%s)" % (target, dehumanize_time(timeout)))
-
-    def gen_comment(self, comment):
-        return self.gen_method_statement("# %s" % comment)
+        return self.gen_statement("%s.driver.implicitly_wait(%s)" % (target, dehumanize_time(timeout)))
 
     def gen_test_method(self, name):
         self.log.debug("Generating test method %s", name)
@@ -832,7 +849,7 @@ class SeleniumScriptBuilder(NoseTest):
         self.log.debug("Generating tearDown test method")
         tear_down_method_def = self.gen_decorator_statement('classmethod')
         tear_down_method_def.append(self.gen_method_definition("tearDownClass", ["cls"]))
-        tear_down_method_def.append(self.gen_method_statement("cls.driver.quit()"))
+        tear_down_method_def.append(self.gen_statement("cls.driver.quit()"))
         tear_down_method_def.append(self.__gen_new_line())
         return tear_down_method_def
 
@@ -852,26 +869,19 @@ class SeleniumScriptBuilder(NoseTest):
 
             if regexp:
                 assert_method = "self.assertEqual" if reverse else "self.assertNotEqual"
-                assertion_elements.append(self.gen_method_statement('re_pattern = re.compile("%s")' % val))
+                assertion_elements.append(self.gen_statement('re_pattern = re.compile("%s")' % val))
                 method = '%s(0, len(re.findall(re_pattern, body)))' % assert_method
-                assertion_elements.append(self.gen_method_statement(method))
+                assertion_elements.append(self.gen_statement(method))
             else:
                 assert_method = "self.assertNotIn" if reverse else "self.assertIn"
-                assertion_elements.append(self.gen_method_statement('%s("%s", body)' % (assert_method, val)))
+                assertion_elements.append(self.gen_statement('%s("%s", body)' % (assert_method, val)))
         return assertion_elements
 
     def __gen_new_line(self, indent="8"):
-        return self.gen_method_statement("", indent=indent)
+        return self.gen_statement("", indent=indent)
 
     def __gen_assert_page(self):
-        return self.gen_method_statement("body = self.driver.page_source")
-
-    def save(self, filename):
-        with open(filename, 'wt') as fds:
-            for child in self.root.iter():
-                if child.text is not None:
-                    indent = int(child.get('indent', "0"))
-                    fds.write(" " * indent + child.text + "\n")
+        return self.gen_statement("body = self.driver.page_source")
 
 
 class JUnitMirrorsManager(MirrorsManager):

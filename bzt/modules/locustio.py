@@ -23,18 +23,19 @@ import time
 from imp import find_module
 from subprocess import STDOUT
 
-from bzt.engine import ScenarioExecutor, FileLister, Scenario
+from bzt.engine import ScenarioExecutor, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsProvider, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.jmeter import JTLReader
 from bzt.six import PY3, iteritems
 from bzt.utils import shutdown_process, RequiredTool, BetterDict
+from selenium import PythonGenerator
 
 
 class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     def __init__(self):
         super(LocustIOExecutor, self).__init__()
-        self.locustfile = None
+        self.script = None
         self.kpi_jtl = None
         self.process = None
         self.__out = None
@@ -42,19 +43,21 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.slaves_ldjson = None
         self.expected_slaves = 0
         self.reader = None
+        self.scenario = None
+        self.script = None
 
     def prepare(self):
         self.__check_installed()
-        self.locustfile = self.get_locust_file()
-        if not self.locustfile or not os.path.exists(self.locustfile):
-            raise ValueError("Locust file not found: %s" % self.locustfile)
+        self.scenario = self.get_scenario()
+        self.__setup_script()
 
         self.is_master = self.execution.get("master", self.is_master)
         if self.is_master:
-            slaves = self.execution.get("slaves", ValueError("Slaves count required when starting in master mode"))
+            count_error = ValueError("Slaves count required when starting in master mode")
+            slaves = self.execution.get("slaves", count_error)
             self.expected_slaves = int(slaves)
 
-        self.engine.existing_artifact(self.locustfile)
+        self.engine.existing_artifact(self.script)
 
         if self.is_master:
             self.slaves_ldjson = self.engine.create_artifact("locust-slaves", ".ldjson")
@@ -87,7 +90,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if os.getenv("PYTHONPATH"):
             env['PYTHONPATH'] = os.getenv("PYTHONPATH") + os.pathsep + env['PYTHONPATH']
 
-        args = [sys.executable, os.path.realpath(wrapper), '-f', os.path.realpath(self.locustfile)]
+        args = [sys.executable, os.path.realpath(wrapper), '-f', os.path.realpath(self.script)]
         args += ['--logfile=%s' % self.engine.create_artifact("locust", ".log")]
         args += ["--no-web", "--only-summary", ]
         args += ["--clients=%d" % load.concurrency, "--hatch-rate=%d" % math.ceil(hatch), ]
@@ -114,11 +117,8 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :rtype: ExecutorWidget
         """
         if not self.widget:
-            if self.locustfile is not None:
-                label = "Script: %s" % os.path.basename(self.locustfile)
-            else:
-                label = None
-            self.widget = ExecutorWidget(self, label)
+            label = "%s" % self
+            self.widget = ExecutorWidget(self, "Locust.io: " + label.split('/')[1])
         return self.widget
 
     def check(self):
@@ -134,16 +134,23 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         return False
 
     def resource_files(self):
-        if not self.locustfile:
-            self.locustfile = self.get_locust_file()
+        self.__setup_script()
+        return [self.script]
 
-        return [self.locustfile]
+    def __tests_from_requests(self):
+        filename = self.engine.create_artifact("test_requests", ".py")
+        locust_test = LocustIOScriptBuilder(self.scenario, self.log)
+        locust_test.build_source_code()
+        locust_test.save(filename)
+        return filename
 
-    def get_locust_file(self):
-        scenario = self.get_scenario()
-        locustfile = scenario.get(Scenario.SCRIPT, ValueError("Please specify locusfile in 'script' option"))
-        locustfile = self.engine.find_file(locustfile)
-        return locustfile
+    def __setup_script(self):
+        self.script = self.get_script_path()
+        if not self.script:
+            if "requests" in self.scenario:
+                self.script = self.__tests_from_requests()
+            else:
+                raise ValueError("Nothing to test, no requests were provided in scenario")
 
     def shutdown(self):
         try:
@@ -174,7 +181,7 @@ class LocustIO(RequiredTool):
         return True
 
     def install(self):
-        raise NotImplementedError()
+        raise NotImplementedError("LocustIO auto installation isn't implemented, get it manually")
 
 
 class SlavesReader(ResultsProvider):
@@ -273,3 +280,31 @@ class SlavesReader(ResultsProvider):
         point[DataPoint.CURRENT][''] = overall
         point.recalculate()
         return point
+
+
+class LocustIOScriptBuilder(PythonGenerator):
+    IMPORTS = """from locust import HttpLocust, TaskSet, task
+"""
+
+    def build_source_code(self):
+        self.log.debug("Generating Python script for LocustIO")
+        imports = self.add_imports()
+        self.root.append(imports)
+        header_comment = self.gen_comment("This script was generated by Taurus", "0")
+        scenario_class = self.gen_class_definition("UserBehaviour", ["TaskSet"])
+        swarm_class = self.gen_class_definition("GeneratedSwarm", ["HttpLocust"])
+        self.root.append(header_comment)
+        self.root.append(scenario_class)
+        self.root.append(swarm_class)
+
+        swarm_class.append(self.gen_statement('task_set = UserBehaviour', "4"))
+
+        swarm_class.append(self.gen_statement('min_wait = 1', "4"))  # FIXME:    read think-time from scenario
+        swarm_class.append(self.gen_statement('max_wait = 1', "4"))  #           and/or request
+
+        requests = self.scenario.get_requests()
+        scenario_class.append(self.gen_decorator_statement('task(1)'))
+        task = self.gen_method_definition("generated_task", ['self'])
+        scenario_class.append(task)
+        for req in requests:
+            task.append(self.gen_statement('self.client.get("%s")' % req.url))
