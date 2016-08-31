@@ -616,14 +616,14 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.reader.report_reader.json_reader = LDJSONReaderEmul()
         self.obj.reader.report_reader.json_reader.data.extend([
             {
-                'label': name1, 'start_time': 1472049887, 'duration': 1.0, 'status': 'PASSED', 'suite': 'Tests',
-                'file': None, 'error_msg': None, 'error_trace': None, 'full_name': '', 'description': ''
+                'test_case': name1, 'start_time': 1472049887, 'duration': 1.0, 'status': 'PASSED',
+                'test_suite': 'Tests', 'error_msg': None, 'error_trace': None, 'extras': None,
             }, {
-                'label': name2, 'start_time': 1472049888, 'duration': 1.0, 'status': 'PASSED', 'suite': 'Tests',
-                'file': None, 'error_msg': None, 'error_trace': None, 'full_name': '', 'description': ''
+                'test_case': name2, 'start_time': 1472049888, 'duration': 1.0, 'status': 'PASSED',
+                'test_suite': 'Tests', 'error_msg': None, 'error_trace': None, 'extras': None,
             }, {
-                'label': name3, 'start_time': 1472049889, 'duration': 1.0, 'status': 'PASSED', 'suite': 'Tests',
-                'file': None, 'error_msg': None, 'error_trace': None, 'full_name': '', 'description': ''
+                'test_case': name3, 'start_time': 1472049889, 'duration': 1.0, 'status': 'PASSED',
+                'test_suite': 'Tests', 'error_msg': None, 'error_trace': None, 'extras': None,
             }])
         res = list(self.obj.reader._read())
         self.assertIn(url1, res[0])
@@ -718,9 +718,9 @@ class TestReportReader(BZTestCase):
         reader = FuncSamplesReader(__dir__() + "/../selenium/report.ldjson", logging.getLogger(), None)
         items = list(reader.read())
         self.assertEqual(4, len(items))
-        self.assertEqual(items[0]["label"], 'testFailure')
-        self.assertEqual(items[0]["status"], "FAILED")
-        self.assertEqual(items[1]["label"], 'testBroken')
-        self.assertEqual(items[1]["status"], "BROKEN")
-        self.assertEqual(items[2]["label"], 'testSuccess')
-        self.assertEqual(items[2]["status"], "PASSED")
+        self.assertEqual(items[0].test_case, 'testFailure')
+        self.assertEqual(items[0].status, "FAILED")
+        self.assertEqual(items[1].test_case, 'testBroken')
+        self.assertEqual(items[1].status, "BROKEN")
+        self.assertEqual(items[2].test_case, 'testSuccess')
+        self.assertEqual(items[2].status, "PASSED")

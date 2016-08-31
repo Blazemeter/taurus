@@ -1,7 +1,7 @@
-from bzt.modules.functional import FunctionalAggregator, FunctionalAggregatorListener
+from bzt.modules.functional import FunctionalAggregator, FunctionalAggregatorListener, FunctionalSample
 
 from tests import BZTestCase
-from tests.mocks import MockFunctionalReader
+from tests.mocks import MockFunctionalReader, EngineEmul
 
 
 class MockListener(FunctionalAggregatorListener):
@@ -16,23 +16,35 @@ class TestFunctionalAggregator(BZTestCase):
     def get_reader(self, offset=0):
         mock = MockFunctionalReader()
         mock.data = [
-            {"start_time": 1 + offset, "label": "test1", "suite": "Tests1", "status": "PASSED"},
-            {"start_time": 2 + offset, "label": "test2", "suite": "Tests1", "status": "FAILED"},
-            {"start_time": 2 + offset, "label": "test3", "suite": "Tests2", "status": "BROKEN"},
-            {"start_time": 3 + offset, "label": "test1", "suite": "Tests1", "status": "PASSED"},
-            {"start_time": 3 + offset, "label": "test3", "suite": "Tests2", "status": "SKIPPED"},
-            {"start_time": 4 + offset, "label": "test2", "suite": "Tests1", "status": "PASSED"},
-            {"start_time": 4 + offset, "label": "test1", "suite": "Tests1", "status": "BROKEN"},
-            {"start_time": 6 + offset, "label": "test1", "suite": "Tests1", "status": "SKIPPED"},
-            {"start_time": 6 + offset, "label": "test3", "suite": "Tests2", "status": "FAILED"},
-            {"start_time": 6 + offset, "label": "test2", "suite": "Tests1", "status": "PASSED"},
-            {"start_time": 5 + offset, "label": "test1", "suite": "Tests1", "status": "BROKEN"},
+            FunctionalSample(test_case="test1", test_suite="Tests1", status="PASSED", start_time=1, duration=1,
+                             error_msg=None, error_trace=None, extras=None),
+            FunctionalSample(test_case="test2", test_suite="Tests1", status="BROKEN", start_time=2, duration=1,
+                             error_msg="Something broke", error_trace=None, extras=None),
+            FunctionalSample(test_case="test3", test_suite="Tests2", status="PASSED", start_time=2, duration=1,
+                             error_msg=None, error_trace=None, extras=None),
+            FunctionalSample(test_case="test2", test_suite="Tests1", status="FAILED", start_time=3, duration=1,
+                             error_msg="Something failed", error_trace=None, extras=None),
+            FunctionalSample(test_case="test1", test_suite="Tests1", status="SKIPPED", start_time=3, duration=1,
+                             error_msg="Disabled by user", error_trace=None, extras=None),
+            FunctionalSample(test_case="test3", test_suite="Tests2", status="PASSED", start_time=4, duration=1,
+                             error_msg=None, error_trace=None, extras=None),
+            FunctionalSample(test_case="test1", test_suite="Tests1", status="BROKEN", start_time=4, duration=1,
+                             error_msg="Broken", error_trace=None, extras=None),
+            FunctionalSample(test_case="test1", test_suite="Tests1", status="PASSED", start_time=5, duration=1,
+                             error_msg=None, error_trace=None, extras=None),
+            FunctionalSample(test_case="test2", test_suite="Tests1", status="PASSED", start_time=4, duration=1,
+                             error_msg=None, error_trace=None, extras=None),
+            FunctionalSample(test_case="test3", test_suite="Tests2", status="FAILED", start_time=6, duration=1,
+                             error_msg="Really failed", error_trace=None, extras=None),
+            FunctionalSample(test_case="test1", test_suite="Tests1", status="PASSED", start_time=6, duration=1,
+                             error_msg=None, error_trace=None, extras=None),
         ]
         return mock
 
     def test_aggregation(self):
         reader = self.get_reader()
         obj = FunctionalAggregator()
+        obj.engine = EngineEmul()
         obj.prepare()
         obj.add_underling(reader)
         obj.process_readers()
@@ -46,6 +58,7 @@ class TestFunctionalAggregator(BZTestCase):
         listener = MockListener()
         obj = FunctionalAggregator()
         obj.prepare()
+        obj.engine = EngineEmul()
         obj.add_underling(self.get_reader())
         obj.add_listener(listener)
         obj.check()

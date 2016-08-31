@@ -922,7 +922,7 @@ class FuncJTLReader(FunctionalResultsReader):
             sample = FunctionalSample(test_case=label, test_suite=suite_name, status=status,
                                       start_time=tstmp, duration=elapsed,
                                       error_msg=error_msg, error_trace=None,
-                                      extras={})
+                                      extras=None)
             yield sample
 
 
