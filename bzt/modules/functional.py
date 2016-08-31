@@ -1,9 +1,8 @@
-import os
 from abc import abstractmethod
 from collections import namedtuple
 
 from bzt.engine import Aggregator
-from bzt.utils import BetterDict, iteritems, to_json
+from bzt.utils import BetterDict, iteritems
 
 
 class FunctionalAggregator(Aggregator):
@@ -49,11 +48,6 @@ class FunctionalAggregator(Aggregator):
 
     def post_process(self):
         self.process_readers(last_pass=True)
-        suites = self.cumulative_results.test_suites()
-        cases = [case for suite in suites for case in self.cumulative_results.test_cases(suite)]
-        self.log.info("Executed %d tests in %d test suites", len(cases), len(suites))
-        with open(os.path.join(self.engine.artifacts_dir, 'cumulative.json'), 'w') as fds:
-            fds.write(to_json(self.cumulative_results))
 
 
 FunctionalSample = namedtuple('Sample', 'test_case,test_suite,status,start_time,duration,error_msg,error_trace,extras')
