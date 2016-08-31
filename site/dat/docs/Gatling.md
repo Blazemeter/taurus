@@ -61,6 +61,23 @@ class BasicSimulation extends Simulation {
 }
 ```
 
+## Running Complex Gatling Test Suites
+
+If your Gatling test suite is really huge or has dependencies on other files - you can bundle it in a jar and then run
+this jar with Taurus. Just specify it as a `script` value in scenario.
+
+```yaml
+---
+execution:
+- executor: gatling
+  scenario: sample
+
+scenarios:
+  sample:
+    script: simulations.jar
+    simulation: tests.gatling.BasicSimulation
+```
+
 ## Building Test Script from Config
 
 If your scenario don't contains `script` parameter and contains at least one element of `requests` Taurus will build scala script for test. This script will be placed in `[artifact-dir](ConfigSyntax/#Top-Level-Settings)`: you can modify it and use with Gatling later.
