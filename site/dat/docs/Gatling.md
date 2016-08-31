@@ -63,8 +63,7 @@ class BasicSimulation extends Simulation {
 
 ## Running Complex Gatling Test Suites
 
-If your Gatling test suite is really huge or has dependencies on other files - you can bundle it in a jar and then run
-this jar with Taurus. Just specify it as a `script` value in scenario.
+If your Gatling test suite is really huge or has dependencies on other files - you can bundle it in a jar (with the help of sbt or Maven) and then run this jar with Taurus. Just specify it as a `script` value in scenario.
 
 ```yaml
 ---
