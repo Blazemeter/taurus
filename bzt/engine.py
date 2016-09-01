@@ -68,7 +68,7 @@ class Engine(object):
         self.config.log = self.log.getChild(Configuration.__name__)
         self.modules = {}  # available modules
         self.provisioning = Provisioning()
-        self.aggregator = EngineModule()  # FIXME: have issues with non-aggregator object set here
+        self.aggregator = Aggregator(is_functional=False)  # FIXME: have issues with non-aggregator object set here
         self.interrupted = False
         self.check_interval = 1
         self.stopping_reason = None
@@ -319,6 +319,9 @@ class Engine(object):
 
         for artifact in existing_artifacts:
             self.existing_artifact(artifact)
+
+    def is_functional_mode(self):
+        return self.aggregator is not None and self.aggregator.is_functional
 
     def __load_module(self, alias):
         """
@@ -958,6 +961,12 @@ class Service(EngineModule):
     """
 
     SERV = "services"
+
+
+class Aggregator(EngineModule):
+    def __init__(self, is_functional):
+        super(Aggregator, self).__init__()
+        self.is_functional = is_functional
 
 
 class Scenario(UserDict, object):

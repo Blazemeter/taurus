@@ -13,7 +13,7 @@ import yaml
 from bzt.engine import Provisioning
 from bzt.jmx import JMX
 from bzt.modules.aggregator import ConsolidatingAggregator
-from bzt.modules.jmeter import JMeterExecutor, JTLErrorsReader, JTLReader
+from bzt.modules.jmeter import JMeterExecutor, JTLErrorsReader, JTLReader, FuncJTLReader
 from bzt.modules.jmeter import JMeterScenarioBuilder
 from bzt.six import etree, u
 from bzt.utils import EXE_SUFFIX, get_full_path
@@ -1838,6 +1838,60 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(loop.text, "false")
         stop = dataset.find('boolProp[@name="stopThread"]')
         self.assertEqual(stop.text, "true")
+
+    def test_functional_mode_flag(self):
+        self.obj.engine.aggregator.is_functional = True
+        self.obj.execution.merge({
+            'scenario': {
+                "requests": [
+                    "http://example.com/",
+                ],
+            }
+        })
+        self.obj.execution.merge(self.obj.engine.config)
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        functional_switch = xml_tree.find('.//TestPlan/boolProp[@name="TestPlan.functional_mode"]')
+        self.assertIsNotNone(functional_switch)
+        self.assertEqual(functional_switch.text, "true")
+
+    def test_functional_reader_pass(self):
+        obj = FuncJTLReader(__dir__() + "/../jmeter/jtl/resource-errors-no-fail.jtl", logging.getLogger(''))
+        samples = list(obj.read(last_pass=True))
+        self.assertEqual(2, len(samples))
+        first = samples[0]
+        self.assertEqual(first.test_case, "HTTP Request")
+        self.assertEqual(first.test_suite, "JMeter")
+        self.assertEqual(first.status, "PASSED")
+        self.assertEqual(first.start_time, 1440764640)
+        self.assertEqual(first.duration, 0.419)
+        self.assertEqual(first.error_msg, "")
+        self.assertEqual(first.error_trace, "")
+
+    def test_functional_reader_failed(self):
+        obj = FuncJTLReader(__dir__() + "/../jmeter/jtl/standard-errors.jtl", logging.getLogger(''))
+        samples = list(obj.read(last_pass=True))
+        self.assertEqual(185, len(samples))
+        first = samples[0]
+        self.assertEqual(first.test_case, "http://blazedemo.com/some-more-or-less-long-label")
+        self.assertEqual(first.test_suite, "JMeter")
+        self.assertEqual(first.status, "FAILED")
+        self.assertEqual(first.start_time, 1430825787)
+        self.assertEqual(first.duration, 0.011)
+        self.assertEqual(first.error_msg, "The operation lasted too long")
+
+    def test_functional_reader_broken(self):
+        obj = FuncJTLReader(__dir__() + "/../jmeter/jtl/standard-errors.jtl", logging.getLogger(''))
+        samples = list(obj.read(last_pass=True))
+        self.assertEqual(185, len(samples))
+        sample = samples[8]
+        self.assertEqual(sample.test_case, "http://blazedemo.com/some-more-or-less-long-label")
+        self.assertEqual(sample.test_suite, "JMeter")
+        self.assertEqual(sample.status, "BROKEN")
+        self.assertEqual(sample.start_time, 1430825788)
+        self.assertEqual(sample.duration, 0.01)
+        self.assertEqual(sample.error_msg, "Non HTTP response message: Read timed out")
+        self.assertTrue(sample.error_trace.startswith("java.net.SocketTimeoutException: Read timed out"))
 
 
 class TestJMX(BZTestCase):

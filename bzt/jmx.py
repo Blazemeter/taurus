@@ -998,3 +998,7 @@ class JMX(object):
                                    testclass="TransactionController", testname=transaction_name)
         controller.append(JMX._bool_prop("TransactionController.parent", True))
         return controller
+
+    @staticmethod
+    def _get_functional_mode_prop(enabled):
+        return JMX._bool_prop("TestPlan.functional_mode", enabled)
