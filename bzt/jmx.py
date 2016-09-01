@@ -666,10 +666,15 @@ class JMX(object):
             parsed_url = parse.urlsplit(default_address)
             if parsed_url.scheme:
                 cfg.append(JMX._string_prop("HTTPSampler.protocol", parsed_url.scheme))
-            if parsed_url.hostname:
-                cfg.append(JMX._string_prop("HTTPSampler.domain", parsed_url.hostname))
-            if parsed_url.port:
-                cfg.append(JMX._string_prop("HTTPSampler.port", parsed_url.port))
+
+            if parsed_url.netloc:
+                netloc = parsed_url.netloc
+                if ':' in netloc:
+                    index = netloc.rfind(':')
+                    cfg.append(JMX._string_prop("HTTPSampler.port", netloc[index+1:]))
+                    netloc = netloc[:index]
+
+                cfg.append(JMX._string_prop("HTTPSampler.domain", netloc))
 
         if timeout:
             cfg.append(JMX._string_prop("HTTPSampler.connect_timeout", timeout))

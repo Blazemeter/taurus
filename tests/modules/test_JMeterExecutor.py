@@ -371,7 +371,7 @@ class TestJMeterExecutor(BZTestCase):
 
     def test_http_request_defaults_property(self):
         self.obj.engine.config.merge(json.loads(open(__dir__() + "/../json/get-post.json").read()))
-        addr = 'https://${__P(hostname)}:80'
+        addr = 'https://${__P(hostname)}:${__P(port)}'
         self.obj.engine.config['scenarios']['get-post']['default-address'] = addr
         self.obj.execution = self.obj.engine.config['execution']
         self.obj.prepare()
