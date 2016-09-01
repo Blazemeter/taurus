@@ -1017,11 +1017,12 @@ class FuncJTLReader(FunctionalResultsReader):
                 trace = ""
             return message, trace
 
-    def __get_failed_assertion(self, element):
+    @staticmethod
+    def __get_failed_assertion(element):
         """
         Returns first failed assertion, or None
 
-        :rtype etree.Element
+        :rtype lxml.etree.Element
         """
         assertions = [elem for elem in element.iterchildren() if elem.tag == "assertionResult"]
         for assertion in assertions:
