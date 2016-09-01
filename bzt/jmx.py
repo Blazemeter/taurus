@@ -547,7 +547,7 @@ class JMX(object):
                                     testname=testname)
         udv_collection_prop = JMX._collection_prop("Arguments.arguments")
 
-        for var_name in sorted(udv_dict.keys(), key=lambda x: str(x)):
+        for var_name in sorted(udv_dict.keys(), key=str):
             udv_element_prop = JMX._element_prop(str(var_name), "Argument")
             udv_arg_name_prop = JMX._string_prop("Argument.name", var_name)
             udv_arg_value_prop = JMX._string_prop("Argument.value", udv_dict[var_name])
@@ -942,7 +942,8 @@ class JMX(object):
         self.append(self.TEST_PLAN_SEL, dbg_tree)
         self.append(self.TEST_PLAN_SEL, etree.Element("hashTree"))
 
-    def _get_results_tree(self):
+    @staticmethod
+    def _get_results_tree():
         dbg_tree = etree.Element("ResultCollector",
                                  testname="View Results Tree",
                                  testclass="ResultCollector",

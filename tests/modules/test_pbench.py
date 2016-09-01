@@ -409,7 +409,7 @@ if not is_windows():
             obj = self._get_pbench()
             self.check_schedule_size_estimate(obj, execution)
 
-        def test_est_tput_iterations(self):
+        def test_est_tput_hold_iterations(self):
             execution = {
                 "throughput": 100,
                 "iterations": 10,
@@ -431,7 +431,7 @@ if not is_windows():
             }
             obj = self._get_pbench()
             self.check_schedule_size_estimate(obj, execution)
-        
+
         def test_est_tput_rampup_iterations(self):
             execution = {
                 "throughput": 100,

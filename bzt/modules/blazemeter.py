@@ -465,7 +465,8 @@ class MonitoringBuffer(object):
                 merged_already.add(left)
                 merged_already.add(right)
 
-    def _merge_datapoints(self, left, right):
+    @staticmethod
+    def _merge_datapoints(left, right):
         sum_size = float(left['interval'] + right['interval'])
         for metric in set(right):
             if metric in ('ts', 'interval'):

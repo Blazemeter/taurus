@@ -1,8 +1,7 @@
-import logging
 import shutil
 import time
 
-from bzt.modules.chrome import ChromeProfiler, MetricReporter, epoch_to_str
+from bzt.modules.chrome import ChromeProfiler, MetricReporter
 from bzt.modules.monitoring import MonitoringListener
 from bzt.six import iteritems
 from tests import BZTestCase, __dir__

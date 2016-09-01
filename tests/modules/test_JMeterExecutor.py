@@ -1144,8 +1144,7 @@ class TestJMeterExecutor(BZTestCase):
             self.assertNotEqual(orig, modified)
             self.assertEqual(os.path.basename(orig), os.path.basename(modified))
 
-    def test_jmx_paths_remote_prov(self):
-        "Ensures that file paths in JMX are modified during remote prov"
+    def test_jmx_string_or_int_prop(self):
         script = __dir__() + "/../jmeter/jmx/int_threads.jmx"
         self.obj.engine.config.merge({
             'execution': {
