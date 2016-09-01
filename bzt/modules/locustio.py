@@ -38,8 +38,6 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.kpi_jtl = None
         self.process = None
         self.__out = None
-        self.widget = None
-        self.start_time = None
         self.is_master = False
         self.slaves_ldjson = None
         self.expected_slaves = 0

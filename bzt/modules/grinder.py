@@ -48,13 +48,11 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.kpi_file = None
         self.cmd_line = None
         self.process = None
-        self.start_time = None
         self.end_time = None
         self.retcode = None
         self.reader = None
         self.stdout_file = None
         self.stderr_file = None
-        self.widget = None
 
     def __write_base_props(self, fds):
         """

@@ -43,7 +43,6 @@ def set_jmeter_executor_vars(jmeter_vars):
 class TestJMeterExecutor(BZTestCase):
     def setUp(self):
         self.obj = get_jmeter()
-        pass
 
     def tearDown(self):
         if self.obj.modified_jmx and os.path.exists(self.obj.modified_jmx):
@@ -368,6 +367,21 @@ class TestJMeterExecutor(BZTestCase):
         requests = xml_tree.findall(".//HTTPSamplerProxy[@testclass='HTTPSamplerProxy']")
         for request in requests:
             self.assertEqual("false", request.find(".//boolProp[@name='HTTPSampler.use_keepalive']").text)
+
+    def test_http_request_defaults_property(self):
+        self.obj.engine.config.merge(json.loads(open(__dir__() + "/../json/get-post.json").read()))
+        addr = 'https://${__P(hostname)}:${__P(port)}'
+        self.obj.engine.config['scenarios']['get-post']['default-address'] = addr
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        default_elements = xml_tree.findall(".//ConfigTestElement[@testclass='ConfigTestElement']")
+        self.assertEqual(1, len(default_elements))
+
+        default_element = default_elements[0]
+        self.assertEqual("${__P(hostname)}", default_element.find(".//stringProp[@name='HTTPSampler.domain']").text)
+        self.assertEqual("${__P(port)}", default_element.find(".//stringProp[@name='HTTPSampler.port']").text)
+        self.assertEqual("https", default_element.find(".//stringProp[@name='HTTPSampler.protocol']").text)
 
     def test_add_shaper_constant(self):
         self.obj.engine.config.merge({'execution': {'concurrency': 200, 'throughput': 100, 'hold-for': '1m',
@@ -1144,8 +1158,7 @@ class TestJMeterExecutor(BZTestCase):
             self.assertNotEqual(orig, modified)
             self.assertEqual(os.path.basename(orig), os.path.basename(modified))
 
-    def test_jmx_paths_remote_prov(self):
-        "Ensures that file paths in JMX are modified during remote prov"
+    def test_jmx_string_or_int_prop(self):
         script = __dir__() + "/../jmeter/jmx/int_threads.jmx"
         self.obj.engine.config.merge({
             'execution': {

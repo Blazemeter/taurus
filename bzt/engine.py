@@ -803,6 +803,7 @@ class ScenarioExecutor(EngineModule):
         self.execution = BetterDict()
         self.__scenario = None
         self.label = None
+        self.widget = None
 
     def get_script_path(self, scenario=None):
         """

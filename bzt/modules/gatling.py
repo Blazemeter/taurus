@@ -168,13 +168,11 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         super(GatlingExecutor, self).__init__()
         self.script = None
         self.process = None
-        self.start_time = None
         self.end_time = None
         self.retcode = None
         self.reader = None
         self.stdout_file = None
         self.stderr_file = None
-        self.widget = None
         self.simulation_started = False
         self.dir_prefix = ''
         self.launcher = None
@@ -269,13 +267,21 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         datadir = os.path.realpath(self.engine.artifacts_dir)
 
         if os.path.isfile(self.script):
-            script_path = os.path.dirname(get_full_path(self.script))
+            if self.script.endswith('.jar'):
+                self.jar_list += os.pathsep + self.script
+                simulation_folder = None
+            else:
+                simulation_folder = os.path.dirname(get_full_path(self.script))
         else:
-            script_path = self.script
+            simulation_folder = self.script
 
         cmdline = [self.launcher]
-        cmdline += ["-sf", script_path, "-df", datadir, "-rf", datadir]
+        cmdline += ["-df", datadir, "-rf", datadir]
         cmdline += ["-on", self.dir_prefix, "-m"]
+
+        if simulation_folder:
+            cmdline += ["-sf", simulation_folder]
+
         if simulation:
             cmdline += ["-s", simulation]
 

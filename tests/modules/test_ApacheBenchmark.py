@@ -28,6 +28,7 @@ class TestApacheBenchExecutor(BZTestCase):
             }
         })
         obj.prepare()
+        obj.get_widget()
         try:
             obj.startup()
             while not obj.check():
@@ -109,6 +110,7 @@ class TestApacheBenchExecutor(BZTestCase):
             }
         })
         obj.prepare()
+        obj.get_widget()
         try:
             obj.startup()
             while not obj.check():

@@ -72,10 +72,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.kpi_jtl = None
         self.log_jtl = None
         self.process = None
-        self.start_time = None
         self.end_time = None
         self.retcode = None
-        self.widget = None
         self.distributed_servers = []
         self.management_port = None
         self.reader = None

@@ -174,6 +174,8 @@ scenarios:
 
 Note that `timeout` also sets duration assertion that will mark response failed if response time was more than timeout.
 
+If you want to use JMeter properties in `default-address`, you'll have to specify mandatory scheme and separate address/port. Like this: `default-address: https://${__P(hostname)}:${__P(port)}`.
+
 ### Requests
 
 Request objects can be of two kinds:
