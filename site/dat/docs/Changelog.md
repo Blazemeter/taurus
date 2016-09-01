@@ -6,6 +6,7 @@
  - add variable sending example into Gatling documentation
  - fix results time and add widget for ApacheBenchmark
  - add `script: <jar-file>` capability to Gatling executor
+ - handle JMeter functions in `default-address` option
 
 ## 1.6.7  <sup>23 aug 2016</sup>
  - add `cloud` and `local` aliases 
