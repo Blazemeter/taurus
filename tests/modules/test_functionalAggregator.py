@@ -13,7 +13,7 @@ class MockListener(FunctionalAggregatorListener):
 
 
 class TestFunctionalAggregator(BZTestCase):
-    def get_reader(self, offset=0):
+    def get_reader(self):
         mock = MockFunctionalReader()
         mock.data = [
             FunctionalSample(test_case="test1", test_suite="Tests1", status="PASSED", start_time=1, duration=1,
