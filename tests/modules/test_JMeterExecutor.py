@@ -369,6 +369,21 @@ class TestJMeterExecutor(BZTestCase):
         for request in requests:
             self.assertEqual("false", request.find(".//boolProp[@name='HTTPSampler.use_keepalive']").text)
 
+    def test_http_request_defaults_property(self):
+        self.obj.engine.config.merge(json.loads(open(__dir__() + "/../json/get-post.json").read()))
+        addr = 'https://${__P(hostname)}:80'
+        self.obj.engine.config['scenarios']['get-post']['default-address'] = addr
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        default_elements = xml_tree.findall(".//ConfigTestElement[@testclass='ConfigTestElement']")
+        self.assertEqual(1, len(default_elements))
+
+        default_element = default_elements[0]
+        self.assertEqual("${__P(hostname)}", default_element.find(".//stringProp[@name='HTTPSampler.domain']").text)
+        self.assertEqual("${__P(port)}", default_element.find(".//stringProp[@name='HTTPSampler.port']").text)
+        self.assertEqual("https", default_element.find(".//stringProp[@name='HTTPSampler.protocol']").text)
+
     def test_add_shaper_constant(self):
         self.obj.engine.config.merge({'execution': {'concurrency': 200, 'throughput': 100, 'hold-for': '1m',
                                                     'scenario': {'script': __dir__() + '/../jmeter/jmx/http.jmx'}}})
