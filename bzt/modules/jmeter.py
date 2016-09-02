@@ -1838,13 +1838,16 @@ class RequestsParser(object):
             timeout = req.get("timeout", None)
             think_time = req.get("think-time", None)
 
-            body = None
-            bodyfile = req.get("body-file", None)
-            if bodyfile:
-                bodyfile_path = self.engine.find_file(bodyfile)
+            body = req.get('body', None)
+            body_file = req.get('body-file', None)
+            if body and body_file:
+                req['body-file'] = None
+
+            if isinstance(self.engine.provisioning, Local) and body_file:   # insert file into body
+                bodyfile_path = self.engine.find_file(body_file)
                 with open(bodyfile_path) as fhd:
-                    body = fhd.read()
-            body = req.get("body", body)
+                    req['body'] = fhd.read()
+                    req['body-file'] = None
 
             upload_files = req.get("upload-files", [])
             for file_dict in upload_files:

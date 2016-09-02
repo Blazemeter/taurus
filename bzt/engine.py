@@ -1027,13 +1027,16 @@ class Scenario(UserDict, object):
             timeout = req.get("timeout", None)
             think_time = req.get("think-time", None)
 
-            body = None
-            bodyfile = req.get("body-file", None)
-            bodyfile_path = self.engine.find_file(bodyfile)
-            if bodyfile_path:
+            body = req.get('body', None)
+            body_file = req.get('body-file', None)
+            if body and body_file:
+                req['body-file'] = None
+
+            if body_file:   # insert file into body
+                bodyfile_path = self.engine.find_file(body_file)
                 with open(bodyfile_path) as fhd:
-                    body = fhd.read()
-            body = req.get("body", body)
+                    req['body'] = fhd.read()
+                    req['body-file'] = None
 
             yield res(config=req, label=label,
                       url=url, method=method, headers=headers,
