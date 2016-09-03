@@ -22,7 +22,7 @@ import re
 from abc import abstractmethod
 from collections import Counter
 
-from bzt.engine import EngineModule
+from bzt.engine import Aggregator
 from bzt.six import iteritems
 from bzt.utils import BetterDict, dehumanize_time
 
@@ -543,7 +543,7 @@ class ResultsReader(ResultsProvider):
         return label
 
 
-class ConsolidatingAggregator(EngineModule, ResultsProvider):
+class ConsolidatingAggregator(Aggregator, ResultsProvider):
     """
 
     :type underlings: list[bzt.modules.aggregator.ResultsProvider]
@@ -551,7 +551,7 @@ class ConsolidatingAggregator(EngineModule, ResultsProvider):
 
     # TODO: switch to underling-count-based completeness criteria
     def __init__(self):
-        EngineModule.__init__(self)
+        Aggregator.__init__(self, is_functional=False)
         ResultsProvider.__init__(self)
         self.generalize_labels = False
         self.ignored_labels = []
@@ -671,13 +671,13 @@ class ConsolidatingAggregator(EngineModule, ResultsProvider):
             yield point
 
 
-class NoneAggregator(EngineModule, ResultsProvider):
+class NoneAggregator(Aggregator, ResultsProvider):
     """
     Dummy aggregator
     """
 
     def __init__(self):
-        EngineModule.__init__(self)
+        Aggregator.__init__(self, is_functional=False)
         ResultsProvider.__init__(self)
 
     def _calculate_datapoints(self, final_pass=False):

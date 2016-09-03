@@ -13,7 +13,7 @@ import yaml
 from bzt.jmx import JMX
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.blazemeter import CloudProvisioning
-from bzt.modules.jmeter import JMeterExecutor, JTLErrorsReader, JTLReader
+from bzt.modules.jmeter import JMeterExecutor, JTLErrorsReader, JTLReader, FuncJTLReader
 from bzt.modules.jmeter import JMeterScenarioBuilder
 from bzt.modules.provisioning import Local
 from bzt.six import etree, u
@@ -423,6 +423,21 @@ class TestJMeterExecutor(BZTestCase):
         requests = xml_tree.findall(".//HTTPSamplerProxy[@testclass='HTTPSamplerProxy']")
         for request in requests:
             self.assertEqual("false", request.find(".//boolProp[@name='HTTPSampler.use_keepalive']").text)
+
+    def test_http_request_defaults_property(self):
+        self.obj.engine.config.merge(json.loads(open(__dir__() + "/../json/get-post.json").read()))
+        addr = 'https://${__P(hostname)}:${__P(port)}'
+        self.obj.engine.config['scenarios']['get-post']['default-address'] = addr
+        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        default_elements = xml_tree.findall(".//ConfigTestElement[@testclass='ConfigTestElement']")
+        self.assertEqual(1, len(default_elements))
+
+        default_element = default_elements[0]
+        self.assertEqual("${__P(hostname)}", default_element.find(".//stringProp[@name='HTTPSampler.domain']").text)
+        self.assertEqual("${__P(port)}", default_element.find(".//stringProp[@name='HTTPSampler.port']").text)
+        self.assertEqual("https", default_element.find(".//stringProp[@name='HTTPSampler.protocol']").text)
 
     def test_add_shaper_constant(self):
         self.configure({'execution': {'concurrency': 200, 'throughput': 100, 'hold-for': '1m',
@@ -1156,7 +1171,6 @@ class TestJMeterExecutor(BZTestCase):
             self.assertEqual(os.path.basename(orig), os.path.basename(modified))
 
     def test_intprop_modification(self):
-        "Ensures that file paths in JMX are modified during remote prov"
         script = __dir__() + "/../jmeter/jmx/int_threads.jmx"
         self.configure({
             'execution': {
@@ -1599,6 +1613,60 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(loop.text, "false")
         stop = dataset.find('boolProp[@name="stopThread"]')
         self.assertEqual(stop.text, "true")
+
+    def test_functional_mode_flag(self):
+        self.obj.engine.aggregator.is_functional = True
+        self.obj.execution.merge({
+            'scenario': {
+                "requests": [
+                    "http://example.com/",
+                ],
+            }
+        })
+        self.obj.execution.merge(self.obj.engine.config)
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        functional_switch = xml_tree.find('.//TestPlan/boolProp[@name="TestPlan.functional_mode"]')
+        self.assertIsNotNone(functional_switch)
+        self.assertEqual(functional_switch.text, "true")
+
+    def test_functional_reader_pass(self):
+        obj = FuncJTLReader(__dir__() + "/../jmeter/jtl/resource-errors-no-fail.jtl", logging.getLogger(''))
+        samples = list(obj.read(last_pass=True))
+        self.assertEqual(2, len(samples))
+        first = samples[0]
+        self.assertEqual(first.test_case, "HTTP Request")
+        self.assertEqual(first.test_suite, "JMeter")
+        self.assertEqual(first.status, "PASSED")
+        self.assertEqual(first.start_time, 1440764640)
+        self.assertEqual(first.duration, 0.419)
+        self.assertEqual(first.error_msg, "")
+        self.assertEqual(first.error_trace, "")
+
+    def test_functional_reader_failed(self):
+        obj = FuncJTLReader(__dir__() + "/../jmeter/jtl/standard-errors.jtl", logging.getLogger(''))
+        samples = list(obj.read(last_pass=True))
+        self.assertEqual(185, len(samples))
+        first = samples[0]
+        self.assertEqual(first.test_case, "http://blazedemo.com/some-more-or-less-long-label")
+        self.assertEqual(first.test_suite, "JMeter")
+        self.assertEqual(first.status, "FAILED")
+        self.assertEqual(first.start_time, 1430825787)
+        self.assertEqual(first.duration, 0.011)
+        self.assertEqual(first.error_msg, "The operation lasted too long")
+
+    def test_functional_reader_broken(self):
+        obj = FuncJTLReader(__dir__() + "/../jmeter/jtl/standard-errors.jtl", logging.getLogger(''))
+        samples = list(obj.read(last_pass=True))
+        self.assertEqual(185, len(samples))
+        sample = samples[8]
+        self.assertEqual(sample.test_case, "http://blazedemo.com/some-more-or-less-long-label")
+        self.assertEqual(sample.test_suite, "JMeter")
+        self.assertEqual(sample.status, "BROKEN")
+        self.assertEqual(sample.start_time, 1430825788)
+        self.assertEqual(sample.duration, 0.01)
+        self.assertEqual(sample.error_msg, "Non HTTP response message: Read timed out")
+        self.assertTrue(sample.error_trace.startswith("java.net.SocketTimeoutException: Read timed out"))
 
 
 class TestJMX(BZTestCase):

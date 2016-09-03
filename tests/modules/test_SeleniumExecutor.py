@@ -7,7 +7,7 @@ import time
 import yaml
 
 from bzt.engine import ScenarioExecutor, Provisioning
-from bzt.modules.selenium import SeleniumExecutor, JUnitJar, LoadSamplesReader, LDJSONReader
+from bzt.modules.selenium import SeleniumExecutor, JUnitJar, LoadSamplesReader, LDJSONReader, FuncSamplesReader
 from bzt.six import StringIO
 from tests import BZTestCase, local_paths_config, __dir__
 from tests.mocks import EngineEmul
@@ -458,7 +458,7 @@ class LDJSONReaderEmul(object):
     def __init__(self):
         self.data = []
 
-    def read(self, lastpass=False):
+    def read(self, last_pass=False):
         for line in self.data:
             yield line
 
@@ -613,17 +613,17 @@ class TestSeleniumStuff(SeleniumTestCase):
         label3 = 'just_for_lulz'
         self.assertEqual(url1, gen_methods[name1])
         self.assertEqual(label2, gen_methods[name2])
-        self.obj.reader.json_reader = LDJSONReaderEmul()
-        self.obj.reader.json_reader.data.extend([
+        self.obj.reader.report_reader.json_reader = LDJSONReaderEmul()
+        self.obj.reader.report_reader.json_reader.data.extend([
             {
-                'label': name1, 'start_time': 1472049887, 'duration': 1.0, 'status': 'PASSED',
-                'file': None, 'error_msg': None, 'error_trace': None, 'full_name': '', 'description': ''
+                'test_case': name1, 'start_time': 1472049887, 'duration': 1.0, 'status': 'PASSED',
+                'test_suite': 'Tests', 'error_msg': None, 'error_trace': None, 'extras': None,
             }, {
-                'label': name2, 'start_time': 1472049888, 'duration': 1.0, 'status': 'PASSED',
-                'file': None, 'error_msg': None, 'error_trace': None, 'full_name': '', 'description': ''
+                'test_case': name2, 'start_time': 1472049888, 'duration': 1.0, 'status': 'PASSED',
+                'test_suite': 'Tests', 'error_msg': None, 'error_trace': None, 'extras': None,
             }, {
-                'label': name3, 'start_time': 1472049889, 'duration': 1.0, 'status': 'PASSED',
-                'file': None, 'error_msg': None, 'error_trace': None, 'full_name': '', 'description': ''
+                'test_case': name3, 'start_time': 1472049889, 'duration': 1.0, 'status': 'PASSED',
+                'test_suite': 'Tests', 'error_msg': None, 'error_trace': None, 'extras': None,
             }])
         res = list(self.obj.reader._read())
         self.assertIn(url1, res[0])
@@ -688,7 +688,7 @@ class TestSeleniumStuff(SeleniumTestCase):
 
 class TestReportReader(BZTestCase):
     def test_report_reader(self):
-        reader = LoadSamplesReader(__dir__() + "/../selenium/report.ldjson", logging.getLogger())
+        reader = LoadSamplesReader(__dir__() + "/../selenium/report.ldjson", logging.getLogger(), None)
         items = list(reader._read())
         self.assertEqual(4, len(items))
         self.assertEqual(items[0][1], 'testFailure')
@@ -714,3 +714,13 @@ class TestReportReader(BZTestCase):
         items = list(reader.read(last_pass=False))
         self.assertEqual(len(items), 2)
 
+    def test_func_reader(self):
+        reader = FuncSamplesReader(__dir__() + "/../selenium/report.ldjson", logging.getLogger(), None)
+        items = list(reader.read())
+        self.assertEqual(4, len(items))
+        self.assertEqual(items[0].test_case, 'testFailure')
+        self.assertEqual(items[0].status, "FAILED")
+        self.assertEqual(items[1].test_case, 'testBroken')
+        self.assertEqual(items[1].status, "BROKEN")
+        self.assertEqual(items[2].test_case, 'testSuccess')
+        self.assertEqual(items[2].status, "PASSED")
