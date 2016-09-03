@@ -330,12 +330,16 @@ class TestJMeterExecutor(BZTestCase):
         set_jmeter_executor_vars(jmeter_vars)
 
     def test_think_time_bug(self):
-        self.configure({'execution': {'ramp-up': '1m', 'hold-for': '1m30s', 'concurrency': 10,
-                                      'scenario':
-                                          {'think-time': 0.75,
-                                           'requests':
-                                               ['http://blazedemo.com/',
-                                                'http://blazedemo.com/vacation.html']}}})
+        self.configure({
+            'execution': {
+                'ramp-up': '1m',
+                'hold-for': '1m30s',
+                'concurrency': 10,
+                'scenario': {
+                    'think-time': 0.75,
+                    'requests': [
+                        'http://blazedemo.com/',
+                        'http://blazedemo.com/vacation.html']}}})
         self.obj.prepare()
         result = open(self.obj.modified_jmx).read()
         self.assertIn('<stringProp name="ConstantTimer.delay">750</stringProp>', result)
