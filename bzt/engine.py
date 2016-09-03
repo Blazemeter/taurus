@@ -1030,9 +1030,10 @@ class Scenario(UserDict, object):
             body = req.get('body', None)
             body_file = req.get('body-file', None)
             if body and body_file:
+                body_file = None
                 req['body-file'] = None
 
-            if body_file:   # insert file into body
+            if body_file:  # insert file into body
                 bodyfile_path = self.engine.find_file(body_file)
                 with open(bodyfile_path) as fhd:
                     req['body'] = fhd.read()

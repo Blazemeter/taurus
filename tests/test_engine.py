@@ -83,6 +83,34 @@ class TestScenarioExecutor(BZTestCase):
         self.assertEqual(config['execution'][0]['scenario'], 'test_blazemeter_fail.py')
         self.assertIn('test_blazemeter_fail.py', config['scenarios'])
 
+    def test_body_files(self):
+        body_file1 = __dir__() + "/jmeter/body-file.dat"
+        body_file2 = __dir__() + "/jmeter/jmx/http.jmx"
+        self.engine.config.merge({
+            'execution': [{
+                'iterations': 1,
+                'executor': 'siege',
+                'scenario': 'bf'}],
+            'scenarios': {
+                'bf': {
+                    "requests": [
+                        {
+                            'url': 'http://first.com',
+                            'body-file': body_file1
+                        }, {
+                            'url': 'http://second.com',
+                            'body': 'body2',
+                            'body-file': body_file2}]}}})
+        self.executor.execution = self.engine.config.get('execution')[0]
+        scenario = self.executor.get_scenario()
+        list(scenario.get_requests())
+        scenario = self.executor.get_scenario()
+        body_files = [req.get('body-file') for req in scenario.get('requests')]
+        body_fields = [req.get('body') for req in scenario.get('requests')]
+        self.assertFalse(any(body_files))
+        self.assertIn('sample of body', body_fields[0])
+        self.assertIn('body2', body_fields[1])
+
     def test_scenario_is_script(self):
         self.engine.config.merge({
             "execution": [{
@@ -120,10 +148,7 @@ class TestScenarioExecutor(BZTestCase):
         self.engine.config.merge({
             "settings": {
                 "hostaliases": {
-                    "demo": "blazedemo.com"
-                }
-            }
-        })
+                    "demo": "blazedemo.com"}}})
 
         path = os.path.join(__dir__(), "data", "hostaliases" + EXE_SUFFIX)
         process = self.executor.execute([path])
