@@ -1046,6 +1046,7 @@ class Scenario(UserDict, object):
                 bodyfile_path = self.engine.find_file(body_file)
                 with open(bodyfile_path) as fhd:
                     req['body'] = fhd.read()
+                    body = req['body']
                     req['body-file'] = None
 
             yield res(config=req, label=label,
