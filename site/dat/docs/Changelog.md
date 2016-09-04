@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.6.9 <sup>next</sup>
+ - fix JAR building for selenium projects with several folders
+
 ## 1.6.8 <sup>1 sep 2016</sup>
  - fix hamcrest installation for Java-based Selenium tests
  - fix Jmeter fail with unusual jmx property type
