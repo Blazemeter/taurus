@@ -103,7 +103,14 @@ class TestScenarioExecutor(BZTestCase):
                             'body-file': body_file2}]}}})
         self.executor.execution = self.engine.config.get('execution')[0]
         scenario = self.executor.get_scenario()
-        list(scenario.get_requests())
+
+        # check body fields in get_requests() results
+        reqs = list(scenario.get_requests())
+        body_fields = [req.body for req in reqs]
+        self.assertIn('sample of body', body_fields[0])
+        self.assertIn('body2', body_fields[1])
+
+        # check body fields and body-files fields after get_requests()
         scenario = self.executor.get_scenario()
         body_files = [req.get('body-file') for req in scenario.get('requests')]
         body_fields = [req.get('body') for req in scenario.get('requests')]
