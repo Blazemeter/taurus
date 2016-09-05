@@ -28,6 +28,7 @@ import zipfile
 from ssl import SSLError
 from collections import defaultdict, OrderedDict
 from functools import wraps
+from uuid import uuid4
 
 import yaml
 from urwid import Pile, Text
@@ -630,6 +631,60 @@ class BlazeMeterClient(object):
             self.log.warning("Non-JSON response from API: %s", resp)
             raise
 
+    def upload_resource_files(self, resource_files, draft_id):
+        url = self.address + "/api/latest/web/elfinder/%s" % draft_id
+        body = MultiPartForm()
+        body.add_field("cmd", "upload")
+        body.add_field("target", "s1_Lw")
+
+        for rfile in resource_files:
+            body.add_file('upload[]', rfile)
+
+        hdr = {"Content-Type": str(body.get_content_type())}
+        resp = self._request(url, body.form_as_bytes(), headers=hdr)
+        if "error" in resp:
+            raise ValueError("Can't upload resource files")
+
+    def get_draft_files(self, draft_id):
+        path = self.address + "/api/latest/web/elfinder/%s" % draft_id
+        query = urlencode({'cmd': 'open', 'target': 's1_Lw'})
+        url = path + '?' + query
+        response = self._request(url)
+        return response["files"]
+
+    def get_collections(self):
+        resp = self._request(self.address + "/api/latest/collections")
+        return resp['result']
+
+    def import_config(self, config):
+        url = self.address + "/api/latest/collections/taurusimport"
+        if isinstance(config, dict):
+            data = to_json(config)
+        else:
+            data = config
+        try:
+            return self._request(url, data=data, headers={"Content-Type": "application/json"}, method="POST")
+        except HTTPError as exc:
+            return json.loads(exc.read())
+
+    def create_collection(self, coll):
+        url = self.address + "/api/latest/collections"
+        try:
+            return self._request(url, data=to_json(coll), headers={"Content-Type": "application/json"}, method="POST")
+        except HTTPError as exc:
+            return json.loads(exc.read())
+
+    def start_collection(self, collection_id):
+        url = self.address + "/api/latest/collections/%s/start" % collection_id
+        resp = self._request(url, method="POST")
+        self.log.info("Start collection: %s", to_json(resp))
+        result = resp['result']
+        sessions = result['sessionsId']
+        self.session_id = sessions[0]
+        self.user_id = result['userId']
+        session = self.get_session()
+        self.log.info("Session: %s", to_json(session))
+
     def start_online(self, test_id, session_name):
         """
         Start online test
@@ -1105,7 +1160,7 @@ class BlazeMeterClient(object):
 
     def get_available_locations(self):
         user_info = self.get_user_info()
-        return {str(x['id']): x for x in user_info['locations'] if not x['id'].startswith('harbor-')}
+        return {str(x['id']): x for x in user_info['locations']}
 
     def get_test_files(self, test_id):
         path = self.address + "/api/latest/web/elfinder/%s" % test_id
@@ -1407,6 +1462,161 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
     def get_widget(self):
         self.widget = CloudProvWidget(self)
         return self.widget
+
+
+class CloudProvisioningNew(MasterProvisioning):
+    """
+    :type client: BlazeMeterClient
+    :type results_reader: ResultsFromBZA
+    """
+
+    LOC = "locations"
+
+    def __init__(self):
+        super(CloudProvisioningNew, self).__init__()
+        self.results_reader = None
+        self.client = BlazeMeterClient(self.log)
+        self.collection_id = None
+        self.widget = None
+        self.detach = True
+
+    def prepare(self):
+        super(CloudProvisioningNew, self).prepare()
+        self._configure_client()
+        self._check_locations()
+
+        additional_files = self.get_rfiles()
+        draft_id = None
+        if additional_files:
+            draft_id = self._upload_resources(additional_files)
+            resp = self.client.get_draft_files(draft_id)
+            self.log.warning("draft files: %s", to_json(resp))
+        config = self.get_config_for_cloud(draft_id=draft_id)
+        imported_config = self._import_taurus_test(config)
+        self.collection_id = self._create_collection(imported_config)
+
+        if isinstance(self.engine.aggregator, ConsolidatingAggregator):
+            self.results_reader = ResultsFromBZA(self.client)
+            self.results_reader.log = self.log
+            self.engine.aggregator.add_underling(self.results_reader)
+
+    def _configure_client(self):
+        self.client.logger_limit = self.settings.get("request-logging-limit", self.client.logger_limit)
+        self.client.address = self.settings.get("address", self.client.address)
+        self.client.token = self.settings.get("token", self.client.token)
+        self.client.timeout = dehumanize_time(self.settings.get("timeout", self.client.timeout))
+        if not self.client.token:
+            raise ValueError("You must provide API token to use cloud provisioning")
+
+    def _check_locations(self):
+        available_locations = self.client.get_available_locations()
+        for executor in self.executors:
+            locations = self._get_locations(available_locations, executor)
+            executor.get_load()  # we need it to resolve load settings into full form
+
+            for location in locations.keys():
+                if location not in available_locations:
+                    self.log.warning("List of supported locations for you is: %s", sorted(available_locations.keys()))
+                    raise ValueError("Invalid location requested: %s" % location)
+
+    def _import_taurus_test(self, config):
+        resp = self.client.import_config(config)
+        self.log.info("importconfig: %s", to_json(resp))
+        if resp['error']:
+            raise ValueError("Cannot import Taurus config")
+        imported = resp['result']
+        return imported
+
+    def _create_collection(self, imported_config):
+        if 'userId' in imported_config:
+            imported_config.pop('userId')
+        resp = self.client.create_collection(imported_config)
+        self.log.info("create collection: %s", to_json(resp))
+        if resp['error']:
+            raise ValueError("Cannot create collection")
+        collection = resp['result']
+        return collection['id']
+
+    def _upload_resources(self, resource_files):
+        draft_id = str(int(time.time()))  # smells like bad idea
+        self.client.upload_resource_files(resource_files, draft_id)
+        return draft_id
+
+    def _start_collection(self):
+        self.client.start_collection(self.collection_id)
+
+    def get_config_for_cloud(self, draft_id=None):
+        config = copy.deepcopy(self.engine.config)
+
+        if not isinstance(config[ScenarioExecutor.EXEC], list):
+            config[ScenarioExecutor.EXEC] = [config[ScenarioExecutor.EXEC]]
+
+        provisioning = config.pop(Provisioning.PROV)
+        for execution in config[ScenarioExecutor.EXEC]:
+            execution[ScenarioExecutor.CONCURR] = execution.get(ScenarioExecutor.CONCURR).get(provisioning, None)
+            execution[ScenarioExecutor.THRPT] = execution.get(ScenarioExecutor.THRPT).get(provisioning, None)
+
+        for key in list(config.keys()):
+            if key not in ("scenarios", ScenarioExecutor.EXEC, Service.SERV):
+                config.pop(key)
+
+        # cleanup configuration from empty values
+        default_values = {
+            'concurrency': None,
+            'iterations': None,
+            'ramp-up': None,
+            'steps': None,
+            'throughput': None,
+            'hold-for': 0,
+            'files': []
+        }
+        for execution in config[ScenarioExecutor.EXEC]:
+            for key, value in iteritems(default_values):
+                if key in execution and execution[key] == value:
+                    execution.pop(key)
+
+        if draft_id is not None:
+            config.merge({"dataFiles": {"draftId": draft_id}})
+
+        assert isinstance(config, Configuration)
+        config.dump(self.engine.create_artifact("cloud", ""))
+        return config
+
+    @staticmethod
+    def __get_bza_test_config():
+        bza_plugin = {
+            "type": "taurus",
+            "plugins": {
+                "taurus": {
+                    "filename": ""  # without this line it does not work
+                }
+            }
+        }
+        return bza_plugin
+
+    def _get_locations(self, available_locations, executor):
+        locations = executor.execution.get(self.LOC, BetterDict())
+        if not locations:
+            for location in available_locations.values():
+                error = ValueError("No location specified and no default-location configured")
+                def_loc = self.settings.get("default-location", error)
+                if location['sandbox'] or location['id'] == def_loc:
+                    locations.merge({location['id']: 1})
+        if not locations:
+            self.log.warning("List of supported locations for you is: %s", sorted(available_locations.keys()))
+            raise ValueError("No sandbox location available, please specify locations manually")
+        return locations
+
+    def startup(self):
+        super(CloudProvisioningNew, self).startup()
+        self._start_collection()
+
+    def check(self):
+        self.log.warning('Detaching Taurus from started test...')
+        return True
+
+    def post_process(self):
+        pass
 
 
 class BlazeMeterClientEmul(BlazeMeterClient):
