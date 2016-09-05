@@ -32,7 +32,7 @@ from math import ceil
 
 from cssselect import GenericTranslator
 
-from bzt.engine import ScenarioExecutor, Scenario, FileLister
+from bzt.engine import ScenarioExecutor, Scenario, FileLister, Request, HTTPRequest
 from bzt.jmx import JMX
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader, FunctionalSample
@@ -1865,27 +1865,6 @@ class JMeterMirrorsManager(MirrorsManager):
         return sorted_links
 
 
-class Request(object):
-    def __init__(self, config):
-        self.config = config
-
-
-class HTTPRequest(Request):
-    def __init__(self, url, label, method, headers, timeout, think_time, body, upload_files, config):
-        super(HTTPRequest, self).__init__(config)
-        self.url = url
-        self.label = label
-        self.method = method
-        self.headers = headers
-        self.timeout = timeout
-        self.think_time = think_time
-        self.body = body
-        self.upload_files = upload_files
-
-    def __repr__(self):
-        return "HTTPRequest(url=%s, method=%s)" % (self.url, self.method)
-
-
 class IfBlock(Request):
     def __init__(self, condition, then_clause, else_clause, config):
         super(IfBlock, self).__init__(config)
@@ -1993,33 +1972,7 @@ class RequestsParser(object):
             name = req.get('include-scenario')
             return IncludeScenarioBlock(name, req)
         else:
-            url = req.get("url", ValueError("Option 'url' is mandatory for request"))
-            label = req.get("label", url)
-            method = req.get("method", "GET")
-            headers = req.get("headers", {})
-            timeout = req.get("timeout", None)
-            think_time = req.get("think-time", None)
-
-            body = req.get('body', None)
-            body_file = req.get('body-file', None)
-            if body and body_file:
-                body_file = None
-                req['body-file'] = None
-
-            if isinstance(self.engine.provisioning, Local) and body_file:  # insert file into body
-                bodyfile_path = self.engine.find_file(body_file)
-                with open(bodyfile_path) as fhd:
-                    req['body'] = fhd.read()
-                    req['body-file'] = None
-
-            upload_files = req.get("upload-files", [])
-            for file_dict in upload_files:
-                file_dict.get("param", ValueError("Items from upload-files must specify parameter name"))
-                path = file_dict.get('path', ValueError("Items from upload-files must specify path to file"))
-                mime = mimetypes.guess_type(path)[0] or "application/octet-stream"
-                file_dict.get('mime-type', mime)
-
-            return HTTPRequest(url, label, method, headers, timeout, think_time, body, upload_files, req)
+            return HierarchicHTTPRequest(req, self.engine)
 
     def __parse_requests(self, raw_requests):
         requests = []
@@ -2034,6 +1987,17 @@ class RequestsParser(object):
     def extract_requests(self, scenario):
         requests = scenario.get("requests", [])
         return list(self.__parse_requests(requests))
+
+
+class HierarchicHTTPRequest(HTTPRequest):
+    def __init__(self, config, engine):
+        super(HierarchicHTTPRequest, self).__init__(config, engine)
+        self.upload_files = config.get("upload-files", [])
+        for file_dict in self.upload_files:
+            file_dict.get("param", ValueError("Items from upload-files must specify parameter name"))
+            path = file_dict.get('path', ValueError("Items from upload-files must specify path to file"))
+            mime = mimetypes.guess_type(path)[0] or "application/octet-stream"
+            file_dict.get('mime-type', mime)
 
 
 class RequestVisitor(object):
@@ -2056,7 +2020,7 @@ class ResourceFilesCollector(RequestVisitor):
         super(ResourceFilesCollector, self).__init__()
         self.executor = executor
 
-    def visit_httprequest(self, request):
+    def visit_hierarchichttprequest(self, request):
         files = []
         body_file = request.config.get('body-file')
         if body_file:
@@ -2109,7 +2073,7 @@ class RequestCompiler(RequestVisitor):
         super(RequestCompiler, self).__init__()
         self.jmx_builder = jmx_builder
 
-    def visit_httprequest(self, request):
+    def visit_hierarchichttprequest(self, request):
         return self.jmx_builder.compile_http_request(request)
 
     def visit_ifblock(self, block):

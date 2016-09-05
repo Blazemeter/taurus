@@ -144,38 +144,13 @@ class TestJMeterExecutor(BZTestCase):
         })
         self.obj.prepare()
 
-    def test_body_file_local(self):
-        body_file = __dir__() + "/../jmeter/body-file.dat"
-        self.configure({
-            'execution': [{
-                'iterations': 1,
-                'scenario': 'bf'}],
-            'scenarios': {
-                'bf': {
-                    "requests": [
-                        {
-                            'url': 'http://first.com',
-                            'body-file': body_file
-                        }, {
-                            'url': 'http://second.com',
-                            'body': 'body2',
-                            'body-file': body_file}]}}})
-        self.obj.prepare()
-        scenario = self.obj.get_scenario()
-        body_files = [req.get('body-file') for req in scenario.get('requests')]
-        body_fields = [req.get('body') for req in scenario.get('requests')]
-        self.assertFalse(any(body_files))
-        self.assertIn('sample of body', body_fields[0])
-        self.assertIn('body2', body_fields[1])
-
-    def test_body_file_cloud(self):
+    def test_body_file(self):
         body_file1 = __dir__() + "/../jmeter/body-file.dat"
         body_file2 = __dir__() + "/../jmeter/jmx/http.jmx"
         self.configure({
             'execution': [{
                 'iterations': 1,
                 'scenario': 'bf'}],
-            'provisioning': 'cloud',
             'scenarios': {
                 'bf': {
                     "requests": [
@@ -190,9 +165,10 @@ class TestJMeterExecutor(BZTestCase):
         scenario = self.obj.get_scenario()
         body_files = [req.get('body-file') for req in scenario.get('requests')]
         body_fields = [req.get('body') for req in scenario.get('requests')]
-        self.assertEqual(res_files, [body_file1])
+        self.assertIn(body_file1, res_files)
+        self.assertIn(body_file2, res_files)
         self.assertEqual(body_fields, [None, 'body2'])
-        self.assertEqual(body_files, [body_file1, None])
+        self.assertEqual(body_files, [body_file1, body_file2])
 
     def test_datasources_with_delimiter(self):
         self.obj.execution.merge({"scenario":
