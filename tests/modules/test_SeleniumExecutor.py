@@ -116,7 +116,7 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
         """
         self.obj.engine.config.merge({
             'execution': {
-                'scenario': {'script': __dir__() + '/../selenium/java_package/'},
+                'scenario': {'script': __dir__() + '/../selenium/java_package/src'},
                 'executor': 'selenium'
             },
             'reporting': [{'module': 'junit-xml'}]

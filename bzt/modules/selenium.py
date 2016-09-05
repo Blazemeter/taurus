@@ -457,10 +457,8 @@ class JUnitTester(AbstractTestRunner):
                     compile_jar_cl = ["jar", "-cf", jar_name]
                     compile_jar_cl.extend(class_files)
                 else:
-                    package_dir = os.listdir(self.working_dir)[0]
-                    compile_jar_cl = ["jar", "-cf", jar_name, "-C", package_dir, "."]
+                    compile_jar_cl = ["jar", "-cf", jar_name, "."]
 
-                self.log.debug("running jar: %s", compile_jar_cl)
                 self.process = shell_exec(compile_jar_cl, cwd=self.working_dir, stdout=jar_out, stderr=jar_err)
                 ret_code = self.process.poll()
 
