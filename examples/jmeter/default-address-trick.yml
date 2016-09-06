@@ -1,0 +1,17 @@
+---
+scenarios:
+  my_scenario:
+    requests:
+      - label: Home
+        url: /
+        method: GET
+        think-time: 500ms
+
+execution:
+- concurrency: 5
+  ramp-up: 30s
+  hold-for: 1m
+  scenario:
+    default-address: http://192.168.1.3
+    requests: 
+      - include-scenario: my_scenario
