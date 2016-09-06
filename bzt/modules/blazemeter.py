@@ -675,10 +675,11 @@ class BlazeMeterClient(object):
 
     def create_collection(self, coll):
         url = self.address + "/api/latest/collections"
-        try:
-            return self._request(url, data=to_json(coll), headers={"Content-Type": "application/json"}, method="POST")
-        except HTTPError as exc:
-            return json.loads(exc.read())
+        resp =self._request(url, data=to_json(coll), headers={"Content-Type": "application/json"}, method="POST")
+        if resp['error']:
+            raise ValueError("Cannot create collection")
+        collection = resp['result']
+        return collection['id']
 
     def start_collection(self, collection_id):
         url = self.address + "/api/latest/collections/%s/start" % collection_id
@@ -1605,11 +1606,8 @@ class CloudProvisioningNG(MasterProvisioning):
     def _create_collection(self, imported_config):
         if 'userId' in imported_config:
             imported_config.pop('userId')
-        resp = self.client.create_collection(imported_config)
-        if resp['error']:
-            raise ValueError("Cannot create collection")
-        collection = resp['result']
-        return collection['id']
+        collection_id = self.client.create_collection(imported_config)
+        return collection_id
 
     def _upload_resources(self, resource_files):
         draft_id = 'taurus_%s' % int(time.time())
