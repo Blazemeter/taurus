@@ -1161,9 +1161,15 @@ class BlazeMeterClient(object):
         res = self._request(url)
         return res['result']
 
-    def get_available_locations(self):
+    def get_available_locations(self, ignore_harbors=True):
         user_info = self.get_user_info()
-        return {str(x['id']): x for x in user_info['locations']}
+        locations = {}
+        for location in user_info['locations']:
+            location_id = str(location['id'])
+            if ignore_harbors and location_id.startswith('harbor-'):
+                continue
+            locations[location_id] = location
+        return locations
 
     def get_test_files(self, test_id):
         path = self.address + "/api/latest/web/elfinder/%s" % test_id
@@ -1490,7 +1496,7 @@ class CloudProvisioningNG(MasterProvisioning):
             self.log.warning("Dumping available locations instead of running the test")
             self._configure_client()
             info = self.client.get_user_info()
-            locations = self.client.get_available_locations()
+            locations = self.client.get_available_locations(ignore_harbors=False)
             for item in info['locations']:
                 if item['id'] in locations:
                     self.log.info("Location: %s\t%s", item['id'], item['title'])
@@ -1586,7 +1592,7 @@ class CloudProvisioningNG(MasterProvisioning):
                 raise ValueError("You must provide API token to use cloud provisioning")
 
     def _check_locations(self):
-        available_locations = self.client.get_available_locations()
+        available_locations = self.client.get_available_locations(ignore_harbors=False)
         for executor in self.executors:
             locations = self._get_locations(available_locations, executor)
             executor.get_load()  # we need it to resolve load settings into full form
@@ -1790,7 +1796,12 @@ class CloudProvWidget(Pile, PrioritizedWidget):
                 name_split = session['name'].split('/')
                 location = session['configuration']['location']
                 count = session['configuration']['serversCount']
-                mapping.get(name_split[0]).get(name_split[1])[location] = count
+                ex_item = mapping.get(name_split[0])
+                if len(name_split) > 1:
+                    script_item = ex_item.get(name_split[1])
+                else:
+                    script_item = ex_item.get("N/A", {})
+                script_item[location] = count
             except KeyError:
                 self._sessions = None
 
