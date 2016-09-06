@@ -138,20 +138,22 @@ class TestTsungExecutor(BZTestCase):
         self.assertIn(cid_param, stdout)
 
 class TestTsungConfig(BZTestCase):
+    def setUp(self):
+        self.obj = TsungExecutor()
+        self.obj.engine = EngineEmul()
+
     def test_servers(self):
-        obj = TsungExecutor()
-        obj.engine = EngineEmul()
-        obj.execution.merge({
+        self.obj.execution.merge({
             "hold-for": "10s",
             "scenario": {
                 "default-address": "http://example.com:8080",
                 "requests": ["/"],
             }
         })
-        obj.settings.merge({"path": get_res_path(TOOL_NAME),})
-        obj.prepare()
+        self.obj.settings.merge({"path": get_res_path(TOOL_NAME),})
+        self.obj.prepare()
         config = TsungConfig(None)
-        config.load(obj.tsung_config)
+        config.load(self.obj.tsung_config)
         servers = config.find('//servers/server')
         self.assertEquals(1, len(servers))
         server = servers[0]
@@ -159,9 +161,7 @@ class TestTsungConfig(BZTestCase):
         self.assertEqual(server.get('port'), '8080')
 
     def test_sessions_requests(self):
-        obj = TsungExecutor()
-        obj.engine = EngineEmul()
-        obj.execution.merge({
+        self.obj.execution.merge({
             "concurrency": 2,
             "hold-for": "10s",
             "scenario": {
@@ -169,17 +169,15 @@ class TestTsungConfig(BZTestCase):
                 "requests": ["/", "/reserve.php"],
             }
         })
-        obj.settings.merge({"path": get_res_path(TOOL_NAME),})
-        obj.prepare()
+        self.obj.settings.merge({"path": get_res_path(TOOL_NAME),})
+        self.obj.prepare()
         config = TsungConfig(None)
-        config.load(obj.tsung_config)
+        config.load(self.obj.tsung_config)
         requests = config.find('//request')
         self.assertEquals(2, len(requests))
 
     def test_sessions_thinktime(self):
-        obj = TsungExecutor()
-        obj.engine = EngineEmul()
-        obj.execution.merge({
+        self.obj.execution.merge({
             "concurrency": 50,
             "hold-for": "30s",
             "scenario": {
@@ -193,19 +191,17 @@ class TestTsungConfig(BZTestCase):
                 }],
             }
         })
-        obj.settings.merge({"path": get_res_path(TOOL_NAME),})
-        obj.prepare()
+        self.obj.settings.merge({"path": get_res_path(TOOL_NAME),})
+        self.obj.prepare()
         config = TsungConfig(None)
-        config.load(obj.tsung_config)
+        config.load(self.obj.tsung_config)
         thinktimes = config.find('//thinktime')
         self.assertEqual(len(thinktimes), 2)
         self.assertEqual(thinktimes[0].get("value"), "1")
         self.assertEqual(thinktimes[1].get("value"), "2")
 
     def test_requests_custom(self):
-        obj = TsungExecutor()
-        obj.engine = EngineEmul()
-        obj.execution.merge({
+        self.obj.execution.merge({
             "concurrency": 50,
             "hold-for": "30s",
             "scenario": {
@@ -227,10 +223,10 @@ class TestTsungConfig(BZTestCase):
                 }],
             }
         })
-        obj.settings.merge({"path": get_res_path(TOOL_NAME),})
-        obj.prepare()
+        self.obj.settings.merge({"path": get_res_path(TOOL_NAME),})
+        self.obj.prepare()
         config = TsungConfig(None)
-        config.load(obj.tsung_config)
+        config.load(self.obj.tsung_config)
         urls = config.find('//http')
         self.assertEqual(len(urls), 3)
         self.assertEqual(urls[0].get("method"), "GET")
@@ -240,9 +236,7 @@ class TestTsungConfig(BZTestCase):
         self.assertEqual(urls[2].get("contents"), open(get_res_path('http_simple.xml')).read())
 
     def test_requests_headers(self):
-        obj = TsungExecutor()
-        obj.engine = EngineEmul()
-        obj.execution.merge({
+        self.obj.execution.merge({
             "concurrency": 50,
             "hold-for": "30s",
             "scenario": {
@@ -258,10 +252,10 @@ class TestTsungConfig(BZTestCase):
                 }],
             }
         })
-        obj.settings.merge({"path": get_res_path(TOOL_NAME),})
-        obj.prepare()
+        self.obj.settings.merge({"path": get_res_path(TOOL_NAME),})
+        self.obj.prepare()
         config = TsungConfig(None)
-        config.load(obj.tsung_config)
+        config.load(self.obj.tsung_config)
         headers = config.find('//http/http_header')
         self.assertEqual(len(headers), 2)
         headers_list = [(h.get('name'), h.get('value')) for h in headers]
@@ -269,22 +263,20 @@ class TestTsungConfig(BZTestCase):
         self.assertIn(("X-Answer", "42"), headers_list)
 
     def test_load_modification(self):
-        obj = TsungExecutor()
-        obj.engine = EngineEmul()
-        obj.execution.merge({
+        self.obj.execution.merge({
             "concurrency": 50,
             "hold-for": "30s",
             "scenario": {
                 "script": get_res_path("http_simple.xml"),
             }
         })
-        obj.settings.merge({"path": get_res_path(TOOL_NAME),})
-        obj.prepare()
+        self.obj.settings.merge({"path": get_res_path(TOOL_NAME),})
+        self.obj.prepare()
         original_config = TsungConfig(None)
         original_config.load(get_res_path("http_simple.xml"))
         original_load = original_config.find('//tsung/load')[0]
         modified_config = TsungConfig(None)
-        modified_config.load(obj.tsung_config)
+        modified_config.load(self.obj.tsung_config)
         loads = modified_config.find('//tsung/load')
         self.assertEqual(len(loads), 1)
         modified_load = loads[0]
@@ -293,37 +285,33 @@ class TestTsungConfig(BZTestCase):
 
     def test_no_load_no_modication(self):
         # if load profile is not specified - original tsung config's <load> shouldn't be modified
-        obj = TsungExecutor()
-        obj.engine = EngineEmul()
-        obj.execution.merge({
+        self.obj.execution.merge({
             "scenario": {
                 "script": get_res_path("http_simple.xml"),
             }
         })
-        obj.settings.merge({"path": get_res_path(TOOL_NAME),})
-        obj.prepare()
+        self.obj.settings.merge({"path": get_res_path(TOOL_NAME),})
+        self.obj.prepare()
         original_config = TsungConfig(None)
         original_config.load(get_res_path("http_simple.xml"))
         original_load = original_config.find('//tsung/load')[0]
         modified_config = TsungConfig(None)
-        modified_config.load(obj.tsung_config)
+        modified_config.load(self.obj.tsung_config)
         loads = modified_config.find('//tsung/load')
         self.assertEqual(len(loads), 1)
         modified_load = loads[0]
         self.assertEqual(etree.tostring(original_load), etree.tostring(modified_load))
 
     def test_modify_dumpstats(self):
-        obj = TsungExecutor()
-        obj.engine = EngineEmul()
-        obj.execution.merge({
+        self.obj.execution.merge({
             "scenario": {
                 "script": get_res_path("http_simple.xml"),
             }
         })
-        obj.settings.merge({"path": get_res_path(TOOL_NAME),})
-        obj.prepare()
+        self.obj.settings.merge({"path": get_res_path(TOOL_NAME),})
+        self.obj.prepare()
         config = TsungConfig(None)
-        config.load(obj.tsung_config)
+        config.load(self.obj.tsung_config)
         elements = config.find('//tsung')
         self.assertEqual(len(elements), 1)
         root = elements[0]
@@ -331,57 +319,51 @@ class TestTsungConfig(BZTestCase):
         self.assertEqual(root.get('backend'), 'text')
 
     def test_scenario_thinktime(self):
-        obj = TsungExecutor()
-        obj.engine = EngineEmul()
-        obj.execution.merge({
+        self.obj.execution.merge({
             "hold-for": "10s",
             "scenario": {
                 "think-time": "3s",
                 "requests": ["http://blazedemo.com/"]
             }
         })
-        obj.settings.merge({"path": get_res_path(TOOL_NAME),})
-        obj.prepare()
+        self.obj.settings.merge({"path": get_res_path(TOOL_NAME),})
+        self.obj.prepare()
         config = TsungConfig(None)
-        config.load(obj.tsung_config)
+        config.load(self.obj.tsung_config)
         elements = config.find('//options/option[@name="thinktime"]')
         self.assertEqual(len(elements), 1)
         thinktime = elements[0]
         self.assertEqual(thinktime.get('value'), '3')
 
     def test_scenario_timeout(self):
-        obj = TsungExecutor()
-        obj.engine = EngineEmul()
-        obj.execution.merge({
+        self.obj.execution.merge({
             "hold-for": "10s",
             "scenario": {
                 "timeout": "1s",
                 "requests": ["http://blazedemo.com/"]
             }
         })
-        obj.settings.merge({"path": get_res_path(TOOL_NAME),})
-        obj.prepare()
+        self.obj.settings.merge({"path": get_res_path(TOOL_NAME),})
+        self.obj.prepare()
         config = TsungConfig(None)
-        config.load(obj.tsung_config)
+        config.load(self.obj.tsung_config)
         elements = config.find('//options/option[@name="connect_timeout"]')
         self.assertEqual(len(elements), 1)
         thinktime = elements[0]
         self.assertEqual(thinktime.get('value'), '1000')
 
     def test_scenario_max_retries(self):
-        obj = TsungExecutor()
-        obj.engine = EngineEmul()
-        obj.execution.merge({
+        self.obj.execution.merge({
             "hold-for": "10s",
             "scenario": {
                 "max-retries": "5",
                 "requests": ["http://blazedemo.com/"]
             }
         })
-        obj.settings.merge({"path": get_res_path(TOOL_NAME),})
-        obj.prepare()
+        self.obj.settings.merge({"path": get_res_path(TOOL_NAME),})
+        self.obj.prepare()
         config = TsungConfig(None)
-        config.load(obj.tsung_config)
+        config.load(self.obj.tsung_config)
         elements = config.find('//options/option[@name="max_retries"]')
         self.assertEqual(len(elements), 1)
         thinktime = elements[0]
