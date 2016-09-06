@@ -631,11 +631,17 @@ class BlazeMeterClient(object):
             self.log.warning("Non-JSON response from API: %s", resp)
             raise
 
+    def create_directory(self, dir_name):
+        url = self.address + "/api/latest/user/folders"
+        payload = to_json({"name": dir_name})
+        return self._request(url, data=payload, headers={"Content-Type": "application/json"}, method="POST")
+
     def upload_resource_files(self, resource_files, draft_id):
         url = self.address + "/api/latest/web/elfinder/%s" % draft_id
         body = MultiPartForm()
         body.add_field("cmd", "upload")
         body.add_field("target", "s1_Lw")
+        body.add_field('folder', 'drafts')
 
         for rfile in resource_files:
             body.add_file('upload[]', rfile)
@@ -650,7 +656,7 @@ class BlazeMeterClient(object):
         query = urlencode({'cmd': 'open', 'target': 's1_Lw'})
         url = path + '?' + query
         response = self._request(url)
-        return response["files"]
+        return response
 
     def get_collections(self):
         resp = self._request(self.address + "/api/latest/collections")
@@ -677,13 +683,9 @@ class BlazeMeterClient(object):
     def start_collection(self, collection_id):
         url = self.address + "/api/latest/collections/%s/start" % collection_id
         resp = self._request(url, method="POST")
-        self.log.info("Start collection: %s", to_json(resp))
-        result = resp['result']
-        sessions = result['sessionsId']
-        self.session_id = sessions[0]
-        self.user_id = result['userId']
-        session = self.get_session()
-        self.log.info("Session: %s", to_json(session))
+        self.master_id = resp['result']['id']
+        self.results_url = self.address + '/app/#reports/%s' % self.master_id
+        return self.results_url
 
     def start_online(self, test_id, session_name):
         """
@@ -1464,7 +1466,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         return self.widget
 
 
-class CloudProvisioningNew(MasterProvisioning):
+class CloudProvisioningNG(MasterProvisioning):
     """
     :type client: BlazeMeterClient
     :type results_reader: ResultsFromBZA
@@ -1473,32 +1475,103 @@ class CloudProvisioningNew(MasterProvisioning):
     LOC = "locations"
 
     def __init__(self):
-        super(CloudProvisioningNew, self).__init__()
+        super(CloudProvisioningNG, self).__init__()
         self.results_reader = None
         self.client = BlazeMeterClient(self.log)
+        self._last_master_status = None
         self.collection_id = None
+        self.browser_open = 'start'
         self.widget = None
-        self.detach = True
+        self.detach = False
 
     def prepare(self):
-        super(CloudProvisioningNew, self).prepare()
+        if self.settings.get("dump-locations", False):
+            self.log.warning("Dumping available locations instead of running the test")
+            self._configure_client()
+            info = self.client.get_user_info()
+            locations = self.client.get_available_locations()
+            for item in info['locations']:
+                if item['id'] in locations:
+                    self.log.info("Location: %s\t%s", item['id'], item['title'])
+            raise ManualShutdown("Done listing locations")
+
+        super(CloudProvisioningNG, self).prepare()
+        self.browser_open = self.settings.get("browser-open", self.browser_open)
+        self.detach = self.settings.get("detach", self.detach)
         self._configure_client()
         self._check_locations()
+        self._remove_excessive_reporting()
 
         additional_files = self.get_rfiles()
         draft_id = None
         if additional_files:
             draft_id = self._upload_resources(additional_files)
-            resp = self.client.get_draft_files(draft_id)
-            self.log.warning("draft files: %s", to_json(resp))
         config = self.get_config_for_cloud(draft_id=draft_id)
-        imported_config = self._import_taurus_test(config)
-        self.collection_id = self._create_collection(imported_config)
+        collection_draft = self._import_taurus_test(config)
+        self.collection_id = self._create_collection(collection_draft)
 
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.results_reader = ResultsFromBZA(self.client)
             self.results_reader.log = self.log
             self.engine.aggregator.add_underling(self.results_reader)
+
+    def startup(self):
+        super(CloudProvisioningNG, self).startup()
+        self._start_collection()
+        self.log.info("Started cloud test: %s", self.client.results_url)
+        if self.client.results_url:
+            if self.browser_open in ('start', 'both'):
+                open_browser(self.client.results_url)
+
+    def check(self):
+        if self.detach:
+            self.log.warning('Detaching Taurus from started test...')
+            return True
+        try:
+            master = self.client.get_master_status()
+        except (URLError, SSLError):
+            self.log.warning("Failed to get test status, will retry in %s seconds...", self.client.timeout)
+            self.log.debug("Full exception: %s", traceback.format_exc())
+            time.sleep(self.client.timeout)
+            master = self.client.get_master_status()
+            self.log.info("Succeeded with retry")
+
+        if "status" in master and master['status'] != self._last_master_status:
+            self._last_master_status = master['status']
+            self.log.info("Cloud test status: %s", self._last_master_status)
+
+        if self.results_reader is not None and 'progress' in master and master['progress'] >= 100:
+            self.results_reader.master_id = self.client.master_id
+
+        if 'progress' in master and master['progress'] > 100:
+            self.log.info("Test was stopped in the cloud: %s", master['status'])
+            status = self.client.get_master()
+            if 'note' in status and status['note']:
+                self.log.warning("Cloud test has probably failed with message: %s", status['note'])
+
+            self.client.master_id = None
+            return True
+
+        return super(CloudProvisioningNG, self).check()
+
+    def post_process(self):
+        if not self.detach:
+            self.client.end_master()
+        if self.client.results_url:
+            if self.browser_open in ('end', 'both'):
+                open_browser(self.client.results_url)
+
+    def _remove_excessive_reporting(self):
+        reporting = self.engine.config.get(Reporter.REP, [])
+        new_reporting = []
+        for index, reporter in enumerate(reporting):
+            reporter = ensure_is_dict(reporting, index, "module")
+            cls = reporter.get('module', ValueError())
+            if cls == 'blazemeter':
+                self.log.warning("Explicit blazemeter reporting is skipped for cloud")
+            else:
+                new_reporting.append(reporter)
+        self.engine.config[Reporter.REP] = new_reporting
 
     def _configure_client(self):
         self.client.logger_limit = self.settings.get("request-logging-limit", self.client.logger_limit)
@@ -1506,7 +1579,10 @@ class CloudProvisioningNew(MasterProvisioning):
         self.client.token = self.settings.get("token", self.client.token)
         self.client.timeout = dehumanize_time(self.settings.get("timeout", self.client.timeout))
         if not self.client.token:
-            raise ValueError("You must provide API token to use cloud provisioning")
+            bmmod = self.engine.instantiate_module('blazemeter')
+            self.client.token = bmmod.settings.get("token")
+            if not self.client.token:
+                raise ValueError("You must provide API token to use cloud provisioning")
 
     def _check_locations(self):
         available_locations = self.client.get_available_locations()
@@ -1518,27 +1594,25 @@ class CloudProvisioningNew(MasterProvisioning):
                 if location not in available_locations:
                     self.log.warning("List of supported locations for you is: %s", sorted(available_locations.keys()))
                     raise ValueError("Invalid location requested: %s" % location)
+        # TODO: check toplevel 'locations' section
 
     def _import_taurus_test(self, config):
         resp = self.client.import_config(config)
-        self.log.info("importconfig: %s", to_json(resp))
         if resp['error']:
             raise ValueError("Cannot import Taurus config")
-        imported = resp['result']
-        return imported
+        return resp['result']
 
     def _create_collection(self, imported_config):
         if 'userId' in imported_config:
             imported_config.pop('userId')
         resp = self.client.create_collection(imported_config)
-        self.log.info("create collection: %s", to_json(resp))
         if resp['error']:
             raise ValueError("Cannot create collection")
         collection = resp['result']
         return collection['id']
 
     def _upload_resources(self, resource_files):
-        draft_id = str(int(time.time()))  # smells like bad idea
+        draft_id = 'taurus_%s' % int(time.time())
         self.client.upload_resource_files(resource_files, draft_id)
         return draft_id
 
@@ -1557,11 +1631,11 @@ class CloudProvisioningNew(MasterProvisioning):
             execution[ScenarioExecutor.THRPT] = execution.get(ScenarioExecutor.THRPT).get(provisioning, None)
 
         for key in list(config.keys()):
-            if key not in ("scenarios", ScenarioExecutor.EXEC, Service.SERV):
+            if key not in ("scenarios", ScenarioExecutor.EXEC, Service.SERV, self.LOC):
                 config.pop(key)
 
         # cleanup configuration from empty values
-        default_values = {
+        null_values = {
             'concurrency': None,
             'iterations': None,
             'ramp-up': None,
@@ -1571,7 +1645,7 @@ class CloudProvisioningNew(MasterProvisioning):
             'files': []
         }
         for execution in config[ScenarioExecutor.EXEC]:
-            for key, value in iteritems(default_values):
+            for key, value in iteritems(null_values):
                 if key in execution and execution[key] == value:
                     execution.pop(key)
 
@@ -1581,18 +1655,6 @@ class CloudProvisioningNew(MasterProvisioning):
         assert isinstance(config, Configuration)
         config.dump(self.engine.create_artifact("cloud", ""))
         return config
-
-    @staticmethod
-    def __get_bza_test_config():
-        bza_plugin = {
-            "type": "taurus",
-            "plugins": {
-                "taurus": {
-                    "filename": ""  # without this line it does not work
-                }
-            }
-        }
-        return bza_plugin
 
     def _get_locations(self, available_locations, executor):
         locations = executor.execution.get(self.LOC, BetterDict())
@@ -1606,17 +1668,6 @@ class CloudProvisioningNew(MasterProvisioning):
             self.log.warning("List of supported locations for you is: %s", sorted(available_locations.keys()))
             raise ValueError("No sandbox location available, please specify locations manually")
         return locations
-
-    def startup(self):
-        super(CloudProvisioningNew, self).startup()
-        self._start_collection()
-
-    def check(self):
-        self.log.warning('Detaching Taurus from started test...')
-        return True
-
-    def post_process(self):
-        pass
 
 
 class BlazeMeterClientEmul(BlazeMeterClient):
