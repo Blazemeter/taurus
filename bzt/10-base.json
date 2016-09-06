@@ -184,8 +184,8 @@
     "cloud": {
       "provisioning": "cloud"
     },
-    "cloud-new": {
-      "provisioning": "cloud-new"
+    "cloud-ng": {
+      "provisioning": "cloud-ng"
     },
     "detach": {
       "modules": {
