@@ -1023,27 +1023,37 @@ class Scenario(UserDict, object):
         """
         Generator object to read requests
         """
-        scenario = self
-        requests = scenario.get("requests", [])
+        requests = self.get("requests", [])
         for key in range(len(requests)):
             req = ensure_is_dict(requests, key, "url")
-            res = namedtuple("HTTPReq",
-                             ('url', 'label', 'method', 'headers', 'timeout', 'think_time', 'config', "body"))
-            url = req.get("url", ValueError("Option 'url' is mandatory for request"))
-            label = req.get("label", url)
-            method = req.get("method", "GET")
-            headers = req.get("headers", {})
-            timeout = req.get("timeout", None)
-            think_time = req.get("think-time", None)
+            yield HTTPRequest(config=req, engine=self.engine)
 
-            body = None
-            bodyfile = req.get("body-file", None)
-            bodyfile_path = self.engine.find_file(bodyfile)
-            if bodyfile_path:
+
+class Request(object):
+    def __init__(self, config):
+        self.config = config
+
+
+class HTTPRequest(Request):
+    def __init__(self, config, engine):
+        super(HTTPRequest, self).__init__(config)
+        self.engine = engine
+        self.url = config.get("url", ValueError("Option 'url' is mandatory for request"))
+        self.label = config.get("label", self.url)
+        self.method = config.get("method", "GET")
+        self.headers = config.get("headers", {})
+        self.timeout = config.get("timeout", None)
+        self.think_time = config.get("think-time", None)
+
+        body = config.get('body', None)
+        body_file = config.get('body-file', None)
+        if body_file:
+            if body:
+                # fixme: add own logger?
+                self.engine.log.warning('body and body-file fields are found, only first will take effect')
+            else:
+                bodyfile_path = self.engine.find_file(body_file)
                 with open(bodyfile_path) as fhd:
                     body = fhd.read()
-            body = req.get("body", body)
 
-            yield res(config=req, label=label,
-                      url=url, method=method, headers=headers,
-                      timeout=timeout, think_time=think_time, body=body)
+        self.body = body
