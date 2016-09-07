@@ -364,6 +364,7 @@ class JUnitTester(AbstractTestRunner):
         self.base_class_path = [self.selenium_server_jar_path, self.junit_path, self.junit_listener_path,
                                 self.hamcrest_path, self.json_jar_path]
         self.base_class_path.extend(self.scenario.get("additional-classpath", []))
+        self.base_class_path=[os.path.abspath(x) for x in self.base_class_path]
 
     def prepare(self):
         """
@@ -976,7 +977,6 @@ class SeleniumReportReader(object):
 
     def read(self, last_pass=False):
         for row in self.json_reader.read(last_pass):
-            #if any(key not in row for key in self.REPORT_ITEM_KEYS):
             for key in self.REPORT_ITEM_KEYS:
                 if key not in row:
                     self.log.debug("Unexpected test record: %s", row)

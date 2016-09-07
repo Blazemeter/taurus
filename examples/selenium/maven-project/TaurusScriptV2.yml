@@ -1,0 +1,17 @@
+---
+# Requires Taurus >= 1.6.9
+execution:
+- executor: selenium
+  ramp-up: 1m
+  hold-for: 30s
+  scenario: simple-junit-test
+
+scenarios:
+  simple-junit-test:
+      script: ./src/test/java
+      additional-classpath:
+      - target/Selenium-1.0-SNAPSHOT.jar
+
+services:
+ - module: shellexec
+   prepare: mvn -Dmaven.test.skip=true clean package
