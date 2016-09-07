@@ -32,9 +32,10 @@ from math import ceil
 
 from cssselect import GenericTranslator
 
-from bzt.engine import ScenarioExecutor, Scenario, FileLister
+from bzt.engine import ScenarioExecutor, Scenario, FileLister, Request, HTTPRequest
 from bzt.jmx import JMX
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
+from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader, FunctionalSample
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.provisioning import Local
 from bzt.six import iteritems, string_types, StringIO, etree, binary_type
@@ -115,6 +116,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.reader = JTLReader(self.kpi_jtl, self.log, self.log_jtl)
+            self.reader.is_distributed = len(self.distributed_servers) > 0
+            self.engine.aggregator.add_underling(self.reader)
+        elif isinstance(self.engine.aggregator, FunctionalAggregator):
+            self.reader = FuncJTLReader(self.log_jtl, self.log)
             self.reader.is_distributed = len(self.distributed_servers) > 0
             self.engine.aggregator.add_underling(self.reader)
 
@@ -235,7 +240,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def post_process(self):
         self.engine.existing_artifact(self.modified_jmx, True)
-        if self.reader and not self.reader.buffer and self.start_time is not None:
+        if self.reader and not self.reader.read_records and self.start_time is not None:
             msg = "Empty results JTL, most likely JMeter failed: %s"
             raise RuntimeWarning(msg % self.kpi_jtl)
 
@@ -490,6 +495,22 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             if not file_setting or not file_setting[0].text:
                 listener.set("enabled", "false")
 
+    def __apply_test_mode(self, jmx):
+        func_mode = self.engine.is_functional_mode()
+        test_plan_selector = "jmeterTestPlan>hashTree>TestPlan"
+        plans = jmx.get(test_plan_selector)
+        if not plans:
+            self.log.warning("No test plans, can't set test mode")
+            return
+        test_plan = plans[0]
+        props = test_plan.xpath('boolProp[@name="TestPlan.functional_mode"]')
+        if props:
+            prop = props[0]
+            prop.text = "true" if func_mode else "false"
+        else:
+            element = jmx._get_functional_mode_prop(func_mode)
+            jmx.append(test_plan_selector, element)
+
     def __apply_load_settings(self, jmx, load):
         self.__convert_to_normal_tg(jmx, load)
         if load.concurrency:
@@ -519,6 +540,18 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     def __add_listener(lst, jmx):
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, lst)
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
+
+    def __add_result_listeners(self, jmx):
+        if self.engine.is_functional_mode():
+            self.__add_trace_writer(jmx)
+        else:
+            self.__add_result_writers(jmx)
+
+    def __add_trace_writer(self, jmx):
+        self.log_jtl = self.engine.create_artifact("trace", ".jtl")
+        flags = self.settings.get('xml-jtl-flags')
+        log_lst = jmx.new_xml_listener(self.log_jtl, True, flags)
+        self.__add_listener(log_lst, jmx)
 
     def __add_result_writers(self, jmx):
         self.kpi_jtl = self.engine.create_artifact("kpi", ".jtl")
@@ -564,8 +597,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         self.__apply_modifications(jmx)
 
+        self.__apply_test_mode(jmx)
         self.__apply_load_settings(jmx, load)
-        self.__add_result_writers(jmx)
+        self.__add_result_listeners(jmx)
         self.__force_tran_parent_sample(jmx)
         self.__fill_empty_delimiters(jmx)
 
@@ -869,6 +903,134 @@ class JTLReader(ResultsReader):
                         label_data[KPISet.ERRORS] = {}
 
             yield point
+
+
+class FuncJTLReader(FunctionalResultsReader):
+    """
+    Class to read trace.jtl
+    :type filename: str
+    :type parent_logger: logging.Logger
+    """
+    def __init__(self, filename, parent_logger):
+        super(FuncJTLReader, self).__init__()
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.parser = etree.XMLPullParser(events=('end',))
+        self.offset = 0
+        self.filename = filename
+        self.fds = None
+        self.failed_processing = False
+        self.read_records = 0
+
+    def __del__(self):
+        if self.fds:
+            self.fds.close()
+
+    def read(self, last_pass=True):
+        """
+        Read the next part of the file
+        """
+
+        if self.failed_processing:
+            return
+
+        if not self.fds:
+            if os.path.exists(self.filename) and os.path.getsize(self.filename):
+                self.log.debug("Opening %s", self.filename)
+                self.fds = open(self.filename, 'rb')
+            else:
+                self.log.debug("File not exists: %s", self.filename)
+                return
+
+        self.fds.seek(self.offset)
+        while True:
+            read = self.fds.read(1024 * 1024)
+            if read.strip():
+                try:
+                    self.parser.feed(read)
+                except etree.XMLSyntaxError as exc:
+                    self.failed_processing = True
+                    self.log.debug("Error reading trace.jtl: %s", traceback.format_exc())
+                    self.log.warning("Failed to parse errors XML: %s", exc)
+            else:
+                break
+            if not last_pass:
+                continue
+        self.offset = self.fds.tell()
+
+        for _, elem in self.parser.read_events():
+            if elem.getparent() is not None and elem.getparent().tag == 'testResults':
+                sample = self.__extract_sample(elem)
+                self.read_records += 1
+
+                elem.clear()
+                while elem.getprevious() is not None:
+                    del elem.getparent()[0]
+
+                yield sample
+
+    def __extract_sample(self, elem):
+        tstmp = int(float(elem.get("ts")) / 1000)
+        label = elem.get("lb")
+        suite_name = "JMeter"
+        duration = float(elem.get("t")) / 1000.0
+        success = elem.get("s") == "true"
+
+        if success:
+            status = "PASSED"
+            error_msg = ""
+            error_trace = ""
+        else:
+            assertion = self.__get_failed_assertion(elem)
+            if assertion is not None:
+                status = "FAILED"
+                error_msg = assertion.find("failureMessage").text
+                error_trace = ""
+            else:
+                status = "BROKEN"
+                error_msg, error_trace = self.get_failure(elem)
+
+        if error_msg.startswith("The operation lasted too long"):
+            error_msg = "The operation lasted too long"
+
+        return FunctionalSample(test_case=label, test_suite=suite_name, status=status,
+                                start_time=tstmp, duration=duration,
+                                error_msg=error_msg, error_trace=error_trace,
+                                extras=None)
+
+    def get_failure(self, element):
+        """
+        Returns failure message and a stack trace
+        """
+        r_code = element.get('rc')
+        if r_code and r_code.startswith("2") and element.get('s') == "false":
+            children = [elem for elem in element.iterchildren() if elem.tag == "httpSample"]
+            for child in children:
+                child_failure = self.get_failure(child)
+                if child_failure:
+                    return child_failure
+        else:
+            message = element.get('rm')
+            response_data = element.find("responseData")
+            if response_data is not None:
+                trace = response_data.text
+            else:
+                trace = ""
+            return message, trace
+
+    @staticmethod
+    def __get_failed_assertion(element):
+        """
+        Returns first failed assertion, or None
+
+        :rtype lxml.etree.Element
+        """
+        assertions = [elem for elem in element.iterchildren() if elem.tag == "assertionResult"]
+        for assertion in assertions:
+            failed = assertion.find("failure")
+            error = assertion.find("error")
+            if failed.text == "true" or error.text == "true":
+                return assertion
+        return None
 
 
 class IncrementalCSVReader(object):
@@ -1703,27 +1865,6 @@ class JMeterMirrorsManager(MirrorsManager):
         return sorted_links
 
 
-class Request(object):
-    def __init__(self, config):
-        self.config = config
-
-
-class HTTPRequest(Request):
-    def __init__(self, url, label, method, headers, timeout, think_time, body, upload_files, config):
-        super(HTTPRequest, self).__init__(config)
-        self.url = url
-        self.label = label
-        self.method = method
-        self.headers = headers
-        self.timeout = timeout
-        self.think_time = think_time
-        self.body = body
-        self.upload_files = upload_files
-
-    def __repr__(self):
-        return "HTTPRequest(url=%s, method=%s)" % (self.url, self.method)
-
-
 class IfBlock(Request):
     def __init__(self, condition, then_clause, else_clause, config):
         super(IfBlock, self).__init__(config)
@@ -1831,29 +1972,7 @@ class RequestsParser(object):
             name = req.get('include-scenario')
             return IncludeScenarioBlock(name, req)
         else:
-            url = req.get("url", ValueError("Option 'url' is mandatory for request"))
-            label = req.get("label", url)
-            method = req.get("method", "GET")
-            headers = req.get("headers", {})
-            timeout = req.get("timeout", None)
-            think_time = req.get("think-time", None)
-
-            body = None
-            bodyfile = req.get("body-file", None)
-            if bodyfile:
-                bodyfile_path = self.engine.find_file(bodyfile)
-                with open(bodyfile_path) as fhd:
-                    body = fhd.read()
-            body = req.get("body", body)
-
-            upload_files = req.get("upload-files", [])
-            for file_dict in upload_files:
-                file_dict.get("param", ValueError("Items from upload-files must specify parameter name"))
-                path = file_dict.get('path', ValueError("Items from upload-files must specify path to file"))
-                mime = mimetypes.guess_type(path)[0] or "application/octet-stream"
-                file_dict.get('mime-type', mime)
-
-            return HTTPRequest(url, label, method, headers, timeout, think_time, body, upload_files, req)
+            return HierarchicHTTPRequest(req, self.engine)
 
     def __parse_requests(self, raw_requests):
         requests = []
@@ -1868,6 +1987,17 @@ class RequestsParser(object):
     def extract_requests(self, scenario):
         requests = scenario.get("requests", [])
         return list(self.__parse_requests(requests))
+
+
+class HierarchicHTTPRequest(HTTPRequest):
+    def __init__(self, config, engine):
+        super(HierarchicHTTPRequest, self).__init__(config, engine)
+        self.upload_files = config.get("upload-files", [])
+        for file_dict in self.upload_files:
+            file_dict.get("param", ValueError("Items from upload-files must specify parameter name"))
+            path = file_dict.get('path', ValueError("Items from upload-files must specify path to file"))
+            mime = mimetypes.guess_type(path)[0] or "application/octet-stream"
+            file_dict.get('mime-type', mime)
 
 
 class RequestVisitor(object):
@@ -1890,7 +2020,7 @@ class ResourceFilesCollector(RequestVisitor):
         super(ResourceFilesCollector, self).__init__()
         self.executor = executor
 
-    def visit_httprequest(self, request):
+    def visit_hierarchichttprequest(self, request):
         files = []
         body_file = request.config.get('body-file')
         if body_file:
@@ -1943,7 +2073,7 @@ class RequestCompiler(RequestVisitor):
         super(RequestCompiler, self).__init__()
         self.jmx_builder = jmx_builder
 
-    def visit_httprequest(self, request):
+    def visit_hierarchichttprequest(self, request):
         return self.jmx_builder.compile_http_request(request)
 
     def visit_ifblock(self, block):

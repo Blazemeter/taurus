@@ -15,7 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import copy
-import logging
 import math
 import re
 import sys
@@ -56,7 +55,7 @@ except ImportError:
 class ConsoleStatusReporter(Reporter, AggregatorListener):
     """
     Class to show process status on the console
-    :type logger_handlers: list[logging.StreamHandler]
+    :type logger_handlers: list[StreamHandler]
     """
 
     # NOTE: maybe should use separate thread for screen re-painting

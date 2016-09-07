@@ -14,15 +14,14 @@ else:
     irange = range
 
 REPORT_ITEM_KEYS = [
-    "label",  # test label (test method name)
-    "file",  # file location of test
-    "full_name",  # full test name (package.module.class.method)
+    "test_case",  # test label (test method name)
+    "test_suite",  # test suite name (class name)
     "status",  # test status (PASSED/FAILED/BROKEN/SKIPPED)
-    "description",  # test description (from a docstring)
     "start_time",  # test start time
     "duration",  # test duration
     "error_msg",  # short error message
-    "error_trace"  # traceback of a failure
+    "error_trace",  # traceback of a failure
+    "extras",  # extra info: 'file' - test location, 'full_name' - fully qualified name, 'decsription' - docstring
 ]
 
 
@@ -77,13 +76,16 @@ class BZTPlugin(Plugin):
 
         test_file, _, _ = test.address()  # file path, module name, class.method
         test_fqn = test.id()  # [package].module.class.method
-        test_method = test_fqn.split('.')[-1]
+        class_name, method_name = test_fqn.split('.')[-2:]
 
-        self.test_dict["file"] = test_file
-        self.test_dict["label"] = test_method
-        self.test_dict["full_name"] = test_fqn
-        self.test_dict["description"] = test.shortDescription()
+        self.test_dict["test_case"] = method_name
+        self.test_dict["test_suite"] = class_name
         self.test_dict["start_time"] = time.time()
+        self.test_dict["extras"] = {
+            "file": test_file,
+            "full_name": test_fqn,
+            "description": test.shortDescription()
+        }
 
     def addError(self, test, error):  # pylint: disable=invalid-name
         """
@@ -140,7 +142,7 @@ class BZTPlugin(Plugin):
 
         report_pattern = "%s,Total:%d Passed:%d Failed:%d\n"
         sys.stdout.write(report_pattern % (
-            self.test_dict["label"], self.test_count, self.success_count, self.test_count - self.success_count))
+            self.test_dict["test_case"], self.test_count, self.success_count, self.test_count - self.success_count))
 
 
 def run_nose(report_file, files, iterations, hold):

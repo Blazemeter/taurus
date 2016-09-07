@@ -16,6 +16,7 @@ class ScenarioExecutorEmul(object):
 
 class LocalProvisioningEmul(Local):
     def __init__(self):
+        super(LocalProvisioningEmul, self).__init__()
         self.engine = EngineEmul()
 
 
@@ -39,10 +40,7 @@ class LocalProvisioningTest(BZTestCase):
 
         prov._start_modules()
 
-        if executor in prov.engine.started:
-            return True
-        else:
-            return False
+        return executor in prov.engine.started
 
     def test_delay_cycle(self):
         cur_time = time.time()

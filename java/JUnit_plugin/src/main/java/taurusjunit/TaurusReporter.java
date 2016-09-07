@@ -24,15 +24,16 @@ public class TaurusReporter {
     public void writeSample(Sample sample) throws Exception {
         try {
             JSONObject obj = new JSONObject();
-            obj.put("label", sample.getLabel());
+            obj.put("test_case", sample.getLabel());
+            obj.put("test_suite", sample.getSuite());
             obj.put("start_time", sample.getStartTime());
             obj.put("duration", sample.getDuration());
             obj.put("status", sample.getStatus());
             obj.put("error_msg", sample.getErrorMessage());
             obj.put("error_trace", sample.getErrorTrace());
-            obj.put("file", sample.getFile());
-            obj.put("full_name", sample.getFullName());
-            obj.put("description", sample.getDescription());
+            JSONObject extras = new JSONObject();
+            extras.put("full_name", sample.getFullName());
+            obj.put("extras", extras);
             outStream.write(obj.toString() + "\n");
             outStream.flush();
         } catch (Exception e) {
