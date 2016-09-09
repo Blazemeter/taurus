@@ -553,20 +553,29 @@ class MonitoringBuffer(object):
 
 
 class ProjectFinder(object):
-    def __init__(self, parameters, settings, client, engine):
+    """
+    :type client: BlazeMeterClient
+    """
+
+    TEST_TYPE_CLOUD = 'cloud-test'
+    TEST_TYPE_COLLECTION = 'cloud-collection'
+
+    def __init__(self, parameters, settings, client, parent_log):
         super(ProjectFinder, self).__init__()
         self.default_test_name = "Taurus Test"
         self.client = client
         self.parameters = parameters
         self.settings = settings
-        self.engine = engine
+        self.log = parent_log.log.getChild(self.__class__.__name__)
         self.test_name = None
+        self.test_type = None
+        self.default_test_type = self.TEST_TYPE_CLOUD
 
     def resolve_external_test(self, taurus_config):
         proj_name = self.parameters.get("project", self.settings.get("project", None))
         if isinstance(proj_name, (int, float)):
             proj_id = int(proj_name)
-            self.engine.log.debug("Treating project name as ID: %s", proj_id)
+            self.log.debug("Treating project name as ID: %s", proj_id)
         elif proj_name is not None:
             proj_id = self.client.project_by_name(proj_name)
         else:
@@ -587,19 +596,56 @@ class ProjectFinder(object):
             }
         }
 
-    def resolve_test(self, taurus_config, rfiles):
+    def resolve_project(self):
         proj_name = self.parameters.get("project", self.settings.get("project", None))
         if isinstance(proj_name, (int, float)):
             proj_id = int(proj_name)
-            self.engine.log.debug("Treating project name as ID: %s", proj_id)
+            self.log.debug("Treating project name as ID: %s", proj_id)
         elif proj_name is not None:
             proj_id = self.client.project_by_name(proj_name)
         else:
             proj_id = None
+        return proj_id
 
-        self.test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
-        test_config = self.__get_bza_test_config()
-        return self.client.test_by_name(self.test_name, test_config, taurus_config, rfiles, proj_id)
+    def detect_test_type(self, test_name, project_id):
+        if self.client.find_collection(test_name, project_id):
+            return self.TEST_TYPE_COLLECTION
+        elif self.client.find_test(test_name, project_id):
+            return self.TEST_TYPE_CLOUD
+        else:
+            return None
+
+    def resolve_test(self, taurus_config, rfiles):
+        test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
+        project_id = self.resolve_project()
+
+        test_type = self.settings.get("test-type", None)
+        detect_test_type = self.settings.get("detect-test-type", True)
+
+        if test_type is not None:
+            self.log.info("Using explicitly specified test type %r", test_type)
+        elif detect_test_type:
+            test_type = self.detect_test_type(test_name, project_id)
+            self.log.info("Detected test type: %r", test_type)
+
+        if test_type is None:
+            test_type = self.default_test_type
+            self.log.info("Using default test type: %r", test_type)
+
+        self.test_name = test_name
+        self.test_type = test_type
+
+        if self.test_type == self.TEST_TYPE_CLOUD:
+            test_config = self.__get_bza_test_config()
+            return self.client.test_by_name(test_name, test_config, taurus_config, rfiles, project_id)
+        elif self.test_type == self.TEST_TYPE_COLLECTION:
+            return self.client.collection_by_name(test_name, taurus_config, rfiles, project_id)
+
+    def start_test(self, test_id):
+        if self.test_type == self.TEST_TYPE_CLOUD:
+            return self.client.start_cloud_test(test_id)
+        elif self.test_type == self.TEST_TYPE_COLLECTION:
+            return self.client.start_cloud_collection(test_id)
 
 
 class BlazeMeterClient(object):
@@ -700,6 +746,25 @@ class BlazeMeterClient(object):
         url = self.address + "/api/latest/collections/%s" % collection_id
         self._request(url, data=to_json(coll), headers={"Content-Type": "application/json"}, method="POST")
 
+    def find_collection(self, collection_name, project_id):
+        collections = self.get_collections()
+        for collection in collections:
+            self.log.debug("Collection: %s", collection)
+            if "name" in collection and collection['name'] == collection_name:
+                if not project_id or project_id == collection['projectId']:
+                    self.log.debug("Matched: %s", collection)
+                    return collection
+
+    def find_test(self, test_name, project_id):
+        tests = self.get_tests()
+        for test in tests:
+            self.log.debug("Test: %s", test)
+            if "name" in test and test['name'] == test_name:
+                if test['configuration']['type'] == "taurus":
+                    if not project_id or project_id == test['projectId']:
+                        self.log.debug("Matched: %s", test)
+                        return test
+
     def start_online(self, test_id, session_name):
         """
         Start online test
@@ -752,7 +817,7 @@ class BlazeMeterClient(object):
         self.results_url = self.address + '/app/#reports/%s' % self.master_id
         return self.results_url
 
-    def start_collection(self, collection_id):
+    def start_cloud_collection(self, collection_id):
         self.log.info("Initiating cloud test with %s ...", self.address)
         url = self.address + "/api/latest/collections/%s/start" % collection_id
         resp = self._request(url, method="POST")
@@ -825,14 +890,8 @@ class BlazeMeterClient(object):
         :type name: str
         :rtype: str
         """
-        collections = self.get_collections()
-        collection_id = None
-        for collection in collections:
-            self.log.debug("Collection: %s", collection)
-            if "name" in collection and collection['name'] == name:
-                if not proj_id or proj_id == collection['projectId']:
-                    collection_id = collection['id']
-                    self.log.debug("Matched: %s", collection)
+        collection = self.find_collection(name, proj_id)
+        collection_id = collection['id'] if collection else None
 
         if resource_files:
             draft_id = "taurus_%s" % int(time.time())
@@ -840,15 +899,17 @@ class BlazeMeterClient(object):
             taurus_config.merge({"dataFiles": {"draftId": draft_id}})
 
         collection_draft = self.import_config(taurus_config)
+        collection_draft['name'] = name
 
         if not collection_id:
-            self.log.debug("Creating new collection")
+            self.log.info("Creating new collection: %s", name)
+            collection_draft['name'] = name
             collection_id = self.create_collection(collection_draft)
         else:
-            self.log.debug("Uploading files and config into the test: %s", resource_files)
+            self.log.info("Uploading files and config into the test: %s", resource_files)
             self.update_collection(collection_id, collection_draft)
 
-        self.log.debug("Using collection ID: %s", collection_id)
+        self.log.info("Using collection ID: %s", collection_id)
         return collection_id
 
     def test_by_name(self, name, configuration, taurus_config, resource_files, proj_id):
@@ -857,15 +918,8 @@ class BlazeMeterClient(object):
         :type name: str
         :rtype: str
         """
-        tests = self.get_tests()
-        test_id = None
-        for test in tests:
-            self.log.debug("Test: %s", test)
-            if "name" in test and test['name'] == name:
-                if test['configuration']['type'] == configuration['type']:
-                    if not proj_id or proj_id == test['projectId']:
-                        test_id = test['id']
-                        self.log.debug("Matched: %s", test)
+        test = self.find_test(name, proj_id)
+        test_id = test['id'] if test else None
 
         if not test_id:
             self.log.debug("Creating new test")
@@ -1330,6 +1384,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.browser_open = 'start'
         self.widget = None
         self.detach = False
+        self.finder = None
 
     def prepare(self):
         if self.settings.get("dump-locations", False):
@@ -1351,11 +1406,11 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
         rfiles = self.get_rfiles()
         config = self.get_config_for_cloud()
-        finder = ProjectFinder(self.parameters, self.settings, self.client, self.engine)
-        finder.default_test_name = "Taurus Cloud Test"
-        self.test_id = finder.resolve_test(bza_plugin, config, rfiles)
+        self.finder = ProjectFinder(self.parameters, self.settings, self.client, self.engine)
+        self.finder.default_test_name = "Taurus Cloud Test"
+        self.test_id = self.finder.resolve_test(config, rfiles)
 
-        self.test_name = finder.test_name
+        self.test_name = self.finder.test_name
         self.widget = CloudProvWidget(self)
 
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
@@ -1448,7 +1503,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
     def startup(self):
         super(CloudProvisioning, self).startup()
-        self.client.start_cloud_test(self.test_id)
+        results_url = self.finder.start_test(self.test_id)
         self.log.info("Started cloud test: %s", self.client.results_url)
         if self.client.results_url:
             if self.browser_open in ('start', 'both'):
@@ -1512,207 +1567,6 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
     def get_widget(self):
         self.widget = CloudProvWidget(self)
         return self.widget
-
-
-class CloudProvisioningNG(MasterProvisioning):
-    """
-    :type client: BlazeMeterClient
-    :type results_reader: ResultsFromBZA
-    """
-
-    LOC = "locations"
-
-    def __init__(self):
-        super(CloudProvisioningNG, self).__init__()
-        self.results_reader = None
-        self.client = BlazeMeterClient(self.log)
-        self._last_master_status = None
-        self.collection_id = None
-        self.browser_open = 'start'
-        self.widget = None
-        self.detach = False
-
-    def prepare(self):
-        if self.settings.get("dump-locations", False):
-            self.log.warning("Dumping available locations instead of running the test")
-            self._configure_client()
-            info = self.client.get_user_info()
-            locations = self.client.get_available_locations(ignore_harbors=False)
-            for item in info['locations']:
-                if item['id'] in locations:
-                    self.log.info("Location: %s\t%s", item['id'], item['title'])
-            raise ManualShutdown("Done listing locations")
-
-        super(CloudProvisioningNG, self).prepare()
-        self.browser_open = self.settings.get("browser-open", self.browser_open)
-        self.detach = self.settings.get("detach", self.detach)
-        self._configure_client()
-        self._check_locations()
-        self._remove_excessive_reporting()
-
-        additional_files = self.get_rfiles()
-        draft_id = None
-        if additional_files:
-            draft_id = self._upload_resources(additional_files)
-        config = self.get_config_for_cloud(draft_id=draft_id)
-        collection_draft = self._import_taurus_test(config)
-        self.collection_id = self._create_collection(collection_draft)
-
-        if isinstance(self.engine.aggregator, ConsolidatingAggregator):
-            self.results_reader = ResultsFromBZA(self.client)
-            self.results_reader.log = self.log
-            self.engine.aggregator.add_underling(self.results_reader)
-
-    def startup(self):
-        super(CloudProvisioningNG, self).startup()
-        self._start_collection()
-        self.log.info("Started cloud test: %s", self.client.results_url)
-        if self.client.results_url:
-            if self.browser_open in ('start', 'both'):
-                open_browser(self.client.results_url)
-
-    def check(self):
-        if self.detach:
-            self.log.warning('Detaching Taurus from started test...')
-            return True
-        try:
-            master = self.client.get_master_status()
-        except (URLError, SSLError):
-            self.log.warning("Failed to get test status, will retry in %s seconds...", self.client.timeout)
-            self.log.debug("Full exception: %s", traceback.format_exc())
-            time.sleep(self.client.timeout)
-            master = self.client.get_master_status()
-            self.log.info("Succeeded with retry")
-
-        if "status" in master and master['status'] != self._last_master_status:
-            self._last_master_status = master['status']
-            self.log.info("Cloud test status: %s", self._last_master_status)
-
-        if self.results_reader is not None and 'progress' in master and master['progress'] >= 100:
-            self.results_reader.master_id = self.client.master_id
-
-        if 'progress' in master and master['progress'] > 100:
-            self.log.info("Test was stopped in the cloud: %s", master['status'])
-            status = self.client.get_master()
-            if 'note' in status and status['note']:
-                self.log.warning("Cloud test has probably failed with message: %s", status['note'])
-
-            self.client.master_id = None
-            return True
-
-        return super(CloudProvisioningNG, self).check()
-
-    def post_process(self):
-        if not self.detach:
-            self.client.end_master()
-        if self.client.results_url:
-            if self.browser_open in ('end', 'both'):
-                open_browser(self.client.results_url)
-
-    def _remove_excessive_reporting(self):
-        reporting = self.engine.config.get(Reporter.REP, [])
-        new_reporting = []
-        for index, reporter in enumerate(reporting):
-            reporter = ensure_is_dict(reporting, index, "module")
-            cls = reporter.get('module', ValueError())
-            if cls == 'blazemeter':
-                self.log.warning("Explicit blazemeter reporting is skipped for cloud")
-            else:
-                new_reporting.append(reporter)
-        self.engine.config[Reporter.REP] = new_reporting
-
-    def _configure_client(self):
-        self.client.logger_limit = self.settings.get("request-logging-limit", self.client.logger_limit)
-        self.client.address = self.settings.get("address", self.client.address)
-        self.client.token = self.settings.get("token", self.client.token)
-        self.client.timeout = dehumanize_time(self.settings.get("timeout", self.client.timeout))
-        if not self.client.token:
-            bmmod = self.engine.instantiate_module('blazemeter')
-            self.client.token = bmmod.settings.get("token")
-            if not self.client.token:
-                raise ValueError("You must provide API token to use cloud provisioning")
-
-    def _check_locations(self):
-        available_locations = self.client.get_available_locations(ignore_harbors=False)
-        for executor in self.executors:
-            locations = self._get_locations(available_locations, executor)
-            executor.get_load()  # we need it to resolve load settings into full form
-
-            for location in locations.keys():
-                if location not in available_locations:
-                    self.log.warning("List of supported locations for you is: %s", sorted(available_locations.keys()))
-                    raise ValueError("Invalid location requested: %s" % location)
-        # TODO: check toplevel 'locations' section
-
-    def _import_taurus_test(self, config):
-        resp = self.client.import_config(config)
-        if resp['error']:
-            raise ValueError("Cannot import Taurus config")
-        return resp['result']
-
-    def _create_collection(self, imported_config):
-        if 'userId' in imported_config:
-            imported_config.pop('userId')
-        collection_id = self.client.create_collection(imported_config)
-        return collection_id
-
-    def _upload_resources(self, resource_files):
-        draft_id = 'taurus_%s' % int(time.time())
-        self.client.upload_collection_resources(resource_files, draft_id)
-        return draft_id
-
-    def _start_collection(self):
-        self.client.start_collection(self.collection_id)
-
-    def get_config_for_cloud(self, draft_id=None):
-        config = copy.deepcopy(self.engine.config)
-
-        if not isinstance(config[ScenarioExecutor.EXEC], list):
-            config[ScenarioExecutor.EXEC] = [config[ScenarioExecutor.EXEC]]
-
-        provisioning = config.pop(Provisioning.PROV)
-        for execution in config[ScenarioExecutor.EXEC]:
-            execution[ScenarioExecutor.CONCURR] = execution.get(ScenarioExecutor.CONCURR).get(provisioning, None)
-            execution[ScenarioExecutor.THRPT] = execution.get(ScenarioExecutor.THRPT).get(provisioning, None)
-
-        for key in list(config.keys()):
-            if key not in ("scenarios", ScenarioExecutor.EXEC, Service.SERV, self.LOC):
-                config.pop(key)
-
-        # cleanup configuration from empty values
-        null_values = {
-            'concurrency': None,
-            'iterations': None,
-            'ramp-up': None,
-            'steps': None,
-            'throughput': None,
-            'hold-for': 0,
-            'files': []
-        }
-        for execution in config[ScenarioExecutor.EXEC]:
-            for key, value in iteritems(null_values):
-                if key in execution and execution[key] == value:
-                    execution.pop(key)
-
-        if draft_id is not None:
-            config.merge({"dataFiles": {"draftId": draft_id}})
-
-        assert isinstance(config, Configuration)
-        config.dump(self.engine.create_artifact("cloud", ""))
-        return config
-
-    def _get_locations(self, available_locations, executor):
-        locations = executor.execution.get(self.LOC, BetterDict())
-        if not locations:
-            for location in available_locations.values():
-                error = ValueError("No location specified and no default-location configured")
-                def_loc = self.settings.get("default-location", error)
-                if location['sandbox'] or location['id'] == def_loc:
-                    locations.merge({location['id']: 1})
-        if not locations:
-            self.log.warning("List of supported locations for you is: %s", sorted(available_locations.keys()))
-            raise ValueError("No sandbox location available, please specify locations manually")
-        return locations
 
 
 class BlazeMeterClientEmul(BlazeMeterClient):

@@ -31,6 +31,7 @@ class TestCloudProvisioning(BZTestCase):
 
         obj.settings["token"] = "FakeToken"
         obj.settings["browser-open"] = False
+        obj.settings["test-type"] = "cloud-test"
         obj.client = client = BlazeMeterClientEmul(obj.log)
         client.results.append(self.__get_user_info())  # user
         client.results.append({"result": []})  # tests
@@ -72,6 +73,7 @@ class TestCloudProvisioning(BZTestCase):
 
         obj.settings["token"] = "FakeToken"
         obj.settings["detach"] = True
+        obj.settings["test-type"] = "cloud-test"
         obj.client = client = BlazeMeterClientEmul(obj.log)
         client.results.append(self.__get_user_info())  # user
         client.results.append({"result": []})  # tests
@@ -104,6 +106,7 @@ class TestCloudProvisioning(BZTestCase):
 
         obj.settings["token"] = "FakeToken"
         obj.settings['default-location'] = "us-west-1"
+        obj.settings["test-type"] = "cloud-test"
         obj.client = client = BlazeMeterClientEmul(obj.log)
         client.results.append(self.__get_user_info())  # user
         client.results.append({"result": []})  # tests
@@ -137,6 +140,7 @@ class TestCloudProvisioning(BZTestCase):
 
         obj.settings["token"] = "FakeToken"
         obj.settings['default-location'] = "us-west-1"
+        obj.settings["test-type"] = "cloud-test"
         obj.client = client = BlazeMeterClientEmul(obj.log)
         client.results.append(self.__get_user_info())  # user
         client.results.append({"result": []})  # tests
@@ -193,6 +197,7 @@ class TestCloudProvisioning(BZTestCase):
             },
             "provisioning": "mock"
         })
+        obj.settings["test-type"] = "cloud-test"
         obj.parameters = obj.engine.config['execution']
 
         obj.settings.merge({"token": "FakeToken",
