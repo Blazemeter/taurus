@@ -717,13 +717,6 @@ class BlazeMeterClient(object):
         if "error" in resp:
             raise ValueError("Can't upload resource files")
 
-    def get_draft_files(self, draft_id):
-        path = self.address + "/api/latest/web/elfinder/%s" % draft_id
-        query = urlencode({'cmd': 'open', 'target': 's1_Lw'})
-        url = path + '?' + query
-        response = self._request(url)
-        return response
-
     def get_collections(self):
         resp = self._request(self.address + "/api/latest/collections")
         return resp['result']
@@ -736,8 +729,6 @@ class BlazeMeterClient(object):
     def create_collection(self, coll):
         url = self.address + "/api/latest/collections"
         resp = self._request(url, data=to_json(coll), headers={"Content-Type": "application/json"}, method="POST")
-        if resp['error']:
-            raise ValueError("Cannot create collection")
         collection = resp['result']
         return collection['id']
 

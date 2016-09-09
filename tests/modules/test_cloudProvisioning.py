@@ -359,6 +359,163 @@ class TestCloudProvisioning(BZTestCase):
         obj.prepare()
         self.assertEquals(obj.finder.test_type, obj.finder.TEST_TYPE_CLOUD)
 
+    def test_full_collection(self):
+        obj = CloudProvisioning()
+        obj.engine = EngineEmul()
+        obj.engine.config.merge({
+            ScenarioExecutor.EXEC: {
+                "executor": "mock",
+                "concurrency": 5500,
+                "locations": {
+                    "us-east-1": 1,
+                    "us-west": 2
+                }
+            },
+            "modules": {
+                "mock": ModuleMock.__module__ + "." + ModuleMock.__name__
+            },
+            "provisioning": "mock"
+        })
+        obj.parameters = obj.engine.config['execution']
+        obj.engine.aggregator = ConsolidatingAggregator()
+
+        obj.settings["token"] = "FakeToken"
+        obj.settings["browser-open"] = False
+        obj.client = client = BlazeMeterClientEmul(obj.log)
+        client.results.append(self.__get_user_info())  # user
+        client.results.append({"result": []})  # collections
+        client.results.append({"result": {"id": id(client)}})  # create test
+        client.results.append({"files": []})  # create test
+        client.results.append({})  # upload files
+        client.results.append({"result": {"id": id(obj)}})  # start
+        client.results.append({"result": {"id": id(obj)}})  # get master
+        client.results.append({"result": []})  # get master sessions
+        client.results.append({})  # terminate
+
+        obj.prepare()
+        self.assertEquals(1, obj.executors[0].execution['locations']['us-east-1'])
+        self.assertEquals(2, obj.executors[0].execution['locations']['us-west'])
+
+        obj.startup()
+        obj.check()
+        obj.shutdown()
+        obj.post_process()
+
+    def test_create_project(self):
+        obj = CloudProvisioning()
+        obj.engine = EngineEmul()
+        obj.engine.config.merge({
+            ScenarioExecutor.EXEC: {
+                "executor": "mock",
+            },
+            "modules": {
+                "mock": ModuleMock.__module__ + "." + ModuleMock.__name__
+            },
+            "provisioning": "mock"
+        })
+        obj.parameters = obj.engine.config['execution']
+
+        obj.settings.merge({"token": "FakeToken",
+                            'default-location': "us-west-1",
+                            "delete-test-files": False,
+                            "test-type": "cloud-test",
+                            "project": "myproject"})
+        obj.client = client = BlazeMeterClientEmul(obj.log)
+        client.results.append(self.__get_user_info())  # user
+        client.results.append({"result": []})  # projects
+        client.results.append({"result": {"id": 1428}})  # create project
+        client.results.append({"result": [{"id": 5174715,
+                                           "projectId": 1428,
+                                           "name": "Taurus Cloud Test",
+                                           "configuration": {"type": "taurus"}}]})  # find test
+        client.results.append({})  # upload files
+        obj.prepare()
+
+    def test_reuse_project(self):
+        obj = CloudProvisioning()
+        obj.engine = EngineEmul()
+        obj.engine.config.merge({
+            ScenarioExecutor.EXEC: {
+                "executor": "mock",
+            },
+            "modules": {
+                "mock": ModuleMock.__module__ + "." + ModuleMock.__name__
+            },
+            "provisioning": "mock"
+        })
+        obj.parameters = obj.engine.config['execution']
+
+        obj.settings.merge({"token": "FakeToken",
+                            'default-location': "us-west-1",
+                            "delete-test-files": False,
+                            "test-type": "cloud-test",
+                            "project": "myproject"})
+        obj.client = client = BlazeMeterClientEmul(obj.log)
+        client.results.append(self.__get_user_info())  # user
+        client.results.append({"result": [{"id": 1428, "name": "myproject"}]})  # projects
+        client.results.append({"result": [{"id": 5174715,
+                                           "projectId": 1428,
+                                           "name": "Taurus Cloud Test",
+                                           "configuration": {"type": "taurus"}}]})  # find test
+        client.results.append({})  # upload files
+        obj.prepare()
+
+    def test_reuse_project_id(self):
+        obj = CloudProvisioning()
+        obj.engine = EngineEmul()
+        obj.engine.config.merge({
+            ScenarioExecutor.EXEC: {
+                "executor": "mock",
+            },
+            "modules": {
+                "mock": ModuleMock.__module__ + "." + ModuleMock.__name__
+            },
+            "provisioning": "mock"
+        })
+        obj.parameters = obj.engine.config['execution']
+
+        obj.settings.merge({"token": "FakeToken",
+                            'default-location': "us-west-1",
+                            "delete-test-files": False,
+                            "test-type": "cloud-test",
+                            "project": 1428})
+        obj.client = client = BlazeMeterClientEmul(obj.log)
+        client.results.append(self.__get_user_info())  # user
+        client.results.append({"result": [{"id": 5174715,
+                                           "projectId": 1428,
+                                           "name": "Taurus Cloud Test",
+                                           "configuration": {"type": "taurus"}}]})  # find test
+        client.results.append({})  # upload files
+        obj.prepare()
+
+    def test_create_collection(self):
+        obj = CloudProvisioning()
+        obj.engine = EngineEmul()
+        obj.engine.config.merge({
+            ScenarioExecutor.EXEC: {
+                "executor": "mock",
+            },
+            "modules": {
+                "mock": ModuleMock.__module__ + "." + ModuleMock.__name__
+            },
+            "provisioning": "mock"
+        })
+        obj.parameters = obj.engine.config['execution']
+
+        obj.settings.merge({"token": "FakeToken",
+                            'default-location': "us-west-1",
+                            "delete-test-files": False,
+                            "test-type": "cloud-collection"})
+        obj.client = client = BlazeMeterClientEmul(obj.log)
+        client.results.append(self.__get_user_info())  # user
+        client.results.append({"result": []})  # find collection
+        client.results.append({})  # upload files
+        client.results.append({"result": {"name": "Taurus Collection", "items": []}})  # transform config to collection
+        client.results.append({"result": {"id": 42}})  # create collection
+
+        obj.prepare()
+        self.assertEqual(obj.finder.test_type, obj.finder.TEST_TYPE_COLLECTION)
+
 
 class TestResultsFromBZA(BZTestCase):
     def test_simple(self):
