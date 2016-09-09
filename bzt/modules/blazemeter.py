@@ -25,7 +25,6 @@ import sys
 import time
 import traceback
 import zipfile
-from abc import abstractmethod
 from ssl import SSLError
 from collections import defaultdict, OrderedDict
 from functools import wraps
@@ -1503,7 +1502,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
     def startup(self):
         super(CloudProvisioning, self).startup()
-        results_url = self.finder.start_test(self.test_id)
+        self.finder.start_test(self.test_id)
         self.log.info("Started cloud test: %s", self.client.results_url)
         if self.client.results_url:
             if self.browser_open in ('start', 'both'):
