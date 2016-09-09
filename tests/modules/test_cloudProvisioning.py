@@ -2,8 +2,9 @@ import json
 import logging
 
 from bzt.engine import ScenarioExecutor
-from bzt.modules.aggregator import ConsolidatingAggregator
+from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet
 from bzt.modules.blazemeter import CloudProvisioning, BlazeMeterClientEmul, ResultsFromBZA
+from bzt.six import iteritems
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul, ModuleMock
 
@@ -650,3 +651,9 @@ class TestResultsFromBZA(BZTestCase):
         obj.master_id = "master"
         results = [x for x in obj.datapoints(True)]
         self.assertEquals(2, len(results))
+        cumulative = results[-1][DataPoint.CUMULATIVE]['']
+        self.assertTrue(0 <= cumulative[KPISet.AVG_LATENCY] < 1)
+        self.assertEqual(cumulative[KPISet.CONCURRENCY], 4)
+        self.assertEqual(cumulative[KPISet.PERCENTILES]['90.0'], .836)
+        self.assertEqual(cumulative[KPISet.PERCENTILES]['95.0'], .912)
+        self.assertEqual(cumulative[KPISet.PERCENTILES]['99.0'], 1.050)

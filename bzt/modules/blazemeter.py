@@ -1625,7 +1625,7 @@ class ResultsFromBZA(ResultsProvider):
         kpiset.sum_lt += kpi['lt_avg'] * kpi['n'] / 1000.0
         perc_map = {'90line': 90.0, "95line": 95.0, "99line": 99.0}
         for field, level in iteritems(perc_map):
-            kpiset[KPISet.PERCENTILES][str(level)] = aggr[label][field]
+            kpiset[KPISet.PERCENTILES][str(level)] = aggr[label][field] / 1000.0
         return kpiset
 
     def query_data(self):
