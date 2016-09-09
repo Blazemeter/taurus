@@ -115,9 +115,6 @@
       "class": "bzt.modules.blazemeter.CloudProvisioning",
       "default-location": "us-central1-a"
     },
-    "cloud-ng": {
-      "class": "bzt.modules.blazemeter.CloudProvisioningNG"
-    },
     "final_stats": {
       "class": "bzt.modules.reporting.FinalStatus"
     },
