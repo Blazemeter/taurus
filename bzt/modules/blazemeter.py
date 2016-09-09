@@ -1427,16 +1427,44 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             if not self.client.token:
                 raise ValueError("You must provide API token to use cloud provisioning")
 
+    def _get_default_location(self, available_locations):
+        def_loc = self.settings.get("default-location", None)
+        if def_loc and def_loc in available_locations:
+            return def_loc
+
+        self.log.debug("Default location %s not found", def_loc)
+
+        for location_id in sorted(available_locations):
+            location = available_locations[location_id]
+            if location['sandbox']:
+                return location_id
+
+        self.log.warning("List of supported locations for you is: %s", sorted(available_locations.keys()))
+        raise ValueError("No sandbox or default location available, please specify locations manually")
+
+    def _check_locations(self, locations, available_locations):
+        for location in locations:
+            if location not in available_locations:
+                self.log.warning("List of supported locations for you is: %s", sorted(available_locations.keys()))
+                raise ValueError("Invalid location requested: %s" % location)
+
     def _prepare_locations(self):
         available_locations = self.client.get_available_locations()
-        for executor in self.executors:
-            locations = self._get_locations(available_locations, executor)
-            executor.get_load()  # we need it to resolve load settings into full form
 
-            for location in locations.keys():
-                if location not in available_locations:
-                    self.log.warning("List of supported locations for you is: %s", sorted(available_locations.keys()))
-                    raise ValueError("Invalid location requested: %s" % location)
+        global_locations = self.engine.config.get(self.LOC, BetterDict())
+        self._check_locations(global_locations, available_locations)
+
+        for executor in self.executors:
+            if self.LOC in executor.execution:
+                exec_locations = executor.execution[self.LOC]
+                self._check_locations(exec_locations, available_locations)
+            else:
+                if not global_locations:
+                    default_loc = self._get_default_location(available_locations)
+                    executor.execution[self.LOC] = BetterDict()
+                    executor.execution[self.LOC].merge({default_loc: 1})
+
+            executor.get_load()  # we need it to resolve load settings into full form
 
     def get_config_for_cloud(self):
         config = copy.deepcopy(self.engine.config)
@@ -1450,7 +1478,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             execution[ScenarioExecutor.THRPT] = execution.get(ScenarioExecutor.THRPT).get(provisioning, None)
 
         for key in list(config.keys()):
-            if key not in ("scenarios", ScenarioExecutor.EXEC, Service.SERV):
+            if key not in ("scenarios", ScenarioExecutor.EXEC, Service.SERV, self.LOC, "weighted-locations"):
                 config.pop(key)
 
         # cleanup configuration from empty values
@@ -1471,19 +1499,6 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         assert isinstance(config, Configuration)
         config.dump(self.engine.create_artifact("cloud", ""))
         return config
-
-    def _get_locations(self, available_locations, executor):
-        locations = executor.execution.get(self.LOC, BetterDict())
-        if not locations:
-            for location in available_locations.values():
-                error = ValueError("No location specified and no default-location configured")
-                def_loc = self.settings.get("default-location", error)
-                if location['sandbox'] or location['id'] == def_loc:
-                    locations.merge({location['id']: 1})
-        if not locations:
-            self.log.warning("List of supported locations for you is: %s", sorted(available_locations.keys()))
-            raise ValueError("No sandbox location available, please specify locations manually")
-        return locations
 
     def startup(self):
         super(CloudProvisioning, self).startup()
@@ -1557,9 +1572,11 @@ class BlazeMeterClientEmul(BlazeMeterClient):
     def __init__(self, parent_logger):
         super(BlazeMeterClientEmul, self).__init__(parent_logger)
         self.results = []
+        self.requests = []
 
     def _request(self, url, data=None, headers=None, checker=None, method=None):
         self.log.debug("Request %s: %s", url, data)
+        self.requests.append({"url": url, "data": data, "headers": headers, "checker": checker, "method": method})
         res = self.results.pop(0)
         self.log.debug("Response: %s", res)
         if isinstance(res, BaseException):
