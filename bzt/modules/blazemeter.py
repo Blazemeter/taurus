@@ -1267,15 +1267,9 @@ class BlazeMeterClient(object):
         res = self._request(url)
         return res['result']
 
-    def get_available_locations(self, ignore_harbors=True):
+    def get_available_locations(self):
         user_info = self.get_user_info()
-        locations = {}
-        for location in user_info['locations']:
-            location_id = str(location['id'])
-            if ignore_harbors and location_id.startswith('harbor-'):
-                continue
-            locations[location_id] = location
-        return locations
+        return {str(x['id']): x for x in user_info['locations']}
 
     def get_test_files(self, test_id):
         path = self.address + "/api/latest/web/elfinder/%s" % test_id

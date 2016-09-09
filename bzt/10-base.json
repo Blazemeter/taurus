@@ -181,9 +181,6 @@
     "cloud": {
       "provisioning": "cloud"
     },
-    "cloud-ng": {
-      "provisioning": "cloud-ng"
-    },
     "detach": {
       "modules": {
         "cloud": {
