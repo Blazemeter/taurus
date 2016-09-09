@@ -619,7 +619,7 @@ class ProjectFinder(object):
         project_id = self.resolve_project()
 
         test_type = self.settings.get("test-type", None)
-        detect_test_type = self.settings.get("detect-test-type", True)
+        detect_test_type = self.settings.get("detect-test-type", False)
 
         if test_type is not None:
             self.log.info("Using explicitly specified test type %r", test_type)
