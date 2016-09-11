@@ -1,0 +1,16 @@
+---
+services:
+- module: shellexec
+  prepare:
+  - cp bin/phantomjs $TAURUS_ARTIFACTS_DIR/
+
+execution:
+- executor: selenium
+  scenario: pjs-demo
+  hold-for: 1m
+  files:
+  - bin/phantomjs
+
+scenarios:
+  pjs-demo:
+    script: src/test/java
