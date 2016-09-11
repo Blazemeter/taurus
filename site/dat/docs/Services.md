@@ -41,12 +41,12 @@ services:
   - fail of CheckoutPage>50% for 10s, stop as failed
 ```
 
-You can learn more about Pass/Fail Service at its [page](PassFail.md)
+You can learn more about Pass/Fail Service at its [page](PassFail.md).
 
 ## Shell Executor Service Module
 
 Shell executor is used to perform additional shell commands at various test execution phases.
-Taurus provides hooks to all Taurus [text execution phases](Lifecycle.md).
+Taurus provides hooks to all Taurus [test execution phases](Lifecycle.md).
 
 Sample configuration:
 ```yaml
