@@ -639,7 +639,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.assertEqual("http://blazedemo.com/reserve.php", urls[2])
 
 
-class TestSeleniumScriptBuilder(SeleniumTestCase):
+class TestASeleniumScriptBuilder(SeleniumTestCase):
     def test_build_script(self):
         self.configure({
             "execution": [{
@@ -651,7 +651,10 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                 "loc_sc": {
                     "default-address": "http://blazedemo.com",
                     "requests": [{
-                        "url": "/"}]}}})
+                        "url": "/"}]}},
+            "modules": {
+                "selenium": {
+                    "^virtual-display": 0}}})
         self.obj.prepare()
         with open(self.obj.script) as generated:
             gen_contents = generated.readlines()

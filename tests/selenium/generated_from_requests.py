@@ -9,10 +9,10 @@ class TestRequests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         profile = webdriver.FirefoxProfile()
-        profile.set_preference('webdriver.log.file', '/home/taras/Projects/taurus/build/test/2016-09-12_14-01-15.507134/webdriver.log')
+        profile.set_preference('webdriver.log.file', '/home/taras/Projects/taurus/build/test/2016-09-12_16-59-49.661488/webdriver.log')
         cls.driver = webdriver.Firefox(profile)
         cls.driver.implicitly_wait(30.0)
-        cls.driver.set_window_size(1024, 768)
+        cls.driver.maximize_window()
         
     @classmethod
     def tearDownClass(cls):
