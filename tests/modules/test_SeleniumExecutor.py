@@ -3,12 +3,14 @@ import os
 import re
 import shutil
 import time
+import unittest
 
 import yaml
 
 from bzt.engine import ScenarioExecutor, Provisioning
 from bzt.modules.selenium import SeleniumExecutor, JUnitJar, LoadSamplesReader, LDJSONReader, FuncSamplesReader
 from bzt.six import StringIO
+from bzt.utils import is_windows
 from tests import BZTestCase, local_paths_config, __dir__
 from tests.mocks import EngineEmul
 
@@ -454,6 +456,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         self.assertTrue(os.path.exists(os.path.join(self.obj.runner_working_dir, "test_bad_name.py")))
 
 
+@unittest.skipIf(is_windows(), "Don't test RSpec on Windows")
 class TestSeleniumRSpecRunner(SeleniumTestCase):
     def test_selenium_prepare_rspec(self):
         self.obj.execution.merge({"scenario": {
