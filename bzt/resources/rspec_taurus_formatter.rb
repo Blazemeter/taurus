@@ -9,7 +9,7 @@ class TaurusFormatter
     @started_at = nil
   end
 
-  def example_started notification
+  def example_started _notification
     @started_at = Time.new.to_f
   end
 
@@ -66,7 +66,7 @@ class TaurusFormatter
     @output << "\n\nFinished in #{RSpec::Core::Formatters::Helpers.format_duration(notification.duration)}."
   end
 
-  def close notification # NullNotification
+  def close _notification # NullNotification
     @output << "\n"
     @report.close
   end
