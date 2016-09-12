@@ -622,22 +622,24 @@ class ProjectFinder(object):
         detect_test_type = self.settings.get("detect-test-type", False)
 
         if test_type is not None:
-            self.log.info("Using explicitly specified test type %r", test_type)
+            self.log.debug("Using explicitly specified test type %r", test_type)
         elif detect_test_type:
             test_type = self.detect_test_type(test_name, project_id)
-            self.log.info("Detected test type: %r", test_type)
+            self.log.debug("Detected test type: %r", test_type)
 
         if test_type is None:
             test_type = self.default_test_type
-            self.log.info("Using default test type: %r", test_type)
+            self.log.debug("Using default test type: %r", test_type)
 
         self.test_name = test_name
         self.test_type = test_type
 
         if self.test_type == self.TEST_TYPE_CLOUD:
+            self.log.debug("Loading cloud test")
             test_config = self.__get_bza_test_config()
             return self.client.test_by_name(test_name, test_config, taurus_config, rfiles, project_id)
         elif self.test_type == self.TEST_TYPE_COLLECTION:
+            self.log.debug("Loading cloud collection test")
             return self.client.collection_by_name(test_name, taurus_config, rfiles, project_id)
 
     def start_test(self, test_id):
@@ -892,14 +894,14 @@ class BlazeMeterClient(object):
         collection_draft['name'] = name
 
         if not collection_id:
-            self.log.info("Creating new collection: %s", name)
+            self.log.debug("Creating new test collection: %s", name)
             collection_draft['name'] = name
             collection_id = self.create_collection(collection_draft)
         else:
-            self.log.info("Uploading files and config into the test: %s", resource_files)
+            self.log.debug("Uploading files and config into the test: %s", resource_files)
             self.update_collection(collection_id, collection_draft)
 
-        self.log.info("Using collection ID: %s", collection_id)
+        self.log.debug("Using collection ID: %s", collection_id)
         return collection_id
 
     def test_by_name(self, name, configuration, taurus_config, resource_files, proj_id):
