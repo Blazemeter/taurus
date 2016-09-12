@@ -289,6 +289,11 @@ class AbstractTestRunner(object):
     """
 
     def __init__(self, settings, executor):
+        """
+
+        :type settings: dict
+        :type executor: SeleniumExecutor
+        """
         self.process = None
         self.settings = settings
         self.required_tools = []
@@ -347,6 +352,7 @@ class JUnitTester(AbstractTestRunner):
     def __init__(self, junit_config, executor):
         """
         :type junit_config: BetterDict
+        :type executor: SeleniumExecutor
         """
         super(JUnitTester, self).__init__(junit_config, executor)
         self.props_file = junit_config['props-file']
@@ -366,6 +372,7 @@ class JUnitTester(AbstractTestRunner):
         self.base_class_path = [self.selenium_server_jar_path, self.junit_path, self.junit_listener_path,
                                 self.hamcrest_path, self.json_jar_path]
         self.base_class_path.extend(self.scenario.get("additional-classpath", []))
+        self.base_class_path = [os.path.abspath(executor.engine.find_file(x)) for x in self.base_class_path]
 
     def prepare(self):
         """
@@ -929,7 +936,6 @@ class SeleniumReportReader(object):
 
     def read(self, last_pass=False):
         for row in self.json_reader.read(last_pass):
-            #if any(key not in row for key in self.REPORT_ITEM_KEYS):
             for key in self.REPORT_ITEM_KEYS:
                 if key not in row:
                     self.log.debug("Unexpected test record: %s", row)
