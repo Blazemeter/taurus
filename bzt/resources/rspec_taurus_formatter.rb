@@ -18,8 +18,10 @@ class CustomFormatter
     duration = finish_time - @started_at
     item = {:start_time => @started_at,
             :duration => duration,
-            :name => notification.example.description,
+            :test_case => notification.example.description,
+            :test_suite => notification.example.full_description,
             :status => "PASSED"}
+    # TODO: licalocation
     @report << item.to_json << "\n"
 
     @output << "."
@@ -30,9 +32,13 @@ class CustomFormatter
     duration = finish_time - @started_at
     item = {:start_time => @started_at,
             :duration => duration,
-            :name => notification.example.description,
+            :test_case => notification.example.description,
+            :test_suite => notification.example.full_description,
+            :error_msg => notification.exception.to_s.split(" ").join(" "),
+            :error_trace => notification.exception.backtrace.join("\n"),
             :status => "FAILED"}
     @report << item.to_json << "\n"
+
     @output << "F"
   end
 
@@ -41,9 +47,11 @@ class CustomFormatter
     duration = finish_time - @started_at
     item = {:start_time => @started_at,
             :duration => duration,
-            :name => notification.example.description,
+            :test_case => notification.example.description,
+            :test_suite => notification.example.full_description,
             :status => "SKIPPED"}
     @report << item.to_json << "\n"
+
     @output << "*"
   end
 
