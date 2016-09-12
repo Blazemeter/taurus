@@ -454,6 +454,46 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         self.assertTrue(os.path.exists(os.path.join(self.obj.runner_working_dir, "test_bad_name.py")))
 
 
+class TestSeleniumRSpecRunner(SeleniumTestCase):
+    def test_selenium_prepare_rspec(self):
+        self.obj.execution.merge({"scenario": {
+            "script": __dir__() + "/../selenium/ruby/example_spec.rb"
+        }})
+        self.obj.prepare()
+        ruby_scripts = os.listdir(self.obj.runner.working_dir)
+        self.assertEqual(len(ruby_scripts), 1)
+
+    def test_rspec_full(self):
+        """
+        run tests from .py file
+        :return:
+        """
+
+        self.obj.engine.config.merge({
+            'execution': {
+                'scenario': {'script': __dir__() + '/../selenium/ruby/example_spec.rb'},
+                'executor': 'selenium'
+            },
+        })
+        self.obj.engine.config.merge({"provisioning": "local"})
+        self.obj.execution = self.obj.engine.config['execution']
+
+        self.obj.execution.merge({"scenario": {
+            "script": __dir__() + "/../selenium/ruby/example_spec.rb"
+        }})
+
+        self.obj.settings.merge(self.obj.engine.config.get("modules").get("selenium"))
+        self.obj.prepare()
+        self.obj.startup()
+        while not self.obj.check():
+            time.sleep(1)
+        self.obj.shutdown()
+        prepared_files = os.listdir(self.obj.runner.working_dir)
+        scripts = [fname for fname in prepared_files if fname.endswith(".rb")]
+        self.assertEqual(1, len(scripts))
+        self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
+
+
 class LDJSONReaderEmul(object):
     def __init__(self):
         self.data = []
