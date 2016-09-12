@@ -151,6 +151,14 @@ class TestScenarioExecutor(BZTestCase):
         self.executor.execution = self.engine.config.get('execution')[0]
         self.assertRaises(ValueError, self.executor.get_scenario)
 
+    def test_scenario_no_requests(self):
+        self.engine.config.merge({
+            "execution": [{
+                "scenario": ["url1", "url2"]
+            }]})
+        self.executor.execution = self.engine.config.get('execution')[0]
+        self.assertRaises(ValueError, self.executor.get_scenario)
+
     def test_creates_hostaliases_file(self):
         self.engine.config.merge({
             "settings": {

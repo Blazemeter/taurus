@@ -16,10 +16,11 @@ services:
 
 scenarios:
   simple:
-  - label: IndexPage
-    url: http://blazedemo.com/
-  - label: CheckoutPage
-    url: http://blazedemo.com/checkout.php
+    requests:
+    - label: IndexPage
+      url: http://blazedemo.com/
+    - label: CheckoutPage
+      url: http://blazedemo.com/checkout.php
 
 execution:
   scenario: simple

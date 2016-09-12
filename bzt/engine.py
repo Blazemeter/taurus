@@ -832,6 +832,8 @@ class ScenarioExecutor(EngineModule):
 
             is_script = isinstance(label, string_types) and label not in scenarios and \
                         os.path.exists(self.engine.find_file(label))
+            if isinstance(label, list):
+                raise ValueError("Invalid content of scenario, list type instead of dict or string")
             if isinstance(label, dict) or is_script:
                 self.log.debug("Extract %s into scenarios" % label)
                 if isinstance(label, string_types):
