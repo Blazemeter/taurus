@@ -24,11 +24,11 @@ from abc import abstractmethod
 
 from urwid import Text, Pile
 
-from bzt.engine import ScenarioExecutor, Scenario, FileLister
+from bzt.engine import ScenarioExecutor, Scenario, FileLister, PythonGenerator
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator, FunctionalSample
-from bzt.six import string_types, text_type, etree, parse
+from bzt.six import string_types, text_type, parse
 from bzt.utils import RequiredTool, shell_exec, shutdown_process, JavaVM, TclLibrary, get_files_recursive
 from bzt.utils import dehumanize_time, MirrorsManager, is_windows, BetterDict, get_full_path
 
@@ -168,17 +168,19 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             shutil.copytree(script, runner_working_dir)
         else:
             os.makedirs(runner_working_dir)
+            script_base_name = os.path.basename(script)
+
             if self.self_generated_script:
                 shutil.move(script, runner_working_dir)
+                self.script = os.path.join(runner_working_dir, script_base_name)
             else:
                 script_type = self.detect_script_type(script)
-                script_name = os.path.basename(script)
-                if script_type == ".py" and not script_name.lower().startswith('test'):
-                    target_name = 'test_' + script_name
+                if script_type == ".py" and not script_base_name.lower().startswith('test'):
+                    target_name = 'test_' + script_base_name
                     msg = "Script '%s' won't be discovered by nosetests, renaming script to %s"
-                    self.log.warning(msg, script_name, target_name)
+                    self.log.warning(msg, script_base_name, target_name)
                 else:
-                    target_name = script_name
+                    target_name = script_base_name
                 target_path = os.path.join(runner_working_dir, target_name)
                 shutil.copy2(script, target_path)
 
@@ -686,62 +688,6 @@ class TaurusNosePlugin(RequiredTool):
         raise NotImplementedError()
 
 
-class PythonGenerator(object):
-    IMPORTS = ''
-
-    def __init__(self, scenario, parent_logger):
-        self.root = etree.Element("PythonCode")
-        self.tree = etree.ElementTree(self.root)
-        self.log = parent_logger.getChild(self.__class__.__name__)
-        self.scenario = scenario
-
-    def add_imports(self):
-        imports = etree.Element("imports")
-        imports.text = self.IMPORTS
-        return imports
-
-    @abstractmethod
-    def build_source_code(self):
-        pass
-
-    @staticmethod
-    def gen_class_definition(class_name, inherits_from, indent="0"):
-        def_tmpl = "class {class_name}({inherits_from}):"
-        class_def_element = etree.Element("class_definition", indent=indent)
-        class_def_element.text = def_tmpl.format(class_name=class_name, inherits_from="".join(inherits_from))
-        return class_def_element
-
-    @staticmethod
-    def gen_method_definition(method_name, params, indent="4"):
-        def_tmpl = "def {method_name}({params}):"
-        method_def_element = etree.Element("method_definition", indent=indent)
-        method_def_element.text = def_tmpl.format(method_name=method_name, params=",".join(params))
-        return method_def_element
-
-    @staticmethod
-    def gen_decorator_statement(decorator_name, indent="4"):
-        def_tmpl = "@{decorator_name}"
-        decorator_element = etree.Element("decorator_statement", indent=indent)
-        decorator_element.text = def_tmpl.format(decorator_name=decorator_name)
-        return decorator_element
-
-    @staticmethod
-    def gen_statement(statement, indent="8"):
-        statement_elem = etree.Element("statement", indent=indent)
-        statement_elem.text = statement
-        return statement_elem
-
-    def gen_comment(self, comment, indent="8"):
-        return self.gen_statement("# %s" % comment, indent)
-
-    def save(self, filename):
-        with open(filename, 'wt') as fds:
-            for child in self.root.iter():
-                if child.text is not None:
-                    indent = int(child.get('indent', "0"))
-                    fds.write(" " * indent + child.text + "\n")
-
-
 class SeleniumScriptBuilder(PythonGenerator):
     IMPORTS = """import unittest
 import re
@@ -809,7 +755,7 @@ from selenium.common.exceptions import NoAlertPresentException
                 test_method.append(self.gen_impl_wait(scenario_timeout))
 
             test_method.append(self.gen_comment("end request: %s" % url))
-            test_method.append(self.__gen_new_line())
+            test_method.append(self.gen_new_line())
 
         return methods
 
@@ -839,7 +785,7 @@ from selenium.common.exceptions import NoAlertPresentException
             setup_method_def.append(statement)
         else:
             setup_method_def.append(self.gen_statement("cls.driver.maximize_window()"))
-        setup_method_def.append(self.__gen_new_line())
+        setup_method_def.append(self.gen_new_line())
         return setup_method_def
 
     def gen_impl_wait(self, timeout, target='self'):
@@ -855,7 +801,7 @@ from selenium.common.exceptions import NoAlertPresentException
         tear_down_method_def = self.gen_decorator_statement('classmethod')
         tear_down_method_def.append(self.gen_method_definition("tearDownClass", ["cls"]))
         tear_down_method_def.append(self.gen_statement("cls.driver.quit()"))
-        tear_down_method_def.append(self.__gen_new_line())
+        tear_down_method_def.append(self.gen_new_line())
         return tear_down_method_def
 
     def gen_assertion(self, assertion_config):
@@ -881,9 +827,6 @@ from selenium.common.exceptions import NoAlertPresentException
                 assert_method = "self.assertNotIn" if reverse else "self.assertIn"
                 assertion_elements.append(self.gen_statement('%s("%s", body)' % (assert_method, val)))
         return assertion_elements
-
-    def __gen_new_line(self, indent="8"):
-        return self.gen_statement("", indent=indent)
 
     def __gen_assert_page(self):
         return self.gen_statement("body = self.driver.page_source")
