@@ -145,5 +145,5 @@ modules:
 ```
 Note: SeleniumExecutor uses shared virtual display for all executions. 
 
-## Convertion of Tests into JMeter format
+## Conversion of Tests into JMeter format
 You can convert your Selenium tests as described [here](Proxy2JMX.md#Proxy2JMX-Converter).

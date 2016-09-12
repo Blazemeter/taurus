@@ -33,11 +33,11 @@ The above example use short form for criteria, its general format is
   - `subject` is the KPI that will be compared, listed below
   - `label` is sample label, empty for overall
   - `{condition}` is the comparison operator, one of `>`, `<`, `>=`, `<=`, `=`, `==` (same as `=`)
-  - `threshold` is the value to compare with, some KPIs allows percentage thresholds
+  - `threshold` is the value to compare with, some KPIs allow percentage thresholds
   - `{logic}` is the way value aggregated withing timeframe, `for` means taking latest value, `within` means aggregating as average or sum (depends on criteria nature)
-  - `timeframe` is number of seconds the comparison must be valid, if `timeframe` is omitted, then the cumulative value for whole test will be used for comparison.
+  - `timeframe` is number of seconds the comparison must be valid; if `timeframe` is omitted, then the cumulative value for whole test will be used for comparison.
   - `action` is one of `stop` or `continue`, default is `stop`, if you have chosen to continue, the fail status will be applied at the end of the test execution
-  - `status` is one of `failed` (default) or `non-failed`
+  - `status` is one of `failed` (default) or `non-failed`.
 
 Any non-required parameters might be omitted, the minimal form is `subject{condition}threshold`. 
 
