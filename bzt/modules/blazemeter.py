@@ -1468,6 +1468,10 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
             executor.get_load()  # we need it to resolve load settings into full form
 
+        if global_locations and all(self.LOC in executor.execution for executor in self.executors):
+            self.log.warning("Each execution has locations specified, global locations won't have any effect")
+            self.engine.config.pop(self.LOC)
+
     def get_config_for_cloud(self):
         config = copy.deepcopy(self.engine.config)
 

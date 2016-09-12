@@ -4,9 +4,8 @@ import logging
 from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet
 from bzt.modules.blazemeter import CloudProvisioning, BlazeMeterClientEmul, ResultsFromBZA
-from bzt.six import iteritems
 from tests import BZTestCase, __dir__
-from tests.mocks import EngineEmul, ModuleMock
+from tests.mocks import EngineEmul, ModuleMock, RecordingHandler
 
 
 class TestCloudProvisioning(BZTestCase):
@@ -611,6 +610,47 @@ class TestCloudProvisioning(BZTestCase):
         client.results.append({})  # upload files
         obj.prepare()
         self.assertEquals(1, obj.executors[0].execution['locations']['harbor-5591335d8588531f5cde3a04'])
+
+    def test_locations_on_both_levels(self):
+        obj = CloudProvisioning()
+        obj.engine = EngineEmul()
+        obj.engine.config.merge({
+            ScenarioExecutor.EXEC: [{
+                "executor": "mock",
+                "concurrency": 5500,
+                "locations": {
+                    "eu-west-1": 1,
+                }
+            }],
+            "locations": {
+                "ams3": 1,
+            },
+            "modules": {
+                "mock": ModuleMock.__module__ + "." + ModuleMock.__name__
+            },
+            "provisioning": "mock"
+        })
+        obj.parameters = obj.engine.config['execution'][0]
+        obj.engine.aggregator = ConsolidatingAggregator()
+        log_recorder = RecordingHandler()
+        obj.log.addHandler(log_recorder)
+
+        obj.settings["token"] = "FakeToken"
+        obj.settings["browser-open"] = False
+        obj.settings["test-type"] = "cloud-test"
+        obj.client = client = BlazeMeterClientEmul(obj.log)
+        client.results.append(self.__get_user_info())  # user
+        client.results.append({"result": []})  # tests
+        client.results.append({"result": {"id": id(client)}})  # create test
+        client.results.append({"files": []})  # create test
+        client.results.append({})  # upload files
+        obj.prepare()
+        cloud_config = obj.get_config_for_cloud()
+        self.assertNotIn("locations", cloud_config)
+        for execution in cloud_config["execution"]:
+            self.assertIn("locations", execution)
+        log_buff = log_recorder.warn_buff.getvalue()
+        self.assertIn("Each execution has locations specified, global locations won't have any effect", log_buff)
 
 
 class TestResultsFromBZA(BZTestCase):
