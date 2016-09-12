@@ -2,6 +2,8 @@
 
 ## 1.6.9 <sup>next</sup>
  - fix JAR building for selenium projects with several folders
+ - fix percentiles values for cloud-based tests
+ - support collection-based cloud tests
 
 ## 1.6.8 <sup>1 sep 2016</sup>
  - fix hamcrest installation for Java-based Selenium tests
