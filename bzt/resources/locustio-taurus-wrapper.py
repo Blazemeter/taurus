@@ -5,6 +5,18 @@ import os
 import time
 from requests.exceptions import HTTPError
 from locust import main, events, runners
+from locust.exception import StopLocust
+
+locust_start_time = None
+locust_duration = None
+
+
+def check_duration():
+    global locust_duration
+    global locust_start_time
+    if locust_duration is not None:
+        if time.time() - locust_start_time >= locust_duration:
+            raise StopLocust
 
 
 def getrec(request_type, name, response_time, response_length, exc=None):
@@ -31,6 +43,12 @@ def getrec(request_type, name, response_time, response_length, exc=None):
 
 
 def execute():
+    if os.getenv("LOCUST_DURATION"):
+        global locust_start_time
+        global locust_duration
+        locust_start_time = time.time()
+        locust_duration = float(os.getenv("LOCUST_DURATION"))
+
     if os.getenv("SLAVES_LDJSON"):
         fname = os.getenv("SLAVES_LDJSON")
         is_csv = False
@@ -51,10 +69,12 @@ def execute():
         def on_request_success(request_type, name, response_time, response_length):
             writer.writerow(getrec(request_type, name, response_time, response_length))
             fhd.flush()
+            check_duration()
 
         def on_request_failure(request_type, name, response_time, exception):
             writer.writerow(getrec(request_type, name, response_time, 0, exception))
             fhd.flush()
+            check_duration()
 
         def on_slave_report(client_id, data):
             if data['stats'] or data['errors']:

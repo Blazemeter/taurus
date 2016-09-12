@@ -2,18 +2,10 @@
 from locust import HttpLocust, TaskSet, task
 from gevent import sleep
 import time
-from locust.exception import StopLocust
 
 class UserBehaviour(TaskSet):
-    START_TIME = None
-        
     @task(1)
     def generated_task(self):
-        if UserBehaviour.START_TIME is None:
-            UserBehaviour.START_TIME = time.time()
-        else:
-            if time.time() - UserBehaviour.START_TIME >= 420.0:
-                raise StopLocust('timeout!')
         self.client.get("/")
 
 class GeneratedSwarm(HttpLocust):

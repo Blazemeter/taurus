@@ -100,6 +100,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if load.iterations:
             args.append("--num-request=%d" % load.iterations)
 
+        env['LOCUST_DURATION'] = dehumanize_time(load.duration)
         if self.is_master:
             args.extend(["--master", '--expect-slaves=%s' % self.expected_slaves])
             env["SLAVES_LDJSON"] = self.slaves_ldjson
@@ -142,7 +143,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def __tests_from_requests(self):
         filename = self.engine.create_artifact("generated_locust", ".py")
-        locust_test = LocustIOScriptBuilder(self.scenario, self.get_load(), self.log)
+        locust_test = LocustIOScriptBuilder(self.scenario, self.log)
         locust_test.build_source_code()
         locust_test.save(filename)
         return filename
@@ -288,12 +289,7 @@ class SlavesReader(ResultsProvider):
 class LocustIOScriptBuilder(PythonGenerator):
     IMPORTS = """from locust import HttpLocust, TaskSet, task
 from gevent import sleep
-import time
-from locust.exception import StopLocust"""
-
-    def __init__(self, scenario, load, parent_logger):
-        super(LocustIOScriptBuilder, self).__init__(scenario, parent_logger)
-        self.load = load
+import time"""
 
     def build_source_code(self):
         self.log.debug("Generating Python script for LocustIO")
@@ -315,19 +311,9 @@ from locust.exception import StopLocust"""
         swarm_class.append(self.gen_statement('min_wait = %s' % 0, "4"))
         swarm_class.append(self.gen_statement('max_wait = %s' % 0, "4"))
 
-        scenario_class.append(self.gen_statement('START_TIME = None', "4"))
-        scenario_class.append(self.gen_new_line())
         scenario_class.append(self.gen_decorator_statement('task(1)'))
         task = self.gen_method_definition("generated_task", ['self'])
         scenario_class.append(task)
-
-        if self.load.duration:
-            task.append(self.gen_statement("if UserBehaviour.START_TIME is None:"))
-            task.append(self.gen_statement("UserBehaviour.START_TIME = time.time()", "12"))
-            task.append(self.gen_statement("else:"))
-            line = "if time.time() - UserBehaviour.START_TIME >= %s:" % self.load.duration
-            task.append(self.gen_statement(line, "12"))
-            task.append(self.gen_statement("raise StopLocust('timeout!')", "16"))
 
         think_time = dehumanize_time(self.scenario.get('think-time', None))
         for req in self.scenario.get_requests():
