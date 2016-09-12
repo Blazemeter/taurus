@@ -114,10 +114,14 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if script_type == ".py":
             runner_class = NoseTester
             runner_config.merge(self.settings.get("selenium-tools").get("nose"))
-        else:  # script_type == ".jar" or script_type == ".java":
+        elif script_type == ".jar" or script_type == ".java":
             runner_class = JUnitTester
             runner_config.merge(self.settings.get("selenium-tools").get("junit"))
             runner_config['props-file'] = self.engine.create_artifact("customrunner", ".properties")
+        elif script_type == ".rb":
+            runner_class = RSpecTester
+        else:
+            raise ValueError("Unsupported script type: %s", script_type)
 
         runner_config["script-type"] = script_type
         runner_config["working-dir"] = working_dir
@@ -204,6 +208,8 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             file_ext = '.py'
         elif '.jar' in file_types:
             file_ext = '.jar'
+        elif '.rb' in file_types:
+            file_ext = '.rb'
         else:
             raise ValueError("Unsupported script type: %s" % script_path)
 
@@ -579,6 +585,61 @@ class NoseTester(AbstractTestRunner):
                                              env=env)
 
 
+class RSpecTester(AbstractTestRunner):
+    """
+    RSpec tests runner
+    """
+
+    def __init__(self, nose_config, executor):
+        super(RSpecTester, self).__init__(nose_config, executor)
+        self.plugin_path = os.path.join(get_full_path(__file__, step_up=1),
+                                        os.pardir,
+                                        "resources",
+                                        "rspec_taurus_formatter.rb")
+
+    def prepare(self):
+        self.run_checklist()
+
+    def run_checklist(self):
+        """
+        we need installed nose plugin
+        """
+
+        self.required_tools.append(TclLibrary(self.log))
+        self.required_tools.append(RSpec("", "", self.log))
+        self.required_tools.append(TaurusRSpecPlugin(self.plugin_path, ""))
+
+        self.check_tools()
+
+    def run_tests(self):
+        """
+        run python tests
+        """
+        rspec_cmdline = [
+            "rspec",
+            "--require",
+            self.plugin_path,
+            "--format",
+            "TaurusFormatter",
+            self.working_dir,
+        ]
+
+        std_out = open(self.settings.get("stdout"), "wt")
+        self.opened_descriptors.append(std_out)
+        std_err = open(self.settings.get("stderr"), "wt")
+        self.opened_descriptors.append(std_err)
+
+        env = BetterDict()
+        env.merge(dict(os.environ))
+        env.merge(self.env)
+
+        self.process = self.executor.execute(rspec_cmdline,
+                                             cwd=self.artifacts_dir,
+                                             stdout=std_out,
+                                             stderr=std_err,
+                                             env=env)
+
+
 class SeleniumWidget(Pile, PrioritizedWidget):
     def __init__(self, script, runner_output):
         widgets = []
@@ -677,6 +738,23 @@ class JavaC(RequiredTool):
         raise NotImplementedError()
 
 
+class RSpec(RequiredTool):
+    def __init__(self, tool_path, download_link, parent_logger):
+        super(RSpec, self).__init__("RSpec", tool_path, download_link)
+        self.log = parent_logger.getChild(self.__class__.__name__)
+
+    def check_if_installed(self):
+        try:
+            output = subprocess.check_output(["rspec", '-version'], stderr=subprocess.STDOUT)
+            self.log.debug("%s output: %s", self.tool_name, output)
+            return True
+        except BaseException:
+            raise RuntimeError("The %s is not operable or not available. Consider installing it" % self.tool_name)
+
+    def install(self):
+        raise NotImplementedError()
+
+
 class JUnitListenerJar(RequiredTool):
     def __init__(self, tool_path, download_link):
         super(JUnitListenerJar, self).__init__("JUnitListener", tool_path, download_link)
@@ -688,6 +766,14 @@ class JUnitListenerJar(RequiredTool):
 class TaurusNosePlugin(RequiredTool):
     def __init__(self, tool_path, download_link):
         super(TaurusNosePlugin, self).__init__("TaurusNosePlugin", tool_path, download_link)
+
+    def install(self):
+        raise NotImplementedError()
+
+
+class TaurusRSpecPlugin(RequiredTool):
+    def __init__(self, tool_path, download_link):
+        super(TaurusRSpecPlugin, self).__init__("TaurusRSpecPlugin", tool_path, download_link)
 
     def install(self):
         raise NotImplementedError()

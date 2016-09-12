@@ -1,11 +1,11 @@
 require 'json'
 
-class CustomFormatter
+class TaurusFormatter
   RSpec::Core::Formatters.register self, :dump_summary, :close, :example_passed, :example_failed, :example_pending, :example_started
 
   def initialize output
     @output = output
-    @report = File.open('report.ldjson', 'w')
+    @report = File.open('selenium_tests_report.ldjson', 'w')
     @started_at = nil
   end
 
@@ -20,7 +20,10 @@ class CustomFormatter
             :duration => duration,
             :test_case => notification.example.description,
             :test_suite => notification.example.full_description,
-            :status => "PASSED"}
+            :status => "PASSED",
+            :error_msg => nil,
+            :error_trace => nil,
+            :extras => nil}
     # TODO: licalocation
     @report << item.to_json << "\n"
 
@@ -36,7 +39,8 @@ class CustomFormatter
             :test_suite => notification.example.full_description,
             :error_msg => notification.exception.to_s.split(" ").join(" "),
             :error_trace => notification.exception.backtrace.join("\n"),
-            :status => "FAILED"}
+            :status => "FAILED",
+            :extras => nil}
     @report << item.to_json << "\n"
 
     @output << "F"
@@ -49,7 +53,10 @@ class CustomFormatter
             :duration => duration,
             :test_case => notification.example.description,
             :test_suite => notification.example.full_description,
-            :status => "SKIPPED"}
+            :status => "SKIPPED",
+            :error_msg => nil,
+            :error_trace => nil,
+            :extras => nil}
     @report << item.to_json << "\n"
 
     @output << "*"
