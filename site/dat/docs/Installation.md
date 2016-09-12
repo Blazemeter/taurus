@@ -123,6 +123,20 @@ Upgrading to latest is as simple as this:
 sudo pip install --upgrade bzt
 ```
 
+Alternatively, you can install using virtualenv, and you will not need sudo privileges for Taurus. Please see [virtualenv](https://virtualenv.pypa.io/en/stable/installation/) instructions for setting up your Python virtual environments, if you haven't done so already.
+
+Then, to install Taurus, type:
+
+```
+pip install bzt
+```
+
+Upgrade is only:
+
+```
+pip install --upgrade bzt
+```
+
 ### CentOS
 
 Use `uname -a` to verify the system if it's 32 bit or 64 bit machine. [http://www.tecmint.com/enable-rpmforge-repository/](http://www.tecmint.com/enable-rpmforge-repository/)
