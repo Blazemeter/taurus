@@ -1,15 +1,14 @@
 ---
-services:
-- module: shellexec
-  prepare:
-  - cp bin/phantomjs $TAURUS_ARTIFACTS_DIR/
-
 execution:
 - executor: selenium
   scenario: pjs-demo
-  hold-for: 1m
+  concurrerncy: 50
+  ramp-up: 10m
+  hold-for: 5m
   files:
-  - bin/phantomjs
+  - /usr/bin/phantomjs
+  locations:
+    us-west-1: 1
 
 scenarios:
   pjs-demo:
