@@ -11,6 +11,8 @@ from locust.exception import StopLocust
 class LocustStarter(object):
     def __init__(self):
         super(LocustStarter, self).__init__()
+        self.fhd = None
+        self.writer = None
         if os.getenv("LOCUST_DURATION"):
             self.locust_start_time = time.time()
             self.locust_duration = float(os.getenv("LOCUST_DURATION"))
@@ -46,6 +48,22 @@ class LocustStarter(object):
             "Latency": 0
         }
 
+    def __on_request_success(self, request_type, name, response_time, response_length):
+        self.writer.writerow(self.__getrec(request_type, name, response_time, response_length))
+        self.fhd.flush()
+        self.__check_duration()
+
+    def __on_request_failure(self, request_type, name, response_time, exception):
+        self.writer.writerow(self.__getrec(request_type, name, response_time, 0, exception))
+        self.fhd.flush()
+        self.__check_duration()
+
+    def __on_slave_report(self, client_id, data):
+        if data['stats'] or data['errors']:
+            data['client_id'] = client_id
+            self.fhd.write("%s\n" % json.dumps(data))
+            self.fhd.flush()
+
     def execute(self):
         if os.getenv("SLAVES_LDJSON"):
             fname = os.getenv("SLAVES_LDJSON")
@@ -56,36 +74,20 @@ class LocustStarter(object):
         else:
             raise ValueError("Please specify JTL or SLAVES_LDJSON environment variable")
 
-        with open(fname, 'wt') as fhd:
+        with open(fname, 'wt') as self.fhd:
             if is_csv:
-                writer = csv.DictWriter(fhd, self.__getrec(None, None, None, None).keys())
-                writer.writeheader()
-                fhd.flush()
+                self.writer = csv.DictWriter(self.fhd, self.__getrec(None, None, None, None).keys())
+                self.writer.writeheader()
+                self.fhd.flush()
             else:
-                writer = None  # FIXME: bad code design, have zero object for it
+                self.writer = None  # FIXME: bad code design, have zero object for it
 
-            def on_request_success(request_type, name, response_time, response_length):
-                writer.writerow(self.__getrec(request_type, name, response_time, response_length))
-                fhd.flush()
-                self.__check_duration()
-
-            def on_request_failure(request_type, name, response_time, exception):
-                writer.writerow(self.__getrec(request_type, name, response_time, 0, exception))
-                fhd.flush()
-                self.__check_duration()
-
-            def on_slave_report(client_id, data):
-                if data['stats'] or data['errors']:
-                    data['client_id'] = client_id
-                    fhd.write("%s\n" % json.dumps(data))
-                    fhd.flush()
-
-            events.request_success += on_request_success
-            events.request_failure += on_request_failure
-            events.slave_report += on_slave_report
+            events.request_success += self.__on_request_success
+            events.request_failure += self.__on_request_failure
+            events.slave_report += self.__on_slave_report
 
             main.main()
-            fhd.flush()
+            self.fhd.flush()
 
 
 if __name__ == '__main__':
