@@ -121,7 +121,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         elif script_type == ".rb":
             runner_class = RSpecTester
         else:
-            raise ValueError("Unsupported script type: %s", script_type)
+            raise ValueError("Unsupported script type: %s" % script_type)
 
         runner_config["script-type"] = script_type
         runner_config["working-dir"] = working_dir
