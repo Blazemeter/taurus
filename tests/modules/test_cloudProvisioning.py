@@ -531,7 +531,7 @@ class TestCloudProvisioning(BZTestCase):
                 "us-east-1": 1,
                 "us-west": 2
             },
-            "weighted-locations": True,
+            "locations-weighted": True,
             "provisioning": "mock"
         })
         obj.parameters = obj.engine.config['execution']
@@ -551,7 +551,7 @@ class TestCloudProvisioning(BZTestCase):
         conf = obj.get_config_for_cloud()
 
         self.assertIn('locations', conf)
-        self.assertIn('weighted-locations', conf)
+        self.assertIn('locations-weighted', conf)
         self.assertEqual(conf['locations']['us-east-1'], 1)
         self.assertEqual(conf['locations']['us-west'], 2)
         self.assertNotIn('locations', conf['execution'][0])

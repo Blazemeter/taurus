@@ -1484,7 +1484,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             execution[ScenarioExecutor.THRPT] = execution.get(ScenarioExecutor.THRPT).get(provisioning, None)
 
         for key in list(config.keys()):
-            if key not in ("scenarios", ScenarioExecutor.EXEC, Service.SERV, self.LOC, "weighted-locations"):
+            if key not in ("scenarios", ScenarioExecutor.EXEC, Service.SERV, self.LOC, "locations-weighted"):
                 config.pop(key)
 
         # cleanup configuration from empty values
