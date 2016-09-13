@@ -6,7 +6,7 @@ import time
 class UserBehaviour(TaskSet):
     @task(1)
     def generated_task(self):
-        self.client.get("/")
+        self.client.get(url="/")
 
 class GeneratedSwarm(HttpLocust):
     task_set = UserBehaviour

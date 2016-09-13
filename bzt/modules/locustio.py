@@ -23,12 +23,12 @@ import time
 from imp import find_module
 from subprocess import STDOUT
 
-from bzt.engine import ScenarioExecutor, FileLister, PythonGenerator
+from bzt.engine import ScenarioExecutor, FileLister, PythonGenerator, Scenario
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsProvider, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.jmeter import JTLReader
 from bzt.six import PY3, iteritems
-from bzt.utils import shutdown_process, RequiredTool, BetterDict, dehumanize_time
+from bzt.utils import shutdown_process, RequiredTool, BetterDict, dehumanize_time, ensure_is_dict
 
 
 class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
@@ -289,7 +289,8 @@ class SlavesReader(ResultsProvider):
 class LocustIOScriptBuilder(PythonGenerator):
     IMPORTS = """from locust import HttpLocust, TaskSet, task
 from gevent import sleep
-import time"""
+import time
+"""
 
     def build_source_code(self):
         self.log.debug("Generating Python script for LocustIO")
@@ -310,21 +311,79 @@ import time"""
 
         swarm_class.append(self.gen_statement('min_wait = %s' % 0, "4"))
         swarm_class.append(self.gen_statement('max_wait = %s' % 0, "4"))
+        swarm_class.append(self.gen_new_line(indent="0"))
 
         scenario_class.append(self.gen_decorator_statement('task(1)'))
+
+        scenario_class.append(self.__gen_task())
+        scenario_class.append(self.gen_new_line(indent="0"))
+
+    def __gen_task(self):
         task = self.gen_method_definition("generated_task", ['self'])
-        scenario_class.append(task)
 
         think_time = dehumanize_time(self.scenario.get('think-time', None))
+
         for req in self.scenario.get_requests():
-            line = 'self.client.%s("%s")' % (req.method.lower(), req.url)
-            task.append(self.gen_statement(line))
+            method = req.method.lower()
+            if method not in ('get', 'delete', 'head', 'options', 'path', 'put', 'post'):
+                raise RuntimeError("Wrong Locust request type: %s" % method)
+
+            self.__gen_check(method, req, task)
+
             if req.think_time:
                 task.append(self.gen_statement("sleep(%s)" % dehumanize_time(req.think_time)))
             else:
                 if think_time:
                     task.append(self.gen_statement("sleep(%s)" % think_time))
+        return task
 
-        imports.append(self.gen_new_line(indent="0"))
-        scenario_class.append(self.gen_new_line(indent="0"))
-        swarm_class.append(self.gen_new_line(indent="0"))
+    @staticmethod
+    def __get_params_line(req):
+        param_dict = {'url': '"%s"' % req.url}
+        if req.body:
+            if isinstance(req.body, dict):
+                param_dict['data'] = json.dumps(req.body)
+            else:
+                param_dict['data'] = '"%s"' % req.body
+
+        if req.headers:
+            param_dict['headers'] = json.dumps(req.headers)
+
+        return ', '.join(['%s=%s' % (key, param_dict[key]) for key in param_dict])
+
+    def __gen_check(self, method, req, task):
+        assertions = req.config.get("assert", [])
+        first_assert = True
+        if assertions:
+            statement = 'with self.client.%s(%s, catch_response=True) as response:'
+        else:
+            statement = "self.client.%s(%s)"
+        task.append(self.gen_statement(statement % (method, self.__get_params_line(req))))
+
+        for idx, assertion in enumerate(assertions):
+            assertion = ensure_is_dict(assertions, idx, "contains")
+            if not isinstance(assertion['contains'], list):
+                assertion['contains'] = [assertion['contains']]
+
+            self.__gen_assertion(task, assertion, first_assert)
+            first_assert = False
+
+        if assertions:
+            task.append(self.gen_statement('else:', '12'))
+            task.append(self.gen_statement('response.success()', '16'))
+
+    def __gen_assertion(self, task, assertion, first):
+        subject = assertion.get("subject", Scenario.FIELD_BODY)
+        values = assertion['contains']
+        if subject == 'body':
+            content = 'response.content'
+        elif subject == 'http-code':
+            content = '[response.status_code]'
+        else:
+            raise RuntimeError('Wrong subject for Locust assertion: %s' % subject)
+        statement = 'if not all(val in %s for val in %s):' % (content, values)
+        if not first:
+            statement = 'el' + statement
+        task.append(self.gen_statement(statement, '12'))
+        task.append(self.gen_statement('response.failure("%s not found in %s")' % (values, subject), '16'))
+
