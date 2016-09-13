@@ -5,7 +5,8 @@ class TaurusFormatter
 
   def initialize output
     @output = output
-    @report = File.open('selenium_tests_report.ldjson', 'w')
+    @report_path = ENV.fetch("TAURUS_REPORT_FILE", "report.ldjson")
+    @report = File.open(@report_path, 'w')
     @started_at = nil
   end
 

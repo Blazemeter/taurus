@@ -120,6 +120,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             runner_config['props-file'] = self.engine.create_artifact("customrunner", ".properties")
         elif script_type == ".rb":
             runner_class = RSpecTester
+            runner_config["script"] = script_path
         else:
             raise ValueError("Unsupported script type: %s" % script_type)
 
@@ -590,12 +591,13 @@ class RSpecTester(AbstractTestRunner):
     RSpec tests runner
     """
 
-    def __init__(self, nose_config, executor):
-        super(RSpecTester, self).__init__(nose_config, executor)
+    def __init__(self, rspec_config, executor):
+        super(RSpecTester, self).__init__(rspec_config, executor)
         self.plugin_path = os.path.join(get_full_path(__file__, step_up=1),
                                         os.pardir,
                                         "resources",
                                         "rspec_taurus_formatter.rb")
+        self.script = get_full_path(rspec_config.get("script", ValueError("Script not supplied to rspec runner")))
 
     def prepare(self):
         self.run_checklist()
@@ -621,7 +623,7 @@ class RSpecTester(AbstractTestRunner):
             self.plugin_path,
             "--format",
             "TaurusFormatter",
-            self.working_dir,
+            self.script,
         ]
 
         std_out = open(self.settings.get("stdout"), "wt")
@@ -632,12 +634,22 @@ class RSpecTester(AbstractTestRunner):
         env = BetterDict()
         env.merge(dict(os.environ))
         env.merge(self.env)
+        env.merge({"TAURUS_REPORT_FILE": self.settings.get("report-file")})
 
         self.process = self.executor.execute(rspec_cmdline,
-                                             cwd=self.artifacts_dir,
                                              stdout=std_out,
                                              stderr=std_err,
                                              env=env)
+
+    def is_finished(self):
+        ret_code = self.process.poll()
+        if ret_code is not None:
+            self.log.debug("Test runner exit code: %s", ret_code)
+            # rspec returns non-zero code when some tests fail, no need to throw an exception here
+            if ret_code != 0:
+                self.is_failed = True
+            return True
+        return False
 
 
 class SeleniumWidget(Pile, PrioritizedWidget):
