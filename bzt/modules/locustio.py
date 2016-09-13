@@ -386,4 +386,3 @@ import time
             statement = 'el' + statement
         task.append(self.gen_statement(statement, '12'))
         task.append(self.gen_statement('response.failure("%s not found in %s")' % (values, subject), '16'))
-
