@@ -81,7 +81,7 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
         """
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/java/TestBlazemeterFail.java"}})
         self.obj.prepare()
-        self.assertTrue(os.path.exists(os.path.join(self.obj.runner.working_dir, "TestBlazemeterFail.java")))
+        self.assertFalse(os.path.exists(os.path.join(self.obj.runner.working_dir, "TestBlazemeterFail.java")))
         self.assertTrue(os.path.exists(os.path.join(self.obj.runner.working_dir, "TestBlazemeterFail.class")))
         self.assertTrue(os.path.exists(os.path.join(self.obj.runner.working_dir, "compiled.jar")))
 
@@ -96,7 +96,7 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
         java_files = [fname for fname in prepared_files if fname.endswith(".java")]
         class_files = [fname for fname in prepared_files if fname.endswith(".class")]
         jars = [fname for fname in prepared_files if fname.endswith(".jar")]
-        self.assertEqual(len(java_files), 2)
+        self.assertEqual(len(java_files), 0)
         self.assertEqual(len(class_files), 2)
         self.assertEqual(len(jars), 1)
 
@@ -132,23 +132,12 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
         self.assertTrue(os.path.exists(os.path.join(self.obj.runner.working_dir, "compiled.jar")))
 
     def test_prepare_jar_single(self):
-        """
-        Check if jar exists in working dir
-        :return:
-        """
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/jar/dummy.jar"}})
         self.obj.prepare()
-        self.assertTrue(os.path.exists(os.path.join(self.obj.runner.working_dir, "dummy.jar")))
 
     def test_prepare_jar_folder(self):
-        """
-        Check if jars exist in working dir
-        :return:
-        """
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/jar/"}})
         self.obj.prepare()
-        java_scripts = os.listdir(self.obj.runner.working_dir)
-        self.assertEqual(len(java_scripts), 2)
 
     def test_selenium_startup_shutdown_jar_single(self):
         """
@@ -237,7 +226,7 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
         java_files = [fname for fname in prepared_files if fname.endswith(".java")]
         class_files = [fname for fname in prepared_files if fname.endswith(".class")]
         jars = [fname for fname in prepared_files if fname.endswith(".jar")]
-        self.assertEqual(1, len(java_files))
+        self.assertEqual(0, len(java_files))
         self.assertEqual(1, len(class_files))
         self.assertEqual(1, len(jars))
         self.assertTrue(os.path.exists(os.path.join(self.obj.runner.working_dir, "compiled.jar")))
@@ -269,7 +258,7 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
         java_files = [fname for fname in prepared_files if fname.endswith(".java")]
         class_files = [fname for fname in prepared_files if fname.endswith(".class")]
         jars = [fname for fname in prepared_files if fname.endswith(".jar")]
-        self.assertEqual(2, len(java_files))
+        self.assertEqual(0, len(java_files))
         self.assertEqual(2, len(class_files))
         self.assertEqual(1, len(jars))
         self.assertTrue(os.path.exists(os.path.join(self.obj.runner.working_dir, "compiled.jar")))
@@ -337,8 +326,6 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
             "script": __dir__() + "/../selenium/python/test_blazemeter_fail.py"
         }})
         self.obj.prepare()
-        python_scripts = os.listdir(self.obj.runner.working_dir)
-        self.assertEqual(len(python_scripts), 1)
 
     def test_selenium_prepare_python_folder(self):
         """
@@ -347,8 +334,6 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         """
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/python/"}})
         self.obj.prepare()
-        python_scripts = os.listdir(self.obj.runner.working_dir)
-        self.assertEqual(len(python_scripts), 3)
 
     def test_selenium_startup_shutdown_python_single(self):
         """
@@ -376,9 +361,6 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         while not self.obj.check():
             time.sleep(1)
         self.obj.shutdown()
-        prepared_files = os.listdir(self.obj.runner.working_dir)
-        python_files = [fname for fname in prepared_files if fname.endswith(".py")]
-        self.assertEqual(1, len(python_files))
         self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
 
     def test_selenium_startup_shutdown_python_folder(self):
@@ -401,9 +383,6 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         while not self.obj.check():
             time.sleep(1)
         self.obj.shutdown()
-        prepared_files = os.listdir(self.obj.runner.working_dir)
-        python_files = [fname for fname in prepared_files if fname.endswith(".py")]
-        self.assertEqual(3, len(python_files))
         self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
 
     def runner_fail_no_test_found(self):
@@ -433,25 +412,6 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         self.obj.settings.merge(self.obj.engine.config.get("modules").get("selenium"))
 
         self.assertEqual(len(self.obj.resource_files()), 1)
-
-    def test_script_renaming(self):
-        """
-        Check that if script does't start with 'test' -
-        it gets renamed to 'test_xxx'
-        """
-        self.obj.engine.config.merge({
-            ScenarioExecutor.EXEC: {
-                "executor": "selenium",
-                "scenario": {"script": __dir__() + "/../selenium/python/bad_name.py"}
-            }
-        })
-        self.obj.execution = self.obj.engine.config['execution']
-        self.obj.prepare()
-        self.obj.startup()
-        while not self.obj.check():
-            time.sleep(self.obj.engine.check_interval)
-        self.obj.shutdown()
-        self.assertTrue(os.path.exists(os.path.join(self.obj.runner_working_dir, "test_bad_name.py")))
 
 
 class LDJSONReaderEmul(object):
@@ -559,7 +519,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         while not self.obj.check():
             time.sleep(1)
         self.obj.shutdown()
-        with open(os.path.join(self.obj.engine.artifacts_dir, "junit.err")) as fds:
+        with open(os.path.join(self.obj.engine.artifacts_dir, "selenium.err")) as fds:
             contents = fds.read()
             self.assertEqual(3, contents.count("ok"), "file: '%s', size: %s, content: '%s'" % (fds, fds.__sizeof__(),
                                                                                                contents))
@@ -678,7 +638,7 @@ class TestSeleniumStuff(SeleniumTestCase):
             }
         })
         self.obj.prepare()
-        with open(os.path.join(self.obj.runner_working_dir, os.path.basename(self.obj.script))) as fds:
+        with open(os.path.join(self.obj.engine.artifacts_dir, os.path.basename(self.obj.script))) as fds:
             script = fds.read()
         urls = re.findall(r"get\('(.+)'\)", script)
         self.assertEqual("http://blazedemo.com/", urls[0])
