@@ -354,8 +354,9 @@ from locust import HttpLocust, TaskSet, task
 
         if req.headers:
             param_dict['headers'] = json.dumps(req.headers)
-
-        return ', '.join(['%s=%s' % (key, param_dict[key]) for key in param_dict])
+        keys = (list(param_dict.keys()))
+        keys.sort()
+        return ', '.join(['%s=%s' % (key, param_dict[key]) for key in keys])
 
     def __gen_check(self, method, req, task, timeout):
         assertions = req.config.get("assert", [])

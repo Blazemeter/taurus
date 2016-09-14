@@ -130,6 +130,7 @@ class TestLocustIOExecutor(BZTestCase):
         self.assertRaises(RuntimeWarning, self.obj.post_process)
 
     def test_build_script(self):
+        self.maxDiff = 0
         self.obj.engine.config.merge({
             "execution": [{
                 "executor": "locust",
