@@ -260,7 +260,7 @@ class TestCloudProvisioning(BZTestCase):
         client.results.append({})  # upload files
 
         obj.prepare()
-        self.assertEquals(obj.finder.test_type, obj.finder.TEST_TYPE_CLOUD)
+        self.assertEquals(obj.launcher.test_type, obj.launcher.TEST_TYPE_CLOUD)
 
     def test_type_forced(self):
         obj = CloudProvisioning()
@@ -290,7 +290,7 @@ class TestCloudProvisioning(BZTestCase):
         client.results.append({})  # update collection
 
         obj.prepare()
-        self.assertEquals(obj.finder.test_type, obj.finder.TEST_TYPE_COLLECTION)
+        self.assertEquals(obj.launcher.test_type, obj.launcher.TEST_TYPE_COLLECTION)
 
     def test_detect_test_type_collection(self):
         obj = CloudProvisioning()
@@ -323,7 +323,7 @@ class TestCloudProvisioning(BZTestCase):
         client.results.append({})  # update collection
 
         obj.prepare()
-        self.assertEquals(obj.finder.test_type, obj.finder.TEST_TYPE_COLLECTION)
+        self.assertEquals(obj.launcher.test_type, obj.launcher.TEST_TYPE_COLLECTION)
 
     def test_detect_test_type_cloud(self):
         obj = CloudProvisioning()
@@ -357,7 +357,7 @@ class TestCloudProvisioning(BZTestCase):
         client.results.append({})  # update collection
 
         obj.prepare()
-        self.assertEquals(obj.finder.test_type, obj.finder.TEST_TYPE_CLOUD)
+        self.assertEquals(obj.launcher.test_type, obj.launcher.TEST_TYPE_CLOUD)
 
     def test_full_collection(self):
         obj = CloudProvisioning()
@@ -514,7 +514,7 @@ class TestCloudProvisioning(BZTestCase):
         client.results.append({"result": {"id": 42}})  # create collection
 
         obj.prepare()
-        self.assertEqual(obj.finder.test_type, obj.finder.TEST_TYPE_COLLECTION)
+        self.assertEqual(obj.launcher.test_type, obj.launcher.TEST_TYPE_COLLECTION)
 
     def test_toplevel_locations(self):
         obj = CloudProvisioning()

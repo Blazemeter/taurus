@@ -122,8 +122,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
                 raise
 
             if token:
-                finder = ProjectFinder(self.parameters, self.settings, self.client, self.engine)
-                self.test_id = finder.resolve_external_test(self.engine.config)
+                launcher = TestLauncher(self.parameters, self.settings, self.client, self.engine)
+                self.test_id = launcher.resolve_external_test(self.engine.config)
 
         self.sess_name = self.parameters.get("report-name", self.settings.get("report-name", self.sess_name))
         if self.sess_name == 'ask' and sys.stdin.isatty():
@@ -551,7 +551,7 @@ class MonitoringBuffer(object):
         }
 
 
-class ProjectFinder(object):
+class TestLauncher(object):
     """
     :type client: BlazeMeterClient
     """
@@ -560,7 +560,7 @@ class ProjectFinder(object):
     TEST_TYPE_COLLECTION = 'cloud-collection'
 
     def __init__(self, parameters, settings, client, parent_log):
-        super(ProjectFinder, self).__init__()
+        super(TestLauncher, self).__init__()
         self.default_test_name = "Taurus Test"
         self.client = client
         self.parameters = parameters
@@ -1356,6 +1356,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
     """
     :type client: BlazeMeterClient
     :type results_reader: ResultsFromBZA
+    :type launcher: TestLauncher
     """
 
     LOC = "locations"
@@ -1370,7 +1371,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.browser_open = 'start'
         self.widget = None
         self.detach = False
-        self.finder = None
+        self.launcher = None
 
     def prepare(self):
         if self.settings.get("dump-locations", False):
@@ -1392,11 +1393,11 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
         rfiles = self.get_rfiles()
         config = self.get_config_for_cloud()
-        self.finder = ProjectFinder(self.parameters, self.settings, self.client, self.engine)
-        self.finder.default_test_name = "Taurus Cloud Test"
-        self.test_id = self.finder.resolve_test(config, rfiles)
+        self.launcher = TestLauncher(self.parameters, self.settings, self.client, self.engine)
+        self.launcher.default_test_name = "Taurus Cloud Test"
+        self.test_id = self.launcher.resolve_test(config, rfiles)
 
-        self.test_name = self.finder.test_name
+        self.test_name = self.launcher.test_name
         self.widget = CloudProvWidget(self)
 
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
@@ -1508,7 +1509,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
     def startup(self):
         super(CloudProvisioning, self).startup()
-        self.finder.start_test(self.test_id)
+        self.launcher.start_test(self.test_id)
         self.log.info("Started cloud test: %s", self.client.results_url)
         if self.client.results_url:
             if self.browser_open in ('start', 'both'):
