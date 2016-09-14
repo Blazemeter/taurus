@@ -482,8 +482,8 @@ class JUnitTester(AbstractTestRunner):
         # org.junit.runner.JUnitCore TestBlazemeterPass
 
         jar_list = [os.path.join(self.working_dir, jar) for jar in os.listdir(self.working_dir) if jar.endswith(".jar")]
+        jar_list.extend(self._collect_script_files({".jar"}))
         self.base_class_path.extend(jar_list)
-        self.base_class_path.extend(self._collect_script_files({".jar"}))
 
         with open(self.props_file, 'wt') as props:
             props.write("report_file=%s\n" % self.settings.get("report-file").replace(os.path.sep, '/'))
@@ -505,9 +505,6 @@ class JUnitTester(AbstractTestRunner):
         env = BetterDict()
         env.merge(dict(os.environ))
         env.merge(self.env)
-
-        for item in self.base_class_path:
-            self.log.info("CLASSPATH: %s", item)
 
         junit_command_line = ["java", "-cp", os.pathsep.join(self.base_class_path), "taurusjunit.CustomRunner",
                               self.props_file]

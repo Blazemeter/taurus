@@ -167,7 +167,7 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
         jars = [fname for fname in prepared_files if fname.endswith(".jar")]
         self.assertEqual(len(java_files), 0)
         self.assertEqual(len(class_files), 0)
-        self.assertEqual(len(jars), 1)
+        self.assertEqual(len(jars), 0)
         self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
 
     def test_selenium_startup_shutdown_jar_folder(self):
@@ -197,7 +197,7 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
         jars = [fname for fname in prepared_files if fname.endswith(".jar")]
         self.assertEqual(len(java_files), 0)
         self.assertEqual(len(class_files), 0)
-        self.assertEqual(len(jars), 2)
+        self.assertEqual(len(jars), 0)
         self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
 
     def test_selenium_startup_shutdown_java_single(self):
