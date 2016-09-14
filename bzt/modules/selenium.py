@@ -392,7 +392,7 @@ class JUnitTester(AbstractTestRunner):
     def _collect_script_files(self, extensions):
         file_list = []
         if os.path.isdir(self.script):
-            for root, dirs, files in os.walk(self.script):
+            for root, _, files in os.walk(self.script):
                 for test_file in files:
                     if os.path.splitext(test_file)[1].lower() in extensions:
                         path = get_full_path(os.path.join(root, test_file))
