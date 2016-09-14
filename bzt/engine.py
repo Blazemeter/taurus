@@ -1060,6 +1060,7 @@ class HTTPRequest(Request):
 
         self.body = body
 
+
 class PythonGenerator(object):
     IMPORTS = ''
 
@@ -1117,4 +1118,3 @@ class PythonGenerator(object):
 
     def gen_new_line(self, indent="8"):
         return self.gen_statement("", indent=indent)
-

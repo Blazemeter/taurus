@@ -287,9 +287,10 @@ class SlavesReader(ResultsProvider):
 
 
 class LocustIOScriptBuilder(PythonGenerator):
-    IMPORTS = """from locust import HttpLocust, TaskSet, task
+    IMPORTS = """
 from gevent import sleep
-import time
+from re import findall, compile
+from locust import HttpLocust, TaskSet, task
 """
 
     def build_source_code(self):
@@ -372,17 +373,34 @@ import time
             task.append(self.gen_statement('else:', '12'))
             task.append(self.gen_statement('response.success()', '16'))
 
-    def __gen_assertion(self, task, assertion, first):
+    def __gen_assertion(self, task, assertion, is_first):
         subject = assertion.get("subject", Scenario.FIELD_BODY)
-        values = assertion['contains']
+        values = [str(_assert) for _assert in assertion['contains']]
         if subject == 'body':
             content = 'response.content'
         elif subject == 'http-code':
-            content = '[response.status_code]'
+            content = 'str(response.status_code)'
         else:
             raise RuntimeError('Wrong subject for Locust assertion: %s' % subject)
-        statement = 'if not all(val in %s for val in %s):' % (content, values)
-        if not first:
+
+        if assertion.get('not', False):
+            attr_not = ''
+            func_name = 'any'
+        else:
+            attr_not = ' not'
+            func_name = 'all'
+
+        if assertion.get("regexp", True):
+            expression = 'findall(compile(str(val)), %(content)s)' % {'content': content}
+        else:
+            expression = 'str(val) in %s' % content
+
+        statement = 'if%(not)s %(func)s(%(expression)s for val in %(values)s):'
+        statement = statement % {'not': attr_not, 'func': func_name, 'expression': expression, 'values': values}
+        if not is_first:
             statement = 'el' + statement
         task.append(self.gen_statement(statement, '12'))
-        task.append(self.gen_statement('response.failure("%s not found in %s")' % (values, subject), '16'))
+
+        statement = 'response.failure("%(values)s%(not)s found in %(subject)s")'
+        statement = statement % {'values': values, 'not': attr_not, 'subject': subject}
+        task.append(self.gen_statement(statement, '16'))
