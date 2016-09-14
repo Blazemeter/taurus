@@ -3,9 +3,9 @@
 
 Locust package is not installed automatically by Taurus, please install it manually: `pip install locustio`
 
-Make note that not all load profile settings are supported by Locust module. Only `concurrency` and `ramp-up` will have effect. Also, you should set `iterations` option to limit execution time, otherwise locust will run until manually interrupted.
+Make note that for Locust `iterations` option means quantity of requests, not cycles of scenario (as the last can contains more than one request). Next load profile settings has no effect for this executor: `throughput` and `steps` 
 
-Make note that Taurus appends `PYTHONPATH` with path to artifacts directory and current working directory. Make sure you have no module name clashes (for example, don't name your locustfile as `locust.py`).
+Taurus appends `PYTHONPATH` with path to artifacts directory and current working directory. Make sure you have no module name clashes (for example, don't name your locustfile as `locust.py`).
 
 Here's example config that uses existing locust file:
 
@@ -48,7 +48,32 @@ class WebsiteUser(HttpLocust):
     min_wait = 100
     max_wait = 1500
 ```
-
-## Limitations
-
-As Locust tool do not support hits/s manipulations, the `throughput` setting for execution has no effect on it. Also, due to Locust's "hatch rate" approach, `hold-for` setting has no effect.
+## Requests Scenario
+LocustIO executor partially supports building scenario from requests. Supported features:
+ - request methods GET/POST
+ - headers and body for requests
+ - set timeout/think-time on both scenario/request levels
+ - assertions (for body and http-code)
+```yaml
+---
+scenarios:
+  request_example:
+    timeout: 10  #  global scenario timeout for connecting, receiving results, 30 seconds by default
+    think-time: 1s500ms  # global scenario delay between each request
+    default-address: http://blazedemo.com  # specify a base address, so you can use short urls in requests
+    requests:
+    - url: /  
+      method: post
+      headers:
+      - var1: val1
+      body: 'body content'
+      assert:
+      - contains:
+        - blazemeter  # list of search patterns
+        - Trusted
+        subject: body # subject for check
+        regexp: false  # treat string as regular expression, true by default
+        not: false  # inverse assertion condition
+```
+ 
+ 

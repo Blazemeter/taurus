@@ -323,24 +323,29 @@ from locust import HttpLocust, TaskSet, task
         task = self.gen_method_definition("generated_task", ['self'])
 
         think_time = dehumanize_time(self.scenario.get('think-time', None))
+        timeout = self.scenario.get("timeout", 30)
 
         for req in self.scenario.get_requests():
             method = req.method.lower()
             if method not in ('get', 'delete', 'head', 'options', 'path', 'put', 'post'):
                 raise RuntimeError("Wrong Locust request type: %s" % method)
 
-            self.__gen_check(method, req, task)
+            if req.timeout:
+                self.__gen_check(method, req, task, req.timeout)
+            else:
+                self.__gen_check(method,req, task, timeout)
 
             if req.think_time:
                 task.append(self.gen_statement("sleep(%s)" % dehumanize_time(req.think_time)))
             else:
                 if think_time:
                     task.append(self.gen_statement("sleep(%s)" % think_time))
+            task.append(self.gen_new_line())
         return task
 
     @staticmethod
-    def __get_params_line(req):
-        param_dict = {'url': '"%s"' % req.url}
+    def __get_params_line(req, timeout):
+        param_dict = {'url': '"%s"' % req.url, 'timeout': timeout}
         if req.body:
             if isinstance(req.body, dict):
                 param_dict['data'] = json.dumps(req.body)
@@ -352,14 +357,14 @@ from locust import HttpLocust, TaskSet, task
 
         return ', '.join(['%s=%s' % (key, param_dict[key]) for key in param_dict])
 
-    def __gen_check(self, method, req, task):
+    def __gen_check(self, method, req, task, timeout):
         assertions = req.config.get("assert", [])
         first_assert = True
         if assertions:
             statement = 'with self.client.%s(%s, catch_response=True) as response:'
         else:
             statement = "self.client.%s(%s)"
-        task.append(self.gen_statement(statement % (method, self.__get_params_line(req))))
+        task.append(self.gen_statement(statement % (method, self.__get_params_line(req, timeout))))
 
         for idx, assertion in enumerate(assertions):
             assertion = ensure_is_dict(assertions, idx, "contains")

@@ -1,10 +1,10 @@
 import logging
-import time
 import sys
+import time
 
 from bzt import six
 from bzt.modules.aggregator import DataPoint, KPISet
-from bzt.modules.locustio import LocustIOExecutor, SlavesReader, LocustIOScriptBuilder
+from bzt.modules.locustio import LocustIOExecutor, SlavesReader
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul
 
@@ -138,9 +138,33 @@ class TestLocustIOExecutor(BZTestCase):
                 "scenario": "loc_sc"}],
             "scenarios": {
                 "loc_sc": {
+                    "think-time": "5s",
                     "default-address": "http://blazedemo.com",
                     "requests": [{
-                        "url": "/"}]}}})
+                        "url": "/",
+                        "method": "GET",
+                        "headers": {'var2': 'val2'},
+                        "assert": [
+                            {
+                                'subject': 'body',
+                                'contains': ['text1', 'text2'],
+                                'regexp': False
+                            },
+                            'enigma for body',
+                            {
+                                'subject': 'http-code',
+                                'contains': 200,
+                                'not': True}]
+                    }, {
+                        "url": "/page",
+                        "timeout": 5,
+                        "think-time": '1s',
+                        "method": "POST",
+                        "body": {'var1': 'val1'},
+                        "assert": [{
+                            'subject': 'body',
+                            'contains': '\w+l1e'}]}]}}})
+
         self.obj.execution = self.obj.engine.config.get('execution')[0]
         self.obj.prepare()
 
