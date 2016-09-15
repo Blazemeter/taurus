@@ -1487,6 +1487,8 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         for key in list(config.keys()):
             if key not in ("scenarios", ScenarioExecutor.EXEC, Service.SERV, self.LOC, "locations-weighted"):
                 config.pop(key)
+            elif not config[key]:
+                config.pop(key)
 
         # cleanup configuration from empty values
         default_values = {
