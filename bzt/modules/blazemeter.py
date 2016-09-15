@@ -122,8 +122,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
                 raise
 
             if token:
-                launcher = TestLauncher(self.parameters, self.settings, self.client, self.log)
-                self.test_id = launcher.resolve_external_test(self.engine.config)
+                test = CloudTest(self.parameters, self.settings, self.client, self.log)
+                self.test_id = test.resolve_external_test(self.engine.config)
 
         self.sess_name = self.parameters.get("report-name", self.settings.get("report-name", self.sess_name))
         if self.sess_name == 'ask' and sys.stdin.isatty():
@@ -551,7 +551,7 @@ class MonitoringBuffer(object):
         }
 
 
-class TestLauncher(object):
+class CloudTest(object):
     """
     :type client: BlazeMeterClient
     """
@@ -560,7 +560,7 @@ class TestLauncher(object):
     TEST_TYPE_COLLECTION = 'cloud-collection'
 
     def __init__(self, parameters, settings, client, parent_log):
-        super(TestLauncher, self).__init__()
+        super(CloudTest, self).__init__()
         self.default_test_name = "Taurus Test"
         self.client = client
         self.parameters = parameters
@@ -1436,7 +1436,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
     """
     :type client: BlazeMeterClient
     :type results_reader: ResultsFromBZA
-    :type launcher: TestLauncher
+    :type test: CloudTest
     """
 
     LOC = "locations"
@@ -1451,7 +1451,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.browser_open = 'start'
         self.widget = None
         self.detach = False
-        self.launcher = None
+        self.test = None
 
     def prepare(self):
         if self.settings.get("dump-locations", False):
@@ -1473,12 +1473,12 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
         rfiles = self.get_rfiles()
         config = self.get_config_for_cloud()
-        self.launcher = TestLauncher(self.parameters, self.settings, self.client, self.log)
-        self.launcher.default_test_name = "Taurus Cloud Test"
-        self.test_id = self.launcher.resolve_test(config, rfiles)
+        self.test = CloudTest(self.parameters, self.settings, self.client, self.log)
+        self.test.default_test_name = "Taurus Cloud Test"
+        self.test_id = self.test.resolve_test(config, rfiles)
 
-        self.test_name = self.launcher.test_name
-        self.widget = CloudProvWidget(self.launcher)
+        self.test_name = self.test.test_name
+        self.widget = CloudProvWidget(self.test)
 
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.results_reader = ResultsFromBZA(self.client)
@@ -1591,7 +1591,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
     def startup(self):
         super(CloudProvisioning, self).startup()
-        self.launcher.start_test(self.test_id)
+        self.test.start_test(self.test_id)
         self.log.info("Started cloud test: %s", self.client.results_url)
         if self.client.results_url:
             if self.browser_open in ('start', 'both'):
@@ -1603,12 +1603,12 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             self.log.warning('Detaching Taurus from started test...')
             return True
         try:
-            master = self.launcher.get_master_status()
+            master = self.test.get_master_status()
         except (URLError, SSLError):
             self.log.warning("Failed to get test status, will retry in %s seconds...", self.client.timeout)
             self.log.debug("Full exception: %s", traceback.format_exc())
             time.sleep(self.client.timeout)
-            master = self.launcher.get_master_status()
+            master = self.test.get_master_status()
             self.log.info("Succeeded with retry")
 
         if "status" in master and master['status'] != self.__last_master_status:
@@ -1654,7 +1654,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
     def get_widget(self):
         if not self.widget:
-            self.widget = CloudProvWidget(self.launcher)
+            self.widget = CloudProvWidget(self.test)
         return self.widget
 
 
@@ -1758,16 +1758,16 @@ class ResultsFromBZA(ResultsProvider):
 
 
 class CloudProvWidget(Pile, PrioritizedWidget):
-    def __init__(self, test_launcher):
+    def __init__(self, test):
         """
-        :type test_launcher: TestLauncher
+        :type test: CloudTest
         """
-        self.test_launcher = test_launcher
+        self.test = test
         self.text = Text("")
         super(CloudProvWidget, self).__init__([self.text])
         PrioritizedWidget.__init__(self)
 
     def update(self):
-        txt = self.test_launcher.get_test_status_text()
+        txt = self.test.get_test_status_text()
         if txt:
             self.text.set_text(txt)

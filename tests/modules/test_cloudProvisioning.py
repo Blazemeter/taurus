@@ -3,7 +3,7 @@ import logging
 
 from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet
-from bzt.modules.blazemeter import CloudProvisioning, BlazeMeterClientEmul, ResultsFromBZA, TestLauncher
+from bzt.modules.blazemeter import CloudProvisioning, BlazeMeterClientEmul, ResultsFromBZA, CloudTest
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul, ModuleMock, RecordingHandler
 
@@ -155,8 +155,8 @@ class TestCloudProvisioning(BZTestCase):
     def test_widget_cloud_test(self):
         obj = CloudProvisioning()
         obj.client = BlazeMeterClientEmul(logging.getLogger(''))
-        obj.launcher = TestLauncher({}, {}, obj.client, logging.getLogger(''))
-        obj.launcher.test_type = TestLauncher.TEST_TYPE_CLOUD
+        obj.test = CloudTest({}, {}, obj.client, logging.getLogger(''))
+        obj.test.test_type = CloudTest.TEST_TYPE_CLOUD
         obj.client.results.append({"result": []})
         obj.client.results.append({"result": {"sessions": [
             {
@@ -186,8 +186,8 @@ class TestCloudProvisioning(BZTestCase):
     def test_widget_cloud_collection(self):
         obj = CloudProvisioning()
         obj.client = BlazeMeterClientEmul(logging.getLogger(''))
-        obj.launcher = TestLauncher({}, {}, obj.client, logging.getLogger(''))
-        obj.launcher.test_type = TestLauncher.TEST_TYPE_COLLECTION
+        obj.test = CloudTest({}, {}, obj.client, logging.getLogger(''))
+        obj.test.test_type = CloudTest.TEST_TYPE_COLLECTION
         obj.client.results.append({"result": {"sessions": [
             {
                 "id": "session-id",
@@ -204,7 +204,7 @@ class TestCloudProvisioning(BZTestCase):
                 "configuration": {}
             }
         ]}})
-        obj.launcher.get_master_status()
+        obj.test.get_master_status()
         widget = obj.get_widget()
         widget.update()
 
@@ -289,7 +289,7 @@ class TestCloudProvisioning(BZTestCase):
         client.results.append({})  # upload files
 
         obj.prepare()
-        self.assertEquals(obj.launcher.test_type, obj.launcher.TEST_TYPE_CLOUD)
+        self.assertEquals(obj.test.test_type, obj.test.TEST_TYPE_CLOUD)
 
     def test_type_forced(self):
         obj = CloudProvisioning()
@@ -319,7 +319,7 @@ class TestCloudProvisioning(BZTestCase):
         client.results.append({})  # update collection
 
         obj.prepare()
-        self.assertEquals(obj.launcher.test_type, obj.launcher.TEST_TYPE_COLLECTION)
+        self.assertEquals(obj.test.test_type, obj.test.TEST_TYPE_COLLECTION)
 
     def test_detect_test_type_collection(self):
         obj = CloudProvisioning()
@@ -352,7 +352,7 @@ class TestCloudProvisioning(BZTestCase):
         client.results.append({})  # update collection
 
         obj.prepare()
-        self.assertEquals(obj.launcher.test_type, obj.launcher.TEST_TYPE_COLLECTION)
+        self.assertEquals(obj.test.test_type, obj.test.TEST_TYPE_COLLECTION)
 
     def test_detect_test_type_cloud(self):
         obj = CloudProvisioning()
@@ -386,7 +386,7 @@ class TestCloudProvisioning(BZTestCase):
         client.results.append({})  # update collection
 
         obj.prepare()
-        self.assertEquals(obj.launcher.test_type, obj.launcher.TEST_TYPE_CLOUD)
+        self.assertEquals(obj.test.test_type, obj.test.TEST_TYPE_CLOUD)
 
     def test_full_collection(self):
         obj = CloudProvisioning()
@@ -543,7 +543,7 @@ class TestCloudProvisioning(BZTestCase):
         client.results.append({"result": {"id": 42}})  # create collection
 
         obj.prepare()
-        self.assertEqual(obj.launcher.test_type, obj.launcher.TEST_TYPE_COLLECTION)
+        self.assertEqual(obj.test.test_type, obj.test.TEST_TYPE_COLLECTION)
 
     def test_toplevel_locations(self):
         obj = CloudProvisioning()
