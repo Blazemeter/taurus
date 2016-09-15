@@ -122,7 +122,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
                 raise
 
             if token:
-                launcher = TestLauncher(self.parameters, self.settings, self.client, self.engine)
+                launcher = TestLauncher(self.parameters, self.settings, self.client, self.log)
                 self.test_id = launcher.resolve_external_test(self.engine.config)
 
         self.sess_name = self.parameters.get("report-name", self.settings.get("report-name", self.sess_name))
@@ -565,9 +565,11 @@ class TestLauncher(object):
         self.client = client
         self.parameters = parameters
         self.settings = settings
-        self.log = parent_log.log.getChild(self.__class__.__name__)
+        self.log = parent_log.getChild(self.__class__.__name__)
         self.test_name = None
         self.test_type = None
+        self._last_status = None
+        self._sessions = None
         self.default_test_type = self.TEST_TYPE_CLOUD
 
     def resolve_external_test(self, taurus_config):
@@ -647,6 +649,84 @@ class TestLauncher(object):
             return self.client.start_cloud_test(test_id)
         elif self.test_type == self.TEST_TYPE_COLLECTION:
             return self.client.start_cloud_collection(test_id)
+
+    def _get_cloud_test_status(self):
+        if not self._sessions:
+            self._sessions = self.client.get_master_sessions()
+            if not self._sessions:
+                return
+
+        mapping = BetterDict()  # dict(executor -> dict(scenario -> dict(location -> servers count)))
+        for session in self._sessions:
+            try:
+                name_split = [part.strip() for part in session['name'].split('/')]
+                location = session['configuration']['location']
+                count = session['configuration']['serversCount']
+                ex_item = mapping.get(name_split[0])
+                if len(name_split) > 1:
+                    script_item = ex_item.get(name_split[1])
+                else:
+                    script_item = ex_item.get("N/A", {})
+                script_item[location] = count
+            except KeyError:
+                self._sessions = None
+
+        txt = "%s #%s\n" % (self.test_name, self.client.master_id)
+        for executor, scenarios in iteritems(mapping):
+            txt += " %s" % executor
+            for scenario, locations in iteritems(scenarios):
+                txt += " %s:\n" % scenario
+                for location, count in iteritems(locations):
+                    txt += "  Agents in %s: %s\n" % (location, count)
+
+        return txt
+
+    def _get_collection_status(self):
+        if not self._sessions:
+            sessions = self.client.get_master_sessions()
+            if not sessions:
+                return
+            self._sessions = {session["id"]: session for session in sessions}
+
+        if not self._last_status:
+            return
+
+        mapping = BetterDict()  # dict(scenario -> dict(location -> servers count))
+        for session_status in self._last_status["sessions"]:
+            try:
+                session_id = session_status["id"]
+                session = self._sessions[session_id]
+                location = session_status["locationId"]
+                servers_count = len(session_status["readyStatus"]["servers"])
+                name_split = [part.strip() for part in session['name'].split('/')]
+                if len(name_split) > 1:
+                    scenario = name_split[1]
+                else:
+                    scenario = "N/A"
+                scenario_item = mapping.get(scenario)
+                if location not in scenario_item:
+                    scenario_item[location] = 0
+                scenario_item[location] += servers_count
+            except KeyError:
+                self._sessions = None
+
+        txt = "%s #%s\n" % (self.test_name, self.client.master_id)
+        for scenario, locations in iteritems(mapping):
+            txt += " %s:\n" % scenario
+            for location, count in iteritems(locations):
+                txt += "  Agents in %s: %s\n" % (location, count)
+
+        return txt
+
+    def get_master_status(self):
+        self._last_status = self.client.get_master_status()
+        return self._last_status
+
+    def get_test_status_text(self):
+        if self.test_type == self.TEST_TYPE_CLOUD:
+            return self._get_cloud_test_status()
+        elif self.test_type == self.TEST_TYPE_COLLECTION:
+            return self._get_collection_status()
 
 
 class BlazeMeterClient(object):
@@ -1393,12 +1473,12 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
         rfiles = self.get_rfiles()
         config = self.get_config_for_cloud()
-        self.launcher = TestLauncher(self.parameters, self.settings, self.client, self.engine)
+        self.launcher = TestLauncher(self.parameters, self.settings, self.client, self.log)
         self.launcher.default_test_name = "Taurus Cloud Test"
         self.test_id = self.launcher.resolve_test(config, rfiles)
 
         self.test_name = self.launcher.test_name
-        self.widget = CloudProvWidget(self)
+        self.widget = CloudProvWidget(self.launcher)
 
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.results_reader = ResultsFromBZA(self.client)
@@ -1523,12 +1603,12 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             self.log.warning('Detaching Taurus from started test...')
             return True
         try:
-            master = self.client.get_master_status()
+            master = self.launcher.get_master_status()
         except (URLError, SSLError):
             self.log.warning("Failed to get test status, will retry in %s seconds...", self.client.timeout)
             self.log.debug("Full exception: %s", traceback.format_exc())
             time.sleep(self.client.timeout)
-            master = self.client.get_master_status()
+            master = self.launcher.get_master_status()
             self.log.info("Succeeded with retry")
 
         if "status" in master and master['status'] != self.__last_master_status:
@@ -1573,7 +1653,8 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
                 locations[loc_name] = 1
 
     def get_widget(self):
-        self.widget = CloudProvWidget(self)
+        if not self.widget:
+            self.widget = CloudProvWidget(self.launcher)
         return self.widget
 
 
@@ -1677,45 +1758,16 @@ class ResultsFromBZA(ResultsProvider):
 
 
 class CloudProvWidget(Pile, PrioritizedWidget):
-    def __init__(self, prov):
+    def __init__(self, test_launcher):
         """
-        :type prov: CloudProvisioning
+        :type test_launcher: TestLauncher
         """
-        self.prov = prov
+        self.test_launcher = test_launcher
         self.text = Text("")
-        self._sessions = None
         super(CloudProvWidget, self).__init__([self.text])
         PrioritizedWidget.__init__(self)
 
     def update(self):
-        if not self._sessions:
-            self._sessions = self.prov.client.get_master_sessions()
-            if not self._sessions:
-                return
-
-        mapping = BetterDict()
-        cnt = 0
-        for session in self._sessions:
-            try:
-                cnt += 1
-                name_split = session['name'].split('/')
-                location = session['configuration']['location']
-                count = session['configuration']['serversCount']
-                ex_item = mapping.get(name_split[0])
-                if len(name_split) > 1:
-                    script_item = ex_item.get(name_split[1])
-                else:
-                    script_item = ex_item.get("N/A", {})
-                script_item[location] = count
-            except KeyError:
-                self._sessions = None
-
-        txt = "%s #%s\n" % (self.prov.test_name, self.prov.client.master_id)
-        for executor, scenarios in iteritems(mapping):
-            txt += " %s" % executor
-            for scenario, locations in iteritems(scenarios):
-                txt += " %s:\n" % scenario
-                for location, count in iteritems(locations):
-                    txt += "  Agents in %s: %s\n" % (location, count)
-
-        self.text.set_text(txt)
+        txt = self.test_launcher.get_test_status_text()
+        if txt:
+            self.text.set_text(txt)

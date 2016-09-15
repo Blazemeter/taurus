@@ -3,7 +3,7 @@ import logging
 
 from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet
-from bzt.modules.blazemeter import CloudProvisioning, BlazeMeterClientEmul, ResultsFromBZA
+from bzt.modules.blazemeter import CloudProvisioning, BlazeMeterClientEmul, ResultsFromBZA, TestLauncher
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul, ModuleMock, RecordingHandler
 
@@ -152,9 +152,11 @@ class TestCloudProvisioning(BZTestCase):
         with open(__dir__() + "/../json/blazemeter-api-user.json") as fhd:
             return json.loads(fhd.read())
 
-    def test_widget(self):
+    def test_widget_cloud_test(self):
         obj = CloudProvisioning()
         obj.client = BlazeMeterClientEmul(logging.getLogger(''))
+        obj.launcher = TestLauncher({}, {}, obj.client, logging.getLogger(''))
+        obj.launcher.test_type = TestLauncher.TEST_TYPE_CLOUD
         obj.client.results.append({"result": []})
         obj.client.results.append({"result": {"sessions": [
             {
@@ -180,6 +182,33 @@ class TestCloudProvisioning(BZTestCase):
         widget.update()
 
         self.assertEqual("None #None\n executor scenario:\n  Agents in loc-name: 10\n", widget.text.get_text()[0])
+
+    def test_widget_cloud_collection(self):
+        obj = CloudProvisioning()
+        obj.client = BlazeMeterClientEmul(logging.getLogger(''))
+        obj.launcher = TestLauncher({}, {}, obj.client, logging.getLogger(''))
+        obj.launcher.test_type = TestLauncher.TEST_TYPE_COLLECTION
+        obj.client.results.append({"result": {"sessions": [
+            {
+                "id": "session-id",
+                "locationId": "loc-name",
+                "readyStatus": {
+                    "servers": ["server" for _ in range(10)]
+                },
+            }
+        ]}})
+        obj.client.results.append({"result": {"sessions": [
+            {
+                "id": "session-id",
+                "name": "loc-name/scenario",
+                "configuration": {}
+            }
+        ]}})
+        obj.launcher.get_master_status()
+        widget = obj.get_widget()
+        widget.update()
+
+        self.assertEqual("None #None\n scenario:\n  Agents in loc-name: 10\n", widget.text.get_text()[0])
 
     def test_delete_test_files(self):
         obj = CloudProvisioning()
