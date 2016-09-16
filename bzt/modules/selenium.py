@@ -124,12 +124,13 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         else:
             raise ValueError("Unsupported script type: %s" % script_type)
 
+        runner_config['working-dir'] = working_dir
+        runner_config["script"] = script_path
         runner_config["script-type"] = script_type
-        runner_config["working-dir"] = working_dir
-        runner_config.get("artifacts-dir", self.engine.artifacts_dir)
-        runner_config.get("report-file", report_file)
-        runner_config.get("stdout", self.engine.create_artifact("junit", ".out"))
-        runner_config.get("stderr", self.engine.create_artifact("junit", ".err"))
+        runner_config["artifacts-dir"] = self.engine.artifacts_dir
+        runner_config["report-file"] = report_file
+        runner_config["stdout"] = self.engine.create_artifact("selenium", ".out")
+        runner_config["stderr"] = self.engine.create_artifact("selenium", ".err")
         return runner_class(runner_config, self)
 
     def _register_reader(self, report_file):
@@ -152,8 +153,6 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.report_file = self.engine.create_artifact("selenium_tests_report", ".ldjson")
         self.runner = self._create_runner(self.runner_working_dir, self.report_file)
 
-        self._cp_resource_files(self.runner_working_dir)
-
         self.runner.prepare()
         self.reader = self._register_reader(self.report_file)
 
@@ -166,34 +165,16 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         else:
             raise ValueError("Nothing to test, no requests were provided in scenario")
 
-    def _cp_resource_files(self, runner_working_dir):
-        script = self.get_script_path()
-
-        if os.path.isdir(script):
-            shutil.copytree(script, runner_working_dir)
-        else:
-            os.makedirs(runner_working_dir)
-            if self.self_generated_script:
-                shutil.move(script, runner_working_dir)
-            else:
-                script_type = self.detect_script_type(script)
-                script_name = os.path.basename(script)
-                if script_type == ".py" and not script_name.lower().startswith('test'):
-                    target_name = 'test_' + script_name
-                    msg = "Script '%s' won't be discovered by nosetests, renaming script to %s"
-                    self.log.warning(msg, script_name, target_name)
-                else:
-                    target_name = script_name
-                target_path = os.path.join(runner_working_dir, target_name)
-                shutil.copy2(script, target_path)
-
-    @staticmethod
-    def detect_script_type(script_path):
+    def detect_script_type(self, script_path):
         if not isinstance(script_path, string_types) and not isinstance(script_path, text_type):
             raise ValueError("Nothing to test, no files were provided in scenario")
 
         if not os.path.exists(script_path):
             raise ValueError("Script %s doesn't exist" % script_path)
+
+        if "language" in self.execution:
+            if self.execution["language"] == "python":
+                return '.py'
 
         file_types = set()
 
@@ -305,8 +286,8 @@ class AbstractTestRunner(object):
         self.executor = executor
         self.scenario = executor.scenario
         self.load = executor.get_load()
-        self.artifacts_dir = self.settings.get("artifacts-dir")
         self.working_dir = self.settings.get("working-dir")
+        self.artifacts_dir = self.settings.get("artifacts-dir")
         self.log = executor.log.getChild(self.__class__.__name__)
         self.opened_descriptors = []
         self.is_failed = False
@@ -363,6 +344,7 @@ class JUnitTester(AbstractTestRunner):
         self.props_file = junit_config['props-file']
         path_lambda = lambda key, val: get_full_path(self.settings.get(key, val))
 
+        self.script = junit_config.get("script", ValueError("Script not passed to JUnit runner"))
         self.junit_path = path_lambda("path", "~/.bzt/selenium-taurus/tools/junit/junit.jar")
         self.hamcrest_path = path_lambda("hamcrest-core", "~/.bzt/selenium-taurus/tools/junit/hamcrest-core.jar")
         self.json_jar_path = path_lambda("json-jar", "~/.bzt/selenium-taurus/tools/junit/json.jar")
@@ -384,6 +366,9 @@ class JUnitTester(AbstractTestRunner):
         run checklist, make jar.
         """
         self.run_checklist()
+
+        if not os.path.exists(self.working_dir):
+            os.makedirs(self.working_dir)
 
         if self.settings.get("script-type", None) == ".java":
             self.compile_scripts()
@@ -411,6 +396,18 @@ class JUnitTester(AbstractTestRunner):
 
         self.check_tools()
 
+    def _collect_script_files(self, extensions):
+        file_list = []
+        if os.path.isdir(self.script):
+            for root, _, files in os.walk(self.script):
+                for test_file in files:
+                    if os.path.splitext(test_file)[1].lower() in extensions:
+                        path = get_full_path(os.path.join(root, test_file))
+                        file_list.append(path)
+        else:
+            file_list.append(get_full_path(self.script))
+        return file_list
+
     def compile_scripts(self):
         """
         Compile .java files
@@ -424,22 +421,18 @@ class JUnitTester(AbstractTestRunner):
             self.log.debug(".java files are already compiled, skipping")
             return
 
-        java_files = []
-
-        for dir_entry in os.walk(self.working_dir):
-            if dir_entry[2]:
-                for test_file in dir_entry[2]:
-                    if os.path.splitext(test_file)[1].lower() == ".java":
-                        java_files.append(os.path.join(dir_entry[0], test_file))
-
-        compile_cl = ["javac", "-source", self.target_java, "-target", self.target_java, ]
+        compile_cl = ["javac",
+                      "-source", self.target_java,
+                      "-target", self.target_java,
+                      "-d", self.working_dir,
+                      ]
         compile_cl.extend(["-cp", os.pathsep.join(self.base_class_path)])
-        compile_cl.extend(java_files)
+        compile_cl.extend(self._collect_script_files({".java"}))
 
         with open(os.path.join(self.artifacts_dir, "javac.out"), 'ab') as javac_out:
             with open(os.path.join(self.artifacts_dir, "javac.err"), 'ab') as javac_err:
                 self.log.debug("running javac: %s", compile_cl)
-                self.process = shell_exec(compile_cl, cwd=self.working_dir, stdout=javac_out, stderr=javac_err)
+                self.process = shell_exec(compile_cl, stdout=javac_out, stderr=javac_err)
                 ret_code = self.process.poll()
 
                 while ret_code is None:
@@ -496,6 +489,7 @@ class JUnitTester(AbstractTestRunner):
         # org.junit.runner.JUnitCore TestBlazemeterPass
 
         jar_list = [os.path.join(self.working_dir, jar) for jar in os.listdir(self.working_dir) if jar.endswith(".jar")]
+        jar_list.extend(self._collect_script_files({".jar"}))
         self.base_class_path.extend(jar_list)
 
         with open(self.props_file, 'wt') as props:
@@ -522,7 +516,6 @@ class JUnitTester(AbstractTestRunner):
         junit_command_line = ["java", "-cp", os.pathsep.join(self.base_class_path), "taurusjunit.CustomRunner",
                               self.props_file]
         self.process = self.executor.execute(junit_command_line,
-                                             cwd=self.artifacts_dir,
                                              stdout=std_out,
                                              stderr=std_err,
                                              env=env)
@@ -539,6 +532,7 @@ class NoseTester(AbstractTestRunner):
                                         os.pardir,
                                         "resources",
                                         "nose_plugin.py")
+        self.script = nose_config.get("script", ValueError("Script not supplied to nose tester"))
 
     def prepare(self):
         self.run_checklist()
@@ -568,7 +562,7 @@ class NoseTester(AbstractTestRunner):
         if self.load.hold:
             nose_command_line += ['-d', str(self.load.hold)]
 
-        nose_command_line += [self.working_dir]
+        nose_command_line += [self.script]
 
         std_out = open(self.settings.get("stdout"), "wt")
         self.opened_descriptors.append(std_out)
@@ -580,7 +574,6 @@ class NoseTester(AbstractTestRunner):
         env.merge(self.env)
 
         self.process = self.executor.execute(nose_command_line,
-                                             cwd=self.artifacts_dir,
                                              stdout=std_out,
                                              stderr=std_err,
                                              env=env)
