@@ -8,6 +8,7 @@ import yaml
 
 from bzt.engine import ScenarioExecutor, Provisioning
 from bzt.modules.selenium import SeleniumExecutor, JUnitJar, LoadSamplesReader, LDJSONReader, FuncSamplesReader
+from bzt.modules.selenium import NoseTester
 from bzt.six import StringIO
 from tests import BZTestCase, local_paths_config, __dir__
 from tests.mocks import EngineEmul
@@ -644,6 +645,14 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.assertEqual("http://blazedemo.com/", urls[0])
         self.assertEqual("http://absolute.address.com/somepage", urls[1])
         self.assertEqual("http://blazedemo.com/reserve.php", urls[2])
+
+    def test_force_language(self):
+        self.obj.execution.merge({
+            'scenario': {'script': __dir__() + '/../selenium/jar/'},
+            'language': 'python-nose',
+        })
+        self.obj.prepare()
+        self.assertIsInstance(self.obj.runner, NoseTester)
 
 
 class TestReportReader(BZTestCase):
