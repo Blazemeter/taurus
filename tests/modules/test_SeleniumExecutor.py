@@ -423,8 +423,6 @@ class TestSeleniumRSpecRunner(SeleniumTestCase):
             "script": __dir__() + "/../selenium/ruby/example_spec.rb"
         }})
         self.obj.prepare()
-        ruby_scripts = os.listdir(self.obj.runner.working_dir)
-        self.assertEqual(len(ruby_scripts), 1)
 
     def test_rspec_full(self):
         """
@@ -451,9 +449,6 @@ class TestSeleniumRSpecRunner(SeleniumTestCase):
         while not self.obj.check():
             time.sleep(1)
         self.obj.shutdown()
-        prepared_files = os.listdir(self.obj.runner.working_dir)
-        scripts = [fname for fname in prepared_files if fname.endswith(".rb")]
-        self.assertEqual(1, len(scripts))
         self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
 
 
