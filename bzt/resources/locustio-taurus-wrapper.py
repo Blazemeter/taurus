@@ -3,9 +3,10 @@ import csv
 import json
 import os
 import time
-from requests.exceptions import HTTPError
+
 from locust import main, events, runners
 from locust.exception import StopLocust
+from requests.exceptions import HTTPError
 
 
 class LocustStarter(object):
@@ -23,7 +24,7 @@ class LocustStarter(object):
     def __check_duration(self):
         if self.locust_duration is not None:
             if time.time() - self.locust_start_time >= self.locust_duration:
-                raise StopLocust
+                raise StopLocust('Duration limit reached')
 
     @staticmethod
     def __getrec(request_type, name, response_time, response_length, exc=None):

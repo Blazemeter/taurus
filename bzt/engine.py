@@ -1080,33 +1080,33 @@ class PythonGenerator(object):
         pass
 
     @staticmethod
-    def gen_class_definition(class_name, inherits_from, indent="0"):
+    def gen_class_definition(class_name, inherits_from, indent=0):
         def_tmpl = "class {class_name}({inherits_from}):"
-        class_def_element = etree.Element("class_definition", indent=indent)
+        class_def_element = etree.Element("class_definition", indent=str(indent))
         class_def_element.text = def_tmpl.format(class_name=class_name, inherits_from="".join(inherits_from))
         return class_def_element
 
     @staticmethod
-    def gen_method_definition(method_name, params, indent="4"):
+    def gen_method_definition(method_name, params, indent=4):
         def_tmpl = "def {method_name}({params}):"
-        method_def_element = etree.Element("method_definition", indent=indent)
+        method_def_element = etree.Element("method_definition", indent=str(indent))
         method_def_element.text = def_tmpl.format(method_name=method_name, params=",".join(params))
         return method_def_element
 
     @staticmethod
-    def gen_decorator_statement(decorator_name, indent="4"):
+    def gen_decorator_statement(decorator_name, indent=4):
         def_tmpl = "@{decorator_name}"
-        decorator_element = etree.Element("decorator_statement", indent=indent)
+        decorator_element = etree.Element("decorator_statement", indent=str(indent))
         decorator_element.text = def_tmpl.format(decorator_name=decorator_name)
         return decorator_element
 
     @staticmethod
-    def gen_statement(statement, indent="8"):
-        statement_elem = etree.Element("statement", indent=indent)
+    def gen_statement(statement, indent=8):
+        statement_elem = etree.Element("statement", indent=str(indent))
         statement_elem.text = statement
         return statement_elem
 
-    def gen_comment(self, comment, indent="8"):
+    def gen_comment(self, comment, indent=8):
         return self.gen_statement("# %s" % comment, indent)
 
     def save(self, filename):
@@ -1116,5 +1116,5 @@ class PythonGenerator(object):
                     indent = int(child.get('indent', "0"))
                     fds.write(" " * indent + child.text + "\n")
 
-    def gen_new_line(self, indent="8"):
+    def gen_new_line(self, indent=8):
         return self.gen_statement("", indent=indent)
