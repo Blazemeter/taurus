@@ -818,7 +818,7 @@ from selenium.common.exceptions import NoAlertPresentException
 
             if regexp:
                 assert_method = "self.assertEqual" if reverse else "self.assertNotEqual"
-                assertion_elements.append(self.gen_statement('re_pattern = re.compile("%s")' % val))
+                assertion_elements.append(self.gen_statement("re_pattern = re.compile(r'%s')" % val))
                 method = '%s(0, len(re.findall(re_pattern, body)))' % assert_method
                 assertion_elements.append(self.gen_statement(method))
             else:
