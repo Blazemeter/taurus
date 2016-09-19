@@ -785,6 +785,14 @@ class TaurusRSpecPlugin(RequiredTool):
 
 
 class SeleniumScriptBuilder(PythonGenerator):
+    IMPORTS = """import unittest
+import re
+from time import sleep
+from selenium import webdriver
+from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoAlertPresentException
+"""
+
     def __init__(self, scenario, parent_logger, wdlog):
         super(SeleniumScriptBuilder, self).__init__(scenario, parent_logger)
         self.window_size = None
