@@ -17,3 +17,6 @@ RUN apt-get -y update \
   && bzt -o settings.default-executor=jmeter -o execution.scenario.requests.0=http://localhost/ -o execution.iterations=1 -o execution.hold-for=1 -o execution.throughput=1 \
   && mkdir /bzt-configs \
   && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /bzt-configs
+CMD bzt -l /tmp/artifacts/bzt.log /bzt-configs/*.yml
