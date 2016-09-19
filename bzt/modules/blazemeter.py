@@ -593,7 +593,7 @@ class BlazeMeterClient(object):
         self.data_signature = None
         self.first_ts = sys.maxsize
         self.last_ts = 0
-        self.timeout = 10
+        self.timeout = 30
         self.delete_files_before_test = False
 
     def _request(self, url, data=None, headers=None, checker=None, method=None):
@@ -1105,7 +1105,7 @@ class BlazeMeterClient(object):
 
     def get_available_locations(self):
         user_info = self.get_user_info()
-        return {str(x['id']): x for x in user_info['locations'] if not x['id'].startswith('harbor-')}
+        return {str(x['id']): x for x in user_info['locations']}
 
     def get_test_files(self, test_id):
         path = self.address + "/api/latest/web/elfinder/%s" % test_id
@@ -1531,7 +1531,12 @@ class CloudProvWidget(Pile, PrioritizedWidget):
                 name_split = session['name'].split('/')
                 location = session['configuration']['location']
                 count = session['configuration']['serversCount']
-                mapping.get(name_split[0]).get(name_split[1])[location] = count
+                ex_item = mapping.get(name_split[0])
+                if len(name_split) > 1:
+                    script_item = ex_item.get(name_split[1])
+                else:
+                    script_item = ex_item.get("N/A", [])
+                script_item[location] = count
             except KeyError:
                 self._sessions = None
 
