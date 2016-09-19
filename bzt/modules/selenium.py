@@ -598,7 +598,7 @@ class RSpecTester(AbstractTestRunner):
         self.plugin_path = os.path.join(get_full_path(__file__, step_up=1),
                                         os.pardir,
                                         "resources",
-                                        "rspec_taurus_formatter.rb")
+                                        "rspec_taurus_plugin.rb")
         self.script = get_full_path(rspec_config.get("script", ValueError("Script not supplied to rspec runner")))
 
     def prepare(self):
@@ -610,6 +610,7 @@ class RSpecTester(AbstractTestRunner):
         """
 
         self.required_tools.append(TclLibrary(self.log))
+        self.required_tools.append(Ruby("", "", self.log))
         self.required_tools.append(RSpec("", "", self.log))
         self.required_tools.append(TaurusRSpecPlugin(self.plugin_path, ""))
 
@@ -617,16 +618,23 @@ class RSpecTester(AbstractTestRunner):
 
     def run_tests(self):
         """
-        run python tests
+        run rspec plugin
         """
+
         rspec_cmdline = [
-            "rspec",
-            "--require",
+            "ruby",
             self.plugin_path,
-            "--format",
-            "TaurusFormatter",
-            self.script,
+            "--report-file",
+            self.settings.get("report-file"),
+            "--test-suite",
+            self.script
         ]
+
+        if self.load.iterations:
+            rspec_cmdline += ['--iterations', str(self.load.iterations)]
+
+        if self.load.hold:
+            rspec_cmdline += ['--hold-for', str(self.load.hold)]
 
         std_out = open(self.settings.get("stdout"), "wt")
         self.opened_descriptors.append(std_out)
@@ -760,6 +768,23 @@ class RSpec(RequiredTool):
     def check_if_installed(self):
         try:
             output = subprocess.check_output(["rspec", '-version'], stderr=subprocess.STDOUT)
+            self.log.debug("%s output: %s", self.tool_name, output)
+            return True
+        except BaseException:
+            raise RuntimeError("The %s is not operable or not available. Consider installing it" % self.tool_name)
+
+    def install(self):
+        raise NotImplementedError()
+
+
+class Ruby(RequiredTool):
+    def __init__(self, tool_path, download_link, parent_logger):
+        super(Ruby, self).__init__("Ruby", tool_path, download_link)
+        self.log = parent_logger.getChild(self.__class__.__name__)
+
+    def check_if_installed(self):
+        try:
+            output = subprocess.check_output(["ruby", '--version'], stderr=subprocess.STDOUT)
             self.log.debug("%s output: %s", self.tool_name, output)
             return True
         except BaseException:
