@@ -75,6 +75,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.script = None
         self.self_generated_script = False
         self.generated_methods = BetterDict()
+        self.runner_working_dir = None
 
     def set_virtual_display(self):
         display_conf = self.settings.get("virtual-display")
@@ -105,6 +106,11 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         else:
             return self.engine.find_file(self.script)
 
+    def get_runner_working_dir(self):
+        if self.runner_working_dir is None:
+            self.runner_working_dir = self.engine.create_artifact("classes", "")
+        return self.runner_working_dir
+
     def _create_runner(self, report_file):
         script_path = self.get_script_path()
         script_type = self.detect_script_type(script_path)
@@ -117,7 +123,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         elif script_type == "java-junit":
             runner_class = JUnitTester
             runner_config.merge(self.settings.get("selenium-tools").get("junit"))
-            runner_config['working-dir'] = self.engine.create_artifact("classes", "")
+            runner_config['working-dir'] = self.get_runner_working_dir()
             runner_config['props-file'] = self.engine.create_artifact("customrunner", ".properties")
         else:
             raise ValueError("Unsupported script type: %s", script_type)
