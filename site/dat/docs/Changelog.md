@@ -2,6 +2,8 @@
 
 ## 1.6.9 <sup>next</sup>
  - fix JAR building for selenium projects with several folders
+ - add LocustIO script generation feature
+ - do not copy Selenium scripts in artifacts dir before running them
  - fix percentiles values for cloud-based tests
  - support collection-based cloud tests
 

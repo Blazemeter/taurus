@@ -72,6 +72,7 @@ class TestCloudProvisioning(BZTestCase):
 
         obj.settings["token"] = "FakeToken"
         obj.settings["detach"] = True
+        obj.settings["browser-open"] = False
         obj.client = client = BlazeMeterClientEmul(obj.log)
         client.results.append(self.__get_user_info())  # user
         client.results.append({"result": []})  # tests

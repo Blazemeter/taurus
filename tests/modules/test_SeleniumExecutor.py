@@ -6,7 +6,7 @@ import time
 
 import yaml
 
-from bzt.engine import ScenarioExecutor, Provisioning
+from bzt.engine import ScenarioExecutor
 from bzt.modules.selenium import SeleniumExecutor, JUnitJar, LoadSamplesReader, LDJSONReader, FuncSamplesReader
 from bzt.six import StringIO
 from tests import BZTestCase, local_paths_config, __dir__
@@ -16,15 +16,20 @@ from tests.mocks import EngineEmul
 class SeleniumTestCase(BZTestCase):
     def setUp(self):
         super(SeleniumTestCase, self).setUp()
-        self.engine_obj = EngineEmul()
-        self.paths = [__dir__() + "/../../bzt/10-base.json", local_paths_config()]
-        self.engine_obj.configure(self.paths)  # FIXME: avoid using whole engine in particular module test!
-        self.engine_obj.config.get("modules").get("selenium").merge({"virtual-display": {"width": 1024, "height": 768}})
-        self.selenium_config = self.engine_obj.config["modules"]["selenium"]
-        self.engine_obj.create_artifacts_dir(self.paths)
+        engine_obj = EngineEmul()
+        paths = [__dir__() + "/../../bzt/10-base.json", local_paths_config()]
+        engine_obj.configure(paths)  # FIXME: avoid using whole engine in particular module test!
         self.obj = SeleniumExecutor()
-        self.obj.engine = self.engine_obj
-        self.obj.settings = self.selenium_config
+        self.obj.settings = engine_obj.config.get("modules").get("selenium")
+        self.obj.settings.merge({"virtual-display": {"width": 1024, "height": 768}})
+        engine_obj.create_artifacts_dir(paths)
+        self.obj.engine = engine_obj
+
+    def configure(self, config):
+        self.obj.engine.config.merge(config)
+        self.obj.execution = self.obj.engine.config.get('execution')
+        if isinstance(self.obj.execution, list):
+            self.obj.execution = self.obj.execution[0]
 
     def tearDown(self):
         self.obj.free_virtual_display()
@@ -81,7 +86,7 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
         """
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/java/TestBlazemeterFail.java"}})
         self.obj.prepare()
-        self.assertTrue(os.path.exists(os.path.join(self.obj.runner.working_dir, "TestBlazemeterFail.java")))
+        self.assertFalse(os.path.exists(os.path.join(self.obj.runner.working_dir, "TestBlazemeterFail.java")))
         self.assertTrue(os.path.exists(os.path.join(self.obj.runner.working_dir, "TestBlazemeterFail.class")))
         self.assertTrue(os.path.exists(os.path.join(self.obj.runner.working_dir, "compiled.jar")))
 
@@ -96,7 +101,7 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
         java_files = [fname for fname in prepared_files if fname.endswith(".java")]
         class_files = [fname for fname in prepared_files if fname.endswith(".class")]
         jars = [fname for fname in prepared_files if fname.endswith(".jar")]
-        self.assertEqual(len(java_files), 2)
+        self.assertEqual(len(java_files), 0)
         self.assertEqual(len(class_files), 2)
         self.assertEqual(len(jars), 1)
 
@@ -114,16 +119,13 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
         Run tests from package
         :return:
         """
-        self.obj.engine.config.merge({
+        self.configure({
             'execution': {
                 'scenario': {'script': __dir__() + '/../selenium/java_package/src'},
                 'executor': 'selenium'
             },
             'reporting': [{'module': 'junit-xml'}]
         })
-        self.obj.engine.config.merge({"provisioning": "local"})
-        self.obj.execution = self.obj.engine.config['execution']
-        self.obj.settings.merge(self.obj.engine.config.get("modules").get("selenium"))
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
@@ -132,23 +134,12 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
         self.assertTrue(os.path.exists(os.path.join(self.obj.runner.working_dir, "compiled.jar")))
 
     def test_prepare_jar_single(self):
-        """
-        Check if jar exists in working dir
-        :return:
-        """
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/jar/dummy.jar"}})
         self.obj.prepare()
-        self.assertTrue(os.path.exists(os.path.join(self.obj.runner.working_dir, "dummy.jar")))
 
     def test_prepare_jar_folder(self):
-        """
-        Check if jars exist in working dir
-        :return:
-        """
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/jar/"}})
         self.obj.prepare()
-        java_scripts = os.listdir(self.obj.runner.working_dir)
-        self.assertEqual(len(java_scripts), 2)
 
     def test_selenium_startup_shutdown_jar_single(self):
         """
@@ -162,10 +153,7 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
             },
             'reporting': [{'module': 'junit-xml'}]
         })
-        self.obj.engine.config.merge({"provisioning": "local"})
-        self.obj.execution = self.obj.engine.config['execution']
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/jar/dummy.jar"}})
-        self.obj.settings.merge(self.obj.engine.config.get("modules").get("selenium"))
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
@@ -178,7 +166,7 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
         jars = [fname for fname in prepared_files if fname.endswith(".jar")]
         self.assertEqual(len(java_files), 0)
         self.assertEqual(len(class_files), 0)
-        self.assertEqual(len(jars), 1)
+        self.assertEqual(len(jars), 0)
         self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
 
     def test_selenium_startup_shutdown_jar_folder(self):
@@ -186,16 +174,13 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
         run tests from jars
         :return:
         """
-        self.obj.engine.config.merge({
+        self.configure({
             'execution': {
                 'scenario': {'script': __dir__() + '/../selenium/jar/'},
                 'executor': 'selenium'
             },
             'reporting': [{'module': 'junit-xml'}]
         })
-        self.obj.engine.config.merge({"provisioning": "local"})
-        self.obj.execution = self.obj.engine.config['execution']
-        self.obj.settings.merge(self.obj.engine.config.get("modules").get("selenium"))
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
@@ -208,7 +193,7 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
         jars = [fname for fname in prepared_files if fname.endswith(".jar")]
         self.assertEqual(len(java_files), 0)
         self.assertEqual(len(class_files), 0)
-        self.assertEqual(len(jars), 2)
+        self.assertEqual(len(jars), 0)
         self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
 
     def test_selenium_startup_shutdown_java_single(self):
@@ -223,10 +208,7 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
             },
             'reporting': [{'module': 'junit-xml'}]
         })
-        self.obj.engine.config.merge({"provisioning": "local"})
-        self.obj.execution = self.obj.engine.config['execution']
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/java/TestBlazemeterFail.java"}})
-        self.obj.settings.merge(self.obj.engine.config.get("modules").get("selenium"))
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
@@ -237,7 +219,7 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
         java_files = [fname for fname in prepared_files if fname.endswith(".java")]
         class_files = [fname for fname in prepared_files if fname.endswith(".class")]
         jars = [fname for fname in prepared_files if fname.endswith(".jar")]
-        self.assertEqual(1, len(java_files))
+        self.assertEqual(0, len(java_files))
         self.assertEqual(1, len(class_files))
         self.assertEqual(1, len(jars))
         self.assertTrue(os.path.exists(os.path.join(self.obj.runner.working_dir, "compiled.jar")))
@@ -248,7 +230,7 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
         run tests from .java files
         :return:
         """
-        self.obj.engine.config.merge({
+        self.configure({
             'execution': {
                 'scenario': {'script': __dir__() + '/../selenium/java/'},
                 'executor': 'selenium'
@@ -256,9 +238,6 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
             'reporting': [{'module': 'junit-xml'}]
         })
 
-        self.obj.engine.config.merge({"provisioning": "local"})
-        self.obj.execution = self.obj.engine.config['execution']
-        self.obj.settings.merge(self.obj.engine.config.get("modules").get("selenium"))
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
@@ -269,7 +248,7 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
         java_files = [fname for fname in prepared_files if fname.endswith(".java")]
         class_files = [fname for fname in prepared_files if fname.endswith(".class")]
         jars = [fname for fname in prepared_files if fname.endswith(".jar")]
-        self.assertEqual(2, len(java_files))
+        self.assertEqual(0, len(java_files))
         self.assertEqual(2, len(class_files))
         self.assertEqual(1, len(jars))
         self.assertTrue(os.path.exists(os.path.join(self.obj.runner.working_dir, "compiled.jar")))
@@ -280,14 +259,10 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
         Check that JUnit runner fails if no tests were found
         :return:
         """
-        self.obj.engine.config.merge({
-            Provisioning.PROV: "local",
+        self.configure({
             ScenarioExecutor.EXEC: {
                 "executor": "selenium",
-                "scenario": {"script": __dir__() + "/../selenium/invalid/NotJUnittest.java"}
-            }
-        })
-        self.obj.execution = self.obj.engine.config['execution']
+                "scenario": {"script": __dir__() + "/../selenium/invalid/NotJUnittest.java"}}})
         self.obj.prepare()
         self.obj.startup()
         try:
@@ -299,31 +274,23 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
         self.obj.shutdown()
 
     def test_resource_files_collection_remote_java(self):
-        self.obj.engine.config.merge({
+        self.configure({
             'execution': {
                 'scenario': {'script': __dir__() + '/../selenium/java/'},
                 'executor': 'selenium'
             },
             'reporting': [{'module': 'junit-xml'}]
         })
-        self.obj.engine.config.merge({"provisioning": "local"})
-        self.obj.execution = self.obj.engine.config['execution']
-        self.obj.settings.merge(self.obj.engine.config.get("modules").get("selenium"))
-
         self.assertEqual(len(self.obj.resource_files()), 1)
 
     def test_resource_files_collection_remote_jar(self):
-        self.obj.engine.config.merge({
+        self.configure({
             'execution': {
                 'scenario': {'script': __dir__() + '/../selenium/jar/'},
                 'executor': 'selenium'
             },
             'reporting': [{'module': 'junit-xml'}]
         })
-        self.obj.engine.config.merge({"provisioning": "local"})
-        self.obj.execution = self.obj.engine.config['execution']
-        self.obj.settings.merge(self.obj.engine.config.get("modules").get("selenium"))
-
         self.assertEqual(len(self.obj.resource_files()), 1)
 
 
@@ -337,8 +304,6 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
             "script": __dir__() + "/../selenium/python/test_blazemeter_fail.py"
         }})
         self.obj.prepare()
-        python_scripts = os.listdir(self.obj.runner.working_dir)
-        self.assertEqual(len(python_scripts), 1)
 
     def test_selenium_prepare_python_folder(self):
         """
@@ -347,8 +312,6 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         """
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/python/"}})
         self.obj.prepare()
-        python_scripts = os.listdir(self.obj.runner.working_dir)
-        self.assertEqual(len(python_scripts), 3)
 
     def test_selenium_startup_shutdown_python_single(self):
         """
@@ -356,29 +319,21 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         :return:
         """
 
-        self.obj.engine.config.merge({
+        self.configure({
             'execution': {
                 'scenario': {'script': __dir__() + '/../selenium/python/'},
                 'executor': 'selenium'
             },
             'reporting': [{'module': 'junit-xml'}]
         })
-        self.obj.engine.config.merge({"provisioning": "local"})
-        self.obj.execution = self.obj.engine.config['execution']
-
         self.obj.execution.merge({"scenario": {
             "script": __dir__() + "/../selenium/python/test_blazemeter_fail.py"
         }})
-
-        self.obj.settings.merge(self.obj.engine.config.get("modules").get("selenium"))
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
             time.sleep(1)
         self.obj.shutdown()
-        prepared_files = os.listdir(self.obj.runner.working_dir)
-        python_files = [fname for fname in prepared_files if fname.endswith(".py")]
-        self.assertEqual(1, len(python_files))
         self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
 
     def test_selenium_startup_shutdown_python_folder(self):
@@ -386,24 +341,18 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         run tests from .py files
         :return:
         """
-        self.obj.engine.config.merge({
+        self.configure({
             'execution': {
                 'scenario': {'script': __dir__() + '/../selenium/python/'},
                 'executor': 'selenium'
             },
             'reporting': [{'module': 'junit-xml'}]
         })
-        self.obj.engine.config.merge({"provisioning": "local"})
-        self.obj.execution = self.obj.engine.config['execution']
-        self.obj.settings.merge(self.obj.engine.config.get("modules").get("selenium"))
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
             time.sleep(1)
         self.obj.shutdown()
-        prepared_files = os.listdir(self.obj.runner.working_dir)
-        python_files = [fname for fname in prepared_files if fname.endswith(".py")]
-        self.assertEqual(3, len(python_files))
         self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
 
     def runner_fail_no_test_found(self):
@@ -411,13 +360,12 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         Check that Python Nose runner fails if no tests were found
         :return:
         """
-        self.obj.engine.config.merge({
+        self.configure({
             ScenarioExecutor.EXEC: {
                 "executor": "selenium",
                 "scenario": {"script": __dir__() + "/../selenium/invalid/dummy.py"}
             }
         })
-        self.obj.execution = self.obj.engine.config['execution']
         self.obj.prepare()
         self.obj.startup()
         try:
@@ -430,28 +378,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
 
     def test_resource_files_collection_remote_nose(self):
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/python/"}})
-        self.obj.settings.merge(self.obj.engine.config.get("modules").get("selenium"))
-
         self.assertEqual(len(self.obj.resource_files()), 1)
-
-    def test_script_renaming(self):
-        """
-        Check that if script does't start with 'test' -
-        it gets renamed to 'test_xxx'
-        """
-        self.obj.engine.config.merge({
-            ScenarioExecutor.EXEC: {
-                "executor": "selenium",
-                "scenario": {"script": __dir__() + "/../selenium/python/bad_name.py"}
-            }
-        })
-        self.obj.execution = self.obj.engine.config['execution']
-        self.obj.prepare()
-        self.obj.startup()
-        while not self.obj.check():
-            time.sleep(self.obj.engine.check_interval)
-        self.obj.shutdown()
-        self.assertTrue(os.path.exists(os.path.join(self.obj.runner_working_dir, "test_bad_name.py")))
 
 
 class LDJSONReaderEmul(object):
@@ -469,8 +396,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         Raise runtime error when no scenario provided
         :return:
         """
-        self.obj.engine.config.merge({ScenarioExecutor.EXEC: {"executor": "selenium"}})
-        self.obj.execution = self.obj.engine.config['execution']
+        self.configure({ScenarioExecutor.EXEC: {"executor": "selenium"}})
         self.assertRaises(ValueError, self.obj.prepare)
 
     def test_javac_fail(self):
@@ -478,13 +404,12 @@ class TestSeleniumStuff(SeleniumTestCase):
         Test RuntimeError when compilation fails
         :return:
         """
-        self.obj.engine.config.merge({
+        self.configure({
             ScenarioExecutor.EXEC: {
                 "executor": "selenium",
                 "scenario": {"script": __dir__() + "/../selenium/invalid/invalid.java"}
             }
         })
-        self.obj.execution = self.obj.engine.config['execution']
         self.assertRaises(RuntimeError, self.obj.prepare)
 
     def test_no_supported_files_to_test(self):
@@ -492,11 +417,10 @@ class TestSeleniumStuff(SeleniumTestCase):
         Test RuntimeError raised when no files of known types were found.
         :return:
         """
-        self.obj.engine.config.merge({ScenarioExecutor.EXEC: {
+        self.configure({ScenarioExecutor.EXEC: {
             "executor": "selenium",
             "scenario": {"script": __dir__() + "/../selenium/invalid/not_found"}
         }})
-        self.obj.execution = self.obj.engine.config['execution']
         self.assertRaises(ValueError, self.obj.prepare)
 
     def test_samples_count_annotations(self):
@@ -504,12 +428,10 @@ class TestSeleniumStuff(SeleniumTestCase):
         Test exact number of tests when java annotations used
         :return:
         """
-        self.obj.settings = self.selenium_config
-        self.obj.engine.config.merge({ScenarioExecutor.EXEC: {
+        self.configure({ScenarioExecutor.EXEC: {
             "executor": "selenium",
             "scenario": {"script": __dir__() + "/../selenium/invalid/SeleniumTest.java"}
         }})
-        self.obj.execution = self.obj.engine.config['execution']
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
@@ -521,11 +443,10 @@ class TestSeleniumStuff(SeleniumTestCase):
         Test exact number of tests when test class extends JUnit TestCase
         :return:
         """
-        self.obj.engine.config.merge({ScenarioExecutor.EXEC: {
+        self.configure({ScenarioExecutor.EXEC: {
             "executor": "selenium",
             "scenario": {"script": __dir__() + "/../selenium/invalid/SimpleTest.java"}
         }})
-        self.obj.execution = self.obj.engine.config['execution']
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
@@ -537,11 +458,10 @@ class TestSeleniumStuff(SeleniumTestCase):
         Test exact number of tests when annotations used and no "test" in class name
         :return:
         """
-        self.obj.engine.config.merge({ScenarioExecutor.EXEC: {
+        self.configure({ScenarioExecutor.EXEC: {
             "executor": "selenium",
             "scenario": {"script": __dir__() + "/../selenium/invalid/selenium1.java"}
         }})
-        self.obj.execution = self.obj.engine.config['execution']
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
@@ -549,27 +469,21 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.shutdown()
 
     def test_requests(self):
-        self.obj.engine.config.merge(yaml.load(open(__dir__() + "/../yaml/selenium_executor_requests.yml").read()))
-        self.obj.engine.config.merge({"provisioning": "local"})
-        self.obj.execution = self.obj.engine.config['execution']
-
+        self.configure(yaml.load(open(__dir__() + "/../yaml/selenium_executor_requests.yml").read()))
         self.obj.prepare()
         self.obj.get_widget()
         self.obj.startup()
         while not self.obj.check():
             time.sleep(1)
         self.obj.shutdown()
-        with open(os.path.join(self.obj.engine.artifacts_dir, "junit.err")) as fds:
+        with open(os.path.join(self.obj.engine.artifacts_dir, "selenium.err")) as fds:
             contents = fds.read()
             self.assertEqual(3, contents.count("ok"), "file: '%s', size: %s, content: '%s'" % (fds, fds.__sizeof__(),
                                                                                                contents))
             self.assertEqual(1, contents.count("OK"))
 
     def test_fail_on_zero_results(self):
-        self.obj.engine.config.merge(yaml.load(open(__dir__() + "/../yaml/selenium_executor_requests.yml").read()))
-        self.obj.engine.config.merge({"provisioning": "local"})
-        self.obj.execution = self.obj.engine.config['execution']
-
+        self.configure(yaml.load(open(__dir__() + "/../yaml/selenium_executor_requests.yml").read()))
         self.obj.prepare()
         self.assertRaises(RuntimeWarning, self.obj.post_process)
 
@@ -592,7 +506,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.resource_files()
 
     def test_a_labels_translation(self):
-        self.obj.engine.config.merge({
+        self.configure({
             "scenarios": {
                 "req_sel": {
                     "requests": [
@@ -678,12 +592,41 @@ class TestSeleniumStuff(SeleniumTestCase):
             }
         })
         self.obj.prepare()
-        with open(os.path.join(self.obj.runner_working_dir, os.path.basename(self.obj.script))) as fds:
+        with open(os.path.join(self.obj.engine.artifacts_dir, os.path.basename(self.obj.script))) as fds:
             script = fds.read()
         urls = re.findall(r"get\('(.+)'\)", script)
         self.assertEqual("http://blazedemo.com/", urls[0])
         self.assertEqual("http://absolute.address.com/somepage", urls[1])
         self.assertEqual("http://blazedemo.com/reserve.php", urls[2])
+
+
+class TestASeleniumScriptBuilder(SeleniumTestCase):
+    def test_build_script(self):
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "hold-for": "4m",
+                "ramp-up": "3m",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "default-address": "http://blazedemo.com",
+                    "requests": [{
+                        "url": "/"}]}},
+            "modules": {
+                "selenium": {
+                    "^virtual-display": 0}}})
+        self.obj.prepare()
+        with open(self.obj.script) as generated:
+            gen_contents = generated.readlines()
+        with open(__dir__() + "/../selenium/generated_from_requests.py") as sample:
+            sample_contents = sample.readlines()
+
+        # strip line terminator and exclude specific build path
+        gen_contents = [line.rstrip() for line in gen_contents if 'webdriver' not in line]
+        sample_contents = [line.rstrip() for line in sample_contents if 'webdriver' not in line]
+
+        self.assertEqual(gen_contents, sample_contents)
 
 
 class TestReportReader(BZTestCase):
