@@ -24,6 +24,7 @@ import os
 import shutil
 import time
 import traceback
+import uuid
 from abc import abstractmethod
 from collections import namedtuple, defaultdict
 from distutils.version import LooseVersion
@@ -33,10 +34,10 @@ import yaml
 from yaml.representer import SafeRepresenter
 
 import bzt
-from bzt import ManualShutdown, NormalShutdown, get_configs_dir
+from bzt import ManualShutdown, NormalShutdown
 from bzt.six import build_opener, install_opener, urlopen, request, numeric_types, iteritems
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, etree
-from bzt.utils import PIPE, shell_exec, get_full_path
+from bzt.utils import PIPE, shell_exec, get_full_path, get_system_configs_dir, get_user_configs_dir
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time
 
 SETTINGS = "settings"
@@ -411,23 +412,56 @@ class Engine(object):
         self.log.warning("Could not find location at path: %s", filename)
         return filename
 
+    def _create_base_configs(self, target_dir):
+        if not os.path.exists(target_dir):
+            os.makedirs(target_dir)
+
+        self.log.info("Creating 10-base.json")
+        base_config = os.path.join(get_full_path(__file__, step_up=1), "10-base.json")
+        shutil.copy(base_config, target_dir + os.path.sep)
+
+        self.log.info("Generating install-id")
+        install_id = os.path.join(target_dir, '99-installID.yml')
+        if not os.path.exists(install_id):
+            with open(install_id, 'w') as fhd:
+                fhd.write("---\ninstall-id: %x" % uuid.getnode())
+
     def _load_base_configs(self):
         base_configs = []
-        machine_dir = get_configs_dir()  # can't refactor machine_dir out - see setup.py
-        if os.path.isdir(machine_dir):
-            self.log.debug("Reading machine configs from: %s", machine_dir)
-            for cfile in sorted(os.listdir(machine_dir)):
-                fname = os.path.join(machine_dir, cfile)
+
+        system_configs_dir = get_system_configs_dir()
+        user_configs_dir = get_user_configs_dir()
+
+        system_files = os.listdir(system_configs_dir) if os.path.isdir(system_configs_dir) else []
+        user_files = os.listdir(user_configs_dir) if os.path.isdir(user_configs_dir) else []
+
+        if not system_files and not user_files:
+            self.log.info("First launch detected, creating base configs")
+            self._create_base_configs(user_configs_dir)
+
+        if os.path.isdir(system_configs_dir):
+            self.log.debug("Reading system configs from: %s", system_configs_dir)
+            for cfile in sorted(os.listdir(system_configs_dir)):
+                fname = os.path.join(system_configs_dir, cfile)
                 if os.path.isfile(fname):
                     base_configs.append(fname)
         else:
-            self.log.info("No machine configs dir: %s", machine_dir)
-        user_file = os.path.expanduser(os.path.join('~', ".bzt-rc"))
-        if os.path.isfile(user_file):
-            self.log.debug("Adding personal config: %s", user_file)
-            base_configs.append(user_file)
+            self.log.info("No system configs dir: %s", system_configs_dir)
+
+        if os.path.isdir(user_configs_dir):
+            self.log.debug("Reading user configs from: %s", user_configs_dir)
+            for cfile in sorted(os.listdir(user_configs_dir)):
+                fname = os.path.join(user_configs_dir, cfile)
+                if os.path.isfile(fname):
+                    base_configs.append(fname)
+
+        rcfile = os.path.expanduser(os.path.join('~', ".bzt-rc"))
+        if os.path.isfile(rcfile):
+            self.log.debug("Adding personal config: %s", rcfile)
+            base_configs.append(rcfile)
         else:
-            self.log.info("No personal config: %s", user_file)
+            self.log.info("No personal config: %s", rcfile)
+
         self.config.load(base_configs)
 
     def _load_user_configs(self, user_configs):
