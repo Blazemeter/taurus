@@ -1971,6 +1971,11 @@ class RequestsParser(object):
         elif 'include-scenario' in req:
             name = req.get('include-scenario')
             return IncludeScenarioBlock(name, req)
+        elif 'action' in req:
+            action = req.get('action')
+            target = req.get('target', 'current-thread')
+            duration = req.get('pause-duration', None)  # TODO: dehumanize
+            return ActionBlock(action, target, duration, req)
         else:
             return HierarchicHTTPRequest(req, self.engine)
 
@@ -1998,6 +2003,14 @@ class HierarchicHTTPRequest(HTTPRequest):
             path = file_dict.get('path', ValueError("Items from upload-files must specify path to file"))
             mime = mimetypes.guess_type(path)[0] or "application/octet-stream"
             file_dict.get('mime-type', mime)
+
+
+class ActionBlock(Request):
+    def __init__(self, action, target, duration, config):
+        super(ActionBlock, self).__init__(config)
+        self.action = action
+        self.target = target
+        self.duration = duration
 
 
 class RequestVisitor(object):
