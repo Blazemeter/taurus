@@ -21,36 +21,6 @@ from setuptools import setup
 from setuptools.command.install import install
 import bzt
 
-
-class InstallWithHook(install, object):
-    """
-    Command adding post-install hook to setup
-    """
-
-    def run(self):
-        """
-        Do the command's job!
-        """
-        install.run(self)
-        self.__hook()
-
-    def __hook(self):
-        dirname = bzt.get_configs_dir()
-        sys.stdout.write("[%s] Creating %s\n" % (bzt.VERSION, dirname))
-        if not os.path.exists(dirname):
-            os.makedirs(dirname)
-
-        src = os.path.join(os.path.dirname(__file__), "bzt", "10-base.json")
-        sys.stdout.write("Copying %s to %s\n" % (src, dirname))
-        shutil.copy(src, dirname + os.path.sep)
-
-        sys.stdout.write("Generating install-id\n")
-        install_id = os.path.join(dirname, '99-installID.yml')
-        if not os.path.exists(install_id):
-            with open(install_id, 'w') as fhd:
-                fhd.write("---\ninstall-id: %s" % uuid.uuid4())
-
-
 setup(
     name="bzt",
     version=bzt.VERSION,
@@ -78,5 +48,4 @@ setup(
     package_data={
         "bzt": [],
     },
-    cmdclass={"install": InstallWithHook}
 )
