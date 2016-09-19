@@ -5,16 +5,24 @@ require 'rspec'
 $report_file = 'selenium_report.ldjson'
 
 class TaurusFormatter
-  RSpec::Core::Formatters.register self, :example_passed, :example_failed, :example_pending, :example_started
+  RSpec::Core::Formatters.register self, :example_passed, :example_failed, :example_pending, :example_started, :start, :stop
 
   attr_reader :output
 
   def initialize output
     @output = output
-    @report = File.open($report_file, 'w')
     @started_at = nil
+    @report = nil
     @total_tests = 0
     @tests_passed = 0
+  end
+
+  def start _notification
+    @report = File.open($report_file, 'a')
+  end
+
+  def stop _notification
+    @report.close
   end
 
   def report_stdout test
@@ -44,7 +52,6 @@ class TaurusFormatter
     @tests_passed += 1
     report_stdout item
     @report << item.to_json << "\n"
-    # @report.flush
   end
 
   def example_failed notification # FailedExampleNotification
@@ -96,7 +103,7 @@ def parse_options
     end
 
     opts.on("-r", "--report-file FILE", "Duration of test suite execution") do |f|
-      $report_file = f
+      options[:report_file] = f
     end
 
     opts.on("-s", "--test-suite FILE", "Test suite") do |f|
@@ -117,6 +124,7 @@ end
 
 def run_rspec
   options = parse_options
+  $report_file = options[:report_file]
   hold_for = options[:hold_for]
   iterations = options[:iterations]
   suite = options[:test_suite]
@@ -133,6 +141,7 @@ def run_rspec
       break
     end
   end
+
 end
 
 run_rspec
