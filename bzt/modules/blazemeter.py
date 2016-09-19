@@ -891,7 +891,9 @@ class BlazeMeterClient(object):
 
     def start_cloud_collection(self, collection_id):
         self.log.info("Initiating cloud test with %s ...", self.address)
-        url = self.address + "/api/latest/collections/%s/start" % collection_id
+        # NOTE: delayedStart=true means that all instances will start at the same time
+        # if omitted - instances will start once ready, which may cause inconsistent data in aggregatereport.
+        url = self.address + "/api/latest/collections/%s/start?delayedStart=true" % collection_id
         resp = self._request(url, method="POST")
         self.log.debug("Response: %s", resp['result'])
         self.master_id = resp['result']['id']
