@@ -59,7 +59,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     JSON_JAR_DOWNLOAD_LINK = "http://search.maven.org/remotecontent?filepath=org/json/json/20160810/json-20160810.jar"
 
-    SUPPORTED_TYPES = [".py", ".jar", ".java"]
+    SUPPORTED_TYPES = ["python-nose", "java-junit"]
 
     SHARED_VIRTUAL_DISPLAY = {}
 
@@ -71,11 +71,11 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.runner = None
         self.reader = None
         self.report_file = None
-        self.runner_working_dir = None
         self.scenario = None
         self.script = None
         self.self_generated_script = False
         self.generated_methods = BetterDict()
+        self.runner_working_dir = None
 
     def set_virtual_display(self):
         display_conf = self.settings.get("virtual-display")
@@ -106,25 +106,31 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         else:
             return self.engine.find_file(self.script)
 
-    def _create_runner(self, working_dir, report_file):
+    def get_runner_working_dir(self):
+        if self.runner_working_dir is None:
+            self.runner_working_dir = self.engine.create_artifact("classes", "")
+        return self.runner_working_dir
+
+    def _create_runner(self, report_file):
         script_path = self.get_script_path()
         script_type = self.detect_script_type(script_path)
+
         runner_config = BetterDict()
 
-        if script_type == ".py":
+        if script_type == "python-nose":
             runner_class = NoseTester
             runner_config.merge(self.settings.get("selenium-tools").get("nose"))
-        elif script_type == ".jar" or script_type == ".java":
+        elif script_type == "java-junit":
             runner_class = JUnitTester
             runner_config.merge(self.settings.get("selenium-tools").get("junit"))
+            runner_config['working-dir'] = self.get_runner_working_dir()
             runner_config['props-file'] = self.engine.create_artifact("customrunner", ".properties")
-        elif script_type == ".rb":
+        elif script_type == "ruby-rspec":
             runner_class = RSpecTester
             runner_config["script"] = script_path
         else:
             raise ValueError("Unsupported script type: %s" % script_type)
 
-        runner_config['working-dir'] = working_dir
         runner_config["script"] = script_path
         runner_config["script-type"] = script_type
         runner_config["artifacts-dir"] = self.engine.artifacts_dir
@@ -149,9 +155,8 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.scenario = self.get_scenario()
         self.__setup_script()
 
-        self.runner_working_dir = self.engine.create_artifact("classes", "")
         self.report_file = self.engine.create_artifact("selenium_tests_report", ".ldjson")
-        self.runner = self._create_runner(self.runner_working_dir, self.report_file)
+        self.runner = self._create_runner(self.report_file)
 
         self.runner.prepare()
         self.reader = self._register_reader(self.report_file)
@@ -173,8 +178,12 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             raise ValueError("Script %s doesn't exist" % script_path)
 
         if "language" in self.execution:
-            if self.execution["language"] == "python":
-                return '.py'
+            lang = self.execution["language"]
+            if lang not in self.SUPPORTED_TYPES:
+                tmpl = "Language '%s' is not supported. Supported languages are: %s"
+                raise ValueError(tmpl % (lang, self.SUPPORTED_TYPES))
+            self.log.debug("Using script type: %s", lang)
+            return lang
 
         file_types = set()
 
@@ -184,18 +193,18 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             for file_name in get_files_recursive(script_path):
                 file_types.add(os.path.splitext(file_name)[1].lower())
 
-        if '.java' in file_types:
-            file_ext = '.java'
+        if '.java' in file_types or '.jar' in file_types:
+            script_type = 'java-junit'
         elif '.py' in file_types:
-            file_ext = '.py'
-        elif '.jar' in file_types:
-            file_ext = '.jar'
+            script_type = 'python-nose'
         elif '.rb' in file_types:
-            file_ext = '.rb'
+            script_type = 'ruby-rspec'
         else:
             raise ValueError("Unsupported script type: %s" % script_path)
 
-        return file_ext
+        self.log.debug("Detected script type: %s", script_type)
+
+        return script_type
 
     def startup(self):
         """
@@ -286,7 +295,7 @@ class AbstractTestRunner(object):
         self.executor = executor
         self.scenario = executor.scenario
         self.load = executor.get_load()
-        self.working_dir = self.settings.get("working-dir")
+        self.script = self.settings.get("script", ValueError("Script not passed to runner"))
         self.artifacts_dir = self.settings.get("artifacts-dir")
         self.log = executor.log.getChild(self.__class__.__name__)
         self.opened_descriptors = []
@@ -344,7 +353,7 @@ class JUnitTester(AbstractTestRunner):
         self.props_file = junit_config['props-file']
         path_lambda = lambda key, val: get_full_path(self.settings.get(key, val))
 
-        self.script = junit_config.get("script", ValueError("Script not passed to JUnit runner"))
+        self.working_dir = self.settings.get("working-dir")
         self.junit_path = path_lambda("path", "~/.bzt/selenium-taurus/tools/junit/junit.jar")
         self.hamcrest_path = path_lambda("hamcrest-core", "~/.bzt/selenium-taurus/tools/junit/hamcrest-core.jar")
         self.json_jar_path = path_lambda("json-jar", "~/.bzt/selenium-taurus/tools/junit/json.jar")
@@ -370,7 +379,7 @@ class JUnitTester(AbstractTestRunner):
         if not os.path.exists(self.working_dir):
             os.makedirs(self.working_dir)
 
-        if self.settings.get("script-type", None) == ".java":
+        if any(self._collect_script_files({'.java'})):
             self.compile_scripts()
 
     def run_checklist(self):
@@ -382,7 +391,7 @@ class JUnitTester(AbstractTestRunner):
         junit_listener.jar
         """
         # only check javac if we need to compile. if we have JAR as script - we don't need javac
-        if self.settings.get("script-type", None) == ".java":
+        if any(self._collect_script_files({'.java'})):
             self.required_tools.append(JavaC("", "", self.log))
 
         self.required_tools.append(TclLibrary(self.log))
@@ -405,7 +414,8 @@ class JUnitTester(AbstractTestRunner):
                         path = get_full_path(os.path.join(root, test_file))
                         file_list.append(path)
         else:
-            file_list.append(get_full_path(self.script))
+            if os.path.splitext(self.script)[1].lower() in extensions:
+                file_list.append(get_full_path(self.script))
         return file_list
 
     def compile_scripts(self):
@@ -532,7 +542,6 @@ class NoseTester(AbstractTestRunner):
                                         os.pardir,
                                         "resources",
                                         "nose_plugin.py")
-        self.script = nose_config.get("script", ValueError("Script not supplied to nose tester"))
 
     def prepare(self):
         self.run_checklist()
