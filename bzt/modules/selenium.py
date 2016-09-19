@@ -59,7 +59,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     JSON_JAR_DOWNLOAD_LINK = "http://search.maven.org/remotecontent?filepath=org/json/json/20160810/json-20160810.jar"
 
-    SUPPORTED_TYPES = ["python-nose", "java-junit"]
+    SUPPORTED_TYPES = ["python-nose", "java-junit", "ruby-rspec"]
 
     SHARED_VIRTUAL_DISPLAY = {}
 
