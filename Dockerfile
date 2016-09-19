@@ -15,5 +15,5 @@ RUN apt-get -y update \
   && echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json \
   && echo '{"modules": {"console": {"disable": true}}}' > /etc/bzt.d/90-no-console.json \
   && bzt -o settings.default-executor=jmeter -o execution.scenario.requests.0=http://localhost/ -o execution.iterations=1 -o execution.hold-for=1 -o execution.throughput=1 \
-  && mkdir /bzt-configs
-CMD cd /bzt-configs  && bzt -l /tmp/artifacts/bzt.log /bzt-configs/*.yml
+  && mkdir /bzt-configs \
+  && rm -rf /var/lib/apt/lists/*
