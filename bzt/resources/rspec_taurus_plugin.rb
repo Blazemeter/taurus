@@ -111,8 +111,8 @@ def parse_options
     end
   end.parse!
 
-  if options[:iterations] == 0 then
-    if options[:hold_for] > 0 then
+  if options[:iterations] == 0
+    if options[:hold_for] > 0
       options[:iterations] = 4611686018427387903  # trust me
     else
       options[:iterations] = 1
@@ -137,7 +137,7 @@ def run_rspec
     RSpec.clear_examples
 
     offset = Time.new.to_f - start_time
-    if hold_for > 0 and offset > hold_for then
+    if hold_for > 0 and offset > hold_for
       break
     end
   end
