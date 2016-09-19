@@ -1,6 +1,7 @@
 FROM ubuntu:14.04
 RUN apt-get -y update \
-  && apt-get -y --force-yes install \
+  && apt-get -y --force-yes install --no-install-recommends \
+    gcc \
     libxslt1-dev \
     zlib1g-dev \
     python-dev \
