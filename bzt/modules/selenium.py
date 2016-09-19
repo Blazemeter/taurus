@@ -785,48 +785,6 @@ class TaurusRSpecPlugin(RequiredTool):
 
 
 class SeleniumScriptBuilder(PythonGenerator):
-    IMPORTS = """import unittest
-import re
-from time import sleep
-from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException
-from selenium.common.exceptions import NoAlertPresentException
-"""
-
-    def __init__(self):
-        self.root = etree.Element("NoseTest")
-        self.tree = etree.ElementTree(self.root)
-
-    def add_imports(self):
-        imports = etree.Element("imports")
-        imports.text = NoseTest.IMPORTS
-        return imports
-
-    def gen_class_definition(self, class_name, inherits_from, indent="0"):
-        def_tmpl = "class {class_name}({inherits_from}):"
-        class_def_element = etree.Element("class_definition", indent=indent)
-        class_def_element.text = def_tmpl.format(class_name=class_name, inherits_from="".join(inherits_from))
-        return class_def_element
-
-    def gen_method_definition(self, method_name, params, indent="4"):
-        def_tmpl = "def {method_name}({params}):"
-        method_def_element = etree.Element("method_definition", indent=indent)
-        method_def_element.text = def_tmpl.format(method_name=method_name, params=",".join(params))
-        return method_def_element
-
-    def gen_decorator_statement(self, decorator_name, indent="4"):
-        def_tmpl = "@{decorator_name}"
-        decorator_element = etree.Element("decorator_statement", indent=indent)
-        decorator_element.text = def_tmpl.format(decorator_name=decorator_name)
-        return decorator_element
-
-    def gen_method_statement(self, statement, indent="8"):
-        statement_elem = etree.Element("statement", indent=indent)
-        statement_elem.text = statement
-        return statement_elem
-
-
-class SeleniumScriptBuilder(NoseTest):
     def __init__(self, scenario, parent_logger, wdlog):
         super(SeleniumScriptBuilder, self).__init__(scenario, parent_logger)
         self.window_size = None
