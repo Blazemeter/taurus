@@ -903,12 +903,16 @@ def is_piped(file_obj):
     return stat.S_ISFIFO(mode) or stat.S_ISREG(mode)
 
 
+def in_virtualenv():
+    return hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix)
+
+
 def get_system_configs_dir():
     """
     :return: str
     """
     # detect virtualenv or pyenv usage
-    if hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix):
+    if in_virtualenv():
         path = sys.prefix
     else:
         path = os.path.splitdrive(sys.executable)[0]

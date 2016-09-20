@@ -38,7 +38,7 @@ from bzt import ManualShutdown, NormalShutdown
 from bzt.six import build_opener, install_opener, urlopen, request, numeric_types, iteritems
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, etree
 from bzt.utils import PIPE, shell_exec, get_full_path, get_system_configs_dir, get_user_configs_dir
-from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time
+from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, in_virtualenv
 
 SETTINGS = "settings"
 
@@ -437,7 +437,8 @@ class Engine(object):
 
         if not system_files and not user_files:
             self.log.info("First launch detected, creating base configs")
-            self._create_base_configs(user_configs_dir)
+            target_dir = system_configs_dir if in_virtualenv() else user_configs_dir
+            self._create_base_configs(target_dir)
 
         if os.path.isdir(system_configs_dir):
             self.log.debug("Reading system configs from: %s", system_configs_dir)
@@ -445,8 +446,6 @@ class Engine(object):
                 fname = os.path.join(system_configs_dir, cfile)
                 if os.path.isfile(fname):
                     base_configs.append(fname)
-        else:
-            self.log.info("No system configs dir: %s", system_configs_dir)
 
         if os.path.isdir(user_configs_dir):
             self.log.debug("Reading user configs from: %s", user_configs_dir)
