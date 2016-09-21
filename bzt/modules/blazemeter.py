@@ -818,7 +818,9 @@ class BlazeMeterClient(object):
                     report_items[label]['errors'].append(err_info)
 
         report_items['ALL'] = report_items.pop('')
-        labels = [{key: report_items[key]} for key in report_items]
+        for label in report_items:
+            report_items[label]['name'] = label
+        labels = [report_items[key] for key in sorted(report_items.keys())]
         data = {"labels": labels, "sourceID": id(self)}
         if is_final:
             data['final'] = True
