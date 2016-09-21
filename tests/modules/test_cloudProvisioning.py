@@ -572,13 +572,13 @@ class TestCloudProvisioning(BZTestCase):
 
         obj.settings["token"] = "FakeToken"
         obj.settings["browser-open"] = False
-        obj.settings["test-type"] = "cloud-test"
+        obj.settings["test-type"] = "cloud-collection"
         obj.client = client = BlazeMeterClientEmul(obj.log)
         client.results.append(self.__get_user_info())  # user
-        client.results.append({"result": []})  # tests
-        client.results.append({"result": {"id": id(client)}})  # create test
-        client.results.append({"files": []})  # create test
+        client.results.append({"result": []})  # find collection
         client.results.append({})  # upload files
+        client.results.append({"result": {"name": "Taurus Collection", "items": []}})  # transform config to collection
+        client.results.append({"result": {"id": 42}})  # create collection
         obj.prepare()
 
         conf = yaml.load(open(os.path.join(obj.engine.artifacts_dir, "cloud.yml")))
@@ -609,10 +609,9 @@ class TestCloudProvisioning(BZTestCase):
 
         obj.settings["token"] = "FakeToken"
         obj.settings["browser-open"] = False
-        obj.settings["test-type"] = "cloud-test"
+        obj.settings["test-type"] = "cloud-collection"
         obj.client = client = BlazeMeterClientEmul(obj.log)
         client.results.append(self.__get_user_info())  # user
-
         self.assertRaises(ValueError, obj.prepare)
 
     def test_sandbox_default_location(self):
@@ -641,7 +640,8 @@ class TestCloudProvisioning(BZTestCase):
         client.results.append({"files": []})  # create test
         client.results.append({})  # upload files
         obj.prepare()
-        self.assertEquals(1, obj.executors[0].execution['locations']['harbor-5591335d8588531f5cde3a04'])
+        exec_locations = obj.executors[0].execution['locations']
+        self.assertEquals(1, exec_locations['us-west-1'])
 
     def test_locations_on_both_levels(self):
         obj = CloudProvisioning()
@@ -669,13 +669,13 @@ class TestCloudProvisioning(BZTestCase):
 
         obj.settings["token"] = "FakeToken"
         obj.settings["browser-open"] = False
-        obj.settings["test-type"] = "cloud-test"
+        obj.settings["test-type"] = "cloud-collection"
         obj.client = client = BlazeMeterClientEmul(obj.log)
         client.results.append(self.__get_user_info())  # user
-        client.results.append({"result": []})  # tests
-        client.results.append({"result": {"id": id(client)}})  # create test
-        client.results.append({"files": []})  # create test
+        client.results.append({"result": []})  # find collection
         client.results.append({})  # upload files
+        client.results.append({"result": {"name": "Taurus Collection", "items": []}})  # transform config to collection
+        client.results.append({"result": {"id": 42}})  # create collection
         obj.prepare()
 
         cloud_config = yaml.load(open(os.path.join(obj.engine.artifacts_dir, "cloud.yml")))

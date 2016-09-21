@@ -660,28 +660,28 @@ class BaseCloudTest(object):
 
 class CloudTaurusTest(BaseCloudTest):
     def prepare_locations(self, executors, engine_config):
-        # TODO: do not check global locations for this test type
-        # TODO: filter out harbor locations from available ones
-        available_locations = self.client.get_available_locations()
+        available_locations = self._get_available_locations()
 
-        global_locations = engine_config.get(self.LOC, BetterDict())
-        self._check_locations(global_locations, available_locations)
+        if self.LOC in engine_config:
+            self.log.warning("Test type 'cloud-test' doesn't support global locations")
 
         for executor in executors:
             if self.LOC in executor.execution:
                 exec_locations = executor.execution[self.LOC]
                 self._check_locations(exec_locations, available_locations)
             else:
-                if not global_locations:
-                    default_loc = self._get_default_location(available_locations)
-                    executor.execution[self.LOC] = BetterDict()
-                    executor.execution[self.LOC].merge({default_loc: 1})
+                default_loc = self._get_default_location(available_locations)
+                executor.execution[self.LOC] = BetterDict()
+                executor.execution[self.LOC].merge({default_loc: 1})
 
             executor.get_load()  # we need it to resolve load settings into full form
 
-        if global_locations and all(self.LOC in executor.execution for executor in executors):
-            self.log.warning("Each execution has locations specified, global locations won't have any effect")
-            engine_config.pop(self.LOC)
+    def _get_available_locations(self):
+        return {
+            loc_name: loc
+            for loc_name, loc in iteritems(self.client.get_available_locations())
+            if not loc_name.startswith('harbor-')
+        }
 
     def _get_default_location(self, available_locations):
         def_loc = self.settings.get("default-location", None)
@@ -692,7 +692,7 @@ class CloudTaurusTest(BaseCloudTest):
 
         for location_id in sorted(available_locations):
             location = available_locations[location_id]
-            if location['sandbox']:
+            if not location_id.startswith('harbor-') and location['sandbox']:
                 return location_id
 
         self.log.warning("List of supported locations for you is: %s", sorted(available_locations.keys()))
@@ -788,8 +788,6 @@ class CloudTaurusTest(BaseCloudTest):
 
 class CloudCollectionTest(BaseCloudTest):
     def prepare_locations(self, executors, engine_config):
-        # TODO: check global locations for this test type
-        # TODO: do not filter out harbor locations from available ones
         available_locations = self.client.get_available_locations()
 
         global_locations = engine_config.get(self.LOC, BetterDict())
