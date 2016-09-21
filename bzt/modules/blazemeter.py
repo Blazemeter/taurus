@@ -806,16 +806,15 @@ class BlazeMeterClient(object):
 
         if data_buffer:
             cumulative = data_buffer[-1][DataPoint.CUMULATIVE]
-            if not cumulative[''][KPISet.ERRORS]:
-                return
-            for label in report_items:
-                for error in cumulative[label]['errors']:
-                    if error['type'] == KPISet.ERRTYPE_ASSERT:
-                        message = 'Assert: %s' % error['msg']
-                    else:
-                        message = error['msg']
-                    err_info = {'count': error['cnt'], 'm': message, 'rc': error['rc']}
-                    report_items[label]['errors'].append(err_info)
+            if cumulative[''][KPISet.ERRORS]:
+                for label in report_items:
+                    for error in cumulative[label]['errors']:
+                        if error['type'] == KPISet.ERRTYPE_ASSERT:
+                            message = 'Assert: %s' % error['msg']
+                        else:
+                            message = error['msg']
+                        err_info = {'count': error['cnt'], 'm': message, 'rc': error['rc']}
+                        report_items[label]['errors'].append(err_info)
 
         report_items['ALL'] = report_items.pop('')
         for label in report_items:
