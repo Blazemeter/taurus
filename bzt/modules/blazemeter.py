@@ -25,9 +25,10 @@ import sys
 import time
 import traceback
 import zipfile
-from ssl import SSLError
+from abc import abstractmethod
 from collections import defaultdict, OrderedDict
 from functools import wraps
+from ssl import SSLError
 
 import yaml
 from urwid import Pile, Text
@@ -122,8 +123,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
                 raise
 
             if token:
-                test = CloudTest(self.parameters, self.settings, self.client, self.log)
-                self.test_id = test.resolve_external_test(self.engine.config)
+                finder = ProjectFinder(self.parameters, self.settings, self.client, self.log)
+                self.test_id = finder.resolve_external_test(self.engine.config)
 
         self.sess_name = self.parameters.get("report-name", self.settings.get("report-name", self.sess_name))
         if self.sess_name == 'ask' and sys.stdin.isatty():
@@ -551,7 +552,7 @@ class MonitoringBuffer(object):
         }
 
 
-class CloudTest(object):
+class ProjectFinder(object):
     """
     :type client: BlazeMeterClient
     """
@@ -560,44 +561,15 @@ class CloudTest(object):
     TEST_TYPE_COLLECTION = 'cloud-collection'
 
     def __init__(self, parameters, settings, client, parent_log):
-        super(CloudTest, self).__init__()
+        super(ProjectFinder, self).__init__()
         self.default_test_name = "Taurus Test"
         self.client = client
         self.parameters = parameters
         self.settings = settings
         self.log = parent_log.getChild(self.__class__.__name__)
-        self.test_name = None
-        self.test_type = None
-        self._last_status = None
-        self._sessions = None
         self.default_test_type = self.TEST_TYPE_CLOUD
 
-    def resolve_external_test(self, taurus_config):
-        proj_name = self.parameters.get("project", self.settings.get("project", None))
-        if isinstance(proj_name, (int, float)):
-            proj_id = int(proj_name)
-            self.log.debug("Treating project name as ID: %s", proj_id)
-        elif proj_name is not None:
-            proj_id = self.client.project_by_name(proj_name)
-        else:
-            proj_id = None
-
-        self.test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
-        test_config = {"type": "external"}
-        return self.client.test_by_name(self.test_name, test_config, taurus_config, [], proj_id)
-
-    @staticmethod
-    def __get_bza_test_config():
-        return {
-            "type": "taurus",
-            "plugins": {
-                "taurus": {
-                    "filename": ""  # without this line it does not work
-                }
-            }
-        }
-
-    def resolve_project(self):
+    def _resolve_project(self):
         proj_name = self.parameters.get("project", self.settings.get("project", None))
         if isinstance(proj_name, (int, float)):
             proj_id = int(proj_name)
@@ -608,6 +580,12 @@ class CloudTest(object):
             proj_id = None
         return proj_id
 
+    def resolve_external_test(self, taurus_config):
+        project_id = self._resolve_project()
+        test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
+        test_config = {"type": "external"}
+        return self.client.test_by_name(test_name, test_config, taurus_config, [], project_id)
+
     def detect_test_type(self, test_name, project_id):
         if self.client.find_collection(test_name, project_id):
             return self.TEST_TYPE_COLLECTION
@@ -616,9 +594,9 @@ class CloudTest(object):
         else:
             return None
 
-    def resolve_test(self, taurus_config, rfiles):
+    def resolve_test_type(self):
+        project_id = self._resolve_project()
         test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
-        project_id = self.resolve_project()
 
         test_type = self.settings.get("test-type", None)
         detect_test_type = self.settings.get("detect-test-type", False)
@@ -633,24 +611,150 @@ class CloudTest(object):
             test_type = self.default_test_type
             self.log.debug("Using default test type: %r", test_type)
 
+        if test_type == self.TEST_TYPE_CLOUD:
+            return CloudTaurusTest(self.parameters, self.settings, self.client, project_id, test_name, self.log)
+        else:  # test_type == self.TEST_TYPE_COLLECTION
+            return CloudCollectionTest(self.parameters, self.settings, self.client, project_id, test_name, self.log)
+
+
+class BaseCloudTest(object):
+    LOC = "locations"
+    LOC_WEIGHTED = "locations-weighted"
+
+    def __init__(self, parameters, settings, client, project_id, test_name, parent_log):
+        self.default_test_name = "Taurus Test"
+        self.client = client
+        self.parameters = parameters
+        self.settings = settings
+        self.log = parent_log.getChild(self.__class__.__name__)
+        self.project_id = project_id
         self.test_name = test_name
-        self.test_type = test_type
+        self.test_id = None
+        self._last_status = None
+        self._sessions = None
 
-        if self.test_type == self.TEST_TYPE_CLOUD:
-            self.log.debug("Loading cloud test")
-            test_config = self.__get_bza_test_config()
-            return self.client.test_by_name(test_name, test_config, taurus_config, rfiles, project_id)
-        elif self.test_type == self.TEST_TYPE_COLLECTION:
-            self.log.debug("Loading cloud collection test")
-            return self.client.collection_by_name(test_name, taurus_config, rfiles, project_id)
+    @abstractmethod
+    def prepare_locations(self, executors, engine_config):
+        pass
 
-    def start_test(self, test_id):
-        if self.test_type == self.TEST_TYPE_CLOUD:
-            return self.client.start_cloud_test(test_id)
-        elif self.test_type == self.TEST_TYPE_COLLECTION:
-            return self.client.start_cloud_collection(test_id)
+    @abstractmethod
+    def prepare_cloud_config(self, engine_config):
+        pass
 
-    def _get_cloud_test_status(self):
+    @abstractmethod
+    def resolve_test(self, taurus_config, rfiles):
+        pass
+
+    @abstractmethod
+    def start_test(self):
+        pass
+
+    @abstractmethod
+    def get_test_status_text(self):
+        pass
+
+    def get_master_status(self):
+        self._last_status = self.client.get_master_status()
+        return self._last_status
+
+
+class CloudTaurusTest(BaseCloudTest):
+    def prepare_locations(self, executors, engine_config):
+        # TODO: do not check global locations for this test type
+        # TODO: filter out harbor locations from available ones
+        available_locations = self.client.get_available_locations()
+
+        global_locations = engine_config.get(self.LOC, BetterDict())
+        self._check_locations(global_locations, available_locations)
+
+        for executor in executors:
+            if self.LOC in executor.execution:
+                exec_locations = executor.execution[self.LOC]
+                self._check_locations(exec_locations, available_locations)
+            else:
+                if not global_locations:
+                    default_loc = self._get_default_location(available_locations)
+                    executor.execution[self.LOC] = BetterDict()
+                    executor.execution[self.LOC].merge({default_loc: 1})
+
+            executor.get_load()  # we need it to resolve load settings into full form
+
+        if global_locations and all(self.LOC in executor.execution for executor in executors):
+            self.log.warning("Each execution has locations specified, global locations won't have any effect")
+            engine_config.pop(self.LOC)
+
+    def _get_default_location(self, available_locations):
+        def_loc = self.settings.get("default-location", None)
+        if def_loc and def_loc in available_locations:
+            return def_loc
+
+        self.log.debug("Default location %s not found", def_loc)
+
+        for location_id in sorted(available_locations):
+            location = available_locations[location_id]
+            if location['sandbox']:
+                return location_id
+
+        self.log.warning("List of supported locations for you is: %s", sorted(available_locations.keys()))
+        raise ValueError("No sandbox or default location available, please specify locations manually")
+
+    def _check_locations(self, locations, available_locations):
+        for location in locations:
+            if location not in available_locations:
+                self.log.warning("List of supported locations for you is: %s", sorted(available_locations.keys()))
+                raise ValueError("Invalid location requested: %s" % location)
+
+    def prepare_cloud_config(self, engine_config):
+        config = copy.deepcopy(engine_config)
+
+        if not isinstance(config[ScenarioExecutor.EXEC], list):
+            config[ScenarioExecutor.EXEC] = [config[ScenarioExecutor.EXEC]]
+
+        provisioning = config.pop(Provisioning.PROV)
+        for execution in config[ScenarioExecutor.EXEC]:
+            execution[ScenarioExecutor.CONCURR] = execution.get(ScenarioExecutor.CONCURR).get(provisioning, None)
+            execution[ScenarioExecutor.THRPT] = execution.get(ScenarioExecutor.THRPT).get(provisioning, None)
+
+        for key in list(config.keys()):
+            if key not in ("scenarios", ScenarioExecutor.EXEC, Service.SERV, self.LOC, self.LOC_WEIGHTED):
+                config.pop(key)
+            elif not config[key]:
+                config.pop(key)
+
+        # cleanup configuration from empty values
+        default_values = {
+            'concurrency': None,
+            'iterations': None,
+            'ramp-up': None,
+            'steps': None,
+            'throughput': None,
+            'hold-for': 0,
+            'files': []
+        }
+        for execution in config[ScenarioExecutor.EXEC]:
+            for key, value in iteritems(default_values):
+                if key in execution and execution[key] == value:
+                    execution.pop(key)
+
+        assert isinstance(config, Configuration)
+        return config
+
+    def resolve_test(self, taurus_config, rfiles):
+        self.log.debug("Loading cloud test")
+        test_config = {
+            "type": "taurus",
+            "plugins": {
+                "taurus": {
+                    "filename": ""  # without this line it does not work
+                }
+            }
+        }
+        self.test_id = self.client.test_by_name(self.test_name, test_config, taurus_config, rfiles, self.project_id)
+
+    def start_test(self):
+        return self.client.start_cloud_test(self.test_id)
+
+    def get_test_status_text(self):
         if not self._sessions:
             self._sessions = self.client.get_master_sessions()
             if not self._sessions:
@@ -681,7 +785,96 @@ class CloudTest(object):
 
         return txt
 
-    def _get_collection_status(self):
+
+class CloudCollectionTest(BaseCloudTest):
+    def prepare_locations(self, executors, engine_config):
+        # TODO: check global locations for this test type
+        # TODO: do not filter out harbor locations from available ones
+        available_locations = self.client.get_available_locations()
+
+        global_locations = engine_config.get(self.LOC, BetterDict())
+        self._check_locations(global_locations, available_locations)
+
+        for executor in executors:
+            if self.LOC in executor.execution:
+                exec_locations = executor.execution[self.LOC]
+                self._check_locations(exec_locations, available_locations)
+            else:
+                if not global_locations:
+                    default_loc = self._get_default_location(available_locations)
+                    executor.execution[self.LOC] = BetterDict()
+                    executor.execution[self.LOC].merge({default_loc: 1})
+
+            executor.get_load()  # we need it to resolve load settings into full form
+
+        if global_locations and all(self.LOC in executor.execution for executor in executors):
+            self.log.warning("Each execution has locations specified, global locations won't have any effect")
+            engine_config.pop(self.LOC)
+
+    def _get_default_location(self, available_locations):
+        def_loc = self.settings.get("default-location", None)
+        if def_loc and def_loc in available_locations:
+            return def_loc
+
+        self.log.debug("Default location %s not found", def_loc)
+
+        for location_id in sorted(available_locations):
+            location = available_locations[location_id]
+            if location['sandbox']:
+                return location_id
+
+        self.log.warning("List of supported locations for you is: %s", sorted(available_locations.keys()))
+        raise ValueError("No sandbox or default location available, please specify locations manually")
+
+    def _check_locations(self, locations, available_locations):
+        for location in locations:
+            if location not in available_locations:
+                self.log.warning("List of supported locations for you is: %s", sorted(available_locations.keys()))
+                raise ValueError("Invalid location requested: %s" % location)
+
+    def prepare_cloud_config(self, engine_config):
+        config = copy.deepcopy(engine_config)
+
+        if not isinstance(config[ScenarioExecutor.EXEC], list):
+            config[ScenarioExecutor.EXEC] = [config[ScenarioExecutor.EXEC]]
+
+        provisioning = config.pop(Provisioning.PROV)
+        for execution in config[ScenarioExecutor.EXEC]:
+            execution[ScenarioExecutor.CONCURR] = execution.get(ScenarioExecutor.CONCURR).get(provisioning, None)
+            execution[ScenarioExecutor.THRPT] = execution.get(ScenarioExecutor.THRPT).get(provisioning, None)
+
+        for key in list(config.keys()):
+            if key not in ("scenarios", ScenarioExecutor.EXEC, Service.SERV, self.LOC, self.LOC_WEIGHTED):
+                config.pop(key)
+            elif not config[key]:
+                config.pop(key)
+
+        # cleanup configuration from empty values
+        default_values = {
+            'concurrency': None,
+            'iterations': None,
+            'ramp-up': None,
+            'steps': None,
+            'throughput': None,
+            'hold-for': 0,
+            'files': []
+        }
+        for execution in config[ScenarioExecutor.EXEC]:
+            for key, value in iteritems(default_values):
+                if key in execution and execution[key] == value:
+                    execution.pop(key)
+
+        assert isinstance(config, Configuration)
+        return config
+
+    def resolve_test(self, taurus_config, rfiles):
+        self.log.debug("Loading cloud collection test")
+        self.test_id = self.client.collection_by_name(self.test_name, taurus_config, rfiles, self.project_id)
+
+    def start_test(self):
+        return self.client.start_cloud_collection(self.test_id)
+
+    def get_test_status_text(self):
         if not self._sessions:
             sessions = self.client.get_master_sessions()
             if not sessions:
@@ -717,16 +910,6 @@ class CloudTest(object):
                 txt += "  Agents in %s: %s\n" % (location, count)
 
         return txt
-
-    def get_master_status(self):
-        self._last_status = self.client.get_master_status()
-        return self._last_status
-
-    def get_test_status_text(self):
-        if self.test_type == self.TEST_TYPE_CLOUD:
-            return self._get_cloud_test_status()
-        elif self.test_type == self.TEST_TYPE_COLLECTION:
-            return self._get_collection_status()
 
 
 class BlazeMeterClient(object):
@@ -1438,17 +1621,13 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
     """
     :type client: BlazeMeterClient
     :type results_reader: ResultsFromBZA
-    :type test: CloudTest
+    :type test: BaseCloudTest
     """
-
-    LOC = "locations"
 
     def __init__(self):
         super(CloudProvisioning, self).__init__()
         self.results_reader = None
         self.client = BlazeMeterClient(self.log)
-        self.test_id = None
-        self.test_name = None
         self.__last_master_status = None
         self.browser_open = 'start'
         self.widget = None
@@ -1470,16 +1649,17 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.browser_open = self.settings.get("browser-open", self.browser_open)
         self.detach = self.settings.get("detach", self.detach)
         self._configure_client()
-        self._prepare_locations()
         self._filter_reporting()
 
-        rfiles = self.get_rfiles()
-        config = self.get_config_for_cloud()
-        self.test = CloudTest(self.parameters, self.settings, self.client, self.log)
-        self.test.default_test_name = "Taurus Cloud Test"
-        self.test_id = self.test.resolve_test(config, rfiles)
+        finder = ProjectFinder(self.parameters, self.settings, self.client, self.log)
+        finder.default_test_name = "Taurus Cloud Test"
+        self.test = finder.resolve_test_type()
+        self.test.prepare_locations(self.executors, self.engine.config)
+        config = self.test.prepare_cloud_config(self.engine.config)
+        config.dump(self.engine.create_artifact("cloud", ""))
 
-        self.test_name = self.test.test_name
+        self.test.resolve_test(config, self.get_rfiles())
+
         self.widget = CloudProvWidget(self.test)
 
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
@@ -1512,88 +1692,9 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             if not self.client.token:
                 raise ValueError("You must provide API token to use cloud provisioning")
 
-    def _get_default_location(self, available_locations):
-        def_loc = self.settings.get("default-location", None)
-        if def_loc and def_loc in available_locations:
-            return def_loc
-
-        self.log.debug("Default location %s not found", def_loc)
-
-        for location_id in sorted(available_locations):
-            location = available_locations[location_id]
-            if location['sandbox']:
-                return location_id
-
-        self.log.warning("List of supported locations for you is: %s", sorted(available_locations.keys()))
-        raise ValueError("No sandbox or default location available, please specify locations manually")
-
-    def _check_locations(self, locations, available_locations):
-        for location in locations:
-            if location not in available_locations:
-                self.log.warning("List of supported locations for you is: %s", sorted(available_locations.keys()))
-                raise ValueError("Invalid location requested: %s" % location)
-
-    def _prepare_locations(self):
-        available_locations = self.client.get_available_locations()
-
-        global_locations = self.engine.config.get(self.LOC, BetterDict())
-        self._check_locations(global_locations, available_locations)
-
-        for executor in self.executors:
-            if self.LOC in executor.execution:
-                exec_locations = executor.execution[self.LOC]
-                self._check_locations(exec_locations, available_locations)
-            else:
-                if not global_locations:
-                    default_loc = self._get_default_location(available_locations)
-                    executor.execution[self.LOC] = BetterDict()
-                    executor.execution[self.LOC].merge({default_loc: 1})
-
-            executor.get_load()  # we need it to resolve load settings into full form
-
-        if global_locations and all(self.LOC in executor.execution for executor in self.executors):
-            self.log.warning("Each execution has locations specified, global locations won't have any effect")
-            self.engine.config.pop(self.LOC)
-
-    def get_config_for_cloud(self):
-        config = copy.deepcopy(self.engine.config)
-
-        if not isinstance(config[ScenarioExecutor.EXEC], list):
-            config[ScenarioExecutor.EXEC] = [config[ScenarioExecutor.EXEC]]
-
-        provisioning = config.pop(Provisioning.PROV)
-        for execution in config[ScenarioExecutor.EXEC]:
-            execution[ScenarioExecutor.CONCURR] = execution.get(ScenarioExecutor.CONCURR).get(provisioning, None)
-            execution[ScenarioExecutor.THRPT] = execution.get(ScenarioExecutor.THRPT).get(provisioning, None)
-
-        for key in list(config.keys()):
-            if key not in ("scenarios", ScenarioExecutor.EXEC, Service.SERV, self.LOC, "locations-weighted"):
-                config.pop(key)
-            elif not config[key]:
-                config.pop(key)
-
-        # cleanup configuration from empty values
-        default_values = {
-            'concurrency': None,
-            'iterations': None,
-            'ramp-up': None,
-            'steps': None,
-            'throughput': None,
-            'hold-for': 0,
-            'files': []
-        }
-        for execution in config[ScenarioExecutor.EXEC]:
-            for key, value in iteritems(default_values):
-                if key in execution and execution[key] == value:
-                    execution.pop(key)
-
-        assert isinstance(config, Configuration)
-        config.dump(self.engine.create_artifact("cloud", ""))
-        return config
-
     def startup(self):
         super(CloudProvisioning, self).startup()
-        self.test.start_test(self.test_id)
+        self.test.start_test()
         self.log.info("Started cloud test: %s", self.client.results_url)
         if self.client.results_url:
             if self.browser_open in ('start', 'both'):
@@ -1638,21 +1739,6 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         if self.client.results_url:
             if self.browser_open in ('end', 'both'):
                 open_browser(self.client.results_url)
-
-    def weight_locations(self, locations, load, available_locations):
-        total = float(sum(locations.values()))
-        for loc_name, share in iteritems(locations):
-            loc_info = available_locations[loc_name]
-            limits = loc_info['limits']
-
-            if load.duration > limits['duration'] * 60:
-                msg = "Test duration %s exceeds limit %s for location %s"
-                self.log.warning(msg, load.duration, limits['duration'] * 60, loc_name)
-
-            if load.concurrency:
-                locations[loc_name] = int(math.ceil(load.concurrency * share / total / limits['threadsPerEngine']))
-            else:
-                locations[loc_name] = 1
 
     def get_widget(self):
         if not self.widget:
@@ -1762,7 +1848,7 @@ class ResultsFromBZA(ResultsProvider):
 class CloudProvWidget(Pile, PrioritizedWidget):
     def __init__(self, test):
         """
-        :type test: CloudTest
+        :type test: BaseCloudTest
         """
         self.test = test
         self.text = Text("")

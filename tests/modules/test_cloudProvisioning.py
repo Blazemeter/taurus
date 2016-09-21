@@ -1,9 +1,13 @@
 import json
+import os
 import logging
+
+import yaml
 
 from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet
-from bzt.modules.blazemeter import CloudProvisioning, BlazeMeterClientEmul, ResultsFromBZA, CloudTest
+from bzt.modules.blazemeter import CloudProvisioning, BlazeMeterClientEmul, ResultsFromBZA
+from bzt.modules.blazemeter import CloudTaurusTest, CloudCollectionTest
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul, ModuleMock, RecordingHandler
 
@@ -156,8 +160,7 @@ class TestCloudProvisioning(BZTestCase):
     def test_widget_cloud_test(self):
         obj = CloudProvisioning()
         obj.client = BlazeMeterClientEmul(logging.getLogger(''))
-        obj.test = CloudTest({}, {}, obj.client, logging.getLogger(''))
-        obj.test.test_type = CloudTest.TEST_TYPE_CLOUD
+        obj.test = CloudTaurusTest({}, {}, obj.client, None, None, logging.getLogger(''))
         obj.client.results.append({"result": []})
         obj.client.results.append({"result": {"sessions": [
             {
@@ -187,8 +190,7 @@ class TestCloudProvisioning(BZTestCase):
     def test_widget_cloud_collection(self):
         obj = CloudProvisioning()
         obj.client = BlazeMeterClientEmul(logging.getLogger(''))
-        obj.test = CloudTest({}, {}, obj.client, logging.getLogger(''))
-        obj.test.test_type = CloudTest.TEST_TYPE_COLLECTION
+        obj.test = CloudCollectionTest({}, {}, obj.client, None, None, logging.getLogger(''))
         obj.client.results.append({"result": {"sessions": [
             {
                 "id": "session-id",
@@ -258,7 +260,8 @@ class TestCloudProvisioning(BZTestCase):
             },
         })
         obj.parameters = obj.engine.config['execution']
-        cloud_config = obj.get_config_for_cloud()
+        obj.test = CloudTaurusTest(obj.engine.config['execution'], {}, obj.client, None, "name", logging.getLogger(''))
+        cloud_config = obj.test.prepare_cloud_config(obj.engine.config)
         execution = cloud_config["execution"][0]
         self.assertNotIn("throughput", execution)
         self.assertNotIn("ramp-up", execution)
@@ -290,7 +293,7 @@ class TestCloudProvisioning(BZTestCase):
         client.results.append({})  # upload files
 
         obj.prepare()
-        self.assertEquals(obj.test.test_type, obj.test.TEST_TYPE_CLOUD)
+        self.assertIsInstance(obj.test, CloudTaurusTest)
 
     def test_type_forced(self):
         obj = CloudProvisioning()
@@ -320,7 +323,7 @@ class TestCloudProvisioning(BZTestCase):
         client.results.append({})  # update collection
 
         obj.prepare()
-        self.assertEquals(obj.test.test_type, obj.test.TEST_TYPE_COLLECTION)
+        self.assertIsInstance(obj.test, CloudCollectionTest)
 
     def test_detect_test_type_collection(self):
         obj = CloudProvisioning()
@@ -341,10 +344,10 @@ class TestCloudProvisioning(BZTestCase):
                             "delete-test-files": False,
                             "detect-test-type": True})
         obj.client = client = BlazeMeterClientEmul(obj.log)
-        client.results.append(self.__get_user_info())  # user
         client.results.append({"result": [{"id": 5174715,
                                            "name": "Taurus Cloud Test",
                                            "items": [{"configuration": {"type": "taurus"}}]}]})  # detect collection
+        client.results.append(self.__get_user_info())  # user
         client.results.append({"result": [{"id": 5174715,
                                            "name": "Taurus Cloud Test",
                                            "items": [{"configuration": {"type": "taurus"}}]}]})  # find collection
@@ -353,7 +356,7 @@ class TestCloudProvisioning(BZTestCase):
         client.results.append({})  # update collection
 
         obj.prepare()
-        self.assertEquals(obj.test.test_type, obj.test.TEST_TYPE_COLLECTION)
+        self.assertIsInstance(obj.test, CloudCollectionTest)
 
     def test_detect_test_type_cloud(self):
         obj = CloudProvisioning()
@@ -374,11 +377,11 @@ class TestCloudProvisioning(BZTestCase):
                             "delete-test-files": False,
                             "detect-test-type": True})
         obj.client = client = BlazeMeterClientEmul(obj.log)
-        client.results.append(self.__get_user_info())  # user
         client.results.append({"result": []})  # detect collection
         client.results.append({"result": [{"id": 5174715,
                                            "name": "Taurus Cloud Test",
                                            "configuration": {"type": "taurus"}}]})  # detect test
+        client.results.append(self.__get_user_info())  # user
         client.results.append({"result": [{"id": 5174715,
                                            "name": "Taurus Cloud Test",
                                            "configuration": {"type": "taurus"}}]})  # find test
@@ -387,7 +390,7 @@ class TestCloudProvisioning(BZTestCase):
         client.results.append({})  # update collection
 
         obj.prepare()
-        self.assertEquals(obj.test.test_type, obj.test.TEST_TYPE_CLOUD)
+        self.assertIsInstance(obj.test, CloudTaurusTest)
 
     def test_full_collection(self):
         obj = CloudProvisioning()
@@ -451,9 +454,9 @@ class TestCloudProvisioning(BZTestCase):
                             "test-type": "cloud-test",
                             "project": "myproject"})
         obj.client = client = BlazeMeterClientEmul(obj.log)
-        client.results.append(self.__get_user_info())  # user
         client.results.append({"result": []})  # projects
         client.results.append({"result": {"id": 1428}})  # create project
+        client.results.append(self.__get_user_info())  # locations
         client.results.append({"result": [{"id": 5174715,
                                            "projectId": 1428,
                                            "name": "Taurus Cloud Test",
@@ -481,8 +484,8 @@ class TestCloudProvisioning(BZTestCase):
                             "test-type": "cloud-test",
                             "project": "myproject"})
         obj.client = client = BlazeMeterClientEmul(obj.log)
-        client.results.append(self.__get_user_info())  # user
         client.results.append({"result": [{"id": 1428, "name": "myproject"}]})  # projects
+        client.results.append(self.__get_user_info())  # user
         client.results.append({"result": [{"id": 5174715,
                                            "projectId": 1428,
                                            "name": "Taurus Cloud Test",
@@ -544,7 +547,7 @@ class TestCloudProvisioning(BZTestCase):
         client.results.append({"result": {"id": 42}})  # create collection
 
         obj.prepare()
-        self.assertEqual(obj.test.test_type, obj.test.TEST_TYPE_COLLECTION)
+        self.assertIsInstance(obj.test, CloudCollectionTest)
 
     def test_toplevel_locations(self):
         obj = CloudProvisioning()
@@ -576,10 +579,9 @@ class TestCloudProvisioning(BZTestCase):
         client.results.append({"result": {"id": id(client)}})  # create test
         client.results.append({"files": []})  # create test
         client.results.append({})  # upload files
-
         obj.prepare()
-        conf = obj.get_config_for_cloud()
 
+        conf = yaml.load(open(os.path.join(obj.engine.artifacts_dir, "cloud.yml")))
         self.assertIn('locations', conf)
         self.assertIn('locations-weighted', conf)
         self.assertEqual(conf['locations']['us-east-1'], 1)
@@ -675,7 +677,8 @@ class TestCloudProvisioning(BZTestCase):
         client.results.append({"files": []})  # create test
         client.results.append({})  # upload files
         obj.prepare()
-        cloud_config = obj.get_config_for_cloud()
+
+        cloud_config = yaml.load(open(os.path.join(obj.engine.artifacts_dir, "cloud.yml")))
         self.assertNotIn("locations", cloud_config)
         for execution in cloud_config["execution"]:
             self.assertIn("locations", execution)
