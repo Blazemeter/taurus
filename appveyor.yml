@@ -12,7 +12,7 @@ test_script:
   - "%PYTHON%\\python.exe -m nose"
 
 after_test:
-  - "%PYTHON%\\python.exe setup.py clean sdist"
+  - "%PYTHON%\\python.exe setup.py clean sdist bdist_wheel"
 
 artifacts:
   - path: dist\*
