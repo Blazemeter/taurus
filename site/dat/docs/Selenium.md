@@ -145,5 +145,19 @@ modules:
 ```
 Note: SeleniumExecutor uses shared virtual display for all executions. 
 
+## Enforcing Test Language
+
+By default Taurus tries to automatically detect the language tests are written in. If autodetection fails - you can enforce specific
+language with `language` execution-level option.
+
+```yaml
+---
+execution:
+- executor: selenium
+  language: python-nose  # valid values: python-nose, java-junit
+  scenario:
+    script: tests/
+```
+
 ## Conversion of Tests into JMeter format
 You can convert your Selenium tests as described [here](Proxy2JMX.md#Proxy2JMX-Converter).
