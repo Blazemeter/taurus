@@ -7,7 +7,7 @@ from tests.mocks import MockReader
 class TestConsolidatingAggregator(BZTestCase):
     def test_mock(self):
         # check mock reader
-        reader = self.get_reader()
+        reader = self.get_success_reader()
         reader.buffer_scale_idx = '90.0'
         first = list(reader.datapoints())
         second = list(reader.datapoints(True))
@@ -45,8 +45,8 @@ class TestConsolidatingAggregator(BZTestCase):
         obj = ConsolidatingAggregator()
         obj.track_percentiles = [0, 50, 100]
         obj.prepare()
-        underling1 = self.get_reader()
-        underling2 = self.get_reader()
+        underling1 = self.get_success_reader()
+        underling2 = self.get_success_reader()
         obj.add_underling(underling1)
         obj.add_underling(underling2)
 
@@ -61,7 +61,8 @@ class TestConsolidatingAggregator(BZTestCase):
 
         self.assertEquals(2, cnt)
 
-    def get_reader(self, offset=0):
+    @staticmethod
+    def get_success_reader(offset=0):
         mock = MockReader()
         mock.data.append((1 + offset, "", 1, r(), r(), r(), 200, None, ''))
         mock.data.append((2 + offset, "", 1, r(), r(), r(), 200, None, ''))
@@ -75,3 +76,34 @@ class TestConsolidatingAggregator(BZTestCase):
         mock.data.append((6 + offset, "", 1, r(), r(), r(), 200, None, ''))
         mock.data.append((5 + offset, "", 1, r(), r(), r(), 200, None, ''))
         return mock
+
+    @staticmethod
+    def get_fail_reader(offset=0):
+        mock = MockReader()
+        mock.data.append((1 + offset, "first", 1, r(), r(), r(), 200, 'FAILx3', ''))
+        mock.data.append((2 + offset, "first", 1, r(), r(), r(), 200, 'FAILx1', ''))
+        mock.data.append((5 + offset, "first", 1, r(), r(), r(), 200, None, ''))
+        mock.data.append((7 + offset, "second", 1, r(), r(), r(), 200, 'FAILx3', ''))
+        mock.data.append((3 + offset, "first", 1, r(), r(), r(), 200, 'FAILx3', ''))
+        mock.data.append((6 + offset, "second", 1, r(), r(), r(), 200, 'unique FAIL', ''))
+        return mock
+
+    def test_errors_cumulative(self):
+        aggregator = ConsolidatingAggregator()
+        aggregator.track_percentiles = [50]
+        aggregator.prepare()
+        reader = self.get_fail_reader()
+        aggregator.add_underling(reader)
+        aggregator.shutdown()
+        aggregator.post_process()
+        cum_dict = aggregator.underlings[0].cumulative
+        first_err_ids = [id(err) for err in cum_dict['first']['errors']]
+        second_err_ids = [id(err) for err in cum_dict['second']['errors']]
+        total_err_ids = [id(err) for err in cum_dict['']['errors']]
+        all_ids = first_err_ids + second_err_ids + total_err_ids
+        self.assertEqual(len(all_ids), len(set(all_ids)))
+        for label in cum_dict:
+            data = cum_dict[label]
+            total_errors_count = sum(err['cnt'] for err in data['errors'])
+            self.assertEqual(data['fail'], total_errors_count)
+

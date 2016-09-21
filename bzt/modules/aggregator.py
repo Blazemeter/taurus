@@ -151,7 +151,7 @@ class KPISet(BetterDict):
                 break
 
         if not found:
-            values.append(value)
+            values.append(copy.deepcopy(value))
 
     def recalculate(self):
         """
