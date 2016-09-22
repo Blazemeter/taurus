@@ -37,8 +37,8 @@ import bzt
 from bzt import ManualShutdown, NormalShutdown
 from bzt.six import build_opener, install_opener, urlopen, request, numeric_types, iteritems
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, etree
-from bzt.utils import PIPE, shell_exec, get_full_path, get_system_configs_dir, get_user_configs_dir
-from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, in_virtualenv
+from bzt.utils import PIPE, shell_exec, get_full_path, get_global_configs_dir, get_base_config_path
+from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, get_system_configs_dir
 
 SETTINGS = "settings"
 
@@ -412,45 +412,35 @@ class Engine(object):
         self.log.warning("Could not find location at path: %s", filename)
         return filename
 
-    def _create_base_configs(self, target_dir):
-        if not os.path.exists(target_dir):
-            os.makedirs(target_dir)
+    def _ensure_base_configs(self):
+        system_configs_dir = get_system_configs_dir()
+        if os.path.isdir(system_configs_dir):
+            system_configs = os.listdir(system_configs_dir)
+            if len(system_configs) > 2:
+                self.log.warning("Taurus doesn't support system-wide configs in /etc/bzt.d anymore")
+                self.log.warning("Please, move any custom configs into ~/.bzt.d")
 
-        self.log.info("Creating 10-base.json")
-        base_config = os.path.join(get_full_path(__file__, step_up=1), "10-base.json")
-        shutil.copy(base_config, target_dir + os.path.sep)
+        config_dir = get_global_configs_dir()
+        if not os.path.exists(config_dir):
+            self.log.info("First launch detected, creating configs dir")
+            os.makedirs(config_dir)
 
-        self.log.info("Generating install-id")
-        install_id = os.path.join(target_dir, '99-installID.yml')
+        install_id = os.path.join(config_dir, '99-installID.yml')
         if not os.path.exists(install_id):
+            self.log.info("Generating install-id")
             with open(install_id, 'w') as fhd:
-                fhd.write("---\ninstall-id: %x" % uuid.getnode())
+                fhd.write("---\ninstall-id: %x\n" % uuid.getnode())
 
     def _load_base_configs(self):
-        base_configs = []
+        base_configs = [get_base_config_path()]  # always load 10-base.json from distribution
 
-        system_configs_dir = get_system_configs_dir()
-        user_configs_dir = get_user_configs_dir()
+        self._ensure_base_configs()
 
-        system_files = os.listdir(system_configs_dir) if os.path.isdir(system_configs_dir) else []
-        user_files = os.listdir(user_configs_dir) if os.path.isdir(user_configs_dir) else []
-
-        if not system_files and not user_files:
-            self.log.info("First launch detected, creating base configs")
-            target_dir = system_configs_dir if in_virtualenv() else user_configs_dir
-            self._create_base_configs(target_dir)
-
-        if os.path.isdir(system_configs_dir):
-            self.log.debug("Reading system configs from: %s", system_configs_dir)
-            for cfile in sorted(os.listdir(system_configs_dir)):
-                fname = os.path.join(system_configs_dir, cfile)
-                if os.path.isfile(fname):
-                    base_configs.append(fname)
-
-        if os.path.isdir(user_configs_dir):
-            self.log.debug("Reading user configs from: %s", user_configs_dir)
-            for cfile in sorted(os.listdir(user_configs_dir)):
-                fname = os.path.join(user_configs_dir, cfile)
+        global_configs_dir = get_global_configs_dir()
+        if os.path.isdir(global_configs_dir):
+            self.log.debug("Reading global configs from: %s", global_configs_dir)
+            for cfile in sorted(os.listdir(global_configs_dir)):
+                fname = os.path.join(global_configs_dir, cfile)
                 if os.path.isfile(fname):
                     base_configs.append(fname)
 

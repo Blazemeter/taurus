@@ -921,5 +921,10 @@ def get_system_configs_dir():
     return path
 
 
-def get_user_configs_dir():
+def get_base_config_path():
+    return os.path.join(get_full_path(__file__, step_up=1), "10-base.json")
+
+
+def get_global_configs_dir():
+    # detect virtualenv or pyenv usage
     return get_full_path(os.path.join("~", ".bzt.d"))
