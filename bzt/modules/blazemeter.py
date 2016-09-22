@@ -25,9 +25,9 @@ import sys
 import time
 import traceback
 import zipfile
-from ssl import SSLError
 from collections import defaultdict, OrderedDict
 from functools import wraps
+from ssl import SSLError
 
 import yaml
 from urwid import Pile, Text
@@ -182,7 +182,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
                         msg = "File %s exceeds maximum size quota of %s and won't be included into upload"
                         self.log.warning(msg, filename, max_file_size)
 
-            for filename in logs:   # upload logs unconditionally
+            for filename in logs:  # upload logs unconditionally
                 zfh.write(filename, os.path.basename(filename))
         return mfile
 
@@ -282,13 +282,14 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         :return:
         """
         self.log.debug("KPI bulk buffer len: %s", len(self.kpi_buffer))
-        if self.kpi_buffer and time.time() - self.client.last_ts > self.send_interval:
-            self.__send_data(self.kpi_buffer)
-            if self.send_monitoring:
-                self.__send_monitoring()
-            if self.send_custom_metrics:
-                self.__send_custom_metrics()
-            self.kpi_buffer = []
+        if len(self.kpi_buffer):
+            if self.client.last_ts < (time.time() - self.send_interval):
+                self.__send_data(self.kpi_buffer)
+                if self.send_monitoring:
+                    self.__send_monitoring()
+                if self.send_custom_metrics:
+                    self.__send_custom_metrics()
+                self.kpi_buffer = []
         return super(BlazeMeterUploader, self).check()
 
     def __send_data(self, data, do_check=True, is_final=False):
@@ -300,13 +301,13 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
             return
 
         try:
-            self.client.send_summary(data, do_check, is_final)
+            self.client.send_kpi_data(data, do_check, is_final)
         except IOError:
             self.log.debug("Error sending data: %s", traceback.format_exc())
             self.log.warning("Failed to send data, will retry in %s sec...", self.client.timeout)
             try:
                 time.sleep(self.client.timeout)
-                self.client.send_summary(data, do_check, is_final)
+                self.client.send_kpi_data(data, do_check, is_final)
                 self.log.info("Succeeded with retry")
             except IOError:
                 self.log.error("Fatal error sending data: %s", traceback.format_exc())
@@ -625,6 +626,7 @@ class BlazeMeterClient(object):
         Start online test
 
         :type test_id: str
+        :type session_name: str
         :return:
         """
         self.log.info("Initiating data feeding...")
@@ -784,49 +786,58 @@ class BlazeMeterClient(object):
         self.log.debug("Tests for user: %s", len(tests['result']))
         return tests['result']
 
-    def __get_summary_body(self, data_buffer, is_final):
+    def __get_body(self, data_buffer, is_final):
         report_items = BetterDict()
-        for sec in data_buffer:
-            self.first_ts = min(self.first_ts, sec[DataPoint.TIMESTAMP])
-            self.last_ts = max(self.last_ts, sec[DataPoint.TIMESTAMP])
+        for dpoint in data_buffer:
+            self.first_ts = min(self.first_ts, dpoint[DataPoint.TIMESTAMP])
+            self.last_ts = max(self.last_ts, dpoint[DataPoint.TIMESTAMP])
 
-            for label, item in iteritems(sec[DataPoint.CURRENT]):
-                report_item = report_items.get(label, self.__report_item_skel())
+            for label, kpi_set in iteritems(dpoint[DataPoint.CURRENT]):
+                report_item = report_items.get(label, self.__label_skel(label))
 
-                intervals = self.__interval_json(item, sec)
-                for r_code, cnt in iteritems(item[KPISet.RESP_CODES]):
-                    fails = [err['cnt'] for err in item[KPISet.ERRORS] if str(err['rc']) == r_code]
-                    intervals['rc'].append({"n": cnt, "f": sum(fails), "rc": r_code})
+                interval_item = self.__interval_json(kpi_set, dpoint)
+                for r_code, cnt in iteritems(kpi_set[KPISet.RESP_CODES]):
+                    fails = [err['cnt'] for err in kpi_set[KPISet.ERRORS] if str(err['rc']) == r_code]
+                    interval_item['rc'].append({"n": cnt, 'f': fails, "rc": r_code})
 
-                report_item['intervals'] = intervals
+                report_item['intervals'].append(interval_item)
 
-                cumul = sec[DataPoint.CUMULATIVE][label]
-                report_item["n"] = cumul[KPISet.SAMPLE_COUNT]
+                cumul = dpoint[DataPoint.CUMULATIVE][label]
+                report_item['n'] = cumul[KPISet.SAMPLE_COUNT]
                 report_item["summary"] = self.__summary_json(cumul)
 
-        if data_buffer:
-            cumulative = data_buffer[-1][DataPoint.CUMULATIVE]
-            if cumulative[''][KPISet.ERRORS]:
-                for label in report_items:
-                    for error in cumulative[label]['errors']:
-                        if error['type'] == KPISet.ERRTYPE_ASSERT:
-                            message = 'Assert: %s' % error['msg']
-                        else:
-                            message = error['msg']
-                        err_info = {'count': error['cnt'], 'm': message, 'rc': error['rc']}
-                        report_items[label]['errors'].append(err_info)
+            self.__add_errors(report_items, data_buffer[-1])
 
-        report_items['ALL'] = report_items.pop('')
-        for label in report_items:
-            report_items[label]['name'] = label
-        labels = [report_items[key] for key in sorted(report_items.keys())]
-        data = {"labels": labels, "sourceID": id(self)}
+        report_items = [report_items[key] for key in sorted(report_items.keys())]  # convert dict to list
+        data = {"labels": report_items, "sourceID": id(self)}
+
         if is_final:
             data['final'] = True
 
-        return to_json(report_items)
+        return to_json(data)
 
-    def send_summary(self, data_buffer, is_check_response=True, is_final=False):
+    @staticmethod
+    def __add_errors(report_items, last_dp):
+        for label in report_items:
+            errors = last_dp[DataPoint.CUMULATIVE][label][KPISet.ERRORS]
+
+            for error in errors:
+                if error["type"] == KPISet.ERRTYPE_ERROR:
+                    report_items[label]['errors'].append({
+                        'm': error['msg'],
+                        "rc": error['rc'],
+                        "count": error['cnt'],
+                    })
+                else:
+                    report_items[label]['assertions'].append({
+                        'failureMessage': error['msg'],
+                        'name': 'All Assertions',
+                        'failures': error['cnt']
+                        # TODO: "count", "errors" = ?
+                        # TODO: Errtype == embedded_resources ?
+                    })
+
+    def send_kpi_data(self, data_buffer, is_check_response=True, is_final=False):
         """
         Sends online data
 
@@ -838,7 +849,7 @@ class BlazeMeterClient(object):
         url = url % (self.session_id, self.data_signature, self.test_id, self.user_id)
         url += "&pq=0&target=%s&update=1" % self.kpi_target
         hdr = {"Content-Type": " application/json"}
-        response = self._request(url, self.__get_summary_body(data_buffer, is_final), headers=hdr)
+        response = self._request(url, self.__get_body(data_buffer, is_final), headers=hdr)
 
         if response and 'response_code' in response and response['response_code'] != 200:
             raise RuntimeError("Failed to feed data, response code %s" % response['response_code'])
@@ -850,9 +861,10 @@ class BlazeMeterClient(object):
                 self.log.info("Test was stopped through Web UI: %s", result['status'])
                 raise ManualShutdown("The test was interrupted through Web UI")
 
-    def __report_item_skel(self):
+    def __label_skel(self, name):
         return {
             "n": None,
+            "name": name if name else 'ALL',
             "interval": 1,
             "intervals": [],
             "samplesNotCounted": 0,
@@ -861,6 +873,7 @@ class BlazeMeterClient(object):
             "failedEmbeddedResourcesSpilloverCount": 0,
             "otherErrorsCount": 0,
             "errors": [],
+            "assertions": [],
             "percentileHistogram": [],
             "percentileHistogramLatency": [],
             "percentileHistogramBytes": [],
@@ -958,20 +971,6 @@ class BlazeMeterClient(object):
         response = self._request(url, body.form_as_bytes(), headers=hdr)
         if not response['result']:
             raise IOError("Upload failed: %s" % response)
-
-    def __error_item_skel(self, label):
-        return {
-            "name": label,
-
-            "count": 0,
-            "responseInfo": [],
-
-            "assertionsCount": 0,
-            "assertions": [],
-
-            "embeddedResourcesCount": 0,
-            "embeddedResources": [],
-        }
 
     def get_master(self):
         req = self._request(self.address + '/api/latest/masters/%s' % self.master_id)
