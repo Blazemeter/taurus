@@ -6,6 +6,7 @@
  - do not copy Selenium scripts in artifacts dir before running them
  - fix KPI merging error
  - introduce `language` option for Selenium tests
+ - add `action` blocks to JMeter's requests
 
 ## 1.6.8 <sup>1 sep 2016</sup>
  - fix hamcrest installation for Java-based Selenium tests

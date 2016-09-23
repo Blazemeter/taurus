@@ -408,6 +408,7 @@ Taurus allows to control execution flow with the following constructs:
 - `foreach` blocks
 - `transaction` blocks
 - `include-scenario` blocks
+- `action` blocks
 
 ##### If Blocks
 
@@ -554,7 +555,7 @@ scenarios:
 ```
 
 ##### Include Scenario blocks
-`include-scenario` blocks allows you to include scenario in another one. You can use it to split your test plan into
+`include-scenario` block allows you to include scenario in another one. You can use it to split your test plan into
 a few of independent scenarios that can be reused.
 
 Example:
@@ -583,6 +584,33 @@ scenarios:
 
 Taurus translates each `include-scenario` block to a JMeter's `Simple Controller` and puts all scenario-level
 settings and requests there.
+
+##### Action Blocks
+
+`action` block allows you to specify a thread-specific action that will be performed. You can use it to pause or stop
+the current thread, or force it to go to the next loop iteration.
+
+The following actions are available:
+- `pause` - pause the target thread (pause duration is controlled with `pause-duration` field)
+- `stop` - stop the target thread gracefully
+- `stop-now` - stop the test without waiting for samples to complete
+- `continue` - send target thread to the next iteration of the loop
+
+Actions can be applied to the following targets:
+- `current-thread` - set by default
+- `all-threads` - action will be applied to all threads (unavailable for `continue` action)
+
+Examples:
+```yaml
+scenarios:
+  action_example:
+    requests:
+    - action: pause
+      target: current-thread
+      pause-duration: 1s500ms
+    - action: stop-now
+      target: all-threads
+```
 
 ## JMeter Test Log
 You can tune JTL file content with option `write-xml-jtl`. Possible values are 'error' (default), 'full', or any other value for 'none'. Keep in mind: max `full` logging can seriously load your system.
