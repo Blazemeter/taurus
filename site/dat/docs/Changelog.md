@@ -6,6 +6,8 @@
  - do not copy Selenium scripts in artifacts dir before running them
  - fix KPI merging error
  - introduce `language` option for Selenium tests
+ - fix nose plugin crash when setUp/setUpClass raises an exception 
+ - add `action` blocks to JMeter's requests
  - fix percentiles values for cloud-based tests
  - support collection-based cloud tests
 

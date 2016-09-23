@@ -1229,7 +1229,11 @@ class TestJMeterExecutor(BZTestCase):
                                 "url": "http://demo.blazemeter.com/",
                                 "method": "POST",
                                 "body-file": __dir__() + "/../jmeter/jmx/dummy.jmx"
-                            }]}]}]}},
+                            }],
+                            "else": [
+                                {"action": "continue"},
+                            ]
+                        }]}]}},
             'provisioning': 'cloud'})
         res_files = self.obj.resource_files()
         self.assertEqual(len(res_files), 2)
@@ -1479,6 +1483,51 @@ class TestJMeterExecutor(BZTestCase):
             'execution': {
                 'scenario': 'a'}})
         self.assertRaises(ValueError, self.obj.resource_files)
+
+    def test_logic_test_action(self):
+        self.configure({
+            'execution': {
+                'scenario': {
+                    "requests": [{
+                        "action": "pause",
+                        "pause-duration": "1s",
+                    }]}}})
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
+        block = xml_tree.find(".//TestAction")
+        self.assertIsNotNone(block)
+        action = block.find('intProp[@name="ActionProcessor.action"]')
+        self.assertEqual(action.text, "1")
+        target = block.find('intProp[@name="ActionProcessor.target"]')
+        self.assertEqual(target.text, "0")
+        target = block.find('stringProp[@name="ActionProcessor.duration"]')
+        self.assertEqual(target.text, "1000")
+
+    def test_logic_test_action_target(self):
+        self.configure({
+            'execution': {
+                'scenario': {
+                    "requests": [{
+                        "action": "stop",
+                        "target": "all-threads",
+                    }]}}})
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
+        block = xml_tree.find(".//TestAction")
+        self.assertIsNotNone(block)
+        action = block.find('intProp[@name="ActionProcessor.action"]')
+        self.assertEqual(action.text, "0")
+        target = block.find('intProp[@name="ActionProcessor.target"]')
+        self.assertEqual(target.text, "2")
+
+    def test_logic_test_action_unknown(self):
+        self.configure({
+            'execution': {
+                'scenario': {
+                    "requests": [{
+                        "action": "unknown",
+                    }]}}})
+        self.assertRaises(ValueError, self.obj.prepare)
 
     def test_request_null_headers(self):
         self.configure({
