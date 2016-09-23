@@ -786,7 +786,7 @@ class BlazeMeterClient(object):
         self.log.debug("Tests for user: %s", len(tests['result']))
         return tests['result']
 
-    def __get_body(self, data_buffer, is_final):
+    def __get_kpi_body(self, data_buffer, is_final):
         report_items = BetterDict()
         for dpoint in data_buffer:
             self.first_ts = min(self.first_ts, dpoint[DataPoint.TIMESTAMP])
@@ -806,7 +806,7 @@ class BlazeMeterClient(object):
                 report_item['n'] = cumul[KPISet.SAMPLE_COUNT]
                 report_item["summary"] = self.__summary_json(cumul)
 
-            self.__add_errors(report_items, data_buffer[-1])
+                self.__add_errors(report_item, kpi_set)
 
         report_items = [report_items[key] for key in sorted(report_items.keys())]  # convert dict to list
         data = {"labels": report_items, "sourceID": id(self)}
@@ -817,25 +817,23 @@ class BlazeMeterClient(object):
         return to_json(data)
 
     @staticmethod
-    def __add_errors(report_items, last_dp):
-        for label in report_items:
-            errors = last_dp[DataPoint.CUMULATIVE][label][KPISet.ERRORS]
-
-            for error in errors:
-                if error["type"] == KPISet.ERRTYPE_ERROR:
-                    report_items[label]['errors'].append({
-                        'm': error['msg'],
-                        "rc": error['rc'],
-                        "count": error['cnt'],
+    def __add_errors(report_item, kpi_set):
+        errors = kpi_set[KPISet.ERRORS]
+        for error in errors:
+            if error["type"] == KPISet.ERRTYPE_ERROR:
+                report_item['errors'].append({
+                    'm': error['msg'],
+                    "rc": error['rc'],
+                    "count": error['cnt'],
                     })
-                else:
-                    report_items[label]['assertions'].append({
-                        'failureMessage': error['msg'],
-                        'name': 'All Assertions',
-                        'failures': error['cnt']
-                        # TODO: "count", "errors" = ?
-                        # TODO: Errtype == embedded_resources ?
-                    })
+            else:
+                report_item['assertions'].append({
+                    'failureMessage': error['msg'],
+                    'name': 'All Assertions',
+                    'failures': error['cnt']
+                    # TODO: "count", "errors" = ? (according do Udi's format description)
+                    # TODO: Errtype == embedded_resources ?
+                })
 
     def send_kpi_data(self, data_buffer, is_check_response=True, is_final=False):
         """
@@ -849,7 +847,7 @@ class BlazeMeterClient(object):
         url = url % (self.session_id, self.data_signature, self.test_id, self.user_id)
         url += "&pq=0&target=%s&update=1" % self.kpi_target
         hdr = {"Content-Type": " application/json"}
-        response = self._request(url, self.__get_body(data_buffer, is_final), headers=hdr)
+        response = self._request(url, self.__get_kpi_body(data_buffer, is_final), headers=hdr)
 
         if response and 'response_code' in response and response['response_code'] != 200:
             raise RuntimeError("Failed to feed data, response code %s" % response['response_code'])
