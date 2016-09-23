@@ -4,6 +4,7 @@ import os
 import shutil
 from io import BytesIO
 import time
+import json
 
 from bzt.modules.aggregator import DataPoint, KPISet
 from tests import BZTestCase, random_datapoint, __dir__
@@ -57,10 +58,22 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.engine.stopping_reason = ValueError('wrong value')
         obj.aggregated_second(random_datapoint(10))
         obj.kpi_buffer[-1][DataPoint.CUMULATIVE][''][KPISet.ERRORS] = [
-            {'msg': 'Forbidden', 'cnt': 7373, 'type': KPISet.ERRTYPE_ASSERT, 'urls': [], KPISet.RESP_CODES: '403'},
-            {'msg': 'Allowed', 'cnt': 7373, 'type': KPISet.ERRTYPE_ERROR, 'urls': [], KPISet.RESP_CODES: '403'}]
+            {'msg': 'Forbidden', 'cnt': 10, 'type': KPISet.ERRTYPE_ASSERT, 'urls': [], KPISet.RESP_CODES: '111'},
+            {'msg': 'Allowed', 'cnt': 20, 'type': KPISet.ERRTYPE_ERROR, 'urls': [], KPISet.RESP_CODES: '222'}]
         obj.post_process()
         self.assertEqual(0, len(client.results))
+        data = json.loads(client.requests[6]['data'])
+        self.assertEqual(1, len(data['labels']))
+        total_item = data['labels'][0]
+        self.assertEqual('ALL', total_item['name'])
+        self.assertEqual(total_item['assertions'], [{
+            'failureMessage': 'Forbidden',
+            'failures': 10,
+            'name': 'All Assertions'}])
+        self.assertEqual(total_item['errors'], [{
+            'm': 'Allowed',
+            'count': 20,
+            'rc': '222'}])
 
     def test_check(self):
         client = BlazeMeterClientEmul(logging.getLogger(''))

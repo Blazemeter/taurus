@@ -1347,10 +1347,12 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 class BlazeMeterClientEmul(BlazeMeterClient):
     def __init__(self, parent_logger):
         super(BlazeMeterClientEmul, self).__init__(parent_logger)
+        self.requests = []
         self.results = []
 
     def _request(self, url, data=None, headers=None, checker=None, method=None):
         self.log.debug("Request %s: %s", url, data)
+        self.requests.append({'url': url, 'data': data, 'headers': headers, 'checker': checker, 'method': method})
         res = self.results.pop(0)
         self.log.debug("Response: %s", res)
         if isinstance(res, BaseException):
