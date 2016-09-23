@@ -8,6 +8,8 @@
  - introduce `language` option for Selenium tests
  - fix nose plugin crash when setUp/setUpClass raises an exception 
  - add `action` blocks to JMeter's requests
+ - fix percentiles values for cloud-based tests
+ - support collection-based cloud tests
  - add RSpec tests runner for Selenium
 
 ## 1.6.8 <sup>1 sep 2016</sup>

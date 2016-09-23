@@ -290,7 +290,7 @@ class TestResultsFromBZA(BZTestCase):
         cumulative_ = res[0][DataPoint.CUMULATIVE]
         total = cumulative_['']
         percentiles_ = total[KPISet.PERCENTILES]
-        self.assertEquals(1050, percentiles_['99.0'])
+        self.assertEquals(1.05, percentiles_['99.0'])
 
 
 class TestMonitoringBuffer(BZTestCase):
