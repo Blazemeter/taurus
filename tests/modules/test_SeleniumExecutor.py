@@ -381,6 +381,26 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/python/"}})
         self.assertEqual(len(self.obj.resource_files()), 1)
 
+    def test_setup_exception(self):
+        """
+        Do not crash when test's setUp/setUpClass fails
+        :return:
+        """
+        self.obj.execution.merge({"scenario": {
+            "script": __dir__() + "/../selenium/python/test_setup_exception.py"
+        }})
+        self.obj.prepare()
+        self.obj.startup()
+        while True:
+            try:
+                finished = self.obj.check()
+                if finished:
+                    self.fail("Should've failed with 'nothing to test'")
+            except RuntimeError as exc:
+                self.assertIn("Catch that", str(exc))
+                self.assertIn("Nothing to test", str(exc))
+                break
+
 
 class LDJSONReaderEmul(object):
     def __init__(self):
