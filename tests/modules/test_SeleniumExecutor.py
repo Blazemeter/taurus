@@ -397,8 +397,8 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
                 if finished:
                     self.fail("Should've failed with 'nothing to test'")
             except RuntimeError as exc:
-                self.assertIn("Catch that", exc.message)
-                self.assertIn("Nothing to test", exc.message)
+                self.assertIn("Catch that", str(exc))
+                self.assertIn("Nothing to test", str(exc))
                 break
 
 
