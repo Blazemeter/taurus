@@ -1002,3 +1002,11 @@ class JMX(object):
     @staticmethod
     def _get_functional_mode_prop(enabled):
         return JMX._bool_prop("TestPlan.functional_mode", enabled)
+
+    @staticmethod
+    def _get_action_block(action_index, target_index, duration_ms):
+        action = etree.Element("TestAction", guiclass="TestActionGui", testclass="TestAction", testname="Test Action")
+        action.append(JMX.int_prop("ActionProcessor.action", action_index))
+        action.append(JMX.int_prop("ActionProcessor.target", target_index))
+        action.append(JMX._string_prop("ActionProcessor.duration", str(duration_ms)))
+        return action

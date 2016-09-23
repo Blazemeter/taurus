@@ -95,9 +95,11 @@ class BZTPlugin(Plugin):
         :return:
         """
         exc_type, exc, trace = error
-        self.test_dict["status"] = "BROKEN"
-        self.test_dict["error_msg"] = ''.join(traceback.format_exception_only(exc_type, exc)).rstrip()
-        self.test_dict["error_trace"] = ''.join(traceback.format_exception(exc_type, exc, trace)).rstrip()
+        # test_dict will be None if startTest wasn't called (i.e. exception in setUp/setUpClass)
+        if self.test_dict is not None:
+            self.test_dict["status"] = "BROKEN"
+            self.test_dict["error_msg"] = ''.join(traceback.format_exception_only(exc_type, exc)).rstrip()
+            self.test_dict["error_trace"] = ''.join(traceback.format_exception(exc_type, exc, trace)).rstrip()
 
     def addFailure(self, test, error):  # pylint: disable=invalid-name
         """
@@ -143,6 +145,8 @@ class BZTPlugin(Plugin):
         report_pattern = "%s,Total:%d Passed:%d Failed:%d\n"
         sys.stdout.write(report_pattern % (
             self.test_dict["test_case"], self.test_count, self.success_count, self.test_count - self.success_count))
+
+        self.test_dict = None
 
 
 def run_nose(report_file, files, iterations, hold):
