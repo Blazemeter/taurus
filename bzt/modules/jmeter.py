@@ -1601,6 +1601,26 @@ class JMeterScenarioBuilder(JMX):
         elements.extend([controller, children])
         return elements
 
+    def compile_action_block(self, block):
+        """
+        :type block: ActionBlock
+        :return:
+        """
+        actions = {
+            'stop': 0,
+            'pause': 1,
+            'stop-now': 2,
+            'continue': 3,
+        }
+        targets = {'current-thread': 0, 'all-threads': 2}
+        action = actions[block.action]
+        target = targets[block.target]
+        duration = 0
+        if block.duration is not None:
+            duration = int(block.duration * 1000)
+        test_action = JMX._get_action_block(action, target, duration)
+        return [test_action, etree.Element("hashTree")]
+
     def compile_requests(self, requests):
         if self.request_compiler is None:
             self.request_compiler = RequestCompiler(self)
@@ -1971,6 +1991,17 @@ class RequestsParser(object):
         elif 'include-scenario' in req:
             name = req.get('include-scenario')
             return IncludeScenarioBlock(name, req)
+        elif 'action' in req:
+            action = req.get('action')
+            if action not in ('pause', 'stop', 'stop-now', 'continue'):
+                raise ValueError("Action should be either 'pause', 'stop', 'stop-now' or 'continue'")
+            target = req.get('target', 'current-thread')
+            if target not in ('current-thread', 'all-threads'):
+                raise ValueError("Target for action should be either 'current-thread' or 'all-threads'")
+            duration = req.get('pause-duration', None)
+            if duration is not None:
+                duration = dehumanize_time(duration)
+            return ActionBlock(action, target, duration, req)
         else:
             return HierarchicHTTPRequest(req, self.engine)
 
@@ -1998,6 +2029,14 @@ class HierarchicHTTPRequest(HTTPRequest):
             path = file_dict.get('path', ValueError("Items from upload-files must specify path to file"))
             mime = mimetypes.guess_type(path)[0] or "application/octet-stream"
             file_dict.get('mime-type', mime)
+
+
+class ActionBlock(Request):
+    def __init__(self, action, target, duration, config):
+        super(ActionBlock, self).__init__(config)
+        self.action = action
+        self.target = target
+        self.duration = duration
 
 
 class RequestVisitor(object):
@@ -2067,6 +2106,9 @@ class ResourceFilesCollector(RequestVisitor):
         scenario = self.executor.get_scenario(name=block.scenario_name)
         return self.executor.res_files_from_scenario(scenario)
 
+    def visit_actionblock(self, _):
+        return []
+
 
 class RequestCompiler(RequestVisitor):
     def __init__(self, jmx_builder):
@@ -2097,3 +2139,6 @@ class RequestCompiler(RequestVisitor):
             raise ValueError("Mutual recursion detected in include-scenario blocks (scenario %s)" % scenario_name)
         self.path.append(scenario_name)
         return self.jmx_builder.compile_include_scenario_block(block)
+
+    def visit_actionblock(self, block):
+        return self.jmx_builder.compile_action_block(block)

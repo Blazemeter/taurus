@@ -7,6 +7,7 @@
  - fix KPI merging error
  - introduce `language` option for Selenium tests
  - fix nose plugin crash when setUp/setUpClass raises an exception 
+ - add `action` blocks to JMeter's requests
 
 ## 1.6.8 <sup>1 sep 2016</sup>
  - fix hamcrest installation for Java-based Selenium tests
