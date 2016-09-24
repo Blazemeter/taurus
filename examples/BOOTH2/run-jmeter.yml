@@ -1,0 +1,15 @@
+---
+scenarios:
+  modified-jmx:
+    script: ./converted/Blazedemo.java.jmx
+    modifications:
+      disable:
+        - http://blazedemo.com/favicon.ico
+        - https://r3---sn-p5qlsns6.gvt1.com/edgedl/chrome/dict/en-us-7-1.bdic
+        - https://redirector.gvt1.com/edgedl/chrome/dict/en-us-7-1.bdic
+
+execution:
+- scenario: modified-jmx
+  concurrency: 500
+  ramp-up: 10m
+

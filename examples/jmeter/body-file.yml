@@ -1,0 +1,14 @@
+---
+scenarios:
+  bfile:
+    think-time: 500ms
+    requests:
+    - url: http://blazedemo.com/puchase.php
+      method: POST
+      body-file: body-file-payload.json
+      headers:
+        Content-Type: application/json
+
+execution:
+- scenario: bfile
+  hold-for: 5m
