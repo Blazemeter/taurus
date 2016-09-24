@@ -23,9 +23,7 @@ modules:
     # - dummy (text output into console for non-tty cases)
 ```
 
-You can also disable this reporter by using]
-
-[command-line](CommandLine.md) `-o` switch:
+You can also disable this reporter by using [command-line](CommandLine.md) `-o` switch:
 ```bash
 bzt config.yml -o modules.console.disable=true
 ```
