@@ -123,6 +123,10 @@ execution:
 Just like JUnit-based and nosetests-based runners, RSpec runner supports `iterations` and `hold-for` options,
 in case you want to loop your test execution.
 
+The complete example of RSpec-based test suite and Taurus config can be found in
+[examples/selenium/rspec-capybara](https://github.com/Blazemeter/taurus/tree/master/examples/selenium/rspec-capybara)
+folder of Taurus's repo.
+
 ## Requests Scenario
 Selenium executor partially supports building scenario from requests.
 Supported features:
