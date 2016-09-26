@@ -902,3 +902,29 @@ def is_piped(file_obj):
     mode = os.fstat(file_obj.fileno()).st_mode
     return stat.S_ISFIFO(mode) or stat.S_ISREG(mode)
 
+
+def in_virtualenv():
+    return hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix)
+
+
+def get_system_configs_dir():
+    """
+    :return: str
+    """
+    # detect virtualenv or pyenv usage
+    if in_virtualenv():
+        path = sys.prefix
+    else:
+        path = os.path.splitdrive(sys.executable)[0]
+
+    path += os.path.sep + os.path.join("etc", "bzt.d")  # os.path.join does not work for some reason
+    return path
+
+
+def get_base_config_path():
+    return os.path.join(get_full_path(__file__, step_up=1), "10-base.json")
+
+
+def get_global_configs_dir():
+    # detect virtualenv or pyenv usage
+    return get_full_path(os.path.join("~", ".bzt.d"))

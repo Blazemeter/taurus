@@ -12,7 +12,7 @@
  - Modify [Changelog.md](Changelog), set version and date
  - Set correct version in `bzt/\_\_init\_\_.py`, commit
  - Create git tag, make `git push`, including tag
- - Upload to PyPi: `python ./setup.py clean sdist upload`
+ - Upload to PyPi: `python setup.py clean sdist bdist_wheel upload`
  - rebuild and publish Docker image (how?)
  - site is updated automatically by Jenkins
  - notify all interested parties (Twitter, mailing lists)

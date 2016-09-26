@@ -58,18 +58,3 @@ class AutomatedShutdown(KeyboardInterrupt, RCProvider):
         :return: int
         """
         return 3
-
-
-def get_configs_dir():
-    """
-    Generate configs dir path on install, moved from utils due to import error
-    :return: str
-    """
-    # detect virtualenv or pyenv usage
-    if hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix):
-        path = sys.prefix
-    else:
-        path = os.path.splitdrive(sys.executable)[0]
-
-    path += os.path.sep + os.path.join("etc", "bzt.d")  # os.path.join does not work for some reason
-    return path

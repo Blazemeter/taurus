@@ -9,5 +9,5 @@ python -m nose tests \
     --cover-html --cover-html-dir=build/coverage --cover-branches \
     -v --nocapture || echo Tests failed
 
-python setup.py clean sdist
+python setup.py clean sdist bdist_wheel
 

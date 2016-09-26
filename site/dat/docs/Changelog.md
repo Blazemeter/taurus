@@ -12,6 +12,7 @@
  - support collection-based cloud tests
  - add stubs for `screenshoter` and `capturehar` services
  - add RSpec tests runner for Selenium
+ - migrate to wheel distribution format
 
 ## 1.6.8 <sup>1 sep 2016</sup>
  - fix hamcrest installation for Java-based Selenium tests
