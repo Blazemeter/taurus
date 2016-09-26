@@ -1857,3 +1857,13 @@ class CloudProvWidget(Pile, PrioritizedWidget):
         txt = self.test.get_test_status_text()
         if txt:
             self.text.set_text(txt)
+
+
+class ServiceStubScreenshoter(Service):
+    def prepare(self):
+        self.log.warning("Stub for service 'screenshoter', use cloud provisioning to have it working")
+
+
+class ServiceStubCaptureHAR(Service):
+    def prepare(self):
+        self.log.warning("Stub for service 'capturehar', use cloud provisioning to have it working")

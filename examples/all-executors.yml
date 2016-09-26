@@ -62,20 +62,18 @@ execution:
       - url: http://blazedemo.com/?tool=siege
         label: siege
 
-# Locust does not support requests scenarios yet        
-#- executor: locust
-#  concurrency: 1
-#  hold-for: 5m
-#  scenario: 
-#    requests:
-#      - url: http://blazedemo.com/
-#        label: locust
+- executor: locust
+  concurrency: 1
+  hold-for: 5m
+  scenario: 
+    requests:
+      - url: http://blazedemo.com/
+        label: locust
 
-# Tsung is not yet installed on cloud images
-#- executor: tsung
-#  concurrency: 1
-#  hold-for: 5m
-#  scenario: 
-#    requests:
-#      - url: http://blazedemo.com/
-#        label: tsung
+- executor: tsung
+  concurrency: 1
+  hold-for: 5m
+  scenario: 
+    requests:
+      - url: http://blazedemo.com/
+        label: tsung

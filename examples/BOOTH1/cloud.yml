@@ -1,0 +1,17 @@
+---
+provisioning: cloud
+
+modules:
+  cloud:
+    test: Booth Demo Scaled
+
+~execution:
+- scenario: modified-jmx
+  concurrency: 150
+  ramp-up: 2m
+  hold-for: 5m
+
+settings:
+  artifacts-dir: ./bzt-artifacts
+  interval: 5s
+

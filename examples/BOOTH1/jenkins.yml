@@ -1,0 +1,21 @@
+---
+settings:
+  artifacts-dir: ./bzt-artifacts
+  interval: 5s
+
+modules:
+  blazemeter:
+    test: Booth Demo
+
+reporting:
+  - module: junit-xml
+  - module: blazemeter
+  - module: final_stats
+    dump-csv: aggregate.csv
+
+services:
+   - module: passfail
+     criteria:
+     - avg-rt>5000ms for 10s
+     - failures>75% for 5s
+

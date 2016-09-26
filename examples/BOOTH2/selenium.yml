@@ -1,0 +1,8 @@
+---
+execution:
+- scenario: Blazedemo.java
+  executor: selenium
+  concurrency: 
+    local: 1
+    cloud: 2
+  hold-for: 10m
