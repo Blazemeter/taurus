@@ -1,0 +1,129 @@
+var mocha = require('mocha'),
+    fs = require('fs'),
+    path = require('path');
+module.exports = TaurusReporter;
+
+function TaurusReporter(runner) {
+    mocha.reporters.Base.call(this, runner);
+
+    var self = this;
+    var total = runner.total;
+    var reportFile = null;
+    var suiteStack = [];
+    var testStartTime = null;
+
+    runner.on('start', function() {
+        reportFile = fs.createWriteStream('report.ldjson');
+        console.log('start');
+        // console.log(JSON.stringify(['start', { total: total }]));
+    });
+
+    runner.on('suite', function(suite) {
+        suiteStack.push(suite);
+        console.log('suite', '=', suite.title);
+    });
+
+    runner.on('suite end', function(suite) {
+        suiteStack.pop();
+        console.log('suite end', '=', suite.title);
+    });
+
+    runner.on('test', function(test) {
+        test.startTime = (new Date()).getTime() / 1000.0;
+        console.log('test', '=', test.title);
+    });
+
+    runner.on('test end', function(test) {
+        reportFile.write(JSON.stringify(reportItem(test, test.err || {})) + "\n");
+        console.log('test end', '=', test.title);
+    });
+
+    runner.on('pending', function(test) {
+        test.state = "pending";
+        console.log('pending', '=', test.title)
+    });
+
+    runner.on('pass', function(test) {
+        console.log('pass', '=', test);
+    });
+
+    runner.on('fail', function(test, err) {
+        console.log('fail', '=', err.stack)
+    });
+
+    runner.on('end', function() {
+        reportFile.end();
+        console.log('end');
+    });
+};
+
+
+function reportItem(test, err) {
+    // Test properties:
+    // 'title',
+    // 'fn',
+    // 'body',
+    // 'timedOut',
+    // 'pending',
+    // 'type',
+    // 'file',
+    // 'parent',
+    // 'ctx',
+    // 'callback',
+    // 'timer',
+    // 'skip',
+    // 'duration',
+    // 'state',
+    // 'speed'
+
+    // Test methods:
+    // 'isPending',
+    // 'retries',
+    // 'currentRetry',
+    // 'fullTitle',
+
+    stateStatus = {
+        "passed": "PASSED",
+        "failed": "FAILED",
+        "pending": "SKIPPED"
+    };
+
+    return {
+        test_case: test.title,
+        test_suite: test.fullTitle(),
+        status: stateStatus[test.state],
+        start_time: test.startTime,
+        duration: test.duration / 1000.0,
+        error_msg: err.message || null,
+        error_trace: err.stack || null,
+        extras: {
+            file: test.file || null,
+        }
+    };
+}
+
+function runMocha() {
+    var engine = new mocha({
+        reporter: TaurusReporter
+    });
+
+    var testDir = 'test'
+
+    fs.readdirSync(testDir).filter(function(file){
+        return file.substr(-3) === '.js';
+    }).forEach(function(file){
+        engine.addFile(
+            path.join(testDir, file)
+        );
+    });
+
+    engine.run(function(failures){
+        process.on('exit', function () {
+            process.exit(failures);
+        });
+    });
+}
+
+if (require.main === module) {
+    runMocha();
+}
