@@ -1,0 +1,11 @@
+---
+# minimal Taurus configuration to run RSpec-based tests
+
+execution:
+- executor: selenium
+  iterations: 3  # run 3 iterations of tests
+  scenario: rspec-suite
+
+scenarios:
+  rspec-suite:
+    script: spec/  # take specs from `spec` dir. you can also put here a path to a single spec

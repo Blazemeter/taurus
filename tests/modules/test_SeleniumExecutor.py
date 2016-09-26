@@ -3,6 +3,7 @@ import os
 import re
 import shutil
 import time
+import unittest
 
 import yaml
 
@@ -10,6 +11,7 @@ from bzt.engine import ScenarioExecutor
 from bzt.modules.selenium import SeleniumExecutor, JUnitJar, LoadSamplesReader, LDJSONReader, FuncSamplesReader
 from bzt.modules.selenium import NoseTester
 from bzt.six import StringIO
+from bzt.utils import is_windows
 from tests import BZTestCase, local_paths_config, __dir__
 from tests.mocks import EngineEmul
 
@@ -400,6 +402,89 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
                 self.assertIn("Catch that", str(exc))
                 self.assertIn("Nothing to test", str(exc))
                 break
+
+
+@unittest.skipIf(is_windows(), "Don't test RSpec on Windows")
+class TestSeleniumRSpecRunner(SeleniumTestCase):
+    def test_selenium_prepare_rspec(self):
+        self.obj.execution.merge({"scenario": {
+            "script": __dir__() + "/../selenium/ruby/example_spec.rb"
+        }})
+        self.obj.prepare()
+
+    def test_rspec_full(self):
+        self.obj.engine.config.merge({
+            'execution': {
+                'scenario': {'script': __dir__() + '/../selenium/ruby/example_spec.rb'},
+                'executor': 'selenium'
+            },
+        })
+        self.obj.engine.config.merge({"provisioning": "local"})
+        self.obj.execution = self.obj.engine.config['execution']
+
+        self.obj.execution.merge({"scenario": {
+            "script": __dir__() + "/../selenium/ruby/example_spec.rb"
+        }})
+
+        self.obj.settings.merge(self.obj.engine.config.get("modules").get("selenium"))
+        self.obj.prepare()
+        self.obj.startup()
+        while not self.obj.check():
+            time.sleep(1)
+        self.obj.shutdown()
+        self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
+        lines = open(self.obj.runner.settings.get("report-file")).readlines()
+        self.assertEqual(len(lines), 16)
+
+    def test_rspec_hold(self):
+        self.obj.engine.config.merge({
+            'execution': {
+                'hold-for': '10s',
+                'scenario': {'script': __dir__() + '/../selenium/ruby/example_spec.rb'},
+                'executor': 'selenium'
+            },
+        })
+        self.obj.engine.config.merge({"provisioning": "local"})
+        self.obj.execution = self.obj.engine.config['execution']
+
+        self.obj.execution.merge({"scenario": {
+            "script": __dir__() + "/../selenium/ruby/example_spec.rb"
+        }})
+
+        self.obj.settings.merge(self.obj.engine.config.get("modules").get("selenium"))
+        self.obj.prepare()
+        self.obj.startup()
+        while not self.obj.check():
+            time.sleep(1)
+        self.obj.shutdown()
+        self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
+        duration = time.time() - self.obj.start_time
+        self.assertGreater(duration, 10)
+
+    def test_rspec_iterations(self):
+        self.obj.engine.config.merge({
+            'execution': {
+                'iterations': 3,
+                'scenario': {'script': __dir__() + '/../selenium/ruby/example_spec.rb'},
+                'executor': 'selenium'
+            },
+        })
+        self.obj.engine.config.merge({"provisioning": "local"})
+        self.obj.execution = self.obj.engine.config['execution']
+
+        self.obj.execution.merge({"scenario": {
+            "script": __dir__() + "/../selenium/ruby/example_spec.rb"
+        }})
+
+        self.obj.settings.merge(self.obj.engine.config.get("modules").get("selenium"))
+        self.obj.prepare()
+        self.obj.startup()
+        while not self.obj.check():
+            time.sleep(1)
+        self.obj.shutdown()
+        self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
+        lines = open(self.obj.runner.settings.get("report-file")).readlines()
+        self.assertEqual(len(lines), 48)
 
 
 class LDJSONReaderEmul(object):
