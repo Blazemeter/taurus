@@ -717,7 +717,6 @@ class MochaTester(AbstractTestRunner):
         env = BetterDict()
         env.merge(dict(os.environ))
         env.merge(self.env)
-        env.merge({"SELENIUM_TEST_REPORT": self.settings.get("report-file")})
 
         self.process = self.executor.execute(mocha_cmdline,
                                              stdout=std_out,
