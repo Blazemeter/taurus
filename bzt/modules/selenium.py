@@ -127,7 +127,8 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             runner_config['props-file'] = self.engine.create_artifact("customrunner", ".properties")
         elif script_type == "ruby-rspec":
             runner_class = RSpecTester
-            runner_config["script"] = script_path
+        elif script_type == "js-mocha":
+            runner_class = MochaTester
         else:
             raise ValueError("Unsupported script type: %s" % script_type)
 
@@ -199,6 +200,8 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             script_type = 'python-nose'
         elif '.rb' in file_types:
             script_type = 'ruby-rspec'
+        elif '.js' in file_types:
+            script_type = 'js-mocha'
         else:
             raise ValueError("Unsupported script type: %s" % script_path)
 
@@ -599,7 +602,6 @@ class RSpecTester(AbstractTestRunner):
                                         os.pardir,
                                         "resources",
                                         "rspec_taurus_plugin.rb")
-        self.script = get_full_path(rspec_config.get("script", ValueError("Script not supplied to rspec runner")))
 
     def prepare(self):
         self.run_checklist()
@@ -644,7 +646,6 @@ class RSpecTester(AbstractTestRunner):
         env = BetterDict()
         env.merge(dict(os.environ))
         env.merge(self.env)
-        env.merge({"TAURUS_REPORT_FILE": self.settings.get("report-file")})
 
         self.process = self.executor.execute(rspec_cmdline,
                                              stdout=std_out,
@@ -656,6 +657,78 @@ class RSpecTester(AbstractTestRunner):
         if ret_code is not None:
             self.log.debug("Test runner exit code: %s", ret_code)
             # rspec returns non-zero code when some tests fail, no need to throw an exception here
+            if ret_code != 0:
+                self.is_failed = True
+            return True
+        return False
+
+
+class MochaTester(AbstractTestRunner):
+    """
+    Mocha tests runner
+    """
+
+    def __init__(self, rspec_config, executor):
+        super(MochaTester, self).__init__(rspec_config, executor)
+        self.plugin_path = os.path.join(get_full_path(__file__, step_up=1),
+                                        os.pardir,
+                                        "resources",
+                                        "mocha-taurus-plugin.js")
+
+    def prepare(self):
+        self.run_checklist()
+
+    def run_checklist(self):
+        """
+        we need installed nose plugin
+        """
+
+        self.required_tools.append(TclLibrary(self.log))
+        self.required_tools.append(Node("", "", self.log))
+        self.required_tools.append(Mocha("", "", self.log))
+        self.required_tools.append(TaurusMochaPlugin(self.plugin_path, ""))
+
+        self.check_tools()
+
+    def run_tests(self):
+        """
+        run rspec plugin
+        """
+        mocha_cmdline = [
+            "node",
+            self.plugin_path,
+            "--report-file",
+            self.settings.get("report-file"),
+            "--test-suite",
+            self.script
+        ]
+
+        if self.load.iterations:
+            mocha_cmdline += ['--iterations', str(self.load.iterations)]
+
+        if self.load.hold:
+            mocha_cmdline += ['--hold-for', str(self.load.hold)]
+
+        std_out = open(self.settings.get("stdout"), "wt")
+        self.opened_descriptors.append(std_out)
+        std_err = open(self.settings.get("stderr"), "wt")
+        self.opened_descriptors.append(std_err)
+
+        env = BetterDict()
+        env.merge(dict(os.environ))
+        env.merge(self.env)
+        env.merge({"SELENIUM_TEST_REPORT": self.settings.get("report-file")})
+
+        self.process = self.executor.execute(mocha_cmdline,
+                                             stdout=std_out,
+                                             stderr=std_err,
+                                             env=env)
+
+    def is_finished(self):
+        ret_code = self.process.poll()
+        if ret_code is not None:
+            self.log.debug("Test runner exit code: %s", ret_code)
+            # mocha returns non-zero code when tests fail, no need to throw an exception here
             if ret_code != 0:
                 self.is_failed = True
             return True
@@ -794,6 +867,40 @@ class Ruby(RequiredTool):
         raise NotImplementedError()
 
 
+class Node(RequiredTool):
+    def __init__(self, tool_path, download_link, parent_logger):
+        super(Node, self).__init__("Node.js", tool_path, download_link)
+        self.log = parent_logger.getChild(self.__class__.__name__)
+
+    def check_if_installed(self):
+        try:
+            output = subprocess.check_output(["node", '--version'], stderr=subprocess.STDOUT)
+            self.log.debug("%s output: %s", self.tool_name, output)
+            return True
+        except BaseException:
+            raise RuntimeError("The %s is not operable or not available. Consider installing it" % self.tool_name)
+
+    def install(self):
+        raise NotImplementedError()
+
+
+class Mocha(RequiredTool):
+    def __init__(self, tool_path, download_link, parent_logger):
+        super(Mocha, self).__init__("Mocha", tool_path, download_link)
+        self.log = parent_logger.getChild(self.__class__.__name__)
+
+    def check_if_installed(self):
+        try:
+            output = subprocess.check_output(["mocha", '--version'], stderr=subprocess.STDOUT)
+            self.log.debug("%s output: %s", self.tool_name, output)
+            return True
+        except BaseException:
+            raise RuntimeError("The %s is not operable or not available. Consider installing it" % self.tool_name)
+
+    def install(self):
+        raise NotImplementedError()
+
+
 class JUnitListenerJar(RequiredTool):
     def __init__(self, tool_path, download_link):
         super(JUnitListenerJar, self).__init__("JUnitListener", tool_path, download_link)
@@ -816,6 +923,15 @@ class TaurusRSpecPlugin(RequiredTool):
 
     def install(self):
         raise NotImplementedError()
+
+
+class TaurusMochaPlugin(RequiredTool):
+    def __init__(self, tool_path, download_link):
+        super(TaurusMochaPlugin, self).__init__("TaurusMochaPlugin", tool_path, download_link)
+
+    def install(self):
+        raise NotImplementedError()
+
 
 
 class SeleniumScriptBuilder(PythonGenerator):

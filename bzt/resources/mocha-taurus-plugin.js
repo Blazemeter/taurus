@@ -13,47 +13,42 @@ function TaurusReporter(runner) {
     var testStartTime = null;
 
     runner.on('start', function() {
-        reportFile = fs.createWriteStream('report.ldjson');
-        console.log('start');
-        // console.log(JSON.stringify(['start', { total: total }]));
+        reportFile = fs.createWriteStream(process.env.SELENIUM_TEST_REPORT || 'report.ldjson');
     });
 
     runner.on('suite', function(suite) {
         suiteStack.push(suite);
-        console.log('suite', '=', suite.title);
     });
 
     runner.on('suite end', function(suite) {
         suiteStack.pop();
-        console.log('suite end', '=', suite.title);
     });
 
     runner.on('test', function(test) {
-        test.startTime = (new Date()).getTime() / 1000.0;
-        console.log('test', '=', test.title);
+        testStartTime = (new Date()).getTime() / 1000.0;
     });
 
     runner.on('test end', function(test) {
+        test.startTime = testStartTime;
+        if (!test.duration)
+            test.duration = 0.0;
         reportFile.write(JSON.stringify(reportItem(test, test.err || {})) + "\n");
-        console.log('test end', '=', test.title);
     });
 
     runner.on('pending', function(test) {
         test.state = "pending";
-        console.log('pending', '=', test.title)
     });
 
     runner.on('pass', function(test) {
-        console.log('pass', '=', test);
+
     });
 
     runner.on('fail', function(test, err) {
-        console.log('fail', '=', err.stack)
+
     });
 
     runner.on('end', function() {
         reportFile.end();
-        console.log('end');
     });
 };
 
