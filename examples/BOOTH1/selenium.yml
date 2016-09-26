@@ -1,0 +1,4 @@
+---
+execution:
+- scenario: Blazedemo.java
+  executor: selenium

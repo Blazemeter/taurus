@@ -156,6 +156,12 @@
     },
     "functional-consolidator": {
       "class": "bzt.modules.functional.FunctionalAggregator"
+    },
+    "screenshoter": {
+      "class": "bzt.modules.blazemeter.ServiceStubScreenshoter"
+    },
+    "capturehar": {
+      "class": "bzt.modules.blazemeter.ServiceStubCaptureHAR"
     }
   },
   "settings": {

@@ -1,0 +1,12 @@
+<h1> Vendors And Their Suyas</h1>
+
+<div class="vendors">
+  <% @vendors.each do |vendor| %>
+    <div class="vendor">
+      <p>Vendor name: <%= vendor.name %></p>
+      <% vendor.suyas.each do |suya| %>
+        <li class="suyas"> I sell <%= suya.meat %> which costs <%= suya.price %>. Spicy: <%= suya.spicy %> %></li>
+      <% end %>
+    </div>
+  <% end %>
+</div>

@@ -14,6 +14,8 @@ Taurus can repeat Selenium script in a loop until desired number of `iterations`
   - .jar/folder
   - .py/single file
   - .py/folder
+  - .rb/single file
+  - .rb/folder
 
 ## JUnit Runner
 
@@ -103,6 +105,28 @@ reporting:
 - module: junit-xml
 ```
 
+## Ruby RSpec
+
+You can run your RSpec-based test suite with Taurus.
+
+Minimal example:
+
+```yaml
+scenarios:
+  rspec-suite:
+    script: spec/  # folder with your specs you normally pass to RSpec
+
+execution:
+- scenario: rspec-suite
+```
+
+Just like JUnit-based and nosetests-based runners, RSpec runner supports `iterations` and `hold-for` options,
+in case you want to loop your test execution.
+
+The complete example of RSpec-based test suite and Taurus config can be found in
+[examples/selenium/rspec-capybara](https://github.com/Blazemeter/taurus/tree/master/examples/selenium/rspec-capybara)
+folder of Taurus's repo.
+
 ## Requests Scenario
 Selenium executor partially supports building scenario from requests.
 Supported features:
@@ -154,7 +178,7 @@ language with `language` execution-level option.
 ---
 execution:
 - executor: selenium
-  language: python-nose  # valid values: python-nose, java-junit
+  language: python-nose  # valid values: python-nose, java-junit, ruby-rspec
   scenario:
     script: tests/
 ```
