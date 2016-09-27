@@ -153,8 +153,8 @@ class CLI(object):
             self.engine.create_artifacts_dir(configs, merged_config)
             self.engine.default_cwd = os.getcwd()
         except BaseException:
-            self.log.debug("Caught exception: %s", traceback.format_exc())
             exit_code = 1
+            self.log.debug("Caught exception: %s", traceback.format_exc())
         else:
             exit_code = self.__run_engine()
 
@@ -163,9 +163,9 @@ class CLI(object):
                 os.remove(fname)
             self.__close_log()
         except BaseException:
-            self.log.debug("Caught exception: %s", traceback.format_exc())
             if not exit_code:
                 exit_code = 1
+            self.log.debug("Caught exception: %s", traceback.format_exc())
 
         if exit_code:
             self.log.warning("Done performing with code: %s", exit_code)
@@ -179,6 +179,7 @@ class CLI(object):
             self.engine.prepare()
             self.engine.run()
         except BaseException as exc:
+
             self.log.debug("Caught exception: %s", traceback.format_exc())
             if isinstance(exc, ManualShutdown):
                 self.log.info("Interrupted by user: %s", exc)
@@ -192,11 +193,12 @@ class CLI(object):
         try:
             self.engine.post_process()
         except BaseException as exc:
-            if isinstance(exc, KeyboardInterrupt):
-                self.log.debug("Exception: %s", traceback.format_exc())
-            else:
-                self.log.debug("Caught exception in finally: %s", traceback.format_exc())
-                self.log.error("%s: %s", type(exc).__name__, exc)
+            if not self.engine.stopping_reason:
+                if isinstance(exc, KeyboardInterrupt):
+                    self.log.debug("Exception: %s", traceback.format_exc())
+                else:
+                    self.log.debug("Caught exception in finally: %s", traceback.format_exc())
+                    self.log.error("%s: %s", type(exc).__name__, exc)
 
         self.log.info("Artifacts dir: %s", self.engine.artifacts_dir)
 
