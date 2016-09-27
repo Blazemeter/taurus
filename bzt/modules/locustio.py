@@ -34,14 +34,12 @@ from bzt.utils import shutdown_process, RequiredTool, BetterDict, dehumanize_tim
 class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     def __init__(self):
         super(LocustIOExecutor, self).__init__()
-        self.script = None
         self.kpi_jtl = None
         self.process = None
         self.__out = None
         self.is_master = False
         self.slaves_ldjson = None
         self.expected_slaves = 0
-        self.reader = None
         self.scenario = None
         self.script = None
 
@@ -164,10 +162,10 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 self.__out.close()
 
     def post_process(self):
-        no_master_results = (self.is_master and not self.reader.cumulative)
-        no_local_results = (not self.is_master and self.reader and not self.reader.buffer)
-        if no_master_results or no_local_results:
-            raise RuntimeWarning("Empty results, most likely Locust failed")
+        master_results = (self.is_master and self.reader.cumulative)
+        local_results = (not self.is_master and self.reader and self.reader.buffer)
+        if master_results or local_results:
+            self.no_results = False
 
 
 class LocustIO(RequiredTool):

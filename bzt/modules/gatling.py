@@ -170,7 +170,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.process = None
         self.end_time = None
         self.retcode = None
-        self.reader = None
         self.stdout_file = None
         self.stderr_file = None
         self.simulation_started = False
@@ -377,10 +376,10 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         Save data log as artifact
         """
         if self.reader:
+            if self.reader.buffer:
+                self.no_results = False
             if self.reader.filename:
                 self.engine.existing_artifact(self.reader.filename)
-            if not self.reader.buffer:
-                raise RuntimeWarning("Empty results, most likely Gatling failed")
 
     def _check_installed(self):
         required_tools = [TclLibrary(self.log), JavaVM("", "", self.log)]
@@ -463,7 +462,7 @@ class DataLogReader(ResultsReader):
         self.concurrency = 0
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.basedir = basedir
-        self.filename = False
+        self.filename = ""
         self.fds = None
         self.partial_buffer = ""
         self.delimiter = "\t"
@@ -649,6 +648,7 @@ class Gatling(RequiredTool):
         self.mirror_manager = GatlingMirrorsManager(self.log, download_link, self.version)
 
     def check_if_installed(self):
+        return False
         self.log.debug("Trying Gatling: %s", self.tool_path)
         try:
             gatling_proc = shell_exec([self.tool_path, '--help'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -660,6 +660,7 @@ class Gatling(RequiredTool):
             return False
 
     def install(self):
+        raise RuntimeError("Unable to run %s after installation!")
         dest = os.path.dirname(os.path.dirname(os.path.expanduser(self.tool_path)))
         dest = os.path.abspath(dest)
         gatling_dist = super(Gatling, self).install_with_mirrors(dest, ".zip")

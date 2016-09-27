@@ -114,7 +114,17 @@ class Local(Provisioning):
         """
         Post-process executors
         """
+        exception = None
         for executor in self.executors:
             if executor in self.engine.prepared:
                 self.log.debug("Post-process %s", executor)
-                executor.post_process()
+                try:
+                    executor.post_process()
+                    if executor in self.engine.started and executor.no_results:
+                        raise RuntimeWarning("Empty results, most likely %s failed" % executor.__class__.__name__)
+                except BaseException as exc:
+                    exception = exc if not exception else exception
+
+        if exception:
+            self.engine.stopping_reason = exception if not self.engine.stopping_reason else self.engine.stopping_reason
+            raise exception

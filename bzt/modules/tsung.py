@@ -44,7 +44,6 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.tool_path = None
         self.tsung_controller_id = None
         self.tsung_artifacts_basedir = None
-        self.stats_reader = None
 
     def prepare(self):
         scenario = self.get_scenario()
@@ -68,9 +67,9 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             msg = "Tsung artifacts basedir already exists, will not create: %s"
             self.log.warning(msg, self.tsung_artifacts_basedir)
 
-        self.stats_reader = TsungStatsReader(self.tsung_artifacts_basedir, self.log)
+        self.reader = TsungStatsReader(self.tsung_artifacts_basedir, self.log)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
-            self.engine.aggregator.add_underling(self.stats_reader)
+            self.engine.aggregator.add_underling(self.reader)
 
         self.__out = open(self.engine.create_artifact("tsung", ".out"), 'w')
         self.__err = open(self.engine.create_artifact("tsung", ".err"), 'w')
@@ -126,6 +125,8 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.__out.close()
         if self.__err and not self.__err.closed:
             self.__err.close()
+        if self.reader and self.reader.buffer:
+            self.no_results = False
 
     def _check_installed(self):
         tool_path = self.settings.get('path', 'tsung')

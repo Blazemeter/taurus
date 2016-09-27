@@ -39,7 +39,6 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider):
         self.__url_name = None
         self.tool_path = None
         self.scenario = None
-        self.reader = None
 
     def prepare(self):
         self.scenario = self.get_scenario()
@@ -91,6 +90,10 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider):
             url_file.writelines('\n'.join(user_vars + url_list))
             url_file.close()
         return url_file_name
+
+    def post_process(self):
+        if self.reader and self.reader.buffer:
+            self.no_results = False
 
     def startup(self):
         args = [self.tool_path]
