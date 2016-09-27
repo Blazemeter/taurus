@@ -117,7 +117,7 @@ class Engine(object):
             self.config.dump()
 
         except BaseException as exc:
-            self.stopping_reason = exc if not self.stopping_reason else self.stopping_reason
+            self.stopping_reason = exc
             raise
 
     def _startup(self):
@@ -137,11 +137,8 @@ class Engine(object):
         try:
             self._startup()
             self._wait()
-        except NormalShutdown as exc:
-            self.log.debug("Normal shutdown called: %s", traceback.format_exc())
-            self.stopping_reason = exc if not self.stopping_reason else self.stopping_reason
         except BaseException as exc:
-            self.stopping_reason = exc if not self.stopping_reason else self.stopping_reason
+            self.stopping_reason = exc
             raise
         finally:
             self.log.warning("Please wait for graceful shutdown...")

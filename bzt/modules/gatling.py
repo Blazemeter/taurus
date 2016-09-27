@@ -648,7 +648,6 @@ class Gatling(RequiredTool):
         self.mirror_manager = GatlingMirrorsManager(self.log, download_link, self.version)
 
     def check_if_installed(self):
-        return False
         self.log.debug("Trying Gatling: %s", self.tool_path)
         try:
             gatling_proc = shell_exec([self.tool_path, '--help'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -660,7 +659,6 @@ class Gatling(RequiredTool):
             return False
 
     def install(self):
-        raise RuntimeError("Unable to run %s after installation!")
         dest = os.path.dirname(os.path.dirname(os.path.expanduser(self.tool_path)))
         dest = os.path.abspath(dest)
         gatling_dist = super(Gatling, self).install_with_mirrors(dest, ".zip")
