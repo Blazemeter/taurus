@@ -43,6 +43,14 @@ function TaurusReporter(runner, config) {
     var reportStream = config.reporterOptions.reportStream;
 
     var testStartTime = null;
+    var totalTests = 0;
+    var passedTests = 0;
+    var failedTests = 0;
+
+    var reportStatusLine = function(lastTestCase) {
+        var line = lastTestCase + ",Total:" + totalTests + " Passed:" + passedTests + " Failed:" + failedTests;
+        process.stdout.write(line + "\n");
+    }
 
     runner.on("start", function() {
 
@@ -61,13 +69,15 @@ function TaurusReporter(runner, config) {
     });
 
     runner.on("test end", function(test) {
+        totalTests++;
         test.startTime = testStartTime;
         var item = reportItem(test, test.err || {});
         try {
             reportStream.write(JSON.stringify(item) + "\n");
         } catch(err) {
-            process.stdout.write("error while writing: " + err.toString() + "\n");
+            process.stderr.write("error while writing: " + err.toString() + "\n");
         }
+        reportStatusLine(test.title);
     });
 
     runner.on("pending", function(test) {
@@ -75,11 +85,11 @@ function TaurusReporter(runner, config) {
     });
 
     runner.on("pass", function(test) {
-
+        passedTests++;
     });
 
     runner.on("fail", function(test, err) {
-
+        failedTests++;
     });
 
     runner.on("end", function() {
@@ -123,7 +133,7 @@ function parseCmdline(argv) {
             process.exit(0);
             break;
         default:
-            process.stdout.write("Unknown argument: %s" + arg.toString() + "\n");
+            process.stderr.write("Unknown argument: %s" + arg.toString() + "\n");
             process.exit(1);
             break;
         }
@@ -166,7 +176,7 @@ function prepareMocha(config) {
             );
         });
     } else {
-        process.stdout.write("Error: --test-suite is neither file nor directory\n");
+        process.stderr.write("Error: --test-suite is neither file nor directory\n");
         process.exit(1);
     }
     return engine;
