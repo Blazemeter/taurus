@@ -43,14 +43,14 @@ function TaurusReporter(runner, config) {
     var reportStream = config.reporterOptions.reportStream;
 
     var testStartTime = null;
-    var totalTests = 0;
-    var passedTests = 0;
-    var failedTests = 0;
 
-    var reportStatusLine = function(lastTestCase) {
-        var line = lastTestCase + ",Total:" + totalTests + " Passed:" + passedTests + " Failed:" + failedTests;
+    var reportStatusLine = function(lastTest) {
+        var total = config.reporterOptions.totalTests;
+        var passed = config.reporterOptions.passedTests;
+        var failed = config.reporterOptions.failedTests;
+        var line = lastTest.title + ",Total:" + total + " Passed:" + passed + " Failed:" + failed;
         process.stdout.write(line + "\n");
-    }
+    };
 
     runner.on("start", function() {
 
@@ -69,7 +69,13 @@ function TaurusReporter(runner, config) {
     });
 
     runner.on("test end", function(test) {
-        totalTests++;
+        config.reporterOptions.totalTests++;
+        if (test.state == "failed") {
+            config.reporterOptions.failedTests++;
+        } else if (test.state == "passed") {
+            config.reporterOptions.passedTests++;
+        }
+
         test.startTime = testStartTime;
         var item = reportItem(test, test.err || {});
         try {
@@ -77,7 +83,7 @@ function TaurusReporter(runner, config) {
         } catch(err) {
             process.stderr.write("error while writing: " + err.toString() + "\n");
         }
-        reportStatusLine(test.title);
+        reportStatusLine(test);
     });
 
     runner.on("pending", function(test) {
@@ -85,11 +91,11 @@ function TaurusReporter(runner, config) {
     });
 
     runner.on("pass", function(test) {
-        passedTests++;
+
     });
 
     runner.on("fail", function(test, err) {
-        failedTests++;
+
     });
 
     runner.on("end", function() {
@@ -158,7 +164,10 @@ function prepareMocha(config) {
     var engine = new Mocha({
         reporter: TaurusReporter,
         reporterOptions: {
-            reportStream: config.reportStream
+            reportStream: config.reportStream,
+            totalTests: 0,
+            passedTests: 0,
+            failedTests: 0
         }
     });
 
@@ -182,7 +191,7 @@ function prepareMocha(config) {
     return engine;
 }
 
-function loopMocha(config, iterations, startTime, done) {
+function loopMocha(config, engine, iterations, startTime, done) {
     if (iterations >= config.iterations) {
         done();
         return;
@@ -192,9 +201,9 @@ function loopMocha(config, iterations, startTime, done) {
         done();
         return;
     }
-    var engine = prepareMocha(config);
+    // var engine = prepareMocha(config);
     engine.run(function() {
-        loopMocha(config, iterations + 1, startTime, done);
+        loopMocha(config, engine, iterations + 1, startTime, done);
     });
 }
 
@@ -210,7 +219,9 @@ function runMocha() {
         process.exit(0);
     };
 
-    loopMocha(config, 0, epoch(), done);
+    var engine = prepareMocha(config);
+
+    loopMocha(config, engine, 0, epoch(), done);
 }
 
 if (require.main === module) {
