@@ -21,6 +21,7 @@ function reportItem(test, err) {
         "pending": "SKIPPED"
     };
 
+    /*eslint-disable camelcase */
     return {
         test_case: test.title,
         test_suite: test.fullTitle(),
@@ -33,12 +34,12 @@ function reportItem(test, err) {
             file: test.file || null
         }
     };
+    /*eslint-enable camelcase */
 }
 
 function TaurusReporter(runner, config) {
     Mocha.reporters.Base.call(this, runner);
 
-    var self = this;
     var reportStream = config.reporterOptions.reportStream;
 
     var testStartTime = null;
