@@ -70,9 +70,9 @@ function TaurusReporter(runner, config) {
 
     runner.on("test end", function(test) {
         config.reporterOptions.totalTests++;
-        if (test.state == "failed") {
+        if (test.state === "failed") {
             config.reporterOptions.failedTests++;
-        } else if (test.state == "passed") {
+        } else if (test.state === "passed") {
             config.reporterOptions.passedTests++;
         }
 
