@@ -1,7 +1,6 @@
 var Mocha = require('mocha'),
     fs = require('fs'),
-    path = require('path'),
-    debug = require('debug')('taurus');
+    path = require('path');
 
 function TaurusReporter(runner, config) {
     Mocha.reporters.Base.call(this, runner);
@@ -12,48 +11,45 @@ function TaurusReporter(runner, config) {
     var testStartTime = null;
 
     runner.on('start', function() {
-        debug('start');
+
     });
 
     runner.on('suite', function(suite) {
-        debug('suite');
+
     });
 
     runner.on('suite end', function(suite) {
-        debug('suite end');
+
     });
 
     runner.on('test', function(test) {
-        debug('test');
         testStartTime = epoch();
     });
 
     runner.on('test end', function(test) {
-        debug('test end');
         test.startTime = testStartTime;
         var item = reportItem(test, test.err || {});
         try {
             reportStream.write(JSON.stringify(item) + "\n");
         } catch(err) {
-            debug('error while writing', err);
+            console.log('error while writing', err);
         }
     });
 
     runner.on('pending', function(test) {
-        debug('pending');
         test.state = "pending";
     });
 
     runner.on('pass', function(test) {
-        debug('pass');
+
     });
 
     runner.on('fail', function(test, err) {
-        debug('fail');
+
     });
 
     runner.on('end', function() {
-        debug('end');
+
     });
 };
 
@@ -190,17 +186,14 @@ function runMocha() {
 
 function loopMocha(config, iterations, startTime, done) {
     if (iterations >= config.iterations) {
-        debug('iteration limit reached');
         done();
         return;
     }
     var offset = epoch() - startTime;
     if (config.holdFor > 0 && offset > config.holdFor) {
-        debug('duration limit reached');
         done();
         return;
     }
-    debug('iteration #%s', iterations);
     var engine = prepareMocha(config);
     engine.run(function() {
         loopMocha(config, iterations + 1, startTime, done);

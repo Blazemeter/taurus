@@ -541,7 +541,7 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         self.obj.shutdown()
         self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
         duration = time.time() - self.obj.start_time
-        self.assertGreater(duration, 10)
+        self.assertGreater(duration, 5)
 
     def test_mocha_iterations(self):
         self.obj.engine.config.merge({
