@@ -1,66 +1,19 @@
-var Mocha = require('mocha'),
-    fs = require('fs'),
-    path = require('path');
+var Mocha = require("mocha"),
+    fs = require("fs"),
+    path = require("path");
 
-function TaurusReporter(runner, config) {
-    Mocha.reporters.Base.call(this, runner);
-
-    var self = this;
-    var reportStream = config.reporterOptions.reportStream;
-
-    var testStartTime = null;
-
-    runner.on('start', function() {
-
-    });
-
-    runner.on('suite', function(suite) {
-
-    });
-
-    runner.on('suite end', function(suite) {
-
-    });
-
-    runner.on('test', function(test) {
-        testStartTime = epoch();
-    });
-
-    runner.on('test end', function(test) {
-        test.startTime = testStartTime;
-        var item = reportItem(test, test.err || {});
-        try {
-            reportStream.write(JSON.stringify(item) + "\n");
-        } catch(err) {
-            console.log('error while writing', err);
-        }
-    });
-
-    runner.on('pending', function(test) {
-        test.state = "pending";
-    });
-
-    runner.on('pass', function(test) {
-
-    });
-
-    runner.on('fail', function(test, err) {
-
-    });
-
-    runner.on('end', function() {
-
-    });
-};
+function epoch() {
+    return (new Date()).getTime() / 1000.0;
+}
 
 function reportItem(test, err) {
     // Test properties:
-    // 'title', 'fn', 'body', 'timedOut', 'pending', 'type', 'file',
-    // 'parent', 'ctx', 'callback', 'timer', 'skip', 'duration',
-    // 'state','speed'
+    // "title", "fn", "body", "timedOut", "pending", "type", "file",
+    // "parent", "ctx", "callback", "timer", "skip", "duration",
+    // "state","speed"
 
     // Test methods:
-    // 'isPending', 'retries', 'currentRetry', 'fullTitle',
+    // "isPending", "retries", "currentRetry", "fullTitle",
 
     var stateStatus = {
         "passed": "PASSED",
@@ -82,13 +35,65 @@ function reportItem(test, err) {
     };
 }
 
+function TaurusReporter(runner, config) {
+    Mocha.reporters.Base.call(this, runner);
+
+    var self = this;
+    var reportStream = config.reporterOptions.reportStream;
+
+    var testStartTime = null;
+
+    runner.on("start", function() {
+
+    });
+
+    runner.on("suite", function(suite) {
+
+    });
+
+    runner.on("suite end", function(suite) {
+
+    });
+
+    runner.on("test", function(test) {
+        testStartTime = epoch();
+    });
+
+    runner.on("test end", function(test) {
+        test.startTime = testStartTime;
+        var item = reportItem(test, test.err || {});
+        try {
+            reportStream.write(JSON.stringify(item) + "\n");
+        } catch(err) {
+            process.stdout.write("error while writing: " + err.toString() + "\n");
+        }
+    });
+
+    runner.on("pending", function(test) {
+        test.state = "pending";
+    });
+
+    runner.on("pass", function(test) {
+
+    });
+
+    runner.on("fail", function(test, err) {
+
+    });
+
+    runner.on("end", function() {
+
+    });
+}
+
 function parseCmdline(argv) {
     var options = {iterations: 0, holdFor: 0};
     var args = argv.slice(2);
     while (args) {
         var arg = args.shift();
-        if (!arg)
+        if (!arg) {
             break;
+        }
         switch (arg) {
         case "--report-file":
             options.reportFile = args.shift();
@@ -107,7 +112,7 @@ function parseCmdline(argv) {
             process.exit(0);
             break;
         default:
-            console.log("Unknown argument", arg);
+            process.stdout.write("Unknown argument: %s" + arg.toString() + "\n");
             process.exit(1);
             break;
         }
@@ -125,23 +130,19 @@ function parseCmdline(argv) {
 }
 
 function usage() {
-    console.log("Taurus Mocha Plugin");
-    console.log();
-    console.log("Usage:");
-    console.log("--report-file FILE - path to report file");
-    console.log("--test-suite FILE - path to test suite");
-    console.log("--iterations N - Number of iterations over test suite");
-    console.log("--hold-for N - Duration limit for a test suite");
-}
-
-function epoch() {
-    return (new Date()).getTime() / 1000.0;
+    process.stdout.write("Taurus Mocha Plugin\n");
+    process.stdout.write("\n");
+    process.stdout.write("Usage:\n");
+    process.stdout.write("--report-file FILE - path to report file\n");
+    process.stdout.write("--test-suite FILE - path to test suite\n");
+    process.stdout.write("--iterations N - Number of iterations over test suite\n");
+    process.stdout.write("--hold-for N - Duration limit for a test suite\n");
 }
 
 function prepareMocha(config) {
     // clear 'require' cache to avoid mocha's test rediscovery issues
     // TODO: fix/report?
-    Object.keys(require.cache).forEach(function(key) { delete require.cache[key] })
+    Object.keys(require.cache).forEach(function(key) { delete require.cache[key] });
 
     var engine = new Mocha({
         reporter: TaurusReporter,
@@ -157,14 +158,14 @@ function prepareMocha(config) {
     }
     else if (stat.isDirectory(config.testSuite)) {
         fs.readdirSync(config.testSuite).filter(function(file){
-            return file.substr(-3) === '.js';
+            return file.substr(-3) === ".js";
         }).forEach(function(file){
             engine.addFile(
                 path.join(config.testSuite, file)
             );
         });
     } else {
-        console.log("Error: --test-suite is neither file nor directory");
+        process.stdout.write("Error: --test-suite is neither file nor directory\n");
         process.exit(1);
     }
     return engine;
@@ -173,11 +174,12 @@ function prepareMocha(config) {
 function runMocha() {
     var config = parseCmdline(process.argv);
 
-    config.reportStream = fs.createWriteStream(config.reportFile || 'report.ldjson');
+    config.reportStream = fs.createWriteStream(config.reportFile || "report.ldjson");
 
     var done = function() {
-        if (config.reportStream)
+        if (config.reportStream) {
             config.reportStream.end();
+        }
         process.exit(0);
     }
 
