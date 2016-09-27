@@ -28,7 +28,7 @@ import yaml
 from colorlog import ColoredFormatter
 
 import bzt
-from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown
+from bzt import ManualShutdown, RCProvider, AutomatedShutdown
 from bzt.engine import Engine, Configuration, ScenarioExecutor
 from bzt.six import HTTPError, string_types, b
 from bzt.utils import run_once, is_int, BetterDict, is_windows, is_piped
@@ -154,43 +154,39 @@ class CLI(object):
             self.engine.default_cwd = os.getcwd()
             self.engine.prepare()
             self.engine.run()
-            exit_code = 0
         except BaseException as exc:
             self.log.debug("Caught exception in try: %s", traceback.format_exc())
             if isinstance(exc, ManualShutdown):
                 self.log.info("Interrupted by user: %s", exc)
-            elif isinstance(exc, NormalShutdown):
-                self.log.info("Normal shutdown")
             elif isinstance(exc, AutomatedShutdown):
                 self.log.info("Automated shutdown")
             else:
                 if isinstance(exc, HTTPError):
-                    assert isinstance(exc, HTTPError)
                     self.log.warning("Response from %s: %s", exc.geturl(), exc.read())
                 self.log.error("%s: %s", type(exc).__name__, exc)
-            exit_code = 1
-        finally:
-            try:
-                for fname in overrides + jmx_shorthands:
-                    os.remove(fname)
-                self.engine.post_process()
-            except KeyboardInterrupt as exc:
+
+        try:
+            for fname in overrides + jmx_shorthands:
+                os.remove(fname)
+            self.engine.post_process()
+        except BaseException as exc:
+            if isinstance(exc, KeyboardInterrupt):
                 self.log.debug("Exception: %s", traceback.format_exc())
-                exit_code = 1
-                if isinstance(exc, RCProvider):
-                    exit_code = exc.get_rc()
-            except BaseException as exc:
+            else:
                 self.log.debug("Caught exception in finally: %s", traceback.format_exc())
                 self.log.error("%s: %s", type(exc).__name__, exc)
-                exit_code = 1
-
-        if isinstance(self.engine.stopping_reason, RCProvider):
-            exit_code = self.engine.stopping_reason.get_rc()
 
         self.log.info("Artifacts dir: %s", self.engine.artifacts_dir)
-        if exit_code:
+
+        if self.engine.stopping_reason:
+            if isinstance(self.engine.stopping_reason, RCProvider):
+                exit_code = self.engine.stopping_reason.get_rc()
+            else:
+                exit_code = 1
+
             self.log.warning("Done performing with code: %s", exit_code)
         else:
+            exit_code = 0
             self.log.info("Done performing with code: %s", exit_code)
 
         self.__close_log()

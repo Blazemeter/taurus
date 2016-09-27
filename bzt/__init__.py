@@ -33,15 +33,6 @@ class RCProvider(object):
         pass
 
 
-class NormalShutdown(KeyboardInterrupt, RCProvider):
-    def get_rc(self):
-        """
-        Returns normal rc
-        :return: int
-        """
-        return 0
-
-
 class ManualShutdown(KeyboardInterrupt, RCProvider):
     def get_rc(self):
         """

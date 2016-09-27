@@ -33,7 +33,7 @@ import yaml
 from yaml.representer import SafeRepresenter
 
 import bzt
-from bzt import ManualShutdown, NormalShutdown, get_configs_dir
+from bzt import ManualShutdown, get_configs_dir
 from bzt.six import build_opener, install_opener, urlopen, request, numeric_types, iteritems
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, etree
 from bzt.utils import PIPE, shell_exec, get_full_path
@@ -134,15 +134,24 @@ class Engine(object):
         calls `shutdown` in any case
         """
         self.log.info("Starting...")
+        exception = None
         try:
             self._startup()
             self._wait()
         except BaseException as exc:
-            self.stopping_reason = exc
-            raise
-        finally:
-            self.log.warning("Please wait for graceful shutdown...")
+            exception = exc
+
+        self.log.warning("Please wait for graceful shutdown...")
+        try:
             self._shutdown()
+        except BaseException as exc:
+            if not exception:
+                exception = exc
+
+        if exception:
+            if not self.stopping_reason:
+                self.stopping_reason = exception
+            raise exception
 
     def _check_modules_list(self):
         finished = False
@@ -187,12 +196,13 @@ class Engine(object):
                     module.shutdown()
             except BaseException as exc:
                 self.log.error("Error while shutting down: %s", traceback.format_exc())
-                self.stopping_reason = exc if not self.stopping_reason else self.stopping_reason
                 if not exception:
                     exception = exc
 
         self.config.dump()
         if exception:
+            if not self.stopping_reason:
+                self.stopping_reason = exception
             raise exception
 
     def post_process(self):
@@ -200,33 +210,28 @@ class Engine(object):
         Do post-run analysis and processing for the results.
         """
         self.log.info("Post-processing...")
-        # :type exception: BaseException
         exception = None
         modules = [self.provisioning, self.aggregator] + self.reporters + self.services
         for module in modules:
             try:
                 if module in self.prepared:
                     module.post_process()
-            except KeyboardInterrupt as exc:
-                self.log.error("Shutdown: %s", exc)
-                self.stopping_reason = exc if not self.stopping_reason else self.stopping_reason
-                if not exception:
-                    exception = exc
             except BaseException as exc:
-                self.log.error("Error while post-processing: %s", traceback.format_exc())
-                self.stopping_reason = exc if not self.stopping_reason else self.stopping_reason
                 if not exception:
                     exception = exc
+                if isinstance(exc, KeyboardInterrupt):
+                    self.log.error("Shutdown: %s", exc)
+                else:
+                    self.log.error("Error while post-processing: %s", traceback.format_exc())
+
         self.config.dump()
 
         if exception:
             self.log.debug("Exception in post-process: %s", exception)
-            self.stopping_reason = exception if not self.stopping_reason else self.stopping_reason
-
-        if isinstance(exception, KeyboardInterrupt):
-            raise exception
-        elif exception:
-            self.log.warning("Failed post-processing")
+            if not self.stopping_reason:
+                self.stopping_reason = exception
+            if not isinstance(exception, KeyboardInterrupt):
+                self.log.warning("Failed post-processing")
             raise exception
 
     def create_artifact(self, prefix, suffix):
