@@ -208,11 +208,17 @@ Note: SeleniumExecutor uses shared virtual display for all executions.
 By default Taurus tries to automatically detect the language tests are written in. If autodetection fails - you can enforce specific
 language with `language` execution-level option.
 
+Supported values:
+- `python-nose` - nosetests-based Python tests
+- `java-junit` - JUnit-based Java tests
+- `ruby-rspec` - RSpec-based Ruby tests
+- `js-mocha` - Mocha-based JavaScript tests
+
 ```yaml
 ---
 execution:
 - executor: selenium
-  language: python-nose  # valid values: python-nose, java-junit, ruby-rspec
+  language: python-nose
   scenario:
     script: tests/
 ```
