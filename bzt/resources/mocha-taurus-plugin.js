@@ -86,6 +86,16 @@ function TaurusReporter(runner, config) {
     });
 }
 
+function usage() {
+    process.stdout.write("Taurus Mocha Plugin\n");
+    process.stdout.write("\n");
+    process.stdout.write("Usage:\n");
+    process.stdout.write("--report-file FILE - path to report file\n");
+    process.stdout.write("--test-suite FILE - path to test suite\n");
+    process.stdout.write("--iterations N - Number of iterations over test suite\n");
+    process.stdout.write("--hold-for N - Duration limit for a test suite\n");
+}
+
 function parseCmdline(argv) {
     var options = {iterations: 0, holdFor: 0};
     var args = argv.slice(2);
@@ -118,7 +128,7 @@ function parseCmdline(argv) {
         }
     }
 
-    if (options.iterations == 0) {
+    if (options.iterations === 0) {
         if (options.holdFor > 0) {
             options.iterations = Infinity;
         } else {
@@ -129,20 +139,10 @@ function parseCmdline(argv) {
     return options;
 }
 
-function usage() {
-    process.stdout.write("Taurus Mocha Plugin\n");
-    process.stdout.write("\n");
-    process.stdout.write("Usage:\n");
-    process.stdout.write("--report-file FILE - path to report file\n");
-    process.stdout.write("--test-suite FILE - path to test suite\n");
-    process.stdout.write("--iterations N - Number of iterations over test suite\n");
-    process.stdout.write("--hold-for N - Duration limit for a test suite\n");
-}
-
 function prepareMocha(config) {
     // clear 'require' cache to avoid mocha's test rediscovery issues
     // TODO: fix/report?
-    Object.keys(require.cache).forEach(function(key) { delete require.cache[key] });
+    Object.keys(require.cache).forEach(function(key) { delete require.cache[key]; });
 
     var engine = new Mocha({
         reporter: TaurusReporter,
@@ -171,21 +171,6 @@ function prepareMocha(config) {
     return engine;
 }
 
-function runMocha() {
-    var config = parseCmdline(process.argv);
-
-    config.reportStream = fs.createWriteStream(config.reportFile || "report.ldjson");
-
-    var done = function() {
-        if (config.reportStream) {
-            config.reportStream.end();
-        }
-        process.exit(0);
-    }
-
-    loopMocha(config, 0, epoch(), done);
-}
-
 function loopMocha(config, iterations, startTime, done) {
     if (iterations >= config.iterations) {
         done();
@@ -200,6 +185,21 @@ function loopMocha(config, iterations, startTime, done) {
     engine.run(function() {
         loopMocha(config, iterations + 1, startTime, done);
     });
+}
+
+function runMocha() {
+    var config = parseCmdline(process.argv);
+
+    config.reportStream = fs.createWriteStream(config.reportFile || "report.ldjson");
+
+    var done = function() {
+        if (config.reportStream) {
+            config.reportStream.end();
+        }
+        process.exit(0);
+    };
+
+    loopMocha(config, 0, epoch(), done);
 }
 
 if (require.main === module) {
