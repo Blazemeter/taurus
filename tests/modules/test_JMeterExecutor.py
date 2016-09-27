@@ -872,6 +872,7 @@ class TestJMeterExecutor(BZTestCase):
 
     def test_ok_with_results(self):
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/dummy.jmx"}})
+        self.obj.engine.aggregator = ConsolidatingAggregator()
         self.obj.prepare()
         self.obj.engine.prepared = [self.obj]
         self.obj.engine.started = [self.obj]
