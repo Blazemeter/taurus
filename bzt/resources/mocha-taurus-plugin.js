@@ -7,12 +7,12 @@ function TaurusReporter(runner, config) {
     Mocha.reporters.Base.call(this, runner);
 
     var self = this;
-    var reportStream = null;
+    var reportStream = config.reporterOptions.reportStream;
 
     var testStartTime = null;
 
     runner.on('start', function() {
-        reportStream = fs.createWriteStream(config.reportFile || 'report.ldjson', { 'flags': 'a' });
+        debug('start');
     });
 
     runner.on('suite', function(suite) {
@@ -24,6 +24,7 @@ function TaurusReporter(runner, config) {
     });
 
     runner.on('test', function(test) {
+        debug('test');
         testStartTime = epoch();
     });
 
@@ -31,24 +32,28 @@ function TaurusReporter(runner, config) {
         debug('test end');
         test.startTime = testStartTime;
         var item = reportItem(test, test.err || {});
-        reportStream.write(JSON.stringify(item) + "\n");
+        try {
+            reportStream.write(JSON.stringify(item) + "\n");
+        } catch(err) {
+            debug('error while writing', err);
+        }
     });
 
     runner.on('pending', function(test) {
+        debug('pending');
         test.state = "pending";
     });
 
     runner.on('pass', function(test) {
-
+        debug('pass');
     });
 
     runner.on('fail', function(test, err) {
-
+        debug('fail');
     });
 
     runner.on('end', function() {
-        if (reportStream)
-            reportStream.end();
+        debug('end');
     });
 };
 
@@ -144,10 +149,8 @@ function prepareMocha(config) {
 
     var engine = new Mocha({
         reporter: TaurusReporter,
-        bail: false,
-
         reporterOptions: {
-            reportFile: config.reportFile
+            reportStream: config.reportStream
         }
     });
 
@@ -174,10 +177,15 @@ function prepareMocha(config) {
 function runMocha() {
     var config = parseCmdline(process.argv);
 
-    if (fs.existsSync(config.reportFile))
-        fs.unlinkSync(config.reportFile);
+    config.reportStream = fs.createWriteStream(config.reportFile || 'report.ldjson');
 
-    loopMocha(config, 0, epoch(), function() { process.exit(0); });
+    var done = function() {
+        if (config.reportStream)
+            config.reportStream.end();
+        process.exit(0);
+    }
+
+    loopMocha(config, 0, epoch(), done);
 }
 
 function loopMocha(config, iterations, startTime, done) {
