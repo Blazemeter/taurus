@@ -1,57 +1,60 @@
-var mocha = require('mocha'),
+var Mocha = require('mocha'),
     fs = require('fs'),
     path = require('path');
 
-function createReporter(config) {
-    function TaurusReporter(runner) {
-        mocha.reporters.Base.call(this, runner);
+function TaurusReporter(runner, config) {
+    console.log("creating reporter");
+    Mocha.reporters.Base.call(this, runner);
 
-        var self = this;
-        var total = runner.total;
-        var reportFile = null;
-        var suiteStack = [];
-        var testStartTime = null;
+    var self = this;
+    var reportStream = null;
 
-        runner.on('start', function() {
-            reportFile = fs.createWriteStream(config.reportFile || 'report.ldjson');
-        });
+    var testStartTime = null;
 
-        runner.on('suite', function(suite) {
-            suiteStack.push(suite);
-        });
+    runner.on('start', function() {
+        console.log('start');
+        reportStream = fs.createWriteStream(config.reportFile || 'report.ldjson');
+    });
 
-        runner.on('suite end', function(suite) {
-            suiteStack.pop();
-        });
+    runner.on('suite', function(suite) {
+        console.log('suite');
+    });
 
-        runner.on('test', function(test) {
-            testStartTime = (new Date()).getTime() / 1000.0;
-        });
+    runner.on('suite end', function(suite) {
+        console.log('suite end');
+    });
 
-        runner.on('test end', function(test) {
-            test.startTime = testStartTime;
-            if (!test.duration)
-                test.duration = 0.0;
-            reportFile.write(JSON.stringify(reportItem(test, test.err || {})) + "\n");
-        });
+    runner.on('test', function(test) {
+        console.log('test');
+        testStartTime = epoch();
+    });
 
-        runner.on('pending', function(test) {
-            test.state = "pending";
-        });
+    runner.on('test end', function(test) {
+        console.log('test end');
+        test.startTime = testStartTime;
+        if (!test.duration)
+            test.duration = 0.0;
+        var item = reportItem(test, test.err || {});
+        reportStream.write(JSON.stringify(item) + "\n");
+    });
 
-        runner.on('pass', function(test) {
+    runner.on('pending', function(test) {
+        console.log('pending');
+        test.state = "pending";
+    });
 
-        });
+    runner.on('pass', function(test) {
+        console.log('pass');
+    });
 
-        runner.on('fail', function(test, err) {
+    runner.on('fail', function(test, err) {
+        console.log('fail');
+    });
 
-        });
-
-        runner.on('end', function() {
-            reportFile.end();
-        });
-    };
-    return TaurusReporter;
+    runner.on('end', function() {
+        console.log('end');
+        reportStream && reportStream.end();
+    });
 };
 
 function parseCmdline(argv) {
@@ -106,6 +109,10 @@ function usage() {
     console.log("--hold-for N - Duration limit for a test suite");
 }
 
+function epoch() {
+    return (new Date()).getTime() / 1000.0;
+}
+
 function reportItem(test, err) {
     // Test properties:
     // 'title', 'fn', 'body', 'timedOut', 'pending', 'type', 'file',
@@ -135,11 +142,12 @@ function reportItem(test, err) {
     };
 }
 
-function runMocha() {
-    config = parseCmdline(process.argv);
-
-    var engine = new mocha({
-        reporter: createReporter(config)
+function prepareMocha(config) {
+    var engine = new Mocha({
+        reporter: TaurusReporter,
+        reporterOptions: {
+            reportFile: config.reportFile
+        }
     });
 
     var stat = fs.statSync(config.testSuite);
@@ -150,22 +158,39 @@ function runMocha() {
         fs.readdirSync(config.testSuite).filter(function(file){
             return file.substr(-3) === '.js';
         }).forEach(function(file){
+            console.log('adding test suite file', file);
             engine.addFile(
                 path.join(config.testSuite, file)
             );
         });
-    } else
-        console.log("Error: --test-suite is neither file nor directory.");
-
-    var startTime = (new Date()).getTime() / 1000.0;
-    var iterations = options.iterations;
-    while (iterations > 0) {
-        engine.run();
-        var offset = (new Date()).getTime() / 1000.0 - startTime;
-        if (config.holdFor > 0 && offset > config.holdFor)
-            break;
-        iterations -= 1;
+    } else {
+        console.log("Error: --test-suite is neither file nor directory");
+        process.exit(1);
     }
+    return engine;
+}
+
+function runMocha() {
+    var config = parseCmdline(process.argv);
+    loopMocha(config, 0, epoch());
+}
+
+function loopMocha(config, iterations, startTime) {
+    console.log(epoch(), config, iterations);
+    if (iterations >= config.iterations) {
+        console.log(epoch(), "iteration limit reached");
+        return;
+    }
+    var offset = epoch() - startTime;
+    if (config.holdFor > 0 && offset > config.holdFor) {
+        console.log(epoch(), "duration limit reached");
+        return;
+    }
+    var engine = prepareMocha(config);
+    console.log(engine);
+    engine.run(function() {
+        loopMocha(config, iterations + 1, startTime);
+    });
 }
 
 if (require.main === module) {
