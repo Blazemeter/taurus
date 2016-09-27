@@ -890,7 +890,8 @@ class Mocha(RequiredTool):
 
     def check_if_installed(self):
         try:
-            output = subprocess.check_output(["mocha", '--version'], stderr=subprocess.STDOUT)
+            output = subprocess.check_output(["node", '-e', "require('mocha'); console.log('mocha is installed');"],
+                                             stderr=subprocess.STDOUT)
             self.log.debug("%s output: %s", self.tool_name, output)
             return True
         except BaseException:

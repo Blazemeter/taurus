@@ -12,7 +12,7 @@ before_install:
   - pip install codecov
 install:
 - gem install rspec
-- npm install -g mocha
+- npm install mocha
 - pip install colorlog pyyaml psutil lxml cssselect urwid six selenium progressbar33 locustio pyvirtualdisplay
 script: coverage run `which nosetests`
 after_success:
