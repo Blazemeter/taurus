@@ -25,11 +25,8 @@ test.describe('Site verification', function() {
         });
     });
 
-    test.xit("reserve.php opens", function () {
+    test.it("reserve.php opens", function () {
         driver.get(blazedemo.homePage() + blazedemo.reserve());
     });
 
-    test.it("this test is broken", function () {
-       assert.equal(2 + 2 * 2, 8);
-    });
 });
