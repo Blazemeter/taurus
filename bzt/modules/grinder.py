@@ -52,6 +52,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.retcode = None
         self.stdout_file = None
         self.stderr_file = None
+        self.name = 'Grinder'
 
     def __write_base_props(self, fds):
         """

@@ -152,10 +152,34 @@ class CLI(object):
 
             self.engine.create_artifacts_dir(configs, merged_config)
             self.engine.default_cwd = os.getcwd()
+        except BaseException:
+            self.log.debug("Caught exception: %s", traceback.format_exc())
+            exit_code = 1
+        else:
+            exit_code = self.__run_engine()
+
+        try:
+            for fname in overrides + jmx_shorthands:
+                os.remove(fname)
+            self.__close_log()
+        except BaseException:
+            self.log.debug("Caught exception: %s", traceback.format_exc())
+            if not exit_code:
+                exit_code = 1
+
+        if exit_code:
+            self.log.warning("Done performing with code: %s", exit_code)
+        else:
+            self.log.info("Done performing with code: %s", exit_code)
+
+        return exit_code
+
+    def __run_engine(self):
+        try:
             self.engine.prepare()
             self.engine.run()
         except BaseException as exc:
-            self.log.debug("Caught exception in try: %s", traceback.format_exc())
+            self.log.debug("Caught exception: %s", traceback.format_exc())
             if isinstance(exc, ManualShutdown):
                 self.log.info("Interrupted by user: %s", exc)
             elif isinstance(exc, AutomatedShutdown):
@@ -166,8 +190,6 @@ class CLI(object):
                 self.log.error("%s: %s", type(exc).__name__, exc)
 
         try:
-            for fname in overrides + jmx_shorthands:
-                os.remove(fname)
             self.engine.post_process()
         except BaseException as exc:
             if isinstance(exc, KeyboardInterrupt):
@@ -180,18 +202,11 @@ class CLI(object):
 
         if self.engine.stopping_reason:
             if isinstance(self.engine.stopping_reason, RCProvider):
-                exit_code = self.engine.stopping_reason.get_rc()
+                return self.engine.stopping_reason.get_rc()
             else:
-                exit_code = 1
-
-            self.log.warning("Done performing with code: %s", exit_code)
+                return 1
         else:
-            exit_code = 0
-            self.log.info("Done performing with code: %s", exit_code)
-
-        self.__close_log()
-
-        return exit_code
+            return 0
 
     def __get_jmx_shorthands(self, configs):
         """

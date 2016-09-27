@@ -806,8 +806,9 @@ class ScenarioExecutor(EngineModule):
         self.__scenario = None
         self.label = None
         self.widget = None
-        self.no_results = False
+        self.no_results = True
         self.reader = None
+        self.name = "ScenarioExecutor"
 
     def get_script_path(self, scenario=None):
         """

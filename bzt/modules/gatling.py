@@ -176,6 +176,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.dir_prefix = ''
         self.launcher = None
         self.jar_list = ''
+        self.name = 'Gatling'
 
     def __build_launcher(self):
         modified_launcher = self.engine.create_artifact('gatling-launcher', EXE_SUFFIX)

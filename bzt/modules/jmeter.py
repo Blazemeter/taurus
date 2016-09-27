@@ -78,6 +78,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.management_port = None
         self._env = {}
         self.resource_files_collector = None
+        self.name = 'JMeter'
 
     def prepare(self):
         """

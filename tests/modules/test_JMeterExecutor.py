@@ -860,12 +860,27 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(values.get('HTTP Request')[0].get("msg"), "failed_resource_message")
 
     def test_fail_on_zero_results(self):
-        self.obj.engine.aggregator = ConsolidatingAggregator()
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/dummy.jmx"}})
         self.obj.prepare()
-        self.obj.startup()
-        self.obj.shutdown()
-        self.assertRaises(RuntimeWarning, self.obj.post_process)
+        self.obj.engine.prepared = [self.obj]
+        self.obj.engine.started = [self.obj]
+        prov = Local()
+        prov.engine = self.obj.engine
+        prov.executors = [self.obj]
+        self.obj.engine.provisioning = prov
+        self.assertRaises(RuntimeWarning, self.obj.engine.provisioning.post_process)
+
+    def test_ok_with_results(self):
+        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/dummy.jmx"}})
+        self.obj.prepare()
+        self.obj.engine.prepared = [self.obj]
+        self.obj.engine.started = [self.obj]
+        prov = Local()
+        prov.engine = self.obj.engine
+        prov.executors = [self.obj]
+        self.obj.engine.provisioning = prov
+        self.obj.reader.buffer = ['some info']
+        self.obj.engine.provisioning.post_process()
 
     def test_convert_tgroups_no_load(self):
         self.obj.execution.merge({

@@ -75,6 +75,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.self_generated_script = False
         self.generated_methods = BetterDict()
         self.runner_working_dir = None
+        self.name = 'Selenium'
 
     def set_virtual_display(self):
         display_conf = self.settings.get("virtual-display")

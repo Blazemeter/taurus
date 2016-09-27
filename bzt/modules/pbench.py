@@ -130,6 +130,7 @@ class PBenchTool(object):
         self.hostname = 'localhost'
         self.port = 80
         self._target = {"scheme": None, "netloc": None}
+        self.name = 'PBench'
 
     def generate_config(self, scenario, load, hostaliases):
         self.kpi_file = self.engine.create_artifact("pbench-kpi", ".txt")

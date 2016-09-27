@@ -9,6 +9,7 @@ import yaml
 from bzt.engine import ScenarioExecutor
 from bzt.modules.selenium import SeleniumExecutor, JUnitJar, LoadSamplesReader, LDJSONReader, FuncSamplesReader
 from bzt.modules.selenium import NoseTester
+from bzt.modules.provisioning import Local
 from bzt.six import StringIO
 from tests import BZTestCase, local_paths_config, __dir__
 from tests.mocks import EngineEmul
@@ -506,7 +507,13 @@ class TestSeleniumStuff(SeleniumTestCase):
     def test_fail_on_zero_results(self):
         self.configure(yaml.load(open(__dir__() + "/../yaml/selenium_executor_requests.yml").read()))
         self.obj.prepare()
-        self.assertRaises(RuntimeWarning, self.obj.post_process)
+        self.obj.engine.prepared = [self.obj]
+        self.obj.engine.started = [self.obj]
+        prov = Local()
+        prov.engine = self.obj.engine
+        prov.executors = [self.obj]
+        self.obj.engine.provisioning = prov
+        self.assertRaises(RuntimeWarning, self.obj.engine.provisioning.post_process)
 
     def test_junit_mirrors(self):
         dummy_installation_path = __dir__() + "/../../build/tmp/selenium-taurus"

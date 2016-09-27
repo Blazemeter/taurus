@@ -42,6 +42,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.expected_slaves = 0
         self.scenario = None
         self.script = None
+        self.name = 'LocustIO'
 
     def prepare(self):
         self.__check_installed()
