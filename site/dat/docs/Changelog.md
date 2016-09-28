@@ -14,6 +14,7 @@
  - add RSpec tests runner for Selenium
  - add Mocha-based tests runner for Selenium
  - fix artifact upload in the cloud
+ - introduce `check-interval` option for cloud provisioning
 
 ## 1.6.8 <sup>1 sep 2016</sup>
  - fix hamcrest installation for Java-based Selenium tests
