@@ -1,25 +1,29 @@
-FROM ubuntu:14.04
-RUN apt-get -y update \
-  && apt-get -y --force-yes install --no-install-recommends \
-    gcc \
-    libxslt1-dev \
-    zlib1g-dev \
-    python-dev \
-    python-pip \
-    default-jre-headless \
-    xvfb \
-    libyaml-dev \
-    siege \
-  && pip install bzt==1.6.5 \
-  && echo '{"install-id": "Docker"}' > /etc/bzt.d/99-zinstallID.json \
-  && echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json \
-  && echo '{"modules": {"console": {"disable": true}}}' > /etc/bzt.d/90-no-console.json \
+# 1: Start off from the OpenJDK JRE Alpine image:
+FROM openjdk:jre-alpine
+
+# 2: Install runtime dependencies:
+RUN set -ex \
+  && apk add --no-cache --virtual .app-rundeps python xvfb py-pip libxslt zlib libxml2
+
+# 3: Install build dependencies and build/install bzt:
+RUN set -ex \
+  && export BZT_VERSION=1.6.8 \
+  && apk add --no-cache --virtual .app-builddeps build-base linux-headers python-dev libxslt-dev zlib-dev libxml2-dev \
+  && pip install bzt==${BZT_VERSION} \
+  && mkdir -p /tmp/artifacts \
   && bzt -o settings.default-executor=jmeter \
     -o execution.scenario.requests.0=http://localhost/ \
     -o execution.iterations=1 -o execution.hold-for=1 \
     -o execution.throughput=1 \
+    -o settings.artifacts-dir=/tmp/artifacts \
+    -o modules.console.disable=true \
+    -l /tmp/artifacts/bzt.log \
   && mkdir /bzt-configs \
-  && rm -rf /var/lib/apt/lists/*
+  && apk del .app-builddeps \
+  && rm -rf /tmp/*
 
+# 4: Set the working directory:
 WORKDIR /bzt-configs
-CMD bzt -l /tmp/artifacts/bzt.log /bzt-configs/*.yml
+
+# 5: Set the default command:
+CMD bzt -l /tmp/artifacts/bzt.log -o settings.artifacts-dir=/tmp/artifacts /bzt-configs/*.yml
