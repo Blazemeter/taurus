@@ -1861,9 +1861,11 @@ class CloudProvWidget(Pile, PrioritizedWidget):
 
 class ServiceStubScreenshoter(Service):
     def prepare(self):
-        self.log.warning("Stub for service 'screenshoter', use cloud provisioning to have it working")
+        if not isinstance(self.engine.provisioning, CloudProvisioning):
+            self.log.warning("Stub for service 'screenshoter', use cloud provisioning to have it working")
 
 
 class ServiceStubCaptureHAR(Service):
     def prepare(self):
-        self.log.warning("Stub for service 'capturehar', use cloud provisioning to have it working")
+        if not isinstance(self.engine.provisioning, CloudProvisioning):
+            self.log.warning("Stub for service 'capturehar', use cloud provisioning to have it working")
