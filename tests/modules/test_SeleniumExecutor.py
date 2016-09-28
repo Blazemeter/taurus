@@ -487,6 +487,88 @@ class TestSeleniumRSpecRunner(SeleniumTestCase):
         self.assertEqual(len(lines), 48)
 
 
+@unittest.skipIf(is_windows(), "Don't test Mocha on Windows")
+class TestSeleniumMochaRunner(SeleniumTestCase):
+    def test_selenium_prepare_mocha(self):
+        self.obj.execution.merge({"scenario": {
+            "script": __dir__() + "/../selenium/js-mocha/bd_scenarios.js"
+        }})
+        self.obj.prepare()
+
+    def test_mocha_full(self):
+        self.obj.engine.config.merge({
+            'execution': {
+                "script": __dir__() + "/../selenium/js-mocha/bd_scenarios.js"
+            },
+        })
+        self.obj.engine.config.merge({"provisioning": "local"})
+        self.obj.execution = self.obj.engine.config['execution']
+
+        self.obj.execution.merge({"scenario": {
+            "script": __dir__() + "/../selenium/js-mocha/bd_scenarios.js"
+        }})
+
+        self.obj.settings.merge(self.obj.engine.config.get("modules").get("selenium"))
+        self.obj.prepare()
+        self.obj.startup()
+        while not self.obj.check():
+            time.sleep(1)
+        self.obj.shutdown()
+        self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
+        lines = open(self.obj.runner.settings.get("report-file")).readlines()
+        self.assertEqual(len(lines), 3)
+
+    def test_mocha_hold(self):
+        self.obj.engine.config.merge({
+            'execution': {
+                'hold-for': '5s',
+                'scenario': {'script': __dir__() + '/../selenium/js-mocha/'},
+                'executor': 'selenium'
+            },
+        })
+        self.obj.engine.config.merge({"provisioning": "local"})
+        self.obj.execution = self.obj.engine.config['execution']
+
+        self.obj.execution.merge({"scenario": {
+            "script": __dir__() + "/../selenium/js-mocha/"
+        }})
+
+        self.obj.settings.merge(self.obj.engine.config.get("modules").get("selenium"))
+        self.obj.prepare()
+        self.obj.startup()
+        while not self.obj.check():
+            time.sleep(1)
+        self.obj.shutdown()
+        self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
+        duration = time.time() - self.obj.start_time
+        self.assertGreater(duration, 5)
+
+    def test_mocha_iterations(self):
+        self.obj.engine.config.merge({
+            'execution': {
+                'iterations': 3,
+                'scenario': {'script': __dir__() + '/../selenium/js-mocha'},
+                'executor': 'selenium'
+            },
+        })
+        self.obj.engine.config.merge({"provisioning": "local"})
+        self.obj.execution = self.obj.engine.config['execution']
+
+        self.obj.execution.merge({"scenario": {
+            "script": __dir__() + "/../selenium/js-mocha"
+        }})
+
+        self.obj.settings.merge(self.obj.engine.config.get("modules").get("selenium"))
+        self.obj.prepare()
+        self.obj.startup()
+        while not self.obj.check():
+            time.sleep(1)
+        self.obj.shutdown()
+        self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
+        lines = open(self.obj.runner.settings.get("report-file")).readlines()
+        self.assertEqual(len(lines), 9)
+
+
 class LDJSONReaderEmul(object):
     def __init__(self):
         self.data = []
