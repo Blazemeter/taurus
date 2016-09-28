@@ -1749,7 +1749,6 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             return True
 
     def check(self):
-        # TODO: throttle down requests
         if self.detach:
             self.log.warning('Detaching Taurus from started test...')
             return True
