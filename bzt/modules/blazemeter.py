@@ -618,9 +618,6 @@ class ProjectFinder(object):
 
 
 class BaseCloudTest(object):
-    LOC = "locations"
-    LOC_WEIGHTED = "locations-weighted"
-
     def __init__(self, parameters, settings, client, project_id, test_name, parent_log):
         self.default_test_name = "Taurus Test"
         self.client = client
@@ -662,17 +659,17 @@ class CloudTaurusTest(BaseCloudTest):
     def prepare_locations(self, executors, engine_config):
         available_locations = self._get_available_locations()
 
-        if self.LOC in engine_config:
+        if CloudProvisioning.LOC in engine_config:
             self.log.warning("Test type 'cloud-test' doesn't support global locations")
 
         for executor in executors:
-            if self.LOC in executor.execution:
-                exec_locations = executor.execution[self.LOC]
+            if CloudProvisioning.LOC in executor.execution:
+                exec_locations = executor.execution[CloudProvisioning.LOC]
                 self._check_locations(exec_locations, available_locations)
             else:
                 default_loc = self._get_default_location(available_locations)
-                executor.execution[self.LOC] = BetterDict()
-                executor.execution[self.LOC].merge({default_loc: 1})
+                executor.execution[CloudProvisioning.LOC] = BetterDict()
+                executor.execution[CloudProvisioning.LOC].merge({default_loc: 1})
 
             executor.get_load()  # we need it to resolve load settings into full form
 
@@ -716,7 +713,9 @@ class CloudTaurusTest(BaseCloudTest):
             execution[ScenarioExecutor.THRPT] = execution.get(ScenarioExecutor.THRPT).get(provisioning, None)
 
         for key in list(config.keys()):
-            if key not in ("scenarios", ScenarioExecutor.EXEC, Service.SERV, self.LOC, self.LOC_WEIGHTED):
+            fields = ("scenarios", ScenarioExecutor.EXEC, Service.SERV,
+                      CloudProvisioning.LOC, CloudProvisioning.LOC_WEIGHTED)
+            if key not in fields:
                 config.pop(key)
             elif not config[key]:
                 config.pop(key)
@@ -790,24 +789,24 @@ class CloudCollectionTest(BaseCloudTest):
     def prepare_locations(self, executors, engine_config):
         available_locations = self.client.get_available_locations()
 
-        global_locations = engine_config.get(self.LOC, BetterDict())
+        global_locations = engine_config.get(CloudProvisioning.LOC, BetterDict())
         self._check_locations(global_locations, available_locations)
 
         for executor in executors:
-            if self.LOC in executor.execution:
-                exec_locations = executor.execution[self.LOC]
+            if CloudProvisioning.LOC in executor.execution:
+                exec_locations = executor.execution[CloudProvisioning.LOC]
                 self._check_locations(exec_locations, available_locations)
             else:
                 if not global_locations:
                     default_loc = self._get_default_location(available_locations)
-                    executor.execution[self.LOC] = BetterDict()
-                    executor.execution[self.LOC].merge({default_loc: 1})
+                    executor.execution[CloudProvisioning.LOC] = BetterDict()
+                    executor.execution[CloudProvisioning.LOC].merge({default_loc: 1})
 
             executor.get_load()  # we need it to resolve load settings into full form
 
-        if global_locations and all(self.LOC in executor.execution for executor in executors):
+        if global_locations and all(CloudProvisioning.LOC in executor.execution for executor in executors):
             self.log.warning("Each execution has locations specified, global locations won't have any effect")
-            engine_config.pop(self.LOC)
+            engine_config.pop(CloudProvisioning.LOC)
 
     def _get_default_location(self, available_locations):
         def_loc = self.settings.get("default-location", None)
@@ -842,7 +841,9 @@ class CloudCollectionTest(BaseCloudTest):
             execution[ScenarioExecutor.THRPT] = execution.get(ScenarioExecutor.THRPT).get(provisioning, None)
 
         for key in list(config.keys()):
-            if key not in ("scenarios", ScenarioExecutor.EXEC, Service.SERV, self.LOC, self.LOC_WEIGHTED):
+            fields = ("scenarios", ScenarioExecutor.EXEC, Service.SERV,
+                      CloudProvisioning.LOC, CloudProvisioning.LOC_WEIGHTED)
+            if key not in fields:
                 config.pop(key)
             elif not config[key]:
                 config.pop(key)
@@ -1621,6 +1622,9 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
     :type results_reader: ResultsFromBZA
     :type test: BaseCloudTest
     """
+
+    LOC = "locations"
+    LOC_WEIGHTED = "locations-weighted"
 
     def __init__(self):
         super(CloudProvisioning, self).__init__()
