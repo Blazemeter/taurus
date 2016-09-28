@@ -28,9 +28,9 @@ import yaml
 from colorlog import ColoredFormatter
 
 import bzt
-from bzt import ManualShutdown, RCProvider, AutomatedShutdown
+from bzt import ManualShutdown, RCProvider
 from bzt.engine import Engine, Configuration, ScenarioExecutor
-from bzt.six import HTTPError, string_types, b
+from bzt.six import string_types, b
 from bzt.utils import run_once, is_int, BetterDict, is_windows, is_piped
 
 
@@ -152,53 +152,39 @@ class CLI(object):
 
             self.engine.create_artifacts_dir(configs, merged_config)
             self.engine.default_cwd = os.getcwd()
-        except BaseException:
+        except BaseException as exc:
             exit_code = 1
-            self.log.debug("Caught exception: %s", traceback.format_exc())
+            self.engine.log_exception(exc, 'Configs treating: caught exception')
         else:
-            exit_code = self.__run_engine()
+            exit_code = self.__run_engine()     # run engine if preparing has finished successfully
 
         try:
             for fname in overrides + jmx_shorthands:
                 os.remove(fname)
-            self.__close_log()
-        except BaseException:
+        except BaseException as exc:
             if not exit_code:
                 exit_code = 1
-            self.log.debug("Caught exception: %s", traceback.format_exc())
+                self.engine.log_exception(exc, 'Removing jmx shorthands and overrides: caught exception')
 
         if exit_code:
             self.log.warning("Done performing with code: %s", exit_code)
         else:
             self.log.info("Done performing with code: %s", exit_code)
 
+        self.__close_log()
         return exit_code
 
     def __run_engine(self):
         try:
             self.engine.prepare()
             self.engine.run()
-        except BaseException as exc:
-
-            self.log.debug("Caught exception: %s", traceback.format_exc())
-            if isinstance(exc, ManualShutdown):
-                self.log.info("Interrupted by user: %s", exc)
-            elif isinstance(exc, AutomatedShutdown):
-                self.log.info("Automated shutdown")
-            else:
-                if isinstance(exc, HTTPError):
-                    self.log.warning("Response from %s: %s", exc.geturl(), exc.read())
-                self.log.error("%s: %s", type(exc).__name__, exc)
+        except BaseException:   # skip run() if engine is not prepared
+            pass
 
         try:
             self.engine.post_process()
-        except BaseException as exc:
-            if not self.engine.stopping_reason:
-                if isinstance(exc, KeyboardInterrupt):
-                    self.log.debug("Exception: %s", traceback.format_exc())
-                else:
-                    self.log.debug("Caught exception in finally: %s", traceback.format_exc())
-                    self.log.error("%s: %s", type(exc).__name__, exc)
+        except BaseException:
+            pass
 
         self.log.info("Artifacts dir: %s", self.engine.artifacts_dir)
 

@@ -33,9 +33,9 @@ import yaml
 from yaml.representer import SafeRepresenter
 
 import bzt
-from bzt import ManualShutdown, get_configs_dir
+from bzt import ManualShutdown, get_configs_dir, AutomatedShutdown
 from bzt.six import build_opener, install_opener, urlopen, request, numeric_types, iteritems
-from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, etree
+from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, etree, HTTPError
 from bzt.utils import PIPE, shell_exec, get_full_path
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time
 
@@ -77,6 +77,35 @@ class Engine(object):
         self.started = []
         self.default_cwd = None
 
+    def log_exception(self, exc=None, message='', level=logging.ERROR, always=False, trace=None, log=None):
+        if not log:
+            log = self.log
+
+        if trace is None:
+            trace = not always  # short log for many messages and long for one by default
+
+        if always or not self.stopping_reason:
+            if message:
+                if exc:
+                    message += " %s" % exc
+                log.log(level, message)
+            else:
+                if isinstance(exc, ManualShutdown):
+                    log.log(logging.INFO, "Interrupted by user: %s" % exc)
+                    trace = False
+                elif isinstance(exc, AutomatedShutdown):
+                    log.log(logging.INFO, "Automated shutdown")
+                    trace = False
+                else:
+                    if isinstance(exc, HTTPError):
+                        log.log(logging.WARNING, "Response from %s: %s" % (exc.geturl(), exc.read()))
+                        trace = False
+                    log.log(level, "%s: %s" % (type(exc).__name__, exc))
+            if trace:
+                log.log(level, '\n'+''.join(traceback.format_stack()[:-2]))
+        if not self.stopping_reason and exc:
+            self.stopping_reason = exc
+
     def configure(self, user_configs, read_config_files=True):
         """
         Load configuration files
@@ -115,9 +144,8 @@ class Engine(object):
             self.__prepare_provisioning()
             self.__prepare_reporters()
             self.config.dump()
-
         except BaseException as exc:
-            self.stopping_reason = exc
+            self.log_exception(exc)
             raise
 
     def _startup(self):
@@ -139,18 +167,18 @@ class Engine(object):
             self._startup()
             self._wait()
         except BaseException as exc:
+            self.log_exception(exc)
             exception = exc
 
         self.log.warning("Please wait for graceful shutdown...")
         try:
             self._shutdown()
         except BaseException as exc:
+            self.log_exception(exc)
             if not exception:
                 exception = exc
 
         if exception:
-            if not self.stopping_reason:
-                self.stopping_reason = exception
             raise exception
 
     def _check_modules_list(self):
@@ -217,21 +245,13 @@ class Engine(object):
                 if module in self.prepared:
                     module.post_process()
             except BaseException as exc:
+                trace = not isinstance(exc, KeyboardInterrupt)
+                self.log_exception(exc, trace=trace)
                 if not exception:
                     exception = exc
-                if isinstance(exc, KeyboardInterrupt):
-                    self.log.error("Shutdown: %s", exc)
-                else:
-                    self.log.error("Error while post-processing: %s", traceback.format_exc())
 
         self.config.dump()
-
         if exception:
-            self.log.debug("Exception in post-process: %s", exception)
-            if not self.stopping_reason:
-                self.stopping_reason = exception
-            if not isinstance(exception, KeyboardInterrupt):
-                self.log.warning("Failed post-processing")
             raise exception
 
     def create_artifact(self, prefix, suffix):
