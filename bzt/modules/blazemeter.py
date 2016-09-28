@@ -1669,6 +1669,8 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.widget = None
         self.detach = False
         self.test = None
+        self.check_interval = 5.0
+        self.__last_check_time = None
 
     def prepare(self):
         if self.settings.get("dump-locations", False):
@@ -1684,6 +1686,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         super(CloudProvisioning, self).prepare()
         self.browser_open = self.settings.get("browser-open", self.browser_open)
         self.detach = self.settings.get("detach", self.detach)
+        self.check_interval = dehumanize_time(self.settings.get("check-interval", self.check_interval))
         self._configure_client()
         self._filter_reporting()
 
@@ -1736,11 +1739,27 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             if self.browser_open in ('start', 'both'):
                 open_browser(self.client.results_url)
 
+    def _should_skip_check(self):
+        now = time.time()
+        if self.__last_check_time is None:
+            return False
+        elif now >= self.__last_check_time + self.check_interval:
+            return False
+        else:
+            return True
+
     def check(self):
         # TODO: throttle down requests
         if self.detach:
             self.log.warning('Detaching Taurus from started test...')
             return True
+
+        if self._should_skip_check():
+            self.log.debug("Skipping cloud status check")
+            return False
+
+        self.__last_check_time = time.time()
+
         try:
             master = self.test.get_master_status()
         except (URLError, SSLError):

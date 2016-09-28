@@ -1,6 +1,7 @@
 import json
 import os
 import logging
+import time
 
 import yaml
 
@@ -739,6 +740,7 @@ class TestCloudProvisioning(BZTestCase):
         obj.settings["token"] = "FakeToken"
         obj.settings["browser-open"] = False
         obj.settings["test-type"] = "cloud-collection"
+        obj.settings["check-interval"] = "0ms"  # do not skip checks
         obj.client = client = BlazeMeterClientEmul(obj.log)
         client.results.append(self.__get_user_info())  # user
         client.results.append({"result": []})  # find collection
@@ -764,6 +766,52 @@ class TestCloudProvisioning(BZTestCase):
         obj.check()
         obj.shutdown()
         obj.post_process()
+        self.assertEqual(client.results, [])
+
+    def test_check_interval(self):
+        obj = CloudProvisioning()
+        obj.engine = EngineEmul()
+        obj.engine.config.merge({
+            ScenarioExecutor.EXEC: {
+                "executor": "mock",
+                "concurrency": 5500,
+                "locations": {
+                    "us-east-1": 1,
+                    "us-west": 1,
+                }
+            },
+            "modules": {
+                "mock": ModuleMock.__module__ + "." + ModuleMock.__name__
+            },
+            "provisioning": "mock"
+        })
+        obj.parameters = obj.engine.config['execution']
+        obj.engine.aggregator = ConsolidatingAggregator()
+
+        obj.settings["token"] = "FakeToken"
+        obj.settings["browser-open"] = False
+        obj.settings["test-type"] = "cloud-test"
+        obj.settings["check-interval"] = "1s"
+        obj.client = client = BlazeMeterClientEmul(obj.log)
+        client.results.append(self.__get_user_info())  # user
+        client.results.append({"result": []})  # tests
+        client.results.append({"result": {"id": id(client)}})  # create test
+        client.results.append({"files": []})  # create test
+        client.results.append({})  # upload files
+        client.results.append({"result": {"id": id(obj)}})  # start test
+        client.results.append({"result": {"id": id(obj)}})  # status
+        client.results.append({"result": []})  # sessions
+        client.results.append({"result": {"id": id(obj)}})  # status
+        client.results.append({"result": []})  # sessions
+
+        obj.prepare()
+        obj.startup()
+        obj.check()  # this one should work
+        obj.check()  # this one should be skipped
+        time.sleep(1)
+        obj.check()  # this one should work
+        obj.check()  # this one should skip
+
         self.assertEqual(client.results, [])
 
 
