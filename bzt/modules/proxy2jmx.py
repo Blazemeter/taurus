@@ -104,6 +104,10 @@ class Proxy2JMX(Service):
 
     def post_process(self):
         super(Proxy2JMX, self).post_process()
+        if self.engine.stopping_reason and not isinstance(self.engine.stopping_reason, KeyboardInterrupt):
+            self.log.info("Will not pick converted JMX due to exception: %s", self.engine.stopping_reason)
+            return
+
         self.log.info("Waiting for proxy to generate JMX...")
         while True:
             req = self.api_request()
