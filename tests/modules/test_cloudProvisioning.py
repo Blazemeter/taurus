@@ -643,6 +643,37 @@ class TestCloudProvisioning(BZTestCase):
         exec_locations = obj.executors[0].execution['locations']
         self.assertEquals(1, exec_locations['us-west-1'])
 
+    def test_collection_defloc_sandbox(self):
+        obj = CloudProvisioning()
+        obj.engine = EngineEmul()
+        obj.engine.config.merge({
+            ScenarioExecutor.EXEC: {
+                "executor": "mock",
+                "concurrency": 5500,
+            },
+            "modules": {
+                "mock": ModuleMock.__module__ + "." + ModuleMock.__name__
+            },
+            "provisioning": "mock"
+        })
+        obj.parameters = obj.engine.config['execution']
+        obj.engine.aggregator = ConsolidatingAggregator()
+
+        obj.settings["token"] = "FakeToken"
+        obj.settings["browser-open"] = False
+        obj.settings["test-type"] = "cloud-collection"
+        obj.client = client = BlazeMeterClientEmul(obj.log)
+        client.results.append(self.__get_user_info())  # user
+        client.results.append({"result": []})  # find collection
+        client.results.append({})  # upload files
+        client.results.append({"result": {"name": "Taurus Collection", "items": []}})  # transform config to collection
+        client.results.append({"result": {"id": 42}})  # create collection
+        obj.prepare()
+        exec_locations = obj.executors[0].execution['locations']
+        expected_location = 'harbor-5591335d8588531f5cde3a04'
+        self.assertIn(expected_location, exec_locations)
+        self.assertEquals(1, exec_locations[expected_location])
+
     def test_locations_on_both_levels(self):
         obj = CloudProvisioning()
         obj.engine = EngineEmul()
@@ -729,7 +760,7 @@ class TestCloudProvisioning(BZTestCase):
         obj.prepare()
         obj.startup()
         obj.check()
-        obj.check()
+        obj.check()  # this one should trigger force start
         obj.check()
         obj.shutdown()
         obj.post_process()

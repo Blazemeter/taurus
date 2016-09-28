@@ -826,12 +826,6 @@ class CloudCollectionTest(BaseCloudTest):
             engine_config.pop(CloudProvisioning.LOC)
 
     def _get_default_location(self, available_locations):
-        def_loc = self.settings.get("default-location", None)
-        if def_loc and def_loc in available_locations:
-            return def_loc
-
-        self.log.debug("Default location %s not found", def_loc)
-
         for location_id in sorted(available_locations):
             location = available_locations[location_id]
             if location['sandbox']:
