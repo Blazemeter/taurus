@@ -195,7 +195,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         if self.client.token:
             worker_index = self.engine.config.get('modules').get('shellexec').get('env').get('TAURUS_INDEX_ALL', '')
             if worker_index:
-                suffix = '-%s' + worker_index
+                suffix = '-%s' % worker_index
             else:
                 suffix = ''
             artifacts_zip = "artifacts%s.zip" % suffix
