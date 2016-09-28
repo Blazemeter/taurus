@@ -18,7 +18,6 @@ limitations under the License.
 import copy
 import json
 import logging
-import math
 import os
 import platform
 import sys
@@ -183,7 +182,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
                         msg = "File %s exceeds maximum size quota of %s and won't be included into upload"
                         self.log.warning(msg, filename, max_file_size)
 
-            for filename in logs:   # upload logs unconditionally
+            for filename in logs:  # upload logs unconditionally
                 zfh.write(filename, os.path.basename(filename))
         return mfile
 
@@ -196,7 +195,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         if self.client.token:
             worker_index = self.engine.config.get('modules').get('shellexec').get('env').get('TAURUS_INDEX_ALL', '')
             if worker_index:
-                suffix = '-' + worker_index
+                suffix = '-%s' % worker_index
             else:
                 suffix = ''
             artifacts_zip = "artifacts%s.zip" % suffix
@@ -681,7 +680,7 @@ class CloudTaurusTest(BaseCloudTest):
             loc_name: loc
             for loc_name, loc in iteritems(self.client.get_available_locations())
             if not loc_name.startswith('harbor-')
-        }
+            }
 
     def _get_default_location(self, available_locations):
         def_loc = self.settings.get("default-location", None)
@@ -1860,12 +1859,12 @@ class CloudProvWidget(Pile, PrioritizedWidget):
 
 
 class ServiceStubScreenshoter(Service):
-    def prepare(self):
+    def startup(self):
         if not isinstance(self.engine.provisioning, CloudProvisioning):
             self.log.warning("Stub for service 'screenshoter', use cloud provisioning to have it working")
 
 
 class ServiceStubCaptureHAR(Service):
-    def prepare(self):
+    def startup(self):
         if not isinstance(self.engine.provisioning, CloudProvisioning):
             self.log.warning("Stub for service 'capturehar', use cloud provisioning to have it working")
