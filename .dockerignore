@@ -1,0 +1,4 @@
+# Ignore all the project files from context, as we're using PIP to download the code into the
+# container image. It's a bit better if we use the code already in the project, so we should later
+# remove this:
+./*
