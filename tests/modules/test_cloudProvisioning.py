@@ -685,6 +685,56 @@ class TestCloudProvisioning(BZTestCase):
         log_buff = log_recorder.warn_buff.getvalue()
         self.assertIn("Each execution has locations specified, global locations won't have any effect", log_buff)
 
+    def test_collection_simultaneous_start(self):
+        obj = CloudProvisioning()
+        obj.engine = EngineEmul()
+        obj.engine.config.merge({
+            ScenarioExecutor.EXEC: {
+                "executor": "mock",
+                "concurrency": 5500,
+                "locations": {
+                    "us-east-1": 1,
+                    "us-west": 1,
+                }
+            },
+            "modules": {
+                "mock": ModuleMock.__module__ + "." + ModuleMock.__name__
+            },
+            "provisioning": "mock"
+        })
+        obj.parameters = obj.engine.config['execution']
+        obj.engine.aggregator = ConsolidatingAggregator()
+
+        obj.settings["token"] = "FakeToken"
+        obj.settings["browser-open"] = False
+        obj.settings["test-type"] = "cloud-collection"
+        obj.client = client = BlazeMeterClientEmul(obj.log)
+        client.results.append(self.__get_user_info())  # user
+        client.results.append({"result": []})  # find collection
+        client.results.append({})  # upload files
+        client.results.append({"result": {"name": "Taurus Collection", "items": []}})  # transform config to collection
+        client.results.append({"result": {"id": 42}})  # create collection
+        client.results.append({"result": {"id": id(obj)}})  # start
+        client.results.append({"result": {"id": id(obj), "sessions": [{"id": "s1", "status": "JMETER_CONSOLE_INIT"},
+                                                                      {"id": "s2", "status": "INIT_SCRIPT"}]}}) # status
+        client.results.append({"result": []})  # sessions
+        client.results.append({"result": {"id": id(obj), "sessions": [{"id": "s1", "status": "JMETER_CONSOLE_INIT"},
+                                                                      {"id": "s2", "status": "JMETER_CONSOLE_INIT"}]}})
+        client.results.append({"result": []})  # sessions
+        client.results.append({"result": {}})  # force start
+        client.results.append({"result": {"id": id(obj)}})  # master status
+        client.results.append({"result": []})  # sessions
+        client.results.append({})  # terminate
+
+        obj.prepare()
+        obj.startup()
+        obj.check()
+        obj.check()
+        obj.check()
+        obj.shutdown()
+        obj.post_process()
+        self.assertEqual(client.results, [])
+
 
 class TestResultsFromBZA(BZTestCase):
     def test_simple(self):

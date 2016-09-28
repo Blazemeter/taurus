@@ -629,6 +629,7 @@ class BaseCloudTest(object):
         self.test_id = None
         self._last_status = None
         self._sessions = None
+        self._started = False
 
     @abstractmethod
     def prepare_locations(self, executors, engine_config):
@@ -643,11 +644,21 @@ class BaseCloudTest(object):
         pass
 
     @abstractmethod
-    def start_test(self):
+    def launch_test(self):
+        "launch cloud test"
+        pass
+
+    @abstractmethod
+    def start_if_ready(self):
+        "start cloud test if all engines are ready"
         pass
 
     @abstractmethod
     def get_test_status_text(self):
+        pass
+
+    @abstractmethod
+    def stop_test(self):
         pass
 
     def get_master_status(self):
@@ -750,8 +761,14 @@ class CloudTaurusTest(BaseCloudTest):
         }
         self.test_id = self.client.test_by_name(self.test_name, test_config, taurus_config, rfiles, self.project_id)
 
-    def start_test(self):
+    def launch_test(self):
         return self.client.start_cloud_test(self.test_id)
+
+    def start_if_ready(self):
+        self._started = True
+
+    def stop_test(self):
+        self.client.end_master()
 
     def get_test_status_text(self):
         if not self._sessions:
@@ -870,8 +887,20 @@ class CloudCollectionTest(BaseCloudTest):
         self.log.debug("Loading cloud collection test")
         self.test_id = self.client.collection_by_name(self.test_name, taurus_config, rfiles, self.project_id)
 
-    def start_test(self):
-        return self.client.start_cloud_collection(self.test_id)
+    def launch_test(self):
+        return self.client.launch_cloud_collection(self.test_id)
+
+    def start_if_ready(self):
+        if self._started:
+            return
+        if self._last_status is None:
+            return
+        if all(session["status"] == "JMETER_CONSOLE_INIT" for session in self._last_status["sessions"]):
+            self.client.force_start_master()
+            self._started = True
+
+    def stop_test(self):
+        self.client.stop_collection(self.test_id)
 
     def get_test_status_text(self):
         if not self._sessions:
@@ -1071,16 +1100,27 @@ class BlazeMeterClient(object):
         self.results_url = self.address + '/app/#reports/%s' % self.master_id
         return self.results_url
 
-    def start_cloud_collection(self, collection_id):
+    def launch_cloud_collection(self, collection_id):
         self.log.info("Initiating cloud test with %s ...", self.address)
-        # NOTE: delayedStart=true means that all instances will start at the same time
-        # if omitted - instances will start once ready, which may cause inconsistent data in aggregatereport.
+        # NOTE: delayedStart=true means that BM will not start test until all instances are ready
+        # if omitted - instances will start once ready (not simultaneously),
+        # which may cause inconsistent data in aggregate report.
         url = self.address + "/api/latest/collections/%s/start?delayedStart=true" % collection_id
         resp = self._request(url, method="POST")
         self.log.debug("Response: %s", resp['result'])
         self.master_id = resp['result']['id']
         self.results_url = self.address + '/app/#reports/%s' % self.master_id
         return self.results_url
+
+    def force_start_master(self):
+        self.log.info("All servers are ready, starting cloud test")
+        url = self.address + "/api/latest/masters/%s/forceStart" % self.master_id
+        self._request(url, method="POST")
+
+    def stop_collection(self, collection_id):
+        self.log.info("Ending cloud test...")
+        url = self.address + "/api/latest/collections/%s/stop" % collection_id
+        self._request(url)
 
     def end_online(self):
         """
@@ -1696,7 +1736,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
     def startup(self):
         super(CloudProvisioning, self).startup()
-        self.test.start_test()
+        self.test.launch_test()
         self.log.info("Started cloud test: %s", self.client.results_url)
         if self.client.results_url:
             if self.browser_open in ('start', 'both'):
@@ -1732,12 +1772,14 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             self.client.master_id = None
             return True
 
+        self.test.start_if_ready()
+
         self.widget.update()
         return super(CloudProvisioning, self).check()
 
     def post_process(self):
         if not self.detach:
-            self.client.end_master()
+            self.test.stop_test()
         if self.client.results_url:
             if self.browser_open in ('end', 'both'):
                 open_browser(self.client.results_url)
