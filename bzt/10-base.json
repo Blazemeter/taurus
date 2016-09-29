@@ -115,7 +115,7 @@
       "class": "bzt.modules.blazemeter.CloudProvisioning",
       "check-interval": "5s",
       "default-location": "us-central1-a",
-      "detect-test-type": true
+      "use-deprecated-api": true
     },
     "final_stats": {
       "class": "bzt.modules.reporting.FinalStatus"

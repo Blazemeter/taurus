@@ -566,7 +566,6 @@ class ProjectFinder(object):
         self.parameters = parameters
         self.settings = settings
         self.log = parent_log.getChild(self.__class__.__name__)
-        self.default_test_type = self.TEST_TYPE_CLOUD
 
     def _resolve_project(self):
         proj_name = self.parameters.get("project", self.settings.get("project", None))
@@ -585,35 +584,26 @@ class ProjectFinder(object):
         test_config = {"type": "external"}
         return self.client.test_by_name(test_name, test_config, taurus_config, [], project_id)
 
-    def detect_test_type(self, test_name, project_id):
-        if self.client.find_collection(test_name, project_id):
-            return self.TEST_TYPE_COLLECTION
-        elif self.client.find_test(test_name, project_id):
-            return self.TEST_TYPE_CLOUD
-        else:
-            return None
-
     def resolve_test_type(self):
         project_id = self._resolve_project()
+
         test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
+        use_deprecated = self.settings.get("use-deprecated-api", True)
 
-        test_type = self.settings.get("test-type", None)
-        detect_test_type = self.settings.get("detect-test-type", False)
+        if self.client.find_collection(test_name, project_id):
+            self.log.info("Detected test type: new")
+            test_class = CloudCollectionTest
+        elif self.client.find_test(test_name, project_id):
+            self.log.info("Detected test type: old")
+            test_class = CloudTaurusTest
+        elif use_deprecated:
+            self.log.info("Will create old-style test")
+            test_class = CloudTaurusTest
+        else:
+            self.log.info("Will create new-style test")
+            test_class = CloudCollectionTest
 
-        if test_type is not None:
-            self.log.debug("Using explicitly specified test type %r", test_type)
-        elif detect_test_type:
-            test_type = self.detect_test_type(test_name, project_id)
-            self.log.debug("Detected test type: %r", test_type)
-
-        if test_type is None:
-            test_type = self.default_test_type
-            self.log.debug("Using default test type: %r", test_type)
-
-        if test_type == self.TEST_TYPE_CLOUD:
-            return CloudTaurusTest(self.parameters, self.settings, self.client, project_id, test_name, self.log)
-        else:  # test_type == self.TEST_TYPE_COLLECTION
-            return CloudCollectionTest(self.parameters, self.settings, self.client, project_id, test_name, self.log)
+        return test_class(self.parameters, self.settings, self.client, project_id, test_name, self.log)
 
 
 class BaseCloudTest(object):
@@ -670,7 +660,7 @@ class CloudTaurusTest(BaseCloudTest):
         available_locations = self._get_available_locations()
 
         if CloudProvisioning.LOC in engine_config:
-            self.log.warning("Test type 'cloud-test' doesn't support global locations")
+            self.log.warning("Deprecated test API doesn't support global locations")
 
         for executor in executors:
             if CloudProvisioning.LOC in executor.execution:
