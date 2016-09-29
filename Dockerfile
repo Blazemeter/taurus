@@ -1,9 +1,6 @@
 FROM ubuntu:16.04
-COPY . /tmp/bzt-src
-ADD http://gettaurus.org/snapshots/blazemeter-pbench-extras_0.1.10.1_amd64.deb /tmp
-ADD http://chromedriver.storage.googleapis.com/2.24/chromedriver_linux64.zip /tmp
 RUN apt-get -y update \
-  && apt-get -y install --no-install-recommends software-properties-common apt-utils \
+  && apt-get -y install --no-install-recommends software-properties-common \
   && apt-add-repository multiverse \
   && add-apt-repository ppa:yandex-load/main \
   && apt-add-repository ppa:nilarimogard/webupd8 \
@@ -24,23 +21,28 @@ RUN apt-get -y update \
     tsung \
     phantom \
     phantom-ssl \
-    firefox \
+    firefox=45.0.2+build1-0ubuntu1 \
     chromium-browser \
     pepperflashplugin-nonfree \
     flashplugin-installer \
     phantomjs \
   && pip install --upgrade setuptools pip \
-  && pip install locustio \
-  && dpkg -i /tmp/blazemeter-pbench-extras_0.1.10.1_amd64.deb \
-  && unzip -d /usr/bin /tmp/chromedriver_linux64.zip && /usr/bin/chromedriver --version \
-  && pip install /tmp/bzt-src \
+  && pip install locustio
+
+ADD http://gettaurus.org/snapshots/blazemeter-pbench-extras_0.1.10.1_amd64.deb /tmp
+ADD http://chromedriver.storage.googleapis.com/2.24/chromedriver_linux64.zip /tmp
+RUN dpkg -i /tmp/blazemeter-pbench-extras_0.1.10.1_amd64.deb \
+  && unzip -d /usr/bin /tmp/chromedriver_linux64.zip && /usr/bin/chromedriver --version
+
+COPY . /tmp/bzt-src
+RUN pip install /tmp/bzt-src \
   && echo '{"install-id": "Docker"}' > /etc/bzt.d/99-zinstallID.json \
   && echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json \
   && echo '{"modules": {"console": {"disable": true}}}' > /etc/bzt.d/90-no-console.json \
-  && bzt -o settings.default-executor=jmeter \
-    -o execution.scenario.requests.0=http://localhost/ \
-    -o execution.iterations=1 -o execution.hold-for=1 \
-    -o execution.throughput=1 \
+
+  && cd /tmp/bzt-src/examples \
+  && bzt /tmp/bzt-src/examples/all-executors.yml -o settings.artifacts-dir=/tmp/all-executors-artifacts \
+
   && mkdir /bzt-configs \
   && rm -rf /var/lib/apt/lists/* \
   && rm -rf /tmp/*

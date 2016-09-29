@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.6.9 <sup>next</sup>
+## 1.7.0 <sup>next</sup>
  - fix JAR building for selenium projects with several folders
  - add LocustIO script generation feature
  - do not copy Selenium scripts in artifacts dir before running them
@@ -15,6 +15,7 @@
  - add RSpec tests runner for Selenium
  - add Mocha-based tests runner for Selenium
  - fix artifact upload in the cloud
+ - Docker image now has all executors pre-installed
 
 ## 1.6.8 <sup>1 sep 2016</sup>
  - fix hamcrest installation for Java-based Selenium tests
