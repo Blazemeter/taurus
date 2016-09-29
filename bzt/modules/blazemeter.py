@@ -207,7 +207,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
                 if isinstance(handler, logging.FileHandler):
                     fname = handler.baseFilename
                     self.log.info("Uploading %s", fname)
-                    fhead, ftail = os.path.split(fname)
+                    fhead, ftail = os.path.splitext(os.path.split(fname)[-1])
                     modified_name = fhead + suffix + ftail
                     with open(fname) as _file:
                         self.client.upload_file(modified_name, _file.read())
