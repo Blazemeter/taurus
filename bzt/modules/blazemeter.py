@@ -313,15 +313,6 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
                 self.log.error("Fatal error sending data: %s", traceback.format_exc())
                 self.log.warning("Will skip failed data and continue running")
 
-        if not data:
-            return
-
-        try:
-            self.client.send_error_summary(data)
-        except IOError as exc:
-            self.log.debug("Failed sending error summary: %s", traceback.format_exc())
-            self.log.warning("Failed to send error summary: %s", exc)
-
     def aggregated_second(self, data):
         """
         Send online data
@@ -1022,6 +1013,7 @@ class BlazeMeterClient(object):
         Start online test
 
         :type test_id: str
+        :type session_name: str
         :return:
         """
         self.log.info("Initiating data feeding...")
@@ -1213,54 +1205,68 @@ class BlazeMeterClient(object):
         self.log.debug("Tests for user: %s", len(tests['result']))
         return tests['result']
 
+    def __get_kpi_body(self, data_buffer, is_final):
+        report_items = BetterDict()
+        for dpoint in data_buffer:
+            self.first_ts = min(self.first_ts, dpoint[DataPoint.TIMESTAMP])
+            self.last_ts = max(self.last_ts, dpoint[DataPoint.TIMESTAMP])
+
+            for label, kpi_set in iteritems(dpoint[DataPoint.CURRENT]):
+                report_item = report_items.get(label, self.__label_skel(label))
+
+                interval_item = self.__interval_json(kpi_set, dpoint)
+                for r_code, cnt in iteritems(kpi_set[KPISet.RESP_CODES]):
+                    fails = [err['cnt'] for err in kpi_set[KPISet.ERRORS] if str(err['rc']) == r_code]
+                    interval_item['rc'].append({"n": cnt, 'f': fails, "rc": r_code})
+
+                report_item['intervals'].append(interval_item)
+
+                cumul = dpoint[DataPoint.CUMULATIVE][label]
+                report_item['n'] = cumul[KPISet.SAMPLE_COUNT]
+                report_item["summary"] = self.__summary_json(cumul)
+
+                self.__add_errors(report_item, kpi_set)
+
+        report_items = [report_items[key] for key in sorted(report_items.keys())]  # convert dict to list
+        data = {"labels": report_items, "sourceID": id(self)}
+
+        if is_final:
+            data['final'] = True
+
+        return to_json(data)
+
+    @staticmethod
+    def __add_errors(report_item, kpi_set):
+        errors = kpi_set[KPISet.ERRORS]
+        for error in errors:
+            if error["type"] == KPISet.ERRTYPE_ERROR:
+                report_item['errors'].append({
+                    'm': error['msg'],
+                    "rc": error['rc'],
+                    "count": error['cnt'],
+                })
+            else:
+                report_item['assertions'].append({
+                    'failureMessage': error['msg'],
+                    'name': 'All Assertions',
+                    'failures': error['cnt']
+                    # TODO: "count", "errors" = ? (according do Udi's format description)
+                    # TODO: Errtype == embedded_resources ?
+                })
+
     def send_kpi_data(self, data_buffer, is_check_response=True, is_final=False):
         """
         Sends online data
 
         :param is_check_response:
+        :param is_final:
         :type data_buffer: list[bzt.modules.aggregator.DataPoint]
         """
-        labels = []
-
-        for sec in data_buffer:
-            self.first_ts = min(self.first_ts, sec[DataPoint.TIMESTAMP])
-            self.last_ts = max(self.last_ts, sec[DataPoint.TIMESTAMP])
-
-            for lbl, item in iteritems(sec[DataPoint.CURRENT]):
-                if lbl == '':
-                    label = "ALL"
-                else:
-                    label = lbl
-
-                json_item = None
-                for lbl_item in labels:
-                    if lbl_item["name"] == label:
-                        json_item = lbl_item
-                        break
-
-                if not json_item:
-                    json_item = self.__label_skel(label)
-                    labels.append(json_item)
-
-                interval_item = self.__interval_json(item, sec)
-                for r_code, cnt in iteritems(item[KPISet.RESP_CODES]):
-                    interval_item['rc'].append({"n": cnt, "rc": r_code})
-
-                json_item['intervals'].append(interval_item)
-
-                cumul = sec[DataPoint.CUMULATIVE][lbl]
-                json_item['n'] = cumul[KPISet.SAMPLE_COUNT]
-                json_item["summary"] = self.__summary_json(cumul)
-
-        data = {"labels": labels, "sourceID": id(self)}
-        if is_final:
-            data['final'] = True
-
         url = self.data_address + "/submit.php?session_id=%s&signature=%s&test_id=%s&user_id=%s"
         url = url % (self.session_id, self.data_signature, self.test_id, self.user_id)
         url += "&pq=0&target=%s&update=1" % self.kpi_target
         hdr = {"Content-Type": " application/json"}
-        response = self._request(url, to_json(data), headers=hdr)
+        response = self._request(url, self.__get_kpi_body(data_buffer, is_final), headers=hdr)
 
         if response and 'response_code' in response and response['response_code'] != 200:
             raise RuntimeError("Failed to feed data, response code %s" % response['response_code'])
@@ -1275,7 +1281,7 @@ class BlazeMeterClient(object):
     def __label_skel(self, name):
         return {
             "n": None,
-            "name": name,
+            "name": name if name else 'ALL',
             "interval": 1,
             "intervals": [],
             "samplesNotCounted": 0,
@@ -1284,6 +1290,7 @@ class BlazeMeterClient(object):
             "failedEmbeddedResourcesSpilloverCount": 0,
             "otherErrorsCount": 0,
             "errors": [],
+            "assertions": [],
             "percentileHistogram": [],
             "percentileHistogramLatency": [],
             "percentileHistogramBytes": [],
@@ -1381,80 +1388,6 @@ class BlazeMeterClient(object):
         response = self._request(url, body.form_as_bytes(), headers=hdr)
         if not response['result']:
             raise IOError("Upload failed: %s" % response)
-
-    def send_error_summary(self, data_buffer):
-        """
-        Sends error summary file
-
-        :type data_buffer: list[bzt.modules.aggregator.DataPoint]
-        """
-        if not data_buffer:
-            return
-
-        recent = data_buffer[-1]
-        if not recent[DataPoint.CUMULATIVE][''][KPISet.ERRORS]:
-            return
-
-        errors = self.__errors_skel(recent[DataPoint.TIMESTAMP], self.session_id, self.test_id, self.user_id)
-        for label, label_data in iteritems(recent[DataPoint.CUMULATIVE]):
-            if not label_data[KPISet.ERRORS]:
-                continue
-
-            if label == '':
-                label = 'ALL'
-
-            error_item = self.__error_item_skel(label)
-            for err_item in label_data[KPISet.ERRORS]:
-                if err_item["type"] == KPISet.ERRTYPE_ASSERT:
-                    error_item['assertionsCount'] += err_item['cnt']
-                    error_item['assertions'].append({
-                        "name": "All Assertions",
-                        "failureMessage": err_item['msg'],
-                        "failure": True,
-                        "error": False,
-                        "count": err_item['cnt']
-                    })
-                else:
-                    error_item['count'] += err_item['cnt']
-                    error_item['responseInfo'].append({
-                        "description": err_item['msg'],
-                        "code": err_item['rc'],
-                        "count": err_item['cnt'],
-                    })
-            errors['summery']['labels'].append(error_item)
-
-        self.upload_file("sample.jtl.blazemeter.summery.json", to_json(errors))
-
-    def __errors_skel(self, t_stamp, sess_id, test_id, user_id):
-        return {
-            "reportInfo": {
-                "sessionId": sess_id,
-                "timestamp": t_stamp,
-                "userId": user_id,
-                "testId": test_id,
-                "type": "SUMMERY",
-                # "testName": test_name
-            },
-            "timestamp": t_stamp,
-            "summery": {
-                "labels": [],
-                "empty": False
-            }
-        }
-
-    def __error_item_skel(self, label):
-        return {
-            "name": label,
-
-            "count": 0,
-            "responseInfo": [],
-
-            "assertionsCount": 0,
-            "assertions": [],
-
-            "embeddedResourcesCount": 0,
-            "embeddedResources": [],
-        }
 
     def get_master(self):
         req = self._request(self.address + '/api/latest/masters/%s' % self.master_id)
@@ -1746,6 +1679,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 class BlazeMeterClientEmul(BlazeMeterClient):
     def __init__(self, parent_logger):
         super(BlazeMeterClientEmul, self).__init__(parent_logger)
+        self.requests = []
         self.results = []
         self.requests = []
 
