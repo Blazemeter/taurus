@@ -1,7 +1,4 @@
 ---
-scenarios:
-  blazedemo:
-
 execution:
 
 - executor: jmeter
@@ -29,6 +26,12 @@ execution:
     requests:
       - url: http://blazedemo.com/
         label: selenium-chrome
+
+- executor: selenium
+  concurrency: 1
+  hold-for: 5m
+  scenario:
+    script: selenium/Blazedemoju.java
 
 - executor: gatling
   concurrency: 1
