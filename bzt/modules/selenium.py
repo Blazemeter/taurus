@@ -674,6 +674,7 @@ class MochaTester(AbstractTestRunner):
                                         os.pardir,
                                         "resources",
                                         "mocha-taurus-plugin.js")
+        self.node_tool = None
 
     def prepare(self):
         self.run_checklist()
@@ -684,8 +685,9 @@ class MochaTester(AbstractTestRunner):
         """
 
         self.required_tools.append(TclLibrary(self.log))
-        self.required_tools.append(Node("", "", self.log))
-        self.required_tools.append(Mocha("", "", self.log))
+        self.node_tool = Node(self.log)
+        self.required_tools.append(self.node_tool)
+        self.required_tools.append(Mocha(self.node_tool, self.log))
         self.required_tools.append(TaurusMochaPlugin(self.plugin_path, ""))
 
         self.check_tools()
@@ -695,7 +697,7 @@ class MochaTester(AbstractTestRunner):
         run rspec plugin
         """
         mocha_cmdline = [
-            "node",
+            self.node_tool.executable,
             self.plugin_path,
             "--report-file",
             self.settings.get("report-file"),
@@ -867,31 +869,42 @@ class Ruby(RequiredTool):
 
 
 class Node(RequiredTool):
-    def __init__(self, tool_path, download_link, parent_logger):
-        super(Node, self).__init__("Node.js", tool_path, download_link)
+    def __init__(self, parent_logger):
+        super(Node, self).__init__("Node.js", "", "")
         self.log = parent_logger.getChild(self.__class__.__name__)
+        self.executable = None
 
     def check_if_installed(self):
-        try:
-            output = subprocess.check_output(["node", '--version'], stderr=subprocess.STDOUT)
-            self.log.debug("%s output: %s", self.tool_name, output)
-            return True
-        except BaseException:
-            raise RuntimeError("The %s is not operable or not available. Consider installing it" % self.tool_name)
+        node_candidates = ["node", "nodejs"]
+        for candidate in node_candidates:
+            try:
+                self.log.debug("Trying %r", candidate)
+                output = subprocess.check_output([candidate, '--version'], stderr=subprocess.STDOUT)
+                self.log.debug("%s output: %s", candidate, output)
+                self.executable = candidate
+                return True
+            except BaseException:
+                self.log.debug("%r is not installed", candidate)
+                continue
+        tmpl = "%s is not operable or not available. The following executables were tried: %r. Consider installing it"
+        raise RuntimeError(tmpl % (self.tool_name, node_candidates))
 
     def install(self):
         raise NotImplementedError()
 
 
 class Mocha(RequiredTool):
-    def __init__(self, tool_path, download_link, parent_logger):
-        super(Mocha, self).__init__("Mocha", tool_path, download_link)
+    def __init__(self, node_tool, parent_logger):
+        super(Mocha, self).__init__("Mocha", "", "")
+        self.node_tool = node_tool
         self.log = parent_logger.getChild(self.__class__.__name__)
 
     def check_if_installed(self):
         try:
-            output = subprocess.check_output(["node", '-e', "require('mocha'); console.log('mocha is installed');"],
-                                             stderr=subprocess.STDOUT)
+            node_binary = self.node_tool.executable
+            cmdline = [node_binary, '-e', "require('mocha'); console.log('mocha is installed');"]
+            self.log.debug("mocha test cmdline: %s", cmdline)
+            output = subprocess.check_output(cmdline, stderr=subprocess.STDOUT)
             self.log.debug("%s output: %s", self.tool_name, output)
             return True
         except BaseException:
