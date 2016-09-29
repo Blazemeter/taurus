@@ -113,7 +113,9 @@
     },
     "cloud": {
       "class": "bzt.modules.blazemeter.CloudProvisioning",
-      "default-location": "us-central1-a"
+      "check-interval": "5s",
+      "default-location": "us-central1-a",
+      "use-deprecated-api": true
     },
     "final_stats": {
       "class": "bzt.modules.reporting.FinalStatus"

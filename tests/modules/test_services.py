@@ -33,8 +33,9 @@ class TestZipFolder(BZTestCase):
         obj.parameters = obj.engine.config['execution']
         obj.settings["token"] = "FakeToken"
         obj.client = client = BlazeMeterClientEmul(obj.log)
-        client.results.append(self.__get_user_info())  # user
+        client.results.append({"result": []})  # collections
         client.results.append({"result": []})  # tests
+        client.results.append(self.__get_user_info())  # user
         client.results.append({"result": {"id": id(client)}})  # create test
         client.results.append({"files": []})  # create test
         client.results.append({})  # upload files

@@ -123,7 +123,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
 
             if token:
                 finder = ProjectFinder(self.parameters, self.settings, self.client, self.log)
-                self.test_id = finder.resolve_external_test(self.engine.config)
+                self.test_id = finder.resolve_external_test()
 
         self.sess_name = self.parameters.get("report-name", self.settings.get("report-name", self.sess_name))
         if self.sess_name == 'ask' and sys.stdin.isatty():
@@ -557,7 +557,6 @@ class ProjectFinder(object):
         self.parameters = parameters
         self.settings = settings
         self.log = parent_log.getChild(self.__class__.__name__)
-        self.default_test_type = self.TEST_TYPE_CLOUD
 
     def _resolve_project(self):
         proj_name = self.parameters.get("project", self.settings.get("project", None))
@@ -570,48 +569,53 @@ class ProjectFinder(object):
             proj_id = None
         return proj_id
 
-    def resolve_external_test(self, taurus_config):
+    def resolve_external_test(self):
         project_id = self._resolve_project()
         test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
         test_config = {"type": "external"}
-        return self.client.test_by_name(test_name, test_config, taurus_config, [], project_id)
-
-    def detect_test_type(self, test_name, project_id):
-        if self.client.find_collection(test_name, project_id):
-            return self.TEST_TYPE_COLLECTION
-        elif self.client.find_test(test_name, project_id):
-            return self.TEST_TYPE_CLOUD
+        existing_test = self.client.find_external_test(test_name, project_id)
+        if existing_test:
+            test_id = existing_test['id']
         else:
-            return None
+            test_id = self.client.create_test(test_name, test_config, project_id)
+        return test_id
 
     def resolve_test_type(self):
         project_id = self._resolve_project()
+
         test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
+        use_deprecated = self.settings.get("use-deprecated-api", True)
 
-        test_type = self.settings.get("test-type", None)
-        detect_test_type = self.settings.get("detect-test-type", False)
+        collection = self.client.find_collection(test_name, project_id)
+        self.log.debug("Looking for collection: %s", collection)
+        if collection:
+            self.log.debug("Detected test type: new")
+            test_class = CloudCollectionTest
+            test_id = collection['id']
+        else:
+            test = self.client.find_test(test_name, project_id)
+            self.log.debug("Looking for test: %s", test)
+            if test:
+                self.log.debug("Detected test type: old")
+                test_class = CloudTaurusTest
+                test_id = test['id']
+            else:
+                if use_deprecated:
+                    self.log.debug("Will create old-style test")
+                    test_class = CloudTaurusTest
+                else:
+                    self.log.debug("Will create new-style test")
+                    test_class = CloudCollectionTest
+                test_id = None
 
-        if test_type is not None:
-            self.log.debug("Using explicitly specified test type %r", test_type)
-        elif detect_test_type:
-            test_type = self.detect_test_type(test_name, project_id)
-            self.log.debug("Detected test type: %r", test_type)
-
-        if test_type is None:
-            test_type = self.default_test_type
-            self.log.debug("Using default test type: %r", test_type)
-
-        if test_type == self.TEST_TYPE_CLOUD:
-            return CloudTaurusTest(self.parameters, self.settings, self.client, project_id, test_name, self.log)
-        else:  # test_type == self.TEST_TYPE_COLLECTION
-            return CloudCollectionTest(self.parameters, self.settings, self.client, project_id, test_name, self.log)
+        return test_class(self.parameters, self.settings, self.client, test_id, project_id, test_name, self.log)
 
 
 class BaseCloudTest(object):
-    LOC = "locations"
-    LOC_WEIGHTED = "locations-weighted"
-
-    def __init__(self, parameters, settings, client, project_id, test_name, parent_log):
+    """
+    :type client: BlazeMeterClient
+    """
+    def __init__(self, parameters, settings, client, test_id, project_id, test_name, parent_log):
         self.default_test_name = "Taurus Test"
         self.client = client
         self.parameters = parameters
@@ -619,9 +623,10 @@ class BaseCloudTest(object):
         self.log = parent_log.getChild(self.__class__.__name__)
         self.project_id = project_id
         self.test_name = test_name
-        self.test_id = None
+        self.test_id = test_id
         self._last_status = None
         self._sessions = None
+        self._started = False
 
     @abstractmethod
     def prepare_locations(self, executors, engine_config):
@@ -636,11 +641,21 @@ class BaseCloudTest(object):
         pass
 
     @abstractmethod
-    def start_test(self):
+    def launch_test(self):
+        "launch cloud test"
+        pass
+
+    @abstractmethod
+    def start_if_ready(self):
+        "start cloud test if all engines are ready"
         pass
 
     @abstractmethod
     def get_test_status_text(self):
+        pass
+
+    @abstractmethod
+    def stop_test(self):
         pass
 
     def get_master_status(self):
@@ -652,17 +667,17 @@ class CloudTaurusTest(BaseCloudTest):
     def prepare_locations(self, executors, engine_config):
         available_locations = self._get_available_locations()
 
-        if self.LOC in engine_config:
-            self.log.warning("Test type 'cloud-test' doesn't support global locations")
+        if CloudProvisioning.LOC in engine_config:
+            self.log.warning("Deprecated test API doesn't support global locations")
 
         for executor in executors:
-            if self.LOC in executor.execution:
-                exec_locations = executor.execution[self.LOC]
+            if CloudProvisioning.LOC in executor.execution:
+                exec_locations = executor.execution[CloudProvisioning.LOC]
                 self._check_locations(exec_locations, available_locations)
             else:
                 default_loc = self._get_default_location(available_locations)
-                executor.execution[self.LOC] = BetterDict()
-                executor.execution[self.LOC].merge({default_loc: 1})
+                executor.execution[CloudProvisioning.LOC] = BetterDict()
+                executor.execution[CloudProvisioning.LOC].merge({default_loc: 1})
 
             executor.get_load()  # we need it to resolve load settings into full form
 
@@ -706,7 +721,9 @@ class CloudTaurusTest(BaseCloudTest):
             execution[ScenarioExecutor.THRPT] = execution.get(ScenarioExecutor.THRPT).get(provisioning, None)
 
         for key in list(config.keys()):
-            if key not in ("scenarios", ScenarioExecutor.EXEC, Service.SERV, self.LOC, self.LOC_WEIGHTED):
+            fields = ("scenarios", ScenarioExecutor.EXEC, Service.SERV,
+                      CloudProvisioning.LOC, CloudProvisioning.LOC_WEIGHTED)
+            if key not in fields:
                 config.pop(key)
             elif not config[key]:
                 config.pop(key)
@@ -730,19 +747,26 @@ class CloudTaurusTest(BaseCloudTest):
         return config
 
     def resolve_test(self, taurus_config, rfiles):
-        self.log.debug("Loading cloud test")
-        test_config = {
-            "type": "taurus",
-            "plugins": {
-                "taurus": {
-                    "filename": ""  # without this line it does not work
+        if self.test_id is None:
+            test_config = {
+                "type": "taurus",
+                "plugins": {
+                    "taurus": {
+                        "filename": ""  # without this line it does not work
+                    }
                 }
             }
-        }
-        self.test_id = self.client.test_by_name(self.test_name, test_config, taurus_config, rfiles, self.project_id)
+            self.test_id = self.client.create_test(self.test_name, test_config, self.project_id)
+        self.client.setup_test(self.test_id, taurus_config, rfiles)
 
-    def start_test(self):
+    def launch_test(self):
         return self.client.start_cloud_test(self.test_id)
+
+    def start_if_ready(self):
+        self._started = True
+
+    def stop_test(self):
+        self.client.end_master()
 
     def get_test_status_text(self):
         if not self._sessions:
@@ -780,32 +804,26 @@ class CloudCollectionTest(BaseCloudTest):
     def prepare_locations(self, executors, engine_config):
         available_locations = self.client.get_available_locations()
 
-        global_locations = engine_config.get(self.LOC, BetterDict())
+        global_locations = engine_config.get(CloudProvisioning.LOC, BetterDict())
         self._check_locations(global_locations, available_locations)
 
         for executor in executors:
-            if self.LOC in executor.execution:
-                exec_locations = executor.execution[self.LOC]
+            if CloudProvisioning.LOC in executor.execution:
+                exec_locations = executor.execution[CloudProvisioning.LOC]
                 self._check_locations(exec_locations, available_locations)
             else:
                 if not global_locations:
                     default_loc = self._get_default_location(available_locations)
-                    executor.execution[self.LOC] = BetterDict()
-                    executor.execution[self.LOC].merge({default_loc: 1})
+                    executor.execution[CloudProvisioning.LOC] = BetterDict()
+                    executor.execution[CloudProvisioning.LOC].merge({default_loc: 1})
 
             executor.get_load()  # we need it to resolve load settings into full form
 
-        if global_locations and all(self.LOC in executor.execution for executor in executors):
+        if global_locations and all(CloudProvisioning.LOC in executor.execution for executor in executors):
             self.log.warning("Each execution has locations specified, global locations won't have any effect")
-            engine_config.pop(self.LOC)
+            engine_config.pop(CloudProvisioning.LOC)
 
     def _get_default_location(self, available_locations):
-        def_loc = self.settings.get("default-location", None)
-        if def_loc and def_loc in available_locations:
-            return def_loc
-
-        self.log.debug("Default location %s not found", def_loc)
-
         for location_id in sorted(available_locations):
             location = available_locations[location_id]
             if location['sandbox']:
@@ -832,7 +850,9 @@ class CloudCollectionTest(BaseCloudTest):
             execution[ScenarioExecutor.THRPT] = execution.get(ScenarioExecutor.THRPT).get(provisioning, None)
 
         for key in list(config.keys()):
-            if key not in ("scenarios", ScenarioExecutor.EXEC, Service.SERV, self.LOC, self.LOC_WEIGHTED):
+            fields = ("scenarios", ScenarioExecutor.EXEC, Service.SERV,
+                      CloudProvisioning.LOC, CloudProvisioning.LOC_WEIGHTED)
+            if key not in fields:
                 config.pop(key)
             elif not config[key]:
                 config.pop(key)
@@ -856,11 +876,44 @@ class CloudCollectionTest(BaseCloudTest):
         return config
 
     def resolve_test(self, taurus_config, rfiles):
-        self.log.debug("Loading cloud collection test")
-        self.test_id = self.client.collection_by_name(self.test_name, taurus_config, rfiles, self.project_id)
+        if self.test_id is None:
+            self.log.debug("Creating cloud collection test")
+            self.test_id = self.client.create_collection(self.test_name, taurus_config, rfiles, self.project_id)
+        else:
+            self.log.debug("Overriding cloud collection test")
+            self.client.setup_collection(self.test_id, self.test_name, taurus_config, rfiles, self.project_id)
 
-    def start_test(self):
-        return self.client.start_cloud_collection(self.test_id)
+    def launch_test(self):
+        return self.client.launch_cloud_collection(self.test_id)
+
+    def start_if_ready(self):
+        if self._started:
+            return
+        if self._last_status is None:
+            return
+        sessions = self._last_status.get("sessions", [])
+        if sessions and all(session["status"] == "JMETER_CONSOLE_INIT" for session in sessions):
+            self.client.force_start_master()
+            self._started = True
+
+    def await_test_end(self):
+        iterations = 0
+        while True:
+            if iterations > 100:
+                self.log.debug("Await: iteration limit reached")
+                return
+            status = self.client.get_master_status()
+            if status.get("status") == "ENDED":
+                return
+            iterations += 1
+            time.sleep(1.0)
+
+    def stop_test(self):
+        if self._started:
+            self.client.stop_collection(self.test_id)
+            self.await_test_end()
+        else:
+            self.client.end_master()
 
     def get_test_status_text(self):
         if not self._sessions:
@@ -979,12 +1032,6 @@ class BlazeMeterClient(object):
         resp = self._request(url, data=to_json(config), headers={"Content-Type": "application/json"}, method="POST")
         return resp['result']
 
-    def create_collection(self, coll):
-        url = self.address + "/api/latest/collections"
-        resp = self._request(url, data=to_json(coll), headers={"Content-Type": "application/json"}, method="POST")
-        collection = resp['result']
-        return collection['id']
-
     def update_collection(self, collection_id, coll):
         url = self.address + "/api/latest/collections/%s" % collection_id
         self._request(url, data=to_json(coll), headers={"Content-Type": "application/json"}, method="POST")
@@ -1004,6 +1051,16 @@ class BlazeMeterClient(object):
             self.log.debug("Test: %s", test)
             if "name" in test and test['name'] == test_name:
                 if test['configuration']['type'] == "taurus":
+                    if not project_id or project_id == test['projectId']:
+                        self.log.debug("Matched: %s", test)
+                        return test
+
+    def find_external_test(self, test_name, project_id):
+        tests = self.get_tests()
+        for test in tests:
+            self.log.debug("Test: %s", test)
+            if "name" in test and test['name'] == test_name:
+                if test['configuration']['type'] == "external":
                     if not project_id or project_id == test['projectId']:
                         self.log.debug("Matched: %s", test)
                         return test
@@ -1061,16 +1118,27 @@ class BlazeMeterClient(object):
         self.results_url = self.address + '/app/#reports/%s' % self.master_id
         return self.results_url
 
-    def start_cloud_collection(self, collection_id):
+    def launch_cloud_collection(self, collection_id):
         self.log.info("Initiating cloud test with %s ...", self.address)
-        # NOTE: delayedStart=true means that all instances will start at the same time
-        # if omitted - instances will start once ready, which may cause inconsistent data in aggregatereport.
+        # NOTE: delayedStart=true means that BM will not start test until all instances are ready
+        # if omitted - instances will start once ready (not simultaneously),
+        # which may cause inconsistent data in aggregate report.
         url = self.address + "/api/latest/collections/%s/start?delayedStart=true" % collection_id
         resp = self._request(url, method="POST")
         self.log.debug("Response: %s", resp['result'])
         self.master_id = resp['result']['id']
         self.results_url = self.address + '/app/#reports/%s' % self.master_id
         return self.results_url
+
+    def force_start_master(self):
+        self.log.info("All servers are ready, starting cloud test")
+        url = self.address + "/api/latest/masters/%s/forceStart" % self.master_id
+        self._request(url, method="POST")
+
+    def stop_collection(self, collection_id):
+        self.log.info("Shutting down cloud test...")
+        url = self.address + "/api/latest/collections/%s/stop" % collection_id
+        self._request(url)
 
     def end_online(self):
         """
@@ -1130,15 +1198,8 @@ class BlazeMeterClient(object):
         if note:
             self.update_session({'note': note})
 
-    def collection_by_name(self, name, taurus_config, resource_files, proj_id):
-        """
-
-        :type name: str
-        :rtype: str
-        """
-        collection = self.find_collection(name, proj_id)
-        collection_id = collection['id'] if collection else None
-
+    def create_collection(self, name, taurus_config, resource_files, proj_id):
+        self.log.debug("Creating collection")
         if resource_files:
             draft_id = "taurus_%s" % int(time.time())
             self.upload_collection_resources(resource_files, draft_id)
@@ -1147,54 +1208,57 @@ class BlazeMeterClient(object):
         collection_draft = self.import_config(taurus_config)
         collection_draft['name'] = name
 
-        if not collection_id:
-            self.log.debug("Creating new test collection: %s", name)
-            collection_draft['name'] = name
-            collection_id = self.create_collection(collection_draft)
-        else:
-            self.log.debug("Uploading files and config into the test: %s", resource_files)
-            self.update_collection(collection_id, collection_draft)
+        self.log.debug("Creating new test collection: %s", name)
+        collection_draft['name'] = name
+        collection_draft['projectId'] = proj_id
+        url = self.address + "/api/latest/collections"
+        headers = {"Content-Type": "application/json"}
+        resp = self._request(url, data=to_json(collection_draft), headers=headers, method="POST")
+        collection_id = resp['result']['id']
 
         self.log.debug("Using collection ID: %s", collection_id)
         return collection_id
 
-    def test_by_name(self, name, configuration, taurus_config, resource_files, proj_id):
-        """
+    def setup_collection(self, collection_id, name, taurus_config, resource_files, proj_id):
+        self.log.debug("Setting up collection")
+        if resource_files:
+            draft_id = "taurus_%s" % int(time.time())
+            self.upload_collection_resources(resource_files, draft_id)
+            taurus_config.merge({"dataFiles": {"draftId": draft_id}})
 
-        :type name: str
-        :rtype: str
-        """
-        test = self.find_test(name, proj_id)
-        test_id = test['id'] if test else None
+        collection_draft = self.import_config(taurus_config)
+        collection_draft['name'] = name
+        collection_draft['projectId'] = proj_id
 
-        if not test_id:
-            self.log.debug("Creating new test")
-            url = self.address + '/api/latest/tests'
-            data = {"name": name, "projectId": proj_id, "configuration": configuration}
-            hdr = {"Content-Type": " application/json"}
-            resp = self._request(url, json.dumps(data), headers=hdr)
-            test_id = resp['result']['id']
+        self.update_collection(collection_id, collection_draft)
 
+    def create_test(self, name, configuration, proj_id):
+        self.log.debug("Creating new test")
+        url = self.address + '/api/latest/tests'
+        data = {"name": name, "projectId": proj_id, "configuration": configuration}
+        hdr = {"Content-Type": " application/json"}
+        resp = self._request(url, json.dumps(data), headers=hdr)
+        test_id = resp['result']['id']
+        self.log.debug("Using test ID: %s", test_id)
+        return test_id
+
+    def setup_test(self, test_id, taurus_config, resource_files):
+        self.log.debug("Setting up test")
         if self.delete_files_before_test:
             self.delete_test_files(test_id)
 
-        if configuration['type'] == 'taurus':  # FIXME: this is weird way to code, subclass it or something
-            self.log.debug("Uploading files into the test: %s", resource_files)
-            url = '%s/api/latest/tests/%s/files' % (self.address, test_id)
+        self.log.debug("Uploading files into the test: %s", resource_files)
+        url = '%s/api/latest/tests/%s/files' % (self.address, test_id)
 
-            body = MultiPartForm()
+        body = MultiPartForm()
+        body.add_file_as_string('script', 'taurus.yml', yaml.dump(taurus_config, default_flow_style=False,
+                                                                  explicit_start=True, canonical=False))
 
-            body.add_file_as_string('script', 'taurus.yml', yaml.dump(taurus_config, default_flow_style=False,
-                                                                      explicit_start=True, canonical=False))
+        for rfile in resource_files:
+            body.add_file('files[]', rfile)
 
-            for rfile in resource_files:
-                body.add_file('files[]', rfile)
-
-            hdr = {"Content-Type": str(body.get_content_type())}
-            _ = self._request(url, body.form_as_bytes(), headers=hdr)
-
-        self.log.debug("Using test ID: %s", test_id)
-        return test_id
+        hdr = {"Content-Type": str(body.get_content_type())}
+        _ = self._request(url, body.form_as_bytes(), headers=hdr)
 
     def get_tests(self):
         """
@@ -1554,6 +1618,9 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
     :type test: BaseCloudTest
     """
 
+    LOC = "locations"
+    LOC_WEIGHTED = "locations-weighted"
+
     def __init__(self):
         super(CloudProvisioning, self).__init__()
         self.results_reader = None
@@ -1563,6 +1630,8 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.widget = None
         self.detach = False
         self.test = None
+        self.check_interval = 5.0
+        self.__last_check_time = None
 
     def prepare(self):
         if self.settings.get("dump-locations", False):
@@ -1578,6 +1647,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         super(CloudProvisioning, self).prepare()
         self.browser_open = self.settings.get("browser-open", self.browser_open)
         self.detach = self.settings.get("detach", self.detach)
+        self.check_interval = dehumanize_time(self.settings.get("check-interval", self.check_interval))
         self._configure_client()
         self._filter_reporting()
 
@@ -1624,17 +1694,32 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
     def startup(self):
         super(CloudProvisioning, self).startup()
-        self.test.start_test()
+        self.test.launch_test()
         self.log.info("Started cloud test: %s", self.client.results_url)
         if self.client.results_url:
             if self.browser_open in ('start', 'both'):
                 open_browser(self.client.results_url)
 
+    def _should_skip_check(self):
+        now = time.time()
+        if self.__last_check_time is None:
+            return False
+        elif now >= self.__last_check_time + self.check_interval:
+            return False
+        else:
+            return True
+
     def check(self):
-        # TODO: throttle down requests
         if self.detach:
             self.log.warning('Detaching Taurus from started test...')
             return True
+
+        if self._should_skip_check():
+            self.log.debug("Skipping cloud status check")
+            return False
+
+        self.__last_check_time = time.time()
+
         try:
             master = self.test.get_master_status()
         except (URLError, SSLError):
@@ -1660,12 +1745,14 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             self.client.master_id = None
             return True
 
+        self.test.start_if_ready()
+
         self.widget.update()
         return super(CloudProvisioning, self).check()
 
     def post_process(self):
         if not self.detach:
-            self.client.end_master()
+            self.test.stop_test()
         if self.client.results_url:
             if self.browser_open in ('end', 'both'):
                 open_browser(self.client.results_url)

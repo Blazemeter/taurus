@@ -16,7 +16,8 @@ modules:
   cloud:
     token: ******  # API key
     timeout: 10s  # BlazeMeter API client timeout
-    browser-open: start  # auto-open browser on test start/end/both/none    
+    browser-open: start  # auto-open browser on test start/end/both/none
+    check-interval: 5s  # interval which Taurus uses to query test status from BlazeMeter
 ```
 
 All folders among your resource files (scripts) will be packed automatically before sending and unpacked on cloud workers with `unpacker` service.   
