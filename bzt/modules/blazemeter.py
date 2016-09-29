@@ -881,10 +881,10 @@ class CloudCollectionTest(BaseCloudTest):
 
     def resolve_test(self, taurus_config, rfiles):
         if self.test_id is None:
-            self.log.info("Creating cloud collection test")
+            self.log.debug("Creating cloud collection test")
             self.test_id = self.client.create_collection(self.test_name, taurus_config, rfiles, self.project_id)
         else:
-            self.log.info("Overriding cloud collection test")
+            self.log.debug("Overriding cloud collection test")
             self.client.setup_collection(self.test_id, self.test_name, taurus_config, rfiles, self.project_id)
 
     def launch_test(self):
@@ -900,9 +900,22 @@ class CloudCollectionTest(BaseCloudTest):
             self.client.force_start_master()
             self._started = True
 
+    def await_test_end(self):
+        iterations = 0
+        while True:
+            if iterations > 100:
+                self.log.debug("Await: iteration limit reached")
+                return
+            status = self.client.get_master_status()
+            if status.get("status") == "ENDED":
+                return
+            iterations += 1
+            time.sleep(1.0)
+
     def stop_test(self):
         if self._started:
             self.client.stop_collection(self.test_id)
+            self.await_test_end()
         else:
             self.client.end_master()
 
@@ -1116,7 +1129,7 @@ class BlazeMeterClient(object):
         self._request(url, method="POST")
 
     def stop_collection(self, collection_id):
-        self.log.info("Ending cloud test...")
+        self.log.info("Shutting down cloud test...")
         url = self.address + "/api/latest/collections/%s/stop" % collection_id
         self._request(url)
 
@@ -1135,12 +1148,6 @@ class BlazeMeterClient(object):
                 url = self.address + "/api/latest/sessions/%s/terminateExternal"
                 data = {"signature": self.data_signature, "testId": self.test_id, "sessionId": self.session_id}
                 self._request(url % self.session_id, json.dumps(data))
-
-    def stop_master(self):
-        if self.master_id:
-            self.log.info("Stopping cloud test...")
-            url = self.address + "/api/latest/masters/%s/stop"
-            self._request(url % self.master_id)
 
     def end_master(self):
         if self.master_id:
