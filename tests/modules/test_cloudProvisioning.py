@@ -37,8 +37,9 @@ class TestCloudProvisioning(BZTestCase):
         obj.settings["token"] = "FakeToken"
         obj.settings["browser-open"] = False
         obj.client = client = BlazeMeterClientEmul(obj.log)
-        client.results.append(self.__get_user_info())  # user
+        client.results.append({"result": []})  # collections
         client.results.append({"result": []})  # tests
+        client.results.append(self.__get_user_info())  # user
         client.results.append({"result": {"id": id(client)}})  # create test
         client.results.append({"files": []})  # create test
         client.results.append({})  # upload files
@@ -79,8 +80,9 @@ class TestCloudProvisioning(BZTestCase):
         obj.settings["detach"] = True
         obj.settings["browser-open"] = False
         obj.client = client = BlazeMeterClientEmul(obj.log)
-        client.results.append(self.__get_user_info())  # user
+        client.results.append({"result": []})  # collections
         client.results.append({"result": []})  # tests
+        client.results.append(self.__get_user_info())  # user
         client.results.append({"result": {"id": id(client)}})  # create test
         client.results.append({"files": []})  # create test
         client.results.append({})  # upload files
@@ -111,8 +113,9 @@ class TestCloudProvisioning(BZTestCase):
         obj.settings["token"] = "FakeToken"
         obj.settings['default-location'] = "us-west-1"
         obj.client = client = BlazeMeterClientEmul(obj.log)
-        client.results.append(self.__get_user_info())  # user
+        client.results.append({"result": []})  # collections
         client.results.append({"result": []})  # tests
+        client.results.append(self.__get_user_info())  # user
         client.results.append({"result": {"id": id(client)}})  # create test
         client.results.append({"files": []})  # test files
         client.results.append({})  # upload files
@@ -144,8 +147,9 @@ class TestCloudProvisioning(BZTestCase):
         obj.settings["token"] = "FakeToken"
         obj.settings['default-location'] = "us-west-1"
         obj.client = client = BlazeMeterClientEmul(obj.log)
-        client.results.append(self.__get_user_info())  # user
+        client.results.append({"result": []})  # collections
         client.results.append({"result": []})  # tests
+        client.results.append(self.__get_user_info())  # user
         client.results.append({"result": {"id": id(client)}})  # create test
         client.results.append({"files": []})  # test files
         client.results.append({})  # upload files
@@ -161,7 +165,7 @@ class TestCloudProvisioning(BZTestCase):
     def test_widget_cloud_test(self):
         obj = CloudProvisioning()
         obj.client = BlazeMeterClientEmul(logging.getLogger(''))
-        obj.test = CloudTaurusTest({}, {}, obj.client, None, None, logging.getLogger(''))
+        obj.test = CloudTaurusTest({}, {}, obj.client, None, None, None, logging.getLogger(''))
         obj.client.results.append({"result": []})
         obj.client.results.append({"result": {"sessions": [
             {
@@ -191,7 +195,7 @@ class TestCloudProvisioning(BZTestCase):
     def test_widget_cloud_collection(self):
         obj = CloudProvisioning()
         obj.client = BlazeMeterClientEmul(logging.getLogger(''))
-        obj.test = CloudCollectionTest({}, {}, obj.client, None, None, logging.getLogger(''))
+        obj.test = CloudCollectionTest({}, {}, obj.client, None, None, None, logging.getLogger(''))
         obj.client.results.append({"result": {"sessions": [
             {
                 "id": "session-id",
@@ -233,10 +237,11 @@ class TestCloudProvisioning(BZTestCase):
                             'default-location': "us-west-1",
                             })
         obj.client = client = BlazeMeterClientEmul(obj.log)
-        client.results.append(self.__get_user_info())  # user
+        client.results.append({"result": []})  # collections
         client.results.append({"result": [{"id": 5174715,
                                            "name": "Taurus Cloud Test",
                                            "configuration": {"type": "taurus"},}]})  # find test
+        client.results.append(self.__get_user_info())  # user
         client.results.append({"files": [{"hash": "hash1", "name": "file1"},
                                          {"hash": "hash1", "name": "file2"}]})  # test files
         client.results.append({"removed": ["hash1", "hash2"]})  # remove test files
@@ -261,7 +266,8 @@ class TestCloudProvisioning(BZTestCase):
             },
         })
         obj.parameters = obj.engine.config['execution']
-        obj.test = CloudTaurusTest(obj.engine.config['execution'], {}, obj.client, None, "name", logging.getLogger(''))
+        obj.test = CloudTaurusTest(obj.engine.config['execution'], {}, obj.client, None, None, "name",
+                                   logging.getLogger(''))
         cloud_config = obj.test.prepare_cloud_config(obj.engine.config)
         execution = cloud_config["execution"][0]
         self.assertNotIn("throughput", execution)
@@ -287,10 +293,11 @@ class TestCloudProvisioning(BZTestCase):
                             'default-location': "us-west-1",
                             "delete-test-files": False})
         obj.client = client = BlazeMeterClientEmul(obj.log)
-        client.results.append(self.__get_user_info())  # user
+        client.results.append({"result": []})
         client.results.append({"result": [{"id": 5174715,
                                            "name": "Taurus Cloud Test",
                                            "configuration": {"type": "taurus"},}]})  # find test
+        client.results.append(self.__get_user_info())  # user
         client.results.append({})  # upload files
 
         obj.prepare()
@@ -312,13 +319,12 @@ class TestCloudProvisioning(BZTestCase):
 
         obj.settings.merge({"token": "FakeToken",
                             'default-location': "us-west-1",
-                            "delete-test-files": False,
-                            "test-type": "cloud-collection"})
+                            "delete-test-files": False})
         obj.client = client = BlazeMeterClientEmul(obj.log)
-        client.results.append(self.__get_user_info())  # user
         client.results.append({"result": [{"id": 5174715,
                                            "name": "Taurus Cloud Test",
                                            "items": [{"configuration": {"type": "taurus"}}]}]})  # find collection
+        client.results.append(self.__get_user_info())  # user
         client.results.append({})  # upload files
         client.results.append({"result": {"name": "Taurus Collection", "items": []}})  # transform config to collection
         client.results.append({})  # update collection
@@ -342,16 +348,12 @@ class TestCloudProvisioning(BZTestCase):
 
         obj.settings.merge({"token": "FakeToken",
                             'default-location': "us-west-1",
-                            "delete-test-files": False,
-                            "detect-test-type": True})
+                            "delete-test-files": False})
         obj.client = client = BlazeMeterClientEmul(obj.log)
         client.results.append({"result": [{"id": 5174715,
                                            "name": "Taurus Cloud Test",
                                            "items": [{"configuration": {"type": "taurus"}}]}]})  # detect collection
         client.results.append(self.__get_user_info())  # user
-        client.results.append({"result": [{"id": 5174715,
-                                           "name": "Taurus Cloud Test",
-                                           "items": [{"configuration": {"type": "taurus"}}]}]})  # find collection
         client.results.append({})  # upload files
         client.results.append({"result": {"name": "Taurus Collection", "items": []}})  # transform config to collection
         client.results.append({})  # update collection
@@ -375,8 +377,7 @@ class TestCloudProvisioning(BZTestCase):
 
         obj.settings.merge({"token": "FakeToken",
                             'default-location': "us-west-1",
-                            "delete-test-files": False,
-                            "detect-test-type": True})
+                            "delete-test-files": False})
         obj.client = client = BlazeMeterClientEmul(obj.log)
         client.results.append({"result": []})  # detect collection
         client.results.append({"result": [{"id": 5174715,
@@ -415,14 +416,16 @@ class TestCloudProvisioning(BZTestCase):
 
         obj.settings["token"] = "FakeToken"
         obj.settings["browser-open"] = False
+        obj.settings["use-deprecated-api"] = False
         obj.client = client = BlazeMeterClientEmul(obj.log)
-        client.results.append(self.__get_user_info())  # user
         client.results.append({"result": []})  # collections
-        client.results.append({"result": {"id": id(client)}})  # create test
-        client.results.append({"files": []})  # create test
-        client.results.append({})  # upload files
+        client.results.append({"result": []})  # tests
+        client.results.append(self.__get_user_info())  # user
+        client.results.append({"files": []})  # upload files
+        client.results.append({"result": {"name": "Taurus Collection", "items": []}})  # transform config to collection
+        client.results.append({"result": {"id": id(client)}})  # create collection
         client.results.append({"result": {"id": id(obj)}})  # start
-        client.results.append({"result": {"id": id(obj)}})  # get master
+        client.results.append({"result": {"id": id(obj), "sessions": []}})  # get master
         client.results.append({"result": []})  # get master sessions
         client.results.append({})  # terminate
 
@@ -452,16 +455,16 @@ class TestCloudProvisioning(BZTestCase):
         obj.settings.merge({"token": "FakeToken",
                             'default-location': "us-west-1",
                             "delete-test-files": False,
-                            "test-type": "cloud-test",
                             "project": "myproject"})
         obj.client = client = BlazeMeterClientEmul(obj.log)
         client.results.append({"result": []})  # projects
         client.results.append({"result": {"id": 1428}})  # create project
-        client.results.append(self.__get_user_info())  # locations
+        client.results.append({"result": []})  # collections
         client.results.append({"result": [{"id": 5174715,
                                            "projectId": 1428,
                                            "name": "Taurus Cloud Test",
                                            "configuration": {"type": "taurus"}}]})  # find test
+        client.results.append(self.__get_user_info())  # locations
         client.results.append({})  # upload files
         obj.prepare()
 
@@ -482,15 +485,15 @@ class TestCloudProvisioning(BZTestCase):
         obj.settings.merge({"token": "FakeToken",
                             'default-location': "us-west-1",
                             "delete-test-files": False,
-                            "test-type": "cloud-test",
                             "project": "myproject"})
         obj.client = client = BlazeMeterClientEmul(obj.log)
         client.results.append({"result": [{"id": 1428, "name": "myproject"}]})  # projects
-        client.results.append(self.__get_user_info())  # user
+        client.results.append({"result": []})  # collections
         client.results.append({"result": [{"id": 5174715,
                                            "projectId": 1428,
                                            "name": "Taurus Cloud Test",
                                            "configuration": {"type": "taurus"}}]})  # find test
+        client.results.append(self.__get_user_info())  # user
         client.results.append({})  # upload files
         obj.prepare()
 
@@ -511,14 +514,14 @@ class TestCloudProvisioning(BZTestCase):
         obj.settings.merge({"token": "FakeToken",
                             'default-location': "us-west-1",
                             "delete-test-files": False,
-                            "test-type": "cloud-test",
                             "project": 1428})
         obj.client = client = BlazeMeterClientEmul(obj.log)
-        client.results.append(self.__get_user_info())  # user
+        client.results.append({"result": []})  # collections
         client.results.append({"result": [{"id": 5174715,
                                            "projectId": 1428,
                                            "name": "Taurus Cloud Test",
                                            "configuration": {"type": "taurus"}}]})  # find test
+        client.results.append(self.__get_user_info())  # user
         client.results.append({})  # upload files
         obj.prepare()
 
@@ -539,10 +542,11 @@ class TestCloudProvisioning(BZTestCase):
         obj.settings.merge({"token": "FakeToken",
                             'default-location': "us-west-1",
                             "delete-test-files": False,
-                            "test-type": "cloud-collection"})
+                            "use-deprecated-api": False})
         obj.client = client = BlazeMeterClientEmul(obj.log)
-        client.results.append(self.__get_user_info())  # user
         client.results.append({"result": []})  # find collection
+        client.results.append({"result": []})  # find test
+        client.results.append(self.__get_user_info())  # user
         client.results.append({})  # upload files
         client.results.append({"result": {"name": "Taurus Collection", "items": []}})  # transform config to collection
         client.results.append({"result": {"id": 42}})  # create collection
@@ -573,10 +577,11 @@ class TestCloudProvisioning(BZTestCase):
 
         obj.settings["token"] = "FakeToken"
         obj.settings["browser-open"] = False
-        obj.settings["test-type"] = "cloud-collection"
+        obj.settings["use-deprecated-api"] = False
         obj.client = client = BlazeMeterClientEmul(obj.log)
+        client.results.append({"result": []})  # collections
+        client.results.append({"result": []})  # tests
         client.results.append(self.__get_user_info())  # user
-        client.results.append({"result": []})  # find collection
         client.results.append({})  # upload files
         client.results.append({"result": {"name": "Taurus Collection", "items": []}})  # transform config to collection
         client.results.append({"result": {"id": 42}})  # create collection
@@ -610,8 +615,11 @@ class TestCloudProvisioning(BZTestCase):
 
         obj.settings["token"] = "FakeToken"
         obj.settings["browser-open"] = False
-        obj.settings["test-type"] = "cloud-collection"
+        obj.settings["use-deprecated-api"] = False
+
         obj.client = client = BlazeMeterClientEmul(obj.log)
+        client.results.append({"result": []})  # collections
+        client.results.append({"result": []})  # tests
         client.results.append(self.__get_user_info())  # user
         self.assertRaises(ValueError, obj.prepare)
 
@@ -633,10 +641,10 @@ class TestCloudProvisioning(BZTestCase):
 
         obj.settings["token"] = "FakeToken"
         obj.settings["browser-open"] = False
-        obj.settings["test-type"] = "cloud-test"
         obj.client = client = BlazeMeterClientEmul(obj.log)
-        client.results.append(self.__get_user_info())  # user
+        client.results.append({"result": []})  # collections
         client.results.append({"result": []})  # tests
+        client.results.append(self.__get_user_info())  # user
         client.results.append({"result": {"id": id(client)}})  # create test
         client.results.append({"files": []})  # create test
         client.results.append({})  # upload files
@@ -662,10 +670,11 @@ class TestCloudProvisioning(BZTestCase):
 
         obj.settings["token"] = "FakeToken"
         obj.settings["browser-open"] = False
-        obj.settings["test-type"] = "cloud-collection"
+        obj.settings["use-deprecated-api"] = False
         obj.client = client = BlazeMeterClientEmul(obj.log)
-        client.results.append(self.__get_user_info())  # user
         client.results.append({"result": []})  # find collection
+        client.results.append({"result": []})  # find test
+        client.results.append(self.__get_user_info())  # user
         client.results.append({})  # upload files
         client.results.append({"result": {"name": "Taurus Collection", "items": []}})  # transform config to collection
         client.results.append({"result": {"id": 42}})  # create collection
@@ -701,10 +710,11 @@ class TestCloudProvisioning(BZTestCase):
 
         obj.settings["token"] = "FakeToken"
         obj.settings["browser-open"] = False
-        obj.settings["test-type"] = "cloud-collection"
+        obj.settings["use-deprecated-api"] = False
         obj.client = client = BlazeMeterClientEmul(obj.log)
-        client.results.append(self.__get_user_info())  # user
+        client.results.append({"result": []})  # find test
         client.results.append({"result": []})  # find collection
+        client.results.append(self.__get_user_info())  # user
         client.results.append({})  # upload files
         client.results.append({"result": {"name": "Taurus Collection", "items": []}})  # transform config to collection
         client.results.append({"result": {"id": 42}})  # create collection
@@ -739,11 +749,12 @@ class TestCloudProvisioning(BZTestCase):
 
         obj.settings["token"] = "FakeToken"
         obj.settings["browser-open"] = False
-        obj.settings["test-type"] = "cloud-collection"
         obj.settings["check-interval"] = "0ms"  # do not skip checks
+        obj.settings["use-deprecated-api"] = False
         obj.client = client = BlazeMeterClientEmul(obj.log)
-        client.results.append(self.__get_user_info())  # user
         client.results.append({"result": []})  # find collection
+        client.results.append({"result": []})  # find test
+        client.results.append(self.__get_user_info())  # user
         client.results.append({})  # upload files
         client.results.append({"result": {"name": "Taurus Collection", "items": []}})  # transform config to collection
         client.results.append({"result": {"id": 42}})  # create collection
@@ -790,11 +801,11 @@ class TestCloudProvisioning(BZTestCase):
 
         obj.settings["token"] = "FakeToken"
         obj.settings["browser-open"] = False
-        obj.settings["test-type"] = "cloud-test"
         obj.settings["check-interval"] = "1s"
         obj.client = client = BlazeMeterClientEmul(obj.log)
-        client.results.append(self.__get_user_info())  # user
+        client.results.append({"result": []})  # collection
         client.results.append({"result": []})  # tests
+        client.results.append(self.__get_user_info())  # user
         client.results.append({"result": {"id": id(client)}})  # create test
         client.results.append({"files": []})  # create test
         client.results.append({})  # upload files

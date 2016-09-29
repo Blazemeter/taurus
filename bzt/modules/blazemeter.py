@@ -590,24 +590,36 @@ class ProjectFinder(object):
         test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
         use_deprecated = self.settings.get("use-deprecated-api", True)
 
-        if self.client.find_collection(test_name, project_id):
-            self.log.info("Detected test type: new")
+        collection = self.client.find_collection(test_name, project_id)
+        self.log.debug("Looking for collection: %s", collection)
+        if collection:
+            self.log.debug("Detected test type: new")
             test_class = CloudCollectionTest
-        elif self.client.find_test(test_name, project_id):
-            self.log.info("Detected test type: old")
-            test_class = CloudTaurusTest
-        elif use_deprecated:
-            self.log.info("Will create old-style test")
-            test_class = CloudTaurusTest
+            test_id = collection['id']
         else:
-            self.log.info("Will create new-style test")
-            test_class = CloudCollectionTest
+            test = self.client.find_test(test_name, project_id)
+            self.log.debug("Looking for test: %s", test)
+            if test:
+                self.log.debug("Detected test type: old")
+                test_class = CloudTaurusTest
+                test_id = test['id']
+            else:
+                if use_deprecated:
+                    self.log.debug("Will create old-style test")
+                    test_class = CloudTaurusTest
+                else:
+                    self.log.debug("Will create new-style test")
+                    test_class = CloudCollectionTest
+                test_id = None
 
-        return test_class(self.parameters, self.settings, self.client, project_id, test_name, self.log)
+        return test_class(self.parameters, self.settings, self.client, test_id, project_id, test_name, self.log)
 
 
 class BaseCloudTest(object):
-    def __init__(self, parameters, settings, client, project_id, test_name, parent_log):
+    """
+    :type client: BlazeMeterClient
+    """
+    def __init__(self, parameters, settings, client, test_id, project_id, test_name, parent_log):
         self.default_test_name = "Taurus Test"
         self.client = client
         self.parameters = parameters
@@ -615,7 +627,7 @@ class BaseCloudTest(object):
         self.log = parent_log.getChild(self.__class__.__name__)
         self.project_id = project_id
         self.test_name = test_name
-        self.test_id = None
+        self.test_id = test_id
         self._last_status = None
         self._sessions = None
         self._started = False
@@ -739,16 +751,17 @@ class CloudTaurusTest(BaseCloudTest):
         return config
 
     def resolve_test(self, taurus_config, rfiles):
-        self.log.debug("Loading cloud test")
-        test_config = {
-            "type": "taurus",
-            "plugins": {
-                "taurus": {
-                    "filename": ""  # without this line it does not work
+        if self.test_id is None:
+            test_config = {
+                "type": "taurus",
+                "plugins": {
+                    "taurus": {
+                        "filename": ""  # without this line it does not work
+                    }
                 }
             }
-        }
-        self.test_id = self.client.test_by_name(self.test_name, test_config, taurus_config, rfiles, self.project_id)
+            self.test_id = self.client.create_test(self.test_name, test_config, self.project_id)
+        self.client.setup_test(self.test_id, taurus_config, rfiles)
 
     def launch_test(self):
         return self.client.start_cloud_test(self.test_id)
@@ -867,8 +880,12 @@ class CloudCollectionTest(BaseCloudTest):
         return config
 
     def resolve_test(self, taurus_config, rfiles):
-        self.log.debug("Loading cloud collection test")
-        self.test_id = self.client.collection_by_name(self.test_name, taurus_config, rfiles, self.project_id)
+        if self.test_id is None:
+            self.log.info("Creating cloud collection test")
+            self.test_id = self.client.create_collection(self.test_name, taurus_config, rfiles, self.project_id)
+        else:
+            self.log.info("Overriding cloud collection test")
+            self.client.setup_collection(self.test_id, self.test_name, taurus_config, rfiles, self.project_id)
 
     def launch_test(self):
         return self.client.launch_cloud_collection(self.test_id)
@@ -878,12 +895,16 @@ class CloudCollectionTest(BaseCloudTest):
             return
         if self._last_status is None:
             return
-        if all(session["status"] == "JMETER_CONSOLE_INIT" for session in self._last_status["sessions"]):
+        sessions = self._last_status.get("sessions", [])
+        if sessions and all(session["status"] == "JMETER_CONSOLE_INIT" for session in sessions):
             self.client.force_start_master()
             self._started = True
 
     def stop_test(self):
-        self.client.stop_collection(self.test_id)
+        if self._started:
+            self.client.stop_collection(self.test_id)
+        else:
+            self.client.end_master()
 
     def get_test_status_text(self):
         if not self._sessions:
@@ -1002,12 +1023,6 @@ class BlazeMeterClient(object):
         resp = self._request(url, data=to_json(config), headers={"Content-Type": "application/json"}, method="POST")
         return resp['result']
 
-    def create_collection(self, coll):
-        url = self.address + "/api/latest/collections"
-        resp = self._request(url, data=to_json(coll), headers={"Content-Type": "application/json"}, method="POST")
-        collection = resp['result']
-        return collection['id']
-
     def update_collection(self, collection_id, coll):
         url = self.address + "/api/latest/collections/%s" % collection_id
         self._request(url, data=to_json(coll), headers={"Content-Type": "application/json"}, method="POST")
@@ -1121,6 +1136,12 @@ class BlazeMeterClient(object):
                 data = {"signature": self.data_signature, "testId": self.test_id, "sessionId": self.session_id}
                 self._request(url % self.session_id, json.dumps(data))
 
+    def stop_master(self):
+        if self.master_id:
+            self.log.info("Stopping cloud test...")
+            url = self.address + "/api/latest/masters/%s/stop"
+            self._request(url % self.master_id)
+
     def end_master(self):
         if self.master_id:
             self.log.info("Ending cloud test...")
@@ -1163,15 +1184,8 @@ class BlazeMeterClient(object):
         if note:
             self.update_session({'note': note})
 
-    def collection_by_name(self, name, taurus_config, resource_files, proj_id):
-        """
-
-        :type name: str
-        :rtype: str
-        """
-        collection = self.find_collection(name, proj_id)
-        collection_id = collection['id'] if collection else None
-
+    def create_collection(self, name, taurus_config, resource_files, proj_id):
+        self.log.debug("Creating collection")
         if resource_files:
             draft_id = "taurus_%s" % int(time.time())
             self.upload_collection_resources(resource_files, draft_id)
@@ -1180,23 +1194,59 @@ class BlazeMeterClient(object):
         collection_draft = self.import_config(taurus_config)
         collection_draft['name'] = name
 
-        if not collection_id:
-            self.log.debug("Creating new test collection: %s", name)
-            collection_draft['name'] = name
-            collection_id = self.create_collection(collection_draft)
-        else:
-            self.log.debug("Uploading files and config into the test: %s", resource_files)
-            self.update_collection(collection_id, collection_draft)
+        self.log.debug("Creating new test collection: %s", name)
+        collection_draft['name'] = name
+        collection_draft['projectId'] = proj_id
+        url = self.address + "/api/latest/collections"
+        headers = {"Content-Type": "application/json"}
+        resp = self._request(url, data=to_json(collection_draft), headers=headers, method="POST")
+        collection_id = resp['result']['id']
 
         self.log.debug("Using collection ID: %s", collection_id)
         return collection_id
 
-    def test_by_name(self, name, configuration, taurus_config, resource_files, proj_id):
-        """
+    def setup_collection(self, collection_id, name, taurus_config, resource_files, proj_id):
+        self.log.debug("Setting up collection")
+        if resource_files:
+            draft_id = "taurus_%s" % int(time.time())
+            self.upload_collection_resources(resource_files, draft_id)
+            taurus_config.merge({"dataFiles": {"draftId": draft_id}})
 
-        :type name: str
-        :rtype: str
-        """
+        collection_draft = self.import_config(taurus_config)
+        collection_draft['name'] = name
+        collection_draft['projectId'] = proj_id
+
+        self.update_collection(collection_id, collection_draft)
+
+    def create_test(self, name, configuration, proj_id):
+        self.log.debug("Creating new test")
+        url = self.address + '/api/latest/tests'
+        data = {"name": name, "projectId": proj_id, "configuration": configuration}
+        hdr = {"Content-Type": " application/json"}
+        resp = self._request(url, json.dumps(data), headers=hdr)
+        test_id = resp['result']['id']
+        self.log.debug("Using test ID: %s", test_id)
+        return test_id
+
+    def setup_test(self, test_id, taurus_config, resource_files):
+        self.log.debug("Setting up test")
+        if self.delete_files_before_test:
+            self.delete_test_files(test_id)
+
+        self.log.debug("Uploading files into the test: %s", resource_files)
+        url = '%s/api/latest/tests/%s/files' % (self.address, test_id)
+
+        body = MultiPartForm()
+        body.add_file_as_string('script', 'taurus.yml', yaml.dump(taurus_config, default_flow_style=False,
+                                                                  explicit_start=True, canonical=False))
+
+        for rfile in resource_files:
+            body.add_file('files[]', rfile)
+
+        hdr = {"Content-Type": str(body.get_content_type())}
+        _ = self._request(url, body.form_as_bytes(), headers=hdr)
+
+    def test_by_name(self, name, configuration, taurus_config, resource_files, proj_id):
         test = self.find_test(name, proj_id)
         test_id = test['id'] if test else None
 
