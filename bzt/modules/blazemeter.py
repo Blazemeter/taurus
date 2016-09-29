@@ -123,7 +123,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
 
             if token:
                 finder = ProjectFinder(self.parameters, self.settings, self.client, self.log)
-                self.test_id = finder.resolve_external_test(self.engine.config)
+                self.test_id = finder.resolve_external_test()
 
         self.sess_name = self.parameters.get("report-name", self.settings.get("report-name", self.sess_name))
         if self.sess_name == 'ask' and sys.stdin.isatty():
@@ -569,11 +569,16 @@ class ProjectFinder(object):
             proj_id = None
         return proj_id
 
-    def resolve_external_test(self, taurus_config):
+    def resolve_external_test(self):
         project_id = self._resolve_project()
         test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
         test_config = {"type": "external"}
-        return self.client.test_by_name(test_name, test_config, taurus_config, [], project_id)
+        existing_test = self.client.find_external_test(test_name, project_id)
+        if existing_test:
+            test_id = existing_test['id']
+        else:
+            test_id = self.client.create_test(test_name, test_config, project_id)
+        return test_id
 
     def resolve_test_type(self):
         project_id = self._resolve_project()
@@ -1050,6 +1055,16 @@ class BlazeMeterClient(object):
                         self.log.debug("Matched: %s", test)
                         return test
 
+    def find_external_test(self, test_name, project_id):
+        tests = self.get_tests()
+        for test in tests:
+            self.log.debug("Test: %s", test)
+            if "name" in test and test['name'] == test_name:
+                if test['configuration']['type'] == "external":
+                    if not project_id or project_id == test['projectId']:
+                        self.log.debug("Matched: %s", test)
+                        return test
+
     def start_online(self, test_id, session_name):
         """
         Start online test
@@ -1244,39 +1259,6 @@ class BlazeMeterClient(object):
 
         hdr = {"Content-Type": str(body.get_content_type())}
         _ = self._request(url, body.form_as_bytes(), headers=hdr)
-
-    def test_by_name(self, name, configuration, taurus_config, resource_files, proj_id):
-        test = self.find_test(name, proj_id)
-        test_id = test['id'] if test else None
-
-        if not test_id:
-            self.log.debug("Creating new test")
-            url = self.address + '/api/latest/tests'
-            data = {"name": name, "projectId": proj_id, "configuration": configuration}
-            hdr = {"Content-Type": " application/json"}
-            resp = self._request(url, json.dumps(data), headers=hdr)
-            test_id = resp['result']['id']
-
-        if self.delete_files_before_test:
-            self.delete_test_files(test_id)
-
-        if configuration['type'] == 'taurus':  # FIXME: this is weird way to code, subclass it or something
-            self.log.debug("Uploading files into the test: %s", resource_files)
-            url = '%s/api/latest/tests/%s/files' % (self.address, test_id)
-
-            body = MultiPartForm()
-
-            body.add_file_as_string('script', 'taurus.yml', yaml.dump(taurus_config, default_flow_style=False,
-                                                                      explicit_start=True, canonical=False))
-
-            for rfile in resource_files:
-                body.add_file('files[]', rfile)
-
-            hdr = {"Content-Type": str(body.get_content_type())}
-            _ = self._request(url, body.form_as_bytes(), headers=hdr)
-
-        self.log.debug("Using test ID: %s", test_id)
-        return test_id
 
     def get_tests(self):
         """
