@@ -1,0 +1,6 @@
+---
+execution:
+- executor: selenium
+  iterations: 5
+  scenario:
+    script: test/  # will run all .js files from test/ folder

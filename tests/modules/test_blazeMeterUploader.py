@@ -1,18 +1,18 @@
+import json
 import logging
 import math
 import os
 import shutil
-from io import BytesIO
 import time
-import json
+from io import BytesIO
 
+import bzt.modules.blazemeter
 from bzt.modules.aggregator import DataPoint, KPISet
-from tests import BZTestCase, random_datapoint, __dir__
-from bzt.six import URLError, iteritems, viewvalues
 from bzt.modules.blazemeter import BlazeMeterUploader, BlazeMeterClient, BlazeMeterClientEmul, ResultsFromBZA
 from bzt.modules.blazemeter import MonitoringBuffer
+from bzt.six import URLError, iteritems, viewvalues
+from tests import BZTestCase, random_datapoint, __dir__
 from tests.mocks import EngineEmul
-import bzt.modules.blazemeter
 
 
 class TestBlazeMeterUploader(BZTestCase):
@@ -135,6 +135,7 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.shutdown()
         log_file = obj.engine.create_artifact('log', '.tmp')
         obj.engine.log.parent.handlers.append(logging.FileHandler(log_file))
+        obj.engine.config.get('modules').get('shellexec').get('env')['TAURUS_INDEX_ALL'] = 1
         obj.post_process()
         self.assertEqual(0, len(client.results))
 
@@ -303,7 +304,7 @@ class TestResultsFromBZA(BZTestCase):
         cumulative_ = res[0][DataPoint.CUMULATIVE]
         total = cumulative_['']
         percentiles_ = total[KPISet.PERCENTILES]
-        self.assertEquals(1050, percentiles_['99.0'])
+        self.assertEquals(1.05, percentiles_['99.0'])
 
 
 class TestMonitoringBuffer(BZTestCase):
@@ -354,4 +355,3 @@ class TestMonitoringBuffer(BZTestCase):
             mon_buffer.record_data(mon)
         unpacked = sum(item['interval'] for item in viewvalues(mon_buffer.data['local']))
         self.assertEqual(unpacked, ITERATIONS)
-

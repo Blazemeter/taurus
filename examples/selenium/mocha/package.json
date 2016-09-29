@@ -1,0 +1,27 @@
+{
+  "name": "mocha-webdriver-suite",
+  "version": "1.0.0",
+  "description": "Example selenium-based test suite using Mocha",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {
+    "mocha": "^3.0.2",
+    "selenium-webdriver": "^3.0.0-beta-3"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "mocha"
+  },
+  "author": "",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Blazemeter/taurus"
+  },
+  "bugs": {
+    "url": "https://github.com/Blazemeter/taurus"
+  },
+  "homepage": "https://github.com/Blazemeter/taurus"
+}

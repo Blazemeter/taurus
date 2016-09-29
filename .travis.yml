@@ -10,7 +10,10 @@ before_install:
   - "export DISPLAY=:99.0"
   - "sh -e /etc/init.d/xvfb start"
   - pip install codecov
-install: "pip install colorlog pyyaml psutil lxml cssselect urwid six selenium progressbar33 locustio pyvirtualdisplay"
+install:
+- gem install rspec
+- npm install mocha
+- pip install colorlog pyyaml psutil lxml cssselect urwid six selenium progressbar33 locustio pyvirtualdisplay
 script: coverage run `which nosetests`
 after_success:
   - codecov

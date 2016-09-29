@@ -12,6 +12,6 @@ execution:
   ramp-up: 30s
   hold-for: 1m
   scenario:
-    default-address: http://192.168.1.3
+    default-address: http://blazedemo.com
     requests: 
       - include-scenario: my_scenario
