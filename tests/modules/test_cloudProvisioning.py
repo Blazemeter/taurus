@@ -768,7 +768,8 @@ class TestCloudProvisioning(BZTestCase):
         client.results.append({"result": {}})  # force start
         client.results.append({"result": {"id": id(obj)}})  # master status
         client.results.append({"result": []})  # sessions
-        client.results.append({})  # terminate
+        client.results.append({})  # graceful shutdown
+        client.results.append({"result": {"status": "ENDED"}})  # master status
 
         obj.prepare()
         obj.startup()
