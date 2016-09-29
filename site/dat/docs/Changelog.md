@@ -1,11 +1,12 @@
 # Changelog
 
-## 1.6.9 <sup>next</sup>
+## 1.7.0 <sup>next</sup>
  - fix JAR building for selenium projects with several folders
  - add LocustIO script generation feature
  - do not copy Selenium scripts in artifacts dir before running them
  - fix KPI merging error
  - introduce `language` option for Selenium tests
+ - migrate to new online reporting format
  - fix nose plugin crash when setUp/setUpClass raises an exception 
  - add `action` blocks to JMeter's requests
  - fix percentiles values for cloud-based tests
@@ -14,6 +15,7 @@
  - add RSpec tests runner for Selenium
  - add Mocha-based tests runner for Selenium
  - fix artifact upload in the cloud
+ - Docker image now has all executors pre-installed
  - introduce `check-interval` option for cloud provisioning
 
 ## 1.6.8 <sup>1 sep 2016</sup>
