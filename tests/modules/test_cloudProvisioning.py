@@ -780,6 +780,54 @@ class TestCloudProvisioning(BZTestCase):
         obj.post_process()
         self.assertEqual(client.results, [])
 
+    def test_terminate_only(self):
+        "test is terminated only when it was started and didn't finished"
+        obj = CloudProvisioning()
+        obj.engine = EngineEmul()
+        obj.engine.config.merge({
+            ScenarioExecutor.EXEC: {
+                "executor": "mock",
+                "concurrency": 5500,
+                "locations": {
+                    "us-east-1": 1,
+                    "us-west": 1,
+                }
+            },
+            "modules": {
+                "mock": ModuleMock.__module__ + "." + ModuleMock.__name__
+            },
+            "provisioning": "mock"
+        })
+        obj.parameters = obj.engine.config['execution']
+        obj.engine.aggregator = ConsolidatingAggregator()
+
+        obj.settings["token"] = "FakeToken"
+        obj.settings["browser-open"] = False
+        obj.settings["check-interval"] = "0ms"  # do not skip checks
+        obj.settings["use-deprecated-api"] = False
+        obj.client = client = BlazeMeterClientEmul(obj.log)
+        client.results.append({"result": []})  # find collection
+        client.results.append({"result": []})  # find test
+        client.results.append(self.__get_user_info())  # user
+        client.results.append({})  # upload files
+        client.results.append({"result": {"name": "Taurus Collection", "items": []}})  # transform config to collection
+        client.results.append({"result": {"id": 42}})  # create collection
+        client.results.append({"result": {"id": id(obj)}})  # start
+        client.results.append({"result": {"id": id(obj), "sessions": [{"id": "s1", "status": "JMETER_CONSOLE_INIT"},
+                                                                      {"id": "s2", "status": "JMETER_CONSOLE_INIT"}]}})
+        client.results.append({"result": []})  # sessions
+        client.results.append({"result": {}})  # force start
+        client.results.append({"result": {"progress": 120, "status": "ENDED"}})  # status should trigger shutdown
+        client.results.append({"result": []})  # sessions
+
+        obj.prepare()
+        obj.startup()
+        obj.check()  # this one should trigger force start
+        self.assertTrue(obj.check())
+        obj.shutdown()
+        obj.post_process()
+        self.assertEqual(client.results, [])
+
     def test_check_interval(self):
         obj = CloudProvisioning()
         obj.engine = EngineEmul()
