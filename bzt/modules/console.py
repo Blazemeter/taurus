@@ -1177,7 +1177,9 @@ class ExecutorWidget(Pile, PrioritizedWidget):
 
             if self.executor in self.executor.engine.provisioning.finished_modules:
                 self.finished = True
-                if not self.duration:
+                if self.duration:
+                    self.progress.set_completion(self.duration)
+                else:
                     self.progress.set_text("Finished")
                     self.eta.set_text("")
         else:
