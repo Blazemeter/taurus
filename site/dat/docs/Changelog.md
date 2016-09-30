@@ -17,6 +17,7 @@
  - fix artifact upload in the cloud
  - Docker image now has all executors pre-installed
  - introduce `check-interval` option for cloud provisioning
+ - rename generated Grinder script to avoid clashes with Locust
 
 ## 1.6.8 <sup>1 sep 2016</sup>
  - fix hamcrest installation for Java-based Selenium tests

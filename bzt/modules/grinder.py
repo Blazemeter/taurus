@@ -217,7 +217,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         Generate grinder scenario from requests
         :return: script
         """
-        script = self.engine.create_artifact("requests", ".py")
+        script = self.engine.create_artifact("grinder_requests", ".py")
         tpl = os.path.join(os.path.abspath(os.path.dirname(__file__)), os.pardir, 'resources', "grinder-requests.tpl")
         self.log.debug("Generating grinder scenario: %s", tpl)
         with open(script, 'w') as fds:
