@@ -1,10 +1,12 @@
-FROM ubuntu:16.04
+FROM ubuntu:14.04
 RUN apt-get -y update \
   && apt-get -y install --no-install-recommends software-properties-common \
   && apt-add-repository multiverse \
   && add-apt-repository ppa:yandex-load/main \
   && apt-add-repository ppa:nilarimogard/webupd8 \
+  && apt-add-repository ppa:tsung/stable \
   && apt-get -y update \
+  && apt-cache policy firefox \
   && apt-get -y install --no-install-recommends \
     unzip \
     gcc \
@@ -14,14 +16,14 @@ RUN apt-get -y update \
     libgconf-2-4 \
     python-dev \
     python-pip \
-    default-jdk-headless \
+    default-jdk \
     xvfb \
     libyaml-dev \
     siege \
     tsung \
     phantom \
     phantom-ssl \
-    firefox=45.0.2+build1-0ubuntu1 \
+    firefox=28.0+build2-0ubuntu2 \
     chromium-browser \
     pepperflashplugin-nonfree \
     flashplugin-installer \
