@@ -36,7 +36,8 @@ RUN apt-get -y update \
   && npm install mocha \
   && gem install rspec \
   && firefox --version \
-  && chromium-browser --version
+  && chromium-browser --version \
+  && rm -rf /var/lib/apt/lists/*
 
 ADD http://gettaurus.org/snapshots/blazemeter-pbench-extras_0.1.10.1_amd64.deb /tmp
 ADD http://chromedriver.storage.googleapis.com/2.24/chromedriver_linux64.zip /tmp
