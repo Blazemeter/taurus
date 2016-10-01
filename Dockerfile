@@ -7,6 +7,7 @@ RUN apt-get -y update \
   && apt-get -y update \
   && apt-cache policy firefox \
   && apt-get -y install --no-install-recommends \
+    kmod \
     unzip \
     gcc \
     libxslt1-dev \
