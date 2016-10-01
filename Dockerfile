@@ -29,6 +29,7 @@ RUN apt-get -y update \
     phantomjs \
     ruby \
     nodejs \
+    npm \
   && pip install --upgrade setuptools pip \
   && pip install locustio \
   && npm install mocha \
