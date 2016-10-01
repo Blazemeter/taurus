@@ -27,7 +27,8 @@ RUN apt-get -y update \
     flashplugin-installer \
     phantomjs \
   && pip install --upgrade setuptools pip \
-  && pip install locustio
+  && pip install locustio \
+  && dpkg -l | grep firefox
 
 ADD http://gettaurus.org/snapshots/blazemeter-pbench-extras_0.1.10.1_amd64.deb /tmp
 ADD http://chromedriver.storage.googleapis.com/2.24/chromedriver_linux64.zip /tmp
