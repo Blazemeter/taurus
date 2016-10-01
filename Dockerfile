@@ -1,10 +1,9 @@
-FROM ubuntu:14.04
+FROM ubuntu:16.04
 RUN apt-get -y update \
   && apt-get -y install --no-install-recommends software-properties-common \
   && apt-add-repository multiverse \
   && add-apt-repository ppa:yandex-load/main \
   && apt-add-repository ppa:nilarimogard/webupd8 \
-  && apt-add-repository ppa:tsung/stable \
   && apt-get -y update \
   && apt-cache policy firefox \
   && apt-get -y install --no-install-recommends \
@@ -23,14 +22,19 @@ RUN apt-get -y update \
     tsung \
     phantom \
     phantom-ssl \
-    firefox=28.0+build2-0ubuntu2 \
+    firefox=45.0.2+build1-0ubuntu1 \
     chromium-browser \
     pepperflashplugin-nonfree \
     flashplugin-installer \
     phantomjs \
+    ruby \
+    nodejs \
   && pip install --upgrade setuptools pip \
   && pip install locustio \
-  && dpkg -l | grep firefox
+  && npm install mocha \
+  && gem install rspec \
+  && firefox --version \
+  && chromium-browser --version
 
 ADD http://gettaurus.org/snapshots/blazemeter-pbench-extras_0.1.10.1_amd64.deb /tmp
 ADD http://chromedriver.storage.googleapis.com/2.24/chromedriver_linux64.zip /tmp
