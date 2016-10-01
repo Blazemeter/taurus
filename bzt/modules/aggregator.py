@@ -136,10 +136,10 @@ class KPISet(BetterDict):
         Increment list item, based on selector criteria
 
         :param values: list to update
-        :type values: list
         :param selector: tuple of 2 values, field name and value to match
-        :type selector: tuple
         :param value: dict to put into list
+        :type values: list[dict]
+        :type selector: tuple
         :type value: dict
         """
         found = False
@@ -304,7 +304,7 @@ class DataPoint(BetterDict):
     def __deepcopy__(self, memo):
         new = DataPoint(self[self.TIMESTAMP], self.perc_levels)
         for key in self.keys():
-            new[key] = copy.deepcopy(self[key])
+            new[key] = copy.deepcopy(self[key], memo)
         return new
 
     def __merge_kpis(self, src, dst, sid):
@@ -401,10 +401,9 @@ class ResultsProvider(object):
     @abstractmethod
     def _calculate_datapoints(self, final_pass=False):
         """
-
-        :rtype : tuple
+        :rtype : list[DataPoint]
         """
-        pass
+        yield
 
 
 class ResultsReader(ResultsProvider):
@@ -642,7 +641,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
                 if self.buffer:
                     mints = min(self.buffer.keys())
                     if tstamp < mints:
-                        self.log.warning("Putting datapoint %s into %s", tstamp, mints)
+                        self.log.debug("Putting datapoint %s into %s", tstamp, mints)
                         data[DataPoint.TIMESTAMP] = mints
                         tstamp = mints
                 self.buffer.get(tstamp, []).append(data)
