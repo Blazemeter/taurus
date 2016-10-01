@@ -1630,6 +1630,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.widget = None
         self.detach = False
         self.test = None
+        self.test_ended = False
         self.check_interval = 5.0
         self.__last_check_time = None
 
@@ -1743,6 +1744,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
                 self.log.warning("Cloud test has probably failed with message: %s", status['note'])
 
             self.client.master_id = None
+            self.test_ended = True
             return True
 
         self.test.start_if_ready()
@@ -1751,7 +1753,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         return super(CloudProvisioning, self).check()
 
     def post_process(self):
-        if not self.detach:
+        if not self.detach and not self.test_ended:
             self.test.stop_test()
         if self.client.results_url:
             if self.browser_open in ('end', 'both'):
