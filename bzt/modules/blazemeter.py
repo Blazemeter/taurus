@@ -1056,6 +1056,9 @@ class BlazeMeterClient(object):
                         return test
 
     def find_external_test(self, test_name, project_id):
+        """
+        :rtype dict
+        """
         tests = self.get_tests()
         for test in tests:
             self.log.debug("Test: %s", test)
@@ -1262,8 +1265,7 @@ class BlazeMeterClient(object):
 
     def get_tests(self):
         """
-
-        :rtype: list
+        :rtype: list[dict]
         """
         tests = self._request(self.address + '/api/latest/tests')
         self.log.debug("Tests for user: %s", len(tests['result']))
