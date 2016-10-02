@@ -1,5 +1,4 @@
 import csv
-import datetime
 import json
 import math
 import os
@@ -14,6 +13,7 @@ from abc import abstractmethod
 from os import strerror
 from subprocess import CalledProcessError
 
+import datetime
 import psutil
 
 from bzt import resources
@@ -587,10 +587,14 @@ class PBenchKPIReader(ResultsReader):
         for row in self.csvreader:
             label = row["label"]
 
-            rtm = mcs2sec(row["elapsed"])
-            ltc = mcs2sec(row["Latency"])
-            cnn = mcs2sec(row["Connect"])
-            # NOTE: actually we have precise send and receive time here...
+            try:
+                rtm = mcs2sec(row["elapsed"])
+                ltc = mcs2sec(row["Latency"])
+                cnn = mcs2sec(row["Connect"])
+                # NOTE: actually we have precise send and receive time here...
+            except:
+                self.log.warning("Failed record: %s", row)
+                raise
 
             if row["opretcode"] != "0":
                 error = strerror(int(row["opretcode"]))
@@ -656,6 +660,7 @@ class PBenchStatsReader(object):
         self.buffer = ''
         self.fds = None
         self.data = {}
+        self.last_data = 0
 
     def read_file(self, last_pass=False):
         del last_pass
@@ -695,10 +700,11 @@ class PBenchStatsReader(object):
 
     def get_data(self, tstmp):
         if tstmp in self.data:
+            self.last_data = self.data[tstmp]
             return self.data[tstmp]
         else:
             self.log.debug("No active instances info for %s", tstmp)
-            return 0
+            return self.last_data
 
     def __del__(self):
         if self.fds:
