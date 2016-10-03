@@ -22,6 +22,7 @@ import operator
 import collections
 import urllib
 from io import IOBase
+import traceback
 
 import urllib.error
 import urllib.request
@@ -30,6 +31,7 @@ import configparser
 from http import server
 import socketserver
 
+format_exc = traceback.format_tb(e.__traceback__)
 string_types = str,
 integer_types = int,
 numeric_types=(int, float, complex)
@@ -71,3 +73,7 @@ def b(string):
 
 def u(string):
     return string
+
+
+def trace(exc):
+    return ''.join(traceback.format_tb(exc.__traceback__))

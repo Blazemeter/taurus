@@ -869,7 +869,7 @@ class TestJMeterExecutor(BZTestCase):
         prov.executors = [self.obj]
         self.obj.engine.provisioning = prov
         self.obj.engine.provisioning.post_process()
-        self.assertEqual(RuntimeWarning, type(self.obj.engine.stopping_reason))
+        self.assertTrue(isinstance(self.obj.engine.stopping_reason, RuntimeWarning))
 
     def test_ok_with_results(self):
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/dummy.jmx"}})

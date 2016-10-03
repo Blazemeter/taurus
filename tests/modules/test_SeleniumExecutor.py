@@ -681,7 +681,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         prov.executors = [self.obj]
         self.obj.engine.provisioning = prov
         self.obj.engine.provisioning.post_process()
-        self.assertEqual(RuntimeWarning, type(self.obj.engine.stopping_reason))
+        self.assertTrue(isinstance(self.obj.engine.stopping_reason, RuntimeWarning))
 
     def test_junit_mirrors(self):
         dummy_installation_path = __dir__() + "/../../build/tmp/selenium-taurus"

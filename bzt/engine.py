@@ -23,7 +23,6 @@ import logging
 import os
 import shutil
 import time
-import traceback
 from abc import abstractmethod
 from collections import namedtuple, defaultdict
 from distutils.version import LooseVersion
@@ -34,7 +33,7 @@ from yaml.representer import SafeRepresenter
 
 import bzt
 from bzt import ManualShutdown, get_configs_dir, AutomatedShutdown
-from bzt.six import build_opener, install_opener, urlopen, request, numeric_types, iteritems
+from bzt.six import build_opener, install_opener, urlopen, request, numeric_types, iteritems, trace
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, etree, HTTPError
 from bzt.utils import PIPE, shell_exec, get_full_path
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time
@@ -102,7 +101,7 @@ class Engine(object):
                     else:
                         log.log(level, "%s: %s" % (type(exc).__name__, exc))
             if trace:
-                log.log(level, (traceback.format_exc(exc)))
+                log.log(level, ''.join(trace(exc)))
         if not self.stopping_reason and exc:
             self.stopping_reason = exc
 

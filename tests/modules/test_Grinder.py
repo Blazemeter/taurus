@@ -74,7 +74,7 @@ class TestGrinderExecutor(BZTestCase):
         obj.engine.provisioning.engine = obj.engine
         obj.engine.provisioning.executors = [obj]
         obj.engine.provisioning.post_process()
-        self.assertEqual(RuntimeWarning, type(obj.engine.stopping_reason))
+        self.assertTrue(isinstance(obj.engine.stopping_reason, RuntimeWarning))
 
     def test_with_results(self):
         obj = GrinderExecutor()

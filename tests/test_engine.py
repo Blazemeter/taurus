@@ -61,7 +61,6 @@ class TestEngine(BZTestCase):
             self.fail()
 
 
-
 class TestScenarioExecutor(BZTestCase):
     def setUp(self):
         super(TestScenarioExecutor, self).setUp()

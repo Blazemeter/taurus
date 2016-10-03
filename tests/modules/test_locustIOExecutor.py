@@ -135,7 +135,7 @@ class TestLocustIOExecutor(BZTestCase):
         prov.executors = [self.obj]
         self.obj.engine.provisioning = prov
         self.obj.engine.provisioning.post_process()
-        self.assertEqual(RuntimeWarning, type(self.obj.engine.stopping_reason))
+        self.assertTrue(isinstance(self.obj.engine.stopping_reason, RuntimeWarning))
 
     def test_build_script(self):
         self.obj.engine.config.merge({
