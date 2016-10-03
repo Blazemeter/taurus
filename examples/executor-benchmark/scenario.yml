@@ -1,0 +1,13 @@
+---
+scenarios:
+  dummy:
+    default-address: http://192.168.2.2:8080/
+    retrieve-resources: false
+    store-cache: false
+    store-cookie: false
+    use-dns-cache-mgr: false
+    headers:
+      Host: localhost
+    timeout: 1s
+    requests:
+    - /

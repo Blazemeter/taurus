@@ -1,0 +1,24 @@
+---
+services:
+- module: monitoring
+  server-agent:
+  - address: undera-laptop:4444
+    label: target-server
+    metrics:
+    - cpu
+    - disks:readbytes
+    - disks:writebytes
+    - network:bytesrecv
+    - network:bytessent
+- module: shellexec
+  prepare: rm -rf /tmp/benchmark-out/*
+
+reporting:
+- blazemeter
+
+modules:
+  blazemeter:
+    report-name: ask
+
+settings:
+  artifacts-dir: /tmp/benchmark-out
