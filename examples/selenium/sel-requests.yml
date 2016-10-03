@@ -1,25 +1,27 @@
 ---
 scenarios:
   req:
-#    browser: Chrome
+    browser: Chrome
     timeout: 5s
     requests:
       - url: http://blazedemo.com/
         label: home page
       - http://blazedemo.com/vacation.html
+      - http://blazedemo.com/purchase.php
 
 execution:
   - scenario: req
     executor: selenium
     #concurrency: 2
-    hold-for: 5m
-    locations:
-      us-west-1: 1
-      us-east-1: 1
-      eu-west-1: 1
+    hold-for: 1m
+#    locations:
+#      us-west-1: 1
+#      us-east-1: 1
+#      eu-west-1: 1
 
-#services:
+services:
 #- capturehar
+- screenshoter
 #- module: shellexec
-#  prepare: sleep 600
+#  startup: sleep 60
 

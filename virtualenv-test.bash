@@ -2,6 +2,10 @@
 
 rm -rf build/tools
 
+# setup node.js
+rm -rf node_modules
+npm install mocha
+
 # setup env
 virtualenv --clear build
 source build/bin/activate

@@ -14,6 +14,10 @@ Taurus can repeat Selenium script in a loop until desired number of `iterations`
   - .jar/folder
   - .py/single file
   - .py/folder
+  - .rb/single file
+  - .rb/folder
+  - .js/single file
+  - .js/folder
 
 ## JUnit Runner
 
@@ -103,6 +107,60 @@ reporting:
 - module: junit-xml
 ```
 
+## Ruby RSpec Runner
+
+You can run your RSpec-based test suite with Taurus.
+
+Minimal example:
+
+```yaml
+scenarios:
+  rspec-suite:
+    script: spec/  # folder with your specs you normally pass to RSpec
+
+execution:
+- executor: selenium
+  scenario: rspec-suite
+```
+
+Just like JUnit-based and nosetests-based runners, RSpec runner supports `iterations` and `hold-for` options,
+in case you want to loop your test execution.
+
+The complete example of RSpec-based test suite and Taurus config can be found in
+[examples/selenium/rspec-capybara](https://github.com/Blazemeter/taurus/tree/master/examples/selenium/rspec-capybara)
+folder of Taurus's repo.
+
+## JavaScript Mocha Runner
+
+Taurus supports running Mocha-based test suites.
+
+Minimal example:
+```yaml
+scenarios:
+  mocha-tests:
+    script: test/  # folder with your tests or path to one test file
+
+execution:
+- executor: selenium
+  scenario: mocha-tests
+```
+
+Looping test execution is possible with `iterations` and `hold-for` options. If none of these
+options are specified — Mocha will do one iteration over a test suite. If both time limit
+and iteration limit are specified - tests will keep executing until any of limits is reached.
+
+```yaml
+execution:
+- executor: selenium
+  iterations: 10  # perform 10 iterations over test suite
+  hold-for: 5m  # limit test execution to 5 minutes
+  scenario: mocha-tests
+```
+
+You can also find an example of complete Mocha-based test suite and Taurus config to run it with
+in [examples/selenium/mocha](https://github.com/Blazemeter/taurus/tree/master/examples/selenium/mocha)
+folder of Taurus's repo.
+
 ## Requests Scenario
 Selenium executor partially supports building scenario from requests.
 Supported features:
@@ -150,11 +208,17 @@ Note: SeleniumExecutor uses shared virtual display for all executions.
 By default Taurus tries to automatically detect the language tests are written in. If autodetection fails - you can enforce specific
 language with `language` execution-level option.
 
+Supported values:
+- `python-nose` - nosetests-based Python tests
+- `java-junit` - JUnit-based Java tests
+- `ruby-rspec` - RSpec-based Ruby tests
+- `js-mocha` - Mocha-based JavaScript tests
+
 ```yaml
 ---
 execution:
 - executor: selenium
-  language: python-nose  # valid values: python-nose, java-junit
+  language: python-nose
   scenario:
     script: tests/
 ```

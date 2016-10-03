@@ -1,16 +1,26 @@
 # Changelog
 
-## 1.6.9 <sup>next</sup>
+## 1.7.1 (upcoming)
+ - fix Mocha runner race condition
+
+## 1.7.0 <sup>2 oct 2016</sup>
+ - add RSpec tests runner for Selenium
+ - add Mocha-based tests runner for Selenium
+ - introduce `language` option for Selenium tests
+ - add `action` blocks to JMeter's requests
  - fix JAR building for selenium projects with several folders
+ - migrate to new online reporting format
  - add LocustIO script generation feature
+ - support collection-based cloud tests
  - do not copy Selenium scripts in artifacts dir before running them
  - fix KPI merging error
- - introduce `language` option for Selenium tests
  - fix nose plugin crash when setUp/setUpClass raises an exception 
- - add `action` blocks to JMeter's requests
  - fix percentiles values for cloud-based tests
- - support collection-based cloud tests
  - add stubs for `screenshoter` and `capturehar` services
+ - fix artifact upload in the cloud
+ - Docker image now has all executors pre-installed
+ - introduce `check-interval` option for cloud provisioning
+ - rename generated Grinder script to avoid clashes with Locust
 
 ## 1.6.8 <sup>1 sep 2016</sup>
  - fix hamcrest installation for Java-based Selenium tests

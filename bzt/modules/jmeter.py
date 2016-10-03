@@ -1770,6 +1770,7 @@ class JMeter(RequiredTool):
 
     def __install_plugins(self, plugins_manager_cmd):
         plugin_str = ",".join(self.plugins)
+        self.log.info("Installing JMeter plugins: %s", plugin_str)
         cmd = [plugins_manager_cmd, 'install', plugin_str]
         self.log.debug("Trying: %s", cmd)
         try:

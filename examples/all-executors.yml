@@ -1,21 +1,24 @@
 ---
-scenarios:
-  blazedemo:
+modules:
+  selenium:
+    virtual-display:
+      width: 1024
+      height: 768
 
 execution:
 
 - executor: jmeter
   concurrency: 1
-  hold-for: 5m
-  scenario: 
+  hold-for: 1m
+  scenario:
     requests:
       - url: http://blazedemo.com/
         label: jmeter
 
 - executor: selenium
   concurrency: 1
-  hold-for: 5m
-  scenario: 
+  hold-for: 1m
+  scenario:
     browser: Firefox
     requests:
       - url: http://blazedemo.com/
@@ -23,32 +26,38 @@ execution:
 
 - executor: selenium
   concurrency: 1
-  hold-for: 5m
-  scenario: 
+  hold-for: 1m
+  scenario:
     browser: Chrome
     requests:
       - url: http://blazedemo.com/
         label: selenium-chrome
 
+- executor: selenium
+  concurrency: 1
+  hold-for: 1m
+  scenario:
+    script: BOOTH1/Blazedemo.java
+
 - executor: gatling
   concurrency: 1
-  hold-for: 5m
-  scenario: 
+  hold-for: 1m
+  scenario:
     requests:
       - url: http://blazedemo.com/
         label: gatling
 
 - executor: pbench
   concurrency: 1
-  hold-for: 5m
-  scenario: 
+  hold-for: 1m
+  scenario:
     requests:
       - url: http://blazedemo.com/
-        label: ab
+        label: pbench
 
 - executor: grinder
   concurrency: 1
-  hold-for: 5m
+  hold-for: 1m
   scenario:
     requests:
       - url: http://blazedemo.com/
@@ -56,24 +65,24 @@ execution:
 
 - executor: siege
   concurrency: 1
-  hold-for: 5m
-  scenario: 
+  hold-for: 1m
+  scenario:
     requests:
       - url: http://blazedemo.com/?tool=siege
         label: siege
 
 - executor: locust
   concurrency: 1
-  hold-for: 5m
-  scenario: 
+  hold-for: 1m
+  scenario:
     requests:
       - url: http://blazedemo.com/
         label: locust
 
 - executor: tsung
   concurrency: 1
-  hold-for: 5m
-  scenario: 
+  hold-for: 1m
+  scenario:
     requests:
       - url: http://blazedemo.com/
         label: tsung
