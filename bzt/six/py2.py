@@ -76,5 +76,5 @@ def u(string):
         return string
 
 
-def trace(exc):
+def stacktrace(exc):
     return traceback.format_exc(exc)

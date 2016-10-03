@@ -75,5 +75,5 @@ def u(string):
     return string
 
 
-def trace(exc):
+def stacktrace(exc):
     return ''.join(traceback.format_tb(exc.__traceback__))
