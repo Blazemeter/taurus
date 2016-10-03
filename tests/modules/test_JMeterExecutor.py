@@ -868,7 +868,8 @@ class TestJMeterExecutor(BZTestCase):
         prov.engine = self.obj.engine
         prov.executors = [self.obj]
         self.obj.engine.provisioning = prov
-        self.assertRaises(RuntimeWarning, self.obj.engine.provisioning.post_process)
+        self.obj.engine.provisioning.post_process()
+        self.assertEqual(RuntimeWarning, type(self.obj.engine.stopping_reason))
 
     def test_ok_with_results(self):
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/dummy.jmx"}})
@@ -882,6 +883,7 @@ class TestJMeterExecutor(BZTestCase):
         self.obj.engine.provisioning = prov
         self.obj.reader.read_records = 13
         self.obj.engine.provisioning.post_process()
+        self.assertIsNone(self.obj.engine.stopping_reason)
 
     def test_convert_tgroups_no_load(self):
         self.obj.execution.merge({

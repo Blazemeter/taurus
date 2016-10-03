@@ -73,7 +73,8 @@ class TestGrinderExecutor(BZTestCase):
         obj.engine.provisioning = Local()
         obj.engine.provisioning.engine = obj.engine
         obj.engine.provisioning.executors = [obj]
-        self.assertRaises(RuntimeWarning, obj.engine.provisioning.post_process)
+        obj.engine.provisioning.post_process()
+        self.assertEqual(RuntimeWarning, type(obj.engine.stopping_reason))
 
     def test_with_results(self):
         obj = GrinderExecutor()
@@ -90,6 +91,7 @@ class TestGrinderExecutor(BZTestCase):
         obj.engine.provisioning = prov
         obj.reader.buffer = ['some info']
         obj.engine.provisioning.post_process()
+        self.assertIsNone(obj.engine.stopping_reason)
 
     def test_requests(self):
         obj = GrinderExecutor()
