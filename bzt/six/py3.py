@@ -31,7 +31,6 @@ import configparser
 from http import server
 import socketserver
 
-format_exc = traceback.format_tb(e.__traceback__)
 string_types = str,
 integer_types = int,
 numeric_types=(int, float, complex)
