@@ -438,6 +438,10 @@ from HTTPClient import NVPair
 
         self.root.append(self.gen_runner_class())
 
+    @staticmethod
+    def __list_to_nvpair_list(items):
+        return "[" + ",".join("NVPair(%r, %r)" % (header, value) for header, value in items) + "]"
+
     def gen_runner_class(self):
         runner_classdef = self.gen_class_definition("TestRunner", ["object"], indent=0)
         main_method = self.gen_method_definition("__call__", ["self"], indent=4)
@@ -450,13 +454,10 @@ from HTTPClient import NVPair
             think_time = dehumanize_time(req.think_time or global_think_time)
             local_headers = req.config.get("headers", {})
 
-            body = "[]"
-            headers = "[]"
-            if local_headers:
-                headers = "[" + ",".join("NVPair(%r, %r)" % (header, value)
-                                         for header, value in iteritems(local_headers)) + "]"
+            params = "[]"
+            headers = self.__list_to_nvpair_list(iteritems(local_headers))
 
-            main_method.append(self.gen_statement("request.%s(%r, %s, %s)" % (method, url, body, headers), indent=8))
+            main_method.append(self.gen_statement("request.%s(%r, %s, %s)" % (method, url, params, headers), indent=8))
 
             if think_time:
                 main_method.append(self.gen_statement("grinder.sleep(%s)" % int(think_time * 1000), indent=8))
