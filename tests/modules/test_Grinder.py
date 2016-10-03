@@ -108,7 +108,13 @@ class TestGrinderExecutor(BZTestCase):
         obj.execution.merge({
             "scenario": {
                 "default-address": "http://blazedemo.com",
+                "headers": {
+                    "My-Header": "Its-Value",
+                    "Another-Header": "Another-Value",
+                },
+                "timeout": "30s",
                 "think-time": "2s",
+                "store-cookie": True,
                 "requests": [
                     '/',
                     {'url': 'http://example.com/',
@@ -118,8 +124,8 @@ class TestGrinderExecutor(BZTestCase):
             }
         })
         obj.prepare()
-
         script = open(os.path.join(obj.engine.artifacts_dir, 'grinder_requests.py')).read()
+
         default_addr = re.findall(r"url='http://blazedemo.com'", script)
         self.assertEquals(1, len(default_addr))
 
@@ -132,6 +138,18 @@ class TestGrinderExecutor(BZTestCase):
         self.assertEquals(2, len(sleeps))
         self.assertEquals(sleeps[0], '2000')
         self.assertEquals(sleeps[1], '1000')
+
+        headers = re.findall(r"NVPair\('(.+)', '(.+)'\)", script)
+        self.assertEquals(2, len(headers))
+        self.assertEquals(headers[0], ("My-Header", "Its-Value"))
+        self.assertEquals(headers[1], ("Another-Header", "Another-Value"))
+
+        timeout = re.findall(r"defaults.setTimeout\((\d+)\)", script)
+        self.assertEquals(1, len(timeout))
+        self.assertEquals(timeout[0], '30000')
+
+        cookies = re.findall(r"defaults.setUseCookies\(1\)", script)
+        self.assertEquals(1, len(cookies))
 
 
 class TestDataLogReader(BZTestCase):
