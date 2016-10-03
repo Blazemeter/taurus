@@ -191,7 +191,7 @@ function prepareMocha(config) {
     return engine;
 }
 
-function loopMocha(config, engine, iterations, startTime, done) {
+function loopMocha(config, iterations, startTime, done) {
     if (iterations >= config.iterations) {
         done();
         return;
@@ -201,9 +201,9 @@ function loopMocha(config, engine, iterations, startTime, done) {
         done();
         return;
     }
-    // var engine = prepareMocha(config);
+    var engine = prepareMocha(config);
     engine.run(function() {
-        loopMocha(config, engine, iterations + 1, startTime, done);
+        loopMocha(config, iterations + 1, startTime, done);
     });
 }
 
@@ -219,9 +219,7 @@ function runMocha() {
         process.exit(0);
     };
 
-    var engine = prepareMocha(config);
-
-    loopMocha(config, engine, 0, epoch(), done);
+    loopMocha(config, 0, epoch(), done);
 }
 
 if (require.main === module) {
