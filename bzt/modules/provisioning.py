@@ -27,6 +27,7 @@ class Local(Provisioning):
     """
     Local provisioning means we start all the tools locally
     """
+
     def __init__(self):
         super(Local, self).__init__()
         self.finished_modules = []
@@ -112,7 +113,7 @@ class Local(Provisioning):
                     executor.shutdown()
                 except BaseException as exc:
                     self.engine.log_exception(exc)
-        # TODO: send first exception with appropriate traceback to engine
+                    # TODO: send first exception with appropriate traceback to engine
 
     def post_process(self):
         """
@@ -127,5 +128,4 @@ class Local(Provisioning):
                         raise RuntimeWarning("Empty results, most likely %s failed" % executor.name)
                 except BaseException as exc:
                     self.engine.log_exception(exc)
-        # TODO: send first exception with appropriate traceback to engine
-
+                    # TODO: send first exception with appropriate traceback to engine

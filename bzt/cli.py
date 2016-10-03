@@ -138,7 +138,7 @@ class CLI(object):
             self.engine.config.merge(al_config)
 
         if self.options.option:
-            overrider = ConfigOverrider(self.log)   # FIXME: overrides?
+            overrider = ConfigOverrider(self.log)  # FIXME: overrides?
             overrider.apply_overrides(self.options.option, self.engine.config)
 
         self.engine.create_artifacts_dir(configs, merged_config)
@@ -159,13 +159,13 @@ class CLI(object):
             exit_code = 1
             self.engine.log_exception(exc, 'Configs treating: caught exception')
         else:
-            exit_code = self.__launch_engine()     # run engine if preparing has finished successfully
+            exit_code = self.__launch_engine()  # run engine if preparing has finished successfully
 
         try:
             for fname in overrides + jmx_shorthands:
                 os.remove(fname)
         except BaseException as exc:
-            if not exit_code:   # first error encountered, show exception
+            if not exit_code:  # first error encountered, show exception
                 exit_code = 1
                 self.engine.log_exception(exc, 'Removing jmx shorthands and overrides: caught exception')
 

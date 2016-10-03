@@ -81,14 +81,14 @@ class Engine(object):
             log = self.log
 
         if trace is None:
-            trace = not always      # short output for many messages and long for the first exception
+            trace = not always  # short output for many messages and long for the first exception
             no_trace_needed = isinstance(exc, KeyboardInterrupt) or isinstance(exc, HTTPError)
-            trace &= not no_trace_needed     # don't show trace for 'normal' exceptions by default
+            trace &= not no_trace_needed  # don't show trace for 'normal' exceptions by default
 
         if always or not self.stopping_reason:
             if message:
                 if exc:
-                    message += " %s" % exc      # add exception to message if present
+                    message += " %s" % exc  # add exception to message if present
                 log.log(level, message)
             else:
                 if isinstance(exc, ManualShutdown):
