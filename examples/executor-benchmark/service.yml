@@ -19,6 +19,7 @@ reporting:
 modules:
   blazemeter:
     report-name: ask
+    test: Taurus Executor Benchmark
 
 settings:
   artifacts-dir: /tmp/benchmark-out
