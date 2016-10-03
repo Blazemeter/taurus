@@ -108,13 +108,16 @@ class Local(Provisioning):
         for executor in self.executors:
             if executor in self.engine.started:
                 self.log.debug("Shutdown %s", executor)
-                executor.shutdown()
+                try:
+                    executor.shutdown()
+                except BaseException as exc:
+                    self.engine.log_exception(exc)
+        # TODO: send first exception with appropriate traceback to engine
 
     def post_process(self):
         """
         Post-process executors
         """
-        exception = None
         for executor in self.executors:
             if executor in self.engine.prepared:
                 self.log.debug("Post-process %s", executor)
@@ -123,7 +126,6 @@ class Local(Provisioning):
                     if executor in self.engine.started and executor.no_results:
                         raise RuntimeWarning("Empty results, most likely %s failed" % executor.name)
                 except BaseException as exc:
-                    exception = exc if not exception else exception
+                    self.engine.log_exception(exc)
+        # TODO: send first exception with appropriate traceback to engine
 
-        if exception:
-            raise exception

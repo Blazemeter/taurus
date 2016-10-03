@@ -119,6 +119,31 @@ class CLI(object):
             else:
                 self.engine.existing_artifact(self.options.log, True)
 
+    def __overrides_and_shorthands(self, configs, overrides, jmx_shorthands):
+        jmx_shorthands.extend(self.__get_jmx_shorthands(configs))
+        configs.extend(jmx_shorthands)
+
+        self.log.info("Starting with configs: %s", configs)
+
+        if self.options.no_system_configs is None:
+            self.options.no_system_configs = False
+
+        merged_config = self.engine.configure(configs, not self.options.no_system_configs)
+
+        # apply aliases
+        for alias in self.options.aliases:
+            al_config = self.engine.config.get("cli-aliases").get(alias, None)
+            if al_config is None:
+                raise RuntimeError("Alias '%s' is not found within configuration" % alias)
+            self.engine.config.merge(al_config)
+
+        if self.options.option:
+            overrider = ConfigOverrider(self.log)   # FIXME: overrides?
+            overrider.apply_overrides(self.options.option, self.engine.config)
+
+        self.engine.create_artifacts_dir(configs, merged_config)
+        self.engine.default_cwd = os.getcwd()
+
     def perform(self, configs):
         """
         Run the tool
@@ -129,40 +154,18 @@ class CLI(object):
         overrides = []
         jmx_shorthands = []
         try:
-            jmx_shorthands = self.__get_jmx_shorthands(configs)
-            configs.extend(jmx_shorthands)
-
-            self.log.info("Starting with configs: %s", configs)
-
-            if self.options.no_system_configs is None:
-                self.options.no_system_configs = False
-
-            merged_config = self.engine.configure(configs, not self.options.no_system_configs)
-
-            # apply aliases
-            for alias in self.options.aliases:
-                al_config = self.engine.config.get("cli-aliases").get(alias, None)
-                if al_config is None:
-                    raise RuntimeError("Alias '%s' is not found within configuration" % alias)
-                self.engine.config.merge(al_config)
-
-            if self.options.option:
-                overrider = ConfigOverrider(self.log)
-                overrider.apply_overrides(self.options.option, self.engine.config)
-
-            self.engine.create_artifacts_dir(configs, merged_config)
-            self.engine.default_cwd = os.getcwd()
+            self.__overrides_and_shorthands(configs, overrides, jmx_shorthands)
         except BaseException as exc:
             exit_code = 1
             self.engine.log_exception(exc, 'Configs treating: caught exception')
         else:
-            exit_code = self.__run_engine()     # run engine if preparing has finished successfully
+            exit_code = self.__launch_engine()     # run engine if preparing has finished successfully
 
         try:
             for fname in overrides + jmx_shorthands:
                 os.remove(fname)
         except BaseException as exc:
-            if not exit_code:
+            if not exit_code:   # first error encountered, show exception
                 exit_code = 1
                 self.engine.log_exception(exc, 'Removing jmx shorthands and overrides: caught exception')
 
@@ -174,18 +177,12 @@ class CLI(object):
         self.__close_log()
         return exit_code
 
-    def __run_engine(self):
-        try:
-            self.engine.prepare()
+    def __launch_engine(self):
+        self.engine.prepare()
+        if not self.engine.stopping_reason:
             self.engine.run()
-        except BaseException:   # skip run() if engine is not prepared
-            pass
-
-        try:
-            self.engine.post_process()
-        except BaseException:
-            pass
-
+            self.engine.shutdown()
+        self.engine.post_process()
         self.log.info("Artifacts dir: %s", self.engine.artifacts_dir)
 
         if self.engine.stopping_reason:

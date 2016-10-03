@@ -82,27 +82,27 @@ class Engine(object):
             log = self.log
 
         if trace is None:
-            trace = not always  # short log for many messages and long for one by default
+            trace = not always      # short output for many messages and long for the first exception
+            no_trace_needed = isinstance(exc, KeyboardInterrupt) or isinstance(exc, HTTPError)
+            trace &= not no_trace_needed     # don't show trace for 'normal' exceptions by default
 
         if always or not self.stopping_reason:
             if message:
                 if exc:
-                    message += " %s" % exc
+                    message += " %s" % exc      # add exception to message if present
                 log.log(level, message)
             else:
                 if isinstance(exc, ManualShutdown):
                     log.log(logging.INFO, "Interrupted by user: %s" % exc)
-                    trace = False
                 elif isinstance(exc, AutomatedShutdown):
                     log.log(logging.INFO, "Automated shutdown")
-                    trace = False
                 else:
                     if isinstance(exc, HTTPError):
                         log.log(logging.WARNING, "Response from %s: %s" % (exc.geturl(), exc.read()))
-                        trace = False
-                    log.log(level, "%s: %s" % (type(exc).__name__, exc))
+                    else:
+                        log.log(level, "%s: %s" % (type(exc).__name__, exc))
             if trace:
-                log.log(level, '\n'+''.join(traceback.format_stack()[:-2]))
+                log.log(level, (traceback.format_exc(exc)))
         if not self.stopping_reason and exc:
             self.stopping_reason = exc
 
@@ -146,7 +146,6 @@ class Engine(object):
             self.config.dump()
         except BaseException as exc:
             self.log_exception(exc)
-            raise
 
     def _startup(self):
         modules = self.services + [self.aggregator] + self.reporters + [self.provisioning]
@@ -162,24 +161,11 @@ class Engine(object):
         calls `shutdown` in any case
         """
         self.log.info("Starting...")
-        exception = None
         try:
             self._startup()
             self._wait()
         except BaseException as exc:
             self.log_exception(exc)
-            exception = exc
-
-        self.log.warning("Please wait for graceful shutdown...")
-        try:
-            self._shutdown()
-        except BaseException as exc:
-            self.log_exception(exc)
-            if not exception:
-                exception = exc
-
-        if exception:
-            raise exception
 
     def _check_modules_list(self):
         finished = False
@@ -210,49 +196,37 @@ class Engine(object):
                 raise ManualShutdown()
         self.config.dump()
 
-    def _shutdown(self):
+    def shutdown(self):
         """
         Shutdown modules
         :return:
         """
+        self.log.warning("Please wait for graceful shutdown...")
         self.log.info("Shutting down...")
-        exception = None
         modules = [self.provisioning, self.aggregator] + self.reporters + self.services
         for module in modules:
             try:
                 if module in self.started:
                     module.shutdown()
             except BaseException as exc:
-                self.log.error("Error while shutting down: %s", traceback.format_exc())
-                if not exception:
-                    exception = exc
+                self.log_exception(exc, "Error while shutting down: %s")
 
         self.config.dump()
-        if exception:
-            if not self.stopping_reason:
-                self.stopping_reason = exception
-            raise exception
 
     def post_process(self):
         """
         Do post-run analysis and processing for the results.
         """
         self.log.info("Post-processing...")
-        exception = None
         modules = [self.provisioning, self.aggregator] + self.reporters + self.services
         for module in modules:
             try:
                 if module in self.prepared:
                     module.post_process()
             except BaseException as exc:
-                trace = not isinstance(exc, KeyboardInterrupt)
-                self.log_exception(exc, trace=trace)
-                if not exception:
-                    exception = exc
+                self.log_exception(exc)
 
         self.config.dump()
-        if exception:
-            raise exception
 
     def create_artifact(self, prefix, suffix):
         """
