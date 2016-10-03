@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.1 (upcoming)
+ - fix Mocha runner race condition
+
 ## 1.7.0 <sup>2 oct 2016</sup>
  - add RSpec tests runner for Selenium
  - add Mocha-based tests runner for Selenium
