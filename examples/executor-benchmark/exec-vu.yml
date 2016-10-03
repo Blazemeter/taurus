@@ -1,0 +1,5 @@
+---
+execution:
+- scenario: dummy
+  concurrency: 100
+  ramp-up: 5m

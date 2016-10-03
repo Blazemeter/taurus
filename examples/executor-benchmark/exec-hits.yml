@@ -4,4 +4,3 @@ execution:
   concurrency: 3000
   throughput: 210000
   ramp-up: 15m
-  executor: gatling
