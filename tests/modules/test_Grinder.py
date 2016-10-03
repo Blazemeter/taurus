@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 import shutil
 import time
 
@@ -99,6 +100,30 @@ class TestGrinderExecutor(BZTestCase):
         finally:
             obj.shutdown()
         self.assertRaises(RuntimeWarning, obj.post_process)
+
+    def test_script_generation(self):
+        obj = GrinderExecutor()
+        obj.engine = EngineEmul()
+        obj.settings.merge({'path': __dir__() + "/../grinder/fake_grinder.jar"})
+        obj.execution.merge({
+            "scenario": {
+                "default-address": "http://blazedemo.com",
+                "requests": [
+                    '/',
+                    'http://example.com/',
+                ]
+            }
+        })
+        obj.prepare()
+
+        script = open(os.path.join(obj.engine.artifacts_dir, 'grinder_requests.py')).read()
+        default_addr = re.findall(r"url='http://blazedemo.com'", script)
+        self.assertEquals(1, len(default_addr))
+
+        requests = re.findall(r"request\.([A-Z]+)\('(.+)'\)", script)
+        self.assertEquals(2, len(requests))
+        self.assertEquals(requests[0], ('GET', '/'))
+        self.assertEquals(requests[1], ('GET', 'http://example.com/'))
 
 
 class TestDataLogReader(BZTestCase):

@@ -408,7 +408,10 @@ from net.grinder.plugin.http import HTTPRequest
         self.root.append(self.gen_new_line(indent=0))
 
         self.root.append(self.gen_statement('test = Test(1, "BZT Requests")', indent=0))
-        self.root.append(self.gen_statement('request = HTTPRequest()', indent=0))
+
+        default_address = self.scenario.get("default-address", "")
+        url_arg = "url=%r" % default_address if default_address else ""
+        self.root.append(self.gen_statement('request = HTTPRequest(%s)' % url_arg, indent=0))
         self.root.append(self.gen_statement('test.record(request)', indent=0))
 
         self.root.append(self.gen_new_line(indent=0))
