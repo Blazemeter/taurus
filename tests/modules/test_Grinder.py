@@ -108,9 +108,12 @@ class TestGrinderExecutor(BZTestCase):
         obj.execution.merge({
             "scenario": {
                 "default-address": "http://blazedemo.com",
+                "think-time": "2s",
                 "requests": [
                     '/',
-                    'http://example.com/',
+                    {'url': 'http://example.com/',
+                     'method': 'POST',
+                     'think-time': "1s"},
                 ]
             }
         })
@@ -123,7 +126,12 @@ class TestGrinderExecutor(BZTestCase):
         requests = re.findall(r"request\.([A-Z]+)\('(.+)'\)", script)
         self.assertEquals(2, len(requests))
         self.assertEquals(requests[0], ('GET', '/'))
-        self.assertEquals(requests[1], ('GET', 'http://example.com/'))
+        self.assertEquals(requests[1], ('POST', 'http://example.com/'))
+
+        sleeps = re.findall(r"grinder\.sleep\((.+)\)", script)
+        self.assertEquals(2, len(sleeps))
+        self.assertEquals(sleeps[0], '2000')
+        self.assertEquals(sleeps[1], '1000')
 
 
 class TestDataLogReader(BZTestCase):

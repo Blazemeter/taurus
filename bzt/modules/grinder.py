@@ -24,7 +24,7 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister, PythonGenerator
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.six import iteritems
-from bzt.utils import shell_exec, MirrorsManager
+from bzt.utils import shell_exec, MirrorsManager, dehumanize_time
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, TclLibrary
 
 
@@ -397,6 +397,7 @@ class GrinderMirrorsManager(MirrorsManager):
 class GrinderScriptBuilder(PythonGenerator):
     IMPORTS = """
 from net.grinder.script import Test
+from net.grinder.script.Grinder import grinder
 from net.grinder.plugin.http import HTTPRequest
 """
 
@@ -407,20 +408,31 @@ from net.grinder.plugin.http import HTTPRequest
 
         self.root.append(self.gen_new_line(indent=0))
 
-        self.root.append(self.gen_statement('test = Test(1, "BZT Requests")', indent=0))
-
         default_address = self.scenario.get("default-address", "")
         url_arg = "url=%r" % default_address if default_address else ""
         self.root.append(self.gen_statement('request = HTTPRequest(%s)' % url_arg, indent=0))
         self.root.append(self.gen_statement('test.record(request)', indent=0))
+        self.root.append(self.gen_statement('test = Test(1, "BZT Requests")', indent=0))
 
         self.root.append(self.gen_new_line(indent=0))
 
+        self.root.append(self.gen_runner_class())
+
+    def gen_runner_class(self):
         runner_classdef = self.gen_class_definition("TestRunner", ["object"], indent=0)
         main_method = self.gen_method_definition("__call__", ["self"], indent=4)
 
+        global_think_time = self.scenario.get('think-time', None)
+
         for req in self.scenario.get_requests():
-            main_method.append(self.gen_statement("request.%s(%r)" % (req.method.upper(), req.url), indent=8))
+            method = req.method.upper()
+            url = req.url
+            think_time = dehumanize_time(req.think_time or global_think_time)
+
+            main_method.append(self.gen_statement("request.%s(%r)" % (method, url), indent=8))
+            if think_time:
+                main_method.append(self.gen_statement("grinder.sleep(%s)" % int(think_time * 1000), indent=8))
 
         runner_classdef.append(main_method)
-        self.root.append(runner_classdef)
+
+        return runner_classdef
