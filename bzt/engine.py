@@ -32,6 +32,7 @@ import yaml
 from yaml.representer import SafeRepresenter
 
 import bzt
+from logging import DEBUG, ERROR, INFO, WARNING
 from bzt import ManualShutdown, get_configs_dir, AutomatedShutdown
 from bzt.six import build_opener, install_opener, urlopen, request, numeric_types, iteritems, stacktrace
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, etree, HTTPError
@@ -76,7 +77,7 @@ class Engine(object):
         self.started = []
         self.default_cwd = None
 
-    def log_exception(self, exc=None, message='', level=logging.ERROR, always=False, trace=None, log=None):
+    def log_exception(self, exc=None, message='', level=ERROR, always=False, trace=None, log=None):
         if not log:
             log = self.log
 
@@ -92,12 +93,12 @@ class Engine(object):
                 log.log(level, message)
             else:
                 if isinstance(exc, ManualShutdown):
-                    log.log(logging.INFO, "Interrupted by user: %s" % exc)
+                    log.log(INFO, "Interrupted by user: %s" % exc)
                 elif isinstance(exc, AutomatedShutdown):
-                    log.log(logging.INFO, "Automated shutdown")
+                    log.log(INFO, "Automated shutdown")
                 else:
                     if isinstance(exc, HTTPError):
-                        log.log(logging.WARNING, "Response from %s: %s" % (exc.geturl(), exc.read()))
+                        log.log(WARNING, "Response from %s: %s" % (exc.geturl(), exc.read()))
                     else:
                         log.log(level, "%s: %s" % (type(exc).__name__, exc))
             if trace:
@@ -346,8 +347,8 @@ class Engine(object):
             self.modules[alias] = load_class(clsname)
             if not issubclass(self.modules[alias], EngineModule):
                 raise TypeError("Module class does not inherit from EngineModule: %s" % clsname)
-        except BaseException:
-            self.log.debug("Failed to load class %s: %s", clsname, traceback.format_exc())
+        except BaseException as exc:
+            self.log_exception(exc, "Failed to load class %s" % clsname, level=DEBUG, trace=True)
             raise ValueError("Cannot load module '%s' with class %s" % (alias, clsname))
 
         return self.modules[alias]
@@ -536,8 +537,8 @@ class Engine(object):
                 else:
                     self.log.debug("Installation is up-to-date")
 
-            except BaseException:
-                self.log.debug("Failed to check for updates: %s", traceback.format_exc())
+            except BaseException as exc:
+                self.log_exception(exc, "Failed to check for updates: %s", level=DEBUG, trace=True)
                 self.log.warning("Failed to check for updates")
 
 
