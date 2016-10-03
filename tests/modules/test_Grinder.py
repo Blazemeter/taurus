@@ -119,7 +119,10 @@ class TestGrinderExecutor(BZTestCase):
                     '/',
                     {'url': 'http://example.com/',
                      'method': 'POST',
-                     'think-time': "1s"},
+                     'think-time': "1s",
+                     'headers': {
+                         'Custom': 'Header',
+                     }},
                 ]
             }
         })
@@ -129,7 +132,7 @@ class TestGrinderExecutor(BZTestCase):
         default_addr = re.findall(r"url='http://blazedemo.com'", script)
         self.assertEquals(1, len(default_addr))
 
-        requests = re.findall(r"request\.([A-Z]+)\('(.+)'\)", script)
+        requests = re.findall(r"request\.([A-Z]+)\('(.+?)'", script)
         self.assertEquals(2, len(requests))
         self.assertEquals(requests[0], ('GET', '/'))
         self.assertEquals(requests[1], ('POST', 'http://example.com/'))
@@ -140,9 +143,10 @@ class TestGrinderExecutor(BZTestCase):
         self.assertEquals(sleeps[1], '1000')
 
         headers = re.findall(r"NVPair\('(.+)', '(.+)'\)", script)
-        self.assertEquals(2, len(headers))
+        self.assertEquals(3, len(headers))
         self.assertEquals(headers[0], ("My-Header", "Its-Value"))
         self.assertEquals(headers[1], ("Another-Header", "Another-Value"))
+        self.assertEquals(headers[2], ("Custom", "Header"))
 
         timeout = re.findall(r"defaults.setTimeout\((\d+)\)", script)
         self.assertEquals(1, len(timeout))

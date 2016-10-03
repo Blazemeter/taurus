@@ -398,7 +398,7 @@ class GrinderScriptBuilder(PythonGenerator):
     IMPORTS = """
 from net.grinder.script import Test
 from net.grinder.script.Grinder import grinder
-from net.grinder.plugin.http import HTTPRequest, HTTPPluginControl
+from net.grinder.plugin.http import HTTPRequest, HTTPPluginControl, HTTPUtilities
 from HTTPClient import NVPair
 """
 
@@ -418,6 +418,7 @@ from HTTPClient import NVPair
         self.root.append(self.gen_new_line(indent=0))
 
         self.root.append(self.gen_statement("defaults = HTTPPluginControl.getConnectionDefaults()", indent=0))
+        self.root.append(self.gen_statement("utilities = HTTPPluginControl.getHTTPUtilities()", indent=0))
 
         headers = self.scenario.get_headers()
         if headers:
@@ -447,8 +448,16 @@ from HTTPClient import NVPair
             method = req.method.upper()
             url = req.url
             think_time = dehumanize_time(req.think_time or global_think_time)
+            local_headers = req.config.get("headers", {})
 
-            main_method.append(self.gen_statement("request.%s(%r)" % (method, url), indent=8))
+            body = "[]"
+            headers = "[]"
+            if local_headers:
+                headers = "[" + ",".join("NVPair(%r, %r)" % (header, value)
+                                         for header, value in iteritems(local_headers)) + "]"
+
+            main_method.append(self.gen_statement("request.%s(%r, %s, %s)" % (method, url, body, headers), indent=8))
+
             if think_time:
                 main_method.append(self.gen_statement("grinder.sleep(%s)" % int(think_time * 1000), indent=8))
 
