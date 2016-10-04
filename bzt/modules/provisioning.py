@@ -106,18 +106,35 @@ class Local(Provisioning):
         """
         Call shutdown on executors
         """
+        exception = None
         for executor in self.executors:
             if executor in self.engine.started:
                 self.log.debug("Shutdown %s", executor)
-                executor.shutdown()
+                try:
+                    executor.shutdown()
+                except BaseException as exc:
+                    self.log.error("Exception in shutdown of %s: %s" % (executor.__class__.__name__, exc))
+                    if not exception:
+                        exception = exc
+        if exception:
+            raise exception
 
     def post_process(self):
         """
         Post-process executors
         """
+        exception = None
         for executor in self.executors:
             if executor in self.engine.prepared:
                 self.log.debug("Post-process %s", executor)
-                executor.post_process()
-                if executor in self.engine.started and not executor.has_results():
-                    raise RuntimeWarning("Empty results, most likely %s failed" % executor.__class__.__name__)
+                try:
+                    executor.post_process()
+                    if executor in self.engine.started and not executor.has_results():
+                        raise RuntimeWarning("Empty results, most likely %s failed" % executor.__class__.__name__)
+                except BaseException as exc:
+                    self.log.error("Exception in post_process of %s: %s" % (executor.__class__.__name__, exc))
+                    if not exception:
+                        exception = exc
+
+        if exception:
+            raise exception

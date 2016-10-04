@@ -119,6 +119,28 @@ class CLI(object):
             else:
                 self.engine.existing_artifact(self.options.log, True)
 
+    def __configure(self, configs):
+        self.log.info("Starting with configs: %s", configs)
+
+        if self.options.no_system_configs is None:
+            self.options.no_system_configs = False
+
+        merged_config = self.engine.configure(configs, not self.options.no_system_configs)
+
+        # apply aliases
+        for alias in self.options.aliases:
+            al_config = self.engine.config.get("cli-aliases").get(alias, None)
+            if al_config is None:
+                raise RuntimeError("Alias '%s' is not found within configuration" % alias)
+            self.engine.config.merge(al_config)
+
+        if self.options.option:
+            overrider = ConfigOverrider(self.log)
+            overrider.apply_overrides(self.options.option, self.engine.config)
+
+        self.engine.create_artifacts_dir(configs, merged_config)
+        self.engine.default_cwd = os.getcwd()
+
     def perform(self, configs):
         """
         Run the tool
@@ -132,26 +154,7 @@ class CLI(object):
             jmx_shorthands = self.__get_jmx_shorthands(configs)
             configs.extend(jmx_shorthands)
 
-            self.log.info("Starting with configs: %s", configs)
-
-            if self.options.no_system_configs is None:
-                self.options.no_system_configs = False
-
-            merged_config = self.engine.configure(configs, not self.options.no_system_configs)
-
-            # apply aliases
-            for alias in self.options.aliases:
-                al_config = self.engine.config.get("cli-aliases").get(alias, None)
-                if al_config is None:
-                    raise RuntimeError("Alias '%s' is not found within configuration" % alias)
-                self.engine.config.merge(al_config)
-
-            if self.options.option:
-                overrider = ConfigOverrider(self.log)
-                overrider.apply_overrides(self.options.option, self.engine.config)
-
-            self.engine.create_artifacts_dir(configs, merged_config)
-            self.engine.default_cwd = os.getcwd()
+            self.__configure(configs)
             self.engine.prepare()
             self.engine.run()
             exit_code = 0
@@ -165,7 +168,6 @@ class CLI(object):
                 self.log.info("Automated shutdown")
             else:
                 if isinstance(exc, HTTPError):
-                    assert isinstance(exc, HTTPError)
                     self.log.warning("Response from %s: %s", exc.geturl(), exc.read())
                 self.log.error("%s: %s", type(exc).__name__, exc)
             exit_code = 1

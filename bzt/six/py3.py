@@ -20,6 +20,7 @@ limitations under the License.
 import io
 import operator
 import collections
+import traceback
 import urllib
 from io import IOBase
 
@@ -61,6 +62,7 @@ SimpleHTTPRequestHandler = BaseHTTPServer.SimpleHTTPRequestHandler
 viewvalues = operator.methodcaller("values")
 r_input = input
 
+
 def iteritems(dictionary, **kw):
     return iter(dictionary.items(**kw))
 
@@ -71,3 +73,9 @@ def b(string):
 
 def u(string):
     return string
+
+
+def get_stacktrace(exc):
+    return ''.join(traceback.format_tb(exc.__traceback__))
+
+
