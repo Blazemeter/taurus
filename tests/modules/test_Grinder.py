@@ -74,16 +74,13 @@ class TestGrinderExecutor(BZTestCase):
         obj.engine.provisioning = Local()
         obj.engine.provisioning.engine = obj.engine
         obj.engine.provisioning.executors = [obj]
-        self.assertRaises(RuntimeWarning, obj.engine.provisioning.post_process)
 
     def test_with_results(self):
         obj = GrinderExecutor()
-
         obj.engine = EngineEmul()
         obj.settings.merge({'path': __dir__() + "/../grinder/fake_grinder.jar"})
-        obj.execution.merge({
-            "concurrency": {"local": 2},
-            "scenario": {"script": __dir__() + "/../grinder/helloworld.py"}})
+        obj.execution.merge({"concurrency": {"local": 2},
+                             "scenario": {"script": __dir__() + "/../grinder/helloworld.py"}})
         obj.prepare()
         obj.engine.prepared = [obj]
         obj.engine.started = [obj]
@@ -93,6 +90,7 @@ class TestGrinderExecutor(BZTestCase):
         obj.engine.provisioning = prov
         obj.reader.buffer = ['some info']
         obj.engine.provisioning.post_process()
+        self.assertIsNone(obj.engine.stopping_reason)
 
     def test_requests(self):
         obj = GrinderExecutor()
@@ -118,6 +116,7 @@ class TestGrinderExecutor(BZTestCase):
 
         try:
             obj.cmd_line = __dir__() + "/../grinder/grinder" + EXE_SUFFIX
+            obj.engine.started = [obj]
             obj.startup()
             while not obj.check():
                 time.sleep(obj.engine.check_interval)

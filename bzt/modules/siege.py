@@ -91,6 +91,10 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider):
             url_file.close()
         return url_file_name
 
+    def post_process(self):
+        if self.reader and self.reader.buffer:
+            self.no_results = False
+
     def startup(self):
         args = [self.tool_path]
         load = self.get_load()

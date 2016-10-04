@@ -246,7 +246,7 @@ class TestGatlingExecutor(BZTestCase):
                 lines2 = without_id(file2.read())
         self.assertEqual(lines1, lines2)
 
-    def test_fail_on_zero_results(self):
+    def test_zero_results(self):
         obj = self.getGatling()
         obj.execution.merge({"scenario": {"script": __dir__() + "/../gatling/bs/BasicSimulation.scala"}})
         obj.prepare()

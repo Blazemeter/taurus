@@ -10,6 +10,7 @@ import yaml
 from bzt.engine import ScenarioExecutor
 from bzt.modules.selenium import SeleniumExecutor, JUnitJar, LoadSamplesReader, LDJSONReader, FuncSamplesReader
 from bzt.modules.selenium import NoseTester
+from bzt.modules.provisioning import Local
 from bzt.six import StringIO
 from bzt.utils import is_windows
 from tests import BZTestCase, local_paths_config, __dir__
@@ -680,7 +681,8 @@ class TestSeleniumStuff(SeleniumTestCase):
         prov.engine = self.obj.engine
         prov.executors = [self.obj]
         self.obj.engine.provisioning = prov
-        self.assertRaises(RuntimeWarning, self.obj.engine.provisioning.post_process)
+        self.obj.engine.provisioning.post_process()
+        self.assertTrue(isinstance(self.obj.engine.stopping_reason, RuntimeWarning))
 
     def test_junit_mirrors(self):
         dummy_installation_path = __dir__() + "/../../build/tmp/selenium-taurus"

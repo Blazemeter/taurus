@@ -5,6 +5,7 @@ import time
 from bzt import six
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.locustio import LocustIOExecutor, SlavesReader
+from bzt.modules.provisioning import Local
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul
 from bzt.modules.provisioning import Local
@@ -36,6 +37,7 @@ class TestLocustIOExecutor(BZTestCase):
         except RuntimeError:  # FIXME: not good, but what to do?
             pass
         self.obj.shutdown()
+        self.obj.post_process()
         self.assertFalse(self.obj.has_results())
 
     def test_locust_widget(self):
@@ -135,7 +137,8 @@ class TestLocustIOExecutor(BZTestCase):
         prov.engine = self.obj.engine
         prov.executors = [self.obj]
         self.obj.engine.provisioning = prov
-        self.assertRaises(RuntimeWarning, self.obj.engine.provisioning.post_process)
+        self.obj.engine.provisioning.post_process()
+        self.assertTrue(isinstance(self.obj.engine.stopping_reason, RuntimeWarning))
 
     def test_build_script(self):
         self.obj.engine.config.merge({

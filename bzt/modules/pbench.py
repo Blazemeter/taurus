@@ -99,6 +99,10 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             resource_files.append(os.path.basename(script))
         return resource_files
 
+    def post_process(self):
+        if self.reader and self.reader.buffer:
+            self.no_results = False
+
 
 class PBenchTool(object):
     SSL_STR = "transport_t ssl_transport = transport_ssl_t { timeout = 1s }\n transport = ssl_transport"
@@ -126,6 +130,7 @@ class PBenchTool(object):
         self.hostname = 'localhost'
         self.port = 80
         self._target = {"scheme": None, "netloc": None}
+        self.name = 'PBench'
 
     def generate_config(self, scenario, load, hostaliases):
         self.kpi_file = self.engine.create_artifact("pbench-kpi", ".txt")

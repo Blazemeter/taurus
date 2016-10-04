@@ -135,6 +135,8 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider):
             self.__out.close()
         if self.__err and not self.__err.closed:
             self.__err.close()
+        if self.reader and self.reader.buffer:
+            self.no_results = False
 
     def _check_installed(self):
         tool_path = self.settings.get('path', 'ab')

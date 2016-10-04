@@ -28,9 +28,9 @@ import yaml
 from colorlog import ColoredFormatter
 
 import bzt
-from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown
+from bzt import ManualShutdown, RCProvider
 from bzt.engine import Engine, Configuration, ScenarioExecutor
-from bzt.six import HTTPError, string_types, b
+from bzt.six import string_types, b
 from bzt.utils import run_once, is_int, BetterDict, is_windows, is_piped
 
 
@@ -119,6 +119,32 @@ class CLI(object):
             else:
                 self.engine.existing_artifact(self.options.log, True)
 
+    def __configure(self, configs, jmx_shorthands):
+        jmx_shorthands.extend(self.__get_jmx_shorthands(configs))
+        configs.extend(jmx_shorthands)
+
+        self.log.info("Starting with configs: %s", configs)
+
+        if self.options.no_system_configs is None:
+            self.options.no_system_configs = False
+
+        # TODO: move next part of method to Engine.configure()
+        merged_config = self.engine.configure(configs, not self.options.no_system_configs)
+
+        # apply aliases
+        for alias in self.options.aliases:
+            al_config = self.engine.config.get("cli-aliases").get(alias, None)
+            if al_config is None:
+                raise RuntimeError("Alias '%s' is not found within configuration" % alias)
+            self.engine.config.merge(al_config)
+
+        if self.options.option:
+            overrider = ConfigOverrider(self.log)
+            overrider.apply_overrides(self.options.option, self.engine.config)
+
+        self.engine.create_artifacts_dir(configs, merged_config)
+        self.engine.default_cwd = os.getcwd()
+
     def perform(self, configs):
         """
         Run the tool
@@ -126,76 +152,46 @@ class CLI(object):
         :type configs: list
         :return: integer exit code
         """
-        overrides = []
         jmx_shorthands = []
         try:
-            jmx_shorthands = self.__get_jmx_shorthands(configs)
-            configs.extend(jmx_shorthands)
-
-            self.log.info("Starting with configs: %s", configs)
-
-            if self.options.no_system_configs is None:
-                self.options.no_system_configs = False
-
-            merged_config = self.engine.configure(configs, not self.options.no_system_configs)
-
-            # apply aliases
-            for alias in self.options.aliases:
-                al_config = self.engine.config.get("cli-aliases").get(alias, None)
-                if al_config is None:
-                    raise RuntimeError("Alias '%s' is not found within configuration" % alias)
-                self.engine.config.merge(al_config)
-
-            if self.options.option:
-                overrider = ConfigOverrider(self.log)
-                overrider.apply_overrides(self.options.option, self.engine.config)
-
-            self.engine.create_artifacts_dir(configs, merged_config)
-            self.engine.default_cwd = os.getcwd()
-            self.engine.prepare()
-            self.engine.run()
-            exit_code = 0
+            self.__configure(configs, jmx_shorthands)
         except BaseException as exc:
-            self.log.debug("Caught exception in try: %s", traceback.format_exc())
-            if isinstance(exc, ManualShutdown):
-                self.log.info("Interrupted by user: %s", exc)
-            elif isinstance(exc, NormalShutdown):
-                self.log.info("Normal shutdown")
-            elif isinstance(exc, AutomatedShutdown):
-                self.log.info("Automated shutdown")
-            else:
-                if isinstance(exc, HTTPError):
-                    assert isinstance(exc, HTTPError)
-                    self.log.warning("Response from %s: %s", exc.geturl(), exc.read())
-                self.log.error("%s: %s", type(exc).__name__, exc)
             exit_code = 1
-        finally:
-            try:
-                for fname in overrides + jmx_shorthands:
-                    os.remove(fname)
-                self.engine.post_process()
-            except KeyboardInterrupt as exc:
-                self.log.debug("Exception: %s", traceback.format_exc())
-                exit_code = 1
-                if isinstance(exc, RCProvider):
-                    exit_code = exc.get_rc()
-            except BaseException as exc:
-                self.log.debug("Caught exception in finally: %s", traceback.format_exc())
-                self.log.error("%s: %s", type(exc).__name__, exc)
-                exit_code = 1
+            self.engine.log_exception(exc, 'Configs treating: caught exception')
+        else:
+            exit_code = self.__launch_engine()  # run engine if preparing has finished successfully
 
-        if isinstance(self.engine.stopping_reason, RCProvider):
-            exit_code = self.engine.stopping_reason.get_rc()
+        try:
+            for fname in jmx_shorthands:
+                os.remove(fname)
+        except BaseException as exc:
+            if not exit_code:  # first error encountered, show exception
+                exit_code = 1
+                self.engine.log_exception(exc, 'Removing jmx shorthands and overrides: caught exception')
 
-        self.log.info("Artifacts dir: %s", self.engine.artifacts_dir)
         if exit_code:
             self.log.warning("Done performing with code: %s", exit_code)
         else:
             self.log.info("Done performing with code: %s", exit_code)
 
         self.__close_log()
-
         return exit_code
+
+    def __launch_engine(self):
+        self.engine.prepare()
+        if not self.engine.stopping_reason:
+            self.engine.run()
+            self.engine.shutdown()
+        self.engine.post_process()
+        self.log.info("Artifacts dir: %s", self.engine.artifacts_dir)
+
+        if self.engine.stopping_reason:
+            if isinstance(self.engine.stopping_reason, RCProvider):
+                return self.engine.stopping_reason.get_rc()
+            else:
+                return 1
+        else:
+            return 0
 
     def __get_jmx_shorthands(self, configs):
         """

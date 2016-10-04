@@ -22,6 +22,7 @@ import operator
 import collections
 import urllib
 from io import IOBase
+import traceback
 
 import urllib.error
 import urllib.request
@@ -71,3 +72,7 @@ def b(string):
 
 def u(string):
     return string
+
+
+def stacktrace(exc):
+    return ''.join(traceback.format_tb(exc.__traceback__))

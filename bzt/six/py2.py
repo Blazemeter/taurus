@@ -26,6 +26,7 @@ import ConfigParser
 import UserDict
 import StringIO
 import BaseHTTPServer
+import traceback
 import SocketServer as socketserver
 
 string_types = basestring,
@@ -73,3 +74,7 @@ def u(string):
         return unicode(string.replace('\\', '\\\\'), "unicode_escape")
     else:
         return string
+
+
+def stacktrace(exc):
+    return traceback.format_exc(exc)

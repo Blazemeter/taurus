@@ -56,11 +56,9 @@ class TestEngine(BZTestCase):
         self.obj.config["provisioning"] = "unknown"
         self.obj.config["modules"]["unknown"] = BetterDict()
 
-        try:
-            self.obj.prepare()
+        self.obj.prepare()
+        if not self.obj.stopping_reason:
             self.fail()
-        except ValueError:
-            pass
 
 
 class TestScenarioExecutor(BZTestCase):
