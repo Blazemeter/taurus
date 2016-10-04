@@ -1,4 +1,5 @@
 import csv
+import datetime
 import json
 import math
 import os
@@ -13,7 +14,6 @@ from abc import abstractmethod
 from os import strerror
 from subprocess import CalledProcessError
 
-import datetime
 import psutil
 
 from bzt import resources
@@ -37,9 +37,9 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def prepare(self):
         self._prepare_pbench()
-        reader = self.pbench.get_results_reader()
+        self.reader = self.pbench.get_results_reader()
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
-            self.engine.aggregator.add_underling(reader)
+            self.engine.aggregator.add_underling(self.reader)
 
     def _prepare_pbench(self):
         if self.settings.get('enhanced', False):

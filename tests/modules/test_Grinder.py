@@ -8,6 +8,7 @@ from bzt.modules.grinder import GrinderExecutor, DataLogReader
 from bzt.utils import EXE_SUFFIX
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul
+from bzt.modules.provisioning import Local
 
 
 class TestGrinderExecutor(BZTestCase):
@@ -68,7 +69,30 @@ class TestGrinderExecutor(BZTestCase):
         obj.execution.merge({"concurrency": {"local": 2},
                              "scenario": {"script": __dir__() + "/../grinder/helloworld.py"}})
         obj.prepare()
-        self.assertRaises(RuntimeWarning, obj.post_process)
+        obj.engine.prepared = [obj]
+        obj.engine.started = [obj]
+        obj.engine.provisioning = Local()
+        obj.engine.provisioning.engine = obj.engine
+        obj.engine.provisioning.executors = [obj]
+        self.assertRaises(RuntimeWarning, obj.engine.provisioning.post_process)
+
+    def test_with_results(self):
+        obj = GrinderExecutor()
+
+        obj.engine = EngineEmul()
+        obj.settings.merge({'path': __dir__() + "/../grinder/fake_grinder.jar"})
+        obj.execution.merge({
+            "concurrency": {"local": 2},
+            "scenario": {"script": __dir__() + "/../grinder/helloworld.py"}})
+        obj.prepare()
+        obj.engine.prepared = [obj]
+        obj.engine.started = [obj]
+        prov = Local()
+        prov.engine = obj.engine
+        prov.executors = [obj]
+        obj.engine.provisioning = prov
+        obj.reader.buffer = ['some info']
+        obj.engine.provisioning.post_process()
 
     def test_requests(self):
         obj = GrinderExecutor()
@@ -99,7 +123,8 @@ class TestGrinderExecutor(BZTestCase):
                 time.sleep(obj.engine.check_interval)
         finally:
             obj.shutdown()
-        self.assertRaises(RuntimeWarning, obj.post_process)
+        obj.post_process()
+        self.assertFalse(obj.has_results())
 
     def test_script_generation(self):
         obj = GrinderExecutor()

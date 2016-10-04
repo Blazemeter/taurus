@@ -8,6 +8,7 @@ from bzt.six import u
 from bzt.utils import EXE_SUFFIX, get_full_path
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul
+from bzt.modules.provisioning import Local
 
 
 class TestGatlingExecutor(BZTestCase):
@@ -249,7 +250,14 @@ class TestGatlingExecutor(BZTestCase):
         obj = self.getGatling()
         obj.execution.merge({"scenario": {"script": __dir__() + "/../gatling/bs/BasicSimulation.scala"}})
         obj.prepare()
-        self.assertRaises(RuntimeWarning, obj.post_process)
+        obj.engine.prepared = [obj]
+        obj.engine.started = [obj]
+        prov = Local()
+        prov.engine = obj.engine
+        prov.executors = [obj]
+        obj.engine.provisioning = prov
+        obj.reader.buffer = ['some info']
+        obj.engine.provisioning.post_process()
 
     def test_no_simulation(self):
         obj = self.getGatling()
