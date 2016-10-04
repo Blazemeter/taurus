@@ -119,7 +119,7 @@ class CLI(object):
             else:
                 self.engine.existing_artifact(self.options.log, True)
 
-    def __overrides_and_shorthands(self, configs, overrides, jmx_shorthands):
+    def __configure(self, configs, jmx_shorthands):
         jmx_shorthands.extend(self.__get_jmx_shorthands(configs))
         configs.extend(jmx_shorthands)
 
@@ -128,6 +128,7 @@ class CLI(object):
         if self.options.no_system_configs is None:
             self.options.no_system_configs = False
 
+        # TODO: move next part of method to Engine.configure()
         merged_config = self.engine.configure(configs, not self.options.no_system_configs)
 
         # apply aliases
@@ -138,7 +139,7 @@ class CLI(object):
             self.engine.config.merge(al_config)
 
         if self.options.option:
-            overrider = ConfigOverrider(self.log)  # FIXME: overrides?
+            overrider = ConfigOverrider(self.log)
             overrider.apply_overrides(self.options.option, self.engine.config)
 
         self.engine.create_artifacts_dir(configs, merged_config)
@@ -151,10 +152,9 @@ class CLI(object):
         :type configs: list
         :return: integer exit code
         """
-        overrides = []
         jmx_shorthands = []
         try:
-            self.__overrides_and_shorthands(configs, overrides, jmx_shorthands)
+            self.__configure(configs, jmx_shorthands)
         except BaseException as exc:
             exit_code = 1
             self.engine.log_exception(exc, 'Configs treating: caught exception')
@@ -162,7 +162,7 @@ class CLI(object):
             exit_code = self.__launch_engine()  # run engine if preparing has finished successfully
 
         try:
-            for fname in overrides + jmx_shorthands:
+            for fname in jmx_shorthands:
                 os.remove(fname)
         except BaseException as exc:
             if not exit_code:  # first error encountered, show exception
