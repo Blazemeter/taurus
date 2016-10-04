@@ -69,7 +69,6 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.virtual_display = None
         self.end_time = None
         self.runner = None
-        self.reader = None
         self.report_file = None
         self.scenario = None
         self.script = None
@@ -253,8 +252,11 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     def post_process(self):
         self.free_virtual_display()
 
-        if self.reader and not self.reader.read_records:
-            raise RuntimeWarning("Empty results, most likely Selenium failed")
+    def has_results(self):
+        if self.reader and self.reader.read_records:
+            return True
+        else:
+            return False
 
     def get_widget(self):
         if not self.widget:
@@ -944,7 +946,6 @@ class TaurusMochaPlugin(RequiredTool):
 
     def install(self):
         raise NotImplementedError()
-
 
 
 class SeleniumScriptBuilder(PythonGenerator):

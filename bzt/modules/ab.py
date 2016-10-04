@@ -42,7 +42,6 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider):
         self.__err = None
         self.tool_path = None
         self.scenario = None
-        self.reader = None
 
     def prepare(self):
         self.scenario = self.get_scenario()
@@ -79,7 +78,7 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider):
             hold = int(ceil(dehumanize_time(load.hold)))
             args += ['-t', str(hold)]
         else:
-            args += ['-n', str(load_iterations * load_concurrency)]     # ab waits for total number of iterations
+            args += ['-n', str(load_iterations * load_concurrency)]  # ab waits for total number of iterations
 
         args += ['-c', str(load_concurrency)]
         args += ['-d']  # do not print 'Processed *00 requests' every 100 requests or so
@@ -199,9 +198,9 @@ class TSVDataReader(ResultsReader):
             _url = self.url_label
             _concur = self.concurrency
             _tstamp = int(log_vals[1])  # timestamp - moment of request sending
-            _con_time = float(log_vals[2])/1000  # connection time
-            _etime = float(log_vals[4])/1000  # elapsed time
-            _latency = float(log_vals[5])/1000  # latency (aka waittime)
+            _con_time = float(log_vals[2]) / 1000  # connection time
+            _etime = float(log_vals[4]) / 1000  # elapsed time
+            _latency = float(log_vals[5]) / 1000  # latency (aka waittime)
 
             yield _tstamp, _url, _concur, _etime, _con_time, _latency, _rstatus, _error, ''
 

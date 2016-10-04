@@ -2,7 +2,8 @@
 
 ## 1.7.1 (upcoming)
  - fix Mocha runner race condition
- - support more scenario options for Grinder script generation 
+ - support more scenario options for Grinder script generation
+ - add move check for executor results availability to provisioning
 
 ## 1.7.0 <sup>2 oct 2016</sup>
  - add RSpec tests runner for Selenium

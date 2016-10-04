@@ -35,8 +35,8 @@ from cssselect import GenericTranslator
 from bzt.engine import ScenarioExecutor, Scenario, FileLister, Request, HTTPRequest
 from bzt.jmx import JMX
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
-from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader, FunctionalSample
 from bzt.modules.console import WidgetProvider, ExecutorWidget
+from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader, FunctionalSample
 from bzt.modules.provisioning import Local
 from bzt.six import iteritems, string_types, StringIO, etree, binary_type
 from bzt.six import parse, request as http_request
@@ -76,7 +76,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.retcode = None
         self.distributed_servers = []
         self.management_port = None
-        self.reader = None
         self._env = {}
         self.resource_files_collector = None
 
@@ -240,9 +239,12 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def post_process(self):
         self.engine.existing_artifact(self.modified_jmx, True)
-        if self.reader and not self.reader.read_records and self.start_time is not None:
-            msg = "Empty results JTL, most likely JMeter failed: %s"
-            raise RuntimeWarning(msg % self.kpi_jtl)
+
+    def has_results(self):
+        if self.reader and self.reader.read_records:
+            return True
+        else:
+            return False
 
     def _process_stopped(self, cycles):
         while cycles > 0:
@@ -911,6 +913,7 @@ class FuncJTLReader(FunctionalResultsReader):
     :type filename: str
     :type parent_logger: logging.Logger
     """
+
     def __init__(self, filename, parent_logger):
         super(FuncJTLReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)

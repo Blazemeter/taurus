@@ -7,6 +7,7 @@ from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.locustio import LocustIOExecutor, SlavesReader
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul
+from bzt.modules.provisioning import Local
 
 
 class TestLocustIOExecutor(BZTestCase):
@@ -35,7 +36,7 @@ class TestLocustIOExecutor(BZTestCase):
         except RuntimeError:  # FIXME: not good, but what to do?
             pass
         self.obj.shutdown()
-        self.assertRaises(RuntimeWarning, self.obj.post_process)
+        self.assertFalse(self.obj.has_results())
 
     def test_locust_widget(self):
         if six.PY3:
@@ -85,7 +86,8 @@ class TestLocustIOExecutor(BZTestCase):
         except RuntimeError:
             logging.warning("Do you use patched locust for non-GUI master?")
         self.obj.shutdown()
-        self.assertRaises(RuntimeWarning, self.obj.post_process)
+        self.obj.post_process()
+        self.assertFalse(self.obj.has_results())
 
     def test_locust_slave_results(self):
         if six.PY3:
@@ -127,7 +129,13 @@ class TestLocustIOExecutor(BZTestCase):
             }
         })
         self.obj.prepare()
-        self.assertRaises(RuntimeWarning, self.obj.post_process)
+        self.obj.engine.prepared = [self.obj]
+        self.obj.engine.started = [self.obj]
+        prov = Local()
+        prov.engine = self.obj.engine
+        prov.executors = [self.obj]
+        self.obj.engine.provisioning = prov
+        self.assertRaises(RuntimeWarning, self.obj.engine.provisioning.post_process)
 
     def test_build_script(self):
         self.obj.engine.config.merge({

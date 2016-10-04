@@ -804,6 +804,13 @@ class ScenarioExecutor(EngineModule):
         self.__scenario = None
         self.label = None
         self.widget = None
+        self.reader = None
+
+    def has_results(self):
+        if self.reader and self.reader.buffer:
+            return True
+        else:
+            return False
 
     def get_script_path(self, scenario=None):
         """
