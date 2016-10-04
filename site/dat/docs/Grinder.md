@@ -1,7 +1,6 @@
 # Grinder Executor
 
-Configuration options:
-
+Module settings:
  - `path`: "/somepath/folder/"
     Path to Grinder.
     If no grinder.jar found in folder/lib/, Grinder tool will be automatically downloaded and installed in "path".
@@ -12,14 +11,15 @@ Configuration options:
  -  `version`: "3.11"
     Grinder version, by default "3.11"
 
-## Run Grinder Tool
+## Running Grinder
 
+Running Grinder with existing script and properties file.
 ```yaml
 ---
 execution:
 - executor: grinder
   concurrency: 3
-  ramp-up: 10
+  ramp-up: 10s
   iterations: 20
   scenario: script_sample
   
@@ -29,16 +29,33 @@ scenarios:
     properties-file: tests/grinder/grinder.properties
     properties:
       grinder.useConsole: false
+```
 
+Generating Grinder script from scenario:
+```yaml
+execution:
 - executor: grinder
-  concurrency: 2
-  ramp-up: 5
-  iterations: 10
-  scenario: request_sample
-  
+  concurrency: 20
+  ramp-up: 1m
+  iterations: 100
+  scenario: requests_sample
+
 scenarios:
-  request_sample:
+  requests_sample:
+    default-address: http://blazedemo.com  # base address for requests
+    think-time: 1s                         # pause for 1s after each request
+    timeout: 30s                           # specify timeout for requests
+    headers:                               # global headers, applied to all requests
+      X-Api-Key: my-fresh-token
+    store-cookie: false                    # simulate browser cookie storage (default value is `true`)
     requests:
-    - http://demo.blazemeter.com/
-    - http://demo.blazemeter.com/api
+    - /                                    # short form, URL only
+    - url: /reserve.php                    # full form
+      method: POST
+      think-time: 5s
+    - url: /payment.php
+      method: POST
+      headers:                             # request-specific headers
+        Content-Type: application/json
+      think-time: 1s                       # overrides scenario-level `think-time`
 ```
