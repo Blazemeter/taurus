@@ -1031,6 +1031,8 @@ class Scenario(UserDict, object):
     def get_requests(self):
         """
         Generator object to read requests
+
+        :rtype: list[HTTPRequest]
         """
         requests = self.get("requests", [])
         for key in range(len(requests)):
