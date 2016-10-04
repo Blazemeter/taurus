@@ -33,7 +33,7 @@ import datetime
 
 import bzt
 from logging import DEBUG, ERROR, INFO, WARNING
-from bzt import ManualShutdown, get_configs_dir, AutomatedShutdown
+from bzt import get_configs_dir, NormalShutdown, ManualShutdown, AutomatedShutdown
 from bzt.six import build_opener, install_opener, urlopen, request, numeric_types, iteritems, stacktrace
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, etree, HTTPError
 from bzt.utils import PIPE, shell_exec, get_full_path
@@ -96,6 +96,8 @@ class Engine(object):
                     log.log(INFO, "Interrupted by user: %s" % exc)
                 elif isinstance(exc, AutomatedShutdown):
                     log.log(INFO, "Automated shutdown")
+                elif isinstance(exc, NormalShutdown):
+                    log.log(INFO, "Normal shutdown")
                 else:
                     if isinstance(exc, HTTPError):
                         log.log(WARNING, "Response from %s: %s" % (exc.geturl(), exc.read()))
