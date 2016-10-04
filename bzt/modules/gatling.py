@@ -376,7 +376,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         Save data log as artifact
         """
         if self.reader and self.reader.filename:
-                self.engine.existing_artifact(self.reader.filename)
+            self.engine.existing_artifact(self.reader.filename)
 
     def _check_installed(self):
         required_tools = [TclLibrary(self.log), JavaVM("", "", self.log)]
@@ -459,7 +459,7 @@ class DataLogReader(ResultsReader):
         self.concurrency = 0
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.basedir = basedir
-        self.filename = ''
+        self.filename = None
         self.fds = None
         self.partial_buffer = ""
         self.delimiter = "\t"

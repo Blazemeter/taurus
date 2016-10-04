@@ -22,6 +22,7 @@
  - Docker image now has all executors pre-installed
  - introduce `check-interval` option for cloud provisioning
  - rename generated Grinder script to avoid clashes with Locust
+ - add move check for executor results availability to provisioning
 
 ## 1.6.8 <sup>1 sep 2016</sup>
  - fix hamcrest installation for Java-based Selenium tests

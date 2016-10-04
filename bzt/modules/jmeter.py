@@ -35,8 +35,8 @@ from cssselect import GenericTranslator
 from bzt.engine import ScenarioExecutor, Scenario, FileLister, Request, HTTPRequest
 from bzt.jmx import JMX
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
-from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader, FunctionalSample
 from bzt.modules.console import WidgetProvider, ExecutorWidget
+from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader, FunctionalSample
 from bzt.modules.provisioning import Local
 from bzt.six import iteritems, string_types, StringIO, etree, binary_type
 from bzt.six import parse, request as http_request
@@ -913,6 +913,7 @@ class FuncJTLReader(FunctionalResultsReader):
     :type filename: str
     :type parent_logger: logging.Logger
     """
+
     def __init__(self, filename, parent_logger):
         super(FuncJTLReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)

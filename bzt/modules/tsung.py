@@ -110,7 +110,6 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     def check(self):
         ret_code = self.process.poll()
         if ret_code is None:
-
             return False
         self.log.info("tsung exit code: %s", ret_code)
         if ret_code != 0:

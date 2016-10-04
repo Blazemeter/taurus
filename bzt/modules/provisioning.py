@@ -27,6 +27,7 @@ class Local(Provisioning):
     """
     Local provisioning means we start all the tools locally
     """
+
     def __init__(self):
         super(Local, self).__init__()
         self.finished_modules = []

@@ -1,4 +1,5 @@
 import csv
+import datetime
 import json
 import math
 import os
@@ -13,7 +14,6 @@ from abc import abstractmethod
 from os import strerror
 from subprocess import CalledProcessError
 
-import datetime
 import psutil
 
 from bzt import resources

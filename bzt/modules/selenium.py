@@ -948,7 +948,6 @@ class TaurusMochaPlugin(RequiredTool):
         raise NotImplementedError()
 
 
-
 class SeleniumScriptBuilder(PythonGenerator):
     IMPORTS = """import unittest
 import re
