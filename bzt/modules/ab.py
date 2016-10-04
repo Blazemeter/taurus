@@ -42,7 +42,6 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider):
         self.__err = None
         self.tool_path = None
         self.scenario = None
-        self.reader = None
 
     def prepare(self):
         self.scenario = self.get_scenario()

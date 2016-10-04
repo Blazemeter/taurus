@@ -118,3 +118,5 @@ class Local(Provisioning):
             if executor in self.engine.prepared:
                 self.log.debug("Post-process %s", executor)
                 executor.post_process()
+                if executor in self.engine.started and not executor.has_results():
+                    raise RuntimeWarning("Empty results, most likely %s failed" % executor.__class__.__name__)

@@ -50,7 +50,6 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.process = None
         self.end_time = None
         self.retcode = None
-        self.reader = None
         self.stdout_file = None
         self.stderr_file = None
 
@@ -209,8 +208,6 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         if self.kpi_file:
             self.engine.existing_artifact(self.kpi_file)
-        if self.reader and not self.reader.buffer:
-            raise RuntimeWarning("Empty results, most likely Grinder failed")
 
     def __scenario_from_requests(self):
         """

@@ -37,9 +37,9 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def prepare(self):
         self._prepare_pbench()
-        reader = self.pbench.get_results_reader()
+        self.reader = self.pbench.get_results_reader()
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
-            self.engine.aggregator.add_underling(reader)
+            self.engine.aggregator.add_underling(self.reader)
 
     def _prepare_pbench(self):
         if self.settings.get('enhanced', False):

@@ -170,7 +170,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.process = None
         self.end_time = None
         self.retcode = None
-        self.reader = None
         self.stdout_file = None
         self.stderr_file = None
         self.simulation_started = False
@@ -376,11 +375,8 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         Save data log as artifact
         """
-        if self.reader:
-            if self.reader.filename:
+        if self.reader and self.reader.filename:
                 self.engine.existing_artifact(self.reader.filename)
-            if not self.reader.buffer:
-                raise RuntimeWarning("Empty results, most likely Gatling failed")
 
     def _check_installed(self):
         required_tools = [TclLibrary(self.log), JavaVM("", "", self.log)]
@@ -463,7 +459,7 @@ class DataLogReader(ResultsReader):
         self.concurrency = 0
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.basedir = basedir
-        self.filename = False
+        self.filename = ''
         self.fds = None
         self.partial_buffer = ""
         self.delimiter = "\t"

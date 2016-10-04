@@ -76,7 +76,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.retcode = None
         self.distributed_servers = []
         self.management_port = None
-        self.reader = None
         self._env = {}
         self.resource_files_collector = None
 
@@ -240,9 +239,12 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def post_process(self):
         self.engine.existing_artifact(self.modified_jmx, True)
-        if self.reader and not self.reader.read_records and self.start_time is not None:
-            msg = "Empty results JTL, most likely JMeter failed: %s"
-            raise RuntimeWarning(msg % self.kpi_jtl)
+
+    def has_results(self):
+        if self.reader and self.reader.read_records:
+            return True
+        else:
+            return False
 
     def _process_stopped(self, cycles):
         while cycles > 0:
