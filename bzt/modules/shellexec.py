@@ -17,7 +17,7 @@ import os
 import subprocess
 from subprocess import CalledProcessError
 
-from bzt.engine import Provisioning, Service
+from bzt.engine import Service
 from bzt.six import iteritems
 from bzt.utils import ensure_is_dict
 from bzt.utils import shutdown_process, BetterDict, is_windows
@@ -41,34 +41,30 @@ class ShellExecutor(Service):
         for index, stage_task in enumerate(self.parameters[stage]):
             stage_task = ensure_is_dict(self.parameters[stage], index, "command")
             task_config = self.parameters[stage][index]
-            run_at = task_config.get("run-at", "local")
             default_cwd = self.settings.get("default-cwd", None)
-            if run_at == self.engine.config.get(Provisioning.PROV, None):
-                cwd = task_config.get("cwd", default_cwd)
-                if cwd is None:
-                    working_dir = self.engine.default_cwd
-                elif cwd == 'artifacts-dir':
-                    working_dir = self.engine.artifacts_dir
-                else:
-                    working_dir = cwd
-
-                env = BetterDict()
-                env.merge({k: os.environ.get(k) for k in os.environ.keys()})
-                env.merge(self.settings.get('env'))
-                env.merge(task_config.get('env'))
-                env.merge({"PYTHONPATH": working_dir})
-                if os.getenv("PYTHONPATH"):
-                    env['PYTHONPATH'] = os.getenv("PYTHONPATH") + os.pathsep + env['PYTHONPATH']
-                env[ARTIFACTS_DIR_ENVVAR] = self.engine.artifacts_dir
-
-                for name, value in iteritems(env):
-                    env[str(name)] = str(value)
-
-                task = Task(task_config, self.log, working_dir, env)
-                container.append(task)
-                self.log.debug("Added %s task: %s", stage, stage_task)
+            cwd = task_config.get("cwd", default_cwd)
+            if cwd is None:
+                working_dir = self.engine.default_cwd
+            elif cwd == 'artifacts-dir':
+                working_dir = self.engine.artifacts_dir
             else:
-                self.log.debug("Skipped task: %s", task_config)
+                working_dir = cwd
+
+            env = BetterDict()
+            env.merge({k: os.environ.get(k) for k in os.environ.keys()})
+            env.merge(self.settings.get('env'))
+            env.merge(task_config.get('env'))
+            env.merge({"PYTHONPATH": working_dir})
+            if os.getenv("PYTHONPATH"):
+                env['PYTHONPATH'] = os.getenv("PYTHONPATH") + os.pathsep + env['PYTHONPATH']
+            env[ARTIFACTS_DIR_ENVVAR] = self.engine.artifacts_dir
+
+            for name, value in iteritems(env):
+                env[str(name)] = str(value)
+
+            task = Task(task_config, self.log, working_dir, env)
+            container.append(task)
+            self.log.debug("Added %s task: %s", stage, stage_task)
 
     def prepare(self):
         """
