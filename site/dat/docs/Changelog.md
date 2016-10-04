@@ -5,6 +5,7 @@
  - support more scenario options for Grinder script generation
  - add move check for executor results availability to provisioning
  - add common `run-at` option for services
+ - fix CPU monitoring when multiple monitoring modules are used
 
 ## 1.7.0 <sup>2 oct 2016</sup>
  - add RSpec tests runner for Selenium

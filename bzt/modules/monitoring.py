@@ -114,23 +114,27 @@ class MonitoringClient(object):
 
 
 class LocalClient(MonitoringClient):
+    """
+    :type monitor: LocalMonitor
+    """
     def __init__(self, parent_logger, label, config):
         super(LocalClient, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.config = config
-        self.__disk_counters = None
-        self.__net_counters = None
-        self.__counters_ts = None
         if label:
             self.label = label
         else:
             self.label = 'local'
+        self.monitor = None
 
     def connect(self):
-        pass
+        self.monitor = LocalMonitor.get_instance(self.log, self.engine)
 
     def start(self):
         pass
+
+    def engine_resource_stats(self):
+        return self.monitor.resource_stats()
 
     def get_data(self):
         _time = time.time()
@@ -167,14 +171,27 @@ class LocalClient(MonitoringClient):
     def disconnect(self):
         pass
 
-    def engine_resource_stats(self):
-        """
-        Get local resource stats
 
-        :return: namedtuple
-        """
-        stats = namedtuple("ResourceStats", ('cpu', 'disk_usage', 'mem_usage',
-                                             'rx', 'tx', 'dru', 'dwu', 'engine_loop'))
+class LocalMonitor(object):
+    __instance = None
+
+    def __init__(self, parent_logger, engine):
+        if self.__instance is not None:
+            raise ValueError("LocalMonitor can't be instantiated twice, use get_instance()")
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.engine = engine
+        self.__disk_counters = None
+        self.__net_counters = None
+        self.__counters_ts = None
+        self.__cached_stats = None
+
+    @classmethod
+    def get_instance(cls, parent_logger, engine):
+        if cls.__instance is None:
+            cls.__instance = LocalMonitor(parent_logger, engine)
+        return cls.__instance
+
+    def resource_stats(self):
         if not self.__counters_ts:
             self.__disk_counters = self.__get_disk_counters()
             self.__net_counters = psutil.net_io_counters()
@@ -183,6 +200,22 @@ class LocalClient(MonitoringClient):
 
         now = datetime.datetime.now()
         interval = (now - self.__counters_ts).total_seconds()
+
+        # don't recalculate stats too frequently
+        if interval >= self.engine.check_interval or self.__cached_stats is None:
+            self.__cached_stats = self.calc_resource_stats(interval)
+            self.__counters_ts = now
+
+        return self.__cached_stats
+
+    def calc_resource_stats(self, interval):
+        """
+        Get local resource stats
+
+        :return: namedtuple
+        """
+        stats = namedtuple("ResourceStats", ('cpu', 'disk_usage', 'mem_usage',
+                                             'rx', 'tx', 'dru', 'dwu', 'engine_loop'))
 
         net = psutil.net_io_counters()
         tx_bytes = (net.bytes_sent - self.__net_counters.bytes_sent) / interval
@@ -193,8 +226,6 @@ class LocalClient(MonitoringClient):
         dru = (disk.read_bytes - self.__disk_counters.read_bytes) / interval
         dwu = (disk.write_bytes - self.__disk_counters.write_bytes) / interval
         self.__disk_counters = disk
-
-        self.__counters_ts = now
 
         if self.engine:
             engine_loop = self.engine.engine_loop_utilization
