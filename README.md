@@ -11,7 +11,7 @@ Hides the complexity of performance and functional tests with an automation-frie
 Just install it using PyPi:
 
 ```bash
-pip install bzt
+sudo pip install bzt
 ```
 
 More detailed instructions for Linux, Mac OS and Windows available [here](http://gettaurus.org/docs/Installation.md).
