@@ -123,3 +123,6 @@ services:
   - c:\tmp.zip
   - /home/user/temp.zip
 ```  
+
+## Alternate Provisionings and Services
+If you use alternate provisionings, like [BlazeMeter Cloud](Cloud.md), you might want to specify where to run the service module - at target machine, or on your local machine. For that, use `run-at` option of service modules. The service will be effective only when its `run-at` value match to `provisioning` value. On the cloud images, `provisioning` always has value of `local`. Default value for `run-at` of services is also `local`.

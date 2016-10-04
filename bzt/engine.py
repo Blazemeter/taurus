@@ -16,7 +16,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import copy
-import datetime
 import hashlib
 import json
 import logging
@@ -24,13 +23,14 @@ import os
 import shutil
 import time
 import traceback
+import yaml
 from abc import abstractmethod
 from collections import namedtuple, defaultdict
 from distutils.version import LooseVersion
 from json import encoder
-
-import yaml
 from yaml.representer import SafeRepresenter
+
+import datetime
 
 import bzt
 from bzt import ManualShutdown, NormalShutdown, get_configs_dir
@@ -483,7 +483,8 @@ class Engine(object):
             instance = self.instantiate_module(cls)
             assert isinstance(instance, Service)
             instance.parameters = config
-            self.services.append(instance)
+            if instance.should_run():
+                self.services.append(instance)
 
         for module in self.services:
             self.prepared.append(module)
@@ -970,6 +971,14 @@ class Service(EngineModule):
     """
 
     SERV = "services"
+
+    def should_run(self):
+        prov = self.engine.config.get(Provisioning.PROV)
+        runat = self.parameters.get("run-at", "local")
+        if prov != runat:
+            self.log.debug("Should not run because of non-matching prov: %s != %s", prov, runat)
+            return False
+        return True
 
 
 class Aggregator(EngineModule):
