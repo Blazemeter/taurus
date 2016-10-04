@@ -3,7 +3,7 @@ import random
 import time
 
 from bzt.modules.monitoring import Monitoring, MonitoringListener, MonitoringCriteria
-from bzt.modules.monitoring import ServerAgentClient, GraphiteClient, LocalClient
+from bzt.modules.monitoring import ServerAgentClient, GraphiteClient, LocalClient, LocalMonitor
 from bzt.utils import BetterDict
 from tests import BZTestCase
 from tests.mocks import EngineEmul, SocketEmul
@@ -91,6 +91,7 @@ class TestMonitoring(BZTestCase):
         config = {'metrics': ['cpu', 'engine-loop']}
         obj = LocalClient(logging.getLogger(''), 'label', config)
         obj.engine = EngineEmul()
+        obj.connect()
         data = obj.get_data()
         self.assertTrue(all('source' in item.keys() and 'ts' in item.keys() for item in data))
         return data
@@ -98,9 +99,32 @@ class TestMonitoring(BZTestCase):
     def test_local_without_engine(self):
         config = {'metrics': ['cpu']}
         obj = LocalClient(logging.getLogger(''), 'label', config)
+        obj.connect()
         data = obj.get_data()
         self.assertTrue(all('source' in item.keys() and 'ts' in item.keys() for item in data))
         return data
+
+    def test_multiple_local_monitorings_cpu(self):
+        # psutil.cpu_percent() has interesting semantics.
+        # It will often return 0.0 , 50.0 or 100.0 if called too frequently,
+        # which turns out to be the case when multiple LocalClient objects are used.
+        config = {'metrics': ['cpu']}
+        client1 = LocalClient(logging.getLogger(''), 'label', config)
+        client2 = LocalClient(logging.getLogger(''), 'label', config)
+
+        client1.connect()
+        client2.connect()
+
+        self.assertIsInstance(client1.monitor, LocalMonitor)
+        self.assertIsInstance(client2.monitor, LocalMonitor)
+        self.assertIs(client1.monitor, client2.monitor)
+
+        data1 = client1.get_data()
+        data2 = client2.get_data()
+        for item1, item2 in zip(data1, data2):
+            self.assertNotEqual(item1['cpu'], 0)
+            self.assertNotEqual(item2['cpu'], 0)
+            self.assertEqual(item1['cpu'], item2['cpu'])
 
 
 class LoggingMonListener(MonitoringListener):
