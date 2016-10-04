@@ -89,3 +89,11 @@ class TestZipFolder(BZTestCase):
         result_tree = set(filename[len(destination):] for filename in get_files_recursive(destination))
         original_tree = set(filename[len(source):] for filename in get_files_recursive(source))
         self.assertEqual(result_tree, original_tree)
+
+    def test_no_work_prov(self):
+        obj = Service()
+        obj.engine = EngineEmul()
+        obj.engine.config[Provisioning.PROV] = 'cloud'
+        self.assertFalse(obj.should_run())
+        obj.parameters['run-at'] = 'cloud'
+        self.assertTrue(obj.should_run())
