@@ -91,8 +91,9 @@ class TestZipFolder(BZTestCase):
         self.assertEqual(result_tree, original_tree)
 
     def test_no_work_prov(self):
-        obj = Unpacker()
+        obj = Service()
         obj.engine = EngineEmul()
         obj.engine.config[Provisioning.PROV] = 'cloud'
-        obj.parameters.merge({Unpacker.FILES: ['notexists.zip']})
-        obj.prepare()
+        self.assertFalse(obj.should_run())
+        obj.parameters['run-at'] = 'cloud'
+        self.assertTrue(obj.should_run())
