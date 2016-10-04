@@ -144,9 +144,9 @@ class TestGrinderExecutor(BZTestCase):
 
         headers = re.findall(r"NVPair\('(.+)', '(.+)'\)", script)
         self.assertEquals(3, len(headers))
-        self.assertEquals(headers[0], ("My-Header", "Its-Value"))
-        self.assertEquals(headers[1], ("Another-Header", "Another-Value"))
-        self.assertEquals(headers[2], ("Custom", "Header"))
+        self.assertIn(("My-Header", "Its-Value"), headers)
+        self.assertIn(("Another-Header", "Another-Value"), headers)
+        self.assertIn(("Custom", "Header"), headers)
 
         timeout = re.findall(r"defaults.setTimeout\((\d+)\)", script)
         self.assertEquals(1, len(timeout))
