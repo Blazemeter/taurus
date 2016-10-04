@@ -642,12 +642,12 @@ class BaseCloudTest(object):
 
     @abstractmethod
     def launch_test(self):
-        "launch cloud test"
+        """launch cloud test"""
         pass
 
     @abstractmethod
     def start_if_ready(self):
-        "start cloud test if all engines are ready"
+        """start cloud test if all engines are ready"""
         pass
 
     @abstractmethod
