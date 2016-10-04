@@ -201,8 +201,8 @@ class LocalMonitor(object):
         now = datetime.datetime.now()
         interval = (now - self.__counters_ts).total_seconds()
 
-        # don't recalculate stats more frequently that 0.2s
-        if interval >= 0.2 or self.__cached_stats is None:
+        # don't recalculate stats too frequently
+        if interval >= self.engine.check_interval or self.__cached_stats is None:
             self.__cached_stats = self.calc_resource_stats(interval)
             self.__counters_ts = now
 
