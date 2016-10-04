@@ -862,6 +862,8 @@ class TestJMeterExecutor(BZTestCase):
     def test_fail_on_zero_results(self):
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/dummy.jmx"}})
         self.obj.prepare()
+        self.obj.startup()
+        self.obj.shutdown()
         self.obj.engine.prepared = [self.obj]
         self.obj.engine.started = [self.obj]
         prov = Local()

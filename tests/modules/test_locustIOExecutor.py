@@ -8,6 +8,7 @@ from bzt.modules.locustio import LocustIOExecutor, SlavesReader
 from bzt.modules.provisioning import Local
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul
+from bzt.modules.provisioning import Local
 
 
 class TestLocustIOExecutor(BZTestCase):
@@ -37,6 +38,7 @@ class TestLocustIOExecutor(BZTestCase):
             pass
         self.obj.shutdown()
         self.obj.post_process()
+        self.assertFalse(self.obj.has_results())
 
     def test_locust_widget(self):
         if six.PY3:
@@ -87,6 +89,7 @@ class TestLocustIOExecutor(BZTestCase):
             logging.warning("Do you use patched locust for non-GUI master?")
         self.obj.shutdown()
         self.obj.post_process()
+        self.assertFalse(self.obj.has_results())
 
     def test_locust_slave_results(self):
         if six.PY3:

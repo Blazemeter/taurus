@@ -124,8 +124,8 @@ class Local(Provisioning):
                 self.log.debug("Post-process %s", executor)
                 try:
                     executor.post_process()
-                    if executor in self.engine.started and executor.no_results:
-                        raise RuntimeWarning("Empty results, most likely %s failed" % executor.name)
+                    if executor in self.engine.started and not executor.has_results():
+                        raise RuntimeWarning("Empty results, most likely %s failed" % executor.__class__.__name__)
                 except BaseException as exc:
                     self.engine.log_exception(exc)
-                    # TODO: send first exception with appropriate traceback to engine
+                    # TODO: send first exception with appropriate traceback to engine?

@@ -34,12 +34,6 @@ class Unpacker(Service):
         self.files = []
 
     def prepare(self):
-        prov = self.engine.config.get(Provisioning.PROV)
-        runat = self.parameters.get("run-at", "local")
-        if prov != runat:
-            self.log.debug("Not running unpacker because of non-matching prov: %s != %s", prov, runat)
-            return
-
         packed_list = copy.deepcopy(self.parameters.get(Unpacker.FILES, self.files))
         unpacked_list = []
         for archive in packed_list:

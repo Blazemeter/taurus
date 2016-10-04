@@ -16,20 +16,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import copy
-import datetime
 import hashlib
 import json
 import logging
 import os
 import shutil
 import time
+import yaml
 from abc import abstractmethod
 from collections import namedtuple, defaultdict
 from distutils.version import LooseVersion
 from json import encoder
-
-import yaml
 from yaml.representer import SafeRepresenter
+
+import datetime
 
 import bzt
 from logging import DEBUG, ERROR, INFO, WARNING
@@ -479,7 +479,8 @@ class Engine(object):
             instance = self.instantiate_module(cls)
             assert isinstance(instance, Service)
             instance.parameters = config
-            self.services.append(instance)
+            if instance.should_run():
+                self.services.append(instance)
 
         for module in self.services:
             self.prepared.append(module)
@@ -800,9 +801,13 @@ class ScenarioExecutor(EngineModule):
         self.__scenario = None
         self.label = None
         self.widget = None
-        self.no_results = True
         self.reader = None
-        self.name = "ScenarioExecutor"
+
+    def has_results(self):
+        if self.reader and self.reader.buffer:
+            return True
+        else:
+            return False
 
     def get_script_path(self, scenario=None):
         """
@@ -963,6 +968,14 @@ class Service(EngineModule):
 
     SERV = "services"
 
+    def should_run(self):
+        prov = self.engine.config.get(Provisioning.PROV)
+        runat = self.parameters.get("run-at", "local")
+        if prov != runat:
+            self.log.debug("Should not run because of non-matching prov: %s != %s", prov, runat)
+            return False
+        return True
+
 
 class Aggregator(EngineModule):
     def __init__(self, is_functional):
@@ -1023,6 +1036,8 @@ class Scenario(UserDict, object):
     def get_requests(self):
         """
         Generator object to read requests
+
+        :rtype: list[HTTPRequest]
         """
         requests = self.get("requests", [])
         for key in range(len(requests)):

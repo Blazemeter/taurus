@@ -75,7 +75,6 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.self_generated_script = False
         self.generated_methods = BetterDict()
         self.runner_working_dir = None
-        self.name = 'Selenium'
 
     def set_virtual_display(self):
         display_conf = self.settings.get("virtual-display")
@@ -252,8 +251,12 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def post_process(self):
         self.free_virtual_display()
+
+    def has_results(self):
         if self.reader and self.reader.read_records:
-            self.no_results = False
+            return True
+        else:
+            return False
 
     def get_widget(self):
         if not self.widget:
@@ -943,7 +946,6 @@ class TaurusMochaPlugin(RequiredTool):
 
     def install(self):
         raise NotImplementedError()
-
 
 
 class SeleniumScriptBuilder(PythonGenerator):

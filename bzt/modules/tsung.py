@@ -44,7 +44,6 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.tool_path = None
         self.tsung_controller_id = None
         self.tsung_artifacts_basedir = None
-        self.name = 'Tsung'
 
     def prepare(self):
         scenario = self.get_scenario()
@@ -111,7 +110,6 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     def check(self):
         ret_code = self.process.poll()
         if ret_code is None:
-
             return False
         self.log.info("tsung exit code: %s", ret_code)
         if ret_code != 0:

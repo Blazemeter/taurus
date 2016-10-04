@@ -42,7 +42,6 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.expected_slaves = 0
         self.scenario = None
         self.script = None
-        self.name = 'LocustIO'
 
     def prepare(self):
         self.__check_installed()
@@ -162,11 +161,13 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             if self.__out:
                 self.__out.close()
 
-    def post_process(self):
-        master_results = (self.is_master and self.reader.cumulative)
-        local_results = (not self.is_master and self.reader and self.reader.buffer)
+    def has_results(self):
+        master_results = self.is_master and self.reader.cumulative
+        local_results = not self.is_master and self.reader and self.reader.buffer
         if master_results or local_results:
-            self.no_results = False
+            return True
+        else:
+            return False
 
 
 class LocustIO(RequiredTool):

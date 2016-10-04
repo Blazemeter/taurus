@@ -15,6 +15,7 @@ from bzt.six import StringIO
 from bzt.utils import is_windows
 from tests import BZTestCase, local_paths_config, __dir__
 from tests.mocks import EngineEmul
+from bzt.modules.provisioning import Local
 
 
 class SeleniumTestCase(BZTestCase):

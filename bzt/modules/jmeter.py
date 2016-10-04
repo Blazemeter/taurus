@@ -35,8 +35,8 @@ from cssselect import GenericTranslator
 from bzt.engine import ScenarioExecutor, Scenario, FileLister, Request, HTTPRequest
 from bzt.jmx import JMX
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
-from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader, FunctionalSample
 from bzt.modules.console import WidgetProvider, ExecutorWidget
+from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader, FunctionalSample
 from bzt.modules.provisioning import Local
 from bzt.six import iteritems, string_types, StringIO, etree, binary_type
 from bzt.six import parse, request as http_request
@@ -240,8 +240,12 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def post_process(self):
         self.engine.existing_artifact(self.modified_jmx, True)
+
+    def has_results(self):
         if self.reader and self.reader.read_records:
-            self.no_results = False
+            return True
+        else:
+            return False
 
     def _process_stopped(self, cycles):
         while cycles > 0:
@@ -910,6 +914,7 @@ class FuncJTLReader(FunctionalResultsReader):
     :type filename: str
     :type parent_logger: logging.Logger
     """
+
     def __init__(self, filename, parent_logger):
         super(FuncJTLReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
