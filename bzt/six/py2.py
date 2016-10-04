@@ -18,6 +18,7 @@ limitations under the License.
 # pylint: skip-file
 
 import types
+import traceback
 import urllib
 import urllib2
 import urlparse
@@ -73,3 +74,7 @@ def u(string):
         return unicode(string.replace('\\', '\\\\'), "unicode_escape")
     else:
         return string
+
+
+def get_stacktrace(exc):
+    return traceback.format_exc(exc)
