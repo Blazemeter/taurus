@@ -137,6 +137,20 @@ class TestLocustIOExecutor(BZTestCase):
         self.obj.engine.provisioning = prov
         self.assertRaises(RuntimeWarning, self.obj.engine.provisioning.post_process)
 
+    def test_requests_minimal(self):
+        self.obj.engine.config.merge({
+            "execution": [{
+                "executor": "locust",
+                "scenario":{
+                    "requests": ["http://blazedemo.com/"]}}]})
+
+        self.obj.execution = self.obj.engine.config.get('execution')[0]
+        self.obj.prepare()
+        self.obj.startup()
+        self.obj.check()
+        self.obj.shutdown()
+        self.obj.post_process()
+
     def test_build_script(self):
         self.obj.engine.config.merge({
             "execution": [{
@@ -148,6 +162,9 @@ class TestLocustIOExecutor(BZTestCase):
                 "loc_sc": {
                     "think-time": "5s",
                     "default-address": "http://blazedemo.com",
+                    "headers": {
+                        "Keep-Alive": "timeout=15, max=100",
+                    },
                     "requests": [{
                         "url": "/",
                         "method": "GET",
@@ -165,7 +182,7 @@ class TestLocustIOExecutor(BZTestCase):
                                 'not': True}]
                     }, {
                         "url": "/page",
-                        "timeout": 5,
+                        "timeout": "1s500ms",
                         "think-time": '1s',
                         "method": "POST",
                         "body": {'var1': 'val1'},
