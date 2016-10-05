@@ -76,10 +76,11 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     def startup(self):
         self.start_time = time.time()
         load = self.get_load()
+        concurrency = load.concurrency or 1
         if load.ramp_up:
-            hatch = math.ceil(load.concurrency / load.ramp_up)
+            hatch = math.ceil(concurrency / load.ramp_up)
         else:
-            hatch = load.concurrency
+            hatch = concurrency
 
         wrapper = os.path.join(os.path.abspath(os.path.dirname(__file__)),
                                os.pardir,
@@ -94,7 +95,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         args = [sys.executable, os.path.realpath(wrapper), '-f', os.path.realpath(self.script)]
         args += ['--logfile=%s' % self.engine.create_artifact("locust", ".log")]
         args += ["--no-web", "--only-summary", ]
-        args += ["--clients=%d" % load.concurrency, "--hatch-rate=%d" % hatch]
+        args += ["--clients=%d" % concurrency, "--hatch-rate=%d" % hatch]
         if load.iterations:
             args.append("--num-request=%d" % load.iterations)
 
