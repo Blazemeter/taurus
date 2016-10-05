@@ -165,7 +165,7 @@ class TestLocustIOExecutor(BZTestCase):
                                 'not': True}]
                     }, {
                         "url": "/page",
-                        "timeout": 5,
+                        "timeout": "1s500ms",
                         "think-time": '1s',
                         "method": "POST",
                         "body": {'var1': 'val1'},

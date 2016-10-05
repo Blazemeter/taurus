@@ -323,7 +323,7 @@ from locust import HttpLocust, TaskSet, task
         task = self.gen_method_definition("generated_task", ['self'])
 
         think_time = dehumanize_time(self.scenario.get('think-time', None))
-        timeout = self.scenario.get("timeout", 30)
+        timeout = dehumanize_time(self.scenario.get("timeout", 30))
 
         for req in self.scenario.get_requests():
             method = req.method.lower()
@@ -331,9 +331,10 @@ from locust import HttpLocust, TaskSet, task
                 raise RuntimeError("Wrong Locust request type: %s" % method)
 
             if req.timeout:
-                self.__gen_check(method, req, task, req.timeout)
+                local_timeout = dehumanize_time(req.timeout)
             else:
-                self.__gen_check(method, req, task, timeout)
+                local_timeout = timeout
+            self.__gen_check(method, req, task, local_timeout)
 
             if req.think_time:
                 task.append(self.gen_statement("sleep(%s)" % dehumanize_time(req.think_time)))
