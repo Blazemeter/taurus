@@ -20,6 +20,7 @@ import math
 import os
 import sys
 import time
+from collections import OrderedDict
 from imp import find_module
 from subprocess import STDOUT
 
@@ -368,7 +369,7 @@ from locust import HttpLocust, TaskSet, task
             statement = 'with self.client.%s(%s, catch_response=True) as response:'
         else:
             statement = "self.client.%s(%s)"
-        headers = {}
+        headers = OrderedDict()
         if global_headers:
             headers.update(global_headers)
         if req.headers:
