@@ -78,3 +78,7 @@ def u(string):
 
 def get_stacktrace(exc):
     return traceback.format_exc(exc)
+
+
+def reraise(exc_info):
+    raise exc_info[0], exc_info[1], exc_info[2]

@@ -16,11 +16,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import sys
 import datetime
 import time
 
 from bzt.engine import Provisioning
 from bzt.utils import dehumanize_time
+from bzt.six import reraise
 
 
 class Local(Provisioning):
@@ -106,7 +108,7 @@ class Local(Provisioning):
         """
         Call shutdown on executors
         """
-        exception = None
+        exc_info = None
         for executor in self.executors:
             if executor in self.engine.started:
                 self.log.debug("Shutdown %s", executor)
@@ -114,16 +116,16 @@ class Local(Provisioning):
                     executor.shutdown()
                 except BaseException as exc:
                     self.log.error("Exception in shutdown of %s: %s" % (executor.__class__.__name__, exc))
-                    if not exception:
-                        exception = exc
-        if exception:
-            raise exception
+                    if not exc_info:
+                        exc_info = sys.exc_info()
+        if exc_info:
+            reraise(exc_info)
 
     def post_process(self):
         """
         Post-process executors
         """
-        exception = None
+        exc_info = None
         for executor in self.executors:
             if executor in self.engine.prepared:
                 self.log.debug("Post-process %s", executor)
@@ -133,8 +135,7 @@ class Local(Provisioning):
                         raise RuntimeWarning("Empty results, most likely %s failed" % executor.__class__.__name__)
                 except BaseException as exc:
                     self.log.error("Exception in post_process of %s: %s" % (executor.__class__.__name__, exc))
-                    if not exception:
-                        exception = exc
-
-        if exception:
-            raise exception
+                    if not exc_info:
+                        exc_info = sys.exc_info()
+        if exc_info:
+            reraise(exc_info)
