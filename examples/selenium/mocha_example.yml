@@ -1,0 +1,6 @@
+---
+execution:
+- executor: selenium
+  iterations: 10
+  scenario:
+    script: mocha_example.js

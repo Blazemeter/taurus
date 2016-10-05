@@ -39,6 +39,18 @@ execution:
   scenario:
     script: BOOTH1/Blazedemo.java
 
+- executor: selenium
+  concurrency: 1
+  hold-for: 1m
+  scenario:
+    script: selenium/rspec_example.rb
+
+- executor: selenium
+  concurrency: 1
+  hold-for: 1m
+  scenario:
+    script: selenium/mocha_example.js
+
 - executor: gatling
   concurrency: 1
   hold-for: 1m
