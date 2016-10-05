@@ -162,6 +162,9 @@ class TestLocustIOExecutor(BZTestCase):
                 "loc_sc": {
                     "think-time": "5s",
                     "default-address": "http://blazedemo.com",
+                    "headers": {
+                        "Keep-Alive": "timeout=15, max=100",
+                    },
                     "requests": [{
                         "url": "/",
                         "method": "GET",

@@ -325,6 +325,7 @@ from locust import HttpLocust, TaskSet, task
 
         think_time = dehumanize_time(self.scenario.get('think-time', None))
         timeout = dehumanize_time(self.scenario.get("timeout", 30))
+        global_headers = self.scenario.get("headers", None)
 
         for req in self.scenario.get_requests():
             method = req.method.lower()
@@ -335,7 +336,7 @@ from locust import HttpLocust, TaskSet, task
                 local_timeout = dehumanize_time(req.timeout)
             else:
                 local_timeout = timeout
-            self.__gen_check(method, req, task, local_timeout)
+            self.__gen_check(method, req, task, local_timeout, global_headers)
 
             if req.think_time:
                 task.append(self.gen_statement("sleep(%s)" % dehumanize_time(req.think_time)))
@@ -346,7 +347,7 @@ from locust import HttpLocust, TaskSet, task
         return task
 
     @staticmethod
-    def __get_params_line(req, timeout):
+    def __get_params_line(req, timeout, headers):
         param_dict = {'url': '"%s"' % req.url, 'timeout': timeout}
         if req.body:
             if isinstance(req.body, dict):
@@ -355,19 +356,24 @@ from locust import HttpLocust, TaskSet, task
                 param_dict['data'] = '"%s"' % req.body
 
         if req.headers:
-            param_dict['headers'] = json.dumps(req.headers)
+            param_dict['headers'] = json.dumps(headers)
         keys = (list(param_dict.keys()))
         keys.sort()
         return ', '.join(['%s=%s' % (key, param_dict[key]) for key in keys])
 
-    def __gen_check(self, method, req, task, timeout):
+    def __gen_check(self, method, req, task, timeout, global_headers):
         assertions = req.config.get("assert", [])
         first_assert = True
         if assertions:
             statement = 'with self.client.%s(%s, catch_response=True) as response:'
         else:
             statement = "self.client.%s(%s)"
-        task.append(self.gen_statement(statement % (method, self.__get_params_line(req, timeout))))
+        headers = {}
+        if global_headers:
+            headers.update(global_headers)
+        if req.headers:
+            headers.update(req.headers)
+        task.append(self.gen_statement(statement % (method, self.__get_params_line(req, timeout, headers))))
 
         for idx, assertion in enumerate(assertions):
             assertion = ensure_is_dict(assertions, idx, "contains")
