@@ -11,7 +11,7 @@ from bzt.engine import ScenarioExecutor
 from bzt.modules.selenium import SeleniumExecutor, JUnitJar, LoadSamplesReader, LDJSONReader, FuncSamplesReader
 from bzt.modules.selenium import NoseTester
 from bzt.six import StringIO
-from bzt.utils import is_windows
+from bzt.utils import is_windows, get_full_path
 from tests import BZTestCase, local_paths_config, __dir__
 from tests.mocks import EngineEmul
 from bzt.modules.provisioning import Local
@@ -569,8 +569,8 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         self.assertEqual(len(lines), 9)
 
     def test_install_mocha(self):
-        dummy_installation_path = __dir__() + "/../../build/tmp/selenium-taurus/mocha"
-        mocha_link = "file:///" + __dir__() + "/../data/mocha-3.1.0.tgz"
+        dummy_installation_path = get_full_path(__dir__() + "/../../build/tmp/selenium-taurus/mocha")
+        mocha_link = get_full_path(__dir__() + "/../data/mocha-3.1.0.tgz")
 
         shutil.rmtree(os.path.dirname(dummy_installation_path), ignore_errors=True)
         self.assertFalse(os.path.exists(dummy_installation_path))
