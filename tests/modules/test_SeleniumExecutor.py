@@ -569,6 +569,28 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         lines = open(self.obj.runner.settings.get("report-file")).readlines()
         self.assertEqual(len(lines), 9)
 
+    def test_install_mocha(self):
+        dummy_installation_path = __dir__() + "/../../build/tmp/selenium-taurus/mocha"
+        mocha_link = "file:///" + __dir__() + "/../data/mocha-3.1.0.tgz"
+
+        shutil.rmtree(os.path.dirname(dummy_installation_path), ignore_errors=True)
+        self.assertFalse(os.path.exists(dummy_installation_path))
+
+        orig_package_name = SeleniumExecutor.MOCHA_NPM_PACKAGE_NAME
+        SeleniumExecutor.MOCHA_NPM_PACKAGE_NAME = mocha_link
+
+        self.obj.settings.merge({"selenium-tools": {
+            "mocha": {"tools-dir": dummy_installation_path}
+        }})
+
+        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/js-mocha/bd_scenarios.js"}})
+        self.obj.prepare()
+        self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "node_modules")))
+        self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "node_modules", "mocha")))
+        self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "node_modules", "mocha", "index.js")))
+
+        SeleniumExecutor.MOCHA_NPM_PACKAGE_NAME = orig_package_name
+
 
 class LDJSONReaderEmul(object):
     def __init__(self):

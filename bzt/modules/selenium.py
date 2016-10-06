@@ -59,7 +59,9 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     JSON_JAR_DOWNLOAD_LINK = "http://search.maven.org/remotecontent?filepath=org/json/json/20160810/json-20160810.jar"
 
-    SUPPORTED_TYPES = ["python-nose", "java-junit", "ruby-rspec"]
+    MOCHA_NPM_PACKAGE_NAME = "mocha"
+
+    SUPPORTED_TYPES = ["python-nose", "java-junit", "ruby-rspec", "js-mocha"]
 
     SHARED_VIRTUAL_DISPLAY = {}
 
@@ -126,8 +128,10 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             runner_config['props-file'] = self.engine.create_artifact("customrunner", ".properties")
         elif script_type == "ruby-rspec":
             runner_class = RSpecTester
+            runner_config.merge(self.settings.get("selenium-tools").get("rspec"))
         elif script_type == "js-mocha":
             runner_class = MochaTester
+            runner_config.merge(self.settings.get("selenium-tools").get("mocha"))
         else:
             raise ValueError("Unsupported script type: %s" % script_type)
 
@@ -609,10 +613,6 @@ class RSpecTester(AbstractTestRunner):
         self.run_checklist()
 
     def run_checklist(self):
-        """
-        we need installed nose plugin
-        """
-
         self.required_tools.append(TclLibrary(self.log))
         self.required_tools.append(Ruby("", "", self.log))
         self.required_tools.append(RSpec("", "", self.log))
@@ -668,6 +668,9 @@ class RSpecTester(AbstractTestRunner):
 class MochaTester(AbstractTestRunner):
     """
     Mocha tests runner
+
+    :type node_tool: Node
+    :type mocha_tool: Mocha
     """
 
     def __init__(self, rspec_config, executor):
@@ -676,28 +679,25 @@ class MochaTester(AbstractTestRunner):
                                         os.pardir,
                                         "resources",
                                         "mocha-taurus-plugin.js")
+        self.tools_dir = get_full_path(self.settings.get("tools-dir", "~/.bzt/selenium-taurus/mocha"))
         self.node_tool = None
+        self.mocha_tool = None
 
     def prepare(self):
         self.run_checklist()
 
     def run_checklist(self):
-        """
-        we need installed nose plugin
-        """
-
         self.required_tools.append(TclLibrary(self.log))
         self.node_tool = Node(self.log)
+        self.mocha_tool = Mocha(self.tools_dir, self.node_tool, self.log)
         self.required_tools.append(self.node_tool)
-        self.required_tools.append(Mocha(self.node_tool, self.log))
+        self.required_tools.append(NPM(self.log))
+        self.required_tools.append(self.mocha_tool)
         self.required_tools.append(TaurusMochaPlugin(self.plugin_path, ""))
 
         self.check_tools()
 
     def run_tests(self):
-        """
-        run rspec plugin
-        """
         mocha_cmdline = [
             self.node_tool.executable,
             self.plugin_path,
@@ -721,6 +721,7 @@ class MochaTester(AbstractTestRunner):
         env = BetterDict()
         env.merge(dict(os.environ))
         env.merge(self.env)
+        env.merge({"NODE_PATH": self.mocha_tool.get_node_path_envvar()})
 
         self.process = self.executor.execute(mocha_cmdline,
                                              stdout=std_out,
@@ -895,18 +896,15 @@ class Node(RequiredTool):
         raise NotImplementedError()
 
 
-class Mocha(RequiredTool):
-    def __init__(self, node_tool, parent_logger):
-        super(Mocha, self).__init__("Mocha", "", "")
-        self.node_tool = node_tool
+class NPM(RequiredTool):
+    def __init__(self, parent_logger):
+        super(NPM, self).__init__("NPM", "", "")
         self.log = parent_logger.getChild(self.__class__.__name__)
+        self.executable = None
 
     def check_if_installed(self):
         try:
-            node_binary = self.node_tool.executable
-            cmdline = [node_binary, '-e', "require('mocha'); console.log('mocha is installed');"]
-            self.log.debug("mocha test cmdline: %s", cmdline)
-            output = subprocess.check_output(cmdline, stderr=subprocess.STDOUT)
+            output = subprocess.check_output(["npm", "--version"], stderr=subprocess.STDOUT)
             self.log.debug("%s output: %s", self.tool_name, output)
             return True
         except BaseException:
@@ -914,6 +912,49 @@ class Mocha(RequiredTool):
 
     def install(self):
         raise NotImplementedError()
+
+
+class Mocha(RequiredTool):
+    def __init__(self, tools_dir, node_tool, parent_logger):
+        super(Mocha, self).__init__("Mocha", "", "")
+        self.node_tool = node_tool
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.tools_dir = tools_dir
+        self.node_modules_dir = os.path.join(tools_dir, "node_modules")
+
+    def get_node_path_envvar(self):
+        node_path = os.environ.get("NODE_PATH")
+        if node_path:
+            new_path = node_path + os.pathsep + self.node_modules_dir
+        else:
+            new_path = self.node_modules_dir
+        return new_path
+
+    def check_if_installed(self):
+        node_binary = self.node_tool.executable
+        cmdline = [node_binary, '-e', "require('mocha'); console.log('mocha is installed');"]
+        self.log.debug("mocha test cmdline: %s", cmdline)
+        env = os.environ.copy()
+        node_path = self.get_node_path_envvar()
+        self.log.debug("NODE_PATH for check: %s", node_path)
+        env["NODE_PATH"] = node_path
+        try:
+            output = subprocess.check_output(cmdline, stderr=subprocess.STDOUT, env=env)
+            self.log.debug("Mocha check output: %s", output)
+            return True
+        except BaseException:
+            self.log.debug("Mocha wasn't found")
+            return False
+
+    def install(self):
+        cmdline = ["npm", "install", SeleniumExecutor.MOCHA_NPM_PACKAGE_NAME, "--prefix", self.tools_dir]
+        self.log.debug("mocha install cmdline: %s", cmdline)
+        try:
+            output = subprocess.check_output(cmdline, stderr=subprocess.STDOUT)
+            self.log.debug("npm output: %s", output)
+        except BaseException:
+            self.log.error("Cannot install mocha")
+            raise
 
 
 class JUnitListenerJar(RequiredTool):
