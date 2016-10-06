@@ -488,7 +488,6 @@ class TestSeleniumRSpecRunner(SeleniumTestCase):
         self.assertEqual(len(lines), 48)
 
 
-@unittest.skipIf(is_windows(), "Don't test Mocha on Windows")
 class TestSeleniumMochaRunner(SeleniumTestCase):
     def test_selenium_prepare_mocha(self):
         self.obj.execution.merge({"scenario": {
