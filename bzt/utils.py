@@ -631,6 +631,7 @@ def shutdown_process(process_obj, log_obj):
 
 class ExceptionalDownloader(request.FancyURLopener):
     def http_error_default(self, url, fp, errcode, errmsg, headers):
+        fp.close()
         raise ValueError("Unsuccessful download from %s: %s - %s" % (url, errcode, errmsg))
 
 
@@ -686,6 +687,7 @@ class RequiredTool(object):
                     continue
                 finally:
                     socket.setdefaulttimeout(sock_timeout)
+        os.remove(tool_dist.name)
         raise RuntimeError("%s download failed: No more links to try" % self.tool_name)
 
     def install_with_link(self, dest, suffix):
