@@ -514,7 +514,14 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         while not self.obj.check():
             time.sleep(1)
         self.obj.shutdown()
-        self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
+
+        if not os.path.exists(self.obj.runner.settings.get("report-file")):
+            out = os.path.join(self.obj.engine.artifacts_dir, "selenium.out")
+            err = os.path.join(self.obj.engine.artifacts_dir, "selenium.err")
+            stdout = open(out).read() if os.path.exists(out) else ""
+            stderr = open(err).read() if os.path.exists(err) else ""
+            self.fail("Report file not exists.\nStdout: %s.\nStderr: %s" % (stdout, stderr))
+
         lines = open(self.obj.runner.settings.get("report-file")).readlines()
         self.assertEqual(len(lines), 3)
 
@@ -539,7 +546,12 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         while not self.obj.check():
             time.sleep(1)
         self.obj.shutdown()
-        self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
+        if not os.path.exists(self.obj.runner.settings.get("report-file")):
+            out = os.path.join(self.obj.engine.artifacts_dir, "selenium.out")
+            err = os.path.join(self.obj.engine.artifacts_dir, "selenium.err")
+            stdout = open(out).read() if os.path.exists(out) else ""
+            stderr = open(err).read() if os.path.exists(err) else ""
+            self.fail("Report file not exists.\nStdout: %s.\nStderr: %s" % (stdout, stderr))
         duration = time.time() - self.obj.start_time
         self.assertGreater(duration, 5)
 
@@ -564,7 +576,12 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         while not self.obj.check():
             time.sleep(1)
         self.obj.shutdown()
-        self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
+        if not os.path.exists(self.obj.runner.settings.get("report-file")):
+            out = os.path.join(self.obj.engine.artifacts_dir, "selenium.out")
+            err = os.path.join(self.obj.engine.artifacts_dir, "selenium.err")
+            stdout = open(out).read() if os.path.exists(out) else ""
+            stderr = open(err).read() if os.path.exists(err) else ""
+            self.fail("Report file not exists.\nStdout: %s.\nStderr: %s" % (stdout, stderr))
         lines = open(self.obj.runner.settings.get("report-file")).readlines()
         self.assertEqual(len(lines), 9)
 
