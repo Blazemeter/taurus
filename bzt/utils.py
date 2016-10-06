@@ -663,6 +663,17 @@ class RequiredTool(object):
             except BaseException as exc:
                 raise exc
 
+    def validate_archive(self, response):
+        file_name, message = response
+        stats = os.stat(file_name)
+        if not stats.st_size:
+            raise ValueError('Empty file: %s' % file_name)
+        if not message:
+            return
+        headers = message.headers
+        # TODO: add check
+        pass
+
     def download_archive(self, links, suffix):
         downloader = request.FancyURLopener()
         tool_dist = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)  # delete=False because of Windows
@@ -672,7 +683,8 @@ class RequiredTool(object):
             with ProgressBarContext() as pbar:
                 try:
                     socket.setdefaulttimeout(5)
-                    downloader.retrieve(link, tool_dist.name, pbar.download_callback)
+                    response = downloader.retrieve(link, tool_dist.name, pbar.download_callback)
+                    self.validate_archive(response)
                     return tool_dist
                 except KeyboardInterrupt:
                     raise
