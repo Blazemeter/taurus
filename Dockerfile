@@ -32,8 +32,8 @@ RUN apt-get -y update \
     nodejs \
     npm \
   && pip install --upgrade setuptools pip \
-  && pip install locustio \
-  && npm install mocha \
+  && pip install locustio bzt \
+  && npm install -g mocha \
   && gem install rspec \
   && firefox --version \
   && chromium-browser --version \
@@ -45,15 +45,18 @@ RUN dpkg -i /tmp/blazemeter-pbench-extras_0.1.10.1_amd64.deb \
   && unzip -d /usr/bin /tmp/chromedriver_linux64.zip && /usr/bin/chromedriver --version
 
 COPY . /tmp/bzt-src
-RUN pip install /tmp/bzt-src \
+RUN pip install --upgrade /tmp/bzt-src \
   && echo '{"install-id": "Docker"}' > /etc/bzt.d/99-zinstallID.json \
   && echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json \
-  && echo '{"modules": {"console": {"disable": true}}}' > /etc/bzt.d/90-no-console.json \
+  && echo '{"modules": {"console": {"disable": true}}}' > /etc/bzt.d/90-no-console.json
 
-  && cd /tmp/bzt-src/examples \
-  && bzt /tmp/bzt-src/examples/all-executors.yml -o settings.artifacts-dir=/tmp/all-executors-artifacts \
+RUN cd /tmp/bzt-src/examples \
+  && bzt /tmp/bzt-src/examples/all-executors.yml -o settings.artifacts-dir=/tmp/all-executors-artifacts || echo error
 
-  && mkdir /bzt-configs \
+RUN ls -la /tmp/all-executors-artifacts \
+  && exit 1
+
+RUN mkdir /bzt-configs \
   && rm -rf /var/lib/apt/lists/* \
   && rm -rf /tmp/*
 
