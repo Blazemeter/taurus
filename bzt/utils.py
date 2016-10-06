@@ -677,7 +677,6 @@ class RequiredTool(object):
             with ProgressBarContext() as pbar:
                 try:
                     socket.setdefaulttimeout(5)
-                    link = 'https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-3.0.zzip'
                     downloader.retrieve(link, tool_dist.name, pbar.download_callback)
                     return tool_dist
                 except KeyboardInterrupt:
