@@ -576,6 +576,10 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         shutil.rmtree(os.path.dirname(dummy_installation_path), ignore_errors=True)
         self.assertFalse(os.path.exists(dummy_installation_path))
 
+        old_node_path = os.environ.get("NODE_PATH")
+        if old_node_path:
+            os.environ.pop("NODE_PATH")
+
         orig_package_name = SeleniumExecutor.MOCHA_NPM_PACKAGE_NAME
         SeleniumExecutor.MOCHA_NPM_PACKAGE_NAME = mocha_link
 
@@ -590,6 +594,8 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "node_modules", "mocha", "index.js")))
 
         SeleniumExecutor.MOCHA_NPM_PACKAGE_NAME = orig_package_name
+        if old_node_path:
+            os.environ["NODE_PATH"] = old_node_path
 
 
 class LDJSONReaderEmul(object):
