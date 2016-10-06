@@ -681,6 +681,7 @@ class MochaTester(AbstractTestRunner):
                                         "mocha-taurus-plugin.js")
         self.tools_dir = get_full_path(self.settings.get("tools-dir", "~/.bzt/selenium-taurus/mocha"))
         self.node_tool = None
+        self.npm_tool = None
         self.mocha_tool = None
 
     def prepare(self):
@@ -689,9 +690,10 @@ class MochaTester(AbstractTestRunner):
     def run_checklist(self):
         self.required_tools.append(TclLibrary(self.log))
         self.node_tool = Node(self.log)
-        self.mocha_tool = Mocha(self.tools_dir, self.node_tool, self.log)
+        self.npm_tool = NPM(self.log)
+        self.mocha_tool = Mocha(self.tools_dir, self.node_tool, self.npm_tool, self.log)
         self.required_tools.append(self.node_tool)
-        self.required_tools.append(NPM(self.log))
+        self.required_tools.append(self.npm_tool)
         self.required_tools.append(self.mocha_tool)
         self.required_tools.append(TaurusMochaPlugin(self.plugin_path, ""))
 
@@ -893,7 +895,7 @@ class Node(RequiredTool):
         raise RuntimeError(tmpl % (self.tool_name, node_candidates))
 
     def install(self):
-        raise NotImplementedError()
+        raise NotImplementedError("Automatic installation of nodejs is not implemented. Install it manually")
 
 
 class NPM(RequiredTool):
@@ -903,23 +905,31 @@ class NPM(RequiredTool):
         self.executable = None
 
     def check_if_installed(self):
-        try:
-            output = subprocess.check_output(["npm", "--version"], stderr=subprocess.STDOUT)
-            self.log.debug("%s output: %s", self.tool_name, output)
-            return True
-        except BaseException:
-            raise RuntimeError("The %s is not operable or not available. Consider installing it" % self.tool_name)
+        node_candidates = ["npm", "npm.cmd"]  # npm.cmd is for Windows
+        for candidate in node_candidates:
+            try:
+                self.log.debug("Trying %r", candidate)
+                output = subprocess.check_output([candidate, '--version'], stderr=subprocess.STDOUT)
+                self.log.debug("%s output: %s", candidate, output)
+                self.executable = candidate
+                return True
+            except BaseException:
+                self.log.debug("%r is not installed", candidate)
+                continue
+        tmpl = "%s is not operable or not available. The following executables were tried: %r. Consider installing it"
+        raise RuntimeError(tmpl % (self.tool_name, node_candidates))
 
     def install(self):
-        raise NotImplementedError()
+        raise NotImplementedError("Automatic installation of npm is not implemented. Install it manually")
 
 
 class Mocha(RequiredTool):
-    def __init__(self, tools_dir, node_tool, parent_logger):
+    def __init__(self, tools_dir, node_tool, npm_tool, parent_logger):
         super(Mocha, self).__init__("Mocha", "", "")
-        self.node_tool = node_tool
-        self.log = parent_logger.getChild(self.__class__.__name__)
         self.tools_dir = tools_dir
+        self.node_tool = node_tool
+        self.npm_tool = npm_tool
+        self.log = parent_logger.getChild(self.__class__.__name__)
         self.node_modules_dir = os.path.join(tools_dir, "node_modules")
 
     def get_node_path_envvar(self):
@@ -947,7 +957,8 @@ class Mocha(RequiredTool):
             return False
 
     def install(self):
-        cmdline = ["npm", "install", SeleniumExecutor.MOCHA_NPM_PACKAGE_NAME, "--prefix", self.tools_dir]
+        cmdline = [self.npm_tool.executable, "install", SeleniumExecutor.MOCHA_NPM_PACKAGE_NAME,
+                   "--prefix", self.tools_dir]
         self.log.debug("mocha install cmdline: %s", cmdline)
         try:
             output = subprocess.check_output(cmdline, stderr=subprocess.STDOUT)
