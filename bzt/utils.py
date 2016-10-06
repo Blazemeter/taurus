@@ -629,6 +629,11 @@ def shutdown_process(process_obj, log_obj):
             log_obj.debug("Failed to terminate process: %s", exc)
 
 
+class ExceptionalDownloader(request.FancyURLopener):
+    def http_error_default(self, url, fp, errcode, errmsg, headers):
+        raise ValueError("Unsuccessful download from %s: %s - %s" % (url, errcode, errmsg))
+
+
 class RequiredTool(object):
     """
     Abstract required tool
@@ -653,7 +658,7 @@ class RequiredTool(object):
             try:
                 if not os.path.exists(os.path.dirname(self.tool_path)):
                     os.makedirs(os.path.dirname(self.tool_path))
-                downloader = request.FancyURLopener()
+                downloader = ExceptionalDownloader()
                 downloader.retrieve(self.download_link, self.tool_path, pbar.download_callback)
 
                 if self.check_if_installed():
@@ -663,19 +668,8 @@ class RequiredTool(object):
             except BaseException as exc:
                 raise exc
 
-    def validate_archive(self, response):
-        file_name, message = response
-        stats = os.stat(file_name)
-        if not stats.st_size:
-            raise ValueError('Empty file: %s' % file_name)
-        if not message:
-            return
-        headers = message.headers
-        # TODO: add check
-        pass
-
     def download_archive(self, links, suffix):
-        downloader = request.FancyURLopener()
+        downloader = ExceptionalDownloader()
         tool_dist = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)  # delete=False because of Windows
         sock_timeout = socket.getdefaulttimeout()
         for link in links:
@@ -683,8 +677,8 @@ class RequiredTool(object):
             with ProgressBarContext() as pbar:
                 try:
                     socket.setdefaulttimeout(5)
-                    response = downloader.retrieve(link, tool_dist.name, pbar.download_callback)
-                    self.validate_archive(response)
+                    link = 'https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-3.0.zzip'
+                    downloader.retrieve(link, tool_dist.name, pbar.download_callback)
                     return tool_dist
                 except KeyboardInterrupt:
                     raise
@@ -834,7 +828,7 @@ class MirrorsManager(object):
 
     def mirrors(self):
         self.log.debug("Retrieving mirrors from page: %s", self.base_link)
-        downloader = request.FancyURLopener()
+        downloader = ExceptionalDownloader()
         try:
             tmp_file = downloader.retrieve(self.base_link)[0]
             with open(tmp_file) as fds:

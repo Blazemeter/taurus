@@ -38,9 +38,8 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataP
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader, FunctionalSample
 from bzt.modules.provisioning import Local
-from bzt.six import iteritems, string_types, StringIO, etree, binary_type
-from bzt.six import parse, request as http_request
-from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager
+from bzt.six import iteritems, string_types, StringIO, etree, binary_type, parse
+from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader
 from bzt.utils import shell_exec, ensure_is_dict, dehumanize_time, BetterDict, guess_csv_dialect
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
 
@@ -1749,7 +1748,7 @@ class JMeter(RequiredTool):
             raise RuntimeError("Unable to run %s after installation!" % self.tool_name)
 
     def __download_additions(self, tools):
-        downloader = http_request.FancyURLopener()
+        downloader = ExceptionalDownloader()
         with ProgressBarContext() as pbar:
             for tool in tools:
                 _file = os.path.basename(tool[0])
