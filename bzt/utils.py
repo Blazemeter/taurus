@@ -639,7 +639,7 @@ class ExceptionalDownloader(request.FancyURLopener, object):
         try:
             if not filename:
                 fd, filename = tempfile.mkstemp(suffix)
-            response = super(ExceptionalDownloader, self).retrieve(url, filename, reporthook, data)
+            response = self.retrieve(url, filename, reporthook, data)
         except:
             if fd:
                 os.close(fd)
