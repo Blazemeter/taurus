@@ -20,6 +20,7 @@ import shutil
 import subprocess
 import sys
 import time
+import traceback
 from abc import abstractmethod
 
 from urwid import Text, Pile
@@ -60,6 +61,7 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     JSON_JAR_DOWNLOAD_LINK = "http://search.maven.org/remotecontent?filepath=org/json/json/20160810/json-20160810.jar"
 
     MOCHA_NPM_PACKAGE_NAME = "mocha"
+    SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME = "selenium-webdriver"
 
     SUPPORTED_TYPES = ["python-nose", "java-junit", "ruby-rspec", "js-mocha"]
 
@@ -695,6 +697,7 @@ class MochaTester(AbstractTestRunner):
         self.required_tools.append(self.node_tool)
         self.required_tools.append(self.npm_tool)
         self.required_tools.append(self.mocha_tool)
+        self.required_tools.append(JSSeleniumWebdriverPackage(self.tools_dir, self.node_tool, self.npm_tool, self.log))
         self.required_tools.append(TaurusMochaPlugin(self.plugin_path, ""))
 
         self.check_tools()
@@ -923,9 +926,10 @@ class NPM(RequiredTool):
         raise NotImplementedError("Automatic installation of npm is not implemented. Install it manually")
 
 
-class Mocha(RequiredTool):
-    def __init__(self, tools_dir, node_tool, npm_tool, parent_logger):
-        super(Mocha, self).__init__("Mocha", "", "")
+class NPMPackage(RequiredTool):
+    def __init__(self, tool_name, package_name, tools_dir, node_tool, npm_tool, parent_logger):
+        super(NPMPackage, self).__init__(tool_name, "", "")
+        self.package_name = package_name
         self.tools_dir = tools_dir
         self.node_tool = node_tool
         self.npm_tool = npm_tool
@@ -941,32 +945,44 @@ class Mocha(RequiredTool):
         return new_path
 
     def check_if_installed(self):
-        node_binary = self.node_tool.executable
-        cmdline = [node_binary, '-e', "require('mocha'); console.log('mocha is installed');"]
-        self.log.debug("mocha test cmdline: %s", cmdline)
-        env = os.environ.copy()
-        node_path = self.get_node_path_envvar()
-        self.log.debug("NODE_PATH for check: %s", node_path)
-        env["NODE_PATH"] = node_path
         try:
-            env = {k: str(v) for k, v in iteritems(env)}
-            output = subprocess.check_output(cmdline, stderr=subprocess.STDOUT, env=env)
-            self.log.debug("Mocha check output: %s", output)
+            node_binary = self.node_tool.executable
+            package = self.package_name
+            cmdline = [node_binary, '-e', "require('%s'); console.log('%s is installed');" % (package, package)]
+            self.log.debug("%s check cmdline: %s", package, cmdline)
+            node_path = self.get_node_path_envvar()
+            self.log.debug("NODE_PATH for check: %s", node_path)
+            env = os.environ.copy()
+            env["NODE_PATH"] = str(node_path)
+            output = subprocess.check_output(cmdline, env=env, stderr=subprocess.STDOUT)
+            self.log.debug("%s check output: %s", self.package_name, output)
             return True
         except BaseException:
-            self.log.debug("Mocha wasn't found")
+            self.log.debug("%s check failed: %s", self.package_name, traceback.format_exc())
             return False
 
     def install(self):
-        cmdline = [self.npm_tool.executable, "install", SeleniumExecutor.MOCHA_NPM_PACKAGE_NAME,
-                   "--prefix", self.tools_dir]
-        self.log.debug("mocha install cmdline: %s", cmdline)
         try:
+            cmdline = [self.npm_tool.executable, 'install', self.package_name, '--prefix', self.tools_dir]
             output = subprocess.check_output(cmdline, stderr=subprocess.STDOUT)
-            self.log.debug("npm output: %s", output)
+            self.log.debug("%s install output: %s", self.tool_name, output)
+            return True
         except BaseException:
-            self.log.error("Cannot install mocha")
-            raise
+            self.log.debug("%s install failed: %s", self.package_name, traceback.format_exc())
+            return False
+
+
+class Mocha(NPMPackage):
+    def __init__(self, tools_dir, node_tool, npm_tool, parent_logger):
+        super(Mocha, self).__init__("Mocha", SeleniumExecutor.MOCHA_NPM_PACKAGE_NAME,
+                                    tools_dir, node_tool, npm_tool, parent_logger)
+
+
+class JSSeleniumWebdriverPackage(NPMPackage):
+    def __init__(self, tools_dir, node_tool, npm_tool, parent_logger):
+        super(JSSeleniumWebdriverPackage, self).__init__("selenium-webdriver npm package",
+                                                         SeleniumExecutor.SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME,
+                                                         tools_dir, node_tool, npm_tool, parent_logger)
 
 
 class JUnitListenerJar(RequiredTool):
