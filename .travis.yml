@@ -17,4 +17,5 @@ install:
 - pip install colorlog pyyaml psutil lxml cssselect urwid six selenium progressbar33 locustio pyvirtualdisplay
 script: coverage run `which nosetests`
 after_success:
+  - python -m bzt.cli bzt/10-base.json examples/selenium/mocha_example.yml
   - codecov
