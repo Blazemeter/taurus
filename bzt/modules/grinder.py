@@ -358,11 +358,10 @@ class Grinder(RequiredTool):
     def install(self):
         dest = os.path.dirname(os.path.dirname(os.path.expanduser(self.tool_path)))
         dest = os.path.abspath(dest)
-        grinder_dist = super(Grinder, self).install_with_mirrors(dest, ".zip")
-        self.log.info("Unzipping %s", grinder_dist.name)
-        unzip(grinder_dist.name, dest, 'grinder-' + self.version)
-        grinder_dist.close()
-        os.remove(grinder_dist.name)
+        grinder_dist = self.install_with_mirrors(dest, ".zip")
+        self.log.info("Unzipping %s", grinder_dist)
+        unzip(grinder_dist, dest, 'grinder-' + self.version)
+        os.remove(grinder_dist)
         self.log.info("Installed grinder successfully")
         if not self.check_if_installed():
             raise RuntimeError("Unable to run %s after installation!" % self.tool_name)

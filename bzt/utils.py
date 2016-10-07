@@ -656,48 +656,47 @@ class RequiredTool(object):
 
     def install(self):
         with ProgressBarContext() as pbar:
-            try:
-                if not os.path.exists(os.path.dirname(self.tool_path)):
-                    os.makedirs(os.path.dirname(self.tool_path))
-                downloader = ExceptionalDownloader()
-                downloader.retrieve(self.download_link, self.tool_path, pbar.download_callback)
+            if not os.path.exists(os.path.dirname(self.tool_path)):
+                os.makedirs(os.path.dirname(self.tool_path))
+            downloader = ExceptionalDownloader()
+            downloader.retrieve(self.download_link, self.tool_path, pbar.download_callback)
 
-                if self.check_if_installed():
-                    return self.tool_path
-                else:
-                    raise RuntimeError("Unable to run %s after installation!" % self.tool_name)
-            except BaseException as exc:
-                raise exc
+            if self.check_if_installed():
+                return self.tool_path
+            else:
+                raise RuntimeError("Unable to run %s after installation!" % self.tool_name)
 
-    def download_archive(self, links, suffix):
+    def download_archive(self, links):
         downloader = ExceptionalDownloader()
-        tool_dist = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)  # delete=False because of Windows
         sock_timeout = socket.getdefaulttimeout()
+        socket.setdefaulttimeout(5)
         for link in links:
             self.log.info("Downloading: %s", link)
             with ProgressBarContext() as pbar:
                 try:
-                    socket.setdefaulttimeout(5)
-                    downloader.retrieve(link, tool_dist.name, pbar.download_callback)
-                    return tool_dist
-                except KeyboardInterrupt:
-                    raise
-                except BaseException:
+                    return downloader.retrieve(link, pbar.download_callback)[0]
+                except BaseException as exc:
+                    if isinstance(exc, KeyboardInterrupt):
+                        raise
                     self.log.error("Error while downloading %s", link)
-                    continue
                 finally:
                     socket.setdefaulttimeout(sock_timeout)
-        os.remove(tool_dist.name)
         raise RuntimeError("%s download failed: No more links to try" % self.tool_name)
 
     def install_with_link(self, dest, suffix):
         self.log.info("Will install %s into %s", self.tool_name, dest)
-        return self.download_archive([self.download_link], suffix)
+        tmp_name = self.download_archive([self.download_link])
+        new_name = tmp_name + suffix
+        os.rename(tmp_name, new_name)
+        return new_name
 
     def install_with_mirrors(self, dest, suffix):
         self.log.info("Will install %s into %s", self.tool_name, dest)
         mirrors = self.mirror_manager.mirrors()
-        return self.download_archive(mirrors, suffix)
+        tmp_name = self.download_archive(mirrors)
+        new_name = tmp_name + suffix
+        os.rename(tmp_name, new_name)
+        return new_name
 
 
 class JavaVM(RequiredTool):
