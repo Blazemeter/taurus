@@ -938,7 +938,7 @@ class Mocha(RequiredTool):
             new_path = node_path + os.pathsep + self.node_modules_dir
         else:
             new_path = self.node_modules_dir
-        return new_path.encode()
+        return new_path
 
     def check_if_installed(self):
         node_binary = self.node_tool.executable
