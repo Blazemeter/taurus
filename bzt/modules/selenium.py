@@ -28,7 +28,7 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister, PythonGenerator
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator, FunctionalSample
-from bzt.six import string_types, text_type, parse
+from bzt.six import string_types, text_type, parse, iteritems
 from bzt.utils import RequiredTool, shell_exec, shutdown_process, JavaVM, TclLibrary, get_files_recursive
 from bzt.utils import dehumanize_time, MirrorsManager, is_windows, BetterDict, get_full_path
 
@@ -949,6 +949,7 @@ class Mocha(RequiredTool):
         self.log.debug("NODE_PATH for check: %s", node_path)
         env["NODE_PATH"] = node_path
         try:
+            env = {k: str(v) for k, v in iteritems(env)}
             output = subprocess.check_output(cmdline, stderr=subprocess.STDOUT, env=env)
             self.log.debug("Mocha check output: %s", output)
             return True
