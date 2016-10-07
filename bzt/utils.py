@@ -698,7 +698,7 @@ class RequiredTool(object):
                 try:
                     return downloader.retrieve(link, reporthook=pbar.download_callback, suffix=suffix)[0]
                 except KeyboardInterrupt:
-                        raise
+                    raise
                 except BaseException as exc:
                     self.log.error("Error while downloading %s: %s" % (link, exc))
                 finally:
