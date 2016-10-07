@@ -38,9 +38,8 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataP
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader, FunctionalSample
 from bzt.modules.provisioning import Local
-from bzt.six import iteritems, string_types, StringIO, etree, binary_type
-from bzt.six import parse, request as http_request
-from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager
+from bzt.six import iteritems, string_types, StringIO, etree, binary_type, parse
+from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader
 from bzt.utils import shell_exec, ensure_is_dict, dehumanize_time, BetterDict, guess_csv_dialect
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
 
@@ -1729,17 +1728,17 @@ class JMeter(RequiredTool):
             return False
 
     def __install_jmeter(self, dest):
+        self.log.info("Will install %s into %s", self.tool_name, dest)
         if self.download_link:
-            jmeter_dist = super(JMeter, self).install_with_link(dest, ".zip")
+            jmeter_dist = self._download(use_link=True)
         else:
-            jmeter_dist = super(JMeter, self).install_with_mirrors(dest, ".zip")
+            jmeter_dist = self._download()
 
         try:
-            self.log.info("Unzipping %s to %s", jmeter_dist.name, dest)
-            unzip(jmeter_dist.name, dest, 'apache-jmeter-%s' % self.version)
+            self.log.info("Unzipping %s to %s", jmeter_dist, dest)
+            unzip(jmeter_dist, dest, 'apache-jmeter-%s' % self.version)
         finally:
-            jmeter_dist.close()
-            os.remove(jmeter_dist.name)
+            os.remove(jmeter_dist)
 
         # set exec permissions
         os.chmod(os.path.join(dest, 'bin', 'jmeter'), 0o755)
@@ -1749,14 +1748,15 @@ class JMeter(RequiredTool):
             raise RuntimeError("Unable to run %s after installation!" % self.tool_name)
 
     def __download_additions(self, tools):
-        downloader = http_request.FancyURLopener()
+        downloader = ExceptionalDownloader()
         with ProgressBarContext() as pbar:
             for tool in tools:
-                _file = os.path.basename(tool[0])
+                url = tool[0]
+                _file = os.path.basename(url)
+                self.log.info("Downloading %s from %s", _file, url)
                 try:
-                    self.log.info("Downloading %s from %s", _file, tool[0])
-                    downloader.retrieve(tool[0], tool[1], pbar.download_callback)
-                except BaseException:
+                    downloader.get(url, tool[1], reporthook=pbar.download_callback)
+                except:
                     self.log.error("Error while downloading %s", _file)
                     raise
 
