@@ -1728,10 +1728,11 @@ class JMeter(RequiredTool):
             return False
 
     def __install_jmeter(self, dest):
+        self.log.info("Will install %s into %s", self.tool_name, dest)
         if self.download_link:
-            jmeter_dist = self._download(dest, ".zip", use_link=True)
+            jmeter_dist = self._download(use_link=True)
         else:
-            jmeter_dist = self._download(dest, ".zip")
+            jmeter_dist = self._download()
 
         try:
             self.log.info("Unzipping %s to %s", jmeter_dist, dest)
@@ -1754,7 +1755,7 @@ class JMeter(RequiredTool):
                 _file = os.path.basename(url)
                 self.log.info("Downloading %s from %s", _file, url)
                 try:
-                    downloader.retrieve(url, tool[1], reporthook=pbar.download_callback)
+                    downloader.get(url, tool[1], reporthook=pbar.download_callback)
                 except:
                     self.log.error("Error while downloading %s", _file)
                     raise

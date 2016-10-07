@@ -386,7 +386,7 @@ class Engine(object):
             parsed_url = parse.urlparse(filename)
             downloader = ExceptionalDownloader()
             self.log.info("Downloading %s", filename)
-            tmp_f_name, http_msg = downloader.retrieve(filename)
+            tmp_f_name, http_msg = downloader.get(filename)
             cd_header = http_msg.get('Content-Disposition', '')
             dest = cd_header.split('filename=')[-1] if cd_header and 'filename=' in cd_header else ''
             if not dest:

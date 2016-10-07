@@ -357,7 +357,8 @@ class Grinder(RequiredTool):
 
     def install(self):
         dest = get_full_path(self.tool_path, step_up=2)
-        grinder_dist = self._download(dest, ".zip")
+        self.log.info("Will install %s into %s", self.tool_name, dest)
+        grinder_dist = self._download()
         self.log.info("Unzipping %s", grinder_dist)
         unzip(grinder_dist, dest, 'grinder-' + self.version)
         os.remove(grinder_dist)

@@ -634,7 +634,7 @@ class ExceptionalDownloader(request.FancyURLopener, object):
         fp.close()
         raise ValueError("Unsuccessful download from %s: %s - %s" % (url, errcode, errmsg))
 
-    def retrieve(self, url, filename=None, reporthook=None, data=None, suffix=""):
+    def get(self, url, filename=None, reporthook=None, data=None, suffix=""):
         fd = None
         try:
             if not filename:
@@ -675,15 +675,14 @@ class RequiredTool(object):
             if not os.path.exists(os.path.dirname(self.tool_path)):
                 os.makedirs(os.path.dirname(self.tool_path))
             downloader = ExceptionalDownloader()
-            downloader.retrieve(self.download_link, self.tool_path, reporthook=pbar.download_callback)
+            downloader.get(self.download_link, self.tool_path, reporthook=pbar.download_callback)
 
             if self.check_if_installed():
                 return self.tool_path
             else:
                 raise RuntimeError("Unable to run %s after installation!" % self.tool_name)
 
-    def _download(self, dest, suffix="", use_link=False):
-        self.log.info("Will install %s into %s", self.tool_name, dest)
+    def _download(self, suffix=".zip", use_link=False):
         if use_link:
             links = [self.download_link]
         else:
@@ -696,7 +695,7 @@ class RequiredTool(object):
             self.log.info("Downloading: %s", link)
             with ProgressBarContext() as pbar:
                 try:
-                    return downloader.retrieve(link, reporthook=pbar.download_callback, suffix=suffix)[0]
+                    return downloader.get(link, reporthook=pbar.download_callback, suffix=suffix)[0]
                 except KeyboardInterrupt:
                     raise
                 except BaseException as exc:
@@ -837,7 +836,7 @@ class MirrorsManager(object):
         self.log.debug("Retrieving mirrors from page: %s", self.base_link)
         downloader = ExceptionalDownloader()
         try:
-            tmp_file = downloader.retrieve(self.base_link)[0]
+            tmp_file = downloader.get(self.base_link)[0]
             with open(tmp_file) as fds:
                 self.page_source = fds.read()
         except BaseException:
