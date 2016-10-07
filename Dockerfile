@@ -54,6 +54,7 @@ RUN cd /tmp/bzt-src/examples \
   && bzt /tmp/bzt-src/examples/all-executors.yml -o settings.artifacts-dir=/tmp/all-executors-artifacts || echo error
 
 RUN ls -la /tmp/all-executors-artifacts \
+  && grep \  * \
   && exit 1
 
 RUN mkdir /bzt-configs \
