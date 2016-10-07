@@ -903,8 +903,10 @@ class NPM(RequiredTool):
         self.executable = None
 
     def check_if_installed(self):
-        node_candidates = ["npm", "npm.cmd"]  # npm.cmd is for Windows
-        for candidate in node_candidates:
+        candidates = ["npm"]
+        if is_windows():
+            candidates.append("npm.cmd")
+        for candidate in candidates:
             try:
                 self.log.debug("Trying %r", candidate)
                 output = subprocess.check_output([candidate, '--version'], stderr=subprocess.STDOUT)
@@ -915,7 +917,7 @@ class NPM(RequiredTool):
                 self.log.debug("%r is not installed", candidate)
                 continue
         tmpl = "%s is not operable or not available. The following executables were tried: %r. Consider installing it"
-        raise RuntimeError(tmpl % (self.tool_name, node_candidates))
+        raise RuntimeError(tmpl % (self.tool_name, candidates))
 
     def install(self):
         raise NotImplementedError("Automatic installation of npm is not implemented. Install it manually")
