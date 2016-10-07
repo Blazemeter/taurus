@@ -629,10 +629,26 @@ def shutdown_process(process_obj, log_obj):
             log_obj.debug("Failed to terminate process: %s", exc)
 
 
-class ExceptionalDownloader(request.FancyURLopener):
+class ExceptionalDownloader(request.FancyURLopener, object):
     def http_error_default(self, url, fp, errcode, errmsg, headers):
         fp.close()
         raise ValueError("Unsuccessful download from %s: %s - %s" % (url, errcode, errmsg))
+
+    def retrieve(self, url, filename=None, reporthook=None, data=None, suffix=""):
+        fd = None
+        try:
+            if not filename:
+                fd, filename = tempfile.mkstemp(suffix)
+            response = super(ExceptionalDownloader, self).retrieve(url, filename, reporthook, data)
+        except:
+            if fd:
+                os.close(fd)
+                os.remove(filename)
+            raise
+
+        if fd:
+            os.close(fd)
+        return response
 
 
 class RequiredTool(object):
@@ -659,14 +675,14 @@ class RequiredTool(object):
             if not os.path.exists(os.path.dirname(self.tool_path)):
                 os.makedirs(os.path.dirname(self.tool_path))
             downloader = ExceptionalDownloader()
-            downloader.retrieve(self.download_link, self.tool_path, pbar.download_callback)
+            downloader.retrieve(self.download_link, self.tool_path, reporthook=pbar.download_callback)
 
             if self.check_if_installed():
                 return self.tool_path
             else:
                 raise RuntimeError("Unable to run %s after installation!" % self.tool_name)
 
-    def download_archive(self, links):
+    def download_archive(self, links, suffix=""):
         downloader = ExceptionalDownloader()
         sock_timeout = socket.getdefaulttimeout()
         socket.setdefaulttimeout(5)
@@ -674,25 +690,22 @@ class RequiredTool(object):
             self.log.info("Downloading: %s", link)
             with ProgressBarContext() as pbar:
                 try:
-                    return downloader.retrieve(link, pbar.download_callback)[0]
-                except BaseException as exc:
-                    if isinstance(exc, KeyboardInterrupt):
+                    return downloader.retrieve(link, reporthook=pbar.download_callback, suffix=suffix)[0]
+                except KeyboardInterrupt:
                         raise
-                    self.log.error("Error while downloading %s", link)
+                except BaseException as exc:
+                    self.log.error("Error while downloading %s: %s" % (link, exc))
                 finally:
                     socket.setdefaulttimeout(sock_timeout)
         raise RuntimeError("%s download failed: No more links to try" % self.tool_name)
 
-    def download(self, dest, suffix, link=None):
+    def download(self, dest, suffix, use_link=None):
         self.log.info("Will install %s into %s", self.tool_name, dest)
-        if link:
+        if use_link:
             links = [self.download_link]
         else:
             links = self.mirror_manager.mirrors()
-        tmp_name = self.download_archive(links)
-        new_name = tmp_name + suffix
-        os.rename(tmp_name, new_name)
-        return new_name
+        return self.download_archive(links, suffix)
 
 
 class JavaVM(RequiredTool):
