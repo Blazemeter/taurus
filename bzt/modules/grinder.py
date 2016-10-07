@@ -113,7 +113,8 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             if load.ramp_up:
                 interval = int(1000 * load.ramp_up / load.concurrency)
                 fds.write("grinder.processIncrementInterval=%s\n" % interval)
-            fds.write("grinder.processes=%s\n" % int(load.concurrency))
+            fds.write("grinder.processes=1\n")
+            fds.write("grinder.threads=%s\n" % int(load.concurrency))
             fds.write("grinder.runs=%s\n" % load.iterations)
             fds.write("grinder.processIncrement=1\n")
             if load.duration:
@@ -310,7 +311,7 @@ class DataLogReader(ResultsReader):
                 error = "There were some errors in Grinder test"
             else:
                 error = None
-            concur = None  # TODO: how to get this for grinder
+            concur = int(fields[self.idx["[INFO] Thread"]].split(" ")[-1])
             yield int(t_stamp), label, concur, r_time, con_time, latency, r_code, error, ''
 
     def __open_fds(self):
