@@ -572,6 +572,7 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
     def test_install_mocha(self):
         dummy_installation_path = get_full_path(__dir__() + "/../../build/tmp/selenium-taurus/mocha")
         mocha_link = get_full_path(__dir__() + "/../data/mocha-3.1.0.tgz")
+        wd_link = get_full_path(__dir__() + "/../data/selenium-webdriver-1.0.0.tgz")
 
         shutil.rmtree(os.path.dirname(dummy_installation_path), ignore_errors=True)
         self.assertFalse(os.path.exists(dummy_installation_path))
@@ -580,8 +581,10 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         if old_node_path:
             os.environ.pop("NODE_PATH")
 
-        orig_package_name = SeleniumExecutor.MOCHA_NPM_PACKAGE_NAME
+        orig_mocha_package = SeleniumExecutor.MOCHA_NPM_PACKAGE_NAME
+        orig_wd_package = SeleniumExecutor.SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME
         SeleniumExecutor.MOCHA_NPM_PACKAGE_NAME = mocha_link
+        SeleniumExecutor.SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME = wd_link
 
         self.obj.settings.merge({"selenium-tools": {
             "mocha": {"tools-dir": dummy_installation_path}
@@ -592,8 +595,12 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "node_modules")))
         self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "node_modules", "mocha")))
         self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "node_modules", "mocha", "index.js")))
+        self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "node_modules", "selenium-webdriver")))
+        self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "node_modules", "selenium-webdriver",
+                                                    "index.js")))
 
-        SeleniumExecutor.MOCHA_NPM_PACKAGE_NAME = orig_package_name
+        SeleniumExecutor.MOCHA_NPM_PACKAGE_NAME = orig_mocha_package
+        SeleniumExecutor.SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME = orig_wd_package
         if old_node_path:
             os.environ["NODE_PATH"] = old_node_path
 
