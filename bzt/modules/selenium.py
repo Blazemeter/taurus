@@ -338,7 +338,7 @@ class AbstractTestRunner(object):
     def check_tools(self):
         for tool in self.required_tools:
             if not tool.check_if_installed():
-                self.log.info("Installing %s", tool.tool_name)
+                self.log.info("Installing %s...", tool.tool_name)
                 tool.install()
 
     def shutdown(self):
