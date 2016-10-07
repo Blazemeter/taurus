@@ -796,13 +796,11 @@ class JUnitJar(RequiredTool):
 
     def install(self):
         dest = get_full_path(self.tool_path, step_up=1)
-        dest = os.path.abspath(dest)
-        junit_dist = super(JUnitJar, self).install_with_mirrors(dest, ".jar")
-        self.log.info("Installing %s into %s", self.tool_name, dest)
-        junit_dist.close()
+        self.log.info("Will install %s into %s", self.tool_name, dest)
+        junit_dist = self._download(suffix=".jar")
         if not os.path.exists(dest):
             os.makedirs(dest)
-        shutil.move(junit_dist.name, self.tool_path)
+        shutil.move(junit_dist, self.tool_path)
         self.log.info("Installed JUnit successfully")
 
         if not self.check_if_installed():

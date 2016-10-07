@@ -35,9 +35,9 @@ import datetime
 
 import bzt
 from bzt import ManualShutdown, NormalShutdown, get_configs_dir
-from bzt.six import build_opener, install_opener, urlopen, request, numeric_types, iteritems
+from bzt.six import build_opener, install_opener, urlopen, numeric_types, iteritems
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, etree, reraise
-from bzt.utils import PIPE, shell_exec, get_full_path
+from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time
 
 SETTINGS = "settings"
@@ -384,9 +384,9 @@ class Engine(object):
             return filename
         elif filename.lower().startswith("http://") or filename.lower().startswith("https://"):
             parsed_url = parse.urlparse(filename)
-            downloader = request.FancyURLopener()
+            downloader = ExceptionalDownloader()
             self.log.info("Downloading %s", filename)
-            tmp_f_name, http_msg = downloader.retrieve(filename)
+            tmp_f_name, http_msg = downloader.get(filename)
             cd_header = http_msg.get('Content-Disposition', '')
             dest = cd_header.split('filename=')[-1] if cd_header and 'filename=' in cd_header else ''
             if not dest:
