@@ -15,7 +15,7 @@ install:
 - nvm use 4.2
 - gem install rspec
 - pip install colorlog pyyaml psutil lxml cssselect urwid six selenium progressbar33 locustio pyvirtualdisplay
+- python -m bzt.cli bzt/10-base.json examples/selenium/mocha_example.yml -o modules.console.disable=true
 script: coverage run `which nosetests`
 after_success:
-  - python -m bzt.cli bzt/10-base.json examples/selenium/mocha_example.yml
   - codecov
