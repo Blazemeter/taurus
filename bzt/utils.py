@@ -682,7 +682,13 @@ class RequiredTool(object):
             else:
                 raise RuntimeError("Unable to run %s after installation!" % self.tool_name)
 
-    def download_archive(self, links, suffix=""):
+    def _download(self, dest, suffix="", use_link=False):
+        self.log.info("Will install %s into %s", self.tool_name, dest)
+        if use_link:
+            links = [self.download_link]
+        else:
+            links = self.mirror_manager.mirrors()
+
         downloader = ExceptionalDownloader()
         sock_timeout = socket.getdefaulttimeout()
         socket.setdefaulttimeout(5)
@@ -698,14 +704,6 @@ class RequiredTool(object):
                 finally:
                     socket.setdefaulttimeout(sock_timeout)
         raise RuntimeError("%s download failed: No more links to try" % self.tool_name)
-
-    def download(self, dest, suffix, use_link=None):
-        self.log.info("Will install %s into %s", self.tool_name, dest)
-        if use_link:
-            links = [self.download_link]
-        else:
-            links = self.mirror_manager.mirrors()
-        return self.download_archive(links, suffix)
 
 
 class JavaVM(RequiredTool):

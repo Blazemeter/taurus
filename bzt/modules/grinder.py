@@ -24,7 +24,7 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister, PythonGenerator
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.six import iteritems
-from bzt.utils import shell_exec, MirrorsManager, dehumanize_time
+from bzt.utils import shell_exec, MirrorsManager, dehumanize_time, get_full_path
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, TclLibrary
 
 
@@ -356,9 +356,8 @@ class Grinder(RequiredTool):
             return False
 
     def install(self):
-        dest = os.path.dirname(os.path.dirname(os.path.expanduser(self.tool_path)))
-        dest = os.path.abspath(dest)
-        grinder_dist = self.download(dest, ".zip")
+        dest = get_full_path(self.tool_path, step_up=2)
+        grinder_dist = self._download(dest, ".zip")
         self.log.info("Unzipping %s", grinder_dist)
         unzip(grinder_dist, dest, 'grinder-' + self.version)
         os.remove(grinder_dist)
