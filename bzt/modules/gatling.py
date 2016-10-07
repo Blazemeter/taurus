@@ -658,7 +658,7 @@ class Gatling(RequiredTool):
     def install(self):
         dest = os.path.dirname(os.path.dirname(os.path.expanduser(self.tool_path)))
         dest = os.path.abspath(dest)
-        gatling_dist = self.install_with_mirrors(dest, ".zip")
+        gatling_dist = self.download(dest, ".zip")
         self.log.info("Unzipping %s", gatling_dist)
         unzip(gatling_dist, dest, 'gatling-charts-highcharts-bundle-' + self.version)
         os.remove(gatling_dist)

@@ -1731,7 +1731,7 @@ class JMeter(RequiredTool):
         if self.download_link:
             jmeter_dist = self.install_with_link(dest, ".zip")
         else:
-            jmeter_dist = self.install_with_mirrors(dest, ".zip")
+            jmeter_dist = self.download(dest, ".zip")
 
         try:
             self.log.info("Unzipping %s to %s", jmeter_dist, dest)

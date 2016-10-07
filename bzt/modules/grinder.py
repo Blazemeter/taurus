@@ -358,7 +358,7 @@ class Grinder(RequiredTool):
     def install(self):
         dest = os.path.dirname(os.path.dirname(os.path.expanduser(self.tool_path)))
         dest = os.path.abspath(dest)
-        grinder_dist = self.install_with_mirrors(dest, ".zip")
+        grinder_dist = self.download(dest, ".zip")
         self.log.info("Unzipping %s", grinder_dist)
         unzip(grinder_dist, dest, 'grinder-' + self.version)
         os.remove(grinder_dist)
