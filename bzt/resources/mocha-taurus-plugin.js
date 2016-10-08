@@ -156,20 +156,12 @@ function parseCmdline(argv) {
     return options;
 }
 
-function prepareMocha(config) {
+function prepareMocha(config, mochaConfig) {
     // clear 'require' cache to avoid mocha's test rediscovery issues
     // TODO: fix/report?
     Object.keys(require.cache).forEach(function(key) { delete require.cache[key]; });
 
-    var engine = new Mocha({
-        reporter: TaurusReporter,
-        reporterOptions: {
-            reportStream: config.reportStream,
-            totalTests: 0,
-            passedTests: 0,
-            failedTests: 0
-        }
-    });
+    var engine = new Mocha(mochaConfig);
 
     var stat = fs.statSync(config.testSuite);
 
@@ -191,7 +183,7 @@ function prepareMocha(config) {
     return engine;
 }
 
-function loopMocha(config, iterations, startTime, done) {
+function loopMocha(config, mochaConfig, iterations, startTime, done) {
     if (iterations >= config.iterations) {
         done();
         return;
@@ -201,25 +193,34 @@ function loopMocha(config, iterations, startTime, done) {
         done();
         return;
     }
-    var engine = prepareMocha(config);
+    var engine = prepareMocha(config, mochaConfig);
     engine.run(function() {
-        loopMocha(config, iterations + 1, startTime, done);
+        loopMocha(config, mochaConfig, iterations + 1, startTime, done);
     });
 }
 
 function runMocha() {
     var config = parseCmdline(process.argv);
+    var reportStream = fs.createWriteStream(config.reportFile || "report.ldjson");
 
-    config.reportStream = fs.createWriteStream(config.reportFile || "report.ldjson");
+    var mochaConfig = {
+        reporter: TaurusReporter,
+        reporterOptions: {
+            reportStream: reportStream,
+            totalTests: 0,
+            passedTests: 0,
+            failedTests: 0
+        }
+    };
 
     var done = function() {
-        if (config.reportStream) {
-            config.reportStream.end();
+        if (reportStream) {
+            reportStream.end();
         }
         process.exit(0);
     };
 
-    loopMocha(config, 0, epoch(), done);
+    loopMocha(config, mochaConfig, 0, epoch(), done);
 }
 
 if (require.main === module) {
