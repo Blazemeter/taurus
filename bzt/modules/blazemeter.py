@@ -1640,11 +1640,10 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             self.log.warning("Dumping available locations instead of running the test")
             self._configure_client()
             use_deprecated = self.settings.get("use-deprecated-api", True)
-            info = self.client.get_user_info()
             locations = self.client.get_available_locations(include_harbors=not use_deprecated)
-            for item in info['locations']:
-                if item['id'] in locations:
-                    self.log.info("Location: %s\t%s", item['id'], item['title'])
+            for location_id in sorted(locations):
+                location = locations[location_id]
+                self.log.info("Location: %s\t%s", location_id, location['title'])
             raise ManualShutdown("Done listing locations")
 
         super(CloudProvisioning, self).prepare()
