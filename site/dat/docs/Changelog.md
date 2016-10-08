@@ -10,6 +10,7 @@
  - fix Locust crash when `concurrency` isn't specified
  - support scenario-level `headers` in Locust script generator
  - add exception throw to tools downloader
+ - make `-locations` respect `use-deprecated-api` flag
 
 ## 1.7.0 <sup>2 oct 2016</sup>
  - add RSpec tests runner for Selenium
