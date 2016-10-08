@@ -5,7 +5,7 @@ import time
 
 import yaml
 
-from bzt.engine import ScenarioExecutor
+from bzt.engine import ScenarioExecutor, ManualShutdown
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet
 from bzt.modules.blazemeter import CloudProvisioning, BlazeMeterClientEmul, ResultsFromBZA
 from bzt.modules.blazemeter import CloudTaurusTest, CloudCollectionTest
@@ -873,6 +873,51 @@ class TestCloudProvisioning(BZTestCase):
         obj.check()  # this one should skip
 
         self.assertEqual(client.results, [])
+
+    def test_dump_locations(self):
+        obj = CloudProvisioning()
+        obj.engine = EngineEmul()
+        log_recorder = RecordingHandler()
+        obj.log.addHandler(log_recorder)
+
+        obj.settings["dump-locations"] = True
+        obj.settings["token"] = "FakeToken"
+        obj.settings["use-deprecated-api"] = True
+        obj.client = BlazeMeterClientEmul(obj.log)
+        obj.client.results.append(self.__get_user_info())
+        self.assertRaises(ManualShutdown, obj.prepare)
+
+        warnings = log_recorder.warn_buff.getvalue()
+        self.assertIn("Dumping available locations instead of running the test", warnings)
+        info = log_recorder.info_buff.getvalue()
+        self.assertIn("Location: DFW	Dallas (Rackspace)", info)
+        self.assertIn("Location: us-west-2	US West (Oregon)", info)
+        self.assertNotIn("Location: harbor-5591335d8588531f5cde3a04	Sandbox", info)
+
+        obj.post_process()
+
+    def test_dump_locations_new_style(self):
+        obj = CloudProvisioning()
+        obj.engine = EngineEmul()
+        log_recorder = RecordingHandler()
+        obj.log.addHandler(log_recorder)
+
+        obj.settings["dump-locations"] = True
+        obj.settings["token"] = "FakeToken"
+        obj.settings["use-deprecated-api"] = False
+        obj.client = BlazeMeterClientEmul(obj.log)
+        obj.client.results.append(self.__get_user_info())
+        self.assertRaises(ManualShutdown, obj.prepare)
+
+        warnings = log_recorder.warn_buff.getvalue()
+        self.assertIn("Dumping available locations instead of running the test", warnings)
+        info = log_recorder.info_buff.getvalue()
+        self.assertIn("Location: DFW	Dallas (Rackspace)", info)
+        self.assertIn("Location: us-west-2	US West (Oregon)", info)
+        self.assertIn("Location: harbor-5591335d8588531f5cde3a04	Sandbox", info)
+
+        obj.post_process()
+
 
 
 class TestResultsFromBZA(BZTestCase):
