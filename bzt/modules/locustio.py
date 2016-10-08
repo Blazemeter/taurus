@@ -327,6 +327,8 @@ from locust import HttpLocust, TaskSet, task
         think_time = dehumanize_time(self.scenario.get('think-time', None))
         timeout = dehumanize_time(self.scenario.get("timeout", 30))
         global_headers = self.scenario.get("headers", None)
+        if not self.scenario.get("keepalive", True):
+            global_headers['Connection'] = 'close'
 
         for req in self.scenario.get_requests():
             method = req.method.lower()
