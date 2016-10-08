@@ -665,7 +665,7 @@ class BaseCloudTest(object):
 
 class CloudTaurusTest(BaseCloudTest):
     def prepare_locations(self, executors, engine_config):
-        available_locations = self._get_available_locations()
+        available_locations = self.client.get_available_locations(include_harbors=False)
 
         if CloudProvisioning.LOC in engine_config:
             self.log.warning("Deprecated test API doesn't support global locations")
@@ -680,13 +680,6 @@ class CloudTaurusTest(BaseCloudTest):
                 executor.execution[CloudProvisioning.LOC].merge({default_loc: 1})
 
             executor.get_load()  # we need it to resolve load settings into full form
-
-    def _get_available_locations(self):
-        return {
-            loc_name: loc
-            for loc_name, loc in iteritems(self.client.get_available_locations())
-            if not loc_name.startswith('harbor-')
-            }
 
     def _get_default_location(self, available_locations):
         def_loc = self.settings.get("default-location", None)
@@ -802,7 +795,7 @@ class CloudTaurusTest(BaseCloudTest):
 
 class CloudCollectionTest(BaseCloudTest):
     def prepare_locations(self, executors, engine_config):
-        available_locations = self.client.get_available_locations()
+        available_locations = self.client.get_available_locations(include_harbors=True)
 
         global_locations = engine_config.get(CloudProvisioning.LOC, BetterDict())
         self._check_locations(global_locations, available_locations)
@@ -1521,9 +1514,15 @@ class BlazeMeterClient(object):
         res = self._request(url)
         return res['result']
 
-    def get_available_locations(self):
+    def get_available_locations(self, include_harbors=False):
         user_info = self.get_user_info()
-        return {str(x['id']): x for x in user_info['locations']}
+        locations = {}
+        for loc in user_info['locations']:
+            loc_id = str(loc['id'])
+            if loc_id.startswith('harbor-') and not include_harbors:
+                continue
+            locations[str(loc['id'])] = loc
+        return locations
 
     def get_test_files(self, test_id):
         path = self.address + "/api/latest/web/elfinder/%s" % test_id
@@ -1640,8 +1639,9 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         if self.settings.get("dump-locations", False):
             self.log.warning("Dumping available locations instead of running the test")
             self._configure_client()
+            use_deprecated = self.settings.get("use-deprecated-api", True)
             info = self.client.get_user_info()
-            locations = self.client.get_available_locations()
+            locations = self.client.get_available_locations(include_harbors=not use_deprecated)
             for item in info['locations']:
                 if item['id'] in locations:
                     self.log.info("Location: %s\t%s", item['id'], item['title'])
