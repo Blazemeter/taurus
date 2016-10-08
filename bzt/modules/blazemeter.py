@@ -1755,7 +1755,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         return super(CloudProvisioning, self).check()
 
     def post_process(self):
-        if not self.detach and not self.test_ended:
+        if not self.detach and self.test and not self.test_ended:
             self.test.stop_test()
         if self.client.results_url:
             if self.browser_open in ('end', 'both'):
