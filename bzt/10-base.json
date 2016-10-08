@@ -86,6 +86,9 @@
         },
         "nose": {
           "working-dir": "classes"
+        },
+        "mocha": {
+          "tools-dir": "~/.bzt/selenium-taurus/mocha"
         }
       }
     },

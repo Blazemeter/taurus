@@ -53,7 +53,9 @@ RUN pip install --upgrade /tmp/bzt-src \
 RUN cd /tmp/bzt-src/examples \
   && bzt /tmp/bzt-src/examples/all-executors.yml -o settings.artifacts-dir=/tmp/all-executors-artifacts || echo error
 
-RUN ls -la /tmp/all-executors-artifacts \
+RUN cd /tmp/all-executors-artifacts \
+  && ls -la \
+  && grep \  * \
   && exit 1
 
 RUN mkdir /bzt-configs \

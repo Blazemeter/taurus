@@ -20,6 +20,7 @@ import shutil
 import subprocess
 import sys
 import time
+import traceback
 from abc import abstractmethod
 
 from urwid import Text, Pile
@@ -28,7 +29,7 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister, PythonGenerator
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator, FunctionalSample
-from bzt.six import string_types, text_type, parse
+from bzt.six import string_types, text_type, parse, iteritems
 from bzt.utils import RequiredTool, shell_exec, shutdown_process, JavaVM, TclLibrary, get_files_recursive
 from bzt.utils import dehumanize_time, MirrorsManager, is_windows, BetterDict, get_full_path
 
@@ -59,7 +60,10 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     JSON_JAR_DOWNLOAD_LINK = "http://search.maven.org/remotecontent?filepath=org/json/json/20160810/json-20160810.jar"
 
-    SUPPORTED_TYPES = ["python-nose", "java-junit", "ruby-rspec"]
+    MOCHA_NPM_PACKAGE_NAME = "mocha"
+    SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME = "selenium-webdriver"
+
+    SUPPORTED_TYPES = ["python-nose", "java-junit", "ruby-rspec", "js-mocha"]
 
     SHARED_VIRTUAL_DISPLAY = {}
 
@@ -126,8 +130,10 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             runner_config['props-file'] = self.engine.create_artifact("customrunner", ".properties")
         elif script_type == "ruby-rspec":
             runner_class = RSpecTester
+            runner_config.merge(self.settings.get("selenium-tools").get("rspec"))
         elif script_type == "js-mocha":
             runner_class = MochaTester
+            runner_config.merge(self.settings.get("selenium-tools").get("mocha"))
         else:
             raise ValueError("Unsupported script type: %s" % script_type)
 
@@ -334,7 +340,7 @@ class AbstractTestRunner(object):
     def check_tools(self):
         for tool in self.required_tools:
             if not tool.check_if_installed():
-                self.log.info("Installing %s", tool.tool_name)
+                self.log.info("Installing %s...", tool.tool_name)
                 tool.install()
 
     def shutdown(self):
@@ -609,10 +615,6 @@ class RSpecTester(AbstractTestRunner):
         self.run_checklist()
 
     def run_checklist(self):
-        """
-        we need installed nose plugin
-        """
-
         self.required_tools.append(TclLibrary(self.log))
         self.required_tools.append(Ruby("", "", self.log))
         self.required_tools.append(RSpec("", "", self.log))
@@ -668,6 +670,9 @@ class RSpecTester(AbstractTestRunner):
 class MochaTester(AbstractTestRunner):
     """
     Mocha tests runner
+
+    :type node_tool: Node
+    :type mocha_tool: Mocha
     """
 
     def __init__(self, rspec_config, executor):
@@ -676,28 +681,28 @@ class MochaTester(AbstractTestRunner):
                                         os.pardir,
                                         "resources",
                                         "mocha-taurus-plugin.js")
+        self.tools_dir = get_full_path(self.settings.get("tools-dir", "~/.bzt/selenium-taurus/mocha"))
         self.node_tool = None
+        self.npm_tool = None
+        self.mocha_tool = None
 
     def prepare(self):
         self.run_checklist()
 
     def run_checklist(self):
-        """
-        we need installed nose plugin
-        """
-
         self.required_tools.append(TclLibrary(self.log))
         self.node_tool = Node(self.log)
+        self.npm_tool = NPM(self.log)
+        self.mocha_tool = Mocha(self.tools_dir, self.node_tool, self.npm_tool, self.log)
         self.required_tools.append(self.node_tool)
-        self.required_tools.append(Mocha(self.node_tool, self.log))
+        self.required_tools.append(self.npm_tool)
+        self.required_tools.append(self.mocha_tool)
+        self.required_tools.append(JSSeleniumWebdriverPackage(self.tools_dir, self.node_tool, self.npm_tool, self.log))
         self.required_tools.append(TaurusMochaPlugin(self.plugin_path, ""))
 
         self.check_tools()
 
     def run_tests(self):
-        """
-        run rspec plugin
-        """
         mocha_cmdline = [
             self.node_tool.executable,
             self.plugin_path,
@@ -721,6 +726,7 @@ class MochaTester(AbstractTestRunner):
         env = BetterDict()
         env.merge(dict(os.environ))
         env.merge(self.env)
+        env.merge({"NODE_PATH": self.mocha_tool.get_node_path_envvar()})
 
         self.process = self.executor.execute(mocha_cmdline,
                                              stdout=std_out,
@@ -890,28 +896,93 @@ class Node(RequiredTool):
         raise RuntimeError(tmpl % (self.tool_name, node_candidates))
 
     def install(self):
-        raise NotImplementedError()
+        raise NotImplementedError("Automatic installation of nodejs is not implemented. Install it manually")
 
 
-class Mocha(RequiredTool):
-    def __init__(self, node_tool, parent_logger):
-        super(Mocha, self).__init__("Mocha", "", "")
-        self.node_tool = node_tool
+class NPM(RequiredTool):
+    def __init__(self, parent_logger):
+        super(NPM, self).__init__("NPM", "", "")
         self.log = parent_logger.getChild(self.__class__.__name__)
+        self.executable = None
+
+    def check_if_installed(self):
+        candidates = ["npm"]
+        if is_windows():
+            candidates.append("npm.cmd")
+        for candidate in candidates:
+            try:
+                self.log.debug("Trying %r", candidate)
+                output = subprocess.check_output([candidate, '--version'], stderr=subprocess.STDOUT)
+                self.log.debug("%s output: %s", candidate, output)
+                self.executable = candidate
+                return True
+            except BaseException:
+                self.log.debug("%r is not installed", candidate)
+                continue
+        tmpl = "%s is not operable or not available. The following executables were tried: %r. Consider installing it"
+        raise RuntimeError(tmpl % (self.tool_name, candidates))
+
+    def install(self):
+        raise NotImplementedError("Automatic installation of npm is not implemented. Install it manually")
+
+
+class NPMPackage(RequiredTool):
+    def __init__(self, tool_name, package_name, tools_dir, node_tool, npm_tool, parent_logger):
+        super(NPMPackage, self).__init__(tool_name, "", "")
+        self.package_name = package_name
+        self.tools_dir = tools_dir
+        self.node_tool = node_tool
+        self.npm_tool = npm_tool
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.node_modules_dir = os.path.join(tools_dir, "node_modules")
+
+    def get_node_path_envvar(self):
+        node_path = os.environ.get("NODE_PATH")
+        if node_path:
+            new_path = node_path + os.pathsep + self.node_modules_dir
+        else:
+            new_path = self.node_modules_dir
+        return new_path
 
     def check_if_installed(self):
         try:
             node_binary = self.node_tool.executable
-            cmdline = [node_binary, '-e', "require('mocha'); console.log('mocha is installed');"]
-            self.log.debug("mocha test cmdline: %s", cmdline)
-            output = subprocess.check_output(cmdline, stderr=subprocess.STDOUT)
-            self.log.debug("%s output: %s", self.tool_name, output)
+            package = self.package_name
+            cmdline = [node_binary, '-e', "require('%s'); console.log('%s is installed');" % (package, package)]
+            self.log.debug("%s check cmdline: %s", package, cmdline)
+            node_path = self.get_node_path_envvar()
+            self.log.debug("NODE_PATH for check: %s", node_path)
+            env = os.environ.copy()
+            env["NODE_PATH"] = str(node_path)
+            output = subprocess.check_output(cmdline, env=env, stderr=subprocess.STDOUT)
+            self.log.debug("%s check output: %s", self.package_name, output)
             return True
         except BaseException:
-            raise RuntimeError("The %s is not operable or not available. Consider installing it" % self.tool_name)
+            self.log.debug("%s check failed: %s", self.package_name, traceback.format_exc())
+            return False
 
     def install(self):
-        raise NotImplementedError()
+        try:
+            cmdline = [self.npm_tool.executable, 'install', self.package_name, '--prefix', self.tools_dir]
+            output = subprocess.check_output(cmdline, stderr=subprocess.STDOUT)
+            self.log.debug("%s install output: %s", self.tool_name, output)
+            return True
+        except BaseException:
+            self.log.debug("%s install failed: %s", self.package_name, traceback.format_exc())
+            return False
+
+
+class Mocha(NPMPackage):
+    def __init__(self, tools_dir, node_tool, npm_tool, parent_logger):
+        super(Mocha, self).__init__("Mocha", SeleniumExecutor.MOCHA_NPM_PACKAGE_NAME,
+                                    tools_dir, node_tool, npm_tool, parent_logger)
+
+
+class JSSeleniumWebdriverPackage(NPMPackage):
+    def __init__(self, tools_dir, node_tool, npm_tool, parent_logger):
+        super(JSSeleniumWebdriverPackage, self).__init__("selenium-webdriver npm package",
+                                                         SeleniumExecutor.SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME,
+                                                         tools_dir, node_tool, npm_tool, parent_logger)
 
 
 class JUnitListenerJar(RequiredTool):
