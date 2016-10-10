@@ -28,9 +28,10 @@ import yaml
 from colorlog import ColoredFormatter
 
 import bzt
+from logging import DEBUG, ERROR, INFO, WARNING
 from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown
 from bzt.engine import Engine, Configuration, ScenarioExecutor
-from bzt.six import HTTPError, string_types, b
+from bzt.six import HTTPError, string_types, b, get_stacktrace
 from bzt.utils import run_once, is_int, BetterDict, is_windows, is_piped
 
 
@@ -51,6 +52,7 @@ class CLI(object):
         self.log.debug("Python: %s %s", platform.python_implementation(), platform.python_version())
         self.log.debug("OS: %s", platform.uname())
         self.engine = Engine(self.log)
+        self.no_errors = True
 
     @staticmethod
     @run_once
@@ -176,12 +178,10 @@ class CLI(object):
                     os.remove(fname)
                 self.engine.post_process()
             except BaseException as exc:
-                self.log.debug("Caught exception in finally: %s", traceback.format_exc())
                 exit_code = 1
+                self.log.debug("Caught exception in finally: %s", traceback.format_exc())
                 if isinstance(exc, KeyboardInterrupt):
                     self.log.debug("Exception: %s", traceback.format_exc())
-                    if isinstance(exc, RCProvider):
-                        exit_code = exc.get_rc()
                 else:
                     self.log.error("%s: %s", type(exc).__name__, exc)
 
@@ -198,13 +198,30 @@ class CLI(object):
 
         return exit_code
 
+    def log_exception(self, exc, message='', level=ERROR):
+        if self.no_errors:
+            self.log.log(level, message)
+            if isinstance(exc, ManualShutdown):
+                self.log.log(INFO, "Interrupted by user: %s" % exc)
+            elif isinstance(exc, AutomatedShutdown):
+                self.log.log(INFO, "Automated shutdown")
+            elif isinstance(exc, NormalShutdown):
+                self.log.log(INFO, "Normal shutdown")
+            elif isinstance(exc, HTTPError):
+                self.log.log(WARNING, "Response from %s: %s" % (exc.geturl(), exc.read()))
+            else:
+                self.log.log(level, "%s: %s" % (type(exc).__name__, exc))
+
+            self.log.log(level, get_stacktrace(exc))
+
+        self.no_errors = False
+
     def __get_jmx_shorthands(self, configs):
         """
         Generate json file with execution, executor and scenario settings
         :type configs: list
         :return: list
         """
-
         jmxes = []
         for filename in configs[:]:
             if filename.lower().endswith(".jmx"):
