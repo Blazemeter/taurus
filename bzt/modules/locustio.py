@@ -277,6 +277,7 @@ class SlavesReader(ResultsProvider):
             kpiset = KPISet()
             kpiset[KPISet.SAMPLE_COUNT] = item['num_reqs_per_sec'][timestamp]
             kpiset[KPISet.CONCURRENCY] = data['user_count']
+            kpiset[KPISet.BYTE_COUNT] = item['total_content_length']
             if item['num_requests']:
                 avg_rt = (item['total_response_time'] / 1000.0) / item['num_requests']
                 kpiset.sum_rt = item['num_reqs_per_sec'][timestamp] * avg_rt

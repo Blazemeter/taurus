@@ -18,6 +18,7 @@
  - add setup of global `additional-classpath` ability to SeleniumExecutor
  - support `keepalive` flag for Locust and Grinder
  - make assertion messages of nose shorter and more informative
+ - track `bytes received` KPI and attach it to BZA report
 
 ## 1.7.0 <sup>2 oct 2016</sup>
  - add RSpec tests runner for Selenium

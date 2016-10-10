@@ -64,28 +64,28 @@ class TestConsolidatingAggregator(BZTestCase):
     @staticmethod
     def get_success_reader(offset=0):
         mock = MockReader()
-        mock.data.append((1 + offset, "", 1, r(), r(), r(), 200, None, ''))
-        mock.data.append((2 + offset, "", 1, r(), r(), r(), 200, None, ''))
-        mock.data.append((2 + offset, "", 1, r(), r(), r(), 200, None, ''))
-        mock.data.append((3 + offset, "", 1, r(), r(), r(), 200, None, ''))
-        mock.data.append((3 + offset, "", 1, r(), r(), r(), 200, None, ''))
-        mock.data.append((4 + offset, "", 1, r(), r(), r(), 200, None, ''))
-        mock.data.append((4 + offset, "", 1, r(), r(), r(), 200, None, ''))
-        mock.data.append((6 + offset, "", 1, r(), r(), r(), 200, None, ''))
-        mock.data.append((6 + offset, "", 1, r(), r(), r(), 200, None, ''))
-        mock.data.append((6 + offset, "", 1, r(), r(), r(), 200, None, ''))
-        mock.data.append((5 + offset, "", 1, r(), r(), r(), 200, None, ''))
+        mock.data.append((1 + offset, "", 1, r(), r(), r(), 200, None, '', 0))
+        mock.data.append((2 + offset, "", 1, r(), r(), r(), 200, None, '', 0))
+        mock.data.append((2 + offset, "", 1, r(), r(), r(), 200, None, '', 0))
+        mock.data.append((3 + offset, "", 1, r(), r(), r(), 200, None, '', 0))
+        mock.data.append((3 + offset, "", 1, r(), r(), r(), 200, None, '', 0))
+        mock.data.append((4 + offset, "", 1, r(), r(), r(), 200, None, '', 0))
+        mock.data.append((4 + offset, "", 1, r(), r(), r(), 200, None, '', 0))
+        mock.data.append((6 + offset, "", 1, r(), r(), r(), 200, None, '', 0))
+        mock.data.append((6 + offset, "", 1, r(), r(), r(), 200, None, '', 0))
+        mock.data.append((6 + offset, "", 1, r(), r(), r(), 200, None, '', 0))
+        mock.data.append((5 + offset, "", 1, r(), r(), r(), 200, None, '', 0))
         return mock
 
     @staticmethod
     def get_fail_reader(offset=0):
         mock = MockReader()
-        mock.data.append((1 + offset, "first", 1, r(), r(), r(), 200, 'FAILx3', ''))
-        mock.data.append((2 + offset, "first", 1, r(), r(), r(), 200, 'FAILx1', ''))
-        mock.data.append((5 + offset, "first", 1, r(), r(), r(), 200, None, ''))
-        mock.data.append((7 + offset, "second", 1, r(), r(), r(), 200, 'FAILx3', ''))
-        mock.data.append((3 + offset, "first", 1, r(), r(), r(), 200, 'FAILx3', ''))
-        mock.data.append((6 + offset, "second", 1, r(), r(), r(), 200, 'unique FAIL', ''))
+        mock.data.append((1 + offset, "first", 1, r(), r(), r(), 200, 'FAILx3', '', 0))
+        mock.data.append((2 + offset, "first", 1, r(), r(), r(), 200, 'FAILx1', '', 0))
+        mock.data.append((5 + offset, "first", 1, r(), r(), r(), 200, None, '', 0))
+        mock.data.append((7 + offset, "second", 1, r(), r(), r(), 200, 'FAILx3', '', 0))
+        mock.data.append((3 + offset, "first", 1, r(), r(), r(), 200, 'FAILx3', '', 0))
+        mock.data.append((6 + offset, "second", 1, r(), r(), r(), 200, 'unique FAIL', '', 0))
         return mock
 
     def test_errors_cumulative(self):

@@ -310,8 +310,9 @@ class DataLogReader(ResultsReader):
                 error = "There were some errors in Grinder test"
             else:
                 error = None
+            bytes_count = int(fields[self.idx["HTTP response length"]].strip())
             concur = None  # TODO: how to get this for grinder
-            yield int(t_stamp), label, concur, r_time, con_time, latency, r_code, error, ''
+            yield int(t_stamp), label, concur, r_time, con_time, latency, r_code, error, '', bytes_count
 
     def __open_fds(self):
         """
