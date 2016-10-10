@@ -608,7 +608,8 @@ class DataLogReader(ResultsReader):
                 continue
 
             t_stamp, label, r_time, con_time, latency, r_code, error = data
-            yield t_stamp, label, self.concurrency, r_time, con_time, latency, r_code, error, ''
+            bytes_count = None
+            yield t_stamp, label, self.concurrency, r_time, con_time, latency, r_code, error, '', bytes_count
 
     def __open_fds(self):
         """

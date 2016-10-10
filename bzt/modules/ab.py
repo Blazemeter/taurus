@@ -201,8 +201,9 @@ class TSVDataReader(ResultsReader):
             _con_time = float(log_vals[2]) / 1000  # connection time
             _etime = float(log_vals[4]) / 1000  # elapsed time
             _latency = float(log_vals[5]) / 1000  # latency (aka waittime)
+            _bytes = None
 
-            yield _tstamp, _url, _concur, _etime, _con_time, _latency, _rstatus, _error, ''
+            yield _tstamp, _url, _concur, _etime, _con_time, _latency, _rstatus, _error, '', _bytes
 
 
 class ApacheBenchmark(RequiredTool):

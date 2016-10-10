@@ -604,8 +604,9 @@ class PBenchKPIReader(ResultsReader):
                 rcd = row["responseCode"]
 
             tstmp = int(float(row["timeStamp"]) + rtm)
+            byte_count = int(row["brecv"])
             concur = 0
-            yield tstmp, label, concur, rtm, cnn, ltc, rcd, error, ''
+            yield tstmp, label, concur, rtm, cnn, ltc, rcd, error, '', byte_count
 
         self.offset = self.fds.tell()
 
