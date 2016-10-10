@@ -118,7 +118,7 @@ class Engine(object):
             self.config.dump()
 
         except BaseException as exc:
-            self.stopping_reason = exc if not self.stopping_reason else self.stopping_reason
+            self.stopping_reason = exc
             raise
 
     def _startup(self):
@@ -139,11 +139,7 @@ class Engine(object):
             self._startup()
             self._wait()
         except NormalShutdown as exc:
-            self.log.debug("Normal shutdown called: %s", traceback.format_exc())
-            self.stopping_reason = exc if not self.stopping_reason else self.stopping_reason
-        except BaseException as exc:
-            self.stopping_reason = exc if not self.stopping_reason else self.stopping_reason
-            raise
+            self.stopping_reason = exc
         finally:
             self.log.warning("Please wait for graceful shutdown...")
             self._shutdown()
@@ -190,7 +186,7 @@ class Engine(object):
                 if module in self.started:
                     module.shutdown()
             except BaseException as exc:
-                self.log.error("Error while shutting down: %s", traceback.format_exc())
+                self.log.debug("Error while shutting down: %s", traceback.format_exc())
                 self.stopping_reason = exc if not self.stopping_reason else self.stopping_reason
                 if not exc_info:
                     exc_info = sys.exc_info()
@@ -213,9 +209,9 @@ class Engine(object):
                     module.post_process()
                 except BaseException as exc:
                     if isinstance(exc, KeyboardInterrupt):
-                        self.log.error("Shutdown: %s", exc)
+                        self.log.debug("Shutdown: %s", exc)
                     else:
-                        self.log.error("Error while post-processing: %s", traceback.format_exc())
+                        self.log.debug("Error while post-processing: %s", exc)
                     if not self.stopping_reason:
                         self.stopping_reason = exc
                     if not exc_info:
@@ -223,9 +219,6 @@ class Engine(object):
         self.config.dump()
 
         if exc_info:
-            self.log.debug("Exception in post-process: %s", exc_info[1])
-            if not isinstance(exc_info[0], KeyboardInterrupt):
-                self.log.warning("Failed post-processing")
             reraise(exc_info)
 
     def create_artifact(self, prefix, suffix):

@@ -52,7 +52,7 @@ class CLI(object):
         self.log.debug("Python: %s %s", platform.python_implementation(), platform.python_version())
         self.log.debug("OS: %s", platform.uname())
         self.engine = Engine(self.log)
-        self.no_errors = True
+        self.exit_code = 0
 
     @staticmethod
     @run_once
@@ -151,7 +151,6 @@ class CLI(object):
         :return: integer exit code
         """
         jmx_shorthands = []
-        exit_code = 0
         try:
             jmx_shorthands = self.__get_jmx_shorthands(configs)
             configs.extend(jmx_shorthands)
@@ -160,61 +159,51 @@ class CLI(object):
             self.engine.prepare()
             self.engine.run()
         except BaseException as exc:
-            exit_code = 1
-            self.log.debug("Caught exception in try: %s", traceback.format_exc())
-            if isinstance(exc, ManualShutdown):
-                self.log.info("Interrupted by user: %s", exc)
-            elif isinstance(exc, NormalShutdown):
-                self.log.info("Normal shutdown")
-            elif isinstance(exc, AutomatedShutdown):
-                self.log.info("Automated shutdown")
-            else:
-                if isinstance(exc, HTTPError):
-                    self.log.warning("Response from %s: %s", exc.geturl(), exc.read())
-                self.log.error("%s: %s", type(exc).__name__, exc)
+            self.log_exception(exc, "In try block:")
         finally:
             try:
                 for fname in jmx_shorthands:
                     os.remove(fname)
                 self.engine.post_process()
             except BaseException as exc:
-                exit_code = 1
-                self.log.debug("Caught exception in finally: %s", traceback.format_exc())
-                if isinstance(exc, KeyboardInterrupt):
-                    self.log.debug("Exception: %s", traceback.format_exc())
-                else:
-                    self.log.error("%s: %s", type(exc).__name__, exc)
-
-        if isinstance(self.engine.stopping_reason, RCProvider):
-            exit_code = self.engine.stopping_reason.get_rc()
+                self.log_exception(exc, "in finally block:")
 
         self.log.info("Artifacts dir: %s", self.engine.artifacts_dir)
-        if exit_code:
-            self.log.warning("Done performing with code: %s", exit_code)
+
+        if self.exit_code:
+            self.log.warning("Done performing with code: %s", self.exit_code)
         else:
-            self.log.info("Done performing with code: %s", exit_code)
+            self.log.info("Done performing with code: %s", self.exit_code)
 
         self.__close_log()
 
-        return exit_code
+        return self.exit_code
 
-    def log_exception(self, exc, message='', level=ERROR):
-        if self.no_errors:
-            self.log.log(level, message)
-            if isinstance(exc, ManualShutdown):
-                self.log.log(INFO, "Interrupted by user: %s" % exc)
-            elif isinstance(exc, AutomatedShutdown):
-                self.log.log(INFO, "Automated shutdown")
-            elif isinstance(exc, NormalShutdown):
-                self.log.log(INFO, "Normal shutdown")
-            elif isinstance(exc, HTTPError):
-                self.log.log(WARNING, "Response from %s: %s" % (exc.geturl(), exc.read()))
+    def log_exception(self, exc, message):
+        info_level = http_level = default_level = DEBUG
+        if not self.exit_code:
+            info_level = INFO
+            http_level = WARNING
+            default_level = ERROR
+            if isinstance(exc, RCProvider):
+                self.exit_code = exc.get_rc()
             else:
-                self.log.log(level, "%s: %s" % (type(exc).__name__, exc))
+                self.exit_code = 1
 
-            self.log.log(level, get_stacktrace(exc))
+        if message:
+            self.log.log(default_level, message)
 
-        self.no_errors = False
+        if isinstance(exc, ManualShutdown):
+            self.log.log(info_level, "Interrupted by user: %s", exc)
+        elif isinstance(exc, AutomatedShutdown):
+            self.log.log(info_level, "Automated shutdown")
+        elif isinstance(exc, NormalShutdown):
+            self.log.log(info_level, "Normal shutdown")
+        elif isinstance(exc, HTTPError):
+            self.log.log(http_level, "Response from %s: %s", exc.geturl(), exc.read())
+        else:
+            self.log.log(default_level, "%s: %s", type(exc).__name__, exc)
+            self.log.log(default_level, get_stacktrace(exc))
 
     def __get_jmx_shorthands(self, configs):
         """
