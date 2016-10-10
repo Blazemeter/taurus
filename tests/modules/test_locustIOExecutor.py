@@ -5,9 +5,9 @@ import time
 from bzt import six
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.locustio import LocustIOExecutor, SlavesReader
+from bzt.modules.provisioning import Local
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul
-from bzt.modules.provisioning import Local
 
 
 class TestLocustIOExecutor(BZTestCase):
@@ -141,7 +141,7 @@ class TestLocustIOExecutor(BZTestCase):
         self.obj.engine.config.merge({
             "execution": [{
                 "executor": "locust",
-                "scenario":{
+                "scenario": {
                     "requests": ["http://blazedemo.com/"]}}]})
 
         self.obj.execution = self.obj.engine.config.get('execution')[0]
@@ -160,6 +160,7 @@ class TestLocustIOExecutor(BZTestCase):
                 "scenario": "loc_sc"}],
             "scenarios": {
                 "loc_sc": {
+                    "keepalive": False,
                     "think-time": "5s",
                     "default-address": "http://blazedemo.com",
                     "headers": {
