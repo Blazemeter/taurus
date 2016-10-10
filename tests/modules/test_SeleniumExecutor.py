@@ -39,7 +39,7 @@ class SeleniumTestCase(BZTestCase):
         self.obj.free_virtual_display()
 
 
-class TestSeleniumJUnitRunner(SeleniumTestCase):
+class TestSeleniumJUnitTester(SeleniumTestCase):
     def test_install_tools(self):
         """
         check installation of selenium-server, junit
@@ -286,6 +286,26 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
             'reporting': [{'module': 'junit-xml'}]
         })
         self.assertEqual(len(self.obj.resource_files()), 1)
+
+    def test_additional_classpath(self):
+        scenario_cp = '/class_path/from/scenario'
+        settings_cp = '/class_path/from/settings'
+        self.configure({
+            'execution': {
+                'scenario': {
+                    'script': __dir__() + '/../selenium/java/',
+                    'additional-classpath': [scenario_cp]},
+                'executor': 'selenium',
+            },
+            'modules': {
+                'selenium': {
+                    'additional-classpath': [settings_cp]
+                }
+            }
+        })
+        self.obj.prepare()
+        self.assertIn(scenario_cp, self.obj.runner.base_class_path)
+        self.assertIn(settings_cp, self.obj.runner.base_class_path)
 
     def test_resource_files_collection_remote_jar(self):
         self.configure({
