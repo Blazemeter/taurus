@@ -14,6 +14,7 @@
  - add `selenium-webdriver` npm package installation for Mocha runner
  - make `-locations` respect `use-deprecated-api` flag
  - don't exclude executable nose scripts for Selenium 
+ - add setup of global `additional-classpath` ability to SeleniumExecutor
 
 ## 1.7.0 <sup>2 oct 2016</sup>
  - add RSpec tests runner for Selenium
