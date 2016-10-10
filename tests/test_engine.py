@@ -174,7 +174,7 @@ class TestScenarioExecutor(BZTestCase):
         self.assertIn(hosts_file, str(stdout))
 
     def test_doesnt_create_hostaliases(self):
-        self.executor.execute(["echo"])
+        self.executor.execute(["echo"], shell=True)
         hosts_file = os.path.join(self.engine.artifacts_dir, "hostaliases")
         self.assertFalse(os.path.exists(hosts_file))
 
