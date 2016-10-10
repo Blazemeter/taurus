@@ -398,7 +398,7 @@ class Engine(object):
             return dest
         elif self.file_search_paths:
             for dirname in self.file_search_paths:
-                location = os.path.join(dirname, os.path.basename(filename))
+                location = os.path.join(dirname, filename)
                 if os.path.exists(location):
                     self.log.warning("Guessed location from search paths for %s: %s", filename, location)
                     return location

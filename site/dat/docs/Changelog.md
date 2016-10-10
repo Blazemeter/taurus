@@ -13,6 +13,7 @@
  - add Mocha autoinstallation for Selenium tests
  - add `selenium-webdriver` npm package installation for Mocha runner
  - make `-locations` respect `use-deprecated-api` flag
+ - fix relative path processing in find_file()
 
 ## 1.7.0 <sup>2 oct 2016</sup>
  - add RSpec tests runner for Selenium
