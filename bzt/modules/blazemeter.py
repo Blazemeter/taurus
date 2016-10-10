@@ -1376,7 +1376,7 @@ class BlazeMeterClient(object):
             "latencyMin": 0,
             "latencySTD": 0,
 
-            "bytes": 0,
+            "bytes": cumul[KPISet.BYTE_COUNT],
             "bytesMax": 0,
             "bytesMin": 0,
             "bytesAvg": 0,
@@ -1412,10 +1412,10 @@ class BlazeMeterClient(object):
             "by": {
                 "min": 0,
                 "max": 0,
-                "sum": 0,
-                "n": 0,
+                "sum": item[KPISet.BYTE_COUNT],
+                "n": item[KPISet.SAMPLE_COUNT],
                 "std": 0,
-                "avg": 0
+                "avg": item[KPISet.BYTE_COUNT] / float(item[KPISet.SAMPLE_COUNT])
             },
         }
 
