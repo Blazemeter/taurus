@@ -1148,14 +1148,23 @@ from selenium.common.exceptions import NoAlertPresentException
             if subject != "body":
                 raise ValueError("Only 'body' subject supported ")
 
+            assert_message = "'%s' " % val
+            if not reverse:
+                assert_message += 'not '
+            assert_message += 'found in BODY'
+
             if regexp:
                 assert_method = "self.assertEqual" if reverse else "self.assertNotEqual"
                 assertion_elements.append(self.gen_statement("re_pattern = re.compile(r'%s')" % val))
-                method = '%s(0, len(re.findall(re_pattern, body)))' % assert_method
+
+                method = '%s(0, len(re.findall(re_pattern, body)), "AssertionError: %s")'
+                method %= assert_method, assert_message
                 assertion_elements.append(self.gen_statement(method))
             else:
                 assert_method = "self.assertNotIn" if reverse else "self.assertIn"
-                assertion_elements.append(self.gen_statement('%s("%s", body)' % (assert_method, val)))
+                method = '%s("%s", body, "AssertionError: %s")'
+                method %= assert_method, val, assert_message
+                assertion_elements.append(self.gen_statement(method))
         return assertion_elements
 
     def __gen_assert_page(self):

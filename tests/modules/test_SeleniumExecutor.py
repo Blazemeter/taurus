@@ -854,7 +854,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.assertIsInstance(self.obj.runner, NoseTester)
 
 
-class TestASeleniumScriptBuilder(SeleniumTestCase):
+class TestSeleniumScriptBuilder(SeleniumTestCase):
     def test_build_script(self):
         self.configure({
             "execution": [{
@@ -866,7 +866,10 @@ class TestASeleniumScriptBuilder(SeleniumTestCase):
                 "loc_sc": {
                     "default-address": "http://blazedemo.com",
                     "requests": [{
-                        "url": "/"}]}},
+                        "url": "/",
+                        "assert": [{
+                            "contains": ['contained_text'],
+                            "not": True}]}]}},
             "modules": {
                 "selenium": {
                     "^virtual-display": 0}}})
