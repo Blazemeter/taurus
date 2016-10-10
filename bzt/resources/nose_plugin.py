@@ -152,7 +152,7 @@ class BZTPlugin(Plugin):
 def run_nose(report_file, files, iterations, hold):
     argv = [__file__, '-v']
     argv.extend(files)
-    argv.extend(['--with-bzt_plugin', '--nocapture'])
+    argv.extend(['--with-bzt_plugin', '--nocapture', '--exe'])
 
     if iterations == 0:
         if hold > 0:
