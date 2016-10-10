@@ -37,6 +37,7 @@ class KPISet(BetterDict):
     CONCURRENCY = "concurrency"
     SUCCESSES = "succ"
     FAILURES = "fail"
+    BYTE_COUNT = "bytes"
     RESP_TIMES = "rt"
     AVG_RESP_TIME = "avg_rt"
     STDEV_RESP_TIME = "stdev_rt"
@@ -62,6 +63,7 @@ class KPISet(BetterDict):
         self.get(self.STDEV_RESP_TIME, 0)
         self.get(self.AVG_LATENCY, 0)
         self.get(self.AVG_CONN_TIME, 0)
+        self.get(self.BYTE_COUNT, 0)
         # vectors
         self.get(self.ERRORS, [])
         self.get(self.RESP_TIMES, Counter())
@@ -99,12 +101,12 @@ class KPISet(BetterDict):
 
     def add_sample(self, sample):
         """
-        Add sample, consisting of: cnc, rt, cn, lt, rc, error, trname
+        Add sample, consisting of: cnc, rt, cn, lt, rc, error, trname, byte_count
 
         :type sample: tuple
         """
         # TODO: introduce a flag to not count failed in resp times? or offer it always?
-        cnc, r_time, con_time, latency, r_code, error, trname = sample
+        cnc, r_time, con_time, latency, r_code, error, trname, byte_count = sample
         self[self.SAMPLE_COUNT] += 1
         if cnc:
             self._concurrencies[trname] = cnc
@@ -127,6 +129,9 @@ class KPISet(BetterDict):
             self[self.SUCCESSES] += 1
 
         self[self.RESP_TIMES][r_time] += 1
+
+        if byte_count is not None:
+            self[self.BYTE_COUNT] += byte_count
         # TODO: max/min rt? there is percentiles...
         # TODO: throughput if interval is not 1s
 
@@ -192,6 +197,7 @@ class KPISet(BetterDict):
         self[self.SAMPLE_COUNT] += src[self.SAMPLE_COUNT]
         self[self.SUCCESSES] += src[self.SUCCESSES]
         self[self.FAILURES] += src[self.FAILURES]
+        self[self.BYTE_COUNT] += src[self.BYTE_COUNT]
         # NOTE: should it be average? mind the timestamp gaps
         if src[self.CONCURRENCY]:
             self._concurrencies[sid] = src[self.CONCURRENCY]
@@ -438,7 +444,7 @@ class ResultsReader(ResultsProvider):
                 self.log.debug("No data from reader")
                 break
             elif isinstance(result, list) or isinstance(result, tuple):
-                t_stamp, label, conc, r_time, con_time, latency, r_code, error, trname = result
+                t_stamp, label, conc, r_time, con_time, latency, r_code, error, trname, byte_count = result
 
                 if label in self.ignored_labels:
                     continue
@@ -448,7 +454,7 @@ class ResultsReader(ResultsProvider):
 
                 if t_stamp not in self.buffer:
                     self.buffer[t_stamp] = []
-                self.buffer[t_stamp].append((label, conc, r_time, con_time, latency, r_code, error, trname))
+                self.buffer[t_stamp].append((label, conc, r_time, con_time, latency, r_code, error, trname, byte_count))
             else:
                 raise ValueError("Unsupported results from reader: %s" % result)
 
@@ -460,7 +466,7 @@ class ResultsReader(ResultsProvider):
         """
         current = datapoint[DataPoint.CURRENT]
         for sample in samples:
-            label, r_time, concur, con_time, latency, r_code, error, trname = sample
+            label, r_time, concur, con_time, latency, r_code, error, trname, byte_count = sample
             if label == '':
                 label = '[empty]'
 
@@ -473,7 +479,7 @@ class ResultsReader(ResultsProvider):
                 label = current.get(label, KPISet(self.track_percentiles))
 
             # empty means overall
-            label.add_sample((r_time, concur, con_time, latency, r_code, error, trname))
+            label.add_sample((r_time, concur, con_time, latency, r_code, error, trname, byte_count))
         overall = KPISet(self.track_percentiles)
         for label in current.values():
             overall.merge_kpis(label, datapoint[DataPoint.SOURCE_ID])

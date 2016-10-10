@@ -1292,7 +1292,8 @@ class LoadSamplesReader(ResultsReader):
         rcd = self.STATUS_TO_CODE.get(item["status"], "UNKNOWN")
         error = item["error_msg"] if item["status"] in SeleniumReportReader.FAILING_TESTS_STATUSES else None
         trname = ""
-        return tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname
+        byte_count = None
+        return tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname, byte_count
 
     def _read(self, last_pass=False):
         for row in self.report_reader.read(last_pass):
