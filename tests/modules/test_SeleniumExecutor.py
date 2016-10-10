@@ -8,13 +8,13 @@ import unittest
 import yaml
 
 from bzt.engine import ScenarioExecutor
-from bzt.modules.selenium import SeleniumExecutor, JUnitJar, LoadSamplesReader, LDJSONReader, FuncSamplesReader
+from bzt.modules.provisioning import Local
 from bzt.modules.selenium import NoseTester
+from bzt.modules.selenium import SeleniumExecutor, JUnitJar, LoadSamplesReader, LDJSONReader, FuncSamplesReader
 from bzt.six import StringIO
 from bzt.utils import is_windows, get_full_path
 from tests import BZTestCase, local_paths_config, __dir__
 from tests.mocks import EngineEmul
-from bzt.modules.provisioning import Local
 
 
 class SeleniumTestCase(BZTestCase):
@@ -295,14 +295,10 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
                 'scenario': {
                     'script': __dir__() + '/../selenium/java/',
                     'additional-classpath': [scenario_cp]},
-                'executor': 'selenium',
-            },
+                'executor': 'selenium',},
             'modules': {
                 'selenium': {
-                    'additional-classpath': [settings_cp]
-                }
-            }
-        })
+                    'additional-classpath': [settings_cp]}}})
         self.obj.prepare()
         self.assertIn(scenario_cp, self.obj.runner.base_class_path)
         self.assertIn(settings_cp, self.obj.runner.base_class_path)
