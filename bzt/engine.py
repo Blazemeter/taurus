@@ -205,7 +205,7 @@ class Engine(object):
         """
         self.log.info("Post-processing...")
         # :type exception: BaseException
-        exception = None
+        exc_info = None
         modules = [self.provisioning, self.aggregator] + self.reporters + self.services
         for module in modules:
             if module in self.prepared:
@@ -216,16 +216,17 @@ class Engine(object):
                         self.log.error("Shutdown: %s", exc)
                     else:
                         self.log.error("Error while post-processing: %s", traceback.format_exc())
-                    if not exception:
-                        exception = exc
+                    if not self.stopping_reason:
+                        self.stopping_reason = exc
+                    if not exc_info:
+                        exc_info = sys.exc_info()
         self.config.dump()
 
-        if exception:
-            self.log.debug("Exception in post-process: %s", exception)
-            self.stopping_reason = exception if not self.stopping_reason else self.stopping_reason
-            if not isinstance(exception, KeyboardInterrupt):
+        if exc_info:
+            self.log.debug("Exception in post-process: %s", exc_info[1])
+            if not isinstance(exc_info[0], KeyboardInterrupt):
                 self.log.warning("Failed post-processing")
-            raise exception
+            reraise(exc_info)
 
     def create_artifact(self, prefix, suffix):
         """

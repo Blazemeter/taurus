@@ -148,8 +148,8 @@ class CLI(object):
         :type configs: list
         :return: integer exit code
         """
-        overrides = []
         jmx_shorthands = []
+        exit_code = 0
         try:
             jmx_shorthands = self.__get_jmx_shorthands(configs)
             configs.extend(jmx_shorthands)
@@ -157,8 +157,8 @@ class CLI(object):
             self.__configure(configs)
             self.engine.prepare()
             self.engine.run()
-            exit_code = 0
         except BaseException as exc:
+            exit_code = 1
             self.log.debug("Caught exception in try: %s", traceback.format_exc())
             if isinstance(exc, ManualShutdown):
                 self.log.info("Interrupted by user: %s", exc)
@@ -170,21 +170,20 @@ class CLI(object):
                 if isinstance(exc, HTTPError):
                     self.log.warning("Response from %s: %s", exc.geturl(), exc.read())
                 self.log.error("%s: %s", type(exc).__name__, exc)
-            exit_code = 1
         finally:
             try:
-                for fname in overrides + jmx_shorthands:
+                for fname in jmx_shorthands:
                     os.remove(fname)
                 self.engine.post_process()
-            except KeyboardInterrupt as exc:
-                self.log.debug("Exception: %s", traceback.format_exc())
-                exit_code = 1
-                if isinstance(exc, RCProvider):
-                    exit_code = exc.get_rc()
             except BaseException as exc:
                 self.log.debug("Caught exception in finally: %s", traceback.format_exc())
-                self.log.error("%s: %s", type(exc).__name__, exc)
                 exit_code = 1
+                if isinstance(exc, KeyboardInterrupt):
+                    self.log.debug("Exception: %s", traceback.format_exc())
+                    if isinstance(exc, RCProvider):
+                        exit_code = exc.get_rc()
+                else:
+                    self.log.error("%s: %s", type(exc).__name__, exc)
 
         if isinstance(self.engine.stopping_reason, RCProvider):
             exit_code = self.engine.stopping_reason.get_rc()
