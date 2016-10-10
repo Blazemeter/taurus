@@ -11,7 +11,7 @@ from bzt.engine import ScenarioExecutor
 from bzt.modules.selenium import SeleniumExecutor, JUnitJar, LoadSamplesReader, LDJSONReader, FuncSamplesReader
 from bzt.modules.selenium import NoseTester
 from bzt.six import StringIO
-from bzt.utils import is_windows
+from bzt.utils import is_windows, get_full_path
 from tests import BZTestCase, local_paths_config, __dir__
 from tests.mocks import EngineEmul
 from bzt.modules.provisioning import Local
@@ -488,7 +488,6 @@ class TestSeleniumRSpecRunner(SeleniumTestCase):
         self.assertEqual(len(lines), 48)
 
 
-@unittest.skipIf(is_windows(), "Don't test Mocha on Windows")
 class TestSeleniumMochaRunner(SeleniumTestCase):
     def test_selenium_prepare_mocha(self):
         self.obj.execution.merge({"scenario": {
@@ -515,6 +514,7 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         while not self.obj.check():
             time.sleep(1)
         self.obj.shutdown()
+
         self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
         lines = open(self.obj.runner.settings.get("report-file")).readlines()
         self.assertEqual(len(lines), 3)
@@ -568,6 +568,41 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
         lines = open(self.obj.runner.settings.get("report-file")).readlines()
         self.assertEqual(len(lines), 9)
+
+    def test_install_mocha(self):
+        dummy_installation_path = get_full_path(__dir__() + "/../../build/tmp/selenium-taurus/mocha")
+        mocha_link = get_full_path(__dir__() + "/../data/mocha-3.1.0.tgz")
+        wd_link = get_full_path(__dir__() + "/../data/selenium-webdriver-1.0.0.tgz")
+
+        shutil.rmtree(os.path.dirname(dummy_installation_path), ignore_errors=True)
+        self.assertFalse(os.path.exists(dummy_installation_path))
+
+        old_node_path = os.environ.get("NODE_PATH")
+        if old_node_path:
+            os.environ.pop("NODE_PATH")
+
+        orig_mocha_package = SeleniumExecutor.MOCHA_NPM_PACKAGE_NAME
+        orig_wd_package = SeleniumExecutor.SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME
+        SeleniumExecutor.MOCHA_NPM_PACKAGE_NAME = mocha_link
+        SeleniumExecutor.SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME = wd_link
+
+        self.obj.settings.merge({"selenium-tools": {
+            "mocha": {"tools-dir": dummy_installation_path}
+        }})
+
+        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/js-mocha/bd_scenarios.js"}})
+        self.obj.prepare()
+        self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "node_modules")))
+        self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "node_modules", "mocha")))
+        self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "node_modules", "mocha", "index.js")))
+        self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "node_modules", "selenium-webdriver")))
+        self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "node_modules", "selenium-webdriver",
+                                                    "index.js")))
+
+        SeleniumExecutor.MOCHA_NPM_PACKAGE_NAME = orig_mocha_package
+        SeleniumExecutor.SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME = orig_wd_package
+        if old_node_path:
+            os.environ["NODE_PATH"] = old_node_path
 
 
 class LDJSONReaderEmul(object):

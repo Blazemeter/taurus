@@ -629,6 +629,28 @@ def shutdown_process(process_obj, log_obj):
             log_obj.debug("Failed to terminate process: %s", exc)
 
 
+class ExceptionalDownloader(request.FancyURLopener, object):
+    def http_error_default(self, url, fp, errcode, errmsg, headers):
+        fp.close()
+        raise ValueError("Unsuccessful download from %s: %s - %s" % (url, errcode, errmsg))
+
+    def get(self, url, filename=None, reporthook=None, data=None, suffix=""):
+        fd = None
+        try:
+            if not filename:
+                fd, filename = tempfile.mkstemp(suffix)
+            response = self.retrieve(url, filename, reporthook, data)
+        except:
+            if fd:
+                os.close(fd)
+                os.remove(filename)
+            raise
+
+        if fd:
+            os.close(fd)
+        return response
+
+
 class RequiredTool(object):
     """
     Abstract required tool
@@ -650,47 +672,37 @@ class RequiredTool(object):
 
     def install(self):
         with ProgressBarContext() as pbar:
-            try:
-                if not os.path.exists(os.path.dirname(self.tool_path)):
-                    os.makedirs(os.path.dirname(self.tool_path))
-                downloader = request.FancyURLopener()
-                downloader.retrieve(self.download_link, self.tool_path, pbar.download_callback)
+            if not os.path.exists(os.path.dirname(self.tool_path)):
+                os.makedirs(os.path.dirname(self.tool_path))
+            downloader = ExceptionalDownloader()
+            downloader.get(self.download_link, self.tool_path, reporthook=pbar.download_callback)
 
-                if self.check_if_installed():
-                    return self.tool_path
-                else:
-                    raise RuntimeError("Unable to run %s after installation!" % self.tool_name)
-            except BaseException as exc:
-                raise exc
+            if self.check_if_installed():
+                return self.tool_path
+            else:
+                raise RuntimeError("Unable to run %s after installation!" % self.tool_name)
 
-    def download_archive(self, links, suffix):
-        downloader = request.FancyURLopener()
-        tool_dist = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)  # delete=False because of Windows
+    def _download(self, suffix=".zip", use_link=False):
+        if use_link:
+            links = [self.download_link]
+        else:
+            links = self.mirror_manager.mirrors()
+
+        downloader = ExceptionalDownloader()
         sock_timeout = socket.getdefaulttimeout()
+        socket.setdefaulttimeout(5)
         for link in links:
             self.log.info("Downloading: %s", link)
             with ProgressBarContext() as pbar:
                 try:
-                    socket.setdefaulttimeout(5)
-                    downloader.retrieve(link, tool_dist.name, pbar.download_callback)
-                    return tool_dist
+                    return downloader.get(link, reporthook=pbar.download_callback, suffix=suffix)[0]
                 except KeyboardInterrupt:
                     raise
-                except BaseException:
-                    self.log.error("Error while downloading %s", link)
-                    continue
+                except BaseException as exc:
+                    self.log.error("Error while downloading %s: %s" % (link, exc))
                 finally:
                     socket.setdefaulttimeout(sock_timeout)
         raise RuntimeError("%s download failed: No more links to try" % self.tool_name)
-
-    def install_with_link(self, dest, suffix):
-        self.log.info("Will install %s into %s", self.tool_name, dest)
-        return self.download_archive([self.download_link], suffix)
-
-    def install_with_mirrors(self, dest, suffix):
-        self.log.info("Will install %s into %s", self.tool_name, dest)
-        mirrors = self.mirror_manager.mirrors()
-        return self.download_archive(mirrors, suffix)
 
 
 class JavaVM(RequiredTool):
@@ -822,9 +834,9 @@ class MirrorsManager(object):
 
     def mirrors(self):
         self.log.debug("Retrieving mirrors from page: %s", self.base_link)
-        downloader = request.FancyURLopener()
+        downloader = ExceptionalDownloader()
         try:
-            tmp_file = downloader.retrieve(self.base_link)[0]
+            tmp_file = downloader.get(self.base_link)[0]
             with open(tmp_file) as fds:
                 self.page_source = fds.read()
         except BaseException:

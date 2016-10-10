@@ -356,7 +356,7 @@ from locust import HttpLocust, TaskSet, task
             else:
                 param_dict['data'] = '"%s"' % req.body
 
-        if req.headers:
+        if headers:
             param_dict['headers'] = json.dumps(headers)
         keys = (list(param_dict.keys()))
         keys.sort()

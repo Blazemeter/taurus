@@ -656,13 +656,12 @@ class Gatling(RequiredTool):
             return False
 
     def install(self):
-        dest = os.path.dirname(os.path.dirname(os.path.expanduser(self.tool_path)))
-        dest = os.path.abspath(dest)
-        gatling_dist = super(Gatling, self).install_with_mirrors(dest, ".zip")
-        self.log.info("Unzipping %s", gatling_dist.name)
-        unzip(gatling_dist.name, dest, 'gatling-charts-highcharts-bundle-' + self.version)
-        gatling_dist.close()
-        os.remove(gatling_dist.name)
+        dest = get_full_path(self.tool_path, step_up=2)
+        self.log.info("Will install %s into %s", self.tool_name, dest)
+        gatling_dist = self._download()
+        self.log.info("Unzipping %s", gatling_dist)
+        unzip(gatling_dist, dest, 'gatling-charts-highcharts-bundle-' + self.version)
+        os.remove(gatling_dist)
         os.chmod(os.path.expanduser(self.tool_path), 0o755)
         self.log.info("Installed Gatling successfully")
         if not self.check_if_installed():
