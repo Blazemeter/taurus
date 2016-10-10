@@ -889,9 +889,11 @@ class JTLReader(ResultsReader):
             else:
                 error = None
 
+            byte_count = int(row.get("bytes", 0))
+
             tstmp = int(int(row["timeStamp"]) / 1000)
             self.read_records += 1
-            yield tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname
+            yield tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname, byte_count
 
     def _calculate_datapoints(self, final_pass=False):
         for point in super(JTLReader, self)._calculate_datapoints(final_pass):

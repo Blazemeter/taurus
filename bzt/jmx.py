@@ -199,7 +199,7 @@ class JMX(object):
             "requestHeaders": False,
             "responseDataOnError": False,
             "saveAssertionResultsFailureMessage": False,
-            "bytes": False,
+            "bytes": True,
             "hostname": True,
             "threadCounts": True,
             "url": False
