@@ -165,7 +165,7 @@ class TestCloudProvisioning(BZTestCase):
     def test_widget_cloud_test(self):
         obj = CloudProvisioning()
         obj.client = BlazeMeterClientEmul(logging.getLogger(''))
-        obj.test = CloudTaurusTest({}, {}, obj.client, None, None, None, logging.getLogger(''))
+        obj.test = CloudTaurusTest(obj.client, None, None, None, None, logging.getLogger(''))
         obj.client.results.append({"result": []})
         obj.client.results.append({"result": {"sessions": [
             {
@@ -195,7 +195,7 @@ class TestCloudProvisioning(BZTestCase):
     def test_widget_cloud_collection(self):
         obj = CloudProvisioning()
         obj.client = BlazeMeterClientEmul(logging.getLogger(''))
-        obj.test = CloudCollectionTest({}, {}, obj.client, None, None, None, logging.getLogger(''))
+        obj.test = CloudCollectionTest(obj.client, None, None, None, None, logging.getLogger(''))
         obj.client.results.append({"result": {"sessions": [
             {
                 "id": "session-id",
@@ -266,8 +266,7 @@ class TestCloudProvisioning(BZTestCase):
             },
         })
         obj.parameters = obj.engine.config['execution']
-        obj.test = CloudTaurusTest(obj.engine.config['execution'], {}, obj.client, None, None, "name",
-                                   logging.getLogger(''))
+        obj.test = CloudTaurusTest(obj.client, None, None, "name", None, logging.getLogger(''))
         cloud_config = obj.test.prepare_cloud_config(obj.engine.config)
         execution = cloud_config["execution"][0]
         self.assertNotIn("throughput", execution)

@@ -585,6 +585,7 @@ class ProjectFinder(object):
 
         test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
         use_deprecated = self.settings.get("use-deprecated-api", True)
+        default_location = self.settings.get("default-location", None)
 
         collection = self.client.find_collection(test_name, project_id)
         self.log.debug("Looking for collection: %s", collection)
@@ -608,22 +609,21 @@ class ProjectFinder(object):
                     test_class = CloudCollectionTest
                 test_id = None
 
-        return test_class(self.parameters, self.settings, self.client, test_id, project_id, test_name, self.log)
+        return test_class(self.client, test_id, project_id, test_name, default_location, self.log)
 
 
 class BaseCloudTest(object):
     """
     :type client: BlazeMeterClient
     """
-    def __init__(self, parameters, settings, client, test_id, project_id, test_name, parent_log):
+    def __init__(self, client, test_id, project_id, test_name, default_location, parent_log):
         self.default_test_name = "Taurus Test"
         self.client = client
-        self.parameters = parameters
-        self.settings = settings
         self.log = parent_log.getChild(self.__class__.__name__)
         self.project_id = project_id
         self.test_name = test_name
         self.test_id = test_id
+        self.default_location = default_location
         self._last_status = None
         self._sessions = None
         self._started = False
@@ -682,11 +682,10 @@ class CloudTaurusTest(BaseCloudTest):
             executor.get_load()  # we need it to resolve load settings into full form
 
     def _get_default_location(self, available_locations):
-        def_loc = self.settings.get("default-location", None)
-        if def_loc and def_loc in available_locations:
-            return def_loc
+        if self.default_location and self.default_location in available_locations:
+            return self.default_location
 
-        self.log.debug("Default location %s not found", def_loc)
+        self.log.debug("Default location %s not found", self.default_location)
 
         for location_id in sorted(available_locations):
             location = available_locations[location_id]
