@@ -9,7 +9,7 @@ RUN apt-get -y update \
   && apt-get -y install --no-install-recommends \
     kmod \
     unzip \
-    gcc \
+    build-essential \
     libxslt1-dev \
     zlib1g-dev \
     libxi6 \
@@ -28,13 +28,14 @@ RUN apt-get -y update \
     pepperflashplugin-nonfree \
     flashplugin-installer \
     phantomjs \
-    ruby \
+    ruby ruby-dev \
     nodejs \
     npm \
   && pip install --upgrade setuptools pip \
   && pip install locustio bzt \
   && npm install -g mocha \
   && gem install rspec \
+  && gem install selenium-webdriver \
   && firefox --version \
   && chromium-browser --version \
   && rm -rf /var/lib/apt/lists/*

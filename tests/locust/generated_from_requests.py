@@ -7,7 +7,7 @@ from locust import HttpLocust, TaskSet, task
 class UserBehaviour(TaskSet):
     @task(1)
     def generated_task(self):
-        with self.client.get(headers={"Keep-Alive": "timeout=15, max=100", "var2": "val2"}, timeout=30.0, url="/", catch_response=True) as response:
+        with self.client.get(headers={"Connection": "close", "Keep-Alive": "timeout=15, max=100", "var2": "val2"}, timeout=30.0, url="/", catch_response=True) as response:
             if not all(str(val) in response.content for val in ['text1', 'text2']):
                 response.failure("['text1', 'text2'] not found in body")
             elif not all(findall(compile(str(val)), response.content) for val in ['enigma for body']):
@@ -17,8 +17,8 @@ class UserBehaviour(TaskSet):
             else:
                 response.success()
         sleep(5.0)
-        
-        with self.client.post(data={"var1": "val1"}, headers={"Keep-Alive": "timeout=15, max=100"}, timeout=1.5, url="/page", catch_response=True) as response:
+
+        with self.client.post(data={"var1": "val1"}, headers={"Connection": "close", "Keep-Alive": "timeout=15, max=100"}, timeout=1.5, url="/page", catch_response=True) as response:
             if not all(findall(compile(str(val)), response.content) for val in ['\\w+l1e']):
                 response.failure("['\\w+l1e'] not found in body")
             else:

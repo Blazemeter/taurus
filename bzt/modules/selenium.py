@@ -378,6 +378,7 @@ class JUnitTester(AbstractTestRunner):
 
         self.base_class_path = [self.selenium_server_jar_path, self.junit_path, self.junit_listener_path,
                                 self.hamcrest_path, self.json_jar_path]
+        self.base_class_path.extend(executor.settings.get("additional-classpath", []))
         self.base_class_path.extend(self.scenario.get("additional-classpath", []))
         self.base_class_path = [os.path.abspath(executor.engine.find_file(x)) for x in self.base_class_path]
 

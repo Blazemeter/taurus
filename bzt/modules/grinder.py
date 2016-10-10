@@ -417,6 +417,9 @@ from HTTPClient import NVPair
         self.root.append(self.gen_statement("utilities = HTTPPluginControl.getHTTPUtilities()", indent=0))
 
         headers = self.scenario.get_headers()
+        if not self.scenario.get("keepalive", True):
+            headers['Connection'] = 'close'
+
         if headers:
             self.root.append(self.gen_statement("defaults.setDefaultHeaders([", indent=0))
             for header, value in iteritems(headers):
