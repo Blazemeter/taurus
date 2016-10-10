@@ -1379,7 +1379,7 @@ class BlazeMeterClient(object):
             "bytes": cumul[KPISet.BYTE_COUNT],
             "bytesMax": 0,
             "bytesMin": 0,
-            "bytesAvg": 0,
+            "bytesAvg": int(cumul[KPISet.BYTE_COUNT] / float(cumul[KPISet.SAMPLE_COUNT])),
             "bytesSTD": 0,
 
             "otherErrorsSpillcount": 0,
