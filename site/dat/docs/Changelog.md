@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.7.1 (upcoming)
+## 1.7.1 <sup>10 oct 2016</sup>
  - fix Mocha runner race condition
  - support more scenario options for Grinder script generation
  - add move check for executor results availability to provisioning
