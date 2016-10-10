@@ -1634,7 +1634,17 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.check_interval = 5.0
         self.__last_check_time = None
 
+    def _merge_with_blazemeter_config(self):
+        if 'blazemeter' not in self.engine.config.get('modules'):
+            self.log.debug("Module 'blazemeter' wasn't found in base config")
+            return
+        bm_mod = self.engine.instantiate_module('blazemeter')
+        bm_settings = copy.deepcopy(bm_mod.settings)
+        bm_settings.update(self.settings)
+        self.settings = bm_settings
+
     def prepare(self):
+        self._merge_with_blazemeter_config()
         if self.settings.get("dump-locations", False):
             self.log.warning("Dumping available locations instead of running the test")
             self._configure_client()
@@ -1682,16 +1692,12 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
     def _configure_client(self):
         self.client.logger_limit = self.settings.get("request-logging-limit", self.client.logger_limit)
-        # TODO: go to "blazemeter" section for these settings by default?
         self.client.address = self.settings.get("address", self.client.address)
         self.client.token = self.settings.get("token", self.client.token)
         self.client.timeout = dehumanize_time(self.settings.get("timeout", self.client.timeout))
         self.client.delete_files_before_test = self.settings.get("delete-test-files", True)
         if not self.client.token:
-            bmmod = self.engine.instantiate_module('blazemeter')
-            self.client.token = bmmod.settings.get("token")
-            if not self.client.token:
-                raise ValueError("You must provide API token to use cloud provisioning")
+            raise ValueError("You must provide API token to use cloud provisioning")
 
     def startup(self):
         super(CloudProvisioning, self).startup()
