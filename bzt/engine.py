@@ -135,14 +135,24 @@ class Engine(object):
         calls `shutdown` in any case
         """
         self.log.info("Starting...")
+        exc_info = None
         try:
             self._startup()
             self._wait()
-        except NormalShutdown as exc:
+        except BaseException as exc:
             self.stopping_reason = exc
+            exc_info = sys.exc_info()
         finally:
             self.log.warning("Please wait for graceful shutdown...")
-            self._shutdown()
+            try:
+                self._shutdown()
+            except BaseException as exc:
+                if not self.stopping_reason:
+                    self.stopping_reason = exc
+                    exc_info = sys.exc_info()
+
+        if exc_info:
+            reraise(exc_info)
 
     def _check_modules_list(self):
         finished = False
