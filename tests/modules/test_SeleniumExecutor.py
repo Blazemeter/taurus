@@ -288,8 +288,8 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         self.assertEqual(len(self.obj.resource_files()), 1)
 
     def test_additional_classpath(self):
-        scenario_cp = '/class_path/from/scenario'
-        settings_cp = '/class_path/from/settings'
+        scenario_cp = 'class_path_from_scenario'
+        settings_cp = 'class_path_from_settings'
         self.configure({
             'execution': {
                 'scenario': {
@@ -300,8 +300,8 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
                 'selenium': {
                     'additional-classpath': [settings_cp]}}})
         self.obj.prepare()
-        self.assertIn(scenario_cp, self.obj.runner.base_class_path)
-        self.assertIn(settings_cp, self.obj.runner.base_class_path)
+        self.assertTrue(any(scenario_cp in element for element in self.obj.runner.base_class_path))
+        self.assertTrue(any(settings_cp in element for element in self.obj.runner.base_class_path))
 
     def test_resource_files_collection_remote_jar(self):
         self.configure({
