@@ -28,7 +28,6 @@ import yaml
 from colorlog import ColoredFormatter
 
 import bzt
-from logging import DEBUG, ERROR, INFO, WARNING
 from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown
 from bzt.engine import Engine, Configuration, ScenarioExecutor
 from bzt.six import HTTPError, string_types, b, get_stacktrace
@@ -180,11 +179,11 @@ class CLI(object):
         return self.exit_code
 
     def log_exception(self, exc, message):
-        info_level = http_level = default_level = DEBUG
+        info_level = http_level = default_level = logging.DEBUG
         if not self.exit_code:
-            info_level = INFO
-            http_level = WARNING
-            default_level = ERROR
+            info_level = logging.INFO
+            http_level = logging.WARNING
+            default_level = logging.ERROR
             if isinstance(exc, RCProvider):
                 self.exit_code = exc.get_rc()
             else:
