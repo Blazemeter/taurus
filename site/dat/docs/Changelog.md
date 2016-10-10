@@ -13,6 +13,7 @@
  - add Mocha autoinstallation for Selenium tests
  - add `selenium-webdriver` npm package installation for Mocha runner
  - make `-locations` respect `use-deprecated-api` flag
+ - don't exclude executable nose scripts for Selenium 
  - add setup of global `additional-classpath` ability to SeleniumExecutor
  - support `keepalive` flag for Locust and Grinder
 
