@@ -381,6 +381,20 @@ class TestJMeterExecutor(BZTestCase):
         self.assertIn(csv_file, resource_files)
         self.assertIn(csv_file_uni, resource_files)
 
+    def test_resource_files_jsr223(self):
+        js_file = __dir__() + '/../data/data.js'
+        self.configure({
+            'execution': {
+                'scenario': {
+                    'requests': [{
+                        'url': 'http://blazedemo.com/',
+                        'jsr223': {
+                            'language': 'javascript',
+                            'script-file': js_file,
+                        }}]}}})
+        resource_files = self.obj.resource_files()
+        self.assertIn(js_file, resource_files)
+
     def test_http_request_defaults(self):
         self.configure(json.loads(open(__dir__() + "/../json/get-post.json").read()))
         self.obj.prepare()
@@ -1712,6 +1726,60 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(sample.duration, 0.01)
         self.assertEqual(sample.error_msg, "Non HTTP response message: Read timed out")
         self.assertTrue(sample.error_trace.startswith("java.net.SocketTimeoutException: Read timed out"))
+
+    def test_jsr223_block(self):
+        script = __dir__() + "/../jmeter/jsr223_script.js"
+        self.configure({
+            "execution": {
+                "scenario": {
+                    "requests": [{
+                        "url": "http://blazedemo.com/",
+                        "jsr223": {
+                            "language": "javascript",
+                            "script-file": script,
+                        }
+                    }]
+                }
+            }
+        })
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        post_procs = xml_tree.findall(".//JSR223PostProcessor[@testclass='JSR223PostProcessor']")
+        self.assertEqual(1, len(post_procs))
+
+        jsr = post_procs[0]
+        self.assertEqual(script, jsr.find(".//stringProp[@name='filename']").text)
+        self.assertEqual("javascript", jsr.find(".//stringProp[@name='scriptLanguage']").text)
+        self.assertEqual(None, jsr.find(".//stringProp[@name='parameters']").text)
+
+    def test_jsr223_exceptions(self):
+        self.configure({
+            "execution": {
+                "scenario": {
+                    "requests": [{
+                        "url": "http://blazedemo.com/",
+                        "jsr223": {
+                            "script-file": "something.js",
+                        }
+                    }]
+                }
+            }
+        })
+        self.assertRaises(ValueError, self.obj.prepare)
+        self.configure({
+            "execution": {
+                "scenario": {
+                    "requests": [{
+                        "url": "http://blazedemo.com/",
+                        "jsr223": {
+                            "language": "javascript"
+                        }
+                    }]
+                }
+            }
+        })
+        self.assertRaises(ValueError, self.obj.prepare)
+
 
 
 class TestJMX(BZTestCase):

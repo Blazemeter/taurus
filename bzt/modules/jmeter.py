@@ -1455,6 +1455,14 @@ class JMeterScenarioBuilder(JMX):
             children.append(component)
             children.append(etree.Element("hashTree"))
 
+    def __add_post_processors(self, children, req):
+        jsr223 = req.config.get("jsr223", None)
+        if not jsr223:
+            return
+        language = jsr223.get("language", ValueError("jsr223 element should specify 'language'"))
+        script = jsr223.get("script-file", ValueError("jsr223 element should specify 'script-file'"))
+        children.append(JMX._get_jsr223_post_processor(language, script, ""))
+
     def _get_merged_ci_headers(self, req, header):
         def dic_lower(dic):
             return {k.lower(): dic[k].lower() for k in dic}
@@ -1514,6 +1522,8 @@ class JMeterScenarioBuilder(JMX):
         self.__add_think_time(children, request)
 
         self.__add_assertions(children, request)
+
+        self.__add_post_processors(children, request)
 
         if timeout is not None:
             children.append(JMX._get_dur_assertion(timeout))

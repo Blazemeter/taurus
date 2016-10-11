@@ -888,6 +888,16 @@ class JMX(object):
         return element
 
     @staticmethod
+    def _get_jsr223_post_processor(language, script_file, parameters):
+        element = etree.Element("JSR223PostProcessor", guiclass="TestBeanGUI",
+                                testclass="JSR223PostProcessor", testname="JSR223 PostProcessor")
+        element.append(JMX._string_prop("filename", script_file))
+        element.append(JMX._string_prop("parameters", parameters))
+        element.append(JMX._string_prop("scriptLanguage", language))
+
+        return element
+
+    @staticmethod
     def _get_csv_config(path, delimiter, is_quoted, loop):
         """
 
