@@ -2080,6 +2080,9 @@ class ResourceFilesCollector(RequestVisitor):
         body_file = request.config.get('body-file')
         if body_file:
             files.append(body_file)
+        jsr_script = request.config.get('jsr223').get('script-file')
+        if jsr_script:
+            files.append(jsr_script)
         return files
 
     def visit_ifblock(self, block):
