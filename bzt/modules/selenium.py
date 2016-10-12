@@ -68,8 +68,8 @@ class AbstractSeleniumExecutor(ScenarioExecutor):
 class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
     """
     Selenium executor
-    :type runner: AbstractTestRunner
     :type virtual_display: Display
+    :type runner: AbstractTestRunner
     """
     SELENIUM_DOWNLOAD_LINK = "http://selenium-release.storage.googleapis.com/{version}/" \
                              "selenium-server-standalone-{version}.0.jar"
@@ -93,6 +93,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
 
     def __init__(self):
         super(SeleniumExecutor, self).__init__()
+        self.additional_env = {}
         self.virtual_display = None
         self.end_time = None
         self.runner = None
@@ -102,7 +103,6 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         self.self_generated_script = False
         self.generated_methods = BetterDict()
         self.runner_working_dir = None
-        self.additional_env = {}
 
     def get_virtual_display(self):
         return self.virtual_display
