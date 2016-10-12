@@ -29,7 +29,7 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister, PythonGenerator
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator, FunctionalSample
-from bzt.six import string_types, text_type, parse, iteritems
+from bzt.six import string_types, text_type, parse
 from bzt.utils import RequiredTool, shell_exec, shutdown_process, JavaVM, TclLibrary, get_files_recursive
 from bzt.utils import dehumanize_time, MirrorsManager, is_windows, BetterDict, get_full_path
 
@@ -39,7 +39,33 @@ except ImportError:
     from pyvirtualdisplay import Display
 
 
-class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
+class AbstractSeleniumExecutor(ScenarioExecutor):
+    """
+    Abstract base class for Selenium executors.
+
+    All executors must implement the following interface.
+    """
+
+    SHARED_VIRTUAL_DISPLAY = {}
+
+    @abstractmethod
+    def add_env(self, env):
+        """
+        Add environment variables into selenium process env
+        :type env: dict[str,str]
+        """
+        pass
+
+    @abstractmethod
+    def get_virtual_display(self):
+        """
+        Return virtual display instance used by this executor.
+        :rtype: Display
+        """
+        pass
+
+
+class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
     """
     Selenium executor
     :type virtual_display: Display
@@ -65,8 +91,6 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     SUPPORTED_TYPES = ["python-nose", "java-junit", "ruby-rspec", "js-mocha"]
 
-    SHARED_VIRTUAL_DISPLAY = {}
-
     def __init__(self):
         super(SeleniumExecutor, self).__init__()
         self.additional_env = {}
@@ -79,6 +103,12 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.self_generated_script = False
         self.generated_methods = BetterDict()
         self.runner_working_dir = None
+
+    def get_virtual_display(self):
+        return self.virtual_display
+
+    def add_env(self, env):
+        self.additional_env.update(env)
 
     def set_virtual_display(self):
         display_conf = self.settings.get("virtual-display")
