@@ -22,7 +22,7 @@ import time
 import requests
 
 from bzt.engine import Service
-from bzt.modules.selenium import SeleniumExecutor
+from bzt.modules.selenium import AbstractSeleniumExecutor
 
 
 class Proxy2JMX(Service):
@@ -87,9 +87,9 @@ class Proxy2JMX(Service):
     def startup(self):
         super(Proxy2JMX, self).startup()
         for executor in self.engine.provisioning.executors:
-            if isinstance(executor, SeleniumExecutor):
-                executor.additional_env['http_proxy'] = self.proxy
-                executor.additional_env['https_proxy'] = self.proxy
+            if isinstance(executor, AbstractSeleniumExecutor):
+                executor.add_env({'http_proxy': self.proxy,
+                                  'https_proxy': self.proxy})
                 if executor.label:
                     self.label = executor.label
 
