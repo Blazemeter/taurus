@@ -388,3 +388,19 @@ class TestConverter(BZTestCase):
         obj.process()
         yml = yaml.load(open(__dir__() + "/yaml/converter/controllers.yml").read())
         self.assertEqual(obj.converter.convert(obj.file_to_convert), yml)
+
+    def test_jsr223(self):
+        yml = self._get_tmp()
+        obj = self._get_jmx2yaml("/jmeter/jmx/jsr223.jmx", yml)
+        obj.process()
+        yml = yaml.load(open(yml).read())
+        scenarios = yml.get("scenarios")
+        scenario = scenarios["Thread Group"]
+        requests = scenario["requests"]
+        self.assertEqual(len(requests), 1)
+        request = requests[0]
+        self.assertIn("jsr223", request)
+        jsr = request["jsr223"]
+        self.assertEqual(jsr["language"], "beanshell")
+        self.assertEqual(jsr["script-file"], "123.bs")
+        self.assertEqual(jsr["parameters"], "parames")

@@ -56,6 +56,8 @@ KNOWN_TAGS = ["hashTree", "jmeterTestPlan", "TestPlan", "ResultCollector",
               "WhileController",
               "ForeachController",
               "TransactionController",
+              "JSR223PreProcessor",
+              "JSR223PostProcessor",
               ]
 
 
@@ -823,6 +825,42 @@ class JMXasDict(JMX):
 
         return {"variables": variables} if variables else {}
 
+    def _get_jsr223_processors(self, element):
+        """
+        jsr223 option
+        :param element:
+        :return:
+        """
+
+        jsr223 = {}
+
+        hashtree = element.getnext()
+        if hashtree is not None and hashtree.tag == "hashTree":
+            elements = [element
+                        for element in hashtree.iterchildren()
+                        if element.tag in ("JSR223PreProcessor", "JSR223PostProcessor")]
+            for element in elements:
+                if element is not None:
+                    language = self._get_string_prop(element, 'scriptLanguage')
+                    filename = self._get_string_prop(element, 'filename')
+                    params = self._get_string_prop(element, 'parameters')
+                    execute = "before" if element.tag == "JSR223PreProcessor" else "after"
+                    if filename:
+                        jsr223 = {
+                            "jsr223": {
+                                "language": language,
+                                "script-file": filename,
+                                "parameters": params,
+                                "execute": execute,
+                            }
+                        }
+                        break
+                    else:
+                        self.log.warning("JSR223 uses embedded script in %s, skipping", element.tag)
+                        continue
+
+        return jsr223
+
     def process_tg(self, tg_etree_element):
         """
         Get execution and scenario settings for TG
@@ -879,7 +917,7 @@ class JMXasDict(JMX):
             elif elem.tag == 'HTTPSamplerProxy':
                 request = self._get_request_settings(elem)
                 requests.append(request)
-            else:
+            elif elem.tag:
                 subrequests = self.__extract_requests(elem)
                 requests.extend(subrequests)
         return requests
@@ -930,6 +968,7 @@ class JMXasDict(JMX):
         request_config.update(self._get_request_timeout(request_element))
         request_config.update(self._get_extractors(request_element))
         request_config.update(self._get_assertions(request_element))
+        request_config.update(self._get_jsr223_processors(request_element))
         return request_config
 
     def _get_tg_scenario_settings(self, tg_etree_element):
