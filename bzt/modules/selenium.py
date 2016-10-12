@@ -29,7 +29,7 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister, PythonGenerator
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator, FunctionalSample
-from bzt.six import string_types, text_type, parse, iteritems
+from bzt.six import string_types, text_type, parse
 from bzt.utils import RequiredTool, shell_exec, shutdown_process, JavaVM, TclLibrary, get_files_recursive
 from bzt.utils import dehumanize_time, MirrorsManager, is_windows, BetterDict, get_full_path
 
@@ -39,24 +39,11 @@ except ImportError:
     from pyvirtualdisplay import Display
 
 
-class BaseSeleniumExecutor(ScenarioExecutor):
-    """
-    Selenium executor
-    :type virtual_display: Display
-    """
-
-    SHARED_VIRTUAL_DISPLAY = {}
-
-    def __init__(self):
-        super(BaseSeleniumExecutor, self).__init__()
-        self.virtual_display = None
-        self.additional_env = {}
-
-
-class SeleniumExecutor(BaseSeleniumExecutor, WidgetProvider, FileLister):
+class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     """
     Selenium executor
     :type runner: AbstractTestRunner
+    :type virtual_display: Display
     """
     SELENIUM_DOWNLOAD_LINK = "http://selenium-release.storage.googleapis.com/{version}/" \
                              "selenium-server-standalone-{version}.0.jar"
@@ -78,8 +65,11 @@ class SeleniumExecutor(BaseSeleniumExecutor, WidgetProvider, FileLister):
 
     SUPPORTED_TYPES = ["python-nose", "java-junit", "ruby-rspec", "js-mocha"]
 
+    SHARED_VIRTUAL_DISPLAY = {}
+
     def __init__(self):
         super(SeleniumExecutor, self).__init__()
+        self.virtual_display = None
         self.end_time = None
         self.runner = None
         self.report_file = None
@@ -88,6 +78,7 @@ class SeleniumExecutor(BaseSeleniumExecutor, WidgetProvider, FileLister):
         self.self_generated_script = False
         self.generated_methods = BetterDict()
         self.runner_working_dir = None
+        self.additional_env = {}
 
     def set_virtual_display(self):
         display_conf = self.settings.get("virtual-display")
