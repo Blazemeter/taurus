@@ -1737,6 +1737,7 @@ class TestJMeterExecutor(BZTestCase):
                         "jsr223": {
                             "language": "javascript",
                             "script-file": script,
+                            "parameters": "first second"
                         }
                     }]
                 }
@@ -1750,7 +1751,7 @@ class TestJMeterExecutor(BZTestCase):
         jsr = post_procs[0]
         self.assertEqual(script, jsr.find(".//stringProp[@name='filename']").text)
         self.assertEqual("javascript", jsr.find(".//stringProp[@name='scriptLanguage']").text)
-        self.assertEqual(None, jsr.find(".//stringProp[@name='parameters']").text)
+        self.assertEqual("first second", jsr.find(".//stringProp[@name='parameters']").text)
 
     def test_jsr223_exceptions(self):
         self.configure({
@@ -1780,6 +1781,31 @@ class TestJMeterExecutor(BZTestCase):
         })
         self.assertRaises(ValueError, self.obj.prepare)
 
+    def test_jsr223_pre_processor(self):
+        script = __dir__() + "/../jmeter/jsr223_script.js"
+        self.configure({
+            "execution": {
+                "scenario": {
+                    "requests": [{
+                        "url": "http://blazedemo.com/",
+                        "jsr223": {
+                            "language": "javascript",
+                            "script-file": script,
+                            "execute": "before",
+                        }
+                    }]
+                }
+            }
+        })
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        procs = xml_tree.findall(".//JSR223PreProcessor[@testclass='JSR223PreProcessor']")
+        self.assertEqual(1, len(procs))
+
+        jsr = procs[0]
+        self.assertEqual(script, jsr.find(".//stringProp[@name='filename']").text)
+        self.assertEqual("javascript", jsr.find(".//stringProp[@name='scriptLanguage']").text)
+        self.assertEqual(None, jsr.find(".//stringProp[@name='parameters']").text)
 
 
 class TestJMX(BZTestCase):
