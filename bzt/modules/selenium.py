@@ -40,6 +40,11 @@ except ImportError:
 
 
 class BaseSeleniumExecutor(ScenarioExecutor):
+    """
+    Selenium executor
+    :type virtual_display: Display
+    """
+
     SHARED_VIRTUAL_DISPLAY = {}
 
     def __init__(self):
@@ -51,7 +56,6 @@ class BaseSeleniumExecutor(ScenarioExecutor):
 class SeleniumExecutor(BaseSeleniumExecutor, WidgetProvider, FileLister):
     """
     Selenium executor
-    :type virtual_display: Display
     :type runner: AbstractTestRunner
     """
     SELENIUM_DOWNLOAD_LINK = "http://selenium-release.storage.googleapis.com/{version}/" \
