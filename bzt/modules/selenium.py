@@ -39,7 +39,16 @@ except ImportError:
     from pyvirtualdisplay import Display
 
 
-class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
+class BaseSeleniumExecutor(ScenarioExecutor):
+    SHARED_VIRTUAL_DISPLAY = {}
+
+    def __init__(self):
+        super(BaseSeleniumExecutor, self).__init__()
+        self.virtual_display = None
+        self.additional_env = {}
+
+
+class SeleniumExecutor(BaseSeleniumExecutor, WidgetProvider, FileLister):
     """
     Selenium executor
     :type virtual_display: Display
@@ -65,12 +74,8 @@ class SeleniumExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     SUPPORTED_TYPES = ["python-nose", "java-junit", "ruby-rspec", "js-mocha"]
 
-    SHARED_VIRTUAL_DISPLAY = {}
-
     def __init__(self):
         super(SeleniumExecutor, self).__init__()
-        self.additional_env = {}
-        self.virtual_display = None
         self.end_time = None
         self.runner = None
         self.report_file = None
