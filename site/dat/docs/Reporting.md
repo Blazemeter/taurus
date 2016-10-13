@@ -91,6 +91,7 @@ Field names with explanations:
  -   `avg\_lt`  - average latency if present 
  -   `rc\_200` - counts for specific response codes
  -   `perc\_0.0` .. `perc\_100.0` - percentile levels for response time, 0 is also minimum response time, 100 is maximum
+ -   `bytes` - total download size
 
 ## JUnit XML Reporter
 

@@ -105,7 +105,7 @@ class TestGatlingExecutor(BZTestCase):
         obj.execution.merge({"scenario": {"script": __dir__() + "/../gatling/BasicSimulation.scala"}})
         obj.prepare()
         obj.get_widget()
-        self.assertEqual(obj.widget.widgets[0].text, "Script: BasicSimulation.scala")
+        self.assertEqual(obj.widget.widgets[0].text, "Gatling: BasicSimulation.scala")
 
     def test_resource_files_collection_remote1(self):  # script = <file>
         obj = self.getGatling()
