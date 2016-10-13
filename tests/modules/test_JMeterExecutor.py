@@ -1781,31 +1781,43 @@ class TestJMeterExecutor(BZTestCase):
         })
         self.assertRaises(ValueError, self.obj.prepare)
 
-    def test_jsr223_pre_processor(self):
-        script = __dir__() + "/../jmeter/jsr223_script.js"
+    def test_jsr223_multiple(self):
+        pre_script = __dir__() + "/../jmeter/jsr223_script.js"
+        post_script = __dir__() + "/../jmeter/bean_script.bhs"
         self.configure({
             "execution": {
                 "scenario": {
                     "requests": [{
                         "url": "http://blazedemo.com/",
-                        "jsr223": {
+                        "jsr223": [{
                             "language": "javascript",
-                            "script-file": script,
+                            "script-file": pre_script,
                             "execute": "before",
-                        }
+                        }, {
+                            "language": "beanshell",
+                            "script-file": post_script,
+                            "execute": "after",
+                        }]
                     }]
                 }
             }
         })
         self.obj.prepare()
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
-        procs = xml_tree.findall(".//JSR223PreProcessor[@testclass='JSR223PreProcessor']")
-        self.assertEqual(1, len(procs))
+        pre_procs = xml_tree.findall(".//JSR223PreProcessor[@testclass='JSR223PreProcessor']")
+        post_procs = xml_tree.findall(".//JSR223PostProcessor[@testclass='JSR223PostProcessor']")
+        self.assertEqual(1, len(pre_procs))
+        self.assertEqual(1, len(post_procs))
 
-        jsr = procs[0]
-        self.assertEqual(script, jsr.find(".//stringProp[@name='filename']").text)
-        self.assertEqual("javascript", jsr.find(".//stringProp[@name='scriptLanguage']").text)
-        self.assertEqual(None, jsr.find(".//stringProp[@name='parameters']").text)
+        pre = pre_procs[0]
+        self.assertEqual(pre_script, pre.find(".//stringProp[@name='filename']").text)
+        self.assertEqual("javascript", pre.find(".//stringProp[@name='scriptLanguage']").text)
+        self.assertEqual(None, pre.find(".//stringProp[@name='parameters']").text)
+
+        pre = post_procs[0]
+        self.assertEqual(post_script, pre.find(".//stringProp[@name='filename']").text)
+        self.assertEqual("beanshell", pre.find(".//stringProp[@name='scriptLanguage']").text)
+        self.assertEqual(None, pre.find(".//stringProp[@name='parameters']").text)
 
 
 class TestJMX(BZTestCase):

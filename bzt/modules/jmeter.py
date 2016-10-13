@@ -1456,14 +1456,17 @@ class JMeterScenarioBuilder(JMX):
             children.append(etree.Element("hashTree"))
 
     def __add_jsr_elements(self, children, req):
-        jsr223 = req.config.get("jsr223", None)
-        if not jsr223:
+        jsrs = req.config.get("jsr223", None)
+        if not jsrs:
             return
-        language = jsr223.get("language", ValueError("jsr223 element should specify 'language'"))
-        script = jsr223.get("script-file", ValueError("jsr223 element should specify 'script-file'"))
-        parameters = jsr223.get("parameters", "")
-        execute = jsr223.get("execute", "after")
-        children.append(JMX._get_jsr223_element(language, script, parameters, execute))
+        if isinstance(jsrs, dict):
+            jsrs = [jsrs]
+        for jsr in jsrs:
+            language = jsr.get("language", ValueError("jsr223 element should specify 'language'"))
+            script = jsr.get("script-file", ValueError("jsr223 element should specify 'script-file'"))
+            parameters = jsr.get("parameters", "")
+            execute = jsr.get("execute", "after")
+            children.append(JMX._get_jsr223_element(language, script, parameters, execute))
 
     def _get_merged_ci_headers(self, req, header):
         def dic_lower(dic):
