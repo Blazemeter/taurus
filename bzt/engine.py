@@ -245,9 +245,6 @@ class Engine(object):
         self.log.debug("New artifact filename: %s", filename)
         return filename
 
-    def get__art(self):
-        return self.__artifacts
-
     def existing_artifact(self, filename, move=False):
         """
         Add existing artifact, it will be collected into artifact_dir. If
