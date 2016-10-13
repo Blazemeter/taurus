@@ -1456,7 +1456,6 @@ class JMeterScenarioBuilder(JMX):
             children.append(etree.Element("hashTree"))
 
     def __add_jsr_elements(self, children, req):
-        languages = ['beanshell', 'bsh', 'ecmascript', 'groovy', 'java', 'javascript', 'jexl', 'jexl2']
         jsrs = req.config.get("jsr223", None)
         if not jsrs:
             return
@@ -1464,8 +1463,6 @@ class JMeterScenarioBuilder(JMX):
             jsrs = [jsrs]
         for jsr in jsrs:
             lang = jsr.get("language", ValueError("jsr223 element should specify 'language'"))
-            if lang not in languages:
-                raise ValueError("Unknown JSR223 language: %s. Supported languages: %s" % (lang, languages))
             script = jsr.get("script-file", ValueError("jsr223 element should specify 'script-file'"))
             parameters = jsr.get("parameters", "")
             execute = jsr.get("execute", "after")

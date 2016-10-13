@@ -415,6 +415,15 @@ scenarios:
         script-file: postproc.js  # required field
 ```
 
+Each jsr223 element can define the following fields:
+- `language` - script language ('beanshell', 'bsh', 'ecmascript', 'groovy', 'java', 'javascript', 'jexl', 'jexl2')
+- `script-file` - path to script file
+- `parameters` - string of parameters to pass to script, empty by default
+- `execute` - whether to execute script before or after the request
+
+If `execute` field is set to `after` - Taurus will generate a JSR223 PostProcessor, if set to `before` - a PreProcessor.
+By default it's set to `after`.
+
 Full form:
 ```yaml
 ---
@@ -425,8 +434,8 @@ scenarios:
       jsr223:
       - language: javascript
         script-file: preproc.js
-        parameters: foo bar  # parameters you want to pass to the script
-        execute: before  # `before` creates a preprocessor, `after` creates a postprocessor (default is `after`)
+        parameters: foo bar
+        execute: before
       - language: beanshell
         script-file: postproc.bsh
         execute: after
