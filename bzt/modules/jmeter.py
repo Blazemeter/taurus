@@ -1470,6 +1470,7 @@ class JMeterScenarioBuilder(JMX):
             parameters = jsr.get("parameters", "")
             execute = jsr.get("execute", "after")
             children.append(JMX._get_jsr223_element(lang, script, parameters, execute))
+            children.append(etree.Element("hashTree"))
 
     def _get_merged_ci_headers(self, req, header):
         def dic_lower(dic):
