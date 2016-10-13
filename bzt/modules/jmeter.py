@@ -1672,7 +1672,18 @@ class JMeterScenarioBuilder(JMX):
             source = ensure_is_dict(sources, idx, "path")
             source_path = self.executor.engine.find_file(source["path"])
 
-            delimiter = source.get("delimiter", self.__guess_delimiter(source_path))
+            jmeter_var_pattern = re.compile("^\$\{.*\}$")
+            delimiter = source.get('delimiter', None)
+
+            if jmeter_var_pattern.match(source_path):
+                if not delimiter:
+                    self.log.warning('CSV dialect detection impossible, default delimiter selected (",")')
+                    delimiter = ','
+            else:
+                if not os.path.isfile(source_path):
+                    raise ValueError('Data-source file not found: %s', source_path)
+                if not delimiter:
+                    delimiter = self.__guess_delimiter(source_path)
 
             config = JMX._get_csv_config(os.path.abspath(source_path), delimiter,
                                          source.get("quoted", False), source.get("loop", True))
