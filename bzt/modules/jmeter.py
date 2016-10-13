@@ -1670,23 +1670,25 @@ class JMeterScenarioBuilder(JMX):
         elements = []
         for idx, source in enumerate(sources):
             source = ensure_is_dict(sources, idx, "path")
-            source_path = self.executor.engine.find_file(source["path"])
+            source_path = source["path"]
 
             jmeter_var_pattern = re.compile("^\$\{.*\}$")
             delimiter = source.get('delimiter', None)
 
             if jmeter_var_pattern.match(source_path):
+                self.log.warning('JMeter variable "%s" found, check of file existence is impossible', source_path)
                 if not delimiter:
                     self.log.warning('CSV dialect detection impossible, default delimiter selected (",")')
                     delimiter = ','
             else:
-                if not os.path.isfile(source_path):
-                    raise ValueError('Data-source file not found: %s', source_path)
+                modified_path = self.executor.engine.find_file(source_path)
+                if not os.path.isfile(modified_path):
+                    raise ValueError('"data-sources" path not found: %s', modified_path)
                 if not delimiter:
-                    delimiter = self.__guess_delimiter(source_path)
+                    delimiter = self.__guess_delimiter(modified_path)
+                source_path = get_full_path(modified_path)
 
-            config = JMX._get_csv_config(os.path.abspath(source_path), delimiter,
-                                         source.get("quoted", False), source.get("loop", True))
+            config = JMX._get_csv_config(source_path, delimiter, source.get("quoted", False), source.get("loop", True))
             elements.append(config)
             elements.append(etree.Element("hashTree"))
         return elements
