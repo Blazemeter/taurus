@@ -1,7 +1,9 @@
 # Changelog
+
 ## 1.7.2 <sup>next</sup>
  - fix keep-alive processing in Gatling
  - add ability of JMeter variables usage in data-sources path options
+ - add `jsr223` blocks support for JMeter
 
 ## 1.7.1 <sup>10 oct 2016</sup>
  - fix Mocha runner race condition

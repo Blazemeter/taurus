@@ -1455,6 +1455,20 @@ class JMeterScenarioBuilder(JMX):
             children.append(component)
             children.append(etree.Element("hashTree"))
 
+    def __add_jsr_elements(self, children, req):
+        jsrs = req.config.get("jsr223", None)
+        if not jsrs:
+            return
+        if isinstance(jsrs, dict):
+            jsrs = [jsrs]
+        for jsr in jsrs:
+            lang = jsr.get("language", ValueError("jsr223 element should specify 'language'"))
+            script = jsr.get("script-file", ValueError("jsr223 element should specify 'script-file'"))
+            parameters = jsr.get("parameters", "")
+            execute = jsr.get("execute", "after")
+            children.append(JMX._get_jsr223_element(lang, script, parameters, execute))
+            children.append(etree.Element("hashTree"))
+
     def _get_merged_ci_headers(self, req, header):
         def dic_lower(dic):
             return {k.lower(): dic[k].lower() for k in dic}
@@ -1520,6 +1534,8 @@ class JMeterScenarioBuilder(JMX):
             children.append(etree.Element("hashTree"))
 
         self.__add_extractors(children, request)
+
+        self.__add_jsr_elements(children, request)
 
         return [http, children]
 
@@ -2083,6 +2099,9 @@ class ResourceFilesCollector(RequestVisitor):
         body_file = request.config.get('body-file')
         if body_file:
             files.append(body_file)
+        jsr_script = request.config.get('jsr223').get('script-file')
+        if jsr_script:
+            files.append(jsr_script)
         return files
 
     def visit_ifblock(self, block):

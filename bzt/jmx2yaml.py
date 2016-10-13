@@ -14,6 +14,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import itertools
 import logging
 import os
 import sys
@@ -27,6 +28,7 @@ from cssselect import GenericTranslator
 from bzt.cli import CLI
 from bzt.engine import Configuration, ScenarioExecutor
 from bzt.jmx import JMX
+from bzt.utils import get_full_path
 
 KNOWN_TAGS = ["hashTree", "jmeterTestPlan", "TestPlan", "ResultCollector",
               "HTTPSamplerProxy",
@@ -56,6 +58,8 @@ KNOWN_TAGS = ["hashTree", "jmeterTestPlan", "TestPlan", "ResultCollector",
               "WhileController",
               "ForeachController",
               "TransactionController",
+              "JSR223PreProcessor",
+              "JSR223PostProcessor",
               ]
 
 
@@ -69,6 +73,7 @@ class JMXasDict(JMX):
         self.log = log.getChild(self.__class__.__name__)
         self.global_objects = []
         self.scenario = {ScenarioExecutor.EXEC: None, "scenarios": None}
+        self.additional_files = {}  # dict(filename -> file content)
 
     def load(self, original):
         super(JMXasDict, self).load(original)
@@ -823,6 +828,64 @@ class JMXasDict(JMX):
 
         return {"variables": variables} if variables else {}
 
+    def _get_jsr223_processors(self, element):
+        """
+        jsr223 option
+        :param element:
+        :return:
+        """
+        extensions = {
+            'javascript': '.js',
+            'beanshell': '.bsh',
+            'bsh': '.bsh',
+            'ecmascript': '.js',
+            'groovy': '.groovy',
+            'java': '.java',
+            'jexl': '.jexl',
+            'jexl2': '.jexl2',
+        }
+        jsrs = []
+
+        hashtree = element.getnext()
+        if hashtree is not None and hashtree.tag == "hashTree":
+            elements = [element
+                        for element in hashtree.iterchildren()
+                        if element.tag in ("JSR223PreProcessor", "JSR223PostProcessor")]
+            for element in elements:
+                if element is not None:
+                    language = self._get_string_prop(element, 'scriptLanguage')
+                    filename = self._get_string_prop(element, 'filename')
+                    params = self._get_string_prop(element, 'parameters')
+                    script = self._get_string_prop(element, 'script')
+                    execute = "before" if element.tag == "JSR223PreProcessor" else "after"
+                    if filename:
+                        jsr = {
+                            "language": language,
+                            "script-file": filename,
+                            "parameters": params,
+                            "execute": execute,
+                        }
+                    elif script:
+                        # TODO: extract script to filename
+                        ext = extensions.get(language, '.js')
+                        filename = self._record_additional_file('script', ext, script)
+                        self.additional_files[filename] = script
+                        jsr = {
+                            "language": language,
+                            "script-file": filename,
+                            "parameters": params,
+                            "execute": execute,
+                        }
+                    else:
+                        tmpl = "%s element doesn't have neither script nor script-file, skipping"
+                        self.log.warning(tmpl, element.tag)
+                        continue
+                    jsrs.append(jsr)
+        if jsrs:
+            return {"jsr223": jsrs}
+        else:
+            return {}
+
     def process_tg(self, tg_etree_element):
         """
         Get execution and scenario settings for TG
@@ -879,7 +942,7 @@ class JMXasDict(JMX):
             elif elem.tag == 'HTTPSamplerProxy':
                 request = self._get_request_settings(elem)
                 requests.append(request)
-            else:
+            elif elem.tag:
                 subrequests = self.__extract_requests(elem)
                 requests.extend(subrequests)
         return requests
@@ -930,6 +993,7 @@ class JMXasDict(JMX):
         request_config.update(self._get_request_timeout(request_element))
         request_config.update(self._get_extractors(request_element))
         request_config.update(self._get_assertions(request_element))
+        request_config.update(self._get_jsr223_processors(request_element))
         return request_config
 
     def _get_tg_scenario_settings(self, tg_etree_element):
@@ -1075,6 +1139,19 @@ class JMXasDict(JMX):
                 self._clean_jmx_tree(element)
                 return
 
+    def _record_additional_file(self, base_filename, extension, content):
+        filename = base_filename + extension
+        if filename not in self.additional_files:
+            self.additional_files[filename] = content
+            return filename
+
+        for index in itertools.count(start=1):
+            suffix = '-%d' % index
+            filename = base_filename + suffix + extension
+            if filename not in self.additional_files:
+                self.additional_files[filename] = content
+                return filename
+
 
 class Converter(object):
     """
@@ -1171,6 +1248,15 @@ class JMX2YAML(object):
             file_name = self.file_to_convert + "." + output_format.lower()
 
         exporter.dump(file_name, output_format)
+
+        additional_files_dir = get_full_path(file_name, step_up=1)
+        for filename in self.converter.dialect.additional_files:
+            path = os.path.join(additional_files_dir, filename)
+            self.log.info("Writing additional file: %s", path)
+            content = self.converter.dialect.additional_files[filename]
+            with open(path, 'w') as f:
+                f.write(content)
+
         self.log.info("Done processing, result saved in %s", file_name)
 
 
