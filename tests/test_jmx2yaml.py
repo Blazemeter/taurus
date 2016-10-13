@@ -1,7 +1,10 @@
+import os
 import yaml
 
 from bzt.engine import ScenarioExecutor
 from bzt.jmx2yaml import JMX2YAML
+from bzt.utils import get_full_path
+
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul, RecordingHandler
 
@@ -390,10 +393,10 @@ class TestConverter(BZTestCase):
         self.assertEqual(obj.converter.convert(obj.file_to_convert), yml)
 
     def test_jsr223(self):
-        yml = self._get_tmp()
-        obj = self._get_jmx2yaml("/jmeter/jmx/jsr223.jmx", yml)
+        yml_file = self._get_tmp()
+        obj = self._get_jmx2yaml("/jmeter/jmx/jsr223.jmx", yml_file)
         obj.process()
-        yml = yaml.load(open(yml).read())
+        yml = yaml.load(open(yml_file).read())
         scenarios = yml.get("scenarios")
         scenario = scenarios["Thread Group"]
         requests = scenario["requests"]
@@ -404,8 +407,10 @@ class TestConverter(BZTestCase):
         self.assertIsInstance(jsrs, list)
         self.assertEqual(len(jsrs), 2)
         self.assertEqual(jsrs[0]["language"], "beanshell")
-        self.assertEqual(jsrs[0]["script-file"], "123.bs")
+        self.assertEqual(jsrs[0]["script-file"], "script.bsh")
         self.assertEqual(jsrs[0]["parameters"], "parames")
         self.assertEqual(jsrs[1]["language"], "javascript")
-        self.assertEqual(jsrs[1]["script-file"], "post.js")
+        self.assertEqual(jsrs[1]["script-file"], "script.js")
         self.assertEqual(jsrs[1]["parameters"], "a b c")
+        self.assertTrue(os.path.exists(os.path.join(get_full_path(yml_file, step_up=1), 'script.js')))
+        self.assertTrue(os.path.exists(os.path.join(get_full_path(yml_file, step_up=1), 'script.bsh')))

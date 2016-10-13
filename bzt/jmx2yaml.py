@@ -14,6 +14,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import itertools
 import logging
 import os
 import sys
@@ -27,6 +28,7 @@ from cssselect import GenericTranslator
 from bzt.cli import CLI
 from bzt.engine import Configuration, ScenarioExecutor
 from bzt.jmx import JMX
+from bzt.utils import get_full_path
 
 KNOWN_TAGS = ["hashTree", "jmeterTestPlan", "TestPlan", "ResultCollector",
               "HTTPSamplerProxy",
@@ -71,6 +73,7 @@ class JMXasDict(JMX):
         self.log = log.getChild(self.__class__.__name__)
         self.global_objects = []
         self.scenario = {ScenarioExecutor.EXEC: None, "scenarios": None}
+        self.additional_files = {}  # dict(filename -> file content)
 
     def load(self, original):
         super(JMXasDict, self).load(original)
@@ -831,7 +834,16 @@ class JMXasDict(JMX):
         :param element:
         :return:
         """
-
+        extensions = {
+            'javascript': '.js',
+            'beanshell': '.bsh',
+            'bsh': '.bsh',
+            'ecmascript': '.js',
+            'groovy': '.groovy',
+            'java': '.java',
+            'jexl': '.jexl',
+            'jexl2': '.jexl2',
+        }
         jsrs = []
 
         hashtree = element.getnext()
@@ -844,6 +856,7 @@ class JMXasDict(JMX):
                     language = self._get_string_prop(element, 'scriptLanguage')
                     filename = self._get_string_prop(element, 'filename')
                     params = self._get_string_prop(element, 'parameters')
+                    script = self._get_string_prop(element, 'script')
                     execute = "before" if element.tag == "JSR223PreProcessor" else "after"
                     if filename:
                         jsr = {
@@ -852,10 +865,22 @@ class JMXasDict(JMX):
                             "parameters": params,
                             "execute": execute,
                         }
-                        jsrs.append(jsr)
+                    elif script:
+                        # TODO: extract script to filename
+                        ext = extensions.get(language, '.js')
+                        filename = self._record_additional_file('script', ext, script)
+                        self.additional_files[filename] = script
+                        jsr = {
+                            "language": language,
+                            "script-file": filename,
+                            "parameters": params,
+                            "execute": execute,
+                        }
                     else:
-                        self.log.warning("JSR223 uses embedded script in %s, skipping", element.tag)
-
+                        tmpl = "%s element doesn't have neither script nor script-file, skipping"
+                        self.log.warning(tmpl, element.tag)
+                        continue
+                    jsrs.append(jsr)
         if jsrs:
             return {"jsr223": jsrs}
         else:
@@ -1114,6 +1139,14 @@ class JMXasDict(JMX):
                 self._clean_jmx_tree(element)
                 return
 
+    def _record_additional_file(self, base_filename, extension, content):
+        suffixes = itertools.imap(lambda i: '-%d' % i, itertools.count(start=1))
+        for suffix in itertools.chain([''], suffixes):
+            filename = base_filename + suffix + extension
+            if filename not in self.additional_files:
+                self.additional_files[filename] = content
+                return filename
+
 
 class Converter(object):
     """
@@ -1210,6 +1243,15 @@ class JMX2YAML(object):
             file_name = self.file_to_convert + "." + output_format.lower()
 
         exporter.dump(file_name, output_format)
+
+        additional_files_dir = get_full_path(file_name, step_up=1)
+        for filename in self.converter.dialect.additional_files:
+            path = os.path.join(additional_files_dir, filename)
+            self.log.info("Writing additional file: %s", path)
+            content = self.converter.dialect.additional_files[filename]
+            with open(path, 'w') as f:
+                f.write(content)
+
         self.log.info("Done processing, result saved in %s", file_name)
 
 
