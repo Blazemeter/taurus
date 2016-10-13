@@ -48,7 +48,7 @@ class InstallWithHook(install, object):
         install_id = os.path.join(dirname, '99-installID.yml')
         if not os.path.exists(install_id):
             with open(install_id, 'w') as fhd:
-                fhd.write("---\ninstall-id: %s" % uuid.uuid4())
+                fhd.write("---\ninstall-id: %x" % uuid.getnode())
 
 
 setup(
