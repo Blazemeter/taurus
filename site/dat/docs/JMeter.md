@@ -225,6 +225,7 @@ scenarios:
       extract-regexp: {}  # explained below
       extract-jsonpath: {}  # explained below
       assert: []  # explained below
+      jsr223: []  # explained below
 ```
 
 ##### Extractors
@@ -396,6 +397,40 @@ scenarios:
         validate: false # validate XML against its schema (has no effect when `use-tolerant-parser` is true)
         invert: false # invert condition
 ```
+
+##### JSR223 Blocks
+
+Sometimes you may want to use a JSR223 Pre/Post Processor to execute a code block before or after each request. Taurus allows that with `jsr223` block.
+
+Minimal example that will generate one JSR223 Post Processor.
+```yaml
+---
+scenarios:
+  jsr-example:
+    requests:
+    - url: http://blazedemo.com/
+      jsr223:
+      - language: javascript  # required field
+        script-file: postproc.js  # required field
+```
+
+Full form:
+```yaml
+---
+scenarios:
+  jsr-example:
+    requests:
+    - url: http://blazedemo.com/
+      jsr223:
+      - language: javascript
+        script-file: preproc.js
+        parameters: foo bar  # parameters you want to pass to the script
+        execute: before  # `before` creates a preprocessor, `after` creates a postprocessor (default is `after`)
+      - language: beanshell
+        script-file: postproc.bsh
+        execute: after
+```
+
 
 
 #### Logic Blocks
