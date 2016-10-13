@@ -400,7 +400,12 @@ class TestConverter(BZTestCase):
         self.assertEqual(len(requests), 1)
         request = requests[0]
         self.assertIn("jsr223", request)
-        jsr = request["jsr223"]
-        self.assertEqual(jsr["language"], "beanshell")
-        self.assertEqual(jsr["script-file"], "123.bs")
-        self.assertEqual(jsr["parameters"], "parames")
+        jsrs = request["jsr223"]
+        self.assertIsInstance(jsrs, list)
+        self.assertEqual(len(jsrs), 2)
+        self.assertEqual(jsrs[0]["language"], "beanshell")
+        self.assertEqual(jsrs[0]["script-file"], "123.bs")
+        self.assertEqual(jsrs[0]["parameters"], "parames")
+        self.assertEqual(jsrs[1]["language"], "javascript")
+        self.assertEqual(jsrs[1]["script-file"], "post.js")
+        self.assertEqual(jsrs[1]["parameters"], "a b c")

@@ -832,7 +832,7 @@ class JMXasDict(JMX):
         :return:
         """
 
-        jsr223 = {}
+        jsrs = []
 
         hashtree = element.getnext()
         if hashtree is not None and hashtree.tag == "hashTree":
@@ -846,20 +846,20 @@ class JMXasDict(JMX):
                     params = self._get_string_prop(element, 'parameters')
                     execute = "before" if element.tag == "JSR223PreProcessor" else "after"
                     if filename:
-                        jsr223 = {
-                            "jsr223": {
-                                "language": language,
-                                "script-file": filename,
-                                "parameters": params,
-                                "execute": execute,
-                            }
+                        jsr = {
+                            "language": language,
+                            "script-file": filename,
+                            "parameters": params,
+                            "execute": execute,
                         }
-                        break
+                        jsrs.append(jsr)
                     else:
                         self.log.warning("JSR223 uses embedded script in %s, skipping", element.tag)
-                        continue
 
-        return jsr223
+        if jsrs:
+            return {"jsr223": jsrs}
+        else:
+            return {}
 
     def process_tg(self, tg_etree_element):
         """
