@@ -1140,8 +1140,13 @@ class JMXasDict(JMX):
                 return
 
     def _record_additional_file(self, base_filename, extension, content):
-        suffixes = itertools.imap(lambda i: '-%d' % i, itertools.count(start=1))
-        for suffix in itertools.chain([''], suffixes):
+        filename = base_filename + extension
+        if filename not in self.additional_files:
+            self.additional_files[filename] = content
+            return filename
+
+        for index in itertools.count(start=1):
+            suffix = '-%d' % index
             filename = base_filename + suffix + extension
             if filename not in self.additional_files:
                 self.additional_files[filename] = content
