@@ -37,7 +37,7 @@ import bzt
 from bzt import ManualShutdown, NormalShutdown, get_configs_dir
 from bzt.six import build_opener, install_opener, urlopen, numeric_types, iteritems
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, etree, reraise
-from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader
+from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time
 
 SETTINGS = "settings"
@@ -240,17 +240,9 @@ class Engine(object):
         if not self.artifacts_dir:
             raise ValueError("Cannot create artifact: no artifacts_dir set up")
 
-        diff = ""
-        base = os.path.join(self.artifacts_dir, prefix)
-        while os.path.exists(base + diff + suffix) or base + diff + suffix in self.__artifacts:
-            if diff:
-                diff = "-%s" % (int(diff[1:]) + 1)
-            else:
-                diff = "-1"
-
-        filename = base + diff + suffix
-        self.log.debug("New artifact filename: %s", filename)
+        filename = get_uniq_name(self.artifacts_dir, prefix, suffix, self.__artifacts)
         self.__artifacts.append(filename)
+        self.log.debug("New artifact filename: %s", filename)
         return filename
 
     def existing_artifact(self, filename, move=False):
