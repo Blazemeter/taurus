@@ -39,7 +39,7 @@ from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader, FunctionalSample
 from bzt.modules.provisioning import Local
 from bzt.six import iteritems, string_types, StringIO, etree, binary_type, parse
-from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader
+from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name
 from bzt.utils import shell_exec, ensure_is_dict, dehumanize_time, BetterDict, guess_csv_dialect
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
 
@@ -612,7 +612,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if is_jmx_generated:
             filename = self.engine.create_artifact(modified_script_name, ".jmx")
         else:
-            filename = os.path.join(os.path.dirname(original_jmx_path), modified_script_name + ".jmx")
+            script_dir = get_full_path(original_jmx_path, step_up=1)
+            filename = get_uniq_name(script_dir, modified_script_name, ".jmx")
         jmx.save(filename)
         return filename
 

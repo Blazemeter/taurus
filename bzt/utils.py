@@ -247,6 +247,25 @@ class BetterDict(defaultdict):
                 cls.traverse(obj[idx], visitor)
 
 
+def get_uniq_name(directory, prefix, suffix, forbidden_names=None):
+    diff = ""
+    base = os.path.join(directory, prefix)
+    if forbidden_names is None:
+        wrong_names = []
+    else:
+        wrong_names = forbidden_names
+
+    while os.path.exists(base + diff + suffix) or base + diff + suffix in wrong_names:
+        if diff:
+            diff = "-%s" % (int(diff[1:]) + 1)
+        else:
+            diff = "-1"
+
+    full_name = os.path.join(directory, prefix + diff + suffix)
+    wrong_names.append(full_name)
+    return full_name
+
+
 def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False, env=None):
     """
     Wrapper for subprocess starting
