@@ -400,7 +400,8 @@ scenarios:
 
 ##### JSR223 Blocks
 
-Sometimes you may want to use a JSR223 Pre/Post Processor to execute a code block before or after each request. Taurus allows that with `jsr223` block.
+Sometimes you may want to use a JSR223 Pre/Post Processor to execute a code block before or
+after each request. Taurus allows that with `jsr223` block.
 
 Minimal example that will generate one JSR223 Post Processor.
 ```yaml
@@ -410,7 +411,7 @@ scenarios:
     requests:
     - url: http://blazedemo.com/
       jsr223:
-      - language: javascript  # required field
+        language: javascript  # required field
         script-file: postproc.js  # required field
 ```
 
@@ -430,8 +431,6 @@ scenarios:
         script-file: postproc.bsh
         execute: after
 ```
-
-
 
 #### Logic Blocks
 
