@@ -62,6 +62,14 @@
             <stringProp name="scriptLanguage">javascript</stringProp>
           </JSR223PostProcessor>
           <hashTree/>
+          <JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="JSR223 PostProcessor" enabled="true">
+            <stringProp name="scriptLanguage">javascript</stringProp>
+            <stringProp name="parameters"></stringProp>
+            <stringProp name="filename"></stringProp>
+            <stringProp name="cacheKey"></stringProp>
+            <stringProp name="script">log.info(&quot;bye&quot;);</stringProp>
+          </JSR223PostProcessor>
+          <hashTree/>
         </hashTree>
       </hashTree>
     </hashTree>
