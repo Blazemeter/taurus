@@ -149,6 +149,7 @@ class Engine(object):
             except BaseException as exc:
                 if not self.stopping_reason:
                     self.stopping_reason = exc
+                if not exc_info:
                     exc_info = sys.exc_info()
 
         if exc_info:
@@ -197,7 +198,6 @@ class Engine(object):
                     module.shutdown()
             except BaseException as exc:
                 self.log.debug("Error while shutting down: %s", traceback.format_exc())
-                self.stopping_reason = exc if not self.stopping_reason else self.stopping_reason
                 if not exc_info:
                     exc_info = sys.exc_info()
 

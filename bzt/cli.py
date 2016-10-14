@@ -178,10 +178,12 @@ class CLI(object):
 
         return self.exit_code
 
-    def log_exception(self, exc, message):
+    def log_exception(self, exc, message=''):
         info_level = http_level = default_level = logging.DEBUG
-        if not self.exit_code:
-            info_level = logging.INFO
+        if message:
+            message += ' '
+        if not self.exit_code:  # only fist exception goes to the screen
+            info_level = logging.WARNING
             http_level = logging.WARNING
             default_level = logging.ERROR
             if isinstance(exc, RCProvider):
@@ -189,19 +191,16 @@ class CLI(object):
             else:
                 self.exit_code = 1
 
-        if message:
-            self.log.log(default_level, message)
-
         if isinstance(exc, ManualShutdown):
-            self.log.log(info_level, "Interrupted by user: %s", exc)
+            self.log.log(info_level, message + "Interrupted by user")
         elif isinstance(exc, AutomatedShutdown):
-            self.log.log(info_level, "Automated shutdown")
+            self.log.log(info_level, message + "Automated shutdown")
         elif isinstance(exc, NormalShutdown):
-            self.log.log(info_level, "Normal shutdown")
+            self.log.log(info_level, message + "Normal shutdown")
         elif isinstance(exc, HTTPError):
-            self.log.log(http_level, "Response from %s: %s", exc.geturl(), exc.read())
+            self.log.log(http_level, message + "Response from %s: %s", exc.geturl(), exc.read())
         else:
-            self.log.log(default_level, "%s: %s", type(exc).__name__, exc)
+            self.log.log(default_level, message + "%s: %s", type(exc).__name__, exc)
             self.log.log(default_level, get_stacktrace(exc))
 
     def __get_jmx_shorthands(self, configs):
