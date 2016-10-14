@@ -158,14 +158,14 @@ class CLI(object):
             self.engine.prepare()
             self.engine.run()
         except BaseException as exc:
-            self.log_exception(exc, "In try block:")
+            self.log_exception(exc)
         finally:
             try:
                 for fname in jmx_shorthands:
                     os.remove(fname)
                 self.engine.post_process()
             except BaseException as exc:
-                self.log_exception(exc, "in finally block:")
+                self.log_exception(exc)
 
         self.log.info("Artifacts dir: %s", self.engine.artifacts_dir)
 
