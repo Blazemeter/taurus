@@ -165,7 +165,7 @@ class TestCloudProvisioning(BZTestCase):
     def test_widget_cloud_test(self):
         obj = CloudProvisioning()
         obj.client = BlazeMeterClientEmul(logging.getLogger(''))
-        obj.test = CloudTaurusTest({}, {}, obj.client, None, None, None, logging.getLogger(''))
+        obj.test = CloudTaurusTest(obj.client, None, None, None, None, logging.getLogger(''))
         obj.client.results.append({"result": []})
         obj.client.results.append({"result": {"sessions": [
             {
@@ -195,7 +195,7 @@ class TestCloudProvisioning(BZTestCase):
     def test_widget_cloud_collection(self):
         obj = CloudProvisioning()
         obj.client = BlazeMeterClientEmul(logging.getLogger(''))
-        obj.test = CloudCollectionTest({}, {}, obj.client, None, None, None, logging.getLogger(''))
+        obj.test = CloudCollectionTest(obj.client, None, None, None, None, logging.getLogger(''))
         obj.client.results.append({"result": {"sessions": [
             {
                 "id": "session-id",
@@ -266,8 +266,7 @@ class TestCloudProvisioning(BZTestCase):
             },
         })
         obj.parameters = obj.engine.config['execution']
-        obj.test = CloudTaurusTest(obj.engine.config['execution'], {}, obj.client, None, None, "name",
-                                   logging.getLogger(''))
+        obj.test = CloudTaurusTest(obj.client, None, None, "name", None, logging.getLogger(''))
         cloud_config = obj.test.prepare_cloud_config(obj.engine.config)
         execution = cloud_config["execution"][0]
         self.assertNotIn("throughput", execution)
@@ -918,6 +917,53 @@ class TestCloudProvisioning(BZTestCase):
 
         obj.post_process()
 
+    def test_settings_from_blazemeter_mod(self):
+        obj = CloudProvisioning()
+        obj.engine = EngineEmul()
+        obj.engine.config.merge({
+            ScenarioExecutor.EXEC: {
+                "executor": "mock",
+                "concurrency": 5500,
+                "locations": {
+                    "us-east-1": 1,
+                    "us-west": 1,
+                }
+            },
+            "modules": {
+                "mock": ModuleMock.__module__ + "." + ModuleMock.__name__,
+                "blazemeter": {
+                    "class": ModuleMock.__module__ + "." + ModuleMock.__name__,
+                    "token": "bmtoken",
+                    "detach": True,
+                    "browser-open": None,
+                    "check-interval": 10.0,
+                }
+            },
+            "provisioning": "mock"
+        })
+        obj.parameters = obj.engine.config['execution']
+        obj.engine.aggregator = ConsolidatingAggregator()
+
+        # these should override 'blazemeter' settings
+        obj.settings["check-interval"] = 20.0
+        obj.settings["browser-open"] = "both"
+
+        obj.client = client = BlazeMeterClientEmul(obj.log)
+        client.results.append({"result": []})  # collection
+        client.results.append({"result": []})  # tests
+        client.results.append(self.__get_user_info())  # user
+        client.results.append({"result": {"id": id(client)}})  # create test
+        client.results.append({"files": []})  # create test
+        client.results.append({})  # upload files
+
+        obj.prepare()
+
+        self.assertEqual(obj.detach, True)
+        self.assertEqual(obj.browser_open, "both")
+        self.assertEqual(obj.client.token, "bmtoken")
+        self.assertEqual(obj.check_interval, 20.0)
+
+        self.assertEqual(client.results, [])
 
 
 class TestResultsFromBZA(BZTestCase):

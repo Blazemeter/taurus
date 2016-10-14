@@ -251,6 +251,7 @@ class TsungStatsReader(ResultsReader):
             tstamp = int(float(fields[0]))
             url = fields[4] + fields[5]
             rstatus = fields[6]
+            rsize = int(fields[7])
             etime = float(fields[8]) / 1000
             trname = fields[9]
             error = fields[10] or None
@@ -258,7 +259,7 @@ class TsungStatsReader(ResultsReader):
             con_time = 0
             latency = 0
 
-            yield tstamp, url, self.concurrency, etime, con_time, latency, rstatus, error, trname
+            yield tstamp, url, self.concurrency, etime, con_time, latency, rstatus, error, trname, rsize
 
 
 class TsungConfig(object):

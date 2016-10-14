@@ -247,6 +247,17 @@ class BetterDict(defaultdict):
                 cls.traverse(obj[idx], visitor)
 
 
+def get_uniq_name(directory, prefix, suffix, forbidden_names=()):
+    base = os.path.join(directory, prefix)
+    diff = ""
+    num = 0
+    while os.path.exists(base + diff + suffix) or base + diff + suffix in forbidden_names:
+        num += 1
+        diff = "-%s" % num
+
+    return base + diff + suffix
+
+
 def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False, env=None):
     """
     Wrapper for subprocess starting

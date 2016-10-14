@@ -5,10 +5,10 @@ import shutil
 import time
 
 from bzt.modules.grinder import GrinderExecutor, DataLogReader
+from bzt.modules.provisioning import Local
 from bzt.utils import EXE_SUFFIX
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul
-from bzt.modules.provisioning import Local
 
 
 class TestGrinderExecutor(BZTestCase):
@@ -108,7 +108,7 @@ class TestGrinderExecutor(BZTestCase):
         obj.settings.merge({'path': __dir__() + "/../grinder/fake_grinder.jar"})
         obj.execution.merge({"concurrency": {"local": 2},
                              "hold-for": 5,
-                             "scenario": {"requests": ['http://blazedemo.com']}})
+                             "scenario": {"keepalive": False, "requests": ['http://blazedemo.com']}})
         obj.prepare()
 
         self.assertEqual(len(obj.cmd_line), 5)

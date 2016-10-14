@@ -178,6 +178,27 @@ class TestJMeterExecutor(BZTestCase):
                                             "delimiter": ","}]}})
         self.obj.prepare()
 
+    def test_datasources_jmeter_var(self):
+        self.obj.execution.merge({"scenario":
+                                      {"requests": ["http://localhost"],
+                                       "data-sources": [
+                                           {"path": "${some_jmeter_variable}"}]}})
+        self.obj.prepare()
+
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        elements = xml_tree.findall(".//CSVDataSet[@testclass='CSVDataSet']")
+        self.assertEqual(1, len(elements))
+        element = elements[0]
+        self.assertEqual("${some_jmeter_variable}", element.find(".//stringProp[@name='filename']").text)
+        self.assertEqual(",", element.find(".//stringProp[@name='delimiter']").text)
+
+    def test_datasources_wrong_path(self):
+        self.obj.execution.merge({"scenario":
+                                      {"requests": ["http://localhost"],
+                                       "data-sources": [
+                                           {"path": "really_wrong_path"}]}})
+        self.assertRaises(ValueError, self.obj.prepare)
+
     def test_datasources_without_delimiter(self):
         self.obj.execution.merge({"scenario":
                                       {"requests": ["http://localhost"],
@@ -380,6 +401,20 @@ class TestJMeterExecutor(BZTestCase):
         resource_files = self.obj.resource_files()
         self.assertIn(csv_file, resource_files)
         self.assertIn(csv_file_uni, resource_files)
+
+    def test_resource_files_jsr223(self):
+        js_file = __dir__() + '/../data/data.js'
+        self.configure({
+            'execution': {
+                'scenario': {
+                    'requests': [{
+                        'url': 'http://blazedemo.com/',
+                        'jsr223': {
+                            'language': 'javascript',
+                            'script-file': js_file,
+                        }}]}}})
+        resource_files = self.obj.resource_files()
+        self.assertIn(js_file, resource_files)
 
     def test_http_request_defaults(self):
         self.configure(json.loads(open(__dir__() + "/../json/get-post.json").read()))
@@ -1712,6 +1747,98 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(sample.duration, 0.01)
         self.assertEqual(sample.error_msg, "Non HTTP response message: Read timed out")
         self.assertTrue(sample.error_trace.startswith("java.net.SocketTimeoutException: Read timed out"))
+
+    def test_jsr223_block(self):
+        script = __dir__() + "/../jmeter/jsr223_script.js"
+        self.configure({
+            "execution": {
+                "scenario": {
+                    "requests": [{
+                        "url": "http://blazedemo.com/",
+                        "jsr223": {
+                            "language": "javascript",
+                            "script-file": script,
+                            "parameters": "first second"
+                        }
+                    }]
+                }
+            }
+        })
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        post_procs = xml_tree.findall(".//JSR223PostProcessor[@testclass='JSR223PostProcessor']")
+        self.assertEqual(1, len(post_procs))
+
+        jsr = post_procs[0]
+        self.assertEqual(script, jsr.find(".//stringProp[@name='filename']").text)
+        self.assertEqual("javascript", jsr.find(".//stringProp[@name='scriptLanguage']").text)
+        self.assertEqual("first second", jsr.find(".//stringProp[@name='parameters']").text)
+
+    def test_jsr223_exceptions(self):
+        self.configure({
+            "execution": {
+                "scenario": {
+                    "requests": [{
+                        "url": "http://blazedemo.com/",
+                        "jsr223": {
+                            "script-file": "something.js",
+                        }
+                    }]
+                }
+            }
+        })
+        self.assertRaises(ValueError, self.obj.prepare)
+        self.configure({
+            "execution": {
+                "scenario": {
+                    "requests": [{
+                        "url": "http://blazedemo.com/",
+                        "jsr223": {
+                            "language": "javascript"
+                        }
+                    }]
+                }
+            }
+        })
+        self.assertRaises(ValueError, self.obj.prepare)
+
+    def test_jsr223_multiple(self):
+        pre_script = __dir__() + "/../jmeter/jsr223_script.js"
+        post_script = __dir__() + "/../jmeter/bean_script.bhs"
+        self.configure({
+            "execution": {
+                "scenario": {
+                    "requests": [{
+                        "url": "http://blazedemo.com/",
+                        "jsr223": [{
+                            "language": "javascript",
+                            "script-file": pre_script,
+                            "execute": "before",
+                        }, {
+                            "language": "beanshell",
+                            "script-file": post_script,
+                            "execute": "after",
+                        }]
+                    }]
+                }
+            }
+        })
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        pre_procs = xml_tree.findall(".//JSR223PreProcessor[@testclass='JSR223PreProcessor']")
+        post_procs = xml_tree.findall(".//JSR223PostProcessor[@testclass='JSR223PostProcessor']")
+        self.assertEqual(1, len(pre_procs))
+        self.assertEqual(1, len(post_procs))
+
+        pre = pre_procs[0]
+        self.assertEqual(pre_script, pre.find(".//stringProp[@name='filename']").text)
+        self.assertEqual("javascript", pre.find(".//stringProp[@name='scriptLanguage']").text)
+        self.assertEqual(None, pre.find(".//stringProp[@name='parameters']").text)
+
+        pre = post_procs[0]
+        self.assertEqual(post_script, pre.find(".//stringProp[@name='filename']").text)
+        self.assertEqual("beanshell", pre.find(".//stringProp[@name='scriptLanguage']").text)
+        self.assertEqual(None, pre.find(".//stringProp[@name='parameters']").text)
 
 
 class TestJMX(BZTestCase):

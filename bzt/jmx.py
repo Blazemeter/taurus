@@ -199,7 +199,7 @@ class JMX(object):
             "requestHeaders": False,
             "responseDataOnError": False,
             "saveAssertionResultsFailureMessage": False,
-            "bytes": False,
+            "bytes": True,
             "hostname": True,
             "threadCounts": True,
             "url": False
@@ -885,6 +885,19 @@ class JMX(object):
             coll_prop.append(JMX._string_prop("", string))
         element.append(coll_prop)
 
+        return element
+
+    @staticmethod
+    def _get_jsr223_element(language, script_file, parameters, execute):
+        if execute == "before":
+            element = etree.Element("JSR223PreProcessor", guiclass="TestBeanGUI",
+                                    testclass="JSR223PreProcessor", testname="JSR223 PreProcessor")
+        else:
+            element = etree.Element("JSR223PostProcessor", guiclass="TestBeanGUI",
+                                    testclass="JSR223PostProcessor", testname="JSR223 PostProcessor")
+        element.append(JMX._string_prop("filename", script_file))
+        element.append(JMX._string_prop("parameters", parameters))
+        element.append(JMX._string_prop("scriptLanguage", language))
         return element
 
     @staticmethod

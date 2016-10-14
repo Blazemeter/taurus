@@ -207,11 +207,10 @@ class DataLogReader(ResultsReader):
             log_vals = [val.strip() for val in line.split(',')]
 
             # _mark = log_vals[0]           # 0. current test mark, defined by --mark key
-            # _user_id = int(log_vals[1])   # 1. fake user id
-            # _http = log_vals[2]           # 2. http protocol
-            _rstatus = log_vals[2]  # 3. response status code
-            _etime = float(log_vals[3])  # 4. elapsed time (total time - connection time)
-            # _rsize = int(log_vals[5])     # 5. size of response
+            # _http = log_vals[1]           # 1. http protocol
+            _rstatus = log_vals[2]  # 2. response status code
+            _etime = float(log_vals[3])  # 3. elapsed time (total time - connection time)
+            _rsize = int(log_vals[4])     # 4. size of response
             _url = log_vals[5]  # 6. long or short URL value
             # _url_id = int(log_vals[7])    # 7. url number
             _tstamp = time.strptime(log_vals[7], "%Y-%m-%d %H:%M:%S")
@@ -222,7 +221,7 @@ class DataLogReader(ResultsReader):
             _error = None
             _concur = self.concurrency
 
-            yield _tstamp, _url, _concur, _etime, _con_time, _latency, _rstatus, _error, ''
+            yield _tstamp, _url, _concur, _etime, _con_time, _latency, _rstatus, _error, '', _rsize
 
     def __del__(self):
         if self.fds:

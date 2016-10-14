@@ -39,7 +39,7 @@ from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader, FunctionalSample
 from bzt.modules.provisioning import Local
 from bzt.six import iteritems, string_types, StringIO, etree, binary_type, parse
-from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader
+from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name
 from bzt.utils import shell_exec, ensure_is_dict, dehumanize_time, BetterDict, guess_csv_dialect
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
 
@@ -612,7 +612,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if is_jmx_generated:
             filename = self.engine.create_artifact(modified_script_name, ".jmx")
         else:
-            filename = os.path.join(os.path.dirname(original_jmx_path), modified_script_name + ".jmx")
+            script_dir = get_full_path(original_jmx_path, step_up=1)
+            filename = get_uniq_name(script_dir, modified_script_name, ".jmx")
         jmx.save(filename)
         return filename
 
@@ -889,9 +890,11 @@ class JTLReader(ResultsReader):
             else:
                 error = None
 
+            byte_count = int(row.get("bytes", 0))
+
             tstmp = int(int(row["timeStamp"]) / 1000)
             self.read_records += 1
-            yield tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname
+            yield tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname, byte_count
 
     def _calculate_datapoints(self, final_pass=False):
         for point in super(JTLReader, self)._calculate_datapoints(final_pass):
@@ -1453,6 +1456,20 @@ class JMeterScenarioBuilder(JMX):
             children.append(component)
             children.append(etree.Element("hashTree"))
 
+    def __add_jsr_elements(self, children, req):
+        jsrs = req.config.get("jsr223", None)
+        if not jsrs:
+            return
+        if isinstance(jsrs, dict):
+            jsrs = [jsrs]
+        for jsr in jsrs:
+            lang = jsr.get("language", ValueError("jsr223 element should specify 'language'"))
+            script = jsr.get("script-file", ValueError("jsr223 element should specify 'script-file'"))
+            parameters = jsr.get("parameters", "")
+            execute = jsr.get("execute", "after")
+            children.append(JMX._get_jsr223_element(lang, script, parameters, execute))
+            children.append(etree.Element("hashTree"))
+
     def _get_merged_ci_headers(self, req, header):
         def dic_lower(dic):
             return {k.lower(): dic[k].lower() for k in dic}
@@ -1518,6 +1535,8 @@ class JMeterScenarioBuilder(JMX):
             children.append(etree.Element("hashTree"))
 
         self.__add_extractors(children, request)
+
+        self.__add_jsr_elements(children, request)
 
         return [http, children]
 
@@ -1668,12 +1687,25 @@ class JMeterScenarioBuilder(JMX):
         elements = []
         for idx, source in enumerate(sources):
             source = ensure_is_dict(sources, idx, "path")
-            source_path = self.executor.engine.find_file(source["path"])
+            source_path = source["path"]
 
-            delimiter = source.get("delimiter", self.__guess_delimiter(source_path))
+            jmeter_var_pattern = re.compile("^\$\{.*\}$")
+            delimiter = source.get('delimiter', None)
 
-            config = JMX._get_csv_config(os.path.abspath(source_path), delimiter,
-                                         source.get("quoted", False), source.get("loop", True))
+            if jmeter_var_pattern.match(source_path):
+                self.log.warning('JMeter variable "%s" found, check of file existence is impossible', source_path)
+                if not delimiter:
+                    self.log.warning('CSV dialect detection impossible, default delimiter selected (",")')
+                    delimiter = ','
+            else:
+                modified_path = self.executor.engine.find_file(source_path)
+                if not os.path.isfile(modified_path):
+                    raise ValueError('"data-sources" path not found: %s', modified_path)
+                if not delimiter:
+                    delimiter = self.__guess_delimiter(modified_path)
+                source_path = get_full_path(modified_path)
+
+            config = JMX._get_csv_config(source_path, delimiter, source.get("quoted", False), source.get("loop", True))
             elements.append(config)
             elements.append(etree.Element("hashTree"))
         return elements
@@ -2068,6 +2100,9 @@ class ResourceFilesCollector(RequestVisitor):
         body_file = request.config.get('body-file')
         if body_file:
             files.append(body_file)
+        jsr_script = request.config.get('jsr223').get('script-file')
+        if jsr_script:
+            files.append(jsr_script)
         return files
 
     def visit_ifblock(self, block):

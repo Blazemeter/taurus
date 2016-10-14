@@ -1,6 +1,12 @@
 # Changelog
 
-## 1.7.1 (upcoming)
+## 1.7.2 <sup>13 oct 2016</sup>
+ - fix keep-alive processing in Gatling
+ - add ability of JMeter variables usage in data-sources path options
+ - add `jsr223` blocks support for JMeter
+ - fix problem with jmx twins 
+
+## 1.7.1 <sup>10 oct 2016</sup>
  - fix Mocha runner race condition
  - support more scenario options for Grinder script generation
  - add move check for executor results availability to provisioning
@@ -13,6 +19,12 @@
  - add Mocha autoinstallation for Selenium tests
  - add `selenium-webdriver` npm package installation for Mocha runner
  - make `-locations` respect `use-deprecated-api` flag
+ - fix relative path processing in find_file()
+ - don't exclude executable nose scripts for Selenium 
+ - add setup of global `additional-classpath` ability to SeleniumExecutor
+ - support `keepalive` flag for Locust and Grinder
+ - make assertion messages of nose shorter and more informative
+ - track `bytes received` KPI and attach it to BZA report
 
 ## 1.7.0 <sup>2 oct 2016</sup>
  - add RSpec tests runner for Selenium

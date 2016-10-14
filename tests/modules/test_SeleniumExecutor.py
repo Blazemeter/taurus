@@ -8,13 +8,13 @@ import unittest
 import yaml
 
 from bzt.engine import ScenarioExecutor
-from bzt.modules.selenium import SeleniumExecutor, JUnitJar, LoadSamplesReader, LDJSONReader, FuncSamplesReader
+from bzt.modules.provisioning import Local
 from bzt.modules.selenium import NoseTester
+from bzt.modules.selenium import SeleniumExecutor, JUnitJar, LoadSamplesReader, LDJSONReader, FuncSamplesReader
 from bzt.six import StringIO
 from bzt.utils import is_windows, get_full_path
 from tests import BZTestCase, local_paths_config, __dir__
 from tests.mocks import EngineEmul
-from bzt.modules.provisioning import Local
 
 
 class SeleniumTestCase(BZTestCase):
@@ -39,7 +39,7 @@ class SeleniumTestCase(BZTestCase):
         self.obj.free_virtual_display()
 
 
-class TestSeleniumJUnitRunner(SeleniumTestCase):
+class TestSeleniumJUnitTester(SeleniumTestCase):
     def test_install_tools(self):
         """
         check installation of selenium-server, junit
@@ -286,6 +286,22 @@ class TestSeleniumJUnitRunner(SeleniumTestCase):
             'reporting': [{'module': 'junit-xml'}]
         })
         self.assertEqual(len(self.obj.resource_files()), 1)
+
+    def test_additional_classpath(self):
+        scenario_cp = 'class_path_from_scenario'
+        settings_cp = 'class_path_from_settings'
+        self.configure({
+            'execution': {
+                'scenario': {
+                    'script': __dir__() + '/../selenium/java/',
+                    'additional-classpath': [scenario_cp]},
+                'executor': 'selenium',},
+            'modules': {
+                'selenium': {
+                    'additional-classpath': [settings_cp]}}})
+        self.obj.prepare()
+        self.assertTrue(any(scenario_cp in element for element in self.obj.runner.base_class_path))
+        self.assertTrue(any(settings_cp in element for element in self.obj.runner.base_class_path))
 
     def test_resource_files_collection_remote_jar(self):
         self.configure({
@@ -838,7 +854,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.assertIsInstance(self.obj.runner, NoseTester)
 
 
-class TestASeleniumScriptBuilder(SeleniumTestCase):
+class TestSeleniumScriptBuilder(SeleniumTestCase):
     def test_build_script(self):
         self.configure({
             "execution": [{
@@ -850,7 +866,10 @@ class TestASeleniumScriptBuilder(SeleniumTestCase):
                 "loc_sc": {
                     "default-address": "http://blazedemo.com",
                     "requests": [{
-                        "url": "/"}]}},
+                        "url": "/",
+                        "assert": [{
+                            "contains": ['contained_text'],
+                            "not": True}]}]}},
             "modules": {
                 "selenium": {
                     "^virtual-display": 0}}})

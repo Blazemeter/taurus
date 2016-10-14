@@ -585,6 +585,7 @@ class ProjectFinder(object):
 
         test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
         use_deprecated = self.settings.get("use-deprecated-api", True)
+        default_location = self.settings.get("default-location", None)
 
         collection = self.client.find_collection(test_name, project_id)
         self.log.debug("Looking for collection: %s", collection)
@@ -608,22 +609,21 @@ class ProjectFinder(object):
                     test_class = CloudCollectionTest
                 test_id = None
 
-        return test_class(self.parameters, self.settings, self.client, test_id, project_id, test_name, self.log)
+        return test_class(self.client, test_id, project_id, test_name, default_location, self.log)
 
 
 class BaseCloudTest(object):
     """
     :type client: BlazeMeterClient
     """
-    def __init__(self, parameters, settings, client, test_id, project_id, test_name, parent_log):
+    def __init__(self, client, test_id, project_id, test_name, default_location, parent_log):
         self.default_test_name = "Taurus Test"
         self.client = client
-        self.parameters = parameters
-        self.settings = settings
         self.log = parent_log.getChild(self.__class__.__name__)
         self.project_id = project_id
         self.test_name = test_name
         self.test_id = test_id
+        self.default_location = default_location
         self._last_status = None
         self._sessions = None
         self._started = False
@@ -682,11 +682,10 @@ class CloudTaurusTest(BaseCloudTest):
             executor.get_load()  # we need it to resolve load settings into full form
 
     def _get_default_location(self, available_locations):
-        def_loc = self.settings.get("default-location", None)
-        if def_loc and def_loc in available_locations:
-            return def_loc
+        if self.default_location and self.default_location in available_locations:
+            return self.default_location
 
-        self.log.debug("Default location %s not found", def_loc)
+        self.log.debug("Default location %s not found", self.default_location)
 
         for location_id in sorted(available_locations):
             location = available_locations[location_id]
@@ -1377,10 +1376,10 @@ class BlazeMeterClient(object):
             "latencyMin": 0,
             "latencySTD": 0,
 
-            "bytes": 0,
+            "bytes": cumul[KPISet.BYTE_COUNT],
             "bytesMax": 0,
             "bytesMin": 0,
-            "bytesAvg": 0,
+            "bytesAvg": int(cumul[KPISet.BYTE_COUNT] / float(cumul[KPISet.SAMPLE_COUNT])),
             "bytesSTD": 0,
 
             "otherErrorsSpillcount": 0,
@@ -1413,10 +1412,10 @@ class BlazeMeterClient(object):
             "by": {
                 "min": 0,
                 "max": 0,
-                "sum": 0,
-                "n": 0,
+                "sum": item[KPISet.BYTE_COUNT],
+                "n": item[KPISet.SAMPLE_COUNT],
                 "std": 0,
-                "avg": 0
+                "avg": item[KPISet.BYTE_COUNT] / float(item[KPISet.SAMPLE_COUNT])
             },
         }
 
@@ -1635,7 +1634,17 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.check_interval = 5.0
         self.__last_check_time = None
 
+    def _merge_with_blazemeter_config(self):
+        if 'blazemeter' not in self.engine.config.get('modules'):
+            self.log.debug("Module 'blazemeter' wasn't found in base config")
+            return
+        bm_mod = self.engine.instantiate_module('blazemeter')
+        bm_settings = copy.deepcopy(bm_mod.settings)
+        bm_settings.update(self.settings)
+        self.settings = bm_settings
+
     def prepare(self):
+        self._merge_with_blazemeter_config()
         if self.settings.get("dump-locations", False):
             self.log.warning("Dumping available locations instead of running the test")
             self._configure_client()
@@ -1683,16 +1692,12 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
     def _configure_client(self):
         self.client.logger_limit = self.settings.get("request-logging-limit", self.client.logger_limit)
-        # TODO: go to "blazemeter" section for these settings by default?
         self.client.address = self.settings.get("address", self.client.address)
         self.client.token = self.settings.get("token", self.client.token)
         self.client.timeout = dehumanize_time(self.settings.get("timeout", self.client.timeout))
         self.client.delete_files_before_test = self.settings.get("delete-test-files", True)
         if not self.client.token:
-            bmmod = self.engine.instantiate_module('blazemeter')
-            self.client.token = bmmod.settings.get("token")
-            if not self.client.token:
-                raise ValueError("You must provide API token to use cloud provisioning")
+            raise ValueError("You must provide API token to use cloud provisioning")
 
     def startup(self):
         super(CloudProvisioning, self).startup()

@@ -261,9 +261,32 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         Should start the tool as fast as possible.
         """
+        self.start_time = time.time()
+        out = self.engine.create_artifact("gatling-stdout", ".log")
+        err = self.engine.create_artifact("gatling-stderr", ".log")
+        self.stdout_file = open(out, "w")
+        self.stderr_file = open(err, "w")
 
+        env = BetterDict()
+        env.merge(dict(os.environ))
+
+        java_opts = env.get('JAVA_OPTS', '') + ' ' + self.settings.get('java-opts', '')
+        java_opts += ' ' + self.__get_params_for_scala()
+
+        env.merge({"JAVA_OPTS": java_opts, "NO_PAUSE": "TRUE"})
+
+        if self.jar_list:
+            java_classpath = env.get('JAVA_CLASSPATH', '')
+            compilation_classpath = env.get('COMPILATION_CLASSPATH', '')
+            java_classpath += self.jar_list
+            compilation_classpath += self.jar_list
+            env.merge({'JAVA_CLASSPATH': java_classpath, 'COMPILATION_CLASSPATH': compilation_classpath})
+
+        self.process = self.execute(self.__get_cmdline(), stdout=self.stdout_file, stderr=self.stderr_file, env=env)
+
+    def __get_cmdline(self):
         simulation = self.get_scenario().get("simulation")
-        datadir = os.path.realpath(self.engine.artifacts_dir)
+        data_dir = os.path.realpath(self.engine.artifacts_dir)
 
         if os.path.isfile(self.script):
             if self.script.endswith('.jar'):
@@ -275,7 +298,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             simulation_folder = self.script
 
         cmdline = [self.launcher]
-        cmdline += ["-df", datadir, "-rf", datadir]
+        cmdline += ["-df", data_dir, "-rf", data_dir]
         cmdline += ["-on", self.dir_prefix, "-m"]
 
         if simulation_folder:
@@ -284,12 +307,9 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if simulation:
             cmdline += ["-s", simulation]
 
-        self.start_time = time.time()
-        out = self.engine.create_artifact("gatling-stdout", ".log")
-        err = self.engine.create_artifact("gatling-stderr", ".log")
-        self.stdout_file = open(out, "w")
-        self.stderr_file = open(err, "w")
+        return cmdline
 
+    def __get_params_for_scala(self):
         params_for_scala = self.settings.get('properties')
         load = self.get_load()
         scenario = self.get_scenario()
@@ -297,9 +317,11 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if scenario.get('timeout', None) is not None:
             params_for_scala['gatling.http.ahc.requestTimeout'] = int(dehumanize_time(scenario.get('timeout')) * 1000)
         if scenario.get('keepalive', True):
-            params_for_scala['gatling.http.ahc.keepAlive'] = 'true'
+            params_for_scala['gatling.http.ahc.allowPoolingConnections'] = 'true'
+            params_for_scala['gatling.http.ahc.allowPoolingSslConnections'] = 'true'
         else:
-            params_for_scala['gatling.http.ahc.keepAlive'] = 'false'
+            params_for_scala['gatling.http.ahc.allowPoolingConnections'] = 'false'
+            params_for_scala['gatling.http.ahc.allowPoolingSslConnections'] = 'false'
         if load.concurrency is not None:
             params_for_scala['concurrency'] = load.concurrency
         if load.ramp_up is not None:
@@ -309,21 +331,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if load.iterations is not None and load.iterations != 0:
             params_for_scala['iterations'] = int(load.iterations)
 
-        env = BetterDict()
-        env.merge(dict(os.environ))
-
-        java_opts = ''.join([" -D%s=%s" % (key, params_for_scala[key]) for key in params_for_scala])
-        java_opts += ' ' + env.get('JAVA_OPTS', '') + ' ' + self.settings.get('java-opts', '')
-        env.merge({"JAVA_OPTS": java_opts, "NO_PAUSE": "TRUE"})
-
-        if self.jar_list:
-            java_classpath = env.get('JAVA_CLASSPATH', '')
-            compilation_classpath = env.get('COMPILATION_CLASSPATH', '')
-            java_classpath += self.jar_list
-            compilation_classpath += self.jar_list
-            env.merge({'JAVA_CLASSPATH': java_classpath, 'COMPILATION_CLASSPATH': compilation_classpath})
-
-        self.process = self.execute(cmdline, stdout=self.stdout_file, stderr=self.stderr_file, env=env)
+        return ''.join([" -D%s=%s" % (key, params_for_scala[key]) for key in params_for_scala])
 
     def check(self):
         """
@@ -394,11 +402,12 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def get_widget(self):
         if not self.widget:
-            if self.script is not None:
-                label = "Script: %s" % os.path.basename(self.script)
-            else:
-                label = None
-            self.widget = ExecutorWidget(self, label)
+            simulation = self.get_scenario().get('simulation', None)
+            if simulation == "TaurusSimulation_%s" % id(self):
+                simulation = 'generated script'
+            if simulation is None:
+                simulation = os.path.basename(self.script)
+            self.widget = ExecutorWidget(self, 'Gatling: %s' % simulation)
         return self.widget
 
     def resource_files(self):
@@ -608,7 +617,8 @@ class DataLogReader(ResultsReader):
                 continue
 
             t_stamp, label, r_time, con_time, latency, r_code, error = data
-            yield t_stamp, label, self.concurrency, r_time, con_time, latency, r_code, error, ''
+            bytes_count = None
+            yield t_stamp, label, self.concurrency, r_time, con_time, latency, r_code, error, '', bytes_count
 
     def __open_fds(self):
         """

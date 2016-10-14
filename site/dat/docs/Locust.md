@@ -61,6 +61,7 @@ scenarios:
     timeout: 10  #  global scenario timeout for connecting, receiving results, 30 seconds by default
     think-time: 1s500ms  # global scenario delay between each request
     default-address: http://blazedemo.com  # specify a base address, so you can use short urls in requests
+    keepalive: true  # flag to use HTTP keep-alive for connections, default is true
     requests:
     - url: /  
       method: post

@@ -277,6 +277,7 @@ class SlavesReader(ResultsProvider):
             kpiset = KPISet()
             kpiset[KPISet.SAMPLE_COUNT] = item['num_reqs_per_sec'][timestamp]
             kpiset[KPISet.CONCURRENCY] = data['user_count']
+            kpiset[KPISet.BYTE_COUNT] = item['total_content_length']
             if item['num_requests']:
                 avg_rt = (item['total_response_time'] / 1000.0) / item['num_requests']
                 kpiset.sum_rt = item['num_reqs_per_sec'][timestamp] * avg_rt
@@ -327,6 +328,8 @@ from locust import HttpLocust, TaskSet, task
         think_time = dehumanize_time(self.scenario.get('think-time', None))
         timeout = dehumanize_time(self.scenario.get("timeout", 30))
         global_headers = self.scenario.get("headers", None)
+        if not self.scenario.get("keepalive", True):
+            global_headers['Connection'] = 'close'
 
         for req in self.scenario.get_requests():
             method = req.method.lower()
@@ -371,7 +374,8 @@ from locust import HttpLocust, TaskSet, task
             statement = "self.client.%s(%s)"
         headers = OrderedDict()
         if global_headers:
-            headers.update(global_headers)
+            sorted_headers = OrderedDict(sorted(global_headers.items(), key=lambda t: t[0]))
+            headers.update(sorted_headers)
         if req.headers:
             headers.update(req.headers)
         task.append(self.gen_statement(statement % (method, self.__get_params_line(req, timeout, headers))))

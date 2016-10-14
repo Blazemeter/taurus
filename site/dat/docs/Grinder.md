@@ -48,6 +48,7 @@ scenarios:
     headers:                               # global headers, applied to all requests
       X-Api-Key: my-fresh-token
     store-cookie: false                    # simulate browser cookie storage (default value is `true`)
+    keepalive: true                        # flag to use keep-alive for connections, default is `true`  
     requests:
     - /                                    # short form, URL only
     - url: /reserve.php                    # full form

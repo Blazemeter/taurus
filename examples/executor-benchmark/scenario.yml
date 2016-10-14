@@ -1,7 +1,7 @@
 ---
 scenarios:
   dummy:
-    default-address: http://192.168.2.2:8080/
+    default-address: http://192.168.2.2:8080
     retrieve-resources: false
     store-cache: false
     store-cookie: false
