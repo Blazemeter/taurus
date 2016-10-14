@@ -5,7 +5,7 @@
  - add ability of JMeter variables usage in data-sources path options
  - add `jsr223` blocks support for JMeter
  - fix problem with jmx twins 
- - improve exception logging in Eingine/CLI
+ - improve exception logging in Engine/CLI
 
 ## 1.7.1 <sup>10 oct 2016</sup>
  - fix Mocha runner race condition
