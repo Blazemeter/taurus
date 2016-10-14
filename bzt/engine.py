@@ -15,26 +15,26 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import sys
 import copy
+import datetime
 import hashlib
 import json
 import logging
 import os
 import shutil
+import sys
 import time
 import traceback
-import yaml
 from abc import abstractmethod
 from collections import namedtuple, defaultdict
 from distutils.version import LooseVersion
 from json import encoder
+
+import yaml
 from yaml.representer import SafeRepresenter
 
-import datetime
-
 import bzt
-from bzt import ManualShutdown, NormalShutdown, get_configs_dir
+from bzt import ManualShutdown, get_configs_dir
 from bzt.six import build_opener, install_opener, urlopen, numeric_types, iteritems
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, etree, reraise
 from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name
@@ -196,7 +196,7 @@ class Engine(object):
             try:
                 if module in self.started:
                     module.shutdown()
-            except BaseException as exc:
+            except BaseException:
                 self.log.debug("Error while shutting down: %s", traceback.format_exc())
                 if not exc_info:
                     exc_info = sys.exc_info()
