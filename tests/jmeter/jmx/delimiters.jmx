@@ -49,7 +49,7 @@
         <CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet" testname="CSV Data Set Config0" enabled="true">
           <stringProp name="delimiter">1</stringProp>
           <stringProp name="fileEncoding"></stringProp>
-          <stringProp name="filename">/home/taras/tmp/csv</stringProp>
+          <stringProp name="filename">name_of_csv_file</stringProp>
           <boolProp name="quotedData">false</boolProp>
           <boolProp name="recycle">true</boolProp>
           <stringProp name="shareMode">shareMode.all</stringProp>
@@ -58,7 +58,7 @@
         </CSVDataSet>
         <hashTree/>
         <CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet" testname="CSV Data Set Config1" enabled="true">
-          <stringProp name="filename">/home/taras/tmp/csv</stringProp>
+          <stringProp name="filename">name_of_csv_file</stringProp>
           <stringProp name="fileEncoding"></stringProp>
           <stringProp name="variableNames"></stringProp>
           <stringProp name="delimiter">2</stringProp>
@@ -69,7 +69,7 @@
         </CSVDataSet>
         <hashTree/>
         <CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet" testname="CSV Data Set Config2" enabled="true">
-          <stringProp name="filename">/home/taras/tmp/csv</stringProp>
+          <stringProp name="filename">name_of_csv_file</stringProp>
           <stringProp name="fileEncoding"></stringProp>
           <stringProp name="variableNames"></stringProp>
           <stringProp name="delimiter"></stringProp>

@@ -9,7 +9,7 @@ class TestRequests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         profile = webdriver.FirefoxProfile()
-        profile.set_preference('webdriver.log.file', '/home/taras/Projects/taurus/build/test/2016-10-10_17-14-53.506595/webdriver.log')
+        profile.set_preference('webdriver.log.file', 'somewhere')
         cls.driver = webdriver.Firefox(profile)
         cls.driver.implicitly_wait(30.0)
         cls.driver.maximize_window()
@@ -23,6 +23,6 @@ class TestRequests(unittest.TestCase):
         self.driver.get('http://blazedemo.com/')
         body = self.driver.page_source
         re_pattern = re.compile(r'contained_text')
-        self.assertEqual(0, len(re.findall(re_pattern, body)), "AssertionError: 'contained_text' found in BODY")
+        self.assertEqual(0, len(re.findall(re_pattern, body)), "Assertion: 'contained_text' found in BODY")
         # end request: http://blazedemo.com/
         
