@@ -9,7 +9,7 @@ class TestRequests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         profile = webdriver.FirefoxProfile()
-        profile.set_preference('webdriver.log.file', '/home/taras/Projects/taurus/build/test/2016-10-17_12-36-09.996191/webdriver.log')
+        profile.set_preference('webdriver.log.file', 'somewhere')
         cls.driver = webdriver.Firefox(profile)
         cls.driver.implicitly_wait(30.0)
         cls.driver.maximize_window()
