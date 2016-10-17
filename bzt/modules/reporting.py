@@ -111,7 +111,7 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
         for test_suite in self.cumulative_results.test_suites():
             for case in self.cumulative_results.test_cases(test_suite):
                 full_name = case.test_suite + "." + case.test_case
-                self.log.info("%s - %s", full_name, case.status)
+                self.log.info("Test %s - %s", full_name, case.status)
                 print_trace = self.parameters.get("print-stacktrace", True)
                 if print_trace and case.error_trace:
                     self.log.info("Stacktrace:\n%s", case.error_trace)
