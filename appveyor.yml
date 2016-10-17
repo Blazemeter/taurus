@@ -4,7 +4,7 @@ environment:
 
 install:
   - "%PYTHON%\\python.exe -m pip install nose"
-  - "%PYTHON%\\python.exe -m pip install colorlog pyyaml psutil lxml==3.4.2 cssselect urwid six selenium progressbar33 locustio pyvirtualdisplay"
+  - "%PYTHON%\\python.exe -m pip install colorlog pyyaml psutil lxml==3.4.2 cssselect urwid six selenium==2.53.1 progressbar33 locustio pyvirtualdisplay"
 
 build: off
 
