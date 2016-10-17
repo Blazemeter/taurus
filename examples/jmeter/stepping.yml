@@ -1,0 +1,13 @@
+---
+execution:
+- scenario: simple
+  concurrency: 50
+  # throughput: 25  # uncomment this to have hits/s steps
+  ramp-up: 2m
+  steps: 5
+
+scenarios:
+  simple:
+    think-time: 500ms
+    requests:
+    - http://blazedemo.com
