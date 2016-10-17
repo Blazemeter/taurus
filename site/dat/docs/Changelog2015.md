@@ -2,7 +2,6 @@
 
 ## 0.5.2 <sup>17 dec 15</sup>
  - fix JMeter installation on windows
- - fix assertion disappearance in nose_plugin 
 
 ## 0.5.1 <sup>11/16/15</sup>
  - fix shellexec env variables
