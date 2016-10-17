@@ -1187,12 +1187,12 @@ from selenium.common.exceptions import NoAlertPresentException
                 assert_method = "self.assertEqual" if reverse else "self.assertNotEqual"
                 assertion_elements.append(self.gen_statement("re_pattern = re.compile(r'%s')" % val))
 
-                method = '%s(0, len(re.findall(re_pattern, body)), "AssertionError: %s")'
+                method = '%s(0, len(re.findall(re_pattern, body)), "Assertion: %s")'
                 method %= assert_method, assert_message
                 assertion_elements.append(self.gen_statement(method))
             else:
                 assert_method = "self.assertNotIn" if reverse else "self.assertIn"
-                method = '%s("%s", body, "AssertionError: %s")'
+                method = '%s("%s", body, "Assertion: %s")'
                 method %= assert_method, val, assert_message
                 assertion_elements.append(self.gen_statement(method))
         return assertion_elements

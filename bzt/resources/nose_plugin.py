@@ -94,7 +94,8 @@ class BZTPlugin(Plugin):
         :param error:
         :return:
         """
-        exc_type, exc_msg, trace = error
+        exc_type, exc, trace = error
+        exc_msg = str(exc)
         # test_dict will be None if startTest wasn't called (i.e. exception in setUp/setUpClass)
         if self.test_dict is not None:
             self.test_dict["status"] = "BROKEN"
@@ -109,7 +110,8 @@ class BZTPlugin(Plugin):
 
         :return:
         """
-        exc_type, exc_msg, trace = error
+        exc_type, exc, trace = error
+        exc_msg = str(exc)
         self.test_dict["status"] = "FAILED"
         self.test_dict["error_msg"] = exc_msg.split('\n')[0]
         self.test_dict["error_trace"] = ''.join(traceback.format_exception(exc_type, exc_msg, trace)).rstrip()
