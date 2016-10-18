@@ -144,17 +144,10 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         self.client.log = self.log.getChild(self.__class__.__name__)
 
         if not self.client.session_id:
-            try:
-                url = self.client.start_online(self.test_id, self.sess_name)
-                self.log.info("Started data feeding: %s", url)
-                if self.browser_open in ('start', 'both'):
-                    open_browser(url)
-            except KeyboardInterrupt:
-                raise
-            except BaseException as exc:
-                self.log.debug("Exception: %s", traceback.format_exc())
-                self.log.warning("Failed to start feeding: %s", exc)
-                raise
+            url = self.client.start_online(self.test_id, self.sess_name)
+            self.log.info("Started data feeding: %s", url)
+            if self.browser_open in ('start', 'both'):
+                open_browser(url)
 
     def __get_jtls_and_more(self):
         """
