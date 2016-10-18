@@ -314,7 +314,7 @@ class TestMonitoringBuffer(BZTestCase):
     def test_harmonic(self):
         ITERATIONS = 50
         SIZE_LIMIT = 10
-        mon_buffer = MonitoringBuffer(SIZE_LIMIT)
+        mon_buffer = MonitoringBuffer(SIZE_LIMIT, logging.getLogger(''))
         for i in range(ITERATIONS):
             cpu = math.sin(self.to_rad(float(i) / ITERATIONS * 180))
             mon = [{"ts": i, "source": "local", "cpu": cpu}]
@@ -324,7 +324,7 @@ class TestMonitoringBuffer(BZTestCase):
     def test_downsample_theorem(self):
         # Theorem: average interval size in monitoring buffer will always
         # be less or equal than ITERATIONS / BUFFER_LIMIT
-        mon_buffer = MonitoringBuffer(100)
+        mon_buffer = MonitoringBuffer(100, logging.getLogger(''))
         for i in range(5000):
             mon = [{"ts": i, "source": "local", "cpu": 1, "mem": 2, "bytes-recv": 100, "other": 0}]
             mon_buffer.record_data(mon)
@@ -336,7 +336,7 @@ class TestMonitoringBuffer(BZTestCase):
                 self.assertLessEqual(avg_size, expected_size * 1.20)
 
     def test_sources(self):
-        mon_buffer = MonitoringBuffer(10)
+        mon_buffer = MonitoringBuffer(10, logging.getLogger(''))
         for i in range(100):
             mon = [
                 {"ts": i, "source": "local", "cpu": 1, "mem": 2, "bytes-recv": 100},
@@ -349,7 +349,7 @@ class TestMonitoringBuffer(BZTestCase):
     def test_unpack(self):
         ITERATIONS = 200
         SIZE_LIMIT = 10
-        mon_buffer = MonitoringBuffer(SIZE_LIMIT)
+        mon_buffer = MonitoringBuffer(SIZE_LIMIT, logging.getLogger(''))
         for i in range(ITERATIONS):
             mon = [{"ts": i, "source": "local", "cpu": 1}]
             mon_buffer.record_data(mon)
