@@ -1,0 +1,17 @@
+---
+scenarios:
+  csv-demo:
+    data-sources:
+    - pages.csv
+    - logins.csv
+    requests:
+    - http://blazedemo.com${page}
+    - url: http://blazedemo.com/purchase.php
+      method: POST
+      body:
+        username: ${username}
+        password: ${password}
+
+execution:
+- scenario: csv-demo
+  hold-for: 1m
