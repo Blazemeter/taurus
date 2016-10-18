@@ -712,14 +712,8 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.prepare()
         self.obj.get_widget()
         self.obj.startup()
-        try:
-            while not self.obj.check():
-                time.sleep(1)
-        except RuntimeError:
-            with open(os.path.join(self.obj.engine.artifacts_dir, "webdriver.log")) as fds:
-                logging.warning("FF log contents: %s" % fds.read())
-
-            raise
+        while not self.obj.check():
+            time.sleep(1)
         self.obj.shutdown()
         with open(os.path.join(self.obj.engine.artifacts_dir, "selenium.err")) as fds:
             contents = fds.read()
