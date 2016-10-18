@@ -4,7 +4,6 @@ import re
 import shutil
 import time
 import unittest
-
 import yaml
 
 from bzt.engine import ScenarioExecutor
@@ -713,8 +712,14 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.prepare()
         self.obj.get_widget()
         self.obj.startup()
-        while not self.obj.check():
-            time.sleep(1)
+        try:
+            while not self.obj.check():
+                time.sleep(1)
+        except RuntimeError:
+            with open(os.path.join(self.obj.engine.artifacts_dir, "webdriver.log")) as fds:
+                logging.warning("FF log contents: %s" % fds.read())
+
+            raise
         self.obj.shutdown()
         with open(os.path.join(self.obj.engine.artifacts_dir, "selenium.err")) as fds:
             contents = fds.read()
