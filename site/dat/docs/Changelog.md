@@ -2,6 +2,7 @@
 
 ## 1.7.3 <sup>next</sup>
  - fix assertion disappearance in nose_plugin
+ - improve exception logging in Engine/CLI
   
 ## 1.7.2 <sup>13 oct 2016</sup>
  - fix keep-alive processing in Gatling
