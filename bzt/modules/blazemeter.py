@@ -101,7 +101,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         self.send_custom_metrics = self.settings.get("send-custom-metrics", self.send_custom_metrics)
         self.send_custom_tables = self.settings.get("send-custom-tables", self.send_custom_tables)
         monitoring_buffer_limit = self.settings.get("monitoring-buffer-limit", 500)
-        self.monitoring_buffer = MonitoringBuffer(monitoring_buffer_limit)
+        self.monitoring_buffer = MonitoringBuffer(monitoring_buffer_limit, self.log)
         self.browser_open = self.settings.get("browser-open", self.browser_open)
         token = self.settings.get("token", "")
         if not token:
@@ -416,9 +416,10 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
 
 
 class MonitoringBuffer(object):
-    def __init__(self, size_limit):
+    def __init__(self, size_limit, parent_log):
         self.size_limit = size_limit
         self.data = defaultdict(OrderedDict)
+        self.log = parent_log.getChild(self.__class__.__name__)
         # data :: dict(datasource -> dict(interval -> datapoint))
         # datapoint :: dict(metric -> value)
 
@@ -437,6 +438,7 @@ class MonitoringBuffer(object):
         for source in sources:
             if len(self.data[source]) > self.size_limit:
                 self._downsample(self.data[source])
+            self.log.debug("Monitoring buffer size '%s': %s", source, len(self.data[source]))
 
     def _downsample(self, buff):
         size = 1
@@ -984,6 +986,7 @@ class BlazeMeterClient(object):
         if method:
             req.get_method = lambda: method
 
+        start = time.time()
         response = urlopen(req, timeout=self.timeout)
 
         if checker:
@@ -993,7 +996,15 @@ class BlazeMeterClient(object):
         if not isinstance(resp, str):
             resp = resp.decode()
 
+        end = time.time()
+
         self.log.debug("Response: %s", resp[:self.logger_limit] if resp else None)
+
+        self.log.debug("Request timing: %s took %.2fs (%.2f kb sent) (%.2f kb recv)",
+                       sys._getframe(1).f_code.co_name,
+                       end - start,
+                       len(data) / 1024.0 if data else 0,
+                       len(resp) / 1024.0 if resp else 0)
         try:
             return json.loads(resp) if len(resp) else {}
         except ValueError:
