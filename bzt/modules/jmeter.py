@@ -1073,9 +1073,9 @@ class IncrementalCSVReader(object):
             lines = self.fds.readlines(int(self.read_speed))
         self.offset = self.fds.tell()
         bytes_read = sum(len(line) for line in lines)
-        self.log.debug("Read lines: %s / %s bytes (at speed %s)", len(lines), bytes_read, self.read_speed)
-        if sum(len(line) for line in lines) >= self.read_speed:
-            self.read_speed *= 2
+        self.log.info("Read lines: %s / %s bytes (at speed %s)", len(lines), bytes_read, self.read_speed)
+        if bytes_read >= self.read_speed:
+            self.read_speed = min(8 * 1024 * 1024, self.read_speed * 2)
         elif bytes_read < self.read_speed / 2:
             self.read_speed = max(self.read_speed / 2, 1024 * 1024)
 
