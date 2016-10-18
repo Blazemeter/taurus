@@ -1,0 +1,14 @@
+---
+execution:
+- concurrency: 1
+  iterations: 50
+  scenario: sc
+
+scenarios:
+  sc:
+    requests:
+    - http://blazedemo.com/
+    - url: http://blazedemo.com
+      label: should-fail
+      assert:
+      - "non-exist"
