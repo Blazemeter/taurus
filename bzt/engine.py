@@ -608,8 +608,7 @@ class Configuration(BetterDict):
         if fmt == self.JSON:
             fds.write(to_json(self))
         elif fmt == self.YAML:
-            yml = yaml.dump(self, default_flow_style=False,
-                            explicit_start=True, canonical=False)
+            yml = yaml.dump(self, default_flow_style=False, explicit_start=True, canonical=False, allow_unicode=True)
             fds.write(yml)
         else:
             raise ValueError("Unknown dump format: %s" % fmt)

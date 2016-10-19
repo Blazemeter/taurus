@@ -19,6 +19,7 @@ import logging
 import os
 import sys
 import traceback
+from codecs import open
 from collections import namedtuple
 from copy import deepcopy
 from optparse import OptionParser
@@ -1254,7 +1255,7 @@ class JMX2YAML(object):
             path = os.path.join(additional_files_dir, filename)
             self.log.info("Writing additional file: %s", path)
             content = self.converter.dialect.additional_files[filename]
-            with open(path, 'w') as f:
+            with open(path, 'w', encoding='utf-8') as f:
                 f.write(content)
 
         self.log.info("Done processing, result saved in %s", file_name)
