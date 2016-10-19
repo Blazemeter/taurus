@@ -212,7 +212,7 @@ class Engine(object):
         self.log.info("Post-processing...")
         # :type exception: BaseException
         exc_info = None
-        modules = [self.provisioning, self.aggregator] + self.reporters + self.services
+        modules = [self.provisioning, self.aggregator] + self.services + self.reporters
         for module in modules:
             if module in self.prepared:
                 try:
