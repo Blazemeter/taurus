@@ -35,20 +35,19 @@ RUN apt-get -y update \
     nodejs \
     npm \
   && pip install --upgrade setuptools pip \
-  && pip install locustio bzt && pip uninstall bzt \
+  && pip install locustio bzt && pip uninstall -y bzt \
   && pip install --upgrade selenium==2.53.0 \
   && npm install -g mocha \
   && gem install rspec \
   && gem install selenium-webdriver \
   && dpkg -i /tmp/blazemeter-pbench-extras_0.1.10.1_amd64.deb \
-  && unzip -d /usr/bin /tmp/chromedriver_linux64.zip &&  \
-  && tar -xzf /tmp/geckodriver-v0.11.1-linux64.tar.gz --directory /usr/local/bin
+  && unzip -d /usr/bin /tmp/chromedriver_linux64.zip \
+  && tar -xzf /tmp/geckodriver-v0.11.1-linux64.tar.gz --directory /usr/local/bin \
   && rm -rf /var/lib/apt/lists/* \
   && firefox --version && chromium-browser --version && /usr/bin/chromedriver --version && geckodriver --version
 
-
 COPY . /tmp/bzt-src
-RUN pip show selenium && pip install /tmp/bzt-src \
+RUN pip install /tmp/bzt-src \
   && echo '{"install-id": "Docker"}' > /etc/bzt.d/99-zinstallID.json \
   && echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json \
   && echo '{"modules": {"console": {"disable": true}}}' > /etc/bzt.d/90-no-console.json
