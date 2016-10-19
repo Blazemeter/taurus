@@ -5,6 +5,7 @@
  - improve exception logging in Engine/CLI
  - fix unicode issues in jmx2yaml
  - make Taurus shortcut (Windows) open command line
+ - handle the absence of backtrace in RSpec
 
 ## 1.7.2 <sup>13 oct 2016</sup>
  - fix keep-alive processing in Gatling
