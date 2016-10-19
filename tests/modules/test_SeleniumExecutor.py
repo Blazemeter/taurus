@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import re
@@ -450,7 +451,11 @@ class TestSeleniumRSpecRunner(SeleniumTestCase):
         self.obj.shutdown()
         self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
         lines = open(self.obj.runner.settings.get("report-file")).readlines()
-        self.assertEqual(len(lines), 16)
+        self.assertEqual(len(lines), 3)
+        first, second, third = lines
+        self.assertEqual(json.loads(first)["status"], "PASSED")
+        self.assertEqual(json.loads(second)["status"], "FAILED")
+        self.assertEqual(json.loads(third)["status"], "FAILED")
 
     def test_rspec_hold(self):
         self.obj.engine.config.merge({
@@ -500,7 +505,7 @@ class TestSeleniumRSpecRunner(SeleniumTestCase):
         self.obj.shutdown()
         self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
         lines = open(self.obj.runner.settings.get("report-file")).readlines()
-        self.assertEqual(len(lines), 48)
+        self.assertEqual(len(lines), 9)
 
 
 class TestSeleniumMochaRunner(SeleniumTestCase):
