@@ -3,6 +3,7 @@
 ## 1.7.3 <sup>next</sup>
  - fix assertion disappearance in nose_plugin
  - improve exception logging in Engine/CLI
+ - fix unicode issues in jmx2yaml
   
 ## 1.7.2 <sup>13 oct 2016</sup>
  - fix keep-alive processing in Gatling

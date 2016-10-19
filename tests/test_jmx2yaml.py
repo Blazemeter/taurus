@@ -418,3 +418,8 @@ class TestConverter(BZTestCase):
         self.assertTrue(os.path.exists(os.path.join(get_full_path(yml_file, step_up=1), 'script.bsh')))
         self.assertTrue(os.path.exists(os.path.join(get_full_path(yml_file, step_up=1), 'script.js')))
         self.assertTrue(os.path.exists(os.path.join(get_full_path(yml_file, step_up=1), 'script-1.js')))
+
+    def test_unicode(self):
+        obj = self._get_jmx2yaml("/yaml/converter/unicode.jmx", self._get_tmp())
+        obj.process()
+        obj.converter.convert(obj.file_to_convert)
