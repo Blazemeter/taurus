@@ -26,7 +26,7 @@ RUN apt-get -y update \
     tsung \
     phantom \
     phantom-ssl \
-    firefox=45.0.2+build1-0ubuntu1 \
+    firefox \
     chromium-browser \
     pepperflashplugin-nonfree \
     flashplugin-installer \
@@ -36,7 +36,7 @@ RUN apt-get -y update \
     npm \
   && pip install --upgrade setuptools pip \
   && pip install locustio bzt && pip uninstall -y bzt \
-  && pip install --upgrade selenium==2.53.0 \
+  && pip install --upgrade selenium \
   && npm install -g mocha \
   && gem install rspec \
   && gem install selenium-webdriver \
@@ -53,6 +53,9 @@ RUN pip install /tmp/bzt-src \
   && echo '{"modules": {"console": {"disable": true}}}' > /etc/bzt.d/90-no-console.json
 
 RUN bzt /tmp/bzt-src/examples/all-executors.yml -o settings.artifacts-dir=/tmp/all-executors-artifacts
+
+
+#RUN bzt /tmp/bzt-src/examples/all-executors.yml -o settings.artifacts-dir=/tmp/all-executors-artifacts || cat /tmp/all-executors-artifacts/selenium.err ; exit 1
 
 #RUN cd /tmp/all-executors-artifacts \
 #  && ls -la \
