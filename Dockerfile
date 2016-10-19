@@ -32,6 +32,7 @@ RUN apt-get -y update \
     nodejs \
     npm \
   && pip install --upgrade setuptools pip \
+  && pip install --upgrade selenium==2.53.1 \
   && pip install locustio bzt \
   && npm install -g mocha \
   && gem install rspec \
@@ -42,8 +43,11 @@ RUN apt-get -y update \
 
 ADD http://gettaurus.org/snapshots/blazemeter-pbench-extras_0.1.10.1_amd64.deb /tmp
 ADD http://chromedriver.storage.googleapis.com/2.24/chromedriver_linux64.zip /tmp
+ADD https://github.com/mozilla/geckodriver/releases/download/v0.11.1/geckodriver-v0.11.1-linux64.tar.gz /tmp
 RUN dpkg -i /tmp/blazemeter-pbench-extras_0.1.10.1_amd64.deb \
-  && unzip -d /usr/bin /tmp/chromedriver_linux64.zip && /usr/bin/chromedriver --version
+  && unzip -d /usr/bin /tmp/chromedriver_linux64.zip && /usr/bin/chromedriver --version \
+  && tar -xzf /tmp/geckodriver-v0.11.1-linux64.tar.gz --directory /tmp \
+  && mv /tmp/geckodriver /usr/local/bin && geckodriver --version
 
 COPY . /tmp/bzt-src
 RUN pip install --upgrade /tmp/bzt-src \
@@ -51,13 +55,12 @@ RUN pip install --upgrade /tmp/bzt-src \
   && echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json \
   && echo '{"modules": {"console": {"disable": true}}}' > /etc/bzt.d/90-no-console.json
 
-RUN cd /tmp/bzt-src/examples \
-  && bzt /tmp/bzt-src/examples/all-executors.yml -o settings.artifacts-dir=/tmp/all-executors-artifacts || echo error
+RUN bzt /tmp/bzt-src/examples/all-executors.yml -o settings.artifacts-dir=/tmp/all-executors-artifacts
 
-RUN cd /tmp/all-executors-artifacts \
-  && ls -la \
-  && grep \  * \
-  && exit 1
+#RUN cd /tmp/all-executors-artifacts \
+#  && ls -la \
+#  && grep \  * \
+#  && exit 1
 
 RUN mkdir /bzt-configs \
   && rm -rf /var/lib/apt/lists/* \
