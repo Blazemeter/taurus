@@ -17,7 +17,7 @@ RUN apt-get -y update \
     zlib1g-dev \
     libxi6 \
     libgconf-2-4 \
-    libexif \
+    libexif12 \
     udev \
     python-dev \
     python-pip \
