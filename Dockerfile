@@ -1,4 +1,7 @@
 FROM ubuntu:16.04
+ADD http://gettaurus.org/snapshots/blazemeter-pbench-extras_0.1.10.1_amd64.deb /tmp
+ADD http://chromedriver.storage.googleapis.com/2.24/chromedriver_linux64.zip /tmp
+ADD https://github.com/mozilla/geckodriver/releases/download/v0.11.1/geckodriver-v0.11.1-linux64.tar.gz /tmp
 RUN apt-get -y update \
   && apt-get -y install --no-install-recommends software-properties-common \
   && apt-add-repository multiverse \
@@ -32,25 +35,20 @@ RUN apt-get -y update \
     nodejs \
     npm \
   && pip install --upgrade setuptools pip \
-  && pip install --upgrade selenium==2.53.1 \
-  && pip install locustio bzt \
+  && pip install locustio bzt && pip uninstall bzt \
+  && pip install --upgrade selenium==2.53.0 \
   && npm install -g mocha \
   && gem install rspec \
   && gem install selenium-webdriver \
-  && firefox --version \
-  && chromium-browser --version \
-  && rm -rf /var/lib/apt/lists/*
+  && dpkg -i /tmp/blazemeter-pbench-extras_0.1.10.1_amd64.deb \
+  && unzip -d /usr/bin /tmp/chromedriver_linux64.zip &&  \
+  && tar -xzf /tmp/geckodriver-v0.11.1-linux64.tar.gz --directory /usr/local/bin
+  && rm -rf /var/lib/apt/lists/* \
+  && firefox --version && chromium-browser --version && /usr/bin/chromedriver --version && geckodriver --version
 
-ADD http://gettaurus.org/snapshots/blazemeter-pbench-extras_0.1.10.1_amd64.deb /tmp
-ADD http://chromedriver.storage.googleapis.com/2.24/chromedriver_linux64.zip /tmp
-ADD https://github.com/mozilla/geckodriver/releases/download/v0.11.1/geckodriver-v0.11.1-linux64.tar.gz /tmp
-RUN dpkg -i /tmp/blazemeter-pbench-extras_0.1.10.1_amd64.deb \
-  && unzip -d /usr/bin /tmp/chromedriver_linux64.zip && /usr/bin/chromedriver --version \
-  && tar -xzf /tmp/geckodriver-v0.11.1-linux64.tar.gz --directory /tmp \
-  && mv /tmp/geckodriver /usr/local/bin && geckodriver --version
 
 COPY . /tmp/bzt-src
-RUN pip install --upgrade /tmp/bzt-src \
+RUN pip show selenium && pip install /tmp/bzt-src \
   && echo '{"install-id": "Docker"}' > /etc/bzt.d/99-zinstallID.json \
   && echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json \
   && echo '{"modules": {"console": {"disable": true}}}' > /etc/bzt.d/90-no-console.json
@@ -63,7 +61,6 @@ RUN bzt /tmp/bzt-src/examples/all-executors.yml -o settings.artifacts-dir=/tmp/a
 #  && exit 1
 
 RUN mkdir /bzt-configs \
-  && rm -rf /var/lib/apt/lists/* \
   && rm -rf /tmp/*
 
 WORKDIR /bzt-configs
