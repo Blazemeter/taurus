@@ -17,6 +17,8 @@ RUN apt-get -y update \
     zlib1g-dev \
     libxi6 \
     libgconf-2-4 \
+    libexif \
+    udev \
     python-dev \
     python-pip \
     default-jdk \
@@ -53,14 +55,6 @@ RUN pip install /tmp/bzt-src \
   && echo '{"modules": {"console": {"disable": true}}}' > /etc/bzt.d/90-no-console.json
 
 RUN bzt /tmp/bzt-src/examples/all-executors.yml -o settings.artifacts-dir=/tmp/all-executors-artifacts
-
-
-#RUN bzt /tmp/bzt-src/examples/all-executors.yml -o settings.artifacts-dir=/tmp/all-executors-artifacts || cat /tmp/all-executors-artifacts/selenium.err ; exit 1
-
-#RUN cd /tmp/all-executors-artifacts \
-#  && ls -la \
-#  && grep \  * \
-#  && exit 1
 
 RUN mkdir /bzt-configs \
   && rm -rf /tmp/*
