@@ -383,7 +383,7 @@ class JMXasDict(JMX):
         protocol = "http" if not url_info.protocol else url_info.protocol
         if url_info.domain:
             return protocol + "://" + url_info.domain + port + path
-        return ""
+        return path
 
     def _extract_url_info(self, element):
         """
