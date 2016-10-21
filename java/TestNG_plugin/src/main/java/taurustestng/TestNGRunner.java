@@ -57,11 +57,12 @@ public class TestNGRunner {
 
         long startTime = System.currentTimeMillis();
         for (int iteration = 0; iteration < iterations; iteration++) {
-            TestNG testng = new TestNG();
-            testng.setVerbose(0);
-            testng.addListener(testListener);
-            testng.setTestClasses(classArray);
-            testng.run();
+            TestNG testNG = new TestNG();
+            testNG.setUseDefaultListeners(false);
+            testNG.setVerbose(0);
+            testNG.addListener(testListener);
+            testNG.setTestClasses(classArray);
+            testNG.run();
             log.info("Elapsed: " + (System.currentTimeMillis() - startTime) + ", limit: " + (hold * 1000));
             if (hold > 0 && System.currentTimeMillis() - startTime > hold * 1000) {
                 log.info("Duration limit reached, stopping");
