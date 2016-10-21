@@ -335,7 +335,44 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
 
 class TestSeleniumTestNGRunner(SeleniumTestCase):
     def test_install_tools(self):
-        pass
+        dummy_installation_path = __dir__() + "/../../build/tmp/selenium-taurus"
+        base_link = "file:///" + __dir__() + "/../data/"
+
+        shutil.rmtree(os.path.dirname(dummy_installation_path), ignore_errors=True)
+
+        selenium_server_link = SeleniumExecutor.SELENIUM_DOWNLOAD_LINK
+        SeleniumExecutor.SELENIUM_DOWNLOAD_LINK = base_link + "/selenium-server-standalone-2.46.0.jar"
+
+        testng_link = SeleniumExecutor.TESTNG_DOWNLOAD_LINK
+        testng_mirrors = SeleniumExecutor.TESTNG_MIRRORS_SOURCE
+        SeleniumExecutor.TESTNG_DOWNLOAD_LINK = base_link + "/testng-6.8.5.jar"
+        SeleniumExecutor.TESTNG_MIRRORS_SOURCE = base_link + "unicode_file"
+
+        hamcrest_link = SeleniumExecutor.HAMCREST_DOWNLOAD_LINK
+        SeleniumExecutor.HAMCREST_DOWNLOAD_LINK = base_link + "/hamcrest-core-1.3.jar"
+
+        self.assertFalse(os.path.exists(dummy_installation_path))
+
+        self.obj.settings.merge({"selenium-tools": {
+            "testng": {
+                "selenium-server": os.path.join(dummy_installation_path, "selenium-server.jar"),
+                "hamcrest-core": os.path.join(dummy_installation_path, "tools", "testng", "hamcrest-core.jar"),
+                "path": os.path.join(dummy_installation_path, "tools", "testng", "testng.jar")
+            }
+        }})
+
+        self.obj.execution.merge({
+            "language": "java-testng",
+            "scenario": {"script": __dir__() + "/../selenium/jar/testng-suite.jar"},
+        })
+        self.obj.prepare()
+        self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "selenium-server.jar")))
+        self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "tools", "testng", "testng.jar")))
+        self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "tools", "testng", "hamcrest-core.jar")))
+        SeleniumExecutor.SELENIUM_DOWNLOAD_LINK = selenium_server_link
+        SeleniumExecutor.TESTNG_DOWNLOAD_LINK = testng_link
+        SeleniumExecutor.TESTNG_MIRRORS_SOURCE = testng_mirrors
+        SeleniumExecutor.HAMCREST_DOWNLOAD_LINK = hamcrest_link
 
     def test_prepare_java_package(self):
         self.configure({
