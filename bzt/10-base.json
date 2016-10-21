@@ -84,6 +84,14 @@
           "jar-name": "compiled.jar",
           "working-dir": "classes"
         },
+        "testng": {
+          "path": "~/.bzt/selenium-taurus/tools/testng/testng.jar",
+          "hamcrest-core": "~/.bzt/selenium-taurus/tools/junit/hamcrest-core.jar",
+          "selenium-server": "~/.bzt/selenium-taurus/selenium-server.jar",
+          "jar-name": "compiled.jar",
+          "working-dir": "classes"
+        },
+
         "nose": {
           "working-dir": "classes"
         },

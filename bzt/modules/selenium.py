@@ -81,6 +81,12 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
     JUNIT_MIRRORS_SOURCE = "http://search.maven.org/solrsearch/select?q=g%3A%22junit%22%20AND%20a%3A%22" \
                            "junit%22%20AND%20v%3A%22{version}%22&rows=20&wt=json".format(version=JUNIT_VERSION)
 
+    TESTNG_DOWNLOAD_LINK = "http://search.maven.org/remotecontent?filepath=org/testng/testng/" \
+                           "{version}/testng-{version}.jar"
+    TESTNG_VERSION = "6.8.5"
+    TESTNG_MIRRORS_SOURCE = "http://search.maven.org/solrsearch/select?q=g%3A%22testng%22%20AND%20a%3A%22" \
+                            "testng%22%20AND%20v%3A%22{version}%22&rows=20&wt=json".format(version=TESTNG_VERSION)
+
     HAMCREST_DOWNLOAD_LINK = "http://search.maven.org/remotecontent?filepath=org/hamcrest/hamcrest-core" \
                              "/1.3/hamcrest-core-1.3.jar"
 
@@ -89,7 +95,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
     MOCHA_NPM_PACKAGE_NAME = "mocha"
     SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME = "selenium-webdriver"
 
-    SUPPORTED_TYPES = ["python-nose", "java-junit", "ruby-rspec", "js-mocha"]
+    SUPPORTED_TYPES = ["python-nose", "java-junit", "ruby-rspec", "js-mocha", "java-testng"]
 
     def __init__(self):
         super(SeleniumExecutor, self).__init__()
@@ -157,7 +163,12 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
             runner_class = JUnitTester
             runner_config.merge(self.settings.get("selenium-tools").get("junit"))
             runner_config['working-dir'] = self.get_runner_working_dir()
-            runner_config['props-file'] = self.engine.create_artifact("customrunner", ".properties")
+            runner_config['props-file'] = self.engine.create_artifact("runner", ".properties")
+        elif script_type == "java-testng":
+            runner_class = TestNGTester
+            runner_config.merge(self.settings.get("selenium-tools").get("testng"))
+            runner_config['working-dir'] = self.get_runner_working_dir()
+            runner_config['props-file'] = self.engine.create_artifact("runner", ".properties")
         elif script_type == "ruby-rspec":
             runner_class = RSpecTester
             runner_config.merge(self.settings.get("selenium-tools").get("rspec"))
@@ -230,6 +241,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
                 file_types.add(os.path.splitext(file_name)[1].lower())
 
         if '.java' in file_types or '.jar' in file_types:
+            # TODO: detect 'java-testng' by looking for testng.xml in cwd?
             script_type = 'java-junit'
         elif '.py' in file_types:
             script_type = 'python-nose'
@@ -542,7 +554,7 @@ class JUnitTester(AbstractTestRunner):
     def run_tests(self):
         # java -cp junit.jar:selenium-test-small.jar:
         # selenium-2.46.0/selenium-java-2.46.0.jar:./../selenium-server.jar
-        # org.junit.runner.JUnitCore TestBlazemeterPass
+        # taurusjunit.CustomRunner runner.properties
 
         jar_list = [os.path.join(self.working_dir, jar) for jar in os.listdir(self.working_dir) if jar.endswith(".jar")]
         jar_list.extend(self._collect_script_files({".jar"}))
@@ -575,6 +587,182 @@ class JUnitTester(AbstractTestRunner):
                                              stdout=std_out,
                                              stderr=std_err,
                                              env=env)
+
+
+class TestNGTester(AbstractTestRunner):
+    """
+    Allows to test java and jar files with TestNG
+    """
+
+    def __init__(self, testng_config, executor):
+        """
+        :type testng_config: BetterDict
+        :type executor: SeleniumExecutor
+        """
+        super(TestNGTester, self).__init__(testng_config, executor)
+        self.props_file = testng_config['props-file']
+
+        path_lambda = lambda key, val: get_full_path(self.settings.get(key, val))
+
+        self.working_dir = self.settings.get("working-dir")
+        self.testng_path = path_lambda("path", "~/.bzt/selenium-taurus/tools/testng/testng.jar")
+        self.hamcrest_path = path_lambda("hamcrest-core", "~/.bzt/selenium-taurus/tools/testng/hamcrest-core.jar")
+        self.json_jar_path = path_lambda("json-jar", "~/.bzt/selenium-taurus/tools/testng/json.jar")
+        self.selenium_server_jar_path = path_lambda("selenium-server",
+                                                    "~/.bzt/selenium-taurus/selenium-server.jar")
+        self.testng_plugin_path = os.path.join(get_full_path(__file__, step_up=1),
+                                               os.pardir,
+                                               "resources",
+                                               "taurus-testng-1.0.jar")
+        self.target_java = str(testng_config.get("compile-target-java", "1.7"))
+
+        self.base_class_path = [self.selenium_server_jar_path, self.testng_path, self.testng_plugin_path,
+                                self.hamcrest_path, self.json_jar_path]
+        self.base_class_path.extend(executor.settings.get("additional-classpath", []))
+        self.base_class_path.extend(self.scenario.get("additional-classpath", []))
+        self.base_class_path = [os.path.abspath(executor.engine.find_file(x)) for x in self.base_class_path]
+
+    def prepare(self):
+        self.run_checklist()
+
+        if not os.path.exists(self.working_dir):
+            os.makedirs(self.working_dir)
+
+        if any(self._collect_script_files({'.java'})):
+            self.compile_scripts()
+
+    def run_checklist(self):
+        if any(self._collect_script_files({'.java'})):
+            self.required_tools.append(JavaC("", "", self.log))
+
+        self.required_tools.append(TclLibrary(self.log))
+        self.required_tools.append(JavaVM("", "", self.log))
+        link = SeleniumExecutor.SELENIUM_DOWNLOAD_LINK.format(version=SeleniumExecutor.SELENIUM_VERSION)
+        self.required_tools.append(SeleniumServerJar(self.selenium_server_jar_path, link, self.log))
+        self.required_tools.append(TestNGJar(self.testng_path, self.log, SeleniumExecutor.TESTNG_VERSION))
+        self.required_tools.append(JsonJar(self.json_jar_path, SeleniumExecutor.JSON_JAR_DOWNLOAD_LINK))
+        self.required_tools.append(TestNGPluginJar(self.testng_plugin_path, ""))
+
+        self.check_tools()
+
+    def _collect_script_files(self, extensions):
+        file_list = []
+        if os.path.isdir(self.script):
+            for root, _, files in os.walk(self.script):
+                for test_file in files:
+                    if os.path.splitext(test_file)[1].lower() in extensions:
+                        path = get_full_path(os.path.join(root, test_file))
+                        file_list.append(path)
+        else:
+            if os.path.splitext(self.script)[1].lower() in extensions:
+                file_list.append(get_full_path(self.script))
+        return file_list
+
+    def compile_scripts(self):
+        """
+        Compile .java files
+        """
+        self.log.debug("Compiling .java files started")
+
+        jar_path = os.path.join(self.executor.engine.artifacts_dir,
+                                self.working_dir,
+                                self.settings.get("jar-name", "compiled.jar"))
+        if os.path.exists(jar_path):
+            self.log.debug(".java files are already compiled, skipping")
+            return
+
+        compile_cl = ["javac",
+                      "-source", self.target_java,
+                      "-target", self.target_java,
+                      "-d", self.working_dir,
+                      ]
+        compile_cl.extend(["-cp", os.pathsep.join(self.base_class_path)])
+        compile_cl.extend(self._collect_script_files({".java"}))
+
+        with open(os.path.join(self.artifacts_dir, "javac.out"), 'ab') as javac_out:
+            with open(os.path.join(self.artifacts_dir, "javac.err"), 'ab') as javac_err:
+                self.log.debug("running javac: %s", compile_cl)
+                self.process = shell_exec(compile_cl, stdout=javac_out, stderr=javac_err)
+                ret_code = self.process.poll()
+
+                while ret_code is None:
+                    self.log.debug("Compiling .java files...")
+                    time.sleep(1)
+                    ret_code = self.process.poll()
+
+        if ret_code != 0:
+            self.log.debug("javac exit code: %s", ret_code)
+            with open(javac_err.name) as err_file:
+                out = err_file.read()
+            raise RuntimeError("Javac exited with error:\n %s" % out.strip())
+
+        self.log.info("Compiling .java files completed")
+
+        self.make_jar()
+
+    def make_jar(self):
+        """
+        move all .class files to compiled.jar
+        """
+        self.log.debug("Making .jar started")
+
+        with open(os.path.join(self.artifacts_dir, "jar.out"), 'ab') as jar_out:
+            with open(os.path.join(self.artifacts_dir, "jar.err"), 'ab') as jar_err:
+                class_files = [java_file for java_file in os.listdir(self.working_dir) if java_file.endswith(".class")]
+                jar_name = self.settings.get("jar-name", "compiled.jar")
+                if class_files:
+                    compile_jar_cl = ["jar", "-cf", jar_name]
+                    compile_jar_cl.extend(class_files)
+                else:
+                    compile_jar_cl = ["jar", "-cf", jar_name, "."]
+
+                self.process = shell_exec(compile_jar_cl, cwd=self.working_dir, stdout=jar_out, stderr=jar_err)
+                ret_code = self.process.poll()
+
+                while ret_code is None:
+                    self.log.debug("Making jar file...")
+                    time.sleep(1)
+                    ret_code = self.process.poll()
+
+        if ret_code != 0:
+            with open(jar_err.name) as err_file:
+                out = err_file.read()
+            self.log.info("Making jar failed with code %s", ret_code)
+            self.log.info("jar output: %s", out)
+            raise RuntimeError("Jar exited with non-zero code")
+
+        self.log.info("Making .jar file completed")
+
+    def run_tests(self):
+        # java -classpath
+        # testng.jar:selenium-server.jar:taurus-testng-1.0.jar:json.jar:compiled.jar
+        # taurustestng.TestNGRunner runner.properties
+        jar_list = [os.path.join(self.working_dir, jar) for jar in os.listdir(self.working_dir) if jar.endswith(".jar")]
+        jar_list.extend(self._collect_script_files({".jar"}))
+        self.base_class_path.extend(jar_list)
+
+        with open(self.props_file, 'wt') as props:
+            props.write("report_file=%s\n" % self.settings.get("report-file").replace(os.path.sep, '/'))
+
+            if self.load.iterations:
+                props.write("iterations=%s\n" % self.load.iterations)
+
+            if self.load.hold:
+                props.write("hold_for=%s\n" % self.load.hold)
+
+            for index, item in enumerate(jar_list):
+                props.write("target_%s=%s\n" % (index, item.replace(os.path.sep, '/')))
+
+        std_out = open(self.settings.get("stdout"), "wt")
+        self.opened_descriptors.append(std_out)
+        std_err = open(self.settings.get("stderr"), "wt")
+        self.opened_descriptors.append(std_err)
+
+        env = BetterDict()
+        env.merge(self.env)
+
+        cmdline = ["java", "-cp", os.pathsep.join(self.base_class_path), "taurustestng.TestNGRunner", self.props_file]
+        self.process = self.executor.execute(cmdline, stdout=std_out, stderr=std_err, env=env)
 
 
 class NoseTester(AbstractTestRunner):
@@ -848,6 +1036,26 @@ class JUnitJar(RequiredTool):
             raise RuntimeError("Unable to run %s after installation!" % self.tool_name)
 
 
+class TestNGJar(RequiredTool):
+    def __init__(self, tool_path, parent_logger, testng_version):
+        super(TestNGJar, self).__init__("TestNG", tool_path)
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.version = testng_version
+        self.mirror_manager = TestNGMirrorsManager(self.log, self.version)
+
+    def install(self):
+        dest = get_full_path(self.tool_path, step_up=1)
+        self.log.info("Will install %s into %s", self.tool_name, dest)
+        dist = self._download(suffix=".jar")
+        if not os.path.exists(dest):
+            os.makedirs(dest)
+        shutil.move(dist, self.tool_path)
+        self.log.info("Installed TestNG successfully")
+
+        if not self.check_if_installed():
+            raise RuntimeError("Unable to run %s after installation!" % self.tool_name)
+
+
 class HamcrestJar(RequiredTool):
     def __init__(self, tool_path, download_link):
         super(HamcrestJar, self).__init__("HamcrestJar", tool_path, download_link)
@@ -1026,6 +1234,14 @@ class JUnitListenerJar(RequiredTool):
 
     def install(self):
         raise NotImplementedError()
+
+
+class TestNGPluginJar(RequiredTool):
+    def __init__(self, tool_path, download_link):
+        super(TestNGPluginJar, self).__init__("TestNGPlugin", tool_path, download_link)
+
+    def install(self):
+        raise ValueError("TestNG plugin should be bundled with Taurus distribution")
 
 
 class TaurusNosePlugin(RequiredTool):
@@ -1233,6 +1449,37 @@ class JUnitMirrorsManager(MirrorsManager):
             except BaseException as exc:
                 self.log.error("Error while parsing mirrors %s", exc)
         default_link = SeleniumExecutor.JUNIT_DOWNLOAD_LINK.format(version=self.junit_version)
+        if default_link not in links:
+            links.append(default_link)
+        self.log.debug('Total mirrors: %d', len(links))
+        return links
+
+
+class TestNGMirrorsManager(MirrorsManager):
+    def __init__(self, parent_logger, junit_version):
+        self.junit_version = junit_version
+        super(TestNGMirrorsManager, self).__init__(SeleniumExecutor.TESTNG_MIRRORS_SOURCE, parent_logger)
+
+    def _parse_mirrors(self):
+        links = []
+        if self.page_source is not None:
+            self.log.debug('Parsing mirrors...')
+            try:
+                resp = json.loads(self.page_source)
+                objects = resp.get("response", {}).get("docs", [])
+                if objects:
+                    obj = objects[0]
+                    group = obj.get("g")
+                    artifact = obj.get("a")
+                    version = obj.get("v")
+                    ext = obj.get("p")
+                    link_template = "http://search.maven.org/remotecontent?filepath={group}/{artifact}/" \
+                                    "{version}/{artifact}-{version}.{ext}"
+                    link = link_template.format(group=group, artifact=artifact, version=version, ext=ext)
+                    links.append(link)
+            except BaseException as exc:
+                self.log.error("Error while parsing mirrors %s", exc)
+        default_link = SeleniumExecutor.TESTNG_DOWNLOAD_LINK.format(version=self.junit_version)
         if default_link not in links:
             links.append(default_link)
         self.log.debug('Total mirrors: %d', len(links))
