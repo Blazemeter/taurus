@@ -333,6 +333,28 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         self.assertEqual(len(self.obj.resource_files()), 1)
 
 
+class TestSeleniumTestNGRunner(SeleniumTestCase):
+    def test_install_tools(self):
+        pass
+
+    def test_prepare_java_package(self):
+        self.configure({
+            'execution': {
+                'scenario': {'script': __dir__() + '/../selenium/jar/testng-suite.jar'},
+                'language': 'java-testng',
+                'executor': 'selenium'
+            },
+        })
+        self.obj.prepare()
+        self.obj.startup()
+        while not self.obj.check():
+            time.sleep(1.0)
+        self.obj.shutdown()
+        self.obj.post_process()
+        lines = open(self.obj.report_file).readlines()
+        self.assertEqual(len(lines), 3)
+
+
 class TestSeleniumNoseRunner(SeleniumTestCase):
     def test_selenium_prepare_python_single(self):
         """
