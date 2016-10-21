@@ -1268,15 +1268,29 @@ class BlazeMeterClient(object):
         return tests['result']
 
     def __get_kpi_body(self, data_buffer, is_final):
+        # - reporting format:
+        #   {labels: <data>,    # see below
+        #    sourceID: <id of BlazeMeterClient object>,
+        #    [is_final: True]}  # for last report
+        #
+        # - elements of 'data' are described in __get_label_skel()
+        #
+        # - elements of 'intervals' are described in __get_interval_skel()
+        #   every interval contains info about response codes have gotten on it.
+        #   interval['rc'] - list of next dictionaries:
+        #   {'n': <number of this code encounters>,
+        #    'f': <number of failed request (e.q. important for assertions)>
+        #    'rc': <string value of response code>}
+
         report_items = BetterDict()
         for dpoint in data_buffer:
             self.first_ts = min(self.first_ts, dpoint[DataPoint.TIMESTAMP])
             self.last_ts = max(self.last_ts, dpoint[DataPoint.TIMESTAMP])
 
             for label, kpi_set in iteritems(dpoint[DataPoint.CURRENT]):
-                report_item = report_items.get(label, self.__label_skel(label))
+                report_item = report_items.get(label, self.__get_label_skel(label))
 
-                interval_item = self.__interval_json(kpi_set, dpoint)
+                interval_item = self.__get_interval_skel(kpi_set, dpoint)
                 for r_code, cnt in iteritems(kpi_set[KPISet.RESP_CODES]):
                     fails = [err['cnt'] for err in kpi_set[KPISet.ERRORS] if str(err['rc']) == r_code]
                     interval_item['rc'].append({"n": cnt, 'f': fails, "rc": r_code})
@@ -1285,7 +1299,7 @@ class BlazeMeterClient(object):
 
                 cumul = dpoint[DataPoint.CUMULATIVE][label]
                 report_item['n'] = cumul[KPISet.SAMPLE_COUNT]
-                report_item["summary"] = self.__summary_json(cumul)
+                report_item["summary"] = self.__get_summary(cumul)
 
                 self.__add_errors(report_item, kpi_set)
 
@@ -1296,6 +1310,9 @@ class BlazeMeterClient(object):
             data['final'] = True
 
         return to_json(data)
+
+
+
 
     @staticmethod
     def __add_errors(report_item, kpi_set):
@@ -1313,7 +1330,6 @@ class BlazeMeterClient(object):
                     'name': 'All Assertions',
                     'failures': error['cnt']
                     # TODO: "count", "errors" = ? (according do Udi's format description)
-                    # TODO: Errtype == embedded_resources ?
                 })
 
     def send_kpi_data(self, data_buffer, is_check_response=True, is_final=False):
@@ -1340,26 +1356,27 @@ class BlazeMeterClient(object):
                 self.log.info("Test was stopped through Web UI: %s", result['status'])
                 raise ManualShutdown("The test was interrupted through Web UI")
 
-    def __label_skel(self, name):
+    def __get_label_skel(self, name):
         return {
-            "n": None,
-            "name": name if name else 'ALL',
-            "interval": 1,
-            "intervals": [],
-            "samplesNotCounted": 0,
-            "assertionsNotCounted": 0,
-            "failedEmbeddedResources": [],
-            "failedEmbeddedResourcesSpilloverCount": 0,
-            "otherErrorsCount": 0,
-            "errors": [],
-            "assertions": [],
-            "percentileHistogram": [],
-            "percentileHistogramLatency": [],
-            "percentileHistogramBytes": [],
-            "empty": False,
+            "n": None,                                      # total count of samples
+            "name": name if name else 'ALL',                # label
+            "interval": 1,                                  # not used
+            "intervals": [],                                # list of intervals
+            "samplesNotCounted": 0,                         # not used
+            "assertionsNotCounted": 0,                      # not used
+            "failedEmbeddedResources": [],                  # not used
+            "failedEmbeddedResourcesSpilloverCount": 0,     # not used
+            "otherErrorsCount": 0,                          # not used
+            "errors": [],                                   # list of errors
+            "assertions": [],                               # list of assertions
+            "percentileHistogram": [],                      # not used
+            "percentileHistogramLatency": [],               # not used
+            "percentileHistogramBytes": [],                 # not used
+            "empty": False,                                 # not used
+            "summary": {}                                   # summary info
         }
 
-    def __summary_json(self, cumul):
+    def __get_summary(self, cumul):
         return {
             "first": self.first_ts,
             "last": self.last_ts,
@@ -1389,7 +1406,7 @@ class BlazeMeterClient(object):
             "otherErrorsSpillcount": 0,
         }
 
-    def __interval_json(self, item, sec):
+    def __get_interval_skel(self, item, sec):
         return {
             "ec": item[KPISet.FAILURES],
             "ts": sec[DataPoint.TIMESTAMP],
