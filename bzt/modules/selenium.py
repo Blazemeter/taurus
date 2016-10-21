@@ -169,6 +169,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
             runner_config.merge(self.settings.get("selenium-tools").get("testng"))
             runner_config['working-dir'] = self.get_runner_working_dir()
             runner_config['props-file'] = self.engine.create_artifact("runner", ".properties")
+            runner_config['testng-xml'] = self.get_scenario().get('testng-xml', None)
         elif script_type == "ruby-rspec":
             runner_class = RSpecTester
             runner_config.merge(self.settings.get("selenium-tools").get("rspec"))
@@ -640,6 +641,7 @@ class TestNGTester(AbstractTestRunner):
         link = SeleniumExecutor.SELENIUM_DOWNLOAD_LINK.format(version=SeleniumExecutor.SELENIUM_VERSION)
         self.required_tools.append(SeleniumServerJar(self.selenium_server_jar_path, link, self.log))
         self.required_tools.append(TestNGJar(self.testng_path, self.log, SeleniumExecutor.TESTNG_VERSION))
+        self.required_tools.append(HamcrestJar(self.hamcrest_path, SeleniumExecutor.HAMCREST_DOWNLOAD_LINK))
         self.required_tools.append(JsonJar(self.json_jar_path, SeleniumExecutor.JSON_JAR_DOWNLOAD_LINK))
         self.required_tools.append(TestNGPluginJar(self.testng_plugin_path, ""))
 
@@ -752,6 +754,9 @@ class TestNGTester(AbstractTestRunner):
 
             for index, item in enumerate(jar_list):
                 props.write("target_%s=%s\n" % (index, item.replace(os.path.sep, '/')))
+
+            if self.settings.get('testng-xml'):
+                props.write('testng_config=%s\n' % self.settings.get('testng-xml'))
 
         std_out = open(self.settings.get("stdout"), "wt")
         self.opened_descriptors.append(std_out)

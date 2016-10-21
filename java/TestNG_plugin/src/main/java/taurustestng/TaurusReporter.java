@@ -22,7 +22,6 @@ public class TaurusReporter {
     }
 
     public synchronized void writeSample(Sample sample) {
-        log.info("Writing sample");
         try {
             JSONObject obj = new JSONObject();
             obj.put("test_case", sample.getLabel());

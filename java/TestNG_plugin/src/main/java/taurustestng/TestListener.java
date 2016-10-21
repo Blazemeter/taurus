@@ -38,7 +38,6 @@ public class TestListener implements IResultListener {
         sample.setFullName(testClass.getName() + "." + methodName);
         sample.setStartTime(tr.getStartMillis() / 1000);
         double durationMs = tr.getEndMillis() - tr.getStartMillis();
-        log.info(String.format("Duration (in ms): %.2f", durationMs));
         sample.setDuration(durationMs / 1000.0);
         switch (tr.getStatus()) {
             case ITestResult.FAILURE:

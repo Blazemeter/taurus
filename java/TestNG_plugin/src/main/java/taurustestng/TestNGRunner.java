@@ -1,6 +1,7 @@
 package taurustestng;
 
 import org.testng.TestNG;
+import org.testng.collections.Lists;
 
 import java.io.FileReader;
 import java.io.IOException;
@@ -12,12 +13,15 @@ import java.util.jar.JarFile;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static org.testng.TestNGAntTask.Mode.testng;
+
 public class TestNGRunner {
     private static final Logger log = Logger.getLogger(TestNGRunner.class.getName());
     public static final String REPORT_FILE = "report_file";
     public static final String TARGET_PREFIX = "target_";
     public static final String ITERATIONS = "iterations";
     public static final String HOLD = "hold_for";
+    public static final String TESTNG_CONFIG = "testng_config";
 
     static {
         log.setLevel(Level.FINER);
@@ -41,9 +45,12 @@ public class TestNGRunner {
 
         TaurusReporter reporter = new TaurusReporter(props.getProperty(REPORT_FILE));
         TestListener testListener = new TestListener(reporter);
-        // List<String> suites = Lists.newArrayList();
-        // suites.add("testng.xml");
-        // testng.setTestSuites(suites);
+
+        List<String> suites = Lists.newArrayList();
+        if (props.getProperty(TESTNG_CONFIG) != null) {
+            log.info("Using TestNG config: " + props.getProperty(TESTNG_CONFIG));
+            suites.add(props.getProperty(TESTNG_CONFIG));
+        }
 
         long iterations = Long.valueOf(props.getProperty(ITERATIONS, "0"));
         float hold = Float.valueOf(props.getProperty(HOLD, "0"));
@@ -61,7 +68,11 @@ public class TestNGRunner {
             testNG.setUseDefaultListeners(false);
             testNG.setVerbose(0);
             testNG.addListener(testListener);
-            testNG.setTestClasses(classArray);
+            if (!suites.isEmpty()) {
+                testNG.setTestSuites(suites);
+            } else {
+                testNG.setTestClasses(classArray);
+            }
             testNG.run();
             log.info("Elapsed: " + (System.currentTimeMillis() - startTime) + ", limit: " + (hold * 1000));
             if (hold > 0 && System.currentTimeMillis() - startTime > hold * 1000) {
