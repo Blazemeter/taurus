@@ -91,7 +91,6 @@
           "jar-name": "compiled.jar",
           "working-dir": "classes"
         },
-
         "nose": {
           "working-dir": "classes"
         },
