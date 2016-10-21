@@ -159,7 +159,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     """
     Gatling executor module
     """
-    MIRRORS_SOURCE = "http://gatling.io/views/download.html"
     DOWNLOAD_LINK = "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle" \
                     "/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip"
     VERSION = "2.1.7"
