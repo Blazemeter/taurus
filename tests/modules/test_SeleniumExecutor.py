@@ -3,6 +3,7 @@ import logging
 import os
 import re
 import shutil
+import sys
 import time
 import unittest
 import yaml
@@ -36,6 +37,24 @@ class SeleniumTestCase(BZTestCase):
             self.obj.execution = self.obj.execution[0]
 
     def tearDown(self):
+        exc, args, trace = sys.exc_info()
+        if exc or args or trace:
+            stdout = ""
+            try:
+                stdout_path = os.path.join(self.obj.engine.artifacts_dir, "selenium.out")
+                if os.path.exists(stdout_path):
+                    stdout = open(stdout_path).read()
+            except BaseException:
+                pass
+            stderr = ""
+            try:
+                stdout_path = os.path.join(self.obj.engine.artifacts_dir, "selenium.err")
+                if os.path.exists(stdout_path):
+                    stderr = open(stdout_path).read()
+            except BaseException:
+                pass
+            logging.info('STDOUT: """\n%s\n"""', stdout)
+            logging.info('STDERR: """\n%s\n"""', stderr)
         self.obj.free_virtual_display()
 
 
