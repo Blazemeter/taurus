@@ -82,7 +82,7 @@ class TestApacheBenchExecutor(BZTestCase):
             "scenario": {
                 "requests": ["http://blazedemo.com"]
             }})
-        self.assertRaises(RuntimeError, obj.prepare)
+        self.assertRaises(ValueError, obj.prepare)
 
     def test_full_execution(self):
         obj = ApacheBenchmarkExecutor()
