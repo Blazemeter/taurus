@@ -611,6 +611,7 @@ class BaseCloudTest(object):
     """
     :type client: BlazeMeterClient
     """
+
     def __init__(self, client, test_id, project_id, test_name, default_location, parent_log):
         self.default_test_name = "Taurus Test"
         self.client = client
@@ -960,7 +961,6 @@ class BlazeMeterClient(object):
         self.last_ts = 0
         self.timeout = 10
         self.delete_files_before_test = False
-        self.data = None    # FIXME: debug
 
     def _request(self, url, data=None, headers=None, checker=None, method=None):
         if not headers:
@@ -1285,10 +1285,8 @@ class BlazeMeterClient(object):
 
             # following data is received in the cumulative way
             for label, kpi_set in iteritems(data_buffer[-1][DataPoint.CUMULATIVE]):
-                report_item = self.__get_label_skel(label)
-                report_item['n'] = kpi_set[KPISet.SAMPLE_COUNT]
-                report_item["summary"] = self.__get_summary(kpi_set)  # 'Summary' and 'Load Report' tabs
-                self.__add_errors(report_item, kpi_set)   # 'Errors' tab
+                report_item = self.__get_label(label, kpi_set)
+                self.__add_errors(report_item, kpi_set)  # 'Errors' tab
                 report_items[label] = report_item
 
             # fill 'Timeline Report' tab with intervals data
@@ -1348,24 +1346,24 @@ class BlazeMeterClient(object):
                 self.log.info("Test was stopped through Web UI: %s", result['status'])
                 raise ManualShutdown("The test was interrupted through Web UI")
 
-    def __get_label_skel(self, name):
+    def __get_label(self, name, cumul):
         return {
-            "n": None,                                      # total count of samples
-            "name": name if name else 'ALL',                # label
-            "interval": 1,                                  # not used
-            "intervals": [],                                # list of intervals
-            "samplesNotCounted": 0,                         # not used
-            "assertionsNotCounted": 0,                      # not used
-            "failedEmbeddedResources": [],                  # not used
-            "failedEmbeddedResourcesSpilloverCount": 0,     # not used
-            "otherErrorsCount": 0,                          # not used
-            "errors": [],                                   # list of errors
-            "assertions": [],                               # list of assertions
-            "percentileHistogram": [],                      # not used
-            "percentileHistogramLatency": [],               # not used
-            "percentileHistogramBytes": [],                 # not used
-            "empty": False,                                 # not used
-            "summary": {}                                   # summary info
+            "n": cumul[KPISet.SAMPLE_COUNT],  # total count of samples
+            "name": name if name else 'ALL',  # label
+            "interval": 1,  # not used
+            "intervals": [],  # list of intervals, fill later
+            "samplesNotCounted": 0,  # not used
+            "assertionsNotCounted": 0,  # not used
+            "failedEmbeddedResources": [],  # not used
+            "failedEmbeddedResourcesSpilloverCount": 0,  # not used
+            "otherErrorsCount": 0,  # not used
+            "errors": [],  # list of errors, fill later
+            "assertions": [],  # list of assertions, fill later
+            "percentileHistogram": [],  # not used
+            "percentileHistogramLatency": [],  # not used
+            "percentileHistogramBytes": [],  # not used
+            "empty": False,  # not used
+            "summary": self.__get_summary(cumul)  # summary info
         }
 
     def __get_summary(self, cumul):

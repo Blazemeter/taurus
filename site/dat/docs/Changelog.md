@@ -7,6 +7,7 @@
  - make Taurus shortcut (Windows) open command line
  - handle the absence of backtrace in RSpec
  - jmx2yaml: use `HTTPSampler.path` even when there's no `HTTPSampler.domain` set
+ - fix cumulative part of BlazeMeter reporting
 
 ## 1.7.2 <sup>13 oct 2016</sup>
  - fix keep-alive processing in Gatling
