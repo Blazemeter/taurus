@@ -57,6 +57,14 @@ class AbstractSeleniumExecutor(ScenarioExecutor):
         pass
 
     @abstractmethod
+    def del_env(self, env):
+        """
+        Remove environment variables from selenium process env
+        :type env: dict[str,str]
+        """
+        pass
+
+    @abstractmethod
     def get_virtual_display(self):
         """
         Return virtual display instance used by this executor.
@@ -93,7 +101,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
 
     def __init__(self):
         super(SeleniumExecutor, self).__init__()
-        self.additional_env = {}
+        self.env = dict(os.environ)
         self.virtual_display = None
         self.end_time = None
         self.runner = None
@@ -108,7 +116,12 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         return self.virtual_display
 
     def add_env(self, env):
-        self.additional_env.update(env)
+        self.env.update(env)
+
+    def del_env(self, env):
+        for var in env:
+            if var in self.env:
+                self.env.pop(var)
 
     def set_virtual_display(self):
         display_conf = self.settings.get("virtual-display")
@@ -250,7 +263,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         :return:
         """
         self.start_time = time.time()
-        self.runner.env = self.additional_env
+        self.runner.env = self.env
         self.runner.run_tests()
 
     def check_virtual_display(self):
@@ -565,16 +578,13 @@ class JUnitTester(AbstractTestRunner):
         std_err = open(self.settings.get("stderr"), "wt")
         self.opened_descriptors.append(std_err)
 
-        env = BetterDict()
-        env.merge(dict(os.environ))
-        env.merge(self.env)
-
         junit_command_line = ["java", "-cp", os.pathsep.join(self.base_class_path), "taurusjunit.CustomRunner",
                               self.props_file]
         self.process = self.executor.execute(junit_command_line,
                                              stdout=std_out,
                                              stderr=std_err,
-                                             env=env)
+                                             env=self.env,
+                                             full_env=True)
 
 
 class NoseTester(AbstractTestRunner):
@@ -624,14 +634,11 @@ class NoseTester(AbstractTestRunner):
         std_err = open(self.settings.get("stderr"), "wt")
         self.opened_descriptors.append(std_err)
 
-        env = BetterDict()
-        env.merge(dict(os.environ))
-        env.merge(self.env)
-
         self.process = self.executor.execute(nose_command_line,
                                              stdout=std_out,
                                              stderr=std_err,
-                                             env=env)
+                                             env=self.env,
+                                             full_env=True)
 
 
 class RSpecTester(AbstractTestRunner):
@@ -682,14 +689,11 @@ class RSpecTester(AbstractTestRunner):
         std_err = open(self.settings.get("stderr"), "wt")
         self.opened_descriptors.append(std_err)
 
-        env = BetterDict()
-        env.merge(dict(os.environ))
-        env.merge(self.env)
-
         self.process = self.executor.execute(rspec_cmdline,
                                              stdout=std_out,
                                              stderr=std_err,
-                                             env=env)
+                                             env=self.env,
+                                             full_env=True)
 
     def is_finished(self):
         ret_code = self.process.poll()
@@ -758,15 +762,13 @@ class MochaTester(AbstractTestRunner):
         std_err = open(self.settings.get("stderr"), "wt")
         self.opened_descriptors.append(std_err)
 
-        env = BetterDict()
-        env.merge(dict(os.environ))
-        env.merge(self.env)
-        env.merge({"NODE_PATH": self.mocha_tool.get_node_path_envvar()})
+        self.env["NODE_PATH"] = self.mocha_tool.get_node_path_envvar()
 
         self.process = self.executor.execute(mocha_cmdline,
                                              stdout=std_out,
                                              stderr=std_err,
-                                             env=env)
+                                             env=self.env,
+                                             full_env=True)
 
     def is_finished(self):
         ret_code = self.process.poll()

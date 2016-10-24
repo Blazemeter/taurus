@@ -923,7 +923,7 @@ class ScenarioExecutor(EngineModule):
         settings = self.engine.config.get(SETTINGS, {})
         return settings.get("hostaliases", {})
 
-    def execute(self, args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False, env=None):
+    def execute(self, args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False, env=None, full_env=False):
         if cwd is None:
             cwd = self.engine.default_cwd
         aliases = self.get_hostaliases()
@@ -935,7 +935,9 @@ class ScenarioExecutor(EngineModule):
                     fds.write("%s %s\n" % (key, value))
 
         environ = BetterDict()
-        environ.merge(dict(os.environ))
+        if not full_env:
+            environ.merge(dict(os.environ))
+
         if aliases:
             environ["HOSTALIASES"] = hosts_file
         if env is not None:

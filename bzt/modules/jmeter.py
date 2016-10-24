@@ -181,10 +181,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         try:
             # FIXME: muting stderr and stdout is bad
             self.process = self.execute(cmdline, stderr=None, env=self._env)
-        except OSError as exc:
-            self.log.error("Failed to start JMeter: %s", traceback.format_exc())
-            self.log.error("Failed command: %s", cmdline)
-            raise RuntimeError("Failed to start JMeter: %s" % exc)
+        except:
+            self.log.error("Failed to start JMeter: %s", cmdline)
+            raise
 
     def check(self):
         """
