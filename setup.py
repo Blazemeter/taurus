@@ -64,7 +64,7 @@ setup(
     docs_url='http://gettaurus.org/',
 
     install_requires=[
-        'pyyaml', 'psutil > 3', 'colorlog', 'colorama', 'lxml == 3.6.0',
+        'pyyaml', 'psutil > 3, != 4.4.0', 'colorlog', 'colorama', 'lxml == 3.6.0',
         'cssselect', 'urwid', 'six', 'nose',
         'selenium', 'progressbar33', 'pyvirtualdisplay', 'requests', ],
     packages=['bzt', 'bzt.six', 'bzt.modules', 'bzt.resources'],
