@@ -57,14 +57,6 @@ class AbstractSeleniumExecutor(ScenarioExecutor):
         pass
 
     @abstractmethod
-    def del_env(self, env):
-        """
-        Remove environment variables from selenium process env
-        :type env: dict[str,str]
-        """
-        pass
-
-    @abstractmethod
     def get_virtual_display(self):
         """
         Return virtual display instance used by this executor.
@@ -117,11 +109,6 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
 
     def add_env(self, env):
         self.env.update(env)
-
-    def del_env(self, env):
-        for var in env:
-            if var in self.env:
-                self.env.pop(var)
 
     def set_virtual_display(self):
         display_conf = self.settings.get("virtual-display")
@@ -583,8 +570,7 @@ class JUnitTester(AbstractTestRunner):
         self.process = self.executor.execute(junit_command_line,
                                              stdout=std_out,
                                              stderr=std_err,
-                                             env=self.env,
-                                             full_env=True)
+                                             env=self.env)
 
 
 class NoseTester(AbstractTestRunner):
@@ -637,8 +623,7 @@ class NoseTester(AbstractTestRunner):
         self.process = self.executor.execute(nose_command_line,
                                              stdout=std_out,
                                              stderr=std_err,
-                                             env=self.env,
-                                             full_env=True)
+                                             env=self.env)
 
 
 class RSpecTester(AbstractTestRunner):
@@ -692,8 +677,7 @@ class RSpecTester(AbstractTestRunner):
         self.process = self.executor.execute(rspec_cmdline,
                                              stdout=std_out,
                                              stderr=std_err,
-                                             env=self.env,
-                                             full_env=True)
+                                             env=self.env)
 
     def is_finished(self):
         ret_code = self.process.poll()
@@ -767,8 +751,7 @@ class MochaTester(AbstractTestRunner):
         self.process = self.executor.execute(mocha_cmdline,
                                              stdout=std_out,
                                              stderr=std_err,
-                                             env=self.env,
-                                             full_env=True)
+                                             env=self.env)
 
     def is_finished(self):
         ret_code = self.process.poll()

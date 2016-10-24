@@ -285,8 +285,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.process = self.execute(self.__get_cmdline(),
                                     stdout=self.stdout_file,
                                     stderr=self.stderr_file,
-                                    env=env,
-                                    full_env=True)
+                                    env=env)
 
     def __get_cmdline(self):
         simulation = self.get_scenario().get("simulation")
