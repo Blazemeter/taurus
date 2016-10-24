@@ -13,7 +13,6 @@ import java.util.jar.JarFile;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static org.testng.TestNGAntTask.Mode.testng;
 
 public class TestNGRunner {
     private static final Logger log = Logger.getLogger(TestNGRunner.class.getName());
