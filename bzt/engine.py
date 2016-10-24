@@ -941,9 +941,10 @@ class ScenarioExecutor(EngineModule):
             environ["HOSTALIASES"] = hosts_file
         if env is not None:
             environ.merge(env)
-            environ = {key: env[key] for key in environ if environ[key] is not None}
 
         environ.merge({"TAURUS_ARTIFACTS_DIR": self.engine.artifacts_dir})
+
+        environ = {key: environ[key] for key in environ.keys() if environ[key] is not None}
 
         return shell_exec(args, cwd=cwd, stdout=stdout, stderr=stderr, stdin=stdin, shell=shell, env=environ)
 
