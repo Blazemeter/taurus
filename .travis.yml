@@ -15,6 +15,6 @@ install:
 - nvm use 4.2
 - gem install rspec
 - pip install colorlog pyyaml psutil lxml cssselect urwid six selenium==2.53.1 progressbar33 locustio pyvirtualdisplay
-script: coverage run `which nosetests`
+script: coverage run `which nosetests` --verbosity 3
 after_success:
   - codecov
