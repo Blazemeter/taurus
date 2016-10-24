@@ -565,16 +565,12 @@ class JUnitTester(AbstractTestRunner):
         std_err = open(self.settings.get("stderr"), "wt")
         self.opened_descriptors.append(std_err)
 
-        env = BetterDict()
-        env.merge(dict(os.environ))
-        env.merge(self.env)
-
         junit_command_line = ["java", "-cp", os.pathsep.join(self.base_class_path), "taurusjunit.CustomRunner",
                               self.props_file]
         self.process = self.executor.execute(junit_command_line,
                                              stdout=std_out,
                                              stderr=std_err,
-                                             env=env)
+                                             env=self.env)
 
 
 class NoseTester(AbstractTestRunner):
@@ -624,14 +620,10 @@ class NoseTester(AbstractTestRunner):
         std_err = open(self.settings.get("stderr"), "wt")
         self.opened_descriptors.append(std_err)
 
-        env = BetterDict()
-        env.merge(dict(os.environ))
-        env.merge(self.env)
-
         self.process = self.executor.execute(nose_command_line,
                                              stdout=std_out,
                                              stderr=std_err,
-                                             env=env)
+                                             env=self.env)
 
 
 class RSpecTester(AbstractTestRunner):
@@ -682,14 +674,10 @@ class RSpecTester(AbstractTestRunner):
         std_err = open(self.settings.get("stderr"), "wt")
         self.opened_descriptors.append(std_err)
 
-        env = BetterDict()
-        env.merge(dict(os.environ))
-        env.merge(self.env)
-
         self.process = self.executor.execute(rspec_cmdline,
                                              stdout=std_out,
                                              stderr=std_err,
-                                             env=env)
+                                             env=self.env)
 
     def is_finished(self):
         ret_code = self.process.poll()
@@ -758,15 +746,12 @@ class MochaTester(AbstractTestRunner):
         std_err = open(self.settings.get("stderr"), "wt")
         self.opened_descriptors.append(std_err)
 
-        env = BetterDict()
-        env.merge(dict(os.environ))
-        env.merge(self.env)
-        env.merge({"NODE_PATH": self.mocha_tool.get_node_path_envvar()})
+        self.env["NODE_PATH"] = self.mocha_tool.get_node_path_envvar()
 
         self.process = self.executor.execute(mocha_cmdline,
                                              stdout=std_out,
                                              stderr=std_err,
-                                             env=env)
+                                             env=self.env)
 
     def is_finished(self):
         ret_code = self.process.poll()

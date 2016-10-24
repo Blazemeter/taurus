@@ -936,10 +936,13 @@ class ScenarioExecutor(EngineModule):
 
         environ = BetterDict()
         environ.merge(dict(os.environ))
+
         if aliases:
             environ["HOSTALIASES"] = hosts_file
         if env is not None:
             environ.merge(env)
+            environ = {key: env[key] for key in environ if environ[key] is not None}
+
         environ.merge({"TAURUS_ARTIFACTS_DIR": self.engine.artifacts_dir})
 
         return shell_exec(args, cwd=cwd, stdout=stdout, stderr=stderr, stdin=stdin, shell=shell, env=environ)

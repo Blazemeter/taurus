@@ -281,7 +281,10 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             compilation_classpath += self.jar_list
             env.merge({'JAVA_CLASSPATH': java_classpath, 'COMPILATION_CLASSPATH': compilation_classpath})
 
-        self.process = self.execute(self.__get_cmdline(), stdout=self.stdout_file, stderr=self.stderr_file, env=env)
+        self.process = self.execute(self.__get_cmdline(),
+                                    stdout=self.stdout_file,
+                                    stderr=self.stderr_file,
+                                    env=env)
 
     def __get_cmdline(self):
         simulation = self.get_scenario().get("simulation")
