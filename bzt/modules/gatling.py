@@ -159,7 +159,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     """
     Gatling executor module
     """
-    MIRRORS_SOURCE = "http://gatling.io/views/download.html"
     DOWNLOAD_LINK = "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle" \
                     "/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip"
     VERSION = "2.1.7"
@@ -652,10 +651,9 @@ class Gatling(RequiredTool):
     """
 
     def __init__(self, tool_path, parent_logger, download_link, version):
-        super(Gatling, self).__init__("Gatling", tool_path)
+        super(Gatling, self).__init__("Gatling", tool_path, download_link.format(version=version))
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.version = version
-        self.mirror_manager = GatlingMirrorsManager(self.log, download_link, self.version)
 
     def check_if_installed(self):
         self.log.debug("Trying Gatling: %s", self.tool_path)
@@ -665,13 +663,13 @@ class Gatling(RequiredTool):
             self.log.debug("Gatling check: %s", gatling_output)
             return True
         except OSError:
-            self.log.debug("Gatling check failed.")
+            self.log.info("Gatling check failed.")
             return False
 
     def install(self):
         dest = get_full_path(self.tool_path, step_up=2)
         self.log.info("Will install %s into %s", self.tool_name, dest)
-        gatling_dist = self._download()
+        gatling_dist = self._download(use_link=True)
         self.log.info("Unzipping %s", gatling_dist)
         unzip(gatling_dist, dest, 'gatling-charts-highcharts-bundle-' + self.version)
         os.remove(gatling_dist)
@@ -679,27 +677,3 @@ class Gatling(RequiredTool):
         self.log.info("Installed Gatling successfully")
         if not self.check_if_installed():
             raise RuntimeError("Unable to run %s after installation!" % self.tool_name)
-
-
-class GatlingMirrorsManager(MirrorsManager):
-    def __init__(self, parent_logger, download_link, gatling_version):
-        self.download_link = download_link
-        self.gatling_version = gatling_version
-        super(GatlingMirrorsManager, self).__init__(GatlingExecutor.MIRRORS_SOURCE, parent_logger)
-
-    def _parse_mirrors(self):
-        links = []
-        if self.page_source is not None:
-            self.log.debug('Parsing mirrors...')
-            a_search_pattern = re.compile(r'<a class="lead" href=".*?">Gatling bundle \(zip\)</a>')
-            href_search_pattern = re.compile(r'href=".*?">')
-            select_element = a_search_pattern.findall(self.page_source)
-
-            if select_element and self.gatling_version in select_element:
-                href_elements = href_search_pattern.findall(select_element[0])
-                links = [link.strip('href=').strip('">') for link in href_elements]
-        default_link = self.download_link.format(version=self.gatling_version)
-        if default_link not in links:
-            links.append(default_link)
-        self.log.debug('Total mirrors: %d', len(links))
-        return links
