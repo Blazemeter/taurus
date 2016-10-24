@@ -93,7 +93,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
 
     def __init__(self):
         super(SeleniumExecutor, self).__init__()
-        self.env = dict(os.environ)
+        self.additional_env = {}
         self.virtual_display = None
         self.end_time = None
         self.runner = None
@@ -108,7 +108,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         return self.virtual_display
 
     def add_env(self, env):
-        self.env.update(env)
+        self.additional_env.update(env)
 
     def set_virtual_display(self):
         display_conf = self.settings.get("virtual-display")
@@ -250,7 +250,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         :return:
         """
         self.start_time = time.time()
-        self.runner.env = self.env
+        self.runner.env = self.additional_env
         self.runner.run_tests()
 
     def check_virtual_display(self):
