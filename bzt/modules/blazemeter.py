@@ -960,6 +960,7 @@ class BlazeMeterClient(object):
         self.last_ts = 0
         self.timeout = 10
         self.delete_files_before_test = False
+        self.data = None    # FIXME: debug
 
     def _request(self, url, data=None, headers=None, checker=None, method=None):
         if not headers:
@@ -1273,46 +1274,37 @@ class BlazeMeterClient(object):
         #    sourceID: <id of BlazeMeterClient object>,
         #    [is_final: True]}  # for last report
         #
-        # - elements of 'data' are described in __get_label_skel()
+        # - elements of 'data' are described in __get_label()
         #
-        # - elements of 'intervals' are described in __get_interval_skel()
+        # - elements of 'intervals' are described in __get_interval()
         #   every interval contains info about response codes have gotten on it.
-        #   interval['rc'] - list of next dictionaries:
-        #   {'n': <number of this code encounters>,
-        #    'f': <number of failed request (e.q. important for assertions)>
-        #    'rc': <string value of response code>}
-
         report_items = BetterDict()
-        for dpoint in data_buffer:
-            self.first_ts = min(self.first_ts, dpoint[DataPoint.TIMESTAMP])
-            self.last_ts = max(self.last_ts, dpoint[DataPoint.TIMESTAMP])
+        if data_buffer:
+            self.first_ts = min(self.first_ts, data_buffer[0][DataPoint.TIMESTAMP])
+            self.last_ts = max(self.last_ts, data_buffer[-1][DataPoint.TIMESTAMP])
 
-            for label, kpi_set in iteritems(dpoint[DataPoint.CURRENT]):
-                report_item = report_items.get(label, self.__get_label_skel(label))
+            # following data is received in the cumulative way
+            for label, kpi_set in iteritems(data_buffer[-1][DataPoint.CUMULATIVE]):
+                report_item = self.__get_label_skel(label)
+                report_item['n'] = kpi_set[KPISet.SAMPLE_COUNT]
+                report_item["summary"] = self.__get_summary(kpi_set)  # 'Summary' and 'Load Report' tabs
+                self.__add_errors(report_item, kpi_set)   # 'Errors' tab
+                report_items[label] = report_item
 
-                interval_item = self.__get_interval_skel(kpi_set, dpoint)
-                for r_code, cnt in iteritems(kpi_set[KPISet.RESP_CODES]):
-                    fails = [err['cnt'] for err in kpi_set[KPISet.ERRORS] if str(err['rc']) == r_code]
-                    interval_item['rc'].append({"n": cnt, 'f': fails, "rc": r_code})
-
-                report_item['intervals'].append(interval_item)
-
-                cumul = dpoint[DataPoint.CUMULATIVE][label]
-                report_item['n'] = cumul[KPISet.SAMPLE_COUNT]
-                report_item["summary"] = self.__get_summary(cumul)
-
-                self.__add_errors(report_item, kpi_set)
+            # fill 'Timeline Report' tab with intervals data
+            # intervals are received in the additive way
+            for dpoint in data_buffer:
+                time_stamp = dpoint[DataPoint.TIMESTAMP]
+                for label, kpi_set in iteritems(dpoint[DataPoint.CURRENT]):
+                    report_item = report_items.get(label, ValueError('Cumulative KPISet non-consistent'))
+                    report_item['intervals'].append(self.__get_interval(kpi_set, time_stamp))
 
         report_items = [report_items[key] for key in sorted(report_items.keys())]  # convert dict to list
         data = {"labels": report_items, "sourceID": id(self)}
-
         if is_final:
             data['final'] = True
 
         return to_json(data)
-
-
-
 
     @staticmethod
     def __add_errors(report_item, kpi_set):
@@ -1406,14 +1398,23 @@ class BlazeMeterClient(object):
             "otherErrorsSpillcount": 0,
         }
 
-    def __get_interval_skel(self, item, sec):
+    def __get_interval(self, item, time_stamp):
+        #   rc_list - list of info about response codes:
+        #   {'n': <number of code encounters>,
+        #    'f': <number of failed request (e.q. important for assertions)>
+        #    'rc': <string value of response code>}
+        rc_list = []
+        for r_code, cnt in iteritems(item[KPISet.RESP_CODES]):
+            fails = [err['cnt'] for err in item[KPISet.ERRORS] if str(err['rc']) == r_code]
+            rc_list.append({"n": cnt, 'f': fails, "rc": r_code})
+
         return {
             "ec": item[KPISet.FAILURES],
-            "ts": sec[DataPoint.TIMESTAMP],
+            "ts": time_stamp,
             "na": item[KPISet.CONCURRENCY],
             "n": item[KPISet.SAMPLE_COUNT],
             "failed": item[KPISet.FAILURES],
-            "rc": [],  # filled later
+            "rc": rc_list,
             "t": {
                 "min": int(1000 * item[KPISet.PERCENTILES]["0.0"]) if "0.0" in item[KPISet.PERCENTILES] else 0,
                 "max": int(1000 * item[KPISet.PERCENTILES]["100.0"]) if "100.0" in item[KPISet.PERCENTILES] else 0,
