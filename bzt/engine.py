@@ -749,8 +749,9 @@ class Provisioning(EngineModule):
             executions = [executions]
 
         for execution in executions:
-            msg = "Cannot determine executor type and no default executor in %s"
-            executor = execution.get("executor", TaurusConfigException(msg, execution))
+            executor = execution.get("executor", default_executor)
+            if not executor:
+                raise TaurusConfigException("Cannot determine executor type and no default executor in %s", execution)
             instance = self.engine.instantiate_module(executor)
             instance.provisioning = self
             instance.execution = execution
