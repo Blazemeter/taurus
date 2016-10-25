@@ -6,6 +6,7 @@ from tests.mocks import EngineEmul, RecordingHandler
 from bzt.modules.reporting import FinalStatus
 from bzt.utils import BetterDict
 from bzt.modules.aggregator import DataPoint, KPISet
+from bzt.modules.functional import ResultsTree, FunctionalSample
 
 
 class TestFinalStatusReporter(BZTestCase):
@@ -88,6 +89,42 @@ class TestFinalStatusReporter(BZTestCase):
         obj.aggregated_second(random_datapoint(time.time()))
         obj.post_process()
         self.assertIn("XML", log_recorder.info_buff.getvalue())
+
+    def test_func_report(self):
+        obj = FinalStatus()
+        obj.engine = EngineEmul()
+        obj.parameters = BetterDict()
+        log_recorder = RecordingHandler()
+        obj.log.addHandler(log_recorder)
+        obj.prepare()
+        obj.aggregated_results(*self.__get_func_tree())
+        obj.post_process()
+        info_log = log_recorder.info_buff.getvalue()
+        self.assertIn("Total: 3 tests", info_log)
+        self.assertIn("Test TestClass.case2", info_log)
+        self.assertIn("stacktrace2", info_log)
+        self.assertIn("Test TestClass.case3", info_log)
+        self.assertIn("stacktrace3", info_log)
+        obj.log.removeHandler(log_recorder)
+
+    def test_func_report_all_no_stacktrace(self):
+        obj = FinalStatus()
+        obj.engine = EngineEmul()
+        obj.parameters = BetterDict()
+        log_recorder = RecordingHandler()
+        obj.log.addHandler(log_recorder)
+        obj.parameters.merge({"report-tests": "all", "print-stacktrace": False})
+        obj.prepare()
+        obj.aggregated_results(*self.__get_func_tree())
+        obj.post_process()
+        info_log = log_recorder.info_buff.getvalue()
+        self.assertIn("Total: 3 tests", info_log)
+        self.assertIn("Test TestClass.case1 - PASSED", info_log)
+        self.assertIn("Test TestClass.case2 - FAILED", info_log)
+        self.assertIn("Test TestClass.case3 - BROKEN", info_log)
+        self.assertNotIn("stacktrace2", info_log)
+        self.assertNotIn("stacktrace3", info_log)
+        obj.log.removeHandler(log_recorder)
 
     def __get_datapoint(self):
         datapoint = DataPoint(None, None)
@@ -185,3 +222,16 @@ class TestFinalStatusReporter(BZTestCase):
              KPISet.AVG_RESP_TIME: 0.0005164542450603551,
              KPISet.FAILURES: 0})
         return datapoint
+
+    def __get_func_tree(self):
+        tree = ResultsTree()
+        tree.add_sample(FunctionalSample(test_case="case1", test_suite="TestClass", status="PASSED",
+                                         start_time=time.time(), duration=0.12,
+                                         error_msg=None, error_trace=None, extras=None))
+        tree.add_sample(FunctionalSample(test_case="case2", test_suite="TestClass", status="FAILED",
+                                         start_time=time.time(), duration=0.33,
+                                         error_msg="something broke", error_trace="stacktrace2", extras=None))
+        tree.add_sample(FunctionalSample(test_case="case3", test_suite="TestClass", status="BROKEN",
+                                         start_time=time.time(), duration=0.33,
+                                         error_msg="something is badly broken", error_trace="stacktrace3", extras=None))
+        return tree, tree

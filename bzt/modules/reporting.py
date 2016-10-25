@@ -19,18 +19,19 @@ import copy
 import csv
 import os
 import time
-from collections import OrderedDict
+from collections import Counter, OrderedDict
 from datetime import datetime
 
 from bzt.engine import Reporter
 from bzt.modules.aggregator import DataPoint, KPISet, AggregatorListener, ResultsProvider
 from bzt.modules.blazemeter import BlazeMeterUploader, CloudProvisioning
+from bzt.modules.functional import FunctionalAggregator, FunctionalAggregatorListener
 from bzt.modules.passfail import PassFailStatus
 from bzt.six import etree, iteritems, string_types
 from bzt.utils import get_full_path
 
 
-class FinalStatus(Reporter, AggregatorListener):
+class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
     """
     A reporter that prints short statistics on test end
     """
@@ -38,6 +39,7 @@ class FinalStatus(Reporter, AggregatorListener):
     def __init__(self):
         super(FinalStatus, self).__init__()
         self.last_sec = None
+        self.cumulative_results = None
         self.start_time = time.time()
         self.end_time = None
 
@@ -48,6 +50,8 @@ class FinalStatus(Reporter, AggregatorListener):
         super(FinalStatus, self).prepare()
         if isinstance(self.engine.aggregator, ResultsProvider):
             self.engine.aggregator.add_listener(self)
+        elif isinstance(self.engine.aggregator, FunctionalAggregator):
+            self.engine.aggregator.add_listener(self)
 
     def aggregated_second(self, data):
         """
@@ -56,6 +60,14 @@ class FinalStatus(Reporter, AggregatorListener):
         :type data: bzt.modules.aggregator.DataPoint
         """
         self.last_sec = data
+
+    def aggregated_results(self, results, cumulative_results):
+        """
+        Just store the latest info
+
+        :type data: bzt.modules.functional.ResultsTree
+        """
+        self.cumulative_results = cumulative_results
 
     def post_process(self):
         """
@@ -84,6 +96,41 @@ class FinalStatus(Reporter, AggregatorListener):
 
             if self.parameters.get("dump-csv", None):
                 self.__dump_csv(self.parameters.get("dump-csv"))
+        elif self.cumulative_results:
+            self.__report_summary()
+            report_mode = self.parameters.get("report-tests", "failed")
+            if report_mode == "failed":
+                self.__report_failed_tests()
+            else:
+                self.__report_all_tests()
+
+    def __plural(self, count, noun):
+        return noun + 's' if count > 1 else noun
+
+    def __report_all_tests(self):
+        for test_suite in self.cumulative_results.test_suites():
+            for case in self.cumulative_results.test_cases(test_suite):
+                full_name = case.test_suite + "." + case.test_case
+                self.log.info("Test %s - %s", full_name, case.status)
+                print_trace = self.parameters.get("print-stacktrace", True)
+                if print_trace and case.error_trace:
+                    self.log.info("Stacktrace:\n%s", case.error_trace)
+
+    def __report_failed_tests(self):
+        for test_suite in self.cumulative_results.test_suites():
+            for case in self.cumulative_results.test_cases(test_suite):
+                if case.status in ("FAILED", "BROKEN"):
+                    full_name = case.test_suite + "." + case.test_case
+                    self.log.info("Test %s failed:\n%s", full_name, case.error_trace)
+
+    def __report_summary(self):
+        status_counter = Counter()
+        for test_suite in self.cumulative_results.test_suites():
+            for case in self.cumulative_results.test_cases(test_suite):
+                status_counter[case.status] += 1
+
+        total = sum(count for _, count in iteritems(status_counter))
+        self.log.info("Total: %s %s", total, self.__plural(total, 'test'))
 
     def __report_samples_count(self, summary_kpi_set):
         """
