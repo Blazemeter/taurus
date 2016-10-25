@@ -453,7 +453,8 @@ class Engine(object):
         reporting = self.config.get(Reporter.REP, [])
         for index, reporter in enumerate(reporting):
             reporter = ensure_is_dict(reporting, index, "module")
-            cls = reporter.get('module', TaurusConfigException("reporter 'module' field isn't recognized: %s", reporter))
+            cls = reporter.get('module',
+                               TaurusConfigException("reporter 'module' field isn't recognized: %s", reporter))
             instance = self.instantiate_module(cls)
             instance.parameters = reporter
             assert isinstance(instance, Reporter)
@@ -829,7 +830,8 @@ class ScenarioExecutor(EngineModule):
             is_script = isinstance(label, string_types) and label not in scenarios and \
                         os.path.exists(self.engine.find_file(label))
             if isinstance(label, list):
-                raise TaurusConfigException("Invalid content of scenario, list type instead of dict or string: %s", label)
+                raise TaurusConfigException("Invalid content of scenario, list type instead of dict or string: %s",
+                                            label)
             if isinstance(label, dict) or is_script:
                 self.log.debug("Extract %s into scenarios" % label)
                 if isinstance(label, string_types):
