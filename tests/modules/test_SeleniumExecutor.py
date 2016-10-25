@@ -379,7 +379,6 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
             'execution': {
                 'scenario': {'script': __dir__() + '/../selenium/jar/testng-suite.jar'},
                 'language': 'java-testng',
-                'executor': 'selenium'
             },
         })
         self.obj.prepare()
@@ -390,6 +389,17 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         self.obj.post_process()
         lines = open(self.obj.report_file).readlines()
         self.assertEqual(len(lines), 3)
+
+    def test_resource_files(self):
+        script_jar = __dir__() + '/../selenium/jar/testng-suite.jar'
+        self.configure({
+            'execution': {
+                'scenario': {'script': script_jar},
+                'language': 'java-testng',
+            },
+        })
+        resources = self.obj.get_resource_files()
+        self.assertEqual(resources, [script_jar])
 
 
 class TestSeleniumNoseRunner(SeleniumTestCase):
