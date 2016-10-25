@@ -33,6 +33,14 @@ class RCProvider(object):
         pass
 
 
+class TaurusException(BaseException):
+    pass
+
+
+class ConfigException(TaurusException):
+    pass
+
+
 class NormalShutdown(KeyboardInterrupt, RCProvider):
     def get_rc(self):
         """

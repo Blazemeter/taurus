@@ -34,7 +34,7 @@ import yaml
 from yaml.representer import SafeRepresenter
 
 import bzt
-from bzt import ManualShutdown, get_configs_dir
+from bzt import ManualShutdown, get_configs_dir, ConfigException
 from bzt.six import build_opener, install_opener, urlopen, numeric_types, iteritems
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, etree, reraise
 from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name
@@ -440,7 +440,7 @@ class Engine(object):
         """
         cls = self.config.get(Provisioning.PROV, None)
         if not cls:
-            raise ValueError("Please configure provisioning settings")
+            raise ConfigException("Please configure provisioning settings")
         self.provisioning = self.instantiate_module(cls)
         self.prepared.append(self.provisioning)
         self.provisioning.prepare()
@@ -452,7 +452,7 @@ class Engine(object):
         reporting = self.config.get(Reporter.REP, [])
         for index, reporter in enumerate(reporting):
             reporter = ensure_is_dict(reporting, index, "module")
-            cls = reporter.get('module', ValueError())
+            cls = reporter.get('module', ConfigException("reporter 'module' field isn't recognized: %s", reporter))
             instance = self.instantiate_module(cls)
             instance.parameters = reporter
             assert isinstance(instance, Reporter)
@@ -739,14 +739,14 @@ class Provisioning(EngineModule):
         default_executor = esettings.get("default-executor", None)
 
         if ScenarioExecutor.EXEC not in self.engine.config:
-            raise ValueError("No execution is configured")
+            raise ConfigException("No execution is configured")
 
         executions = self.engine.config.get(ScenarioExecutor.EXEC)
         if not isinstance(executions, list):
             executions = [executions]
 
         if not executions:
-            raise ValueError("No execution is configured")
+            raise ConfigException("No execution is configured")
 
         for execution in executions:
             executor = execution.get("executor", default_executor)
@@ -826,12 +826,13 @@ class ScenarioExecutor(EngineModule):
         scenarios = self.engine.config.get("scenarios")
 
         if name is None:  # get current scenario
-            label = self.execution.get('scenario', ValueError("Scenario is not configured properly"))
+            exc = ConfigException("Scenario is not found in execution: %s", self.execution)
+            label = self.execution.get('scenario', exc)
 
             is_script = isinstance(label, string_types) and label not in scenarios and \
                         os.path.exists(self.engine.find_file(label))
             if isinstance(label, list):
-                raise ValueError("Invalid content of scenario, list type instead of dict or string")
+                raise ConfigException("Invalid content of scenario, list type instead of dict or string: %s", label)
             if isinstance(label, dict) or is_script:
                 self.log.debug("Extract %s into scenarios" % label)
                 if isinstance(label, string_types):
@@ -854,8 +855,8 @@ class ScenarioExecutor(EngineModule):
         else:  # get scenario by name
             label = name
 
-        err = ValueError("Scenario not found in scenarios: %s" % label)
-        scenario = scenarios.get(label, err)
+        exc = ConfigException("Scenario '%s' not found in scenarios: %s", label, scenarios.keys())
+        scenario = scenarios.get(label, exc)
         scenario_obj = Scenario(self.engine, scenario)
 
         if name is None:

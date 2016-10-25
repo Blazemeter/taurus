@@ -28,7 +28,7 @@ import yaml
 from colorlog import ColoredFormatter
 
 import bzt
-from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown
+from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown, TaurusException, ConfigException
 from bzt.engine import Engine, Configuration, ScenarioExecutor
 from bzt.six import HTTPError, string_types, b, get_stacktrace
 from bzt.utils import run_once, is_int, BetterDict, is_windows, is_piped
@@ -197,6 +197,8 @@ class CLI(object):
             self.log.log(info_level, "Normal shutdown")
         elif isinstance(exc, HTTPError):
             self.log.log(http_level, "Response from %s: %s", exc.geturl(), exc.read())
+        elif isinstance(exc, ConfigException):
+            self.log.log(default_level, "Wrong configuration: %s", exc)
         else:
             self.log.log(default_level, "%s: %s", type(exc).__name__, exc)
             self.log.log(default_level, get_stacktrace(exc))
