@@ -111,13 +111,13 @@ scenarios:
       user_def_var: http://demo.blazemeter.com/api/user
       user_def_var2: user_def_val_2
     modifications:
-        disable:  # Names of the tree elements to disable
-        - Thread Group 1
-        enable:  # Names of the tree elements to ensable
-        - Thread Group 2
-        set-prop:  # Set element properties, selected as [Element Name]>[property name]
-          "HTTP Sampler>HTTPSampler.connect_timeout": "0"
-          "HTTP Sampler>HTTPSampler.protocol": "https"
+      disable:  # Names of the tree elements to disable
+      - Thread Group 1
+      enable:  # Names of the tree elements to ensable
+      - Thread Group 2
+      set-prop:  # Set element properties, selected as [Element Name]>[property name]
+        "HTTP Sampler>HTTPSampler.connect_timeout": "0"
+        "HTTP Sampler>HTTPSampler.protocol": "https"
 ```
 
 ## Building Test Plan from Config
@@ -221,6 +221,7 @@ scenarios:
         Referer: http://taurus.blazemeter/docs
       think-time: 1s  # local think-time, overrides global
       timeout: 1s  # local timeout, overrides global
+      content-encoding: utf-8  # content encoding (at JMeter's level), unset by default
 
       extract-regexp: {}  # explained below
       extract-jsonpath: {}  # explained below
