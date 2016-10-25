@@ -9,6 +9,7 @@
  - jmx2yaml: use `HTTPSampler.path` even when there's no `HTTPSampler.domain` set
  - fix cumulative part of BlazeMeter reporting
  - remove MirrorsManager from Gatling
+ - add final stats reporting for functional mode
 
 ## 1.7.2 <sup>13 oct 2016</sup>
  - fix keep-alive processing in Gatling
