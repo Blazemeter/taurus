@@ -265,7 +265,7 @@ class JMX(object):
                              guiclass="ArgumentsPanel", testclass="Arguments")
 
     @staticmethod
-    def _get_http_request(url, label, method, timeout, body, keepalive, files=()):
+    def _get_http_request(url, label, method, timeout, body, keepalive, files=(), encoding=None):
         """
         Generates HTTP request
         :type method: str
@@ -300,6 +300,9 @@ class JMX(object):
         if timeout is not None:
             proxy.append(JMX._string_prop("HTTPSampler.connect_timeout", timeout))
             proxy.append(JMX._string_prop("HTTPSampler.response_timeout", timeout))
+
+        if encoding is not None:
+            proxy.append(JMX._string_prop("HTTPSampler.contentEncoding", encoding))
 
         if files:
             proxy.append(JMX._bool_prop("HTTPSampler.DO_MULTIPART_POST", True))
@@ -643,7 +646,8 @@ class JMX(object):
         return mgr
 
     @staticmethod
-    def _get_http_defaults(default_address=None, timeout=None, retrieve_resources=None, concurrent_pool_size=4):
+    def _get_http_defaults(default_address=None, timeout=None, retrieve_resources=None, concurrent_pool_size=4,
+                           content_encoding=None):
         """
         :rtype: lxml.etree.Element
         """
@@ -679,6 +683,9 @@ class JMX(object):
         if timeout:
             cfg.append(JMX._string_prop("HTTPSampler.connect_timeout", timeout))
             cfg.append(JMX._string_prop("HTTPSampler.response_timeout", timeout))
+
+        if content_encoding:
+            cfg.append(JMX._string_prop("HTTPSampler.contentEncoding", content_encoding))
         return cfg
 
     @staticmethod
