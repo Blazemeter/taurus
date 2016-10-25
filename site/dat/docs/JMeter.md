@@ -164,6 +164,8 @@ scenarios:
                              # behind dns load balancers. True by default.
     force-parent-sample: true  # generate only parent sample for transaction controllers.
                                # True by default
+    content-encoding: utf-8  # global content encoding, applied to all requests.
+                             # Unset by default
     data-sources: # list of external data sources
     - path/to/my.csv  # this is a shorthand form
     - path: path/to/another.csv  # this is full form, path option is required
