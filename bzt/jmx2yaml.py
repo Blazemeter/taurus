@@ -369,6 +369,8 @@ class JMXasDict(JMX):
                     if url_info.retrieve_resources:
                         if url_info.retrieve_concurrency and url_info.retrieve_concurrency.isdigit():
                             request_defaults["concurrent-pool-size"] = int(url_info.retrieve_concurrency)
+                if url_info.content_encoding is not None:
+                    request_defaults["content-encoding"] = url_info.content_encoding
         self.log.debug('Got %s for request-defaults in %s (%s)', request_defaults, element.tag, element.get("testname"))
         return request_defaults
 
@@ -392,7 +394,7 @@ class JMXasDict(JMX):
         """
         http_sampler_info = namedtuple("http_sampler_info",
                                        ["domain", "port", "timeout", "protocol", "path", "method", "retrieve_resources",
-                                        "retrieve_concurrency"])
+                                        "retrieve_concurrency", "content_encoding"])
         if element is not None:
             domain = self._get_string_prop(element, 'HTTPSampler.domain')
             port = self._get_string_prop(element, 'HTTPSampler.port')
@@ -402,8 +404,9 @@ class JMXasDict(JMX):
             retrieve_resources = self._get_bool_prop(element, 'HTTPSampler.image_parser')
             retrieve_concurrency = self._get_string_prop(element, 'HTTPSampler.concurrentPool')
             method = self._get_string_prop(element, 'HTTPSampler.method')
+            encoding = self._get_string_prop(element, 'HTTPSampler.contentEncoding')
             url_info = http_sampler_info(domain, port, timeout, protocol, path, method, retrieve_resources,
-                                         retrieve_concurrency)
+                                         retrieve_concurrency, encoding)
             return url_info
         return None
 
@@ -419,6 +422,8 @@ class JMXasDict(JMX):
             base_settings["url"] = full_url
             if url_info.method:
                 base_settings["method"] = url_info.method
+            if url_info.content_encoding:
+                base_settings["content-encoding"] = url_info.content_encoding
         if element.get("testname"):
             base_settings["label"] = element.get("testname")
         self.log.debug('Got %s for base settings in %s (%s)', base_settings, element.tag, element.get("testname"))

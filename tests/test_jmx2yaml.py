@@ -435,3 +435,15 @@ class TestConverter(BZTestCase):
         self.assertEqual(len(requests), 3)
         without_domain = requests[2]
         self.assertEqual(without_domain['url'], '/path')
+
+    def test_request_content_encoding(self):
+        yml_file = self._get_tmp()
+        obj = self._get_jmx2yaml("/jmeter/jmx/http.jmx", yml_file)
+        obj.process()
+        yml = yaml.load(open(yml_file).read())
+        scenarios = yml.get("scenarios")
+        scenario = scenarios["Thread Group"]
+        requests = scenario["requests"]
+        self.assertEqual(len(requests), 3)
+        request = requests[1]
+        self.assertEqual(request['content-encoding'], 'utf-8')

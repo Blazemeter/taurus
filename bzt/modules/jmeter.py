@@ -1365,11 +1365,12 @@ class JMeterScenarioBuilder(JMX):
         default_address = scenario.get("default-address", None)
         retrieve_resources = scenario.get("retrieve-resources", True)
         concurrent_pool_size = scenario.get("concurrent-pool-size", 4)
+        content_encoding = scenario.get("content-encoding", None)
 
         timeout = scenario.get("timeout", None)
         timeout = self.smart_time(timeout)
-        elements = [self._get_http_defaults(default_address, timeout,
-                                            retrieve_resources, concurrent_pool_size),
+        elements = [self._get_http_defaults(default_address, timeout, retrieve_resources,
+                                            concurrent_pool_size, content_encoding),
                     etree.Element("hashTree")]
         return elements
 
@@ -1517,7 +1518,7 @@ class JMeterScenarioBuilder(JMX):
             body = request.body
 
         http = JMX._get_http_request(request.url, request.label, request.method, timeout, body, global_keepalive,
-                                     request.upload_files)
+                                     request.upload_files, request.content_encoding)
 
         children = etree.Element("hashTree")
 
@@ -2064,6 +2065,7 @@ class HierarchicHTTPRequest(HTTPRequest):
             path = file_dict.get('path', ValueError("Items from upload-files must specify path to file"))
             mime = mimetypes.guess_type(path)[0] or "application/octet-stream"
             file_dict.get('mime-type', mime)
+        self.content_encoding = config.get('content-encoding', None)
 
 
 class ActionBlock(Request):
