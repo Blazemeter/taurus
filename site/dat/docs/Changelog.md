@@ -9,7 +9,7 @@
  - jmx2yaml: use `HTTPSampler.path` even when there's no `HTTPSampler.domain` set
  - fix cumulative part of BlazeMeter reporting
  - remove MirrorsManager from Gatling
- - add `content-encoding` request-level option to JMeter
+ - add `content-encoding` request- and scenario-level option to JMeter
 
 ## 1.7.2 <sup>13 oct 2016</sup>
  - fix keep-alive processing in Gatling
