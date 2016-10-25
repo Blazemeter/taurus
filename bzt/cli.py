@@ -28,7 +28,8 @@ import yaml
 from colorlog import ColoredFormatter
 
 import bzt
-from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown, TaurusException, ConfigException
+from bzt import TaurusInternalException, TaurusConfigException
+from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown
 from bzt.engine import Engine, Configuration, ScenarioExecutor
 from bzt.six import HTTPError, string_types, b, get_stacktrace
 from bzt.utils import run_once, is_int, BetterDict, is_windows, is_piped
@@ -50,7 +51,11 @@ class CLI(object):
         self.log.debug("Command-line options: %s", self.options)
         self.log.debug("Python: %s %s", platform.python_implementation(), platform.python_version())
         self.log.debug("OS: %s", platform.uname())
-        self.engine = Engine(self.log)
+
+        if self.options.no_system_configs is None:
+            self.options.no_system_configs = False
+        self.engine = Engine(self.log, not self.options.no_system_configs)
+
         self.exit_code = 0
 
     @staticmethod
@@ -123,16 +128,14 @@ class CLI(object):
     def __configure(self, configs):
         self.log.info("Starting with configs: %s", configs)
 
-        if self.options.no_system_configs is None:
-            self.options.no_system_configs = False
-
-        merged_config = self.engine.configure(configs, not self.options.no_system_configs)
+        merged_config = self.engine.configure(configs)
 
         # apply aliases
         for alias in self.options.aliases:
-            al_config = self.engine.config.get("cli-aliases").get(alias, None)
+            cli_aliases = self.engine.config.get('cli-aliases')
+            al_config = cli_aliases.get(alias, None)
             if al_config is None:
-                raise RuntimeError("Alias '%s' is not found within configuration" % alias)
+                raise TaurusConfigException("'%s' not found in aliases: %s", alias, cli_aliases.keys())
             self.engine.config.merge(al_config)
 
         if self.options.option:
@@ -197,8 +200,10 @@ class CLI(object):
             self.log.log(info_level, "Normal shutdown")
         elif isinstance(exc, HTTPError):
             self.log.log(http_level, "Response from %s: %s", exc.geturl(), exc.read())
-        elif isinstance(exc, ConfigException):
+        elif isinstance(exc, TaurusConfigException):
             self.log.log(default_level, "Wrong configuration: %s", exc)
+        elif isinstance(exc, TaurusInternalException):
+            self.log.log(default_level, "Internal error: %s", exc)
         else:
             self.log.log(default_level, "%s: %s", type(exc).__name__, exc)
             self.log.log(default_level, get_stacktrace(exc))
