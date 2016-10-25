@@ -646,7 +646,8 @@ class JMX(object):
         return mgr
 
     @staticmethod
-    def _get_http_defaults(default_address=None, timeout=None, retrieve_resources=None, concurrent_pool_size=4):
+    def _get_http_defaults(default_address=None, timeout=None, retrieve_resources=None, concurrent_pool_size=4,
+                           content_encoding=None):
         """
         :rtype: lxml.etree.Element
         """
@@ -682,6 +683,9 @@ class JMX(object):
         if timeout:
             cfg.append(JMX._string_prop("HTTPSampler.connect_timeout", timeout))
             cfg.append(JMX._string_prop("HTTPSampler.response_timeout", timeout))
+
+        if content_encoding:
+            cfg.append(JMX._string_prop("HTTPSampler.contentEncoding", content_encoding))
         return cfg
 
     @staticmethod

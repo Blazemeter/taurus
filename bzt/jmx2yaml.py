@@ -369,6 +369,8 @@ class JMXasDict(JMX):
                     if url_info.retrieve_resources:
                         if url_info.retrieve_concurrency and url_info.retrieve_concurrency.isdigit():
                             request_defaults["concurrent-pool-size"] = int(url_info.retrieve_concurrency)
+                if url_info.content_encoding is not None:
+                    request_defaults["content-encoding"] = url_info.content_encoding
         self.log.debug('Got %s for request-defaults in %s (%s)', request_defaults, element.tag, element.get("testname"))
         return request_defaults
 

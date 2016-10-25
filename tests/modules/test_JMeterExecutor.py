@@ -1844,6 +1844,7 @@ class TestJMeterExecutor(BZTestCase):
         self.configure({
             "execution": {
                 "scenario": {
+                    'content-encoding': 'cp1251',
                     "requests": [{
                         "url": "http://blazedemo.com/",
                         "body": "S'il vous plaît",
@@ -1854,6 +1855,9 @@ class TestJMeterExecutor(BZTestCase):
         })
         self.obj.prepare()
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        defaults_encoding_prop = xml_tree.find(".//ConfigTestElement/stringProp[@name='HTTPSampler.contentEncoding']")
+        self.assertIsNotNone(defaults_encoding_prop)
+        self.assertEqual(defaults_encoding_prop.text, 'cp1251')
         sampler_encoding_prop = xml_tree.find(".//HTTPSamplerProxy/stringProp[@name='HTTPSampler.contentEncoding']")
         self.assertIsNotNone(sampler_encoding_prop)
         self.assertEqual(sampler_encoding_prop.text, 'utf-8')
