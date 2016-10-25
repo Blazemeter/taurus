@@ -10,7 +10,8 @@ from unittest.case import TestCase
 from bzt.cli import CLI
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.utils import run_once, EXE_SUFFIX
-TestCase.shortDescription = lambda : None
+TestCase.shortDescription = lambda self: None
+
 
 @run_once
 def setup_test_logging():
