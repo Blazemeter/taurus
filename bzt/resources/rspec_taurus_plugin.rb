@@ -27,7 +27,7 @@ class TaurusFormatter
 
   def report_stdout test
     test_case = test[:test_case]
-    tests_failed = @tests_passed - @total_tests
+    tests_failed = @total_tests - @tests_passed
     @output << "#{test_case},Total:#{@total_tests} Passed:#{@tests_passed} Failed:#{tests_failed}\n"
     @output.flush
   end
@@ -57,12 +57,13 @@ class TaurusFormatter
   def example_failed notification # FailedExampleNotification
     finish_time = Time.new.to_f
     duration = finish_time - @started_at
+    exception = notification.exception
     item = {:start_time => @started_at,
             :duration => duration,
             :test_case => notification.example.description,
             :test_suite => notification.example.full_description,
-            :error_msg => notification.exception.to_s.split(" ").join(" "),
-            :error_trace => notification.exception.backtrace.join("\n"),
+            :error_msg => exception.to_s.split(" ").join(" "),
+            :error_trace => exception.backtrace.nil? ? nil : exception.backtrace.join("\n"),
             :status => "FAILED",
             :extras => nil}
     @report << item.to_json << "\n"

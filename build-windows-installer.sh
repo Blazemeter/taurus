@@ -24,9 +24,11 @@ cat << EOF > "$BUILD_DIR/taurus.nsi"
 [% endblock %]
 EOF
 
-cat << EOF > /tmp/fakerunner.py
-from bzt import cli
-cli.main()
+cat << EOF > "$BUILD_DIR/bzt_win.py"
+import os
+
+def main():
+    os.system("start /wait cmd /k bzt --help")
 EOF
 
 # Create pynsist config
@@ -34,9 +36,8 @@ cat << EOF > "$BUILD_DIR/installer.cfg"
 [Application]
 name=Taurus
 version=${TAURUS_VERSION}
-# entry_point=bzt.cli:main
-script=/tmp/fakerunner.py
-console=true
+entry_point=bzt_win:main
+console=false
 
 [Command bzt]
 entry_point=bzt.cli:main

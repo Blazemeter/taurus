@@ -418,3 +418,20 @@ class TestConverter(BZTestCase):
         self.assertTrue(os.path.exists(os.path.join(get_full_path(yml_file, step_up=1), 'script.bsh')))
         self.assertTrue(os.path.exists(os.path.join(get_full_path(yml_file, step_up=1), 'script.js')))
         self.assertTrue(os.path.exists(os.path.join(get_full_path(yml_file, step_up=1), 'script-1.js')))
+
+    def test_unicode(self):
+        obj = self._get_jmx2yaml("/yaml/converter/unicode.jmx", self._get_tmp())
+        obj.process()
+        obj.converter.convert(obj.file_to_convert)
+
+    def test_path_without_domain(self):
+        yml_file = self._get_tmp()
+        obj = self._get_jmx2yaml("/jmeter/jmx/http.jmx", yml_file)
+        obj.process()
+        yml = yaml.load(open(yml_file).read())
+        scenarios = yml.get("scenarios")
+        scenario = scenarios["Thread Group"]
+        requests = scenario["requests"]
+        self.assertEqual(len(requests), 3)
+        without_domain = requests[2]
+        self.assertEqual(without_domain['url'], '/path')

@@ -79,9 +79,6 @@ class TestGatlingExecutor(BZTestCase):
         path = os.path.abspath(__dir__() + "/../../build/tmp/gatling-taurus/bin/gatling" + EXE_SUFFIX)
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
 
-        gatling_mirrors = GatlingExecutor.MIRRORS_SOURCE
-        GatlingExecutor.MIRRORS_SOURCE = "file:///" + __dir__() + "/../data/unicode_file"
-
         download_link = "file:///" + __dir__() + "/../data/gatling-dist-{version}_{version}.zip"
         gatling_version = '2.1.4'
 
@@ -97,8 +94,6 @@ class TestGatlingExecutor(BZTestCase):
                                           "simulation": "mytest.BasicSimulation"}})
         obj.prepare()
         self.assertTrue(os.path.exists(path))
-
-        GatlingExecutor.MIRRORS_SOURCE = gatling_mirrors
 
     def test_gatling_widget(self):
         obj = self.getGatling()

@@ -181,10 +181,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         try:
             # FIXME: muting stderr and stdout is bad
             self.process = self.execute(cmdline, stderr=None, env=self._env)
-        except OSError as exc:
-            self.log.error("Failed to start JMeter: %s", traceback.format_exc())
-            self.log.error("Failed command: %s", cmdline)
-            raise RuntimeError("Failed to start JMeter: %s" % exc)
+        except:
+            self.log.error("Failed to start JMeter: %s", cmdline)
+            raise
 
     def check(self):
         """
@@ -1074,8 +1073,8 @@ class IncrementalCSVReader(object):
         self.offset = self.fds.tell()
         bytes_read = sum(len(line) for line in lines)
         self.log.debug("Read lines: %s / %s bytes (at speed %s)", len(lines), bytes_read, self.read_speed)
-        if sum(len(line) for line in lines) >= self.read_speed:
-            self.read_speed *= 2
+        if bytes_read >= self.read_speed:
+            self.read_speed = min(8 * 1024 * 1024, self.read_speed * 2)
         elif bytes_read < self.read_speed / 2:
             self.read_speed = max(self.read_speed / 2, 1024 * 1024)
 

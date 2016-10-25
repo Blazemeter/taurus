@@ -3,8 +3,10 @@ environment:
     - PYTHON: "C:\\Python27"
 
 install:
+  - choco install firefox -version 46.0.1
   - "%PYTHON%\\python.exe -m pip install nose"
-  - "%PYTHON%\\python.exe -m pip install colorlog pyyaml psutil lxml==3.4.2 cssselect urwid six selenium==2.53.1 progressbar33 locustio pyvirtualdisplay"
+  - "%PYTHON%\\python.exe -m pip install colorlog pyyaml psutil!=4.4.0 lxml==3.4.2 cssselect urwid six progressbar33 locustio pyvirtualdisplay"
+  - "%PYTHON%\\python.exe -m pip install --upgrade selenium==2.53.0"
 
 build: off
 

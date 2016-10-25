@@ -132,9 +132,10 @@ class Local(Provisioning):
                 try:
                     executor.post_process()
                     if executor in self.engine.started and not executor.has_results():
-                        raise RuntimeWarning("Empty results, most likely %s failed" % executor.__class__.__name__)
+                        msg = "Empty results, most likely %s (%s) failed"
+                        raise RuntimeWarning(msg % (executor.label, executor.__class__.__name__))
                 except BaseException as exc:
-                    self.log.error("Exception in post_process of %s: %s" % (executor.__class__.__name__, exc))
+                    self.log.debug("Exception in post_process of %s: %s" % (executor.__class__.__name__, exc))
                     if not exc_info:
                         exc_info = sys.exc_info()
         if exc_info:

@@ -286,6 +286,8 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         self.report_test_duration()
 
     def post_process(self):
+        if os.path.exists("geckodriver.log"):
+            self.engine.existing_artifact("geckodriver.log", True)
         self.free_virtual_display()
 
     def has_results(self):
@@ -363,7 +365,8 @@ class AbstractTestRunner(object):
                 with open(self.settings.get("stderr")) as fds:
                     std_err = fds.read()
                 self.is_failed = True
-                raise RuntimeError("Test runner %s has failed: %s" % (self.__class__.__name__, std_err.strip()))
+                msg = "Test runner %s (%s) has failed: %s"
+                raise RuntimeError(msg % (self.executor.label, self.__class__.__name__, std_err.strip()))
             return True
         return False
 
@@ -392,6 +395,7 @@ class JUnitTester(AbstractTestRunner):
         """
         super(JUnitTester, self).__init__(junit_config, executor)
         self.props_file = junit_config['props-file']
+
         path_lambda = lambda key, val: get_full_path(self.settings.get(key, val))
 
         self.working_dir = self.settings.get("working-dir")
@@ -561,16 +565,12 @@ class JUnitTester(AbstractTestRunner):
         std_err = open(self.settings.get("stderr"), "wt")
         self.opened_descriptors.append(std_err)
 
-        env = BetterDict()
-        env.merge(dict(os.environ))
-        env.merge(self.env)
-
         junit_command_line = ["java", "-cp", os.pathsep.join(self.base_class_path), "taurusjunit.CustomRunner",
                               self.props_file]
         self.process = self.executor.execute(junit_command_line,
                                              stdout=std_out,
                                              stderr=std_err,
-                                             env=env)
+                                             env=self.env)
 
 
 class NoseTester(AbstractTestRunner):
@@ -620,14 +620,10 @@ class NoseTester(AbstractTestRunner):
         std_err = open(self.settings.get("stderr"), "wt")
         self.opened_descriptors.append(std_err)
 
-        env = BetterDict()
-        env.merge(dict(os.environ))
-        env.merge(self.env)
-
         self.process = self.executor.execute(nose_command_line,
                                              stdout=std_out,
                                              stderr=std_err,
-                                             env=env)
+                                             env=self.env)
 
 
 class RSpecTester(AbstractTestRunner):
@@ -678,14 +674,10 @@ class RSpecTester(AbstractTestRunner):
         std_err = open(self.settings.get("stderr"), "wt")
         self.opened_descriptors.append(std_err)
 
-        env = BetterDict()
-        env.merge(dict(os.environ))
-        env.merge(self.env)
-
         self.process = self.executor.execute(rspec_cmdline,
                                              stdout=std_out,
                                              stderr=std_err,
-                                             env=env)
+                                             env=self.env)
 
     def is_finished(self):
         ret_code = self.process.poll()
@@ -754,15 +746,12 @@ class MochaTester(AbstractTestRunner):
         std_err = open(self.settings.get("stderr"), "wt")
         self.opened_descriptors.append(std_err)
 
-        env = BetterDict()
-        env.merge(dict(os.environ))
-        env.merge(self.env)
-        env.merge({"NODE_PATH": self.mocha_tool.get_node_path_envvar()})
+        self.env["NODE_PATH"] = self.mocha_tool.get_node_path_envvar()
 
         self.process = self.executor.execute(mocha_cmdline,
                                              stdout=std_out,
                                              stderr=std_err,
-                                             env=env)
+                                             env=self.env)
 
     def is_finished(self):
         ret_code = self.process.poll()
@@ -1135,6 +1124,9 @@ from selenium.common.exceptions import NoAlertPresentException
             log_set = self.gen_statement(statement)
             setup_method_def.append(log_set)
             setup_method_def.append(self.gen_statement("cls.driver = webdriver.Firefox(profile)"))
+        elif browser == 'Chrome':
+            statement = "cls.driver = webdriver.Chrome(service_log_path=%s)"
+            setup_method_def.append(self.gen_statement(statement % repr(self.wdlog)))
         else:
             setup_method_def.append(self.gen_statement("cls.driver = webdriver.%s()" % browser))
 
