@@ -1840,6 +1840,24 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual("beanshell", pre.find(".//stringProp[@name='scriptLanguage']").text)
         self.assertEqual(None, pre.find(".//stringProp[@name='parameters']").text)
 
+    def test_request_content_encoding(self):
+        self.configure({
+            "execution": {
+                "scenario": {
+                    "requests": [{
+                        "url": "http://blazedemo.com/",
+                        "body": "S'il vous plaît",
+                        "content-encoding": "utf-8",
+                    }]
+                }
+            }
+        })
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        sampler_encoding_prop = xml_tree.find(".//HTTPSamplerProxy/stringProp[@name='HTTPSampler.contentEncoding']")
+        self.assertIsNotNone(sampler_encoding_prop)
+        self.assertEqual(sampler_encoding_prop.text, 'utf-8')
+
 
 class TestJMX(BZTestCase):
     def test_jmx_unicode_checkmark(self):

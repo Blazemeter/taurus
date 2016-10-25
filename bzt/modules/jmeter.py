@@ -1517,7 +1517,7 @@ class JMeterScenarioBuilder(JMX):
             body = request.body
 
         http = JMX._get_http_request(request.url, request.label, request.method, timeout, body, global_keepalive,
-                                     request.upload_files)
+                                     request.upload_files, request.content_encoding)
 
         children = etree.Element("hashTree")
 
@@ -2064,6 +2064,7 @@ class HierarchicHTTPRequest(HTTPRequest):
             path = file_dict.get('path', ValueError("Items from upload-files must specify path to file"))
             mime = mimetypes.guess_type(path)[0] or "application/octet-stream"
             file_dict.get('mime-type', mime)
+        self.content_encoding = config.get('content-encoding', None)
 
 
 class ActionBlock(Request):
