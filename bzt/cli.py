@@ -54,7 +54,7 @@ class CLI(object):
 
         if self.options.no_system_configs is None:
             self.options.no_system_configs = False
-        self.engine = Engine(self.log, not self.options.no_system_configs)
+        self.engine = Engine(self.log)
 
         self.exit_code = 0
 
@@ -128,7 +128,7 @@ class CLI(object):
     def __configure(self, configs):
         self.log.info("Starting with configs: %s", configs)
 
-        merged_config = self.engine.configure(configs)
+        merged_config = self.engine.configure(configs, not self.options.no_system_configs)
 
         # apply aliases
         for alias in self.options.aliases:
