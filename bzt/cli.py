@@ -51,11 +51,7 @@ class CLI(object):
         self.log.debug("Command-line options: %s", self.options)
         self.log.debug("Python: %s %s", platform.python_implementation(), platform.python_version())
         self.log.debug("OS: %s", platform.uname())
-
-        if self.options.no_system_configs is None:
-            self.options.no_system_configs = False
         self.engine = Engine(self.log)
-
         self.exit_code = 0
 
     @staticmethod
@@ -127,6 +123,9 @@ class CLI(object):
 
     def __configure(self, configs):
         self.log.info("Starting with configs: %s", configs)
+
+        if self.options.no_system_configs is None:
+            self.options.no_system_configs = False
 
         merged_config = self.engine.configure(configs, not self.options.no_system_configs)
 
