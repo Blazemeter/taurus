@@ -10,7 +10,7 @@ import yaml
 
 from bzt.engine import ScenarioExecutor
 from bzt.modules.provisioning import Local
-from bzt.modules.selenium import NoseTester
+from bzt.modules.selenium import NoseTester, JavaTestRunner
 from bzt.modules.selenium import SeleniumExecutor, JUnitJar, LoadSamplesReader, LDJSONReader, FuncSamplesReader
 from bzt.six import StringIO
 from bzt.utils import is_windows, get_full_path
@@ -319,6 +319,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
                 'selenium': {
                     'additional-classpath': [settings_cp]}}})
         self.obj.prepare()
+        self.assertIsInstance(self.obj.runner, JavaTestRunner)
         self.assertTrue(any(scenario_cp in element for element in self.obj.runner.base_class_path))
         self.assertTrue(any(settings_cp in element for element in self.obj.runner.base_class_path))
 
