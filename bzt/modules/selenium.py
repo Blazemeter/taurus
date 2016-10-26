@@ -396,35 +396,20 @@ class AbstractTestRunner(object):
         self.opened_descriptors = []
 
 
-class JUnitTester(AbstractTestRunner):
+class JavaTestRunner(AbstractTestRunner):
     """
     Allows to test java and jar files
     """
 
-    def __init__(self, junit_config, executor):
+    def __init__(self, config, base_class_path, executor):
         """
-        :type junit_config: BetterDict
+        :type config: BetterDict
         :type executor: SeleniumExecutor
         """
-        super(JUnitTester, self).__init__(junit_config, executor)
-        self.props_file = junit_config['props-file']
-
-        path_lambda = lambda key, val: get_full_path(self.settings.get(key, val))
-
+        super(JavaTestRunner, self).__init__(config, executor)
         self.working_dir = self.settings.get("working-dir")
-        self.junit_path = path_lambda("path", "~/.bzt/selenium-taurus/tools/junit/junit.jar")
-        self.hamcrest_path = path_lambda("hamcrest-core", "~/.bzt/selenium-taurus/tools/junit/hamcrest-core.jar")
-        self.json_jar_path = path_lambda("json-jar", "~/.bzt/selenium-taurus/tools/junit/json.jar")
-        self.selenium_server_jar_path = path_lambda("selenium-server",
-                                                    "~/.bzt/selenium-taurus/selenium-server.jar")
-        self.junit_listener_path = os.path.join(get_full_path(__file__, step_up=1),
-                                                os.pardir,
-                                                "resources",
-                                                "taurus-junit-1.0.jar")
-        self.target_java = str(junit_config.get("compile-target-java", "1.7"))
-
-        self.base_class_path = [self.selenium_server_jar_path, self.junit_path, self.junit_listener_path,
-                                self.hamcrest_path, self.json_jar_path]
+        self.target_java = str(config.get("compile-target-java", "1.7"))
+        self.base_class_path = base_class_path
         self.base_class_path.extend(executor.settings.get("additional-classpath", []))
         self.base_class_path.extend(self.scenario.get("additional-classpath", []))
         self.base_class_path = [os.path.abspath(executor.engine.find_file(x)) for x in self.base_class_path]
@@ -441,28 +426,9 @@ class JUnitTester(AbstractTestRunner):
         if any(self._collect_script_files({'.java'})):
             self.compile_scripts()
 
+    @abstractmethod
     def run_checklist(self):
-        """
-        java
-        javac
-        selenium-server.jar
-        junit.jar
-        junit_listener.jar
-        """
-        # only check javac if we need to compile. if we have JAR as script - we don't need javac
-        if any(self._collect_script_files({'.java'})):
-            self.required_tools.append(JavaC("", "", self.log))
-
-        self.required_tools.append(TclLibrary(self.log))
-        self.required_tools.append(JavaVM("", "", self.log))
-        link = SeleniumExecutor.SELENIUM_DOWNLOAD_LINK.format(version=SeleniumExecutor.SELENIUM_VERSION)
-        self.required_tools.append(SeleniumServerJar(self.selenium_server_jar_path, link, self.log))
-        self.required_tools.append(JUnitJar(self.junit_path, self.log, SeleniumExecutor.JUNIT_VERSION))
-        self.required_tools.append(HamcrestJar(self.hamcrest_path, SeleniumExecutor.HAMCREST_DOWNLOAD_LINK))
-        self.required_tools.append(JsonJar(self.json_jar_path, SeleniumExecutor.JSON_JAR_DOWNLOAD_LINK))
-        self.required_tools.append(JUnitListenerJar(self.junit_listener_path, ""))
-
-        self.check_tools()
+        pass
 
     def _collect_script_files(self, extensions):
         file_list = []
@@ -551,6 +517,53 @@ class JUnitTester(AbstractTestRunner):
             raise RuntimeError("Jar exited with non-zero code")
 
         self.log.info("Making .jar file completed")
+
+    @abstractmethod
+    def run_tests(self):
+        pass
+
+
+class JUnitTester(JavaTestRunner):
+    """
+    Allows to test java and jar files
+    """
+
+    def __init__(self, junit_config, executor):
+        """
+        :type junit_config: BetterDict
+        :type executor: SeleniumExecutor
+        """
+        self.props_file = junit_config['props-file']
+
+        path_lambda = lambda key, val: get_full_path(junit_config.get(key, val))
+        self.junit_path = path_lambda("path", "~/.bzt/selenium-taurus/tools/junit/junit.jar")
+        self.hamcrest_path = path_lambda("hamcrest-core", "~/.bzt/selenium-taurus/tools/junit/hamcrest-core.jar")
+        self.json_jar_path = path_lambda("json-jar", "~/.bzt/selenium-taurus/tools/junit/json.jar")
+        self.selenium_server_jar_path = path_lambda("selenium-server", "~/.bzt/selenium-taurus/selenium-server.jar")
+        self.junit_listener_path = os.path.join(get_full_path(__file__, step_up=1),
+                                                os.pardir,
+                                                "resources",
+                                                "taurus-junit-1.0.jar")
+
+        base_class_path = [self.selenium_server_jar_path, self.junit_path, self.junit_listener_path,
+                           self.hamcrest_path, self.json_jar_path]
+        super(JUnitTester, self).__init__(junit_config, base_class_path, executor)
+
+    def run_checklist(self):
+        # only check javac if we need to compile. if we have JAR as script - we don't need javac
+        if any(self._collect_script_files({'.java'})):
+            self.required_tools.append(JavaC("", "", self.log))
+
+        self.required_tools.append(TclLibrary(self.log))
+        self.required_tools.append(JavaVM("", "", self.log))
+        link = SeleniumExecutor.SELENIUM_DOWNLOAD_LINK.format(version=SeleniumExecutor.SELENIUM_VERSION)
+        self.required_tools.append(SeleniumServerJar(self.selenium_server_jar_path, link, self.log))
+        self.required_tools.append(JUnitJar(self.junit_path, self.log, SeleniumExecutor.JUNIT_VERSION))
+        self.required_tools.append(HamcrestJar(self.hamcrest_path, SeleniumExecutor.HAMCREST_DOWNLOAD_LINK))
+        self.required_tools.append(JsonJar(self.json_jar_path, SeleniumExecutor.JSON_JAR_DOWNLOAD_LINK))
+        self.required_tools.append(JUnitListenerJar(self.junit_listener_path, ""))
+
+        self.check_tools()
 
     def run_tests(self):
         # java -cp junit.jar:selenium-test-small.jar:
@@ -586,7 +599,7 @@ class JUnitTester(AbstractTestRunner):
                                              env=self.env)
 
 
-class TestNGTester(AbstractTestRunner):
+class TestNGTester(JavaTestRunner):
     """
     Allows to test java and jar files with TestNG
     """
@@ -596,28 +609,21 @@ class TestNGTester(AbstractTestRunner):
         :type testng_config: BetterDict
         :type executor: SeleniumExecutor
         """
-        super(TestNGTester, self).__init__(testng_config, executor)
         self.props_file = testng_config['props-file']
 
-        path_lambda = lambda key, val: get_full_path(self.settings.get(key, val))
-
-        self.working_dir = self.settings.get("working-dir")
+        path_lambda = lambda key, val: get_full_path(testng_config.get(key, val))
         self.testng_path = path_lambda("path", "~/.bzt/selenium-taurus/tools/testng/testng.jar")
         self.hamcrest_path = path_lambda("hamcrest-core", "~/.bzt/selenium-taurus/tools/testng/hamcrest-core.jar")
         self.json_jar_path = path_lambda("json-jar", "~/.bzt/selenium-taurus/tools/testng/json.jar")
-        self.selenium_server_jar_path = path_lambda("selenium-server",
-                                                    "~/.bzt/selenium-taurus/selenium-server.jar")
+        self.selenium_server_jar_path = path_lambda("selenium-server", "~/.bzt/selenium-taurus/selenium-server.jar")
         self.testng_plugin_path = os.path.join(get_full_path(__file__, step_up=1),
                                                os.pardir,
                                                "resources",
                                                "taurus-testng-1.0.jar")
-        self.target_java = str(testng_config.get("compile-target-java", "1.7"))
 
-        self.base_class_path = [self.selenium_server_jar_path, self.testng_path, self.testng_plugin_path,
-                                self.hamcrest_path, self.json_jar_path]
-        self.base_class_path.extend(executor.settings.get("additional-classpath", []))
-        self.base_class_path.extend(self.scenario.get("additional-classpath", []))
-        self.base_class_path = [os.path.abspath(executor.engine.find_file(x)) for x in self.base_class_path]
+        base_class_path = [self.selenium_server_jar_path, self.testng_path, self.testng_plugin_path,
+                           self.hamcrest_path, self.json_jar_path]
+        super(TestNGTester, self).__init__(testng_config, base_class_path, executor)
 
     def prepare(self):
         self.run_checklist()
@@ -643,98 +649,11 @@ class TestNGTester(AbstractTestRunner):
 
         self.check_tools()
 
-    def _collect_script_files(self, extensions):
-        file_list = []
-        if os.path.isdir(self.script):
-            for root, _, files in os.walk(self.script):
-                for test_file in files:
-                    if os.path.splitext(test_file)[1].lower() in extensions:
-                        path = get_full_path(os.path.join(root, test_file))
-                        file_list.append(path)
-        else:
-            if os.path.splitext(self.script)[1].lower() in extensions:
-                file_list.append(get_full_path(self.script))
-        return file_list
-
-    def compile_scripts(self):
-        """
-        Compile .java files
-        """
-        self.log.debug("Compiling .java files started")
-
-        jar_path = os.path.join(self.executor.engine.artifacts_dir,
-                                self.working_dir,
-                                self.settings.get("jar-name", "compiled.jar"))
-        if os.path.exists(jar_path):
-            self.log.debug(".java files are already compiled, skipping")
-            return
-
-        compile_cl = ["javac",
-                      "-source", self.target_java,
-                      "-target", self.target_java,
-                      "-d", self.working_dir,
-                      ]
-        compile_cl.extend(["-cp", os.pathsep.join(self.base_class_path)])
-        compile_cl.extend(self._collect_script_files({".java"}))
-
-        with open(os.path.join(self.artifacts_dir, "javac.out"), 'ab') as javac_out:
-            with open(os.path.join(self.artifacts_dir, "javac.err"), 'ab') as javac_err:
-                self.log.debug("running javac: %s", compile_cl)
-                self.process = shell_exec(compile_cl, stdout=javac_out, stderr=javac_err)
-                ret_code = self.process.poll()
-
-                while ret_code is None:
-                    self.log.debug("Compiling .java files...")
-                    time.sleep(1)
-                    ret_code = self.process.poll()
-
-        if ret_code != 0:
-            self.log.debug("javac exit code: %s", ret_code)
-            with open(javac_err.name) as err_file:
-                out = err_file.read()
-            raise RuntimeError("Javac exited with error:\n %s" % out.strip())
-
-        self.log.info("Compiling .java files completed")
-
-        self.make_jar()
-
-    def make_jar(self):
-        """
-        move all .class files to compiled.jar
-        """
-        self.log.debug("Making .jar started")
-
-        with open(os.path.join(self.artifacts_dir, "jar.out"), 'ab') as jar_out:
-            with open(os.path.join(self.artifacts_dir, "jar.err"), 'ab') as jar_err:
-                class_files = [java_file for java_file in os.listdir(self.working_dir) if java_file.endswith(".class")]
-                jar_name = self.settings.get("jar-name", "compiled.jar")
-                if class_files:
-                    compile_jar_cl = ["jar", "-cf", jar_name]
-                    compile_jar_cl.extend(class_files)
-                else:
-                    compile_jar_cl = ["jar", "-cf", jar_name, "."]
-
-                self.process = shell_exec(compile_jar_cl, cwd=self.working_dir, stdout=jar_out, stderr=jar_err)
-                ret_code = self.process.poll()
-
-                while ret_code is None:
-                    self.log.debug("Making jar file...")
-                    time.sleep(1)
-                    ret_code = self.process.poll()
-
-        if ret_code != 0:
-            with open(jar_err.name) as err_file:
-                out = err_file.read()
-            self.log.info("Making jar failed with code %s", ret_code)
-            self.log.info("jar output: %s", out)
-            raise RuntimeError("Jar exited with non-zero code")
-
-        self.log.info("Making .jar file completed")
-
     def run_tests(self):
         # java -classpath
         # testng.jar:selenium-server.jar:taurus-testng-1.0.jar:json.jar:compiled.jar
         # taurustestng.TestNGRunner runner.properties
+
         jar_list = [os.path.join(self.working_dir, jar) for jar in os.listdir(self.working_dir) if jar.endswith(".jar")]
         jar_list.extend(self._collect_script_files({".jar"}))
         self.base_class_path.extend(jar_list)
