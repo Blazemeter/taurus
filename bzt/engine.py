@@ -54,7 +54,7 @@ class Engine(object):
     :type stopping_reason: BaseException
     """
 
-    def __init__(self, parent_logger, read_config_files=True):
+    def __init__(self, parent_logger):
         """
 
         :type parent_logger: logging.Logger
@@ -77,9 +77,8 @@ class Engine(object):
         self.prepared = []
         self.started = []
         self.default_cwd = None
-        self.read_config_files = read_config_files
 
-    def configure(self, user_configs):
+    def configure(self, user_configs, read_config_files=True):
         """
         Load configuration files
         :type user_configs: list[str]
@@ -87,7 +86,7 @@ class Engine(object):
         """
         self.log.info("Configuring...")
 
-        if self.read_config_files:
+        if read_config_files:
             self._load_base_configs()
 
         merged_config = self._load_user_configs(user_configs)
@@ -437,11 +436,8 @@ class Engine(object):
         """
         cls = self.config.get(Provisioning.PROV, None)
         if not cls:
-            if self.read_config_files:
-                msg = "Provisioning info not found in global config, installation might be damaged"
-                raise TaurusInternalException(msg)
-            else:
-                raise TaurusConfigException("Please configure provisioning settings")
+            msg = "Please check global config availability or configure provisioning settings"
+            raise TaurusConfigException(msg)
         self.provisioning = self.instantiate_module(cls)
         self.prepared.append(self.provisioning)
         self.provisioning.prepare()
