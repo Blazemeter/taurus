@@ -182,7 +182,7 @@ class CLI(object):
         info_level = http_level = default_level = logging.DEBUG
         if not self.exit_code:  # only fist exception goes to the screen
             info_level = logging.WARNING
-            http_level = logging.WARNING
+            http_level = logging.ERROR
             default_level = logging.ERROR
             if isinstance(exc, RCProvider):
                 self.exit_code = exc.get_rc()
@@ -196,7 +196,8 @@ class CLI(object):
         elif isinstance(exc, NormalShutdown):
             self.log.log(info_level, "Normal shutdown")
         elif isinstance(exc, HTTPError):
-            self.log.log(http_level, "Response from %s: %s", exc.geturl(), exc.read())
+            msg = "Response from %s: [%s] %s" % (exc.geturl(), exc.code, exc.reason)
+            self.log.log(http_level, msg)
         else:
             self.log.log(default_level, "%s: %s", type(exc).__name__, exc)
             self.log.log(default_level, get_stacktrace(exc))

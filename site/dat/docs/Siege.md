@@ -1,30 +1,31 @@
 # Siege Executor 
 
 ## About
-[Siege](https://www.joedog.org/siege-home/) is an http load testing and benchmarking utility. Taurus supports these features of Siege:
+[Siege](https://www.joedog.org/siege-home/) is an HTTP load testing and benchmarking utility. Taurus supports the following Siege features:
 
- - CONCURRENT (`concurrency` in Taurus terms): set number of simulated users (default 1).
- - URL-FILE(`script`): file with list of target URLs. Taurus allow you to set `variables` for this file. 
- - INTERNET & DELAY: randomly hitting of url-file with some delay if you set it with `think-time` option and
- - BENCHMARK: throughput test if `think-time` option is not found.
- - HEADER(`headers` in config file) allows you to add additional header info.
- - REPS(`iterations`) repeat requests N times
- - TIME(`hold-for`) - running the test for desired period of time
+ - CONCURRENT (`concurrency` in Taurus terms): number of simulated users (default 1),
+ - URL-FILE(`script`): a file with a list of target URLs. Taurus allow you to set `variables` for this file,
+ - INTERNET & DELAY: randomly hitting of url-file with some delay if you set it with `think-time` option,
+ - BENCHMARK: throughput test if `think-time` option is not found,
+ - HEADER(`headers` in config file): set HTTP headers for request,
+ - REPS(`iterations`): repeat requests N times,
+ - TIME(`hold-for`): set execution time limit.
 
-Please keep in mind these rules when using `executor: siege`:
+Please keep in mind these rules when using Siege test executor:
  - You must specify at least one URL with `url` param in `requests` section or as url-file (`script`).
- - It's needed to choose explicitly `iterations` or `hold-for` mode.
- - If you used `script` option no `variables` or `requests` are processed.
- - You need Siege too to be installed. If this program not in the system PATH help the Taurus to find it with `path` option.
+ - It's required to explicitly set either `iterations` or `hold-for` limit.
+ - If you use `script` option - no `variables` or `requests` will be used.
+ - You need to have Siege installed. If `siege` isn't in the system PATH - you can specify the path to Siege binary with `path` option.
  
 ## Configuration Examples
-Simplest working example - just use it to get taste of the tool.
+
+Simplest working example - use it to get taste of the tool.
 ```yaml
 ---
 execution:
 - executor: siege
   concurrency: 3 
-  repetition: 10
+  iterations: 10
   scenario: simplest
 
 scenarios:
@@ -39,7 +40,7 @@ Five repeats by hundred of users without any delay (might hurt the server):
 execution:
 - executor: siege
   concurrency: 100
-  repetition: 5
+  iterations: 5
   scenario: simplest
 
 scenarios: 
@@ -75,10 +76,9 @@ scenarios:
       - url: '$(HOST0)dir/page2.html'
 ```
 
-
 ## Module Settings
 
-If you have Siege in non-standard location, please use `path` option like this:
+If you have Siege in non-standard location, please use `path` option to point Taurus to `siege` binary:
 
 ```yaml
 ---
