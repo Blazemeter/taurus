@@ -857,6 +857,19 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.prepare()
         self.assertIsInstance(self.obj.runner, NoseTester)
 
+    def test_additional_classpath_resource_files(self):
+        self.obj.execution.merge({
+            'scenario': {
+                'script': __dir__() + '/../selenium/jar/dummy.jar',
+                'additional-classpath': [__dir__() + '/../selenium/jar/another_dummy.jar'],
+            },
+        })
+        self.obj.settings.merge({
+            'additional-classpath': [__dir__() + '/../selenium/jar/testng-suite.jar'],
+        })
+        resources = self.obj.resource_files()
+        self.assertEqual(len(resources), 3)
+
 
 class TestSeleniumScriptBuilder(SeleniumTestCase):
     def test_build_script(self):
