@@ -79,15 +79,17 @@
       "selenium-tools": {
         "junit": {
           "path": "~/.bzt/selenium-taurus/tools/junit/junit.jar",
-          "hamcrest-core": "~/.bzt/selenium-taurus/tools/junit/hamcrest-core.jar",
           "selenium-server": "~/.bzt/selenium-taurus/selenium-server.jar",
+          "hamcrest-core": "~/.bzt/selenium-taurus/tools/junit/hamcrest-core.jar",
+          "json-jar": "~/.bzt/selenium-taurus/tools/junit/json.jar",
           "jar-name": "compiled.jar",
           "working-dir": "classes"
         },
         "testng": {
           "path": "~/.bzt/selenium-taurus/tools/testng/testng.jar",
-          "hamcrest-core": "~/.bzt/selenium-taurus/tools/testng/hamcrest-core.jar",
           "selenium-server": "~/.bzt/selenium-taurus/selenium-server.jar",
+          "hamcrest-core": "~/.bzt/selenium-taurus/tools/testng/hamcrest-core.jar",
+          "json-jar": "~/.bzt/selenium-taurus/tools/testng/json.jar",
           "jar-name": "compiled.jar",
           "working-dir": "classes"
         },

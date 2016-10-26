@@ -95,7 +95,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
     MOCHA_NPM_PACKAGE_NAME = "mocha"
     SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME = "selenium-webdriver"
 
-    SUPPORTED_TYPES = ["python-nose", "java-junit", "ruby-rspec", "js-mocha", "java-testng"]
+    SUPPORTED_TYPES = ["python-nose", "java-junit", "java-testng", "ruby-rspec", "js-mocha"]
 
     def __init__(self):
         super(SeleniumExecutor, self).__init__()
