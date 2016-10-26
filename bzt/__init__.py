@@ -45,6 +45,10 @@ class TaurusInternalException(TaurusException):
     pass
 
 
+class TaurusToolException(TaurusException):
+    pass
+
+
 class NormalShutdown(KeyboardInterrupt, RCProvider):
     def get_rc(self):
         """

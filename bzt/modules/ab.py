@@ -21,6 +21,7 @@ import time
 from math import ceil
 from os import path
 
+from bzt import TaurusConfigException, TaurusToolException
 from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
@@ -90,7 +91,7 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider):
 
         requests = list(self.scenario.get_requests())
         if not requests:
-            raise ValueError("You must specify at least one request for ab")
+            raise TaurusConfigException("You must specify at least one request for ab")
         if len(requests) > 1:
             self.log.warning("ab doesn't support multiple requests."
                              " Only first one will be used.")
@@ -102,7 +103,7 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider):
                 args += ['-H', "%s: %s" % (key, val)]
 
         if request.method != 'GET':
-            raise ValueError("ab supports only GET requests")
+            raise TaurusConfigException("ab supports only GET requests, but '%s' is found", request.method)
 
         keepalive = True
         if request.config.get('keepalive') is not None:
@@ -124,7 +125,7 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider):
         if ret_code is None:
             return False
         if ret_code != 0:
-            raise RuntimeError("ab tool exited with non-zero code")
+            raise TaurusToolException("ab tool exited with non-zero code: %s", ret_code)
         return True
 
     def shutdown(self):
@@ -140,7 +141,7 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider):
         tool_path = self.settings.get('path', 'ab')
         ab_tool = ApacheBenchmark(tool_path, self.log)
         if not ab_tool.check_if_installed():
-            raise RuntimeError("You must install ab tool at first")
+            raise TaurusToolException("You must install ab tool at first")
         return tool_path
 
 

@@ -22,6 +22,7 @@ import re
 from abc import abstractmethod
 from collections import Counter
 
+from bzt import TaurusInternalException
 from bzt.engine import Aggregator
 from bzt.six import iteritems
 from bzt.utils import BetterDict, dehumanize_time
@@ -343,8 +344,8 @@ class DataPoint(BetterDict):
         :type src: DataPoint
         """
         if self[self.TIMESTAMP] != src[self.TIMESTAMP]:
-            self.log.warning("Tried to merge data for %s and %s", self[self.TIMESTAMP], src[self.TIMESTAMP])
-            raise ValueError("Cannot merge different timestamps")
+            msg = "Cannot merge different timestamps (%s and %s)"
+            raise TaurusInternalException(msg,self[self.TIMESTAMP], src[self.TIMESTAMP])
 
         self[DataPoint.SUBRESULTS].append(src)
 
@@ -456,7 +457,7 @@ class ResultsReader(ResultsProvider):
                     self.buffer[t_stamp] = []
                 self.buffer[t_stamp].append((label, conc, r_time, con_time, latency, r_code, error, trname, byte_count))
             else:
-                raise ValueError("Unsupported results from reader: %s" % result)
+                raise TaurusInternalException("Unsupported results from %s reader: %s", self, result)
 
     def __aggregate_current(self, datapoint, samples):
         """

@@ -593,7 +593,7 @@ class NoseTester(AbstractTestRunner):
         we need installed nose plugin
         """
         if sys.version >= '3':
-            self.log.warn("You are using python3, make sure that your scripts are able to run in python3!")
+            self.log.warning("You are using python3, make sure that your scripts are able to run in python3!")
 
         self.required_tools.append(TclLibrary(self.log))
         self.required_tools.append(TaurusNosePlugin(self.plugin_path, ""))
