@@ -11,6 +11,7 @@
  - remove MirrorsManager from Gatling
  - add final stats reporting for functional mode
  - add `content-encoding` request- and scenario-level option to JMeter
+ - add TestNG-based runner for Selenium tests
 
 ## 1.7.2 <sup>13 oct 2016</sup>
  - fix keep-alive processing in Gatling
