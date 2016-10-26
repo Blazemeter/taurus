@@ -345,9 +345,7 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         SeleniumExecutor.SELENIUM_DOWNLOAD_LINK = base_link + "/selenium-server-standalone-2.46.0.jar"
 
         testng_link = SeleniumExecutor.TESTNG_DOWNLOAD_LINK
-        testng_mirrors = SeleniumExecutor.TESTNG_MIRRORS_SOURCE
         SeleniumExecutor.TESTNG_DOWNLOAD_LINK = base_link + "/testng-6.8.5.jar"
-        SeleniumExecutor.TESTNG_MIRRORS_SOURCE = base_link + "unicode_file"
 
         hamcrest_link = SeleniumExecutor.HAMCREST_DOWNLOAD_LINK
         SeleniumExecutor.HAMCREST_DOWNLOAD_LINK = base_link + "/hamcrest-core-1.3.jar"
@@ -372,7 +370,6 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "tools", "testng", "hamcrest-core.jar")))
         SeleniumExecutor.SELENIUM_DOWNLOAD_LINK = selenium_server_link
         SeleniumExecutor.TESTNG_DOWNLOAD_LINK = testng_link
-        SeleniumExecutor.TESTNG_MIRRORS_SOURCE = testng_mirrors
         SeleniumExecutor.HAMCREST_DOWNLOAD_LINK = hamcrest_link
 
     def test_prepare_java_package(self):
