@@ -81,11 +81,9 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
     JUNIT_MIRRORS_SOURCE = "http://search.maven.org/solrsearch/select?q=g%3A%22junit%22%20AND%20a%3A%22" \
                            "junit%22%20AND%20v%3A%22{version}%22&rows=20&wt=json".format(version=JUNIT_VERSION)
 
-    TESTNG_DOWNLOAD_LINK = "http://search.maven.org/remotecontent?filepath=org/testng/testng/" \
-                           "{version}/testng-{version}.jar"
     TESTNG_VERSION = "6.8.5"
-    TESTNG_MIRRORS_SOURCE = "http://search.maven.org/solrsearch/select?q=g%3A%22testng%22%20AND%20a%3A%22" \
-                            "testng%22%20AND%20v%3A%22{version}%22&rows=20&wt=json".format(version=TESTNG_VERSION)
+    TESTNG_DOWNLOAD_LINK = "http://search.maven.org/remotecontent?filepath=org/testng/testng/" \
+                           "{version}/testng-{version}.jar".format(version=TESTNG_VERSION)
 
     HAMCREST_DOWNLOAD_LINK = "http://search.maven.org/remotecontent?filepath=org/hamcrest/hamcrest-core" \
                              "/1.3/hamcrest-core-1.3.jar"
@@ -642,7 +640,7 @@ class TestNGTester(JavaTestRunner):
         self.required_tools.append(JavaVM("", "", self.log))
         link = SeleniumExecutor.SELENIUM_DOWNLOAD_LINK.format(version=SeleniumExecutor.SELENIUM_VERSION)
         self.required_tools.append(SeleniumServerJar(self.selenium_server_jar_path, link, self.log))
-        self.required_tools.append(TestNGJar(self.testng_path, self.log, SeleniumExecutor.TESTNG_VERSION))
+        self.required_tools.append(TestNGJar(self.testng_path, SeleniumExecutor.TESTNG_DOWNLOAD_LINK))
         self.required_tools.append(HamcrestJar(self.hamcrest_path, SeleniumExecutor.HAMCREST_DOWNLOAD_LINK))
         self.required_tools.append(JsonJar(self.json_jar_path, SeleniumExecutor.JSON_JAR_DOWNLOAD_LINK))
         self.required_tools.append(TestNGPluginJar(self.testng_plugin_path, ""))
@@ -946,23 +944,8 @@ class JUnitJar(RequiredTool):
 
 
 class TestNGJar(RequiredTool):
-    def __init__(self, tool_path, parent_logger, testng_version):
-        super(TestNGJar, self).__init__("TestNG", tool_path)
-        self.log = parent_logger.getChild(self.__class__.__name__)
-        self.version = testng_version
-        self.mirror_manager = TestNGMirrorsManager(self.log, self.version)
-
-    def install(self):
-        dest = get_full_path(self.tool_path, step_up=1)
-        self.log.info("Will install %s into %s", self.tool_name, dest)
-        dist = self._download(suffix=".jar")
-        if not os.path.exists(dest):
-            os.makedirs(dest)
-        shutil.move(dist, self.tool_path)
-        self.log.info("Installed TestNG successfully")
-
-        if not self.check_if_installed():
-            raise RuntimeError("Unable to run %s after installation!" % self.tool_name)
+    def __init__(self, tool_path, download_link):
+        super(TestNGJar, self).__init__("TestNG", tool_path, download_link)
 
 
 class HamcrestJar(RequiredTool):
@@ -1358,37 +1341,6 @@ class JUnitMirrorsManager(MirrorsManager):
             except BaseException as exc:
                 self.log.error("Error while parsing mirrors %s", exc)
         default_link = SeleniumExecutor.JUNIT_DOWNLOAD_LINK.format(version=self.junit_version)
-        if default_link not in links:
-            links.append(default_link)
-        self.log.debug('Total mirrors: %d', len(links))
-        return links
-
-
-class TestNGMirrorsManager(MirrorsManager):
-    def __init__(self, parent_logger, junit_version):
-        self.junit_version = junit_version
-        super(TestNGMirrorsManager, self).__init__(SeleniumExecutor.TESTNG_MIRRORS_SOURCE, parent_logger)
-
-    def _parse_mirrors(self):
-        links = []
-        if self.page_source is not None:
-            self.log.debug('Parsing mirrors...')
-            try:
-                resp = json.loads(self.page_source)
-                objects = resp.get("response", {}).get("docs", [])
-                if objects:
-                    obj = objects[0]
-                    group = obj.get("g")
-                    artifact = obj.get("a")
-                    version = obj.get("v")
-                    ext = obj.get("p")
-                    link_template = "http://search.maven.org/remotecontent?filepath={group}/{artifact}/" \
-                                    "{version}/{artifact}-{version}.{ext}"
-                    link = link_template.format(group=group, artifact=artifact, version=version, ext=ext)
-                    links.append(link)
-            except BaseException as exc:
-                self.log.error("Error while parsing mirrors %s", exc)
-        default_link = SeleniumExecutor.TESTNG_DOWNLOAD_LINK.format(version=self.junit_version)
         if default_link not in links:
             links.append(default_link)
         self.log.debug('Total mirrors: %d', len(links))
