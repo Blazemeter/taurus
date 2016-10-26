@@ -1089,7 +1089,7 @@ class BlazeMeterClient(object):
         self.test_id = test_id
         self.user_id = str(resp['result']['session']['userId'])
         if self.token:
-            self.results_url = self.address + '/app/#reports/%s' % self.master_id
+            self.results_url = self.address + '/app/#masters/%s' % self.master_id
             if session_name:
                 url = self.address + "/api/latest/sessions/%s" % self.session_id
                 self._request(url, to_json({"name": str(session_name)}),
@@ -1115,7 +1115,7 @@ class BlazeMeterClient(object):
 
         self.log.debug("Response: %s", resp['result'])
         self.master_id = str(resp['result']['id'])
-        self.results_url = self.address + '/app/#reports/%s' % self.master_id
+        self.results_url = self.address + '/app/#masters/%s' % self.master_id
         return self.results_url
 
     def launch_cloud_collection(self, collection_id):
@@ -1127,7 +1127,7 @@ class BlazeMeterClient(object):
         resp = self._request(url, method="POST")
         self.log.debug("Response: %s", resp['result'])
         self.master_id = resp['result']['id']
-        self.results_url = self.address + '/app/#reports/%s' % self.master_id
+        self.results_url = self.address + '/app/#masters/%s' % self.master_id
         return self.results_url
 
     def force_start_master(self):
