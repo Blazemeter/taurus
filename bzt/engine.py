@@ -945,6 +945,7 @@ class ScenarioExecutor(EngineModule):
         environ.merge({"TAURUS_ARTIFACTS_DIR": self.engine.artifacts_dir})
 
         environ = {key: environ[key] for key in environ.keys() if environ[key] is not None}
+        self.log.warning(environ)
 
         return shell_exec(args, cwd=cwd, stdout=stdout, stderr=stderr, stdin=stdin, shell=shell, env=environ)
 

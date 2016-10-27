@@ -96,7 +96,7 @@ class Proxy2JMX(Service):
                 if executor.label:
                     self.label = executor.label
 
-        self.log.info('Starting BlazeMeter recorder...')
+        self.log.info('Starting BlazeMeter recorder and set proxy %s', self.proxy)
 
         self.api_request('/startRecording', 'POST')
 
