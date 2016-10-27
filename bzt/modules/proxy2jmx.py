@@ -16,6 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import sys
 import json
 import time
 
@@ -86,14 +87,29 @@ class Proxy2JMX(Service):
 
     def startup(self):
         super(Proxy2JMX, self).startup()
+        self.log.info('Starting BlazeMeter recorder...')
+
+        labels = []
+        is_linux = 'linux' in sys.platform.lower()
+        if is_linux:
+            self.log.info('Set proxy for selenium: %s', self.proxy)
+        else:
+            msg = "Your system doesn't support settings of proxy by Taurus way, " \
+                  "please set HTTP and HTTPS proxy to %s manually" % self.proxy
+            self.log.warning(msg)
+
         for executor in self.engine.provisioning.executors:
             if isinstance(executor, AbstractSeleniumExecutor):
-                executor.add_env({'http_proxy': self.proxy,
-                                  'https_proxy': self.proxy})
                 if executor.label:
-                    self.label = executor.label
-
-        self.log.info('Starting BlazeMeter recorder...')
+                    labels.append(executor.label)
+                executor.add_env({'http_proxy': self.proxy,     # set vars anyway for case
+                                  'https_proxy': self.proxy,    # linux system can't say correct name
+                                  'XDG_CURRENT_DESKTOP': None,  # (it might be in Docker, etc.)
+                                  'DESKTOP_SESSION': None,
+                                  'GNOME_DESKTOP_SESSION_ID': None,
+                                  'KDE_FULL_SESSION': None})
+        if len(labels) == 1:
+            self.label += '_' + labels[0]
 
         self.api_request('/startRecording', 'POST')
 
@@ -122,3 +138,5 @@ class Proxy2JMX(Service):
             _file.writelines(req.content)
 
         self.log.info("JMX saved into %s", jmx_file)
+        if 'HTTPSampler' not in req.content:
+            self.log.warning("There aren't requests recorded by proxy2jmx, check your proxy configuration")

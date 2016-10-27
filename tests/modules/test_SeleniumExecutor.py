@@ -8,6 +8,7 @@ import time
 import unittest
 import yaml
 
+from bzt import TaurusConfigException
 from bzt.engine import ScenarioExecutor
 from bzt.modules.provisioning import Local
 from bzt.modules.selenium import NoseTester, JavaTestRunner
@@ -824,7 +825,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         :return:
         """
         self.configure({ScenarioExecutor.EXEC: {"executor": "selenium"}})
-        self.assertRaises(ValueError, self.obj.prepare)
+        self.assertRaises(TaurusConfigException, self.obj.prepare)
 
     def test_javac_fail(self):
         """
