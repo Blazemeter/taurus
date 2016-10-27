@@ -319,6 +319,8 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         resources = []
         if script_path is not None:
             resources.append(script_path)
+        resources.extend(self.scenario.get("additional-classpath", []))
+        resources.extend(self.settings.get("additional-classpath", []))
         return resources
 
     def __tests_from_requests(self):

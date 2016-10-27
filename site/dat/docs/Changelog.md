@@ -11,6 +11,9 @@
  - remove MirrorsManager from Gatling
  - add final stats reporting for functional mode
  - add `content-encoding` request- and scenario-level option to JMeter
+ - change routing part for BlazeMeter reports opened in browser
+ - fix log verbosity for HTTPError
+ - send `additional-classpath` jars into cloud when preparing a cloud test
  - add TestNG-based runner for Selenium tests
 
 ## 1.7.2 <sup>13 oct 2016</sup>
