@@ -81,7 +81,7 @@ def get_configs_dir():
     if hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix):
         path = sys.prefix
     else:
-        if platform.system == 'Darwin':
+        if platform.system() == 'Darwin':
             path = "/usr/local"
         else:
             path = os.path.splitdrive(sys.executable)[0]
