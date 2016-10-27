@@ -392,12 +392,15 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         script_jar = __dir__() + '/../selenium/jar/testng-suite.jar'
         self.configure({
             'execution': {
-                'scenario': {'script': script_jar},
+                'scenario': {
+                    'script': script_jar,
+                    'testng-xml': 'testng.xml',
+                },
                 'language': 'java-testng',
             },
         })
         resources = self.obj.get_resource_files()
-        self.assertEqual(resources, [script_jar])
+        self.assertEqual(resources, [script_jar, 'testng.xml'])
 
     def test_hold(self):
         self.configure({
@@ -432,6 +435,25 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
         lines = open(self.obj.runner.settings.get("report-file")).readlines()
         self.assertEqual(len(lines), 9)
+
+    def test_with_testng_config(self):
+        self.configure({
+            'execution': {
+                'scenario': {
+                    'script': __dir__() + '/../selenium/jar/testng-suite.jar',
+                    'testng-xml': __dir__() + '/../selenium/jar/testng.xml',
+                },
+                'language': 'java-testng',
+            },
+        })
+        self.obj.prepare()
+        self.obj.startup()
+        while not self.obj.check():
+            time.sleep(1)
+        self.obj.shutdown()
+        self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
+        lines = open(self.obj.runner.settings.get("report-file")).readlines()
+        self.assertEqual(len(lines), 6)
 
 
 class TestSeleniumNoseRunner(SeleniumTestCase):
