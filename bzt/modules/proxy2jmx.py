@@ -89,7 +89,10 @@ class Proxy2JMX(Service):
         for executor in self.engine.provisioning.executors:
             if isinstance(executor, AbstractSeleniumExecutor):
                 executor.add_env({'http_proxy': self.proxy,
-                                  'https_proxy': self.proxy})
+                                  'https_proxy': self.proxy,
+                                  'DESKTOP_SESSION': None,
+                                  'GNOME_DESKTOP_SESSION_ID': None,
+                                  'KDE_FULL_SESSION': None})
                 if executor.label:
                     self.label = executor.label
 
