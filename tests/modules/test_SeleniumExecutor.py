@@ -403,6 +403,25 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         lines = open(self.obj.report_file).readlines()
         self.assertEqual(len(lines), 3)
 
+    def test_prepare_java_file(self):
+        self.configure({
+            'execution': {
+                'scenario': {
+                    'script': __dir__() + '/../selenium/java/TestNGSuite.java',
+                },
+                'language': 'java-testng',
+            },
+        })
+        self.obj.prepare()
+        self.obj.startup()
+        while not self.obj.check():
+            time.sleep(1.0)
+        self.obj.shutdown()
+        self.obj.post_process()
+        lines = open(self.obj.report_file).readlines()
+        self.assertEqual(len(lines), 3)
+
+
     def test_resource_files(self):
         script_jar = __dir__() + '/../selenium/jar/testng-suite.jar'
         self.configure({
