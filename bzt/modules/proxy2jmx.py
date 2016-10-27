@@ -92,7 +92,7 @@ class Proxy2JMX(Service):
         labels = []
         is_linux = 'linux' in sys.platform.lower()
         if is_linux:
-            self.log.info('Proxy for selenium: %s', self.proxy)
+            self.log.info('Set proxy for selenium: %s', self.proxy)
         else:
             msg = "Your system doesn't support settings of proxy by Taurus way," \
                   "please set HTTP and HTTPS proxy to %s manually" % self.proxy
