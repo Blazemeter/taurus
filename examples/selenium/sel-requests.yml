@@ -14,14 +14,10 @@ execution:
     executor: selenium
     #concurrency: 2
     hold-for: 1m
-#    locations:
-#      us-west-1: 1
-#      us-east-1: 1
-#      eu-west-1: 1
+    locations:
+      us-west-1: 1
 
 services:
-#- capturehar
+- capturehar
 - screenshoter
-#- module: shellexec
-#  startup: sleep 60
 

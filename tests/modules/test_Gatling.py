@@ -25,10 +25,11 @@ class TestGatlingExecutor(BZTestCase):
         modified_launcher = obj.engine.create_artifact('wrong-gatling', EXE_SUFFIX)
         origin_launcher = get_full_path(obj.settings['path'])
         with open(origin_launcher) as orig_file:
-            orig_lines = orig_file.readlines()
-        mod_lines = [line for line in orig_lines if 'COMPILATION_CLASSPATH' not in line]
-        with open(modified_launcher, 'w') as mod_file:
-            mod_file.writelines(mod_lines)
+            with open(modified_launcher, 'w') as mod_file:
+                for line in orig_file.readlines():
+                    if 'COMPILATION_CLASSPATH' not in line:
+                        mod_file.writelines([line])
+        os.chmod(modified_launcher, 0o755)
 
         obj.settings.merge({"path": modified_launcher})
 

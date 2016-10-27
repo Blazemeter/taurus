@@ -51,11 +51,7 @@ class CLI(object):
         self.log.debug("Command-line options: %s", self.options)
         self.log.debug("Python: %s %s", platform.python_implementation(), platform.python_version())
         self.log.debug("OS: %s", platform.uname())
-
-        if self.options.no_system_configs is None:
-            self.options.no_system_configs = False
-        self.engine = Engine(self.log, not self.options.no_system_configs)
-
+        self.engine = Engine(self.log)
         self.exit_code = 0
 
     @staticmethod
@@ -128,7 +124,10 @@ class CLI(object):
     def __configure(self, configs):
         self.log.info("Starting with configs: %s", configs)
 
-        merged_config = self.engine.configure(configs)
+        if self.options.no_system_configs is None:
+            self.options.no_system_configs = False
+
+        merged_config = self.engine.configure(configs, not self.options.no_system_configs)
 
         # apply aliases
         for alias in self.options.aliases:
@@ -185,7 +184,7 @@ class CLI(object):
         info_level = http_level = default_level = logging.DEBUG
         if not self.exit_code:  # only fist exception goes to the screen
             info_level = logging.WARNING
-            http_level = logging.WARNING
+            http_level = logging.ERROR
             default_level = logging.ERROR
             if isinstance(exc, RCProvider):
                 self.exit_code = exc.get_rc()
@@ -199,7 +198,8 @@ class CLI(object):
         elif isinstance(exc, NormalShutdown):
             self.log.log(info_level, "Normal shutdown")
         elif isinstance(exc, HTTPError):
-            self.log.log(http_level, "Response from %s: %s", exc.geturl(), exc.read())
+            msg = "Response from %s: [%s] %s" % (exc.geturl(), exc.code, exc.reason)
+            self.log.log(http_level, msg)
         elif isinstance(exc, TaurusConfigException):
             self.log.log(default_level, "Wrong configuration: %s", exc)
         elif isinstance(exc, TaurusInternalException):

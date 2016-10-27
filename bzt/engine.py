@@ -54,7 +54,7 @@ class Engine(object):
     :type stopping_reason: BaseException
     """
 
-    def __init__(self, parent_logger, read_config_files=True):
+    def __init__(self, parent_logger):
         """
 
         :type parent_logger: logging.Logger
@@ -77,9 +77,8 @@ class Engine(object):
         self.prepared = []
         self.started = []
         self.default_cwd = None
-        self.read_config_files = read_config_files
 
-    def configure(self, user_configs):
+    def configure(self, user_configs, read_config_files=True):
         """
         Load configuration files
         :type user_configs: list[str]
@@ -87,7 +86,7 @@ class Engine(object):
         """
         self.log.info("Configuring...")
 
-        if self.read_config_files:
+        if read_config_files:
             self._load_base_configs()
 
         merged_config = self._load_user_configs(user_configs)
@@ -437,11 +436,8 @@ class Engine(object):
         """
         cls = self.config.get(Provisioning.PROV, None)
         if not cls:
-            if self.read_config_files:
-                msg = "Provisioning info not found in global config, installation might be damaged"
-                raise TaurusInternalException(msg)
-            else:
-                raise TaurusConfigException("Please configure provisioning settings")
+            msg = "Please check global config availability or configure provisioning settings"
+            raise TaurusConfigException(msg)
         self.provisioning = self.instantiate_module(cls)
         self.prepared.append(self.provisioning)
         self.provisioning.prepare()
@@ -453,8 +449,8 @@ class Engine(object):
         reporting = self.config.get(Reporter.REP, [])
         for index, reporter in enumerate(reporting):
             reporter = ensure_is_dict(reporting, index, "module")
-            cls = reporter.get('module',
-                               TaurusConfigException("reporter 'module' field isn't recognized: %s", reporter))
+            msg = "reporter 'module' field isn't recognized: %s"
+            cls = reporter.get('module', TaurusConfigException(msg, reporter))
             instance = self.instantiate_module(cls)
             instance.parameters = reporter
             assert isinstance(instance, Reporter)
@@ -751,7 +747,8 @@ class Provisioning(EngineModule):
         for execution in executions:
             executor = execution.get("executor", default_executor)
             if not executor:
-                raise TaurusConfigException("Cannot determine executor type and no default executor in %s", execution)
+                msg = "Cannot determine executor type and no default executor in %s"
+                raise TaurusConfigException(msg, execution)
             instance = self.engine.instantiate_module(executor)
             instance.provisioning = self
             instance.execution = execution
@@ -831,8 +828,8 @@ class ScenarioExecutor(EngineModule):
             is_script = isinstance(label, string_types) and label not in scenarios and \
                         os.path.exists(self.engine.find_file(label))
             if isinstance(label, list):
-                raise TaurusConfigException("Invalid content of scenario, list type instead of dict or string: %s",
-                                            label)
+                msg = "Invalid content of scenario, list type instead of dict or string: %s"
+                raise TaurusConfigException(msg, label)
             if isinstance(label, dict) or is_script:
                 self.log.debug("Extract %s into scenarios" % label)
                 if isinstance(label, string_types):
