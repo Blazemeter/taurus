@@ -370,7 +370,10 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
 
         self.obj.execution.merge({
             "language": "java-testng",
-            "scenario": {"script": __dir__() + "/../selenium/jar/testng-suite.jar"},
+            "scenario": {
+                "script": __dir__() + "/../selenium/jar/testng-suite.jar",
+                'testng-xml': None,
+            },
         })
         self.obj.prepare()
         self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "selenium-server.jar")))
@@ -383,7 +386,10 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
     def test_prepare_java_package(self):
         self.configure({
             'execution': {
-                'scenario': {'script': __dir__() + '/../selenium/jar/testng-suite.jar'},
+                'scenario': {
+                    'script': __dir__() + '/../selenium/jar/testng-suite.jar',
+                    'testng-xml': None,
+                },
                 'language': 'java-testng',
             },
         })
@@ -414,7 +420,10 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         self.configure({
             'execution': {
                 'hold-for': '5s',
-                'scenario': {'script': __dir__() + '/../selenium/jar/testng-suite.jar'},
+                'scenario': {
+                    'script': __dir__() + '/../selenium/jar/testng-suite.jar',
+                    'testng-xml': None,
+                },
                 'language': 'java-testng',
             },
         })
@@ -431,7 +440,10 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         self.configure({
             'execution': {
                 'iterations': 3,
-                'scenario': {'script': __dir__() + '/../selenium/jar/testng-suite.jar'},
+                'scenario': {
+                    'script': __dir__() + '/../selenium/jar/testng-suite.jar',
+                    'testng-xml': None,
+                },
                 'language': 'java-testng',
             },
         })
@@ -462,6 +474,27 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
         lines = open(self.obj.runner.settings.get("report-file")).readlines()
         self.assertEqual(len(lines), 6)
+
+    def test_testng_config_autodetect(self):
+        testng_xml_path = get_full_path(__dir__() + '/../selenium/jar/testng.xml')
+        self.configure({
+            'execution': {
+                'scenario': {
+                    'script': __dir__() + '/../selenium/jar/testng-suite.jar',
+                },
+                'language': 'java-testng',
+            },
+        })
+        self.obj.prepare()
+        self.assertEqual(testng_xml_path, self.obj.runner.settings.get("testng-xml", None))
+        self.obj.startup()
+        while not self.obj.check():
+            time.sleep(1)
+        self.obj.shutdown()
+        self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
+        lines = open(self.obj.runner.settings.get("report-file")).readlines()
+        self.assertEqual(len(lines), 6)
+
 
 
 class TestSeleniumNoseRunner(SeleniumTestCase):

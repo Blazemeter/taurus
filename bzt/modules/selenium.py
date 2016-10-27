@@ -148,6 +148,18 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
             self.runner_working_dir = self.engine.create_artifact("classes", "")
         return self.runner_working_dir
 
+    def _find_testng_xml(self):
+        detected_path = self.engine.find_file('testng.xml')
+        if os.path.exists(detected_path):
+            return detected_path
+
+        script_dir = get_full_path(self.get_script_path(), step_up=1)
+        script_config = os.path.join(script_dir, 'testng.xml')
+        if os.path.exists(script_config):
+            return script_config
+
+        return None
+
     def _create_runner(self, report_file):
         script_path = self.get_script_path()
         script_type = self.detect_script_type(script_path)
@@ -170,6 +182,11 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
             runner_config['props-file'] = self.engine.create_artifact("runner", ".properties")
             if 'testng-xml' in scenario:
                 runner_config['testng-xml'] = self.engine.find_file(scenario['testng-xml'])
+            else:
+                detected_testng_config = self._find_testng_xml()
+                if detected_testng_config:
+                    self.log.info("Detected testng.xml file in the script dir")
+                    runner_config['testng-xml'] = detected_testng_config
         elif script_type == "ruby-rspec":
             runner_class = RSpecTester
             runner_config.merge(self.settings.get("selenium-tools").get("rspec"))
