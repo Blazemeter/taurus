@@ -13,6 +13,9 @@
  - add `content-encoding` request- and scenario-level option to JMeter
  - change routing part for BlazeMeter reports opened in browser
  - fix log verbosity for HTTPError
+ - bring Engine to TaurusExecution style
+ - send `additional-classpath` jars into cloud when preparing a cloud test
+ - fix proxy2jmx proxy settings for Chrome 
 
 ## 1.7.2 <sup>13 oct 2016</sup>
  - fix keep-alive processing in Gatling

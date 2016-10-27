@@ -7,6 +7,7 @@ import time
 import unittest
 import yaml
 
+from bzt import TaurusConfigException
 from bzt.engine import ScenarioExecutor
 from bzt.modules.provisioning import Local
 from bzt.modules.selenium import NoseTester
@@ -641,7 +642,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         :return:
         """
         self.configure({ScenarioExecutor.EXEC: {"executor": "selenium"}})
-        self.assertRaises(ValueError, self.obj.prepare)
+        self.assertRaises(TaurusConfigException, self.obj.prepare)
 
     def test_javac_fail(self):
         """
@@ -856,6 +857,19 @@ class TestSeleniumStuff(SeleniumTestCase):
         })
         self.obj.prepare()
         self.assertIsInstance(self.obj.runner, NoseTester)
+
+    def test_additional_classpath_resource_files(self):
+        self.obj.execution.merge({
+            'scenario': {
+                'script': __dir__() + '/../selenium/jar/dummy.jar',
+                'additional-classpath': [__dir__() + '/../selenium/jar/another_dummy.jar'],
+            },
+        })
+        self.obj.settings.merge({
+            'additional-classpath': [__dir__() + '/../selenium/jar/testng-suite.jar'],
+        })
+        resources = self.obj.resource_files()
+        self.assertEqual(len(resources), 3)
 
 
 class TestSeleniumScriptBuilder(SeleniumTestCase):
