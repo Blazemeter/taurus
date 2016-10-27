@@ -5,7 +5,7 @@ execution:
   scenario: what
 
 scenarios:
-  sel:
+  what:
     browser: Chrome
     requests:
     - http://blazedemo.com
