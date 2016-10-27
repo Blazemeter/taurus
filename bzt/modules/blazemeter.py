@@ -1264,7 +1264,7 @@ class BlazeMeterClient(object):
         """
         :rtype: list[dict]
         """
-        tests = self._request(self.address + '/api/latest/tests')
+        tests = self._request(self.address + '/api/latest/tests?limit=99999')
         self.log.debug("Tests for user: %s", len(tests['result']))
         return tests['result']
 
