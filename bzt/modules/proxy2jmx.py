@@ -94,7 +94,7 @@ class Proxy2JMX(Service):
         if is_linux:
             self.log.info('Set proxy for selenium: %s', self.proxy)
         else:
-            msg = "Your system doesn't support settings of proxy by Taurus way," \
+            msg = "Your system doesn't support settings of proxy by Taurus way, " \
                   "please set HTTP and HTTPS proxy to %s manually" % self.proxy
             self.log.warning(msg)
 
@@ -139,4 +139,4 @@ class Proxy2JMX(Service):
 
         self.log.info("JMX saved into %s", jmx_file)
         if 'HTTPSampler' not in req.content:
-            self.log.warning("There aren't requests recorded by proxy2jmx, check your configuration")
+            self.log.warning("There aren't requests recorded by proxy2jmx, check your proxy configuration")
