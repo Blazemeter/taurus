@@ -695,7 +695,7 @@ class TestNGTester(JavaTestRunner):
                 props.write("target_%s=%s\n" % (index, item.replace(os.path.sep, '/')))
 
             if self.settings.get('testng-xml'):
-                props.write('testng_config=%s\n' % self.settings.get('testng-xml'))
+                props.write('testng_config=%s\n' % self.settings.get('testng-xml').replace(os.path.sep, '/'))
 
         std_out = open(self.settings.get("stdout"), "wt")
         self.opened_descriptors.append(std_out)
