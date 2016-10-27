@@ -109,6 +109,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         """
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/java/TestBlazemeterFail.java"}})
         self.obj.prepare()
+        self.assertIsInstance(self.obj.runner, JavaTestRunner)
         self.assertFalse(os.path.exists(os.path.join(self.obj.runner.working_dir, "TestBlazemeterFail.java")))
         self.assertTrue(os.path.exists(os.path.join(self.obj.runner.working_dir, "TestBlazemeterFail.class")))
         self.assertTrue(os.path.exists(os.path.join(self.obj.runner.working_dir, "compiled.jar")))
@@ -120,6 +121,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         """
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/java/"}})
         self.obj.prepare()
+        self.assertIsInstance(self.obj.runner, JavaTestRunner)
         prepared_files = os.listdir(self.obj.runner.working_dir)
         java_files = [fname for fname in prepared_files if fname.endswith(".java")]
         class_files = [fname for fname in prepared_files if fname.endswith(".class")]
@@ -135,6 +137,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         """
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/java_package/"}})
         self.obj.prepare()
+        self.assertIsInstance(self.obj.runner, JavaTestRunner)
         self.assertTrue(os.path.exists(os.path.join(self.obj.runner.working_dir, "compiled.jar")))
 
     def test_selenium_startup_shutdown_java_package(self):
@@ -154,6 +157,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         while not self.obj.check():
             time.sleep(1)
         self.obj.shutdown()
+        self.assertIsInstance(self.obj.runner, JavaTestRunner)
         self.assertTrue(os.path.exists(os.path.join(self.obj.runner.working_dir, "compiled.jar")))
 
     def test_prepare_jar_single(self):
@@ -183,6 +187,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
             time.sleep(1)
         self.obj.shutdown()
 
+        self.assertIsInstance(self.obj.runner, JavaTestRunner)
         prepared_files = os.listdir(self.obj.runner.working_dir)
         java_files = [fname for fname in prepared_files if fname.endswith(".java")]
         class_files = [fname for fname in prepared_files if fname.endswith(".class")]
@@ -210,6 +215,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
             time.sleep(1)
         self.obj.shutdown()
 
+        self.assertIsInstance(self.obj.runner, JavaTestRunner)
         prepared_files = os.listdir(self.obj.runner.working_dir)
         java_files = [fname for fname in prepared_files if fname.endswith(".java")]
         class_files = [fname for fname in prepared_files if fname.endswith(".class")]
@@ -238,6 +244,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
             time.sleep(1)
         self.obj.shutdown()
 
+        self.assertIsInstance(self.obj.runner, JavaTestRunner)
         prepared_files = os.listdir(self.obj.runner.working_dir)
         java_files = [fname for fname in prepared_files if fname.endswith(".java")]
         class_files = [fname for fname in prepared_files if fname.endswith(".class")]
@@ -267,6 +274,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
             time.sleep(1)
         self.obj.shutdown()
 
+        self.assertIsInstance(self.obj.runner, JavaTestRunner)
         prepared_files = os.listdir(self.obj.runner.working_dir)
         java_files = [fname for fname in prepared_files if fname.endswith(".java")]
         class_files = [fname for fname in prepared_files if fname.endswith(".class")]
