@@ -151,6 +151,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
     def _create_runner(self, report_file):
         script_path = self.get_script_path()
         script_type = self.detect_script_type(script_path)
+        scenario = self.get_scenario()
 
         runner_config = BetterDict()
 
@@ -167,7 +168,8 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
             runner_config.merge(self.settings.get("selenium-tools").get("testng"))
             runner_config['working-dir'] = self.get_runner_working_dir()
             runner_config['props-file'] = self.engine.create_artifact("runner", ".properties")
-            runner_config['testng-xml'] = self.get_scenario().get('testng-xml', None)
+            if 'testng-xml' in scenario:
+                runner_config['testng-xml'] = self.engine.find_file(scenario['testng-xml'])
         elif script_type == "ruby-rspec":
             runner_class = RSpecTester
             runner_config.merge(self.settings.get("selenium-tools").get("rspec"))
@@ -319,8 +321,13 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         resources = []
         if script_path is not None:
             resources.append(script_path)
+
         resources.extend(self.scenario.get("additional-classpath", []))
         resources.extend(self.settings.get("additional-classpath", []))
+
+        if self.scenario.get("testng-xml", None):
+            resources.append(self.scenario.get("testng-xml"))
+
         return resources
 
     def __tests_from_requests(self):
