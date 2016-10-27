@@ -91,7 +91,8 @@ TestNG runner corresponds to 'java-testng' `language` value.
 
 Just like with JUnit runner, all `.java` files will be compiled and packed into the jar before running the tests. 
 
-TestNG configuration file (testng.xml) can be specified with `testng-xml` option. If it's not specified - TestNG will launch all the tests it can discover.
+TestNG configuration file (testng.xml) can be specified with `testng-xml` option. If the options isn't specified — Taurus will attempt to find TestNG config automatically by looking for 'testng.xml' file in current directory and in the script directory.
+If no TestNG configuration is found — Taurus will launch all tests from the test suite.
 
 Just like JUnit runner, TestNG runner supports the `additional-classpath` option.
 
