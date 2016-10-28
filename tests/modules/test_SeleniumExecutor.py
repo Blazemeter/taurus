@@ -435,6 +435,20 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         resources = self.obj.get_resource_files()
         self.assertEqual(resources, [script_jar, 'testng.xml'])
 
+    def test_resource_files_detect_config(self):
+        script_jar = __dir__() + '/../selenium/jar/testng-suite.jar'
+        self.configure({
+            'execution': {
+                'scenario': {
+                    'script': script_jar,
+                },
+                'language': 'java-testng',
+            },
+        })
+        resources = self.obj.get_resource_files()
+        self.assertEqual(resources, [script_jar,
+                                     get_full_path(__dir__() + '/../selenium/jar/testng.xml')])
+
     def test_hold(self):
         self.configure({
             'execution': {

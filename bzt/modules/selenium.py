@@ -148,15 +148,26 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
             self.runner_working_dir = self.engine.create_artifact("classes", "")
         return self.runner_working_dir
 
-    def _find_testng_xml(self):
+    def _get_testng_xml(self):
+        scenario = self.get_scenario()
+        if 'testng-xml' in scenario:
+            if scenario.get('testng-xml'):
+                return self.engine.find_file(scenario.get('testng-xml'))
+            else:
+                return None
+
         detected_path = self.engine.find_file('testng.xml')
         if os.path.exists(detected_path):
-            return get_full_path(detected_path)
+            full_script_path = get_full_path(detected_path)
+            self.log.info("Detected testng.xml file at %s", full_script_path)
+            return full_script_path
 
         script_dir = get_full_path(self.get_script_path(), step_up=1)
         script_config = os.path.join(script_dir, 'testng.xml')
         if os.path.exists(script_config):
-            return get_full_path(script_config)
+            full_script_path = get_full_path(script_config)
+            self.log.info("Detected testng.xml file at %s", full_script_path)
+            return full_script_path
 
         return None
 
@@ -180,13 +191,9 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
             runner_config.merge(self.settings.get("selenium-tools").get("testng"))
             runner_config['working-dir'] = self.get_runner_working_dir()
             runner_config['props-file'] = self.engine.create_artifact("runner", ".properties")
-            if 'testng-xml' in scenario:
-                runner_config['testng-xml'] = self.engine.find_file(scenario['testng-xml'])
-            else:
-                detected_testng_config = self._find_testng_xml()
-                if detected_testng_config:
-                    self.log.info("Detected testng.xml file at %s", detected_testng_config)
-                    runner_config['testng-xml'] = detected_testng_config
+            testng_config = self._get_testng_xml()
+            if testng_config:
+                runner_config['testng-xml'] = self.engine.find_file(testng_config)
         elif script_type == "ruby-rspec":
             runner_class = RSpecTester
             runner_config.merge(self.settings.get("selenium-tools").get("rspec"))
@@ -342,8 +349,9 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         resources.extend(self.scenario.get("additional-classpath", []))
         resources.extend(self.settings.get("additional-classpath", []))
 
-        if self.scenario.get("testng-xml", None):
-            resources.append(self.scenario.get("testng-xml"))
+        testng_config = self._get_testng_xml()
+        if testng_config:
+            resources.append(testng_config)
 
         return resources
 
