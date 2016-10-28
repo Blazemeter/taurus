@@ -649,15 +649,6 @@ class TestNGTester(JavaTestRunner):
                            self.hamcrest_path, self.json_jar_path]
         super(TestNGTester, self).__init__(testng_config, base_class_path, executor)
 
-    def prepare(self):
-        self.run_checklist()
-
-        if not os.path.exists(self.working_dir):
-            os.makedirs(self.working_dir)
-
-        if any(self._collect_script_files({'.java'})):
-            self.compile_scripts()
-
     def run_checklist(self):
         if any(self._collect_script_files({'.java'})):
             self.required_tools.append(JavaC("", "", self.log))

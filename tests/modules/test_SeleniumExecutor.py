@@ -421,7 +421,6 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         lines = open(self.obj.report_file).readlines()
         self.assertEqual(len(lines), 3)
 
-
     def test_resource_files(self):
         script_jar = __dir__() + '/../selenium/jar/testng-suite.jar'
         self.configure({
@@ -514,7 +513,6 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
         lines = open(self.obj.runner.settings.get("report-file")).readlines()
         self.assertEqual(len(lines), 6)
-
 
 
 class TestSeleniumNoseRunner(SeleniumTestCase):
