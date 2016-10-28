@@ -637,6 +637,8 @@ class TestNGTester(JavaTestRunner):
     Allows to test java and jar files with TestNG
     """
 
+    __test__ = False  # Hello, nosetests discovery mechanism
+
     def __init__(self, testng_config, executor):
         """
         :type testng_config: BetterDict
