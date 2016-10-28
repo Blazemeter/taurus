@@ -174,7 +174,6 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
     def _create_runner(self, report_file):
         script_path = self.get_script_path()
         script_type = self.detect_script_type(script_path)
-        scenario = self.get_scenario()
 
         runner_config = BetterDict()
 
@@ -266,8 +265,10 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
                 file_types.add(os.path.splitext(file_name)[1].lower())
 
         if '.java' in file_types or '.jar' in file_types:
-            # TODO: detect 'java-testng' by looking for testng.xml in cwd?
-            script_type = 'java-junit'
+            if self._get_testng_xml() is not None:
+                script_type = 'java-testng'
+            else:
+                script_type = 'java-junit'
         elif '.py' in file_types:
             script_type = 'python-nose'
         elif '.rb' in file_types:

@@ -11,7 +11,7 @@ import yaml
 from bzt import TaurusConfigException
 from bzt.engine import ScenarioExecutor
 from bzt.modules.provisioning import Local
-from bzt.modules.selenium import NoseTester, JavaTestRunner
+from bzt.modules.selenium import NoseTester, JavaTestRunner, JUnitTester, TestNGTester
 from bzt.modules.selenium import SeleniumExecutor, JUnitJar, LoadSamplesReader, LDJSONReader, FuncSamplesReader
 from bzt.six import StringIO
 from bzt.utils import is_windows, get_full_path
@@ -40,22 +40,20 @@ class SeleniumTestCase(BZTestCase):
     def tearDown(self):
         exc, _, _ = sys.exc_info()
         if exc:
-            stdout = ""
             try:
                 stdout_path = os.path.join(self.obj.engine.artifacts_dir, "selenium.out")
                 if os.path.exists(stdout_path):
                     stdout = open(stdout_path).read()
+                    logging.info('Selenium stdout: """\n%s\n"""', stdout)
             except BaseException:
                 pass
-            stderr = ""
             try:
                 stdout_path = os.path.join(self.obj.engine.artifacts_dir, "selenium.err")
                 if os.path.exists(stdout_path):
                     stderr = open(stdout_path).read()
+                    logging.info('Selenium stderr: """\n%s\n"""', stderr)
             except BaseException:
                 pass
-            logging.info('STDOUT: """\n%s\n"""', stdout)
-            logging.info('STDERR: """\n%s\n"""', stderr)
         self.obj.free_virtual_display()
 
 
@@ -93,8 +91,10 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
             "junit": {"path": os.path.join(dummy_installation_path, "tools", "junit", "junit.jar")}
         }})
 
-        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/jar/"}})
+        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/jar/"},
+                                  "language": "java-junit"})
         self.obj.prepare()
+        self.assertIsInstance(self.obj.runner, JUnitTester)
         self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "selenium-server.jar")))
         self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "tools", "junit", "junit.jar")))
         self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "tools", "junit", "hamcrest-core.jar")))
@@ -174,15 +174,16 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         runt tests from single jar
         :return:
         """
-        self.obj.engine.config.merge({
+        self.configure({
             'execution': {
                 'scenario': {'script': __dir__() + '/../selenium/jar/'},
+                'language': 'java-junit',
                 'executor': 'selenium'
             },
             'reporting': [{'module': 'junit-xml'}]
         })
-        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/jar/dummy.jar"}})
         self.obj.prepare()
+        self.assertIsInstance(self.obj.runner, JUnitTester)
         self.obj.startup()
         while not self.obj.check():
             time.sleep(1)
@@ -296,6 +297,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
                 "executor": "selenium",
                 "scenario": {"script": __dir__() + "/../selenium/invalid/NotJUnittest.java"}}})
         self.obj.prepare()
+        self.assertIsInstance(self.obj.runner, JUnitTester)
         self.obj.startup()
         try:
             while not self.obj.check():
@@ -496,7 +498,6 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
                     'script': __dir__() + '/../selenium/jar/testng-suite.jar',
                     'testng-xml': __dir__() + '/../selenium/jar/testng.xml',
                 },
-                'language': 'java-testng',
             },
         })
         self.obj.prepare()
@@ -515,7 +516,6 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
                 'scenario': {
                     'script': __dir__() + '/../selenium/jar/testng-suite.jar',
                 },
-                'language': 'java-testng',
             },
         })
         self.obj.prepare()
@@ -527,6 +527,17 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
         lines = open(self.obj.runner.settings.get("report-file")).readlines()
         self.assertEqual(len(lines), 6)
+
+    def test_autodetect_script_type(self):
+        self.configure({
+            'execution': {
+                'scenario': {
+                    'script': __dir__() + '/../selenium/jar/testng-suite.jar',
+                },
+            },
+        })
+        self.obj.prepare()
+        self.assertIsInstance(self.obj.runner, TestNGTester)
 
 
 class TestSeleniumNoseRunner(SeleniumTestCase):
@@ -1076,6 +1087,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.execution.merge({
             'scenario': {
                 'script': __dir__() + '/../selenium/jar/dummy.jar',
+                'language': 'java-junit',
                 'additional-classpath': [__dir__() + '/../selenium/jar/another_dummy.jar'],
             },
         })
@@ -1083,7 +1095,7 @@ class TestSeleniumStuff(SeleniumTestCase):
             'additional-classpath': [__dir__() + '/../selenium/jar/testng-suite.jar'],
         })
         resources = self.obj.resource_files()
-        self.assertEqual(len(resources), 3)
+        self.assertEqual(len(resources), 4)
 
 
 class TestSeleniumScriptBuilder(SeleniumTestCase):
