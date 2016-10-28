@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import os
-import sys
+import sys, platform
 from abc import abstractmethod
 
 VERSION = "1.7.2"
@@ -81,7 +81,10 @@ def get_configs_dir():
     if hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix):
         path = sys.prefix
     else:
-        path = os.path.splitdrive(sys.executable)[0]
+        if platform.system() == 'Darwin':
+            path = "/usr/local"
+        else:
+            path = os.path.splitdrive(sys.executable)[0]
 
     path += os.path.sep + os.path.join("etc", "bzt.d")  # os.path.join does not work for some reason
     return path
