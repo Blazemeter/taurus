@@ -38,8 +38,8 @@ class SeleniumTestCase(BZTestCase):
             self.obj.execution = self.obj.execution[0]
 
     def tearDown(self):
-        exc, args, trace = sys.exc_info()
-        if exc or args or trace:
+        exc, _, _ = sys.exc_info()
+        if exc:
             stdout = ""
             try:
                 stdout_path = os.path.join(self.obj.engine.artifacts_dir, "selenium.out")
