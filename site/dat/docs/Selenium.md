@@ -1,11 +1,21 @@
 # Selenium Executor
-Allows to run functional tests locally with Selenium WebDriver. Currently supported selenium test languages: Java/JUnit, Python UnitTest. Using Selenium Grid is not supported.
+Allows to run functional tests locally with Selenium WebDriver. Currently supported selenium test languages are:
+- Java + JUnit
+- Java + TestNG
+- Python + UnitTest
+- Ruby + RSpec
+- JavaScript + Mocha
 
-Selenium executor uses two types of test runners: JUnit and Nose, test type and runner type are detected automatically. Scenario may be presented not only as single file but as a folder.
+Selenium Grid isn't supported for tests described with Taurus language, but if you have your own test suite that uses Selenium Grid to manage browser instances - Taurus will run these tests just fine.
 
-Taurus can repeat Selenium script in a loop until desired number of `iterations` will complete or `hold-for` time will be exceeded.
+Selenium executor uses multiple test runners (JUnit, TestNG, Mocha, etc), test type is detected automatically. If automatic detection
+fails - you can use `language` option described below.
+
+Taurus can loop test suite execution in a loop until desired number of `iterations` will complete or `hold-for` time will be exceeded.
 
 ## Supported file types:
+
+Test scenario may be presented not only as single file but as a folder (or, in case of Java-based tests, as a jar).
 
   - .java/single file
   - .java/folder (flat structure, no package)
@@ -19,7 +29,31 @@ Taurus can repeat Selenium script in a loop until desired number of `iterations`
   - .js/single file
   - .js/folder
 
+## Specifying Test Language Explicitly
+
+By default, Taurus tries to automatically detect the language your tests are written in. If, for some reason, the autodetection fails - you can specify test language explicitly with `language` execution-level option.
+
+Supported values:
+- `python-nose` - nosetests-based Python tests
+- `java-junit` - JUnit-based Java tests
+- `java-testng` - TestNG-based Java tests
+- `ruby-rspec` - RSpec-based Ruby tests
+- `js-mocha` - Mocha-based JavaScript tests
+
+Usage:
+```yaml
+---
+execution:
+- executor: selenium
+  language: python-nose
+  scenario:
+    script: tests/
+```
+
+
 ## JUnit Runner
+
+JUnit runner corresponds to 'java-junit' `language` value.
 
 All `.java` files will be compiled and packed into jar file before running tests. All necessary tools will be downloaded and installed automatically into `~/.bzt/selenium-taurus`.
 
@@ -33,6 +67,47 @@ modules:
       junit:
         path: ~/.bzt/selenium-taurus/tools/junit/junit.jar  # path to JUnit framework
         selenium-server: ~/.bzt/selenium-taurus/selenium-server.jar  # path to Selenium Standalone Server
+        hamcrest-core: ~/.bzt/selenium-taurus/tools/junit/hamcrest-core.jar  # path to Hamcrest lib
+        json-jar: ~/.bzt/selenium-taurus/tools/junit/json.jar  # path to JSON lib
+        jar-name: compiled.jar,  # set name of jar file when compiling from java source files 
+        working-dir: classes  # set name of runner working directory within artifacts dir
+        compile-target-java: 1.7  # -source and -target option value for javac
+```
+
+When running tests, Taurus will automatically add `selenium-server`, `json-jar`, `hamcrest-core`, along with JUnit jar to the classpath. If your test suite requires additional libraries - you can specify them as a list of jars with `additional-classpath` option.
+
+```yaml
+scenarios:
+  script-with-depepdencies:
+    script: tests/FrontendTest.java
+    additional-classpath:
+    - deps/gson-1.0.1.jar
+    - deps/common-utils-0.15.1.jar    
+```
+
+## TestNG Runner
+
+TestNG runner corresponds to 'java-testng' `language` value.
+
+Just like with JUnit runner, all `.java` files will be compiled and packed into the jar before running the tests. 
+
+TestNG configuration file (testng.xml) can be specified with `testng-xml` option. If the options isn't specified — Taurus will attempt to find TestNG config automatically by looking for 'testng.xml' file in current directory and in the script directory.
+If no TestNG configuration is found — Taurus will launch all tests from the test suite.
+
+Just like JUnit runner, TestNG runner supports the `additional-classpath` option.
+
+Configuration options:
+
+```yaml
+---
+modules:
+  selenium:
+    selenium-tools:
+      testng:
+        path: ~/.bzt/selenium-taurus/tools/testng/testng.jar  # TestNG jar
+        selenium-server: ~/.bzt/selenium-taurus/selenium-server.jar  # path to Selenium Standalone Server
+        hamcrest-core: ~/.bzt/selenium-taurus/tools/junit/hamcrest-core.jar  # path to Hamcrest lib
+        json-jar: ~/.bzt/selenium-taurus/tools/junit/json.jar  # path to JSON lib
         jar-name: compiled.jar,  # set name of jar file when compiling from java source files 
         working-dir: classes  # set name of runner working directory within artifacts dir
         compile-target-java: 1.7  # -source and -target option value for javac
@@ -40,7 +115,9 @@ modules:
 
 ## Python Unittest Runner
 
-Python unittests are launched using NoseTest runner.
+Python unittests are launched using NoseTest runner. It's `language` value is 'python-nose'.
+
+It is valid to specify both single Python module (single .py file) and a Python package (folder with Python modules and packages).
 
 Configuration options:
 
@@ -54,62 +131,9 @@ modules:
         interpreter: /home/user/interpreter/python  # path to custom interpreter.
 ```
 
-## Scenario Samples
-Minimal working scenario:
-
-```yaml
----
-execution:
-- executor: selenium
-  scenario: simple
-
-scenarios:
-  simple:
-    script: /home/user/selenium_tests.java
-```
-
-or
-
-```yaml
----
-execution:
-- executor: selenium
-  scenario: simple
-  
-scenarios: 
-  simple:
-    script: /home/user/folder/
-```
-
-Extended scenario with runner options:
-
-```yaml
----
-execution:
-- executor: selenium
-  iterations: 5
-  scenario: complex
-  
-scenarios:
-  complex:
-    script: /home/user/tests/my_test.java
-    additional-classpath:  # optional, following libs will be added to java classpath
-    - /home/user/lib_one.jar
-    - /home/user/lib_two.jar    
-    
-modules:
-  selenium:
-    selenium-tools:
-      junit:
-        jar-name: compiled_jar_from_provided_sources.jar
-        
-reporting:
-- module: junit-xml
-```
-
 ## Ruby RSpec Runner
 
-You can run your RSpec-based test suite with Taurus.
+You can run your RSpec-based test suite with Taurus. `language` value for RSpec-based tests is `ruby-rspec`.
 
 Minimal example:
 
@@ -123,8 +147,7 @@ execution:
   scenario: rspec-suite
 ```
 
-Just like JUnit-based and nosetests-based runners, RSpec runner supports `iterations` and `hold-for` options,
-in case you want to loop your test execution.
+Just like other runners, RSpec runner supports `iterations` and `hold-for` options, in case you want to loop your test execution.
 
 The complete example of RSpec-based test suite and Taurus config can be found in
 [examples/selenium/rspec-capybara](https://github.com/Blazemeter/taurus/tree/master/examples/selenium/rspec-capybara)
@@ -132,13 +155,13 @@ folder of Taurus's repo.
 
 ## JavaScript Mocha Runner
 
-Taurus supports running Mocha-based test suites.
+Taurus supports running Mocha-based test suites. Corresponding `language` value is `js-mocha`.
 
 Minimal example:
 ```yaml
 scenarios:
   mocha-tests:
-    script: test/  # folder with your tests or path to one test file
+    script: test/  # folder with your tests or path to one test script
 
 execution:
 - executor: selenium
@@ -162,10 +185,13 @@ in [examples/selenium/mocha](https://github.com/Blazemeter/taurus/tree/master/ex
 folder of Taurus's repo.
 
 ## Requests Scenario
-Selenium executor partially supports building scenario from requests.
+
+Selenium executor supports building test script from the scenario. In that case Taurus will generate a Python script
+that will be launched with `nose`.
+
 Supported features:
   - select browser
-  - set timeout/think-time on both scenario/request levels
+  - set timeout/think-time on both scenario and request levels
   - assertions (only requested page source inspected)
   - request method GET (only)
 
@@ -189,6 +215,60 @@ scenarios:
         not: false  # inverse assertion condition
 ```
 
+## Scenario Samples
+
+
+JUnit-based test with single .java file:
+```yaml
+---
+execution:
+- executor: selenium
+  scenario: simple
+
+scenarios:
+  simple:
+    script: /home/user/selenium_tests.java
+```
+
+Running folder of test scripts with automatic language detection:
+```yaml
+---
+execution:
+- executor: selenium
+  scenario: simple
+  
+scenarios: 
+  simple:
+    script: /home/user/folder/
+```
+
+Extended scenario with runner options:
+```yaml
+---
+execution:
+- executor: selenium
+  iterations: 5  # loop over test suite for 5 times
+  language: java-junit
+  scenario: complex
+  
+scenarios:
+  complex:
+    script: /home/user/tests/my_test.java
+    additional-classpath:  # optional, following libs will be added to java classpath
+    - /home/user/lib_one.jar
+    - /home/user/lib_two.jar    
+    
+modules:
+  selenium:
+    selenium-tools:
+      junit:
+        jar-name: compiled_jar_from_provided_sources.jar
+        
+reporting:
+- module: junit-xml
+```
+
+
 ## Using Virtual Display on Linux
 
 If you want to run headless tests on Linux using virtual framebuffer (Xvfb), you can tell Taurus to run virtual display by using following config piece:
@@ -203,25 +283,6 @@ modules:
 ```
 Note: SeleniumExecutor uses shared virtual display for all executions. 
 
-## Enforcing Test Language
-
-By default Taurus tries to automatically detect the language tests are written in. If autodetection fails - you can enforce specific
-language with `language` execution-level option.
-
-Supported values:
-- `python-nose` - nosetests-based Python tests
-- `java-junit` - JUnit-based Java tests
-- `ruby-rspec` - RSpec-based Ruby tests
-- `js-mocha` - Mocha-based JavaScript tests
-
-```yaml
----
-execution:
-- executor: selenium
-  language: python-nose
-  scenario:
-    script: tests/
-```
-
 ## Conversion of Tests into JMeter format
-You can convert your Selenium tests as described [here](Proxy2JMX.md#Proxy2JMX-Converter).
+
+You can convert your Selenium tests into JMX files by using a Proxy2JMX Converter module, as described [here](Proxy2JMX.md#Proxy2JMX-Converter).

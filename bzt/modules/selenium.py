@@ -81,6 +81,10 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
     JUNIT_MIRRORS_SOURCE = "http://search.maven.org/solrsearch/select?q=g%3A%22junit%22%20AND%20a%3A%22" \
                            "junit%22%20AND%20v%3A%22{version}%22&rows=20&wt=json".format(version=JUNIT_VERSION)
 
+    TESTNG_VERSION = "6.8.5"
+    TESTNG_DOWNLOAD_LINK = "http://search.maven.org/remotecontent?filepath=org/testng/testng/" \
+                           "{version}/testng-{version}.jar".format(version=TESTNG_VERSION)
+
     HAMCREST_DOWNLOAD_LINK = "http://search.maven.org/remotecontent?filepath=org/hamcrest/hamcrest-core" \
                              "/1.3/hamcrest-core-1.3.jar"
 
@@ -89,7 +93,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
     MOCHA_NPM_PACKAGE_NAME = "mocha"
     SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME = "selenium-webdriver"
 
-    SUPPORTED_TYPES = ["python-nose", "java-junit", "ruby-rspec", "js-mocha"]
+    SUPPORTED_TYPES = ["python-nose", "java-junit", "java-testng", "ruby-rspec", "js-mocha"]
 
     def __init__(self):
         super(SeleniumExecutor, self).__init__()
@@ -144,6 +148,29 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
             self.runner_working_dir = self.engine.create_artifact("classes", "")
         return self.runner_working_dir
 
+    def _get_testng_xml(self):
+        scenario = self.get_scenario()
+        if 'testng-xml' in scenario:
+            if scenario.get('testng-xml'):
+                return self.engine.find_file(scenario.get('testng-xml'))
+            else:
+                return None
+
+        detected_path = self.engine.find_file('testng.xml')
+        if os.path.exists(detected_path):
+            full_script_path = get_full_path(detected_path)
+            self.log.info("Detected testng.xml file at %s", full_script_path)
+            return full_script_path
+
+        script_dir = get_full_path(self.get_script_path(), step_up=1)
+        script_config = os.path.join(script_dir, 'testng.xml')
+        if os.path.exists(script_config):
+            full_script_path = get_full_path(script_config)
+            self.log.info("Detected testng.xml file at %s", full_script_path)
+            return full_script_path
+
+        return None
+
     def _create_runner(self, report_file):
         script_path = self.get_script_path()
         script_type = self.detect_script_type(script_path)
@@ -157,7 +184,15 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
             runner_class = JUnitTester
             runner_config.merge(self.settings.get("selenium-tools").get("junit"))
             runner_config['working-dir'] = self.get_runner_working_dir()
-            runner_config['props-file'] = self.engine.create_artifact("customrunner", ".properties")
+            runner_config['props-file'] = self.engine.create_artifact("runner", ".properties")
+        elif script_type == "java-testng":
+            runner_class = TestNGTester
+            runner_config.merge(self.settings.get("selenium-tools").get("testng"))
+            runner_config['working-dir'] = self.get_runner_working_dir()
+            runner_config['props-file'] = self.engine.create_artifact("runner", ".properties")
+            testng_config = self._get_testng_xml()
+            if testng_config:
+                runner_config['testng-xml'] = self.engine.find_file(testng_config)
         elif script_type == "ruby-rspec":
             runner_class = RSpecTester
             runner_config.merge(self.settings.get("selenium-tools").get("rspec"))
@@ -230,7 +265,10 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
                 file_types.add(os.path.splitext(file_name)[1].lower())
 
         if '.java' in file_types or '.jar' in file_types:
-            script_type = 'java-junit'
+            if self._get_testng_xml() is not None:
+                script_type = 'java-testng'
+            else:
+                script_type = 'java-junit'
         elif '.py' in file_types:
             script_type = 'python-nose'
         elif '.rb' in file_types:
@@ -308,8 +346,14 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         resources = []
         if script_path is not None:
             resources.append(script_path)
+
         resources.extend(self.scenario.get("additional-classpath", []))
         resources.extend(self.settings.get("additional-classpath", []))
+
+        testng_config = self._get_testng_xml()
+        if testng_config:
+            resources.append(testng_config)
+
         return resources
 
     def __tests_from_requests(self):
@@ -385,35 +429,20 @@ class AbstractTestRunner(object):
         self.opened_descriptors = []
 
 
-class JUnitTester(AbstractTestRunner):
+class JavaTestRunner(AbstractTestRunner):
     """
     Allows to test java and jar files
     """
 
-    def __init__(self, junit_config, executor):
+    def __init__(self, config, base_class_path, executor):
         """
-        :type junit_config: BetterDict
+        :type config: BetterDict
         :type executor: SeleniumExecutor
         """
-        super(JUnitTester, self).__init__(junit_config, executor)
-        self.props_file = junit_config['props-file']
-
-        path_lambda = lambda key, val: get_full_path(self.settings.get(key, val))
-
+        super(JavaTestRunner, self).__init__(config, executor)
         self.working_dir = self.settings.get("working-dir")
-        self.junit_path = path_lambda("path", "~/.bzt/selenium-taurus/tools/junit/junit.jar")
-        self.hamcrest_path = path_lambda("hamcrest-core", "~/.bzt/selenium-taurus/tools/junit/hamcrest-core.jar")
-        self.json_jar_path = path_lambda("json-jar", "~/.bzt/selenium-taurus/tools/junit/json.jar")
-        self.selenium_server_jar_path = path_lambda("selenium-server",
-                                                    "~/.bzt/selenium-taurus/selenium-server.jar")
-        self.junit_listener_path = os.path.join(get_full_path(__file__, step_up=1),
-                                                os.pardir,
-                                                "resources",
-                                                "taurus-junit-1.0.jar")
-        self.target_java = str(junit_config.get("compile-target-java", "1.7"))
-
-        self.base_class_path = [self.selenium_server_jar_path, self.junit_path, self.junit_listener_path,
-                                self.hamcrest_path, self.json_jar_path]
+        self.target_java = str(config.get("compile-target-java", "1.7"))
+        self.base_class_path = base_class_path
         self.base_class_path.extend(executor.settings.get("additional-classpath", []))
         self.base_class_path.extend(self.scenario.get("additional-classpath", []))
         self.base_class_path = [os.path.abspath(executor.engine.find_file(x)) for x in self.base_class_path]
@@ -430,28 +459,9 @@ class JUnitTester(AbstractTestRunner):
         if any(self._collect_script_files({'.java'})):
             self.compile_scripts()
 
+    @abstractmethod
     def run_checklist(self):
-        """
-        java
-        javac
-        selenium-server.jar
-        junit.jar
-        junit_listener.jar
-        """
-        # only check javac if we need to compile. if we have JAR as script - we don't need javac
-        if any(self._collect_script_files({'.java'})):
-            self.required_tools.append(JavaC("", "", self.log))
-
-        self.required_tools.append(TclLibrary(self.log))
-        self.required_tools.append(JavaVM("", "", self.log))
-        link = SeleniumExecutor.SELENIUM_DOWNLOAD_LINK.format(version=SeleniumExecutor.SELENIUM_VERSION)
-        self.required_tools.append(SeleniumServerJar(self.selenium_server_jar_path, link, self.log))
-        self.required_tools.append(JUnitJar(self.junit_path, self.log, SeleniumExecutor.JUNIT_VERSION))
-        self.required_tools.append(HamcrestJar(self.hamcrest_path, SeleniumExecutor.HAMCREST_DOWNLOAD_LINK))
-        self.required_tools.append(JsonJar(self.json_jar_path, SeleniumExecutor.JSON_JAR_DOWNLOAD_LINK))
-        self.required_tools.append(JUnitListenerJar(self.junit_listener_path, ""))
-
-        self.check_tools()
+        pass
 
     def _collect_script_files(self, extensions):
         file_list = []
@@ -541,10 +551,57 @@ class JUnitTester(AbstractTestRunner):
 
         self.log.info("Making .jar file completed")
 
+    @abstractmethod
+    def run_tests(self):
+        pass
+
+
+class JUnitTester(JavaTestRunner):
+    """
+    Allows to test java and jar files
+    """
+
+    def __init__(self, junit_config, executor):
+        """
+        :type junit_config: BetterDict
+        :type executor: SeleniumExecutor
+        """
+        self.props_file = junit_config['props-file']
+
+        path_lambda = lambda key, val: get_full_path(junit_config.get(key, val))
+        self.junit_path = path_lambda("path", "~/.bzt/selenium-taurus/tools/junit/junit.jar")
+        self.hamcrest_path = path_lambda("hamcrest-core", "~/.bzt/selenium-taurus/tools/junit/hamcrest-core.jar")
+        self.json_jar_path = path_lambda("json-jar", "~/.bzt/selenium-taurus/tools/junit/json.jar")
+        self.selenium_server_jar_path = path_lambda("selenium-server", "~/.bzt/selenium-taurus/selenium-server.jar")
+        self.junit_listener_path = os.path.join(get_full_path(__file__, step_up=1),
+                                                os.pardir,
+                                                "resources",
+                                                "taurus-junit-1.0.jar")
+
+        base_class_path = [self.selenium_server_jar_path, self.junit_path, self.junit_listener_path,
+                           self.hamcrest_path, self.json_jar_path]
+        super(JUnitTester, self).__init__(junit_config, base_class_path, executor)
+
+    def run_checklist(self):
+        # only check javac if we need to compile. if we have JAR as script - we don't need javac
+        if any(self._collect_script_files({'.java'})):
+            self.required_tools.append(JavaC("", "", self.log))
+
+        self.required_tools.append(TclLibrary(self.log))
+        self.required_tools.append(JavaVM("", "", self.log))
+        link = SeleniumExecutor.SELENIUM_DOWNLOAD_LINK.format(version=SeleniumExecutor.SELENIUM_VERSION)
+        self.required_tools.append(SeleniumServerJar(self.selenium_server_jar_path, link, self.log))
+        self.required_tools.append(JUnitJar(self.junit_path, self.log, SeleniumExecutor.JUNIT_VERSION))
+        self.required_tools.append(HamcrestJar(self.hamcrest_path, SeleniumExecutor.HAMCREST_DOWNLOAD_LINK))
+        self.required_tools.append(JsonJar(self.json_jar_path, SeleniumExecutor.JSON_JAR_DOWNLOAD_LINK))
+        self.required_tools.append(JUnitListenerJar(self.junit_listener_path, ""))
+
+        self.check_tools()
+
     def run_tests(self):
         # java -cp junit.jar:selenium-test-small.jar:
         # selenium-2.46.0/selenium-java-2.46.0.jar:./../selenium-server.jar
-        # org.junit.runner.JUnitCore TestBlazemeterPass
+        # taurusjunit.CustomRunner runner.properties
 
         jar_list = [os.path.join(self.working_dir, jar) for jar in os.listdir(self.working_dir) if jar.endswith(".jar")]
         jar_list.extend(self._collect_script_files({".jar"}))
@@ -573,6 +630,85 @@ class JUnitTester(AbstractTestRunner):
                                              stdout=std_out,
                                              stderr=std_err,
                                              env=self.env)
+
+
+class TestNGTester(JavaTestRunner):
+    """
+    Allows to test java and jar files with TestNG
+    """
+
+    __test__ = False  # Hello, nosetests discovery mechanism
+
+    def __init__(self, testng_config, executor):
+        """
+        :type testng_config: BetterDict
+        :type executor: SeleniumExecutor
+        """
+        self.props_file = testng_config['props-file']
+
+        path_lambda = lambda key, val: get_full_path(testng_config.get(key, val))
+        self.testng_path = path_lambda("path", "~/.bzt/selenium-taurus/tools/testng/testng.jar")
+        self.hamcrest_path = path_lambda("hamcrest-core", "~/.bzt/selenium-taurus/tools/testng/hamcrest-core.jar")
+        self.json_jar_path = path_lambda("json-jar", "~/.bzt/selenium-taurus/tools/testng/json.jar")
+        self.selenium_server_jar_path = path_lambda("selenium-server", "~/.bzt/selenium-taurus/selenium-server.jar")
+        self.testng_plugin_path = os.path.join(get_full_path(__file__, step_up=1),
+                                               os.pardir,
+                                               "resources",
+                                               "taurus-testng-1.0.jar")
+
+        base_class_path = [self.selenium_server_jar_path, self.testng_path, self.testng_plugin_path,
+                           self.hamcrest_path, self.json_jar_path]
+        super(TestNGTester, self).__init__(testng_config, base_class_path, executor)
+
+    def run_checklist(self):
+        if any(self._collect_script_files({'.java'})):
+            self.required_tools.append(JavaC("", "", self.log))
+
+        self.required_tools.append(TclLibrary(self.log))
+        self.required_tools.append(JavaVM("", "", self.log))
+        link = SeleniumExecutor.SELENIUM_DOWNLOAD_LINK.format(version=SeleniumExecutor.SELENIUM_VERSION)
+        self.required_tools.append(SeleniumServerJar(self.selenium_server_jar_path, link, self.log))
+        self.required_tools.append(TestNGJar(self.testng_path, SeleniumExecutor.TESTNG_DOWNLOAD_LINK))
+        self.required_tools.append(HamcrestJar(self.hamcrest_path, SeleniumExecutor.HAMCREST_DOWNLOAD_LINK))
+        self.required_tools.append(JsonJar(self.json_jar_path, SeleniumExecutor.JSON_JAR_DOWNLOAD_LINK))
+        self.required_tools.append(TestNGPluginJar(self.testng_plugin_path, ""))
+
+        self.check_tools()
+
+    def run_tests(self):
+        # java -classpath
+        # testng.jar:selenium-server.jar:taurus-testng-1.0.jar:json.jar:compiled.jar
+        # taurustestng.TestNGRunner runner.properties
+
+        jar_list = [os.path.join(self.working_dir, jar) for jar in os.listdir(self.working_dir) if jar.endswith(".jar")]
+        jar_list.extend(self._collect_script_files({".jar"}))
+        self.base_class_path.extend(jar_list)
+
+        with open(self.props_file, 'wt') as props:
+            props.write("report_file=%s\n" % self.settings.get("report-file").replace(os.path.sep, '/'))
+
+            if self.load.iterations:
+                props.write("iterations=%s\n" % self.load.iterations)
+
+            if self.load.hold:
+                props.write("hold_for=%s\n" % self.load.hold)
+
+            for index, item in enumerate(jar_list):
+                props.write("target_%s=%s\n" % (index, item.replace(os.path.sep, '/')))
+
+            if self.settings.get('testng-xml'):
+                props.write('testng_config=%s\n' % self.settings.get('testng-xml').replace(os.path.sep, '/'))
+
+        std_out = open(self.settings.get("stdout"), "wt")
+        self.opened_descriptors.append(std_out)
+        std_err = open(self.settings.get("stderr"), "wt")
+        self.opened_descriptors.append(std_err)
+
+        env = BetterDict()
+        env.merge(self.env)
+
+        cmdline = ["java", "-cp", os.pathsep.join(self.base_class_path), "taurustestng.TestNGRunner", self.props_file]
+        self.process = self.executor.execute(cmdline, stdout=std_out, stderr=std_err, env=env)
 
 
 class NoseTester(AbstractTestRunner):
@@ -835,6 +971,11 @@ class JUnitJar(RequiredTool):
             raise RuntimeError("Unable to run %s after installation!" % self.tool_name)
 
 
+class TestNGJar(RequiredTool):
+    def __init__(self, tool_path, download_link):
+        super(TestNGJar, self).__init__("TestNG", tool_path, download_link)
+
+
 class HamcrestJar(RequiredTool):
     def __init__(self, tool_path, download_link):
         super(HamcrestJar, self).__init__("HamcrestJar", tool_path, download_link)
@@ -1013,6 +1154,14 @@ class JUnitListenerJar(RequiredTool):
 
     def install(self):
         raise NotImplementedError()
+
+
+class TestNGPluginJar(RequiredTool):
+    def __init__(self, tool_path, download_link):
+        super(TestNGPluginJar, self).__init__("TestNGPlugin", tool_path, download_link)
+
+    def install(self):
+        raise ValueError("TestNG plugin should be bundled with Taurus distribution")
 
 
 class TaurusNosePlugin(RequiredTool):

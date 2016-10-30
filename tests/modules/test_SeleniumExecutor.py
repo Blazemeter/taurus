@@ -3,6 +3,7 @@ import logging
 import os
 import re
 import shutil
+import sys
 import time
 import unittest
 import yaml
@@ -10,7 +11,7 @@ import yaml
 from bzt import TaurusConfigException
 from bzt.engine import ScenarioExecutor
 from bzt.modules.provisioning import Local
-from bzt.modules.selenium import NoseTester
+from bzt.modules.selenium import NoseTester, JavaTestRunner, JUnitTester, TestNGTester
 from bzt.modules.selenium import SeleniumExecutor, JUnitJar, LoadSamplesReader, LDJSONReader, FuncSamplesReader
 from bzt.six import StringIO
 from bzt.utils import is_windows, get_full_path
@@ -37,6 +38,22 @@ class SeleniumTestCase(BZTestCase):
             self.obj.execution = self.obj.execution[0]
 
     def tearDown(self):
+        exc, _, _ = sys.exc_info()
+        if exc:
+            try:
+                stdout_path = os.path.join(self.obj.engine.artifacts_dir, "selenium.out")
+                if os.path.exists(stdout_path):
+                    stdout = open(stdout_path).read()
+                    logging.info('Selenium stdout: """\n%s\n"""', stdout)
+            except BaseException:
+                pass
+            try:
+                stdout_path = os.path.join(self.obj.engine.artifacts_dir, "selenium.err")
+                if os.path.exists(stdout_path):
+                    stderr = open(stdout_path).read()
+                    logging.info('Selenium stderr: """\n%s\n"""', stderr)
+            except BaseException:
+                pass
         self.obj.free_virtual_display()
 
 
@@ -74,8 +91,10 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
             "junit": {"path": os.path.join(dummy_installation_path, "tools", "junit", "junit.jar")}
         }})
 
-        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/jar/"}})
+        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/jar/"},
+                                  "language": "java-junit"})
         self.obj.prepare()
+        self.assertIsInstance(self.obj.runner, JUnitTester)
         self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "selenium-server.jar")))
         self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "tools", "junit", "junit.jar")))
         self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "tools", "junit", "hamcrest-core.jar")))
@@ -91,6 +110,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         """
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/java/TestBlazemeterFail.java"}})
         self.obj.prepare()
+        self.assertIsInstance(self.obj.runner, JavaTestRunner)
         self.assertFalse(os.path.exists(os.path.join(self.obj.runner.working_dir, "TestBlazemeterFail.java")))
         self.assertTrue(os.path.exists(os.path.join(self.obj.runner.working_dir, "TestBlazemeterFail.class")))
         self.assertTrue(os.path.exists(os.path.join(self.obj.runner.working_dir, "compiled.jar")))
@@ -102,6 +122,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         """
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/java/"}})
         self.obj.prepare()
+        self.assertIsInstance(self.obj.runner, JavaTestRunner)
         prepared_files = os.listdir(self.obj.runner.working_dir)
         java_files = [fname for fname in prepared_files if fname.endswith(".java")]
         class_files = [fname for fname in prepared_files if fname.endswith(".class")]
@@ -117,6 +138,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         """
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/java_package/"}})
         self.obj.prepare()
+        self.assertIsInstance(self.obj.runner, JavaTestRunner)
         self.assertTrue(os.path.exists(os.path.join(self.obj.runner.working_dir, "compiled.jar")))
 
     def test_selenium_startup_shutdown_java_package(self):
@@ -136,6 +158,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         while not self.obj.check():
             time.sleep(1)
         self.obj.shutdown()
+        self.assertIsInstance(self.obj.runner, JavaTestRunner)
         self.assertTrue(os.path.exists(os.path.join(self.obj.runner.working_dir, "compiled.jar")))
 
     def test_prepare_jar_single(self):
@@ -151,20 +174,22 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         runt tests from single jar
         :return:
         """
-        self.obj.engine.config.merge({
+        self.configure({
             'execution': {
                 'scenario': {'script': __dir__() + '/../selenium/jar/'},
+                'language': 'java-junit',
                 'executor': 'selenium'
             },
             'reporting': [{'module': 'junit-xml'}]
         })
-        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/jar/dummy.jar"}})
         self.obj.prepare()
+        self.assertIsInstance(self.obj.runner, JUnitTester)
         self.obj.startup()
         while not self.obj.check():
             time.sleep(1)
         self.obj.shutdown()
 
+        self.assertIsInstance(self.obj.runner, JavaTestRunner)
         prepared_files = os.listdir(self.obj.runner.working_dir)
         java_files = [fname for fname in prepared_files if fname.endswith(".java")]
         class_files = [fname for fname in prepared_files if fname.endswith(".class")]
@@ -192,6 +217,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
             time.sleep(1)
         self.obj.shutdown()
 
+        self.assertIsInstance(self.obj.runner, JavaTestRunner)
         prepared_files = os.listdir(self.obj.runner.working_dir)
         java_files = [fname for fname in prepared_files if fname.endswith(".java")]
         class_files = [fname for fname in prepared_files if fname.endswith(".class")]
@@ -220,6 +246,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
             time.sleep(1)
         self.obj.shutdown()
 
+        self.assertIsInstance(self.obj.runner, JavaTestRunner)
         prepared_files = os.listdir(self.obj.runner.working_dir)
         java_files = [fname for fname in prepared_files if fname.endswith(".java")]
         class_files = [fname for fname in prepared_files if fname.endswith(".class")]
@@ -249,6 +276,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
             time.sleep(1)
         self.obj.shutdown()
 
+        self.assertIsInstance(self.obj.runner, JavaTestRunner)
         prepared_files = os.listdir(self.obj.runner.working_dir)
         java_files = [fname for fname in prepared_files if fname.endswith(".java")]
         class_files = [fname for fname in prepared_files if fname.endswith(".class")]
@@ -269,6 +297,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
                 "executor": "selenium",
                 "scenario": {"script": __dir__() + "/../selenium/invalid/NotJUnittest.java"}}})
         self.obj.prepare()
+        self.assertIsInstance(self.obj.runner, JUnitTester)
         self.obj.startup()
         try:
             while not self.obj.check():
@@ -301,6 +330,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
                 'selenium': {
                     'additional-classpath': [settings_cp]}}})
         self.obj.prepare()
+        self.assertIsInstance(self.obj.runner, JavaTestRunner)
         self.assertTrue(any(scenario_cp in element for element in self.obj.runner.base_class_path))
         self.assertTrue(any(settings_cp in element for element in self.obj.runner.base_class_path))
 
@@ -313,6 +343,211 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
             'reporting': [{'module': 'junit-xml'}]
         })
         self.assertEqual(len(self.obj.resource_files()), 1)
+
+
+class TestSeleniumTestNGRunner(SeleniumTestCase):
+    def test_install_tools(self):
+        dummy_installation_path = __dir__() + "/../../build/tmp/selenium-taurus"
+        base_link = "file:///" + __dir__() + "/../data/"
+
+        shutil.rmtree(os.path.dirname(dummy_installation_path), ignore_errors=True)
+
+        selenium_server_link = SeleniumExecutor.SELENIUM_DOWNLOAD_LINK
+        SeleniumExecutor.SELENIUM_DOWNLOAD_LINK = base_link + "/selenium-server-standalone-2.46.0.jar"
+
+        testng_link = SeleniumExecutor.TESTNG_DOWNLOAD_LINK
+        SeleniumExecutor.TESTNG_DOWNLOAD_LINK = base_link + "/testng-6.8.5.jar"
+
+        hamcrest_link = SeleniumExecutor.HAMCREST_DOWNLOAD_LINK
+        SeleniumExecutor.HAMCREST_DOWNLOAD_LINK = base_link + "/hamcrest-core-1.3.jar"
+
+        self.assertFalse(os.path.exists(dummy_installation_path))
+
+        self.obj.settings.merge({"selenium-tools": {
+            "testng": {
+                "selenium-server": os.path.join(dummy_installation_path, "selenium-server.jar"),
+                "hamcrest-core": os.path.join(dummy_installation_path, "tools", "testng", "hamcrest-core.jar"),
+                "path": os.path.join(dummy_installation_path, "tools", "testng", "testng.jar")
+            }
+        }})
+
+        self.obj.execution.merge({
+            "language": "java-testng",
+            "scenario": {
+                "script": __dir__() + "/../selenium/jar/testng-suite.jar",
+                'testng-xml': None,
+            },
+        })
+        self.obj.prepare()
+        self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "selenium-server.jar")))
+        self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "tools", "testng", "testng.jar")))
+        self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "tools", "testng", "hamcrest-core.jar")))
+        SeleniumExecutor.SELENIUM_DOWNLOAD_LINK = selenium_server_link
+        SeleniumExecutor.TESTNG_DOWNLOAD_LINK = testng_link
+        SeleniumExecutor.HAMCREST_DOWNLOAD_LINK = hamcrest_link
+
+    def test_prepare_java_package(self):
+        self.configure({
+            'execution': {
+                'scenario': {
+                    'script': __dir__() + '/../selenium/jar/testng-suite.jar',
+                    'testng-xml': None,
+                },
+                'language': 'java-testng',
+            },
+        })
+        self.obj.prepare()
+        self.obj.startup()
+        while not self.obj.check():
+            time.sleep(1.0)
+        self.obj.shutdown()
+        self.obj.post_process()
+        lines = open(self.obj.report_file).readlines()
+        self.assertEqual(len(lines), 3)
+
+    def test_prepare_java_file(self):
+        self.configure({
+            'execution': {
+                'scenario': {
+                    'script': __dir__() + '/../selenium/java/TestNGSuite.java',
+                },
+                'language': 'java-testng',
+            },
+        })
+        self.obj.prepare()
+        self.obj.startup()
+        while not self.obj.check():
+            time.sleep(1.0)
+        self.obj.shutdown()
+        self.obj.post_process()
+        lines = open(self.obj.report_file).readlines()
+        self.assertEqual(len(lines), 3)
+
+    def test_resource_files(self):
+        script_jar = __dir__() + '/../selenium/jar/testng-suite.jar'
+        self.configure({
+            'execution': {
+                'scenario': {
+                    'script': script_jar,
+                    'testng-xml': 'testng.xml',
+                },
+                'language': 'java-testng',
+            },
+        })
+        resources = self.obj.get_resource_files()
+        self.assertEqual(resources, [script_jar, 'testng.xml'])
+
+    def test_resource_files_detect_config(self):
+        script_jar = __dir__() + '/../selenium/jar/testng-suite.jar'
+        self.configure({
+            'execution': {
+                'scenario': {
+                    'script': script_jar,
+                },
+                'language': 'java-testng',
+            },
+        })
+        resources = self.obj.get_resource_files()
+        self.assertEqual(resources, [script_jar,
+                                     get_full_path(__dir__() + '/../selenium/jar/testng.xml')])
+
+    def test_hold(self):
+        self.configure({
+            'execution': {
+                'hold-for': '5s',
+                'scenario': {
+                    'script': __dir__() + '/../selenium/jar/testng-suite.jar',
+                    'testng-xml': None,
+                },
+                'language': 'java-testng',
+            },
+        })
+        self.obj.prepare()
+        self.obj.startup()
+        while not self.obj.check():
+            time.sleep(1)
+        self.obj.shutdown()
+        self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
+        duration = time.time() - self.obj.start_time
+        self.assertGreater(duration, 5)
+
+    def test_iterations(self):
+        self.configure({
+            'execution': {
+                'iterations': 3,
+                'scenario': {
+                    'script': __dir__() + '/../selenium/jar/testng-suite.jar',
+                    'testng-xml': None,
+                },
+                'language': 'java-testng',
+            },
+        })
+        self.obj.prepare()
+        self.obj.startup()
+        while not self.obj.check():
+            time.sleep(1)
+        self.obj.shutdown()
+        self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
+        lines = open(self.obj.runner.settings.get("report-file")).readlines()
+        self.assertEqual(len(lines), 9)
+
+    def test_with_testng_config(self):
+        self.configure({
+            'execution': {
+                'scenario': {
+                    'script': __dir__() + '/../selenium/jar/testng-suite.jar',
+                    'testng-xml': __dir__() + '/../selenium/jar/testng.xml',
+                },
+            },
+        })
+        self.obj.prepare()
+        self.obj.startup()
+        while not self.obj.check():
+            time.sleep(1)
+        self.obj.shutdown()
+        self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
+        lines = open(self.obj.runner.settings.get("report-file")).readlines()
+        self.assertEqual(len(lines), 6)
+
+    def test_testng_config_autodetect(self):
+        testng_xml_path = get_full_path(__dir__() + '/../selenium/jar/testng.xml')
+        self.configure({
+            'execution': {
+                'scenario': {
+                    'script': __dir__() + '/../selenium/jar/testng-suite.jar',
+                },
+            },
+        })
+        self.obj.prepare()
+        self.assertEqual(testng_xml_path, self.obj.runner.settings.get("testng-xml", None))
+        self.obj.startup()
+        while not self.obj.check():
+            time.sleep(1)
+        self.obj.shutdown()
+        self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
+        lines = open(self.obj.runner.settings.get("report-file")).readlines()
+        self.assertEqual(len(lines), 6)
+
+    def test_autodetect_script_type(self):
+        self.configure({
+            'execution': {
+                'scenario': {
+                    'script': __dir__() + '/../selenium/jar/testng-suite.jar',
+                },
+            },
+        })
+        self.obj.prepare()
+        self.assertIsInstance(self.obj.runner, TestNGTester)
+
+    def test_detect_testng_xml_with_config(self):
+        test_yml = __dir__() + "/../selenium/testng/test.yml"
+        testng_xml = get_full_path(__dir__() + "/../selenium/testng/testng.xml")
+        self.obj.engine.config.merge(yaml.load(open(test_yml)))
+        self.obj.execution = self.obj.engine.config.get('execution')
+        self.obj.engine.file_search_paths.append(os.path.dirname(test_yml))
+        self.obj.prepare()
+        self.assertIsInstance(self.obj.runner, TestNGTester)
+        self.assertEqual(self.obj.runner.settings["testng-xml"], testng_xml)
 
 
 class TestSeleniumNoseRunner(SeleniumTestCase):
@@ -862,6 +1097,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.execution.merge({
             'scenario': {
                 'script': __dir__() + '/../selenium/jar/dummy.jar',
+                'language': 'java-junit',
                 'additional-classpath': [__dir__() + '/../selenium/jar/another_dummy.jar'],
             },
         })
@@ -869,7 +1105,7 @@ class TestSeleniumStuff(SeleniumTestCase):
             'additional-classpath': [__dir__() + '/../selenium/jar/testng-suite.jar'],
         })
         resources = self.obj.resource_files()
-        self.assertEqual(len(resources), 3)
+        self.assertEqual(len(resources), 4)
 
 
 class TestSeleniumScriptBuilder(SeleniumTestCase):
