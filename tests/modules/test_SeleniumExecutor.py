@@ -539,6 +539,16 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         self.obj.prepare()
         self.assertIsInstance(self.obj.runner, TestNGTester)
 
+    def test_detect_testng_xml_with_config(self):
+        test_yml = __dir__() + "/../selenium/testng/test.yml"
+        testng_xml = get_full_path(__dir__() + "/../selenium/testng/testng.xml")
+        self.obj.engine.config.merge(yaml.load(open(test_yml)))
+        self.obj.execution = self.obj.engine.config.get('execution')
+        self.obj.engine.file_search_paths.append(os.path.dirname(test_yml))
+        self.obj.prepare()
+        self.assertIsInstance(self.obj.runner, TestNGTester)
+        self.assertEqual(self.obj.runner.settings["testng-xml"], testng_xml)
+
 
 class TestSeleniumNoseRunner(SeleniumTestCase):
     def test_selenium_prepare_python_single(self):
