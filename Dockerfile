@@ -2,11 +2,14 @@ FROM ubuntu:16.04
 ADD http://gettaurus.org/snapshots/blazemeter-pbench-extras_0.1.10.1_amd64.deb /tmp
 ADD http://chromedriver.storage.googleapis.com/2.25/chromedriver_linux64.zip /tmp
 ADD https://github.com/mozilla/geckodriver/releases/download/v0.11.1/geckodriver-v0.11.1-linux64.tar.gz /tmp
+ADD https://dl-ssl.google.com/linux/linux_signing_key.pub /tmp
 RUN apt-get -y update \
   && apt-get -y install --no-install-recommends software-properties-common \
   && apt-add-repository multiverse \
   && add-apt-repository ppa:yandex-load/main \
   && apt-add-repository ppa:nilarimogard/webupd8 \
+  && cat /tmp/linux_signing_key.pub | apt-key add - \
+  && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list \
   && apt-get -y update \
   && apt-cache policy firefox \
   && apt-get -y install --no-install-recommends \
@@ -29,7 +32,7 @@ RUN apt-get -y update \
     phantom \
     phantom-ssl \
     firefox \
-    chromium-browser \
+    google-chrome-stable \
     pepperflashplugin-nonfree \
     flashplugin-installer \
     phantomjs \
@@ -46,7 +49,11 @@ RUN apt-get -y update \
   && unzip -d /usr/bin /tmp/chromedriver_linux64.zip \
   && tar -xzf /tmp/geckodriver-v0.11.1-linux64.tar.gz --directory /usr/local/bin \
   && rm -rf /var/lib/apt/lists/* \
-  && firefox --version && chromium-browser --version && /usr/bin/chromedriver --version && geckodriver --version
+  && firefox --version && google-chrome-stable --version && /usr/bin/chromedriver --version && geckodriver --version
+
+COPY scripts/chrome_launcher.sh /opt/google/chrome/google-chrome
+RUN chmod +x /opt/google/chrome/google-chrome
+ENV DBUS_SESSION_BUS_ADDRESS=/dev/null
 
 COPY . /tmp/bzt-src
 RUN pip install /tmp/bzt-src \
