@@ -229,7 +229,7 @@ class CLI(object):
             config = Configuration()
 
             for jmx_file in jmxes:
-                config.get(ScenarioExecutor.EXEC, []).append({"executor": "jmeter", "scenario": jmx_file})
+                config.get(ScenarioExecutor.EXEC, []).append({"executor": "jmeter", "scenario": {"script": jmx_file}})
 
             config.dump(fname, Configuration.JSON)
 
