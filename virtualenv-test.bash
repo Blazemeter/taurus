@@ -33,6 +33,7 @@ cd ..
 echo '{"install-id": "UnitTest"}' > build/etc/bzt.d/99-zinstallID.json
 
 # run functional tests
+bzt examples/all-executors.yml -o settings.artifacts-dir="build/test/%Y-%m-%d_%H-%M-%S.%f" 
 
 # install and run jmeter
 bzt -o execution.scenario.script=tests/jmeter/jmx/dummy.jmx -o settings.artifacts-dir="build/test/%Y-%m-%d_%H-%M-%S.%f" -o modules.jmeter.path=build/tools/jmeter/bin/jmeter

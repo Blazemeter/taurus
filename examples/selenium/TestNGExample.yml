@@ -1,0 +1,7 @@
+---
+execution:
+- executor: selenium
+  iterations: 10
+  language: java-testng
+  scenario:
+    script: TestNGExample.java
