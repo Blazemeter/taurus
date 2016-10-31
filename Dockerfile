@@ -1,6 +1,6 @@
 FROM ubuntu:16.04
 ADD http://gettaurus.org/snapshots/blazemeter-pbench-extras_0.1.10.1_amd64.deb /tmp
-ADD http://chromedriver.storage.googleapis.com/2.24/chromedriver_linux64.zip /tmp
+ADD http://chromedriver.storage.googleapis.com/2.25/chromedriver_linux64.zip /tmp
 ADD https://github.com/mozilla/geckodriver/releases/download/v0.11.1/geckodriver-v0.11.1-linux64.tar.gz /tmp
 RUN apt-get -y update \
   && apt-get -y install --no-install-recommends software-properties-common \
@@ -54,7 +54,7 @@ RUN pip install /tmp/bzt-src \
   && echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json \
   && echo '{"modules": {"console": {"disable": true}}}' > /etc/bzt.d/90-no-console.json
 
-RUN bzt /tmp/bzt-src/examples/all-executors.yml -o settings.artifacts-dir=/tmp/all-executors-artifacts || cat /tmp/all-executors-artifacts/webdriver-1.log; exit 1
+RUN bzt /tmp/bzt-src/examples/all-executors.yml -o settings.artifacts-dir=/tmp/all-executors-artifacts || (cat /tmp/all-executors-artifacts/webdriver-1.log; exit 1)
 
 RUN mkdir /bzt-configs \
   && rm -rf /tmp/*
