@@ -150,7 +150,7 @@ execution:
 Just like other runners, RSpec runner supports `iterations` and `hold-for` options, in case you want to loop your test execution.
 
 Also, you can specify the path to Ruby interpreter, if you don't have it in $PATH:
-```
+```yaml
 modules:
   selenium:
     selenium-tools:
