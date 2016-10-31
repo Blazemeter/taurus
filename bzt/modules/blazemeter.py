@@ -270,11 +270,11 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         if len(self.kpi_buffer):
             if self.client.last_ts < (time.time() - self.send_interval):
                 self.__send_data(self.kpi_buffer)
+                self.kpi_buffer = []
                 if self.send_monitoring:
                     self.__send_monitoring()
                 if self.send_custom_metrics:
                     self.__send_custom_metrics()
-                self.kpi_buffer = []
         return super(BlazeMeterUploader, self).check()
 
     @send_with_retry
