@@ -1,0 +1,8 @@
+#!/bin/bash
+
+# Chromium launcher for Docker image
+# Enforces --no-sandbox parameter and disables DBus integration
+
+export DBUS_SESSION_BUS_ADDRESS=/dev/null
+PREFIX=$(dirname $0)
+"$PREFIX/_chromium-browser" "--no-sandbox $@"
