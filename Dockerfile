@@ -32,7 +32,7 @@ RUN apt-get -y update \
     phantom \
     phantom-ssl \
     firefox \
-    google-chrome-stable \
+    chromium-browser \
     pepperflashplugin-nonfree \
     flashplugin-installer \
     phantomjs \
@@ -49,13 +49,13 @@ RUN apt-get -y update \
   && unzip -d /usr/bin /tmp/chromedriver_linux64.zip \
   && tar -xzf /tmp/geckodriver-v0.11.1-linux64.tar.gz --directory /usr/local/bin \
   && rm -rf /var/lib/apt/lists/* \
-  && firefox --version && google-chrome-stable --version && /usr/bin/chromedriver --version && geckodriver --version
+  && firefox --version && chromium-browser --version && /usr/bin/chromedriver --version && geckodriver --version
 
-COPY scripts/chrome_launcher.sh /tmp
-RUN mv /opt/google/chrome/google-chrome /opt/google/chrome/_google-chrome \
-  && mv /tmp/chrome_launcher.sh /opt/google/chrome/google-chrome \
-  && chmod +x /opt/google/chrome/google-chrome
-ENV DBUS_SESSION_BUS_ADDRESS=/dev/null
+# COPY scripts/chrome_launcher.sh /tmp
+# RUN mv /opt/google/chrome/google-chrome /opt/google/chrome/_google-chrome \
+#   && mv /tmp/chrome_launcher.sh /opt/google/chrome/google-chrome \
+#   && chmod +x /opt/google/chrome/google-chrome
+# ENV DBUS_SESSION_BUS_ADDRESS=/dev/null
 
 COPY . /tmp/bzt-src
 RUN pip install /tmp/bzt-src \
