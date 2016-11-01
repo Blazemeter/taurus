@@ -20,6 +20,7 @@ import json
 import logging
 import os
 import platform
+import re
 import sys
 import time
 import traceback
@@ -1043,7 +1044,7 @@ class BlazeMeterClient(object):
                     return collection
 
     def find_test(self, test_name, project_id):
-        tests = self.get_tests()
+        tests = self.get_tests(test_name)
         for test in tests:
             self.log.debug("Test: %s", test)
             if "name" in test and test['name'] == test_name:
@@ -1056,7 +1057,7 @@ class BlazeMeterClient(object):
         """
         :rtype dict
         """
-        tests = self.get_tests()
+        tests = self.get_tests(test_name)
         for test in tests:
             self.log.debug("Test: %s", test)
             if "name" in test and test['name'] == test_name:
@@ -1260,11 +1261,15 @@ class BlazeMeterClient(object):
         hdr = {"Content-Type": str(body.get_content_type())}
         _ = self._request(url, body.form_as_bytes(), headers=hdr)
 
-    def get_tests(self):
+    def get_tests(self, name=None):
         """
         :rtype: list[dict]
         """
-        tests = self._request(self.address + '/api/latest/tests?limit=99999')
+        params = {"limit": 99999}
+        if name is not None:
+            params["name"] = re.escape(name)
+
+        tests = self._request(self.address + '/api/latest/tests?' + urlencode(params))
         self.log.debug("Tests for user: %s", len(tests['result']))
         return tests['result']
 
