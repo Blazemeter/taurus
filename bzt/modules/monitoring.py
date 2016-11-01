@@ -9,7 +9,7 @@ from abc import abstractmethod
 from collections import OrderedDict, namedtuple
 import psutil
 from urwid import Pile, Text
-from bzt import TaurusConnectionError, TaurusInternalException, TaurusConfigError
+from bzt import TaurusNetworkError, TaurusInternalException, TaurusConfigError
 from bzt.engine import Service
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.passfail import FailCriterion
@@ -359,26 +359,24 @@ class ServerAgentClient(MonitoringClient):
         self.interval = int(dehumanize_time(config.get("interval", 1)))
 
     def connect(self):
-        self.log.debug("Connect to serverAgent at %s:%s...", self.address, self.port)
         try:
             self.socket.connect((self.address, self.port))
             self.socket.send("test\n")
             resp = self.socket.recv(4)
             assert resp == "Yep\n"
-            self.log.debug("Connected successfully")
+            self.log.debug("Connected to serverAgent at %s:%s successfully", self.address, self.port)
         except:
             msg = "Failed to connect to serverAgent at %s:%s" % (self.address, self.port)
-            raise TaurusConnectionError(msg)
+            raise TaurusNetworkError(msg)
 
     def disconnect(self):
         self.log.debug("Closing connection with agent at %s:%s...", self.address, self.port)
         try:
             self.socket.send("exit\n")
-            self.log.debug("Disconnected successfully")
         except BaseException as exc:
             self.log.warning("Error during disconnecting from agent at %s:%s: %s", self.address, self.port, exc)
-
-        self.socket.close()
+        finally:
+            self.socket.close()
 
     def start(self):
         self.socket.send("interval:%s\n" % self.interval if self.interval > 0 else 1)

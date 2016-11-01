@@ -170,7 +170,7 @@ class Engine(object):
         :return:
         """
         prev = time.time()
-        self.log.info("Waiting for results...")
+
         while not self._check_modules_list():
             now = time.time()
             diff = now - prev

@@ -24,7 +24,7 @@ from collections import OrderedDict
 from imp import find_module
 from subprocess import STDOUT
 
-from bzt import TaurusToolError, TaurusConfigError
+from bzt import ToolError, TaurusConfigError
 from bzt.engine import ScenarioExecutor, FileLister, PythonGenerator, Scenario
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsProvider, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, ExecutorWidget
@@ -46,7 +46,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.script = None
 
     def prepare(self):
-        self._check_installed()
+        self.__check_installed()
         self.scenario = self.get_scenario()
         self.__setup_script()
 
@@ -68,13 +68,13 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
-    def _check_installed(self):
+    def __check_installed(self):
         tool = LocustIO(self.log)
         if not tool.check_if_installed():
             if PY3:
-                raise TaurusToolError("LocustIO is not currently compatible with Python 3.x")
+                raise ToolError("LocustIO is not currently compatible with Python 3.x")
             msg = "Unable to locate locustio package. Please install it like this: pip install locustio"
-            raise TaurusToolError(msg)
+            raise ToolError(msg)
 
     def startup(self):
         self.start_time = time.time()
@@ -189,7 +189,7 @@ class LocustIO(RequiredTool):
         return True
 
     def install(self):
-        raise TaurusToolError("LocustIO auto installation isn't implemented, get it manually")
+        raise ToolError("LocustIO auto installation isn't implemented, get it manually")
 
 
 class SlavesReader(ResultsProvider):

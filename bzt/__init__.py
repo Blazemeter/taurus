@@ -45,11 +45,11 @@ class TaurusInternalException(TaurusException):
     pass
 
 
-class TaurusToolError(TaurusException):
+class ToolError(TaurusException):
     pass
 
 
-class TaurusConnectionError(TaurusException):
+class TaurusNetworkError(TaurusException):
     pass
 
 

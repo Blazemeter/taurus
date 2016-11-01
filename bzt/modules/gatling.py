@@ -20,7 +20,7 @@ import re
 import subprocess
 import time
 
-from bzt import TaurusConfigError, TaurusToolError
+from bzt import TaurusConfigError, ToolError
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
@@ -197,7 +197,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             modified_lines.append(line)
 
         if not mod_success:
-            raise TaurusToolError("Can't modify gatling launcher for jar usage, ability isn't supported")
+            raise ToolError("Can't modify gatling launcher for jar usage, ability isn't supported")
 
         if is_windows():
             first_line = 'set "GATLING_HOME=%s"\n' % origin_dir
@@ -358,16 +358,16 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             with open(self.stdout_file.name) as out:
                 file_header = out.read(1024)
             if wrong_line in file_header:  # gatling can't select test scenario
-                simulations = file_header[file_header.find(wrong_line) + len(wrong_line):].rstrip()
+                scenarios = file_header[file_header.find(wrong_line) + len(wrong_line):].rstrip()
                 msg = 'Several gatling simulations are found, you must '
-                msg += 'specify one of them to use in "simulation" option: %s' % simulations
+                msg += 'specify one of them to use in "simulation" option: %s' % scenarios
                 raise TaurusConfigError(msg)
             if 'started...' in file_header:
                 self.simulation_started = True
 
         if self.retcode is not None:
             if self.retcode != 0:
-                raise TaurusToolError("Gatling tool exited with non-zero code: %s", self.retcode)
+                raise ToolError("Gatling tool exited with non-zero code: %s", self.retcode)
 
             return True
         return False
@@ -404,6 +404,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         required_tools.append(Gatling(gatling_path, self.log, download_link, gatling_version))
 
         for tool in required_tools:
+            self.log.info("Installing %s", tool.tool_name)
             if not tool.check_if_installed():
                 tool.install()
 
@@ -681,4 +682,4 @@ class Gatling(RequiredTool):
         os.chmod(os.path.expanduser(self.tool_path), 0o755)
         self.log.info("Installed Gatling successfully")
         if not self.check_if_installed():
-            raise TaurusToolError("Unable to run %s after installation!", self.tool_name)
+            raise ToolError("Unable to run %s after installation!", self.tool_name)

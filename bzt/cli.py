@@ -28,8 +28,8 @@ import yaml
 from colorlog import ColoredFormatter
 
 import bzt
-from bzt import TaurusException, TaurusToolError
-from bzt import TaurusInternalException, TaurusConfigError, TaurusConnectionError
+from bzt import TaurusException, ToolError
+from bzt import TaurusInternalException, TaurusConfigError, TaurusNetworkError
 from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown
 from bzt.engine import Engine, Configuration, ScenarioExecutor
 from bzt.six import HTTPError, string_types, b, get_stacktrace
@@ -212,9 +212,9 @@ class CLI(object):
             self.log.log(log_level, "Wrong configuration: %s", exc)
         elif isinstance(exc, TaurusInternalException):
             self.log.log(log_level, "Internal error: %s", exc)
-        elif isinstance(exc, TaurusToolError):
+        elif isinstance(exc, ToolError):
             self.log.log(log_level, "External tool error: %s", exc)
-        elif isinstance(exc, TaurusConnectionError):
+        elif isinstance(exc, TaurusNetworkError):
             self.log.log(log_level, "Connection error: %s", exc)
         else:
             raise ValueError("Unknown Taurus exception %s: %s", type(exc), exc)

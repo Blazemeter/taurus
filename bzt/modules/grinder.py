@@ -24,7 +24,7 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister, PythonGenerator
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.six import iteritems
-from bzt import TaurusConfigError, TaurusToolError
+from bzt import TaurusConfigError, ToolError
 from bzt.utils import shell_exec, MirrorsManager, dehumanize_time, get_full_path
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, TclLibrary
 
@@ -184,7 +184,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.retcode = self.process.poll()
         if self.retcode is not None:
             if self.retcode != 0:
-                raise TaurusToolError("Gatling tool exited with non-zero code: %s", self.retcode)
+                raise ToolError("Gatling tool exited with non-zero code: %s", self.retcode)
 
             return True
         return False
@@ -232,6 +232,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         for tool in required_tools:
             if not tool.check_if_installed():
+                self.log.info("Installing %s", tool.tool_name)
                 tool.install()
 
     def get_widget(self):
@@ -366,7 +367,7 @@ class Grinder(RequiredTool):
         os.remove(grinder_dist)
         self.log.info("Installed grinder successfully")
         if not self.check_if_installed():
-            raise TaurusToolError("Unable to run %s after installation!", self.tool_name)
+            raise ToolError("Unable to run %s after installation!", self.tool_name)
 
 
 class GrinderMirrorsManager(MirrorsManager):

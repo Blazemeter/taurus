@@ -171,6 +171,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         if not self.screen.started:
             self.__redirect_streams()
             self.screen.start()
+            self.log.info("Waiting for finish...")
 
     def __update_screen(self):
         """
@@ -184,7 +185,14 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
             self.screen_size = self.screen.get_cols_rows()
 
             self.console.update_log(self.temp_stream)
-            self.__repaint()
+            try:
+                self.__repaint()
+            except KeyboardInterrupt:
+                raise
+            except BaseException as exc:
+                self.log.error("Console screen failure: %s", exc)
+                self.log.debug("%s", traceback.format_exc())
+                self.shutdown()
 
     def aggregated_second(self, data):
         """
@@ -202,7 +210,11 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
             self.console.add_data(data)
         except BaseException as exc:
             self.log.warning("Failed to add datapoint to display: %s", exc)
-            self.log.debug(traceback.format_exc())
+            self.log.debug("%s", traceback.format_exc())
+
+    def startup(self):
+        super(ConsoleStatusReporter, self).startup()
+        self.log.info("Waiting for results...")
 
     def shutdown(self):
         """
@@ -240,17 +252,18 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
             if not is_windows():
                 self.__detect_console_logger()
 
-        if self.orig_streams:
-            raise TaurusInternalException("Console: original streams already set")
-        elif self.logger_handlers and not self.orig_streams:
-            self.log.debug("Overriding logging streams")
-            for handler in self.logger_handlers:
-                self.orig_streams[handler] = handler.stream
-                handler.stream = self.temp_stream
-            self.log.debug("Redirected logging streams, %s/%s", self.logger_handlers, self.orig_streams)
-            self.__streams_redirected = True
-        else:
-            self.log.info("Did not mute console logging")
+        if not self.screen.started:
+            if self.orig_streams:
+                raise TaurusInternalException("Console: original streams already set")
+            elif self.logger_handlers and not self.orig_streams:
+                self.log.debug("Overriding logging streams")
+                for handler in self.logger_handlers:
+                    self.orig_streams[handler] = handler.stream
+                    handler.stream = self.temp_stream
+                self.log.debug("Redirected logging streams, %s/%s", self.logger_handlers, self.orig_streams)
+                self.__streams_redirected = True
+            else:
+                self.log.info("Did not mute console logging")
 
     def __dump_saved_log(self):
         """

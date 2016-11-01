@@ -21,7 +21,7 @@ import time
 from math import ceil
 from os import path
 
-from bzt import TaurusConfigError, TaurusToolError
+from bzt import TaurusConfigError, ToolError
 from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
@@ -124,7 +124,7 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider):
         if ret_code is None:
             return False
         if ret_code != 0:
-            raise TaurusToolError("ab tool exited with non-zero code: %s", ret_code)
+            raise ToolError("ab tool exited with non-zero code: %s", ret_code)
         return True
 
     def shutdown(self):
@@ -140,7 +140,7 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider):
         tool_path = self.settings.get('path', 'ab')
         ab_tool = ApacheBenchmark(tool_path, self.log)
         if not ab_tool.check_if_installed():
-            raise TaurusToolError("You must install ab tool at first")
+            raise ToolError("You must install ab tool at first")
         return tool_path
 
 
