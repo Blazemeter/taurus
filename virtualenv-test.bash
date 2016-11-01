@@ -12,7 +12,7 @@ pip install --upgrade colorlog pyyaml psutil!=4.4.0 lxml cssselect nose urwid co
 pylint -d R0903,R0904,C0301,C0302,C0111,E1103,R0201,R0902,W0511,F0401,E0611,R0801,R0913,W0613,C0412,I0011 --extension-pkg-whitelist=lxml -f parseable bzt > build/pylint.out || echo
 
 # run unit tests
-#./run-test.sh
+./run-test.sh
 
 # build a windows installer
 ./build-windows-installer.sh
