@@ -1,25 +1,24 @@
 # Changelog
 
 ## 1.7.3 <sup>next</sup>
+ - add TestNG-based runner for Selenium tests
+ - add `content-encoding` request- and scenario-level option to JMeter
+ - send `additional-classpath` jars into cloud when preparing a cloud test
+ - add the ability to specify path to Ruby binary
+ - jmx2yaml: use `HTTPSampler.path` even when there's no `HTTPSampler.domain` set
+ - make Taurus shortcut (Windows) open command line
  - fix assertion disappearance in nose_plugin
  - improve exception logging in Engine/CLI
  - fix unicode issues in jmx2yaml
- - make Taurus shortcut (Windows) open command line
  - handle the absence of backtrace in RSpec
- - jmx2yaml: use `HTTPSampler.path` even when there's no `HTTPSampler.domain` set
  - fix cumulative part of BlazeMeter reporting
  - remove MirrorsManager from Gatling
  - add final stats reporting for functional mode
- - add `content-encoding` request- and scenario-level option to JMeter
  - change routing part for BlazeMeter reports opened in browser
  - fix log verbosity for HTTPError
- - bring Engine to TaurusExecution style
- - send `additional-classpath` jars into cloud when preparing a cloud test
  - fix proxy2jmx proxy settings for Chrome 
  - fix issue when user has too many tests and test is not found in BZA
- - add TestNG-based runner for Selenium tests
  - fix gatling adding jar to classpath mistake
- - add the ability to specify path to Ruby binary
  - bring ab, aggregator, console, gatling, grinder, chrome to own exceptions style
  - query tests list from BZA more efficiently
  - fix list item deleting via cli overrides
