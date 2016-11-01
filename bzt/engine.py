@@ -34,7 +34,7 @@ import yaml
 from yaml.representer import SafeRepresenter
 
 import bzt
-from bzt import ManualShutdown, get_configs_dir, TaurusConfigException, TaurusInternalException
+from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException
 from bzt.six import build_opener, install_opener, urlopen, numeric_types, iteritems
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, etree, reraise
 from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name
@@ -326,7 +326,7 @@ class Engine(object):
         mod_conf = self.config.get('modules')
         if alias not in mod_conf:
             msg = "Module '%s' not found in list of available aliases %s" % (alias, mod_conf.keys())
-            raise TaurusConfigException(msg)
+            raise TaurusConfigError(msg)
 
         settings = ensure_is_dict(mod_conf, alias, "class")
 
@@ -336,7 +336,7 @@ class Engine(object):
 
         clsname = settings.get('class', None)
         if clsname is None:
-            raise TaurusConfigException("Class name not found in module settings: %s" % settings)
+            raise TaurusConfigError("Class name not found in module settings: %s" % settings)
 
         self.modules[alias] = load_class(clsname)
         if not issubclass(self.modules[alias], EngineModule):
@@ -437,7 +437,7 @@ class Engine(object):
         cls = self.config.get(Provisioning.PROV, None)
         if not cls:
             msg = "Please check global config availability or configure provisioning settings"
-            raise TaurusConfigException(msg)
+            raise TaurusConfigError(msg)
         self.provisioning = self.instantiate_module(cls)
         self.prepared.append(self.provisioning)
         self.provisioning.prepare()
@@ -450,7 +450,7 @@ class Engine(object):
         for index, reporter in enumerate(reporting):
             reporter = ensure_is_dict(reporting, index, "module")
             msg = "reporter 'module' field isn't recognized: %s"
-            cls = reporter.get('module', TaurusConfigException(msg, reporter))
+            cls = reporter.get('module', TaurusConfigError(msg, reporter))
             instance = self.instantiate_module(cls)
             instance.parameters = reporter
             assert isinstance(instance, Reporter)
@@ -585,7 +585,7 @@ class Configuration(BetterDict):
                 self.log.debug("Reading %s as JSON", filename)
                 return json.loads(fds.read()), self.JSON
             else:
-                raise TaurusConfigException("Cannot detect file format for %s" % filename)
+                raise TaurusConfigError("Cannot detect file format for %s" % filename)
 
     def set_dump_file(self, filename):
         """
@@ -736,9 +736,9 @@ class Provisioning(EngineModule):
         default_executor = esettings.get("default-executor", None)
 
         if ScenarioExecutor.EXEC not in self.engine.config:
-            raise TaurusConfigException("No execution is configured")
+            raise TaurusConfigError("No execution is configured")
 
-        exc = TaurusConfigException("No execution is configured")
+        exc = TaurusConfigError("No execution is configured")
         executions = self.engine.config.get(ScenarioExecutor.EXEC, exc)
 
         if not isinstance(executions, list):
@@ -748,7 +748,7 @@ class Provisioning(EngineModule):
             executor = execution.get("executor", default_executor)
             if not executor:
                 msg = "Cannot determine executor type and no default executor in %s"
-                raise TaurusConfigException(msg, execution)
+                raise TaurusConfigError(msg, execution)
             instance = self.engine.instantiate_module(executor)
             instance.provisioning = self
             instance.execution = execution
@@ -822,14 +822,14 @@ class ScenarioExecutor(EngineModule):
         scenarios = self.engine.config.get("scenarios")
 
         if name is None:  # get current scenario
-            exc = TaurusConfigException("Scenario is not found in execution: %s", self.execution)
+            exc = TaurusConfigError("Scenario is not found in execution: %s", self.execution)
             label = self.execution.get('scenario', exc)
 
             is_script = isinstance(label, string_types) and label not in scenarios and \
                         os.path.exists(self.engine.find_file(label))
             if isinstance(label, list):
                 msg = "Invalid content of scenario, list type instead of dict or string: %s"
-                raise TaurusConfigException(msg, label)
+                raise TaurusConfigError(msg, label)
             if isinstance(label, dict) or is_script:
                 self.log.debug("Extract %s into scenarios" % label)
                 if isinstance(label, string_types):
@@ -852,7 +852,7 @@ class ScenarioExecutor(EngineModule):
         else:  # get scenario by name
             label = name
 
-        exc = TaurusConfigException("Scenario '%s' not found in scenarios: %s", label, scenarios.keys())
+        exc = TaurusConfigError("Scenario '%s' not found in scenarios: %s", label, scenarios.keys())
         scenario = scenarios.get(label, exc)
         scenario_obj = Scenario(self.engine, scenario)
 
@@ -899,7 +899,7 @@ class ScenarioExecutor(EngineModule):
             msg += "Invalid throughput value[%s]: %s " % (type(iterations).__name__, iterations)
 
         if msg:
-            raise TaurusConfigException(msg)
+            raise TaurusConfigError(msg)
 
         res = namedtuple("LoadSpec",
                          ('concurrency', "throughput", 'ramp_up', 'hold', 'iterations', 'duration', 'steps'))
@@ -1052,7 +1052,7 @@ class HTTPRequest(Request):
         super(HTTPRequest, self).__init__(config)
         self.engine = engine
         msg = "Option 'url' is mandatory for request but not found in %s" % config
-        self.url = config.get("url", TaurusConfigException(msg))
+        self.url = config.get("url", TaurusConfigError(msg))
         self.label = config.get("label", self.url)
         self.method = config.get("method", "GET")
         self.headers = config.get("headers", {})

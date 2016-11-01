@@ -37,7 +37,7 @@ class TaurusException(BaseException):
     pass
 
 
-class TaurusConfigException(TaurusException):
+class TaurusConfigError(TaurusException):
     pass
 
 
@@ -45,7 +45,11 @@ class TaurusInternalException(TaurusException):
     pass
 
 
-class TaurusToolException(TaurusException):
+class TaurusToolError(TaurusException):
+    pass
+
+
+class TaurusConnectionError(TaurusException):
     pass
 
 

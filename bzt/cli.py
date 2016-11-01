@@ -28,7 +28,7 @@ import yaml
 from colorlog import ColoredFormatter
 
 import bzt
-from bzt import TaurusInternalException, TaurusConfigException
+from bzt import TaurusInternalException, TaurusConfigError
 from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown
 from bzt.engine import Engine, Configuration, ScenarioExecutor
 from bzt.six import HTTPError, string_types, b, get_stacktrace
@@ -134,7 +134,7 @@ class CLI(object):
             cli_aliases = self.engine.config.get('cli-aliases')
             al_config = cli_aliases.get(alias, None)
             if al_config is None:
-                raise TaurusConfigException("'%s' not found in aliases: %s", alias, cli_aliases.keys())
+                raise TaurusConfigError("'%s' not found in aliases: %s", alias, cli_aliases.keys())
             self.engine.config.merge(al_config)
 
         if self.options.option:
@@ -200,7 +200,7 @@ class CLI(object):
         elif isinstance(exc, HTTPError):
             msg = "Response from %s: [%s] %s" % (exc.geturl(), exc.code, exc.reason)
             self.log.log(http_level, msg)
-        elif isinstance(exc, TaurusConfigException):
+        elif isinstance(exc, TaurusConfigError):
             self.log.log(default_level, "Wrong configuration: %s", exc)
         elif isinstance(exc, TaurusInternalException):
             self.log.log(default_level, "Internal error: %s", exc)

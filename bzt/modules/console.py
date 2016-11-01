@@ -26,8 +26,8 @@ from datetime import datetime
 from itertools import groupby, islice, chain
 from logging import StreamHandler
 
-from urwid import Text, Pile, WEIGHT, Filler, Columns, Widget, CanvasCombine, LineBox, ListBox, RIGHT, CENTER, BOTTOM, \
-    CLIP, GIVEN, ProgressBar
+from urwid import LineBox, ListBox, RIGHT, CENTER, BOTTOM, CLIP, GIVEN, ProgressBar
+from urwid import Text, Pile, WEIGHT, Filler, Columns, Widget, CanvasCombine
 from urwid.decoration import Padding
 from urwid.font import Thin6x6Font
 from urwid.graphics import BigText
@@ -199,8 +199,9 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
 
         try:
             self.console.add_data(data)
-        except BaseException:
-            self.log.warning("Failed to add datapoint to display: %s", traceback.format_exc())
+        except BaseException as exc:
+            self.log.warning("Failed to add datapoint to display: %s", exc)
+            self.log.debug(traceback.format_exc())
 
     def shutdown(self):
         """
