@@ -8,7 +8,7 @@ import time
 import unittest
 import yaml
 
-from bzt import ToolError
+from bzt import ToolError, TaurusConfigError
 from bzt.engine import ScenarioExecutor
 from bzt.modules.provisioning import Local
 from bzt.modules.selenium import NoseTester, JavaTestRunner, JUnitTester, TestNGTester
