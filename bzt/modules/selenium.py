@@ -1276,9 +1276,7 @@ from selenium.common.exceptions import NoAlertPresentException
             setup_method_def.append(log_set)
             setup_method_def.append(self.gen_statement("cls.driver = webdriver.Firefox(profile)"))
         elif browser == 'Chrome':
-            setup_method_def.append(self.gen_statement("chrome_options = webdriver.ChromeOptions()"))
-            setup_method_def.append(self.gen_statement("chrome_options.add_argument('--no-sandbox')"))
-            statement = "cls.driver = webdriver.Chrome(service_log_path=%s, chrome_options=chrome_options)"
+            statement = "cls.driver = webdriver.Chrome(service_log_path=%s)"
             setup_method_def.append(self.gen_statement(statement % repr(self.wdlog)))
         else:
             setup_method_def.append(self.gen_statement("cls.driver = webdriver.%s()" % browser))
