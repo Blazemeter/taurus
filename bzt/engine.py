@@ -735,12 +735,11 @@ class Provisioning(EngineModule):
         esettings = self.engine.config.get(SETTINGS)
         default_executor = esettings.get("default-executor", None)
 
+        exc = TaurusConfigError("No 'execution' is configured. Did you forget to pass config files?")
         if ScenarioExecutor.EXEC not in self.engine.config:
-            raise TaurusConfigError("No execution is configured")
+            raise exc
 
-        exc = TaurusConfigError("No execution is configured")
         executions = self.engine.config.get(ScenarioExecutor.EXEC, exc)
-
         if not isinstance(executions, list):
             executions = [executions]
 
