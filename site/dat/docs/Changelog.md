@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.7.3 <sup>next</sup>
+## 1.7.3 <sup>1 nov 2016</sup>
  - add TestNG-based runner for Selenium tests
  - add `content-encoding` request- and scenario-level option to JMeter
  - send `additional-classpath` jars into cloud when preparing a cloud test
