@@ -20,6 +20,7 @@
  - add TestNG-based runner for Selenium tests
  - fix gatling adding jar to classpath mistake
  - add the ability to specify path to Ruby binary
+ - bring ab, aggregator, console, gatling, grinder, chrome to own exceptions style
  - query tests list from BZA more efficiently
 
 ## 1.7.2 <sup>13 oct 2016</sup>
