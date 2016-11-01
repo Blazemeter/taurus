@@ -118,7 +118,7 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.settings['send-custom-metrics'] = True
         obj.settings['send-custom-tables'] = True
         obj.engine = EngineEmul()
-        shutil.copy(__file__, obj.engine.artifacts_dir + os.path.basename(__file__))
+        shutil.copy(__file__, os.path.join(obj.engine.artifacts_dir, os.path.basename(__file__)))
         obj.client = client
         obj.prepare()
         obj.startup()

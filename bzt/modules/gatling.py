@@ -20,10 +20,11 @@ import re
 import subprocess
 import time
 
+from bzt import TaurusConfigError, ToolError
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
-from bzt.utils import BetterDict, TclLibrary, MirrorsManager, EXE_SUFFIX, dehumanize_time, get_full_path
+from bzt.utils import BetterDict, TclLibrary, EXE_SUFFIX, dehumanize_time, get_full_path
 from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, shutdown_process, ensure_is_dict, is_windows
 
 
@@ -121,7 +122,7 @@ class GatlingScriptBuilder(object):
             assertion = ensure_is_dict(assertions, idx, "contains")
 
             error_str = 'You must specify some assertion argument in config file "contains" list'
-            a_contains = assertion.get('contains', ValueError(error_str))
+            a_contains = assertion.get('contains', TaurusConfigError(error_str))
 
             check_template = self.__get_check_template(assertion)
 
@@ -196,7 +197,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             modified_lines.append(line)
 
         if not mod_success:
-            raise ValueError("Can't modify gatling launcher for jar usage, ability isn't supported")
+            raise ToolError("Can't modify gatling launcher for jar usage, ability isn't supported")
 
         if is_windows():
             first_line = 'set "GATLING_HOME=%s"\n' % origin_dir
@@ -219,6 +220,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         jar_files = []
         files = self.execution.get('files', [])
         for _file in files:
+            _file = get_full_path(_file)
             if os.path.isfile(_file) and _file.lower().endswith('.jar'):
                 jar_files.append(_file)
             elif os.path.isdir(_file):
@@ -240,7 +242,9 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         elif "requests" in scenario:
             self.get_scenario()['simulation'], self.script = self.__generate_script()
         else:
-            raise ValueError("There must be a script file to run Gatling")
+            msg = "There must be a script file or requests for its generation "
+            msg += "to run Gatling tool (%s)" % self.execution.get('scenario')
+            raise TaurusConfigError(msg)
 
         self.dir_prefix = 'gatling-%s' % id(self)
         self.reader = DataLogReader(self.engine.artifacts_dir, self.log, self.dir_prefix)
@@ -266,6 +270,21 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.stdout_file = open(out, "w")
         self.stderr_file = open(err, "w")
 
+        if os.path.isfile(self.script):
+            if self.script.endswith('.jar'):
+                self.jar_list += os.pathsep + self.script
+                simulation_folder = None
+            else:
+                simulation_folder = get_full_path(self.script, step_up=1)
+        else:
+            simulation_folder = self.script
+
+        self.process = self.execute(self.__get_cmdline(simulation_folder),
+                                    stdout=self.stdout_file,
+                                    stderr=self.stderr_file,
+                                    env=self.__get_env())
+
+    def __get_env(self):
         env = BetterDict()
         env.merge(dict(os.environ))
 
@@ -280,24 +299,11 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             java_classpath += self.jar_list
             compilation_classpath += self.jar_list
             env.merge({'JAVA_CLASSPATH': java_classpath, 'COMPILATION_CLASSPATH': compilation_classpath})
+        return env
 
-        self.process = self.execute(self.__get_cmdline(),
-                                    stdout=self.stdout_file,
-                                    stderr=self.stderr_file,
-                                    env=env)
-
-    def __get_cmdline(self):
+    def __get_cmdline(self, simulation_folder):
         simulation = self.get_scenario().get("simulation")
         data_dir = os.path.realpath(self.engine.artifacts_dir)
-
-        if os.path.isfile(self.script):
-            if self.script.endswith('.jar'):
-                self.jar_list += os.pathsep + self.script
-                simulation_folder = None
-            else:
-                simulation_folder = os.path.dirname(get_full_path(self.script))
-        else:
-            simulation_folder = self.script
 
         cmdline = [self.launcher]
         cmdline += ["-df", data_dir, "-rf", data_dir]
@@ -341,27 +347,27 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         any data and throws exception otherwise.
 
         :return: bool
-        :raise RuntimeWarning:
+        :raise TaurusConfigError:
+        :raise TaurusToolError:
         """
         self.retcode = self.process.poll()
 
+        # detect interactive mode and raise exception if it found
         if not self.simulation_started:
             wrong_line = "Choose a simulation number:"
             with open(self.stdout_file.name) as out:
                 file_header = out.read(1024)
             if wrong_line in file_header:  # gatling can't select test scenario
                 scenarios = file_header[file_header.find(wrong_line) + len(wrong_line):].rstrip()
-                warn_line = 'Several gatling simulations are found, you must ' + \
-                            'specify exact simulation to use in "simulation" option %s'
-                self.log.warning(warn_line, scenarios)
-                raise ValueError('You must select proper gatling simulation')
+                msg = 'Several gatling simulations are found, you must '
+                msg += 'specify one of them to use in "simulation" option: %s' % scenarios
+                raise TaurusConfigError(msg)
             if 'started...' in file_header:
                 self.simulation_started = True
 
         if self.retcode is not None:
             if self.retcode != 0:
-                self.log.info("Gatling tool exit code: %s", self.retcode)
-                raise RuntimeError("Gatling tool exited with non-zero code")
+                raise ToolError("Gatling tool exited with non-zero code: %s", self.retcode)
 
             return True
         return False
@@ -399,7 +405,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         for tool in required_tools:
             if not tool.check_if_installed():
-                self.log.info("Installing %s", tool.tool_name)
                 tool.install()
 
     def get_widget(self):
@@ -660,7 +665,7 @@ class Gatling(RequiredTool):
         try:
             gatling_proc = shell_exec([self.tool_path, '--help'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             gatling_output = gatling_proc.communicate()
-            self.log.debug("Gatling check: %s", gatling_output)
+            self.log.debug("Gatling check is successful: %s", gatling_output)
             return True
         except OSError:
             self.log.info("Gatling check failed.")
@@ -676,4 +681,4 @@ class Gatling(RequiredTool):
         os.chmod(os.path.expanduser(self.tool_path), 0o755)
         self.log.info("Installed Gatling successfully")
         if not self.check_if_installed():
-            raise RuntimeError("Unable to run %s after installation!" % self.tool_name)
+            raise ToolError("Unable to run %s after installation!", self.tool_name)

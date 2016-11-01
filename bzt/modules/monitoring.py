@@ -9,6 +9,7 @@ from abc import abstractmethod
 from collections import OrderedDict, namedtuple
 import psutil
 from urwid import Pile, Text
+from bzt import TaurusNetworkError, TaurusInternalException, TaurusConfigError
 from bzt.engine import Service
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.passfail import FailCriterion
@@ -46,7 +47,7 @@ class Monitoring(Service, WidgetProvider):
                 continue
             for config in self.parameters.get(client_name):
                 if isinstance(config, str):
-                    self.log.warning('Monitoring: obsolete config file format detected.')
+                    self.log.warning('Monitoring: obsolete configuration detected: %s', config)
                 if 'label' in config:
                     label = config['label']
                 else:
@@ -141,7 +142,8 @@ class LocalClient(MonitoringClient):
         res = []
         metric_values = self.engine_resource_stats()
 
-        for metric_name in self.config.get('metrics', ValueError('Local monitoring client: Metric is required')):
+        exc = TaurusConfigError('Metric is required in Local monitoring client')
+        for metric_name in self.config.get('metrics', exc):
             item = {
                 'source': self.label,
                 'ts': _time}
@@ -162,7 +164,7 @@ class LocalClient(MonitoringClient):
             elif metric_name == 'disk-write':
                 item['disk-write'] = metric_values.dwu
             else:
-                self.log.warning('Wrong metric: %s' % metric_name)
+                self.log.warning('Wrong metric: %s', metric_name)
 
             res.append(item)
 
@@ -177,7 +179,7 @@ class LocalMonitor(object):
 
     def __init__(self, parent_logger, engine):
         if self.__instance is not None:
-            raise ValueError("LocalMonitor can't be instantiated twice, use get_instance()")
+            raise TaurusInternalException("LocalMonitor can't be instantiated twice, use get_instance()")
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.engine = engine
         self.__disk_counters = None
@@ -255,7 +257,8 @@ class GraphiteClient(MonitoringClient):
         super(GraphiteClient, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.config = config
-        self.address = self.config.get("address", ValueError("Address parameter required"))
+        exc = TaurusConfigError('Graphite client requires address parameter')
+        self.address = self.config.get("address", exc)
         self.interval = int(dehumanize_time(self.config.get('interval', '5s')))
         self.url = self._get_url()
         if label:
@@ -267,7 +270,8 @@ class GraphiteClient(MonitoringClient):
         self.timeout = int(dehumanize_time(self.config.get('timeout', '5s')))
 
     def _get_url(self):
-        params = [('target', field) for field in self.config.get('metrics', ValueError("Metrics list required"))]
+        exc = TaurusConfigError('Graphite client requires metrics list')
+        params = [('target', field) for field in self.config.get('metrics', exc)]
         from_t = int(dehumanize_time(self.config.get('from', self.interval * 1000)))
         until_t = int(dehumanize_time(self.config.get('until', 0)))
         params += [
@@ -306,8 +310,8 @@ class GraphiteClient(MonitoringClient):
         try:
             json_list = self._get_response()
         except BaseException:
-            self.log.debug("Metrics receiving: %s" % traceback.format_exc())
-            self.log.warning("Fail to receive metrics from %s" % self.address)
+            self.log.debug("Metrics receiving: %s", traceback.format_exc())
+            self.log.warning("Fail to receive metrics from %s", self.address)
             return []
 
         res = []
@@ -336,7 +340,8 @@ class ServerAgentClient(MonitoringClient):
         """
         super(ServerAgentClient, self).__init__()
         self.host_label = label
-        self.address = config.get("address", ValueError("Address parameter required"))
+        exc = TaurusConfigError('ServerAgent client requires address parameter')
+        self.address = config.get("address", exc)
         if ':' in self.address:
             self.port = int(self.address[self.address.index(":") + 1:])
             self.address = self.address[:self.address.index(":")]
@@ -345,7 +350,8 @@ class ServerAgentClient(MonitoringClient):
 
         self._partial_buffer = ""
         self.log = parent_logger.getChild(self.__class__.__name__)
-        metrics = config.get('metrics', ValueError("Metrics list required"))
+        exc = TaurusConfigError('ServerAgent client requires metrics list')
+        metrics = config.get('metrics', exc)
         self._result_fields = [x for x in metrics]  # TODO: handle more complex metric specifications and labeling
         self._metrics_command = "\t".join([x for x in metrics])
         self.socket = socket.socket()
@@ -360,15 +366,15 @@ class ServerAgentClient(MonitoringClient):
             assert resp == "Yep\n"
             self.log.debug("Connected to serverAgent at %s:%s successfully", self.address, self.port)
         except:
-            self.log.error("Failed to connect to serverAgent at %s:%s" % (self.address, self.port))
-            raise
+            msg = "Failed to connect to serverAgent at %s:%s" % (self.address, self.port)
+            raise TaurusNetworkError(msg)
 
     def disconnect(self):
-        self.log.debug("Closing connection with %s:%s", self.address, self.port)
+        self.log.debug("Closing connection with agent at %s:%s...", self.address, self.port)
         try:
             self.socket.send("exit\n")
         except BaseException as exc:
-            self.log.warning("Error during disconnecting from agent: %s", exc)
+            self.log.warning("Error during disconnecting from agent at %s:%s: %s", self.address, self.port, exc)
         finally:
             self.socket.close()
 
@@ -386,7 +392,7 @@ class ServerAgentClient(MonitoringClient):
         readable, writable, errored = self.select([self.socket], [self.socket], [self.socket], 0)
         self.log.debug("Stream states: %s / %s / %s", readable, writable, errored)
         for _ in errored:
-            self.log.warning("Failed to get monitoring data from %s:%s", self.address, self.port)
+            self.log.warning("Failed to get monitoring data from agent at %s:%s", self.address, self.port)
 
         source = self.host_label if self.host_label else '%s:%s' % (self.address, self.port)
 
@@ -463,7 +469,7 @@ class MonitoringCriteria(MonitoringListener, FailCriterion):
 
     def _get_field_functor(self, subject, percentage):
         if '/' not in subject:
-            raise ValueError("Wrong syntax for monitoring criteria subject")
+            raise TaurusConfigError("Wrong syntax for monitoring criteria subject: %s", subject)
         host = subject[:subject.index('/')]
         metric = subject[subject.index('/') + 1:]
         return lambda x: (x[metric] if x['source'] == host and metric in x else None)

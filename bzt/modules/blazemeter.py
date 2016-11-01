@@ -20,6 +20,7 @@ import json
 import logging
 import os
 import platform
+import re
 import sys
 import time
 import traceback
@@ -246,14 +247,6 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
 
             self._postproc_phase3()
 
-    def __append_note(self, obj, note):
-        data = self.client.get(obj)
-        if 'note' in data:
-            note = data['note'] + '\n' + note
-        note = note.strip()
-        if note:
-            self.client.update(obj, {'note': note})
-
     def _postproc_phase3(self):
         try:
             self.client.end_online()
@@ -278,13 +271,14 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         if len(self.kpi_buffer):
             if self.client.last_ts < (time.time() - self.send_interval):
                 self.__send_data(self.kpi_buffer)
+                self.kpi_buffer = []
                 if self.send_monitoring:
                     self.__send_monitoring()
                 if self.send_custom_metrics:
                     self.__send_custom_metrics()
-                self.kpi_buffer = []
         return super(BlazeMeterUploader, self).check()
 
+    @send_with_retry
     def __send_data(self, data, do_check=True, is_final=False):
         """
         :param data: list[bzt.modules.aggregator.DataPoint]
@@ -293,18 +287,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         if not self.client.session_id:
             return
 
-        try:
-            self.client.send_kpi_data(data, do_check, is_final)
-        except IOError:
-            self.log.debug("Error sending data: %s", traceback.format_exc())
-            self.log.warning("Failed to send data, will retry in %s sec...", self.client.timeout)
-            try:
-                time.sleep(self.client.timeout)
-                self.client.send_kpi_data(data, do_check, is_final)
-                self.log.info("Succeeded with retry")
-            except IOError:
-                self.log.error("Fatal error sending data: %s", traceback.format_exc())
-                self.log.warning("Will skip failed data and continue running")
+        self.client.send_kpi_data(data, do_check, is_final)
 
     def aggregated_second(self, data):
         """
@@ -1043,7 +1026,7 @@ class BlazeMeterClient(object):
                     return collection
 
     def find_test(self, test_name, project_id):
-        tests = self.get_tests()
+        tests = self.get_tests(test_name)
         for test in tests:
             self.log.debug("Test: %s", test)
             if "name" in test and test['name'] == test_name:
@@ -1056,7 +1039,7 @@ class BlazeMeterClient(object):
         """
         :rtype dict
         """
-        tests = self.get_tests()
+        tests = self.get_tests(test_name)
         for test in tests:
             self.log.debug("Test: %s", test)
             if "name" in test and test['name'] == test_name:
@@ -1260,11 +1243,15 @@ class BlazeMeterClient(object):
         hdr = {"Content-Type": str(body.get_content_type())}
         _ = self._request(url, body.form_as_bytes(), headers=hdr)
 
-    def get_tests(self):
+    def get_tests(self, name=None):
         """
         :rtype: list[dict]
         """
-        tests = self._request(self.address + '/api/latest/tests?limit=99999')
+        params = {"limit": 99999}
+        if name is not None:
+            params["name"] = name
+
+        tests = self._request(self.address + '/api/latest/tests?' + urlencode(params))
         self.log.debug("Tests for user: %s", len(tests['result']))
         return tests['result']
 

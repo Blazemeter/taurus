@@ -6,7 +6,7 @@ from bzt.six import string_types
 from bzt.utils import BetterDict, EXE_SUFFIX, is_windows
 from tests import BZTestCase, __dir__, local_paths_config
 from tests.mocks import EngineEmul
-from bzt import TaurusConfigException
+from bzt import TaurusConfigError
 
 
 class TestEngine(BZTestCase):
@@ -57,7 +57,7 @@ class TestEngine(BZTestCase):
         self.obj.config["provisioning"] = "unknown"
         self.obj.config["modules"]["unknown"] = BetterDict()
 
-        self.assertRaises(TaurusConfigException, self.obj.prepare)
+        self.assertRaises(TaurusConfigError, self.obj.prepare)
 
 
 
@@ -147,7 +147,7 @@ class TestScenarioExecutor(BZTestCase):
                 "scenario": "non-existent"
             }]})
         self.executor.execution = self.engine.config.get('execution')[0]
-        self.assertRaises(TaurusConfigException, self.executor.get_scenario)
+        self.assertRaises(TaurusConfigError, self.executor.get_scenario)
 
     def test_scenario_no_requests(self):
         self.engine.config.merge({
@@ -155,7 +155,7 @@ class TestScenarioExecutor(BZTestCase):
                 "scenario": ["url1", "url2"]
             }]})
         self.executor.execution = self.engine.config.get('execution')[0]
-        self.assertRaises(TaurusConfigException, self.executor.get_scenario)
+        self.assertRaises(TaurusConfigError, self.executor.get_scenario)
 
     def test_creates_hostaliases_file(self):
         self.engine.config.merge({

@@ -9,6 +9,7 @@ from bzt.utils import EXE_SUFFIX, get_full_path
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul
 from bzt.modules.provisioning import Local
+from bzt import ToolError, TaurusConfigError
 
 
 class TestGatlingExecutor(BZTestCase):
@@ -38,7 +39,7 @@ class TestGatlingExecutor(BZTestCase):
                 'tests/grinder/fake_grinder.jar',
                 'tests/selenium/jar'],
             'scenario': 'tests/gatling/bs'})
-        self.assertRaises(ValueError, obj.prepare)
+        self.assertRaises(ToolError, obj.prepare)
 
     def test_external_jar_right_launcher(self):
         obj = self.getGatling()
@@ -227,7 +228,7 @@ class TestGatlingExecutor(BZTestCase):
                               }]}]
             }
         })
-        self.assertRaises(ValueError, obj.prepare)
+        self.assertRaises(TaurusConfigError, obj.prepare)
 
     def assertEqualFiles(self, name1, name2):
         def without_id(lines):
@@ -296,15 +297,12 @@ class TestGatlingExecutor(BZTestCase):
         obj.prepare()
         obj.settings.merge({"path": __dir__() + "/../gatling/gatling" + EXE_SUFFIX})
         counter1 = 0
-        try:
-            obj.startup()
-            while not obj.check():
-                time.sleep(obj.engine.check_interval)
-                counter1 += 1
-            obj.shutdown()
-            obj.post_process()
-        except RuntimeWarning:
-            pass
+        obj.startup()
+        while not obj.check():
+            time.sleep(obj.engine.check_interval)
+            counter1 += 1
+        obj.shutdown()
+        obj.post_process()
 
         obj = self.getGatling()
         obj.engine.existing_artifact(__dir__() + "/../gatling/SimpleSimulation.scala")
@@ -325,7 +323,7 @@ class TestGatlingExecutor(BZTestCase):
                     self.fail('It seems gatling made interactive request')
             obj.shutdown()
             obj.post_process()
-        except ValueError:
+        except TaurusConfigError:
             return
         self.fail('ValueError not found')
 

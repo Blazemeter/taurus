@@ -731,7 +731,7 @@ class NoseTester(AbstractTestRunner):
         we need installed nose plugin
         """
         if sys.version >= '3':
-            self.log.warn("You are using python3, make sure that your scripts are able to run in python3!")
+            self.log.warning("You are using python3, make sure that your scripts are able to run in python3!")
 
         self.required_tools.append(TclLibrary(self.log))
         self.required_tools.append(TaurusNosePlugin(self.plugin_path, ""))
@@ -781,7 +781,7 @@ class RSpecTester(AbstractTestRunner):
 
     def run_checklist(self):
         self.required_tools.append(TclLibrary(self.log))
-        self.required_tools.append(Ruby("", "", self.log))
+        self.required_tools.append(Ruby(self.settings.get("interpreter", "ruby"), "", self.log))
         self.required_tools.append(RSpec("", "", self.log))
         self.required_tools.append(TaurusRSpecPlugin(self.plugin_path, ""))
 
@@ -791,9 +791,10 @@ class RSpecTester(AbstractTestRunner):
         """
         run rspec plugin
         """
+        interpreter = self.settings.get("interpreter", "ruby")
 
         rspec_cmdline = [
-            "ruby",
+            interpreter,
             self.plugin_path,
             "--report-file",
             self.settings.get("report-file"),
@@ -1027,7 +1028,7 @@ class Ruby(RequiredTool):
 
     def check_if_installed(self):
         try:
-            output = subprocess.check_output(["ruby", '--version'], stderr=subprocess.STDOUT)
+            output = subprocess.check_output([self.tool_path, '--version'], stderr=subprocess.STDOUT)
             self.log.debug("%s output: %s", self.tool_name, output)
             return True
         except BaseException:
