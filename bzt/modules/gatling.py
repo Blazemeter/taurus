@@ -220,6 +220,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         jar_files = []
         files = self.execution.get('files', [])
         for _file in files:
+            _file = get_full_path(_file)
             if os.path.isfile(_file) and _file.lower().endswith('.jar'):
                 jar_files.append(_file)
             elif os.path.isdir(_file):
@@ -269,6 +270,21 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.stdout_file = open(out, "w")
         self.stderr_file = open(err, "w")
 
+        if os.path.isfile(self.script):
+            if self.script.endswith('.jar'):
+                self.jar_list += os.pathsep + self.script
+                simulation_folder = None
+            else:
+                simulation_folder = get_full_path(self.script, step_up=1)
+        else:
+            simulation_folder = self.script
+
+        self.process = self.execute(self.__get_cmdline(simulation_folder),
+                                    stdout=self.stdout_file,
+                                    stderr=self.stderr_file,
+                                    env=self.__get_env())
+
+    def __get_env(self):
         env = BetterDict()
         env.merge(dict(os.environ))
 
@@ -283,24 +299,11 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             java_classpath += self.jar_list
             compilation_classpath += self.jar_list
             env.merge({'JAVA_CLASSPATH': java_classpath, 'COMPILATION_CLASSPATH': compilation_classpath})
+        return env
 
-        self.process = self.execute(self.__get_cmdline(),
-                                    stdout=self.stdout_file,
-                                    stderr=self.stderr_file,
-                                    env=env)
-
-    def __get_cmdline(self):
+    def __get_cmdline(self, simulation_folder):
         simulation = self.get_scenario().get("simulation")
         data_dir = os.path.realpath(self.engine.artifacts_dir)
-
-        if os.path.isfile(self.script):
-            if self.script.endswith('.jar'):
-                self.jar_list += os.pathsep + self.script
-                simulation_folder = None
-            else:
-                simulation_folder = os.path.dirname(get_full_path(self.script))
-        else:
-            simulation_folder = self.script
 
         cmdline = [self.launcher]
         cmdline += ["-df", data_dir, "-rf", data_dir]

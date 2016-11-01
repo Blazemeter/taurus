@@ -18,6 +18,8 @@
  - fix proxy2jmx proxy settings for Chrome 
  - fix issue when user has too many tests and test is not found in BZA
  - add TestNG-based runner for Selenium tests
+ - fix gatling adding jar to classpath mistake
+ - add the ability to specify path to Ruby binary
 
 ## 1.7.2 <sup>13 oct 2016</sup>
  - fix keep-alive processing in Gatling

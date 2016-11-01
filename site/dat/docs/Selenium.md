@@ -149,6 +149,15 @@ execution:
 
 Just like other runners, RSpec runner supports `iterations` and `hold-for` options, in case you want to loop your test execution.
 
+Also, you can specify the path to Ruby interpreter, if you don't have it in $PATH:
+```yaml
+modules:
+  selenium:
+    selenium-tools:
+      rspec:
+        interpreter: /home/user/ruby-2.4/bin/ruby
+```
+
 The complete example of RSpec-based test suite and Taurus config can be found in
 [examples/selenium/rspec-capybara](https://github.com/Blazemeter/taurus/tree/master/examples/selenium/rspec-capybara)
 folder of Taurus's repo.
