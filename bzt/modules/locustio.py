@@ -46,7 +46,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.script = None
 
     def prepare(self):
-        self.__check_installed()
+        self._check_installed()
         self.scenario = self.get_scenario()
         self.__setup_script()
 
@@ -68,13 +68,10 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
-    def __check_installed(self):
+    def _check_installed(self):
         tool = LocustIO(self.log)
         if not tool.check_if_installed():
-            if PY3:
-                raise ToolError("LocustIO is not currently compatible with Python 3.x")
-            msg = "Unable to locate locustio package. Please install it like this: pip install locustio"
-            raise ToolError(msg)
+            tool.install()
 
     def startup(self):
         self.start_time = time.time()
@@ -189,7 +186,10 @@ class LocustIO(RequiredTool):
         return True
 
     def install(self):
-        raise ToolError("LocustIO auto installation isn't implemented, get it manually")
+        if PY3:
+            raise ToolError("LocustIO is not currently compatible with Python 3.x")
+        msg = "Unable to locate locustio package. Please install it like this: pip install locustio"
+        raise ToolError(msg)
 
 
 class SlavesReader(ResultsProvider):
