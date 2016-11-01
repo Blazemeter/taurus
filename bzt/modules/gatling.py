@@ -122,7 +122,7 @@ class GatlingScriptBuilder(object):
             assertion = ensure_is_dict(assertions, idx, "contains")
 
             error_str = 'You must specify some assertion argument in config file "contains" list'
-            a_contains = assertion.get('contains', ValueError(error_str))
+            a_contains = assertion.get('contains', TaurusConfigError(error_str))
 
             check_template = self.__get_check_template(assertion)
 

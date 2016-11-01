@@ -35,6 +35,7 @@ from urwid.listbox import SimpleListWalker
 from urwid.widget import Divider
 
 import bzt
+from bzt import TaurusInternalException
 from bzt.engine import Reporter
 from bzt.modules.aggregator import DataPoint, KPISet, AggregatorListener, ResultsProvider
 from bzt.modules.provisioning import Local
@@ -240,7 +241,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
                 self.__detect_console_logger()
 
         if self.orig_streams:
-            raise RuntimeError("Orig streams already set")
+            raise TaurusInternalException("Console: original streams already set")
         elif self.logger_handlers and not self.orig_streams:
             self.log.debug("Overriding logging streams")
             for handler in self.logger_handlers:
