@@ -304,10 +304,21 @@ class ConfigOverrider(object):
         self.log.debug("Applying: [%s]=%s", parts[-1], value)
         if isinstance(parts[-1], string_types) and parts[-1][0] == '^':
             item = parts[-1][1:]
-            if item in pointer:
-                del pointer[item]
+
+            if isinstance(pointer, list):
+                item = int(item)
+                if -len(pointer) <= item < len(pointer):
+                    del pointer[item]
+                else:
+                    self.log.debug("No value to delete: %s", item)
+            elif isinstance(pointer, dict):
+                if item in pointer:
+                    del pointer[item]
+                else:
+                    self.log.debug("No value to delete: %s", item)
             else:
-                self.log.debug("No value to delete: %s", item)
+                raise ValueError("Cannot handle override %s in non-iterable type %s" % (item, pointer))
+
         else:
             parsed_value = self.__parse_override_value(value)
             self.log.debug("Parsed override value: %r -> %r (%s)", value, parsed_value, type(parsed_value))
