@@ -22,6 +22,7 @@
  - bring ab, aggregator, console, gatling, grinder, chrome to own exceptions style
  - query tests list from BZA more efficiently
  - fix list item deleting via cli overrides
+ - use vanilla Chrome in Docker image
 
 ## 1.7.2 <sup>13 oct 2016</sup>
  - fix keep-alive processing in Gatling
