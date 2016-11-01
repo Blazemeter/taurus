@@ -51,8 +51,10 @@ RUN apt-get -y update \
   && rm -rf /var/lib/apt/lists/* \
   && firefox --version && google-chrome-stable --version && /usr/bin/chromedriver --version && geckodriver --version
 
-COPY scripts/chrome_launcher.sh /opt/google/chrome/google-chrome
-RUN chmod +x /opt/google/chrome/google-chrome
+COPY scripts/chrome_launcher.sh /tmp
+RUN mv /opt/google/chrome/google-chrome /opt/google/chrome/_google-chrome \
+  && mv /tmp/chrome_launcher.sh /opt/google/chrome/google-chrome \
+  && chmod +x /opt/google/chrome/google-chrome
 ENV DBUS_SESSION_BUS_ADDRESS=/dev/null
 
 COPY . /tmp/bzt-src

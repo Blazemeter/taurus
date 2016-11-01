@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export CHROME_WRAPPER=$(readlink -f "$0")
-HERE=$(dirname "$CHROME_WRAPPER")
+WRAPPER=$(readlink -f "$0")
+HERE=$(dirname "$WRAPPER")
 
-exec -a "$0" "$HERE/chrome" --no-sandbox "$@"
+"$HERE/_google-chrome" --no-sandbox "$@"
