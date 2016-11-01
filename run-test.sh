@@ -2,7 +2,7 @@
 
 mkdir -p build/test
 
-echo Remove this || python -m nose tests \
+python -m nose tests \
     --with-xunit --xunit-file=build/xunit.xml \
     --with-coverage --cover-package=bzt \
     --cover-xml --cover-xml-file=build/coverage/coverage.xml \

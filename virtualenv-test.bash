@@ -33,6 +33,6 @@ cd ..
 echo '{"install-id": "UnitTest"}' > build/etc/bzt.d/99-zinstallID.json
 
 # run functional tests
-# TODO: restore it rm -r ~/.bzt
+rm -r ~/.bzt
 ln -s /etc/bzt.d/50-pbench-enhanced.json build/etc/bzt.d/
-bzt examples/all-executors.yml -o settings.artifacts-dir="build/test/%Y-%m-%d_%H-%M-%S.%f" -o modules.console.disable=true -o execution.^5=null -o execution.^2=null
+bzt examples/all-executors.yml -o settings.artifacts-dir="build/test/%Y-%m-%d_%H-%M-%S.%f" -o modules.console.disable=true -o execution.^6=null -o execution.^5=null -o execution.^2=null
