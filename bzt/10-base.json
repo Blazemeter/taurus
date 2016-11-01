@@ -96,6 +96,9 @@
         "nose": {
           "working-dir": "classes"
         },
+        "rspec": {
+          "interpreter": "ruby"
+        },
         "mocha": {
           "tools-dir": "~/.bzt/selenium-taurus/mocha"
         }
