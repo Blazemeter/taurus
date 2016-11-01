@@ -232,7 +232,6 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         for tool in required_tools:
             if not tool.check_if_installed():
-                self.log.info("Installing %s", tool.tool_name)
                 tool.install()
 
     def get_widget(self):

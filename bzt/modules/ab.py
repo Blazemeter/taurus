@@ -140,7 +140,7 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider):
         tool_path = self.settings.get('path', 'ab')
         ab_tool = ApacheBenchmark(tool_path, self.log)
         if not ab_tool.check_if_installed():
-            raise ToolError("You must install ab tool at first")
+            ab_tool.install()
         return tool_path
 
 
@@ -219,3 +219,6 @@ class ApacheBenchmark(RequiredTool):
         except OSError:
             return False
         return True
+
+    def install(self):
+        raise ToolError("You must install ab tool at first")

@@ -404,7 +404,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         required_tools.append(Gatling(gatling_path, self.log, download_link, gatling_version))
 
         for tool in required_tools:
-            self.log.info("Installing %s", tool.tool_name)
             if not tool.check_if_installed():
                 tool.install()
 
