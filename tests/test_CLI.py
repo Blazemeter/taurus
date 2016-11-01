@@ -193,8 +193,9 @@ class TestConfigOverrider(BZTestCase):
 
     def test_override_delete_from_list(self):
         self.config["items"] = [1, 2, 3]
-        self.config["dict"] = {"1":1, "2":2, "3":3}
+        self.config["dict"] = {"1": 1, "2": 2, "3": 3}
+        self.obj.apply_overrides(['items.^-4=null'], self.config)
         self.obj.apply_overrides(['items.^1=null'], self.config)
         self.obj.apply_overrides(['dict.^2=null'], self.config)
         self.assertEqual(self.config.get("items"), [1, 3])
-        self.assertEqual(self.config.get("dict"), {"1":1, "3":3})
+        self.assertEqual(self.config.get("dict"), {"1": 1, "3": 3})

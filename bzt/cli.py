@@ -296,7 +296,7 @@ class ConfigOverrider(object):
 
             if isinstance(pointer, list):
                 item = int(item)
-                if item < len(pointer):
+                if -len(pointer) <= item < len(pointer):
                     del pointer[item]
                 else:
                     self.log.debug("No value to delete: %s", item)
