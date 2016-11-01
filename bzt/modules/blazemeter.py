@@ -1249,7 +1249,7 @@ class BlazeMeterClient(object):
         """
         params = {"limit": 99999}
         if name is not None:
-            params["name"] = re.escape(name)
+            params["name"] = name
 
         tests = self._request(self.address + '/api/latest/tests?' + urlencode(params))
         self.log.debug("Tests for user: %s", len(tests['result']))
