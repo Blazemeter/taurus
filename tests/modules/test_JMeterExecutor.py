@@ -10,6 +10,7 @@ from math import ceil
 
 import yaml
 
+from bzt import ToolError
 from bzt.jmx import JMX
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.blazemeter import CloudProvisioning
@@ -907,7 +908,7 @@ class TestJMeterExecutor(BZTestCase):
         prov.engine = self.obj.engine
         prov.executors = [self.obj]
         self.obj.engine.provisioning = prov
-        self.assertRaises(RuntimeWarning, self.obj.engine.provisioning.post_process)
+        self.assertRaises(ToolError, self.obj.engine.provisioning.post_process)
 
     def test_ok_with_results(self):
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/dummy.jmx"}})

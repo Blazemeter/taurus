@@ -6,6 +6,7 @@ import time
 
 from bzt.modules.grinder import GrinderExecutor, DataLogReader
 from bzt.modules.provisioning import Local
+from bzt import ToolError
 from bzt.utils import EXE_SUFFIX
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul
@@ -74,7 +75,7 @@ class TestGrinderExecutor(BZTestCase):
         obj.engine.provisioning = Local()
         obj.engine.provisioning.engine = obj.engine
         obj.engine.provisioning.executors = [obj]
-        self.assertRaises(RuntimeWarning, obj.engine.provisioning.post_process)
+        self.assertRaises(ToolError, obj.engine.provisioning.post_process)
 
     def test_with_results(self):
         obj = GrinderExecutor()

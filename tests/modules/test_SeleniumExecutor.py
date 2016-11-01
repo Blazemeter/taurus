@@ -8,7 +8,7 @@ import time
 import unittest
 import yaml
 
-from bzt import TaurusConfigError
+from bzt import ToolError
 from bzt.engine import ScenarioExecutor
 from bzt.modules.provisioning import Local
 from bzt.modules.selenium import NoseTester, JavaTestRunner, JUnitTester, TestNGTester
@@ -965,7 +965,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         prov.engine = self.obj.engine
         prov.executors = [self.obj]
         self.obj.engine.provisioning = prov
-        self.assertRaises(RuntimeWarning, self.obj.engine.provisioning.post_process)
+        self.assertRaises(ToolError, self.obj.engine.provisioning.post_process)
 
     def test_junit_mirrors(self):
         dummy_installation_path = __dir__() + "/../../build/tmp/selenium-taurus"
