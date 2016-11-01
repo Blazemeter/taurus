@@ -24,6 +24,7 @@ from collections import OrderedDict
 from imp import find_module
 from subprocess import STDOUT
 
+from bzt import ToolError, TaurusConfigError
 from bzt.engine import ScenarioExecutor, FileLister, PythonGenerator, Scenario
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsProvider, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, ExecutorWidget
@@ -51,7 +52,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         self.is_master = self.execution.get("master", self.is_master)
         if self.is_master:
-            count_error = ValueError("Slaves count required when starting in master mode")
+            count_error = TaurusConfigError("Slaves count required when starting in master mode")
             slaves = self.execution.get("slaves", count_error)
             self.expected_slaves = int(slaves)
 
@@ -71,8 +72,9 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         tool = LocustIO(self.log)
         if not tool.check_if_installed():
             if PY3:
-                raise RuntimeError("LocustIO is not currently compatible with Python 3.x")
-            raise RuntimeError("Unable to locate locustio package. Please install it like this: pip install locustio")
+                raise ToolError("LocustIO is not currently compatible with Python 3.x")
+            msg = "Unable to locate locustio package. Please install it like this: pip install locustio"
+            raise ToolError(msg)
 
     def startup(self):
         self.start_time = time.time()
@@ -129,12 +131,10 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         # TODO: when we're in master mode and get no results and exceeded duration - shut down then
         retcode = self.process.poll()
         if retcode is not None:
-            self.log.info("Locust exit code: %s", retcode)
             if retcode != 0:
-                self.log.warning("Locust exited with non-zero code: %s" % retcode)
+                self.log.warning("Locust exited with non-zero code: %s", retcode)
 
             return True
-
         return False
 
     def resource_files(self):
@@ -154,7 +154,9 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             if "requests" in self.scenario:
                 self.script = self.__tests_from_requests()
             else:
-                raise ValueError("Nothing to test, no requests were provided in scenario")
+                msg = "There must be a script file or requests for its generation "
+                msg += "to run Grinder tool (%s)" % self.execution.get('scenario')
+                raise TaurusConfigError(msg)
 
     def shutdown(self):
         try:
@@ -187,7 +189,7 @@ class LocustIO(RequiredTool):
         return True
 
     def install(self):
-        raise NotImplementedError("LocustIO auto installation isn't implemented, get it manually")
+        raise ToolError("LocustIO auto installation isn't implemented, get it manually")
 
 
 class SlavesReader(ResultsProvider):
@@ -334,7 +336,7 @@ from locust import HttpLocust, TaskSet, task
         for req in self.scenario.get_requests():
             method = req.method.lower()
             if method not in ('get', 'delete', 'head', 'options', 'path', 'put', 'post'):
-                raise RuntimeError("Wrong Locust request type: %s" % method)
+                raise TaurusConfigError("Wrong Locust request type: %s", method)
 
             if req.timeout:
                 local_timeout = dehumanize_time(req.timeout)
@@ -400,7 +402,7 @@ from locust import HttpLocust, TaskSet, task
         elif subject == 'http-code':
             content = 'str(response.status_code)'
         else:
-            raise RuntimeError('Wrong subject for Locust assertion: %s' % subject)
+            raise TaurusConfigError('Wrong subject for Locust assertion: %s', subject)
 
         if assertion.get('not', False):
             attr_not = ''

@@ -24,6 +24,7 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister, PythonGenerator
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.six import iteritems
+from bzt import TaurusConfigError, ToolError
 from bzt.utils import shell_exec, MirrorsManager, dehumanize_time, get_full_path
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, TclLibrary
 
@@ -131,7 +132,9 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         elif "requests" in scenario:
             self.script = self.__scenario_from_requests()
         else:
-            raise ValueError("There must be a scenario file to run Grinder")
+            msg = "There must be a script file or requests for its generation "
+            msg += "to run Grinder tool (%s)" % self.execution.get('scenario')
+            raise TaurusConfigError(msg)
 
         self.properties_file = self.engine.create_artifact("grinder", ".properties")
 
@@ -176,13 +179,12 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         any data and throws exception otherwise.
 
         :return: bool
-        :raise RuntimeWarning:
+        :raise TaurusToolError:
         """
         self.retcode = self.process.poll()
         if self.retcode is not None:
             if self.retcode != 0:
-                self.log.info("Grinder exit code: %s", self.retcode)
-                raise RuntimeError("Grinder exited with non-zero code")
+                raise ToolError("Gatling tool exited with non-zero code: %s", self.retcode)
 
             return True
         return False
@@ -278,7 +280,7 @@ class DataLogReader(ResultsReader):
             self.log.debug("No data to start reading yet")
             yield None
 
-        self.log.debug("Reading grinder results")
+        self.log.debug("Reading grinder results...")
         self.fds.seek(self.offset)  # without this we have a stuck reads on Mac
         if last_pass:
             lines = self.fds.readlines()  # unlimited
@@ -319,7 +321,7 @@ class DataLogReader(ResultsReader):
         opens grinder kpi-file
         """
         if not os.path.isfile(self.filename):
-            self.log.debug("File not appeared yet")
+            self.log.debug("File not appeared yet: %s", self.filename)
             return False
 
         if not os.path.getsize(self.filename):
@@ -365,7 +367,7 @@ class Grinder(RequiredTool):
         os.remove(grinder_dist)
         self.log.info("Installed grinder successfully")
         if not self.check_if_installed():
-            raise RuntimeError("Unable to run %s after installation!" % self.tool_name)
+            raise ToolError("Unable to run %s after installation!", self.tool_name)
 
 
 class GrinderMirrorsManager(MirrorsManager):

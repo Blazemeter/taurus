@@ -6,7 +6,7 @@ from bzt.modules.ab import ApacheBenchmarkExecutor, TSVDataReader
 from tests import BZTestCase
 from tests.mocks import EngineEmul
 from bzt.utils import EXE_SUFFIX
-
+from bzt import ToolError, TaurusConfigError
 
 TOOL_NAME = 'ab' + EXE_SUFFIX
 
@@ -49,7 +49,7 @@ class TestApacheBenchExecutor(BZTestCase):
         obj.execution.merge({
             "scenario": {}})
         obj.prepare()
-        self.assertRaises(ValueError, obj.startup)
+        self.assertRaises(TaurusConfigError, obj.startup)
 
     def test_non_get_request_exception(self):
         """
@@ -70,7 +70,7 @@ class TestApacheBenchExecutor(BZTestCase):
                 ]
             }})
         obj.prepare()
-        self.assertRaises(ValueError, obj.startup)
+        self.assertRaises(TaurusConfigError, obj.startup)
 
     def test_no_apache_benchmark(self):
         "Checks that prepare() fails if ApacheBenchmark is not installed."
@@ -82,7 +82,7 @@ class TestApacheBenchExecutor(BZTestCase):
             "scenario": {
                 "requests": ["http://blazedemo.com"]
             }})
-        self.assertRaises(RuntimeError, obj.prepare)
+        self.assertRaises(ToolError, obj.prepare)
 
     def test_full_execution(self):
         obj = ApacheBenchmarkExecutor()

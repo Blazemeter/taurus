@@ -26,8 +26,8 @@ from datetime import datetime
 from itertools import groupby, islice, chain
 from logging import StreamHandler
 
-from urwid import Text, Pile, WEIGHT, Filler, Columns, Widget, CanvasCombine, LineBox, ListBox, RIGHT, CENTER, BOTTOM, \
-    CLIP, GIVEN, ProgressBar
+from urwid import LineBox, ListBox, RIGHT, CENTER, BOTTOM, CLIP, GIVEN, ProgressBar
+from urwid import Text, Pile, WEIGHT, Filler, Columns, Widget, CanvasCombine
 from urwid.decoration import Padding
 from urwid.font import Thin6x6Font
 from urwid.graphics import BigText
@@ -35,6 +35,7 @@ from urwid.listbox import SimpleListWalker
 from urwid.widget import Divider
 
 import bzt
+from bzt import TaurusInternalException
 from bzt.engine import Reporter
 from bzt.modules.aggregator import DataPoint, KPISet, AggregatorListener, ResultsProvider
 from bzt.modules.provisioning import Local
@@ -188,8 +189,9 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
                 self.__repaint()
             except KeyboardInterrupt:
                 raise
-            except BaseException:
-                self.log.error("Console screen failure: %s", traceback.format_exc())
+            except BaseException as exc:
+                self.log.error("Console screen failure: %s", exc)
+                self.log.debug("%s", traceback.format_exc())
                 self.shutdown()
 
     def aggregated_second(self, data):
@@ -206,8 +208,9 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
 
         try:
             self.console.add_data(data)
-        except BaseException:
-            self.log.warn("Failed to add datapoint to display: %s", traceback.format_exc())
+        except BaseException as exc:
+            self.log.warning("Failed to add datapoint to display: %s", exc)
+            self.log.debug("%s", traceback.format_exc())
 
     def startup(self):
         super(ConsoleStatusReporter, self).startup()
@@ -251,7 +254,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
 
         if not self.screen.started:
             if self.orig_streams:
-                raise RuntimeError("Orig streams already set")
+                raise TaurusInternalException("Console: original streams already set")
             elif self.logger_handlers and not self.orig_streams:
                 self.log.debug("Overriding logging streams")
                 for handler in self.logger_handlers:
