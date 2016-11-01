@@ -51,7 +51,7 @@ RUN apt-get -y update \
   && rm -rf /var/lib/apt/lists/* \
   && firefox --version && google-chrome-stable --version && /usr/bin/chromedriver --version && geckodriver --version
 
-COPY docker/chrome_launcher.sh /tmp
+COPY bzt/resources/chrome_launcher.sh /tmp
 RUN mv /opt/google/chrome/google-chrome /opt/google/chrome/_google-chrome \
   && mv /tmp/chrome_launcher.sh /opt/google/chrome/google-chrome \
   && chmod +x /opt/google/chrome/google-chrome
