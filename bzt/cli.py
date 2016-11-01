@@ -28,7 +28,8 @@ import yaml
 from colorlog import ColoredFormatter
 
 import bzt
-from bzt import TaurusInternalException, TaurusConfigError
+from bzt import TaurusException, TaurusToolError
+from bzt import TaurusInternalException, TaurusConfigError, TaurusConnectionError
 from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown
 from bzt.engine import Engine, Configuration, ScenarioExecutor
 from bzt.six import HTTPError, string_types, b, get_stacktrace
@@ -200,13 +201,23 @@ class CLI(object):
         elif isinstance(exc, HTTPError):
             msg = "Response from %s: [%s] %s" % (exc.geturl(), exc.code, exc.reason)
             self.log.log(http_level, msg)
-        elif isinstance(exc, TaurusConfigError):
-            self.log.log(default_level, "Wrong configuration: %s", exc)
-        elif isinstance(exc, TaurusInternalException):
-            self.log.log(default_level, "Internal error: %s", exc)
+        elif isinstance(exc, TaurusException):
+            self.__handle_taurus_exception(exc, default_level)
         else:
             self.log.log(default_level, "%s: %s", type(exc).__name__, exc)
             self.log.log(default_level, get_stacktrace(exc))
+
+    def __handle_taurus_exception(self, exc, log_level):
+        if isinstance(exc, TaurusConfigError):
+            self.log.log(log_level, "Wrong configuration: %s", exc)
+        elif isinstance(exc, TaurusInternalException):
+            self.log.log(log_level, "Internal error: %s", exc)
+        elif isinstance(exc, TaurusToolError):
+            self.log.log(log_level, "External tool error: %s", exc)
+        elif isinstance(exc, TaurusConnectionError):
+            self.log.log(log_level, "Connection error: %s", exc)
+        else:
+            raise ValueError("Unknown Taurus exception %s: %s", type(exc), exc)
 
     def __get_jmx_shorthands(self, configs):
         """
