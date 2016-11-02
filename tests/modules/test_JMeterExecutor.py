@@ -226,7 +226,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(JMeterExecutor._need_to_install(fake), False)
 
         fake.set(__file__, False)  # real file, jmeter doesn't work: raise
-        with self.assertRaises(ValueError):
+        with self.assertRaises(TaurusConfigError):
             JMeterExecutor._need_to_install(fake)
 
         fake.set(os.path.curdir, True)  # real dir, $dir/bin/jmeter.EXT works: fix path only
