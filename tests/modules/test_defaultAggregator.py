@@ -139,5 +139,4 @@ class TestDefaultAggregator(BZTestCase):
         obj.add_listener(mock)
 
         for point in mock.datapoints():
-            logging.debug(point[DataPoint.CUMULATIVE].keys())
             self.assertNotIn("/индекс", point[DataPoint.CUMULATIVE])
