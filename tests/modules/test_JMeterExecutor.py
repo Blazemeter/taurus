@@ -10,7 +10,7 @@ from math import ceil
 
 import yaml
 
-from bzt import ToolError
+from bzt import ToolError, TaurusConfigError
 from bzt.jmx import JMX
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.blazemeter import CloudProvisioning
@@ -198,7 +198,7 @@ class TestJMeterExecutor(BZTestCase):
                                       {"requests": ["http://localhost"],
                                        "data-sources": [
                                            {"path": "really_wrong_path"}]}})
-        self.assertRaises(ValueError, self.obj.prepare)
+        self.assertRaises(TaurusConfigError, self.obj.prepare)
 
     def test_datasources_without_delimiter(self):
         self.obj.execution.merge({"scenario":
@@ -739,7 +739,7 @@ class TestJMeterExecutor(BZTestCase):
                 'hold-for': '30s',
                 'concurrency': 5,
                 'scenario': {'think-time': 0.75}}})
-        self.assertRaises(ValueError, self.obj.prepare)
+        self.assertRaises(TaurusConfigError, self.obj.prepare)
 
     def test_variable_csv_file(self):
         self.obj.execution.merge({
@@ -1094,7 +1094,7 @@ class TestJMeterExecutor(BZTestCase):
                 # note that data-sources should be a list of strings/objects
                 "data-sources": {
                     "path": __dir__() + "/../data/test1.csv"}}})
-        self.assertRaises(ValueError, self.obj.prepare)
+        self.assertRaises(TaurusConfigError, self.obj.prepare)
 
     def test_force_parent_sample(self):
         self.configure({
@@ -1334,7 +1334,7 @@ class TestJMeterExecutor(BZTestCase):
                 'scenario': {
                     "requests": [{
                         "loop": 100}]}}})
-        self.assertRaises(ValueError, self.obj.prepare)
+        self.assertRaises(TaurusConfigError, self.obj.prepare)
 
     def test_resource_files_loops(self):
         self.configure({
@@ -1372,7 +1372,7 @@ class TestJMeterExecutor(BZTestCase):
                 'scenario': {
                     "requests": [{
                         "while": "<cond>"}]}}})
-        self.assertRaises(ValueError, self.obj.prepare)
+        self.assertRaises(TaurusConfigError, self.obj.prepare)
 
     def test_request_logic_while_resources(self):
         self.configure({
@@ -1525,7 +1525,7 @@ class TestJMeterExecutor(BZTestCase):
                         "include-scenario": "a"}]}},
             'execution': {
                 'scenario': 'a'}})
-        self.assertRaises(ValueError, self.obj.prepare)
+        self.assertRaises(TaurusConfigError, self.obj.prepare)
 
     def test_include_sources_recursion(self):
         self.configure({
@@ -1538,7 +1538,7 @@ class TestJMeterExecutor(BZTestCase):
                         "include-scenario": "a"}]}},
             'execution': {
                 'scenario': 'a'}})
-        self.assertRaises(ValueError, self.obj.resource_files)
+        self.assertRaises(TaurusConfigError, self.obj.resource_files)
 
     def test_logic_test_action(self):
         self.configure({
@@ -1583,7 +1583,7 @@ class TestJMeterExecutor(BZTestCase):
                     "requests": [{
                         "action": "unknown",
                     }]}}})
-        self.assertRaises(ValueError, self.obj.prepare)
+        self.assertRaises(TaurusConfigError, self.obj.prepare)
 
     def test_request_null_headers(self):
         self.configure({
@@ -1788,7 +1788,7 @@ class TestJMeterExecutor(BZTestCase):
                 }
             }
         })
-        self.assertRaises(ValueError, self.obj.prepare)
+        self.assertRaises(TaurusConfigError, self.obj.prepare)
         self.configure({
             "execution": {
                 "scenario": {
@@ -1801,7 +1801,7 @@ class TestJMeterExecutor(BZTestCase):
                 }
             }
         })
-        self.assertRaises(ValueError, self.obj.prepare)
+        self.assertRaises(TaurusConfigError, self.obj.prepare)
 
     def test_jsr223_multiple(self):
         pre_script = __dir__() + "/../jmeter/jsr223_script.js"
