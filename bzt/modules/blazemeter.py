@@ -20,7 +20,6 @@ import json
 import logging
 import os
 import platform
-import re
 import sys
 import time
 import traceback
@@ -699,6 +698,13 @@ class CloudTaurusTest(BaseCloudTest):
             elif not config[key]:
                 config.pop(key)
 
+        self.cleanup_defaults(config)
+
+        assert isinstance(config, Configuration)
+        return config
+
+    @staticmethod
+    def cleanup_defaults(config):
         # cleanup configuration from empty values
         default_values = {
             'concurrency': None,
@@ -713,9 +719,6 @@ class CloudTaurusTest(BaseCloudTest):
             for key, value in iteritems(default_values):
                 if key in execution and execution[key] == value:
                     execution.pop(key)
-
-        assert isinstance(config, Configuration)
-        return config
 
     def resolve_test(self, taurus_config, rfiles):
         if self.test_id is None:
