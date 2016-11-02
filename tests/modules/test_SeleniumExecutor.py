@@ -628,7 +628,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
             while not self.obj.check():
                 time.sleep(1)
             self.fail()
-        except RuntimeError as exc:
+        except ToolError as exc:
             self.assertIn("Nothing to test.", exc.args[0])
         self.obj.shutdown()
 
@@ -651,7 +651,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
                 finished = self.obj.check()
                 if finished:
                     self.fail("Should've failed with 'nothing to test'")
-            except RuntimeError as exc:
+            except ToolError as exc:
                 self.assertIn("Catch that", str(exc))
                 self.assertIn("Nothing to test", str(exc))
                 break
@@ -884,7 +884,7 @@ class TestSeleniumStuff(SeleniumTestCase):
                 "scenario": {"script": __dir__() + "/../selenium/invalid/invalid.java"}
             }
         })
-        self.assertRaises(RuntimeError, self.obj.prepare)
+        self.assertRaises(ToolError, self.obj.prepare)
 
     def test_no_supported_files_to_test(self):
         """
@@ -895,7 +895,7 @@ class TestSeleniumStuff(SeleniumTestCase):
             "executor": "selenium",
             "scenario": {"script": __dir__() + "/../selenium/invalid/not_found"}
         }})
-        self.assertRaises(ValueError, self.obj.prepare)
+        self.assertRaises(TaurusConfigError, self.obj.prepare)
 
     def test_samples_count_annotations(self):
         """
