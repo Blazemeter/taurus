@@ -3,7 +3,7 @@ import time
 import unittest
 from os import path
 
-from bzt import TaurusConfigError
+from bzt import TaurusConfigError, ToolError
 from bzt.modules.tsung import TsungExecutor, TsungStatsReader, TsungConfig, Tsung
 from bzt.six import etree
 from bzt.utils import EXE_SUFFIX, BetterDict, is_windows
@@ -33,7 +33,7 @@ class TestTsungExecutor(BZTestCase):
     def test_check_install(self):
         self.obj.settings.merge({"path": "*"})
         self.obj.execution.merge({"scenario": {"script": get_res_path("http_simple.xml")}})
-        self.assertRaises(RuntimeError, self.obj.prepare)
+        self.assertRaises(ToolError, self.obj.prepare)
 
     def test_script(self):
         self.obj.execution.merge({"scenario": {"script": get_res_path("http_simple.xml")}})
