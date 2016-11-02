@@ -985,7 +985,7 @@ class BlazeMeterClient(object):
             return json.loads(resp) if len(resp) else {}
         except ValueError as exc:
             self.log.debug('Response: %s', resp)
-            TaurusNetworkError("Non-JSON response from API: %s", exc)
+            raise TaurusNetworkError("Non-JSON response from API: %s", exc)
 
     def upload_collection_resources(self, resource_files, draft_id):
         url = self.address + "/api/latest/web/elfinder/%s" % draft_id

@@ -248,7 +248,7 @@ class PBenchTool(object):
         try:
             subprocess.check_call(cmdline, stdout=subprocess.PIPE)
         except CalledProcessError as exc:
-            ToolError("Config check has failed: %s", exc)
+            raise ToolError("Config check has failed: %s", exc)
 
     def start(self, config_file):
         cmdline = [self.path, 'run', config_file]
