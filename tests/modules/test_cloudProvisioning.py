@@ -759,7 +759,8 @@ class TestCloudProvisioning(BZTestCase):
         client.results.append({"result": {"id": 42}})  # create collection
         client.results.append({"result": {"id": id(obj)}})  # start
         client.results.append({"result": {"id": id(obj), "sessions": [{"id": "s1", "status": "JMETER_CONSOLE_INIT"},
-                                                                      {"id": "s2", "status": "INIT_SCRIPT"}]}}) # status
+                                                                      {"id": "s2",
+                                                                       "status": "INIT_SCRIPT"}]}})  # status
         client.results.append({"result": []})  # sessions
         client.results.append({"result": {"id": id(obj), "sessions": [{"id": "s1", "status": "JMETER_CONSOLE_INIT"},
                                                                       {"id": "s2", "status": "JMETER_CONSOLE_INIT"}]}})
@@ -964,6 +965,11 @@ class TestCloudProvisioning(BZTestCase):
         self.assertEqual(obj.check_interval, 20.0)
 
         self.assertEqual(client.results, [])
+
+    def test_defaults_clean(self):
+        conf = {"execution": [{"concurrency": {"local": None}}]}
+        res = CloudTaurusTest.cleanup_defaults(conf)
+        self.assertEqual({"execution": [{}]}, res)
 
 
 class TestResultsFromBZA(BZTestCase):
