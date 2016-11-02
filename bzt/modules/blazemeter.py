@@ -716,7 +716,8 @@ class CloudTaurusTest(BaseCloudTest):
             'files': []
         }
         for execution in config[ScenarioExecutor.EXEC]:
-            execution['concurrency'] = {k: v for k, v in iteritems(execution['concurrency']) if v is not None}
+            if isinstance(execution['concurrency'], dict):
+                execution['concurrency'] = {k: v for k, v in iteritems(execution['concurrency']) if v is not None}
 
             if not execution['concurrency']:
                 execution['concurrency'] = None
