@@ -2,7 +2,7 @@ import logging
 import sys
 import time
 
-from bzt import six
+from bzt import six, ToolError
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.locustio import LocustIOExecutor, SlavesReader
 from bzt.modules.provisioning import Local
@@ -154,7 +154,7 @@ class TestLocustIOExecutor(BZTestCase):
         prov.engine = self.obj.engine
         prov.executors = [self.obj]
         self.obj.engine.provisioning = prov
-        self.assertRaises(RuntimeWarning, self.obj.engine.provisioning.post_process)
+        self.assertRaises(ToolError, self.obj.engine.provisioning.post_process)
 
     def test_requests_minimal(self):
         self.obj.engine.config.merge({

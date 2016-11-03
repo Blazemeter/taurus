@@ -367,7 +367,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         if self.retcode is not None:
             if self.retcode != 0:
-                raise ToolError("Gatling tool exited with non-zero code: %s", self.retcode)
+                raise ToolError("Gatling tool exited with non-zero code: %s" % self.retcode)
 
             return True
         return False
@@ -681,4 +681,4 @@ class Gatling(RequiredTool):
         os.chmod(os.path.expanduser(self.tool_path), 0o755)
         self.log.info("Installed Gatling successfully")
         if not self.check_if_installed():
-            raise ToolError("Unable to run %s after installation!", self.tool_name)
+            raise ToolError("Unable to run %s after installation!" % self.tool_name)

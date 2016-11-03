@@ -21,6 +21,7 @@ import time
 from math import ceil
 from os import path
 
+from bzt import TaurusConfigError, ToolError
 from bzt.engine import ScenarioExecutor, Scenario
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
@@ -63,7 +64,7 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider):
         elif 'requests' in self.scenario:
             self.__url_name = self._fill_url_file()
         else:
-            raise ValueError("You must specify either script(url-file) or some requests for siege")
+            raise TaurusConfigError("Siege: you must specify either script(url-file) or some requests")
 
         out_file_name = self.engine.create_artifact("siege", ".out")
         self.reader = DataLogReader(out_file_name, self.log)
@@ -101,7 +102,7 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider):
             hold_for = ceil(dehumanize_time(load.hold))
             args += ['--time', '%sS' % hold_for]
         else:
-            raise ValueError("You must specify either 'hold-for' or 'iterations' for siege")
+            raise TaurusConfigError("Siege: You must specify either 'hold-for' or 'iterations'")
 
         if self.scenario.get('think-time'):
             think_time = dehumanize_time(self.scenario.get('think-time'))
@@ -127,11 +128,8 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider):
         ret_code = self.process.poll()
         if ret_code is None:
             return False
-
-        self.log.info("Siege tool exit code: %s", ret_code)
         if ret_code != 0:
-            raise RuntimeError("Siege tool exited with non-zero code")
-
+            raise ToolError("Siege tool exited with non-zero code: %s" % ret_code)
         return True
 
     def get_widget(self):
@@ -157,7 +155,7 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider):
         tool_path = self.settings.get('path', 'siege')
         siege = Siege(tool_path, self.log)
         if not siege.check_if_installed():
-            raise RuntimeError("You must install Siege tool at first")
+            siege.install()
         return tool_path
 
 
@@ -241,3 +239,6 @@ class Siege(RequiredTool):
         except OSError:
             return False
         return True
+
+    def install(self):
+        raise ToolError("You must install Siege tool at first")

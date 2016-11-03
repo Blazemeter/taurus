@@ -49,7 +49,6 @@ class TestConverter(BZTestCase):
         except BaseException as exc:
             self.assertIn("File does not exist", exc.args[0])
         self.assertIn("Loading jmx file", log_recorder.info_buff.getvalue())
-        self.assertIn("does not exist", log_recorder.err_buff.getvalue())
         self.assertEqual("", log_recorder.debug_buff.getvalue())
         obj.log.removeHandler(log_recorder)
 
@@ -64,7 +63,6 @@ class TestConverter(BZTestCase):
             self.assertIn("XML parsing failed", exc.args[0])
         self.assertIn("Loading jmx file", log_recorder.info_buff.getvalue())
         self.assertIn("Error while processing jmx file", log_recorder.err_buff.getvalue())
-        self.assertIn("XML parsing error", log_recorder.debug_buff.getvalue())
         obj.log.removeHandler(log_recorder)
 
     def test_loadjmx4(self):

@@ -10,6 +10,7 @@ from math import ceil
 
 import yaml
 
+from bzt import ToolError, TaurusConfigError, TaurusInternalException
 from bzt.jmx import JMX
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.blazemeter import CloudProvisioning
@@ -106,15 +107,15 @@ class TestJMeterExecutor(BZTestCase):
 
     def test_not_jmx(self):
         self.obj.execution = {"scenario": {"script": __file__}}
-        self.assertRaises(RuntimeError, self.obj.prepare)
+        self.assertRaises(TaurusInternalException, self.obj.prepare)
 
     def test_broken_xml(self):
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/broken.jmx"}})
-        self.assertRaises(RuntimeError, self.obj.prepare)
+        self.assertRaises(TaurusInternalException, self.obj.prepare)
 
     def test_not_jmx_xml(self):
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/not-jmx.xml"}})
-        self.assertRaises(RuntimeError, self.obj.prepare)
+        self.assertRaises(TaurusInternalException, self.obj.prepare)
 
     def test_requests(self):
         self.configure(json.loads(open(__dir__() + "/../json/get-post.json").read()))
@@ -197,7 +198,7 @@ class TestJMeterExecutor(BZTestCase):
                                       {"requests": ["http://localhost"],
                                        "data-sources": [
                                            {"path": "really_wrong_path"}]}})
-        self.assertRaises(ValueError, self.obj.prepare)
+        self.assertRaises(TaurusConfigError, self.obj.prepare)
 
     def test_datasources_without_delimiter(self):
         self.obj.execution.merge({"scenario":
@@ -225,7 +226,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(JMeterExecutor._need_to_install(fake), False)
 
         fake.set(__file__, False)  # real file, jmeter doesn't work: raise
-        with self.assertRaises(ValueError):
+        with self.assertRaises(TaurusConfigError):
             JMeterExecutor._need_to_install(fake)
 
         fake.set(os.path.curdir, True)  # real dir, $dir/bin/jmeter.EXT works: fix path only
@@ -738,7 +739,7 @@ class TestJMeterExecutor(BZTestCase):
                 'hold-for': '30s',
                 'concurrency': 5,
                 'scenario': {'think-time': 0.75}}})
-        self.assertRaises(ValueError, self.obj.prepare)
+        self.assertRaises(TaurusConfigError, self.obj.prepare)
 
     def test_variable_csv_file(self):
         self.obj.execution.merge({
@@ -907,7 +908,7 @@ class TestJMeterExecutor(BZTestCase):
         prov.engine = self.obj.engine
         prov.executors = [self.obj]
         self.obj.engine.provisioning = prov
-        self.assertRaises(RuntimeWarning, self.obj.engine.provisioning.post_process)
+        self.assertRaises(ToolError, self.obj.engine.provisioning.post_process)
 
     def test_ok_with_results(self):
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/dummy.jmx"}})
@@ -998,7 +999,7 @@ class TestJMeterExecutor(BZTestCase):
                         "structure": {
                             "one": 2,
                             "two": "1"}}}]}})
-        self.assertRaises(ValueError, self.obj.prepare)
+        self.assertRaises(TaurusInternalException, self.obj.prepare)
         jmx = JMX(self.obj.original_jmx)
         selector = 'stringProp[name="Argument.value"]'
         self.assertTrue(all(not jprop.text.startswith('defaultdict') for jprop in jmx.get(selector)))
@@ -1093,7 +1094,7 @@ class TestJMeterExecutor(BZTestCase):
                 # note that data-sources should be a list of strings/objects
                 "data-sources": {
                     "path": __dir__() + "/../data/test1.csv"}}})
-        self.assertRaises(ValueError, self.obj.prepare)
+        self.assertRaises(TaurusConfigError, self.obj.prepare)
 
     def test_force_parent_sample(self):
         self.configure({
@@ -1333,7 +1334,7 @@ class TestJMeterExecutor(BZTestCase):
                 'scenario': {
                     "requests": [{
                         "loop": 100}]}}})
-        self.assertRaises(ValueError, self.obj.prepare)
+        self.assertRaises(TaurusConfigError, self.obj.prepare)
 
     def test_resource_files_loops(self):
         self.configure({
@@ -1371,7 +1372,7 @@ class TestJMeterExecutor(BZTestCase):
                 'scenario': {
                     "requests": [{
                         "while": "<cond>"}]}}})
-        self.assertRaises(ValueError, self.obj.prepare)
+        self.assertRaises(TaurusConfigError, self.obj.prepare)
 
     def test_request_logic_while_resources(self):
         self.configure({
@@ -1524,7 +1525,7 @@ class TestJMeterExecutor(BZTestCase):
                         "include-scenario": "a"}]}},
             'execution': {
                 'scenario': 'a'}})
-        self.assertRaises(ValueError, self.obj.prepare)
+        self.assertRaises(TaurusConfigError, self.obj.prepare)
 
     def test_include_sources_recursion(self):
         self.configure({
@@ -1537,7 +1538,7 @@ class TestJMeterExecutor(BZTestCase):
                         "include-scenario": "a"}]}},
             'execution': {
                 'scenario': 'a'}})
-        self.assertRaises(ValueError, self.obj.resource_files)
+        self.assertRaises(TaurusConfigError, self.obj.resource_files)
 
     def test_logic_test_action(self):
         self.configure({
@@ -1582,7 +1583,7 @@ class TestJMeterExecutor(BZTestCase):
                     "requests": [{
                         "action": "unknown",
                     }]}}})
-        self.assertRaises(ValueError, self.obj.prepare)
+        self.assertRaises(TaurusConfigError, self.obj.prepare)
 
     def test_request_null_headers(self):
         self.configure({
@@ -1787,7 +1788,7 @@ class TestJMeterExecutor(BZTestCase):
                 }
             }
         })
-        self.assertRaises(ValueError, self.obj.prepare)
+        self.assertRaises(TaurusConfigError, self.obj.prepare)
         self.configure({
             "execution": {
                 "scenario": {
@@ -1800,7 +1801,7 @@ class TestJMeterExecutor(BZTestCase):
                 }
             }
         })
-        self.assertRaises(ValueError, self.obj.prepare)
+        self.assertRaises(TaurusConfigError, self.obj.prepare)
 
     def test_jsr223_multiple(self):
         pre_script = __dir__() + "/../jmeter/jsr223_script.js"
