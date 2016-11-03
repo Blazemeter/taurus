@@ -698,6 +698,13 @@ class CloudTaurusTest(BaseCloudTest):
             elif not config[key]:
                 config.pop(key)
 
+        self.cleanup_defaults(config)
+
+        assert isinstance(config, Configuration)
+        return config
+
+    @staticmethod
+    def cleanup_defaults(config):
         # cleanup configuration from empty values
         default_values = {
             'concurrency': None,
@@ -709,11 +716,16 @@ class CloudTaurusTest(BaseCloudTest):
             'files': []
         }
         for execution in config[ScenarioExecutor.EXEC]:
+            if isinstance(execution['concurrency'], dict):
+                execution['concurrency'] = {k: v for k, v in iteritems(execution['concurrency']) if v is not None}
+
+            if not execution['concurrency']:
+                execution['concurrency'] = None
+
             for key, value in iteritems(default_values):
                 if key in execution and execution[key] == value:
                     execution.pop(key)
 
-        assert isinstance(config, Configuration)
         return config
 
     def resolve_test(self, taurus_config, rfiles):

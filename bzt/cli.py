@@ -209,13 +209,13 @@ class CLI(object):
 
     def __handle_taurus_exception(self, exc, log_level):
         if isinstance(exc, TaurusConfigError):
-            self.log.log(log_level, "Wrong configuration: %s", exc)
+            self.log.log(log_level, "Config Error: %s", exc)
         elif isinstance(exc, TaurusInternalException):
-            self.log.log(log_level, "Internal error: %s", exc)
+            self.log.log(log_level, "Internal Error: %s", exc)
         elif isinstance(exc, ToolError):
-            self.log.log(log_level, "External tool error: %s", exc)
+            self.log.log(log_level, "Child Process Error: %s", exc)
         elif isinstance(exc, TaurusNetworkError):
-            self.log.log(log_level, "Connection error: %s", exc)
+            self.log.log(log_level, "Network Error: %s", exc)
         else:
             raise ValueError("Unknown Taurus exception %s: %s" % (type(exc), exc))
 
