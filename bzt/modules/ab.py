@@ -102,7 +102,7 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider):
                 args += ['-H', "%s: %s" % (key, val)]
 
         if request.method != 'GET':
-            raise TaurusConfigError("ab supports only GET requests, but '%s' is found", request.method)
+            raise TaurusConfigError("ab supports only GET requests, but '%s' is found" % request.method)
 
         keepalive = True
         if request.config.get('keepalive') is not None:
@@ -124,7 +124,7 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider):
         if ret_code is None:
             return False
         if ret_code != 0:
-            raise ToolError("ab tool exited with non-zero code: %s", ret_code)
+            raise ToolError("ab tool exited with non-zero code: %s" % ret_code)
         return True
 
     def shutdown(self):

@@ -345,7 +345,7 @@ class DataPoint(BetterDict):
         """
         if self[self.TIMESTAMP] != src[self.TIMESTAMP]:
             msg = "Cannot merge different timestamps (%s and %s)"
-            raise TaurusInternalException(msg, self[self.TIMESTAMP], src[self.TIMESTAMP])
+            raise TaurusInternalException(msg % (self[self.TIMESTAMP], src[self.TIMESTAMP]))
 
         self[DataPoint.SUBRESULTS].append(src)
 
@@ -457,7 +457,7 @@ class ResultsReader(ResultsProvider):
                     self.buffer[t_stamp] = []
                 self.buffer[t_stamp].append((label, conc, r_time, con_time, latency, r_code, error, trname, byte_count))
             else:
-                raise TaurusInternalException("Unsupported results from %s reader: %s", self, result)
+                raise TaurusInternalException("Unsupported results from %s reader: %s" %(self, result))
 
     def __aggregate_current(self, datapoint, samples):
         """
@@ -586,11 +586,11 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         try:  # for max_buffer_len == float('inf')
             self.max_buffer_len = dehumanize_time(max_buffer_len)
         except ValueError as verr:
-            self.log.debug("Exception in dehumanize_time(%s)", max_buffer_len)
+            self.log.debug("Exception in dehumanize_time(%s)" % max_buffer_len)
             if str(verr).find('inf') != -1:
                 self.max_buffer_len = max_buffer_len
             else:
-                raise TaurusConfigError("Wrong 'max-buffer-len' value: %s", max_buffer_len)
+                raise TaurusConfigError("Wrong 'max-buffer-len' value: %s" % max_buffer_len)
 
         self.buffer_multiplier = self.settings.get("buffer-multiplier", self.buffer_multiplier)
 
