@@ -22,6 +22,7 @@ from itertools import chain
 
 from cssselect import GenericTranslator
 
+from bzt import TaurusInternalException
 from bzt.engine import Scenario, BetterDict
 from bzt.six import etree, iteritems, string_types, parse, text_type, numeric_types
 
@@ -62,15 +63,14 @@ class JMX(object):
         Load existing JMX file
 
         :param original: JMX file path
-        :raise RuntimeError: in case of XML parsing error
+        :raise TaurusInternalException: in case of XML parsing error
         """
         try:
             self.tree = etree.ElementTree()
             self.tree.parse(original)
         except BaseException as exc:
-            self.log.debug("XML parsing error: %s", traceback.format_exc())
-            data = (original, exc)
-            raise RuntimeError("XML parsing failed for file %s: %s" % data)
+            msg = "XML parsing failed for file %s: %s"
+            raise TaurusInternalException(msg % (original, exc))
 
     def get(self, selector):
         """
@@ -90,12 +90,12 @@ class JMX(object):
 
         :param selector: CSS selector for container
         :param node: Element instance to add
-        :raise RuntimeError: if container was not found
+        :raise TaurusInternalException: if container was not found
         """
         container = self.get(selector)
         if not len(container):
             msg = "Failed to find TestPlan node in file: %s"
-            raise RuntimeError(msg % selector)
+            raise TaurusInternalException(msg % selector)
 
         container[0].append(node)
 
@@ -107,7 +107,6 @@ class JMX(object):
         """
         self.log.debug("Saving JMX to: %s", filename)
         with open(filename, "wb") as fhd:
-            # self.log.debug("\n%s", etree.tostring(self.tree))
             self.tree.write(fhd, pretty_print=True, encoding="UTF-8", xml_declaration=True)
 
     def enabled_thread_groups(self, all_types=False):
@@ -283,7 +282,8 @@ class JMX(object):
         elif isinstance(body, dict):
             JMX.__add_body_from_script(args, body, proxy)
         elif body:
-            raise ValueError("Cannot handle 'body' option of type %s: %s" % (type(body), body))
+            msg = "Cannot handle 'body' option of type %s: %s"
+            raise TaurusInternalException(msg % (type(body), body))
 
         parsed_url = parse.urlparse(url)
         JMX.__add_hostnameport_2sampler(parsed_url, proxy, url)
@@ -340,7 +340,7 @@ class JMX(object):
         http_args_coll_prop = JMX._collection_prop("Arguments.arguments")
         for arg_name, arg_value in body.items():
             if not (isinstance(arg_value, string_types) or isinstance(arg_value, numeric_types)):
-                raise ValueError('Body structure requires application/JSON header')
+                raise TaurusInternalException('Body structure requires application/JSON header')
             try:
                 http_element_prop = JMX._element_prop(arg_name, "HTTPArgument")
             except ValueError:

@@ -2,6 +2,7 @@ import logging
 import time
 from os import path
 
+from bzt import ToolError, TaurusConfigError
 from bzt.modules.siege import SiegeExecutor, DataLogReader
 from tests import BZTestCase
 from tests.mocks import EngineEmul
@@ -64,7 +65,7 @@ class TestSiegeExecutor(BZTestCase):
             "concurrency": 2,
             "hold-for": '2s',
             "scenario": {}})
-        self.assertRaises(ValueError, obj.prepare)
+        self.assertRaises(TaurusConfigError, obj.prepare)
 
     def test_check_install_exceptions(self):
         obj = SiegeExecutor()
@@ -75,7 +76,7 @@ class TestSiegeExecutor(BZTestCase):
             "concurrency": 2,
             "hold-for": '2s',
             "scenario": {}})
-        self.assertRaises(RuntimeError, obj.prepare)
+        self.assertRaises(ToolError, obj.prepare)
 
     def test_repetition_exceptions(self):
         obj = SiegeExecutor()
@@ -89,7 +90,7 @@ class TestSiegeExecutor(BZTestCase):
                              "http://ya.ru"]}})
         obj.prepare()
         self.assertEqual(len(obj.resource_files()), 0)
-        self.assertRaises(ValueError, obj.startup)
+        self.assertRaises(TaurusConfigError, obj.startup)
 
     def test_full_execution(self):
         obj = SiegeExecutor()

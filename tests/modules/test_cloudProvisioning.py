@@ -5,6 +5,7 @@ import time
 
 import yaml
 
+from bzt import TaurusConfigError
 from bzt.engine import ScenarioExecutor, ManualShutdown
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet
 from bzt.modules.blazemeter import CloudProvisioning, BlazeMeterClientEmul, ResultsFromBZA
@@ -620,7 +621,7 @@ class TestCloudProvisioning(BZTestCase):
         client.results.append({"result": []})  # collections
         client.results.append({"result": []})  # tests
         client.results.append(self.__get_user_info())  # user
-        self.assertRaises(ValueError, obj.prepare)
+        self.assertRaises(TaurusConfigError, obj.prepare)
 
     def test_sandbox_default_location(self):
         obj = CloudProvisioning()

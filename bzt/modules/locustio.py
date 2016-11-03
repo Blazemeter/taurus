@@ -336,7 +336,7 @@ from locust import HttpLocust, TaskSet, task
         for req in self.scenario.get_requests():
             method = req.method.lower()
             if method not in ('get', 'delete', 'head', 'options', 'path', 'put', 'post'):
-                raise TaurusConfigError("Wrong Locust request type: %s", method)
+                raise TaurusConfigError("Wrong Locust request type: %s" % method)
 
             if req.timeout:
                 local_timeout = dehumanize_time(req.timeout)
@@ -402,7 +402,7 @@ from locust import HttpLocust, TaskSet, task
         elif subject == 'http-code':
             content = 'str(response.status_code)'
         else:
-            raise TaurusConfigError('Wrong subject for Locust assertion: %s', subject)
+            raise TaurusConfigError('Wrong subject for Locust assertion: %s' % subject)
 
         if assertion.get('not', False):
             attr_not = ''
