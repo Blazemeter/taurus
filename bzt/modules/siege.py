@@ -129,7 +129,7 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider):
         if ret_code is None:
             return False
         if ret_code != 0:
-            raise ToolError("Siege tool exited with non-zero code: %s", ret_code)
+            raise ToolError("Siege tool exited with non-zero code: %s" % ret_code)
         return True
 
     def get_widget(self):

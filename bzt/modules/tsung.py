@@ -53,7 +53,7 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if Scenario.SCRIPT in scenario and scenario[Scenario.SCRIPT]:
             script = self.get_script_path()
             if not script or not os.path.exists(script):
-                raise TaurusConfigError("Tsung: script '%s' doesn't exist", script)
+                raise TaurusConfigError("Tsung: script '%s' doesn't exist" % script)
             self.tsung_config = self.__modify_user_tsung_config(script)
         elif scenario.get("requests"):
             self.tsung_config = self._generate_tsung_config()
@@ -113,7 +113,7 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if ret_code is None:
             return False
         if ret_code != 0:
-            raise ToolError("Tsung exited with non-zero code: %s", ret_code)
+            raise ToolError("Tsung exited with non-zero code: %s" % ret_code)
         return True
 
     def shutdown(self):
@@ -143,7 +143,7 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if Scenario.SCRIPT in scenario and scenario[Scenario.SCRIPT]:
             script = self.get_script_path()
             if not script or not os.path.exists(script):
-                raise TaurusConfigError("Tsung: script '%s' doesn't exist", script)
+                raise TaurusConfigError("Tsung: script '%s' doesn't exist" % script)
             resource_files.append(script)
         return resource_files
 
@@ -276,7 +276,7 @@ class TsungConfig(object):
             self.root = self.tree.getroot()
         except BaseException as exc:
             self.log.debug("Tsung: XML parsing error: %s", traceback.format_exc())
-            raise TaurusInternalException("Tsung: XML parsing failed for file %s: %s", filename, exc)
+            raise TaurusInternalException("Tsung: XML parsing failed for file %s: %s" % (filename, exc))
 
     def save(self, filename):
         self.log.debug("Saving Tsung config to: %s", filename)
@@ -442,7 +442,7 @@ class Tsung(RequiredTool):
         return True
 
     def install(self):
-        raise ToolError("You must install Tsung manually to use it, see %s", self.INSTALLATION_DOCS)
+        raise ToolError("You must install Tsung manually to use it, see %s" % self.INSTALLATION_DOCS)
 
     def get_tool_abspath(self):
         if not self.tool_path:

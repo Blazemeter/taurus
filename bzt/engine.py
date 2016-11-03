@@ -450,7 +450,7 @@ class Engine(object):
         for index, reporter in enumerate(reporting):
             reporter = ensure_is_dict(reporting, index, "module")
             msg = "reporter 'module' field isn't recognized: %s"
-            cls = reporter.get('module', TaurusConfigError(msg, reporter))
+            cls = reporter.get('module', TaurusConfigError(msg % reporter))
             instance = self.instantiate_module(cls)
             instance.parameters = reporter
             assert isinstance(instance, Reporter)
@@ -748,7 +748,7 @@ class Provisioning(EngineModule):
             executor = execution.get("executor", default_executor)
             if not executor:
                 msg = "Cannot determine executor type and no default executor in %s"
-                raise TaurusConfigError(msg, execution)
+                raise TaurusConfigError(msg % execution)
             instance = self.engine.instantiate_module(executor)
             instance.provisioning = self
             instance.execution = execution
@@ -822,14 +822,14 @@ class ScenarioExecutor(EngineModule):
         scenarios = self.engine.config.get("scenarios")
 
         if name is None:  # get current scenario
-            exc = TaurusConfigError("Scenario is not found in execution: %s", self.execution)
+            exc = TaurusConfigError("Scenario is not found in execution: %s" % self.execution)
             label = self.execution.get('scenario', exc)
 
             is_script = isinstance(label, string_types) and label not in scenarios and \
                         os.path.exists(self.engine.find_file(label))
             if isinstance(label, list):
                 msg = "Invalid content of scenario, list type instead of dict or string: %s"
-                raise TaurusConfigError(msg, label)
+                raise TaurusConfigError(msg % label)
             if isinstance(label, dict) or is_script:
                 self.log.debug("Extract %s into scenarios" % label)
                 if isinstance(label, string_types):
@@ -852,7 +852,7 @@ class ScenarioExecutor(EngineModule):
         else:  # get scenario by name
             label = name
 
-        exc = TaurusConfigError("Scenario '%s' not found in scenarios: %s", label, scenarios.keys())
+        exc = TaurusConfigError("Scenario '%s' not found in scenarios: %s" % (label, scenarios.keys()))
         scenario = scenarios.get(label, exc)
         scenario_obj = Scenario(self.engine, scenario)
 
