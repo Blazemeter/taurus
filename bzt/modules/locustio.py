@@ -136,8 +136,11 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def resource_files(self):
         self.scenario = self.get_scenario()
-        self.__setup_script()
-        return [self.script]
+        if "script" in self.scenario:
+            self.__setup_script()
+            return [self.script]
+        else:
+            return []
 
     def __tests_from_requests(self):
         filename = self.engine.create_artifact("generated_locust", ".py")
