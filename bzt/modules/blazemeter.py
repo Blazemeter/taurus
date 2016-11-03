@@ -677,7 +677,7 @@ class CloudTaurusTest(BaseCloudTest):
         for location in locations:
             if location not in available_locations:
                 self.log.warning("List of supported locations for you is: %s", sorted(available_locations.keys()))
-                raise TaurusConfigError("Invalid location requested: %s", location)
+                raise TaurusConfigError("Invalid location requested: %s" % location)
 
     def prepare_cloud_config(self, engine_config):
         config = copy.deepcopy(engine_config)
@@ -985,7 +985,7 @@ class BlazeMeterClient(object):
             return json.loads(resp) if len(resp) else {}
         except ValueError as exc:
             self.log.debug('Response: %s', resp)
-            raise TaurusNetworkError("Non-JSON response from API: %s", exc)
+            raise TaurusNetworkError("Non-JSON response from API: %s" % exc)
 
     def upload_collection_resources(self, resource_files, draft_id):
         url = self.address + "/api/latest/web/elfinder/%s" % draft_id
@@ -1326,7 +1326,7 @@ class BlazeMeterClient(object):
         response = self._request(url, self.__get_kpi_body(data_buffer, is_final), headers=hdr)
 
         if response and 'response_code' in response and response['response_code'] != 200:
-            raise TaurusNetworkError("Failed to feed data, response code %s", response['response_code'])
+            raise TaurusNetworkError("Failed to feed data, response code %s" % response['response_code'])
 
         if response and 'result' in response and is_check_response:
             result = response['result']['session']
@@ -1454,7 +1454,7 @@ class BlazeMeterClient(object):
         hdr = {"Content-Type": str(body.get_content_type())}
         response = self._request(url, body.form_as_bytes(), headers=hdr)
         if not response['result']:
-            raise TaurusNetworkError("Upload failed: %s", response)
+            raise TaurusNetworkError("Upload failed: %s" % response)
 
     def get_master(self):
         req = self._request(self.address + '/api/latest/masters/%s' % self.master_id)
@@ -1587,7 +1587,7 @@ class MasterProvisioning(Provisioning):
                 index = rbases.index(base)
                 if path != rpaths[index]:
                     msg = 'Resource "%s" occurs more than one time, rename to avoid data loss'
-                    raise TaurusConfigError(msg, base)
+                    raise TaurusConfigError(msg % base)
 
         prepared_files = self.__pack_dirs(rfiles)
         replace_in_config(self.engine.config, rfiles, [os.path.basename(f) for f in prepared_files], log=self.log)
@@ -1692,7 +1692,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         new_reporting = []
         for index, reporter in enumerate(reporting):
             reporter = ensure_is_dict(reporting, index, "module")
-            exc = TaurusConfigError("'module' attribute not found in %s", reporter)
+            exc = TaurusConfigError("'module' attribute not found in %s" % reporter)
             cls = reporter.get('module', exc)
             if cls == 'blazemeter':
                 self.log.warning("Explicit blazemeter reporting is skipped for cloud")

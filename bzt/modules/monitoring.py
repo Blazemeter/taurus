@@ -469,7 +469,7 @@ class MonitoringCriteria(MonitoringListener, FailCriterion):
 
     def _get_field_functor(self, subject, percentage):
         if '/' not in subject:
-            raise TaurusConfigError("Wrong syntax for monitoring criteria subject: %s", subject)
+            raise TaurusConfigError("Wrong syntax for monitoring criteria subject: %s" % subject)
         host = subject[:subject.index('/')]
         metric = subject[subject.index('/') + 1:]
         return lambda x: (x[metric] if x['source'] == host and metric in x else None)

@@ -183,7 +183,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             # FIXME: muting stderr and stdout is bad
             self.process = self.execute(cmdline, stderr=None, env=self._env)
         except BaseException as exc:
-            ToolError("%s\nFailed to start JMeter: %s", cmdline, exc)
+            ToolError("%s\nFailed to start JMeter: %s" % (cmdline, exc))
 
     def check(self):
         """
@@ -196,7 +196,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.retcode = self.process.poll()
         if self.retcode is not None:
             if self.retcode != 0:
-                raise ToolError("JMeter exited with non-zero code: %s", self.retcode)
+                raise ToolError("JMeter exited with non-zero code: %s" % self.retcode)
 
             return True
         return False
@@ -815,7 +815,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             if tool.check_if_installed():  # all ok, it's really tool path
                 return False
             else:  # probably it's path to other tool)
-                raise TaurusConfigError('JMeter: wrong tool path: %s', tool.tool_path)
+                raise TaurusConfigError('JMeter: wrong tool path: %s' % tool.tool_path)
 
         if os.path.isdir(tool.tool_path):  # it's dir: fix tool path and install if needed
             tool.tool_path = os.path.join(tool.tool_path, end_str_l)
@@ -1678,7 +1678,7 @@ class JMeterScenarioBuilder(JMX):
         if not sources:
             return []
         if not isinstance(sources, list):
-            raise TaurusConfigError("data-sources '%s' is not a list", sources)
+            raise TaurusConfigError("data-sources '%s' is not a list" % sources)
         elements = []
         for idx, source in enumerate(sources):
             source = ensure_is_dict(sources, idx, "path")
@@ -1695,7 +1695,7 @@ class JMeterScenarioBuilder(JMX):
             else:
                 modified_path = self.executor.engine.find_file(source_path)
                 if not os.path.isfile(modified_path):
-                    raise TaurusConfigError("data-sources path not found: %s", modified_path)
+                    raise TaurusConfigError("data-sources path not found: %s" % modified_path)
                 if not delimiter:
                     delimiter = self.__guess_delimiter(modified_path)
                 source_path = get_full_path(modified_path)
@@ -1770,7 +1770,7 @@ class JMeter(RequiredTool):
         os.chmod(os.path.join(dest, 'bin', 'jmeter' + EXE_SUFFIX), 0o755)
 
         if not self.check_if_installed():
-            raise ToolError("Unable to run %s after installation!", self.tool_name)
+            raise ToolError("Unable to run %s after installation!" % self.tool_name)
 
     def __download_additions(self, tools):
         downloader = ExceptionalDownloader()
@@ -1782,7 +1782,7 @@ class JMeter(RequiredTool):
                 try:
                     downloader.get(url, tool[1], reporthook=pbar.download_callback)
                 except BaseException as exc:
-                    raise TaurusNetworkError("Error while downloading %s: %s", _file, exc)
+                    raise TaurusNetworkError("Error while downloading %s: %s" % (_file, exc))
 
     def __install_plugins_manager(self, plugins_manager_path):
         installer = "org.jmeterplugins.repository.PluginManagerCMDInstaller"
@@ -1793,7 +1793,7 @@ class JMeter(RequiredTool):
             out, err = proc.communicate()
             self.log.debug("Install PluginsManager: %s / %s", out, err)
         except BaseException as exc:
-            raise ToolError("Failed to install PluginsManager: %s", exc)
+            raise ToolError("Failed to install PluginsManager: %s" % exc)
 
     def __install_plugins(self, plugins_manager_cmd):
         plugin_str = ",".join(self.plugins)
@@ -1831,7 +1831,7 @@ class JMeter(RequiredTool):
             out, err = proc.communicate()
             self.log.debug("Install plugins: %s / %s", out, err)
         except BaseException as exc:
-            raise ToolError("Failed to install plugins %s: %s", plugin_str, exc)
+            raise ToolError("Failed to install plugins %s: %s" % (plugin_str, exc))
 
     def install(self):
         dest = get_full_path(self.tool_path, step_up=2)
@@ -2006,7 +2006,7 @@ class RequestsParser(object):
             match = re.match(r'(.+) in (.+)', iteration_str)
             if not match:
                 msg = "'foreach' value should be in format '<elementName> in <collection>' but '%s' found"
-                raise TaurusConfigError(msg, iteration_str)
+                raise TaurusConfigError(msg % iteration_str)
             loop_var, input_var = match.groups()
             do_block = req.get("do", TaurusConfigError("'do' field is mandatory for 'foreach' blocks"))
             do_requests = self.__parse_requests(do_block)
@@ -2026,7 +2026,7 @@ class RequestsParser(object):
             target = req.get('target', 'current-thread')
             if target not in ('current-thread', 'all-threads'):
                 msg = "Target for action should be either 'current-thread' or 'all-threads' but '%s' found"
-                raise TaurusConfigError(msg, target)
+                raise TaurusConfigError(msg % target)
             duration = req.get('pause-duration', None)
             if duration is not None:
                 duration = dehumanize_time(duration)
@@ -2078,7 +2078,7 @@ class RequestVisitor(object):
         visitor = getattr(self, 'visit_' + class_name, None)
         if visitor is not None:
             return visitor(node)
-        raise TaurusInternalException("Visitor for class %s not found", class_name)
+        raise TaurusInternalException("Visitor for class %s not found" % class_name)
 
 
 class ResourceFilesCollector(RequestVisitor):
@@ -2135,7 +2135,7 @@ class ResourceFilesCollector(RequestVisitor):
         scenario_name = block.scenario_name
         if scenario_name in self.path:
             msg = "Mutual recursion detected in include-scenario blocks (scenario %s)"
-            raise TaurusConfigError(msg, scenario_name)
+            raise TaurusConfigError(msg % scenario_name)
         self.path.append(scenario_name)
         scenario = self.executor.get_scenario(name=block.scenario_name)
         return self.executor.res_files_from_scenario(scenario)
@@ -2171,7 +2171,7 @@ class RequestCompiler(RequestVisitor):
         scenario_name = block.scenario_name
         if scenario_name in self.path:
             msg = "Mutual recursion detected in include-scenario blocks (scenario %s)"
-            raise TaurusConfigError(msg, scenario_name)
+            raise TaurusConfigError(msg % scenario_name)
         self.path.append(scenario_name)
         return self.jmx_builder.compile_include_scenario_block(block)
 

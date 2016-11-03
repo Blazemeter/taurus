@@ -207,7 +207,7 @@ class FailCriterion(object):
         elif cond == '<=':
             return lambda x, y: x <= y
         else:
-            raise TaurusConfigError("Unsupported fail criteria condition: %s", cond)
+            raise TaurusConfigError("Unsupported fail criteria condition: %s" % cond)
 
     def _get_aggregator_functor(self, logic, _subject):
         if logic == 'for':
@@ -215,7 +215,7 @@ class FailCriterion(object):
         elif logic == 'within':
             return self._within_aggregator_avg  # FIXME: having simple average for percented values is a bit wrong
         else:
-            raise TaurusConfigError("Unsupported window logic: %s", logic)
+            raise TaurusConfigError("Unsupported window logic: %s" % logic)
 
     def _get_windowed_points(self, tstmp, value):
         self.agg_buffer[tstmp] = value
@@ -281,27 +281,27 @@ class DataCriterion(FailCriterion):
     def _get_field_functor(self, subject, percentage):
         if subject == 'avg-rt':
             if percentage:
-                raise TaurusConfigError("Percentage threshold is not applicable for %s", subject)
+                raise TaurusConfigError("Percentage threshold is not applicable for %s" % subject)
             return lambda x: x[KPISet.AVG_RESP_TIME]
         elif subject == 'avg-lt':
             if percentage:
-                raise TaurusConfigError("Percentage threshold is not applicable for %s", subject)
+                raise TaurusConfigError("Percentage threshold is not applicable for %s" % subject)
             return lambda x: x[KPISet.AVG_LATENCY]
         elif subject == 'avg-ct':
             if percentage:
-                raise TaurusConfigError("Percentage threshold is not applicable for %s", subject)
+                raise TaurusConfigError("Percentage threshold is not applicable for %s" % subject)
             return lambda x: x[KPISet.AVG_CONN_TIME]
         elif subject == 'stdev-rt':
             if percentage:
-                raise TaurusConfigError("Percentage threshold is not applicable for %s", subject)
+                raise TaurusConfigError("Percentage threshold is not applicable for %s" % subject)
             return lambda x: x[KPISet.STDEV_RESP_TIME]
         elif subject.startswith('concurr'):
             if percentage:
-                raise TaurusConfigError("Percentage threshold is not applicable for %s", subject)
+                raise TaurusConfigError("Percentage threshold is not applicable for %s" % subject)
             return lambda x: x[KPISet.CONCURRENCY]
         elif subject == 'hits':
             if percentage:
-                raise TaurusConfigError("Percentage threshold is not applicable for %s", subject)
+                raise TaurusConfigError("Percentage threshold is not applicable for %s" % subject)
             return lambda x: x[KPISet.SAMPLE_COUNT]
         elif subject.startswith('succ'):
             if percentage:
@@ -315,7 +315,7 @@ class DataCriterion(FailCriterion):
                 return lambda x: x[KPISet.FAILURES]
         elif subject.startswith('p'):
             if percentage:
-                raise TaurusConfigError("Percentage threshold is not applicable for %s", subject)
+                raise TaurusConfigError("Percentage threshold is not applicable for %s" % subject)
             level = str(float(subject[1:]))
             return lambda x: x[KPISet.PERCENTILES][level] if level in x[KPISet.PERCENTILES] else 0
         elif subject.startswith('rc'):
@@ -369,7 +369,7 @@ class DataCriterion(FailCriterion):
         crit_pat = re.compile(r"([\w\?-]+)(\s*of\s*([\S ]+))?([<>=]+)(\S+)(\s+(for|within)\s+(\S+))?")
         crit_match = crit_pat.match(crit_str.strip())
         if not crit_match:
-            raise TaurusConfigError("Criteria string is mailformed in its condition part: %s", crit_str)
+            raise TaurusConfigError("Criteria string is mailformed in its condition part: %s" % crit_str)
         crit_groups = crit_match.groups()
         res["subject"] = crit_groups[0]
         res["condition"] = crit_groups[3]
@@ -385,7 +385,7 @@ class DataCriterion(FailCriterion):
             action_pat = re.compile(r"(stop|continue)(\s+as\s+(failed|non-failed))?")
             act_match = action_pat.match(action_str.strip())
             if not act_match:
-                raise TaurusConfigError("Criteria string is mailformed in its action part: %s", action_str)
+                raise TaurusConfigError("Criteria string is mailformed in its action part: %s" % action_str)
             action_groups = act_match.groups()
             res["stop"] = action_groups[0] != "continue"
             res["fail"] = action_groups[2] is None or action_groups[2] == "failed"

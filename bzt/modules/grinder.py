@@ -184,7 +184,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.retcode = self.process.poll()
         if self.retcode is not None:
             if self.retcode != 0:
-                raise ToolError("Gatling tool exited with non-zero code: %s", self.retcode)
+                raise ToolError("Gatling tool exited with non-zero code: %s" % self.retcode)
 
             return True
         return False
@@ -366,7 +366,7 @@ class Grinder(RequiredTool):
         os.remove(grinder_dist)
         self.log.info("Installed grinder successfully")
         if not self.check_if_installed():
-            raise ToolError("Unable to run %s after installation!", self.tool_name)
+            raise ToolError("Unable to run %s after installation!" % self.tool_name)
 
 
 class GrinderMirrorsManager(MirrorsManager):
