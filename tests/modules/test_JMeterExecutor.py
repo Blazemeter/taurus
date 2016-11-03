@@ -10,7 +10,7 @@ from math import ceil
 
 import yaml
 
-from bzt import ToolError, TaurusConfigError
+from bzt import ToolError, TaurusConfigError, TaurusInternalException
 from bzt.jmx import JMX
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.blazemeter import CloudProvisioning
@@ -107,15 +107,15 @@ class TestJMeterExecutor(BZTestCase):
 
     def test_not_jmx(self):
         self.obj.execution = {"scenario": {"script": __file__}}
-        self.assertRaises(RuntimeError, self.obj.prepare)
+        self.assertRaises(TaurusInternalException, self.obj.prepare)
 
     def test_broken_xml(self):
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/broken.jmx"}})
-        self.assertRaises(RuntimeError, self.obj.prepare)
+        self.assertRaises(TaurusInternalException, self.obj.prepare)
 
     def test_not_jmx_xml(self):
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/not-jmx.xml"}})
-        self.assertRaises(RuntimeError, self.obj.prepare)
+        self.assertRaises(TaurusInternalException, self.obj.prepare)
 
     def test_requests(self):
         self.configure(json.loads(open(__dir__() + "/../json/get-post.json").read()))
@@ -999,7 +999,7 @@ class TestJMeterExecutor(BZTestCase):
                         "structure": {
                             "one": 2,
                             "two": "1"}}}]}})
-        self.assertRaises(ValueError, self.obj.prepare)
+        self.assertRaises(TaurusInternalException, self.obj.prepare)
         jmx = JMX(self.obj.original_jmx)
         selector = 'stringProp[name="Argument.value"]'
         self.assertTrue(all(not jprop.text.startswith('defaultdict') for jprop in jmx.get(selector)))

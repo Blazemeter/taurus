@@ -585,9 +585,9 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         max_buffer_len = self.settings.get("max-buffer-len", self.max_buffer_len)
         try:  # for max_buffer_len == float('inf')
             self.max_buffer_len = dehumanize_time(max_buffer_len)
-        except ValueError as verr:
+        except TaurusInternalException as exc:
             self.log.debug("Exception in dehumanize_time(%s)" % max_buffer_len)
-            if str(verr).find('inf') != -1:
+            if str(exc).find('inf') != -1:
                 self.max_buffer_len = max_buffer_len
             else:
                 raise TaurusConfigError("Wrong 'max-buffer-len' value: %s" % max_buffer_len)
