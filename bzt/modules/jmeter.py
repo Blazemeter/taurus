@@ -1351,7 +1351,7 @@ class JMeterScenarioBuilder(JMX):
     def smart_time(any_time):
         try:
             smart_time = int(1000 * dehumanize_time(any_time))
-        except ValueError:
+        except TaurusInternalException:
             smart_time = any_time
 
         return smart_time
