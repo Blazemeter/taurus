@@ -201,7 +201,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
             runner_class = MochaTester
             runner_config.merge(self.settings.get("selenium-tools").get("mocha"))
         else:
-            raise TaurusConfigError("Unsupported script type: %s", script_type)
+            raise TaurusConfigError("Unsupported script type: %s" % script_type)
 
         runner_config["script"] = script_path
         runner_config["script-type"] = script_type
@@ -247,13 +247,13 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
             raise TaurusConfigError("Nothing to test, no files were provided in scenario")
 
         if not os.path.exists(script_path):
-            raise TaurusConfigError("Script %s doesn't exist", script_path)
+            raise TaurusConfigError("Script '%s' doesn't exist" % script_path)
 
         if "language" in self.execution:
             lang = self.execution["language"]
             if lang not in self.SUPPORTED_TYPES:
                 msg = "Language '%s' is not supported. Supported languages are: %s"
-                raise TaurusConfigError(msg, lang, self.SUPPORTED_TYPES)
+                raise TaurusConfigError(msg % (lang, self.SUPPORTED_TYPES))
             self.log.debug("Using script type: %s", lang)
             return lang
 
@@ -277,7 +277,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         elif '.js' in file_types:
             script_type = 'js-mocha'
         else:
-            raise TaurusConfigError("Unsupported script type: %s", script_path)
+            raise TaurusConfigError("Unsupported script type: %s" % script_path)
 
         self.log.debug("Detected script type: %s", script_type)
 
@@ -297,7 +297,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
             if not self.virtual_display.is_alive():
                 self.log.info("Virtual display out: %s", self.virtual_display.stdout)
                 self.log.warning("Virtual display err: %s", self.virtual_display.stderr)
-                raise TaurusInternalException("Virtual display failed: %s", self.virtual_display.return_code)
+                raise TaurusInternalException("Virtual display failed: %s" % self.virtual_display.return_code)
 
     def check(self):
         """
@@ -385,7 +385,7 @@ class AbstractTestRunner(object):
         self.executor = executor
         self.scenario = executor.scenario
         self.load = executor.get_load()
-        self.script = self.settings.get("script", TaurusConfigError("Script not passed to runner %s", self))
+        self.script = self.settings.get("script", TaurusConfigError("Script not passed to runner %s" % self))
         self.artifacts_dir = self.settings.get("artifacts-dir")
         self.log = executor.log.getChild(self.__class__.__name__)
         self.opened_descriptors = []
@@ -412,7 +412,7 @@ class AbstractTestRunner(object):
                     std_err = fds.read()
                 self.is_failed = True
                 msg = "Test runner %s (%s) has failed with retcode %s \n %s"
-                raise ToolError(msg, self.executor.label, self.__class__.__name__, ret_code, std_err.strip())
+                raise ToolError(msg % (self.executor.label, self.__class__.__name__, ret_code, std_err.strip()))
             return True
         return False
 
@@ -512,7 +512,7 @@ class JavaTestRunner(AbstractTestRunner):
             self.log.debug("javac exit code: %s", ret_code)
             with open(javac_err.name) as err_file:
                 out = err_file.read()
-            raise ToolError("Javac exited with code: %s\n %s", ret_code, out.strip())
+            raise ToolError("Javac exited with code: %s\n %s" % (ret_code, out.strip()))
 
         self.log.info("Compiling .java files completed")
 
@@ -545,7 +545,7 @@ class JavaTestRunner(AbstractTestRunner):
         if ret_code != 0:
             with open(jar_err.name) as err_file:
                 out = err_file.read()
-            raise ToolError("Jar exited with code %s\n%s", ret_code, out.strip())
+            raise ToolError("Jar exited with code %s\n%s" % (ret_code, out.strip()))
 
         self.log.info("Making .jar file completed")
 
@@ -967,7 +967,7 @@ class JUnitJar(RequiredTool):
         self.log.info("Installed JUnit successfully")
 
         if not self.check_if_installed():
-            raise ToolError("Unable to run %s after installation!", self.tool_name)
+            raise ToolError("Unable to run %s after installation!" % self.tool_name)
 
 
 class TestNGJar(RequiredTool):
@@ -999,7 +999,7 @@ class JavaC(RequiredTool):
             return False
 
     def install(self):
-        raise ToolError("The %s is not operable or not available. Consider installing it", self.tool_name)
+        raise ToolError("The %s is not operable or not available. Consider installing it" % self.tool_name)
 
 
 class RSpec(RequiredTool):
@@ -1016,7 +1016,7 @@ class RSpec(RequiredTool):
             return False
 
     def install(self):
-        raise ToolError("The %s is not operable or not available. Consider installing it", self.tool_name)
+        raise ToolError("The %s is not operable or not available. Consider installing it" % self.tool_name)
 
 
 class Ruby(RequiredTool):
@@ -1261,7 +1261,7 @@ from selenium.common.exceptions import NoAlertPresentException
         browsers = ["Firefox", "Chrome", "Ie", "Opera"]
         browser = self.scenario.get("browser", "Firefox")
         if browser not in browsers:
-            raise TaurusConfigError("Unsupported browser name: %s", browser)
+            raise TaurusConfigError("Unsupported browser name: %s" % browser)
 
         setup_method_def = self.gen_decorator_statement('classmethod')
         setup_method_def.append(self.gen_method_definition("setUpClass", ["cls"]))

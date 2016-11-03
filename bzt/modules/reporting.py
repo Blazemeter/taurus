@@ -391,7 +391,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
                 etree_obj.write(_fds, xml_declaration=True, encoding="UTF-8", pretty_print=True)
 
         except BaseException:
-            raise TaurusInternalException("Cannot create file %s", self.report_file_path)
+            raise TaurusInternalException("Cannot create file %s" % self.report_file_path)
 
     def process_pass_fail(self):
         """

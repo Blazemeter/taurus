@@ -65,7 +65,7 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         retcode = self.pbench.process.poll()
         if retcode is not None:
             if retcode != 0:
-                raise ToolError("Phantom-benchmark exit code: %s", retcode)
+                raise ToolError("Phantom-benchmark exit code: %s" % retcode)
 
             return True
 
@@ -248,7 +248,7 @@ class PBenchTool(object):
         try:
             subprocess.check_call(cmdline, stdout=subprocess.PIPE)
         except CalledProcessError as exc:
-            raise ToolError("Config check has failed: %s", exc)
+            raise ToolError("Config check has failed: %s" % exc)
 
     def start(self, config_file):
         cmdline = [self.path, 'run', config_file]
@@ -259,7 +259,7 @@ class PBenchTool(object):
                                                  stdout=stdout,
                                                  stderr=stderr)
         except OSError as exc:
-            raise ToolError("Failed to start phantom-benchmark utility: %s (%s)", exc, cmdline)
+            raise ToolError("Failed to start phantom-benchmark utility: %s (%s)" % (exc, cmdline))
 
     def _generate_payload_inner(self, scenario):
         requests = scenario.get_requests()
@@ -288,7 +288,7 @@ class PBenchTool(object):
             body = request.body
         elif request.body:
             msg = "Cannot handle 'body' option of type %s: %s"
-            raise TaurusConfigError(msg, type(request.body, request.body))
+            raise TaurusConfigError(msg % (type(request.body), request.body))
 
         if body:
             headers.merge({"Content-Length": len(body)})
@@ -491,7 +491,7 @@ class Scheduler(object):
 
             parts = line.split(b(' '))
             if len(parts) < 2:
-                raise TaurusInternalException("Wrong format for meta-info line: %s", line)
+                raise TaurusInternalException("Wrong format for meta-info line: %s" % line)
 
             payload_len, marker = parts
             marker = marker.decode()
@@ -586,7 +586,7 @@ class PBenchKPIReader(ResultsReader):
                 cnn = mcs2sec(row["Connect"])
                 # NOTE: actually we have precise send and receive time here...
             except:
-                raise ToolError("PBench reader: failed record: %s", row)
+                raise ToolError("PBench reader: failed record: %s" % row)
 
             if row["opretcode"] != "0":
                 error = strerror(int(row["opretcode"]))
