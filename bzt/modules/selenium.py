@@ -995,7 +995,7 @@ class JavaC(RequiredTool):
             output = subprocess.check_output(["javac", '-version'], stderr=subprocess.STDOUT)
             self.log.debug("%s output: %s", self.tool_name, output)
             return True
-        except:
+        except BaseException:
             return False
 
     def install(self):
@@ -1012,7 +1012,7 @@ class RSpec(RequiredTool):
             output = subprocess.check_output(["rspec", '-version'], stderr=subprocess.STDOUT)
             self.log.debug("%s output: %s", self.tool_name, output)
             return True
-        except:
+        except BaseException:
             return False
 
     def install(self):
@@ -1029,7 +1029,7 @@ class Ruby(RequiredTool):
             output = subprocess.check_output([self.tool_path, '--version'], stderr=subprocess.STDOUT)
             self.log.debug("%s output: %s", self.tool_name, output)
             return True
-        except:
+        except BaseException:
             return False
 
     def install(self):
@@ -1051,7 +1051,7 @@ class Node(RequiredTool):
                 self.log.debug("%s output: %s", candidate, output)
                 self.executable = candidate
                 return True
-            except:
+            except BaseException:
                 self.log.debug("%r is not installed", candidate)
                 continue
         return False
@@ -1077,7 +1077,7 @@ class NPM(RequiredTool):
                 self.log.debug("%s output: %s", candidate, output)
                 self.executable = candidate
                 return True
-            except:
+            except BaseException:
                 self.log.debug("%r is not installed", candidate)
                 continue
         return False
@@ -1117,7 +1117,7 @@ class NPMPackage(RequiredTool):
             output = subprocess.check_output(cmdline, env=env, stderr=subprocess.STDOUT)
             self.log.debug("%s check output: %s", self.package_name, output)
             return True
-        except:
+        except BaseException:
             self.log.debug("%s check failed: %s", self.package_name, traceback.format_exc())
             return False
 
@@ -1127,7 +1127,7 @@ class NPMPackage(RequiredTool):
             output = subprocess.check_output(cmdline, stderr=subprocess.STDOUT)
             self.log.debug("%s install output: %s", self.tool_name, output)
             return True
-        except:
+        except BaseException:
             self.log.debug("%s install failed: %s", self.package_name, traceback.format_exc())
             return False
 
