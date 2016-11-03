@@ -135,6 +135,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         return False
 
     def resource_files(self):
+        self.scenario = self.get_scenario()
         self.__setup_script()
         return [self.script]
 

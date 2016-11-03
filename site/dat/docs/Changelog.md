@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.4 (next)
+ - fix Locust crash when used with 'requests'-style scenario and cloud provisioning
+
 ## 1.7.3 <sup>1 nov 2016</sup>
  - add TestNG-based runner for Selenium tests
  - add `content-encoding` request- and scenario-level option to JMeter
