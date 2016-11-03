@@ -559,7 +559,10 @@ class Configuration(BetterDict):
         """
         self.log.debug("Configs: %s", configs)
         for config_file in configs:
-            config = self.__read_file(config_file)[0]
+            try:
+                config = self.__read_file(config_file)[0]
+            except IOError as exc:
+                raise TaurusConfigError("Error when '%s' config file reading: %s" % (config_file, exc))
 
             self.merge(config)
 
