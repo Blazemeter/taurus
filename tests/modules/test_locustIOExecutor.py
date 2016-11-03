@@ -132,7 +132,7 @@ class TestLocustIOExecutor(BZTestCase):
             }
         })
         resource_files = self.obj.resource_files()
-        self.assertEqual(1, len(resource_files))
+        self.assertEqual(0, len(resource_files))
 
     def test_fail_on_zero_results(self):
         if six.PY3:

@@ -1,5 +1,5 @@
 """
-Module holds all stuff regarding Grinder tool usage
+Module holds all stuff regarding Locust tool usage
 
 Copyright 2015 BlazeMeter Inc.
 
@@ -136,8 +136,11 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def resource_files(self):
         self.scenario = self.get_scenario()
-        self.__setup_script()
-        return [self.script]
+        if "script" in self.scenario:
+            self.__setup_script()
+            return [self.script]
+        else:
+            return []
 
     def __tests_from_requests(self):
         filename = self.engine.create_artifact("generated_locust", ".py")
@@ -153,7 +156,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 self.script = self.__tests_from_requests()
             else:
                 msg = "There must be a script file or requests for its generation "
-                msg += "to run Grinder tool (%s)" % self.execution.get('scenario')
+                msg += "to run Locust (%s)" % self.execution.get('scenario')
                 raise TaurusConfigError(msg)
 
     def shutdown(self):
