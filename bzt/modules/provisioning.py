@@ -19,7 +19,9 @@ limitations under the License.
 import sys
 import datetime
 import time
+import traceback
 
+from bzt import ToolError
 from bzt.engine import Provisioning
 from bzt.utils import dehumanize_time
 from bzt.six import reraise
@@ -115,7 +117,8 @@ class Local(Provisioning):
                 try:
                     executor.shutdown()
                 except BaseException as exc:
-                    self.log.error("Exception in shutdown of %s: %s" % (executor.__class__.__name__, exc))
+                    msg = "Exception in shutdown of %s: %s %s"
+                    self.log.debug(msg, executor.__class__.__name__, exc, traceback.format_exc())
                     if not exc_info:
                         exc_info = sys.exc_info()
         if exc_info:
@@ -133,9 +136,10 @@ class Local(Provisioning):
                     executor.post_process()
                     if executor in self.engine.started and not executor.has_results():
                         msg = "Empty results, most likely %s (%s) failed"
-                        raise RuntimeWarning(msg % (executor.label, executor.__class__.__name__))
+                        raise ToolError(msg % (executor.label, executor.__class__.__name__))
                 except BaseException as exc:
-                    self.log.debug("Exception in post_process of %s: %s" % (executor.__class__.__name__, exc))
+                    msg = "Exception in post_process of %s: %s %s"
+                    self.log.debug(msg, executor.__class__.__name__, exc, traceback.format_exc())
                     if not exc_info:
                         exc_info = sys.exc_info()
         if exc_info:

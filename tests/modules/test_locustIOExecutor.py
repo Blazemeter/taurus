@@ -2,7 +2,7 @@ import logging
 import sys
 import time
 
-from bzt import six
+from bzt import six, ToolError
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.locustio import LocustIOExecutor, SlavesReader
 from bzt.modules.provisioning import Local
@@ -116,6 +116,24 @@ class TestLocustIOExecutor(BZTestCase):
         resource_files = self.obj.resource_files()
         self.assertEqual(1, len(resource_files))
 
+    def test_resource_files_requests(self):
+        if six.PY3:
+            logging.warning("No locust available for python 3")
+
+        self.obj.execution.merge({
+            "concurrency": 1,
+            "iterations": 10,
+            "hold-for": 30,
+            "scenario": {
+                "default-address": "http://blazedemo.com",
+                "requests": [
+                    "/",
+                ]
+            }
+        })
+        resource_files = self.obj.resource_files()
+        self.assertEqual(0, len(resource_files))
+
     def test_fail_on_zero_results(self):
         if six.PY3:
             logging.warning("No locust available for python 3")
@@ -136,7 +154,7 @@ class TestLocustIOExecutor(BZTestCase):
         prov.engine = self.obj.engine
         prov.executors = [self.obj]
         self.obj.engine.provisioning = prov
-        self.assertRaises(RuntimeWarning, self.obj.engine.provisioning.post_process)
+        self.assertRaises(ToolError, self.obj.engine.provisioning.post_process)
 
     def test_requests_minimal(self):
         self.obj.engine.config.merge({

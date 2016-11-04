@@ -1,3 +1,4 @@
+from bzt import TaurusConfigError
 from bzt.modules.proxy2jmx import Proxy2JMX
 from bzt.modules.selenium import SeleniumExecutor
 from tests import BZTestCase
@@ -23,7 +24,7 @@ class TestProxy2JMX(BZTestCase):
         obj.engine = EngineEmul()
         obj.engine.config.merge({})
         obj.settings = obj.engine.config.get('recorder')
-        self.assertRaises(ValueError, obj.prepare)
+        self.assertRaises(TaurusConfigError, obj.prepare)
 
     def test_full(self):
         obj = Proxy2JMXEmul()

@@ -29,6 +29,7 @@ RUN apt-get -y update \
     libyaml-dev \
     siege \
     tsung \
+    apache2-utils \
     phantom \
     phantom-ssl \
     firefox \

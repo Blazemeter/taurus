@@ -135,7 +135,7 @@ class CLI(object):
             cli_aliases = self.engine.config.get('cli-aliases')
             al_config = cli_aliases.get(alias, None)
             if al_config is None:
-                raise TaurusConfigError("'%s' not found in aliases: %s", alias, cli_aliases.keys())
+                raise TaurusConfigError("'%s' not found in aliases: %s" % (alias, cli_aliases.keys()))
             self.engine.config.merge(al_config)
 
         if self.options.option:
@@ -209,15 +209,15 @@ class CLI(object):
 
     def __handle_taurus_exception(self, exc, log_level):
         if isinstance(exc, TaurusConfigError):
-            self.log.log(log_level, "Wrong configuration: %s", exc)
+            self.log.log(log_level, "Config Error: %s", exc)
         elif isinstance(exc, TaurusInternalException):
-            self.log.log(log_level, "Internal error: %s", exc)
+            self.log.log(log_level, "Internal Error: %s", exc)
         elif isinstance(exc, ToolError):
-            self.log.log(log_level, "External tool error: %s", exc)
+            self.log.log(log_level, "Child Process Error: %s", exc)
         elif isinstance(exc, TaurusNetworkError):
-            self.log.log(log_level, "Connection error: %s", exc)
+            self.log.log(log_level, "Network Error: %s", exc)
         else:
-            raise ValueError("Unknown Taurus exception %s: %s", type(exc), exc)
+            raise ValueError("Unknown Taurus exception %s: %s" % (type(exc), exc))
 
     def __get_jmx_shorthands(self, configs):
         """

@@ -20,7 +20,6 @@ import json
 import logging
 import os
 import platform
-import re
 import sys
 import time
 import traceback
@@ -33,7 +32,7 @@ from ssl import SSLError
 import yaml
 from urwid import Pile, Text
 
-from bzt import ManualShutdown
+from bzt import ManualShutdown, TaurusInternalException, TaurusConfigError, TaurusNetworkError
 from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
 from bzt.modules.chrome import ChromeProfiler
@@ -49,7 +48,7 @@ def send_with_retry(method):
     @wraps(method)
     def _impl(self, *args, **kwargs):
         if not isinstance(self, BlazeMeterUploader):
-            raise ValueError("send_with_retry should only be applied to BlazeMeterUploader methods")
+            raise TaurusInternalException("send_with_retry should only be applied to BlazeMeterUploader methods")
 
         try:
             method(self, *args, **kwargs)
@@ -672,13 +671,13 @@ class CloudTaurusTest(BaseCloudTest):
                 return location_id
 
         self.log.warning("List of supported locations for you is: %s", sorted(available_locations.keys()))
-        raise ValueError("No sandbox or default location available, please specify locations manually")
+        raise TaurusConfigError("No sandbox or default location available, please specify locations manually")
 
     def _check_locations(self, locations, available_locations):
         for location in locations:
             if location not in available_locations:
                 self.log.warning("List of supported locations for you is: %s", sorted(available_locations.keys()))
-                raise ValueError("Invalid location requested: %s" % location)
+                raise TaurusConfigError("Invalid location requested: %s" % location)
 
     def prepare_cloud_config(self, engine_config):
         config = copy.deepcopy(engine_config)
@@ -699,6 +698,13 @@ class CloudTaurusTest(BaseCloudTest):
             elif not config[key]:
                 config.pop(key)
 
+        self.cleanup_defaults(config)
+
+        assert isinstance(config, Configuration)
+        return config
+
+    @staticmethod
+    def cleanup_defaults(config):
         # cleanup configuration from empty values
         default_values = {
             'concurrency': None,
@@ -710,11 +716,16 @@ class CloudTaurusTest(BaseCloudTest):
             'files': []
         }
         for execution in config[ScenarioExecutor.EXEC]:
+            if isinstance(execution['concurrency'], dict):
+                execution['concurrency'] = {k: v for k, v in iteritems(execution['concurrency']) if v is not None}
+
+            if not execution['concurrency']:
+                execution['concurrency'] = None
+
             for key, value in iteritems(default_values):
                 if key in execution and execution[key] == value:
                     execution.pop(key)
 
-        assert isinstance(config, Configuration)
         return config
 
     def resolve_test(self, taurus_config, rfiles):
@@ -801,13 +812,13 @@ class CloudCollectionTest(BaseCloudTest):
                 return location_id
 
         self.log.warning("List of supported locations for you is: %s", sorted(available_locations.keys()))
-        raise ValueError("No sandbox or default location available, please specify locations manually")
+        raise TaurusConfigError("No sandbox or default location available, please specify locations manually")
 
     def _check_locations(self, locations, available_locations):
         for location in locations:
             if location not in available_locations:
                 self.log.warning("List of supported locations for you is: %s", sorted(available_locations.keys()))
-                raise ValueError("Invalid location requested: %s" % location)
+                raise TaurusConfigError("Invalid location requested: %s" % location)
 
     def prepare_cloud_config(self, engine_config):
         config = copy.deepcopy(engine_config)
@@ -984,9 +995,9 @@ class BlazeMeterClient(object):
                        len(resp) / 1024.0 if resp else 0)
         try:
             return json.loads(resp) if len(resp) else {}
-        except ValueError:
-            self.log.warning("Non-JSON response from API: %s", resp)
-            raise
+        except ValueError as exc:
+            self.log.debug('Response: %s', resp)
+            raise TaurusNetworkError("Non-JSON response from API: %s" % exc)
 
     def upload_collection_resources(self, resource_files, draft_id):
         url = self.address + "/api/latest/web/elfinder/%s" % draft_id
@@ -1001,7 +1012,8 @@ class BlazeMeterClient(object):
         hdr = {"Content-Type": str(body.get_content_type())}
         resp = self._request(url, body.form_as_bytes(), headers=hdr)
         if "error" in resp:
-            raise ValueError("Can't upload resource files")
+            self.log.debug('Response: %s', resp)
+            raise TaurusNetworkError("Can't upload resource files")
 
     def get_collections(self):
         resp = self._request(self.address + "/api/latest/collections")
@@ -1158,7 +1170,8 @@ class BlazeMeterClient(object):
 
         if len(matching) > 1:
             self.log.warning("Several projects IDs matched with '%s': %s", proj_name, matching)
-            raise ValueError("Project name is ambiguous, please use project ID instead of name to distinguish it")
+            msg = "Project name is ambiguous, please use project ID instead of name to distinguish it"
+            raise TaurusConfigError(msg)
         elif len(matching) == 1:
             return matching[0]
         else:
@@ -1281,7 +1294,8 @@ class BlazeMeterClient(object):
             for dpoint in data_buffer:
                 time_stamp = dpoint[DataPoint.TIMESTAMP]
                 for label, kpi_set in iteritems(dpoint[DataPoint.CURRENT]):
-                    report_item = report_items.get(label, ValueError('Cumulative KPISet non-consistent'))
+                    exc = TaurusInternalException('Cumulative KPISet non-consistent')
+                    report_item = report_items.get(label, exc)
                     report_item['intervals'].append(self.__get_interval(kpi_set, time_stamp))
 
         report_items = [report_items[key] for key in sorted(report_items.keys())]  # convert dict to list
@@ -1324,7 +1338,7 @@ class BlazeMeterClient(object):
         response = self._request(url, self.__get_kpi_body(data_buffer, is_final), headers=hdr)
 
         if response and 'response_code' in response and response['response_code'] != 200:
-            raise RuntimeError("Failed to feed data, response code %s" % response['response_code'])
+            raise TaurusNetworkError("Failed to feed data, response code %s" % response['response_code'])
 
         if response and 'result' in response and is_check_response:
             result = response['result']['session']
@@ -1438,7 +1452,7 @@ class BlazeMeterClient(object):
 
         :type filename: str
         :type contents: str
-        :raise IOError:
+        :raise TaurusNetworkError:
         """
         body = MultiPartForm()
 
@@ -1452,7 +1466,7 @@ class BlazeMeterClient(object):
         hdr = {"Content-Type": str(body.get_content_type())}
         response = self._request(url, body.form_as_bytes(), headers=hdr)
         if not response['result']:
-            raise IOError("Upload failed: %s" % response)
+            raise TaurusNetworkError("Upload failed: %s" % response)
 
     def get_master(self):
         req = self._request(self.address + '/api/latest/masters/%s' % self.master_id)
@@ -1584,8 +1598,8 @@ class MasterProvisioning(Provisioning):
             if base in rbases:
                 index = rbases.index(base)
                 if path != rpaths[index]:
-                    message = 'Resource "%s" occurs more than one time, rename to avoid data loss' % base
-                    raise ValueError(message)
+                    msg = 'Resource "%s" occurs more than one time, rename to avoid data loss'
+                    raise TaurusConfigError(msg % base)
 
         prepared_files = self.__pack_dirs(rfiles)
         replace_in_config(self.engine.config, rfiles, [os.path.basename(f) for f in prepared_files], log=self.log)
@@ -1690,7 +1704,8 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         new_reporting = []
         for index, reporter in enumerate(reporting):
             reporter = ensure_is_dict(reporting, index, "module")
-            cls = reporter.get('module', ValueError())
+            exc = TaurusConfigError("'module' attribute not found in %s" % reporter)
+            cls = reporter.get('module', exc)
             if cls == 'blazemeter':
                 self.log.warning("Explicit blazemeter reporting is skipped for cloud")
             else:
@@ -1704,7 +1719,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.client.timeout = dehumanize_time(self.settings.get("timeout", self.client.timeout))
         self.client.delete_files_before_test = self.settings.get("delete-test-files", True)
         if not self.client.token:
-            raise ValueError("You must provide API token to use cloud provisioning")
+            raise TaurusConfigError("You must provide API token to use cloud provisioning")
 
     def startup(self):
         super(CloudProvisioning, self).startup()

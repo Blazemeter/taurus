@@ -106,3 +106,11 @@ execution:
     requests:
       - url: http://blazedemo.com/
         label: tsung
+
+- executor: ab
+  concurrency: 1
+  hold-for: 1m
+  scenario:
+    requests:
+      - url: http://blazedemo.com/
+        label: ab

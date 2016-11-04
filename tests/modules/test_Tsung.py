@@ -3,6 +3,7 @@ import time
 import unittest
 from os import path
 
+from bzt import TaurusConfigError, ToolError
 from bzt.modules.tsung import TsungExecutor, TsungStatsReader, TsungConfig, Tsung
 from bzt.six import etree
 from bzt.utils import EXE_SUFFIX, BetterDict, is_windows
@@ -27,12 +28,12 @@ class TestTsungExecutor(BZTestCase):
 
     def test_prepare_no_script_no_requests(self):
         self.obj.execution.merge({"scenario": {}})
-        self.assertRaises(ValueError, self.obj.prepare)
+        self.assertRaises(TaurusConfigError, self.obj.prepare)
 
     def test_check_install(self):
         self.obj.settings.merge({"path": "*"})
         self.obj.execution.merge({"scenario": {"script": get_res_path("http_simple.xml")}})
-        self.assertRaises(RuntimeError, self.obj.prepare)
+        self.assertRaises(ToolError, self.obj.prepare)
 
     def test_script(self):
         self.obj.execution.merge({"scenario": {"script": get_res_path("http_simple.xml")}})
@@ -70,7 +71,7 @@ class TestTsungExecutor(BZTestCase):
                 "requests": ["/"]
             }
         })
-        self.assertRaises(ValueError, self.obj.prepare)
+        self.assertRaises(TaurusConfigError, self.obj.prepare)
 
     def test_full_requests(self):
         self.obj.execution.merge({
@@ -116,7 +117,7 @@ class TestTsungExecutor(BZTestCase):
                 "requests": [],
             }
         })
-        self.assertRaises(ValueError, self.obj.prepare)
+        self.assertRaises(TaurusConfigError, self.obj.prepare)
 
     def test_multiexec_controller_id(self):
         self.obj.execution.merge({
@@ -376,6 +377,7 @@ class TestStatsReader(BZTestCase):
         obj = TsungStatsReader(stats_basedir, logging.getLogger(''))
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 16)
+
 
 @unittest.skipIf(is_windows(), "Tsung is not supported in Windows")
 class TestTool(BZTestCase):
