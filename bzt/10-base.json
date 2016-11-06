@@ -52,7 +52,8 @@
         "jpgc-json",
         "jpgc-perfmon",
         "jpgc-prmctl",
-        "jpgc-tst"]
+        "jpgc-tst"
+      ]
     },
     "jtl-loader": "bzt.modules.jmeter.JMeterJTLLoaderExecutor",
     "grinder": {
@@ -66,7 +67,7 @@
       "class": "bzt.modules.gatling.GatlingExecutor",
       "properties": {
         "gatling.data.file.bufferSize": 256
-     }
+      }
     },
     "shellexec": {
       "class": "bzt.modules.shellexec.ShellExecutor"
@@ -222,6 +223,11 @@
     "func": {
       "settings": {
         "aggregator": "functional-consolidator"
+      }
+    },
+    "sequential": {
+      "local": {
+        "sequential-execution": true
       }
     }
   }
