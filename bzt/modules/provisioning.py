@@ -17,14 +17,16 @@ limitations under the License.
 """
 
 import sys
-import datetime
 import time
 import traceback
 
+import datetime
+
 from bzt import ToolError
 from bzt.engine import Provisioning
-from bzt.utils import dehumanize_time
+from bzt.six import numeric_types
 from bzt.six import reraise
+from bzt.utils import dehumanize_time
 
 
 class Local(Provisioning):
@@ -71,18 +73,35 @@ class Local(Provisioning):
 
     def startup(self):
         self.start_time = time.time()
+        prev_executor = None
         for executor in self.executors:
-            start_shift = self._get_start_shift(executor.execution.get('start-at', ''))
-            delay = dehumanize_time(executor.execution.get('delay', 0))
-            executor.delay = delay + start_shift
-            self.log.debug("Delay setup: %s(start-at) + %s(delay) = %s", start_shift, delay, executor.delay)
+            start_at = executor.execution.get('start-at', None)
+            if start_at == 'after-prev':
+                executor.delay = prev_executor
+            elif start_at:
+                start_shift = self._get_start_shift(start_at)
+                delay = dehumanize_time(executor.execution.get('delay', 0))
+                executor.delay = delay + start_shift
+                self.log.debug("Delay setup: %s(start-at) + %s(delay) = %s", start_shift, delay, executor.delay)
+
+            prev_executor = executor
 
     def _start_modules(self):
+        prev_executor = None
         for executor in self.executors:
-            if executor in self.engine.prepared and executor not in self.engine.started:
-                if time.time() >= self.start_time + executor.delay:  # time to start executor
+            if executor in self.engine.prepared and executor not in self.engine.started:  # needs to start
+                if isinstance(executor.delay, numeric_types):
+                    timed_start = time.time() >= self.start_time + executor.delay
+                else:
+                    timed_start = False
+
+                relies_on_prev = prev_executor and executor.delay == prev_executor
+                start_from_prev = relies_on_prev and prev_executor in self.finished_modules
+                if not executor.delay or start_from_prev or timed_start:
                     executor.startup()
                     self.engine.started.append(executor)
+
+            prev_executor = executor
 
     def check(self):
         """
