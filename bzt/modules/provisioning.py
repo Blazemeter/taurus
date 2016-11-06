@@ -75,7 +75,7 @@ class Local(Provisioning):
         self.start_time = time.time()
         prev_executor = 0
         for executor in self.executors:
-            if self.settings.get("sequential-execution", False):
+            if self.settings.get("sequential", False):
                 executor.delay = prev_executor
             else:
                 start_at = executor.execution.get('start-at', None)

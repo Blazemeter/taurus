@@ -91,7 +91,7 @@ execution:
   scenario: my_jmx_file.jmx         # shortest form: only script file name  
 ```
 
-## Startup delay
+## Startup Delay
 
 You can run different executions at different times with `delay` option:
 ```yaml
@@ -135,3 +135,15 @@ Supported time formats are:
 ## Additional Files
 
 When your execution requires additional files (e.g. JARs, certificates etc). you may use `files` option of execution and list paths for files there.
+
+
+## Sequential Execution
+
+By default, Taurus runs items under `execution` in parallel. To switch it into sequential mode, run it with `-sequential` command-line option. This is an alias for this setting:
+
+```yaml
+---
+modules:
+  local:
+    sequential: true
+```

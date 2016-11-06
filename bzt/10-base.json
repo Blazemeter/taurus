@@ -227,7 +227,7 @@
     },
     "sequential": {
       "local": {
-        "sequential-execution": true
+        "sequential": true
       }
     }
   }

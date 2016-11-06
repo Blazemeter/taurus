@@ -88,7 +88,7 @@ class LocalProvisioningTest(BZTestCase):
 
     def test_start_sequential_global(self):
         local = Local()
-        local.settings["sequential-execution"] = True
+        local.settings["sequential"] = True
         local.engine = EngineEmul()
         local.engine.config[ScenarioExecutor.EXEC] = [{}, {}]
         local.engine.config.get("settings")["default-executor"] = "mock"
