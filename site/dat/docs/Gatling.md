@@ -104,11 +104,11 @@ scenarios:
     requests:
     - url: /
       assert:
-      - contain:
-        - .+sometext.+  # expression for assertion (mandatory)
-          subject: body # subject for search (defalut: body)
-          regexp: true  # whether expression is regular (default: false)
-          not: true     # invert condition (default: false)
+      - subject: body # subject for search (defalut: body)
+        regexp: true  # whether expression is regular (default: false)
+        not: true     # invert condition (default: false)
+        contains: # expression list for assertion (mandatory)
+        - .+sometext.+  
       body: 'Some Body Data'
       headers:
         HEADER_11: VALUE_11
