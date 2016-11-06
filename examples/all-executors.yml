@@ -1,6 +1,6 @@
 ---
 modules:
-  selenium:
+  selenium1:
     virtual-display:
       width: 1024
       height: 768
@@ -8,25 +8,123 @@ modules:
 execution:
 
 - executor: jmeter
+  start-at: after-prev
   concurrency: 1
-  hold-for: 1m
+  hold-for: 10s
+  iterations: 10
   scenario:
     requests:
       - url: http://blazedemo.com/
         label: jmeter
 
-- executor: selenium
+- executor: gatling
+  start-at: after-prev
   concurrency: 1
-  hold-for: 1m
+  hold-for: 10s
+  iterations: 10
   scenario:
-    browser: Firefox
     requests:
       - url: http://blazedemo.com/
-        label: selenium-firefox
+        label: gatling
+
+- executor: pbench
+  start-at: after-prev
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  scenario:
+    requests:
+      - url: http://blazedemo.com/
+        label: pbench
+
+- executor: grinder
+  start-at: after-prev
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  scenario:
+    requests:
+      - url: http://blazedemo.com/
+        label: grinder
+
+- executor: siege
+  start-at: after-prev
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  scenario:
+    requests:
+      - url: http://blazedemo.com/?tool=siege
+        label: siege
+
+- executor: locust
+  start-at: after-prev
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  scenario:
+    requests:
+      - url: http://blazedemo.com/
+        label: locust
+
+- executor: tsung
+  start-at: after-prev
+  concurrency: 1
+  hold-for: 10s
+  scenario:
+    requests:
+      - url: http://blazedemo.com/
+        label: tsung
+
+- executor: ab
+  start-at: after-prev
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  scenario:
+    requests:
+      - url: http://blazedemo.com/
+        label: ab
 
 - executor: selenium
+  start-at: after-prev
   concurrency: 1
-  hold-for: 1m
+  hold-for: 10s
+  iterations: 10
+  language: java-junit
+  scenario:
+    script: BOOTH1/Blazedemo.java
+
+- executor: selenium
+  start-at: after-prev
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  language: java-testng
+  scenario:
+    script: selenium/TestNGExample.java
+
+- executor: selenium
+  start-at: after-prev
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  scenario:
+    script: selenium/rspec_example.rb
+
+- executor: selenium
+  start-at: after-prev
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  scenario:
+    script: selenium/mocha_example.js
+
+- executor: selenium
+  start-at: after-prev
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
   scenario:
     browser: Chrome
     requests:
@@ -34,83 +132,13 @@ execution:
         label: selenium-chrome
 
 - executor: selenium
+  start-at: after-prev
   concurrency: 1
-  hold-for: 1m
-  language: java-junit
+  hold-for: 10s
+  iterations: 10
   scenario:
-    script: BOOTH1/Blazedemo.java
-
-- executor: selenium
-  concurrency: 1
-  hold-for: 1m
-  language: java-testng
-  scenario:
-    script: selenium/TestNGExample.java
-
-- executor: selenium
-  concurrency: 1
-  hold-for: 1m
-  scenario:
-    script: selenium/rspec_example.rb
-
-- executor: selenium
-  concurrency: 1
-  hold-for: 1m
-  scenario:
-    script: selenium/mocha_example.js
-
-- executor: gatling
-  concurrency: 1
-  hold-for: 1m
-  scenario:
+    browser: Firefox
     requests:
       - url: http://blazedemo.com/
-        label: gatling
+        label: selenium-firefox
 
-- executor: pbench
-  concurrency: 1
-  hold-for: 1m
-  scenario:
-    requests:
-      - url: http://blazedemo.com/
-        label: pbench
-
-- executor: grinder
-  concurrency: 1
-  hold-for: 1m
-  scenario:
-    requests:
-      - url: http://blazedemo.com/
-        label: grinder
-
-- executor: siege
-  concurrency: 1
-  hold-for: 1m
-  scenario:
-    requests:
-      - url: http://blazedemo.com/?tool=siege
-        label: siege
-
-- executor: locust
-  concurrency: 1
-  hold-for: 1m
-  scenario:
-    requests:
-      - url: http://blazedemo.com/
-        label: locust
-
-- executor: tsung
-  concurrency: 1
-  hold-for: 1m
-  scenario:
-    requests:
-      - url: http://blazedemo.com/
-        label: tsung
-
-- executor: ab
-  concurrency: 1
-  hold-for: 1m
-  scenario:
-    requests:
-      - url: http://blazedemo.com/
-        label: ab

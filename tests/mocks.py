@@ -60,6 +60,8 @@ class ModuleMock(ScenarioExecutor, Provisioning, Reporter, FileLister):
         self.was_check = False
         self.was_postproc = False
 
+        self.is_has_results = False
+
     def prepare(self):
         """
         :raise self.prepare_exc:
@@ -143,6 +145,9 @@ class ModuleMock(ScenarioExecutor, Provisioning, Reporter, FileLister):
         :return:
         """
         return [__file__]
+
+    def has_results(self):
+        return self.is_has_results
 
 
 class MockReader(ResultsReader, AggregatorListener):

@@ -1,9 +1,11 @@
-import datetime
 import time
 
+import datetime
+
+from bzt.engine import ScenarioExecutor
 from bzt.modules.provisioning import Local
 from tests import BZTestCase
-from tests.mocks import EngineEmul
+from tests.mocks import EngineEmul, ModuleMock
 
 
 class ScenarioExecutorEmul(object):
@@ -83,3 +85,26 @@ class LocalProvisioningTest(BZTestCase):
 
         shift = local._get_start_shift('lorem ipsum')
         self.assertEqual(shift, 0)
+
+    def test_start_sequential(self):
+        local = Local()
+        local.engine = EngineEmul()
+        local.engine.config[ScenarioExecutor.EXEC] = [{"start-at": "after-prev"}, {"start-at": "after-prev"}]
+        local.engine.config.get("settings")["default-executor"] = "mock"
+        local.engine.config.get("modules").get("mock")["class"] = ModuleMock.__module__ + "." + ModuleMock.__name__
+
+        local.prepare()
+        local.startup()
+
+        cnt = 0
+        while not local.check():
+            cnt += 1
+
+        self.assertEqual(3, cnt)
+
+        local.shutdown()
+
+        for executor in local.executors:
+            executor.is_has_results = True
+
+        local.post_process()

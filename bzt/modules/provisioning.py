@@ -73,7 +73,7 @@ class Local(Provisioning):
 
     def startup(self):
         self.start_time = time.time()
-        prev_executor = None
+        prev_executor = 0
         for executor in self.executors:
             start_at = executor.execution.get('start-at', None)
             if start_at == 'after-prev':
