@@ -86,10 +86,11 @@ class LocalProvisioningTest(BZTestCase):
         shift = local._get_start_shift('lorem ipsum')
         self.assertEqual(shift, 0)
 
-    def test_start_sequential(self):
+    def test_start_sequential_global(self):
         local = Local()
+        local.settings["sequential-execution"] = True
         local.engine = EngineEmul()
-        local.engine.config[ScenarioExecutor.EXEC] = [{"start-at": "after-prev"}, {"start-at": "after-prev"}]
+        local.engine.config[ScenarioExecutor.EXEC] = [{}, {}]
         local.engine.config.get("settings")["default-executor"] = "mock"
         local.engine.config.get("modules").get("mock")["class"] = ModuleMock.__module__ + "." + ModuleMock.__name__
 

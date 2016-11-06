@@ -23,7 +23,7 @@ import traceback
 import datetime
 
 from bzt import ToolError
-from bzt.engine import Provisioning
+from bzt.engine import Provisioning, SETTINGS
 from bzt.six import numeric_types
 from bzt.six import reraise
 from bzt.utils import dehumanize_time
@@ -75,10 +75,10 @@ class Local(Provisioning):
         self.start_time = time.time()
         prev_executor = 0
         for executor in self.executors:
-            start_at = executor.execution.get('start-at', None)
-            if start_at == 'after-prev':
+            if self.settings.get("sequential-execution", False):
                 executor.delay = prev_executor
-            elif start_at:
+            else:
+                start_at = executor.execution.get('start-at', None)
                 start_shift = self._get_start_shift(start_at)
                 delay = dehumanize_time(executor.execution.get('delay', 0))
                 executor.delay = delay + start_shift
