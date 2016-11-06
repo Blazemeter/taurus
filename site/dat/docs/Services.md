@@ -126,3 +126,10 @@ services:
 
 ## Alternate Provisionings and Services
 If you use alternate provisionings, like [BlazeMeter Cloud](Cloud.md), you might want to specify where to run the service module - at target machine, or on your local machine. For that, use `run-at` option of service modules. The service will be effective only when its `run-at` value match to `provisioning` value. On the cloud images, `provisioning` always has value of `local`. Default value for `run-at` of services is also `local`.
+
+
+## Required Tools Installer
+
+There is small service which helps to check for all possible tools presence on the machine. It is called `install-checker` service. This service, once present in config, will check for all possible tools to be installed on the computer. After that, it will shutdown Taurus without running anything else. 
+
+To invoke this service, just run Taurus like this `bzt -install-tools`. 

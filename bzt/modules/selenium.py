@@ -30,6 +30,7 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister, PythonGenerator
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator, FunctionalSample
+from bzt.modules.services import HavingInstallableTools
 from bzt.six import string_types, text_type, parse
 from bzt.utils import RequiredTool, shell_exec, shutdown_process, JavaVM, TclLibrary, get_files_recursive
 from bzt.utils import dehumanize_time, MirrorsManager, is_windows, BetterDict, get_full_path
@@ -40,7 +41,7 @@ except ImportError:
     from pyvirtualdisplay import Display
 
 
-class AbstractSeleniumExecutor(ScenarioExecutor):
+class AbstractSeleniumExecutor(ScenarioExecutor, HavingInstallableTools):
     """
     Abstract base class for Selenium executors.
 

@@ -2,12 +2,13 @@ import json
 import os
 import zipfile
 
-from bzt.engine import Service, Provisioning
+from bzt import NormalShutdown, ToolError
+from bzt.engine import Service, Provisioning, EngineModule
 from bzt.modules.blazemeter import CloudProvisioning, BlazeMeterClientEmul
-from bzt.modules.services import Unpacker
+from bzt.modules.services import Unpacker, InstallChecker
 from bzt.utils import get_files_recursive
 from tests import BZTestCase, __dir__
-from tests.mocks import EngineEmul
+from tests.mocks import EngineEmul, ModuleMock
 
 
 class TestZipFolder(BZTestCase):
@@ -97,3 +98,18 @@ class TestZipFolder(BZTestCase):
         self.assertFalse(obj.should_run())
         obj.parameters['run-at'] = 'cloud'
         self.assertTrue(obj.should_run())
+
+
+class TestToolInstaller(BZTestCase):
+    def test_regular(self):
+        obj = InstallChecker()
+        obj.engine = EngineEmul()
+        obj.engine.config.get("modules")["base"] = EngineModule.__module__ + "." + EngineModule.__name__
+        obj.engine.config.get("modules")["dummy"] = ModuleMock.__module__ + "." + ModuleMock.__name__
+        self.assertRaises(NormalShutdown, obj.prepare)
+
+    def test_problematic(self):
+        obj = InstallChecker()
+        obj.engine = EngineEmul()
+        obj.engine.config.get("modules")["err"] = "hello there"
+        self.assertRaises(ToolError, obj.prepare)
