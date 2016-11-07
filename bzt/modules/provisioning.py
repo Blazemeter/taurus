@@ -23,7 +23,7 @@ import traceback
 import datetime
 
 from bzt import ToolError
-from bzt.engine import Provisioning, SETTINGS
+from bzt.engine import Provisioning
 from bzt.six import numeric_types
 from bzt.six import reraise
 from bzt.utils import dehumanize_time
@@ -39,7 +39,7 @@ class Local(Provisioning):
         self.finished_modules = []
 
     def _get_start_shift(self, shift):
-        if shift == '':
+        if not shift:
             return 0
 
         time_formats = ['%Y-%m-%d %H:%M:%S',
@@ -53,7 +53,7 @@ class Local(Provisioning):
             except ValueError:
                 continue
             except TypeError:
-                self.log.warning('Start time must be string type ("%s"), ignored', time_format[0])
+                self.log.warning('Start time must be string type ("%s"), ignored "%s"', time_format[0], shift)
                 break
             today = datetime.date.today()
             if today > date.date():
@@ -78,7 +78,7 @@ class Local(Provisioning):
             if self.settings.get("sequential", False):
                 executor.delay = prev_executor
             else:
-                start_at = executor.execution.get('start-at', None)
+                start_at = executor.execution.get('start-at', 0)
                 start_shift = self._get_start_shift(start_at)
                 delay = dehumanize_time(executor.execution.get('delay', 0))
                 executor.delay = delay + start_shift
