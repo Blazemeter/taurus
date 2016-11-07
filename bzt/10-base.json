@@ -226,8 +226,10 @@
       }
     },
     "sequential": {
-      "local": {
-        "sequential": true
+      "modules": {
+        "local": {
+          "sequential": true
+        }
       }
     }
   }
