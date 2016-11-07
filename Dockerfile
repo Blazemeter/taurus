@@ -54,7 +54,7 @@ RUN apt-get -y update \
   && firefox --version && google-chrome-stable --version && /usr/bin/chromedriver --version && geckodriver --version
 
 COPY bzt/resources/chrome_launcher.sh /usr/bin/google-chrome
-RUN chmod +x /usr/local/bin/google-chrome
+RUN chmod +x /usr/bin/google-chrome
 ENV DBUS_SESSION_BUS_ADDRESS=/dev/null
 
 COPY . /tmp/bzt-src
