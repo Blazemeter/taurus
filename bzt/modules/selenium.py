@@ -31,7 +31,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator, FunctionalSample
 from bzt.modules.services import HavingInstallableTools
-from bzt.six import string_types, text_type, parse
+from bzt.six import string_types, text_type, parse, iteritems
 from bzt.utils import RequiredTool, shell_exec, shutdown_process, JavaVM, TclLibrary, get_files_recursive
 from bzt.utils import dehumanize_time, MirrorsManager, is_windows, BetterDict, get_full_path
 
@@ -95,7 +95,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
     MOCHA_NPM_PACKAGE_NAME = "mocha"
     SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME = "selenium-webdriver"
 
-    SUPPORTED_TYPES = ["python-nose", "java-junit", "java-testng", "ruby-rspec", "js-mocha"]
+    SUPPORTED_RUNNERS = ["nose", "junit", "testng", "rspec", "mocha"]
 
     def __init__(self):
         super(SeleniumExecutor, self).__init__()
@@ -179,15 +179,15 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
 
         runner_config = BetterDict()
 
-        if script_type == "python-nose":
+        if script_type == "nose":
             runner_class = NoseTester
             runner_config.merge(self.settings.get("selenium-tools").get("nose"))
-        elif script_type == "java-junit":
+        elif script_type == "junit":
             runner_class = JUnitTester
             runner_config.merge(self.settings.get("selenium-tools").get("junit"))
             runner_config['working-dir'] = self.get_runner_working_dir()
             runner_config['props-file'] = self.engine.create_artifact("runner", ".properties")
-        elif script_type == "java-testng":
+        elif script_type == "testng":
             runner_class = TestNGTester
             runner_config.merge(self.settings.get("selenium-tools").get("testng"))
             runner_config['working-dir'] = self.get_runner_working_dir()
@@ -195,10 +195,10 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
             testng_config = self._get_testng_xml()
             if testng_config:
                 runner_config['testng-xml'] = self.engine.find_file(testng_config)
-        elif script_type == "ruby-rspec":
+        elif script_type == "rspec":
             runner_class = RSpecTester
             runner_config.merge(self.settings.get("selenium-tools").get("rspec"))
-        elif script_type == "js-mocha":
+        elif script_type == "mocha":
             runner_class = MochaTester
             runner_config.merge(self.settings.get("selenium-tools").get("mocha"))
         else:
@@ -250,13 +250,13 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         if not os.path.exists(script_path):
             raise TaurusConfigError("Script '%s' doesn't exist" % script_path)
 
-        if "language" in self.execution:
-            lang = self.execution["language"]
-            if lang not in self.SUPPORTED_TYPES:
-                msg = "Language '%s' is not supported. Supported languages are: %s"
-                raise TaurusConfigError(msg % (lang, self.SUPPORTED_TYPES))
-            self.log.debug("Using script type: %s", lang)
-            return lang
+        if "runner" in self.execution:
+            runner = self.execution["runner"]
+            if runner not in SeleniumExecutor.SUPPORTED_RUNNERS:
+                msg = "Runner '%s' is not supported. Supported runners: %s"
+                raise TaurusConfigError(msg % (runner, SeleniumExecutor.SUPPORTED_RUNNERS))
+            self.log.debug("Using script type: %s", runner)
+            return runner
 
         file_types = set()
 
@@ -268,15 +268,15 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
 
         if '.java' in file_types or '.jar' in file_types:
             if self._get_testng_xml() is not None:
-                script_type = 'java-testng'
+                script_type = 'testng'
             else:
-                script_type = 'java-junit'
+                script_type = 'junit'
         elif '.py' in file_types:
-            script_type = 'python-nose'
+            script_type = 'nose'
         elif '.rb' in file_types:
-            script_type = 'ruby-rspec'
+            script_type = 'rspec'
         elif '.js' in file_types:
-            script_type = 'js-mocha'
+            script_type = 'mocha'
         else:
             raise TaurusConfigError("Unsupported script type: %s" % script_path)
 
@@ -367,6 +367,22 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         self.generated_methods.merge(nose_test.build_source_code())
         nose_test.save(filename)
         return filename
+
+    def install_required_tools(self):
+        self.scenario = BetterDict()
+        runner_classes = {
+            "nose": NoseTester,
+            "junit": JUnitTester,
+            "testng": TestNGTester,
+            "rspec": RSpecTester,
+            "mocha": MochaTester,
+        }
+        for runner, runner_class in iteritems(runner_classes):
+            runner_config = BetterDict()
+            runner_config.merge(self.settings.get("selenium-tools").get(runner))
+            runner_config.merge({"script": ''})
+            mod = runner_class(runner_config, self)
+            mod.run_checklist()
 
 
 class AbstractTestRunner(object):
@@ -565,7 +581,7 @@ class JUnitTester(JavaTestRunner):
         :type junit_config: BetterDict
         :type executor: SeleniumExecutor
         """
-        self.props_file = junit_config['props-file']
+        self.props_file = junit_config.get('props-file', None)
 
         path_lambda = lambda key, val: get_full_path(junit_config.get(key, val))
         self.junit_path = path_lambda("path", "~/.bzt/selenium-taurus/tools/junit/junit.jar")
@@ -643,7 +659,7 @@ class TestNGTester(JavaTestRunner):
         :type testng_config: BetterDict
         :type executor: SeleniumExecutor
         """
-        self.props_file = testng_config['props-file']
+        self.props_file = testng_config.get('props-file', None)
 
         path_lambda = lambda key, val: get_full_path(testng_config.get(key, val))
         self.testng_path = path_lambda("path", "~/.bzt/selenium-taurus/tools/testng/testng.jar")
