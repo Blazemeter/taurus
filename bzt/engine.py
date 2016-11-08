@@ -140,6 +140,7 @@ class Engine(object):
             self._startup()
             self._wait()
         except BaseException as exc:
+            self.log.debug("%s:\n%s", exc, traceback.format_exc())
             self.stopping_reason = exc
             exc_info = sys.exc_info()
         finally:
@@ -147,6 +148,7 @@ class Engine(object):
             try:
                 self._shutdown()
             except BaseException as exc:
+                self.log.debug("%s:\n%s", exc, traceback.format_exc())
                 if not self.stopping_reason:
                     self.stopping_reason = exc
                 if not exc_info:
@@ -196,8 +198,8 @@ class Engine(object):
             try:
                 if module in self.started:
                     module.shutdown()
-            except BaseException:
-                self.log.debug("Error while shutting down: %s", traceback.format_exc())
+            except BaseException as exc:
+                self.log.debug("%s:\n%s", exc, traceback.format_exc())
                 if not exc_info:
                     exc_info = sys.exc_info()
 
@@ -221,7 +223,7 @@ class Engine(object):
                     if isinstance(exc, KeyboardInterrupt):
                         self.log.debug("Shutdown: %s", exc)
                     else:
-                        self.log.debug("Error while post-processing: %s", exc)
+                        self.log.debug("Shutdown: %s\n%s", exc, traceback.format_exc())
                     if not self.stopping_reason:
                         self.stopping_reason = exc
                     if not exc_info:
@@ -560,7 +562,7 @@ class Configuration(BetterDict):
         self.log.debug("Configs: %s", configs)
         for config_file in configs:
             try:
-                config = self.__read_file(config_file)[0]
+                config = self.__read_file(config_file)
             except IOError as exc:
                 raise TaurusConfigError("Error when '%s' config file reading: %s" % (config_file, exc))
 
@@ -583,10 +585,10 @@ class Configuration(BetterDict):
 
             if first_line.startswith('---'):
                 self.log.debug("Reading %s as YAML", filename)
-                return yaml.load(fds), self.YAML
+                return yaml.load(fds)
             elif first_line.strip().startswith('{'):
                 self.log.debug("Reading %s as JSON", filename)
-                return json.loads(fds.read()), self.JSON
+                return json.loads(fds.read())
             else:
                 raise TaurusConfigError("Cannot detect file format for %s" % filename)
 

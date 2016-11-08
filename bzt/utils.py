@@ -215,8 +215,6 @@ class BetterDict(defaultdict):
             else:
                 self[key] = val
 
-        return
-
     def __ensure_list_type(self, values):
         """
         Ensure that values is a list, convert if needed
