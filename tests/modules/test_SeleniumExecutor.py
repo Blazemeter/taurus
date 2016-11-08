@@ -1101,6 +1101,9 @@ class TestSeleniumStuff(SeleniumTestCase):
         resources = self.obj.resource_files()
         self.assertEqual(len(resources), 4)
 
+    def test_required_tools(self):
+        self.obj.install_required_tools()
+
 
 class TestSeleniumScriptBuilder(SeleniumTestCase):
     def test_build_script(self):
