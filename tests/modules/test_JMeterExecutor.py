@@ -417,6 +417,26 @@ class TestJMeterExecutor(BZTestCase):
         resource_files = self.obj.resource_files()
         self.assertIn(js_file, resource_files)
 
+    def test_resource_files_jsr223s(self):
+        js_file = __dir__() + '/../data/data.js'
+        js_file2 = __dir__() + '/../data/data2.js'
+        self.configure({
+            'execution': {
+                'scenario': {
+                    'requests': [{
+                        'url': 'http://blazedemo.com/',
+                        'jsr223': [{
+                            'language': 'javascript',
+                            'script-file': js_file,
+                        }, {
+                            'language': 'javascript',
+                            'script-file': js_file2,
+                        }]}]}}})
+        resource_files = self.obj.resource_files()
+        self.assertEqual(2, len(resource_files))
+        self.assertIn(js_file, resource_files)
+        self.assertIn(js_file2, resource_files)
+
     def test_http_request_defaults(self):
         self.configure(json.loads(open(__dir__() + "/../json/get-post.json").read()))
         self.obj.prepare()
