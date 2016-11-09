@@ -75,7 +75,8 @@ class Local(Provisioning):
             start_shift = self._get_start_shift(executor.execution.get('start-at', ''))
             delay = dehumanize_time(executor.execution.get('delay', 0))
             executor.delay = delay + start_shift
-            self.log.debug("Delay setup: %s(start-at) + %s(delay) = %s", start_shift, delay, executor.delay)
+            msg = "Delay setup for %s: %s(start-at) + %s(delay) = %s"
+            self.log.debug(msg, executor, start_shift, delay, executor.delay)
 
     def _start_modules(self):
         for executor in self.executors:
