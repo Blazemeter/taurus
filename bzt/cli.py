@@ -199,7 +199,7 @@ class CLI(object):
         elif isinstance(exc, NormalShutdown):
             self.log.log(info_level, "Normal shutdown")
         elif isinstance(exc, HTTPError):
-            msg = "Response from %s: [%s] %s" % (exc.geturl(), exc.code, exc.reason)
+            msg = "Response from %s: [%s] %s %s" % (exc.geturl(), exc.code, exc.reason, exc.read())
             self.log.log(http_level, msg)
         elif isinstance(exc, TaurusException):
             self.__handle_taurus_exception(exc, default_level)

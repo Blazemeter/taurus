@@ -4,6 +4,7 @@
  - fix Locust crash when used with 'requests'-style scenario and cloud provisioning
  - fix JSR223 block handling when using cloud/remote provisioning
  - do not generate Selenium scripts for cloud tests
+ - dump HTTP response body when any kind of HTTP error occurs
 
 ## 1.7.3 <sup>1 nov 2016</sup>
  - add TestNG-based runner for Selenium tests
