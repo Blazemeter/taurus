@@ -35,5 +35,7 @@ echo '{"install-id": "UnitTest"}' > build/etc/bzt.d/99-zinstallID.json
 # run functional tests
 rm -rf ~/.bzt
 ln -sf /etc/bzt.d/50-pbench-enhanced.json build/etc/bzt.d/
+mkdir -p ~/.bzt/selenium-taurus/mocha
+npm install selenium-webdriver@2.53.3 --prefix ~/.bzt/selenium-taurus/mocha
 bzt -install-tools -o settings.artifacts-dir="build/test/%Y-%m-%d_%H-%M-%S.%f"
 bzt examples/all-executors.yml -o settings.artifacts-dir="build/test/%Y-%m-%d_%H-%M-%S.%f" -o modules.console.disable=true -sequential -o modules.selenium.selenium-tools.rspec.interpreter=ruby2.0
