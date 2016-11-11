@@ -1024,7 +1024,8 @@ class RSpec(RequiredTool):
 
     def check_if_installed(self):
         try:
-            output = subprocess.check_output(["rspec", '--version'], stderr=subprocess.STDOUT)
+            rspec_exec = "rspec.bat" if is_windows() else "rspec"
+            output = subprocess.check_output([rspec_exec, '--version'], stderr=subprocess.STDOUT)
             self.log.debug("%s output: %s", self.tool_name, output)
             return True
         except BaseException:

@@ -657,7 +657,6 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
                 break
 
 
-@unittest.skipIf(is_windows(), "Don't test RSpec on Windows")
 class TestSeleniumRSpecRunner(SeleniumTestCase):
     def test_selenium_prepare_rspec(self):
         self.configure({
