@@ -3,7 +3,7 @@
 ## 1.7.4 (next)
  - fix Locust crash when used with 'requests'-style scenario and cloud provisioning
  - fix JSR223 block handling when using cloud/remote provisioning
- - allow sequential executions
+ - allow sequential executions with `-sequential` alias
  - do not generate Selenium scripts for cloud tests
  - add a tool installer service and an `-install-tools` CLI alias
  
