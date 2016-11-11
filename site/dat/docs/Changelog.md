@@ -6,7 +6,8 @@
  - allow sequential executions with `-sequential` alias
  - do not generate Selenium scripts for cloud tests
  - add a tool installer service and an `-install-tools` CLI alias
- 
+ - fix cloud Gatling crash related to script template
+
 ## 1.7.3 <sup>1 nov 2016</sup>
  - add TestNG-based runner for Selenium tests
  - add `content-encoding` request- and scenario-level option to JMeter

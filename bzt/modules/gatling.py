@@ -144,7 +144,7 @@ class GatlingScriptBuilder(object):
         return check_result
 
     def gen_test_case(self):
-        template_path = os.path.join(os.path.dirname(__file__), os.pardir, 'resources', "gatling_script_template.scala")
+        template_path = os.path.join(os.path.dirname(__file__), os.pardir, 'resources', "gatling_script.tpl")
 
         with open(template_path) as template_file:
             template_line = template_file.read()
