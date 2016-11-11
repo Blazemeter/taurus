@@ -15,6 +15,7 @@ before_test:
   - ruby -v
   - gem -v
   - gem install rspec
+  - rspec --version
 
 test_script:
   - "%PYTHON%\\python.exe -m nose tests/ --verbosity 3"
