@@ -29,44 +29,6 @@ from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, shutdown_process,
 
 
 class GatlingScriptBuilder(object):
-    SCRIPT_TEMPLATE = """
-// generated automatically by Taurus
-
-import io.gatling.core.Predef._
-import io.gatling.http.Predef._
-import scala.concurrent.duration._
-
-class %(class_name)s extends Simulation {
-    val _t_concurrency = Integer.getInteger("concurrency", 1).toInt
-    val _t_ramp_up = Integer.getInteger("ramp-up", 0).toInt
-    val _t_hold_for = Integer.getInteger("hold-for", 0).toInt
-    val _t_iterations = Integer.getInteger("iterations")
-
-    val _duration = _t_ramp_up + _t_hold_for
-
-    var httpConf = %(httpConf)s
-    var _scn = scenario("Taurus Scenario")
-
-    var _exec = %(_exec)s
-
-    if (_t_iterations == null)
-        _scn = _scn.forever{_exec}
-     else
-        _scn = _scn.repeat(_t_iterations.toInt){_exec}
-
-    val _users =
-        if (_t_ramp_up > 0)
-            rampUsers(_t_concurrency) over (_t_ramp_up seconds)
-        else
-            atOnceUsers(_t_concurrency)
-
-    var _setUp = setUp(_scn.inject(_users).protocols(httpConf))
-
-    if (_duration > 0)
-        _setUp.maxDuration(_duration)
-}
-""".lstrip()
-
     def __init__(self, load, scenario, parent_logger, class_name):
         super(GatlingScriptBuilder, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
@@ -181,12 +143,17 @@ class %(class_name)s extends Simulation {
         return check_result
 
     def gen_test_case(self):
+        template_path = os.path.join(os.path.dirname(__file__), os.pardir, 'resources', "gatling_script_template.scala")
+
+        with open(template_path) as template_file:
+            template_line = template_file.read()
+
         params = {
             'class_name': self.class_name,
             'httpConf': self._get_http(),
             '_exec': self._get_exec()
         }
-        return self.SCRIPT_TEMPLATE % params
+        return template_line % params
 
 
 class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):

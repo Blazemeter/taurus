@@ -1,6 +1,7 @@
 include bzt/10-base.json
 include LICENSE
 include NOTICE
+include bzt/resources/gatling_script_template.scala
 include bzt/resources/logback-worker.xml
 include bzt/resources/taurus-junit-1.0.jar
 include bzt/resources/taurus-testng-1.0.jar
