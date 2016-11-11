@@ -1,0 +1,29 @@
+---
+execution:
+- executor: gatling
+  scenario: blazedemo
+
+scenarios:
+  blazedemo:
+    default-address: blazedemo.com
+    headers:
+      HEADER_1: VALUE_1
+      HEADER_2: VALUE_2
+    requests:
+    - url: /
+      assert:
+      - contains:
+        - ".+sometext.+"
+        subject: body
+        regexp: true
+        not: true
+      body: 'Some Body Data'
+      headers:
+        HEADER_11: VALUE_11
+    - url: /reserve.php
+      think-time: 2s
+      assert:
+      - contains:
+        - 200
+        subject: http-code
+        not: true

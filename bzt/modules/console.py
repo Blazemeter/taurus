@@ -39,7 +39,7 @@ from bzt import TaurusInternalException
 from bzt.engine import Reporter
 from bzt.modules.aggregator import DataPoint, KPISet, AggregatorListener, ResultsProvider
 from bzt.modules.provisioning import Local
-from bzt.six import StringIO
+from bzt.six import StringIO, numeric_types
 from bzt.utils import humanize_time, is_windows, DummyScreen
 
 try:
@@ -1130,6 +1130,7 @@ class ExecutorWidget(Pile, PrioritizedWidget):
     """
     Progress executor widget
     :type progress: urwid.Widget
+    :type executor: bzt.engine.ScenarioExecutor
     """
 
     def __init__(self, executor, label=None, additional_widgets=()):
@@ -1185,7 +1186,7 @@ class ExecutorWidget(Pile, PrioritizedWidget):
                 else:
                     self.progress.set_text("Finished")
                     self.eta.set_text("")
-        else:
+        elif isinstance(self.executor.delay, numeric_types):
             delayed = self.executor.delay - (time.time() - self.executor.engine.provisioning.start_time)
             if delayed >= 0:
                 self.elapsed.set_text("Delay: %s" % humanize_time(delayed))

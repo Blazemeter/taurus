@@ -23,13 +23,14 @@ import time
 from bzt.engine import ScenarioExecutor, Scenario, FileLister, PythonGenerator
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
+from bzt.modules.services import HavingInstallableTools
 from bzt.six import iteritems
 from bzt import TaurusConfigError, ToolError
 from bzt.utils import shell_exec, MirrorsManager, dehumanize_time, get_full_path
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, TclLibrary
 
 
-class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
+class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools):
     """
     Grinder executor module
     """
@@ -122,7 +123,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         fds.write("# BZT Properies End\n")
 
     def prepare(self):
-        self._check_installed()
+        self.install_required_tools()
 
         scenario = self.get_scenario()
 
@@ -222,7 +223,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         builder.save(script)
         return script
 
-    def _check_installed(self):
+    def install_required_tools(self):
         grinder_path = self.settings.get("path", "~/.bzt/grinder-taurus/lib/grinder.jar")
         grinder_path = os.path.abspath(os.path.expanduser(grinder_path))
         self.settings["path"] = grinder_path
