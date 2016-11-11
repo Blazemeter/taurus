@@ -7,8 +7,14 @@ install:
   - "%PYTHON%\\python.exe -m pip install nose"
   - "%PYTHON%\\python.exe -m pip install colorlog pyyaml psutil!=4.4.0 lxml==3.4.2 cssselect urwid six progressbar33 locustio pyvirtualdisplay"
   - "%PYTHON%\\python.exe -m pip install --upgrade selenium==2.53.0"
+  - set PATH=C:\Ruby22\bin;%PATH%
 
 build: off
+
+before_test:
+  - ruby -v
+  - gem -v
+  - gem install rspec
 
 test_script:
   - "%PYTHON%\\python.exe -m nose tests/ --verbosity 3"
