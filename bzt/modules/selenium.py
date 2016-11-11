@@ -1024,10 +1024,11 @@ class RSpec(RequiredTool):
 
     def check_if_installed(self):
         try:
-            output = subprocess.check_output(["rspec", '-version'], stderr=subprocess.STDOUT)
+            output = subprocess.check_output(["rspec", '--version'], stderr=subprocess.STDOUT)
             self.log.debug("%s output: %s", self.tool_name, output)
             return True
         except BaseException:
+            self.log.debug("RSpec check exception: %s", traceback.format_exc())
             return False
 
     def install(self):
