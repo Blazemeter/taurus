@@ -55,7 +55,6 @@
         "jpgc-tst"
       ]
     },
-    "jtl-loader": "bzt.modules.jmeter.JMeterJTLLoaderExecutor",
     "grinder": {
       "class": "bzt.modules.grinder.GrinderExecutor",
       "properties": {
@@ -180,6 +179,9 @@
     },
     "capturehar": {
       "class": "bzt.modules.blazemeter.ServiceStubCaptureHAR"
+    },
+    "install-checker": {
+      "class": "bzt.modules.services.InstallChecker"
     }
   },
   "settings": {
@@ -231,6 +233,11 @@
           "sequential": true
         }
       }
+    },
+    "install-tools": {
+      "services": [
+        "install-checker"
+      ]
     }
   }
 }

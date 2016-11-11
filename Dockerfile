@@ -3,6 +3,7 @@ ADD http://gettaurus.org/snapshots/blazemeter-pbench-extras_0.1.10.1_amd64.deb /
 ADD http://chromedriver.storage.googleapis.com/2.25/chromedriver_linux64.zip /tmp
 ADD https://github.com/mozilla/geckodriver/releases/download/v0.11.1/geckodriver-v0.11.1-linux64.tar.gz /tmp
 ADD https://dl-ssl.google.com/linux/linux_signing_key.pub /tmp
+ADD https://deb.nodesource.com/setup_6.x /tmp
 RUN apt-get -y update \
   && apt-get -y install --no-install-recommends software-properties-common \
   && apt-add-repository multiverse \
@@ -10,6 +11,7 @@ RUN apt-get -y update \
   && apt-add-repository ppa:nilarimogard/webupd8 \
   && cat /tmp/linux_signing_key.pub | apt-key add - \
   && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list \
+  && bash /tmp/setup_6.x \
   && apt-get -y update \
   && apt-cache policy firefox \
   && apt-get -y install --no-install-recommends \
@@ -39,7 +41,6 @@ RUN apt-get -y update \
     phantomjs \
     ruby ruby-dev \
     nodejs \
-    npm \
   && pip install --upgrade setuptools pip \
   && pip install locustio bzt && pip uninstall -y bzt \
   && pip install --upgrade selenium \
@@ -52,10 +53,8 @@ RUN apt-get -y update \
   && rm -rf /var/lib/apt/lists/* \
   && firefox --version && google-chrome-stable --version && /usr/bin/chromedriver --version && geckodriver --version
 
-COPY bzt/resources/chrome_launcher.sh /tmp
-RUN mv /opt/google/chrome/google-chrome /opt/google/chrome/_google-chrome \
-  && mv /tmp/chrome_launcher.sh /opt/google/chrome/google-chrome \
-  && chmod +x /opt/google/chrome/google-chrome
+COPY bzt/resources/chrome_launcher.sh /usr/local/bin/google-chrome
+RUN chmod +x /usr/local/bin/google-chrome
 ENV DBUS_SESSION_BUS_ADDRESS=/dev/null
 
 COPY . /tmp/bzt-src

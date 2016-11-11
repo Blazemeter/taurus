@@ -4,7 +4,9 @@
  - fix Locust crash when used with 'requests'-style scenario and cloud provisioning
  - fix JSR223 block handling when using cloud/remote provisioning
  - allow sequential executions
-
+ - do not generate Selenium scripts for cloud tests
+ - add a tool installer service and an `-install-tools` CLI alias
+ 
 ## 1.7.3 <sup>1 nov 2016</sup>
  - add TestNG-based runner for Selenium tests
  - add `content-encoding` request- and scenario-level option to JMeter
