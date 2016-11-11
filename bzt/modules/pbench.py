@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import csv
-import datetime
 import json
 import math
 import os
@@ -28,18 +27,20 @@ from abc import abstractmethod
 from os import strerror
 from subprocess import CalledProcessError
 
+import datetime
 import psutil
 
 from bzt import resources, TaurusConfigError, ToolError, TaurusInternalException
 from bzt.engine import ScenarioExecutor, FileLister, Scenario
 from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet, ConsolidatingAggregator
 from bzt.modules.console import WidgetProvider, ExecutorWidget
+from bzt.modules.services import HavingInstallableTools
 from bzt.six import string_types, urlencode, iteritems, parse, StringIO, b, viewvalues
-from bzt.utils import shell_exec, shutdown_process, BetterDict, dehumanize_time
 from bzt.utils import RequiredTool, IncrementableProgressBar
+from bzt.utils import shell_exec, shutdown_process, BetterDict, dehumanize_time
 
 
-class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister):
+class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools):
     """
     :type pbench: PBenchTool
     :type widget: ExecutorWidget
@@ -50,7 +51,8 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.pbench = None
 
     def prepare(self):
-        self._prepare_pbench()
+        self.install_required_tools()
+        self._generate_files()
         self.reader = self.pbench.get_results_reader()
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
@@ -63,10 +65,7 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.log.info("Using stock version for pbench tool")
             self.pbench = OriginalPBenchTool(self, self.log)
 
-        tool = PBench(self.log, self.pbench.path)
-        if not tool.check_if_installed():
-            tool.install()
-
+    def _generate_files(self):
         self.pbench.generate_payload(self.get_scenario())
         self.pbench.generate_schedule(self.get_load())
         self.pbench.generate_config(self.get_scenario(), self.get_load(), self.get_hostaliases())
@@ -108,6 +107,13 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if script:
             resource_files.append(os.path.basename(script))
         return resource_files
+
+    def install_required_tools(self):
+        self._prepare_pbench()
+
+        tool = PBench(self.log, self.pbench.path)
+        if not tool.check_if_installed():
+            tool.install()
 
 
 class PBenchTool(object):

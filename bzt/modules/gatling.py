@@ -24,6 +24,7 @@ from bzt import TaurusConfigError, ToolError
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
+from bzt.modules.services import HavingInstallableTools
 from bzt.utils import BetterDict, TclLibrary, EXE_SUFFIX, dehumanize_time, get_full_path
 from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, shutdown_process, ensure_is_dict, is_windows
 
@@ -121,7 +122,7 @@ class GatlingScriptBuilder(object):
         for idx, assertion in enumerate(assertions):
             assertion = ensure_is_dict(assertions, idx, "contains")
 
-            error_str = 'You must specify some assertion argument in config file "contains" list'
+            error_str = 'You must specify "contains" parameter for assertion item'
             a_contains = assertion.get('contains', TaurusConfigError(error_str))
 
             check_template = self.__get_check_template(assertion)
@@ -156,7 +157,7 @@ class GatlingScriptBuilder(object):
         return template_line % params
 
 
-class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
+class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools):
     """
     Gatling executor module
     """
@@ -214,7 +215,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         return modified_launcher
 
     def prepare(self):
-        self._check_installed()
+        self.install_required_tools()
         scenario = self.get_scenario()
 
         jar_files = []
@@ -394,7 +395,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if self.reader and self.reader.filename:
             self.engine.existing_artifact(self.reader.filename)
 
-    def _check_installed(self):
+    def install_required_tools(self):
         required_tools = [TclLibrary(self.log), JavaVM("", "", self.log)]
         gatling_path = self.settings.get("path", "~/.bzt/gatling-taurus/bin/gatling" + EXE_SUFFIX)
         gatling_path = os.path.abspath(os.path.expanduser(gatling_path))
