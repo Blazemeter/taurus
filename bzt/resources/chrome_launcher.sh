@@ -1,3 +1,6 @@
 #!/bin/bash
 
-exec "/opt/google/chrome/google-chrome" --no-sandbox "$@"
+WRAPPER=$(readlink -f "$0")
+HERE=$(dirname "$WRAPPER")
+
+exec "$HERE/_google-chrome" --no-sandbox "$@"
