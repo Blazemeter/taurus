@@ -325,7 +325,7 @@ class Engine(object):
 
         mod_conf = self.config.get('modules')
         if alias not in mod_conf:
-            msg = "Module '%s' not found in list of available aliases %s" % (alias, mod_conf.keys())
+            msg = "Module '%s' not found in list of available aliases %s" % (alias, sorted(mod_conf.keys()))
             raise TaurusConfigError(msg)
 
         settings = ensure_is_dict(mod_conf, alias, "class")

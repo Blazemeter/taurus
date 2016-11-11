@@ -983,7 +983,8 @@ class TestSeleniumStuff(SeleniumTestCase):
                 ]
             }
         })
-        self.obj.resource_files()
+        resources = self.obj.resource_files()
+        self.assertEqual(0, len(resources))
 
     def test_a_labels_translation(self):
         self.configure({

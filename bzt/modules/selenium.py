@@ -158,18 +158,14 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
             else:
                 return None
 
-        detected_path = self.engine.find_file('testng.xml')
-        if os.path.exists(detected_path):
-            full_script_path = get_full_path(detected_path)
-            self.log.info("Detected testng.xml file at %s", full_script_path)
-            return full_script_path
-
-        script_dir = get_full_path(self.get_script_path(), step_up=1)
-        script_config = os.path.join(script_dir, 'testng.xml')
-        if os.path.exists(script_config):
-            full_script_path = get_full_path(script_config)
-            self.log.info("Detected testng.xml file at %s", full_script_path)
-            return full_script_path
+        script_path = self.get_script_path()
+        if script_path is not None:
+            script_dir = get_full_path(self.get_script_path(), step_up=1)
+            script_config = os.path.join(script_dir, 'testng.xml')
+            if os.path.exists(script_config):
+                full_script_path = get_full_path(script_config)
+                self.log.info("Detected testng.xml file at %s", full_script_path)
+                return full_script_path
 
         return None
 
@@ -342,12 +338,14 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         return self.widget
 
     def resource_files(self):
-        self.scenario = self.get_scenario()
-        self.__setup_script()
-        script_path = self.get_script_path()
         resources = []
-        if script_path is not None:
-            resources.append(script_path)
+
+        self.scenario = self.get_scenario()
+        if "script" in self.scenario and self.scenario.get("script"):
+            self.__setup_script()
+            script_path = self.get_script_path()
+            if script_path is not None:
+                resources.append(script_path)
 
         resources.extend(self.scenario.get("additional-classpath", []))
         resources.extend(self.settings.get("additional-classpath", []))
