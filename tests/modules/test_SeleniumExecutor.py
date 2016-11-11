@@ -731,8 +731,10 @@ class TestSeleniumRSpecRunner(SeleniumTestCase):
             },
         })
         self.obj.settings.merge(self.obj.engine.config.get("modules").get("selenium"))
+        dummy = __dir__() + '/../selenium/ruby/ruby-dummy'
+        dummy += '.bat' if is_windows() else ''
         self.obj.settings.merge({
-            "selenium-tools": {"rspec": {"interpreter": __dir__() + '/../selenium/ruby/ruby-dummy'}}
+            "selenium-tools": {"rspec": {"interpreter": dummy}}
         })
         self.obj.prepare()
 
