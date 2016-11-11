@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.7.4 (next)
+## 1.7.4 <sup>11 nov 2016</sup>
  - fix Locust crash when used with 'requests'-style scenario and cloud provisioning
  - fix JSR223 block handling when using cloud/remote provisioning
  - allow sequential executions with `-sequential` alias
