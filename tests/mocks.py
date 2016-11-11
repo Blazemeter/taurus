@@ -61,6 +61,8 @@ class ModuleMock(ScenarioExecutor, Provisioning, Reporter, FileLister, HavingIns
         self.was_check = False
         self.was_postproc = False
 
+        self.is_has_results = False
+
     def prepare(self):
         """
         :raise self.prepare_exc:
@@ -144,6 +146,9 @@ class ModuleMock(ScenarioExecutor, Provisioning, Reporter, FileLister, HavingIns
         :return:
         """
         return [__file__]
+
+    def has_results(self):
+        return self.is_has_results
 
     def install_required_tools(self):
         self.log.debug("All is good")

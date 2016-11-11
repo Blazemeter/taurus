@@ -671,7 +671,7 @@ class EngineModule(object):
         self.engine = None
         self.settings = BetterDict()
         self.parameters = BetterDict()
-        self.delay = 0
+        self.delay = None
         self.start_time = None
 
     def prepare(self):

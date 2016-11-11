@@ -227,6 +227,13 @@
         "aggregator": "functional-consolidator"
       }
     },
+    "sequential": {
+      "modules": {
+        "local": {
+          "sequential": true
+        }
+      }
+    },
     "install-tools": {
       "services": [
         "install-checker"
