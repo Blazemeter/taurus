@@ -82,3 +82,4 @@ class InstallChecker(Service):
 
         self.log.info("Checking installation needs for: %s", mod_name)
         mod.install_required_tools()
+        self.log.info("Module is fine: %s", mod_name)
