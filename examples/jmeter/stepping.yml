@@ -2,12 +2,18 @@
 execution:
 - scenario: simple
   concurrency: 50
-  # throughput: 25  # uncomment this to have hits/s steps
+  throughput: 25
   ramp-up: 2m
   steps: 5
+  #executor: gatling
 
 scenarios:
   simple:
     think-time: 500ms
     requests:
     - http://blazedemo.com
+
+services:
+- module: passfail
+  criteria:
+  - avg-rt>5ms for 10s, stop as failed
