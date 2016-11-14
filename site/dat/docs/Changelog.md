@@ -1,6 +1,6 @@
 # Changelog
 ## 1.7.5 <sup>next</sup>
- - small logging improvements
+ - add logging improvements
 
 ## 1.7.4 <sup>11 nov 2016</sup>
  - fix Locust crash when used with 'requests'-style scenario and cloud provisioning
