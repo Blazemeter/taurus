@@ -182,30 +182,40 @@ class CLI(object):
         return self.exit_code
 
     def handle_exception(self, exc):
-        info_level = http_level = default_level = logging.DEBUG
+        log_level = {'info': logging.DEBUG, 'http': logging.DEBUG, 'default': logging.DEBUG}
         if not self.exit_code:  # only fist exception goes to the screen
-            info_level = logging.WARNING
-            http_level = logging.ERROR
-            default_level = logging.ERROR
+            log_level['info'] = logging.WARNING
+            log_level['http'] = logging.ERROR
+            log_level['default'] = logging.ERROR
             if isinstance(exc, RCProvider):
                 self.exit_code = exc.get_rc()
             else:
                 self.exit_code = 1
 
-        if isinstance(exc, ManualShutdown):
-            self.log.log(info_level, "Interrupted by user")
-        elif isinstance(exc, AutomatedShutdown):
-            self.log.log(info_level, "Automated shutdown")
-        elif isinstance(exc, NormalShutdown):
-            self.log.log(logging.DEBUG, "Shutting down by request from code: %s", get_stacktrace(exc))
+        if isinstance(exc, KeyboardInterrupt):
+            self.__handle_keyboard_interrupt(exc, log_level)
+        elif isinstance(exc, TaurusException):
+            self.__handle_taurus_exception(exc, log_level['default'])
         elif isinstance(exc, HTTPError):
             msg = "Response from %s: [%s] %s %s" % (exc.geturl(), exc.code, exc.reason, exc.read())
-            self.log.log(http_level, msg)
-        elif isinstance(exc, TaurusException):
-            self.__handle_taurus_exception(exc, default_level)
+            self.log.log(log_level['http'], msg)
         else:
-            self.log.log(default_level, "%s: %s", type(exc).__name__, exc)
-            self.log.log(default_level, get_stacktrace(exc))
+            self.log.log(log_level['default'], "%s: %s", type(exc).__name__, exc)
+            self.log.log(log_level['default'], get_stacktrace(exc))
+
+    def __handle_keyboard_interrupt(self, exc, log_level):
+        if isinstance(exc, ManualShutdown):
+            self.log.log(log_level['info'], "Interrupted by user")
+        elif isinstance(exc, AutomatedShutdown):
+            self.log.log(log_level['info'], "Automated shutdown")
+        elif isinstance(exc, NormalShutdown):
+            self.log.log(logging.DEBUG, "Shutting down by request from code: %s", get_stacktrace(exc))
+        elif isinstance(exc, KeyboardInterrupt):
+            self.log.log(log_level['info'], "Keyboard interrupt")
+            self.log.debug('Unexpected KeyboardInterrrupt at\n%s', get_stacktrace(exc))
+        else:
+            msg = "Unknown KeyboardInterrupt exception %s: %s\n%s"
+            raise ValueError(msg % (type(exc), exc, get_stacktrace(exc)))
 
     def __handle_taurus_exception(self, exc, log_level):
         if isinstance(exc, TaurusConfigError):
@@ -217,7 +227,8 @@ class CLI(object):
         elif isinstance(exc, TaurusNetworkError):
             self.log.log(log_level, "Network Error: %s", exc)
         else:
-            raise ValueError("Unknown Taurus exception %s: %s" % (type(exc), exc))
+            msg = "Unknown Taurus exception %s: %s\n%s"
+            raise ValueError(msg % (type(exc), exc, get_stacktrace(exc)))
 
     def __get_jmx_shorthands(self, configs):
         """
