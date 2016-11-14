@@ -212,9 +212,9 @@ class CLI(object):
             self.log.log(logging.DEBUG, "Shutting down by request from code: %s", get_stacktrace(exc))
         elif isinstance(exc, KeyboardInterrupt):
             self.log.log(log_level['info'], "Keyboard interrupt")
-            self.log.debug('Unexpected KeyboardInterrrupt at\n%s', get_stacktrace(exc))
+            self.log.debug('Unexpected KeyboardInterrupt at\n%s', get_stacktrace(exc))
         else:
-            msg = "Unknown KeyboardInterrupt exception %s: %s\n%s"
+            msg = "Non-KeyboardInterrupt exception %s: %s\n%s"
             raise ValueError(msg % (type(exc), exc, get_stacktrace(exc)))
 
     def __handle_taurus_exception(self, exc, log_level):
