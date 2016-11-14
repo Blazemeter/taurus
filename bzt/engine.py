@@ -16,7 +16,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import copy
-import datetime
 import hashlib
 import json
 import logging
@@ -25,13 +24,14 @@ import shutil
 import sys
 import time
 import traceback
+import yaml
 from abc import abstractmethod
 from collections import namedtuple, defaultdict
 from distutils.version import LooseVersion
 from json import encoder
-
-import yaml
 from yaml.representer import SafeRepresenter
+
+import datetime
 
 import bzt
 from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException
@@ -327,7 +327,7 @@ class Engine(object):
 
         mod_conf = self.config.get('modules')
         if alias not in mod_conf:
-            msg = "Module '%s' not found in list of available aliases %s" % (alias, mod_conf.keys())
+            msg = "Module '%s' not found in list of available aliases %s" % (alias, sorted(mod_conf.keys()))
             raise TaurusConfigError(msg)
 
         settings = ensure_is_dict(mod_conf, alias, "class")
@@ -338,7 +338,7 @@ class Engine(object):
 
         clsname = settings.get('class', None)
         if clsname is None:
-            raise TaurusConfigError("Class name not found in module settings: %s" % settings)
+            raise TaurusConfigError("Class name for alias '%s' is not found in module settings: %s" % (alias, settings))
 
         self.modules[alias] = load_class(clsname)
         if not issubclass(self.modules[alias], EngineModule):
@@ -564,7 +564,7 @@ class Configuration(BetterDict):
             try:
                 config = self.__read_file(config_file)
             except IOError as exc:
-                raise TaurusConfigError("Error when '%s' config file reading: %s" % (config_file, exc))
+                raise TaurusConfigError("Error when reading config file '%s': %s" % (config_file, exc))
 
             self.merge(config)
 
@@ -673,7 +673,7 @@ class EngineModule(object):
         self.engine = None
         self.settings = BetterDict()
         self.parameters = BetterDict()
-        self.delay = 0
+        self.delay = None
         self.start_time = None
 
     def prepare(self):

@@ -39,13 +39,14 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataP
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader, FunctionalSample
 from bzt.modules.provisioning import Local
+from bzt.modules.services import HavingInstallableTools
 from bzt.six import iteritems, string_types, StringIO, etree, binary_type, parse
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name
 from bzt.utils import shell_exec, ensure_is_dict, dehumanize_time, BetterDict, guess_csv_dialect
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
 
 
-class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
+class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools):
     """
     JMeter executor module
 
@@ -90,7 +91,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         """
         self.jmeter_log = self.engine.create_artifact("jmeter", ".log")
         self._set_remote_port()
-        self.run_checklist()
+        self.install_required_tools()
         self.distributed_servers = self.execution.get('distributed', self.distributed_servers)
         scenario = self.get_scenario()
 
@@ -784,7 +785,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                     jmx.set_enabled("[testname='%s']" % candidate.get('testname'),
                                     True if action == 'enable' else False)
 
-    def run_checklist(self):
+    def install_required_tools(self):
         """
         check tools
         """
@@ -2094,9 +2095,13 @@ class ResourceFilesCollector(RequestVisitor):
         body_file = request.config.get('body-file')
         if body_file:
             files.append(body_file)
-        jsr_script = request.config.get('jsr223').get('script-file')
-        if jsr_script:
-            files.append(jsr_script)
+        if 'jsr223' in request.config:
+            jsrs = request.config.get('jsr223')
+            if isinstance(jsrs, dict):
+                jsrs = [jsrs]
+            for jsr in jsrs:
+                if 'script-file' in jsr:
+                    files.append(jsr.get('script-file'))
         return files
 
     def visit_ifblock(self, block):

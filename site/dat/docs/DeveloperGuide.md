@@ -52,9 +52,6 @@ Restart Apache webserver
 ```
 Open [http://localhost:8002](http://localhost:8002) in your browser, you should see our website.
 
-# Dev Artifacts
-[Code Coverage Report](/coverage/)
-
 # Python Egg Snapshots
 
 Download and install it like this:

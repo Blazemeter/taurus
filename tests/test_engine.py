@@ -21,7 +21,7 @@ class TestEngine(BZTestCase):
             self.obj.configure(configs)
             self.fail()
         except TaurusConfigError as exc:
-            self.assertIn('config file reading', str(exc))
+            self.assertIn('reading config file', str(exc))
 
     def test_requests(self):
         configs = [
