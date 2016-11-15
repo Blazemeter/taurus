@@ -1254,7 +1254,7 @@ class BlazeMeterClient(object):
             body.add_file('files[]', rfile)
 
         hdr = {"Content-Type": str(body.get_content_type())}
-        _ = self._request(url, body.form_as_bytes(), headers=hdr)
+        self._request(url, body.form_as_bytes(), headers=hdr)
 
     def get_tests(self, name=None):
         """
@@ -1588,11 +1588,17 @@ class MasterProvisioning(Provisioning):
         for executor in self.executors:
             rfiles += executor.get_resource_files()
 
-        self.log.debug("All resource files are: %s", rfiles)
-        rfiles = [self.engine.find_file(x) for x in rfiles]
+        for rfile in rfiles:
+            pass
 
-        rbases = [os.path.basename(get_full_path(rfile)) for rfile in rfiles]
-        rpaths = [get_full_path(rfile, step_up=1) for rfile in rfiles]
+        self.log.debug("All resource files are: %s", rfiles)
+        return rfiles
+
+    def _fix_filenames(self, old_names):
+        # check for concurrent base names
+        new_names = [self.engine.find_file(x) for x in old_names]
+        rbases = [os.path.basename(get_full_path(rfile)) for rfile in new_names]
+        rpaths = [get_full_path(rfile, step_up=1) for rfile in new_names]
         while rbases:
             base, path = rbases.pop(), rpaths.pop()
             if base in rbases:
@@ -1601,10 +1607,10 @@ class MasterProvisioning(Provisioning):
                     msg = 'Resource "%s" occurs more than one time, rename to avoid data loss'
                     raise TaurusConfigError(msg % base)
 
-        prepared_files = self.__pack_dirs(rfiles)
-        replace_in_config(self.engine.config, rfiles, [os.path.basename(f) for f in prepared_files], log=self.log)
-
-        return prepared_files
+        new_names = self.__pack_dirs(new_names)
+        new_base_names = [os.path.basename(f) for f in new_names]
+        replace_in_config(self.engine.config, new_names, new_base_names, log=self.log)
+        return new_names
 
     def __pack_dirs(self, source_list):
         result_list = []  # files for upload
@@ -1687,10 +1693,12 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         finder.default_test_name = "Taurus Cloud Test"
         self.test = finder.resolve_test_type()
         self.test.prepare_locations(self.executors, self.engine.config)
+
+        rfiles = self.get_rfiles()
+        rfiles = self._fix_filenames(rfiles)
         config = self.test.prepare_cloud_config(self.engine.config)
         config.dump(self.engine.create_artifact("cloud", ""))
-
-        self.test.resolve_test(config, self.get_rfiles())
+        self.test.resolve_test(config, rfiles)
 
         self.widget = CloudProvWidget(self.test)
 

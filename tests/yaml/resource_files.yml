@@ -1,0 +1,23 @@
+---
+execution:
+- executor: selenium
+  concurrency: 5500
+  files:
+  - /dir/file1
+  - file2
+  - ~/file3
+  scenario:
+    script: tests/data/BlazeDemo.java
+  locations:
+    us-east-1: 1
+- concurrency: 5500
+  scenario:
+    script: tests/jmeter/broken.jmx
+  locations:
+    us-east-1: 1
+provisioning: cloud
+modules:
+  cloud:
+    token: FaKEtoKeN
+    browser-open: false
+    check-interval: 1s

@@ -829,6 +829,39 @@ class TestCloudProvisioning(BZTestCase):
         obj.post_process()
         self.assertEqual(client.results, [])
 
+    def test_a_pathes(self):
+        obj = CloudProvisioning()
+        log_recorder = RecordingHandler()
+        obj.log.addHandler(log_recorder)
+        obj.engine = EngineEmul()
+        obj.engine.configure([
+            __dir__() + '/../../bzt/10-base.json',
+            __dir__() + '/../yaml/resource_files.yml'])
+        obj.parameters = obj.engine.config['execution'][0]
+        obj.engine.aggregator = ConsolidatingAggregator()
+        obj.settings = obj.engine.config['modules']['cloud']
+
+        client = BlazeMeterClientEmul(obj.log)
+        client.results.append({"result": []})  # collection
+        client.results.append({"result": []})  # tests
+        client.results.append(self.__get_user_info())  # user
+        client.results.append({"result": {"id": id(client)}})  # create test
+        client.results.append({"files": []})  # create test
+        client.results.append({})  # upload files
+
+        obj.client = client
+        obj.prepare()
+        debug = log_recorder.debug_buff.getvalue().encode().split('\n')
+        str_files = [line for line in debug if 'Uploading files into the test' in line]
+        self.assertEqual(1, len(str_files))
+        res_files = [_file for _file in str_files[0].split('\'')[1::2]]
+        with open(obj.engine.artifacts_dir + '/cloud.yml') as cl_file:
+            cloud_cfg = yaml.load(cl_file)
+        self.assertEqual(0, len(res_files))
+        self.assertEqual(set(res_files), {})
+
+        pass
+
     def test_check_interval(self):
         obj = CloudProvisioning()
         obj.engine = EngineEmul()
