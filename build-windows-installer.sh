@@ -26,10 +26,10 @@ cat << EOF > "$BUILD_DIR/taurus.nsi"
 EOF
 
 cat << EOF > "$BUILD_DIR/bzt_win.py"
-import os
+import os, sys
 
 def main():
-    os.system("start /wait cmd /k bzt --help")
+    sys.exit(os.system("cmd /k bzt --help"))
 EOF
 
 # Create pynsist config
@@ -38,7 +38,7 @@ cat << EOF > "$BUILD_DIR/installer.cfg"
 name=Taurus
 version=${TAURUS_VERSION}
 entry_point=bzt_win:main
-console=false
+console=true
 icon=${ICON_PATH}
 
 [Command bzt]
