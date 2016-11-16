@@ -4,7 +4,7 @@ set -euo pipefail
 TAURUS_VERSION=$(python -c 'import bzt; print(bzt.VERSION)')
 INSTALLER_NAME="TaurusInstaller_${TAURUS_VERSION}_x64.exe"
 BUILD_DIR="$(dirname $0)/build/nsis"
-ICON_PATH="$(realpath $(dirname $0))/site/img/taurus.ico"
+ICON_RELPATH="../../site/img/taurus.ico"  # must have this path relative to the build dir
 
 rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR"
@@ -124,7 +124,7 @@ name=Taurus
 version=${TAURUS_VERSION}
 entry_point=bzt_win:main
 console=true
-icon=${ICON_PATH}
+icon=${ICON_RELPATH}
 
 [Command bzt]
 entry_point=bzt.cli:main
