@@ -221,9 +221,9 @@ class Engine(object):
                     module.post_process()
                 except BaseException as exc:
                     if isinstance(exc, KeyboardInterrupt):
-                        self.log.debug("Shutdown: %s", exc)
+                        self.log.debug("post_process: %s", exc)
                     else:
-                        self.log.debug("Shutdown: %s\n%s", exc, traceback.format_exc())
+                        self.log.debug("post_process: %s\n%s", exc, traceback.format_exc())
                     if not self.stopping_reason:
                         self.stopping_reason = exc
                     if not exc_info:
