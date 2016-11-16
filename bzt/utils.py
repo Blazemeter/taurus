@@ -43,6 +43,7 @@ from subprocess import PIPE
 from webbrowser import GenericBrowser
 
 import psutil
+from subprocess import CalledProcessError
 from progressbar import ProgressBar, Percentage, Bar, ETA
 from psutil import Popen
 from urwid import BaseScreen
@@ -214,8 +215,6 @@ class BetterDict(defaultdict):
                     self[key] = val
             else:
                 self[key] = val
-
-        return
 
     def __ensure_list_type(self, values):
         """
@@ -728,7 +727,7 @@ class JavaVM(RequiredTool):
             output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
             self.log.debug("%s output: %s", self.tool_name, output)
             return True
-        except BaseException as exc:
+        except (CalledProcessError, IOError) as exc:
             self.log.debug("Failed to check %s: %s", self.tool_name, exc)
             return False
 
