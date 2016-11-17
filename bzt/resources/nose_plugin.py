@@ -8,10 +8,6 @@ from optparse import OptionParser
 import nose
 from nose.plugins import Plugin
 
-if sys.version_info[0] == 2:
-    irange = xrange
-else:
-    irange = range
 
 REPORT_ITEM_KEYS = [
     "test_case",  # test label (test method name)
@@ -151,22 +147,26 @@ class BZTPlugin(Plugin):
         self.test_dict = None
 
 
-def run_nose(report_file, files, iterations, hold):
+def run_nose(report_file, files, iteration_limit, hold):
     argv = [__file__, '-v']
     argv.extend(files)
     argv.extend(['--with-bzt_plugin', '--nocapture', '--exe'])
 
-    if iterations == 0:
+    if iteration_limit == 0:
         if hold > 0:
-            iterations = sys.maxsize
+            iteration_limit = sys.maxsize
         else:
-            iterations = 1
+            iteration_limit = 1
 
     start_time = int(time.time())
     with BZTPlugin(report_file) as plugin:
-        for _ in irange(0, iterations):
+        iteration = 0
+        while True:
             nose.run(addplugins=[plugin], argv=argv)
+            iteration += 1
             if 0 < hold < int(time.time()) - start_time:
+                break
+            if iteration >= iteration_limit:
                 break
 
 

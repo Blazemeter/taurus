@@ -656,6 +656,21 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
                 self.assertIn("Nothing to test", str(exc))
                 break
 
+    def test_long_iterations_value(self):
+        self.obj.execution.merge({
+            "iterations": 2**64,
+            "scenario": {
+                "requests": [
+                    "http://blazedemo.com/",
+                ],
+            }
+        })
+        self.obj.prepare()
+        self.obj.startup()
+        for _ in range(3):
+            self.assertFalse(self.obj.check())
+            time.sleep(1.0)
+
 
 class TestSeleniumRSpecRunner(SeleniumTestCase):
     def test_selenium_prepare_rspec(self):
