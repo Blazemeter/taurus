@@ -1597,7 +1597,7 @@ class MasterProvisioning(Provisioning):
             rfiles += executor_rfiles
 
         if additional_files:
-            raise TaurusConfigError("Next files can't be treated in cloud: %s", additional_files)
+            raise TaurusConfigError("Next files can't be treated in cloud: %s" % additional_files)
 
         self.log.debug("All resource files are: %s", rfiles)
         return rfiles

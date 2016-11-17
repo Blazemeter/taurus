@@ -857,8 +857,7 @@ class TestCloudProvisioning(BZTestCase):
         self.assertEqual(1, len(str_files))
         res_files = [_file for _file in str_files[0].split('\'')[1::2]]
         with open(obj.engine.artifacts_dir + '/cloud.yml') as cl_file:
-            cloud_cfg = yaml.load(cl_file)
-        str_cfg = to_json(cloud_cfg)
+            str_cfg = cl_file.read()
         self.assertEqual(3, len(res_files))
         names = {os.path.basename(file_name):file_name for file_name in res_files}
 
