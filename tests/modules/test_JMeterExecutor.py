@@ -356,8 +356,11 @@ class TestJMeterExecutor(BZTestCase):
 
     def test_resource_files_collection_remote_prov(self):
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/files.jmx"}})
+        self.assertNotIn('files', self.obj.execution)
         res_files = self.obj.resource_files()
-        self.assertEqual(len(res_files), 5)
+        self.assertEqual(len(res_files), 1)
+        self.assertIn('files', self.obj.execution)
+        self.assertEqual(4, (self.obj.execution['files']))
 
     def test_resource_files_from_requests_remote_prov(self):
         config = json.loads(open(__dir__() + "/../json/get-post.json").read())
