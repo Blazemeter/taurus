@@ -668,8 +668,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         self.obj.prepare()
         self.obj.startup()
         for _ in range(3):
-            if self.obj.check():
-                self.fail("Should've succeeded")
+            self.assertFalse(self.obj.check())
             time.sleep(1.0)
 
 
