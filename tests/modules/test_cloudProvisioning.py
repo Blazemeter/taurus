@@ -866,7 +866,7 @@ class TestCloudProvisioning(BZTestCase):
             old_name = names[new_name]
             self.assertIn(new_name, str_cfg)
             if new_name != old_name:
-                self.assertNotIn(str_cfg, old_name)
+                self.assertNotIn(old_name, str_cfg)
 
     def test_check_interval(self):
         obj = CloudProvisioning()
