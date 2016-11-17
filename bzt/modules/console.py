@@ -252,18 +252,17 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
             if not is_windows():
                 self.__detect_console_logger()
 
-        if not self.screen.started:
-            if self.orig_streams:
-                raise TaurusInternalException("Console: original streams already set")
-            elif self.logger_handlers and not self.orig_streams:
-                self.log.debug("Overriding logging streams")
-                for handler in self.logger_handlers:
-                    self.orig_streams[handler] = handler.stream
-                    handler.stream = self.temp_stream
-                self.log.debug("Redirected logging streams, %s/%s", self.logger_handlers, self.orig_streams)
-                self.__streams_redirected = True
-            else:
-                self.log.info("Did not mute console logging")
+        if self.orig_streams:
+            raise TaurusInternalException("Console: original streams already set")
+        elif self.logger_handlers and not self.orig_streams:
+            self.log.debug("Overriding logging streams")
+            for handler in self.logger_handlers:
+                self.orig_streams[handler] = handler.stream
+                handler.stream = self.temp_stream
+            self.log.debug("Redirected logging streams, %s/%s", self.logger_handlers, self.orig_streams)
+            self.__streams_redirected = True
+        else:
+            self.log.info("Did not mute console logging")
 
     def __dump_saved_log(self):
         """

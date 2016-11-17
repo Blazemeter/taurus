@@ -362,6 +362,34 @@ class TestJMeterExecutor(BZTestCase):
         self.assertIn('files', self.obj.execution)
         self.assertEqual(4, (self.obj.execution['files']))
 
+    def test_resource_files_paths(self):
+        """
+        Check whether JMeter.resource_files() modifies filenames in JMX carefully
+        :return:
+        """
+        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/files_paths.jmx"}})
+
+        file_in_home = get_full_path('~/file-in-home.csv')
+        file_has_created = False
+        if not os.path.exists(file_in_home):
+            file_has_created = True
+            with open(file_in_home, 'w') as _file:      # real file is required by Engine.find_file()
+                _file.write('')
+        self.obj.engine.file_search_paths = ['tests/']    # config not in cwd
+        self.obj.resource_files()
+        if file_has_created:
+            os.remove(file_in_home)
+
+        resource_files = []
+        jmx = JMX(self.obj.original_jmx)
+        resource_elements = jmx.tree.findall(".//stringProp[@name='filename']")
+        for resource_element in resource_elements:
+            if resource_element.text:
+                resource_files.append(resource_element.text)
+        self.assertEqual(2, len(resource_files))
+        for res_file in resource_files:
+            self.assertEqual(res_file, os.path.basename(res_file))
+
     def test_resource_files_from_requests_remote_prov(self):
         config = json.loads(open(__dir__() + "/../json/get-post.json").read())
         config['provisioning'] = 'cloud'

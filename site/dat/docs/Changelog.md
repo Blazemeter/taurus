@@ -1,4 +1,6 @@
 # Changelog
+## 1.7.5 <sup>next</sup>
+ - add logging improvements
 
 ## 1.7.4 <sup>11 nov 2016</sup>
  - fix Locust crash when used with 'requests'-style scenario and cloud provisioning
@@ -7,6 +9,7 @@
  - do not generate Selenium scripts for cloud tests
  - add a tool installer service and an `-install-tools` CLI alias
  - fix cloud Gatling crash related to script template
+ - fix a few minor issues with the Windows installer
 
 ## 1.7.3 <sup>1 nov 2016</sup>
  - add TestNG-based runner for Selenium tests
