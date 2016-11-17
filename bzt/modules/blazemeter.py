@@ -1586,9 +1586,9 @@ class MasterProvisioning(Provisioning):
     def get_rfiles(self):
         rfiles = []
         additional_files = []
-        config = to_json(self.engine.config)
         for executor in self.executors:
             executor_rfiles = executor.get_resource_files()
+            config = to_json(self.engine.config)
             for rfile in executor_rfiles:
                 if not os.path.exists(self.engine.find_file(rfile)):
                     raise TaurusConfigError("%s: resource file '%s' not found" % (executor, rfile))

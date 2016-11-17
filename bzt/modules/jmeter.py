@@ -697,6 +697,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         resource_files.update(files_from_requests)
         if self.original_jmx:
             resource_files.add(self.original_jmx)
+            scenario[Scenario.SCRIPT] = self.original_jmx   # for CloudProvisioning
         return list(resource_files)
 
     @staticmethod

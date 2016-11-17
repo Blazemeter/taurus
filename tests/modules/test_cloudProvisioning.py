@@ -11,6 +11,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet
 from bzt.modules.blazemeter import CloudProvisioning, BlazeMeterClientEmul, ResultsFromBZA
 from bzt.modules.blazemeter import CloudTaurusTest, CloudCollectionTest
 from tests import BZTestCase, __dir__
+from bzt.utils import to_json
 from tests.mocks import EngineEmul, ModuleMock, RecordingHandler
 
 
@@ -829,7 +830,7 @@ class TestCloudProvisioning(BZTestCase):
         obj.post_process()
         self.assertEqual(client.results, [])
 
-    def test_a_pathes(self):
+    def test_acloud_paths(self):
         obj = CloudProvisioning()
         log_recorder = RecordingHandler()
         obj.log.addHandler(log_recorder)
@@ -857,10 +858,15 @@ class TestCloudProvisioning(BZTestCase):
         res_files = [_file for _file in str_files[0].split('\'')[1::2]]
         with open(obj.engine.artifacts_dir + '/cloud.yml') as cl_file:
             cloud_cfg = yaml.load(cl_file)
-        self.assertEqual(0, len(res_files))
-        self.assertEqual(set(res_files), {})
+        str_cfg = to_json(cloud_cfg)
+        self.assertEqual(3, len(res_files))
+        names = {os.path.basename(file_name):file_name for file_name in res_files}
 
-        pass
+        for new_name in names:
+            old_name = names[new_name]
+            self.assertIn(new_name, str_cfg)
+            if new_name != old_name:
+                self.assertNotIn(str_cfg, old_name)
 
     def test_check_interval(self):
         obj = CloudProvisioning()
