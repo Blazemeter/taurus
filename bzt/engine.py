@@ -916,7 +916,7 @@ class ScenarioExecutor(EngineModule):
         files_list = []
         if isinstance(self, FileLister):
             files_list.extend(self.resource_files())
-        files_list.extend(self.execution.get("files", [])[:])
+        files_list.extend(self.execution.get("files", []))
         return files_list
 
     def __repr__(self):

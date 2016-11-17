@@ -372,12 +372,12 @@ class TestJMeterExecutor(BZTestCase):
         file_in_home = get_full_path('~/file-in-home.csv')
         file_has_created = False
         if not os.path.exists(file_in_home):
-            file_has_created = True
+            file_has_been_created = True
             with open(file_in_home, 'w') as _file:      # real file is required by Engine.find_file()
                 _file.write('')
         self.obj.engine.file_search_paths = ['tests/']    # config not in cwd
         self.obj.resource_files()
-        if file_has_created:
+        if file_has_been_created:
             os.remove(file_in_home)
 
         resource_files = []
