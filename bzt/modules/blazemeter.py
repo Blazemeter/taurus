@@ -1585,11 +1585,19 @@ class BlazeMeterClient(object):
 class MasterProvisioning(Provisioning):
     def get_rfiles(self):
         rfiles = []
+        additional_files = []
+        config = to_json(self.engine.config)
         for executor in self.executors:
-            rfiles += executor.get_resource_files()
+            executor_rfiles = executor.get_resource_files()
+            for rfile in executor_rfiles:
+                if not os.path.exists(self.engine.find_file(rfile)):
+                    raise TaurusConfigError("%s: resource file '%s' not found" % (executor, rfile))
+                if rfile not in config:     # TODO: might be check is needed to improve
+                    additional_files.append(rfile)
+            rfiles += executor_rfiles
 
-        for rfile in rfiles:
-            pass
+        if additional_files:
+            raise TaurusConfigError("Next files can't be treated in cloud: %s", additional_files)
 
         self.log.debug("All resource files are: %s", rfiles)
         return rfiles
