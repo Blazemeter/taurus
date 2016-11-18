@@ -11,7 +11,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet
 from bzt.modules.blazemeter import CloudProvisioning, BlazeMeterClientEmul, ResultsFromBZA
 from bzt.modules.blazemeter import CloudTaurusTest, CloudCollectionTest
 from tests import BZTestCase, __dir__
-from bzt.utils import to_json
+from bzt.utils import get_full_path
 from tests.mocks import EngineEmul, ModuleMock, RecordingHandler
 
 
@@ -849,17 +849,33 @@ class TestCloudProvisioning(BZTestCase):
         client.results.append({"result": {"id": id(client)}})  # create test
         client.results.append({"files": []})  # create test
         client.results.append({})  # upload files
-
         obj.client = client
+
+        file_in_home = '~/file-in-home.csv'
+        full_file_in_home = get_full_path(file_in_home)
+        file_was_created = False
+        if not os.path.exists(full_file_in_home):    # real file is required by Engine.find_file()
+            file_was_created = True
+            with open(full_file_in_home, 'w') as _file:  # real file is required by Engine.find_file()
+                _file.write('')
+        obj.engine.file_search_paths = ['tests/']  # config not in cwd
+        obj.engine.config[ScenarioExecutor.EXEC][0]['files'] = [    # 'files' are treated similar in all
+            os.getcwd() + '/tests/test_CLI.py',  # full path         # executors so check only one
+            file_in_home,                        # path from ~
+            'jmeter/jmeter-loader.bat',          # relative path
+            'mocks.py']                          # only basename (look at file_search_paths)
         obj.prepare()
-        debug = log_recorder.debug_buff.getvalue().encode().split('\n')
+        if file_was_created:
+            os.remove(full_file_in_home)
+
+        debug = log_recorder.debug_buff.getvalue().decode('utf-8').split('\n')
         str_files = [line for line in debug if 'Uploading files into the test' in line]
         self.assertEqual(1, len(str_files))
         res_files = [_file for _file in str_files[0].split('\'')[1::2]]
         with open(obj.engine.artifacts_dir + '/cloud.yml') as cl_file:
             str_cfg = cl_file.read()
-        self.assertEqual(3, len(res_files))
-        names = {os.path.basename(file_name):file_name for file_name in res_files}
+        self.assertEqual(7, len(res_files))
+        names = {os.path.basename(file_name): file_name for file_name in res_files}
 
         for new_name in names:
             old_name = names[new_name]

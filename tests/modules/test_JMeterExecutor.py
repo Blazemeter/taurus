@@ -370,14 +370,14 @@ class TestJMeterExecutor(BZTestCase):
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/files_paths.jmx"}})
 
         file_in_home = get_full_path('~/file-in-home.csv')
-        file_has_created = False
+        file_was_created = False
         if not os.path.exists(file_in_home):
-            file_has_been_created = True
+            file_was_created = True
             with open(file_in_home, 'w') as _file:      # real file is required by Engine.find_file()
                 _file.write('')
         self.obj.engine.file_search_paths = ['tests/']    # config not in cwd
         self.obj.resource_files()
-        if file_has_been_created:
+        if file_was_created:
             os.remove(file_in_home)
 
         resource_files = []

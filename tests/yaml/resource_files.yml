@@ -1,16 +1,15 @@
 ---
 execution:
-- executor: selenium
-  concurrency: 5500
-  scenario:
-    script: tests/data/BlazeDemo.java
-  locations:
-    us-east-1: 1
-- concurrency: 5500
+- concurrency: 5
   scenario:
     script: tests/jmeter/jmx/csvs.jmx
   locations:
     us-east-1: 1
+- executor: selenium
+  concurrency: 5
+  scenario:
+    script: tests/data/BlazeDemo.java
+
 provisioning: cloud
 modules:
   cloud:
