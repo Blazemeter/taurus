@@ -851,24 +851,32 @@ class TestCloudProvisioning(BZTestCase):
         client.results.append({})  # upload files
         obj.client = client
 
-        file_in_home = '~/file-in-home.csv'
-        full_file_in_home = get_full_path(file_in_home)
-        file_was_created = False
-        if not os.path.exists(full_file_in_home):    # real file is required by Engine.find_file()
-            file_was_created = True
-            with open(full_file_in_home, 'w') as _file:  # real file is required by Engine.find_file()
-                _file.write('')
-        obj.engine.file_search_paths = ['tests/']  # config not in cwd
-        obj.engine.config[ScenarioExecutor.EXEC][0]['files'] = [    # 'files' are treated similar in all
+        # list of existing files in $HOME
+        files_in_home = ['file-in-home-1.csv', 'file-in-home-2.res']
+
+        files_in_home = [{'shortname': '~/'+_file,
+                          'fullname': get_full_path('~/'+_file),
+                          'created': False} for _file in files_in_home]
+
+        for _file in files_in_home:
+            if not os.path.exists(_file['fullname']):   # real file is required by Engine.find_file()
+                _file['created'] = True
+                with open(_file['fullname'], 'w') as fd:  # real file is required by Engine.find_file()
+                    fd.write('')
+        obj.engine.file_search_paths = ['tests']  # config not in cwd
+        obj.engine.config[ScenarioExecutor.EXEC][0]['files'] = [     # 'files' are treated similar in all
             os.getcwd() + '/tests/test_CLI.py',  # full path         # executors so check only one
-            file_in_home,                        # path from ~
+            files_in_home[1]['shortname'],       # path from ~
             'jmeter/jmeter-loader.bat',          # relative path
             'mocks.py']                          # only basename (look at file_search_paths)
-        obj.prepare()
-        if file_was_created:
-            os.remove(full_file_in_home)
 
-        debug = log_recorder.debug_buff.getvalue().decode('utf-8').split('\n')
+        obj.prepare()
+
+        for _file in files_in_home:
+            if _file['created']:
+                os.remove(_file['fullname'])
+
+        debug = str(log_recorder.debug_buff.getvalue()).split('\n')
         str_files = [line for line in debug if 'Uploading files into the test' in line]
         self.assertEqual(1, len(str_files))
         res_files = [_file for _file in str_files[0].split('\'')[1::2]]
@@ -882,6 +890,14 @@ class TestCloudProvisioning(BZTestCase):
             self.assertIn(new_name, str_cfg)
             if new_name != old_name:
                 self.assertNotIn(old_name, str_cfg)
+
+        new_names = set(names.keys())
+        self.assertEqual(new_names, {                                               # source:
+            'files_paths.jmx',                                                      # execution 0 (script)
+            'test_CLI.py', 'file-in-home-2.res', 'jmeter-loader.bat', 'mocks.py',   # execution 0 (files)
+            'file-in-home-1.csv', 'body-file.dat'                                   # execution 0 (from jmx)
+            #'BlazeDemo.java',                                                      # execution 1 (script)
+        })
 
     def test_check_interval(self):
         obj = CloudProvisioning()

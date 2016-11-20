@@ -2,13 +2,16 @@
 execution:
 - concurrency: 5
   scenario:
-    script: tests/jmeter/jmx/csvs.jmx
+    script: jmeter/jmx/files_paths.jmx
   locations:
     us-east-1: 1
-- executor: selenium
-  concurrency: 5
-  scenario:
-    script: tests/data/BlazeDemo.java
+#- executor: selenium
+#  scenario:
+#    script: data/BlazeDemo.java
+#- executor: gatling
+#  concurrency: 1
+#  scenario:
+#    script: gatling/bs/BasicSimulation.scala
 
 provisioning: cloud
 modules:

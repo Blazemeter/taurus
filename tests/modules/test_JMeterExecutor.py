@@ -375,7 +375,7 @@ class TestJMeterExecutor(BZTestCase):
             file_was_created = True
             with open(file_in_home, 'w') as _file:      # real file is required by Engine.find_file()
                 _file.write('')
-        self.obj.engine.file_search_paths = ['tests/']    # config not in cwd
+        self.obj.engine.file_search_paths = ['tests']    # config not in cwd
         self.obj.resource_files()
         if file_was_created:
             os.remove(file_in_home)
