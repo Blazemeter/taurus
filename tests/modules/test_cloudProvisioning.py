@@ -854,8 +854,8 @@ class TestCloudProvisioning(BZTestCase):
         # list of existing files in $HOME
         files_in_home = ['file-in-home-1.csv', 'file-in-home-2.res']
 
-        files_in_home = [{'shortname': '~/'+_file,
-                          'fullname': get_full_path('~/'+_file),
+        files_in_home = [{'shortname': os.path.join('~', _file),
+                          'fullname': get_full_path(os.path.join('~', _file)),
                           'created': False} for _file in files_in_home]
 
         for _file in files_in_home:
@@ -864,11 +864,13 @@ class TestCloudProvisioning(BZTestCase):
                 with open(_file['fullname'], 'w') as fd:  # real file is required by Engine.find_file()
                     fd.write('')
         obj.engine.file_search_paths = ['tests']  # config not in cwd
-        obj.engine.config[ScenarioExecutor.EXEC][0]['files'] = [     # 'files' are treated similar in all
-            os.getcwd() + '/tests/test_CLI.py',  # full path         # executors so check only one
-            files_in_home[1]['shortname'],       # path from ~
-            'jmeter/jmeter-loader.bat',          # relative path
-            'mocks.py']                          # only basename (look at file_search_paths)
+
+        # 'files' are treated similar in all executors so check only one
+        obj.engine.config[ScenarioExecutor.EXEC][0]['files'] = [
+            os.path.join(os.getcwd(), 'tests', 'test_CLI.py'),  # full path
+            files_in_home[1]['shortname'],                      # path from ~
+            os.path.join('jmeter', 'jmeter-loader.bat'),        # relative path
+            'mocks.py']                                         # only basename (look at file_search_paths)
 
         obj.prepare()
 
