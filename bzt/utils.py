@@ -53,6 +53,14 @@ from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_
 
 
 def get_full_path(path, step_up=0):
+    """
+    Function expands '~' and adds cwd to path if it's not absolute (relative)
+    Target doesn't have to exist
+
+    :param path:
+    :param step_up:
+    :return:
+    """
     res = os.path.abspath(os.path.expanduser(path))
     for _ in range(step_up):
         res = os.path.dirname(res)

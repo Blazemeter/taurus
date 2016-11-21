@@ -1,0 +1,21 @@
+---
+execution:
+- concurrency: 5
+  scenario:
+    script: jmeter/jmx/files_paths.jmx
+  locations:
+    us-east-1: 1
+#- executor: selenium
+#  scenario:
+#    script: data/BlazeDemo.java
+#- executor: gatling
+#  concurrency: 1
+#  scenario:
+#    script: gatling/bs/BasicSimulation.scala
+
+provisioning: cloud
+modules:
+  cloud:
+    token: FaKEtoKeN
+    browser-open: false
+    check-interval: 1s
