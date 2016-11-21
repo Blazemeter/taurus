@@ -85,7 +85,7 @@ class TestBlazeMeterUploader(BZTestCase):
             'count': 20,
             'rc': '222'}])
 
-    def test_ano_notes_for_public_reporting(self):
+    def test_no_notes_for_public_reporting(self):
         client = BlazeMeterClientEmul(logging.getLogger(''))
         client.results.append({"marker": "ping", 'result': {}})
         client.results.extend([{'result': {}} for _ in range(6)])
