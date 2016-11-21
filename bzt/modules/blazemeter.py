@@ -249,7 +249,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
     def _postproc_phase3(self):
         try:
             self.client.end_online()
-            if self.engine.stopping_reason:
+            if self.client.token and self.engine.stopping_reason:
                 exc_class = self.engine.stopping_reason.__class__.__name__
                 note = "%s: %s" % (exc_class, str(self.engine.stopping_reason))
                 self.client.append_note_to_session(note)
