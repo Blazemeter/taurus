@@ -61,6 +61,16 @@ class TestBlazeMeterUploader(BZTestCase):
             {'msg': 'Forbidden', 'cnt': 10, 'type': KPISet.ERRTYPE_ASSERT, 'urls': [], KPISet.RESP_CODES: '111'},
             {'msg': 'Allowed', 'cnt': 20, 'type': KPISet.ERRTYPE_ERROR, 'urls': [], KPISet.RESP_CODES: '222'}]
         obj.post_process()
+
+        # check for note appending in _postproc_phase3()
+        reqs = obj.client.requests[-4:]
+        self.assertIn('api/latest/sessions/sess1', reqs[0]['url'])
+        self.assertIn('api/latest/sessions/sess1', reqs[1]['url'])
+        self.assertIn('api/latest/masters/master1', reqs[2]['url'])
+        self.assertIn('api/latest/masters/master1', reqs[3]['url'])
+        self.assertIn('ValueError: wrong value', reqs[1]['data'])
+        self.assertIn('ValueError: wrong value', reqs[3]['data'])
+
         self.assertEqual(0, len(client.results))
         data = json.loads(client.requests[6]['data'])
         self.assertEqual(1, len(data['labels']))
@@ -74,6 +84,42 @@ class TestBlazeMeterUploader(BZTestCase):
             'm': 'Allowed',
             'count': 20,
             'rc': '222'}])
+
+    def test_no_notes_for_public_reporting(self):
+        client = BlazeMeterClientEmul(logging.getLogger(''))
+        client.results.append({"marker": "ping", 'result': {}})
+        client.results.extend([{'result': {}} for _ in range(6)])
+
+        obj = BlazeMeterUploader()
+        obj.parameters['project'] = 'Proj name'
+        obj.settings['token'] = ''  # public reporting
+        obj.settings['browser-open'] = 'none'
+        obj.engine = EngineEmul()
+        obj.client = client
+        obj.prepare()
+
+        client.session_id = 'sess1'
+        client.master_id = 'master1'
+
+        obj.engine.stopping_reason = ValueError('wrong value')
+        obj.aggregated_second(random_datapoint(10))
+        obj.kpi_buffer[-1][DataPoint.CUMULATIVE][''][KPISet.ERRORS] = [
+            {'msg': 'Forbidden', 'cnt': 10, 'type': KPISet.ERRTYPE_ASSERT, 'urls': [], KPISet.RESP_CODES: '111'},
+            {'msg': 'Allowed', 'cnt': 20, 'type': KPISet.ERRTYPE_ERROR, 'urls': [], KPISet.RESP_CODES: '222'}]
+        obj.send_monitoring = obj.send_custom_metrics = obj.send_custom_tables = False
+        obj.post_process()
+
+        # check for note appending in _postproc_phase3()
+        reqs = [{'url': '', 'data': ''} for _ in range(4)]     # add template for minimal size
+        reqs = (reqs + obj.client.requests)[-4:]
+        self.assertNotIn('api/latest/sessions/sess1', reqs[0]['url'])
+        self.assertNotIn('api/latest/sessions/sess1', reqs[1]['url'])
+        self.assertNotIn('api/latest/masters/master1', reqs[2]['url'])
+        self.assertNotIn('api/latest/masters/master1', reqs[3]['url'])
+        if reqs[1]['data']:
+            self.assertNotIn('ValueError: wrong value', reqs[1]['data'])
+        if reqs[3]['data']:
+            self.assertNotIn('ValueError: wrong value', reqs[3]['data'])
 
     def test_check(self):
         client = BlazeMeterClientEmul(logging.getLogger(''))
