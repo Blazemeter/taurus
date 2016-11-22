@@ -162,7 +162,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
 
         script_path = self.get_script_path()
         if script_path is not None:
-            script_dir = get_full_path(self.get_script_path(), step_up=1)
+            script_dir = get_full_path(script_path, step_up=1)
             script_config = os.path.join(script_dir, 'testng.xml')
             if os.path.exists(script_config):
                 full_script_path = get_full_path(script_config)

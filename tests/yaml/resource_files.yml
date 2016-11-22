@@ -1,17 +1,25 @@
 ---
 execution:
-- concurrency: 5
+- executor: jmeter
+  scenario:
+    script: ~/file-in-home-00.jmx
+- ejecutor: jmeter
   scenario:
     script: jmeter/jmx/files_paths.jmx
-  locations:
-    us-east-1: 1
-#- executor: selenium
-#  scenario:
-#    script: data/BlazeDemo.java
-#- executor: gatling
-#  concurrency: 1
-#  scenario:
-#    script: gatling/bs/BasicSimulation.scala
+
+- executor: selenium
+  scenario:
+    script: data/BlazeDemo.java
+- executor: selenium
+  scenario:
+    script: ~/file-in-home-03.java
+
+- executor: gatling
+  scenario:
+    script: gatling/bs/BasicSimulation.scala
+- executor: gatling
+  scenario:
+    script: ~/file-in-home-04.scala
 
 provisioning: cloud
 modules:

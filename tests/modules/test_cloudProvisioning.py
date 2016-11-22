@@ -2,6 +2,8 @@ import json
 import os
 import logging
 import time
+import tempfile
+import shutil
 
 import yaml
 
@@ -831,10 +833,18 @@ class TestCloudProvisioning(BZTestCase):
         self.assertEqual(client.results, [])
 
     def test_acloud_paths(self):
+        """
+        Test different executor/path combinations for correct return values of get_resources_files
+
+        :return:
+        """
         obj = CloudProvisioning()
         log_recorder = RecordingHandler()
         obj.log.addHandler(log_recorder)
         obj.engine = EngineEmul()
+        back_home = os.environ.get('HOME')
+        temp_home = tempfile.mkdtemp()
+        os.environ['HOME'] = temp_home
         obj.engine.configure([
             __dir__() + '/../../bzt/10-base.json',
             __dir__() + '/../yaml/resource_files.yml'])
@@ -852,31 +862,29 @@ class TestCloudProvisioning(BZTestCase):
         obj.client = client
 
         # list of existing files in $HOME
-        files_in_home = ['file-in-home-1.csv', 'file-in-home-2.res']
+        pref = 'file-in-home-'
+        files_in_home = ['00.jmx', '01.csv', '02.res', '03.java', '04.scala']
+        files_in_home = [pref + _file for _file in files_in_home]
 
         files_in_home = [{'shortname': os.path.join('~', _file),
-                          'fullname': get_full_path(os.path.join('~', _file)),
-                          'created': False} for _file in files_in_home]
+                          'fullname': get_full_path(os.path.join('~', _file))}
+                         for _file in files_in_home]
+        shutil.copyfile(__dir__() + '/../jmeter/jmx/dummy.jmx', files_in_home[0]['fullname'])
+        open(files_in_home[1]['fullname'], 'a').close()
+        open(files_in_home[2]['fullname'], 'a').close()
+        shutil.copyfile(__dir__() + '/../selenium/java/TestBlazemeterFail.java', files_in_home[3]['fullname'])
+        shutil.copyfile(__dir__() + '/../gatling/SimpleSimulation.scala', files_in_home[4]['fullname'])
 
-        for _file in files_in_home:
-            if not os.path.exists(_file['fullname']):   # real file is required by Engine.find_file()
-                _file['created'] = True
-                with open(_file['fullname'], 'w') as fd:  # real file is required by Engine.find_file()
-                    fd.write('')
         obj.engine.file_search_paths = ['tests']  # config not in cwd
 
         # 'files' are treated similar in all executors so check only one
         obj.engine.config[ScenarioExecutor.EXEC][0]['files'] = [
-            os.path.join(os.getcwd(), 'tests', 'test_CLI.py'),  # full path
-            files_in_home[1]['shortname'],                      # path from ~
-            os.path.join('jmeter', 'jmeter-loader.bat'),        # relative path
-            'mocks.py']                                         # only basename (look at file_search_paths)
+            os.path.join(os.getcwd(), 'tests', 'test_CLI.py'),      # full path
+            files_in_home[1]['shortname'],                          # path from ~
+            os.path.join('jmeter', 'jmeter-loader.bat'),            # relative path
+            'mocks.py']                                             # only basename (look at file_search_paths)
 
         obj.prepare()
-
-        for _file in files_in_home:
-            if _file['created']:
-                os.remove(_file['fullname'])
 
         debug = str(log_recorder.debug_buff.getvalue()).split('\n')
         str_files = [line for line in debug if 'Uploading files into the test' in line]
@@ -889,17 +897,19 @@ class TestCloudProvisioning(BZTestCase):
 
         for new_name in names:
             old_name = names[new_name]
-            self.assertIn(new_name, str_cfg)
+            self.assertIn(new_name, str_cfg)    # all short names in config
             if new_name != old_name:
-                self.assertNotIn(old_name, str_cfg)
+                self.assertNotIn(old_name, str_cfg)     # no one long name in config
 
         new_names = set(names.keys())
-        self.assertEqual(new_names, {                                               # source:
-            'files_paths.jmx',                                                      # execution 0 (script)
-            'test_CLI.py', 'file-in-home-2.res', 'jmeter-loader.bat', 'mocks.py',   # execution 0 (files)
-            'file-in-home-1.csv', 'body-file.dat'                                   # execution 0 (from jmx)
-            #'BlazeDemo.java',                                                      # execution 1 (script)
+        self.assertEqual(new_names, {  # source:
+            'files_paths.jmx',  # execution 0 (script)
+            'test_CLI.py', 'file-in-home-2.res', 'jmeter-loader.bat', 'mocks.py',  # execution 0 (files)
+            'file-in-home-1.csv', 'body-file.dat'  # execution 0 (from jmx)
+            # 'BlazeDemo.java',                                                      # execution 1 (script)
         })
+        os.environ['HOME'] = back_home
+        shutil.rmtree(temp_home)
 
     def test_check_interval(self):
         obj = CloudProvisioning()
