@@ -224,13 +224,13 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         self.reader = self._register_reader(self.report_file)
 
     def __setup_script(self):
-        if Scenario.SCRIPT in self.scenario and self.scenario.get(Scenario.SCRIPT):
-            self.script = self.scenario.get(Scenario.SCRIPT)
-        elif "requests" in self.scenario:
-            self.script = self.__tests_from_requests()
-            self.self_generated_script = True
-        else:
-            raise TaurusConfigError("Nothing to test, no requests were provided in scenario")
+        self.script = self.get_script_path()
+        if not self.script:
+            if "requests" in self.scenario:
+                self.script = self.__tests_from_requests()
+                self.self_generated_script = True
+            else:
+                raise TaurusConfigError("Nothing to test, no requests were provided in scenario")
 
     def detect_script_type(self):
         if not isinstance(self.script, string_types) and not isinstance(self.script, text_type):
