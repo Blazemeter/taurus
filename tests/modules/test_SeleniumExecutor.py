@@ -666,10 +666,13 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
             }
         })
         self.obj.prepare()
-        self.obj.startup()
-        for _ in range(3):
-            self.assertFalse(self.obj.check())
-            time.sleep(1.0)
+        try:
+            self.obj.startup()
+            for _ in range(3):
+                self.assertFalse(self.obj.check())
+                time.sleep(1.0)
+        finally:
+            self.obj.shutdown()
 
 
 class TestSeleniumRSpecRunner(SeleniumTestCase):
