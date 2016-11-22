@@ -40,6 +40,10 @@ execution:
   scenario:
     script: ~/file-in-home-08.py
 
+- executor: pbench
+  scenario:
+    script: any-anreal-file
+
 provisioning: cloud
 modules:
   cloud:

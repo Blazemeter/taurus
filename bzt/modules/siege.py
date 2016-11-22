@@ -22,7 +22,7 @@ from math import ceil
 from os import path
 
 from bzt import TaurusConfigError, ToolError
-from bzt.engine import ScenarioExecutor, Scenario
+from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.services import HavingInstallableTools
@@ -30,7 +30,7 @@ from bzt.six import iteritems
 from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time
 
 
-class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools):
+class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, FileLister):
     def __init__(self):
         super(SiegeExecutor, self).__init__()
         self.log = logging.getLogger('')

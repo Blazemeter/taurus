@@ -40,7 +40,7 @@ from bzt.utils import RequiredTool, IncrementableProgressBar
 from bzt.utils import shell_exec, shutdown_process, BetterDict, dehumanize_time
 
 
-class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools):
+class PBenchExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools):
     """
     :type pbench: PBenchTool
     :type widget: ExecutorWidget
@@ -99,14 +99,6 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
     def shutdown(self):
         shutdown_process(self.pbench.process, self.log)
-
-    def resource_files(self):
-        resource_files = []
-        scenario = self.get_scenario()
-        script = scenario.get(Scenario.SCRIPT, None)
-        if script:
-            resource_files.append(os.path.basename(script))
-        return resource_files
 
     def install_required_tools(self):
         self._prepare_pbench()
