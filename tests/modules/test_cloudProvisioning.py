@@ -863,18 +863,16 @@ class TestCloudProvisioning(BZTestCase):
 
         # list of existing files in $HOME
         pref = 'file-in-home-'
-        files_in_home = ['00.jmx', '01.csv', '02.res', '03.java', '04.scala', '05.jar']
+        files_in_home = ['00.jmx', '01.csv', '02.res', '03.java', '04.scala', '05.jar', '06.py', '07.properties']
         files_in_home = [pref + _file for _file in files_in_home]
 
         files_in_home = [{'shortname': os.path.join('~', _file),
                           'fullname': get_full_path(os.path.join('~', _file))}
                          for _file in files_in_home]
+
         shutil.copyfile(__dir__() + '/../jmeter/jmx/dummy.jmx', files_in_home[0]['fullname'])
-        open(files_in_home[1]['fullname'], 'a').close()
-        open(files_in_home[2]['fullname'], 'a').close()
-        shutil.copyfile(__dir__() + '/../selenium/java/TestBlazemeterFail.java', files_in_home[3]['fullname'])
-        shutil.copyfile(__dir__() + '/../gatling/SimpleSimulation.scala', files_in_home[4]['fullname'])
-        shutil.copyfile(__dir__() + '/../selenium/jar/another_dummy.jar', files_in_home[5]['fullname'])
+        for num in range(1, 8):
+            open(files_in_home[num]['fullname'], 'a').close()
 
         obj.engine.file_search_paths = ['tests']  # config not in cwd
 
@@ -893,7 +891,7 @@ class TestCloudProvisioning(BZTestCase):
         res_files = [_file for _file in str_files[0].split('\'')[1::2]]
         with open(obj.engine.artifacts_dir + '/cloud.yml') as cl_file:
             str_cfg = cl_file.read()
-        self.assertEqual(14, len(res_files))
+        self.assertEqual(18, len(res_files))
         names = {os.path.basename(file_name): file_name for file_name in res_files}
 
         for new_name in names:
@@ -913,6 +911,10 @@ class TestCloudProvisioning(BZTestCase):
             'file-in-home-03.java',                         # execution 3 (script)
             'BasicSimulation.scala',                        # execution 4 (script)
             'file-in-home-04.scala',                        # execution 5 (script)
+            'helloworld.py',                                # execution 6 (script)
+            'grinder.base.properties',                      # execution 6 (properties-file)
+            'file-in-home-06.py',                           # execution 7 (script)
+            'file-in-home-07.properties'                    # execution 7 (properties-file)
         })
         os.environ['HOME'] = back_home
         shutil.rmtree(temp_home)
