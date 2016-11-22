@@ -880,7 +880,7 @@ class TestCloudProvisioning(BZTestCase):
         # 'files' are treated similar in all executors so check only one
         obj.engine.config[ScenarioExecutor.EXEC][0]['files'] = [
             os.path.join(os.getcwd(), 'tests', 'test_CLI.py'),      # full path
-            files_in_home[1]['shortname'],                          # path from ~
+            files_in_home[2]['shortname'],                          # path from ~
             os.path.join('jmeter', 'jmeter-loader.bat'),            # relative path
             'mocks.py']                                             # only basename (look at file_search_paths)
 
@@ -892,7 +892,7 @@ class TestCloudProvisioning(BZTestCase):
         res_files = [_file for _file in str_files[0].split('\'')[1::2]]
         with open(obj.engine.artifacts_dir + '/cloud.yml') as cl_file:
             str_cfg = cl_file.read()
-        self.assertEqual(7, len(res_files))
+        self.assertEqual(12, len(res_files))
         names = {os.path.basename(file_name): file_name for file_name in res_files}
 
         for new_name in names:
@@ -903,10 +903,14 @@ class TestCloudProvisioning(BZTestCase):
 
         new_names = set(names.keys())
         self.assertEqual(new_names, {  # source:
-            'files_paths.jmx',  # execution 0 (script)
-            'test_CLI.py', 'file-in-home-2.res', 'jmeter-loader.bat', 'mocks.py',  # execution 0 (files)
-            'file-in-home-1.csv', 'body-file.dat'  # execution 0 (from jmx)
-            # 'BlazeDemo.java',                                                      # execution 1 (script)
+            'file-in-home-00.jmx',                          # execution 0 (script)
+            'test_CLI.py', 'file-in-home-02.res', 'jmeter-loader.bat', 'mocks.py',  # execution 0 (files)
+            'files_paths.jmx',                              # execution 1 (script)
+            'file-in-home-01.csv', 'body-file.dat',         # execution 1 (from jmx)
+            'BlazeDemo.java',                               # execution 2
+            'file-in-home-03.java',                         # execution 3
+            'BasicSimulation.scala',                        # execution 4
+            'file-in-home-04.scala',                        # execution 5
         })
         os.environ['HOME'] = back_home
         shutil.rmtree(temp_home)
