@@ -33,6 +33,13 @@ execution:
     script: ~/file-in-home-06.py
     properties-file: ~/file-in-home-07.properties
 
+- executor: locust
+  scenario:
+    script: locust/simple.py
+- executor: locust
+  scenario:
+    script: ~/file-in-home-08.py
+
 provisioning: cloud
 modules:
   cloud:
