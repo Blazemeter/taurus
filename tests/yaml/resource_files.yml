@@ -10,6 +10,9 @@ execution:
 - executor: selenium
   scenario:
     script: data/BlazeDemo.java
+    additional-classpath:
+    - selenium/jar/dummy.jar
+    - ~/file-in-home-05.jar
 - executor: selenium
   scenario:
     script: ~/file-in-home-03.java

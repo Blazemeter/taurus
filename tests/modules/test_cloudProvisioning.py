@@ -842,7 +842,7 @@ class TestCloudProvisioning(BZTestCase):
         log_recorder = RecordingHandler()
         obj.log.addHandler(log_recorder)
         obj.engine = EngineEmul()
-        back_home = os.environ.get('HOME')
+        back_home = os.environ.get('HOME', '')
         temp_home = tempfile.mkdtemp()
         os.environ['HOME'] = temp_home
         obj.engine.configure([
@@ -863,7 +863,7 @@ class TestCloudProvisioning(BZTestCase):
 
         # list of existing files in $HOME
         pref = 'file-in-home-'
-        files_in_home = ['00.jmx', '01.csv', '02.res', '03.java', '04.scala']
+        files_in_home = ['00.jmx', '01.csv', '02.res', '03.java', '04.scala', '05.jar']
         files_in_home = [pref + _file for _file in files_in_home]
 
         files_in_home = [{'shortname': os.path.join('~', _file),
@@ -874,6 +874,7 @@ class TestCloudProvisioning(BZTestCase):
         open(files_in_home[2]['fullname'], 'a').close()
         shutil.copyfile(__dir__() + '/../selenium/java/TestBlazemeterFail.java', files_in_home[3]['fullname'])
         shutil.copyfile(__dir__() + '/../gatling/SimpleSimulation.scala', files_in_home[4]['fullname'])
+        shutil.copyfile(__dir__() + '/../selenium/jar/another_dummy.jar', files_in_home[5]['fullname'])
 
         obj.engine.file_search_paths = ['tests']  # config not in cwd
 
@@ -886,13 +887,13 @@ class TestCloudProvisioning(BZTestCase):
 
         obj.prepare()
 
-        debug = str(log_recorder.debug_buff.getvalue()).split('\n')
+        debug = log_recorder.debug_buff.getvalue().encode('ascii', 'ignore').split('\n')
         str_files = [line for line in debug if 'Uploading files into the test' in line]
         self.assertEqual(1, len(str_files))
         res_files = [_file for _file in str_files[0].split('\'')[1::2]]
         with open(obj.engine.artifacts_dir + '/cloud.yml') as cl_file:
             str_cfg = cl_file.read()
-        self.assertEqual(12, len(res_files))
+        self.assertEqual(14, len(res_files))
         names = {os.path.basename(file_name): file_name for file_name in res_files}
 
         for new_name in names:
@@ -907,10 +908,11 @@ class TestCloudProvisioning(BZTestCase):
             'test_CLI.py', 'file-in-home-02.res', 'jmeter-loader.bat', 'mocks.py',  # execution 0 (files)
             'files_paths.jmx',                              # execution 1 (script)
             'file-in-home-01.csv', 'body-file.dat',         # execution 1 (from jmx)
-            'BlazeDemo.java',                               # execution 2
-            'file-in-home-03.java',                         # execution 3
-            'BasicSimulation.scala',                        # execution 4
-            'file-in-home-04.scala',                        # execution 5
+            'BlazeDemo.java',                               # execution 2 (script)
+            'file-in-home-05.jar', 'dummy.jar',             # execution 2 (additional-classpath)
+            'file-in-home-03.java',                         # execution 3 (script)
+            'BasicSimulation.scala',                        # execution 4 (script)
+            'file-in-home-04.scala',                        # execution 5 (script)
         })
         os.environ['HOME'] = back_home
         shutil.rmtree(temp_home)
