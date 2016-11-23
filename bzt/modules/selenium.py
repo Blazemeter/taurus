@@ -233,9 +233,6 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
                 raise TaurusConfigError("Nothing to test, no requests were provided in scenario")
 
     def detect_script_type(self):
-        if not isinstance(self.script, string_types) and not isinstance(self.script, text_type):
-            raise TaurusConfigError("Nothing to test, no files were provided in scenario")
-
         if not os.path.exists(self.script):
             raise TaurusConfigError("Script '%s' doesn't exist" % self.script)
 
