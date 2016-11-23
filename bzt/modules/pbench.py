@@ -101,12 +101,12 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         shutdown_process(self.pbench.process, self.log)
 
     def resource_files(self):
-        resource_files = []
         scenario = self.get_scenario()
         script = scenario.get(Scenario.SCRIPT, None)
         if script:
-            resource_files.append(os.path.basename(script))
-        return resource_files
+            return [script]
+        else:
+            return []
 
     def install_required_tools(self):
         self._prepare_pbench()

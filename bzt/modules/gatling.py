@@ -419,14 +419,12 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         return self.widget
 
     def resource_files(self):
-        resource_files = []
-        if not self.script:
-            self.script = self.get_script_path()
-
-        if self.script:
-            resource_files.append(self.script)
-
-        return resource_files
+        scenario = self.get_scenario()
+        script = scenario.get(Scenario.SCRIPT, None)
+        if script:
+            return [script]
+        else:
+            return []
 
 
 class DataLogReader(ResultsReader):

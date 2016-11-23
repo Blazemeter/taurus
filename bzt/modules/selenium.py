@@ -33,7 +33,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator, FunctionalSample
 from bzt.modules.services import HavingInstallableTools
-from bzt.six import string_types, text_type, parse, iteritems
+from bzt.six import string_types, parse, iteritems
 from bzt.utils import RequiredTool, shell_exec, shutdown_process, JavaVM, TclLibrary, get_files_recursive
 from bzt.utils import dehumanize_time, MirrorsManager, is_windows, BetterDict, get_full_path
 
@@ -141,39 +141,32 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         if self.engine in SeleniumExecutor.SHARED_VIRTUAL_DISPLAY:
             del SeleniumExecutor.SHARED_VIRTUAL_DISPLAY[self.engine]
 
-    def get_script_path(self, scenario=None):
-        if scenario:
-            return super(SeleniumExecutor, self).get_script_path(scenario)
-        else:
-            return self.engine.find_file(self.script)
-
     def get_runner_working_dir(self):
         if self.runner_working_dir is None:
             self.runner_working_dir = self.engine.create_artifact("classes", "")
         return self.runner_working_dir
 
     def _get_testng_xml(self):
-        scenario = self.get_scenario()
-        if 'testng-xml' in scenario:
-            if scenario.get('testng-xml'):
-                return self.engine.find_file(scenario.get('testng-xml'))
+        if 'testng-xml' in self.scenario:
+            testng_xml = self.scenario.get('testng-xml')
+            if testng_xml:
+                return testng_xml
             else:
-                return None
+                return None     # empty value for switch off testng.xml path autodetect
 
         script_path = self.get_script_path()
-        if script_path is not None:
-            script_dir = get_full_path(self.get_script_path(), step_up=1)
-            script_config = os.path.join(script_dir, 'testng.xml')
-            if os.path.exists(script_config):
-                full_script_path = get_full_path(script_config)
-                self.log.info("Detected testng.xml file at %s", full_script_path)
-                return full_script_path
+        if script_path:
+            script_dir = get_full_path(script_path, step_up=1)
+            testng_xml = os.path.join(script_dir, 'testng.xml')
+            if os.path.exists(testng_xml):
+                self.log.info("Detected testng.xml file at %s", testng_xml)
+                self.scenario['testng-xml'] = testng_xml
+                return testng_xml
 
         return None
 
     def _create_runner(self, report_file):
-        script_path = self.get_script_path()
-        script_type = self.detect_script_type(script_path)
+        script_type = self.detect_script_type()
 
         runner_config = BetterDict()
 
@@ -202,7 +195,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         else:
             raise TaurusConfigError("Unsupported script type: %s" % script_type)
 
-        runner_config["script"] = script_path
+        runner_config["script"] = self.script
         runner_config["script-type"] = script_type
         runner_config["artifacts-dir"] = self.engine.artifacts_dir
         runner_config["report-file"] = report_file
@@ -233,20 +226,17 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         self.reader = self._register_reader(self.report_file)
 
     def __setup_script(self):
-        if Scenario.SCRIPT in self.scenario and self.scenario.get(Scenario.SCRIPT):
-            self.script = self.scenario.get(Scenario.SCRIPT)
-        elif "requests" in self.scenario:
-            self.script = self.__tests_from_requests()
-            self.self_generated_script = True
-        else:
-            raise TaurusConfigError("Nothing to test, no requests were provided in scenario")
+        self.script = self.get_script_path()
+        if not self.script:
+            if "requests" in self.scenario:
+                self.script = self.__tests_from_requests()
+                self.self_generated_script = True
+            else:
+                raise TaurusConfigError("Nothing to test, no requests were provided in scenario")
 
-    def detect_script_type(self, script_path):
-        if not isinstance(script_path, string_types) and not isinstance(script_path, text_type):
-            raise TaurusConfigError("Nothing to test, no files were provided in scenario")
-
-        if not os.path.exists(script_path):
-            raise TaurusConfigError("Script '%s' doesn't exist" % script_path)
+    def detect_script_type(self):
+        if not os.path.exists(self.script):
+            raise TaurusConfigError("Script '%s' doesn't exist" % self.script)
 
         if "runner" in self.execution:
             runner = self.execution["runner"]
@@ -258,10 +248,10 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
 
         file_types = set()
 
-        if os.path.isfile(script_path):  # regular file received
-            file_types.add(os.path.splitext(script_path)[1].lower())
+        if os.path.isfile(self.script):  # regular file received
+            file_types.add(os.path.splitext(self.script)[1].lower())
         else:  # dir received: check contained files
-            for file_name in get_files_recursive(script_path):
+            for file_name in get_files_recursive(self.script):
                 file_types.add(os.path.splitext(file_name)[1].lower())
 
         if '.java' in file_types or '.jar' in file_types:
@@ -276,7 +266,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         elif '.js' in file_types:
             script_type = 'mocha'
         else:
-            raise TaurusConfigError("Unsupported script type: %s" % script_path)
+            raise TaurusConfigError("Unsupported script type: %s" % self.script)
 
         self.log.debug("Detected script type: %s", script_type)
 
@@ -343,11 +333,9 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         resources = []
 
         self.scenario = self.get_scenario()
-        if "script" in self.scenario and self.scenario.get("script"):
-            self.__setup_script()
-            script_path = self.get_script_path()
-            if script_path is not None:
-                resources.append(script_path)
+        script = self.scenario.get(Scenario.SCRIPT, None)
+        if script:
+            resources.append(script)
 
         resources.extend(self.scenario.get("additional-classpath", []))
         resources.extend(self.settings.get("additional-classpath", []))

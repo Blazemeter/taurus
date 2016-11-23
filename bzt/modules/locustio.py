@@ -137,9 +137,9 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
 
     def resource_files(self):
         self.scenario = self.get_scenario()
-        if "script" in self.scenario:
-            self.__setup_script()
-            return [self.script]
+        script = self.scenario.get(Scenario.SCRIPT, None)
+        if script:
+            return [script]
         else:
             return []
 
