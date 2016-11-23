@@ -1,4 +1,5 @@
 ---
+# 0, 1
 execution:
 - executor: jmeter
   scenario:
@@ -7,6 +8,7 @@ execution:
   scenario:
     script: jmeter/jmx/files_paths.jmx
 
+# 2, 3
 - executor: selenium
   scenario:
     script: data/BlazeDemo.java
@@ -17,6 +19,7 @@ execution:
   scenario:
     script: ~/file-in-home-03.java
 
+# 4, 5
 - executor: gatling
   scenario:
     script: gatling/bs/BasicSimulation.scala
@@ -24,6 +27,7 @@ execution:
   scenario:
     script: ~/file-in-home-04.scala
 
+# 6, 7
 - executor: grinder
   scenario:
     script: grinder/helloworld.py
@@ -33,6 +37,7 @@ execution:
     script: ~/file-in-home-06.py
     properties-file: ~/file-in-home-07.properties
 
+# 8, 9
 - executor: locust
   scenario:
     script: locust/simple.py
@@ -40,9 +45,26 @@ execution:
   scenario:
     script: ~/file-in-home-08.py
 
+# 10
 - executor: pbench
   scenario:
     script: any-anreal-file
+
+# 11, 12
+- executor: siege
+  scenario:
+    script: siege/url-file
+- executor: siege
+  scenario:
+    script: ~/file-in-home-09.siege
+
+# 13, 14
+- executor: tsung
+  scenario:
+    script: tsung/http_simple.xml
+- executor: tsung
+  scenario:
+    script: ~/file-in-home-10.xml
 
 provisioning: cloud
 modules:

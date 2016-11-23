@@ -863,7 +863,8 @@ class TestCloudProvisioning(BZTestCase):
 
         # list of existing files in $HOME
         pref = 'file-in-home-'
-        files_in_home = ['00.jmx', '01.csv', '02.res', '03.java', '04.scala', '05.jar', '06.py', '07.properties', '08.py']
+        files_in_home = ['00.jmx', '01.csv', '02.res', '03.java', '04.scala', '05.jar',
+                         '06.py', '07.properties', '08.py', '09.siege', '10.xml']
         files_in_home = [pref + _file for _file in files_in_home]
 
         files_in_home = [{'shortname': os.path.join('~', _file),
@@ -871,6 +872,7 @@ class TestCloudProvisioning(BZTestCase):
                          for _file in files_in_home]
 
         shutil.copyfile(__dir__() + '/../jmeter/jmx/dummy.jmx', files_in_home[0]['fullname'])
+
         for _file in files_in_home[1:]:
             open(_file['fullname'], 'a').close()
 
@@ -891,7 +893,7 @@ class TestCloudProvisioning(BZTestCase):
         res_files = [_file for _file in str_files[0].split('\'')[1::2]]
         with open(obj.engine.artifacts_dir + '/cloud.yml') as cl_file:
             str_cfg = cl_file.read()
-        self.assertEqual(20, len(res_files))
+        self.assertEqual(24, len(res_files))
         names = {os.path.basename(file_name): file_name for file_name in res_files}
 
         for new_name in names:
@@ -904,19 +906,23 @@ class TestCloudProvisioning(BZTestCase):
         self.assertEqual(new_names, {  # source:
             'file-in-home-00.jmx',                          # execution 0 (script)
             'test_CLI.py', 'file-in-home-02.res', 'jmeter-loader.bat', 'mocks.py',  # execution 0 (files)
-            'files_paths.jmx',                              # execution 1 (script)
-            'file-in-home-01.csv', 'body-file.dat',         # execution 1 (from jmx)
-            'BlazeDemo.java',                               # execution 2 (script)
-            'file-in-home-05.jar', 'dummy.jar',             # execution 2 (additional-classpath)
-            'file-in-home-03.java',                         # execution 3 (script)
-            'BasicSimulation.scala',                        # execution 4 (script)
-            'file-in-home-04.scala',                        # execution 5 (script)
-            'helloworld.py',                                # execution 6 (script)
-            'grinder.base.properties',                      # execution 6 (properties-file)
-            'file-in-home-06.py',                           # execution 7 (script)
-            'file-in-home-07.properties',                   # execution 7 (properties-file)
-            'simple.py',                                    # execution 8 (script)
-            'file-in-home-08.py',                           # execution 9 (script)
+            'files_paths.jmx',                              # execution  1 (script)
+            'file-in-home-01.csv', 'body-file.dat',         # execution  1 (from jmx)
+            'BlazeDemo.java',                               # execution  2 (script)
+            'file-in-home-05.jar', 'dummy.jar',             # execution  2 (additional-classpath)
+            'file-in-home-03.java',                         # execution  3 (script)
+            'BasicSimulation.scala',                        # execution  4 (script)
+            'file-in-home-04.scala',                        # execution  5 (script)
+            'helloworld.py',                                # execution  6 (script)
+            'grinder.base.properties',                      # execution  6 (properties-file)
+            'file-in-home-06.py',                           # execution  7 (script)
+            'file-in-home-07.properties',                   # execution  7 (properties-file)
+            'simple.py',                                    # execution  8 (script)
+            'file-in-home-08.py',                           # execution  9 (script)
+            'url-file',                                     # execution 11 (script)
+            'file-in-home-09.siege',                        # execution 12 (script)
+            'http_simple.xml',                              # execution 13 (script)
+            'file-in-home-10.xml',                          # execution 14 (script)
         })
         os.environ['HOME'] = back_home
         shutil.rmtree(temp_home)
