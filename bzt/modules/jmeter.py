@@ -656,16 +656,20 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         :param file_list: list
         :return:
         """
-        for filename in file_list:
-            file_path = self.engine.find_file(filename)
-            if os.path.exists(file_path):
-                file_path_elements = jmx.xpath('//stringProp[text()="%s"]' % file_path)
-                for file_path_element in file_path_elements:
-                    basename = os.path.basename(file_path)
-                    self.log.debug("Replacing JMX path %s with %s", file_path_element.text, basename)
-                    file_path_element.text = basename
-            else:
-                self.log.warning("File not found: %s", file_path)
+        file_set = set(file_list)
+        missed_files = []
+        while file_set:
+            filename = file_set.pop()
+            file_path_elements = jmx.xpath('//stringProp[text()="%s"]' % filename)
+            if not file_path_elements:
+                missed_files.append(filename)
+            for file_path_element in file_path_elements:
+                basename = os.path.basename(filename)
+                self.log.debug("Replacing JMX path %s with %s", file_path_element.text, basename)
+                file_path_element.text = basename
+
+        if missed_files:
+            self.log.warning("Files not found in JMX: %s", missed_files)
 
     def resource_files(self):
         """
@@ -674,28 +678,26 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         resource_files = set()
         # get all resource files from requests
         scenario = self.get_scenario()
-        self.resource_files_collector = ResourceFilesCollector(self)
         files_from_requests = self.res_files_from_scenario(scenario)
 
         if not self.original_jmx:
             self.original_jmx = self.get_script_path()
 
-        if self.original_jmx and os.path.exists(self.original_jmx):
+        if self.original_jmx:
             jmx = JMX(self.original_jmx)
             resource_files_from_jmx = JMeterExecutor.__get_resource_files_from_jmx(jmx)
 
             if resource_files_from_jmx:
-                if not isinstance(self.engine.provisioning, Local):
-                    self.__modify_resources_paths_in_jmx(jmx.tree, resource_files_from_jmx)
-                    script_name, script_ext = os.path.splitext(os.path.basename(self.original_jmx))
-                    self.original_jmx = self.engine.create_artifact(script_name, script_ext)
-                    jmx.save(self.original_jmx)
-
-                resource_files.update(resource_files_from_jmx)
+                self.__modify_resources_paths_in_jmx(jmx.tree, resource_files_from_jmx)
+                script_name, script_ext = os.path.splitext(os.path.basename(self.original_jmx))
+                self.original_jmx = self.engine.create_artifact(script_name, script_ext)
+                jmx.save(self.original_jmx)
+                self.execution.get('files', []).extend(resource_files_from_jmx)
 
         resource_files.update(files_from_requests)
         if self.original_jmx:
             resource_files.add(self.original_jmx)
+            scenario[Scenario.SCRIPT] = self.original_jmx   # for CloudProvisioning
         return list(resource_files)
 
     @staticmethod
@@ -725,7 +727,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
                         break
                     parent = parent.getparent()
 
-                if resource_element.text and parent_disabled is False:
+                if resource_element.text and not parent_disabled:
                     resource_files.append(resource_element.text)
         return resource_files
 

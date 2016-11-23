@@ -419,51 +419,12 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         return self.widget
 
     def resource_files(self):
+        resource_files = []
         if not self.script:
             self.script = self.get_script_path()
-        resource_files = []
 
-        if self.script and os.path.exists(self.script):
-            if os.path.isfile(self.script):  # not directory
-                with open(self.script, 'rt') as script:
-                    script_contents = script.read()
-                resource_files = GatlingExecutor.__get_res_files_from_script(script_contents)
-
+        if self.script:
             resource_files.append(self.script)
-
-        return resource_files
-
-    @staticmethod
-    def __get_res_files_from_script(script_contents):
-        """
-        Get resource files list from scala script
-        :param script_contents:
-        :return:
-        """
-        resource_files = []
-        search_patterns = [re.compile(r'\.formUpload\(".*?"\)'),
-                           re.compile(r'RawFileBody\(".*?"\)'),
-                           re.compile(r'RawFileBodyPart\(".*?"\)'),
-                           re.compile(r'ELFileBody\(".*?"\)'),
-                           re.compile(r'ELFileBodyPart\(".*?"\)'),
-                           re.compile(r'csv\(".*?"\)'),
-                           re.compile(r'tsv\(".*?"\)'),
-                           re.compile(r'ssv\(".*?"\)'),
-                           re.compile(r'jsonFile\(".*?"\)'),
-                           re.compile(r'separatedValues\(".*?"\)')]
-        for search_pattern in search_patterns:
-            found_samples = search_pattern.findall(script_contents)
-            for found_sample in found_samples:
-                param_list = found_sample.split(",")
-
-                # first or last param
-                if "separatedValues" in search_pattern.pattern:
-                    param_index = 0
-                else:
-                    param_index = -1
-
-                file_path = re.compile(r'\".*?\"').findall(param_list[param_index])[0].strip('"')
-                resource_files.append(file_path)
 
         return resource_files
 

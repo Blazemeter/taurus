@@ -64,9 +64,9 @@ class InstallChecker(Service):
             try:
                 self._check_module(mod_name)
             except BaseException as exc:
-                self.log.error("Failed to instantiate module %s: %s", mod_name, get_stacktrace(exc))
+                self.log.error("Failed to instantiate module %s", mod_name)
+                self.log.debug("%s", get_stacktrace(exc))
                 failure = exc if not failure else failure
-                continue
 
         if failure:
             raise ToolError("There were errors while checking for installed tools, see messages above")

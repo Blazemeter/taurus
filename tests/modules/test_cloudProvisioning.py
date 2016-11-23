@@ -11,6 +11,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet
 from bzt.modules.blazemeter import CloudProvisioning, BlazeMeterClientEmul, ResultsFromBZA
 from bzt.modules.blazemeter import CloudTaurusTest, CloudCollectionTest
 from tests import BZTestCase, __dir__
+from bzt.utils import get_full_path
 from tests.mocks import EngineEmul, ModuleMock, RecordingHandler
 
 
@@ -828,6 +829,77 @@ class TestCloudProvisioning(BZTestCase):
         obj.shutdown()
         obj.post_process()
         self.assertEqual(client.results, [])
+
+    def test_acloud_paths(self):
+        obj = CloudProvisioning()
+        log_recorder = RecordingHandler()
+        obj.log.addHandler(log_recorder)
+        obj.engine = EngineEmul()
+        obj.engine.configure([
+            __dir__() + '/../../bzt/10-base.json',
+            __dir__() + '/../yaml/resource_files.yml'])
+        obj.parameters = obj.engine.config['execution'][0]
+        obj.engine.aggregator = ConsolidatingAggregator()
+        obj.settings = obj.engine.config['modules']['cloud']
+
+        client = BlazeMeterClientEmul(obj.log)
+        client.results.append({"result": []})  # collection
+        client.results.append({"result": []})  # tests
+        client.results.append(self.__get_user_info())  # user
+        client.results.append({"result": {"id": id(client)}})  # create test
+        client.results.append({"files": []})  # create test
+        client.results.append({})  # upload files
+        obj.client = client
+
+        # list of existing files in $HOME
+        files_in_home = ['file-in-home-1.csv', 'file-in-home-2.res']
+
+        files_in_home = [{'shortname': os.path.join('~', _file),
+                          'fullname': get_full_path(os.path.join('~', _file)),
+                          'created': False} for _file in files_in_home]
+
+        for _file in files_in_home:
+            if not os.path.exists(_file['fullname']):   # real file is required by Engine.find_file()
+                _file['created'] = True
+                with open(_file['fullname'], 'w') as fd:  # real file is required by Engine.find_file()
+                    fd.write('')
+        obj.engine.file_search_paths = ['tests']  # config not in cwd
+
+        # 'files' are treated similar in all executors so check only one
+        obj.engine.config[ScenarioExecutor.EXEC][0]['files'] = [
+            os.path.join(os.getcwd(), 'tests', 'test_CLI.py'),  # full path
+            files_in_home[1]['shortname'],                      # path from ~
+            os.path.join('jmeter', 'jmeter-loader.bat'),        # relative path
+            'mocks.py']                                         # only basename (look at file_search_paths)
+
+        obj.prepare()
+
+        for _file in files_in_home:
+            if _file['created']:
+                os.remove(_file['fullname'])
+
+        debug = str(log_recorder.debug_buff.getvalue()).split('\n')
+        str_files = [line for line in debug if 'Uploading files into the test' in line]
+        self.assertEqual(1, len(str_files))
+        res_files = [_file for _file in str_files[0].split('\'')[1::2]]
+        with open(obj.engine.artifacts_dir + '/cloud.yml') as cl_file:
+            str_cfg = cl_file.read()
+        self.assertEqual(7, len(res_files))
+        names = {os.path.basename(file_name): file_name for file_name in res_files}
+
+        for new_name in names:
+            old_name = names[new_name]
+            self.assertIn(new_name, str_cfg)
+            if new_name != old_name:
+                self.assertNotIn(old_name, str_cfg)
+
+        new_names = set(names.keys())
+        self.assertEqual(new_names, {                                               # source:
+            'files_paths.jmx',                                                      # execution 0 (script)
+            'test_CLI.py', 'file-in-home-2.res', 'jmeter-loader.bat', 'mocks.py',   # execution 0 (files)
+            'file-in-home-1.csv', 'body-file.dat'                                   # execution 0 (from jmx)
+            #'BlazeDemo.java',                                                      # execution 1 (script)
+        })
 
     def test_check_interval(self):
         obj = CloudProvisioning()

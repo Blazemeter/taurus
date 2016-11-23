@@ -43,6 +43,7 @@ from subprocess import PIPE
 from webbrowser import GenericBrowser
 
 import psutil
+from subprocess import CalledProcessError
 from progressbar import ProgressBar, Percentage, Bar, ETA
 from psutil import Popen
 from urwid import BaseScreen
@@ -52,6 +53,14 @@ from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_
 
 
 def get_full_path(path, step_up=0):
+    """
+    Function expands '~' and adds cwd to path if it's not absolute (relative)
+    Target doesn't have to exist
+
+    :param path:
+    :param step_up:
+    :return:
+    """
     res = os.path.abspath(os.path.expanduser(path))
     for _ in range(step_up):
         res = os.path.dirname(res)
@@ -214,8 +223,6 @@ class BetterDict(defaultdict):
                     self[key] = val
             else:
                 self[key] = val
-
-        return
 
     def __ensure_list_type(self, values):
         """
@@ -728,7 +735,7 @@ class JavaVM(RequiredTool):
             output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
             self.log.debug("%s output: %s", self.tool_name, output)
             return True
-        except BaseException as exc:
+        except (CalledProcessError, IOError) as exc:
             self.log.debug("Failed to check %s: %s", self.tool_name, exc)
             return False
 
