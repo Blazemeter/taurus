@@ -147,19 +147,18 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         return self.runner_working_dir
 
     def _get_testng_xml(self):
-        if 'testng-xml' in self.scenario:
-            if self.scenario.get('testng-xml'):
-                return self.engine.find_file(self.scenario.get('testng-xml'))
-            else:
-                return None
+        testng_xml = self.scenario.get('testng-xml', '')
+        if testng_xml:
+            return testng_xml
 
         script_path = self.get_script_path()
-        if script_path is not None:
+        if script_path:
             script_dir = get_full_path(script_path, step_up=1)
-            script_config = os.path.join(script_dir, 'testng.xml')
-            if os.path.exists(script_config):
-                self.log.info("Detected testng.xml file at %s", script_config)
-                return script_config
+            testng_xml = os.path.join(script_dir, 'testng.xml')
+            if os.path.exists(testng_xml):
+                self.log.info("Detected testng.xml file at %s", testng_xml)
+                self.scenario['testng-xml'] = testng_xml
+                return testng_xml
 
         return None
 
