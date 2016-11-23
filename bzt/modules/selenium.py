@@ -33,7 +33,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator, FunctionalSample
 from bzt.modules.services import HavingInstallableTools
-from bzt.six import string_types, text_type, parse, iteritems
+from bzt.six import string_types, parse, iteritems
 from bzt.utils import RequiredTool, shell_exec, shutdown_process, JavaVM, TclLibrary, get_files_recursive
 from bzt.utils import dehumanize_time, MirrorsManager, is_windows, BetterDict, get_full_path
 
@@ -147,9 +147,12 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         return self.runner_working_dir
 
     def _get_testng_xml(self):
-        testng_xml = self.scenario.get('testng-xml', '')
-        if testng_xml:
-            return testng_xml
+        if 'testng-xml' in self.scenario:
+            testng_xml = self.scenario.get('testng-xml')
+            if testng_xml:
+                return testng_xml
+            else:
+                return None     # empty value for switch off autodetect testng.xml
 
         script_path = self.get_script_path()
         if script_path:

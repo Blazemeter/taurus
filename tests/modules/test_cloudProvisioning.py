@@ -863,8 +863,8 @@ class TestCloudProvisioning(BZTestCase):
 
         # list of existing files in $HOME
         pref = 'file-in-home-'
-        files_in_home = ['00.jmx', '01.csv', '02.res', '03.java', '04.scala', '05.jar',
-                         '06.py', '07.properties', '08.py', '09.siege', '10.xml', '11.ds']
+        files_in_home = ['00.jmx', '01.csv', '02.res', '03.java', '04.scala', '05.jar', '06.py',
+                         '07.properties', '08.py', '09.siege', '10.xml', '11.ds', '12.xml', '13.src']
         files_in_home = [pref + _file for _file in files_in_home]
 
         files_in_home = [{'shortname': os.path.join('~', _file),
@@ -896,7 +896,7 @@ class TestCloudProvisioning(BZTestCase):
         res_files = [_file for _file in str_files[0].split('\'')[1::2]]
         with open(obj.engine.artifacts_dir + '/cloud.yml') as cl_file:
             str_cfg = cl_file.read()
-        self.assertEqual(27, len(res_files))
+        self.assertEqual(31, len(res_files))
         names = {os.path.basename(file_name): file_name for file_name in res_files}
 
         archive_found = False
@@ -921,7 +921,9 @@ class TestCloudProvisioning(BZTestCase):
             'file-in-home-01.csv', 'body-file.dat',         # 1 (from jmx)
             'BlazeDemo.java',                               # 2 (script)
             'file-in-home-05.jar', 'dummy.jar',             # 2 (additional-classpath)
+            'testng.xml',                                   # 2 (testng-xml)
             'file-in-home-03.java',                         # 3 (script)
+            'file-in-home-12.xml',                          # 3 (testng-xml)
             'BasicSimulation.scala',                        # 4 (script)
             'file-in-home-04.scala',                        # 5 (script)
             'helloworld.py',                                # 6 (script)
@@ -930,13 +932,14 @@ class TestCloudProvisioning(BZTestCase):
             'file-in-home-07.properties',                   # 7 (properties-file)
             'simple.py',                                    # 8 (script)
             'file-in-home-08.py',                           # 9 (script)
+            'jmeter-loader.bat',                            # 10 (data-sources)
+            'file-in-home-11.ds',                           # 10 (data-sources)
             'url-file',                                     # 11 (script)
             'file-in-home-09.siege',                        # 12 (script)
             'http_simple.xml',                              # 13 (script)
             'file-in-home-10.xml',                          # 14 (script)
-            'jmeter-loader.bat',                            # 15 (data-sources)
-            'file-in-home-11.ds',                           # 15 (data-sources)
-
+            'pbench.src',                                   # 15 (script)
+            'file-in-home-13.src'                           # 16 (script)
         })
         os.environ['HOME'] = back_home
         shutil.rmtree(temp_home)

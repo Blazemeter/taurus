@@ -11,6 +11,7 @@ execution:
 # 2, 3
 - executor: selenium
   scenario:
+    testng-xml: selenium/testng/testng.xml
     script: data/BlazeDemo.java
     additional-classpath:
     - selenium/jar/dummy.jar
@@ -18,6 +19,7 @@ execution:
 - executor: selenium
   scenario:
     script: ~/file-in-home-03.java
+    testng-xml: ~/file-in-home-12.xml
 
 # 4, 5
 - executor: gatling
@@ -46,9 +48,11 @@ execution:
     script: ~/file-in-home-08.py
 
 # 10
-- executor: pbench
+- executor: jmeter
   scenario:
-    script: any-anreal-file
+    data-sources:
+    - jmeter/jmeter-loader.bat
+    - ~/file-in-home-11.ds
 
 # 11, 12
 - executor: siege
@@ -66,13 +70,13 @@ execution:
   scenario:
     script: ~/file-in-home-10.xml
 
-# 15
-- executor: jmeter
+# 15, 16
+- executor: pbench
   scenario:
-    data-sources:
-    - jmeter/jmeter-loader.bat
-    - ~/file-in-home-11.ds
-
+    script: data/pbench.src
+- executor: pbench
+  scenario:
+    script: ~/file-in-home-13.src
 provisioning: cloud
 modules:
   cloud:
