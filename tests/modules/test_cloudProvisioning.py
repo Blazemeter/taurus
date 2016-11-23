@@ -890,7 +890,7 @@ class TestCloudProvisioning(BZTestCase):
 
         obj.prepare()
 
-        debug = log_recorder.debug_buff.getvalue().encode('ascii', 'ignore').split('\n')
+        debug = log_recorder.debug_buff.getvalue().encode('ascii', 'ignore').split(b'\n')
         str_files = [line for line in debug if 'Uploading files into the test' in line]
         self.assertEqual(1, len(str_files))
         res_files = [_file for _file in str_files[0].split('\'')[1::2]]
