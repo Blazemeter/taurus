@@ -139,14 +139,12 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstalla
         return self.widget
 
     def resource_files(self):
-        resource_files = []
         scenario = self.get_scenario()
-        if Scenario.SCRIPT in scenario and scenario[Scenario.SCRIPT]:
-            script = self.get_script_path()
-            if not script or not os.path.exists(script):
-                raise TaurusConfigError("Tsung: script '%s' doesn't exist" % script)
-            resource_files.append(script)
-        return resource_files
+        script = scenario.get(Scenario.SCRIPT, None)
+        if script:
+            return [script]
+        else:
+            return []
 
 
 class TsungStatsReader(ResultsReader):

@@ -226,7 +226,7 @@ if not is_windows():
             obj.settings = BetterDict()
             obj.engine.config = BetterDict()
             obj.engine.config.merge(
-                    {ScenarioExecutor.EXEC: {"executor": "pbench", "scenario": {"script": "/opt/data/script.src"}}})
+                    {'execution': {"executor": "pbench", "scenario": {"script": "script.src"}}})
             obj.execution = obj.engine.config['execution']
             obj.settings.merge({
                 "path": os.path.join(os.path.dirname(__file__), '..', "phantom.sh"),

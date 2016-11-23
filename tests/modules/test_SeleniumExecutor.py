@@ -971,8 +971,8 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.shutdown()
         with open(os.path.join(self.obj.engine.artifacts_dir, "selenium.err")) as fds:
             contents = fds.read()
-            self.assertEqual(3, contents.count("ok"), "file: '%s', size: %s, content: '%s'" % (fds, fds.__sizeof__(),
-                                                                                               contents))
+            msg = "file: '%s', size: %s, content: '%s'" % (fds, fds.__sizeof__(), contents)
+            self.assertEqual(3, contents.count("ok"), msg)
             self.assertEqual(1, contents.count("OK"))
 
     def test_fail_on_zero_results(self):
@@ -990,8 +990,8 @@ class TestSeleniumStuff(SeleniumTestCase):
         dummy_installation_path = __dir__() + "/../../build/tmp/selenium-taurus"
         shutil.rmtree(os.path.dirname(dummy_installation_path), ignore_errors=True)
         obj = SeleniumExecutor()
-        objjm = JUnitJar(os.path.join(dummy_installation_path, "tools", "junit", "junit.jar"), obj.log,
-                         SeleniumExecutor.JUNIT_VERSION)
+        junit_path = os.path.join(dummy_installation_path, "tools", "junit", "junit.jar")
+        objjm = JUnitJar(junit_path, obj.log, SeleniumExecutor.JUNIT_VERSION)
         objjm.install()
 
     def test_remote_prov_requests(self):
@@ -1005,7 +1005,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         resources = self.obj.resource_files()
         self.assertEqual(0, len(resources))
 
-    def test_a_labels_translation(self):
+    def test_labels_translation(self):
         self.configure({
             "scenarios": {
                 "req_sel": {

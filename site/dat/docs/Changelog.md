@@ -3,7 +3,8 @@
 ## 1.7.5 <sup>next</sup>
  - add logging improvements
  - fix a few minor issues with the Windows installer
- - fix public cloud reporting (unauthorised notes sending) 
+ - fix public cloud reporting (unauthorised notes sending)
+ - add test for paths of resource files 
 
 ## 1.7.4 <sup>11 nov 2016</sup>
  - fix Locust crash when used with 'requests'-style scenario and cloud provisioning

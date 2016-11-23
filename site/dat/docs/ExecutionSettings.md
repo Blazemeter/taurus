@@ -134,8 +134,7 @@ Supported time formats are:
 
 ## Additional Files
 
-When your execution requires additional files (e.g. JARs, certificates etc). you may use `files` option of execution and list paths for files there.
-
+When your execution requires additional files (e.g. JARs, certificates etc.) and you plan to send tests to the `[Сloud](Cloud.md#Cloud-Provisioning)`, you may use `files` option of execution and list paths for files there. 
 
 ## Sequential Execution
 
