@@ -4,7 +4,7 @@ execution:
 - executor: jmeter
   scenario:
     script: ~/file-in-home-00.jmx
-- ejecutor: jmeter
+- executor: jmeter
   scenario:
     script: jmeter/jmx/files_paths.jmx
 
@@ -65,6 +65,13 @@ execution:
 - executor: tsung
   scenario:
     script: ~/file-in-home-10.xml
+
+# 15
+- executor: jmeter
+  scenario:
+    data-sources:
+    - jmeter/jmeter-loader.bat
+    - ~/file-in-home-11.ds
 
 provisioning: cloud
 modules:

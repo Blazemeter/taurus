@@ -864,7 +864,7 @@ class TestCloudProvisioning(BZTestCase):
         # list of existing files in $HOME
         pref = 'file-in-home-'
         files_in_home = ['00.jmx', '01.csv', '02.res', '03.java', '04.scala', '05.jar',
-                         '06.py', '07.properties', '08.py', '09.siege', '10.xml']
+                         '06.py', '07.properties', '08.py', '09.siege', '10.xml', '11.ds']
         files_in_home = [pref + _file for _file in files_in_home]
 
         files_in_home = [{'shortname': os.path.join('~', _file),
@@ -872,6 +872,8 @@ class TestCloudProvisioning(BZTestCase):
                          for _file in files_in_home]
 
         shutil.copyfile(__dir__() + '/../jmeter/jmx/dummy.jmx', files_in_home[0]['fullname'])
+        dir_path = get_full_path(os.path.join('~', 'example-of-directory'))
+        os.mkdir(dir_path)
 
         for _file in files_in_home[1:]:
             open(_file['fullname'], 'a').close()
@@ -883,7 +885,8 @@ class TestCloudProvisioning(BZTestCase):
             os.path.join(os.getcwd(), 'tests', 'test_CLI.py'),      # full path
             files_in_home[2]['shortname'],                          # path from ~
             os.path.join('jmeter', 'jmeter-loader.bat'),            # relative path
-            'mocks.py']                                             # only basename (look at file_search_paths)
+            'mocks.py',                                             # only basename (look at file_search_paths)
+            '~/example-of-directory']                               # dir
 
         obj.prepare()
 
@@ -893,36 +896,47 @@ class TestCloudProvisioning(BZTestCase):
         res_files = [_file for _file in str_files[0].split('\'')[1::2]]
         with open(obj.engine.artifacts_dir + '/cloud.yml') as cl_file:
             str_cfg = cl_file.read()
-        self.assertEqual(24, len(res_files))
+        self.assertEqual(27, len(res_files))
         names = {os.path.basename(file_name): file_name for file_name in res_files}
 
+        archive_found = False
         for new_name in names:
             old_name = names[new_name]
-            self.assertIn(new_name, str_cfg)    # all short names in config
+            if new_name.endswith('.zip'):
+                archive_found = True
+            self.assertTrue(os.path.isfile(old_name))   # all resources on the disk, dir has been packed
+            self.assertIn(new_name, str_cfg)            # all short names in config
             if new_name != old_name:
                 self.assertNotIn(old_name, str_cfg)     # no one long name in config
+
+        self.assertTrue(archive_found)
 
         new_names = set(names.keys())
         self.assertEqual(new_names, {  # source:
             'file-in-home-00.jmx',                          # execution 0 (script)
-            'test_CLI.py', 'file-in-home-02.res', 'jmeter-loader.bat', 'mocks.py',  # execution 0 (files)
-            'files_paths.jmx',                              # execution  1 (script)
-            'file-in-home-01.csv', 'body-file.dat',         # execution  1 (from jmx)
-            'BlazeDemo.java',                               # execution  2 (script)
-            'file-in-home-05.jar', 'dummy.jar',             # execution  2 (additional-classpath)
-            'file-in-home-03.java',                         # execution  3 (script)
-            'BasicSimulation.scala',                        # execution  4 (script)
-            'file-in-home-04.scala',                        # execution  5 (script)
-            'helloworld.py',                                # execution  6 (script)
-            'grinder.base.properties',                      # execution  6 (properties-file)
-            'file-in-home-06.py',                           # execution  7 (script)
-            'file-in-home-07.properties',                   # execution  7 (properties-file)
-            'simple.py',                                    # execution  8 (script)
-            'file-in-home-08.py',                           # execution  9 (script)
-            'url-file',                                     # execution 11 (script)
-            'file-in-home-09.siege',                        # execution 12 (script)
-            'http_simple.xml',                              # execution 13 (script)
-            'file-in-home-10.xml',                          # execution 14 (script)
+            'test_CLI.py', 'file-in-home-02.res',           # 0 (files)
+            'jmeter-loader.bat', 'mocks.py',                # 0 (files)
+            'example-of-directory.zip',                     # 0 (files)
+            'files_paths.jmx',                              # 1 (script)
+            'file-in-home-01.csv', 'body-file.dat',         # 1 (from jmx)
+            'BlazeDemo.java',                               # 2 (script)
+            'file-in-home-05.jar', 'dummy.jar',             # 2 (additional-classpath)
+            'file-in-home-03.java',                         # 3 (script)
+            'BasicSimulation.scala',                        # 4 (script)
+            'file-in-home-04.scala',                        # 5 (script)
+            'helloworld.py',                                # 6 (script)
+            'grinder.base.properties',                      # 6 (properties-file)
+            'file-in-home-06.py',                           # 7 (script)
+            'file-in-home-07.properties',                   # 7 (properties-file)
+            'simple.py',                                    # 8 (script)
+            'file-in-home-08.py',                           # 9 (script)
+            'url-file',                                     # 11 (script)
+            'file-in-home-09.siege',                        # 12 (script)
+            'http_simple.xml',                              # 13 (script)
+            'file-in-home-10.xml',                          # 14 (script)
+            'jmeter-loader.bat',                            # 15 (data-sources)
+            'file-in-home-11.ds',                           # 15 (data-sources)
+
         })
         os.environ['HOME'] = back_home
         shutil.rmtree(temp_home)
