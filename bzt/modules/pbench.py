@@ -40,7 +40,7 @@ from bzt.utils import RequiredTool, IncrementableProgressBar
 from bzt.utils import shell_exec, shutdown_process, BetterDict, dehumanize_time
 
 
-class PBenchExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, FileLister):
+class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools):
     """
     :type pbench: PBenchTool
     :type widget: ExecutorWidget

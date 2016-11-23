@@ -832,7 +832,7 @@ class TestCloudProvisioning(BZTestCase):
         obj.post_process()
         self.assertEqual(client.results, [])
 
-    def test_acloud_paths(self):
+    def test_cloud_paths(self):
         """
         Test different executor/path combinations for correct return values of get_resources_files
 

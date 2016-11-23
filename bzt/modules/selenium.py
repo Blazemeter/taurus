@@ -152,7 +152,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
             if testng_xml:
                 return testng_xml
             else:
-                return None     # empty value for switch off autodetect testng.xml
+                return None     # empty value for switch off testng.xml path autodetect
 
         script_path = self.get_script_path()
         if script_path:
