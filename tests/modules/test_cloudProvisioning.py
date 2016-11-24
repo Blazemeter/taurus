@@ -900,7 +900,6 @@ class TestCloudProvisioning(BZTestCase):
             old_names = res_files[:half]
             new_names = res_files[half:]
             names = list(zip(old_names, new_names))
-            self.assertEqual(31, len(names))
 
             with open(obj.engine.artifacts_dir + '/cloud.yml') as cl_file:
                 str_cfg = cl_file.read()
