@@ -1606,7 +1606,7 @@ class MasterProvisioning(Provisioning):
 
     def _fix_filenames(self, old_names):
         # check for concurrent base names
-        old_full_names = [os.path.basename(self.engine.find_file(x)) for x in old_names]
+        old_full_names = [get_full_path(self.engine.find_file(x)) for x in old_names]
         rbases = [os.path.basename(get_full_path(rfile)) for rfile in old_full_names]
         rpaths = [get_full_path(rfile, step_up=1) for rfile in old_full_names]
         while rbases:
