@@ -395,7 +395,8 @@ class TestJMeterExecutor(BZTestCase):
         config['provisioning'] = 'cloud'
         self.configure(config)
         res_files = self.obj.resource_files()
-        self.assertEqual(len(res_files), 2)
+        self.assertEqual(len(res_files), 3)
+        self.assertEqual(len(set(res_files)), 2)
 
     def test_resource_files_from_requests_local_prov(self):
         self.configure(json.loads(open(__dir__() + "/../json/get-post.json").read()))
