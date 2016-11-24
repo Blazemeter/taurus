@@ -893,29 +893,36 @@ class TestCloudProvisioning(BZTestCase):
             obj.prepare()
 
             debug = log_recorder.debug_buff.getvalue().split('\n')
-            str_files = [line for line in debug if 'Uploading files into the test' in line]
+            str_files = [line for line in debug if 'Replace file names in config' in line]
             self.assertEqual(1, len(str_files))
             res_files = [_file for _file in str_files[0].split('\'')[1::2]]
+            half = int(len(res_files)/2)
+            old_names = res_files[:half]
+            new_names = res_files[half:]
+            names = list(zip(old_names, new_names))
+
             with open(obj.engine.artifacts_dir + '/cloud.yml') as cl_file:
                 str_cfg = cl_file.read()
-            self.assertEqual(31, len(res_files))
-            names = {os.path.basename(file_name): file_name for file_name in res_files}
 
             archive_found = False
-            for new_name in names:
-                old_name = names[new_name]
+            for old_name, new_name in names:
                 if new_name.endswith('.zip'):
                     archive_found = True
-                self.assertTrue(os.path.isfile(old_name))  # all resources on the disk, dir has been packed
-                self.assertIn(new_name, str_cfg)  # all short names in config
+
+                # all resources on the disk, dir has been packed
+                path_to_file = get_full_path(obj.engine.find_file(old_name))
+                msg = 'File %s (%s) not found on disk' % (old_name, path_to_file)
+                self.assertTrue(os.path.exists(path_to_file), msg)
+                msg = 'Short name %s not found in modified config' % new_name
+                self.assertIn(new_name, str_cfg, msg)  # all short names in config
                 if new_name != old_name:
-                    self.assertNotIn(old_name, str_cfg)  # no one long name in config
+                    msg = 'Long name %s found in config' % old_name
+                    self.assertNotIn(old_name, str_cfg, msg)  # no one long name in config
 
             self.assertTrue(archive_found)
 
-            new_names = set(names.keys())
-            self.assertEqual(new_names, {  # source:
-                'file-in-home-00.jmx',  # execution 0 (script)
+            self.assertEqual(set(new_names), {  # source:
+                'dummy.jmx',  # execution 0 (script)
                 'test_CLI.py', 'file-in-home-02.res',  # 0 (files)
                 'jmeter-loader.bat', 'mocks.py',  # 0 (files)
                 'example-of-directory.zip',  # 0 (files)
@@ -941,7 +948,8 @@ class TestCloudProvisioning(BZTestCase):
                 'http_simple.xml',  # 13 (script)
                 'file-in-home-10.xml',  # 14 (script)
                 'pbench.src',  # 15 (script)
-                'file-in-home-13.src'  # 16 (script)
+                'file-in-home-13.src',  # 16 (script)
+                'file-in-home-00.jmx'  # 17 (script)
             })
         finally:
             os.environ['HOME'] = back_home

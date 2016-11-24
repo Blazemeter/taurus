@@ -1592,23 +1592,24 @@ class MasterProvisioning(Provisioning):
             config = to_json(self.engine.config.get('execution'))
             config += to_json(self.engine.config.get('scenarios'))
             for rfile in executor_rfiles:
-                if not os.path.exists(self.engine.find_file(rfile)):    # TODO: what about files started from 'http://'?
+                if not os.path.exists(self.engine.find_file(rfile)):  # TODO: what about files started from 'http://'?
                     raise TaurusConfigError("%s: resource file '%s' not found" % (executor, rfile))
-                if to_json(rfile) not in config:     # TODO: might be check is needed to improve
+                if to_json(rfile) not in config:  # TODO: might be check is needed to improve
                     additional_files.append(rfile)
             rfiles += executor_rfiles
 
         if additional_files:
             raise TaurusConfigError("Next files can't be treated in cloud: %s" % additional_files)
 
+        rfiles = list(set(rfiles))
         self.log.debug("All resource files are: %s", rfiles)
         return rfiles
 
     def _fix_filenames(self, old_names):
         # check for concurrent base names
-        new_names = [self.engine.find_file(x) for x in old_names]
-        rbases = [os.path.basename(get_full_path(rfile)) for rfile in new_names]
-        rpaths = [get_full_path(rfile, step_up=1) for rfile in new_names]
+        old_full_names = [get_full_path(self.engine.find_file(x)) for x in old_names]
+        rbases = [os.path.basename(get_full_path(rfile)) for rfile in old_full_names]
+        rpaths = [get_full_path(rfile, step_up=1) for rfile in old_full_names]
         while rbases:
             base, path = rbases.pop(), rpaths.pop()
             if base in rbases:
@@ -1617,10 +1618,12 @@ class MasterProvisioning(Provisioning):
                     msg = 'Resource "%s" occurs more than one time, rename to avoid data loss'
                     raise TaurusConfigError(msg % base)
 
-        new_names = self.__pack_dirs(new_names)
-        new_base_names = [os.path.basename(f) for f in new_names]
-        replace_in_config(self.engine.config, new_names, new_base_names, log=self.log)
-        return new_names
+        old_full_names = self.__pack_dirs(old_full_names)
+        new_base_names = [os.path.basename(f) for f in old_full_names]
+        self.log.debug('Replace file names in config: %s with %s', old_names, new_base_names)
+        replace_in_config(self.engine.config, old_names, new_base_names, log=self.log)
+        old_full_names = list(set(old_full_names))
+        return old_full_names
 
     def __pack_dirs(self, source_list):
         result_list = []  # files for upload
@@ -1704,11 +1707,11 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.test = finder.resolve_test_type()
         self.test.prepare_locations(self.executors, self.engine.config)
 
-        rfiles = self.get_rfiles()
-        rfiles = self._fix_filenames(rfiles)
-        config = self.test.prepare_cloud_config(self.engine.config)
-        config.dump(self.engine.create_artifact("cloud", ""))
-        self.test.resolve_test(config, rfiles)
+        res_files = self.get_rfiles()
+        files_for_cloud = self._fix_filenames(res_files)
+        config_for_cloud = self.test.prepare_cloud_config(self.engine.config)
+        config_for_cloud.dump(self.engine.create_artifact("cloud", ""))
+        self.test.resolve_test(config_for_cloud, files_for_cloud)
 
         self.widget = CloudProvWidget(self.test)
 
