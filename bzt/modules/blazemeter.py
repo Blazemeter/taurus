@@ -399,7 +399,8 @@ class MonitoringBuffer(object):
         # datapoint :: dict(metric -> value)
 
     def record_data(self, data):
-        for item in data:
+        for monitoring_item in data:
+            item = copy.deepcopy(monitoring_item)
             source = item.pop('source')
             timestamp = int(item['ts'])
             item['interval'] = 1

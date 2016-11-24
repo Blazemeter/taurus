@@ -204,6 +204,25 @@ class TestBlazeMeterUploader(BZTestCase):
                 self.assertLessEqual(len(buffer), 100)
         self.assertEqual(0, len(obj.client.results))
 
+    def test_multiple_reporters_one_monitoring(self):
+        obj1 = BlazeMeterUploader()
+        obj1.engine = EngineEmul()
+        obj1.client = BlazeMeterClientEmul(logging.getLogger(''))
+        obj1.client.results.append({"marker": "ping", 'result': {}})
+
+        obj2 = BlazeMeterUploader()
+        obj2.engine = EngineEmul()
+        obj2.client = BlazeMeterClientEmul(logging.getLogger(''))
+        obj2.client.results.append({"marker": "ping", 'result': {}})
+
+        obj1.prepare()
+        obj2.prepare()
+
+        for i in range(10):
+            mon = [{"ts": i, "source": "local", "cpu": float(i) / 1000 * 100, "mem": 2, "bytes-recv": 100, "other": 0}]
+            obj1.monitoring_data(mon)
+            obj2.monitoring_data(mon)
+
 
 class TestBlazeMeterClientUnicode(BZTestCase):
     def test_unicode_request(self):
