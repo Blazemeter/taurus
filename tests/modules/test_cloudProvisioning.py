@@ -896,8 +896,9 @@ class TestCloudProvisioning(BZTestCase):
             str_files = [line for line in debug if 'Replace file names in config' in line]
             self.assertEqual(1, len(str_files))
             res_files = [_file for _file in str_files[0].split('\'')[1::2]]
-            old_names = res_files[:len(res_files)/2]
-            new_names = res_files[len(res_files)/2:]
+            half = int(len(res_files)/2)
+            old_names = res_files[:half]
+            new_names = res_files[half:]
             names = list(zip(old_names, new_names))
             self.assertEqual(31, len(names))
 
