@@ -1591,9 +1591,9 @@ class MasterProvisioning(Provisioning):
             config = to_json(self.engine.config.get('execution'))
             config += to_json(self.engine.config.get('scenarios'))
             for rfile in executor_rfiles:
-                if not os.path.exists(self.engine.find_file(rfile)):    # TODO: what about files started from 'http://'?
+                if not os.path.exists(self.engine.find_file(rfile)):  # TODO: what about files started from 'http://'?
                     raise TaurusConfigError("%s: resource file '%s' not found" % (executor, rfile))
-                if to_json(rfile) not in config:     # TODO: might be check is needed to improve
+                if to_json(rfile) not in config:  # TODO: might be check is needed to improve
                     additional_files.append(rfile)
             rfiles += executor_rfiles
 
