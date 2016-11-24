@@ -3,7 +3,7 @@
 execution:
 - executor: jmeter
   scenario:
-    script: ~/file-in-home-00.jmx
+    script: jmeter/jmx/dummy.jmx
 - executor: jmeter
   scenario:
     script: jmeter/jmx/files_paths.jmx
@@ -77,6 +77,12 @@ execution:
 - executor: pbench
   scenario:
     script: ~/file-in-home-13.src
+
+# 17
+- executor: jmeter
+  scenario:
+    script: ~/file-in-home-00.jmx
+
 provisioning: cloud
 modules:
   cloud:

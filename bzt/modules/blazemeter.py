@@ -1600,6 +1600,7 @@ class MasterProvisioning(Provisioning):
         if additional_files:
             raise TaurusConfigError("Next files can't be treated in cloud: %s" % additional_files)
 
+        rfiles = list(set(rfiles))
         self.log.debug("All resource files are: %s", rfiles)
         return rfiles
 
@@ -1618,7 +1619,9 @@ class MasterProvisioning(Provisioning):
 
         new_names = self.__pack_dirs(new_names)
         new_base_names = [os.path.basename(f) for f in new_names]
-        replace_in_config(self.engine.config, new_names, new_base_names, log=self.log)
+        self.log.debug('Replace file names in config: %s with %s', old_names, new_base_names)
+        replace_in_config(self.engine.config, old_names, new_base_names, log=self.log)
+        new_names = list(set(new_names))
         return new_names
 
     def __pack_dirs(self, source_list):
