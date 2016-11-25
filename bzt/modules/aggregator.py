@@ -20,7 +20,7 @@ import logging
 import math
 import re
 from abc import abstractmethod
-from collections import Counter
+from collections import Counter, OrderedDict
 
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Aggregator
@@ -71,6 +71,7 @@ class KPISet(BetterDict):
         self.get(self.RESP_CODES, Counter())
         self.get(self.PERCENTILES)
         self._concurrencies = BetterDict()  # NOTE: shouldn't it be Counter?
+        self.rt_dist_maxlen = 1000
 
     def __deepcopy__(self, memo):
         mycopy = KPISet(self.perc_levels)
@@ -180,6 +181,27 @@ class KPISet(BetterDict):
         self[self.STDEV_RESP_TIME] = stdev
 
         return self
+
+    def compact_times(self, times):
+        """
+        :type times: Counter
+        """
+        logging.debug("Compacting %s into %s", len(times), self.rt_dist_maxlen)
+        while len(times) > self.rt_dist_maxlen:  # FIXME: think how this can hang and prevent it
+            keys = sorted(times.keys())
+            distance_map = {timing: keys[idx + 1] - keys[idx] for idx, timing in enumerate(keys[1:-1])}
+            min_distance = min(distance_map.values())
+            for lkey in distance_map:
+                if distance_map[lkey] == min_distance:
+                    rkey = keys[keys.index(lkey) + 1]
+                    lval = times.pop(lkey)
+                    rval = times.pop(rkey)
+                    key_diff = rkey - lkey
+                    shift_ratio = float(rval) / (lval + rval)
+                    shift_val = key_diff * shift_ratio
+                    idx_new = lkey + shift_val
+                    times[idx_new] = lval + rval
+                    break
 
     def merge_kpis(self, src, sid=None):
         """
@@ -387,6 +409,7 @@ class ResultsProvider(object):
         for label, data in iteritems(current):
             cumul = self.cumulative.get(label, KPISet(self.track_percentiles))
             cumul.merge_kpis(data)
+            cumul.compact_times(cumul[KPISet.RESP_TIMES])
             cumul.recalculate()
 
     def datapoints(self, final_pass=False):
@@ -457,7 +480,7 @@ class ResultsReader(ResultsProvider):
                     self.buffer[t_stamp] = []
                 self.buffer[t_stamp].append((label, conc, r_time, con_time, latency, r_code, error, trname, byte_count))
             else:
-                raise TaurusInternalException("Unsupported results from %s reader: %s" %(self, result))
+                raise TaurusInternalException("Unsupported results from %s reader: %s" % (self, result))
 
     def __aggregate_current(self, datapoint, samples):
         """
