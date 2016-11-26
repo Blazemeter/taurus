@@ -20,7 +20,7 @@ import logging
 import math
 import re
 from abc import abstractmethod
-from collections import Counter, OrderedDict
+from collections import Counter
 
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Aggregator
@@ -71,7 +71,7 @@ class KPISet(BetterDict):
         self.get(self.RESP_CODES, Counter())
         self.get(self.PERCENTILES)
         self._concurrencies = BetterDict()  # NOTE: shouldn't it be Counter?
-        self.rt_dist_maxlen = 1000
+        self.rt_dist_maxlen = 1000  # TODO: parameterize it
 
     def __deepcopy__(self, memo):
         mycopy = KPISet(self.perc_levels)
@@ -187,7 +187,7 @@ class KPISet(BetterDict):
         :type times: Counter
         """
         logging.debug("Compacting %s into %s", len(times), self.rt_dist_maxlen)
-        while len(times) > self.rt_dist_maxlen:  # FIXME: think how this can hang and prevent it
+        while len(times) > self.rt_dist_maxlen:  # FIXME: too slow, we need bulk approach
             keys = sorted(times.keys())
             distance_map = {timing: keys[idx + 1] - keys[idx] for idx, timing in enumerate(keys[1:-1])}
             min_distance = min(distance_map.values())
