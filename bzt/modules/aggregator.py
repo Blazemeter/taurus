@@ -200,6 +200,9 @@ class KPISet(BetterDict):
                     shift_ratio = float(rval) / (lval + rval)
                     shift_val = key_diff * shift_ratio
                     idx_new = lkey + shift_val
+                    lprec = len(str(math.modf(lkey)[0])) - 2
+                    rprec = len(str(math.modf(rkey)[0])) - 2
+                    idx_new = round(idx_new, max(lprec, rprec))
                     times[idx_new] = lval + rval
                     break
 

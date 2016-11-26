@@ -149,6 +149,7 @@ class TestConsolidatingAggregator(BZTestCase):
         src[KPISet.RESP_TIMES].update(vals)
         dst = KPISet()
         dst.rt_dist_maxlen = 100
-        dst.merge_kpis(src)
-        dst.compact_times(dst[KPISet.RESP_TIMES])
-        self.assertEqual(100, len(dst[KPISet.RESP_TIMES]))
+        for _ in range(0, 100):
+            dst.merge_kpis(src)
+            dst.compact_times(dst[KPISet.RESP_TIMES])
+            self.assertEqual(100, len(dst[KPISet.RESP_TIMES]))
