@@ -196,13 +196,15 @@ class KPISet(BetterDict):
                     rkey = keys[keys.index(lkey) + 1]
                     lval = times.pop(lkey)
                     rval = times.pop(rkey)
-                    key_diff = rkey - lkey
-                    shift_ratio = float(rval) / (lval + rval)
-                    shift_val = key_diff * shift_ratio
-                    idx_new = lkey + shift_val
+
+                    # shift key proportionally to values
+                    idx_new = lkey + (rkey - lkey) * float(rval) / (lval + rval)
+
+                    # keep precision the same
                     lprec = len(str(math.modf(lkey)[0])) - 2
                     rprec = len(str(math.modf(rkey)[0])) - 2
                     idx_new = round(idx_new, max(lprec, rprec))
+
                     times[idx_new] = lval + rval
                     break
 
