@@ -483,6 +483,7 @@ class TestCloudProvisioning(BZTestCase):
 
     def test_sandbox_default_location(self):
         self.configure(
+            add_settings=False,
             engine_cfg={
                 ScenarioExecutor.EXEC: {
                     "executor": "mock",
@@ -495,6 +496,8 @@ class TestCloudProvisioning(BZTestCase):
                 {"files": []},  # create test
                 {}])  # upload files
 
+        self.obj.settings["token"] = "FakeToken"
+        self.obj.settings["browser-open"] = False
         self.obj.prepare()
         exec_locations = self.obj.executors[0].execution['locations']
         self.assertEquals(1, exec_locations['us-west-1'])
