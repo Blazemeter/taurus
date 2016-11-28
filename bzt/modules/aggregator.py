@@ -19,6 +19,7 @@ import copy
 import logging
 import math
 import re
+import operator
 from abc import abstractmethod
 from collections import Counter
 
@@ -186,7 +187,6 @@ class KPISet(BetterDict):
         """
         :type times: Counter
         """
-        import operator
         logging.debug("Compacting %s into %s", len(times), self.rt_dist_maxlen)
 
         while len(times) > self.rt_dist_maxlen:
@@ -194,9 +194,12 @@ class KPISet(BetterDict):
             keys = sorted(times.keys())
             distances = {idx: keys[idx + 1] - keys[idx] for idx in range(len(keys) - 1)}
             distances_map = (sorted(distances.items(), key=operator.itemgetter(1)))  # sort by distance
-            distances_map = distances_map[:redundant_cnt]    # cast candidates for consolidation
-            while distances_map:
-                idx, distance = distances_map.pop(0)
+
+            # cast candidates for consolidation
+            distances_indexes = [idx for idx, _ in distances_map[:redundant_cnt]]
+
+            while distances_indexes:
+                idx = distances_indexes.pop(0)
                 lkey = keys[idx]
                 rkey = keys[idx+1]
                 if lkey in times and rkey in times:
@@ -216,8 +219,8 @@ class KPISet(BetterDict):
                     # this neighbour interval has been changed so it's
                     # candidate for consolidating. (on the next iteration)
                     # We should skip it and throw out the longest one for correct consolidation order
-                    if distances_map:
-                        distances_map.pop(-1)
+                    if distances_indexes:
+                        distances_indexes.pop(-1)
 
     def merge_kpis(self, src, sid=None):
         """
