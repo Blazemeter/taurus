@@ -186,14 +186,20 @@ class KPISet(BetterDict):
         """
         :type times: Counter
         """
+        import operator
         logging.debug("Compacting %s into %s", len(times), self.rt_dist_maxlen)
-        while len(times) > self.rt_dist_maxlen:  # FIXME: too slow, we need bulk approach
+
+        while len(times) > self.rt_dist_maxlen:
+            redundant_cnt = len(times) - self.rt_dist_maxlen
             keys = sorted(times.keys())
-            distance_map = {timing: keys[idx + 1] - keys[idx] for idx, timing in enumerate(keys[1:-1])}
-            min_distance = min(distance_map.values())
-            for lkey in distance_map:
-                if distance_map[lkey] == min_distance:
-                    rkey = keys[keys.index(lkey) + 1]
+            distances = {idx: keys[idx + 1] - keys[idx] for idx in range(len(keys) - 1)}
+            distances_map = (sorted(distances.items(), key=operator.itemgetter(1)))  # sort by distance
+            distances_map = distances_map[:redundant_cnt]    # cast candidates for consolidation
+            while distances_map:
+                idx, distance = distances_map.pop(0)
+                lkey = keys[idx]
+                rkey = keys[idx+1]
+                if lkey in times and rkey in times:
                     lval = times.pop(lkey)
                     rval = times.pop(rkey)
 
@@ -206,7 +212,12 @@ class KPISet(BetterDict):
                     idx_new = round(idx_new, max(lprec, rprec))
 
                     times[idx_new] = lval + rval
-                    break
+                else:
+                    # this neighbour interval has been changed so it's
+                    # candidate for consolidating. (on the next iteration)
+                    # We should skip it and throw out the longest one for correct consolidation order
+                    if distances_map:
+                        distances_map.pop(-1)
 
     def merge_kpis(self, src, sid=None):
         """
