@@ -204,7 +204,7 @@ class KPISet(BetterDict):
                 lidx = lkeys_indexes.pop(0)
                 lkey = keys[lidx]
                 rkey = keys[lidx + 1]
-                if lkey in times and rkey in times:
+                if lkey in times and rkey in times:  # neighbours aren't changed
                     lval = times.pop(lkey)
                     rval = times.pop(rkey)
 
@@ -218,12 +218,6 @@ class KPISet(BetterDict):
 
                     times[idx_new] = lval + rval
                     redundant_cnt -= 1
-                else:
-                    # this neighbour interval has been changed so it's
-                    # candidate for consolidating. (on the next iteration)
-                    # We should skip it and throw out the longest one for correct consolidation order
-                    if lkeys_indexes:
-                        lkeys_indexes.pop(-1)
 
     def merge_kpis(self, src, sid=None):
         """
