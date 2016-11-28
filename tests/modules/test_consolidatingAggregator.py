@@ -1,6 +1,6 @@
 from random import random
-from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet
 
+from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet
 from tests import BZTestCase, r
 from tests.mocks import MockReader
 
@@ -109,12 +109,12 @@ class TestConsolidatingAggregator(BZTestCase):
             self.assertEqual(data['fail'], total_errors_count)
 
     def test_kpiset_merge_many_rt(self):
-        vals = {round(random()*20+0.1, int(random()*3) + 2): int(random()*1.1+1) for _ in range(1000)}
+        vals = {round(random() * 20 + 0.1, int(random() * 3) + 2): int(random() * 3 + 1) for _ in range(1000)}
         src = KPISet()
         src[KPISet.RESP_TIMES].update(vals)
         dst = KPISet()
         dst.rt_dist_maxlen = 100
-        for _ in range(0, 100):
+        for _ in range(100):
             dst.merge_kpis(src)
-            dst.compact_times()
+            dst.recalculate()
             self.assertEqual(100, len(dst[KPISet.RESP_TIMES]))

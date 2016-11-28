@@ -167,8 +167,7 @@ class KPISet(BetterDict):
 
         :return:
         """
-
-        self.compact_times()
+        self._compact_times()
 
         if self[self.SAMPLE_COUNT]:
             self[self.AVG_CONN_TIME] = self.sum_cn / self[self.SAMPLE_COUNT]
@@ -186,7 +185,7 @@ class KPISet(BetterDict):
 
         return self
 
-    def compact_times(self):
+    def _compact_times(self):
         times = self[KPISet.RESP_TIMES]
         redundant_cnt = len(times) - self.rt_dist_maxlen
         if redundant_cnt > 0:
