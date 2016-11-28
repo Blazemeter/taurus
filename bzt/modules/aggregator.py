@@ -18,8 +18,8 @@ limitations under the License.
 import copy
 import logging
 import math
-import re
 import operator
+import re
 from abc import abstractmethod
 from collections import Counter
 
@@ -167,6 +167,9 @@ class KPISet(BetterDict):
 
         :return:
         """
+
+        self.compact_times()
+
         if self[self.SAMPLE_COUNT]:
             self[self.AVG_CONN_TIME] = self.sum_cn / self[self.SAMPLE_COUNT]
             self[self.AVG_LATENCY] = self.sum_lt / self[self.SAMPLE_COUNT]
@@ -183,25 +186,24 @@ class KPISet(BetterDict):
 
         return self
 
-    def compact_times(self, times):
-        """
-        :type times: Counter
-        """
-        logging.debug("Compacting %s into %s", len(times), self.rt_dist_maxlen)
+    def compact_times(self):
+        times = self[KPISet.RESP_TIMES]
+        redundant_cnt = len(times) - self.rt_dist_maxlen
+        if redundant_cnt > 0:
+            logging.debug("Compacting %s response timing into %s", len(times), self.rt_dist_maxlen)
 
-        while len(times) > self.rt_dist_maxlen:
-            redundant_cnt = len(times) - self.rt_dist_maxlen
+        while redundant_cnt > 0:
             keys = sorted(times.keys())
-            distances = {idx: keys[idx + 1] - keys[idx] for idx in range(len(keys) - 1)}
-            distances_map = (sorted(distances.items(), key=operator.itemgetter(1)))  # sort by distance
+            distances = [(lidx, keys[lidx + 1] - keys[lidx]) for lidx in range(len(keys) - 1)]
+            distances.sort(key=operator.itemgetter(1))  # sort by distance
 
             # cast candidates for consolidation
-            distances_indexes = [idx for idx, _ in distances_map[:redundant_cnt]]
+            lkeys_indexes = [lidx for lidx, _ in distances[:redundant_cnt]]
 
-            while distances_indexes:
-                idx = distances_indexes.pop(0)
-                lkey = keys[idx]
-                rkey = keys[idx+1]
+            while lkeys_indexes:
+                lidx = lkeys_indexes.pop(0)
+                lkey = keys[lidx]
+                rkey = keys[lidx + 1]
                 if lkey in times and rkey in times:
                     lval = times.pop(lkey)
                     rval = times.pop(rkey)
@@ -215,12 +217,13 @@ class KPISet(BetterDict):
                     idx_new = round(idx_new, max(lprec, rprec))
 
                     times[idx_new] = lval + rval
+                    redundant_cnt -= 1
                 else:
                     # this neighbour interval has been changed so it's
                     # candidate for consolidating. (on the next iteration)
                     # We should skip it and throw out the longest one for correct consolidation order
-                    if distances_indexes:
-                        distances_indexes.pop(-1)
+                    if lkeys_indexes:
+                        lkeys_indexes.pop(-1)
 
     def merge_kpis(self, src, sid=None):
         """
@@ -428,7 +431,6 @@ class ResultsProvider(object):
         for label, data in iteritems(current):
             cumul = self.cumulative.get(label, KPISet(self.track_percentiles))
             cumul.merge_kpis(data)
-            cumul.compact_times(cumul[KPISet.RESP_TIMES])
             cumul.recalculate()
 
     def datapoints(self, final_pass=False):
