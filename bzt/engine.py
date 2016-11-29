@@ -77,15 +77,17 @@ class Engine(object):
         self.prepared = []
         self.started = []
         self.default_cwd = None
+        self.strict_mode = False
 
-    def configure(self, user_configs, read_config_files=True):
+    def configure(self, user_configs, read_config_files=True, strict_mode=False):
         """
         Load configuration files
         :type user_configs: list[str]
         :type read_config_files: bool
+        :type strict_mode: bool
         """
         self.log.info("Configuring...")
-
+        self.strict_mode = strict_mode
         if read_config_files:
             self._load_base_configs()
 
@@ -667,6 +669,8 @@ class EngineModule(object):
     :type engine: Engine
     :type settings: BetterDict
     """
+    CFG_OK = 0
+    CFG_WRONG = 1
 
     def __init__(self):
         self.log = logging.getLogger('')
@@ -681,6 +685,12 @@ class EngineModule(object):
         Preparation stage, at which configuration is being read, configs
         and tools being prepared. All long preparations and checks should be
         made here, to make `startup` stage as fast as possible.
+        """
+        pass
+
+    def audit(self):
+        """
+        Audit of configuration
         """
         pass
 
@@ -748,6 +758,7 @@ class Provisioning(EngineModule):
         if not isinstance(executions, list):
             executions = [executions]
 
+        cfg_audit_result = EngineModule.CFG_OK
         for execution in executions:
             executor = execution.get("executor", default_executor)
             if not executor:
@@ -757,7 +768,12 @@ class Provisioning(EngineModule):
             instance.provisioning = self
             instance.execution = execution
             assert isinstance(instance, ScenarioExecutor)
+            if instance.audit() == EngineModule.CFG_WRONG:
+                cfg_audit_result = EngineModule.CFG_WRONG
             self.executors.append(instance)
+
+        if cfg_audit_result == EngineModule.CFG_WRONG and self.engine.strict_mode:
+            raise TaurusConfigError('Syntax errors are found')
 
 
 class FileLister(object):
@@ -796,6 +812,17 @@ class ScenarioExecutor(EngineModule):
         self.label = None
         self.widget = None
         self.reader = None
+
+    def audit(self):
+        execution = set(self.execution.keys())
+        available = {'executor', 'location', 'ramp-up', 'hold-for', 'scenario', 'distributed',
+                     'concurrency', 'iterations', 'throughput', 'steps', 'locations'}
+        unknown_keys = execution - available
+        if unknown_keys:
+            self.log.warning('%s: unknown keys found: %s', self, ', '.join(unknown_keys))
+            return EngineModule.CFG_WRONG
+
+        return EngineModule.CFG_OK
 
     def has_results(self):
         if self.reader and self.reader.buffer:

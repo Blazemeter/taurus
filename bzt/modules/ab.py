@@ -34,7 +34,6 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
     """
     Apache Benchmark executor module
     """
-
     def __init__(self):
         super(ApacheBenchmarkExecutor, self).__init__()
         self.log = logging.getLogger('')
@@ -44,6 +43,16 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
         self.__err = None
         self.tool_path = None
         self.scenario = None
+
+    def audit(self):
+        not_for_ab = {'ramp-up', 'distributed', 'throughput', 'steps'}
+        execution = set(self.execution)
+        inappropriate_keys = execution & not_for_ab
+        if inappropriate_keys:
+            self.log.warning('%s: inappropriate keys found: %s', self, ', '.join(inappropriate_keys))
+            return self.CFG_WRONG
+
+        return super(ApacheBenchmarkExecutor, self).audit()
 
     def prepare(self):
         self.scenario = self.get_scenario()
