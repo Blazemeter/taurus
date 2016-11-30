@@ -167,8 +167,6 @@ class KPISet(BetterDict):
 
         :return:
         """
-        self._compact_times()
-
         if self[self.SAMPLE_COUNT]:
             self[self.AVG_CONN_TIME] = self.sum_cn / self[self.SAMPLE_COUNT]
             self[self.AVG_LATENCY] = self.sum_lt / self[self.SAMPLE_COUNT]
@@ -185,7 +183,7 @@ class KPISet(BetterDict):
 
         return self
 
-    def _compact_times(self):
+    def compact_times(self):
         times = self[KPISet.RESP_TIMES]
         redundant_cnt = len(times) - self.rt_dist_maxlen
         if redundant_cnt > 0:
@@ -424,6 +422,7 @@ class ResultsProvider(object):
         for label, data in iteritems(current):
             cumul = self.cumulative.get(label, KPISet(self.track_percentiles))
             cumul.merge_kpis(data)
+            cumul.compact_times()
             cumul.recalculate()
 
     def datapoints(self, final_pass=False):
