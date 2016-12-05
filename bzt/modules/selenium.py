@@ -111,6 +111,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         self.self_generated_script = False
         self.generated_methods = BetterDict()
         self.runner_working_dir = None
+        self.register_reader = True
 
     def get_virtual_display(self):
         return self.virtual_display
@@ -223,7 +224,8 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         self.runner = self._create_runner(self.report_file)
 
         self.runner.prepare()
-        self.reader = self._register_reader(self.report_file)
+        if self.register_reader:
+            self.reader = self._register_reader(self.report_file)
 
     def __setup_script(self):
         self.script = self.get_script_path()
