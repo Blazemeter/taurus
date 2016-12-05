@@ -1,7 +1,7 @@
 from bzt.modules.functional import FunctionalAggregator, FunctionalAggregatorListener, FunctionalSample
 
 from tests import BZTestCase
-from tests.mocks import MockFunctionalReader
+from tests.mocks import MockFunctionalReader, RecordingHandler
 
 
 class MockListener(FunctionalAggregatorListener):
@@ -66,6 +66,9 @@ class TestFunctionalAggregator(BZTestCase):
     def test_underlings(self):
         obj = FunctionalAggregator()
         obj.prepare()
+        log_recorder = RecordingHandler()
+        obj.log.addHandler(log_recorder)
+
         underling1 = self.get_reader()
         underling2 = self.get_reader()
         obj.add_underling(underling1)
@@ -77,3 +80,7 @@ class TestFunctionalAggregator(BZTestCase):
 
         obj.remove_underling(underling2)
         self.assertEqual(0, len(obj.underlings))
+
+        obj.remove_underling(underling1)
+        log_buff = log_recorder.warn_buff.getvalue()
+        self.assertIn("Trying to remove reader", log_buff)
