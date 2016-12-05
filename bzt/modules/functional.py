@@ -37,6 +37,13 @@ class FunctionalAggregator(Aggregator):
         assert isinstance(reader, FunctionalResultsReader)
         self.underlings.append(reader)
 
+    def remove_underling(self, reader):
+        assert isinstance(reader, FunctionalResultsReader)
+        try:
+            self.underlings.remove(reader)
+        except ValueError:
+            self.log.warning("Trying to remove reader %s that isn't in underlings list")
+
     def add_listener(self, listener):
         assert isinstance(listener, FunctionalAggregatorListener)
         self.listeners.append(listener)

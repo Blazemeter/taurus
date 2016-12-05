@@ -624,6 +624,12 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
 
         self.underlings.append(underling)
 
+    def remove_underling(self, underling):
+        try:
+            self.underlings.remove(underling)
+        except ValueError:
+            self.log.warning("Trying to remove reader %s that isn't in underlings list")
+
     def check(self):
         """
         Check if there is next aggregate data present

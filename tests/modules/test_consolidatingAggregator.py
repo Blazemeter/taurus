@@ -1,7 +1,7 @@
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet
 
 from tests import BZTestCase, r
-from tests.mocks import MockReader
+from tests.mocks import MockReader, RecordingHandler
 
 
 class TestConsolidatingAggregator(BZTestCase):
@@ -106,4 +106,28 @@ class TestConsolidatingAggregator(BZTestCase):
             data = cum_dict[label]
             total_errors_count = sum(err['cnt'] for err in data['errors'])
             self.assertEqual(data['fail'], total_errors_count)
+
+    def test_remove_underlings(self):
+        obj = ConsolidatingAggregator()
+        obj.track_percentiles = [0, 50, 100]
+        obj.prepare()
+        log_recorder = RecordingHandler()
+        obj.log.addHandler(log_recorder)
+
+        underling1 = self.get_success_reader()
+        underling2 = self.get_success_reader()
+
+        obj.add_underling(underling1)
+        obj.add_underling(underling2)
+        self.assertEqual(2, len(obj.underlings))
+
+        obj.remove_underling(underling1)
+        self.assertEqual(1, len(obj.underlings))
+
+        obj.remove_underling(underling2)
+        self.assertEqual(0, len(obj.underlings))
+
+        obj.remove_underling(underling1)
+        log_buff = log_recorder.warn_buff.getvalue()
+        self.assertIn("Trying to remove reader", log_buff)
 
