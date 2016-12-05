@@ -62,3 +62,18 @@ class TestFunctionalAggregator(BZTestCase):
         obj.check()
         obj.post_process()
         self.assertEqual(len(listener.results), 1)
+
+    def test_underlings(self):
+        obj = FunctionalAggregator()
+        obj.prepare()
+        underling1 = self.get_reader()
+        underling2 = self.get_reader()
+        obj.add_underling(underling1)
+        obj.add_underling(underling2)
+        self.assertEqual(2, len(obj.underlings))
+
+        obj.remove_underling(underling1)
+        self.assertEqual(1, len(obj.underlings))
+
+        obj.remove_underling(underling2)
+        self.assertEqual(0, len(obj.underlings))
