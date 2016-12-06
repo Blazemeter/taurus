@@ -86,6 +86,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         self.monitoring_buffer = None
         self.send_custom_metrics = False
         self.send_custom_tables = False
+        self.public_report = False
 
     def prepare(self):
         """
@@ -103,6 +104,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         monitoring_buffer_limit = self.settings.get("monitoring-buffer-limit", 500)
         self.monitoring_buffer = MonitoringBuffer(monitoring_buffer_limit, self.log)
         self.browser_open = self.settings.get("browser-open", self.browser_open)
+        self.public_report = self.settings.get("public-report", self.public_report)
         token = self.settings.get("token", "")
         if not token:
             self.log.warning("No BlazeMeter API key provided, will upload anonymously")
@@ -226,10 +228,16 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         finally:
             self._postproc_phase2()
 
-        if self.client.results_url:
+        report_link = None
+        if self.client.token and self.public_report:
+            report_link = self.client.make_report_public()
+        elif self.client.results_url:
+            report_link = self.client.results_url
+
+        if report_link is not None:
             if self.browser_open in ('end', 'both'):
-                open_browser(self.client.results_url)
-            self.log.info("Online report link: %s", self.client.results_url)
+                open_browser(report_link)
+            self.log.info("Online report link: %s", report_link)
 
     def _postproc_phase2(self):
         try:
@@ -1581,6 +1589,14 @@ class BlazeMeterClient(object):
         url = self.address + "/api/latest/data/masters/%s/custom-table" % self.master_id
         res = self._request(url, to_json(data), headers={"Content-Type": "application/json"}, method="POST")
         return res
+
+    def make_report_public(self):
+        url = self.address + "/api/latest/masters/%s/publicToken" % self.master_id
+        res = self._request(url, to_json({"publicToken": None}),
+                            headers={"Content-Type": "application/json"}, method="POST")
+        public_token = res['result']['publicToken']
+        report_link = self.address + "/app/?public-token=%s#/masters/%s/summary" % (public_token, self.master_id)
+        return report_link
 
 
 class MasterProvisioning(Provisioning):
