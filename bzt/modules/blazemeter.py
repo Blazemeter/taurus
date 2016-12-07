@@ -228,16 +228,14 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         finally:
             self._postproc_phase2()
 
-        report_link = None
+        if self.client.results_url:
+            if self.browser_open in ('end', 'both'):
+                open_browser(self.client.results_url)
+            self.log.info("Online report link: %s", self.client.results_url)
+
         if self.client.token and self.public_report:
             report_link = self.client.make_report_public()
-        elif self.client.results_url:
-            report_link = self.client.results_url
-
-        if report_link is not None:
-            if self.browser_open in ('end', 'both'):
-                open_browser(report_link)
-            self.log.info("Online report link: %s", report_link)
+            self.log.info("Public report link: %s", report_link)
 
     def _postproc_phase2(self):
         try:

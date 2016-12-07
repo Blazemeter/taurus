@@ -261,7 +261,7 @@ class TestBlazeMeterUploader(BZTestCase):
         self.assertEqual(0, len(client.results))
 
         log_buff = log_recorder.info_buff.getvalue()
-        log_line = "report link: https://a.blazemeter.com/app/?public-token=publicToken#/masters/master1/summary"
+        log_line = "Public report link: https://a.blazemeter.com/app/?public-token=publicToken#/masters/master1/summary"
         self.assertIn(log_line, log_buff)
 
 
