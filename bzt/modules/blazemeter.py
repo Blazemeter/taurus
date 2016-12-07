@@ -643,6 +643,10 @@ class BaseCloudTest(object):
     def stop_test(self):
         pass
 
+    def publish_report(self):
+        report_link = self.client.make_report_public()
+        return report_link
+
     def get_master_status(self):
         self._last_status = self.client.get_master_status()
         return self._last_status
@@ -1687,6 +1691,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.test_ended = False
         self.check_interval = 5.0
         self.__last_check_time = None
+        self.public_report = False
 
     def _merge_with_blazemeter_config(self):
         if 'blazemeter' not in self.engine.config.get('modules'):
@@ -1713,6 +1718,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.browser_open = self.settings.get("browser-open", self.browser_open)
         self.detach = self.settings.get("detach", self.detach)
         self.check_interval = dehumanize_time(self.settings.get("check-interval", self.check_interval))
+        self.public_report = self.settings.get("public-report", self.public_report)
         self._configure_client()
         self._filter_reporting()
 
@@ -1763,6 +1769,9 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         if self.client.results_url:
             if self.browser_open in ('start', 'both'):
                 open_browser(self.client.results_url)
+        if self.client.token and self.public_report:
+            public_link = self.test.publish_report()
+            self.log.info("Public report link: %s", public_link)
 
     def _should_skip_check(self):
         now = time.time()
