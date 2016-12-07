@@ -86,6 +86,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         self.monitoring_buffer = None
         self.send_custom_metrics = False
         self.send_custom_tables = False
+        self.public_report = False
 
     def prepare(self):
         """
@@ -103,6 +104,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         monitoring_buffer_limit = self.settings.get("monitoring-buffer-limit", 500)
         self.monitoring_buffer = MonitoringBuffer(monitoring_buffer_limit, self.log)
         self.browser_open = self.settings.get("browser-open", self.browser_open)
+        self.public_report = self.settings.get("public-report", self.public_report)
         token = self.settings.get("token", "")
         if not token:
             self.log.warning("No BlazeMeter API key provided, will upload anonymously")
@@ -148,6 +150,10 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
             self.log.info("Started data feeding: %s", url)
             if self.browser_open in ('start', 'both'):
                 open_browser(url)
+
+            if self.client.token and self.public_report:
+                report_link = self.client.make_report_public()
+                self.log.info("Public report link: %s", report_link)
 
     def __get_jtls_and_more(self):
         """
@@ -636,6 +642,10 @@ class BaseCloudTest(object):
     @abstractmethod
     def stop_test(self):
         pass
+
+    def publish_report(self):
+        report_link = self.client.make_report_public()
+        return report_link
 
     def get_master_status(self):
         self._last_status = self.client.get_master_status()
@@ -1582,6 +1592,14 @@ class BlazeMeterClient(object):
         res = self._request(url, to_json(data), headers={"Content-Type": "application/json"}, method="POST")
         return res
 
+    def make_report_public(self):
+        url = self.address + "/api/latest/masters/%s/publicToken" % self.master_id
+        res = self._request(url, to_json({"publicToken": None}),
+                            headers={"Content-Type": "application/json"}, method="POST")
+        public_token = res['result']['publicToken']
+        report_link = self.address + "/app/?public-token=%s#/masters/%s/summary" % (public_token, self.master_id)
+        return report_link
+
 
 class MasterProvisioning(Provisioning):
     def get_rfiles(self):
@@ -1673,6 +1691,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.test_ended = False
         self.check_interval = 5.0
         self.__last_check_time = None
+        self.public_report = False
 
     def _merge_with_blazemeter_config(self):
         if 'blazemeter' not in self.engine.config.get('modules'):
@@ -1699,6 +1718,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.browser_open = self.settings.get("browser-open", self.browser_open)
         self.detach = self.settings.get("detach", self.detach)
         self.check_interval = dehumanize_time(self.settings.get("check-interval", self.check_interval))
+        self.public_report = self.settings.get("public-report", self.public_report)
         self._configure_client()
         self._filter_reporting()
 
@@ -1749,6 +1769,9 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         if self.client.results_url:
             if self.browser_open in ('start', 'both'):
                 open_browser(self.client.results_url)
+        if self.client.token and self.public_report:
+            public_link = self.test.publish_report()
+            self.log.info("Public report link: %s", public_link)
 
     def _should_skip_check(self):
         now = time.time()

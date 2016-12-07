@@ -866,6 +866,44 @@ class TestCloudProvisioning(BZTestCase):
         self.assertEqual(self.obj.check_interval, 20.0)
         self.assertEqual(self.obj.client.results, [])
 
+    def test_public_report(self):
+        self.configure(
+            engine_cfg={
+                ScenarioExecutor.EXEC: {
+                    "executor": "mock",
+                    "concurrency": 1,
+                    "locations": {
+                        "us-west": 2
+                    }}},
+            client_results=[
+                {"result": []},  # collections
+                {"result": []},  # tests
+                self.__get_user_info(),  # user
+                {"result": {"id": id(self.obj.client)}},  # create test
+                {"files": []},  # create test
+                {},  # upload files
+                {"result": {"id": id(self.obj)}},  # start
+                {'result': {'publicToken': 'publicToken'}},  # publish report
+                {"result": {"id": id(self.obj)}},  # get master
+                {"result": []},  # get master sessions
+                {}])  # terminate
+
+        log_recorder = RecordingHandler()
+        self.obj.log.addHandler(log_recorder)
+
+        self.obj.settings['public-report'] = True
+        self.obj.prepare()
+        self.obj.startup()
+        self.obj.check()
+        self.obj.shutdown()
+        self.obj.post_process()
+
+        log_buff = log_recorder.info_buff.getvalue()
+        log_line = "Public report link: https://a.blazemeter.com/app/?public-token=publicToken#/masters/%s/summary"
+        self.assertIn(log_line % id(self.obj), log_buff)
+
+        self.assertEqual(self.obj.client.results, [])
+
 
 class TestCloudTaurusTest(BZTestCase):
     def test_defaults_clean(self):

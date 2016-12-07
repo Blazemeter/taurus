@@ -12,7 +12,7 @@ from bzt.modules.blazemeter import BlazeMeterUploader, BlazeMeterClient, BlazeMe
 from bzt.modules.blazemeter import MonitoringBuffer
 from bzt.six import URLError, iteritems, viewvalues
 from tests import BZTestCase, random_datapoint, __dir__
-from tests.mocks import EngineEmul
+from tests.mocks import EngineEmul, RecordingHandler
 
 
 class TestBlazeMeterUploader(BZTestCase):
@@ -222,6 +222,47 @@ class TestBlazeMeterUploader(BZTestCase):
             mon = [{"ts": i, "source": "local", "cpu": float(i) / 1000 * 100, "mem": 2, "bytes-recv": 100, "other": 0}]
             obj1.monitoring_data(mon)
             obj2.monitoring_data(mon)
+
+    def test_public_report(self):
+        client = BlazeMeterClientEmul(logging.getLogger(''))
+        client.timeout = 1
+        client.results.append({"marker": "ping", 'result': {}})
+        client.results.append({"marker": "tests", 'result': {}})
+        client.results.append({"marker": "test-create", 'result': {'id': 'unittest1'}})
+        client.results.append(
+            {"marker": "sess-start",
+             "result": {
+                 'session': {'id': 'sess1', 'userId': 1},
+                 'master': {'id': 'master1', 'userId': 1},
+                 'signature': ''}})
+        client.results.append({"marker": "share-report", 'result': {'publicToken': 'publicToken'}})
+        client.results.append({"marker": "first push", 'result': {'session': {}}})
+        client.results.append({"marker": "post-proc push", 'result': {'session': {}}})
+        client.results.append({"marker": "artifacts push", 'result': True})
+        client.results.append({"marker": "logs push", 'result': True})
+        client.results.append({"marker": "terminate", 'result': {'session': {}}})
+
+        log_recorder = RecordingHandler()
+
+        obj = BlazeMeterUploader()
+        obj.settings['token'] = '123'
+        obj.settings['browser-open'] = 'none'
+        obj.settings['public-report'] = True
+        obj.settings['send-monitoring'] = False
+        obj.engine = EngineEmul()
+        obj.client = client
+        obj.log.addHandler(log_recorder)
+        obj.prepare()
+        obj.startup()
+        obj.aggregated_second(random_datapoint(10))
+        obj.check()
+        obj.shutdown()
+        obj.post_process()
+        self.assertEqual(0, len(client.results))
+
+        log_buff = log_recorder.info_buff.getvalue()
+        log_line = "Public report link: https://a.blazemeter.com/app/?public-token=publicToken#/masters/master1/summary"
+        self.assertIn(log_line, log_buff)
 
 
 class TestBlazeMeterClientUnicode(BZTestCase):
