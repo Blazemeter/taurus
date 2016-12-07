@@ -1364,9 +1364,8 @@ class JMeterScenarioBuilder(JMX):
 
         timeout = scenario.get("timeout", None)
         timeout = self.smart_time(timeout)
-        elements = [self._get_http_defaults(default_address, timeout,
-                                            retrieve_resources, resources_regex,
-                                            concurrent_pool_size, content_encoding),
+        elements = [self._get_http_defaults(default_address, timeout, retrieve_resources,
+                                            concurrent_pool_size, content_encoding, resources_regex),
                     etree.Element("hashTree")]
         return elements
 

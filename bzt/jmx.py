@@ -646,8 +646,8 @@ class JMX(object):
         return mgr
 
     @staticmethod
-    def _get_http_defaults(default_address=None, timeout=None, retrieve_resources=None, resources_regex=None,
-                           concurrent_pool_size=4, content_encoding=None):
+    def _get_http_defaults(default_address=None, timeout=None, retrieve_resources=None, concurrent_pool_size=4,
+                           content_encoding=None, resources_regex=None):
         """
         :rtype: lxml.etree.Element
         """
