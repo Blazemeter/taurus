@@ -1358,12 +1358,14 @@ class JMeterScenarioBuilder(JMX):
     def __gen_defaults(self, scenario):
         default_address = scenario.get("default-address", None)
         retrieve_resources = scenario.get("retrieve-resources", True)
+        resources_regex = scenario.get("retrieve-resources-regex", None)
         concurrent_pool_size = scenario.get("concurrent-pool-size", 4)
         content_encoding = scenario.get("content-encoding", None)
 
         timeout = scenario.get("timeout", None)
         timeout = self.smart_time(timeout)
-        elements = [self._get_http_defaults(default_address, timeout, retrieve_resources,
+        elements = [self._get_http_defaults(default_address, timeout,
+                                            retrieve_resources, resources_regex,
                                             concurrent_pool_size, content_encoding),
                     etree.Element("hashTree")]
         return elements
