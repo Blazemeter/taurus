@@ -159,8 +159,10 @@ scenarios:
     default-address: "https://www.blazedemo.com:8080"  # http request defaults scheme, domain, port
     keepalive: true  # true by default, applied on all requests in scenario
     retrieve-resources: true  # true by default, retrieves all embedded resources from HTML pages
+    retrieve-resources-regex: ^((?!google|facebook).)*$  # regular expression used to match any resource
+                                                         # URLs found in HTML document against. Unset by default
     concurrent-pool-size: 4  # concurrent pool size for resources download, 4 by default
-    use-dns-cache-mgr: true  # use DNS Cache Manager to test resources 
+    use-dns-cache-mgr: true  # use DNS Cache Manager to test resources
                              # behind dns load balancers. True by default.
     force-parent-sample: true  # generate only parent sample for transaction controllers.
                                # True by default
