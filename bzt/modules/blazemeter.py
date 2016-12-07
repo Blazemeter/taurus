@@ -151,6 +151,10 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
             if self.browser_open in ('start', 'both'):
                 open_browser(url)
 
+            if self.client.token and self.public_report:
+                report_link = self.client.make_report_public()
+                self.log.info("Public report link: %s", report_link)
+
     def __get_jtls_and_more(self):
         """
         Compress all files in artifacts dir to single zipfile
@@ -232,10 +236,6 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
             if self.browser_open in ('end', 'both'):
                 open_browser(self.client.results_url)
             self.log.info("Online report link: %s", self.client.results_url)
-
-        if self.client.token and self.public_report:
-            report_link = self.client.make_report_public()
-            self.log.info("Public report link: %s", report_link)
 
     def _postproc_phase2(self):
         try:

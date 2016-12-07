@@ -235,12 +235,12 @@ class TestBlazeMeterUploader(BZTestCase):
                  'session': {'id': 'sess1', 'userId': 1},
                  'master': {'id': 'master1', 'userId': 1},
                  'signature': ''}})
+        client.results.append({"marker": "share-report", 'result': {'publicToken': 'publicToken'}})
         client.results.append({"marker": "first push", 'result': {'session': {}}})
         client.results.append({"marker": "post-proc push", 'result': {'session': {}}})
         client.results.append({"marker": "artifacts push", 'result': True})
         client.results.append({"marker": "logs push", 'result': True})
         client.results.append({"marker": "terminate", 'result': {'session': {}}})
-        client.results.append({"marker": "share-report", 'result': {'publicToken': 'publicToken'}})
 
         log_recorder = RecordingHandler()
 
