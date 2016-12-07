@@ -24,6 +24,7 @@ from bzt import TaurusConfigError, ToolError
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
+from bzt.modules.services import HavingInstallableTools
 from bzt.utils import BetterDict, TclLibrary, EXE_SUFFIX, dehumanize_time, get_full_path
 from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, shutdown_process, ensure_is_dict, is_windows
 
@@ -143,7 +144,7 @@ class GatlingScriptBuilder(object):
         return check_result
 
     def gen_test_case(self):
-        template_path = os.path.join(os.path.dirname(__file__), os.pardir, 'resources', "gatling_script_template.scala")
+        template_path = os.path.join(os.path.dirname(__file__), os.pardir, 'resources', "gatling_script.tpl")
 
         with open(template_path) as template_file:
             template_line = template_file.read()
@@ -156,7 +157,7 @@ class GatlingScriptBuilder(object):
         return template_line % params
 
 
-class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
+class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools):
     """
     Gatling executor module
     """
@@ -214,7 +215,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         return modified_launcher
 
     def prepare(self):
-        self._check_installed()
+        self.install_required_tools()
         scenario = self.get_scenario()
 
         jar_files = []
@@ -394,7 +395,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if self.reader and self.reader.filename:
             self.engine.existing_artifact(self.reader.filename)
 
-    def _check_installed(self):
+    def install_required_tools(self):
         required_tools = [TclLibrary(self.log), JavaVM("", "", self.log)]
         gatling_path = self.settings.get("path", "~/.bzt/gatling-taurus/bin/gatling" + EXE_SUFFIX)
         gatling_path = os.path.abspath(os.path.expanduser(gatling_path))
@@ -418,53 +419,12 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         return self.widget
 
     def resource_files(self):
-        if not self.script:
-            self.script = self.get_script_path()
-        resource_files = []
-
-        if self.script and os.path.exists(self.script):
-            if os.path.isfile(self.script):  # not directory
-                with open(self.script, 'rt') as script:
-                    script_contents = script.read()
-                resource_files = GatlingExecutor.__get_res_files_from_script(script_contents)
-
-            resource_files.append(self.script)
-
-        return resource_files
-
-    @staticmethod
-    def __get_res_files_from_script(script_contents):
-        """
-        Get resource files list from scala script
-        :param script_contents:
-        :return:
-        """
-        resource_files = []
-        search_patterns = [re.compile(r'\.formUpload\(".*?"\)'),
-                           re.compile(r'RawFileBody\(".*?"\)'),
-                           re.compile(r'RawFileBodyPart\(".*?"\)'),
-                           re.compile(r'ELFileBody\(".*?"\)'),
-                           re.compile(r'ELFileBodyPart\(".*?"\)'),
-                           re.compile(r'csv\(".*?"\)'),
-                           re.compile(r'tsv\(".*?"\)'),
-                           re.compile(r'ssv\(".*?"\)'),
-                           re.compile(r'jsonFile\(".*?"\)'),
-                           re.compile(r'separatedValues\(".*?"\)')]
-        for search_pattern in search_patterns:
-            found_samples = search_pattern.findall(script_contents)
-            for found_sample in found_samples:
-                param_list = found_sample.split(",")
-
-                # first or last param
-                if "separatedValues" in search_pattern.pattern:
-                    param_index = 0
-                else:
-                    param_index = -1
-
-                file_path = re.compile(r'\".*?\"').findall(param_list[param_index])[0].strip('"')
-                resource_files.append(file_path)
-
-        return resource_files
+        scenario = self.get_scenario()
+        script = scenario.get(Scenario.SCRIPT, None)
+        if script:
+            return [script]
+        else:
+            return []
 
 
 class DataLogReader(ResultsReader):

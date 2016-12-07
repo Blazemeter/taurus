@@ -249,7 +249,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
     def _postproc_phase3(self):
         try:
             self.client.end_online()
-            if self.engine.stopping_reason:
+            if self.client.token and self.engine.stopping_reason:
                 exc_class = self.engine.stopping_reason.__class__.__name__
                 note = "%s: %s" % (exc_class, str(self.engine.stopping_reason))
                 self.client.append_note_to_session(note)
@@ -399,7 +399,8 @@ class MonitoringBuffer(object):
         # datapoint :: dict(metric -> value)
 
     def record_data(self, data):
-        for item in data:
+        for monitoring_item in data:
+            item = copy.deepcopy(monitoring_item)
             source = item.pop('source')
             timestamp = int(item['ts'])
             item['interval'] = 1
@@ -1254,7 +1255,7 @@ class BlazeMeterClient(object):
             body.add_file('files[]', rfile)
 
         hdr = {"Content-Type": str(body.get_content_type())}
-        _ = self._request(url, body.form_as_bytes(), headers=hdr)
+        self._request(url, body.form_as_bytes(), headers=hdr)
 
     def get_tests(self, name=None):
         """
@@ -1585,14 +1586,30 @@ class BlazeMeterClient(object):
 class MasterProvisioning(Provisioning):
     def get_rfiles(self):
         rfiles = []
+        additional_files = []
         for executor in self.executors:
-            rfiles += executor.get_resource_files()
+            executor_rfiles = executor.get_resource_files()
+            config = to_json(self.engine.config.get('execution'))
+            config += to_json(self.engine.config.get('scenarios'))
+            for rfile in executor_rfiles:
+                if not os.path.exists(self.engine.find_file(rfile)):  # TODO: what about files started from 'http://'?
+                    raise TaurusConfigError("%s: resource file '%s' not found" % (executor, rfile))
+                if to_json(rfile) not in config:  # TODO: might be check is needed to improve
+                    additional_files.append(rfile)
+            rfiles += executor_rfiles
 
+        if additional_files:
+            raise TaurusConfigError("Next files can't be treated in cloud: %s" % additional_files)
+
+        rfiles = list(set(rfiles))
         self.log.debug("All resource files are: %s", rfiles)
-        rfiles = [self.engine.find_file(x) for x in rfiles]
+        return rfiles
 
-        rbases = [os.path.basename(get_full_path(rfile)) for rfile in rfiles]
-        rpaths = [get_full_path(rfile, step_up=1) for rfile in rfiles]
+    def _fix_filenames(self, old_names):
+        # check for concurrent base names
+        old_full_names = [get_full_path(self.engine.find_file(x)) for x in old_names]
+        rbases = [os.path.basename(get_full_path(rfile)) for rfile in old_full_names]
+        rpaths = [get_full_path(rfile, step_up=1) for rfile in old_full_names]
         while rbases:
             base, path = rbases.pop(), rpaths.pop()
             if base in rbases:
@@ -1601,10 +1618,12 @@ class MasterProvisioning(Provisioning):
                     msg = 'Resource "%s" occurs more than one time, rename to avoid data loss'
                     raise TaurusConfigError(msg % base)
 
-        prepared_files = self.__pack_dirs(rfiles)
-        replace_in_config(self.engine.config, rfiles, [os.path.basename(f) for f in prepared_files], log=self.log)
-
-        return prepared_files
+        old_full_names = self.__pack_dirs(old_full_names)
+        new_base_names = [os.path.basename(f) for f in old_full_names]
+        self.log.debug('Replace file names in config: %s with %s', old_names, new_base_names)
+        replace_in_config(self.engine.config, old_names, new_base_names, log=self.log)
+        old_full_names = list(set(old_full_names))
+        return old_full_names
 
     def __pack_dirs(self, source_list):
         result_list = []  # files for upload
@@ -1687,10 +1706,12 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         finder.default_test_name = "Taurus Cloud Test"
         self.test = finder.resolve_test_type()
         self.test.prepare_locations(self.executors, self.engine.config)
-        config = self.test.prepare_cloud_config(self.engine.config)
-        config.dump(self.engine.create_artifact("cloud", ""))
 
-        self.test.resolve_test(config, self.get_rfiles())
+        res_files = self.get_rfiles()
+        files_for_cloud = self._fix_filenames(res_files)
+        config_for_cloud = self.test.prepare_cloud_config(self.engine.config)
+        config_for_cloud.dump(self.engine.create_artifact("cloud", ""))
+        self.test.resolve_test(config_for_cloud, files_for_cloud)
 
         self.widget = CloudProvWidget(self.test)
 

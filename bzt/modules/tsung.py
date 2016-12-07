@@ -25,11 +25,12 @@ from bzt import TaurusConfigError, ToolError, TaurusInternalException
 from bzt.engine import FileLister, Scenario, ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
+from bzt.modules.services import HavingInstallableTools
 from bzt.six import etree, parse, iteritems
 from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time, which
 
 
-class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
+class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools):
     """
     Tsung executor module
     """
@@ -48,7 +49,7 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def prepare(self):
         scenario = self.get_scenario()
-        self.tool_path = self._check_installed()
+        self.tool_path = self.install_required_tools()
 
         if Scenario.SCRIPT in scenario and scenario[Scenario.SCRIPT]:
             script = self.get_script_path()
@@ -125,7 +126,7 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if self.__err and not self.__err.closed:
             self.__err.close()
 
-    def _check_installed(self):
+    def install_required_tools(self):
         tool_path = self.settings.get('path', 'tsung')
         tsung = Tsung(tool_path, self.log)
         if not tsung.check_if_installed():
@@ -138,14 +139,12 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         return self.widget
 
     def resource_files(self):
-        resource_files = []
         scenario = self.get_scenario()
-        if Scenario.SCRIPT in scenario and scenario[Scenario.SCRIPT]:
-            script = self.get_script_path()
-            if not script or not os.path.exists(script):
-                raise TaurusConfigError("Tsung: script '%s' doesn't exist" % script)
-            resource_files.append(script)
-        return resource_files
+        script = scenario.get(Scenario.SCRIPT, None)
+        if script:
+            return [script]
+        else:
+            return []
 
 
 class TsungStatsReader(ResultsReader):

@@ -22,14 +22,15 @@ from math import ceil
 from os import path
 
 from bzt import TaurusConfigError, ToolError
-from bzt.engine import ScenarioExecutor, Scenario
+from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
+from bzt.modules.services import HavingInstallableTools
 from bzt.six import iteritems
 from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time
 
 
-class SiegeExecutor(ScenarioExecutor, WidgetProvider):
+class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, FileLister):
     def __init__(self):
         super(SiegeExecutor, self).__init__()
         self.log = logging.getLogger('')
@@ -43,7 +44,7 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider):
 
     def prepare(self):
         self.scenario = self.get_scenario()
-        self.tool_path = self._check_installed()
+        self.tool_path = self.install_required_tools()
 
         config_params = ('verbose = true',
                          'csv = true',
@@ -75,10 +76,12 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider):
         self.__err = open(self.engine.create_artifact("siege", ".err"), 'w')
 
     def resource_files(self):
-        resource_files = []
-        if Scenario.SCRIPT in self.scenario and self.scenario[Scenario.SCRIPT]:
-            resource_files.append(self.engine.find_file(self.scenario[Scenario.SCRIPT]))
-        return resource_files
+        scenario = self.get_scenario()
+        script = scenario.get(Scenario.SCRIPT, None)
+        if script:
+            return [script]
+        else:
+            return []
 
     def _fill_url_file(self):
         url_file_name = self.engine.create_artifact("siege", ".url")
@@ -151,7 +154,7 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider):
         if self.__err and not self.__err.closed:
             self.__err.close()
 
-    def _check_installed(self):
+    def install_required_tools(self):
         tool_path = self.settings.get('path', 'siege')
         siege = Siege(tool_path, self.log)
         if not siege.check_if_installed():

@@ -356,15 +356,47 @@ class TestJMeterExecutor(BZTestCase):
 
     def test_resource_files_collection_remote_prov(self):
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/files.jmx"}})
+        self.assertNotIn('files', self.obj.execution)
         res_files = self.obj.resource_files()
-        self.assertEqual(len(res_files), 5)
+        self.assertEqual(len(res_files), 1)
+        self.assertIn('files', self.obj.execution)
+        self.assertEqual(4, len(self.obj.execution['files']))
+
+    def test_resource_files_paths(self):
+        """
+        Check whether JMeter.resource_files() modifies filenames in JMX carefully
+        :return:
+        """
+        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/files_paths.jmx"}})
+
+        file_in_home = get_full_path('~/file-in-home.csv')
+        file_was_created = False
+        if not os.path.exists(file_in_home):
+            file_was_created = True
+            with open(file_in_home, 'w') as _file:      # real file is required by Engine.find_file()
+                _file.write('')
+        self.obj.engine.file_search_paths = ['tests']    # config not in cwd
+        self.obj.resource_files()
+        if file_was_created:
+            os.remove(file_in_home)
+
+        resource_files = []
+        jmx = JMX(self.obj.original_jmx)
+        resource_elements = jmx.tree.findall(".//stringProp[@name='filename']")
+        for resource_element in resource_elements:
+            if resource_element.text:
+                resource_files.append(resource_element.text)
+        self.assertEqual(2, len(resource_files))
+        for res_file in resource_files:
+            self.assertEqual(res_file, os.path.basename(res_file))
 
     def test_resource_files_from_requests_remote_prov(self):
         config = json.loads(open(__dir__() + "/../json/get-post.json").read())
         config['provisioning'] = 'cloud'
         self.configure(config)
         res_files = self.obj.resource_files()
-        self.assertEqual(len(res_files), 2)
+        self.assertEqual(len(res_files), 3)
+        self.assertEqual(len(set(res_files)), 2)
 
     def test_resource_files_from_requests_local_prov(self):
         self.configure(json.loads(open(__dir__() + "/../json/get-post.json").read()))

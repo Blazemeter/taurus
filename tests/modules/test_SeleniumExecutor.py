@@ -92,7 +92,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         }})
 
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/jar/"},
-                                  "language": "java-junit"})
+                                  "runner": "junit"})
         self.obj.prepare()
         self.assertIsInstance(self.obj.runner, JUnitTester)
         self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "selenium-server.jar")))
@@ -177,7 +177,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         self.configure({
             'execution': {
                 'scenario': {'script': __dir__() + '/../selenium/jar/'},
-                'language': 'java-junit',
+                'runner': 'junit',
                 'executor': 'selenium'
             },
             'reporting': [{'module': 'junit-xml'}]
@@ -372,7 +372,7 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         }})
 
         self.obj.execution.merge({
-            "language": "java-testng",
+            "runner": "testng",
             "scenario": {
                 "script": __dir__() + "/../selenium/jar/testng-suite.jar",
                 'testng-xml': None,
@@ -393,7 +393,7 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
                     'script': __dir__() + '/../selenium/jar/testng-suite.jar',
                     'testng-xml': None,
                 },
-                'language': 'java-testng',
+                'runner': 'testng',
             },
         })
         self.obj.prepare()
@@ -411,7 +411,7 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
                 'scenario': {
                     'script': __dir__() + '/../selenium/java/TestNGSuite.java',
                 },
-                'language': 'java-testng',
+                'runner': 'testng',
             },
         })
         self.obj.prepare()
@@ -431,7 +431,7 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
                     'script': script_jar,
                     'testng-xml': 'testng.xml',
                 },
-                'language': 'java-testng',
+                'runner': 'testng',
             },
         })
         resources = self.obj.get_resource_files()
@@ -444,7 +444,7 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
                 'scenario': {
                     'script': script_jar,
                 },
-                'language': 'java-testng',
+                'runner': 'testng',
             },
         })
         resources = self.obj.get_resource_files()
@@ -459,7 +459,7 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
                     'script': __dir__() + '/../selenium/jar/testng-suite.jar',
                     'testng-xml': None,
                 },
-                'language': 'java-testng',
+                'runner': 'testng',
             },
         })
         self.obj.prepare()
@@ -479,7 +479,7 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
                     'script': __dir__() + '/../selenium/jar/testng-suite.jar',
                     'testng-xml': None,
                 },
-                'language': 'java-testng',
+                'runner': 'testng',
             },
         })
         self.obj.prepare()
@@ -656,8 +656,25 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
                 self.assertIn("Nothing to test", str(exc))
                 break
 
+    def test_long_iterations_value(self):
+        self.obj.execution.merge({
+            "iterations": 2**64,
+            "scenario": {
+                "requests": [
+                    "http://blazedemo.com/",
+                ],
+            }
+        })
+        self.obj.prepare()
+        try:
+            self.obj.startup()
+            for _ in range(3):
+                self.assertFalse(self.obj.check())
+                time.sleep(1.0)
+        finally:
+            self.obj.shutdown()
 
-@unittest.skipIf(is_windows(), "Don't test RSpec on Windows")
+
 class TestSeleniumRSpecRunner(SeleniumTestCase):
     def test_selenium_prepare_rspec(self):
         self.configure({
@@ -732,8 +749,10 @@ class TestSeleniumRSpecRunner(SeleniumTestCase):
             },
         })
         self.obj.settings.merge(self.obj.engine.config.get("modules").get("selenium"))
+        dummy = __dir__() + '/../selenium/ruby/ruby-dummy'
+        dummy += '.bat' if is_windows() else ''
         self.obj.settings.merge({
-            "selenium-tools": {"rspec": {"interpreter": __dir__() + '/../selenium/ruby/ruby-dummy'}}
+            "selenium-tools": {"rspec": {"interpreter": dummy}}
         })
         self.obj.prepare()
 
@@ -952,8 +971,8 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.shutdown()
         with open(os.path.join(self.obj.engine.artifacts_dir, "selenium.err")) as fds:
             contents = fds.read()
-            self.assertEqual(3, contents.count("ok"), "file: '%s', size: %s, content: '%s'" % (fds, fds.__sizeof__(),
-                                                                                               contents))
+            msg = "file: '%s', size: %s, content: '%s'" % (fds, fds.__sizeof__(), contents)
+            self.assertEqual(3, contents.count("ok"), msg)
             self.assertEqual(1, contents.count("OK"))
 
     def test_fail_on_zero_results(self):
@@ -971,8 +990,8 @@ class TestSeleniumStuff(SeleniumTestCase):
         dummy_installation_path = __dir__() + "/../../build/tmp/selenium-taurus"
         shutil.rmtree(os.path.dirname(dummy_installation_path), ignore_errors=True)
         obj = SeleniumExecutor()
-        objjm = JUnitJar(os.path.join(dummy_installation_path, "tools", "junit", "junit.jar"), obj.log,
-                         SeleniumExecutor.JUNIT_VERSION)
+        junit_path = os.path.join(dummy_installation_path, "tools", "junit", "junit.jar")
+        objjm = JUnitJar(junit_path, obj.log, SeleniumExecutor.JUNIT_VERSION)
         objjm.install()
 
     def test_remote_prov_requests(self):
@@ -983,9 +1002,10 @@ class TestSeleniumStuff(SeleniumTestCase):
                 ]
             }
         })
-        self.obj.resource_files()
+        resources = self.obj.resource_files()
+        self.assertEqual(0, len(resources))
 
-    def test_a_labels_translation(self):
+    def test_labels_translation(self):
         self.configure({
             "scenarios": {
                 "req_sel": {
@@ -1079,10 +1099,10 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.assertEqual("http://absolute.address.com/somepage", urls[1])
         self.assertEqual("http://blazedemo.com/reserve.php", urls[2])
 
-    def test_force_language(self):
+    def test_force_runner(self):
         self.obj.execution.merge({
             'scenario': {'script': __dir__() + '/../selenium/jar/'},
-            'language': 'python-nose',
+            'runner': 'nose',
         })
         self.obj.prepare()
         self.assertIsInstance(self.obj.runner, NoseTester)
@@ -1091,7 +1111,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.execution.merge({
             'scenario': {
                 'script': __dir__() + '/../selenium/jar/dummy.jar',
-                'language': 'java-junit',
+                'runner': 'junit',
                 'additional-classpath': [__dir__() + '/../selenium/jar/another_dummy.jar'],
             },
         })
@@ -1100,6 +1120,9 @@ class TestSeleniumStuff(SeleniumTestCase):
         })
         resources = self.obj.resource_files()
         self.assertEqual(len(resources), 4)
+
+    def test_required_tools(self):
+        self.obj.install_required_tools()
 
 
 class TestSeleniumScriptBuilder(SeleniumTestCase):

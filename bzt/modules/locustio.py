@@ -29,11 +29,12 @@ from bzt.engine import ScenarioExecutor, FileLister, PythonGenerator, Scenario
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsProvider, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.jmeter import JTLReader
+from bzt.modules.services import HavingInstallableTools
 from bzt.six import PY3, iteritems
 from bzt.utils import shutdown_process, RequiredTool, BetterDict, dehumanize_time, ensure_is_dict
 
 
-class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
+class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools):
     def __init__(self):
         super(LocustIOExecutor, self).__init__()
         self.kpi_jtl = None
@@ -46,7 +47,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.script = None
 
     def prepare(self):
-        self._check_installed()
+        self.install_required_tools()
         self.scenario = self.get_scenario()
         self.__setup_script()
 
@@ -68,7 +69,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
-    def _check_installed(self):
+    def install_required_tools(self):
         tool = LocustIO(self.log)
         if not tool.check_if_installed():
             tool.install()
@@ -136,9 +137,9 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def resource_files(self):
         self.scenario = self.get_scenario()
-        if "script" in self.scenario:
-            self.__setup_script()
-            return [self.script]
+        script = self.scenario.get(Scenario.SCRIPT, None)
+        if script:
+            return [script]
         else:
             return []
 

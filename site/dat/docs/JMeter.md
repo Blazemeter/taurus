@@ -674,7 +674,7 @@ scenarios:
 Another way to adjust verbosity is to change flags in `xml-jtl-flags` dictionary. Next example shows all flags with default values (you don't have to use full dictionary if you want to change some from them):
 ```yaml
 ---
-settings:
+modules:
   jmeter:
     xml-jtl-flags:
       xml: true
