@@ -271,7 +271,7 @@ class TestBlazeMeterUploader(BZTestCase):
         finally:
             logging.info("Requests:")
             for req in client.requests:
-                logging.info("%s", req)
+                logging.info("%s", req['url'])
 
 
 class TestBlazeMeterClientUnicode(BZTestCase):
