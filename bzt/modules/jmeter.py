@@ -147,6 +147,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         props_local.update({"jmeterengine.nongui.port": self.management_port})
         props_local.update({"jmeterengine.nongui.maxport": self.management_port})
         props_local.update({"jmeter.save.saveservice.timestamp_format": "ms"})
+        props_local.update({"sampleresult.default.encoding": "UTF-8"})
         props.merge(props_local)
         user_cp = self.engine.artifacts_dir
         if 'user.classpath' in props:
