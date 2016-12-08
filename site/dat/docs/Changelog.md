@@ -10,7 +10,6 @@
  - fix the crash when multiple BM reporters are in use
  - add `public-report` option to BlazeMeter reporter and cloud provisioning
  - add `retrieve-resources-regex` scenario-level option to JMeter
->>>>>>> 3d79d6ee319f69c8d798d4fc06ca41a808a43c18
 
 ## 1.7.4 <sup>11 nov 2016</sup>
  - fix Locust crash when used with 'requests'-style scenario and cloud provisioning
