@@ -50,12 +50,13 @@ class KPISet(BetterDict):
     ERRTYPE_ERROR = 0
     ERRTYPE_ASSERT = 1
 
-    def __init__(self, perc_levels=()):
+    def __init__(self, perc_levels=(), rt_dist_maxlen=None):
         super(KPISet, self).__init__()
         self.sum_rt = 0
         self.sum_lt = 0
         self.sum_cn = 0
         self.perc_levels = perc_levels
+        self.rtimes_len = rt_dist_maxlen
         # scalars
         self.get(self.SAMPLE_COUNT, 0)
         self.get(self.CONCURRENCY, 0)
@@ -72,13 +73,13 @@ class KPISet(BetterDict):
         self.get(self.RESP_CODES, Counter())
         self.get(self.PERCENTILES)
         self._concurrencies = BetterDict()  # NOTE: shouldn't it be Counter?
-        self.rt_dist_maxlen = 1000  # TODO: parameterize it
 
     def __deepcopy__(self, memo):
         mycopy = KPISet(self.perc_levels)
         mycopy.sum_rt = self.sum_rt
         mycopy.sum_lt = self.sum_lt
         mycopy.sum_cn = self.sum_cn
+        mycopy.rtimes_len = self.rtimes_len
         for key, val in iteritems(self):
             mycopy[key] = copy.deepcopy(val, memo)
         return mycopy
@@ -184,10 +185,13 @@ class KPISet(BetterDict):
         return self
 
     def compact_times(self):
+        if not self.rtimes_len:
+            return
+
         times = self[KPISet.RESP_TIMES]
-        redundant_cnt = len(times) - self.rt_dist_maxlen
+        redundant_cnt = len(times) - self.rtimes_len
         if redundant_cnt > 0:
-            logging.debug("Compacting %s response timing into %s", len(times), self.rt_dist_maxlen)
+            logging.debug("Compacting %s response timing into %s", len(times), self.rtimes_len)
 
         while redundant_cnt > 0:
             keys = sorted(times.keys())
@@ -241,6 +245,7 @@ class KPISet(BetterDict):
         if src[self.RESP_TIMES]:
             # using raw times to calculate percentiles
             self[self.RESP_TIMES].update(src[self.RESP_TIMES])
+            self.compact_times()
         elif not self[self.PERCENTILES]:
             # using existing percentiles
             # FIXME: it's not valid to overwrite, better take average
@@ -405,6 +410,7 @@ class ResultsProvider(object):
         self.max_buffer_len = float('inf')
         self.buffer_multiplier = 2
         self.buffer_scale_idx = None
+        self.rtimes_len = None
 
     def add_listener(self, listener):
         """
@@ -420,7 +426,7 @@ class ResultsProvider(object):
         :param current: KPISet
         """
         for label, data in iteritems(current):
-            cumul = self.cumulative.get(label, KPISet(self.track_percentiles))
+            cumul = self.cumulative.get(label, KPISet(self.track_percentiles, self.rtimes_len))
             cumul.merge_kpis(data)
             cumul.compact_times()
             cumul.recalculate()
@@ -599,6 +605,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         self.ignored_labels = []
         self.underlings = []
         self.buffer = BetterDict()
+        self.rtimes_len = 1000
 
     def prepare(self):
         """
@@ -642,6 +649,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
 
         debug_str = 'Buffer scaling setup: percentile %s from %s selected'
         self.log.debug(debug_str, self.buffer_scale_idx, self.track_percentiles)
+        self.rtimes_len = self.settings.get("rtimes-len", self.rtimes_len)
 
     def add_underling(self, underling):
         """

@@ -139,6 +139,8 @@ modules:
     buffer-scale-choice: 2  # make buffer two times bigger than need to receive 95% samples      
     min-buffer-len: 2s      # minimal length of buffer (default: 2s)
     max-buffer-len: 2h      # maximal length of buffer (default: infinity)
+    
+    rtimes-len: 500         # size of storage for response time values (default: 1000)  
         
     percentiles:  # percentile levels to track, 
                   # 0 also means min, 100 also means max 
@@ -150,3 +152,4 @@ modules:
     - 99.9
     - 100.0
 ```
+`rtimes-len` allows to reduce memory consumption for heavy tests. On the other hand, you reduce the precision of distribution with that. 
