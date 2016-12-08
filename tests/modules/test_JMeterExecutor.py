@@ -395,7 +395,8 @@ class TestJMeterExecutor(BZTestCase):
         config['provisioning'] = 'cloud'
         self.configure(config)
         res_files = self.obj.resource_files()
-        self.assertEqual(len(res_files), 2)
+        self.assertEqual(len(res_files), 3)
+        self.assertEqual(len(set(res_files)), 2)
 
     def test_resource_files_from_requests_local_prov(self):
         self.configure(json.loads(open(__dir__() + "/../json/get-post.json").read()))
@@ -1137,6 +1138,17 @@ class TestJMeterExecutor(BZTestCase):
         self.obj.prepare()
         jmx = JMX(self.obj.modified_jmx)
         self.assertEqual(jmx.get(selector)[0].text, u"✓")
+
+    def test_resources_regex(self):
+        self.obj.execution.merge({
+            "scenario": {
+                "retrieve-resources": True,
+                "retrieve-resources-regex": "myregex",
+                "requests": [{"url": "http://blazedemo.com/"}]}})
+        self.obj.prepare()
+        jmx = JMX(self.obj.modified_jmx)
+        self.assertEqual(jmx.get('boolProp[name="HTTPSampler.image_parser"]')[0].text, "true")
+        self.assertEqual(jmx.get('stringProp[name="HTTPSampler.embedded_url_re"]')[0].text, "myregex")
 
     def test_data_source_list(self):
         self.obj.execution.merge({

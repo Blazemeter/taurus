@@ -86,6 +86,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         self.monitoring_buffer = None
         self.send_custom_metrics = False
         self.send_custom_tables = False
+        self.public_report = False
 
     def prepare(self):
         """
@@ -103,6 +104,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         monitoring_buffer_limit = self.settings.get("monitoring-buffer-limit", 500)
         self.monitoring_buffer = MonitoringBuffer(monitoring_buffer_limit, self.log)
         self.browser_open = self.settings.get("browser-open", self.browser_open)
+        self.public_report = self.settings.get("public-report", self.public_report)
         token = self.settings.get("token", "")
         if not token:
             self.log.warning("No BlazeMeter API key provided, will upload anonymously")
@@ -148,6 +150,10 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
             self.log.info("Started data feeding: %s", url)
             if self.browser_open in ('start', 'both'):
                 open_browser(url)
+
+            if self.client.token and self.public_report:
+                report_link = self.client.make_report_public()
+                self.log.info("Public report link: %s", report_link)
 
     def __get_jtls_and_more(self):
         """
@@ -399,7 +405,8 @@ class MonitoringBuffer(object):
         # datapoint :: dict(metric -> value)
 
     def record_data(self, data):
-        for item in data:
+        for monitoring_item in data:
+            item = copy.deepcopy(monitoring_item)
             source = item.pop('source')
             timestamp = int(item['ts'])
             item['interval'] = 1
@@ -635,6 +642,10 @@ class BaseCloudTest(object):
     @abstractmethod
     def stop_test(self):
         pass
+
+    def publish_report(self):
+        report_link = self.client.make_report_public()
+        return report_link
 
     def get_master_status(self):
         self._last_status = self.client.get_master_status()
@@ -1581,6 +1592,14 @@ class BlazeMeterClient(object):
         res = self._request(url, to_json(data), headers={"Content-Type": "application/json"}, method="POST")
         return res
 
+    def make_report_public(self):
+        url = self.address + "/api/latest/masters/%s/publicToken" % self.master_id
+        res = self._request(url, to_json({"publicToken": None}),
+                            headers={"Content-Type": "application/json"}, method="POST")
+        public_token = res['result']['publicToken']
+        report_link = self.address + "/app/?public-token=%s#/masters/%s/summary" % (public_token, self.master_id)
+        return report_link
+
 
 class MasterProvisioning(Provisioning):
     def get_rfiles(self):
@@ -1591,23 +1610,24 @@ class MasterProvisioning(Provisioning):
             config = to_json(self.engine.config.get('execution'))
             config += to_json(self.engine.config.get('scenarios'))
             for rfile in executor_rfiles:
-                if not os.path.exists(self.engine.find_file(rfile)):    # TODO: what about files started from 'http://'?
+                if not os.path.exists(self.engine.find_file(rfile)):  # TODO: what about files started from 'http://'?
                     raise TaurusConfigError("%s: resource file '%s' not found" % (executor, rfile))
-                if to_json(rfile) not in config:     # TODO: might be check is needed to improve
+                if to_json(rfile) not in config:  # TODO: might be check is needed to improve
                     additional_files.append(rfile)
             rfiles += executor_rfiles
 
         if additional_files:
             raise TaurusConfigError("Next files can't be treated in cloud: %s" % additional_files)
 
+        rfiles = list(set(rfiles))
         self.log.debug("All resource files are: %s", rfiles)
         return rfiles
 
     def _fix_filenames(self, old_names):
         # check for concurrent base names
-        new_names = [self.engine.find_file(x) for x in old_names]
-        rbases = [os.path.basename(get_full_path(rfile)) for rfile in new_names]
-        rpaths = [get_full_path(rfile, step_up=1) for rfile in new_names]
+        old_full_names = [get_full_path(self.engine.find_file(x)) for x in old_names]
+        rbases = [os.path.basename(get_full_path(rfile)) for rfile in old_full_names]
+        rpaths = [get_full_path(rfile, step_up=1) for rfile in old_full_names]
         while rbases:
             base, path = rbases.pop(), rpaths.pop()
             if base in rbases:
@@ -1616,10 +1636,12 @@ class MasterProvisioning(Provisioning):
                     msg = 'Resource "%s" occurs more than one time, rename to avoid data loss'
                     raise TaurusConfigError(msg % base)
 
-        new_names = self.__pack_dirs(new_names)
-        new_base_names = [os.path.basename(f) for f in new_names]
-        replace_in_config(self.engine.config, new_names, new_base_names, log=self.log)
-        return new_names
+        old_full_names = self.__pack_dirs(old_full_names)
+        new_base_names = [os.path.basename(f) for f in old_full_names]
+        self.log.debug('Replace file names in config: %s with %s', old_names, new_base_names)
+        replace_in_config(self.engine.config, old_names, new_base_names, log=self.log)
+        old_full_names = list(set(old_full_names))
+        return old_full_names
 
     def __pack_dirs(self, source_list):
         result_list = []  # files for upload
@@ -1669,6 +1691,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.test_ended = False
         self.check_interval = 5.0
         self.__last_check_time = None
+        self.public_report = False
 
     def _merge_with_blazemeter_config(self):
         if 'blazemeter' not in self.engine.config.get('modules'):
@@ -1695,6 +1718,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.browser_open = self.settings.get("browser-open", self.browser_open)
         self.detach = self.settings.get("detach", self.detach)
         self.check_interval = dehumanize_time(self.settings.get("check-interval", self.check_interval))
+        self.public_report = self.settings.get("public-report", self.public_report)
         self._configure_client()
         self._filter_reporting()
 
@@ -1703,11 +1727,11 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.test = finder.resolve_test_type()
         self.test.prepare_locations(self.executors, self.engine.config)
 
-        rfiles = self.get_rfiles()
-        rfiles = self._fix_filenames(rfiles)
-        config = self.test.prepare_cloud_config(self.engine.config)
-        config.dump(self.engine.create_artifact("cloud", ""))
-        self.test.resolve_test(config, rfiles)
+        res_files = self.get_rfiles()
+        files_for_cloud = self._fix_filenames(res_files)
+        config_for_cloud = self.test.prepare_cloud_config(self.engine.config)
+        config_for_cloud.dump(self.engine.create_artifact("cloud", ""))
+        self.test.resolve_test(config_for_cloud, files_for_cloud)
 
         self.widget = CloudProvWidget(self.test)
 
@@ -1745,6 +1769,9 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         if self.client.results_url:
             if self.browser_open in ('start', 'both'):
                 open_browser(self.client.results_url)
+        if self.client.token and self.public_report:
+            public_link = self.test.publish_report()
+            self.log.info("Public report link: %s", public_link)
 
     def _should_skip_check(self):
         now = time.time()

@@ -674,30 +674,27 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         """
         Get list of resource files, modify jmx file paths if necessary
         """
-        resource_files = set()
         # get all resource files from requests
         scenario = self.get_scenario()
-        files_from_requests = self.res_files_from_scenario(scenario)
+        resource_files = self.res_files_from_scenario(scenario)
 
-        if not self.original_jmx:
-            self.original_jmx = self.get_script_path()
-
+        self.original_jmx = self.get_script_path()
         if self.original_jmx:
             jmx = JMX(self.original_jmx)
             resource_files_from_jmx = JMeterExecutor.__get_resource_files_from_jmx(jmx)
-
             if resource_files_from_jmx:
+                self.execution.get('files', []).extend(resource_files_from_jmx)
                 self.__modify_resources_paths_in_jmx(jmx.tree, resource_files_from_jmx)
                 script_name, script_ext = os.path.splitext(os.path.basename(self.original_jmx))
                 self.original_jmx = self.engine.create_artifact(script_name, script_ext)
                 jmx.save(self.original_jmx)
-                self.execution.get('files', []).extend(resource_files_from_jmx)
+                scenario[Scenario.SCRIPT] = self.original_jmx
 
-        resource_files.update(files_from_requests)
-        if self.original_jmx:
-            resource_files.add(self.original_jmx)
-            scenario[Scenario.SCRIPT] = self.original_jmx   # for CloudProvisioning
-        return list(resource_files)
+        script = self.get_scenario().get(Scenario.SCRIPT, None)
+        if script:
+            resource_files.append(script)
+
+        return resource_files
 
     @staticmethod
     def __get_resource_files_from_jmx(jmx):
@@ -1361,13 +1358,14 @@ class JMeterScenarioBuilder(JMX):
     def __gen_defaults(self, scenario):
         default_address = scenario.get("default-address", None)
         retrieve_resources = scenario.get("retrieve-resources", True)
+        resources_regex = scenario.get("retrieve-resources-regex", None)
         concurrent_pool_size = scenario.get("concurrent-pool-size", 4)
         content_encoding = scenario.get("content-encoding", None)
 
         timeout = scenario.get("timeout", None)
         timeout = self.smart_time(timeout)
         elements = [self._get_http_defaults(default_address, timeout, retrieve_resources,
-                                            concurrent_pool_size, content_encoding),
+                                            concurrent_pool_size, content_encoding, resources_regex),
                     etree.Element("hashTree")]
         return elements
 

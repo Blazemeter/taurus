@@ -647,7 +647,7 @@ class JMX(object):
 
     @staticmethod
     def _get_http_defaults(default_address=None, timeout=None, retrieve_resources=None, concurrent_pool_size=4,
-                           content_encoding=None):
+                           content_encoding=None, resources_regex=None):
         """
         :rtype: lxml.etree.Element
         """
@@ -686,6 +686,10 @@ class JMX(object):
 
         if content_encoding:
             cfg.append(JMX._string_prop("HTTPSampler.contentEncoding", content_encoding))
+
+        if resources_regex:
+            cfg.append(JMX._string_prop("HTTPSampler.embedded_url_re", resources_regex))
+
         return cfg
 
     @staticmethod

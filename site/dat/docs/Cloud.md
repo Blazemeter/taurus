@@ -18,6 +18,7 @@ modules:
     timeout: 10s  # BlazeMeter API client timeout
     browser-open: start  # auto-open browser on test start/end/both/none
     check-interval: 5s  # interval which Taurus uses to query test status from BlazeMeter
+    public-report: false  # make test report public, disabled by default
 ```
 
 All folders among your resource files (scripts) will be packed automatically before sending and unpacked on cloud workers with `unpacker` service.   
