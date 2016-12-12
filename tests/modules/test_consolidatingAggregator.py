@@ -1,7 +1,9 @@
-from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet
+from random import random
 
+from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet, AggregatorListener
 from tests import BZTestCase, r
 from tests.mocks import MockReader
+from bzt.modules.reporting import Reporter
 
 
 class TestConsolidatingAggregator(BZTestCase):
@@ -107,3 +109,37 @@ class TestConsolidatingAggregator(BZTestCase):
             total_errors_count = sum(err['cnt'] for err in data['errors'])
             self.assertEqual(data['fail'], total_errors_count)
 
+    def test_set_rtimes_len(self):
+        obj = ConsolidatingAggregator()
+        obj.settings['rtimes-len'] = 42
+        obj.prepare()
+        reader = self.get_fail_reader()
+        obj.add_underling(reader)
+        listener = MockListener()
+        obj.add_listener(listener)
+        obj.check()
+        for dp in listener.results:
+            for kpiset in dp['cumulative'].values():
+                self.assertEqual(42, kpiset.rtimes_len)
+            for kpiset in dp['current'].values():
+                self.assertNotEqual(42, kpiset.rtimes_len)
+
+    def test_kpiset_merge_many_rtimes(self):
+        vals = {round(random() * 20 + 0.1, int(random() * 3) + 2): int(random() * 3 + 1) for _ in range(1000)}
+        src = KPISet()
+        src[KPISet.RESP_TIMES].update(vals)
+        dst = KPISet()
+        dst.rtimes_len = 100
+        for _ in range(100):
+            dst.merge_kpis(src)
+            dst.compact_times()
+            self.assertEqual(100, len(dst[KPISet.RESP_TIMES]))
+
+
+class MockListener(AggregatorListener):
+    def __init__(self):
+        super(MockListener, self).__init__()
+        self.results = []
+
+    def aggregated_second(self, data):
+        self.results.append(data)
