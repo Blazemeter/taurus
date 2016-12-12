@@ -445,3 +445,16 @@ class TestConverter(BZTestCase):
         self.assertEqual(len(requests), 3)
         request = requests[1]
         self.assertEqual(request['content-encoding'], 'utf-8')
+
+    def test_request_redirect_policy(self):
+        yml_file = self._get_tmp()
+        obj = self._get_jmx2yaml("/jmeter/jmx/http.jmx", yml_file)
+        obj.process()
+        yml = yaml.load(open(yml_file).read())
+        scenarios = yml.get("scenarios")
+        scenario = scenarios["Thread Group"]
+        requests = scenario["requests"]
+        self.assertEqual(len(requests), 3)
+        self.assertEqual(requests[0].get('redirect'), None)
+        self.assertEqual(requests[1].get('redirect'), 'auto')
+        self.assertEqual(requests[2].get('redirect'), 'ignore')
