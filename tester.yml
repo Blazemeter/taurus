@@ -22,7 +22,7 @@ modules:
     class: empty.SlowUploader
     token: FakeToken
     browser-open: none
-    send-interval: 5s
+    send-interval: 20s
   timer:
     class: empty.TimerAndReplacer
 

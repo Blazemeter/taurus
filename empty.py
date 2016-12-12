@@ -45,8 +45,8 @@ class FakeReader(ResultsReader):
         interval = time() - self.ts
         self.ts += interval
 
-        for _ in range(int(interval*50)):
-            yield self.ts - random()*self.time_range, \
+        for _ in range(int(interval*1000)):
+            yield int(self.ts - random()*self.time_range), \
                   'urllll', \
                   1, \
                   random() * self.val_range, \
