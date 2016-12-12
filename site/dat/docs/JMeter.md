@@ -95,7 +95,7 @@ scenarios:
 For accurate load calculation don't forget to choose different hostname values for slave hosts. 
 
 ## Shutdown Delay
-By default, Taurus tries to call graceful JMeter shutdown by using its UDP shutdown port (this works only for non-GUI). There is option to wait for JMeter to exit before killing it forcefully, called `shutdown-wait`. Bu default, its value is 5 seconds.
+By default, Taurus tries to call graceful JMeter shutdown by using its UDP shutdown port (this works only for non-GUI). There is option to wait for JMeter to exit before killing it forcefully, called `shutdown-wait`. By default, its value is 5 seconds.
 
 ## Modifications for Existing Scripts
 
