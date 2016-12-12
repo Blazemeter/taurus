@@ -168,6 +168,10 @@ scenarios:
                                # True by default
     content-encoding: utf-8  # global content encoding, applied to all requests.
                              # Unset by default
+    redirect: follow  # follow HTTP redirects. Applied to all requests inside this scenario. Valid values are:
+                      # `follow` - follow all redirects (the default),
+                      # `auto` - follow redirects without considering them as separate requests,
+                      # `ignore` - do not follow HTTP redirects.
     data-sources: # list of external data sources
     - path/to/my.csv  # this is a shorthand form
     - path: path/to/another.csv  # this is full form, path option is required
