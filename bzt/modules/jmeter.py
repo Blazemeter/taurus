@@ -1496,6 +1496,11 @@ class JMeterScenarioBuilder(JMX):
         return elements
 
     def compile_http_request(self, request):
+        """
+
+        :type request: HierarchicHTTPRequest
+        :return:
+        """
         global_timeout = self.scenario.get("timeout", None)
         global_keepalive = self.scenario.get("keepalive", True)
 
@@ -1512,8 +1517,11 @@ class JMeterScenarioBuilder(JMX):
         else:
             body = request.body
 
+        redirect_follow = request.redirect_policy == HierarchicHTTPRequest.REDIRECT_FOLLOW
+        redirect_auto = request.redirect_policy == HierarchicHTTPRequest.REDIRECT_AUTOMATICALLY
+
         http = JMX._get_http_request(request.url, request.label, request.method, timeout, body, global_keepalive,
-                                     request.upload_files, request.content_encoding)
+                                     request.upload_files, request.content_encoding, redirect_follow, redirect_auto)
 
         children = etree.Element("hashTree")
 
@@ -2050,6 +2058,10 @@ class RequestsParser(object):
 
 
 class HierarchicHTTPRequest(HTTPRequest):
+    REDIRECT_FOLLOW = 'follow'
+    REDIRECT_AUTOMATICALLY = 'auto'
+    REDIRECT_IGNORE = 'ignore'
+
     def __init__(self, config, engine):
         super(HierarchicHTTPRequest, self).__init__(config, engine)
         self.upload_files = config.get("upload-files", [])
@@ -2059,6 +2071,7 @@ class HierarchicHTTPRequest(HTTPRequest):
             mime = mimetypes.guess_type(path)[0] or "application/octet-stream"
             file_dict.get('mime-type', mime)
         self.content_encoding = config.get('content-encoding', None)
+        self.redirect_policy = config.get('redirect', 'follow')
 
 
 class ActionBlock(Request):
