@@ -10,7 +10,7 @@
  - fix the crash when multiple BM reporters are in use
  - add `public-report` option to BlazeMeter reporter and cloud provisioning
  - add `retrieve-resources-regex` scenario-level option to JMeter
- - allow controling JMeter HTTP redirects with `redirect` request option
+ - allow controling JMeter HTTP redirects with `follow-redirects` option
 
 ## 1.7.4 <sup>11 nov 2016</sup>
  - fix Locust crash when used with 'requests'-style scenario and cloud provisioning
