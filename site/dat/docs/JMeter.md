@@ -226,6 +226,10 @@ scenarios:
       think-time: 1s  # local think-time, overrides global
       timeout: 1s  # local timeout, overrides global
       content-encoding: utf-8  # content encoding (at JMeter's level), unset by default
+      redirect: follow  # follow HTTP redirects. Valid values:
+                        # `follow` - follow all redirects (the default),
+                        # `auto` - follow redirects without considering redirects as separate requests,
+                        # `ignore` - do not follow HTTP redirects.
 
       extract-regexp: {}  # explained below
       extract-jsonpath: {}  # explained below
