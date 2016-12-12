@@ -1503,6 +1503,7 @@ class JMeterScenarioBuilder(JMX):
         """
         global_timeout = self.scenario.get("timeout", None)
         global_keepalive = self.scenario.get("keepalive", True)
+        global_redirect_policy = self.scenario.get("redirect", HierarchicHTTPRequest.REDIRECT_FOLLOW)
 
         if request.timeout is not None:
             timeout = self.smart_time(request.timeout)
@@ -1511,14 +1512,17 @@ class JMeterScenarioBuilder(JMX):
         else:
             timeout = None
 
+        redirect_policy = request.redirect_policy
+        if redirect_policy is None:
+            redirect_policy = global_redirect_policy
+        redirect_follow = redirect_policy == HierarchicHTTPRequest.REDIRECT_FOLLOW
+        redirect_auto = redirect_policy == HierarchicHTTPRequest.REDIRECT_AUTOMATICALLY
+
         content_type = self._get_merged_ci_headers(request, 'content-type')
         if content_type == 'application/json' and isinstance(request.body, dict):
             body = json.dumps(request.body)
         else:
             body = request.body
-
-        redirect_follow = request.redirect_policy == HierarchicHTTPRequest.REDIRECT_FOLLOW
-        redirect_auto = request.redirect_policy == HierarchicHTTPRequest.REDIRECT_AUTOMATICALLY
 
         http = JMX._get_http_request(request.url, request.label, request.method, timeout, body, global_keepalive,
                                      request.upload_files, request.content_encoding, redirect_follow, redirect_auto)
@@ -2071,7 +2075,7 @@ class HierarchicHTTPRequest(HTTPRequest):
             mime = mimetypes.guess_type(path)[0] or "application/octet-stream"
             file_dict.get('mime-type', mime)
         self.content_encoding = config.get('content-encoding', None)
-        self.redirect_policy = config.get('redirect', 'follow')
+        self.redirect_policy = config.get('redirect', None)
 
 
 class ActionBlock(Request):

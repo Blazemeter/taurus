@@ -2006,6 +2006,26 @@ class TestJMeterExecutor(BZTestCase):
         self.assertIsNotNone(auto_redirects)
         self.assertEqual(auto_redirects.text, 'false')
 
+    def test_redirect_scenario_level(self):
+        self.configure({
+            "execution": {
+                "scenario": {
+                    "redirect": "ignore",
+                    "requests": [{
+                        "url": "http://example.com/",
+                    }]
+                }
+            }
+        })
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
+        follow_redirects = xml_tree.find(".//HTTPSamplerProxy/boolProp[@name='HTTPSampler.follow_redirects']")
+        self.assertIsNotNone(follow_redirects)
+        self.assertEqual(follow_redirects.text, 'false')
+        auto_redirects = xml_tree.find(".//HTTPSamplerProxy/boolProp[@name='HTTPSampler.auto_redirects']")
+        self.assertIsNotNone(auto_redirects)
+        self.assertEqual(auto_redirects.text, 'false')
+
 
 class TestJMX(BZTestCase):
     def test_jmx_unicode_checkmark(self):
