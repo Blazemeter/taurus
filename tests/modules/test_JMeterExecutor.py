@@ -1945,14 +1945,13 @@ class TestJMeterExecutor(BZTestCase):
         self.assertIsNotNone(auto_redirects)
         self.assertEqual(auto_redirects.text, 'false')
 
-
     def test_redirect_follow(self):
         self.configure({
             "execution": {
                 "scenario": {
                     "requests": [{
                         "url": "http://example.com/",
-                        "redirect": "follow",
+                        "follow-redirects": True,
                     }]
                 }
             }
@@ -1966,33 +1965,13 @@ class TestJMeterExecutor(BZTestCase):
         self.assertIsNotNone(auto_redirects)
         self.assertEqual(auto_redirects.text, 'false')
 
-    def test_redirect_auto(self):
+    def test_disable_redirect(self):
         self.configure({
             "execution": {
                 "scenario": {
                     "requests": [{
                         "url": "http://example.com/",
-                        "redirect": "auto",
-                    }]
-                }
-            }
-        })
-        self.obj.prepare()
-        xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
-        follow_redirects = xml_tree.find(".//HTTPSamplerProxy/boolProp[@name='HTTPSampler.follow_redirects']")
-        self.assertIsNotNone(follow_redirects)
-        self.assertEqual(follow_redirects.text, 'false')
-        auto_redirects = xml_tree.find(".//HTTPSamplerProxy/boolProp[@name='HTTPSampler.auto_redirects']")
-        self.assertIsNotNone(auto_redirects)
-        self.assertEqual(auto_redirects.text, 'true')
-
-    def test_redirect_ignore(self):
-        self.configure({
-            "execution": {
-                "scenario": {
-                    "requests": [{
-                        "url": "http://example.com/",
-                        "redirect": "ignore",
+                        "follow-redirects": False,
                     }]
                 }
             }
@@ -2010,7 +1989,7 @@ class TestJMeterExecutor(BZTestCase):
         self.configure({
             "execution": {
                 "scenario": {
-                    "redirect": "ignore",
+                    "follow-redirects": False,
                     "requests": [{
                         "url": "http://example.com/",
                     }]

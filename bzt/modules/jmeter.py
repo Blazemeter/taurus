@@ -1503,7 +1503,7 @@ class JMeterScenarioBuilder(JMX):
         """
         global_timeout = self.scenario.get("timeout", None)
         global_keepalive = self.scenario.get("keepalive", True)
-        global_redirect_policy = self.scenario.get("redirect", HierarchicHTTPRequest.REDIRECT_FOLLOW)
+        global_follow_redirects = self.scenario.get("follow-redirects", True)
 
         if request.timeout is not None:
             timeout = self.smart_time(request.timeout)
@@ -1512,11 +1512,9 @@ class JMeterScenarioBuilder(JMX):
         else:
             timeout = None
 
-        redirect_policy = request.redirect_policy
-        if redirect_policy is None:
-            redirect_policy = global_redirect_policy
-        redirect_follow = redirect_policy == HierarchicHTTPRequest.REDIRECT_FOLLOW
-        redirect_auto = redirect_policy == HierarchicHTTPRequest.REDIRECT_AUTOMATICALLY
+        follow_redirects = request.follow_redirects
+        if follow_redirects is None:
+            follow_redirects = global_follow_redirects
 
         content_type = self._get_merged_ci_headers(request, 'content-type')
         if content_type == 'application/json' and isinstance(request.body, dict):
@@ -1525,7 +1523,7 @@ class JMeterScenarioBuilder(JMX):
             body = request.body
 
         http = JMX._get_http_request(request.url, request.label, request.method, timeout, body, global_keepalive,
-                                     request.upload_files, request.content_encoding, redirect_follow, redirect_auto)
+                                     request.upload_files, request.content_encoding, follow_redirects)
 
         children = etree.Element("hashTree")
 
@@ -2062,10 +2060,6 @@ class RequestsParser(object):
 
 
 class HierarchicHTTPRequest(HTTPRequest):
-    REDIRECT_FOLLOW = 'follow'
-    REDIRECT_AUTOMATICALLY = 'auto'
-    REDIRECT_IGNORE = 'ignore'
-
     def __init__(self, config, engine):
         super(HierarchicHTTPRequest, self).__init__(config, engine)
         self.upload_files = config.get("upload-files", [])
@@ -2075,7 +2069,7 @@ class HierarchicHTTPRequest(HTTPRequest):
             mime = mimetypes.guess_type(path)[0] or "application/octet-stream"
             file_dict.get('mime-type', mime)
         self.content_encoding = config.get('content-encoding', None)
-        self.redirect_policy = config.get('redirect', None)
+        self.follow_redirects = config.get('follow-redirects', None)
 
 
 class ActionBlock(Request):

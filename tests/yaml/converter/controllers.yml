@@ -10,34 +10,41 @@ scenarios:
     requests:
     - if: condition1
       then:
-      - label: BD
+      - follow-redirects: true
+        label: BD
         method: GET
         url: http://blazedemo.com/
       - if: condition2
         then:
-        - label: BD/reserve
+        - follow-redirects: true
+          label: BD/reserve
           method: GET
           url: http://blazedemo.com/reserve.php
     - do:
-      - label: HTTP Request
+      - follow-redirects: true
+        label: HTTP Request
         method: GET
         url: http://example.com/
       loop: 42
     - do:
-      - label: demo/BM
+      - follow-redirects: true
+        label: demo/BM
         method: GET
         url: http://demo.blazemeter.com/
       foreach: output in input
     - do:
-      - label: example.com/1
+      - follow-redirects: true
+        label: example.com/1
         method: GET
         url: http://example.com/1
-      - label: example.com/2
+      - follow-redirects: true
+        label: example.com/2
         method: GET
         url: http://example.com/2
       transaction: My Transaction
     - do:
-      - label: HTTP Request
+      - follow-redirects: true
+        label: HTTP Request
         method: GET
         url: http://google.com/
       while: condition

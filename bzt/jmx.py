@@ -264,8 +264,7 @@ class JMX(object):
                              guiclass="ArgumentsPanel", testclass="Arguments")
 
     @staticmethod
-    def _get_http_request(url, label, method, timeout, body, keepalive, files=(), encoding=None,
-                          redirect_follow=True, redirect_auto=False):
+    def _get_http_request(url, label, method, timeout, body, keepalive, files=(), encoding=None, follow_redirects=True):
         """
         Generates HTTP request
         :type method: str
@@ -296,8 +295,8 @@ class JMX(object):
         proxy.append(JMX._string_prop("HTTPSampler.path", path))
         proxy.append(JMX._string_prop("HTTPSampler.method", method))
         proxy.append(JMX._bool_prop("HTTPSampler.use_keepalive", keepalive))
-        proxy.append(JMX._bool_prop("HTTPSampler.follow_redirects", redirect_follow))
-        proxy.append(JMX._bool_prop("HTTPSampler.auto_redirects", redirect_auto))
+        proxy.append(JMX._bool_prop("HTTPSampler.follow_redirects", follow_redirects))
+        proxy.append(JMX._bool_prop("HTTPSampler.auto_redirects", False))
 
         if timeout is not None:
             proxy.append(JMX._string_prop("HTTPSampler.connect_timeout", timeout))

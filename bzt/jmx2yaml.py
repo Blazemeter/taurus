@@ -499,10 +499,10 @@ class JMXasDict(JMX):
         follow_redirects = self._get_bool_prop(element, 'HTTPSampler.follow_redirects')
         auto_redirects = self._get_bool_prop(element, 'HTTPSampler.auto_redirects')
         if not follow_redirects and not auto_redirects:
-            redirect["redirect"] = "ignore"
-        elif auto_redirects:
-            redirect["redirect"] = "auto"
-        # NOTE: there's no need to handle 'if follow_redirects is True' case
+            redirect["follow-redirects"] = False
+        elif follow_redirects or auto_redirects:
+            redirect["follow-redirects"] = True
+        # NOTE: there's no need to handle 'if follow_redirects is True or auto_redirects is True' case
         # as it's the default behaviour
         return redirect
 

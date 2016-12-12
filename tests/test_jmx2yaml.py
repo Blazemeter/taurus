@@ -455,6 +455,6 @@ class TestConverter(BZTestCase):
         scenario = scenarios["Thread Group"]
         requests = scenario["requests"]
         self.assertEqual(len(requests), 3)
-        self.assertEqual(requests[0].get('redirect'), None)
-        self.assertEqual(requests[1].get('redirect'), 'auto')
-        self.assertEqual(requests[2].get('redirect'), 'ignore')
+        self.assertEqual(requests[0].get('follow-redirects'), True)
+        self.assertEqual(requests[1].get('follow-redirects'), True)
+        self.assertEqual(requests[2].get('follow-redirects'), False)
