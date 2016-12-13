@@ -264,7 +264,7 @@ class JMX(object):
                              guiclass="ArgumentsPanel", testclass="Arguments")
 
     @staticmethod
-    def _get_http_request(url, label, method, timeout, body, keepalive, files=(), encoding=None):
+    def _get_http_request(url, label, method, timeout, body, keepalive, files=(), encoding=None, follow_redirects=True):
         """
         Generates HTTP request
         :type method: str
@@ -295,7 +295,8 @@ class JMX(object):
         proxy.append(JMX._string_prop("HTTPSampler.path", path))
         proxy.append(JMX._string_prop("HTTPSampler.method", method))
         proxy.append(JMX._bool_prop("HTTPSampler.use_keepalive", keepalive))
-        proxy.append(JMX._bool_prop("HTTPSampler.follow_redirects", True))
+        proxy.append(JMX._bool_prop("HTTPSampler.follow_redirects", follow_redirects))
+        proxy.append(JMX._bool_prop("HTTPSampler.auto_redirects", False))
 
         if timeout is not None:
             proxy.append(JMX._string_prop("HTTPSampler.connect_timeout", timeout))
@@ -647,7 +648,7 @@ class JMX(object):
 
     @staticmethod
     def _get_http_defaults(default_address=None, timeout=None, retrieve_resources=None, concurrent_pool_size=4,
-                           content_encoding=None):
+                           content_encoding=None, resources_regex=None):
         """
         :rtype: lxml.etree.Element
         """
@@ -686,6 +687,10 @@ class JMX(object):
 
         if content_encoding:
             cfg.append(JMX._string_prop("HTTPSampler.contentEncoding", content_encoding))
+
+        if resources_regex:
+            cfg.append(JMX._string_prop("HTTPSampler.embedded_url_re", resources_regex))
+
         return cfg
 
     @staticmethod

@@ -4,9 +4,13 @@
  - add logging improvements
  - fix a few minor issues with the Windows installer
  - fix public cloud reporting (unauthorised notes sending)
- - add test for paths of resource files 
+ - add test for paths of resource files
  - bump up auto-installed JMeter to 3.1 and pmgr to 0.11
+ - add limitation of response time list size to cumulative KPISets
  - fix the crash when multiple BM reporters are in use
+ - add `public-report` option to BlazeMeter reporter and cloud provisioning
+ - add `retrieve-resources-regex` scenario-level option to JMeter
+ - allow controling JMeter HTTP redirects with `follow-redirects` option
 
 ## 1.7.4 <sup>11 nov 2016</sup>
  - fix Locust crash when used with 'requests'-style scenario and cloud provisioning
