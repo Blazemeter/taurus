@@ -348,7 +348,7 @@ class TestJMeterExecutor(BZTestCase):
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         sampler_element = xml_tree.findall(".//HTTPSamplerProxy[@testname='With body params']")
         arguments_element_prop = sampler_element[0][0]
-        self.assertEqual(10, len(sampler_element[0].getchildren()))
+        self.assertEqual(11, len(sampler_element[0].getchildren()))
         self.assertEqual(1, len(arguments_element_prop.getchildren()))
         self.assertEqual(2, len(arguments_element_prop[0].getchildren()))
         self.assertEqual(1, len(arguments_element_prop[0].findall(".//elementProp[@name='param1']")))
@@ -1925,6 +1925,85 @@ class TestJMeterExecutor(BZTestCase):
         sampler_encoding_prop = xml_tree.find(".//HTTPSamplerProxy/stringProp[@name='HTTPSampler.contentEncoding']")
         self.assertIsNotNone(sampler_encoding_prop)
         self.assertEqual(sampler_encoding_prop.text, 'utf-8')
+
+    def test_redirect_empty(self):
+        self.configure({
+            "execution": {
+                "scenario": {
+                    "requests": [{
+                        "url": "http://example.com/",
+                    }]
+                }
+            }
+        })
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
+        follow_redirects = xml_tree.find(".//HTTPSamplerProxy/boolProp[@name='HTTPSampler.follow_redirects']")
+        self.assertIsNotNone(follow_redirects)
+        self.assertEqual(follow_redirects.text, 'true')
+        auto_redirects = xml_tree.find(".//HTTPSamplerProxy/boolProp[@name='HTTPSampler.auto_redirects']")
+        self.assertIsNotNone(auto_redirects)
+        self.assertEqual(auto_redirects.text, 'false')
+
+    def test_redirect_follow(self):
+        self.configure({
+            "execution": {
+                "scenario": {
+                    "requests": [{
+                        "url": "http://example.com/",
+                        "follow-redirects": True,
+                    }]
+                }
+            }
+        })
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
+        follow_redirects = xml_tree.find(".//HTTPSamplerProxy/boolProp[@name='HTTPSampler.follow_redirects']")
+        self.assertIsNotNone(follow_redirects)
+        self.assertEqual(follow_redirects.text, 'true')
+        auto_redirects = xml_tree.find(".//HTTPSamplerProxy/boolProp[@name='HTTPSampler.auto_redirects']")
+        self.assertIsNotNone(auto_redirects)
+        self.assertEqual(auto_redirects.text, 'false')
+
+    def test_disable_redirect(self):
+        self.configure({
+            "execution": {
+                "scenario": {
+                    "requests": [{
+                        "url": "http://example.com/",
+                        "follow-redirects": False,
+                    }]
+                }
+            }
+        })
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
+        follow_redirects = xml_tree.find(".//HTTPSamplerProxy/boolProp[@name='HTTPSampler.follow_redirects']")
+        self.assertIsNotNone(follow_redirects)
+        self.assertEqual(follow_redirects.text, 'false')
+        auto_redirects = xml_tree.find(".//HTTPSamplerProxy/boolProp[@name='HTTPSampler.auto_redirects']")
+        self.assertIsNotNone(auto_redirects)
+        self.assertEqual(auto_redirects.text, 'false')
+
+    def test_redirect_scenario_level(self):
+        self.configure({
+            "execution": {
+                "scenario": {
+                    "follow-redirects": False,
+                    "requests": [{
+                        "url": "http://example.com/",
+                    }]
+                }
+            }
+        })
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
+        follow_redirects = xml_tree.find(".//HTTPSamplerProxy/boolProp[@name='HTTPSampler.follow_redirects']")
+        self.assertIsNotNone(follow_redirects)
+        self.assertEqual(follow_redirects.text, 'false')
+        auto_redirects = xml_tree.find(".//HTTPSamplerProxy/boolProp[@name='HTTPSampler.auto_redirects']")
+        self.assertIsNotNone(auto_redirects)
+        self.assertEqual(auto_redirects.text, 'false')
 
 
 class TestJMX(BZTestCase):

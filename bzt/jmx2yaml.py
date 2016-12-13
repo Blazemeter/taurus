@@ -494,6 +494,18 @@ class JMXasDict(JMX):
             timeout = {"timeout": timeout_prop + "ms"}
         return timeout
 
+    def _get_request_redirect_policy(self, element):
+        redirect = {}
+        follow_redirects = self._get_bool_prop(element, 'HTTPSampler.follow_redirects')
+        auto_redirects = self._get_bool_prop(element, 'HTTPSampler.auto_redirects')
+        if not follow_redirects and not auto_redirects:
+            redirect["follow-redirects"] = False
+        elif follow_redirects or auto_redirects:
+            redirect["follow-redirects"] = True
+        # NOTE: there's no need to handle 'if follow_redirects is True or auto_redirects is True' case
+        # as it's the default behaviour
+        return redirect
+
     def _get_extractors(self, element):
         """
         Gets xpath, jsonpath and regexp extractors
@@ -998,6 +1010,7 @@ class JMXasDict(JMX):
         request_config.update(self._get_headers(request_element))
         request_config.update(self.__get_constant_timer(request_element))
         request_config.update(self._get_request_timeout(request_element))
+        request_config.update(self._get_request_redirect_policy(request_element))
         request_config.update(self._get_extractors(request_element))
         request_config.update(self._get_assertions(request_element))
         request_config.update(self._get_jsr223_processors(request_element))
