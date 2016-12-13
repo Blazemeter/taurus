@@ -147,6 +147,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         props_local.update({"jmeterengine.nongui.port": self.management_port})
         props_local.update({"jmeterengine.nongui.maxport": self.management_port})
         props_local.update({"jmeter.save.saveservice.timestamp_format": "ms"})
+        props_local.update({"sampleresult.default.encoding": "UTF-8"})
         props.merge(props_local)
         user_cp = self.engine.artifacts_dir
         if 'user.classpath' in props:
@@ -1496,8 +1497,14 @@ class JMeterScenarioBuilder(JMX):
         return elements
 
     def compile_http_request(self, request):
+        """
+
+        :type request: HierarchicHTTPRequest
+        :return:
+        """
         global_timeout = self.scenario.get("timeout", None)
         global_keepalive = self.scenario.get("keepalive", True)
+        global_follow_redirects = self.scenario.get("follow-redirects", True)
 
         if request.timeout is not None:
             timeout = self.smart_time(request.timeout)
@@ -1506,6 +1513,10 @@ class JMeterScenarioBuilder(JMX):
         else:
             timeout = None
 
+        follow_redirects = request.follow_redirects
+        if follow_redirects is None:
+            follow_redirects = global_follow_redirects
+
         content_type = self._get_merged_ci_headers(request, 'content-type')
         if content_type == 'application/json' and isinstance(request.body, dict):
             body = json.dumps(request.body)
@@ -1513,7 +1524,7 @@ class JMeterScenarioBuilder(JMX):
             body = request.body
 
         http = JMX._get_http_request(request.url, request.label, request.method, timeout, body, global_keepalive,
-                                     request.upload_files, request.content_encoding)
+                                     request.upload_files, request.content_encoding, follow_redirects)
 
         children = etree.Element("hashTree")
 
@@ -2059,6 +2070,7 @@ class HierarchicHTTPRequest(HTTPRequest):
             mime = mimetypes.guess_type(path)[0] or "application/octet-stream"
             file_dict.get('mime-type', mime)
         self.content_encoding = config.get('content-encoding', None)
+        self.follow_redirects = config.get('follow-redirects', None)
 
 
 class ActionBlock(Request):

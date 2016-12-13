@@ -95,7 +95,7 @@ scenarios:
 For accurate load calculation don't forget to choose different hostname values for slave hosts. 
 
 ## Shutdown Delay
-By default, Taurus tries to call graceful JMeter shutdown by using its UDP shutdown port (this works only for non-GUI). There is option to wait for JMeter to exit before killing it forcefully, called `shutdown-wait`. Bu default, its value is 5 seconds.
+By default, Taurus tries to call graceful JMeter shutdown by using its UDP shutdown port (this works only for non-GUI). There is option to wait for JMeter to exit before killing it forcefully, called `shutdown-wait`. By default, its value is 5 seconds.
 
 ## Modifications for Existing Scripts
 
@@ -168,6 +168,7 @@ scenarios:
                                # True by default
     content-encoding: utf-8  # global content encoding, applied to all requests.
                              # Unset by default
+    follow-redirects: true  # follow redirects for all HTTP requests
     data-sources: # list of external data sources
     - path/to/my.csv  # this is a shorthand form
     - path: path/to/another.csv  # this is full form, path option is required
@@ -226,6 +227,7 @@ scenarios:
       think-time: 1s  # local think-time, overrides global
       timeout: 1s  # local timeout, overrides global
       content-encoding: utf-8  # content encoding (at JMeter's level), unset by default
+      follow-redirects: true  # follow HTTP redirects
 
       extract-regexp: {}  # explained below
       extract-jsonpath: {}  # explained below

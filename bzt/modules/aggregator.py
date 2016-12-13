@@ -665,6 +665,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
             underling.max_buffer_len = self.max_buffer_len
             underling.buffer_multiplier = self.buffer_multiplier
             underling.buffer_scale_idx = self.buffer_scale_idx
+            underling.rtimes_len = self.rtimes_len
 
         self.underlings.append(underling)
 

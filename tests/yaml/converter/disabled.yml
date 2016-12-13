@@ -14,9 +14,9 @@ scenarios:
   First Thread Group:
     data-sources:
     - delimiter: ','
+      loop: true
       path: not_found.csv
       quoted: false
-      loop: true
     headers:
       global_header: global_value
       tg1: v1
@@ -36,6 +36,7 @@ scenarios:
         jsonpath: $.
         validate: true
       body: one-two
+      follow-redirects: true
       label: First HTTP Request
       method: GET
       url: http://10.0.0.1/
@@ -58,10 +59,12 @@ scenarios:
           match-no: 0
           regexp: '*'
           template: '1'
+      follow-redirects: true
       label: request with params
       method: GET
       url: http://8.8.8.8/
-    - label: with headers
+    - follow-redirects: true
+      label: with headers
       method: GET
       url: http://127.0.0.1/
     - assert-jsonpath:
@@ -75,6 +78,7 @@ scenarios:
           match-no: 0
           regexp: '*'
           template: '1'
+      follow-redirects: true
       headers:
         header1: value1
       label: HTTP Request
@@ -82,22 +86,23 @@ scenarios:
       think-time: 500ms
       timeout: 200ms
       url: http://192.168.0.1/
-    - url: http://blazedemo.com/
+    - follow-redirects: true
       label: request with files
       method: POST
       upload-files:
-      - param: attachment
+      - mime-type: text/plain
+        param: attachment
         path: file.txt
-        mime-type: text/plain
+      url: http://blazedemo.com/
     store-cache: false
     store-cookie: false
     use-dns-cache-mgr: true
   Second Thread Group:
     data-sources:
     - delimiter: ','
+      loop: true
       path: not_found.csv
       quoted: false
-      loop: true
     headers:
       global_header: global_value
     requests:
@@ -107,6 +112,7 @@ scenarios:
         not: true
         regexp: true
         subject: body
+      follow-redirects: true
       label: request
       method: GET
       url: http://192.168.0.2/
