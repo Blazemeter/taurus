@@ -176,6 +176,7 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.check()
         for x in range(32, 65):
             obj.aggregated_second(random_datapoint(x))
+        obj.last_dispatch = time.time() - 2*obj.send_interval
         self.assertRaises(KeyboardInterrupt, obj.check)
         obj.aggregated_second(random_datapoint(10))
         obj.shutdown()

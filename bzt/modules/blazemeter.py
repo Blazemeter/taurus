@@ -87,6 +87,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         self.send_custom_metrics = False
         self.send_custom_tables = False
         self.public_report = False
+        self.last_dispatch = 0
 
     def prepare(self):
         """
@@ -273,8 +274,9 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         :return:
         """
         self.log.debug("KPI bulk buffer len: %s", len(self.kpi_buffer))
-        if len(self.kpi_buffer):
-            if self.client.last_ts < (time.time() - self.send_interval):
+        if self.last_dispatch < (time.time() - self.send_interval):
+            self.last_dispatch = time.time()
+            if len(self.kpi_buffer):
                 self.__send_data(self.kpi_buffer)
                 self.kpi_buffer = []
                 if self.send_monitoring:
