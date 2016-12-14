@@ -5,7 +5,6 @@ import re
 import shutil
 import sys
 import time
-import unittest
 import yaml
 
 from bzt import ToolError, TaurusConfigError
