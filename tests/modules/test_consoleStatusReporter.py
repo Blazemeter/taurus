@@ -43,7 +43,6 @@ class TestConsoleStatusReporter(BZTestCase):
 
     def test_1(self):
         obj = ConsoleStatusReporter()
-        obj.is_tty = True
         obj.engine = EngineEmul()
         obj.engine.provisioning = Local()
         obj.engine.provisioning.start_time = time.time()
@@ -62,6 +61,7 @@ class TestConsoleStatusReporter(BZTestCase):
         obj.settings["disable"] = False
         obj.settings['dummy_cols'] = 160
         obj.settings['dummy_rows'] = 40
+        obj.settings['disable'] = False
         obj.prepare()
         obj.startup()
 
@@ -86,7 +86,6 @@ class TestConsoleStatusReporter(BZTestCase):
 
     def test_2(self):
         obj = ConsoleStatusReporter()
-        obj.is_tty = True
         obj.engine = EngineEmul()
         obj.engine.provisioning = Local()
         obj.engine.provisioning.start_time = time.time()
@@ -104,6 +103,7 @@ class TestConsoleStatusReporter(BZTestCase):
         obj.settings["disable"] = False
         obj.settings['dummy_cols'] = 160
         obj.settings['dummy_rows'] = 401
+        obj.settings['disable'] = False
         obj.prepare()
         obj.startup()
 

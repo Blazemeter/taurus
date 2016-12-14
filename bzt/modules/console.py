@@ -72,7 +72,6 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         self.console = None
         self.executor_widgets = []
         self.screen = DummyScreen(self.screen_size[0], self.screen_size[1])
-        self.is_tty = is_tty()
 
     def _get_screen(self):
         screen_type = self._get_screen_type()
@@ -115,7 +114,8 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         if isinstance(self.engine.aggregator, ResultsProvider):
             self.engine.aggregator.add_listener(self)
 
-        if (not self.is_tty) or (self.settings.get("disable", False)):
+        disable = str(self.settings.get('disable', 'auto')).lower()
+        if (disable == 'true') or ((disable == 'auto') and (not is_tty())):
             self.disabled = True
             return
 
