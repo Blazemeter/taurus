@@ -13,8 +13,7 @@ Console reporter has the following settings:
 modules:
   console:
     # disable console reporter
-    disable: false    
-    # default: auto
+    disable: false  # default: auto
     
     # configure screen type
     screen: console

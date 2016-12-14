@@ -932,6 +932,3 @@ def is_piped(file_obj):
     mode = os.fstat(file_obj.fileno()).st_mode
     return stat.S_ISFIFO(mode) or stat.S_ISREG(mode)
 
-
-def is_tty():
-    return sys.stdout.isatty()

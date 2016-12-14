@@ -40,7 +40,7 @@ from bzt.engine import Reporter
 from bzt.modules.aggregator import DataPoint, KPISet, AggregatorListener, ResultsProvider
 from bzt.modules.provisioning import Local
 from bzt.six import StringIO, numeric_types
-from bzt.utils import humanize_time, is_windows, DummyScreen, is_tty
+from bzt.utils import humanize_time, is_windows, DummyScreen
 
 try:
     from bzt.modules.screen import GUIScreen
@@ -115,7 +115,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
             self.engine.aggregator.add_listener(self)
 
         disable = str(self.settings.get('disable', 'auto')).lower()
-        if (disable == 'true') or ((disable == 'auto') and (not is_tty())):
+        if (disable == 'true') or ((disable == 'auto') and (not sys.stdout.isatty())):
             self.disabled = True
             return
 
