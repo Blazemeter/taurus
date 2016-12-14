@@ -40,7 +40,7 @@ from bzt.engine import Reporter
 from bzt.modules.aggregator import DataPoint, KPISet, AggregatorListener, ResultsProvider
 from bzt.modules.provisioning import Local
 from bzt.six import StringIO, numeric_types
-from bzt.utils import humanize_time, is_windows, DummyScreen
+from bzt.utils import humanize_time, is_windows, DummyScreen, is_tty
 
 try:
     from bzt.modules.screen import GUIScreen
@@ -72,6 +72,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         self.console = None
         self.executor_widgets = []
         self.screen = DummyScreen(self.screen_size[0], self.screen_size[1])
+        self.is_tty = is_tty()
 
     def _get_screen(self):
         screen_type = self._get_screen_type()
@@ -114,8 +115,8 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         if isinstance(self.engine.aggregator, ResultsProvider):
             self.engine.aggregator.add_listener(self)
 
-        self.disabled = self.settings.get("disable", False)
-        if self.disabled:
+        if (not self.is_tty) or (self.settings.get("disable", False)):
+            self.disabled = True
             return
 
         self.screen = self._get_screen()
@@ -140,8 +141,6 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         """
         Repaint the screen
         """
-        for widget in self.executor_widgets:
-            widget.update()
         if self.disabled:
             if self._last_datapoint:
                 self.__print_one_line_stats()
@@ -149,6 +148,8 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
             return False
 
         self.__start_screen()
+        for widget in self.executor_widgets:
+            widget.update()
         self.__update_screen()
         return False
 
