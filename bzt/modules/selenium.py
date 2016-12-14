@@ -216,6 +216,8 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         return reader
 
     def prepare(self):
+        if self.execution.get(ScenarioExecutor.CONCURR, 1) > 1:
+            self.log.warning('Selenium supports concurrency in cloud provisioning mode only')
         self.set_virtual_display()
         self.scenario = self.get_scenario()
         self.__setup_script()
