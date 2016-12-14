@@ -13,6 +13,7 @@
  - fix latency growing problem
  - allow controling JMeter HTTP redirects with `follow-redirects` option
  - add warning message for concurrency setting in Selenium config
+ - disable console if stdout isn't a tty
 
 ## 1.7.4 <sup>11 nov 2016</sup>
  - fix Locust crash when used with 'requests'-style scenario and cloud provisioning
