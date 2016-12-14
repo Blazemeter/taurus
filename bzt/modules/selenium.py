@@ -216,7 +216,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         return reader
 
     def prepare(self):
-        if self.get_load().concurrency > 1:
+        if self.get_load().concurrency and self.get_load().concurrency > 1:
             msg = 'Selenium supports concurrency in cloud provisioning mode only\n'
             msg += 'For details look at http://gettaurus.org/docs/Cloud.md'
             self.log.warning(msg)
