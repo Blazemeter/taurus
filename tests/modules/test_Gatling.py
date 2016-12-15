@@ -332,7 +332,7 @@ class TestGatlingExecutor(BZTestCase):
         self.assertIn('simulations.jar', obj.jar_list)
 
     def test_files_find_file(self):
-        curdir = os.curdir
+        curdir = get_full_path(os.curdir)
         try:
             os.chdir(__dir__() + "/../")
             obj = self.getGatling()
