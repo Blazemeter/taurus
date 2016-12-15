@@ -13,7 +13,7 @@ Console reporter has the following settings:
 modules:
   console:
     # disable console reporter
-    disable: false
+    disable: false  # default: auto
     
     # configure screen type
     screen: console
@@ -27,6 +27,7 @@ You can also disable this reporter by using [command-line](CommandLine.md) `-o` 
 ```bash
 bzt config.yml -o modules.console.disable=true
 ```
+There is 'auto' value for the `disable` parameter - console will be turned off if tty isn't found on the STDOUT side (e.g. output is intended for CI system)
 
 On Windows, Console Screen is shown in separate window and users may change font size by holding
 Ctrl key and using mouse wheel. Two additional options are `dummy-cols` and `dummy-rows`, they

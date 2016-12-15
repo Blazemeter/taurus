@@ -39,11 +39,11 @@ import webbrowser
 import zipfile
 from abc import abstractmethod
 from collections import defaultdict, Counter
+from subprocess import CalledProcessError
 from subprocess import PIPE
 from webbrowser import GenericBrowser
 
 import psutil
-from subprocess import CalledProcessError
 from progressbar import ProgressBar, Percentage, Bar, ETA
 from psutil import Popen
 from urwid import BaseScreen

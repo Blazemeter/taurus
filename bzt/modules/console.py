@@ -114,8 +114,9 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         if isinstance(self.engine.aggregator, ResultsProvider):
             self.engine.aggregator.add_listener(self)
 
-        self.disabled = self.settings.get("disable", False)
-        if self.disabled:
+        disable = str(self.settings.get('disable', 'auto')).lower()
+        if (disable == 'true') or ((disable == 'auto') and (not sys.stdout.isatty())):
+            self.disabled = True
             return
 
         self.screen = self._get_screen()
@@ -140,8 +141,6 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         """
         Repaint the screen
         """
-        for widget in self.executor_widgets:
-            widget.update()
         if self.disabled:
             if self._last_datapoint:
                 self.__print_one_line_stats()
@@ -149,6 +148,8 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
             return False
 
         self.__start_screen()
+        for widget in self.executor_widgets:
+            widget.update()
         self.__update_screen()
         return False
 
