@@ -119,6 +119,7 @@ scenarios:
         "HTTP Sampler>HTTPSampler.connect_timeout": "0"
         "HTTP Sampler>HTTPSampler.protocol": "https"
 ```
+If selector for set-prop isn't found, taurus tries to create stringProp jmx element with last element of selector as name and sets given value for it. So you can create simple properties in jmx if it's necessary.
 
 ## Building Test Plan from Config
 
