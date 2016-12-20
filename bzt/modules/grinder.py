@@ -115,9 +115,9 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
             if load.ramp_up:
                 interval = int(1000 * load.ramp_up / load.concurrency)
                 fds.write("grinder.processIncrementInterval=%s\n" % interval)
+                fds.write("grinder.processIncrement=1\n")
             fds.write("grinder.processes=%s\n" % int(load.concurrency))
             fds.write("grinder.runs=%s\n" % load.iterations)
-            fds.write("grinder.processIncrement=1\n")
             if load.duration:
                 fds.write("grinder.duration=%s\n" % int(load.duration * 1000))
         fds.write("# BZT Properies End\n")
@@ -238,7 +238,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
     def get_widget(self):
         if not self.widget:
             if self.script is not None:
-                label = "Script: %s" % os.path.basename(self.script)
+                label = "Grinder: %s" % os.path.basename(self.script)
             else:
                 label = None
             self.widget = ExecutorWidget(self, label)
@@ -269,6 +269,8 @@ class DataLogReader(ResultsReader):
         self.partial_buffer = ""
         self.delimiter = ","
         self.offset = 0
+        self.start_time = 0
+        self.end_time = 0
 
     def _read(self, last_pass=False):
         """
@@ -288,7 +290,11 @@ class DataLogReader(ResultsReader):
             lines = self.fds.readlines(1024 * 1024)  # 1MB limit to read
         self.offset = self.fds.tell()
 
-        for line in lines:
+        set_of_workers = set()
+        source_id = ''
+
+        lines.insert(0, '')
+        for lnum, line in enumerate(lines):
             if not line.endswith("\n"):
                 self.partial_buffer += line
                 continue
@@ -296,25 +302,49 @@ class DataLogReader(ResultsReader):
             line = "%s%s" % (self.partial_buffer, line)
             self.partial_buffer = ""
 
+            if not line.startswith('data'):
+                continue
+
             line = line.strip()
-            fields = line.split(self.delimiter)
-            if not fields[1].strip().isdigit():
+            line = line[len('data'):]
+            data_fields = line.split(self.delimiter)
+            if not data_fields[1].strip().isdigit():
                 self.log.debug("Skipping line: %s", line)
                 continue
-            t_stamp = int(fields[self.idx["Start time (ms since Epoch)"]]) / 1000.0
-            label = ""
-            r_time = int(fields[self.idx["Test time"]]) / 1000.0
-            latency = int(fields[self.idx["Time to first byte"]]) / 1000.0
-            r_code = fields[self.idx["HTTP response code"]].strip()
-            con_time = int(fields[self.idx["Time to resolve host"]]) / 1000.0
-            con_time += int(fields[self.idx["Time to establish connection"]]) / 1000.0
-            if int(fields[self.idx["Errors"]]):
-                error = "There were some errors in Grinder test"
-            else:
-                error = None
-            bytes_count = int(fields[self.idx["HTTP response length"]].strip())
-            concur = None  # TODO: how to get this for grinder
-            yield int(t_stamp), label, concur, r_time, con_time, latency, r_code, error, '', bytes_count
+
+            error_msg = None
+            if len(data_fields) < max(self.idx.values()):
+                self.log.warning('Wrong line: %s', line)
+                continue
+            t_stamp = int(data_fields[self.idx["Start time (ms since Epoch)"]]) / 1000.0
+            r_time = int(data_fields[self.idx["Test time"]]) / 1000.0
+            latency = int(data_fields[self.idx["Time to first byte"]]) / 1000.0
+            r_code = data_fields[self.idx["HTTP response code"]].strip()
+            con_time = int(data_fields[self.idx["Time to resolve host"]]) / 1000.0
+            con_time += int(data_fields[self.idx["Time to establish connection"]]) / 1000.0
+            bytes_count = int(data_fields[self.idx["HTTP response length"]].strip())
+
+            # parse from previous lines
+            label = ''
+            worker_log_str = lines[lnum - 1].strip()
+            if worker_log_str.endswith('bytes'):
+                worker_log_str = worker_log_str.split(self.delimiter)[0]
+                log_parts = worker_log_str.split(' ')
+                if len(log_parts) < 5:
+                    continue
+                worker_id_long = log_parts.pop(0)
+                worker_id = worker_id_long.split('-')[-1]
+                set_of_workers.add(worker_id)
+
+                label = log_parts.pop(0)
+                log_parts.pop(0)  # skip arrow
+                status = log_parts.pop(0)
+                if status != '200':
+                    error_msg = ' '.join(log_parts)
+
+            concur = len(set_of_workers)
+
+            yield int(t_stamp), label, concur, r_time, con_time, latency, r_code, error_msg, source_id, bytes_count
 
     def __open_fds(self):
         """
@@ -329,8 +359,15 @@ class DataLogReader(ResultsReader):
             return False
 
         self.fds = open(self.filename)
-        header = self.fds.readline().strip().split(self.delimiter)
-        for _ix, field in enumerate(header):
+        line = ''
+        while not line.startswith('data'):
+            line = self.fds.readline()
+
+        self.offset = self.fds.tell()
+        line = line[len('data '):]
+
+        header_list = line.strip().split(self.delimiter)
+        for _ix, field in enumerate(header_list):
             self.idx[field.strip()] = _ix
         return True
 
