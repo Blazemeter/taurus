@@ -331,6 +331,34 @@ class TestGatlingExecutor(BZTestCase):
             obj.shutdown()
         self.assertIn('simulations.jar', obj.jar_list)
 
+    def test_files_find_file(self):
+        curdir = get_full_path(os.curdir)
+        try:
+            os.chdir(__dir__() + "/../")
+            obj = self.getGatling()
+            obj.engine.file_search_paths.append(__dir__() + "/../gatling/")
+            obj.engine.config.merge({
+                "execution":{
+                    "scenario": {
+                        "script": "simulations.jar",
+                        "simulation": "tests.gatling.BasicSimulation"
+                    },
+                    "files": ["deps.jar"]
+                }
+            })
+            obj.execution.merge(obj.engine.config["execution"])
+            obj.prepare()
+            try:
+                obj.startup()
+                while not obj.check():
+                    time.sleep(obj.engine.check_interval)
+            finally:
+                obj.shutdown()
+            self.assertIn('simulations.jar', obj.jar_list)
+            self.assertIn('deps.jar', obj.jar_list)
+        finally:
+            os.chdir(curdir)
+
 
 class TestDataLogReader(BZTestCase):
     def test_read(self):
