@@ -1139,6 +1139,21 @@ class TestJMeterExecutor(BZTestCase):
         jmx = JMX(self.obj.modified_jmx)
         self.assertEqual(jmx.get(selector)[0].text, u"✓")
 
+    def test_jmx_modification_add_stringprop(self):
+        cfg_selector = ('Home Page>HTTPsampler.Arguments>Arguments.arguments>param>new_str')
+
+        self.obj.execution.merge({
+            "scenario": {
+                "script": __dir__() + "/../jmeter/jmx/dummy_plan.jmx",
+                "modifications": {
+                    "set-prop": {
+                        cfg_selector: 'new_value'}}}})
+        selector = ("[testname='Home Page']>[name='HTTPsampler.Arguments']"
+                    ">[name='Arguments.arguments']>[name='param']>[name='new_str']")
+        self.obj.prepare()
+        jmx = JMX(self.obj.modified_jmx)
+        self.assertEqual(jmx.get(selector)[0].text, 'new_value')
+
     def test_resources_regex(self):
         self.obj.execution.merge({
             "scenario": {

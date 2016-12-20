@@ -766,11 +766,17 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
                 parts = path.split('>')
                 if len(parts) < 2:
                     raise TaurusConfigError("JMeter: property selector must have at least 2 levels")
-                sel = "[testname='%s']" % parts[0]  # TODO: support wildcards in element names
+                sel_parts = ["[testname='%s']" % parts[0]]  # TODO: support wildcards in element names
+
                 for add in parts[1:]:
-                    sel += ">[name='%s']" % add
-                if not jmx.set_text(sel, text):
-                    self.log.warning("No elements matched for set-prop: %s", path)
+                    sel_parts.append("[name='%s']" % add)
+                selector = '>'.join(sel_parts)
+                if not jmx.set_text(selector, text):
+                    selector = '>'.join(sel_parts[:-1])
+                    if jmx.get(selector):
+                        jmx.append(selector, JMX._string_prop(parts[-1], text))
+                    else:
+                        self.log.warning("No elements matched for set-prop: %s", path)
 
     def __apply_enable_disable(self, modifs, action, jmx):
         items = modifs[action]
