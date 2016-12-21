@@ -156,6 +156,7 @@ class TestGatlingExecutor(BZTestCase):
         obj.execution.merge({
             "concurrency": 10,
             "hold-for": 110,
+            "throughput": 33,
             "ramp-up": 30,
             "scenario": {
                 'keepalive': False,
