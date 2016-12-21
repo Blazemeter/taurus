@@ -122,7 +122,10 @@ class TestGatlingExecutor(BZTestCase):
     def test_env_type(self):
         obj = self.getGatling()
         script = "LocalBasicSimulation.scala"
-        obj.execution.merge({"concurrency": 2, "scenario": {"script": __dir__() + "/../gatling/" + script}})
+        obj.execution.merge({
+            "concurrency": 2,
+            "throughput": 100,
+            "scenario": {"script": __dir__() + "/../gatling/" + script}})
         obj.prepare()
         obj.engine.artifacts_dir = u(obj.engine.artifacts_dir)
         obj.startup()
