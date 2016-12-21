@@ -343,6 +343,8 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
             params_for_scala['hold-for'] = int(load.hold)
         if load.iterations is not None and load.iterations != 0:
             params_for_scala['iterations'] = int(load.iterations)
+        if load.throughput is not None:
+            params_for_scala['throughput'] = load.throughput
 
         return ''.join([" -D%s=%s" % (key, params_for_scala[key]) for key in params_for_scala])
 
