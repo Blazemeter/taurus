@@ -34,7 +34,6 @@ class %(class_name)s extends Simulation {
     if (_t_throughput != null)
         _setUp = _setUp.throttle(jumpToRps(_t_throughput), holdFor(Int.MaxValue))
 
-
     if (_duration > 0)
         _setUp.maxDuration(_duration)
 }

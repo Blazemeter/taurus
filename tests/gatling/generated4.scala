@@ -39,7 +39,6 @@ class TaurusSimulation_140515627236624 extends Simulation {
     if (_t_throughput != null)
         _setUp = _setUp.throttle(jumpToRps(_t_throughput), holdFor(Int.MaxValue))
 
-
     if (_duration > 0)
         _setUp.maxDuration(_duration)
 }
