@@ -343,6 +343,11 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
             params_for_scala['hold-for'] = int(load.hold)
         if load.iterations is not None and load.iterations != 0:
             params_for_scala['iterations'] = int(load.iterations)
+        if load.throughput:
+            if load.duration:
+                params_for_scala['throughput'] = load.throughput
+            else:
+                self.log.warning("You should set up 'ramp-up' and/or 'hold-for' for usage of 'throughput'")
 
         return ''.join([" -D%s=%s" % (key, params_for_scala[key]) for key in params_for_scala])
 

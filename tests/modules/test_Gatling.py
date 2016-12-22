@@ -68,14 +68,14 @@ class TestGatlingExecutor(BZTestCase):
             self.assertTrue(not line.startswith('COMPILATION_CLASSPATH=') or
                             line.endswith('":${COMPILATION_CLASSPATH}"\n'))
 
-        with open(obj.engine.artifacts_dir + '/gatling-stdout.log') as stdout:
+        with open(obj.stdout_file.name) as stdout:
             out_lines = stdout.readlines()
 
         out_lines = [out_line.rstrip() for out_line in out_lines]
-        self.assertEqual(out_lines[-3], get_full_path(obj.settings['path'], step_up=2))  # $GATLING_HOME
-        self.assertIn('fake_grinder.jar', out_lines[-2])  # $COMPILATION_CLASSPATH
-        self.assertIn('another_dummy.jar', out_lines[-2])  # $COMPILATION_CLASSPATH
-        self.assertEqual(out_lines[-1], 'TRUE')  # $NO_PAUSE
+        self.assertEqual(out_lines[-4], get_full_path(obj.settings['path'], step_up=2))  # $GATLING_HOME
+        self.assertIn('fake_grinder.jar', out_lines[-3])  # $COMPILATION_CLASSPATH
+        self.assertIn('another_dummy.jar', out_lines[-3])  # $COMPILATION_CLASSPATH
+        self.assertEqual(out_lines[-2], 'TRUE')  # $NO_PAUSE
 
     def test_install_Gatling(self):
         path = os.path.abspath(__dir__() + "/../../build/tmp/gatling-taurus/bin/gatling" + EXE_SUFFIX)
@@ -122,10 +122,33 @@ class TestGatlingExecutor(BZTestCase):
     def test_env_type(self):
         obj = self.getGatling()
         script = "LocalBasicSimulation.scala"
-        obj.execution.merge({"concurrency": 2, "scenario": {"script": __dir__() + "/../gatling/" + script}})
+        obj.execution.merge({
+            "concurrency": 2,
+            "hold-for": 1000,
+            "throughput": 100,
+            "scenario": {"script": __dir__() + "/../gatling/" + script}})
         obj.prepare()
         obj.engine.artifacts_dir = u(obj.engine.artifacts_dir)
         obj.startup()
+        obj.shutdown()
+        with open(obj.stdout_file.name) as fds:
+            lines = fds.readlines()
+        self.assertIn('throughput', lines[-1])
+
+    def test_warning_for_throughput_without_duration(self):
+        obj = self.getGatling()
+        script = "LocalBasicSimulation.scala"
+        obj.execution.merge({
+            "concurrency": 2,
+            "throughput": 100,
+            "scenario": {"script": __dir__() + "/../gatling/" + script}})
+        obj.prepare()
+        obj.engine.artifacts_dir = u(obj.engine.artifacts_dir)
+        obj.startup()
+        obj.shutdown()
+        with open(obj.stdout_file.name) as fds:
+            lines = fds.readlines()
+        self.assertNotIn('throughput', lines[-1])
 
     def test_requests_1(self):
         obj = self.getGatling()
@@ -156,6 +179,7 @@ class TestGatlingExecutor(BZTestCase):
         obj.execution.merge({
             "concurrency": 10,
             "hold-for": 110,
+            "throughput": 33,
             "ramp-up": 30,
             "scenario": {
                 'keepalive': False,
