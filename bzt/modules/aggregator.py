@@ -92,7 +92,7 @@ class KPISet(BetterDict):
         :type ret_c: str
         :type cnt: int
         :type errtype: int
-        :type urls: Counter
+        :type urls: collections.Counter
         :rtype: dict
         """
         return {
