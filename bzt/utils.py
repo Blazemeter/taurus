@@ -867,7 +867,13 @@ def open_browser(url):
     try:
         browser = webbrowser.get()
         if type(browser) != GenericBrowser:  # pylint: disable=unidiomatic-typecheck
-            browser.open(url)
+            saved_out = os.dup(1)
+            os.close(1)
+            os.open(os.devnull, os.O_RDWR)
+            try:
+                webbrowser.open(url)
+            finally:
+                os.dup2(saved_out, 1)
     except BaseException as exc:
         logging.warning("Can't open link in browser: %s", exc)
 
