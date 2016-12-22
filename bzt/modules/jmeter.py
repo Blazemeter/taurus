@@ -436,6 +436,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         """
         if not load.duration:
             self.log.warning("You should set up 'ram-up' and/or 'hold-for' for usage of 'throughput'")
+            return
+
         etree_shaper = jmx.get_rps_shaper()
         if load.ramp_up:
             jmx.add_rps_shaper_schedule(etree_shaper, 1, load.throughput, load.ramp_up)

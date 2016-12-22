@@ -51,7 +51,7 @@ Execution has several options to set load profile settings. Support for options 
  - `ramp-up` - ramp-up time to reach target concurrency
  - `hold-for` - time to hold target concurrency
  - `iterations` - limit scenario iterations number
- - `throughput` - apply RPS shaper, limiting maximum RPS to throughput
+ - `throughput` - apply RPS shaper, limiting maximum RPS to throughput, requires `ramp-up` and/or `hold-for`
  - `steps` - allows users to apply stepping ramp-up for concurrency and rps, requires `ramp-up`
  - `scenario` - name of scenario that described in `scenarios` part (see below)
 
