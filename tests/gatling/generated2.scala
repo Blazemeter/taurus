@@ -4,7 +4,7 @@ import io.gatling.core.Predef._
 import io.gatling.http.Predef._
 import scala.concurrent.duration._
 
-class TaurusSimulation_140515627236688 extends Simulation {
+class TaurusSimulation_139847734079376 extends Simulation {
     val _t_concurrency = Integer.getInteger("concurrency", 1).toInt
     val _t_ramp_up = Integer.getInteger("ramp-up", 0).toInt
     val _t_hold_for = Integer.getInteger("hold-for", 0).toInt
@@ -37,7 +37,9 @@ class TaurusSimulation_140515627236688 extends Simulation {
     var _setUp = setUp(_scn.inject(_users).protocols(httpConf))
 
     if (_t_throughput != null)
-        _setUp = _setUp.throttle(jumpToRps(_t_throughput), holdFor(Int.MaxValue))
+        _setUp = _setUp.throttle(
+          reachRps(_t_throughput) in (_t_ramp_up),
+          holdFor(Int.MaxValue))
 
     if (_duration > 0)
         _setUp.maxDuration(_duration)

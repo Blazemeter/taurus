@@ -23,3 +23,4 @@ COMPILATION_CLASSPATH=`find $GATLING_HOME/lib -maxdepth 1 -name "*.jar" -type f 
 echo ${GATLING_HOME}
 echo ${COMPILATION_CLASSPATH}
 echo ${NO_PAUSE}
+echo ${JAVA_OPTS}
