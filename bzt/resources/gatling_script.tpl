@@ -32,7 +32,10 @@ class %(class_name)s extends Simulation {
     var _setUp = setUp(_scn.inject(_users).protocols(httpConf))
 
     if (_t_throughput != null)
-        _setUp = _setUp.throttle(jumpToRps(_t_throughput), holdFor(Int.MaxValue))
+        _setUp = _setUp.throttle(
+          reachRps(_t_throughput) in (_t_ramp_up),
+          jumpToRps(_t_throughput),
+          holdFor(Int.MaxValue))
 
     if (_duration > 0)
         _setUp.maxDuration(_duration)
