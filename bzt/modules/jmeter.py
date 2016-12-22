@@ -435,17 +435,15 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
                          ('concurrency', "throughput", 'ramp_up', 'hold', 'iterations', 'duration'))
         :return:
         """
+        etree_shaper = jmx.get_rps_shaper()
+        if load.ramp_up:
+            jmx.add_rps_shaper_schedule(etree_shaper, 1, load.throughput, load.ramp_up)
 
-        if load.throughput and load.duration:
-            etree_shaper = jmx.get_rps_shaper()
-            if load.ramp_up:
-                jmx.add_rps_shaper_schedule(etree_shaper, 1, load.throughput, load.ramp_up)
+        if load.hold:
+            jmx.add_rps_shaper_schedule(etree_shaper, load.throughput, load.throughput, load.hold)
 
-            if load.hold:
-                jmx.add_rps_shaper_schedule(etree_shaper, load.throughput, load.throughput, load.hold)
-
-            jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree_shaper)
-            jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
+        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree_shaper)
+        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
 
     def __add_stepping_shaper(self, jmx, load):
         """
@@ -523,9 +521,15 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
                 JMeterExecutor.__apply_stepping_ramp_up(jmx, load)
         if load.throughput:
             if load.steps:
-                self.__add_stepping_shaper(jmx, load)
+                if load.ramp_up:
+                    self.__add_stepping_shaper(jmx, load)
+                else:
+                    self.log.warning("You should set up 'ramp-up' for usage of 'steps'")
             else:
-                JMeterExecutor.__add_shaper(jmx, load)
+                if load.duration:
+                    JMeterExecutor.__add_shaper(jmx, load)
+                else:
+                    self.log.warning("You should set up 'ram-up' and/or 'hold-for' for usage of 'throughput'")
 
     @staticmethod
     def __fill_empty_delimiters(jmx):

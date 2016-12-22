@@ -721,3 +721,7 @@ modules:
   jmeter:
     memory-xmx: 4G  # allow JMeter to use up to 4G of memory
 ```
+
+## Notes about JMeter Specific
+`throughput` option requires `ramp-up` and/or `hold-for`
+ 
