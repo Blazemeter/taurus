@@ -871,7 +871,7 @@ def open_browser(url):
             os.close(1)
             os.open(os.devnull, os.O_RDWR)
             try:
-                webbrowser.open(url)
+                browser.open(url)
             finally:
                 os.dup2(saved_out, 1)
     except BaseException as exc:
