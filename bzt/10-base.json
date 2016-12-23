@@ -121,7 +121,7 @@
     },
     "console": {
       "class": "bzt.modules.console.ConsoleStatusReporter",
-      "disable": false
+      "disable": "auto"
     },
     "blazemeter": {
       "class": "bzt.modules.blazemeter.BlazeMeterUploader"
