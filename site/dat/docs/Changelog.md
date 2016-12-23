@@ -17,6 +17,7 @@
  - add creating of new stringProp ability to jmx modifications
  - fix Gatling path lookup for JARs from execution's `files`
  - add throughput ability to Gatling 
+ - alter `loop` block to JMX compilation scheme to better reflect JMeter defaults (kudos to @rogerbramon)
 
 ## 1.7.4 <sup>11 nov 2016</sup>
  - fix Locust crash when used with 'requests'-style scenario and cloud provisioning
