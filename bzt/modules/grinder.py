@@ -347,7 +347,8 @@ class DataLogReader(ResultsReader):
                 if status != '200':
                     error_msg = ' '.join(log_parts)
 
-            yield int(t_stamp), label, self.concurrency, r_time, con_time, latency, r_code, error_msg, source_id, bytes_count
+            yield int(t_stamp), label, self.concurrency, r_time, con_time, \
+                  latency, r_code, error_msg, source_id, bytes_count
 
     def __open_fds(self):
         """
