@@ -1387,7 +1387,7 @@ class TestJMeterExecutor(BZTestCase):
         loops = xml_tree.find(".//LoopController/stringProp[@name='LoopController.loops']")
         self.assertEqual(loops.text, "10")
         forever = xml_tree.find(".//LoopController/boolProp[@name='LoopController.continue_forever']")
-        self.assertEqual(forever.text, "false")
+        self.assertEqual(forever.text, "true")
 
     def test_request_logic_loop_forever(self):
         self.configure({

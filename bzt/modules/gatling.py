@@ -220,22 +220,26 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
         jar_files = []
         files = self.execution.get('files', [])
-        for _file in files:
-            _file = get_full_path(_file)
-            if os.path.isfile(_file) and _file.lower().endswith('.jar'):
-                jar_files.append(_file)
-            elif os.path.isdir(_file):
-                for element in os.listdir(_file):
-                    element = os.path.join(_file, element)
+        for candidate in files:
+            candidate = get_full_path(self.engine.find_file(candidate))
+            if os.path.isfile(candidate) and candidate.lower().endswith('.jar'):
+                jar_files.append(candidate)
+            elif os.path.isdir(candidate):
+                for element in os.listdir(candidate):
+                    element = os.path.join(candidate, element)
                     if os.path.isfile(element) and element.lower().endswith('.jar'):
                         jar_files.append(element)
+
+        self.log.debug("JAR files list for Gatling: %s", jar_files)
         if jar_files:
             separator = os.pathsep
             self.jar_list = separator + separator.join(jar_files)
 
         if is_windows() or jar_files:
+            self.log.debug("Building Gatling launcher")
             self.launcher = self.__build_launcher()
         else:
+            self.log.debug("Will not build Gatling launcher")
             self.launcher = self.settings["path"]
 
         if Scenario.SCRIPT in scenario and scenario[Scenario.SCRIPT]:
@@ -339,6 +343,11 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
             params_for_scala['hold-for'] = int(load.hold)
         if load.iterations is not None and load.iterations != 0:
             params_for_scala['iterations'] = int(load.iterations)
+        if load.throughput:
+            if load.duration:
+                params_for_scala['throughput'] = load.throughput
+            else:
+                self.log.warning("You should set up 'ramp-up' and/or 'hold-for' for usage of 'throughput'")
 
         return ''.join([" -D%s=%s" % (key, params_for_scala[key]) for key in params_for_scala])
 
