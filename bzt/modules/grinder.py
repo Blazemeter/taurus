@@ -365,6 +365,10 @@ class DataLogReader(ResultsReader):
         line = ''
         while not line.startswith('data'):
             line = self.fds.readline()
+            if line == '':      # end of file
+                self.fds.close()
+                self.fds = None
+                return False
 
         self.offset = self.fds.tell()
         line = line[len('data '):]
