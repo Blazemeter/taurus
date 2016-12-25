@@ -1,6 +1,6 @@
 # Grinder Executor
 ## Specific Notes
-Grinder supports next taurus execution parameters: concurrency, ramp-up, hold-for, iterations, throughput. As duration sends to every worker, you'll get the same ramp-down together with ramp-up. Also you set up limit of iterations for every process so effective limit can be up to concurrency * iterations (depend of start and shutdown processes).
+Grinder supports next taurus execution parameters: `concurrency`, `ramp-up`, `hold-for` and `iterations` (all except of `throughput`). As duration sends to every worker, you'll get the same ramp-down together with `ramp-up`. Also you set up limit of iterations for every process so effective limit can be up to `concurrency` * `iterations` (it depends of start and shutdown processes).
 All parameters are set up with .properties file, so they will work for your script too (not for generated script only). 
   
 ## Module settings
