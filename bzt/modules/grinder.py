@@ -242,6 +242,8 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
             else:
                 label = None
             self.widget = ExecutorWidget(self, label)
+            if self.get_load().ramp_up:
+                self.widget.duration += self.get_load().ramp_up
         return self.widget
 
     def resource_files(self):
@@ -271,6 +273,7 @@ class DataLogReader(ResultsReader):
         self.offset = 0
         self.start_time = 0
         self.end_time = 0
+        self.concurrency = 0
 
     def _read(self, last_pass=False):
         """
@@ -290,7 +293,6 @@ class DataLogReader(ResultsReader):
             lines = self.fds.readlines(1024 * 1024)  # 1MB limit to read
         self.offset = self.fds.tell()
 
-        set_of_workers = set()
         source_id = ''
 
         lines.insert(0, '')
@@ -303,6 +305,12 @@ class DataLogReader(ResultsReader):
             self.partial_buffer = ""
 
             if not line.startswith('data'):
+                line_parts = line.split(' ')
+                if len(line_parts) > 1:
+                    if line_parts[1] == 'starting,':
+                        self.concurrency += 1
+                    if line_parts[1] == 'shut':
+                        self.concurrency -= 1
                 continue
 
             line = line.strip()
@@ -332,19 +340,14 @@ class DataLogReader(ResultsReader):
                 log_parts = worker_log_str.split(' ')
                 if len(log_parts) < 5:
                     continue
-                worker_id_long = log_parts.pop(0)
-                worker_id = worker_id_long.split('-')[-1]
-                set_of_workers.add(worker_id)
-
+                log_parts.pop(0)    # worker_id
                 label = log_parts.pop(0)
                 log_parts.pop(0)  # skip arrow
                 status = log_parts.pop(0)
                 if status != '200':
                     error_msg = ' '.join(log_parts)
 
-            concur = len(set_of_workers)
-
-            yield int(t_stamp), label, concur, r_time, con_time, latency, r_code, error_msg, source_id, bytes_count
+            yield int(t_stamp), label, self.concurrency, r_time, con_time, latency, r_code, error_msg, source_id, bytes_count
 
     def __open_fds(self):
         """
