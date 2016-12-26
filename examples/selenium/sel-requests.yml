@@ -25,7 +25,7 @@ scenarios:
       - keysByID(inputName): FirstName LastName
       - keysByID(address): 123 Beautiful st.
       - keysByID(city): Santa Clara
-      - keysByID(state): CA
+      - keysByName(state): CA
       - keysByID(zipCode): 12345
       - keysByID(creditCardNumber): 1234 5678 8765 4321
       - keysByID(nameOnCard): FirstName LastName
@@ -37,3 +37,4 @@ scenarios:
 execution:
   - scenario: req
     executor: selenium
+    hold-for: 1m

@@ -1051,7 +1051,7 @@ class Ruby(RequiredTool):
 
 class Node(RequiredTool):
     def __init__(self, parent_logger):
-        super(Node, self).__init__("Node.js", "", "")
+        super(Node, self).__init__("Node.js", "")
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.executable = None
 
@@ -1075,7 +1075,7 @@ class Node(RequiredTool):
 
 class NPM(RequiredTool):
     def __init__(self, parent_logger):
-        super(NPM, self).__init__("NPM", "", "")
+        super(NPM, self).__init__("NPM", "")
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.executable = None
 
@@ -1101,7 +1101,7 @@ class NPM(RequiredTool):
 
 class NPMPackage(RequiredTool):
     def __init__(self, tool_name, package_name, tools_dir, node_tool, npm_tool, parent_logger):
-        super(NPMPackage, self).__init__(tool_name, "", "")
+        super(NPMPackage, self).__init__(tool_name, "")
         self.package_name = package_name
         self.tools_dir = tools_dir
         self.node_tool = node_tool
@@ -1226,11 +1226,11 @@ from selenium.webdriver.support.wait import WebDriverWait
         test_class.append(self.gen_new_line())
         test_class.append(self.gen_setupclass_method())
         test_class.append(self.gen_teardownclass_method())
+        test_class.append(self.gen_setup_method())
 
         counter = 0
         methods = {}
         requests = self.scenario.get_requests(False)
-        scenario_timeout = dehumanize_time(self.scenario.get("timeout", 30))  # FIXME: we lost this on migrating to setUpClass
         default_address = self.scenario.get("default-address", None)
 
         for req in requests:
@@ -1271,11 +1271,16 @@ from selenium.webdriver.support.wait import WebDriverWait
             url = default_address + req.url
         else:
             url = req.url
-        test_method.append(self.gen_comment("start request: %s" % url))
         if req.timeout is not None:
             test_method.append(self.gen_impl_wait(req.timeout))
         test_method.append(self.gen_statement("self.driver.get('%s')" % url))
-        test_method.append(self.gen_comment("end request: %s" % url))
+
+    def gen_setup_method(self):
+        scenario_timeout = dehumanize_time(self.scenario.get("timeout", 30))
+        setup_method_def = self.gen_method_definition('setUp', ['self'])
+        setup_method_def.append(self.gen_impl_wait(scenario_timeout))
+        setup_method_def.append(self.gen_new_line())
+        return setup_method_def
 
     def gen_setupclass_method(self):
         self.log.debug("Generating setUp test method")

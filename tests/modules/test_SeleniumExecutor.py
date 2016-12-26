@@ -1145,7 +1145,6 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                         }],
                         "actions": [
                             {"waitByName('toPort')": "visible"},
-                            #"clickByXPath(//div[3]/form/select[1]//option[3])",
                             "clickByXPath(//div[3]/form/select[1]//option[3])",
                             "clickByXPath(//div[3]/form/select[2]//option[6])",
                             "clickByXPath(//input[@type='submit'])",
@@ -1162,8 +1161,8 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
         with open(__dir__() + "/../selenium/generated_from_requests.py") as sample:
             sample_contents = sample.readlines()
 
-        with open(__dir__() + "/../selenium/generated_from_requests.py", "w+") as sample:
-            sample.write(''.join(gen_contents))  # FIXME: remove
+        # with open(__dir__() + "/../selenium/generated_from_requests.py", "w+") as sample:
+        #   sample.write(''.join(gen_contents))
 
         # strip line terminator and exclude specific build path
         gen_contents = [line.rstrip() for line in gen_contents if 'webdriver' not in line]
