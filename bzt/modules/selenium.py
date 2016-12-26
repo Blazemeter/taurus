@@ -1236,8 +1236,10 @@ from selenium.webdriver.support.wait import WebDriverWait
         for req in requests:
             if req.label:
                 label = req.label
-            else:
+            elif req.url:
                 label = req.url
+            else:
+                raise TaurusConfigError("You must specify at least 'url' or 'label' for each requests item")
             mod_label = re.sub('[^0-9a-zA-Z]+', '_', label[:30])
             method_name = 'test_%05d_%s' % (counter, mod_label)
             test_method = self.gen_test_method(method_name)
@@ -1261,6 +1263,7 @@ from selenium.webdriver.support.wait import WebDriverWait
             if think_time is not None:
                 test_method.append(self.gen_statement("sleep(%s)" % dehumanize_time(think_time)))
 
+            test_method.append(self.gen_statement("pass"))  # just to stub empty case
             test_method.append(self.gen_new_line())
 
         return methods
