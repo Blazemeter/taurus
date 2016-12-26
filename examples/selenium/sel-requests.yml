@@ -1,23 +1,34 @@
 ---
+# selectors - by ID, by CSS, by XPath
+# actions - click, keys, wait
 scenarios:
   req:
     browser: Chrome
     timeout: 5s
     requests:
-      - url: http://blazedemo.com/
-        label: home page
-      - http://blazedemo.com/vacation.html
-      - http://blazedemo.com/purchase.php
+    - label: open home and choose flights
+      url: http://blazedemo.com/
+      actions:
+      - waitByID("")
+
+    - label: choose flights
+      actions:
+      - clickByXPath(//div[3]/form/select[1]//option[3])
+      - clickByXPath(//div[3]/form/select[2]//option[6]) # what if we have space in XPath? Would look ugly?
+      - clickByXPath(//table[@class='table']/tbody/tr[4]/td[1]/input)
+
+    - label: fill form
+      actions:
+      - keysByID(inputName): FirstName LastName
+      - keysByID(address): 123 Beautiful st.
+      - keysByID(city): Santa Clara
+      - keysByID(state): CA
+      - keysByID(zipCode): 12345
+      - keysByID(creditCardNumber): 1234 5678 8765 4321
+      - keysByID(nameOnCard): FirstName LastName
+      - clickByCSS(input.btn.btn-primary) # very likely to have space in css selector
+      - waitByXPath(some-resulting xpath)
 
 execution:
   - scenario: req
     executor: selenium
-    #concurrency: 2
-    hold-for: 1m
-    locations:
-      us-west-1: 1
-
-services:
-- capturehar
-- screenshoter
-
