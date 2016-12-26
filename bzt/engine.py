@@ -16,6 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import copy
+import datetime
 import hashlib
 import json
 import logging
@@ -24,14 +25,13 @@ import shutil
 import sys
 import time
 import traceback
-import yaml
 from abc import abstractmethod
 from collections import namedtuple, defaultdict
 from distutils.version import LooseVersion
 from json import encoder
-from yaml.representer import SafeRepresenter
 
-import datetime
+import yaml
+from yaml.representer import SafeRepresenter
 
 import bzt
 from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException
@@ -1034,15 +1034,18 @@ class Scenario(UserDict, object):
         headers = scenario.get("headers")
         return headers if headers else {}
 
-    def get_requests(self):
+    def get_requests(self, require_url=True):
         """
         Generator object to read requests
 
+        :type require_url: bool
         :rtype: list[HTTPRequest]
         """
         requests = self.get("requests", [])
         for key in range(len(requests)):
             req = ensure_is_dict(requests, key, "url")
+            if not require_url and "url" not in req:
+                req["url"] = None
             yield HTTPRequest(config=req, engine=self.engine)
 
 
