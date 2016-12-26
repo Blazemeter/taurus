@@ -1,6 +1,9 @@
 ---
-# selectors - by ID, by CSS, by XPath
-# actions - click, keys, wait
+# selectors - by ID, by CSS, by XPath, by name
+# actions -
+#   click
+#   keys: keys to type
+#   wait: waiting time or state of visibility
 scenarios:
   req:
     browser: Chrome
@@ -9,12 +12,15 @@ scenarios:
     - label: open home and choose flights
       url: http://blazedemo.com/
       actions:
-      - waitByID("")
+      - waitByName(toPort)
+      - waitByName("toPort")
+      - waitByName('toPort')
+      - waitByName('toPort")
 
     - label: choose flights
       actions:
       - clickByXPath(//div[3]/form/select[1]//option[3])
-      - clickByXPath(//div[3]/form/select[2]//option[6]) # what if we have space in XPath? Would look ugly?
+      - clickByXPath(//div[3]/form/select[2]//option[6])
       - clickByXPath(//table[@class='table']/tbody/tr[4]/td[1]/input)
 
     - label: fill form
@@ -26,8 +32,8 @@ scenarios:
       - keysByID(zipCode): 12345
       - keysByID(creditCardNumber): 1234 5678 8765 4321
       - keysByID(nameOnCard): FirstName LastName
-      - clickByCSS(input.btn.btn-primary) # very likely to have space in css selector
-      - waitByXPath(some-resulting xpath)
+      - clickByCSS(body input.btn.btn-primary) # very likely to have space in css selector
+      - waitByXPath(some-resulting xpath): visible
 
 execution:
   - scenario: req
