@@ -15,9 +15,9 @@ class TestRequests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         profile = webdriver.FirefoxProfile()
-        profile.set_preference('webdriver.log.file', '/home/undera/Sources/taurus/build/test/2016-12-26_21-34-41.730333/webdriver.log')
+        profile.set_preference('webdriver.log.file', '/home/undera/Sources/taurus/build/test/2016-12-26_21-46-37.923703/webdriver.log')
         cls.driver = webdriver.Firefox(profile)
-        cls.driver.implicitly_wait(3.0)
+        cls.driver.implicitly_wait(3.5)
         cls.driver.maximize_window()
         
     @classmethod
@@ -28,9 +28,10 @@ class TestRequests(unittest.TestCase):
         # start request: http://blazedemo.com/
         self.driver.get('http://blazedemo.com/')
         # end request: http://blazedemo.com/
-        self.driver.find_element(By.CSS_SELECTOR, 'div.container p a').click()
-        WebDriverWait(self.driver, 3).until(econd.presence_of_element_located((By.CSS_SELECTOR, 'img.rounded')), "Element 'img.rounded' failed to appear in 3s")
-        self.driver.find_element(By.NAME, 'toPort').send_keys('"')
+        WebDriverWait(self.driver, 3.5).until(econd.visibility_of_element_located((By.NAME, 'toPort')), "Element 'toPort' failed to appear within 3.5s")
+        self.driver.find_element(By.XPATH, '//div[3]/form/select[1]//option[3]').click()
+        self.driver.find_element(By.XPATH, '//div[3]/form/select[2]//option[6]').click()
+        self.driver.find_element(By.XPATH, "//input[@type='submit']").click()
         body = self.driver.page_source
         re_pattern = re.compile(r'contained_text')
         self.assertEqual(0, len(re.findall(re_pattern, body)), "Assertion: 'contained_text' found in BODY")

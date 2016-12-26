@@ -1230,7 +1230,7 @@ from selenium.webdriver.support.wait import WebDriverWait
         counter = 0
         methods = {}
         requests = self.scenario.get_requests(False)
-        scenario_timeout = self.scenario.get("timeout", 30)  # FIXME: we lost this on migrating to setUpClass
+        scenario_timeout = dehumanize_time(self.scenario.get("timeout", 30))  # FIXME: we lost this on migrating to setUpClass
         default_address = self.scenario.get("default-address", None)
 
         for req in requests:
@@ -1380,7 +1380,7 @@ from selenium.webdriver.support.wait import WebDriverWait
         # hello, reviewer!
         if selector[0] == '"' and selector[-1] == '"':
             selector = selector[1:-1]
-        elif selector[0] == '"' and selector[-1] == "'":
+        elif selector[0] == "'" and selector[-1] == "'":
             selector = selector[1:-1]
 
         bys = {
@@ -1398,10 +1398,12 @@ from selenium.webdriver.support.wait import WebDriverWait
 
             return self.gen_statement(tpl % (bys[aby], selector, action))
         elif atype == 'wait':
-            tpl = "WebDriverWait(self.driver, %s).until(econd.presence_of_element_located((By.%s, %r)), %r)"
-            timeout = self.scenario.get("timeout", TaurusInternalException("Timeout value should be present"))
+            tpl = "WebDriverWait(self.driver, %s).until(econd.%s_of_element_located((By.%s, %r)), %r)"
+            mode = "visibility" if param == 'visible' else 'presence'
+            exc = TaurusInternalException("Timeout value should be present")
+            timeout = dehumanize_time(self.scenario.get("timeout", exc))
             errmsg = "Element %r failed to appear within %ss" % (selector, timeout)
-            return self.gen_statement(tpl % (timeout, bys[aby], selector, errmsg))
+            return self.gen_statement(tpl % (timeout, mode, bys[aby], selector, errmsg))
 
         raise TaurusInternalException("Could not build code for action: %s" % action_config)
 

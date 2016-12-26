@@ -1,27 +1,24 @@
 ---
-# selectors - by ID, by CSS, by XPath, by name
-# actions -
-#   click
-#   keys: keys to type
-#   wait: waiting time or state of visibility
 scenarios:
   req:
     browser: Chrome
-    timeout: 5s
+    timeout: 60s
     requests:
     - label: open home and choose flights
       url: http://blazedemo.com/
       actions:
-      - waitByName(toPort)
-      - waitByName("toPort")
-      - waitByName('toPort')
-      - waitByName('toPort")
+      - waitByXPath(//input[@type='submit'])
 
-    - label: choose flights
+    - label: choose directions
       actions:
       - clickByXPath(//div[3]/form/select[1]//option[3])
       - clickByXPath(//div[3]/form/select[2]//option[6])
-      - clickByXPath(//table[@class='table']/tbody/tr[4]/td[1]/input)
+      - clickByXPath(//input[@type='submit'])
+      - waitByXPath(//input[@value='Choose This Flight'])
+
+    - label: choose flight
+      actions:
+      - clickByXPath(//input[@value='Choose This Flight'][1])
 
     - label: fill form
       actions:
@@ -32,8 +29,10 @@ scenarios:
       - keysByID(zipCode): 12345
       - keysByID(creditCardNumber): 1234 5678 8765 4321
       - keysByID(nameOnCard): FirstName LastName
-      - clickByCSS(body input.btn.btn-primary) # very likely to have space in css selector
-      - waitByXPath(some-resulting xpath): visible
+      - clickByCSS(body input.btn.btn-primary)
+      - waitByCSS(.hero-unit h1): visible
+      assert: # looks a bit unaligned
+      - Thank you for your purchase today!
 
 execution:
   - scenario: req

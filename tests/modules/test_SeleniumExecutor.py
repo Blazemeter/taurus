@@ -1136,7 +1136,7 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
             "scenarios": {
                 "loc_sc": {
                     "default-address": "http://blazedemo.com",
-                    "timeout": 3,
+                    "timeout": "3.5s",
                     "requests": [{
                         "url": "/",
                         "assert": [{
@@ -1144,9 +1144,11 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                             "not": True
                         }],
                         "actions": [
-                            "clickByCSS(div.container p a)",
-                            {"waitByCSS(img.rounded)": "visible"},
-                            {"keysByName(toPort)": "\""},
+                            {"waitByName('toPort')": "visible"},
+                            #"clickByXPath(//div[3]/form/select[1]//option[3])",
+                            "clickByXPath(//div[3]/form/select[1]//option[3])",
+                            "clickByXPath(//div[3]/form/select[2]//option[6])",
+                            "clickByXPath(//input[@type='submit'])",
                         ]
                     }]
                 }
