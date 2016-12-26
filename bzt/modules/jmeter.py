@@ -39,7 +39,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataP
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader, FunctionalSample
 from bzt.modules.services import HavingInstallableTools
-from bzt.six import iteritems, string_types, StringIO, etree, binary_type, parse
+from bzt.six import iteritems, string_types, StringIO, etree, binary_type, parse, PY2, unicode_decode
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name
 from bzt.utils import shell_exec, ensure_is_dict, dehumanize_time, BetterDict, guess_csv_dialect
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
@@ -870,7 +870,7 @@ class JTLReader(ResultsReader):
             self.errors_reader.read_file()
 
         for row in self.csvreader.read(last_pass):
-            label = row["label"]
+            label = unicode_decode(row["label"])
             if self.is_distributed:
                 concur = int(row["grpThreads"])
                 trname = row["Hostname"] + row["threadName"][:row["threadName"].rfind('-')]
