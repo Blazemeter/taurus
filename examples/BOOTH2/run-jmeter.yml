@@ -1,7 +1,7 @@
 ---
 scenarios:
   modified-jmx:
-    script: ./converted/Blazedemo.java.jmx
+    script: Blazedemo.java.jmx
     modifications:
       disable:
         - http://blazedemo.com/favicon.ico
@@ -13,3 +13,7 @@ execution:
   concurrency: 500
   ramp-up: 10m
 
+services:
+- module: shellexec
+  prepare: date > /tmp/1.txt
+  post-process: rm /tmp/1.txt

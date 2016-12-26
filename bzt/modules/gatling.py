@@ -24,6 +24,7 @@ from bzt import TaurusConfigError, ToolError
 from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
+from bzt.modules.services import HavingInstallableTools
 from bzt.utils import BetterDict, TclLibrary, EXE_SUFFIX, dehumanize_time, get_full_path
 from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, shutdown_process, ensure_is_dict, is_windows
 
@@ -121,7 +122,7 @@ class GatlingScriptBuilder(object):
         for idx, assertion in enumerate(assertions):
             assertion = ensure_is_dict(assertions, idx, "contains")
 
-            error_str = 'You must specify some assertion argument in config file "contains" list'
+            error_str = 'You must specify "contains" parameter for assertion item'
             a_contains = assertion.get('contains', TaurusConfigError(error_str))
 
             check_template = self.__get_check_template(assertion)
@@ -143,7 +144,7 @@ class GatlingScriptBuilder(object):
         return check_result
 
     def gen_test_case(self):
-        template_path = os.path.join(os.path.dirname(__file__), os.pardir, 'resources', "gatling_script_template.scala")
+        template_path = os.path.join(os.path.dirname(__file__), os.pardir, 'resources', "gatling_script.tpl")
 
         with open(template_path) as template_file:
             template_line = template_file.read()
@@ -156,7 +157,7 @@ class GatlingScriptBuilder(object):
         return template_line % params
 
 
-class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
+class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools):
     """
     Gatling executor module
     """
@@ -214,27 +215,31 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         return modified_launcher
 
     def prepare(self):
-        self._check_installed()
+        self.install_required_tools()
         scenario = self.get_scenario()
 
         jar_files = []
         files = self.execution.get('files', [])
-        for _file in files:
-            _file = get_full_path(_file)
-            if os.path.isfile(_file) and _file.lower().endswith('.jar'):
-                jar_files.append(_file)
-            elif os.path.isdir(_file):
-                for element in os.listdir(_file):
-                    element = os.path.join(_file, element)
+        for candidate in files:
+            candidate = get_full_path(self.engine.find_file(candidate))
+            if os.path.isfile(candidate) and candidate.lower().endswith('.jar'):
+                jar_files.append(candidate)
+            elif os.path.isdir(candidate):
+                for element in os.listdir(candidate):
+                    element = os.path.join(candidate, element)
                     if os.path.isfile(element) and element.lower().endswith('.jar'):
                         jar_files.append(element)
+
+        self.log.debug("JAR files list for Gatling: %s", jar_files)
         if jar_files:
             separator = os.pathsep
             self.jar_list = separator + separator.join(jar_files)
 
         if is_windows() or jar_files:
+            self.log.debug("Building Gatling launcher")
             self.launcher = self.__build_launcher()
         else:
+            self.log.debug("Will not build Gatling launcher")
             self.launcher = self.settings["path"]
 
         if Scenario.SCRIPT in scenario and scenario[Scenario.SCRIPT]:
@@ -338,6 +343,11 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             params_for_scala['hold-for'] = int(load.hold)
         if load.iterations is not None and load.iterations != 0:
             params_for_scala['iterations'] = int(load.iterations)
+        if load.throughput:
+            if load.duration:
+                params_for_scala['throughput'] = load.throughput
+            else:
+                self.log.warning("You should set up 'ramp-up' and/or 'hold-for' for usage of 'throughput'")
 
         return ''.join([" -D%s=%s" % (key, params_for_scala[key]) for key in params_for_scala])
 
@@ -367,7 +377,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
         if self.retcode is not None:
             if self.retcode != 0:
-                raise ToolError("Gatling tool exited with non-zero code: %s", self.retcode)
+                raise ToolError("Gatling tool exited with non-zero code: %s" % self.retcode)
 
             return True
         return False
@@ -394,7 +404,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if self.reader and self.reader.filename:
             self.engine.existing_artifact(self.reader.filename)
 
-    def _check_installed(self):
+    def install_required_tools(self):
         required_tools = [TclLibrary(self.log), JavaVM("", "", self.log)]
         gatling_path = self.settings.get("path", "~/.bzt/gatling-taurus/bin/gatling" + EXE_SUFFIX)
         gatling_path = os.path.abspath(os.path.expanduser(gatling_path))
@@ -418,53 +428,12 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         return self.widget
 
     def resource_files(self):
-        if not self.script:
-            self.script = self.get_script_path()
-        resource_files = []
-
-        if self.script and os.path.exists(self.script):
-            if os.path.isfile(self.script):  # not directory
-                with open(self.script, 'rt') as script:
-                    script_contents = script.read()
-                resource_files = GatlingExecutor.__get_res_files_from_script(script_contents)
-
-            resource_files.append(self.script)
-
-        return resource_files
-
-    @staticmethod
-    def __get_res_files_from_script(script_contents):
-        """
-        Get resource files list from scala script
-        :param script_contents:
-        :return:
-        """
-        resource_files = []
-        search_patterns = [re.compile(r'\.formUpload\(".*?"\)'),
-                           re.compile(r'RawFileBody\(".*?"\)'),
-                           re.compile(r'RawFileBodyPart\(".*?"\)'),
-                           re.compile(r'ELFileBody\(".*?"\)'),
-                           re.compile(r'ELFileBodyPart\(".*?"\)'),
-                           re.compile(r'csv\(".*?"\)'),
-                           re.compile(r'tsv\(".*?"\)'),
-                           re.compile(r'ssv\(".*?"\)'),
-                           re.compile(r'jsonFile\(".*?"\)'),
-                           re.compile(r'separatedValues\(".*?"\)')]
-        for search_pattern in search_patterns:
-            found_samples = search_pattern.findall(script_contents)
-            for found_sample in found_samples:
-                param_list = found_sample.split(",")
-
-                # first or last param
-                if "separatedValues" in search_pattern.pattern:
-                    param_index = 0
-                else:
-                    param_index = -1
-
-                file_path = re.compile(r'\".*?\"').findall(param_list[param_index])[0].strip('"')
-                resource_files.append(file_path)
-
-        return resource_files
+        scenario = self.get_scenario()
+        script = scenario.get(Scenario.SCRIPT, None)
+        if script:
+            return [script]
+        else:
+            return []
 
 
 class DataLogReader(ResultsReader):
@@ -681,4 +650,4 @@ class Gatling(RequiredTool):
         os.chmod(os.path.expanduser(self.tool_path), 0o755)
         self.log.info("Installed Gatling successfully")
         if not self.check_if_installed():
-            raise ToolError("Unable to run %s after installation!", self.tool_name)
+            raise ToolError("Unable to run %s after installation!" % self.tool_name)

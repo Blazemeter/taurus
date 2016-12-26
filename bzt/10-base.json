@@ -52,9 +52,9 @@
         "jpgc-json",
         "jpgc-perfmon",
         "jpgc-prmctl",
-        "jpgc-tst"]
+        "jpgc-tst"
+      ]
     },
-    "jtl-loader": "bzt.modules.jmeter.JMeterJTLLoaderExecutor",
     "grinder": {
       "class": "bzt.modules.grinder.GrinderExecutor",
       "properties": {
@@ -66,7 +66,7 @@
       "class": "bzt.modules.gatling.GatlingExecutor",
       "properties": {
         "gatling.data.file.bufferSize": 256
-     }
+      }
     },
     "shellexec": {
       "class": "bzt.modules.shellexec.ShellExecutor"
@@ -121,7 +121,7 @@
     },
     "console": {
       "class": "bzt.modules.console.ConsoleStatusReporter",
-      "disable": false
+      "disable": "auto"
     },
     "blazemeter": {
       "class": "bzt.modules.blazemeter.BlazeMeterUploader"
@@ -179,6 +179,9 @@
     },
     "capturehar": {
       "class": "bzt.modules.blazemeter.ServiceStubCaptureHAR"
+    },
+    "install-checker": {
+      "class": "bzt.modules.services.InstallChecker"
     }
   },
   "settings": {
@@ -223,6 +226,18 @@
       "settings": {
         "aggregator": "functional-consolidator"
       }
+    },
+    "sequential": {
+      "modules": {
+        "local": {
+          "sequential": true
+        }
+      }
+    },
+    "install-tools": {
+      "services": [
+        "install-checker"
+      ]
     }
   }
 }

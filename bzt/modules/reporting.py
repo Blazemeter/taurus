@@ -22,6 +22,7 @@ import time
 from collections import Counter, OrderedDict
 from datetime import datetime
 
+from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Reporter
 from bzt.modules.aggregator import DataPoint, KPISet, AggregatorListener, ResultsProvider
 from bzt.modules.blazemeter import BlazeMeterUploader, CloudProvisioning
@@ -223,7 +224,7 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
         elif isinstance(kpi_val, string_types):
             return kpi_val
         else:
-            raise ValueError("Unhandled kpi type: %s" % type(kpi_val))
+            raise TaurusInternalException("Unhandled kpi type: %s" % type(kpi_val))
 
     def __dump_csv(self, filename):
         self.log.info("Dumping final status as CSV: %s", filename)
@@ -314,7 +315,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
             root_element = self.process_pass_fail()
             self.save_report(root_element)
         else:
-            raise ValueError("Unsupported data source: %s" % test_data_source)
+            raise TaurusConfigError("Unsupported data source: %s" % test_data_source)
 
     def process_sample_labels(self):
         """
@@ -390,8 +391,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
                 etree_obj.write(_fds, xml_declaration=True, encoding="UTF-8", pretty_print=True)
 
         except BaseException:
-            self.log.error("Cannot create file %s", self.report_file_path)
-            raise
+            raise TaurusInternalException("Cannot create file %s" % self.report_file_path)
 
     def process_pass_fail(self):
         """

@@ -59,7 +59,7 @@ class ChromeProfiler(Monitoring):
         processors = self.settings.get("processors", {})
         for proc_name, proc in iteritems(processors):
             msg = "Class for performance processor %s is not specified in %s"
-            class_fqn = proc.get("class", TaurusConfigError(msg, proc_name, proc))
+            class_fqn = proc.get("class", TaurusConfigError(msg %(proc_name, proc)))
             klass = load_class(class_fqn)
             processor = klass(proc, self.client, self.log)
             self.client.add_processor(processor)

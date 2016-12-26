@@ -10,6 +10,7 @@ from math import ceil
 
 import yaml
 
+from bzt import ToolError, TaurusConfigError, TaurusInternalException
 from bzt.jmx import JMX
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.blazemeter import CloudProvisioning
@@ -106,15 +107,15 @@ class TestJMeterExecutor(BZTestCase):
 
     def test_not_jmx(self):
         self.obj.execution = {"scenario": {"script": __file__}}
-        self.assertRaises(RuntimeError, self.obj.prepare)
+        self.assertRaises(TaurusInternalException, self.obj.prepare)
 
     def test_broken_xml(self):
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/broken.jmx"}})
-        self.assertRaises(RuntimeError, self.obj.prepare)
+        self.assertRaises(TaurusInternalException, self.obj.prepare)
 
     def test_not_jmx_xml(self):
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/not-jmx.xml"}})
-        self.assertRaises(RuntimeError, self.obj.prepare)
+        self.assertRaises(TaurusInternalException, self.obj.prepare)
 
     def test_requests(self):
         self.configure(json.loads(open(__dir__() + "/../json/get-post.json").read()))
@@ -197,7 +198,7 @@ class TestJMeterExecutor(BZTestCase):
                                       {"requests": ["http://localhost"],
                                        "data-sources": [
                                            {"path": "really_wrong_path"}]}})
-        self.assertRaises(ValueError, self.obj.prepare)
+        self.assertRaises(TaurusConfigError, self.obj.prepare)
 
     def test_datasources_without_delimiter(self):
         self.obj.execution.merge({"scenario":
@@ -225,7 +226,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(JMeterExecutor._need_to_install(fake), False)
 
         fake.set(__file__, False)  # real file, jmeter doesn't work: raise
-        with self.assertRaises(ValueError):
+        with self.assertRaises(TaurusConfigError):
             JMeterExecutor._need_to_install(fake)
 
         fake.set(os.path.curdir, True)  # real dir, $dir/bin/jmeter.EXT works: fix path only
@@ -347,7 +348,7 @@ class TestJMeterExecutor(BZTestCase):
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         sampler_element = xml_tree.findall(".//HTTPSamplerProxy[@testname='With body params']")
         arguments_element_prop = sampler_element[0][0]
-        self.assertEqual(10, len(sampler_element[0].getchildren()))
+        self.assertEqual(11, len(sampler_element[0].getchildren()))
         self.assertEqual(1, len(arguments_element_prop.getchildren()))
         self.assertEqual(2, len(arguments_element_prop[0].getchildren()))
         self.assertEqual(1, len(arguments_element_prop[0].findall(".//elementProp[@name='param1']")))
@@ -355,15 +356,47 @@ class TestJMeterExecutor(BZTestCase):
 
     def test_resource_files_collection_remote_prov(self):
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/files.jmx"}})
+        self.assertNotIn('files', self.obj.execution)
         res_files = self.obj.resource_files()
-        self.assertEqual(len(res_files), 5)
+        self.assertEqual(len(res_files), 1)
+        self.assertIn('files', self.obj.execution)
+        self.assertEqual(4, len(self.obj.execution['files']))
+
+    def test_resource_files_paths(self):
+        """
+        Check whether JMeter.resource_files() modifies filenames in JMX carefully
+        :return:
+        """
+        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/files_paths.jmx"}})
+
+        file_in_home = get_full_path('~/file-in-home.csv')
+        file_was_created = False
+        if not os.path.exists(file_in_home):
+            file_was_created = True
+            with open(file_in_home, 'w') as _file:      # real file is required by Engine.find_file()
+                _file.write('')
+        self.obj.engine.file_search_paths = ['tests']    # config not in cwd
+        self.obj.resource_files()
+        if file_was_created:
+            os.remove(file_in_home)
+
+        resource_files = []
+        jmx = JMX(self.obj.original_jmx)
+        resource_elements = jmx.tree.findall(".//stringProp[@name='filename']")
+        for resource_element in resource_elements:
+            if resource_element.text:
+                resource_files.append(resource_element.text)
+        self.assertEqual(2, len(resource_files))
+        for res_file in resource_files:
+            self.assertEqual(res_file, os.path.basename(res_file))
 
     def test_resource_files_from_requests_remote_prov(self):
         config = json.loads(open(__dir__() + "/../json/get-post.json").read())
         config['provisioning'] = 'cloud'
         self.configure(config)
         res_files = self.obj.resource_files()
-        self.assertEqual(len(res_files), 2)
+        self.assertEqual(len(res_files), 3)
+        self.assertEqual(len(set(res_files)), 2)
 
     def test_resource_files_from_requests_local_prov(self):
         self.configure(json.loads(open(__dir__() + "/../json/get-post.json").read()))
@@ -415,6 +448,26 @@ class TestJMeterExecutor(BZTestCase):
                         }}]}}})
         resource_files = self.obj.resource_files()
         self.assertIn(js_file, resource_files)
+
+    def test_resource_files_jsr223s(self):
+        js_file = __dir__() + '/../data/data.js'
+        js_file2 = __dir__() + '/../data/data2.js'
+        self.configure({
+            'execution': {
+                'scenario': {
+                    'requests': [{
+                        'url': 'http://blazedemo.com/',
+                        'jsr223': [{
+                            'language': 'javascript',
+                            'script-file': js_file,
+                        }, {
+                            'language': 'javascript',
+                            'script-file': js_file2,
+                        }]}]}}})
+        resource_files = self.obj.resource_files()
+        self.assertEqual(2, len(resource_files))
+        self.assertIn(js_file, resource_files)
+        self.assertIn(js_file2, resource_files)
 
     def test_http_request_defaults(self):
         self.configure(json.loads(open(__dir__() + "/../json/get-post.json").read()))
@@ -738,7 +791,7 @@ class TestJMeterExecutor(BZTestCase):
                 'hold-for': '30s',
                 'concurrency': 5,
                 'scenario': {'think-time': 0.75}}})
-        self.assertRaises(ValueError, self.obj.prepare)
+        self.assertRaises(TaurusConfigError, self.obj.prepare)
 
     def test_variable_csv_file(self):
         self.obj.execution.merge({
@@ -907,7 +960,7 @@ class TestJMeterExecutor(BZTestCase):
         prov.engine = self.obj.engine
         prov.executors = [self.obj]
         self.obj.engine.provisioning = prov
-        self.assertRaises(RuntimeWarning, self.obj.engine.provisioning.post_process)
+        self.assertRaises(ToolError, self.obj.engine.provisioning.post_process)
 
     def test_ok_with_results(self):
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/dummy.jmx"}})
@@ -998,7 +1051,7 @@ class TestJMeterExecutor(BZTestCase):
                         "structure": {
                             "one": 2,
                             "two": "1"}}}]}})
-        self.assertRaises(ValueError, self.obj.prepare)
+        self.assertRaises(TaurusInternalException, self.obj.prepare)
         jmx = JMX(self.obj.original_jmx)
         selector = 'stringProp[name="Argument.value"]'
         self.assertTrue(all(not jprop.text.startswith('defaultdict') for jprop in jmx.get(selector)))
@@ -1086,6 +1139,32 @@ class TestJMeterExecutor(BZTestCase):
         jmx = JMX(self.obj.modified_jmx)
         self.assertEqual(jmx.get(selector)[0].text, u"✓")
 
+    def test_jmx_modification_add_stringprop(self):
+        cfg_selector = ('Home Page>HTTPsampler.Arguments>Arguments.arguments>param>new_str')
+
+        self.obj.execution.merge({
+            "scenario": {
+                "script": __dir__() + "/../jmeter/jmx/dummy_plan.jmx",
+                "modifications": {
+                    "set-prop": {
+                        cfg_selector: 'new_value'}}}})
+        selector = ("[testname='Home Page']>[name='HTTPsampler.Arguments']"
+                    ">[name='Arguments.arguments']>[name='param']>[name='new_str']")
+        self.obj.prepare()
+        jmx = JMX(self.obj.modified_jmx)
+        self.assertEqual(jmx.get(selector)[0].text, 'new_value')
+
+    def test_resources_regex(self):
+        self.obj.execution.merge({
+            "scenario": {
+                "retrieve-resources": True,
+                "retrieve-resources-regex": "myregex",
+                "requests": [{"url": "http://blazedemo.com/"}]}})
+        self.obj.prepare()
+        jmx = JMX(self.obj.modified_jmx)
+        self.assertEqual(jmx.get('boolProp[name="HTTPSampler.image_parser"]')[0].text, "true")
+        self.assertEqual(jmx.get('stringProp[name="HTTPSampler.embedded_url_re"]')[0].text, "myregex")
+
     def test_data_source_list(self):
         self.obj.execution.merge({
             "scenario": {
@@ -1093,7 +1172,7 @@ class TestJMeterExecutor(BZTestCase):
                 # note that data-sources should be a list of strings/objects
                 "data-sources": {
                     "path": __dir__() + "/../data/test1.csv"}}})
-        self.assertRaises(ValueError, self.obj.prepare)
+        self.assertRaises(TaurusConfigError, self.obj.prepare)
 
     def test_force_parent_sample(self):
         self.configure({
@@ -1308,7 +1387,7 @@ class TestJMeterExecutor(BZTestCase):
         loops = xml_tree.find(".//LoopController/stringProp[@name='LoopController.loops']")
         self.assertEqual(loops.text, "10")
         forever = xml_tree.find(".//LoopController/boolProp[@name='LoopController.continue_forever']")
-        self.assertEqual(forever.text, "false")
+        self.assertEqual(forever.text, "true")
 
     def test_request_logic_loop_forever(self):
         self.configure({
@@ -1333,7 +1412,7 @@ class TestJMeterExecutor(BZTestCase):
                 'scenario': {
                     "requests": [{
                         "loop": 100}]}}})
-        self.assertRaises(ValueError, self.obj.prepare)
+        self.assertRaises(TaurusConfigError, self.obj.prepare)
 
     def test_resource_files_loops(self):
         self.configure({
@@ -1371,7 +1450,7 @@ class TestJMeterExecutor(BZTestCase):
                 'scenario': {
                     "requests": [{
                         "while": "<cond>"}]}}})
-        self.assertRaises(ValueError, self.obj.prepare)
+        self.assertRaises(TaurusConfigError, self.obj.prepare)
 
     def test_request_logic_while_resources(self):
         self.configure({
@@ -1524,7 +1603,7 @@ class TestJMeterExecutor(BZTestCase):
                         "include-scenario": "a"}]}},
             'execution': {
                 'scenario': 'a'}})
-        self.assertRaises(ValueError, self.obj.prepare)
+        self.assertRaises(TaurusConfigError, self.obj.prepare)
 
     def test_include_sources_recursion(self):
         self.configure({
@@ -1537,7 +1616,7 @@ class TestJMeterExecutor(BZTestCase):
                         "include-scenario": "a"}]}},
             'execution': {
                 'scenario': 'a'}})
-        self.assertRaises(ValueError, self.obj.resource_files)
+        self.assertRaises(TaurusConfigError, self.obj.resource_files)
 
     def test_logic_test_action(self):
         self.configure({
@@ -1582,7 +1661,7 @@ class TestJMeterExecutor(BZTestCase):
                     "requests": [{
                         "action": "unknown",
                     }]}}})
-        self.assertRaises(ValueError, self.obj.prepare)
+        self.assertRaises(TaurusConfigError, self.obj.prepare)
 
     def test_request_null_headers(self):
         self.configure({
@@ -1787,7 +1866,7 @@ class TestJMeterExecutor(BZTestCase):
                 }
             }
         })
-        self.assertRaises(ValueError, self.obj.prepare)
+        self.assertRaises(TaurusConfigError, self.obj.prepare)
         self.configure({
             "execution": {
                 "scenario": {
@@ -1800,7 +1879,7 @@ class TestJMeterExecutor(BZTestCase):
                 }
             }
         })
-        self.assertRaises(ValueError, self.obj.prepare)
+        self.assertRaises(TaurusConfigError, self.obj.prepare)
 
     def test_jsr223_multiple(self):
         pre_script = __dir__() + "/../jmeter/jsr223_script.js"
@@ -1861,6 +1940,85 @@ class TestJMeterExecutor(BZTestCase):
         sampler_encoding_prop = xml_tree.find(".//HTTPSamplerProxy/stringProp[@name='HTTPSampler.contentEncoding']")
         self.assertIsNotNone(sampler_encoding_prop)
         self.assertEqual(sampler_encoding_prop.text, 'utf-8')
+
+    def test_redirect_empty(self):
+        self.configure({
+            "execution": {
+                "scenario": {
+                    "requests": [{
+                        "url": "http://example.com/",
+                    }]
+                }
+            }
+        })
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
+        follow_redirects = xml_tree.find(".//HTTPSamplerProxy/boolProp[@name='HTTPSampler.follow_redirects']")
+        self.assertIsNotNone(follow_redirects)
+        self.assertEqual(follow_redirects.text, 'true')
+        auto_redirects = xml_tree.find(".//HTTPSamplerProxy/boolProp[@name='HTTPSampler.auto_redirects']")
+        self.assertIsNotNone(auto_redirects)
+        self.assertEqual(auto_redirects.text, 'false')
+
+    def test_redirect_follow(self):
+        self.configure({
+            "execution": {
+                "scenario": {
+                    "requests": [{
+                        "url": "http://example.com/",
+                        "follow-redirects": True,
+                    }]
+                }
+            }
+        })
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
+        follow_redirects = xml_tree.find(".//HTTPSamplerProxy/boolProp[@name='HTTPSampler.follow_redirects']")
+        self.assertIsNotNone(follow_redirects)
+        self.assertEqual(follow_redirects.text, 'true')
+        auto_redirects = xml_tree.find(".//HTTPSamplerProxy/boolProp[@name='HTTPSampler.auto_redirects']")
+        self.assertIsNotNone(auto_redirects)
+        self.assertEqual(auto_redirects.text, 'false')
+
+    def test_disable_redirect(self):
+        self.configure({
+            "execution": {
+                "scenario": {
+                    "requests": [{
+                        "url": "http://example.com/",
+                        "follow-redirects": False,
+                    }]
+                }
+            }
+        })
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
+        follow_redirects = xml_tree.find(".//HTTPSamplerProxy/boolProp[@name='HTTPSampler.follow_redirects']")
+        self.assertIsNotNone(follow_redirects)
+        self.assertEqual(follow_redirects.text, 'false')
+        auto_redirects = xml_tree.find(".//HTTPSamplerProxy/boolProp[@name='HTTPSampler.auto_redirects']")
+        self.assertIsNotNone(auto_redirects)
+        self.assertEqual(auto_redirects.text, 'false')
+
+    def test_redirect_scenario_level(self):
+        self.configure({
+            "execution": {
+                "scenario": {
+                    "follow-redirects": False,
+                    "requests": [{
+                        "url": "http://example.com/",
+                    }]
+                }
+            }
+        })
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
+        follow_redirects = xml_tree.find(".//HTTPSamplerProxy/boolProp[@name='HTTPSampler.follow_redirects']")
+        self.assertIsNotNone(follow_redirects)
+        self.assertEqual(follow_redirects.text, 'false')
+        auto_redirects = xml_tree.find(".//HTTPSamplerProxy/boolProp[@name='HTTPSampler.auto_redirects']")
+        self.assertIsNotNone(auto_redirects)
+        self.assertEqual(auto_redirects.text, 'false')
 
 
 class TestJMX(BZTestCase):

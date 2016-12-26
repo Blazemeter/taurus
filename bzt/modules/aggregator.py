@@ -18,6 +18,7 @@ limitations under the License.
 import copy
 import logging
 import math
+import operator
 import re
 from abc import abstractmethod
 from collections import Counter
@@ -49,12 +50,13 @@ class KPISet(BetterDict):
     ERRTYPE_ERROR = 0
     ERRTYPE_ASSERT = 1
 
-    def __init__(self, perc_levels=()):
+    def __init__(self, perc_levels=(), rt_dist_maxlen=None):
         super(KPISet, self).__init__()
         self.sum_rt = 0
         self.sum_lt = 0
         self.sum_cn = 0
         self.perc_levels = perc_levels
+        self.rtimes_len = rt_dist_maxlen
         # scalars
         self.get(self.SAMPLE_COUNT, 0)
         self.get(self.CONCURRENCY, 0)
@@ -77,6 +79,7 @@ class KPISet(BetterDict):
         mycopy.sum_rt = self.sum_rt
         mycopy.sum_lt = self.sum_lt
         mycopy.sum_cn = self.sum_cn
+        mycopy.rtimes_len = self.rtimes_len
         for key, val in iteritems(self):
             mycopy[key] = copy.deepcopy(val, memo)
         return mycopy
@@ -181,6 +184,42 @@ class KPISet(BetterDict):
 
         return self
 
+    def compact_times(self):
+        if not self.rtimes_len:
+            return
+
+        times = self[KPISet.RESP_TIMES]
+        redundant_cnt = len(times) - self.rtimes_len
+        if redundant_cnt > 0:
+            logging.debug("Compacting %s response timing into %s", len(times), self.rtimes_len)
+
+        while redundant_cnt > 0:
+            keys = sorted(times.keys())
+            distances = [(lidx, keys[lidx + 1] - keys[lidx]) for lidx in range(len(keys) - 1)]
+            distances.sort(key=operator.itemgetter(1))  # sort by distance
+
+            # cast candidates for consolidation
+            lkeys_indexes = [lidx for lidx, _ in distances[:redundant_cnt]]
+
+            while lkeys_indexes:
+                lidx = lkeys_indexes.pop(0)
+                lkey = keys[lidx]
+                rkey = keys[lidx + 1]
+                if lkey in times and rkey in times:  # neighbours aren't changed
+                    lval = times.pop(lkey)
+                    rval = times.pop(rkey)
+
+                    # shift key proportionally to values
+                    idx_new = lkey + (rkey - lkey) * float(rval) / (lval + rval)
+
+                    # keep precision the same
+                    lprec = len(str(math.modf(lkey)[0])) - 2
+                    rprec = len(str(math.modf(rkey)[0])) - 2
+                    idx_new = round(idx_new, max(lprec, rprec))
+
+                    times[idx_new] = lval + rval
+                    redundant_cnt -= 1
+
     def merge_kpis(self, src, sid=None):
         """
         Merge other instance into self
@@ -206,6 +245,7 @@ class KPISet(BetterDict):
         if src[self.RESP_TIMES]:
             # using raw times to calculate percentiles
             self[self.RESP_TIMES].update(src[self.RESP_TIMES])
+            self.compact_times()
         elif not self[self.PERCENTILES]:
             # using existing percentiles
             # FIXME: it's not valid to overwrite, better take average
@@ -345,7 +385,7 @@ class DataPoint(BetterDict):
         """
         if self[self.TIMESTAMP] != src[self.TIMESTAMP]:
             msg = "Cannot merge different timestamps (%s and %s)"
-            raise TaurusInternalException(msg, self[self.TIMESTAMP], src[self.TIMESTAMP])
+            raise TaurusInternalException(msg % (self[self.TIMESTAMP], src[self.TIMESTAMP]))
 
         self[DataPoint.SUBRESULTS].append(src)
 
@@ -370,6 +410,7 @@ class ResultsProvider(object):
         self.max_buffer_len = float('inf')
         self.buffer_multiplier = 2
         self.buffer_scale_idx = None
+        self.rtimes_len = None
 
     def add_listener(self, listener):
         """
@@ -385,8 +426,9 @@ class ResultsProvider(object):
         :param current: KPISet
         """
         for label, data in iteritems(current):
-            cumul = self.cumulative.get(label, KPISet(self.track_percentiles))
+            cumul = self.cumulative.get(label, KPISet(self.track_percentiles, self.rtimes_len))
             cumul.merge_kpis(data)
+            cumul.compact_times()
             cumul.recalculate()
 
     def datapoints(self, final_pass=False):
@@ -457,7 +499,7 @@ class ResultsReader(ResultsProvider):
                     self.buffer[t_stamp] = []
                 self.buffer[t_stamp].append((label, conc, r_time, con_time, latency, r_code, error, trname, byte_count))
             else:
-                raise TaurusInternalException("Unsupported results from %s reader: %s", self, result)
+                raise TaurusInternalException("Unsupported results from %s reader: %s" % (self, result))
 
     def __aggregate_current(self, datapoint, samples):
         """
@@ -563,6 +605,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         self.ignored_labels = []
         self.underlings = []
         self.buffer = BetterDict()
+        self.rtimes_len = 1000
 
     def prepare(self):
         """
@@ -585,12 +628,12 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         max_buffer_len = self.settings.get("max-buffer-len", self.max_buffer_len)
         try:  # for max_buffer_len == float('inf')
             self.max_buffer_len = dehumanize_time(max_buffer_len)
-        except ValueError as verr:
-            self.log.debug("Exception in dehumanize_time(%s)", max_buffer_len)
-            if str(verr).find('inf') != -1:
+        except TaurusInternalException as exc:
+            self.log.debug("Exception in dehumanize_time(%s)" % max_buffer_len)
+            if str(exc).find('inf') != -1:
                 self.max_buffer_len = max_buffer_len
             else:
-                raise TaurusConfigError("Wrong 'max-buffer-len' value: %s", max_buffer_len)
+                raise TaurusConfigError("Wrong 'max-buffer-len' value: %s" % max_buffer_len)
 
         self.buffer_multiplier = self.settings.get("buffer-multiplier", self.buffer_multiplier)
 
@@ -606,6 +649,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
 
         debug_str = 'Buffer scaling setup: percentile %s from %s selected'
         self.log.debug(debug_str, self.buffer_scale_idx, self.track_percentiles)
+        self.rtimes_len = self.settings.get("rtimes-len", self.rtimes_len)
 
     def add_underling(self, underling):
         """
@@ -621,6 +665,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
             underling.max_buffer_len = self.max_buffer_len
             underling.buffer_multiplier = self.buffer_multiplier
             underling.buffer_scale_idx = self.buffer_scale_idx
+            underling.rtimes_len = self.rtimes_len
 
         self.underlings.append(underling)
 

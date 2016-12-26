@@ -12,7 +12,7 @@ from bzt.modules.blazemeter import BlazeMeterUploader, BlazeMeterClient, BlazeMe
 from bzt.modules.blazemeter import MonitoringBuffer
 from bzt.six import URLError, iteritems, viewvalues
 from tests import BZTestCase, random_datapoint, __dir__
-from tests.mocks import EngineEmul
+from tests.mocks import EngineEmul, RecordingHandler
 
 
 class TestBlazeMeterUploader(BZTestCase):
@@ -61,6 +61,16 @@ class TestBlazeMeterUploader(BZTestCase):
             {'msg': 'Forbidden', 'cnt': 10, 'type': KPISet.ERRTYPE_ASSERT, 'urls': [], KPISet.RESP_CODES: '111'},
             {'msg': 'Allowed', 'cnt': 20, 'type': KPISet.ERRTYPE_ERROR, 'urls': [], KPISet.RESP_CODES: '222'}]
         obj.post_process()
+
+        # check for note appending in _postproc_phase3()
+        reqs = obj.client.requests[-4:]
+        self.assertIn('api/latest/sessions/sess1', reqs[0]['url'])
+        self.assertIn('api/latest/sessions/sess1', reqs[1]['url'])
+        self.assertIn('api/latest/masters/master1', reqs[2]['url'])
+        self.assertIn('api/latest/masters/master1', reqs[3]['url'])
+        self.assertIn('ValueError: wrong value', reqs[1]['data'])
+        self.assertIn('ValueError: wrong value', reqs[3]['data'])
+
         self.assertEqual(0, len(client.results))
         data = json.loads(client.requests[6]['data'])
         self.assertEqual(1, len(data['labels']))
@@ -74,6 +84,42 @@ class TestBlazeMeterUploader(BZTestCase):
             'm': 'Allowed',
             'count': 20,
             'rc': '222'}])
+
+    def test_no_notes_for_public_reporting(self):
+        client = BlazeMeterClientEmul(logging.getLogger(''))
+        client.results.append({"marker": "ping", 'result': {}})
+        client.results.extend([{'result': {}} for _ in range(6)])
+
+        obj = BlazeMeterUploader()
+        obj.parameters['project'] = 'Proj name'
+        obj.settings['token'] = ''  # public reporting
+        obj.settings['browser-open'] = 'none'
+        obj.engine = EngineEmul()
+        obj.client = client
+        obj.prepare()
+
+        client.session_id = 'sess1'
+        client.master_id = 'master1'
+
+        obj.engine.stopping_reason = ValueError('wrong value')
+        obj.aggregated_second(random_datapoint(10))
+        obj.kpi_buffer[-1][DataPoint.CUMULATIVE][''][KPISet.ERRORS] = [
+            {'msg': 'Forbidden', 'cnt': 10, 'type': KPISet.ERRTYPE_ASSERT, 'urls': [], KPISet.RESP_CODES: '111'},
+            {'msg': 'Allowed', 'cnt': 20, 'type': KPISet.ERRTYPE_ERROR, 'urls': [], KPISet.RESP_CODES: '222'}]
+        obj.send_monitoring = obj.send_custom_metrics = obj.send_custom_tables = False
+        obj.post_process()
+
+        # check for note appending in _postproc_phase3()
+        reqs = [{'url': '', 'data': ''} for _ in range(4)]     # add template for minimal size
+        reqs = (reqs + obj.client.requests)[-4:]
+        self.assertNotIn('api/latest/sessions/sess1', reqs[0]['url'])
+        self.assertNotIn('api/latest/sessions/sess1', reqs[1]['url'])
+        self.assertNotIn('api/latest/masters/master1', reqs[2]['url'])
+        self.assertNotIn('api/latest/masters/master1', reqs[3]['url'])
+        if reqs[1]['data']:
+            self.assertNotIn('ValueError: wrong value', reqs[1]['data'])
+        if reqs[3]['data']:
+            self.assertNotIn('ValueError: wrong value', reqs[3]['data'])
 
     def test_check(self):
         client = BlazeMeterClientEmul(logging.getLogger(''))
@@ -130,6 +176,7 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.check()
         for x in range(32, 65):
             obj.aggregated_second(random_datapoint(x))
+        obj.last_dispatch = time.time() - 2*obj.send_interval
         self.assertRaises(KeyboardInterrupt, obj.check)
         obj.aggregated_second(random_datapoint(10))
         obj.shutdown()
@@ -157,6 +204,66 @@ class TestBlazeMeterUploader(BZTestCase):
             for source, buffer in iteritems(obj.monitoring_buffer.data):
                 self.assertLessEqual(len(buffer), 100)
         self.assertEqual(0, len(obj.client.results))
+
+    def test_multiple_reporters_one_monitoring(self):
+        obj1 = BlazeMeterUploader()
+        obj1.engine = EngineEmul()
+        obj1.client = BlazeMeterClientEmul(logging.getLogger(''))
+        obj1.client.results.append({"marker": "ping", 'result': {}})
+
+        obj2 = BlazeMeterUploader()
+        obj2.engine = EngineEmul()
+        obj2.client = BlazeMeterClientEmul(logging.getLogger(''))
+        obj2.client.results.append({"marker": "ping", 'result': {}})
+
+        obj1.prepare()
+        obj2.prepare()
+
+        for i in range(10):
+            mon = [{"ts": i, "source": "local", "cpu": float(i) / 1000 * 100, "mem": 2, "bytes-recv": 100, "other": 0}]
+            obj1.monitoring_data(mon)
+            obj2.monitoring_data(mon)
+
+    def test_public_report(self):
+        client = BlazeMeterClientEmul(logging.getLogger(''))
+        client.timeout = 1
+        client.results.append({"marker": "ping", 'result': {}})
+        client.results.append({"marker": "tests", 'result': {}})
+        client.results.append({"marker": "test-create", 'result': {'id': 'unittest1'}})
+        client.results.append(
+            {"marker": "sess-start",
+             "result": {
+                 'session': {'id': 'sess1', 'userId': 1},
+                 'master': {'id': 'master1', 'userId': 1},
+                 'signature': ''}})
+        client.results.append({"marker": "share-report", 'result': {'publicToken': 'publicToken'}})
+        client.results.append({"marker": "first push", 'result': {'session': {}}})
+        client.results.append({"marker": "post-proc push", 'result': {'session': {}}})
+        client.results.append({"marker": "artifacts push", 'result': True})
+        client.results.append({"marker": "logs push", 'result': True})
+        client.results.append({"marker": "terminate", 'result': {'session': {}}})
+
+        log_recorder = RecordingHandler()
+
+        obj = BlazeMeterUploader()
+        obj.settings['token'] = '123'
+        obj.settings['browser-open'] = 'none'
+        obj.settings['public-report'] = True
+        obj.settings['send-monitoring'] = False
+        obj.engine = EngineEmul()
+        obj.client = client
+        obj.log.addHandler(log_recorder)
+        obj.prepare()
+        obj.startup()
+        obj.aggregated_second(random_datapoint(10))
+        obj.check()
+        obj.shutdown()
+        obj.post_process()
+        self.assertEqual(0, len(client.results))
+
+        log_buff = log_recorder.info_buff.getvalue()
+        log_line = "Public report link: https://a.blazemeter.com/app/?public-token=publicToken#/masters/master1/summary"
+        self.assertIn(log_line, log_buff)
 
 
 class TestBlazeMeterClientUnicode(BZTestCase):

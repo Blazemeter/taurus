@@ -49,7 +49,6 @@ class TestConverter(BZTestCase):
         except BaseException as exc:
             self.assertIn("File does not exist", exc.args[0])
         self.assertIn("Loading jmx file", log_recorder.info_buff.getvalue())
-        self.assertIn("does not exist", log_recorder.err_buff.getvalue())
         self.assertEqual("", log_recorder.debug_buff.getvalue())
         obj.log.removeHandler(log_recorder)
 
@@ -64,7 +63,6 @@ class TestConverter(BZTestCase):
             self.assertIn("XML parsing failed", exc.args[0])
         self.assertIn("Loading jmx file", log_recorder.info_buff.getvalue())
         self.assertIn("Error while processing jmx file", log_recorder.err_buff.getvalue())
-        self.assertIn("XML parsing error", log_recorder.debug_buff.getvalue())
         obj.log.removeHandler(log_recorder)
 
     def test_loadjmx4(self):
@@ -447,3 +445,16 @@ class TestConverter(BZTestCase):
         self.assertEqual(len(requests), 3)
         request = requests[1]
         self.assertEqual(request['content-encoding'], 'utf-8')
+
+    def test_request_redirect_policy(self):
+        yml_file = self._get_tmp()
+        obj = self._get_jmx2yaml("/jmeter/jmx/http.jmx", yml_file)
+        obj.process()
+        yml = yaml.load(open(yml_file).read())
+        scenarios = yml.get("scenarios")
+        scenario = scenarios["Thread Group"]
+        requests = scenario["requests"]
+        self.assertEqual(len(requests), 3)
+        self.assertEqual(requests[0].get('follow-redirects'), True)
+        self.assertEqual(requests[1].get('follow-redirects'), True)
+        self.assertEqual(requests[2].get('follow-redirects'), False)

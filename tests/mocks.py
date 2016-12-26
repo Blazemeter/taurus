@@ -12,6 +12,7 @@ from bzt.engine import Engine, Configuration, FileLister
 from bzt.engine import Provisioning, ScenarioExecutor, Reporter
 from bzt.modules.aggregator import ResultsReader, AggregatorListener
 from bzt.modules.functional import FunctionalResultsReader
+from bzt.modules.services import HavingInstallableTools
 from bzt.six import u
 from bzt.utils import load_class
 from tests import random_sample
@@ -41,7 +42,7 @@ class EngineEmul(Engine):
             logging.debug("JSON:\n%s", fh.read())
 
 
-class ModuleMock(ScenarioExecutor, Provisioning, Reporter, FileLister):
+class ModuleMock(ScenarioExecutor, Provisioning, Reporter, FileLister, HavingInstallableTools):
     """ mock """
 
     def __init__(self):
@@ -59,6 +60,8 @@ class ModuleMock(ScenarioExecutor, Provisioning, Reporter, FileLister):
         self.was_prepare = False
         self.was_check = False
         self.was_postproc = False
+
+        self.is_has_results = False
 
     def prepare(self):
         """
@@ -142,7 +145,14 @@ class ModuleMock(ScenarioExecutor, Provisioning, Reporter, FileLister):
 
         :return:
         """
+        self.execution.get('files', []).append(__file__)
         return [__file__]
+
+    def has_results(self):
+        return self.is_has_results
+
+    def install_required_tools(self):
+        self.log.debug("All is good")
 
 
 class MockReader(ResultsReader, AggregatorListener):

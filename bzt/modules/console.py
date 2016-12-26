@@ -39,7 +39,7 @@ from bzt import TaurusInternalException
 from bzt.engine import Reporter
 from bzt.modules.aggregator import DataPoint, KPISet, AggregatorListener, ResultsProvider
 from bzt.modules.provisioning import Local
-from bzt.six import StringIO
+from bzt.six import StringIO, numeric_types
 from bzt.utils import humanize_time, is_windows, DummyScreen
 
 try:
@@ -114,8 +114,9 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         if isinstance(self.engine.aggregator, ResultsProvider):
             self.engine.aggregator.add_listener(self)
 
-        self.disabled = self.settings.get("disable", False)
-        if self.disabled:
+        disable = str(self.settings.get('disable', 'auto')).lower()
+        if (disable == 'true') or ((disable == 'auto') and (not sys.stdout.isatty())):
+            self.disabled = True
             return
 
         self.screen = self._get_screen()
@@ -140,8 +141,6 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         """
         Repaint the screen
         """
-        for widget in self.executor_widgets:
-            widget.update()
         if self.disabled:
             if self._last_datapoint:
                 self.__print_one_line_stats()
@@ -149,6 +148,8 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
             return False
 
         self.__start_screen()
+        for widget in self.executor_widgets:
+            widget.update()
         self.__update_screen()
         return False
 
@@ -252,18 +253,17 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
             if not is_windows():
                 self.__detect_console_logger()
 
-        if not self.screen.started:
-            if self.orig_streams:
-                raise TaurusInternalException("Console: original streams already set")
-            elif self.logger_handlers and not self.orig_streams:
-                self.log.debug("Overriding logging streams")
-                for handler in self.logger_handlers:
-                    self.orig_streams[handler] = handler.stream
-                    handler.stream = self.temp_stream
-                self.log.debug("Redirected logging streams, %s/%s", self.logger_handlers, self.orig_streams)
-                self.__streams_redirected = True
-            else:
-                self.log.info("Did not mute console logging")
+        if self.orig_streams:
+            raise TaurusInternalException("Console: original streams already set")
+        elif self.logger_handlers and not self.orig_streams:
+            self.log.debug("Overriding logging streams")
+            for handler in self.logger_handlers:
+                self.orig_streams[handler] = handler.stream
+                handler.stream = self.temp_stream
+            self.log.debug("Redirected logging streams, %s/%s", self.logger_handlers, self.orig_streams)
+            self.__streams_redirected = True
+        else:
+            self.log.info("Did not mute console logging")
 
     def __dump_saved_log(self):
         """
@@ -1130,6 +1130,7 @@ class ExecutorWidget(Pile, PrioritizedWidget):
     """
     Progress executor widget
     :type progress: urwid.Widget
+    :type executor: bzt.engine.ScenarioExecutor
     """
 
     def __init__(self, executor, label=None, additional_widgets=()):
@@ -1185,7 +1186,7 @@ class ExecutorWidget(Pile, PrioritizedWidget):
                 else:
                     self.progress.set_text("Finished")
                     self.eta.set_text("")
-        else:
+        elif isinstance(self.executor.delay, numeric_types):
             delayed = self.executor.delay - (time.time() - self.executor.engine.provisioning.start_time)
             if delayed >= 0:
                 self.elapsed.set_text("Delay: %s" % humanize_time(delayed))

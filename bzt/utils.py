@@ -39,6 +39,7 @@ import webbrowser
 import zipfile
 from abc import abstractmethod
 from collections import defaultdict, Counter
+from subprocess import CalledProcessError
 from subprocess import PIPE
 from webbrowser import GenericBrowser
 
@@ -47,10 +48,19 @@ from progressbar import ProgressBar, Percentage, Bar, ETA
 from psutil import Popen
 from urwid import BaseScreen
 
+from bzt import TaurusInternalException, TaurusNetworkError, ToolError
 from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, request, file_type
 
 
 def get_full_path(path, step_up=0):
+    """
+    Function expands '~' and adds cwd to path if it's not absolute (relative)
+    Target doesn't have to exist
+
+    :param path:
+    :param step_up:
+    :return:
+    """
     res = os.path.abspath(os.path.expanduser(path))
     for _ in range(step_up):
         res = os.path.dirname(res)
@@ -101,7 +111,7 @@ def dehumanize_time(str_time):
 
     :param str_time: string to convert
     :return: float value in seconds
-    :raise ValueError: in case of unsupported unit
+    :raise TaurusInternalException: in case of unsupported unit
     """
     if not str_time:
         return 0
@@ -111,7 +121,7 @@ def dehumanize_time(str_time):
 
     if len(parts) == 0:
         msg = "String format not supported: %s"
-        raise ValueError(msg % str_time)
+        raise TaurusInternalException(msg % str_time)
 
     result = 0.0
     for value, unit in parts:
@@ -134,7 +144,7 @@ def dehumanize_time(str_time):
             continue
         else:
             msg = "String contains unsupported unit %s: %s"
-            raise ValueError(msg % (unit, str_time))
+            raise TaurusInternalException(msg % (unit, str_time))
     return result
 
 
@@ -179,7 +189,7 @@ class BetterDict(defaultdict):
         :type src: dict
         """
         if not isinstance(src, dict):
-            raise ValueError("Loaded object is not dict [%s]: %s" % (src.__class__, src))
+            raise TaurusInternalException("Loaded object is not dict [%s]: %s" % (src.__class__, src))
 
         for key, val in iteritems(src):
             if len(key) and key[0] == '~':  # overwrite flag
@@ -200,7 +210,7 @@ class BetterDict(defaultdict):
                 elif isinstance(dst, Counter):
                     self[key] += val
                 elif isinstance(dst, dict):
-                    raise ValueError("Mix of DictOfDict and dict is forbidden")
+                    raise TaurusInternalException("Mix of DictOfDict and dict is forbidden")
                 else:
                     self[key] = val
             elif isinstance(val, list):
@@ -213,8 +223,6 @@ class BetterDict(defaultdict):
                     self[key] = val
             else:
                 self[key] = val
-
-        return
 
     def __ensure_list_type(self, values):
         """
@@ -324,12 +332,12 @@ def dict_key(dictnr, value):
 
     :type dictnr: dict
     :type value: type
-    :return: :raise KeyError:
+    :return: :raise TaurusInternalException:
     """
     for key, val in iteritems(dictnr):
         if val == value:
             return key
-    raise KeyError("Value not found in dict: %s" % value)
+    raise TaurusInternalException("Value not found in dict: %s" % value)
 
 
 class MultiPartForm(object):
@@ -436,7 +444,7 @@ class MultiPartForm(object):
             elif isinstance(item, text_type):
                 result_list.append(item.encode())
             else:
-                raise BaseException("Unhandled form data type: %s" % type(item))
+                raise TaurusInternalException("Unhandled form data type: %s" % type(item))
 
         res_bytes = b("\r\n").join(result_list)
         res_bytes += b("\r\n")
@@ -528,7 +536,6 @@ def guess_csv_dialect(header):
     """ completely arbitrary fn to detect the delimiter
 
     :type header: str
-    :raise ValueError:
     :rtype: csv.Dialect
     """
     possible_delims = ",;\t"
@@ -643,7 +650,7 @@ def shutdown_process(process_obj, log_obj):
 class ExceptionalDownloader(request.FancyURLopener, object):
     def http_error_default(self, url, fp, errcode, errmsg, headers):
         fp.close()
-        raise ValueError("Unsuccessful download from %s: %s - %s" % (url, errcode, errmsg))
+        raise TaurusNetworkError("Unsuccessful download from %s: %s - %s" % (url, errcode, errmsg))
 
     def get(self, url, filename=None, reporthook=None, data=None, suffix=""):
         fd = None
@@ -691,7 +698,7 @@ class RequiredTool(object):
             if self.check_if_installed():
                 return self.tool_path
             else:
-                raise RuntimeError("Unable to run %s after installation!" % self.tool_name)
+                raise ToolError("Unable to run %s after installation!" % self.tool_name)
 
     def _download(self, suffix=".zip", use_link=False):
         if use_link:
@@ -713,7 +720,7 @@ class RequiredTool(object):
                     self.log.error("Error while downloading %s: %s" % (link, exc))
                 finally:
                     socket.setdefaulttimeout(sock_timeout)
-        raise RuntimeError("%s download failed: No more links to try" % self.tool_name)
+        raise TaurusInternalException("%s download failed: No more links to try" % self.tool_name)
 
 
 class JavaVM(RequiredTool):
@@ -723,17 +730,17 @@ class JavaVM(RequiredTool):
 
     def check_if_installed(self):
         cmd = ["java", '-version']
-        self.log.debug("Trying: %s", cmd)
+        self.log.debug("Trying %s: %s", self.tool_name, cmd)
         try:
             output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
             self.log.debug("%s output: %s", self.tool_name, output)
             return True
-        except BaseException as exc:
-            self.log.debug("Failed to start Java: %s", exc)
-            raise RuntimeError("The %s is not operable or not available. Consider installing it" % self.tool_name)
+        except (CalledProcessError, IOError) as exc:
+            self.log.debug("Failed to check %s: %s", self.tool_name, exc)
+            return False
 
     def install(self):
-        raise NotImplementedError()
+        raise ToolError("The %s is not operable or not available. Consider installing it" % self.tool_name)
 
 
 class ProgressBarContext(ProgressBar):
@@ -860,7 +867,13 @@ def open_browser(url):
     try:
         browser = webbrowser.get()
         if type(browser) != GenericBrowser:  # pylint: disable=unidiomatic-typecheck
-            browser.open(url)
+            saved_out = os.dup(1)
+            os.close(1)
+            os.open(os.devnull, os.O_RDWR)
+            try:
+                browser.open(url)
+            finally:
+                os.dup2(saved_out, 1)
     except BaseException as exc:
         logging.warning("Can't open link in browser: %s", exc)
 

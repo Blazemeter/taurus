@@ -21,14 +21,16 @@ import re
 import time
 import traceback
 
+from bzt import TaurusConfigError, ToolError, TaurusInternalException
 from bzt.engine import FileLister, Scenario, ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
+from bzt.modules.services import HavingInstallableTools
 from bzt.six import etree, parse, iteritems
 from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time, which
 
 
-class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
+class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools):
     """
     Tsung executor module
     """
@@ -47,17 +49,17 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def prepare(self):
         scenario = self.get_scenario()
-        self.tool_path = self._check_installed()
+        self.tool_path = self.install_required_tools()
 
         if Scenario.SCRIPT in scenario and scenario[Scenario.SCRIPT]:
             script = self.get_script_path()
             if not script or not os.path.exists(script):
-                raise ValueError("Tsung script '%s' doesn't exist" % script)
+                raise TaurusConfigError("Tsung: script '%s' doesn't exist" % script)
             self.tsung_config = self.__modify_user_tsung_config(script)
         elif scenario.get("requests"):
             self.tsung_config = self._generate_tsung_config()
         else:
-            raise ValueError("You must specify either a script or a list of requests to run Tsung")
+            raise TaurusConfigError("Tsung: you must specify either a script or a list of requests")
 
         self.tsung_controller_id = "tsung_taurus_%s" % id(self)
         self.tsung_artifacts_basedir = os.path.join(self.engine.artifacts_dir, self.tsung_controller_id)
@@ -111,9 +113,8 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         ret_code = self.process.poll()
         if ret_code is None:
             return False
-        self.log.info("tsung exit code: %s", ret_code)
         if ret_code != 0:
-            raise RuntimeError("tsung exited with non-zero code %s" % ret_code)
+            raise ToolError("Tsung exited with non-zero code: %s" % ret_code)
         return True
 
     def shutdown(self):
@@ -125,11 +126,11 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if self.__err and not self.__err.closed:
             self.__err.close()
 
-    def _check_installed(self):
+    def install_required_tools(self):
         tool_path = self.settings.get('path', 'tsung')
         tsung = Tsung(tool_path, self.log)
         if not tsung.check_if_installed():
-            raise RuntimeError("You must install Tsung manually to use it, see %s" % tsung.INSTALLATION_DOCS)
+            tsung.install()
         return tool_path
 
     def get_widget(self):
@@ -138,14 +139,12 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         return self.widget
 
     def resource_files(self):
-        resource_files = []
         scenario = self.get_scenario()
-        if Scenario.SCRIPT in scenario and scenario[Scenario.SCRIPT]:
-            script = self.get_script_path()
-            if not script or not os.path.exists(script):
-                raise ValueError("Tsung script '%s' doesn't exist" % script)
-            resource_files.append(script)
-        return resource_files
+        script = scenario.get(Scenario.SCRIPT, None)
+        if script:
+            return [script]
+        else:
+            return []
 
 
 class TsungStatsReader(ResultsReader):
@@ -275,8 +274,8 @@ class TsungConfig(object):
             self.tree.parse(filename)
             self.root = self.tree.getroot()
         except BaseException as exc:
-            self.log.debug("XML parsing error: %s", traceback.format_exc())
-            raise RuntimeError("XML parsing failed for file %s: %s" % (filename, exc))
+            self.log.debug("Tsung: XML parsing error: %s", traceback.format_exc())
+            raise TaurusInternalException("Tsung: XML parsing failed for file %s: %s" % (filename, exc))
 
     def save(self, filename):
         self.log.debug("Saving Tsung config to: %s", filename)
@@ -308,7 +307,7 @@ class TsungConfig(object):
             self.log.warning("<load> section not found in Tsung config, will create one")
             servers = self.find("//tsung/servers")
             if not servers:
-                raise ValueError("<servers> section not found. Provided Tsung script is invalid")
+                raise TaurusConfigError("Provided Tsung script is invalid: <servers> section not found")
             servers.addnext(generated_load)
         else:
             self.root.replace(original_load[0], generated_load)
@@ -334,7 +333,7 @@ class TsungConfig(object):
         if default_address is None:
             requests = list(scenario.get_requests())
             if not requests:
-                raise ValueError("No requests provided in scenario")
+                raise TaurusConfigError("Tsung: you must specify requests in scenario")
             base_addr = parse.urlparse(requests[0].url)
             self.log.debug("default-address was not specified, using %s instead", base_addr.hostname)
         else:
@@ -373,7 +372,7 @@ class TsungConfig(object):
             phase.append(users)
             phases.append(phase)
         else:
-            raise ValueError("You must specify test duration with `hold-for`")
+            raise TaurusConfigError("Tsung: you must specify test duration with 'hold-for'")
 
         for phase in phases:
             load_elem.append(phase)
@@ -440,6 +439,9 @@ class Tsung(RequiredTool):
         except OSError:
             return False
         return True
+
+    def install(self):
+        raise ToolError("You must install Tsung manually to use it, see %s" % self.INSTALLATION_DOCS)
 
     def get_tool_abspath(self):
         if not self.tool_path:

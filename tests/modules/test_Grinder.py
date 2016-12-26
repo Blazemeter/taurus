@@ -6,6 +6,7 @@ import time
 
 from bzt.modules.grinder import GrinderExecutor, DataLogReader
 from bzt.modules.provisioning import Local
+from bzt import ToolError
 from bzt.utils import EXE_SUFFIX
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul
@@ -53,7 +54,7 @@ class TestGrinderExecutor(BZTestCase):
                              "scenario": {"script": __dir__() + "/../grinder/helloworld.py"}})
         obj.prepare()
         obj.get_widget()
-        self.assertEqual(obj.widget.widgets[0].text, "Script: helloworld.py")
+        self.assertEqual(obj.widget.widgets[0].text, "Grinder: helloworld.py")
 
     def test_resource_files_collection_basic(self):
         obj = GrinderExecutor()
@@ -74,7 +75,7 @@ class TestGrinderExecutor(BZTestCase):
         obj.engine.provisioning = Local()
         obj.engine.provisioning.engine = obj.engine
         obj.engine.provisioning.executors = [obj]
-        self.assertRaises(RuntimeWarning, obj.engine.provisioning.post_process)
+        self.assertRaises(ToolError, obj.engine.provisioning.post_process)
 
     def test_with_results(self):
         obj = GrinderExecutor()
@@ -186,4 +187,10 @@ class TestDataLogReader(BZTestCase):
         log_path = os.path.join(os.path.dirname(__file__), '..', 'grinder', 'grinder-bzt-kpi.log')
         obj = DataLogReader(log_path, logging.getLogger(''))
         list_of_values = list(obj.datapoints(True))
-        self.assertEqual(len(list_of_values), 10)
+        self.assertEqual(len(list_of_values), 12)
+
+    def test_read_empty_kpi(self):
+        log_path = os.path.join(os.path.dirname(__file__), '..', 'grinder', 'grinder.sh')
+        obj = DataLogReader(log_path, logging.getLogger(''))
+        list_of_values = list(obj.datapoints(True))
+        self.assertEqual(len(list_of_values), 0)

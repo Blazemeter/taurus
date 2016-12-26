@@ -1,5 +1,33 @@
 # Changelog
 
+## 1.7.5 <sup>next</sup>
+ - add logging improvements
+ - fix a few minor issues with the Windows installer
+ - fix public cloud reporting (unauthorised notes sending)
+ - add test for paths of resource files
+ - bump up auto-installed JMeter to 3.1 and pmgr to 0.11
+ - add limitation of response time list size to cumulative KPISets
+ - fix the crash when multiple BM reporters are in use
+ - add `public-report` option to BlazeMeter reporter and cloud provisioning
+ - add `retrieve-resources-regex` scenario-level option to JMeter
+ - fix latency growing problem
+ - allow controling JMeter HTTP redirects with `follow-redirects` option
+ - add warning message for concurrency setting in Selenium config
+ - disable console if stdout isn't a tty
+ - add creating of new stringProp ability to jmx modifications
+ - fix Gatling path lookup for JARs from execution's `files`
+ - add throughput ability to Gatling 
+ - alter `loop` block to JMX compilation scheme to better reflect JMeter defaults (kudos to @rogerbramon)
+ - add labels, concurrency and error messages to reporting from Grinder
+
+## 1.7.4 <sup>11 nov 2016</sup>
+ - fix Locust crash when used with 'requests'-style scenario and cloud provisioning
+ - fix JSR223 block handling when using cloud/remote provisioning
+ - allow sequential executions with `-sequential` alias
+ - do not generate Selenium scripts for cloud tests
+ - add a tool installer service and an `-install-tools` CLI alias
+ - fix cloud Gatling crash related to script template
+
 ## 1.7.3 <sup>1 nov 2016</sup>
  - add TestNG-based runner for Selenium tests
  - add `content-encoding` request- and scenario-level option to JMeter

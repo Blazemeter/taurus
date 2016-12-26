@@ -26,6 +26,7 @@ from optparse import OptionParser
 
 from cssselect import GenericTranslator
 
+from bzt import TaurusInternalException
 from bzt.cli import CLI
 from bzt.engine import Configuration, ScenarioExecutor
 from bzt.jmx import JMX
@@ -453,23 +454,23 @@ class JMXasDict(JMX):
                     if delimiter_prop:
                         data_source_dict["delimiter"] = delimiter_prop
                     else:
-                        self.log.warning("Delimiter was not set in %s, using default - ','", data_source.tag)
+                        self.log.warning("Delimiter was not set in %s, using default: ','", data_source.tag)
                         data_source_dict["delimiter"] = ","
                     quoted_prop = self._get_bool_prop(data_source, 'quotedData')
                     if quoted_prop is not None:
                         data_source_dict["quoted"] = quoted_prop
                     else:
-                        self.log.warning("Quoted property was not set in %s, using default False", data_source.tag)
+                        self.log.warning("Quoted property was not set in %s, using default: False", data_source.tag)
                         data_source_dict["quoted"] = False
 
                     loop_prop = self._get_bool_prop(data_source, 'recycle')
                     if loop_prop is None:
-                        self.log.warning("Loop property was not set in %s, using default False", data_source.tag)
+                        self.log.warning("Loop property was not set in %s, using default: False", data_source.tag)
                         loop_prop = False
 
                     stop_prop = self._get_bool_prop(data_source, 'stopThread')
                     if stop_prop is None:
-                        self.log.warning("'Stop Thread on EOF' property was not set in %s, using default False",
+                        self.log.warning("'Stop Thread on EOF' property was not set in %s, using default: False",
                                          data_source.tag)
                         stop_prop = False
 
@@ -492,6 +493,18 @@ class JMXasDict(JMX):
             self.log.debug('Got %s for request timeout in %s (%s)', timeout_prop, element.tag, element.get("testname"))
             timeout = {"timeout": timeout_prop + "ms"}
         return timeout
+
+    def _get_request_redirect_policy(self, element):
+        redirect = {}
+        follow_redirects = self._get_bool_prop(element, 'HTTPSampler.follow_redirects')
+        auto_redirects = self._get_bool_prop(element, 'HTTPSampler.auto_redirects')
+        if not follow_redirects and not auto_redirects:
+            redirect["follow-redirects"] = False
+        elif follow_redirects or auto_redirects:
+            redirect["follow-redirects"] = True
+        # NOTE: there's no need to handle 'if follow_redirects is True or auto_redirects is True' case
+        # as it's the default behaviour
+        return redirect
 
     def _get_extractors(self, element):
         """
@@ -549,7 +562,7 @@ class JMXasDict(JMX):
                         if match_no_prop and match_no_prop.isdigit():
                             extractor_props["match-no"] = int(match_no_prop)
                         else:
-                            self.log.warning("No match number found in %s, using 0 as default", extractor_element.tag)
+                            self.log.warning("No match number found in %s, using default: 0", extractor_element.tag)
                             extractor_props["match-no"] = 0
 
                         template_prop = self._get_string_prop(extractor_element, 'RegexExtractor.template')
@@ -557,7 +570,7 @@ class JMXasDict(JMX):
                         if template_prop:
                             extractor_props["template"] = template_prop
                         else:
-                            self.log.warning("No template property found in %s, using $0$ as default",
+                            self.log.warning("No template property found in %s, using default: $0$",
                                              extractor_element.tag)
                             extractor_props["template"] = '$0$'
 
@@ -997,6 +1010,7 @@ class JMXasDict(JMX):
         request_config.update(self._get_headers(request_element))
         request_config.update(self.__get_constant_timer(request_element))
         request_config.update(self._get_request_timeout(request_element))
+        request_config.update(self._get_request_redirect_policy(request_element))
         request_config.update(self._get_extractors(request_element))
         request_config.update(self._get_assertions(request_element))
         request_config.update(self._get_jsr223_processors(request_element))
@@ -1057,7 +1071,7 @@ class JMXasDict(JMX):
         try:
             ht_object = self.tree.find(".//hashTree").find(".//TestPlan").getnext()
         except:
-            raise RuntimeError("Bad jmx format")
+            raise TaurusInternalException("Bad jmx format")
         for obj in ht_object.iterchildren():
             if obj.tag != 'hashTree' and obj.tag != 'ThreadGroup':
                 self.global_objects.append(obj)
@@ -1180,7 +1194,7 @@ class Converter(object):
         self.log.debug("Processing thread groups...")
         tg_etree_elements = self.dialect.tree.findall(".//ThreadGroup")
         if not tg_etree_elements:
-            raise RuntimeError("No thread groups found!")
+            raise TaurusInternalException("No thread groups found!")
 
         if tg_etree_elements:
             self.log.debug("Total thread groups: %d", len(tg_etree_elements))
@@ -1195,8 +1209,7 @@ class Converter(object):
                 self._dump_modified_jmx(dump_modified_jmx_to)
             return base_script
         else:
-            self.log.error("No thread groups was found!")
-            raise RuntimeError("No thread groups was found in JMX file!")
+            raise TaurusInternalException("No thread groups was found in JMX file!")
 
     def _dump_modified_jmx(self, dump_jmx):
         """
@@ -1236,8 +1249,7 @@ class JMX2YAML(object):
         self.log.info('Loading jmx file %s', self.file_to_convert)
         self.file_to_convert = os.path.abspath(os.path.expanduser(self.file_to_convert))
         if not os.path.exists(self.file_to_convert):
-            self.log.error("File %s does not exist", self.file_to_convert)
-            raise RuntimeError("File does not exist: %s" % self.file_to_convert)
+            raise TaurusInternalException("File does not exist: %s" % self.file_to_convert)
         self.converter = Converter(self.log)
         try:
             jmx_as_dict = self.converter.convert(self.file_to_convert, self.options.dump_jmx)

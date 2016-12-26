@@ -32,19 +32,20 @@ from math import ceil
 
 from cssselect import GenericTranslator
 
+from bzt import TaurusConfigError, ToolError, TaurusInternalException, TaurusNetworkError
 from bzt.engine import ScenarioExecutor, Scenario, FileLister, Request, HTTPRequest
 from bzt.jmx import JMX
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader, FunctionalSample
-from bzt.modules.provisioning import Local
+from bzt.modules.services import HavingInstallableTools
 from bzt.six import iteritems, string_types, StringIO, etree, binary_type, parse
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name
 from bzt.utils import shell_exec, ensure_is_dict, dehumanize_time, BetterDict, guess_csv_dialect
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
 
 
-class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
+class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools):
     """
     JMeter executor module
 
@@ -56,9 +57,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     MIRRORS_SOURCE = "https://jmeter.apache.org/download_jmeter.cgi"
     JMETER_DOWNLOAD_LINK = "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-{version}.zip"
     PLUGINS_MANAGER = 'https://search.maven.org/remotecontent?filepath=' \
-                      'kg/apc/jmeter-plugins-manager/0.10/jmeter-plugins-manager-0.10.jar'
+                      'kg/apc/jmeter-plugins-manager/0.11/jmeter-plugins-manager-0.11.jar'
     CMDRUNNER = 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.0/cmdrunner-2.0.jar'
-    JMETER_VER = "3.0"
+    JMETER_VER = "3.1"
     UDP_PORT_NUMBER = None
 
     def __init__(self):
@@ -85,11 +86,11 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         original JMX is modified to contain JTL writing classes with
         required settings and have workload as suggested by Provisioning
 
-        :raise ValueError:
+        :raise TaurusConfigError:
         """
         self.jmeter_log = self.engine.create_artifact("jmeter", ".log")
         self._set_remote_port()
-        self.run_checklist()
+        self.install_required_tools()
         self.distributed_servers = self.execution.get('distributed', self.distributed_servers)
         scenario = self.get_scenario()
 
@@ -101,7 +102,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.original_jmx = self.__jmx_from_requests()
             is_jmx_generated = True
         else:
-            raise ValueError("You must specify either a JMX file or list of requests to run JMeter")
+            raise TaurusConfigError("You must specify either a JMX file or list of requests to run JMeter")
 
         load = self.get_load()
 
@@ -146,6 +147,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         props_local.update({"jmeterengine.nongui.port": self.management_port})
         props_local.update({"jmeterengine.nongui.maxport": self.management_port})
         props_local.update({"jmeter.save.saveservice.timestamp_format": "ms"})
+        props_local.update({"sampleresult.default.encoding": "UTF-8"})
         props.merge(props_local)
         user_cp = self.engine.artifacts_dir
         if 'user.classpath' in props:
@@ -181,9 +183,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         try:
             # FIXME: muting stderr and stdout is bad
             self.process = self.execute(cmdline, stderr=None, env=self._env)
-        except:
-            self.log.error("Failed to start JMeter: %s", cmdline)
-            raise
+        except BaseException as exc:
+            ToolError("%s\nFailed to start JMeter: %s" % (cmdline, exc))
 
     def check(self):
         """
@@ -191,16 +192,14 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         any data and throws exception otherwise.
 
         :return: bool
-        :raise RuntimeWarning:
+        :raise ToolError:
         """
         self.retcode = self.process.poll()
         if self.retcode is not None:
             if self.retcode != 0:
-                self.log.info("JMeter exit code: %s", self.retcode)
-                raise RuntimeError("JMeter exited with non-zero code")
+                raise ToolError("JMeter exited with non-zero code: %s" % self.retcode)
 
             return True
-
         return False
 
     def shutdown(self):
@@ -267,8 +266,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         while not self.__port_is_free(JMeterExecutor.UDP_PORT_NUMBER):
             self.log.debug("Port %d is busy, trying next one", JMeterExecutor.UDP_PORT_NUMBER)
             if JMeterExecutor.UDP_PORT_NUMBER == 65535:
-                self.log.error("No free ports for management interface")
-                raise RuntimeError
+                TaurusInternalException("JMeter: no free ports for management interface")
             else:
                 JMeterExecutor.UDP_PORT_NUMBER += 1
 
@@ -428,8 +426,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if action is not None:
             return action.text
 
-    @staticmethod
-    def __add_shaper(jmx, load):
+    def __add_shaper(self, jmx, load):
         """
         Add shaper
         :param jmx: JMX
@@ -437,17 +434,19 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                          ('concurrency', "throughput", 'ramp_up', 'hold', 'iterations', 'duration'))
         :return:
         """
+        if not load.duration:
+            self.log.warning("You must set 'ramp-up' and/or 'hold-for' when using 'throughput' option")
+            return
 
-        if load.throughput and load.duration:
-            etree_shaper = jmx.get_rps_shaper()
-            if load.ramp_up:
-                jmx.add_rps_shaper_schedule(etree_shaper, 1, load.throughput, load.ramp_up)
+        etree_shaper = jmx.get_rps_shaper()
+        if load.ramp_up:
+            jmx.add_rps_shaper_schedule(etree_shaper, 1, load.throughput, load.ramp_up)
 
-            if load.hold:
-                jmx.add_rps_shaper_schedule(etree_shaper, load.throughput, load.throughput, load.hold)
+        if load.hold:
+            jmx.add_rps_shaper_schedule(etree_shaper, load.throughput, load.throughput, load.hold)
 
-            jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree_shaper)
-            jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
+        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree_shaper)
+        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
 
     def __add_stepping_shaper(self, jmx, load):
         """
@@ -458,6 +457,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :param load: load
         :return:
         """
+        if not load.ramp_up:
+            self.log.warning("You should set up 'ramp-up' for usage of 'steps'")
+            return
+
         timers_patterns = ["ConstantThroughputTimer", "kg.apc.jmeter.timers.VariableThroughputTimer"]
 
         for timer_pattern in timers_patterns:
@@ -527,7 +530,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             if load.steps:
                 self.__add_stepping_shaper(jmx, load)
             else:
-                JMeterExecutor.__add_shaper(jmx, load)
+                self.__add_shaper(jmx, load)
+
 
     @staticmethod
     def __fill_empty_delimiters(jmx):
@@ -658,47 +662,46 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         :param file_list: list
         :return:
         """
-        for filename in file_list:
-            file_path = self.engine.find_file(filename)
-            if os.path.exists(file_path):
-                file_path_elements = jmx.xpath('//stringProp[text()="%s"]' % file_path)
-                for file_path_element in file_path_elements:
-                    basename = os.path.basename(file_path)
-                    self.log.debug("Replacing JMX path %s with %s", file_path_element.text, basename)
-                    file_path_element.text = basename
-            else:
-                self.log.warning("File not found: %s", file_path)
+        file_set = set(file_list)
+        missed_files = []
+        while file_set:
+            filename = file_set.pop()
+            file_path_elements = jmx.xpath('//stringProp[text()="%s"]' % filename)
+            if not file_path_elements:
+                missed_files.append(filename)
+            for file_path_element in file_path_elements:
+                basename = os.path.basename(filename)
+                self.log.debug("Replacing JMX path %s with %s", file_path_element.text, basename)
+                file_path_element.text = basename
+
+        if missed_files:
+            self.log.warning("Files not found in JMX: %s", missed_files)
 
     def resource_files(self):
         """
         Get list of resource files, modify jmx file paths if necessary
         """
-        resource_files = set()
         # get all resource files from requests
         scenario = self.get_scenario()
-        self.resource_files_collector = ResourceFilesCollector(self)
-        files_from_requests = self.res_files_from_scenario(scenario)
+        resource_files = self.res_files_from_scenario(scenario)
 
-        if not self.original_jmx:
-            self.original_jmx = self.get_script_path()
-
-        if self.original_jmx and os.path.exists(self.original_jmx):
+        self.original_jmx = self.get_script_path()
+        if self.original_jmx:
             jmx = JMX(self.original_jmx)
             resource_files_from_jmx = JMeterExecutor.__get_resource_files_from_jmx(jmx)
-
             if resource_files_from_jmx:
-                if not isinstance(self.engine.provisioning, Local):
-                    self.__modify_resources_paths_in_jmx(jmx.tree, resource_files_from_jmx)
-                    script_name, script_ext = os.path.splitext(os.path.basename(self.original_jmx))
-                    self.original_jmx = self.engine.create_artifact(script_name, script_ext)
-                    jmx.save(self.original_jmx)
+                self.execution.get('files', []).extend(resource_files_from_jmx)
+                self.__modify_resources_paths_in_jmx(jmx.tree, resource_files_from_jmx)
+                script_name, script_ext = os.path.splitext(os.path.basename(self.original_jmx))
+                self.original_jmx = self.engine.create_artifact(script_name, script_ext)
+                jmx.save(self.original_jmx)
+                scenario[Scenario.SCRIPT] = self.original_jmx
 
-                resource_files.update(resource_files_from_jmx)
+        script = self.get_scenario().get(Scenario.SCRIPT, None)
+        if script:
+            resource_files.append(script)
 
-        resource_files.update(files_from_requests)
-        if self.original_jmx:
-            resource_files.add(self.original_jmx)
-        return list(resource_files)
+        return resource_files
 
     @staticmethod
     def __get_resource_files_from_jmx(jmx):
@@ -727,7 +730,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                         break
                     parent = parent.getparent()
 
-                if resource_element.text and parent_disabled is False:
+                if resource_element.text and not parent_disabled:
                     resource_files.append(resource_element.text)
         return resource_files
 
@@ -768,12 +771,18 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             for path, text in iteritems(items):
                 parts = path.split('>')
                 if len(parts) < 2:
-                    raise ValueError("Property selector must have at least 2 levels")
-                sel = "[testname='%s']" % parts[0]  # TODO: support wildcards in element names
+                    raise TaurusConfigError("JMeter: property selector must have at least 2 levels")
+                sel_parts = ["[testname='%s']" % parts[0]]  # TODO: support wildcards in element names
+
                 for add in parts[1:]:
-                    sel += ">[name='%s']" % add
-                if not jmx.set_text(sel, text):
-                    self.log.warning("No elements matched for set-prop: %s", path)
+                    sel_parts.append("[name='%s']" % add)
+                selector = '>'.join(sel_parts)
+                if not jmx.set_text(selector, text):
+                    selector = '>'.join(sel_parts[:-1])
+                    if jmx.get(selector):
+                        jmx.append(selector, JMX._string_prop(parts[-1], text))
+                    else:
+                        self.log.warning("No elements matched for set-prop: %s", path)
 
     def __apply_enable_disable(self, modifs, action, jmx):
         items = modifs[action]
@@ -787,14 +796,13 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                     jmx.set_enabled("[testname='%s']" % candidate.get('testname'),
                                     True if action == 'enable' else False)
 
-    def run_checklist(self):
+    def install_required_tools(self):
         """
         check tools
         """
         required_tools = [JavaVM("", "", self.log), TclLibrary(self.log)]
         for tool in required_tools:
             if not tool.check_if_installed():
-                self.log.info("Installing %s", tool.tool_name)
                 tool.install()
 
         jmeter_path = self.settings.get("path", "~/.bzt/jmeter-taurus/")
@@ -806,7 +814,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         tool = JMeter(jmeter_path, self.log, jmeter_version, download_link, plugins, proxy)
 
         if self._need_to_install(tool):
-            self.log.info("Installing %s", tool.tool_name)
             tool.install()
 
         self.settings['path'] = tool.tool_path
@@ -820,7 +827,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             if tool.check_if_installed():  # all ok, it's really tool path
                 return False
             else:  # probably it's path to other tool)
-                raise ValueError('Wrong tool path: %s' % tool.tool_path)
+                raise TaurusConfigError('JMeter: wrong tool path: %s' % tool.tool_path)
 
         if os.path.isdir(tool.tool_path):  # it's dir: fix tool path and install if needed
             tool.tool_path = os.path.join(tool.tool_path, end_str_l)
@@ -1356,7 +1363,7 @@ class JMeterScenarioBuilder(JMX):
     def smart_time(any_time):
         try:
             smart_time = int(1000 * dehumanize_time(any_time))
-        except ValueError:
+        except TaurusInternalException:
             smart_time = any_time
 
         return smart_time
@@ -1364,13 +1371,14 @@ class JMeterScenarioBuilder(JMX):
     def __gen_defaults(self, scenario):
         default_address = scenario.get("default-address", None)
         retrieve_resources = scenario.get("retrieve-resources", True)
+        resources_regex = scenario.get("retrieve-resources-regex", None)
         concurrent_pool_size = scenario.get("concurrent-pool-size", 4)
         content_encoding = scenario.get("content-encoding", None)
 
         timeout = scenario.get("timeout", None)
         timeout = self.smart_time(timeout)
         elements = [self._get_http_defaults(default_address, timeout, retrieve_resources,
-                                            concurrent_pool_size, content_encoding),
+                                            concurrent_pool_size, content_encoding, resources_regex),
                     etree.Element("hashTree")]
         return elements
 
@@ -1463,8 +1471,8 @@ class JMeterScenarioBuilder(JMX):
         if isinstance(jsrs, dict):
             jsrs = [jsrs]
         for jsr in jsrs:
-            lang = jsr.get("language", ValueError("jsr223 element should specify 'language'"))
-            script = jsr.get("script-file", ValueError("jsr223 element should specify 'script-file'"))
+            lang = jsr.get("language", TaurusConfigError("jsr223 element should specify 'language'"))
+            script = jsr.get("script-file", TaurusConfigError("jsr223 element should specify 'script-file'"))
             parameters = jsr.get("parameters", "")
             execute = jsr.get("execute", "after")
             children.append(JMX._get_jsr223_element(lang, script, parameters, execute))
@@ -1501,8 +1509,14 @@ class JMeterScenarioBuilder(JMX):
         return elements
 
     def compile_http_request(self, request):
+        """
+
+        :type request: HierarchicHTTPRequest
+        :return:
+        """
         global_timeout = self.scenario.get("timeout", None)
         global_keepalive = self.scenario.get("keepalive", True)
+        global_follow_redirects = self.scenario.get("follow-redirects", True)
 
         if request.timeout is not None:
             timeout = self.smart_time(request.timeout)
@@ -1511,6 +1525,10 @@ class JMeterScenarioBuilder(JMX):
         else:
             timeout = None
 
+        follow_redirects = request.follow_redirects
+        if follow_redirects is None:
+            follow_redirects = global_follow_redirects
+
         content_type = self._get_merged_ci_headers(request, 'content-type')
         if content_type == 'application/json' and isinstance(request.body, dict):
             body = json.dumps(request.body)
@@ -1518,7 +1536,7 @@ class JMeterScenarioBuilder(JMX):
             body = request.body
 
         http = JMX._get_http_request(request.url, request.label, request.method, timeout, body, global_keepalive,
-                                     request.upload_files, request.content_encoding)
+                                     request.upload_files, request.content_encoding, follow_redirects)
 
         children = etree.Element("hashTree")
 
@@ -1683,7 +1701,7 @@ class JMeterScenarioBuilder(JMX):
         if not sources:
             return []
         if not isinstance(sources, list):
-            raise ValueError("data-sources is not a list")
+            raise TaurusConfigError("data-sources '%s' is not a list" % sources)
         elements = []
         for idx, source in enumerate(sources):
             source = ensure_is_dict(sources, idx, "path")
@@ -1700,7 +1718,7 @@ class JMeterScenarioBuilder(JMX):
             else:
                 modified_path = self.executor.engine.find_file(source_path)
                 if not os.path.isfile(modified_path):
-                    raise ValueError('"data-sources" path not found: %s', modified_path)
+                    raise TaurusConfigError("data-sources path not found: %s" % modified_path)
                 if not delimiter:
                     delimiter = self.__guess_delimiter(modified_path)
                 source_path = get_full_path(modified_path)
@@ -1750,8 +1768,7 @@ class JMeter(RequiredTool):
                 jmout = jmout.decode()
 
             if "is too low to run JMeter" in jmout:
-                self.log.error(jmout)
-                raise ValueError("Java version is too low to run JMeter")
+                raise ToolError("Java version is too low to run JMeter")
 
             return True
 
@@ -1760,7 +1777,6 @@ class JMeter(RequiredTool):
             return False
 
     def __install_jmeter(self, dest):
-        self.log.info("Will install %s into %s", self.tool_name, dest)
         if self.download_link:
             jmeter_dist = self._download(use_link=True)
         else:
@@ -1777,7 +1793,7 @@ class JMeter(RequiredTool):
         os.chmod(os.path.join(dest, 'bin', 'jmeter' + EXE_SUFFIX), 0o755)
 
         if not self.check_if_installed():
-            raise RuntimeError("Unable to run %s after installation!" % self.tool_name)
+            raise ToolError("Unable to run %s after installation!" % self.tool_name)
 
     def __download_additions(self, tools):
         downloader = ExceptionalDownloader()
@@ -1788,9 +1804,8 @@ class JMeter(RequiredTool):
                 self.log.info("Downloading %s from %s", _file, url)
                 try:
                     downloader.get(url, tool[1], reporthook=pbar.download_callback)
-                except:
-                    self.log.error("Error while downloading %s", _file)
-                    raise
+                except BaseException as exc:
+                    raise TaurusNetworkError("Error while downloading %s: %s" % (_file, exc))
 
     def __install_plugins_manager(self, plugins_manager_path):
         installer = "org.jmeterplugins.repository.PluginManagerCMDInstaller"
@@ -1800,9 +1815,8 @@ class JMeter(RequiredTool):
             proc = shell_exec(cmd)
             out, err = proc.communicate()
             self.log.debug("Install PluginsManager: %s / %s", out, err)
-        except BaseException:
-            self.log.error("Failed to install PluginsManager")
-            raise
+        except BaseException as exc:
+            raise ToolError("Failed to install PluginsManager: %s" % exc)
 
     def __install_plugins(self, plugins_manager_cmd):
         plugin_str = ",".join(self.plugins)
@@ -1839,12 +1853,12 @@ class JMeter(RequiredTool):
             proc = shell_exec(cmd)
             out, err = proc.communicate()
             self.log.debug("Install plugins: %s / %s", out, err)
-        except BaseException:
-            self.log.error("Failed to install plugins %s", plugin_str)
-            raise
+        except BaseException as exc:
+            raise ToolError("Failed to install plugins %s: %s" % (plugin_str, exc))
 
     def install(self):
         dest = get_full_path(self.tool_path, step_up=2)
+        self.log.info("Will install %s into %s", self.tool_name, dest)
         plugins_manager_name = os.path.basename(JMeterExecutor.PLUGINS_MANAGER)
         cmdrunner_name = os.path.basename(JMeterExecutor.CMDRUNNER)
         plugins_manager_path = os.path.join(dest, 'lib', 'ext', plugins_manager_name)
@@ -1995,33 +2009,34 @@ class RequestsParser(object):
         if 'if' in req:
             condition = req.get("if")
             # TODO: apply some checks to `condition`?
-            then_clause = req.get("then", ValueError("'then' clause is mandatory for 'if' blocks"))
+            then_clause = req.get("then", TaurusConfigError("'then' clause is mandatory for 'if' blocks"))
             then_requests = self.__parse_requests(then_clause)
             else_clause = req.get("else", [])
             else_requests = self.__parse_requests(else_clause)
             return IfBlock(condition, then_requests, else_requests, req)
         elif 'loop' in req:
             loops = req.get("loop")
-            do_block = req.get("do", ValueError("'do' option is mandatory for 'loop' blocks"))
+            do_block = req.get("do", TaurusConfigError("'do' option is mandatory for 'loop' blocks"))
             do_requests = self.__parse_requests(do_block)
             return LoopBlock(loops, do_requests, req)
         elif 'while' in req:
             condition = req.get("while")
-            do_block = req.get("do", ValueError("'do' option is mandatory for 'while' blocks"))
+            do_block = req.get("do", TaurusConfigError("'do' option is mandatory for 'while' blocks"))
             do_requests = self.__parse_requests(do_block)
             return WhileBlock(condition, do_requests, req)
         elif 'foreach' in req:
             iteration_str = req.get("foreach")
             match = re.match(r'(.+) in (.+)', iteration_str)
             if not match:
-                raise ValueError("'foreach' value should be in format '<elementName> in <collection>'")
+                msg = "'foreach' value should be in format '<elementName> in <collection>' but '%s' found"
+                raise TaurusConfigError(msg % iteration_str)
             loop_var, input_var = match.groups()
-            do_block = req.get("do", ValueError("'do' field is mandatory for 'foreach' blocks"))
+            do_block = req.get("do", TaurusConfigError("'do' field is mandatory for 'foreach' blocks"))
             do_requests = self.__parse_requests(do_block)
             return ForEachBlock(input_var, loop_var, do_requests, req)
         elif 'transaction' in req:
             name = req.get('transaction')
-            do_block = req.get('do', ValueError("'do' field is mandatory for transaction blocks"))
+            do_block = req.get('do', TaurusConfigError("'do' field is mandatory for transaction blocks"))
             do_requests = self.__parse_requests(do_block)
             return TransactionBlock(name, do_requests, req)
         elif 'include-scenario' in req:
@@ -2030,10 +2045,11 @@ class RequestsParser(object):
         elif 'action' in req:
             action = req.get('action')
             if action not in ('pause', 'stop', 'stop-now', 'continue'):
-                raise ValueError("Action should be either 'pause', 'stop', 'stop-now' or 'continue'")
+                raise TaurusConfigError("Action should be either 'pause', 'stop', 'stop-now' or 'continue'")
             target = req.get('target', 'current-thread')
             if target not in ('current-thread', 'all-threads'):
-                raise ValueError("Target for action should be either 'current-thread' or 'all-threads'")
+                msg = "Target for action should be either 'current-thread' or 'all-threads' but '%s' found"
+                raise TaurusConfigError(msg % target)
             duration = req.get('pause-duration', None)
             if duration is not None:
                 duration = dehumanize_time(duration)
@@ -2061,11 +2077,12 @@ class HierarchicHTTPRequest(HTTPRequest):
         super(HierarchicHTTPRequest, self).__init__(config, engine)
         self.upload_files = config.get("upload-files", [])
         for file_dict in self.upload_files:
-            file_dict.get("param", ValueError("Items from upload-files must specify parameter name"))
-            path = file_dict.get('path', ValueError("Items from upload-files must specify path to file"))
+            file_dict.get("param", TaurusConfigError("Items from upload-files must specify parameter name"))
+            path = file_dict.get('path', TaurusConfigError("Items from upload-files must specify path to file"))
             mime = mimetypes.guess_type(path)[0] or "application/octet-stream"
             file_dict.get('mime-type', mime)
         self.content_encoding = config.get('content-encoding', None)
+        self.follow_redirects = config.get('follow-redirects', None)
 
 
 class ActionBlock(Request):
@@ -2085,7 +2102,7 @@ class RequestVisitor(object):
         visitor = getattr(self, 'visit_' + class_name, None)
         if visitor is not None:
             return visitor(node)
-        raise ValueError("Visitor for class %s not found" % class_name)
+        raise TaurusInternalException("Visitor for class %s not found" % class_name)
 
 
 class ResourceFilesCollector(RequestVisitor):
@@ -2101,9 +2118,13 @@ class ResourceFilesCollector(RequestVisitor):
         body_file = request.config.get('body-file')
         if body_file:
             files.append(body_file)
-        jsr_script = request.config.get('jsr223').get('script-file')
-        if jsr_script:
-            files.append(jsr_script)
+        if 'jsr223' in request.config:
+            jsrs = request.config.get('jsr223')
+            if isinstance(jsrs, dict):
+                jsrs = [jsrs]
+            for jsr in jsrs:
+                if 'script-file' in jsr:
+                    files.append(jsr.get('script-file'))
         return files
 
     def visit_ifblock(self, block):
@@ -2141,7 +2162,8 @@ class ResourceFilesCollector(RequestVisitor):
     def visit_includescenarioblock(self, block):
         scenario_name = block.scenario_name
         if scenario_name in self.path:
-            raise ValueError("Mutual recursion detected in include-scenario blocks (scenario %s)" % scenario_name)
+            msg = "Mutual recursion detected in include-scenario blocks (scenario %s)"
+            raise TaurusConfigError(msg % scenario_name)
         self.path.append(scenario_name)
         scenario = self.executor.get_scenario(name=block.scenario_name)
         return self.executor.res_files_from_scenario(scenario)
@@ -2176,7 +2198,8 @@ class RequestCompiler(RequestVisitor):
     def visit_includescenarioblock(self, block):
         scenario_name = block.scenario_name
         if scenario_name in self.path:
-            raise ValueError("Mutual recursion detected in include-scenario blocks (scenario %s)" % scenario_name)
+            msg = "Mutual recursion detected in include-scenario blocks (scenario %s)"
+            raise TaurusConfigError(msg % scenario_name)
         self.path.append(scenario_name)
         return self.jmx_builder.compile_include_scenario_block(block)
 

@@ -1,5 +1,5 @@
 """
-Module holds all stuff regarding Grinder tool usage
+Module holds all stuff regarding Locust tool usage
 
 Copyright 2015 BlazeMeter Inc.
 
@@ -29,11 +29,12 @@ from bzt.engine import ScenarioExecutor, FileLister, PythonGenerator, Scenario
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsProvider, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.jmeter import JTLReader
+from bzt.modules.services import HavingInstallableTools
 from bzt.six import PY3, iteritems
 from bzt.utils import shutdown_process, RequiredTool, BetterDict, dehumanize_time, ensure_is_dict
 
 
-class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
+class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools):
     def __init__(self):
         super(LocustIOExecutor, self).__init__()
         self.kpi_jtl = None
@@ -46,7 +47,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.script = None
 
     def prepare(self):
-        self._check_installed()
+        self.install_required_tools()
         self.scenario = self.get_scenario()
         self.__setup_script()
 
@@ -68,7 +69,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
-    def _check_installed(self):
+    def install_required_tools(self):
         tool = LocustIO(self.log)
         if not tool.check_if_installed():
             tool.install()
@@ -135,8 +136,12 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         return False
 
     def resource_files(self):
-        self.__setup_script()
-        return [self.script]
+        self.scenario = self.get_scenario()
+        script = self.scenario.get(Scenario.SCRIPT, None)
+        if script:
+            return [script]
+        else:
+            return []
 
     def __tests_from_requests(self):
         filename = self.engine.create_artifact("generated_locust", ".py")
@@ -152,7 +157,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister):
                 self.script = self.__tests_from_requests()
             else:
                 msg = "There must be a script file or requests for its generation "
-                msg += "to run Grinder tool (%s)" % self.execution.get('scenario')
+                msg += "to run Locust (%s)" % self.execution.get('scenario')
                 raise TaurusConfigError(msg)
 
     def shutdown(self):
@@ -336,7 +341,7 @@ from locust import HttpLocust, TaskSet, task
         for req in self.scenario.get_requests():
             method = req.method.lower()
             if method not in ('get', 'delete', 'head', 'options', 'path', 'put', 'post'):
-                raise TaurusConfigError("Wrong Locust request type: %s", method)
+                raise TaurusConfigError("Wrong Locust request type: %s" % method)
 
             if req.timeout:
                 local_timeout = dehumanize_time(req.timeout)
@@ -402,7 +407,7 @@ from locust import HttpLocust, TaskSet, task
         elif subject == 'http-code':
             content = 'str(response.status_code)'
         else:
-            raise TaurusConfigError('Wrong subject for Locust assertion: %s', subject)
+            raise TaurusConfigError('Wrong subject for Locust assertion: %s' % subject)
 
         if assertion.get('not', False):
             attr_not = ''

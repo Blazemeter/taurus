@@ -15,6 +15,14 @@ class TestEngine(BZTestCase):
         self.obj = EngineEmul()
         self.paths = local_paths_config()
 
+    def test_missed_config(self):
+        configs = ['difinitely_missed.file']
+        try:
+            self.obj.configure(configs)
+            self.fail()
+        except TaurusConfigError as exc:
+            self.assertIn('reading config file', str(exc))
+
     def test_requests(self):
         configs = [
             __dir__() + "/../bzt/10-base.json",

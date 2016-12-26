@@ -1,5 +1,19 @@
+"""
+Copyright 2015 BlazeMeter Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
 import csv
-import datetime
 import json
 import math
 import os
@@ -9,23 +23,24 @@ import struct
 import subprocess
 import sys
 import time
-import traceback
 from abc import abstractmethod
 from os import strerror
 from subprocess import CalledProcessError
 
+import datetime
 import psutil
 
-from bzt import resources
+from bzt import resources, TaurusConfigError, ToolError, TaurusInternalException
 from bzt.engine import ScenarioExecutor, FileLister, Scenario
 from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet, ConsolidatingAggregator
 from bzt.modules.console import WidgetProvider, ExecutorWidget
+from bzt.modules.services import HavingInstallableTools
 from bzt.six import string_types, urlencode, iteritems, parse, StringIO, b, viewvalues
-from bzt.utils import shell_exec, shutdown_process, BetterDict, dehumanize_time, RequiredTool, \
-    IncrementableProgressBar
+from bzt.utils import RequiredTool, IncrementableProgressBar
+from bzt.utils import shell_exec, shutdown_process, BetterDict, dehumanize_time
 
 
-class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister):
+class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools):
     """
     :type pbench: PBenchTool
     :type widget: ExecutorWidget
@@ -36,7 +51,8 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.pbench = None
 
     def prepare(self):
-        self._prepare_pbench()
+        self.install_required_tools()
+        self._generate_files()
         self.reader = self.pbench.get_results_reader()
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
@@ -49,11 +65,7 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             self.log.info("Using stock version for pbench tool")
             self.pbench = OriginalPBenchTool(self, self.log)
 
-        tool = PBench(self.log, self.pbench.path)
-        if not tool.check_if_installed():
-            self.log.info("Installing %s", tool.tool_name)
-            tool.install()
-
+    def _generate_files(self):
         self.pbench.generate_payload(self.get_scenario())
         self.pbench.generate_schedule(self.get_load())
         self.pbench.generate_config(self.get_scenario(), self.get_load(), self.get_hostaliases())
@@ -67,8 +79,7 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         retcode = self.pbench.process.poll()
         if retcode is not None:
             if retcode != 0:
-                self.log.info("phantom-benchmark exit code: %s", retcode)
-                raise RuntimeError("phantom-benchmark exited with non-zero code")
+                raise ToolError("Phantom-benchmark exit code: %s" % retcode)
 
             return True
 
@@ -88,16 +99,21 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister):
 
     def shutdown(self):
         shutdown_process(self.pbench.process, self.log)
-        if not os.path.exists(self.pbench.kpi_file) or os.path.getsize(self.pbench.kpi_file) == 0:
-            raise RuntimeError("Empty results file, most likely phantom-benchmark has failed: %s", self.pbench.kpi_file)
 
     def resource_files(self):
-        resource_files = []
         scenario = self.get_scenario()
         script = scenario.get(Scenario.SCRIPT, None)
         if script:
-            resource_files.append(os.path.basename(script))
-        return resource_files
+            return [script]
+        else:
+            return []
+
+    def install_required_tools(self):
+        self._prepare_pbench()
+
+        tool = PBench(self.log, self.pbench.path)
+        if not tool.check_if_installed():
+            tool.install()
 
 
 class PBenchTool(object):
@@ -252,9 +268,8 @@ class PBenchTool(object):
         self.log.debug("Check pbench config with command: %s", cmdline)
         try:
             subprocess.check_call(cmdline, stdout=subprocess.PIPE)
-        except CalledProcessError:
-            self.log.error("Config check has failed: %s", traceback.format_exc())
-            raise
+        except CalledProcessError as exc:
+            raise ToolError("Config check has failed: %s" % exc)
 
     def start(self, config_file):
         cmdline = [self.path, 'run', config_file]
@@ -265,9 +280,7 @@ class PBenchTool(object):
                                                  stdout=stdout,
                                                  stderr=stderr)
         except OSError as exc:
-            self.log.error("Failed to start phantom-benchmark utility: %s", traceback.format_exc())
-            self.log.error("Failed command: %s", cmdline)
-            raise RuntimeError("Failed to start phantom-benchmark utility: %s" % exc)
+            raise ToolError("Failed to start phantom-benchmark utility: %s (%s)" % (exc, cmdline))
 
     def _generate_payload_inner(self, scenario):
         requests = scenario.get_requests()
@@ -279,7 +292,7 @@ class PBenchTool(object):
                 num_requests += 1
 
         if not num_requests:
-            raise ValueError("No requests were generated, check your 'requests' section presence")
+            raise TaurusInternalException("No requests were generated, check your 'requests' section presence")
 
     def _build_request(self, request, scenario):
         path = self._get_request_path(request, scenario)
@@ -295,7 +308,8 @@ class PBenchTool(object):
         elif isinstance(request.body, string_types):
             body = request.body
         elif request.body:
-            raise ValueError("Cannot handle 'body' option of type %s: %s" % (type(request.body), request.body))
+            msg = "Cannot handle 'body' option of type %s: %s"
+            raise TaurusConfigError(msg % (type(request.body), request.body))
 
         if body:
             headers.merge({"Content-Length": len(body)})
@@ -318,7 +332,7 @@ class PBenchTool(object):
             self._target["netloc"] = parsed_url.netloc
 
         if parsed_url.scheme != self._target["scheme"] or parsed_url.netloc != self._target["netloc"]:
-            raise ValueError("Address port and host must be the same")
+            raise TaurusConfigError("Address port and host must be the same")
         path = parsed_url.path
         if parsed_url.query:
             path += "?" + parsed_url.query
@@ -498,7 +512,7 @@ class Scheduler(object):
 
             parts = line.split(b(' '))
             if len(parts) < 2:
-                raise RuntimeError("Wrong format for meta-info line: %s", line)
+                raise TaurusInternalException("Wrong format for meta-info line: %s" % line)
 
             payload_len, marker = parts
             marker = marker.decode()
@@ -593,8 +607,7 @@ class PBenchKPIReader(ResultsReader):
                 cnn = mcs2sec(row["Connect"])
                 # NOTE: actually we have precise send and receive time here...
             except:
-                self.log.warning("Failed record: %s", row)
-                raise
+                raise ToolError("PBench reader: failed record: %s" % row)
 
             if row["opretcode"] != "0":
                 error = strerror(int(row["opretcode"]))
@@ -722,14 +735,13 @@ class PBench(RequiredTool):
         try:
             pbench = shell_exec([self.tool_path], stderr=subprocess.STDOUT)
             pbench_out, pbench_err = pbench.communicate()
-            self.log.debug("PBench check: %s", pbench_out)
+            self.log.debug("PBench check stdout: %s", pbench_out)
             if pbench_err:
                 self.log.warning("PBench check stderr: %s", pbench_err)
             return True
         except (CalledProcessError, OSError):
-            self.log.debug("Check failed: %s", traceback.format_exc())
-            self.log.error("Phantom check failed. Consider installing it")
+            self.log.info("Phantom check failed")
             return False
 
     def install(self):
-        raise RuntimeError("Please install PBench tool manually")
+        raise ToolError("Please install PBench tool manually")

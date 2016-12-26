@@ -25,11 +25,15 @@ from abc import abstractmethod
 
 from urwid import Text, Pile
 
+from subprocess import CalledProcessError
+
+from bzt import TaurusConfigError, ToolError, TaurusInternalException
 from bzt.engine import ScenarioExecutor, Scenario, FileLister, PythonGenerator
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator, FunctionalSample
-from bzt.six import string_types, text_type, parse
+from bzt.modules.services import HavingInstallableTools
+from bzt.six import string_types, parse, iteritems
 from bzt.utils import RequiredTool, shell_exec, shutdown_process, JavaVM, TclLibrary, get_files_recursive
 from bzt.utils import dehumanize_time, MirrorsManager, is_windows, BetterDict, get_full_path
 
@@ -39,7 +43,7 @@ except ImportError:
     from pyvirtualdisplay import Display
 
 
-class AbstractSeleniumExecutor(ScenarioExecutor):
+class AbstractSeleniumExecutor(ScenarioExecutor, HavingInstallableTools):
     """
     Abstract base class for Selenium executors.
 
@@ -93,7 +97,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
     MOCHA_NPM_PACKAGE_NAME = "mocha"
     SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME = "selenium-webdriver"
 
-    SUPPORTED_TYPES = ["python-nose", "java-junit", "java-testng", "ruby-rspec", "js-mocha"]
+    SUPPORTED_RUNNERS = ["nose", "junit", "testng", "rspec", "mocha"]
 
     def __init__(self):
         super(SeleniumExecutor, self).__init__()
@@ -107,6 +111,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         self.self_generated_script = False
         self.generated_methods = BetterDict()
         self.runner_working_dir = None
+        self.register_reader = True
 
     def get_virtual_display(self):
         return self.virtual_display
@@ -137,55 +142,44 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         if self.engine in SeleniumExecutor.SHARED_VIRTUAL_DISPLAY:
             del SeleniumExecutor.SHARED_VIRTUAL_DISPLAY[self.engine]
 
-    def get_script_path(self, scenario=None):
-        if scenario:
-            return super(SeleniumExecutor, self).get_script_path(scenario)
-        else:
-            return self.engine.find_file(self.script)
-
     def get_runner_working_dir(self):
         if self.runner_working_dir is None:
             self.runner_working_dir = self.engine.create_artifact("classes", "")
         return self.runner_working_dir
 
     def _get_testng_xml(self):
-        scenario = self.get_scenario()
-        if 'testng-xml' in scenario:
-            if scenario.get('testng-xml'):
-                return self.engine.find_file(scenario.get('testng-xml'))
+        if 'testng-xml' in self.scenario:
+            testng_xml = self.scenario.get('testng-xml')
+            if testng_xml:
+                return testng_xml
             else:
-                return None
+                return None     # empty value for switch off testng.xml path autodetect
 
-        detected_path = self.engine.find_file('testng.xml')
-        if os.path.exists(detected_path):
-            full_script_path = get_full_path(detected_path)
-            self.log.info("Detected testng.xml file at %s", full_script_path)
-            return full_script_path
-
-        script_dir = get_full_path(self.get_script_path(), step_up=1)
-        script_config = os.path.join(script_dir, 'testng.xml')
-        if os.path.exists(script_config):
-            full_script_path = get_full_path(script_config)
-            self.log.info("Detected testng.xml file at %s", full_script_path)
-            return full_script_path
+        script_path = self.get_script_path()
+        if script_path:
+            script_dir = get_full_path(script_path, step_up=1)
+            testng_xml = os.path.join(script_dir, 'testng.xml')
+            if os.path.exists(testng_xml):
+                self.log.info("Detected testng.xml file at %s", testng_xml)
+                self.scenario['testng-xml'] = testng_xml
+                return testng_xml
 
         return None
 
     def _create_runner(self, report_file):
-        script_path = self.get_script_path()
-        script_type = self.detect_script_type(script_path)
+        script_type = self.detect_script_type()
 
         runner_config = BetterDict()
 
-        if script_type == "python-nose":
+        if script_type == "nose":
             runner_class = NoseTester
             runner_config.merge(self.settings.get("selenium-tools").get("nose"))
-        elif script_type == "java-junit":
+        elif script_type == "junit":
             runner_class = JUnitTester
             runner_config.merge(self.settings.get("selenium-tools").get("junit"))
             runner_config['working-dir'] = self.get_runner_working_dir()
             runner_config['props-file'] = self.engine.create_artifact("runner", ".properties")
-        elif script_type == "java-testng":
+        elif script_type == "testng":
             runner_class = TestNGTester
             runner_config.merge(self.settings.get("selenium-tools").get("testng"))
             runner_config['working-dir'] = self.get_runner_working_dir()
@@ -193,16 +187,16 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
             testng_config = self._get_testng_xml()
             if testng_config:
                 runner_config['testng-xml'] = self.engine.find_file(testng_config)
-        elif script_type == "ruby-rspec":
+        elif script_type == "rspec":
             runner_class = RSpecTester
             runner_config.merge(self.settings.get("selenium-tools").get("rspec"))
-        elif script_type == "js-mocha":
+        elif script_type == "mocha":
             runner_class = MochaTester
             runner_config.merge(self.settings.get("selenium-tools").get("mocha"))
         else:
-            raise ValueError("Unsupported script type: %s" % script_type)
+            raise TaurusConfigError("Unsupported script type: %s" % script_type)
 
-        runner_config["script"] = script_path
+        runner_config["script"] = self.script
         runner_config["script-type"] = script_type
         runner_config["artifacts-dir"] = self.engine.artifacts_dir
         runner_config["report-file"] = report_file
@@ -222,6 +216,10 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         return reader
 
     def prepare(self):
+        if self.get_load().concurrency and self.get_load().concurrency > 1:
+            msg = 'Selenium supports concurrency in cloud provisioning mode only\n'
+            msg += 'For details look at http://gettaurus.org/docs/Cloud.md'
+            self.log.warning(msg)
         self.set_virtual_display()
         self.scenario = self.get_scenario()
         self.__setup_script()
@@ -230,53 +228,51 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         self.runner = self._create_runner(self.report_file)
 
         self.runner.prepare()
-        self.reader = self._register_reader(self.report_file)
+        if self.register_reader:
+            self.reader = self._register_reader(self.report_file)
 
     def __setup_script(self):
-        if Scenario.SCRIPT in self.scenario and self.scenario.get(Scenario.SCRIPT):
-            self.script = self.scenario.get(Scenario.SCRIPT)
-        elif "requests" in self.scenario:
-            self.script = self.__tests_from_requests()
-            self.self_generated_script = True
-        else:
-            raise ValueError("Nothing to test, no requests were provided in scenario")
+        self.script = self.get_script_path()
+        if not self.script:
+            if "requests" in self.scenario:
+                self.script = self.__tests_from_requests()
+                self.self_generated_script = True
+            else:
+                raise TaurusConfigError("Nothing to test, no requests were provided in scenario")
 
-    def detect_script_type(self, script_path):
-        if not isinstance(script_path, string_types) and not isinstance(script_path, text_type):
-            raise ValueError("Nothing to test, no files were provided in scenario")
+    def detect_script_type(self):
+        if not os.path.exists(self.script):
+            raise TaurusConfigError("Script '%s' doesn't exist" % self.script)
 
-        if not os.path.exists(script_path):
-            raise ValueError("Script %s doesn't exist" % script_path)
-
-        if "language" in self.execution:
-            lang = self.execution["language"]
-            if lang not in self.SUPPORTED_TYPES:
-                tmpl = "Language '%s' is not supported. Supported languages are: %s"
-                raise ValueError(tmpl % (lang, self.SUPPORTED_TYPES))
-            self.log.debug("Using script type: %s", lang)
-            return lang
+        if "runner" in self.execution:
+            runner = self.execution["runner"]
+            if runner not in SeleniumExecutor.SUPPORTED_RUNNERS:
+                msg = "Runner '%s' is not supported. Supported runners: %s"
+                raise TaurusConfigError(msg % (runner, SeleniumExecutor.SUPPORTED_RUNNERS))
+            self.log.debug("Using script type: %s", runner)
+            return runner
 
         file_types = set()
 
-        if os.path.isfile(script_path):  # regular file received
-            file_types.add(os.path.splitext(script_path)[1].lower())
+        if os.path.isfile(self.script):  # regular file received
+            file_types.add(os.path.splitext(self.script)[1].lower())
         else:  # dir received: check contained files
-            for file_name in get_files_recursive(script_path):
+            for file_name in get_files_recursive(self.script):
                 file_types.add(os.path.splitext(file_name)[1].lower())
 
         if '.java' in file_types or '.jar' in file_types:
             if self._get_testng_xml() is not None:
-                script_type = 'java-testng'
+                script_type = 'testng'
             else:
-                script_type = 'java-junit'
+                script_type = 'junit'
         elif '.py' in file_types:
-            script_type = 'python-nose'
+            script_type = 'nose'
         elif '.rb' in file_types:
-            script_type = 'ruby-rspec'
+            script_type = 'rspec'
         elif '.js' in file_types:
-            script_type = 'js-mocha'
+            script_type = 'mocha'
         else:
-            raise ValueError("Unsupported script type: %s" % script_path)
+            raise TaurusConfigError("Unsupported script type: %s" % self.script)
 
         self.log.debug("Detected script type: %s", script_type)
 
@@ -296,7 +292,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
             if not self.virtual_display.is_alive():
                 self.log.info("Virtual display out: %s", self.virtual_display.stdout)
                 self.log.warning("Virtual display err: %s", self.virtual_display.stderr)
-                raise RuntimeError("Virtual display failed: %s" % self.virtual_display.return_code)
+                raise TaurusInternalException("Virtual display failed: %s" % self.virtual_display.return_code)
 
     def check(self):
         """
@@ -340,12 +336,12 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         return self.widget
 
     def resource_files(self):
-        self.scenario = self.get_scenario()
-        self.__setup_script()
-        script_path = self.get_script_path()
         resources = []
-        if script_path is not None:
-            resources.append(script_path)
+
+        self.scenario = self.get_scenario()
+        script = self.scenario.get(Scenario.SCRIPT, None)
+        if script:
+            resources.append(script)
 
         resources.extend(self.scenario.get("additional-classpath", []))
         resources.extend(self.settings.get("additional-classpath", []))
@@ -366,6 +362,22 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         nose_test.save(filename)
         return filename
 
+    def install_required_tools(self):
+        self.scenario = BetterDict()
+        runner_classes = {
+            "nose": NoseTester,
+            "junit": JUnitTester,
+            "testng": TestNGTester,
+            "rspec": RSpecTester,
+            "mocha": MochaTester,
+        }
+        for runner, runner_class in iteritems(runner_classes):
+            runner_config = BetterDict()
+            runner_config.merge(self.settings.get("selenium-tools").get(runner))
+            runner_config.merge({"script": ''})
+            mod = runner_class(runner_config, self)
+            mod.run_checklist()
+
 
 class AbstractTestRunner(object):
     """
@@ -384,7 +396,7 @@ class AbstractTestRunner(object):
         self.executor = executor
         self.scenario = executor.scenario
         self.load = executor.get_load()
-        self.script = self.settings.get("script", ValueError("Script not passed to runner"))
+        self.script = self.settings.get("script", TaurusConfigError("Script not passed to runner %s" % self))
         self.artifacts_dir = self.settings.get("artifacts-dir")
         self.log = executor.log.getChild(self.__class__.__name__)
         self.opened_descriptors = []
@@ -407,12 +419,11 @@ class AbstractTestRunner(object):
         ret_code = self.process.poll()
         if ret_code is not None:
             if ret_code != 0:
-                self.log.debug("Test runner exit code: %s", ret_code)
                 with open(self.settings.get("stderr")) as fds:
                     std_err = fds.read()
                 self.is_failed = True
-                msg = "Test runner %s (%s) has failed: %s"
-                raise RuntimeError(msg % (self.executor.label, self.__class__.__name__, std_err.strip()))
+                msg = "Test runner %s (%s) has failed with retcode %s \n %s"
+                raise ToolError(msg % (self.executor.label, self.__class__.__name__, ret_code, std_err.strip()))
             return True
         return False
 
@@ -512,7 +523,7 @@ class JavaTestRunner(AbstractTestRunner):
             self.log.debug("javac exit code: %s", ret_code)
             with open(javac_err.name) as err_file:
                 out = err_file.read()
-            raise RuntimeError("Javac exited with error:\n %s" % out.strip())
+            raise ToolError("Javac exited with code: %s\n %s" % (ret_code, out.strip()))
 
         self.log.info("Compiling .java files completed")
 
@@ -545,9 +556,7 @@ class JavaTestRunner(AbstractTestRunner):
         if ret_code != 0:
             with open(jar_err.name) as err_file:
                 out = err_file.read()
-            self.log.info("Making jar failed with code %s", ret_code)
-            self.log.info("jar output: %s", out)
-            raise RuntimeError("Jar exited with non-zero code")
+            raise ToolError("Jar exited with code %s\n%s" % (ret_code, out.strip()))
 
         self.log.info("Making .jar file completed")
 
@@ -566,7 +575,7 @@ class JUnitTester(JavaTestRunner):
         :type junit_config: BetterDict
         :type executor: SeleniumExecutor
         """
-        self.props_file = junit_config['props-file']
+        self.props_file = junit_config.get('props-file', None)
 
         path_lambda = lambda key, val: get_full_path(junit_config.get(key, val))
         self.junit_path = path_lambda("path", "~/.bzt/selenium-taurus/tools/junit/junit.jar")
@@ -644,7 +653,7 @@ class TestNGTester(JavaTestRunner):
         :type testng_config: BetterDict
         :type executor: SeleniumExecutor
         """
-        self.props_file = testng_config['props-file']
+        self.props_file = testng_config.get('props-file', None)
 
         path_lambda = lambda key, val: get_full_path(testng_config.get(key, val))
         self.testng_path = path_lambda("path", "~/.bzt/selenium-taurus/tools/testng/testng.jar")
@@ -969,7 +978,7 @@ class JUnitJar(RequiredTool):
         self.log.info("Installed JUnit successfully")
 
         if not self.check_if_installed():
-            raise RuntimeError("Unable to run %s after installation!" % self.tool_name)
+            raise ToolError("Unable to run %s after installation!" % self.tool_name)
 
 
 class TestNGJar(RequiredTool):
@@ -997,11 +1006,11 @@ class JavaC(RequiredTool):
             output = subprocess.check_output(["javac", '-version'], stderr=subprocess.STDOUT)
             self.log.debug("%s output: %s", self.tool_name, output)
             return True
-        except BaseException:
-            raise RuntimeError("The %s is not operable or not available. Consider installing it" % self.tool_name)
+        except (CalledProcessError, OSError):
+            return False
 
     def install(self):
-        raise NotImplementedError()
+        raise ToolError("The %s is not operable or not available. Consider installing it" % self.tool_name)
 
 
 class RSpec(RequiredTool):
@@ -1011,14 +1020,16 @@ class RSpec(RequiredTool):
 
     def check_if_installed(self):
         try:
-            output = subprocess.check_output(["rspec", '-version'], stderr=subprocess.STDOUT)
+            rspec_exec = "rspec.bat" if is_windows() else "rspec"
+            output = subprocess.check_output([rspec_exec, '--version'], stderr=subprocess.STDOUT)
             self.log.debug("%s output: %s", self.tool_name, output)
             return True
-        except BaseException:
-            raise RuntimeError("The %s is not operable or not available. Consider installing it" % self.tool_name)
+        except (CalledProcessError, OSError):
+            self.log.debug("RSpec check exception: %s", traceback.format_exc())
+            return False
 
     def install(self):
-        raise NotImplementedError()
+        raise ToolError("The %s is not operable or not available. Consider installing it" % self.tool_name)
 
 
 class Ruby(RequiredTool):
@@ -1031,11 +1042,11 @@ class Ruby(RequiredTool):
             output = subprocess.check_output([self.tool_path, '--version'], stderr=subprocess.STDOUT)
             self.log.debug("%s output: %s", self.tool_name, output)
             return True
-        except BaseException:
-            raise RuntimeError("The %s is not operable or not available. Consider installing it" % self.tool_name)
+        except (CalledProcessError, OSError):
+            return False
 
     def install(self):
-        raise NotImplementedError()
+        raise ToolError("The %s is not operable or not available. Consider installing it" % self.tool_name)
 
 
 class Node(RequiredTool):
@@ -1053,14 +1064,13 @@ class Node(RequiredTool):
                 self.log.debug("%s output: %s", candidate, output)
                 self.executable = candidate
                 return True
-            except BaseException:
+            except (CalledProcessError, OSError):
                 self.log.debug("%r is not installed", candidate)
                 continue
-        tmpl = "%s is not operable or not available. The following executables were tried: %r. Consider installing it"
-        raise RuntimeError(tmpl % (self.tool_name, node_candidates))
+        return False
 
     def install(self):
-        raise NotImplementedError("Automatic installation of nodejs is not implemented. Install it manually")
+        raise ToolError("Automatic installation of nodejs is not implemented. Install it manually")
 
 
 class NPM(RequiredTool):
@@ -1080,14 +1090,13 @@ class NPM(RequiredTool):
                 self.log.debug("%s output: %s", candidate, output)
                 self.executable = candidate
                 return True
-            except BaseException:
+            except (CalledProcessError, OSError):
                 self.log.debug("%r is not installed", candidate)
                 continue
-        tmpl = "%s is not operable or not available. The following executables were tried: %r. Consider installing it"
-        raise RuntimeError(tmpl % (self.tool_name, candidates))
+        return False
 
     def install(self):
-        raise NotImplementedError("Automatic installation of npm is not implemented. Install it manually")
+        raise ToolError("Automatic installation of npm is not implemented. Install it manually")
 
 
 class NPMPackage(RequiredTool):
@@ -1121,7 +1130,7 @@ class NPMPackage(RequiredTool):
             output = subprocess.check_output(cmdline, env=env, stderr=subprocess.STDOUT)
             self.log.debug("%s check output: %s", self.package_name, output)
             return True
-        except BaseException:
+        except (CalledProcessError, OSError):
             self.log.debug("%s check failed: %s", self.package_name, traceback.format_exc())
             return False
 
@@ -1131,7 +1140,7 @@ class NPMPackage(RequiredTool):
             output = subprocess.check_output(cmdline, stderr=subprocess.STDOUT)
             self.log.debug("%s install output: %s", self.tool_name, output)
             return True
-        except BaseException:
+        except (CalledProcessError, OSError):
             self.log.debug("%s install failed: %s", self.package_name, traceback.format_exc())
             return False
 
@@ -1154,7 +1163,7 @@ class JUnitListenerJar(RequiredTool):
         super(JUnitListenerJar, self).__init__("JUnitListener", tool_path, download_link)
 
     def install(self):
-        raise NotImplementedError()
+        raise ToolError("Automatic installation of JUnitListener isn't implemented")
 
 
 class TestNGPluginJar(RequiredTool):
@@ -1162,7 +1171,7 @@ class TestNGPluginJar(RequiredTool):
         super(TestNGPluginJar, self).__init__("TestNGPlugin", tool_path, download_link)
 
     def install(self):
-        raise ValueError("TestNG plugin should be bundled with Taurus distribution")
+        raise ToolError("TestNG plugin should be bundled with Taurus distribution")
 
 
 class TaurusNosePlugin(RequiredTool):
@@ -1170,7 +1179,7 @@ class TaurusNosePlugin(RequiredTool):
         super(TaurusNosePlugin, self).__init__("TaurusNosePlugin", tool_path, download_link)
 
     def install(self):
-        raise NotImplementedError()
+        raise ToolError("Automatic installation of Taurus nose plugin isn't implemented")
 
 
 class TaurusRSpecPlugin(RequiredTool):
@@ -1178,7 +1187,7 @@ class TaurusRSpecPlugin(RequiredTool):
         super(TaurusRSpecPlugin, self).__init__("TaurusRSpecPlugin", tool_path, download_link)
 
     def install(self):
-        raise NotImplementedError()
+        raise ToolError("Automatic installation of Taurus RSpec plugin isn't implemented")
 
 
 class TaurusMochaPlugin(RequiredTool):
@@ -1186,7 +1195,7 @@ class TaurusMochaPlugin(RequiredTool):
         super(TaurusMochaPlugin, self).__init__("TaurusMochaPlugin", tool_path, download_link)
 
     def install(self):
-        raise NotImplementedError()
+        raise ToolError("Automatic installation of Taurus mocha plugin isn't implemented")
 
 
 class SeleniumScriptBuilder(PythonGenerator):
@@ -1265,7 +1274,7 @@ from selenium.common.exceptions import NoAlertPresentException
         browsers = ["Firefox", "Chrome", "Ie", "Opera"]
         browser = self.scenario.get("browser", "Firefox")
         if browser not in browsers:
-            raise ValueError("Unsupported browser name: %s" % browser)
+            raise TaurusConfigError("Unsupported browser name: %s" % browser)
 
         setup_method_def = self.gen_decorator_statement('classmethod')
         setup_method_def.append(self.gen_method_definition("setUpClass", ["cls"]))
@@ -1320,7 +1329,7 @@ from selenium.common.exceptions import NoAlertPresentException
             reverse = assertion_config.get("not", False)
             subject = assertion_config.get("subject", "body")
             if subject != "body":
-                raise ValueError("Only 'body' subject supported ")
+                raise TaurusConfigError("Only 'body' subject supported ")
 
             assert_message = "'%s' " % val
             if not reverse:

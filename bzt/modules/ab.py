@@ -25,11 +25,12 @@ from bzt import TaurusConfigError, ToolError
 from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
+from bzt.modules.services import HavingInstallableTools
 from bzt.six import iteritems
 from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time
 
 
-class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider):
+class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools):
     """
     Apache Benchmark executor module
     """
@@ -46,7 +47,7 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider):
 
     def prepare(self):
         self.scenario = self.get_scenario()
-        self.tool_path = self._check_installed()
+        self.tool_path = self.install_required_tools()
 
         self.__tsv_file_name = self.engine.create_artifact("ab", ".tsv")
 
@@ -102,7 +103,7 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider):
                 args += ['-H', "%s: %s" % (key, val)]
 
         if request.method != 'GET':
-            raise TaurusConfigError("ab supports only GET requests, but '%s' is found", request.method)
+            raise TaurusConfigError("ab supports only GET requests, but '%s' is found" % request.method)
 
         keepalive = True
         if request.config.get('keepalive') is not None:
@@ -124,7 +125,7 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider):
         if ret_code is None:
             return False
         if ret_code != 0:
-            raise ToolError("ab tool exited with non-zero code: %s", ret_code)
+            raise ToolError("ab tool exited with non-zero code: %s" % ret_code)
         return True
 
     def shutdown(self):
@@ -136,7 +137,7 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider):
         if self.__err and not self.__err.closed:
             self.__err.close()
 
-    def _check_installed(self):
+    def install_required_tools(self):
         tool_path = self.settings.get('path', 'ab')
         ab_tool = ApacheBenchmark(tool_path, self.log)
         if not ab_tool.check_if_installed():

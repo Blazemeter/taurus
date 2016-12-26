@@ -51,8 +51,8 @@ Execution has several options to set load profile settings. Support for options 
  - `ramp-up` - ramp-up time to reach target concurrency
  - `hold-for` - time to hold target concurrency
  - `iterations` - limit scenario iterations number
- - `throughput` - apply RPS shaper, limiting maximum RPS to throughput
- - `steps` - allows users to apply stepping ramp-up for concurrency and rps. Requires JMeter plugins to be installed!
+ - `throughput` - apply RPS shaper, limiting maximum RPS to throughput, requires `ramp-up` and/or `hold-for`
+ - `steps` - allows users to apply stepping ramp-up for concurrency and rps, requires `ramp-up`
  - `scenario` - name of scenario that described in `scenarios` part (see below)
 
 ```yaml
@@ -91,7 +91,7 @@ execution:
   scenario: my_jmx_file.jmx         # shortest form: only script file name  
 ```
 
-## Startup delay
+## Startup Delay
 
 You can run different executions at different times with `delay` option:
 ```yaml
@@ -134,4 +134,16 @@ Supported time formats are:
 
 ## Additional Files
 
-When your execution requires additional files (e.g. JARs, certificates etc). you may use `files` option of execution and list paths for files there.
+When your execution requires additional files (e.g. JARs, certificates etc.) and you plan to send tests to the `[Сloud](Cloud.md#Cloud-Provisioning)`, you may use `files` option of execution and list paths for files there. 
+
+## Sequential Execution
+
+By default, Taurus runs items under `execution` in parallel. To switch it into sequential mode, run it with `-sequential` command-line option. This is an alias for this setting:
+
+```yaml
+---
+modules:
+  local:
+    sequential: true
+```
+Keep in mind: sequential execution doesn't work in the `[Сloud](Cloud.md#Cloud-Provisioning)` mode. And as modules start sequentially, `[Startup Delay](#Startup-Delay)` doesn't matter in this case.

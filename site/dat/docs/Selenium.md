@@ -1,5 +1,5 @@
 # Selenium Executor
-Allows to run functional tests locally with Selenium WebDriver. Currently supported selenium test languages are:
+Allows to run functional tests locally with Selenium WebDriver. Currently supported selenium test runners are:
 - Java + JUnit
 - Java + TestNG
 - Python + UnitTest
@@ -9,7 +9,7 @@ Allows to run functional tests locally with Selenium WebDriver. Currently suppor
 Selenium Grid isn't supported for tests described with Taurus language, but if you have your own test suite that uses Selenium Grid to manage browser instances - Taurus will run these tests just fine.
 
 Selenium executor uses multiple test runners (JUnit, TestNG, Mocha, etc), test type is detected automatically. If automatic detection
-fails - you can use `language` option described below.
+fails - you can use `runner` option described below.
 
 Taurus can loop test suite execution in a loop until desired number of `iterations` will complete or `hold-for` time will be exceeded.
 
@@ -29,23 +29,23 @@ Test scenario may be presented not only as single file but as a folder (or, in c
   - .js/single file
   - .js/folder
 
-## Specifying Test Language Explicitly
+## Specifying Test Runner Explicitly
 
-By default, Taurus tries to automatically detect the language your tests are written in. If, for some reason, the autodetection fails - you can specify test language explicitly with `language` execution-level option.
+By default, Taurus tries to automatically detect the language your tests are written in. If, for some reason, the autodetection fails - you can specify test runner explicitly with `runner` execution-level option.
 
 Supported values:
-- `python-nose` - nosetests-based Python tests
-- `java-junit` - JUnit-based Java tests
-- `java-testng` - TestNG-based Java tests
-- `ruby-rspec` - RSpec-based Ruby tests
-- `js-mocha` - Mocha-based JavaScript tests
+- `nose` - nosetests-based Python tests
+- `junit` - JUnit-based Java tests
+- `testng` - TestNG-based Java tests
+- `rspec` - RSpec-based Ruby tests
+- `mocha` - Mocha-based JavaScript tests
 
 Usage:
 ```yaml
 ---
 execution:
 - executor: selenium
-  language: python-nose
+  runner: nose
   scenario:
     script: tests/
 ```
@@ -53,7 +53,7 @@ execution:
 
 ## JUnit Runner
 
-JUnit runner corresponds to 'java-junit' `language` value.
+JUnit runner corresponds to 'junit' `runner` value.
 
 All `.java` files will be compiled and packed into jar file before running tests. All necessary tools will be downloaded and installed automatically into `~/.bzt/selenium-taurus`.
 
@@ -87,7 +87,7 @@ scenarios:
 
 ## TestNG Runner
 
-TestNG runner corresponds to 'java-testng' `language` value.
+TestNG runner corresponds to 'testng' `runner` value.
 
 Just like with JUnit runner, all `.java` files will be compiled and packed into the jar before running the tests. 
 
@@ -115,7 +115,7 @@ modules:
 
 ## Python Unittest Runner
 
-Python unittests are launched using NoseTest runner. It's `language` value is 'python-nose'.
+Python unittests are launched using NoseTest runner. It's `runner` value is 'nose'.
 
 It is valid to specify both single Python module (single .py file) and a Python package (folder with Python modules and packages).
 
@@ -133,7 +133,7 @@ modules:
 
 ## Ruby RSpec Runner
 
-You can run your RSpec-based test suite with Taurus. `language` value for RSpec-based tests is `ruby-rspec`.
+You can run your RSpec-based test suite with Taurus. `runner` value for RSpec-based tests is `rspec`.
 
 Minimal example:
 
@@ -164,7 +164,7 @@ folder of Taurus's repo.
 
 ## JavaScript Mocha Runner
 
-Taurus supports running Mocha-based test suites. Corresponding `language` value is `js-mocha`.
+Taurus supports running Mocha-based test suites. Corresponding `runner` value is `mocha`.
 
 Minimal example:
 ```yaml
@@ -239,7 +239,7 @@ scenarios:
     script: /home/user/selenium_tests.java
 ```
 
-Running folder of test scripts with automatic language detection:
+Running folder of test scripts with automatic runner detection:
 ```yaml
 ---
 execution:
@@ -257,7 +257,7 @@ Extended scenario with runner options:
 execution:
 - executor: selenium
   iterations: 5  # loop over test suite for 5 times
-  language: java-junit
+  runner: junit
   scenario: complex
   
 scenarios:

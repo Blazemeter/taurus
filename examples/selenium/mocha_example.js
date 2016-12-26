@@ -17,10 +17,10 @@ test.describe('Blazedemo verification', function() {
         driver.quit();
     });
 
-    test.it('home page loads', function () {
+    test.it('selenium-mocha', function () {
         driver.get('http://blazedemo.com/');
         driver.getTitle().then(function (title) {
-            assert.equal(title, 'Simple Flights App');
+            assert.equal(title, 'BlazeDemo');
         });
     });
 

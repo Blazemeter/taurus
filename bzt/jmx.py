@@ -22,6 +22,7 @@ from itertools import chain
 
 from cssselect import GenericTranslator
 
+from bzt import TaurusInternalException
 from bzt.engine import Scenario, BetterDict
 from bzt.six import etree, iteritems, string_types, parse, text_type, numeric_types
 
@@ -62,15 +63,14 @@ class JMX(object):
         Load existing JMX file
 
         :param original: JMX file path
-        :raise RuntimeError: in case of XML parsing error
+        :raise TaurusInternalException: in case of XML parsing error
         """
         try:
             self.tree = etree.ElementTree()
             self.tree.parse(original)
         except BaseException as exc:
-            self.log.debug("XML parsing error: %s", traceback.format_exc())
-            data = (original, exc)
-            raise RuntimeError("XML parsing failed for file %s: %s" % data)
+            msg = "XML parsing failed for file %s: %s"
+            raise TaurusInternalException(msg % (original, exc))
 
     def get(self, selector):
         """
@@ -90,12 +90,12 @@ class JMX(object):
 
         :param selector: CSS selector for container
         :param node: Element instance to add
-        :raise RuntimeError: if container was not found
+        :raise TaurusInternalException: if container was not found
         """
         container = self.get(selector)
         if not len(container):
             msg = "Failed to find TestPlan node in file: %s"
-            raise RuntimeError(msg % selector)
+            raise TaurusInternalException(msg % selector)
 
         container[0].append(node)
 
@@ -107,7 +107,6 @@ class JMX(object):
         """
         self.log.debug("Saving JMX to: %s", filename)
         with open(filename, "wb") as fhd:
-            # self.log.debug("\n%s", etree.tostring(self.tree))
             self.tree.write(fhd, pretty_print=True, encoding="UTF-8", xml_declaration=True)
 
     def enabled_thread_groups(self, all_types=False):
@@ -265,7 +264,7 @@ class JMX(object):
                              guiclass="ArgumentsPanel", testclass="Arguments")
 
     @staticmethod
-    def _get_http_request(url, label, method, timeout, body, keepalive, files=(), encoding=None):
+    def _get_http_request(url, label, method, timeout, body, keepalive, files=(), encoding=None, follow_redirects=True):
         """
         Generates HTTP request
         :type method: str
@@ -283,7 +282,8 @@ class JMX(object):
         elif isinstance(body, dict):
             JMX.__add_body_from_script(args, body, proxy)
         elif body:
-            raise ValueError("Cannot handle 'body' option of type %s: %s" % (type(body), body))
+            msg = "Cannot handle 'body' option of type %s: %s"
+            raise TaurusInternalException(msg % (type(body), body))
 
         parsed_url = parse.urlparse(url)
         JMX.__add_hostnameport_2sampler(parsed_url, proxy, url)
@@ -295,7 +295,8 @@ class JMX(object):
         proxy.append(JMX._string_prop("HTTPSampler.path", path))
         proxy.append(JMX._string_prop("HTTPSampler.method", method))
         proxy.append(JMX._bool_prop("HTTPSampler.use_keepalive", keepalive))
-        proxy.append(JMX._bool_prop("HTTPSampler.follow_redirects", True))
+        proxy.append(JMX._bool_prop("HTTPSampler.follow_redirects", follow_redirects))
+        proxy.append(JMX._bool_prop("HTTPSampler.auto_redirects", False))
 
         if timeout is not None:
             proxy.append(JMX._string_prop("HTTPSampler.connect_timeout", timeout))
@@ -340,7 +341,7 @@ class JMX(object):
         http_args_coll_prop = JMX._collection_prop("Arguments.arguments")
         for arg_name, arg_value in body.items():
             if not (isinstance(arg_value, string_types) or isinstance(arg_value, numeric_types)):
-                raise ValueError('Body structure requires application/JSON header')
+                raise TaurusInternalException('Body structure requires application/JSON header')
             try:
                 http_element_prop = JMX._element_prop(arg_name, "HTTPArgument")
             except ValueError:
@@ -647,7 +648,7 @@ class JMX(object):
 
     @staticmethod
     def _get_http_defaults(default_address=None, timeout=None, retrieve_resources=None, concurrent_pool_size=4,
-                           content_encoding=None):
+                           content_encoding=None, resources_regex=None):
         """
         :rtype: lxml.etree.Element
         """
@@ -686,6 +687,10 @@ class JMX(object):
 
         if content_encoding:
             cfg.append(JMX._string_prop("HTTPSampler.contentEncoding", content_encoding))
+
+        if resources_regex:
+            cfg.append(JMX._string_prop("HTTPSampler.embedded_url_re", resources_regex))
+
         return cfg
 
     @staticmethod
@@ -984,14 +989,13 @@ class JMX(object):
 
     @staticmethod
     def _get_loop_controller(loops):
-        loop_forever = loops == 'forever'
-        if loop_forever:
+        if loops == 'forever':
             iterations = -1
         else:
             iterations = loops
-        controller = etree.Element("LoopController", guiclass="LoopControllerPanel", testclass="LoopController",
+        controller = etree.Element("LoopController", guiclass="LoopControlPanel", testclass="LoopController",
                                    testname="Loop Controller")
-        controller.append(JMX._bool_prop("LoopController.continue_forever", loop_forever))
+        controller.append(JMX._bool_prop("LoopController.continue_forever", True))
         controller.append(JMX._string_prop("LoopController.loops", str(iterations)))
         return controller
 

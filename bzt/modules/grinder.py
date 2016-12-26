@@ -23,13 +23,14 @@ import time
 from bzt.engine import ScenarioExecutor, Scenario, FileLister, PythonGenerator
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
+from bzt.modules.services import HavingInstallableTools
 from bzt.six import iteritems
 from bzt import TaurusConfigError, ToolError
 from bzt.utils import shell_exec, MirrorsManager, dehumanize_time, get_full_path
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, TclLibrary
 
 
-class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
+class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools):
     """
     Grinder executor module
     """
@@ -114,15 +115,15 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
             if load.ramp_up:
                 interval = int(1000 * load.ramp_up / load.concurrency)
                 fds.write("grinder.processIncrementInterval=%s\n" % interval)
+                fds.write("grinder.processIncrement=1\n")
             fds.write("grinder.processes=%s\n" % int(load.concurrency))
             fds.write("grinder.runs=%s\n" % load.iterations)
-            fds.write("grinder.processIncrement=1\n")
             if load.duration:
                 fds.write("grinder.duration=%s\n" % int(load.duration * 1000))
         fds.write("# BZT Properies End\n")
 
     def prepare(self):
-        self._check_installed()
+        self.install_required_tools()
 
         scenario = self.get_scenario()
 
@@ -184,7 +185,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         self.retcode = self.process.poll()
         if self.retcode is not None:
             if self.retcode != 0:
-                raise ToolError("Gatling tool exited with non-zero code: %s", self.retcode)
+                raise ToolError("Gatling tool exited with non-zero code: %s" % self.retcode)
 
             return True
         return False
@@ -222,7 +223,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
         builder.save(script)
         return script
 
-    def _check_installed(self):
+    def install_required_tools(self):
         grinder_path = self.settings.get("path", "~/.bzt/grinder-taurus/lib/grinder.jar")
         grinder_path = os.path.abspath(os.path.expanduser(grinder_path))
         self.settings["path"] = grinder_path
@@ -237,10 +238,12 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister):
     def get_widget(self):
         if not self.widget:
             if self.script is not None:
-                label = "Script: %s" % os.path.basename(self.script)
+                label = "Grinder: %s" % os.path.basename(self.script)
             else:
                 label = None
             self.widget = ExecutorWidget(self, label)
+            if self.get_load().ramp_up:
+                self.widget.duration += self.get_load().ramp_up
         return self.widget
 
     def resource_files(self):
@@ -268,6 +271,9 @@ class DataLogReader(ResultsReader):
         self.partial_buffer = ""
         self.delimiter = ","
         self.offset = 0
+        self.start_time = 0
+        self.end_time = 0
+        self.concurrency = 0
 
     def _read(self, last_pass=False):
         """
@@ -287,33 +293,71 @@ class DataLogReader(ResultsReader):
             lines = self.fds.readlines(1024 * 1024)  # 1MB limit to read
         self.offset = self.fds.tell()
 
-        for line in lines:
-            if not line.endswith("\n"):
-                self.partial_buffer += line
-                continue
-
-            line = "%s%s" % (self.partial_buffer, line)
-            self.partial_buffer = ""
-
-            line = line.strip()
-            fields = line.split(self.delimiter)
-            if not fields[1].strip().isdigit():
+        for lnum, line in enumerate(lines):
+            data_fields = self.__split(line)
+            if not data_fields:
                 self.log.debug("Skipping line: %s", line)
                 continue
-            t_stamp = int(fields[self.idx["Start time (ms since Epoch)"]]) / 1000.0
-            label = ""
-            r_time = int(fields[self.idx["Test time"]]) / 1000.0
-            latency = int(fields[self.idx["Time to first byte"]]) / 1000.0
-            r_code = fields[self.idx["HTTP response code"]].strip()
-            con_time = int(fields[self.idx["Time to resolve host"]]) / 1000.0
-            con_time += int(fields[self.idx["Time to establish connection"]]) / 1000.0
-            if int(fields[self.idx["Errors"]]):
-                error = "There were some errors in Grinder test"
-            else:
-                error = None
-            bytes_count = int(fields[self.idx["HTTP response length"]].strip())
-            concur = None  # TODO: how to get this for grinder
-            yield int(t_stamp), label, concur, r_time, con_time, latency, r_code, error, '', bytes_count
+
+            t_stamp = int(data_fields[self.idx["Start time (ms since Epoch)"]]) / 1000.0
+            r_time = int(data_fields[self.idx["Test time"]]) / 1000.0
+            latency = int(data_fields[self.idx["Time to first byte"]]) / 1000.0
+            r_code = data_fields[self.idx["HTTP response code"]].strip()
+            con_time = int(data_fields[self.idx["Time to resolve host"]]) / 1000.0
+            con_time += int(data_fields[self.idx["Time to establish connection"]]) / 1000.0
+            bytes_count = int(data_fields[self.idx["HTTP response length"]].strip())
+
+            label, error_msg = self.__parse_prev_line(lines, lnum)
+            source_id = ''
+
+            yield int(t_stamp), label, self.concurrency, r_time, con_time, \
+                    latency, r_code, error_msg, source_id, bytes_count
+
+    def __split(self, line):
+        if not line.endswith("\n"):
+            self.partial_buffer += line
+            return None
+
+        line = "%s%s" % (self.partial_buffer, line)
+        self.partial_buffer = ""
+
+        if not line.startswith('data'):
+            line_parts = line.split(' ')
+            if len(line_parts) > 1:
+                if line_parts[1] == 'starting,':
+                    self.concurrency += 1
+                if line_parts[1] == 'shut':
+                    self.concurrency -= 1
+            return None
+
+        line = line.strip()
+        line = line[len('data'):]
+        data_fields = line.split(self.delimiter)
+        if not data_fields[1].strip().isdigit():
+            return None
+
+        if len(data_fields) < max(self.idx.values()):
+            return None
+
+        return data_fields
+
+    def __parse_prev_line(self, lines, lnum):
+        label = ''
+        error_msg = None
+        if lnum > 0:
+            line = lines[lnum - 1].strip()
+            if line.endswith('bytes'):
+                line = line.split(self.delimiter)[0]
+                log_parts = line.split(' ')
+                if len(log_parts) > 4:
+                    log_parts.pop(0)  # worker_id
+                    label = log_parts.pop(0)
+                    log_parts.pop(0)  # skip arrow
+                    status = log_parts.pop(0)
+                    if status != '200':
+                        error_msg = ' '.join(log_parts)
+
+        return label, error_msg
 
     def __open_fds(self):
         """
@@ -328,8 +372,19 @@ class DataLogReader(ResultsReader):
             return False
 
         self.fds = open(self.filename)
-        header = self.fds.readline().strip().split(self.delimiter)
-        for _ix, field in enumerate(header):
+        line = ''
+        while not line.startswith('data'):
+            line = self.fds.readline()
+            if line == '':  # end of file
+                self.fds.close()
+                self.fds = None
+                return False
+
+        self.offset = self.fds.tell()
+        line = line[len('data '):]
+
+        header_list = line.strip().split(self.delimiter)
+        for _ix, field in enumerate(header_list):
             self.idx[field.strip()] = _ix
         return True
 
@@ -366,7 +421,7 @@ class Grinder(RequiredTool):
         os.remove(grinder_dist)
         self.log.info("Installed grinder successfully")
         if not self.check_if_installed():
-            raise ToolError("Unable to run %s after installation!", self.tool_name)
+            raise ToolError("Unable to run %s after installation!" % self.tool_name)
 
 
 class GrinderMirrorsManager(MirrorsManager):

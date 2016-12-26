@@ -19,9 +19,11 @@ limitations under the License.
 import copy
 import os
 import zipfile
+from abc import abstractmethod
 
-from bzt.engine import Provisioning
+from bzt import NormalShutdown, ToolError
 from bzt.engine import Service
+from bzt.six import get_stacktrace
 from bzt.utils import replace_in_config
 
 
@@ -46,3 +48,38 @@ class Unpacker(Service):
             unpacked_list.append(archive[:-4])  # TODO: replace with top-level archive content
 
         replace_in_config(self.engine.config, packed_list, unpacked_list, log=self.log)
+
+
+class HavingInstallableTools(object):
+    @abstractmethod
+    def install_required_tools(self):
+        pass
+
+
+class InstallChecker(Service):
+    def prepare(self):
+        modules = self.engine.config.get("modules")
+        failure = None
+        for mod_name in modules.keys():
+            try:
+                self._check_module(mod_name)
+            except BaseException as exc:
+                self.log.error("Failed to instantiate module %s", mod_name)
+                self.log.debug("%s", get_stacktrace(exc))
+                failure = exc if not failure else failure
+
+        if failure:
+            raise ToolError("There were errors while checking for installed tools, see messages above")
+
+        raise NormalShutdown("Done checking for tools installed, will exit now")
+
+    def _check_module(self, mod_name):
+        mod = self.engine.instantiate_module(mod_name)
+
+        if not isinstance(mod, HavingInstallableTools):
+            self.log.debug("Module %s has no install needs")
+            return
+
+        self.log.info("Checking installation needs for: %s", mod_name)
+        mod.install_required_tools()
+        self.log.info("Module is fine: %s", mod_name)

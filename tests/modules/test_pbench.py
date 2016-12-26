@@ -8,6 +8,7 @@ import time
 import urwid
 import yaml
 
+from bzt import TaurusConfigError, ToolError
 from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet, AggregatorListener
 from bzt.modules.pbench import PBenchExecutor, Scheduler, TaurusPBenchTool
@@ -204,11 +205,7 @@ if not is_windows():
             obj.settings.merge({
                 "path": os.path.join(os.path.dirname(__file__), '..', "phantom.sh"),
             })
-            try:
-                obj.prepare()
-                self.fail()
-            except ValueError:
-                pass
+            self.assertRaises(TaurusConfigError, obj.prepare)
 
         def test_install_pbench(self):
             obj = PBenchExecutor()
@@ -220,7 +217,7 @@ if not is_windows():
             try:
                 obj.prepare()
                 self.fail()
-            except RuntimeError as exc:
+            except ToolError as exc:
                 self.assertEquals("Please install PBench tool manually", str(exc))
 
         def test_pbench_file_lister(self):
@@ -229,7 +226,7 @@ if not is_windows():
             obj.settings = BetterDict()
             obj.engine.config = BetterDict()
             obj.engine.config.merge(
-                    {ScenarioExecutor.EXEC: {"executor": "pbench", "scenario": {"script": "/opt/data/script.src"}}})
+                    {'execution': {"executor": "pbench", "scenario": {"script": "script.src"}}})
             obj.execution = obj.engine.config['execution']
             obj.settings.merge({
                 "path": os.path.join(os.path.dirname(__file__), '..', "phantom.sh"),

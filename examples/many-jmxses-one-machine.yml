@@ -1,0 +1,26 @@
+---
+scenarios:
+  scen1:
+    think-time: 0.5s
+    requests:
+    - http://blazedemo.com/?1
+  scen2:
+    think-time: 0.5s
+    requests:
+    - http://blazedemo.com/?2
+
+execution:
+- scenario: scen1
+  hold-for: 5m
+- scenario: scen2
+  hold-for: 5m
+
+locations:  # having top-level locations makes it run all above executions in one machine
+  us-west-1: 1
+
+provisioning: cloud
+
+modules:
+  cloud:
+    use-deprecated-api: false
+    test: Many-JMX-Cloud
