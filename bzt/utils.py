@@ -49,7 +49,7 @@ from psutil import Popen
 from urwid import BaseScreen
 
 from bzt import TaurusInternalException, TaurusNetworkError, ToolError
-from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, request, file_type
+from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, request, file_type, etree
 
 
 def get_full_path(path, step_up=0):
@@ -934,7 +934,65 @@ def which(filename):
 
 
 def is_piped(file_obj):
-    "check if file-object is a pipe or a file redirect"
+    """check if file-object is a pipe or a file redirect"""
     mode = os.fstat(file_obj.fileno()).st_mode
     return stat.S_ISFIFO(mode) or stat.S_ISREG(mode)
 
+
+class PythonGenerator(object):
+    IMPORTS = ''
+
+    def __init__(self, scenario, parent_logger):
+        self.root = etree.Element("PythonCode")
+        self.tree = etree.ElementTree(self.root)
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.scenario = scenario
+
+    def add_imports(self):
+        imports = etree.Element("imports")
+        imports.text = self.IMPORTS
+        return imports
+
+    @abstractmethod
+    def build_source_code(self):
+        pass
+
+    @staticmethod
+    def gen_class_definition(class_name, inherits_from, indent=0):
+        def_tmpl = "class {class_name}({inherits_from}):"
+        class_def_element = etree.Element("class_definition", indent=str(indent))
+        class_def_element.text = def_tmpl.format(class_name=class_name, inherits_from="".join(inherits_from))
+        return class_def_element
+
+    @staticmethod
+    def gen_method_definition(method_name, params, indent=4):
+        def_tmpl = "def {method_name}({params}):"
+        method_def_element = etree.Element("method_definition", indent=str(indent))
+        method_def_element.text = def_tmpl.format(method_name=method_name, params=",".join(params))
+        return method_def_element
+
+    @staticmethod
+    def gen_decorator_statement(decorator_name, indent=4):
+        def_tmpl = "@{decorator_name}"
+        decorator_element = etree.Element("decorator_statement", indent=str(indent))
+        decorator_element.text = def_tmpl.format(decorator_name=decorator_name)
+        return decorator_element
+
+    @staticmethod
+    def gen_statement(statement, indent=8):
+        statement_elem = etree.Element("statement", indent=str(indent))
+        statement_elem.text = statement
+        return statement_elem
+
+    def gen_comment(self, comment, indent=8):
+        return self.gen_statement("# %s" % comment, indent)
+
+    def save(self, filename):
+        with open(filename, 'wt') as fds:
+            for child in self.root.iter():
+                if child.text is not None:
+                    indent = int(child.get('indent', "0"))
+                    fds.write(" " * indent + child.text + "\n")
+
+    def gen_new_line(self, indent=8):
+        return self.gen_statement("", indent=indent)
