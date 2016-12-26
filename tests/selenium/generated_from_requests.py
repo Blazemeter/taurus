@@ -6,10 +6,11 @@ from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import NoAlertPresentException
 
 class TestRequests(unittest.TestCase):
+    driver=None
     @classmethod
     def setUpClass(cls):
         profile = webdriver.FirefoxProfile()
-        profile.set_preference('webdriver.log.file', 'somewhere')
+        profile.set_preference('webdriver.log.file', '/home/undera/Sources/taurus/build/test/2016-12-26_19-49-19.376027/webdriver.log')
         cls.driver = webdriver.Firefox(profile)
         cls.driver.implicitly_wait(30.0)
         cls.driver.maximize_window()
@@ -21,8 +22,9 @@ class TestRequests(unittest.TestCase):
     def test_00000__(self):
         # start request: http://blazedemo.com/
         self.driver.get('http://blazedemo.com/')
+        # end request: http://blazedemo.com/
+        # action
         body = self.driver.page_source
         re_pattern = re.compile(r'contained_text')
         self.assertEqual(0, len(re.findall(re_pattern, body)), "Assertion: 'contained_text' found in BODY")
-        # end request: http://blazedemo.com/
         

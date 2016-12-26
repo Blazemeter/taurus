@@ -5,6 +5,7 @@ import re
 import shutil
 import sys
 import time
+
 import yaml
 
 from bzt import ToolError, TaurusConfigError
@@ -324,7 +325,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
                 'scenario': {
                     'script': __dir__() + '/../selenium/java/',
                     'additional-classpath': [scenario_cp]},
-                'executor': 'selenium',},
+                'executor': 'selenium', },
             'modules': {
                 'selenium': {
                     'additional-classpath': [settings_cp]}}})
@@ -657,7 +658,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
 
     def test_long_iterations_value(self):
         self.obj.execution.merge({
-            "iterations": 2**64,
+            "iterations": 2 ** 64,
             "scenario": {
                 "requests": [
                     "http://blazedemo.com/",
@@ -680,7 +681,7 @@ class TestSeleniumRSpecRunner(SeleniumTestCase):
             "execution": {
                 "scenario": {
                     "script": __dir__() + "/../selenium/ruby/example_spec.rb"
-        }}})
+                }}})
         self.obj.prepare()
 
     def test_rspec_full(self):
@@ -1139,7 +1140,14 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                         "url": "/",
                         "assert": [{
                             "contains": ['contained_text'],
-                            "not": True}]}]}},
+                            "not": True
+                        }],
+                        "actions": [
+                            "clickByCSS(div.container p a)",
+                        ]
+                    }]
+                }
+            },
             "modules": {
                 "selenium": {
                     "^virtual-display": 0}}})
@@ -1148,6 +1156,9 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
             gen_contents = generated.readlines()
         with open(__dir__() + "/../selenium/generated_from_requests.py") as sample:
             sample_contents = sample.readlines()
+
+        with open(__dir__() + "/../selenium/generated_from_requests.py", "w+") as sample:
+            sample.write(''.join(gen_contents))  # FIXME: remove
 
         # strip line terminator and exclude specific build path
         gen_contents = [line.rstrip() for line in gen_contents if 'webdriver' not in line]

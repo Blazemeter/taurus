@@ -22,19 +22,19 @@ import sys
 import time
 import traceback
 from abc import abstractmethod
+from subprocess import CalledProcessError
 
 from urwid import Text, Pile
 
-from subprocess import CalledProcessError
-
 from bzt import TaurusConfigError, ToolError, TaurusInternalException
-from bzt.engine import ScenarioExecutor, Scenario, FileLister, PythonGenerator
+from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator, FunctionalSample
 from bzt.modules.services import HavingInstallableTools
 from bzt.six import string_types, parse, iteritems
-from bzt.utils import RequiredTool, shell_exec, shutdown_process, JavaVM, TclLibrary, get_files_recursive
+from bzt.utils import RequiredTool, shell_exec, shutdown_process, JavaVM, TclLibrary, get_files_recursive, \
+    PythonGenerator
 from bzt.utils import dehumanize_time, MirrorsManager, is_windows, BetterDict, get_full_path
 
 try:
@@ -153,7 +153,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
             if testng_xml:
                 return testng_xml
             else:
-                return None     # empty value for switch off testng.xml path autodetect
+                return None  # empty value for switch off testng.xml path autodetect
 
         script_path = self.get_script_path()
         if script_path:
@@ -1218,12 +1218,13 @@ from selenium.common.exceptions import NoAlertPresentException
         self.root.append(imports)
         test_class = self.gen_class_definition("TestRequests", ["unittest.TestCase"])
         self.root.append(test_class)
+        test_class.append(self.gen_statement("driver=None", indent=4))
         test_class.append(self.gen_setupclass_method())
         test_class.append(self.gen_teardownclass_method())
 
         counter = 0
         methods = {}
-        requests = self.scenario.get_requests()
+        requests = self.scenario.get_requests(False)
         scenario_timeout = self.scenario.get("timeout", 30)
         default_address = self.scenario.get("default-address", None)
 
@@ -1239,35 +1240,37 @@ from selenium.common.exceptions import NoAlertPresentException
             counter += 1
             test_class.append(test_method)
 
-            parsed_url = parse.urlparse(req.url)
-            if default_address is not None and not parsed_url.netloc:
-                url = default_address + req.url
-            else:
-                url = req.url
+            if req.url is not None:
+                self._add_url_request(default_address, req, test_method)
 
-            test_method.append(self.gen_comment("start request: %s" % url))
+            for action_config in req.config.get("actions", []):
+                test_method.append(self.gen_action(action_config))
 
-            if req.timeout is not None:
-                test_method.append(self.gen_impl_wait(req.timeout))
+            if "assert" in req.config:
+                test_method.append(self.gen_statement("body = self.driver.page_source"))
+                for assert_config in req.config.get("assert"):
+                    for elm in self.gen_assertion(assert_config):
+                        test_method.append(elm)
 
-            test_method.append(self.gen_statement("self.driver.get('%s')" % url))
             think_time = req.think_time if req.think_time else self.scenario.get("think-time", None)
-
             if think_time is not None:
                 test_method.append(self.gen_statement("sleep(%s)" % dehumanize_time(think_time)))
 
-            if "assert" in req.config:
-                test_method.append(self.__gen_assert_page())
-                for assert_config in req.config.get("assert"):
-                    test_method.extend(self.gen_assertion(assert_config))
-
-            if req.timeout is not None:
-                test_method.append(self.gen_impl_wait(scenario_timeout))
-
-            test_method.append(self.gen_comment("end request: %s" % url))
             test_method.append(self.gen_new_line())
 
         return methods
+
+    def _add_url_request(self, default_address, req, test_method):
+        parsed_url = parse.urlparse(req.url)
+        if default_address is not None and not parsed_url.netloc:
+            url = default_address + req.url
+        else:
+            url = req.url
+        test_method.append(self.gen_comment("start request: %s" % url))
+        if req.timeout is not None:
+            test_method.append(self.gen_impl_wait(req.timeout))
+        test_method.append(self.gen_statement("self.driver.get('%s')" % url))
+        test_method.append(self.gen_comment("end request: %s" % url))
 
     def gen_setupclass_method(self):
         self.log.debug("Generating setUp test method")
@@ -1350,8 +1353,8 @@ from selenium.common.exceptions import NoAlertPresentException
                 assertion_elements.append(self.gen_statement(method))
         return assertion_elements
 
-    def __gen_assert_page(self):
-        return self.gen_statement("body = self.driver.page_source")
+    def gen_action(self, action_config):
+        return self.gen_comment("action")
 
 
 class JUnitMirrorsManager(MirrorsManager):
