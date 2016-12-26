@@ -1,4 +1,3 @@
-# encoding: utf-8
 """ test """
 import logging
 import time
@@ -121,22 +120,3 @@ class TestDefaultAggregator(BZTestCase):
         points = list(mock.datapoints())
         points = list(mock.datapoints())
         self.assertTrue(mock.buffer_len < buffer_len)
-
-    def test_ignore_labels_unicode(self):
-        obj = self.obj
-
-        mock = MockReader()
-        mock.ignored_labels = [u"/индекс"]
-
-        mock.data.append((1, "/индекс", 1, r(), r(), r(), 200, None, '', 0))
-        mock.data.append((2, "/", 1, r(), r(), r(), 200, None, '', 0))
-        mock.data.append((2, "/индекс", 1, r(), r(), r(), 200, None, '', 0))
-        mock.data.append((3, "/", 1, r(), r(), r(), 200, None, '', 0))
-        mock.data.append((3, "/индекс", 1, r(), r(), r(), 200, None, '', 0))
-        mock.data.append((4, "/", 1, r(), r(), r(), 200, None, '', 0))
-        mock.data.append((4, "/", 1, r(), r(), r(), 200, None, '', 0))
-
-        obj.add_listener(mock)
-
-        for point in mock.datapoints():
-            self.assertNotIn("/индекс", point[DataPoint.CUMULATIVE])
