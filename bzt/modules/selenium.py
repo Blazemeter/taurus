@@ -22,10 +22,9 @@ import sys
 import time
 import traceback
 from abc import abstractmethod
+from subprocess import CalledProcessError
 
 from urwid import Text, Pile
-
-from subprocess import CalledProcessError
 
 from bzt import TaurusConfigError, ToolError, TaurusInternalException
 from bzt.engine import ScenarioExecutor, Scenario, FileLister, PythonGenerator
@@ -153,7 +152,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
             if testng_xml:
                 return testng_xml
             else:
-                return None     # empty value for switch off testng.xml path autodetect
+                return None  # empty value for switch off testng.xml path autodetect
 
         script_path = self.get_script_path()
         if script_path:
@@ -1280,7 +1279,10 @@ from selenium.common.exceptions import NoAlertPresentException
         setup_method_def.append(self.gen_method_definition("setUpClass", ["cls"]))
 
         if browser == 'Firefox':
-            setup_method_def.append(self.gen_statement("profile = webdriver.FirefoxProfile()"))
+            profile = self.scenario.get("browser-profile-path", None)
+            if profile:
+                profile = '"%s"' % profile
+            setup_method_def.append(self.gen_statement("profile = webdriver.FirefoxProfile(%s)" % profile))
             statement = "profile.set_preference('webdriver.log.file', %s)" % repr(self.wdlog)
             log_set = self.gen_statement(statement)
             setup_method_def.append(log_set)
