@@ -1364,29 +1364,7 @@ from selenium.webdriver.support.wait import WebDriverWait
         return assertion_elements
 
     def gen_action(self, action_config):
-        if isinstance(action_config, string_types):
-            name = action_config
-            param = None
-        elif isinstance(action_config, dict):
-            name = action_config.keys()[0]
-            param = action_config[name]
-        else:
-            raise TaurusConfigError("Unsupported value for action: %s" % action_config)
-
-        expr = re.compile("^(click|wait|keys)(byName|byID|byCSS|byXPath)\((.+)\)$", re.IGNORECASE)
-        res = expr.findall(name)
-        if len(res) != 1:
-            raise TaurusConfigError("Unsupported action: %s" % name)
-
-        atype = res[0][0].lower()
-        aby = res[0][1].lower()
-        selector = res[0][2]
-
-        # hello, reviewer!
-        if selector[0] == '"' and selector[-1] == '"':
-            selector = selector[1:-1]
-        elif selector[0] == "'" and selector[-1] == "'":
-            selector = selector[1:-1]
+        aby, atype, param, selector = self._parse_action(action_config)
 
         bys = {
             'byxpath': "XPATH",
@@ -1411,6 +1389,29 @@ from selenium.webdriver.support.wait import WebDriverWait
             return self.gen_statement(tpl % (timeout, mode, bys[aby], selector, errmsg))
 
         raise TaurusInternalException("Could not build code for action: %s" % action_config)
+
+    def _parse_action(self, action_config):
+        if isinstance(action_config, string_types):
+            name = action_config
+            param = None
+        elif isinstance(action_config, dict):
+            name = action_config.keys()[0]
+            param = action_config[name]
+        else:
+            raise TaurusConfigError("Unsupported value for action: %s" % action_config)
+        expr = re.compile("^(click|wait|keys)(byName|byID|byCSS|byXPath)\((.+)\)$", re.IGNORECASE)
+        res = expr.findall(name)
+        if len(res) != 1:
+            raise TaurusConfigError("Unsupported action: %s" % name)
+        atype = res[0][0].lower()
+        aby = res[0][1].lower()
+        selector = res[0][2]
+        # hello, reviewer!
+        if selector[0] == '"' and selector[-1] == '"':
+            selector = selector[1:-1]
+        elif selector[0] == "'" and selector[-1] == "'":
+            selector = selector[1:-1]
+        return aby, atype, param, selector
 
 
 class JUnitMirrorsManager(MirrorsManager):
