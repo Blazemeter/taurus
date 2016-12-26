@@ -194,14 +194,16 @@ class CLI(object):
 
         if isinstance(exc, KeyboardInterrupt):
             self.__handle_keyboard_interrupt(exc, log_level)
+            log_level['default'] = logging.DEBUG
         elif isinstance(exc, TaurusException):
             self.__handle_taurus_exception(exc, log_level['default'])
+            log_level['default'] = logging.DEBUG
         elif isinstance(exc, HTTPError):
             msg = "Response from %s: [%s] %s %s" % (exc.geturl(), exc.code, exc.reason, exc.read())
             self.log.log(log_level['http'], msg)
-        else:
-            self.log.log(log_level['default'], "%s: %s", type(exc).__name__, exc)
-            self.log.log(log_level['default'], get_stacktrace(exc))
+            log_level['default'] = logging.DEBUG
+
+        self.log.log(log_level['default'], "%s: %s\n%s", type(exc).__name__, exc, get_stacktrace(exc))
 
     def __handle_keyboard_interrupt(self, exc, log_level):
         if isinstance(exc, ManualShutdown):
@@ -209,10 +211,9 @@ class CLI(object):
         elif isinstance(exc, AutomatedShutdown):
             self.log.log(log_level['info'], "Automated shutdown")
         elif isinstance(exc, NormalShutdown):
-            self.log.log(logging.DEBUG, "Shutting down by request from code: %s", get_stacktrace(exc))
+            self.log.log(logging.DEBUG, "Shutting down by request from code")
         elif isinstance(exc, KeyboardInterrupt):
             self.log.log(log_level['info'], "Keyboard interrupt")
-            self.log.debug('Unexpected KeyboardInterrupt at\n%s', get_stacktrace(exc))
         else:
             msg = "Non-KeyboardInterrupt exception %s: %s\n%s"
             raise ValueError(msg % (type(exc), exc, get_stacktrace(exc)))
