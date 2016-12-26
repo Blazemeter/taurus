@@ -426,8 +426,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         if action is not None:
             return action.text
 
-    @staticmethod
-    def __add_shaper(jmx, load):
+    def __add_shaper(self, jmx, load):
         """
         Add shaper
         :param jmx: JMX
@@ -435,17 +434,19 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
                          ('concurrency', "throughput", 'ramp_up', 'hold', 'iterations', 'duration'))
         :return:
         """
+        if not load.duration:
+            self.log.warning("You must set 'ramp-up' and/or 'hold-for' when using 'throughput' option")
+            return
 
-        if load.throughput and load.duration:
-            etree_shaper = jmx.get_rps_shaper()
-            if load.ramp_up:
-                jmx.add_rps_shaper_schedule(etree_shaper, 1, load.throughput, load.ramp_up)
+        etree_shaper = jmx.get_rps_shaper()
+        if load.ramp_up:
+            jmx.add_rps_shaper_schedule(etree_shaper, 1, load.throughput, load.ramp_up)
 
-            if load.hold:
-                jmx.add_rps_shaper_schedule(etree_shaper, load.throughput, load.throughput, load.hold)
+        if load.hold:
+            jmx.add_rps_shaper_schedule(etree_shaper, load.throughput, load.throughput, load.hold)
 
-            jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree_shaper)
-            jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
+        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree_shaper)
+        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
 
     def __add_stepping_shaper(self, jmx, load):
         """
@@ -456,6 +457,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         :param load: load
         :return:
         """
+        if not load.ramp_up:
+            self.log.warning("You should set up 'ramp-up' for usage of 'steps'")
+            return
+
         timers_patterns = ["ConstantThroughputTimer", "kg.apc.jmeter.timers.VariableThroughputTimer"]
 
         for timer_pattern in timers_patterns:
@@ -525,7 +530,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             if load.steps:
                 self.__add_stepping_shaper(jmx, load)
             else:
-                JMeterExecutor.__add_shaper(jmx, load)
+                self.__add_shaper(jmx, load)
+
 
     @staticmethod
     def __fill_empty_delimiters(jmx):
