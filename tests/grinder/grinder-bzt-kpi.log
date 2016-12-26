@@ -39,11 +39,14 @@ worker.grinder-bzt-140037209096976-1 http://blazedemo.com/ -> 200 OK, 7391 bytes
 data 0, 0, 1, 1482672673863, 289, 0, 200, 7391, 0, 0, 0, 285, 0 
 worker.grinder-bzt-140037209096976-1 sleeping for 3072 ms 
 worker.grinder-bzt-140037209096976-0 http://blazedemo.com/payment.php -> 404 Not Found, 14542 bytes 
-data 0, 2, 1, 1482672675539, 195, 0, 404, 14542, 1, 0, 0, 104, 0 
+data 0, 2, 1, 1482672675539, 195, 0, 404, 14542, 1, 0, 0, 104, 0
+data 1, 2, not_enough_fields
 worker.grinder-bzt-140037209096976-0 sleeping for 2962 ms 
-worker.grinder-bzt-140037209096976-1 http://blazedemo.com/payment.php -> 404 Not Found, 14542 bytes 
+worker.grinder-bzt-140037209096976-1 http://blazedemo.com/payment.php -> 404 Not Found, 14542 bytes
+too short line, bytes
 data 0, 0, 1, 1482672677226, 201, 0, 404, 14542, 1, 0, 0, 105, 0 
-worker.grinder-bzt-140037209096976-1 sleeping for 2925 ms 
+worker.grinder-bzt-140037209096976-1 sleeping for 2925 ms
+worker.grinder-bzt-140037209096976-1 shut down
 worker.grinder-bzt-140037209096976-0 finished 3 runs 
 worker.grinder-bzt-140037209096976-0 elapsed time is 19728 ms 
 worker.grinder-bzt-140037209096976-0 Final statistics for this process: 

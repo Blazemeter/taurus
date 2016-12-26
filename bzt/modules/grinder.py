@@ -293,37 +293,12 @@ class DataLogReader(ResultsReader):
             lines = self.fds.readlines(1024 * 1024)  # 1MB limit to read
         self.offset = self.fds.tell()
 
-        source_id = ''
-
-        lines.insert(0, '')
         for lnum, line in enumerate(lines):
-            if not line.endswith("\n"):
-                self.partial_buffer += line
-                continue
-
-            line = "%s%s" % (self.partial_buffer, line)
-            self.partial_buffer = ""
-
-            if not line.startswith('data'):
-                line_parts = line.split(' ')
-                if len(line_parts) > 1:
-                    if line_parts[1] == 'starting,':
-                        self.concurrency += 1
-                    if line_parts[1] == 'shut':
-                        self.concurrency -= 1
-                continue
-
-            line = line.strip()
-            line = line[len('data'):]
-            data_fields = line.split(self.delimiter)
-            if not data_fields[1].strip().isdigit():
+            data_fields = self.__split(line)
+            if not data_fields:
                 self.log.debug("Skipping line: %s", line)
                 continue
 
-            error_msg = None
-            if len(data_fields) < max(self.idx.values()):
-                self.log.warning('Wrong line: %s', line)
-                continue
             t_stamp = int(data_fields[self.idx["Start time (ms since Epoch)"]]) / 1000.0
             r_time = int(data_fields[self.idx["Test time"]]) / 1000.0
             latency = int(data_fields[self.idx["Time to first byte"]]) / 1000.0
@@ -332,23 +307,57 @@ class DataLogReader(ResultsReader):
             con_time += int(data_fields[self.idx["Time to establish connection"]]) / 1000.0
             bytes_count = int(data_fields[self.idx["HTTP response length"]].strip())
 
-            # parse from previous lines
-            label = ''
-            worker_log_str = lines[lnum - 1].strip()
-            if worker_log_str.endswith('bytes'):
-                worker_log_str = worker_log_str.split(self.delimiter)[0]
-                log_parts = worker_log_str.split(' ')
-                if len(log_parts) < 5:
-                    continue
-                log_parts.pop(0)    # worker_id
-                label = log_parts.pop(0)
-                log_parts.pop(0)  # skip arrow
-                status = log_parts.pop(0)
-                if status != '200':
-                    error_msg = ' '.join(log_parts)
+            label, error_msg = self.__parse_prev_line(lines, lnum)
+            source_id = ''
 
             yield int(t_stamp), label, self.concurrency, r_time, con_time, \
-                  latency, r_code, error_msg, source_id, bytes_count
+                    latency, r_code, error_msg, source_id, bytes_count
+
+    def __split(self, line):
+        if not line.endswith("\n"):
+            self.partial_buffer += line
+            return None
+
+        line = "%s%s" % (self.partial_buffer, line)
+        self.partial_buffer = ""
+
+        if not line.startswith('data'):
+            line_parts = line.split(' ')
+            if len(line_parts) > 1:
+                if line_parts[1] == 'starting,':
+                    self.concurrency += 1
+                if line_parts[1] == 'shut':
+                    self.concurrency -= 1
+            return None
+
+        line = line.strip()
+        line = line[len('data'):]
+        data_fields = line.split(self.delimiter)
+        if not data_fields[1].strip().isdigit():
+            return None
+
+        if len(data_fields) < max(self.idx.values()):
+            return None
+
+        return data_fields
+
+    def __parse_prev_line(self, lines, lnum):
+        label = ''
+        error_msg = None
+        if lnum > 0:
+            line = lines[lnum - 1].strip()
+            if line.endswith('bytes'):
+                line = line.split(self.delimiter)[0]
+                log_parts = line.split(' ')
+                if len(log_parts) > 4:
+                    log_parts.pop(0)  # worker_id
+                    label = log_parts.pop(0)
+                    log_parts.pop(0)  # skip arrow
+                    status = log_parts.pop(0)
+                    if status != '200':
+                        error_msg = ' '.join(log_parts)
+
+        return label, error_msg
 
     def __open_fds(self):
         """
@@ -366,7 +375,7 @@ class DataLogReader(ResultsReader):
         line = ''
         while not line.startswith('data'):
             line = self.fds.readline()
-            if line == '':      # end of file
+            if line == '':  # end of file
                 self.fds.close()
                 self.fds = None
                 return False

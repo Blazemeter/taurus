@@ -188,3 +188,9 @@ class TestDataLogReader(BZTestCase):
         obj = DataLogReader(log_path, logging.getLogger(''))
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 12)
+
+    def test_read_empty_kpi(self):
+        log_path = os.path.join(os.path.dirname(__file__), '..', 'grinder', 'grinder.sh')
+        obj = DataLogReader(log_path, logging.getLogger(''))
+        list_of_values = list(obj.datapoints(True))
+        self.assertEqual(len(list_of_values), 0)
