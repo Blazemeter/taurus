@@ -20,13 +20,13 @@ import re
 import subprocess
 import time
 
-from bzt.engine import ScenarioExecutor, Scenario, FileLister, PythonGenerator
+from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.services import HavingInstallableTools
 from bzt.six import iteritems
 from bzt import TaurusConfigError, ToolError
-from bzt.utils import shell_exec, MirrorsManager, dehumanize_time, get_full_path
+from bzt.utils import shell_exec, MirrorsManager, dehumanize_time, get_full_path, PythonGenerator
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, TclLibrary
 
 
