@@ -1206,6 +1206,8 @@ from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import NoAlertPresentException
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as econd
+from selenium.webdriver.support.wait import WebDriverWait
 
 """
 
@@ -1371,7 +1373,15 @@ from selenium.webdriver.common.by import By
         if len(res) != 1:
             raise TaurusConfigError("Unsupported action: %s" % name)
 
-        atype, aby, selector = [x.lower() for x in res[0][:-1]] + [res[0][2]]
+        atype = res[0][0].lower()
+        aby = res[0][1].lower()
+        selector = res[0][2]
+
+        # hello, reviewer!
+        if selector[0] == '"' and selector[-1] == '"':
+            selector = selector[1:-1]
+        elif selector[0] == '"' and selector[-1] == "'":
+            selector = selector[1:-1]
 
         bys = {
             'byxpath': "XPATH",
@@ -1379,18 +1389,19 @@ from selenium.webdriver.common.by import By
             'byname': "NAME",
             'byid': "ID",
         }
-
         if atype in ('click', 'keys'):
-            tpl = "self.driver.find_element(By.%s, \"%s\").%s"
+            tpl = "self.driver.find_element(By.%s, %r).%s"
             if atype == 'click':
                 action = "click()"
             else:
-                action = "send_keys(\"%s\")" % param  # TODO: how to escape unsafe value in keys
+                action = "send_keys(%r)" % param
 
-            return self.gen_statement(
-                tpl % (bys[aby], selector, action))  # TODO: how to escape unsafe value in selector?
+            return self.gen_statement(tpl % (bys[aby], selector, action))
         elif atype == 'wait':
-            pass
+            tpl = "WebDriverWait(self.driver, %s).until(econd.presence_of_element_located((By.%s, %r)), %r)"
+            timeout = self.scenario.get("timeout", TaurusInternalException("Timeout value should be present"))
+            errmsg = "Element %r failed to appear within %ss" % (selector, timeout)
+            return self.gen_statement(tpl % (timeout, bys[aby], selector, errmsg))
 
         raise TaurusInternalException("Could not build code for action: %s" % action_config)
 

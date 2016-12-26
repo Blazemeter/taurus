@@ -1136,6 +1136,7 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
             "scenarios": {
                 "loc_sc": {
                     "default-address": "http://blazedemo.com",
+                    "timeout": 3,
                     "requests": [{
                         "url": "/",
                         "assert": [{
@@ -1144,9 +1145,8 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                         }],
                         "actions": [
                             "clickByCSS(div.container p a)",
-                            {
-                                "keysByCSS(img.rounded)": "test"
-                            }
+                            {"waitByCSS(img.rounded)": "visible"},
+                            {"keysByName(toPort)": "\""},
                         ]
                     }]
                 }
