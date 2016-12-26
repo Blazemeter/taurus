@@ -435,7 +435,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         :return:
         """
         if not load.duration:
-            self.log.warning("You should set up 'ram-up' and/or 'hold-for' for usage of 'throughput'")
+            self.log.warning("You must set 'ramp-up' and/or 'hold-for' when using 'throughput' option")
             return
 
         etree_shaper = jmx.get_rps_shaper()
