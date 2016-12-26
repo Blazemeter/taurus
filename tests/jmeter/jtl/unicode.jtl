@@ -1,0 +1,14 @@
+timeStamp,elapsed,label,responseCode,responseMessage,threadName,success,bytes,grpThreads,allThreads,Latency,Hostname
+1482747524914,1152,САП.АутентифицироватьРасш,404,Not Found,ThreadGroup 1-1,false,659,1,1,1152,dimitri-box
+1482747526099,197,Тест.Эхо,404,Not Found,ThreadGroup 1-1,false,659,1,1,197,dimitri-box
+1482747527297,866,САП.АутентифицироватьРасш,404,Not Found,ThreadGroup 1-1,false,659,1,1,866,dimitri-box
+1482747528165,189,Тест.Эхо,404,Not Found,ThreadGroup 1-1,false,659,1,1,189,dimitri-box
+1482747529355,860,САП.АутентифицироватьРасш,404,Not Found,ThreadGroup 1-1,false,659,1,1,860,dimitri-box
+1482747530216,189,Тест.Эхо,404,Not Found,ThreadGroup 1-1,false,659,1,1,189,dimitri-box
+1482747531406,868,САП.АутентифицироватьРасш,404,Not Found,ThreadGroup 1-1,false,659,1,1,868,dimitri-box
+1482747532276,193,Тест.Эхо,404,Not Found,ThreadGroup 1-1,false,659,1,1,193,dimitri-box
+1482747533471,867,САП.АутентифицироватьРасш,404,Not Found,ThreadGroup 1-1,false,659,1,1,867,dimitri-box
+1482747534339,190,Тест.Эхо,404,Not Found,ThreadGroup 1-1,false,659,1,1,190,dimitri-box
+1482747535531,867,САП.АутентифицироватьРасш,404,Not Found,ThreadGroup 1-1,false,659,1,1,867,dimitri-box
+1482747536400,190,Тест.Эхо,404,Not Found,ThreadGroup 1-1,false,659,1,1,190,dimitri-box
+1482747537591,857,САП.АутентифицироватьРасш,404,Not Found,ThreadGroup 1-1,false,659,1,1,856,dimitri-box

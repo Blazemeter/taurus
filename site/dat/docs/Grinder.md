@@ -1,6 +1,10 @@
 # Grinder Executor
 
-Module settings:
+## Notes
+Grinder supports following taurus execution parameters: `concurrency`, `ramp-up`, `hold-for` and `iterations` (all except of `throughput`). As duration is sent to every worker, you'll get the same ramp-down together with `ramp-up`. When you configure limit of `iterations`, it applies to every worker so effective limit can be up to `concurrency` * `iterations` (it depends on start and shutdown processes).
+All parameters are passed with .properties file, so they will work for your script too (not for generated script only). 
+  
+## Module settings
  - `path`: "/somepath/folder/"
     Path to Grinder.
     If no grinder.jar found in folder/lib/, Grinder tool will be automatically downloaded and installed in "path".
@@ -12,7 +16,6 @@ Module settings:
     Grinder version, by default "3.11"
 
 ## Running Grinder
-
 Running Grinder with existing script and properties file.
 ```yaml
 ---
