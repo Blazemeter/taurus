@@ -19,6 +19,7 @@
  - add throughput ability to Gatling 
  - alter `loop` block to JMX compilation scheme to better reflect JMeter defaults (kudos to @rogerbramon)
  - add labels, concurrency and error messages to reporting from Grinder
+ - support unicode labels for aggregator's `ignore-labels` and JMeter
 
 ## 1.7.4 <sup>11 nov 2016</sup>
  - fix Locust crash when used with 'requests'-style scenario and cloud provisioning
