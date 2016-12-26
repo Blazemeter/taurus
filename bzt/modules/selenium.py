@@ -1205,6 +1205,8 @@ from time import sleep
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import NoAlertPresentException
+from selenium.webdriver.common.by import By
+
 """
 
     def __init__(self, scenario, parent_logger, wdlog):
@@ -1219,13 +1221,14 @@ from selenium.common.exceptions import NoAlertPresentException
         test_class = self.gen_class_definition("TestRequests", ["unittest.TestCase"])
         self.root.append(test_class)
         test_class.append(self.gen_statement("driver=None", indent=4))
+        test_class.append(self.gen_new_line())
         test_class.append(self.gen_setupclass_method())
         test_class.append(self.gen_teardownclass_method())
 
         counter = 0
         methods = {}
         requests = self.scenario.get_requests(False)
-        scenario_timeout = self.scenario.get("timeout", 30)
+        scenario_timeout = self.scenario.get("timeout", 30)  # FIXME: we lost this on migrating to setUpClass
         default_address = self.scenario.get("default-address", None)
 
         for req in requests:
@@ -1354,7 +1357,42 @@ from selenium.common.exceptions import NoAlertPresentException
         return assertion_elements
 
     def gen_action(self, action_config):
-        return self.gen_comment("action")
+        if isinstance(action_config, string_types):
+            name = action_config
+            param = None
+        elif isinstance(action_config, dict):
+            name = action_config.keys()[0]
+            param = action_config[name]
+        else:
+            raise TaurusConfigError("Unsupported value for action: %s" % action_config)
+
+        expr = re.compile("^(click|wait|keys)(byName|byID|byCSS|byXPath)\((.+)\)$", re.IGNORECASE)
+        res = expr.findall(name)
+        if len(res) != 1:
+            raise TaurusConfigError("Unsupported action: %s" % name)
+
+        atype, aby, selector = [x.lower() for x in res[0][:-1]] + [res[0][2]]
+
+        bys = {
+            'byxpath': "XPATH",
+            'bycss': "CSS_SELECTOR",
+            'byname': "NAME",
+            'byid': "ID",
+        }
+
+        if atype in ('click', 'keys'):
+            tpl = "self.driver.find_element(By.%s, \"%s\").%s"
+            if atype == 'click':
+                action = "click()"
+            else:
+                action = "send_keys(\"%s\")" % param  # TODO: how to escape unsafe value in keys
+
+            return self.gen_statement(
+                tpl % (bys[aby], selector, action))  # TODO: how to escape unsafe value in selector?
+        elif atype == 'wait':
+            pass
+
+        raise TaurusInternalException("Could not build code for action: %s" % action_config)
 
 
 class JUnitMirrorsManager(MirrorsManager):

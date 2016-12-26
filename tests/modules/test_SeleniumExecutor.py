@@ -1144,6 +1144,9 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                         }],
                         "actions": [
                             "clickByCSS(div.container p a)",
+                            {
+                                "keysByCSS(img.rounded)": "test"
+                            }
                         ]
                     }]
                 }
