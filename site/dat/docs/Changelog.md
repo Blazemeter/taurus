@@ -18,11 +18,6 @@
  - add warning message for concurrency setting in Selenium config
  - disable console if stdout isn't a tty (no need to do `modules.console.disable=1` anymore)
  - add creating of new stringProp ability to jmx modifications
-<<<<<<< HEAD
- - fix Gatling path lookup for JARs from execution's `files`
- - add throughput ability to Gatling 
- - alter `loop` block to JMX compilation scheme to better reflect JMeter defaults (kudos to @rogerbramon)
- - fix debug trace logging
  - support unicode labels for aggregator's `ignore-labels` and JMeter
 
 ## 1.7.4 <sup>11 nov 2016</sup>
