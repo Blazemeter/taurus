@@ -1398,7 +1398,7 @@ from selenium.webdriver.support.wait import WebDriverWait
             name = action_config
             param = None
         elif isinstance(action_config, dict):
-            name = action_config.keys()[0]
+            name = list(action_config.keys())[0]
             param = action_config[name]
         else:
             raise TaurusConfigError("Unsupported value for action: %s" % action_config)
