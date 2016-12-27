@@ -82,3 +82,10 @@ def get_stacktrace(exc):
 
 def reraise(exc_info):
     raise exc_info[0], exc_info[1], exc_info[2]
+
+
+def unicode_decode(string):
+    if not isinstance(string, unicode):
+        return string.decode('utf-8')
+    else:
+        return string

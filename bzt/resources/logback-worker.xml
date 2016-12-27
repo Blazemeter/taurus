@@ -2,31 +2,20 @@
 
     <property name="PREFIX" value="${LOG_DIRECTORY}/${T_GRINDER_PREFIX}"/>
 
-    <appender name="log-file"
-              class="ch.qos.logback.core.FileAppender">
-        <file>${PREFIX}.log</file>
-
-        <encoder>
-            <pattern>%d %-5level %logger{0} %marker: %message%n</pattern>
-        </encoder>
-    </appender>
-
     <appender name="data-file"
               class="ch.qos.logback.core.FileAppender">
         <file>${PREFIX}-kpi.log</file>
-
-        <encoder class="ch.qos.logback.core.encoder.EchoEncoder"/>
+        <encoder>
+            <pattern>%c %m %n</pattern>
+            <immediateFlush>true</immediateFlush>
+        </encoder>
     </appender>
 
-    <logger name="worker.logonly" additivity="false">
-        <appender-ref ref="log-file"/>
+    <logger name="worker" additivity="false">
+        <appender-ref ref="data-file"/>
     </logger>
 
-    <logger name="worker" additivity="true">
-        <appender-ref ref="log-file"/>
-    </logger>
-
-    <logger name="data" additivity="true">
+    <logger name="data" additivity="false">
         <appender-ref ref="data-file"/>
     </logger>
 

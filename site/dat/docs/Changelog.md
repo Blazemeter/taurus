@@ -1,23 +1,24 @@
 # Changelog
 
 ## 1.7.5 <sup>next</sup>
- - add logging improvements
+ - result processing optimization: add limitation of response time list size to cumulative KPISets
+ - bump up auto-installed JMeter to 3.1 and pmgr to 0.11
+ - add `public-report` option to BlazeMeter reporter and cloud provisioning
+ - add `retrieve-resources-regex` scenario-level option to JMeter
+ - allow controling JMeter HTTP redirects with `follow-redirects` option
+ - alter `loop` block to JMX compilation scheme to better reflect JMeter defaults (kudos to @rogerbramon)
+ - add labels, concurrency and error messages to reporting from Grinder
+ - add `throughput` ability to Gatling when building scripts from YAML
+ - fix Gatling path lookup for JARs from execution's `files`
+ - error logging improvements
  - fix a few minor issues with the Windows installer
  - fix public cloud reporting (unauthorised notes sending)
  - add test for paths of resource files
- - bump up auto-installed JMeter to 3.1 and pmgr to 0.11
- - add limitation of response time list size to cumulative KPISets
  - fix the crash when multiple BM reporters are in use
- - add `public-report` option to BlazeMeter reporter and cloud provisioning
- - add `retrieve-resources-regex` scenario-level option to JMeter
- - fix latency growing problem
- - allow controling JMeter HTTP redirects with `follow-redirects` option
  - add warning message for concurrency setting in Selenium config
- - disable console if stdout isn't a tty
+ - disable console if stdout isn't a tty (no need to do `modules.console.disable=1` anymore)
  - add creating of new stringProp ability to jmx modifications
- - fix Gatling path lookup for JARs from execution's `files`
- - add throughput ability to Gatling 
- - alter `loop` block to JMX compilation scheme to better reflect JMeter defaults (kudos to @rogerbramon)
+ - support unicode labels for aggregator's `ignore-labels` and JMeter
 
 ## 1.7.4 <sup>11 nov 2016</sup>
  - fix Locust crash when used with 'requests'-style scenario and cloud provisioning

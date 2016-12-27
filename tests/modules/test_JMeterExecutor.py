@@ -12,7 +12,7 @@ import yaml
 
 from bzt import ToolError, TaurusConfigError, TaurusInternalException
 from bzt.jmx import JMX
-from bzt.modules.aggregator import ConsolidatingAggregator
+from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint
 from bzt.modules.blazemeter import CloudProvisioning
 from bzt.modules.jmeter import JMeterExecutor, JTLErrorsReader, JTLReader, FuncJTLReader
 from bzt.modules.jmeter import JMeterScenarioBuilder
@@ -2019,6 +2019,13 @@ class TestJMeterExecutor(BZTestCase):
         auto_redirects = xml_tree.find(".//HTTPSamplerProxy/boolProp[@name='HTTPSampler.auto_redirects']")
         self.assertIsNotNone(auto_redirects)
         self.assertEqual(auto_redirects.text, 'false')
+
+    def test_reader_unicode(self):
+        reader = JTLReader(__dir__() + "/../jmeter/jtl/unicode.jtl", logging.getLogger(''), None)
+        reader.ignored_labels = [u("Тест.Эхо")]
+        for point in reader.datapoints():
+            cumulative = point[DataPoint.CUMULATIVE]
+            self.assertNotIn("Тест.Эхо", cumulative)
 
 
 class TestJMX(BZTestCase):

@@ -16,8 +16,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import sys
 import json
+import sys
 import time
 
 import requests
@@ -105,8 +105,11 @@ class Proxy2JMX(Service):
             if isinstance(executor, AbstractSeleniumExecutor):
                 if executor.label:
                     labels.append(executor.label)
-                executor.add_env({'http_proxy': self.proxy,     # set vars anyway for case
-                                  'https_proxy': self.proxy,    # linux system can't say correct name
+                executor.add_env({'http_proxy': self.proxy,  # set vars anyway for case
+                                  'https_proxy': self.proxy,  # linux system can't say correct name
+                                  'HTTP_PROXY': self.proxy,
+                                  'HTTPS_PROXY': self.proxy,
+                                  "CHROMIUM_USER_FLAGS": "--proxy-server=%s" % self.proxy,  # for Linux chrome
                                   'XDG_CURRENT_DESKTOP': None,  # (it might be in Docker, etc.)
                                   'DESKTOP_SESSION': None,
                                   'GNOME_DESKTOP_SESSION_ID': None,

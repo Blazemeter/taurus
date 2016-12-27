@@ -86,3 +86,5 @@ def reraise(exc_info):
     raise exc
 
 
+def unicode_decode(string):
+    return string
