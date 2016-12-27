@@ -1222,7 +1222,7 @@ from selenium.webdriver.support.wait import WebDriverWait
         self.root.append(imports)
         test_class = self.gen_class_definition("TestRequests", ["unittest.TestCase"])
         self.root.append(test_class)
-        test_class.append(self.gen_statement("driver=None", indent=4))
+        test_class.append(self.gen_statement("driver = None", indent=4))
         test_class.append(self.gen_new_line())
         test_class.append(self.gen_setupclass_method())
         test_class.append(self.gen_teardownclass_method())
@@ -1398,22 +1398,25 @@ from selenium.webdriver.support.wait import WebDriverWait
             name = action_config
             param = None
         elif isinstance(action_config, dict):
-            name = list(action_config.keys())[0]
-            param = action_config[name]
+            name, param = next(iteritems(action_config))
         else:
             raise TaurusConfigError("Unsupported value for action: %s" % action_config)
+
         expr = re.compile("^(click|wait|keys)(byName|byID|byCSS|byXPath)\((.+)\)$", re.IGNORECASE)
-        res = expr.findall(name)
-        if len(res) != 1:
+        res = expr.match(name)
+        if not res:
             raise TaurusConfigError("Unsupported action: %s" % name)
-        atype = res[0][0].lower()
-        aby = res[0][1].lower()
-        selector = res[0][2]
+
+        atype = res.group(1).lower()
+        aby = res.group(2).lower()
+        selector = res.group(3)
+
         # hello, reviewer!
-        if selector[0] == '"' and selector[-1] == '"':
+        if selector.startswith('"') and selector.endswith('"'):
             selector = selector[1:-1]
-        elif selector[0] == "'" and selector[-1] == "'":
+        elif selector.startswith("'") and selector.endswith("'"):
             selector = selector[1:-1]
+
         return aby, atype, param, selector
 
 

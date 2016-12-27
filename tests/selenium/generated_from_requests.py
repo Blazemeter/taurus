@@ -10,12 +10,12 @@ from selenium.webdriver.support.wait import WebDriverWait
 
 
 class TestRequests(unittest.TestCase):
-    driver=None
+    driver = None
         
     @classmethod
     def setUpClass(cls):
         profile = webdriver.FirefoxProfile()
-        profile.set_preference('webdriver.log.file', '/home/undera/Sources/taurus/build/test/2016-12-26_22-18-40.405345/webdriver.log')
+        profile.set_preference('webdriver.log.file', 'webdriver.log')
         cls.driver = webdriver.Firefox(profile)
         cls.driver.implicitly_wait(3.5)
         cls.driver.maximize_window()
