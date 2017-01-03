@@ -1,5 +1,6 @@
 # Creating JMeter and Selenium Scripts with Taurus
 
+_Author: Iurii Bushnev_
 
 The wide range of [performance testing tools](https://www.blazemeter.com/blog/open-source-load-testing-tools-which-one-should-you-use?utm_source=taurus&utm_medium=KB&utm_campaign=JMeterSelenium) available enables companies to find a solution that can meet any expectation and budget. However, many testing tools are limited when it comes to automating and integrating them into the [Continuous Integration](http://info.blazemeter.com/automated-performance-tests-in-jenkins-ci-environments?utm_source=BM&utm_medium=resources&utm_campaign=webinar-automated-performance-tests-jenkins-ci-environments) cycle, and using them to manage the functionality workflow might also be complicated. For example, when invoking workflow management APIs that don’t alert when the workflow is finished.
 
