@@ -656,7 +656,7 @@ class BaseCloudTest(object):
 
 class CloudTaurusTest(BaseCloudTest):
     def prepare_locations(self, executors, engine_config):
-        available_locations = self.client.get_available_locations(include_harbors=False)
+        available_locations = self.client.get_available_locations()
 
         if CloudProvisioning.LOC in engine_config:
             self.log.warning("Deprecated test API doesn't support global locations")
@@ -1013,7 +1013,7 @@ class BlazeMeterClient(object):
             raise TaurusNetworkError("Non-JSON response from API: %s" % exc)
 
     def upload_collection_resources(self, resource_files, draft_id):
-        url = self.address + "/api/latest/web/elfinder/%s" % draft_id
+        url = self.address + "/api/v4/web/elfinder/%s" % draft_id
         body = MultiPartForm()
         body.add_field("cmd", "upload")
         body.add_field("target", "s1_Lw")
@@ -1029,16 +1029,16 @@ class BlazeMeterClient(object):
             raise TaurusNetworkError("Can't upload resource files")
 
     def get_collections(self):
-        resp = self._request(self.address + "/api/latest/collections")
+        resp = self._request(self.address + "/api/v4/collections")
         return resp['result']
 
     def import_config(self, config):
-        url = self.address + "/api/latest/collections/taurusimport"
+        url = self.address + "/api/v4/collections/taurusimport"
         resp = self._request(url, data=to_json(config), headers={"Content-Type": "application/json"}, method="POST")
         return resp['result']
 
     def update_collection(self, collection_id, coll):
-        url = self.address + "/api/latest/collections/%s" % collection_id
+        url = self.address + "/api/v4/collections/%s" % collection_id
         self._request(url, data=to_json(coll), headers={"Content-Type": "application/json"}, method="POST")
 
     def find_collection(self, collection_name, project_id):
@@ -1085,9 +1085,9 @@ class BlazeMeterClient(object):
         data = urlencode({})
 
         if self.token:
-            url = self.address + "/api/latest/tests/%s/start-external" % test_id
+            url = self.address + "/api/v4/tests/%s/start-external" % test_id
         else:
-            url = self.address + "/api/latest/sessions"
+            url = self.address + "/api/v4/sessions"
 
         resp = self._request(url, data)
 
@@ -1099,7 +1099,7 @@ class BlazeMeterClient(object):
         if self.token:
             self.results_url = self.address + '/app/#masters/%s' % self.master_id
             if session_name:
-                url = self.address + "/api/latest/sessions/%s" % self.session_id
+                url = self.address + "/api/v4/sessions/%s" % self.session_id
                 self._request(url, to_json({"name": str(session_name)}),
                               headers={"Content-Type": "application/json"}, method='PATCH')
         else:
@@ -1117,7 +1117,7 @@ class BlazeMeterClient(object):
         self.log.info("Initiating cloud test with %s ...", self.address)
         data = urlencode({})
 
-        url = self.address + "/api/latest/tests/%s/start" % test_id
+        url = self.address + "/api/v4/tests/%s/start" % test_id
 
         resp = self._request(url, data)
 
@@ -1131,7 +1131,7 @@ class BlazeMeterClient(object):
         # NOTE: delayedStart=true means that BM will not start test until all instances are ready
         # if omitted - instances will start once ready (not simultaneously),
         # which may cause inconsistent data in aggregate report.
-        url = self.address + "/api/latest/collections/%s/start?delayedStart=true" % collection_id
+        url = self.address + "/api/v4/collections/%s/start?delayedStart=true" % collection_id
         resp = self._request(url, method="POST")
         self.log.debug("Response: %s", resp['result'])
         self.master_id = resp['result']['id']
@@ -1140,12 +1140,12 @@ class BlazeMeterClient(object):
 
     def force_start_master(self):
         self.log.info("All servers are ready, starting cloud test")
-        url = self.address + "/api/latest/masters/%s/forceStart" % self.master_id
+        url = self.address + "/api/v4/masters/%s/forceStart" % self.master_id
         self._request(url, method="POST")
 
     def stop_collection(self, collection_id):
         self.log.info("Shutting down cloud test...")
-        url = self.address + "/api/latest/collections/%s/stop" % collection_id
+        url = self.address + "/api/v4/collections/%s/stop" % collection_id
         self._request(url)
 
     def end_online(self):
@@ -1157,17 +1157,17 @@ class BlazeMeterClient(object):
         else:
             self.log.info("Ending data feeding...")
             if self.token:
-                url = self.address + "/api/latest/sessions/%s/terminate"
+                url = self.address + "/api/v4/sessions/%s/terminate"
                 self._request(url % self.session_id)
             else:
-                url = self.address + "/api/latest/sessions/%s/terminateExternal"
+                url = self.address + "/api/v4/sessions/%s/terminateExternal"
                 data = {"signature": self.data_signature, "testId": self.test_id, "sessionId": self.session_id}
                 self._request(url % self.session_id, json.dumps(data))
 
     def end_master(self):
         if self.master_id:
             self.log.info("Ending cloud test...")
-            url = self.address + "/api/latest/masters/%s/terminate"
+            url = self.address + "/api/v4/masters/%s/terminate"
             self._request(url % self.master_id)
 
     def project_by_name(self, proj_name):
@@ -1220,7 +1220,7 @@ class BlazeMeterClient(object):
         self.log.debug("Creating new test collection: %s", name)
         collection_draft['name'] = name
         collection_draft['projectId'] = proj_id
-        url = self.address + "/api/latest/collections"
+        url = self.address + "/api/v4/collections"
         headers = {"Content-Type": "application/json"}
         resp = self._request(url, data=to_json(collection_draft), headers=headers, method="POST")
         collection_id = resp['result']['id']
@@ -1243,7 +1243,7 @@ class BlazeMeterClient(object):
 
     def create_test(self, name, configuration, proj_id):
         self.log.debug("Creating new test")
-        url = self.address + '/api/latest/tests'
+        url = self.address + '/api/v4/tests'
         data = {"name": name, "projectId": proj_id, "configuration": configuration}
         hdr = {"Content-Type": " application/json"}
         resp = self._request(url, json.dumps(data), headers=hdr)
@@ -1257,7 +1257,7 @@ class BlazeMeterClient(object):
             self.delete_test_files(test_id)
 
         self.log.debug("Uploading files into the test: %s", resource_files)
-        url = '%s/api/latest/tests/%s/files' % (self.address, test_id)
+        url = '%s/api/v4/tests/%s/files' % (self.address, test_id)
 
         body = MultiPartForm()
         body.add_file_as_string('script', 'taurus.yml', yaml.dump(taurus_config, default_flow_style=False,
@@ -1277,7 +1277,7 @@ class BlazeMeterClient(object):
         if name is not None:
             params["name"] = name
 
-        tests = self._request(self.address + '/api/latest/tests?' + urlencode(params))
+        tests = self._request(self.address + '/api/v4/tests?' + urlencode(params))
         self.log.debug("Tests for user: %s", len(tests['result']))
         return tests['result']
 
@@ -1345,7 +1345,7 @@ class BlazeMeterClient(object):
         :type data_buffer: list[bzt.modules.aggregator.DataPoint]
         """
         url = self.data_address + "/submit.php?session_id=%s&signature=%s&test_id=%s&user_id=%s"
-        url = url % (self.session_id, self.data_signature, self.test_id, self.user_id)
+        url %= self.session_id, self.data_signature, self.test_id, self.user_id
         url += "&pq=0&target=%s&update=1" % self.kpi_target
         hdr = {"Content-Type": " application/json"}
         response = self._request(url, self.__get_kpi_body(data_buffer, is_final), headers=hdr)
@@ -1457,7 +1457,7 @@ class BlazeMeterClient(object):
         """
         Quick check if we can access the service
         """
-        self._request(self.address + '/api/latest/web/version')
+        self._request(self.address + '/api/v4/web/version')
 
     def upload_file(self, filename, contents=None):
         """
@@ -1474,55 +1474,55 @@ class BlazeMeterClient(object):
         else:
             body.add_file_as_string('file', filename, contents)
 
-        url = self.address + "/api/latest/image/%s/files?signature=%s"
-        url = url % (self.session_id, self.data_signature)
+        url = self.address + "/api/v4/image/%s/files?signature=%s"
+        url %= self.session_id, self.data_signature
         hdr = {"Content-Type": str(body.get_content_type())}
         response = self._request(url, body.form_as_bytes(), headers=hdr)
         if not response['result']:
             raise TaurusNetworkError("Upload failed: %s" % response)
 
     def get_master(self):
-        req = self._request(self.address + '/api/latest/masters/%s' % self.master_id)
+        req = self._request(self.address + '/api/v4/masters/%s' % self.master_id)
         return req['result']
 
     def get_session(self):
-        req = self._request(self.address + '/api/latest/sessions/%s' % self.session_id)
+        req = self._request(self.address + '/api/v4/sessions/%s' % self.session_id)
         return req['result']
 
     def update_master(self, data):
         hdr = {"Content-Type": "application/json"}
-        req = self._request(self.address + '/api/latest/masters/%s' % self.master_id,
+        req = self._request(self.address + '/api/v4/masters/%s' % self.master_id,
                             to_json(data), headers=hdr, method="PUT")
         return req['result']
 
     def update_session(self, data):
         hdr = {"Content-Type": "application/json"}
-        req = self._request(self.address + '/api/latest/sessions/%s' % self.session_id,
+        req = self._request(self.address + '/api/v4/sessions/%s' % self.session_id,
                             to_json(data), headers=hdr, method="PUT")
         return req['result']
 
     def get_master_status(self):
-        sess = self._request(self.address + '/api/latest/masters/%s/status' % self.master_id)
+        sess = self._request(self.address + '/api/v4/masters/%s/status' % self.master_id)
         return sess['result']
 
     def get_master_sessions(self):
-        sess = self._request(self.address + '/api/latest/masters/%s/sessions' % self.master_id)
+        sess = self._request(self.address + '/api/v4/masters/%s/sessions' % self.master_id)
         if 'sessions' in sess['result']:
             return sess['result']['sessions']
         else:
             return sess['result']
 
     def get_projects(self):
-        data = self._request(self.address + '/api/latest/projects')
+        data = self._request(self.address + '/api/v4/projects')
         return data['result']
 
     def create_project(self, proj_name):
         hdr = {"Content-Type": "application/json"}
-        data = self._request(self.address + '/api/latest/projects', to_json({"name": str(proj_name)}), headers=hdr)
+        data = self._request(self.address + '/api/v4/projects', to_json({"name": str(proj_name)}), headers=hdr)
         return data['result']['id']
 
     def get_user_info(self):
-        res = self._request(self.address + '/api/latest/user')
+        res = self._request(self.address + '/api/v4/user')
         return res
 
     def get_kpis(self, master_id, min_ts):
@@ -1538,12 +1538,12 @@ class BlazeMeterClient(object):
         for label in labels:
             params.append(("labels[]", label['id']))
 
-        url = self.address + "/api/latest/data/kpis?" + urlencode(params)
+        url = self.address + "/api/v4/data/kpis?" + urlencode(params)
         res = self._request(url)
         return res['result']
 
     def get_labels(self, master_id):
-        url = self.address + "/api/latest/data/labels?" + urlencode({'master_id': master_id})
+        url = self.address + "/api/v4/data/labels?" + urlencode({'master_id': master_id})
         res = self._request(url)
         return res['result']
 
@@ -1558,7 +1558,7 @@ class BlazeMeterClient(object):
         return locations
 
     def get_test_files(self, test_id):
-        path = self.address + "/api/latest/web/elfinder/%s" % test_id
+        path = self.address + "/api/v4/web/elfinder/%s" % test_id
         query = urlencode({'cmd': 'open', 'target': 's1_Lw'})
         url = path + '?' + query
         response = self._request(url)
@@ -1569,7 +1569,7 @@ class BlazeMeterClient(object):
         self.log.debug("Test files: %s", [filedict['name'] for filedict in files])
         if not files:
             return
-        path = "/api/latest/web/elfinder/%s" % test_id
+        path = "/api/v4/web/elfinder/%s" % test_id
         query = "cmd=rm&" + "&".join("targets[]=%s" % fname['hash'] for fname in files)
         url = self.address + path + '?' + query
         response = self._request(url)
@@ -1577,7 +1577,7 @@ class BlazeMeterClient(object):
             self.log.debug("Successfully deleted %d test files", len(response['removed']))
 
     def get_aggregate_report(self, master_id):
-        url = self.address + "/api/latest/masters/%s/reports/aggregatereport/data" % master_id
+        url = self.address + "/api/v4/masters/%s/reports/aggregatereport/data" % master_id
         res = self._request(url)
         return res['result']
 
@@ -1585,17 +1585,17 @@ class BlazeMeterClient(object):
         self.upload_file('%s.monitoring.json' % src_name, to_json(data))
 
     def send_custom_metrics(self, data):
-        url = self.address + "/api/latest/data/masters/%s/custom-metrics" % self.master_id
+        url = self.address + "/api/v4/data/masters/%s/custom-metrics" % self.master_id
         res = self._request(url, to_json(data), headers={"Content-Type": "application/json"}, method="POST")
         return res
 
     def send_custom_tables(self, data):
-        url = self.address + "/api/latest/data/masters/%s/custom-table" % self.master_id
+        url = self.address + "/api/v4/data/masters/%s/custom-table" % self.master_id
         res = self._request(url, to_json(data), headers={"Content-Type": "application/json"}, method="POST")
         return res
 
     def make_report_public(self):
-        url = self.address + "/api/latest/masters/%s/publicToken" % self.master_id
+        url = self.address + "/api/v4/masters/%s/publicToken" % self.master_id
         res = self._request(url, to_json({"publicToken": None}),
                             headers={"Content-Type": "application/json"}, method="POST")
         public_token = res['result']['publicToken']
