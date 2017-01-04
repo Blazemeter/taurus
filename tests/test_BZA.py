@@ -1,5 +1,3 @@
-import json
-import logging
 import os
 import sys
 
@@ -16,10 +14,12 @@ class TestBZA(BZTestCase):
 
         accounts = user.accounts()
         workspaces = accounts.workspaces()
-        projects = workspaces.projects()
+        sel_test = workspaces.tests(name='Selenium')
         opls = workspaces.private_locations()
-        tests = projects.tests()
-        logging.info("Result: %s", json.dumps(tests, indent=True))
+        projects = workspaces.projects()
+        tests = projects.tests(name='Selenium')
+        tests2 = workspaces.tests()
+        print
 
     def get_token(self):
         a = Configuration()
