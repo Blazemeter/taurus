@@ -64,10 +64,10 @@ class TestBlazeMeterUploader(BZTestCase):
 
         # check for note appending in _postproc_phase3()
         reqs = obj.client.requests[-4:]
-        self.assertIn('api/latest/sessions/sess1', reqs[0]['url'])
-        self.assertIn('api/latest/sessions/sess1', reqs[1]['url'])
-        self.assertIn('api/latest/masters/master1', reqs[2]['url'])
-        self.assertIn('api/latest/masters/master1', reqs[3]['url'])
+        self.assertIn('api/v4/sessions/sess1', reqs[0]['url'])
+        self.assertIn('api/v4/sessions/sess1', reqs[1]['url'])
+        self.assertIn('api/v4/masters/master1', reqs[2]['url'])
+        self.assertIn('api/v4/masters/master1', reqs[3]['url'])
         self.assertIn('ValueError: wrong value', reqs[1]['data'])
         self.assertIn('ValueError: wrong value', reqs[3]['data'])
 
@@ -112,10 +112,10 @@ class TestBlazeMeterUploader(BZTestCase):
         # check for note appending in _postproc_phase3()
         reqs = [{'url': '', 'data': ''} for _ in range(4)]     # add template for minimal size
         reqs = (reqs + obj.client.requests)[-4:]
-        self.assertNotIn('api/latest/sessions/sess1', reqs[0]['url'])
-        self.assertNotIn('api/latest/sessions/sess1', reqs[1]['url'])
-        self.assertNotIn('api/latest/masters/master1', reqs[2]['url'])
-        self.assertNotIn('api/latest/masters/master1', reqs[3]['url'])
+        self.assertNotIn('api/v4/sessions/sess1', reqs[0]['url'])
+        self.assertNotIn('api/v4/sessions/sess1', reqs[1]['url'])
+        self.assertNotIn('api/v4/masters/master1', reqs[2]['url'])
+        self.assertNotIn('api/v4/masters/master1', reqs[3]['url'])
         if reqs[1]['data']:
             self.assertNotIn('ValueError: wrong value', reqs[1]['data'])
         if reqs[3]['data']:
