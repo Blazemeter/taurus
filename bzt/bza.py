@@ -68,6 +68,12 @@ class BZAObject(dict):
             self.log.debug('Response: %s', resp)
             raise TaurusNetworkError("Non-JSON response from API: %s" % exc)
 
+    def ping(self):
+        """
+        Quick check if we can access the service
+        """
+        self._request(self.address + '/api/v4/web/version')
+
 
 class BZAObjectsList(list):
     def __getattr__(self, name):
@@ -97,6 +103,10 @@ class User(BZAObject):
         res = self._request(self.address + '/api/v4/accounts')
         return BZAObjectsList([Account(self, x) for x in res['result']])
 
+    def get_user(self):
+        res = self._request(self.address + '/api/v4/user')
+        return User(self, res)
+
 
 class Account(BZAObject):
     def workspaces(self):
@@ -109,13 +119,23 @@ class Account(BZAObject):
 
 
 class Workspace(BZAObject):
-    def projects(self):
+    def projects(self, name=None, proj_id=None):
         """
         :rtype: BZAObjectsList[Project]
         """
         params = {"workspaceId": self['id']}
         res = self._request(self.address + '/api/v4/projects?' + urlencode(params))
-        return BZAObjectsList([Project(self, x) for x in res['result']])
+
+        projects = BZAObjectsList()
+        for item in res['result']:
+            if name is not None and item['name'] != name:
+                continue
+
+            if proj_id is not None and item['id'] != proj_id:
+                continue
+
+            projects.append(Project(self, item))
+        return projects
 
     def private_locations(self):
         """
@@ -125,20 +145,29 @@ class Workspace(BZAObject):
         res = self._request(self.address + '/api/v4/private-locations?' + urlencode(params))
         return BZAObjectsList([BZAObject(self, x) for x in res['result']])
 
-    def tests(self, name=None):
+    def tests(self, name=None, test_type=None):
         """
         :rtype: BZAObjectsList[Test]
         """
         params = {"workspaceId": self['id']}
         if name is not None:
             params["name"] = name
+
         res = self._request(self.address + '/api/v4/tests?' + urlencode(params))
-        return BZAObjectsList([Test(self, x) for x in res['result'] if
-                               x['name'] == name or name is None])  # FIXME: Dor Atias promised to fix it
+        tests = BZAObjectsList()
+        for item in res['result']:
+            if name is not None and item['name'] != name:
+                continue
+
+            if test_type is not None and item['configuration']['type'] != test_type:
+                continue
+
+            tests.append(Test(self, item))
+        return tests
 
 
 class Project(BZAObject):
-    def tests(self, name=None):  # TODO: do we really need it? seems to be unused
+    def tests(self, name=None, test_type=None):
         """
         :rtype: BZAObjectsList[Test]
         """
@@ -147,8 +176,24 @@ class Project(BZAObject):
             params["name"] = name
 
         res = self._request(self.address + '/api/v4/tests?' + urlencode(params))
-        return BZAObjectsList([Test(self, x) for x in res['result'] if
-                               x['name'] == name or name is None])  # FIXME: Dor Atias promised to fix it
+        tests = BZAObjectsList()
+        for item in res['result']:
+            if name is not None and item['name'] != name:
+                continue
+
+            if test_type is not None and item['configuration']['type'] != test_type:
+                continue
+
+            tests.append(Test(self, item))
+        return tests
+
+    def create_test(self, name, configuration):
+        self.log.debug("Creating new test")
+        url = self.address + '/api/latest/tests'
+        data = {"name": name, "projectId": self['id'], "configuration": configuration}
+        hdr = {"Content-Type": " application/json"}
+        resp = self._request(url, json.dumps(data), headers=hdr)
+        return Test(self, resp['result'])
 
 
 class Test(BZAObject):

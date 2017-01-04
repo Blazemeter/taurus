@@ -33,6 +33,7 @@ import yaml
 from urwid import Pile, Text
 
 from bzt import ManualShutdown, TaurusInternalException, TaurusConfigError, TaurusNetworkError
+from bzt.bza import User
 from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
 from bzt.modules.chrome import ChromeProfiler
@@ -117,6 +118,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         self.client.data_signature = self.parameters.get("signature", None)
         self.client.kpi_target = self.parameters.get("kpi-target", self.client.kpi_target)
 
+        self.client.initialize()
+
         if not self.client.test_id:
             try:
                 self.client.ping()  # to check connectivity and auth
@@ -125,7 +128,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
                 raise
 
             if token:
-                finder = ProjectFinder(self.parameters, self.settings, self.client, self.log)
+                finder = ProjectFinder(self.parameters, self.settings, self.client.user, self.log)
                 self.test_id = finder.resolve_external_test()
 
         self.sess_name = self.parameters.get("report-name", self.settings.get("report-name", self.sess_name))
@@ -527,7 +530,7 @@ class MonitoringBuffer(object):
 
 class ProjectFinder(object):
     """
-    :type client: BlazeMeterClient
+    :type client: User
     """
 
     TEST_TYPE_CLOUD = 'cloud-test'
@@ -536,32 +539,42 @@ class ProjectFinder(object):
     def __init__(self, parameters, settings, client, parent_log):
         super(ProjectFinder, self).__init__()
         self.default_test_name = "Taurus Test"
-        self.client = client
+        self.user = client
         self.parameters = parameters
         self.settings = settings
         self.log = parent_log.getChild(self.__class__.__name__)
+        self.workspaces = self.user.accounts().workspaces()
 
     def _resolve_project(self):
+        """
+        :rtype: bzt.bza.Project
+        """
         proj_name = self.parameters.get("project", self.settings.get("project", None))
         if isinstance(proj_name, (int, float)):
             proj_id = int(proj_name)
             self.log.debug("Treating project name as ID: %s", proj_id)
+            return self.workspaces.projects(proj_id=proj_id)
         elif proj_name is not None:
-            proj_id = self.client.project_by_name(proj_name)
-        else:
-            proj_id = None
-        return proj_id
+            return self.workspaces.projects(name=proj_name)
+
+        return None
 
     def resolve_external_test(self):
-        project_id = self._resolve_project()
+        project = self._resolve_project()
         test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
-        test_config = {"type": "external"}
-        existing_test = self.client.find_external_test(test_name, project_id)
-        if existing_test:
-            test_id = existing_test['id']
+
+        if project:
+            test = project.tests(test_name, test_type='external')
         else:
-            test_id = self.client.create_test(test_name, test_config, project_id)
-        return test_id
+            test = self.user.accounts().workspaces().tests(name=test_name, test_type='external')
+
+        if not test:
+            if not project:
+                info = self.user.get_user()
+                project = self.workspaces.projects(proj_id=info['defaultProject']['id'])
+            test_config = {"type": "external"}
+            test = project.create_test(test_name, test_config)
+        return test
 
     def resolve_test_type(self):
         project_id = self._resolve_project()
@@ -570,14 +583,14 @@ class ProjectFinder(object):
         use_deprecated = self.settings.get("use-deprecated-api", True)
         default_location = self.settings.get("default-location", None)
 
-        collection = self.client.find_collection(test_name, project_id)
+        collection = self.user.find_collection(test_name, project_id)
         self.log.debug("Looking for collection: %s", collection)
         if collection:
             self.log.debug("Detected test type: new")
             test_class = CloudCollectionTest
             test_id = collection['id']
         else:
-            test = self.client.find_test(test_name, project_id)
+            test = self.user.find_test(test_name, project_id)
             self.log.debug("Looking for test: %s", test)
             if test:
                 self.log.debug("Detected test type: old")
@@ -592,7 +605,7 @@ class ProjectFinder(object):
                     test_class = CloudCollectionTest
                 test_id = None
 
-        return test_class(self.client, test_id, project_id, test_name, default_location, self.log)
+        return test_class(self.user, test_id, project_id, test_name, default_location, self.log)
 
 
 class BaseCloudTest(object):
@@ -966,7 +979,10 @@ class BlazeMeterClient(object):
         self.timeout = 10
         self.delete_files_before_test = False
 
+        self.user = User()
+
     def _request(self, url, data=None, headers=None, checker=None, method=None):
+        raise ValueError()
         if not headers:
             headers = {}
         if self.token:
@@ -1343,10 +1359,7 @@ class BlazeMeterClient(object):
                 raise ManualShutdown("The test was interrupted through Web UI")
 
     def ping(self):
-        """
-        Quick check if we can access the service
-        """
-        self._request(self.address + '/api/v4/web/version')
+        self.user.ping()
 
     def upload_file(self, filename, contents=None):
         """
@@ -1481,6 +1494,14 @@ class BlazeMeterClient(object):
         public_token = res['result']['publicToken']
         report_link = self.address + "/app/?public-token=%s#/masters/%s/summary" % (public_token, self.master_id)
         return report_link
+
+    def initialize(self):
+        self.user.token = self.token
+        self.user.address = self.address
+        self.user.data_address = self.data_address
+        self.user.log = self.log
+        self.user.timeout = self.timeout
+        self.user.logger_limit = self.logger_limit
 
 
 class DatapointSerializer(object):

@@ -359,6 +359,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
             test_name = cloud_prov.settings.get('test', None)
             result.append((report_url, test_name if test_name is not None else report_url))
         else:
+            # FIXME: reworking it all
             bza_reporters = [_x for _x in self.engine.reporters if isinstance(_x, BlazeMeterUploader)]
             for bza_reporter in bza_reporters:
 
