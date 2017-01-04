@@ -530,19 +530,16 @@ class MonitoringBuffer(object):
 
 class ProjectFinder(object):
     """
-    :type client: User
+    :type user: User
     """
 
-    TEST_TYPE_CLOUD = 'cloud-test'
-    TEST_TYPE_COLLECTION = 'cloud-collection'
-
-    def __init__(self, parameters, settings, client, parent_log):
+    def __init__(self, parameters, settings, user, parent_log):
         super(ProjectFinder, self).__init__()
         self.default_test_name = "Taurus Test"
-        self.user = client
         self.parameters = parameters
         self.settings = settings
         self.log = parent_log.getChild(self.__class__.__name__)
+        self.user = user
         self.workspaces = self.user.accounts().workspaces()
 
     def _resolve_project(self):
@@ -566,7 +563,7 @@ class ProjectFinder(object):
         if project:
             test = project.tests(test_name, test_type='external')
         else:
-            test = self.user.accounts().workspaces().tests(name=test_name, test_type='external')
+            test = self.workspaces.tests(name=test_name, test_type='external')
 
         if not test:
             if not project:
@@ -577,18 +574,23 @@ class ProjectFinder(object):
         return test
 
     def resolve_test_type(self):
-        project_id = self._resolve_project()
-
+        project = self._resolve_project()
         test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
+
         use_deprecated = self.settings.get("use-deprecated-api", True)
         default_location = self.settings.get("default-location", None)
 
-        collection = self.user.find_collection(test_name, project_id)
-        self.log.debug("Looking for collection: %s", collection)
-        if collection:
+        if project:
+            multi_test = project.multi_tests(test_name)
+        else:
+            multi_test = self.workspaces.multi_tests(name=test_name)
+
+        # FIXME: continue migrating
+        self.log.debug("Looking for collection: %s", multi_test)
+        if multi_test:
             self.log.debug("Detected test type: new")
             test_class = CloudCollectionTest
-            test_id = collection['id']
+            test_id = multi_test['id']
         else:
             test = self.user.find_test(test_name, project_id)
             self.log.debug("Looking for test: %s", test)

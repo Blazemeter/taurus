@@ -1,6 +1,7 @@
 import json
 import logging
 
+# TODO: migrate off BZT codebase
 from bzt import TaurusNetworkError
 from bzt.six import Request
 from bzt.six import text_type
@@ -81,13 +82,13 @@ class BZAObjectsList(list):
             res = BZAObjectsList()
             for item in self:
                 method = getattr(item, name)
-                chunk = method(**kwargs)
+                chunk = method(**kwargs)  # TODO: make check for args count to improve error message
                 if not isinstance(chunk, BZAObjectsList):
                     msg = "%s.%s() must return BZAObjectsList, but returned %s"
                     raise TypeError(msg % (type(item).__name__, name, type(chunk).__name__))
                 res += chunk
 
-            logging.debug("%s[%s]: %s", name, len(res), json.dumps(res, indent=True))
+            # logging.debug("%s[%s]: %s", name, len(res), json.dumps(res, indent=True))
             return res
 
         return call_list_items
@@ -103,7 +104,7 @@ class User(BZAObject):
         res = self._request(self.address + '/api/v4/accounts')
         return BZAObjectsList([Account(self, x) for x in res['result']])
 
-    def get_user(self):
+    def get_user(self):  # TODO: move it to parent class?
         res = self._request(self.address + '/api/v4/user')
         return User(self, res)
 
@@ -165,6 +166,23 @@ class Workspace(BZAObject):
             tests.append(Test(self, item))
         return tests
 
+    def multi_tests(self, name=None):
+        """
+        :rtype: BZAObjectsList[MultiTest]
+        """
+        params = {"workspaceId": self['id']}
+        if name is not None:
+            params["name"] = name
+
+        res = self._request(self.address + '/api/v4/multi-tests?' + urlencode(params))
+        tests = BZAObjectsList()
+        for item in res['result']:
+            if name is not None and item['name'] != name:
+                continue
+
+            tests.append(MultiTest(self, item))
+        return tests
+
 
 class Project(BZAObject):
     def tests(self, name=None, test_type=None):
@@ -187,6 +205,23 @@ class Project(BZAObject):
             tests.append(Test(self, item))
         return tests
 
+    def multi_tests(self, name=None):
+        """
+        :rtype: BZAObjectsList[MultiTest]
+        """
+        params = {"projectId": self['id']}
+        if name is not None:
+            params["name"] = name
+
+        res = self._request(self.address + '/api/v4/multi-tests?' + urlencode(params))
+        tests = BZAObjectsList()
+        for item in res['result']:
+            if name is not None and item['name'] != name:
+                continue
+
+            tests.append(MultiTest(self, item))
+        return tests
+
     def create_test(self, name, configuration):
         self.log.debug("Creating new test")
         url = self.address + '/api/latest/tests'
@@ -197,6 +232,10 @@ class Project(BZAObject):
 
 
 class Test(BZAObject):
+    pass
+
+
+class MultiTest(BZAObject):
     pass
 
 
