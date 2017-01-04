@@ -1269,6 +1269,27 @@ class BlazeMeterClient(object):
         hdr = {"Content-Type": str(body.get_content_type())}
         self._request(url, body.form_as_bytes(), headers=hdr)
 
+    def get_accounts(self):
+        """
+        :rtype: list[dict]
+        """
+        res = self._request(self.address + '/api/v4/accounts')
+        self.log.debug("Found %s accounts", len(res['result']))
+        return res['result']
+
+    def get_workspaces(self):
+        """
+        :rtype: list[dict]
+        """
+        res = []
+        params = {"enabled": True}
+        for account in self.get_accounts():
+            params['accountId'] = account['id']
+            data = self._request(self.address + '/api/v4/workspaces?' + urlencode(params))
+            res += data['result']
+        self.log.debug("Found %s workspaces", len(res))
+        return res
+
     def get_tests(self, name=None):
         """
         :rtype: list[dict]
@@ -1277,9 +1298,28 @@ class BlazeMeterClient(object):
         if name is not None:
             params["name"] = name
 
-        tests = self._request(self.address + '/api/v4/tests?' + urlencode(params))
-        self.log.debug("Tests for user: %s", len(tests['result']))
-        return tests['result']
+        found = []
+        for workspace in self.get_workspaces():
+            params['workspaceId'] = workspace['id']
+            tests = self._request(self.address + '/api/v4/tests?' + urlencode(params))
+            self.log.debug("Tests for user: %s", len(tests['result']))
+            found += tests['result']
+
+        return found
+
+    def get_projects(self):
+        projects = []
+        params = {}
+        for workspace in self.get_workspaces():
+            params['workspaceId'] = workspace['id']
+            data = self._request(self.address + '/api/v4/projects?' + urlencode(params))
+            projects += data['result']
+        return projects
+
+    def create_project(self, proj_name):
+        hdr = {"Content-Type": "application/json"}
+        data = self._request(self.address + '/api/v4/projects', to_json({"name": str(proj_name)}), headers=hdr)
+        return data['result']['id']
 
     def __get_kpi_body(self, data_buffer, is_final):
         # - reporting format:
@@ -1511,15 +1551,6 @@ class BlazeMeterClient(object):
             return sess['result']['sessions']
         else:
             return sess['result']
-
-    def get_projects(self):
-        data = self._request(self.address + '/api/v4/projects')
-        return data['result']
-
-    def create_project(self, proj_name):
-        hdr = {"Content-Type": "application/json"}
-        data = self._request(self.address + '/api/v4/projects', to_json({"name": str(proj_name)}), headers=hdr)
-        return data['result']['id']
 
     def get_user_info(self):
         res = self._request(self.address + '/api/v4/user')
