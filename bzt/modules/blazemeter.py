@@ -265,13 +265,12 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         except KeyboardInterrupt:
             raise
         except BaseException as exc:
+            self.log.debug("Failed to finish online: %s", traceback.format_exc())
             self.log.warning("Failed to finish online: %s", exc)
 
     def check(self):
         """
         Send data if any in buffer
-
-        :return:
         """
         self.log.debug("KPI bulk buffer len: %s", len(self.kpi_buffer))
         if self.last_dispatch < (time.time() - self.send_interval):
@@ -289,7 +288,6 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
     def __send_data(self, data, do_check=True, is_final=False):
         """
         :param data: list[bzt.modules.aggregator.DataPoint]
-        :return:
         """
         if not self.client.session_id:
             return
@@ -300,7 +298,6 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         """
         Send online data
         :param data: DataPoint
-        :return:
         """
         self.kpi_buffer.append(data)
 
@@ -1085,9 +1082,9 @@ class BlazeMeterClient(object):
         data = urlencode({})
 
         if self.token:
-            url = self.address + "/api/latest/tests/%s/start-external" % test_id
+            url = self.address + "/api/v4/tests/%s/start-external" % test_id
         else:
-            url = self.address + "/api/latest/sessions"
+            url = self.address + "/api/v4/sessions"
 
         resp = self._request(url, data)
 
@@ -1097,7 +1094,7 @@ class BlazeMeterClient(object):
         self.test_id = test_id
         self.user_id = str(resp['result']['session']['userId'])
         if self.token:
-            self.results_url = self.address + '/app/#masters/%s' % self.master_id
+            self.results_url = self.address + '/app/#masters/%s' % self.master_id  # FIXME: bad url
             if session_name:
                 url = self.address + "/api/latest/sessions/%s" % self.session_id
                 self._request(url, to_json({"name": str(session_name)}),
@@ -1123,7 +1120,7 @@ class BlazeMeterClient(object):
 
         self.log.debug("Response: %s", resp['result'])
         self.master_id = str(resp['result']['id'])
-        self.results_url = self.address + '/app/#masters/%s' % self.master_id
+        self.results_url = self.address + '/app/#masters/%s' % self.master_id  # FIXME: bad URL
         return self.results_url
 
     def launch_cloud_collection(self, collection_id):
@@ -1135,7 +1132,7 @@ class BlazeMeterClient(object):
         resp = self._request(url, method="POST")
         self.log.debug("Response: %s", resp['result'])
         self.master_id = resp['result']['id']
-        self.results_url = self.address + '/app/#masters/%s' % self.master_id
+        self.results_url = self.address + '/app/#masters/%s' % self.master_id  # FIXME: bad URL
         return self.results_url
 
     def force_start_master(self):
@@ -1157,8 +1154,8 @@ class BlazeMeterClient(object):
         else:
             self.log.info("Ending data feeding...")
             if self.token:
-                url = self.address + "/api/v4/sessions/%s/terminate"
-                self._request(url % self.session_id)
+                url = self.address + "/api/v4/sessions/%s/stop"
+                self._request(url % self.session_id, method='POST')
             else:
                 url = self.address + "/api/v4/sessions/%s/terminateExternal"
                 data = {"signature": self.data_signature, "testId": self.test_id, "sessionId": self.session_id}
