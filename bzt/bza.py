@@ -133,7 +133,8 @@ class Workspace(BZAObject):
         if name is not None:
             params["name"] = name
         res = self._request(self.address + '/api/v4/tests?' + urlencode(params))
-        return BZAObjectsList([Test(self, x) for x in res['result']])
+        return BZAObjectsList([Test(self, x) for x in res['result'] if
+                               x['name'] == name or name is None])  # FIXME: Dor Atias promised to fix it
 
 
 class Project(BZAObject):
@@ -146,7 +147,8 @@ class Project(BZAObject):
             params["name"] = name
 
         res = self._request(self.address + '/api/v4/tests?' + urlencode(params))
-        return BZAObjectsList([Test(self, x) for x in res['result']])
+        return BZAObjectsList([Test(self, x) for x in res['result'] if
+                               x['name'] == name or name is None])  # FIXME: Dor Atias promised to fix it
 
 
 class Test(BZAObject):
