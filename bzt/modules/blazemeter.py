@@ -1157,7 +1157,7 @@ class BlazeMeterClient(object):
                 url = self.address + "/api/v4/sessions/%s/stop"
                 self._request(url % self.session_id, method='POST')
             else:
-                url = self.address + "/api/v4/sessions/%s/terminateExternal"
+                url = self.address + "/api/latest/sessions/%s/terminateExternal"  # FIXME: V4 API has issue with it
                 data = {"signature": self.data_signature, "testId": self.test_id, "sessionId": self.session_id}
                 self._request(url % self.session_id, json.dumps(data))
 
