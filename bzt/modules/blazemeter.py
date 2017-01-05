@@ -591,6 +591,163 @@ class MonitoringBuffer(object):
         }
 
 
+class DatapointSerializer(object):
+    def __init__(self, owner):
+        """
+        :type owner: BlazeMeterUploader
+        """
+        super(DatapointSerializer, self).__init__()
+        self.owner = owner
+
+    def get_kpi_body(self, data_buffer, is_final):
+        # - reporting format:
+        #   {labels: <data>,    # see below
+        #    sourceID: <id of BlazeMeterClient object>,
+        #    [is_final: True]}  # for last report
+        #
+        # - elements of 'data' are described in __get_label()
+        #
+        # - elements of 'intervals' are described in __get_interval()
+        #   every interval contains info about response codes have gotten on it.
+        report_items = BetterDict()
+        if data_buffer:
+            self.owner.first_ts = min(self.owner.first_ts, data_buffer[0][DataPoint.TIMESTAMP])
+            self.owner.last_ts = max(self.owner.last_ts, data_buffer[-1][DataPoint.TIMESTAMP])
+
+            # following data is received in the cumulative way
+            for label, kpi_set in iteritems(data_buffer[-1][DataPoint.CUMULATIVE]):
+                report_item = self.__get_label(label, kpi_set)
+                self.__add_errors(report_item, kpi_set)  # 'Errors' tab
+                report_items[label] = report_item
+
+            # fill 'Timeline Report' tab with intervals data
+            # intervals are received in the additive way
+            for dpoint in data_buffer:
+                time_stamp = dpoint[DataPoint.TIMESTAMP]
+                for label, kpi_set in iteritems(dpoint[DataPoint.CURRENT]):
+                    exc = TaurusInternalException('Cumulative KPISet non-consistent')
+                    report_item = report_items.get(label, exc)
+                    report_item['intervals'].append(self.__get_interval(kpi_set, time_stamp))
+
+        report_items = [report_items[key] for key in sorted(report_items.keys())]  # convert dict to list
+        data = {"labels": report_items, "sourceID": id(self)}
+        if is_final:
+            data['final'] = True
+
+        return to_json(data)
+
+    @staticmethod
+    def __add_errors(report_item, kpi_set):
+        errors = kpi_set[KPISet.ERRORS]
+        for error in errors:
+            if error["type"] == KPISet.ERRTYPE_ERROR:
+                report_item['errors'].append({
+                    'm': error['msg'],
+                    "rc": error['rc'],
+                    "count": error['cnt'],
+                })
+            else:
+                report_item['assertions'].append({
+                    'failureMessage': error['msg'],
+                    'name': 'All Assertions',
+                    'failures': error['cnt']
+                    # TODO: "count", "errors" = ? (according do Udi's format description)
+                })
+
+    def __get_label(self, name, cumul):
+        return {
+            "n": cumul[KPISet.SAMPLE_COUNT],  # total count of samples
+            "name": name if name else 'ALL',  # label
+            "interval": 1,  # not used
+            "intervals": [],  # list of intervals, fill later
+            "samplesNotCounted": 0,  # not used
+            "assertionsNotCounted": 0,  # not used
+            "failedEmbeddedResources": [],  # not used
+            "failedEmbeddedResourcesSpilloverCount": 0,  # not used
+            "otherErrorsCount": 0,  # not used
+            "errors": [],  # list of errors, fill later
+            "assertions": [],  # list of assertions, fill later
+            "percentileHistogram": [],  # not used
+            "percentileHistogramLatency": [],  # not used
+            "percentileHistogramBytes": [],  # not used
+            "empty": False,  # not used
+            "summary": self.__get_summary(cumul)  # summary info
+        }
+
+    def __get_summary(self, cumul):
+        return {
+            "first": self.owner.first_ts,
+            "last": self.owner.last_ts,
+            "duration": self.owner.last_ts - self.owner.first_ts,
+            "failed": cumul[KPISet.FAILURES],
+            "hits": cumul[KPISet.SAMPLE_COUNT],
+
+            "avg": int(1000 * cumul[KPISet.AVG_RESP_TIME]),
+            "min": int(1000 * cumul[KPISet.PERCENTILES]["0.0"]) if "0.0" in cumul[KPISet.PERCENTILES] else 0,
+            "max": int(1000 * cumul[KPISet.PERCENTILES]["100.0"]) if "100.0" in cumul[KPISet.PERCENTILES] else 0,
+            "std": int(1000 * cumul[KPISet.STDEV_RESP_TIME]),
+            "tp90": int(1000 * cumul[KPISet.PERCENTILES]["90.0"]) if "90.0" in cumul[KPISet.PERCENTILES] else 0,
+            "tp95": int(1000 * cumul[KPISet.PERCENTILES]["95.0"]) if "95.0" in cumul[KPISet.PERCENTILES] else 0,
+            "tp99": int(1000 * cumul[KPISet.PERCENTILES]["99.0"]) if "99.0" in cumul[KPISet.PERCENTILES] else 0,
+
+            "latencyAvg": int(1000 * cumul[KPISet.AVG_LATENCY]),
+            "latencyMax": 0,
+            "latencyMin": 0,
+            "latencySTD": 0,
+
+            "bytes": cumul[KPISet.BYTE_COUNT],
+            "bytesMax": 0,
+            "bytesMin": 0,
+            "bytesAvg": int(cumul[KPISet.BYTE_COUNT] / float(cumul[KPISet.SAMPLE_COUNT])),
+            "bytesSTD": 0,
+
+            "otherErrorsSpillcount": 0,
+        }
+
+    def __get_interval(self, item, time_stamp):
+        #   rc_list - list of info about response codes:
+        #   {'n': <number of code encounters>,
+        #    'f': <number of failed request (e.q. important for assertions)>
+        #    'rc': <string value of response code>}
+        rc_list = []
+        for r_code, cnt in iteritems(item[KPISet.RESP_CODES]):
+            fails = [err['cnt'] for err in item[KPISet.ERRORS] if str(err['rc']) == r_code]
+            rc_list.append({"n": cnt, 'f': fails, "rc": r_code})
+
+        return {
+            "ec": item[KPISet.FAILURES],
+            "ts": time_stamp,
+            "na": item[KPISet.CONCURRENCY],
+            "n": item[KPISet.SAMPLE_COUNT],
+            "failed": item[KPISet.FAILURES],
+            "rc": rc_list,
+            "t": {
+                "min": int(1000 * item[KPISet.PERCENTILES]["0.0"]) if "0.0" in item[KPISet.PERCENTILES] else 0,
+                "max": int(1000 * item[KPISet.PERCENTILES]["100.0"]) if "100.0" in item[KPISet.PERCENTILES] else 0,
+                "sum": 1000 * item[KPISet.AVG_RESP_TIME] * item[KPISet.SAMPLE_COUNT],
+                "n": item[KPISet.SAMPLE_COUNT],
+                "std": 1000 * item[KPISet.STDEV_RESP_TIME],
+                "avg": 1000 * item[KPISet.AVG_RESP_TIME]
+            },
+            "lt": {
+                "min": 0,
+                "max": 0,
+                "sum": 1000 * item[KPISet.AVG_LATENCY] * item[KPISet.SAMPLE_COUNT],
+                "n": 1000 * item[KPISet.SAMPLE_COUNT],
+                "std": 0,
+                "avg": 1000 * item[KPISet.AVG_LATENCY]
+            },
+            "by": {
+                "min": 0,
+                "max": 0,
+                "sum": item[KPISet.BYTE_COUNT],
+                "n": item[KPISet.SAMPLE_COUNT],
+                "std": 0,
+                "avg": item[KPISet.BYTE_COUNT] / float(item[KPISet.SAMPLE_COUNT])
+            },
+        }
+
+
 class ProjectFinder(object):
     """
     :type user: User
@@ -1233,163 +1390,6 @@ class BlazeMeterClient(object):
                 continue
             locations[str(loc['id'])] = loc
         return locations
-
-
-class DatapointSerializer(object):
-    def __init__(self, owner):
-        """
-        :type owner: BlazeMeterUploader
-        """
-        super(DatapointSerializer, self).__init__()
-        self.owner = owner
-
-    def get_kpi_body(self, data_buffer, is_final):
-        # - reporting format:
-        #   {labels: <data>,    # see below
-        #    sourceID: <id of BlazeMeterClient object>,
-        #    [is_final: True]}  # for last report
-        #
-        # - elements of 'data' are described in __get_label()
-        #
-        # - elements of 'intervals' are described in __get_interval()
-        #   every interval contains info about response codes have gotten on it.
-        report_items = BetterDict()
-        if data_buffer:
-            self.owner.first_ts = min(self.owner.first_ts, data_buffer[0][DataPoint.TIMESTAMP])
-            self.owner.last_ts = max(self.owner.last_ts, data_buffer[-1][DataPoint.TIMESTAMP])
-
-            # following data is received in the cumulative way
-            for label, kpi_set in iteritems(data_buffer[-1][DataPoint.CUMULATIVE]):
-                report_item = self.__get_label(label, kpi_set)
-                self.__add_errors(report_item, kpi_set)  # 'Errors' tab
-                report_items[label] = report_item
-
-            # fill 'Timeline Report' tab with intervals data
-            # intervals are received in the additive way
-            for dpoint in data_buffer:
-                time_stamp = dpoint[DataPoint.TIMESTAMP]
-                for label, kpi_set in iteritems(dpoint[DataPoint.CURRENT]):
-                    exc = TaurusInternalException('Cumulative KPISet non-consistent')
-                    report_item = report_items.get(label, exc)
-                    report_item['intervals'].append(self.__get_interval(kpi_set, time_stamp))
-
-        report_items = [report_items[key] for key in sorted(report_items.keys())]  # convert dict to list
-        data = {"labels": report_items, "sourceID": id(self)}
-        if is_final:
-            data['final'] = True
-
-        return to_json(data)
-
-    @staticmethod
-    def __add_errors(report_item, kpi_set):
-        errors = kpi_set[KPISet.ERRORS]
-        for error in errors:
-            if error["type"] == KPISet.ERRTYPE_ERROR:
-                report_item['errors'].append({
-                    'm': error['msg'],
-                    "rc": error['rc'],
-                    "count": error['cnt'],
-                })
-            else:
-                report_item['assertions'].append({
-                    'failureMessage': error['msg'],
-                    'name': 'All Assertions',
-                    'failures': error['cnt']
-                    # TODO: "count", "errors" = ? (according do Udi's format description)
-                })
-
-    def __get_label(self, name, cumul):
-        return {
-            "n": cumul[KPISet.SAMPLE_COUNT],  # total count of samples
-            "name": name if name else 'ALL',  # label
-            "interval": 1,  # not used
-            "intervals": [],  # list of intervals, fill later
-            "samplesNotCounted": 0,  # not used
-            "assertionsNotCounted": 0,  # not used
-            "failedEmbeddedResources": [],  # not used
-            "failedEmbeddedResourcesSpilloverCount": 0,  # not used
-            "otherErrorsCount": 0,  # not used
-            "errors": [],  # list of errors, fill later
-            "assertions": [],  # list of assertions, fill later
-            "percentileHistogram": [],  # not used
-            "percentileHistogramLatency": [],  # not used
-            "percentileHistogramBytes": [],  # not used
-            "empty": False,  # not used
-            "summary": self.__get_summary(cumul)  # summary info
-        }
-
-    def __get_summary(self, cumul):
-        return {
-            "first": self.owner.first_ts,
-            "last": self.owner.last_ts,
-            "duration": self.owner.last_ts - self.owner.first_ts,
-            "failed": cumul[KPISet.FAILURES],
-            "hits": cumul[KPISet.SAMPLE_COUNT],
-
-            "avg": int(1000 * cumul[KPISet.AVG_RESP_TIME]),
-            "min": int(1000 * cumul[KPISet.PERCENTILES]["0.0"]) if "0.0" in cumul[KPISet.PERCENTILES] else 0,
-            "max": int(1000 * cumul[KPISet.PERCENTILES]["100.0"]) if "100.0" in cumul[KPISet.PERCENTILES] else 0,
-            "std": int(1000 * cumul[KPISet.STDEV_RESP_TIME]),
-            "tp90": int(1000 * cumul[KPISet.PERCENTILES]["90.0"]) if "90.0" in cumul[KPISet.PERCENTILES] else 0,
-            "tp95": int(1000 * cumul[KPISet.PERCENTILES]["95.0"]) if "95.0" in cumul[KPISet.PERCENTILES] else 0,
-            "tp99": int(1000 * cumul[KPISet.PERCENTILES]["99.0"]) if "99.0" in cumul[KPISet.PERCENTILES] else 0,
-
-            "latencyAvg": int(1000 * cumul[KPISet.AVG_LATENCY]),
-            "latencyMax": 0,
-            "latencyMin": 0,
-            "latencySTD": 0,
-
-            "bytes": cumul[KPISet.BYTE_COUNT],
-            "bytesMax": 0,
-            "bytesMin": 0,
-            "bytesAvg": int(cumul[KPISet.BYTE_COUNT] / float(cumul[KPISet.SAMPLE_COUNT])),
-            "bytesSTD": 0,
-
-            "otherErrorsSpillcount": 0,
-        }
-
-    def __get_interval(self, item, time_stamp):
-        #   rc_list - list of info about response codes:
-        #   {'n': <number of code encounters>,
-        #    'f': <number of failed request (e.q. important for assertions)>
-        #    'rc': <string value of response code>}
-        rc_list = []
-        for r_code, cnt in iteritems(item[KPISet.RESP_CODES]):
-            fails = [err['cnt'] for err in item[KPISet.ERRORS] if str(err['rc']) == r_code]
-            rc_list.append({"n": cnt, 'f': fails, "rc": r_code})
-
-        return {
-            "ec": item[KPISet.FAILURES],
-            "ts": time_stamp,
-            "na": item[KPISet.CONCURRENCY],
-            "n": item[KPISet.SAMPLE_COUNT],
-            "failed": item[KPISet.FAILURES],
-            "rc": rc_list,
-            "t": {
-                "min": int(1000 * item[KPISet.PERCENTILES]["0.0"]) if "0.0" in item[KPISet.PERCENTILES] else 0,
-                "max": int(1000 * item[KPISet.PERCENTILES]["100.0"]) if "100.0" in item[KPISet.PERCENTILES] else 0,
-                "sum": 1000 * item[KPISet.AVG_RESP_TIME] * item[KPISet.SAMPLE_COUNT],
-                "n": item[KPISet.SAMPLE_COUNT],
-                "std": 1000 * item[KPISet.STDEV_RESP_TIME],
-                "avg": 1000 * item[KPISet.AVG_RESP_TIME]
-            },
-            "lt": {
-                "min": 0,
-                "max": 0,
-                "sum": 1000 * item[KPISet.AVG_LATENCY] * item[KPISet.SAMPLE_COUNT],
-                "n": 1000 * item[KPISet.SAMPLE_COUNT],
-                "std": 0,
-                "avg": 1000 * item[KPISet.AVG_LATENCY]
-            },
-            "by": {
-                "min": 0,
-                "max": 0,
-                "sum": item[KPISet.BYTE_COUNT],
-                "n": item[KPISet.SAMPLE_COUNT],
-                "std": 0,
-                "avg": item[KPISet.BYTE_COUNT] / float(item[KPISet.SAMPLE_COUNT])
-            },
-        }
 
 
 class MasterProvisioning(Provisioning):
