@@ -40,7 +40,7 @@ from bzt.modules.chrome import ChromeProfiler
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.monitoring import Monitoring, MonitoringListener
 from bzt.modules.services import Unpacker
-from bzt.six import BytesIO, iteritems, HTTPError, urlencode, r_input, URLError
+from bzt.six import BytesIO, iteritems, HTTPError, r_input, URLError
 from bzt.utils import open_browser, get_full_path, get_files_recursive, replace_in_config
 from bzt.utils import to_json, dehumanize_time, MultiPartForm, BetterDict, ensure_is_dict
 
@@ -820,14 +820,14 @@ class ProjectFinder(object):
         if multi_test:
             self.log.debug("Detected test type: new")
             test_class = CloudCollectionTest
-            test_id = multi_test['id']
+            test = multi_test
         else:
             test = self.user.find_test(test_name, project['id'])
             self.log.debug("Looking for test: %s", test)
             if test:
                 self.log.debug("Detected test type: old")
                 test_class = CloudTaurusTest
-                test_id = test['id']
+                test = test['id']
             else:
                 if use_deprecated:
                     self.log.debug("Will create old-style test")
@@ -835,27 +835,30 @@ class ProjectFinder(object):
                 else:
                     self.log.debug("Will create new-style test")
                     test_class = CloudCollectionTest
-                test_id = None
+                test = None
 
-        return test_class(self.user, test_id, project['id'], test_name, default_location, self.log)
+        return test_class(self.user, test, project, test_name, default_location, self.log)
 
 
 class BaseCloudTest(object):
     """
-    :type client: BlazeMeterClient
+    :type _user: bzt.bza.User
+    :type _project: bzt.bza.Project
+    :type _test: bzt.bza.Test
+    :type _master: bzt.bza.Master
     """
 
-    def __init__(self, client, test_id, project_id, test_name, default_location, parent_log):
+    def __init__(self, user, test, project, test_name, default_location, parent_log):
         self.default_test_name = "Taurus Test"
-        self.client = client
         self.log = parent_log.getChild(self.__class__.__name__)
-        self.project_id = project_id
-        self.test_name = test_name
-        self.test_id = test_id
         self.default_location = default_location
         self._last_status = None
         self._sessions = None
         self._started = False
+        self._user = user
+        self._project = project
+        self._test = test
+        self._master = None
 
     @abstractmethod
     def prepare_locations(self, executors, engine_config):
@@ -888,11 +891,11 @@ class BaseCloudTest(object):
         pass
 
     def publish_report(self):
-        report_link = self.client.make_report_public()
+        report_link = self._master.make_report_public()
         return report_link
 
     def get_master_status(self):
-        self._last_status = self.client.get_master_status()
+        self._last_status = self._master.get_master_status()
         return self._last_status
 
 
@@ -993,21 +996,25 @@ class CloudTaurusTest(BaseCloudTest):
                     }
                 }
             }
-            self.test_id = self.client.create_test(self.test_name, test_config, self.project_id)
+            self.test_id = self.client.create_test(self._test['name'], test_config, self.project_id)
         self.client.setup_test(self.test_id, taurus_config, rfiles)
 
     def launch_test(self):
-        return self.client.start_cloud_test(self.test_id)
+        self.log.info("Initiating cloud test with %s ...", self._test.address)
+        self._master = self._test.start()
+        return self._master.address + '/app/#/masters/%s' % self._master['id']
 
     def start_if_ready(self):
         self._started = True
 
     def stop_test(self):
-        self.client.end_master()
+        if self._master:
+            self.log.info("Ending cloud test...")
+            self._master.stop()
 
     def get_test_status_text(self):
         if not self._sessions:
-            self._sessions = self.client.get_master_sessions()
+            self._sessions = self._master.sessions()
             if not self._sessions:
                 return
 
@@ -1026,7 +1033,7 @@ class CloudTaurusTest(BaseCloudTest):
             except KeyError:
                 self._sessions = None
 
-        txt = "%s #%s\n" % (self.test_name, self.client.master_id)
+        txt = "%s #%s\n" % (self._test['name'], self._master['id'])
         for executor, scenarios in iteritems(mapping):
             txt += " %s" % executor
             for scenario, locations in iteritems(scenarios):
@@ -1115,10 +1122,10 @@ class CloudCollectionTest(BaseCloudTest):
     def resolve_test(self, taurus_config, rfiles):
         if self.test_id is None:
             self.log.debug("Creating cloud collection test")
-            self.test_id = self.client.create_collection(self.test_name, taurus_config, rfiles, self.project_id)
+            self.test_id = self.client.create_collection(self._test['name'], taurus_config, rfiles, self.project_id)
         else:
             self.log.debug("Overriding cloud collection test")
-            self.client.setup_collection(self.test_id, self.test_name, taurus_config, rfiles, self.project_id)
+            self.client.setup_collection(self.test_id, self._test['name'], taurus_config, rfiles, self.project_id)
 
     def launch_test(self):
         return self.client.launch_cloud_collection(self.test_id)
@@ -1181,7 +1188,7 @@ class CloudCollectionTest(BaseCloudTest):
             except KeyError:
                 self._sessions = None
 
-        txt = "%s #%s\n" % (self.test_name, self.client.master_id)
+        txt = "%s #%s\n" % (self._test['name'], self.client.master_id)
         for scenario, locations in iteritems(mapping):
             txt += " %s:\n" % scenario
             for location, count in iteritems(locations):
@@ -1251,25 +1258,6 @@ class BlazeMeterClient(object):
                         self.log.debug("Matched: %s", test)
                         return test
 
-    def start_cloud_test(self, test_id):
-        """
-        Start online test
-
-        :type test_id: str
-        :return:
-        """
-        self.log.info("Initiating cloud test with %s ...", self.address)
-        data = urlencode({})
-
-        url = self.address + "/api/latest/tests/%s/start" % test_id
-
-        resp = self._request(url, data)
-
-        self.log.debug("Response: %s", resp['result'])
-        self.master_id = str(resp['result']['id'])
-        self.results_url = self.address + '/app/#/masters/%s' % self.master_id
-        return self.results_url
-
     def launch_cloud_collection(self, collection_id):
         self.log.info("Initiating cloud test with %s ...", self.address)
         # NOTE: delayedStart=true means that BM will not start test until all instances are ready
@@ -1291,33 +1279,6 @@ class BlazeMeterClient(object):
         self.log.info("Shutting down cloud test...")
         url = self.address + "/api/latest/collections/%s/stop" % collection_id
         self._request(url)
-
-    def end_master(self):
-        if self.master_id:
-            self.log.info("Ending cloud test...")
-            url = self.address + "/api/latest/masters/%s/terminate"
-            self._request(url % self.master_id)
-
-    def project_by_name(self, proj_name):
-        """
-        :type proj_name: str
-        :rtype: int
-        """
-        projects = self.get_projects()
-        matching = []
-        for project in projects:
-            if project['name'] == proj_name:
-                matching.append(project['id'])
-
-        if len(matching) > 1:
-            self.log.warning("Several projects IDs matched with '%s': %s", proj_name, matching)
-            msg = "Project name is ambiguous, please use project ID instead of name to distinguish it"
-            raise TaurusConfigError(msg)
-        elif len(matching) == 1:
-            return matching[0]
-        else:
-            self.log.info("Creating project '%s'...", proj_name)
-            return self.create_project(proj_name)
 
     def create_collection(self, name, taurus_config, resource_files, proj_id):
         self.log.debug("Creating collection")
@@ -1380,16 +1341,6 @@ class BlazeMeterClient(object):
 
         hdr = {"Content-Type": str(body.get_content_type())}
         self._request(url, body.form_as_bytes(), headers=hdr)
-
-    def get_available_locations(self, include_harbors=False):
-        user_info = self.get_user_info()
-        locations = {}
-        for loc in user_info['locations']:
-            loc_id = str(loc['id'])
-            if loc_id.startswith('harbor-') and not include_harbors:
-                continue
-            locations[str(loc['id'])] = loc
-        return locations
 
 
 class MasterProvisioning(Provisioning):

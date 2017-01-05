@@ -150,6 +150,16 @@ class Workspace(BZAObject):
         res = self._request(self.address + '/api/v4/private-locations?' + urlencode(params))
         return BZAObjectsList([BZAObject(self, x) for x in res['result']])
 
+    def get_available_locations(self, include_harbors=False):
+        user_info = self.get_user_info()
+        locations = {}
+        for loc in user_info['locations']:
+            loc_id = str(loc['id'])
+            if loc_id.startswith('harbor-') and not include_harbors:
+                continue
+            locations[str(loc['id'])] = loc
+        return locations
+
     def tests(self, name=None, test_type=None):
         """
         :rtype: BZAObjectsList[Test]
@@ -277,6 +287,15 @@ class Test(BZAObject):
         if len(response['removed']) == len(files):
             self.log.debug("Successfully deleted %d test files", len(response['removed']))
 
+    def start(self):
+        url = self.address + "/api/latest/tests/%s/start" % self['id']
+
+        resp = self._request(url, method='POST')
+
+        self.log.debug("Response: %s", resp['result'])
+        master = Master(resp['result'])
+        return master
+
 
 class MultiTest(BZAObject):
     pass
@@ -315,12 +334,14 @@ class Master(BZAObject):
         sess = self._request(self.address + '/api/v4/masters/%s/status' % self['id'])
         return sess['result']
 
-    def get_master_sessions(self):
+    def sessions(self):
         sess = self._request(self.address + '/api/v4/masters/%s/sessions' % self['id'])
         if 'sessions' in sess['result']:
-            return sess['result']['sessions']
+            arr = sess['result']['sessions']
         else:
-            return sess['result']
+            arr = sess['result']
+
+        return BZAObjectsList([Session(x) for x in arr])
 
     def get_kpis(self, master_id, min_ts):
         params = [
@@ -348,6 +369,10 @@ class Master(BZAObject):
         url = self.address + "/api/v4/masters/%s/reports/aggregatereport/data" % master_id
         res = self._request(url)
         return res['result']
+
+    def stop(self):
+        url = self.address + "/api/latest/masters/%s/stop"
+        self._request(url % self['id'])
 
 
 class Session(BZAObject):
