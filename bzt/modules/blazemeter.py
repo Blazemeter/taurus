@@ -33,14 +33,14 @@ import yaml
 from urwid import Pile, Text
 
 from bzt import ManualShutdown, TaurusInternalException, TaurusConfigError, TaurusNetworkError
-from bzt.bza import User
+from bzt.bza import User, Session, Test
 from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
 from bzt.modules.chrome import ChromeProfiler
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.monitoring import Monitoring, MonitoringListener
 from bzt.modules.services import Unpacker
-from bzt.six import BytesIO, text_type, iteritems, HTTPError, urlencode, Request, urlopen, r_input, URLError
+from bzt.six import BytesIO, iteritems, HTTPError, urlencode, r_input, URLError
 from bzt.utils import open_browser, get_full_path, get_files_recursive, replace_in_config
 from bzt.utils import to_json, dehumanize_time, MultiPartForm, BetterDict, ensure_is_dict
 
@@ -72,14 +72,15 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
     Reporter class
 
     :type client: BlazeMeterClient
-    :type test: bzt.bza.Test
+    :type _test: bzt.bza.Test
+    :type _master: bzt.bza.Master
     """
 
     def __init__(self):
         super(BlazeMeterUploader, self).__init__()
         self.browser_open = 'start'
         self.client = BlazeMeterClient(self.log)
-        self.test = None
+        self._test = None
         self.kpi_buffer = []
         self.send_interval = 30
         self.sess_name = None
@@ -90,16 +91,15 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         self.send_custom_tables = False
         self.public_report = False
         self.last_dispatch = 0
+        self._master = None
+        self._session = None
+        self.results_url = None
 
     def prepare(self):
         """
         Read options for uploading, check that they're sane
         """
         super(BlazeMeterUploader, self).prepare()
-        self.client.logger_limit = self.settings.get("request-logging-limit", self.client.logger_limit)
-        self.client.address = self.settings.get("address", self.client.address)
-        self.client.data_address = self.settings.get("data-address", self.client.data_address)
-        self.client.timeout = dehumanize_time(self.settings.get("timeout", self.client.timeout))
         self.send_interval = dehumanize_time(self.settings.get("send-interval", self.send_interval))
         self.send_monitoring = self.settings.get("send-monitoring", self.send_monitoring)
         self.send_custom_metrics = self.settings.get("send-custom-metrics", self.send_custom_metrics)
@@ -113,15 +113,23 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
             self.log.warning("No BlazeMeter API key provided, will upload anonymously")
         self.client.token = token
 
-        self.client.session_id = self.parameters.get("session-id", None)
-        self.client.test_id = self.parameters.get("test-id", None)
-        self.client.user_id = self.parameters.get("user-id", None)
-        self.client.data_signature = self.parameters.get("signature", None)
-        self.client.kpi_target = self.parameters.get("kpi-target", self.client.kpi_target)
-
+        # usual fields
+        self.client.logger_limit = self.settings.get("request-logging-limit", self.client.logger_limit)
+        self.client.address = self.settings.get("address", self.client.address)
+        self.client.data_address = self.settings.get("data-address", self.client.data_address)
+        self.client.timeout = dehumanize_time(self.settings.get("timeout", self.client.timeout))
         self.client.initialize()
 
-        if not self.client.test_id:
+        # direct data feeding case
+        sess_id = self.parameters.get("session-id", None)
+        if sess_id:
+            self._session = Session(self.client.user, {'id': sess_id})
+            self._session['userId'] = self.parameters.get("user-id", None)
+            self._session['testId'] = self.parameters.get("test-id", None)
+            self._test = Test(self.client.user, {'id': self._session['testId']})
+            self._session.data_signature = self.parameters.get("signature", None)
+            self._session.kpi_target = self.parameters.get("kpi-target", self._session.kpi_target)
+        else:
             try:
                 self.client.ping()  # to check connectivity and auth
             except HTTPError:
@@ -130,7 +138,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
 
             if token:
                 finder = ProjectFinder(self.parameters, self.settings, self.client.user, self.log)
-                self.test = finder.resolve_external_test()
+                self._test = finder.resolve_external_test()
+            self._test = Test(self.client.user)
 
         self.sess_name = self.parameters.get("report-name", self.settings.get("report-name", self.sess_name))
         if self.sess_name == 'ask' and sys.stdin.isatty():
@@ -150,15 +159,36 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         super(BlazeMeterUploader, self).startup()
         self.client.log = self.log.getChild(self.__class__.__name__)
 
-        if not self.client.session_id:
-            url, master = self.client.start_online(self.test, self.sess_name)
+        if not self._session:
+            url = self._start_online(self.sess_name)
             self.log.info("Started data feeding: %s", url)
             if self.browser_open in ('start', 'both'):
                 open_browser(url)
 
             if self.client.token and self.public_report:
-                report_link = master.make_report_public()
+                report_link = self._master.make_report_public()
                 self.log.info("Public report link: %s", report_link)
+
+    def _start_online(self, session_name):
+        """
+        Start online test
+
+        :type session_name: str
+        """
+        self.log.info("Initiating data feeding...")
+
+        if self._test['id']:
+            self._session, self._master = self._test.start_external()
+        else:
+            self._session, self._master, self.results_url = self._test.start_anonymous_external_test()
+            self._test['id'] = self._session['testId']
+
+        if self._test.token:
+            self.results_url = self._master.address + '/app/#/masters/%s' % self._master['id']
+            if session_name:
+                self._session.set({"name": str(session_name)})
+
+        return self.results_url
 
     def __get_jtls_and_more(self):
         """
@@ -237,10 +267,10 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         finally:
             self._postproc_phase2()
 
-        if self.client.results_url:
+        if self.results_url:
             if self.browser_open in ('end', 'both'):
-                open_browser(self.client.results_url)
-            self.log.info("Online report link: %s", self.client.results_url)
+                open_browser(self.results_url)
+            self.log.info("Online report link: %s", self.results_url)
 
     def _postproc_phase2(self):
         try:
@@ -593,7 +623,7 @@ class ProjectFinder(object):
             test_class = CloudCollectionTest
             test_id = multi_test['id']
         else:
-            test = self.user.find_test(test_name, project_id)
+            test = self.user.find_test(test_name, project['id'])
             self.log.debug("Looking for test: %s", test)
             if test:
                 self.log.debug("Detected test type: old")
@@ -608,7 +638,7 @@ class ProjectFinder(object):
                     test_class = CloudCollectionTest
                 test_id = None
 
-        return test_class(self.user, test_id, project_id, test_name, default_location, self.log)
+        return test_class(self.user, test_id, project['id'], test_name, default_location, self.log)
 
 
 class BaseCloudTest(object):
@@ -965,68 +995,18 @@ class BlazeMeterClient(object):
     """ Service client class """
 
     def __init__(self, parent_logger):
-        self.kpi_target = 'labels_bulk'
-        self.logger_limit = 256
         self.user_id = None
         self.test_id = None
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.token = None
-        self.address = "https://a.blazemeter.com"
-        self.data_address = "https://data.blazemeter.com"
-        self.results_url = None
         self.session_id = None
         self.master_id = None
-        self.data_signature = None
         self.first_ts = sys.maxsize
         self.last_ts = 0
         self.timeout = 10
         self.delete_files_before_test = False
 
         self.user = User()
-
-    def _request(self, url, data=None, headers=None, checker=None, method=None):
-        raise ValueError()
-        if not headers:
-            headers = {}
-        if self.token:
-            headers["X-Api-Key"] = self.token
-
-        log_method = 'GET' if data is None else 'POST'
-        if method:
-            log_method = method
-
-        url = str(url)
-        self.log.debug("Request: %s %s %s", log_method, url, data[:self.logger_limit] if data else None)
-        # .encode("utf-8") is probably better
-        data = data.encode() if isinstance(data, text_type) else data
-        req = Request(url, data, headers)
-        if method:
-            req.get_method = lambda: method
-
-        start = time.time()
-        response = urlopen(req, timeout=self.timeout)
-
-        if checker:
-            checker(response)
-
-        resp = response.read()
-        if not isinstance(resp, str):
-            resp = resp.decode()
-
-        end = time.time()
-
-        self.log.debug("Response: %s", resp[:self.logger_limit] if resp else None)
-
-        # noinspection PyProtectedMember
-        name = sys._getframe(1).f_code.co_name
-        self.log.debug("Request timing: %s took %.2fs (%.2f kb sent) (%.2f kb recv)", name, end - start,
-                       len(data) / 1024.0 if data else 0,
-                       len(resp) / 1024.0 if resp else 0)
-        try:
-            return json.loads(resp) if len(resp) else {}
-        except ValueError as exc:
-            self.log.debug('Response: %s', resp)
-            raise TaurusNetworkError("Non-JSON response from API: %s" % exc)
 
     def upload_collection_resources(self, resource_files, draft_id):
         url = self.address + "/api/latest/web/elfinder/%s" % draft_id
@@ -1075,47 +1055,6 @@ class BlazeMeterClient(object):
                     if not project_id or project_id == test['projectId']:
                         self.log.debug("Matched: %s", test)
                         return test
-
-    def find_external_test(self, test_name, project_id):
-        """
-        :rtype dict
-        """
-        tests = self.get_tests(test_name)
-        for test in tests:
-            self.log.debug("Test: %s", test)
-            if "name" in test and test['name'] == test_name:
-                if test['configuration']['type'] == "external":
-                    if not project_id or project_id == test['projectId']:
-                        self.log.debug("Matched: %s", test)
-                        return test
-
-    def start_online(self, test, session_name):
-        """
-        Start online test
-
-        :type test: bzt.bza.Test
-        :type session_name: str
-        """
-        self.log.info("Initiating data feeding...")
-
-        if test:
-            self.test_id = test['id']
-            session, master, signature = test.start_external()
-        else:
-            session, master, signature, url = self.user.start_anonymous_external_test()
-
-        self.session_id = str(session['id'])
-        self.master_id = str(master['id'])
-        self.data_signature = str(signature)
-        self.user_id = str(session['userId'])
-        if self.token:
-            self.results_url = self.address + '/app/#/masters/%s' % self.master_id
-            if session_name:
-                session.set({"name": str(session_name)})
-        else:
-            self.test_id = session['testId']
-            self.results_url = url
-        return self.results_url, master
 
     def start_cloud_test(self, test_id):
         """

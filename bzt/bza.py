@@ -104,13 +104,6 @@ class User(BZAObject):
         res = self._request(self.address + '/api/v4/user')
         return User(self, res)
 
-    def start_anonymous_external_test(self):
-        url = self.address + "/api/v4/sessions"
-        res = self._request(url, method='POST')
-        result = res['result']
-        return Session(self, result['session']), Master(self, result['master']), result['signature'], result[
-            'publicTokenUrl']
-
 
 class Account(BZAObject):
     def workspaces(self):
@@ -227,7 +220,7 @@ class Project(BZAObject):
 
     def create_test(self, name, configuration):
         self.log.debug("Creating new test")
-        url = self.address + '/api/latest/tests'
+        url = self.address + '/api/v4/tests'
         data = {"name": name, "projectId": self['id'], "configuration": configuration}
         hdr = {"Content-Type": " application/json"}
         resp = self._request(url, json.dumps(data), headers=hdr)
@@ -239,7 +232,17 @@ class Test(BZAObject):
         url = self.address + "/api/v4/tests/%s/start-external" % self['id']
         res = self._request(url, method='POST')
         result = res['result']
-        return Session(self, result['session']), Master(self, result['master']), result['signature']
+        session = Session(self, result['session'])
+        session.data_signature = result['signature']
+        return session, Master(self, result['master'])
+
+    def start_anonymous_external_test(self):
+        url = self.address + "/api/v4/sessions"
+        res = self._request(url, method='POST')
+        result = res['result']
+        session = Session(self, result['session'])
+        session.data_signature = result['signature']
+        return session, Master(self, result['master']), result['publicTokenUrl']
 
 
 class MultiTest(BZAObject):
@@ -257,6 +260,11 @@ class Master(BZAObject):
 
 
 class Session(BZAObject):
+    def __init__(self, proto=None, data=None):
+        super(Session, self).__init__(proto, data)
+        self.data_signature = None
+        self.kpi_target = 'labels_bulk'
+
     def set(self, data):
-        url = self.address + "/api/latest/sessions/%s" % self['id']
+        url = self.address + "/api/v4/sessions/%s" % self['id']
         self._request(url, json.dumps(data), headers={"Content-Type": "application/json"}, method='PATCH')
