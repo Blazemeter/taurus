@@ -1,12 +1,14 @@
+import cookielib
 import json
 import logging
 
-# TODO: migrate off BZT codebase
+import requests
+
 from bzt import TaurusNetworkError
-from bzt.six import Request
 from bzt.six import text_type
 from bzt.six import urlencode
-from bzt.six import urlopen
+
+logging.getLogger("requests").setLevel(logging.WARNING)
 
 
 class BZAObject(dict):
@@ -24,6 +26,7 @@ class BZAObject(dict):
         self.logger_limit = 256
         self.token = None
         self.log = logging.getLogger(self.__class__.__name__)
+        self._cookies = cookielib.CookieJar()
 
         if isinstance(proto, BZAObject):  # TODO: do we have anything more graceful to handle this?
             self.address = proto.address
@@ -32,8 +35,9 @@ class BZAObject(dict):
             self.logger_limit = proto.logger_limit
             self.token = proto.token
             self._request = proto._request  # for unit tests override
+            self._cookies = proto._cookies
 
-    def _request(self, url, data=None, headers=None, checker=None, method=None):
+    def _request(self, url, data=None, headers=None, method=None):
         if not headers:
             headers = {}
 
@@ -48,16 +52,10 @@ class BZAObject(dict):
         url = str(url)
         self.log.debug("Request: %s %s %s", log_method, url, data[:self.logger_limit] if data else None)
         data = data.encode("utf8") if isinstance(data, text_type) else data
-        req = Request(url, data, headers)
-        if method:
-            req.get_method = lambda: method
+        response = requests.request(method=log_method, url=url, data=data, headers=headers, cookies=self._cookies,
+                                    timeout=self.timeout)
 
-        response = urlopen(req, timeout=self.timeout)
-
-        if checker:
-            checker(response)
-
-        resp = response.read()
+        resp = response.content
         if not isinstance(resp, str):
             resp = resp.decode()
 
@@ -70,9 +68,7 @@ class BZAObject(dict):
             raise TaurusNetworkError("Non-JSON response from API: %s" % exc)
 
     def ping(self):
-        """
-        Quick check if we can access the service
-        """
+        """ Quick check if we can access the service """
         self._request(self.address + '/api/v4/web/version')
 
 
@@ -107,6 +103,13 @@ class User(BZAObject):
     def get_user(self):  # TODO: move it to parent class?
         res = self._request(self.address + '/api/v4/user')
         return User(self, res)
+
+    def start_anonymous_external_test(self):
+        url = self.address + "/api/v4/sessions"
+        res = self._request(url, method='POST')
+        result = res['result']
+        return Session(self, result['session']), Master(self, result['master']), result['signature'], result[
+            'publicTokenUrl']
 
 
 class Account(BZAObject):
@@ -232,7 +235,11 @@ class Project(BZAObject):
 
 
 class Test(BZAObject):
-    pass
+    def start_external(self):
+        url = self.address + "/api/v4/tests/%s/start-external" % self['id']
+        res = self._request(url, method='POST')
+        result = res['result']
+        return Session(self, result['session']), Master(self, result['master']), result['signature']
 
 
 class MultiTest(BZAObject):
@@ -240,8 +247,16 @@ class MultiTest(BZAObject):
 
 
 class Master(BZAObject):
-    pass
+    def make_report_public(self):
+        url = self.address + "/api/v4/masters/%s/publicToken" % self['id']
+        res = self._request(url, json.dumps({"publicToken": None}),
+                            headers={"Content-Type": "application/json"}, method="POST")
+        public_token = res['result']['publicToken']
+        report_link = self.address + "/app/?public-token=%s#/masters/%s/summary" % (public_token, self['id'])
+        return report_link
 
 
 class Session(BZAObject):
-    pass
+    def set(self, data):
+        url = self.address + "/api/latest/sessions/%s" % self['id']
+        self._request(url, json.dumps(data), headers={"Content-Type": "application/json"}, method='PATCH')

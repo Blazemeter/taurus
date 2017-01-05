@@ -72,13 +72,14 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
     Reporter class
 
     :type client: BlazeMeterClient
+    :type test: bzt.bza.Test
     """
 
     def __init__(self):
         super(BlazeMeterUploader, self).__init__()
         self.browser_open = 'start'
         self.client = BlazeMeterClient(self.log)
-        self.test_id = ""
+        self.test = None
         self.kpi_buffer = []
         self.send_interval = 30
         self.sess_name = None
@@ -129,7 +130,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
 
             if token:
                 finder = ProjectFinder(self.parameters, self.settings, self.client.user, self.log)
-                self.test_id = finder.resolve_external_test()
+                self.test = finder.resolve_external_test()
 
         self.sess_name = self.parameters.get("report-name", self.settings.get("report-name", self.sess_name))
         if self.sess_name == 'ask' and sys.stdin.isatty():
@@ -150,13 +151,13 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         self.client.log = self.log.getChild(self.__class__.__name__)
 
         if not self.client.session_id:
-            url = self.client.start_online(self.test_id, self.sess_name)
+            url, master = self.client.start_online(self.test, self.sess_name)
             self.log.info("Started data feeding: %s", url)
             if self.browser_open in ('start', 'both'):
                 open_browser(url)
 
             if self.client.token and self.public_report:
-                report_link = self.client.make_report_public()
+                report_link = master.make_report_public()
                 self.log.info("Public report link: %s", report_link)
 
     def __get_jtls_and_more(self):
@@ -540,7 +541,7 @@ class ProjectFinder(object):
         self.settings = settings
         self.log = parent_log.getChild(self.__class__.__name__)
         self.user = user
-        self.workspaces = self.user.accounts().workspaces()
+        self.workspaces = self.user.accounts().workspaces()  # TODO: would be better to get it from outside
 
     def _resolve_project(self):
         """
@@ -1088,39 +1089,33 @@ class BlazeMeterClient(object):
                         self.log.debug("Matched: %s", test)
                         return test
 
-    def start_online(self, test_id, session_name):
+    def start_online(self, test, session_name):
         """
         Start online test
 
-        :type test_id: str
+        :type test: bzt.bza.Test
         :type session_name: str
-        :return:
         """
         self.log.info("Initiating data feeding...")
-        data = urlencode({})
 
-        if self.token:
-            url = self.address + "/api/v4/tests/%s/start-external" % test_id
+        if test:
+            self.test_id = test['id']
+            session, master, signature = test.start_external()
         else:
-            url = self.address + "/api/v4/sessions"
+            session, master, signature, url = self.user.start_anonymous_external_test()
 
-        resp = self._request(url, data)
-
-        self.session_id = str(resp['result']['session']['id'])
-        self.master_id = str(resp['result']['master']['id'])
-        self.data_signature = str(resp['result']['signature'])
-        self.test_id = test_id
-        self.user_id = str(resp['result']['session']['userId'])
+        self.session_id = str(session['id'])
+        self.master_id = str(master['id'])
+        self.data_signature = str(signature)
+        self.user_id = str(session['userId'])
         if self.token:
-            self.results_url = self.address + '/app/#masters/%s' % self.master_id  # FIXME: bad url
+            self.results_url = self.address + '/app/#/masters/%s' % self.master_id
             if session_name:
-                url = self.address + "/api/latest/sessions/%s" % self.session_id
-                self._request(url, to_json({"name": str(session_name)}),
-                              headers={"Content-Type": "application/json"}, method='PATCH')
+                session.set({"name": str(session_name)})
         else:
-            self.test_id = resp['result']['session']['testId']
-            self.results_url = resp['result']['publicTokenUrl']
-        return self.results_url
+            self.test_id = session['testId']
+            self.results_url = url
+        return self.results_url, master
 
     def start_cloud_test(self, test_id):
         """
@@ -1138,7 +1133,7 @@ class BlazeMeterClient(object):
 
         self.log.debug("Response: %s", resp['result'])
         self.master_id = str(resp['result']['id'])
-        self.results_url = self.address + '/app/#masters/%s' % self.master_id  # FIXME: bad URL
+        self.results_url = self.address + '/app/#/masters/%s' % self.master_id
         return self.results_url
 
     def launch_cloud_collection(self, collection_id):
@@ -1150,7 +1145,7 @@ class BlazeMeterClient(object):
         resp = self._request(url, method="POST")
         self.log.debug("Response: %s", resp['result'])
         self.master_id = resp['result']['id']
-        self.results_url = self.address + '/app/#masters/%s' % self.master_id  # FIXME: bad URL
+        self.results_url = self.address + '/app/#/masters/%s' % self.master_id
         return self.results_url
 
     def force_start_master(self):
@@ -1175,7 +1170,7 @@ class BlazeMeterClient(object):
                 url = self.address + "/api/v4/sessions/%s/stop"
                 self._request(url % self.session_id, method='POST')
             else:
-                url = self.address + "/api/latest/sessions/%s/terminateExternal"  # FIXME: V4 API has issue with it
+                url = self.address + "/api/latest/sessions/%s/terminate-external"  # FIXME: V4 API has issue with it
                 data = {"signature": self.data_signature, "testId": self.test_id, "sessionId": self.session_id}
                 self._request(url % self.session_id, json.dumps(data))
 
@@ -1488,14 +1483,6 @@ class BlazeMeterClient(object):
         url = self.address + "/api/v4/data/masters/%s/custom-table" % self.master_id
         res = self._request(url, to_json(data), headers={"Content-Type": "application/json"}, method="POST")
         return res
-
-    def make_report_public(self):
-        url = self.address + "/api/v4/masters/%s/publicToken" % self.master_id
-        res = self._request(url, to_json({"publicToken": None}),
-                            headers={"Content-Type": "application/json"}, method="POST")
-        public_token = res['result']['publicToken']
-        report_link = self.address + "/app/?public-token=%s#/masters/%s/summary" % (public_token, self.master_id)
-        return report_link
 
     def initialize(self):
         self.user.token = self.token
