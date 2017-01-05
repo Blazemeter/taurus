@@ -258,6 +258,26 @@ class Master(BZAObject):
         report_link = self.address + "/app/?public-token=%s#/masters/%s/summary" % (public_token, self['id'])
         return report_link
 
+    def send_custom_metrics(self, data):
+        url = self.address + "/api/v4/data/masters/%s/custom-metrics" % self['id']
+        res = self._request(url, json.dumps(data), headers={"Content-Type": "application/json"}, method="POST")
+        return res
+
+    def send_custom_tables(self, data):
+        url = self.address + "/api/v4/data/masters/%s/custom-table" % self['id']
+        res = self._request(url, json.dumps(data), headers={"Content-Type": "application/json"}, method="POST")
+        return res
+
+    def fetch(self):
+        url = self.address + "/api/v4/masters/%s" % self['id']
+        res = self._request(url)
+        self.update(res['result'])
+
+    def set(self, data):
+        url = self.address + "/api/v4/masters/%s" % self['id']
+        res = self._request(url, json.dumps(data), headers={"Content-Type": "application/json"}, method='PATCH')
+        self.update(res['result'])
+
 
 class Session(BZAObject):
     def __init__(self, proto=None, data=None):
@@ -265,6 +285,22 @@ class Session(BZAObject):
         self.data_signature = None
         self.kpi_target = 'labels_bulk'
 
+    def fetch(self):
+        url = self.address + "/api/v4/sessions/%s" % self['id']
+        res = self._request(url)
+        self.update(res['result'])
+
     def set(self, data):
         url = self.address + "/api/v4/sessions/%s" % self['id']
-        self._request(url, json.dumps(data), headers={"Content-Type": "application/json"}, method='PATCH')
+        res = self._request(url, json.dumps(data), headers={"Content-Type": "application/json"}, method='PATCH')
+        self.log.warning("Res: %s", res)
+        self.update(res['result'])
+
+    def stop(self):
+        url = self.address + "/api/v4/sessions/%s/stop" % self['id']
+        self._request(url, method='POST')
+
+    def stop_anonymous(self):
+        url = self.address + "/api/v4/sessions/%s/terminate-external" % self['id']  # FIXME: V4 API has issue with it
+        data = {"signature": self.data_signature, "testId": self['testId'], "sessionId": self['id']}
+        self._request(url, json.dumps(data))

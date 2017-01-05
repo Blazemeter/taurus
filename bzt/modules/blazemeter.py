@@ -71,7 +71,6 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
     """
     Reporter class
 
-    :type client: BlazeMeterClient
     :type _test: bzt.bza.Test
     :type _master: bzt.bza.Master
     """
@@ -79,8 +78,6 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
     def __init__(self):
         super(BlazeMeterUploader, self).__init__()
         self.browser_open = 'start'
-        self.client = BlazeMeterClient(self.log)
-        self._test = None
         self.kpi_buffer = []
         self.send_interval = 30
         self.sess_name = None
@@ -91,9 +88,11 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         self.send_custom_tables = False
         self.public_report = False
         self.last_dispatch = 0
+        self.results_url = None
+        self._user = User()
+        self._test = None
         self._master = None
         self._session = None
-        self.results_url = None
 
     def prepare(self):
         """
@@ -111,35 +110,35 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         token = self.settings.get("token", "")
         if not token:
             self.log.warning("No BlazeMeter API key provided, will upload anonymously")
-        self.client.token = token
+        self._user.token = token
 
         # usual fields
-        self.client.logger_limit = self.settings.get("request-logging-limit", self.client.logger_limit)
-        self.client.address = self.settings.get("address", self.client.address)
-        self.client.data_address = self.settings.get("data-address", self.client.data_address)
-        self.client.timeout = dehumanize_time(self.settings.get("timeout", self.client.timeout))
-        self.client.initialize()
+        self._user.logger_limit = self.settings.get("request-logging-limit", self._user.logger_limit)
+        self._user.address = self.settings.get("address", self._user.address)
+        self._user.data_address = self.settings.get("data-address", self._user.data_address)
+        self._user.timeout = dehumanize_time(self.settings.get("timeout", self._user.timeout))
 
         # direct data feeding case
         sess_id = self.parameters.get("session-id", None)
         if sess_id:
-            self._session = Session(self.client.user, {'id': sess_id})
+            self._session = Session(self._user, {'id': sess_id})
             self._session['userId'] = self.parameters.get("user-id", None)
             self._session['testId'] = self.parameters.get("test-id", None)
-            self._test = Test(self.client.user, {'id': self._session['testId']})
+            self._test = Test(self._user, {'id': self._session['testId']})
             self._session.data_signature = self.parameters.get("signature", None)
             self._session.kpi_target = self.parameters.get("kpi-target", self._session.kpi_target)
         else:
             try:
-                self.client.ping()  # to check connectivity and auth
+                self._user.ping()  # to check connectivity and auth
             except HTTPError:
                 self.log.error("Cannot reach online results storage, maybe the address/token is wrong")
                 raise
 
             if token:
-                finder = ProjectFinder(self.parameters, self.settings, self.client.user, self.log)
+                finder = ProjectFinder(self.parameters, self.settings, self._user, self.log)
                 self._test = finder.resolve_external_test()
-            self._test = Test(self.client.user)
+            else:
+                self._test = Test(self._user, {'id': None})
 
         self.sess_name = self.parameters.get("report-name", self.settings.get("report-name", self.sess_name))
         if self.sess_name == 'ask' and sys.stdin.isatty():
@@ -157,7 +156,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         Initiate online test
         """
         super(BlazeMeterUploader, self).startup()
-        self.client.log = self.log.getChild(self.__class__.__name__)
+        self._user.log = self.log.getChild(self.__class__.__name__)
 
         if not self._session:
             url = self._start_online(self.sess_name)
@@ -165,7 +164,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
             if self.browser_open in ('start', 'both'):
                 open_browser(url)
 
-            if self.client.token and self.public_report:
+            if self._user.token and self.public_report:
                 report_link = self._master.make_report_public()
                 self.log.info("Public report link: %s", report_link)
 
@@ -223,34 +222,34 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
     def __upload_artifacts(self):
         """
         If token provided, upload artifacts folder contents and bzt.log
-
-        :return:
         """
-        if self.client.token:
-            worker_index = self.engine.config.get('modules').get('shellexec').get('env').get('TAURUS_INDEX_ALL', '')
-            if worker_index:
-                suffix = '-%s' % worker_index
-            else:
-                suffix = ''
-            artifacts_zip = "artifacts%s.zip" % suffix
-            mfile = self.__get_jtls_and_more()
-            self.log.info("Uploading all artifacts as %s ...", artifacts_zip)
-            self.client.upload_file(artifacts_zip, mfile.getvalue())
+        if not self._session.token:
+            return
 
-            for handler in self.engine.log.parent.handlers:
-                if isinstance(handler, logging.FileHandler):
-                    fname = handler.baseFilename
-                    self.log.info("Uploading %s", fname)
-                    fhead, ftail = os.path.splitext(os.path.split(fname)[-1])
-                    modified_name = fhead + suffix + ftail
-                    with open(fname) as _file:
-                        self.client.upload_file(modified_name, _file.read())
+        worker_index = self.engine.config.get('modules').get('shellexec').get('env').get('TAURUS_INDEX_ALL', '')
+        if worker_index:
+            suffix = '-%s' % worker_index
+        else:
+            suffix = ''
+        artifacts_zip = "artifacts%s.zip" % suffix
+        mfile = self.__get_jtls_and_more()
+        self.log.info("Uploading all artifacts as %s ...", artifacts_zip)
+        self._session.upload_file(artifacts_zip, mfile.getvalue())
+
+        for handler in self.engine.log.parent.handlers:
+            if isinstance(handler, logging.FileHandler):
+                fname = handler.baseFilename
+                self.log.info("Uploading %s", fname)
+                fhead, ftail = os.path.splitext(os.path.split(fname)[-1])
+                modified_name = fhead + suffix + ftail
+                with open(fname) as _file:
+                    self._session.upload_file(modified_name, _file.read())
 
     def post_process(self):
         """
         Upload results if possible
         """
-        if not self.client.session_id:
+        if not self._session:
             self.log.debug("No feeding session obtained, nothing to finalize")
             return
 
@@ -289,18 +288,47 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
 
     def _postproc_phase3(self):
         try:
-            self.client.end_online()
-            if self.client.token and self.engine.stopping_reason:
+            self.end_online()
+            if self._user.token and self.engine.stopping_reason:
                 exc_class = self.engine.stopping_reason.__class__.__name__
                 note = "%s: %s" % (exc_class, str(self.engine.stopping_reason))
-                self.client.append_note_to_session(note)
-                self.client.append_note_to_master(note)
+                self.append_note_to_session(note)
+                self.append_note_to_master(note)
 
         except KeyboardInterrupt:
             raise
         except BaseException as exc:
             self.log.debug("Failed to finish online: %s", traceback.format_exc())
             self.log.warning("Failed to finish online: %s", exc)
+
+    def end_online(self):
+        """
+        Finish online test
+        """
+        if not self._session:
+            self.log.debug("Feeding not started, so not stopping")
+        else:
+            self.log.info("Ending data feeding...")
+            if self._user.token:
+                self._session.stop()
+            else:
+                self._session.stop_anonymous()
+
+    def append_note_to_session(self, note):
+        self._session.fetch()
+        if 'note' in self._session:
+            note = self._session['note'] + '\n' + note
+        note = note.strip()
+        if note:
+            self._session.set({'note': note})
+
+    def append_note_to_master(self, note):
+        self._master.fetch()
+        if 'note' in self._master:
+            note = self._master['note'] + '\n' + note
+        note = note.strip()
+        if note:
+            self._master.set({'note': note})
 
     def check(self):
         """
@@ -321,12 +349,12 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
     @send_with_retry
     def __send_data(self, data, do_check=True, is_final=False):
         """
-        :param data: list[bzt.modules.aggregator.DataPoint]
+        :type data: list[bzt.modules.aggregator.DataPoint]
         """
-        if not self.client.session_id:
+        if not self._session:
             return
 
-        self.client.send_kpi_data(data, do_check, is_final)
+        self._session.send_kpi_data(data, do_check, is_final)
 
     def aggregated_second(self, data):
         """
@@ -346,22 +374,20 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
     @send_with_retry
     def __send_monitoring(self):
         src_name = platform.node()
-        data = self.monitoring_buffer.get_monitoring_json(self.client.session_id,
-                                                          self.client.user_id,
-                                                          self.client.test_id)
-        self.client.send_monitoring_data(src_name, data)
+        data = self.monitoring_buffer.get_monitoring_json(self._session)
+        self._session.send_monitoring_data(src_name, data)
 
     @send_with_retry
     def __send_custom_metrics(self):
         data = self.get_custom_metrics_json()
-        self.client.send_custom_metrics(data)
+        self._master.send_custom_metrics(data)
 
     @send_with_retry
     def __send_custom_tables(self):
         data = self.get_custom_tables_json()
         if not data:
             return
-        self.client.send_custom_tables(data)
+        self._master.send_custom_tables(data)
 
     def get_custom_metrics_json(self):
         datapoints = {}
@@ -485,7 +511,10 @@ class MonitoringBuffer(object):
                 left[metric] = right[metric]
         left['interval'] = sum_size
 
-    def get_monitoring_json(self, session_id, user_id, test_id):
+    def get_monitoring_json(self, session):
+        """
+        :type session: Session
+        """
         results = {}
         hosts = []
         kpis = {}
@@ -546,10 +575,10 @@ class MonitoringBuffer(object):
         kpis = {"Network I/O": "Network I/O", "Memory": "Memory", "CPU": "CPU"}
         return {
             "reportInfo": {
-                "sessionId": session_id,
+                "sessionId": session['id'],
                 "timestamp": time.time(),
-                "userId": user_id,
-                "testId": test_id,
+                "userId": session['userId'],
+                "testId": session['testId'],
                 "type": "MONITOR",
                 "testName": ""
             },
@@ -602,6 +631,8 @@ class ProjectFinder(object):
                 project = self.workspaces.projects(proj_id=info['defaultProject']['id'])
             test_config = {"type": "external"}
             test = project.create_test(test_name, test_config)
+        else:
+            test = test[0]
         return test
 
     def resolve_test_type(self):
@@ -1006,8 +1037,6 @@ class BlazeMeterClient(object):
         self.timeout = 10
         self.delete_files_before_test = False
 
-        self.user = User()
-
     def upload_collection_resources(self, resource_files, draft_id):
         url = self.address + "/api/latest/web/elfinder/%s" % draft_id
         body = MultiPartForm()
@@ -1097,22 +1126,6 @@ class BlazeMeterClient(object):
         url = self.address + "/api/latest/collections/%s/stop" % collection_id
         self._request(url)
 
-    def end_online(self):
-        """
-        Finish online test
-        """
-        if not self.session_id:
-            self.log.debug("Feeding not started, so not stopping")
-        else:
-            self.log.info("Ending data feeding...")
-            if self.token:
-                url = self.address + "/api/v4/sessions/%s/stop"
-                self._request(url % self.session_id, method='POST')
-            else:
-                url = self.address + "/api/latest/sessions/%s/terminate-external"  # FIXME: V4 API has issue with it
-                data = {"signature": self.data_signature, "testId": self.test_id, "sessionId": self.session_id}
-                self._request(url % self.session_id, json.dumps(data))
-
     def end_master(self):
         if self.master_id:
             self.log.info("Ending cloud test...")
@@ -1139,22 +1152,6 @@ class BlazeMeterClient(object):
         else:
             self.log.info("Creating project '%s'...", proj_name)
             return self.create_project(proj_name)
-
-    def append_note_to_master(self, note):
-        data = self.get_master()
-        if 'note' in data:
-            note = data['note'] + '\n' + note
-        note = note.strip()
-        if note:
-            self.update_master({'note': note})
-
-    def append_note_to_session(self, note):
-        data = self.get_session()
-        if 'note' in data:
-            note = data['note'] + '\n' + note
-        note = note.strip()
-        if note:
-            self.update_session({'note': note})
 
     def create_collection(self, name, taurus_config, resource_files, proj_id):
         self.log.debug("Creating collection")
@@ -1412,24 +1409,6 @@ class BlazeMeterClient(object):
 
     def send_monitoring_data(self, src_name, data):
         self.upload_file('%s.monitoring.json' % src_name, to_json(data))
-
-    def send_custom_metrics(self, data):
-        url = self.address + "/api/v4/data/masters/%s/custom-metrics" % self.master_id
-        res = self._request(url, to_json(data), headers={"Content-Type": "application/json"}, method="POST")
-        return res
-
-    def send_custom_tables(self, data):
-        url = self.address + "/api/v4/data/masters/%s/custom-table" % self.master_id
-        res = self._request(url, to_json(data), headers={"Content-Type": "application/json"}, method="POST")
-        return res
-
-    def initialize(self):
-        self.user.token = self.token
-        self.user.address = self.address
-        self.user.data_address = self.data_address
-        self.user.log = self.log
-        self.user.timeout = self.timeout
-        self.user.logger_limit = self.logger_limit
 
 
 class DatapointSerializer(object):

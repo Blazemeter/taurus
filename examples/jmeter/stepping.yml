@@ -16,4 +16,4 @@ scenarios:
 services:
 - module: passfail
   criteria:
-  - avg-rt>5ms for 10s, stop as failed
+  - avg-rt>5ms for 65s, stop as failed
