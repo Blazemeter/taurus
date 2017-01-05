@@ -55,9 +55,9 @@ def send_with_retry(method):
             method(self, *args, **kwargs)
         except IOError:
             self.log.debug("Error sending data: %s", traceback.format_exc())
-            self.log.warning("Failed to send data, will retry in %s sec...", self.client.timeout)
+            self.log.warning("Failed to send data, will retry in %s sec...", self._user.timeout)
             try:
-                time.sleep(self.client.timeout)
+                time.sleep(self._user.timeout)
                 method(self, *args, **kwargs)
                 self.log.info("Succeeded with retry")
             except IOError:
@@ -93,6 +93,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         self._test = None
         self._master = None
         self._session = None
+        self.first_ts = sys.maxsize
+        self.last_ts = 0
 
     def prepare(self):
         """
@@ -354,7 +356,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         if not self._session:
             return
 
-        self._session.send_kpi_data(data, do_check, is_final)
+        serialized = DatapointSerializer(self).get_kpi_body(data, is_final)
+        self._session.send_kpi_data(serialized, do_check)
 
     def aggregated_second(self, data):
         """
@@ -1032,8 +1035,6 @@ class BlazeMeterClient(object):
         self.token = None
         self.session_id = None
         self.master_id = None
-        self.first_ts = sys.maxsize
-        self.last_ts = 0
         self.timeout = 10
         self.delete_files_before_test = False
 
@@ -1215,164 +1216,6 @@ class BlazeMeterClient(object):
         hdr = {"Content-Type": str(body.get_content_type())}
         self._request(url, body.form_as_bytes(), headers=hdr)
 
-    def get_accounts(self):
-        """
-        :rtype: list[dict]
-        """
-        res = self._request(self.address + '/api/v4/accounts')
-        self.log.debug("Found %s accounts", len(res['result']))
-        return res['result']
-
-    def get_workspaces(self):
-        """
-        :rtype: list[dict]
-        """
-        res = []
-        params = {"enabled": True}
-        for account in self.get_accounts():
-            params['accountId'] = account['id']
-            data = self._request(self.address + '/api/v4/workspaces?' + urlencode(params))
-            res += data['result']
-        self.log.debug("Found %s workspaces", len(res))
-        return res
-
-    def get_tests(self, name=None):
-        """
-        :rtype: list[dict]
-        """
-        params = {"limit": 99999}
-        if name is not None:
-            params["name"] = name
-
-        found = []
-        for workspace in self.get_workspaces():
-            params['workspaceId'] = workspace['id']
-            tests = self._request(self.address + '/api/v4/tests?' + urlencode(params))
-            self.log.debug("Tests for user: %s", len(tests['result']))
-            found += tests['result']
-
-        return found
-
-    def get_projects(self):
-        projects = []
-        params = {}
-        for workspace in self.get_workspaces():
-            params['workspaceId'] = workspace['id']
-            data = self._request(self.address + '/api/v4/projects?' + urlencode(params))
-            projects += data['result']
-        return projects
-
-    def create_project(self, proj_name):
-        hdr = {"Content-Type": "application/json"}
-        data = self._request(self.address + '/api/v4/projects', to_json({"name": str(proj_name)}), headers=hdr)
-        return data['result']['id']
-
-    def send_kpi_data(self, data_buffer, is_check_response=True, is_final=False):
-        """
-        Sends online data
-
-        :param is_check_response:
-        :param is_final:
-        :type data_buffer: list[bzt.modules.aggregator.DataPoint]
-        """
-        url = self.data_address + "/submit.php?session_id=%s&signature=%s&test_id=%s&user_id=%s"
-        url %= self.session_id, self.data_signature, self.test_id, self.user_id
-        url += "&pq=0&target=%s&update=1" % self.kpi_target
-        hdr = {"Content-Type": " application/json"}
-        response = self._request(url, DatapointSerializer(self).get_kpi_body(data_buffer, is_final), headers=hdr)
-
-        if response and 'response_code' in response and response['response_code'] != 200:
-            raise TaurusNetworkError("Failed to feed data, response code %s" % response['response_code'])
-
-        if response and 'result' in response and is_check_response:
-            result = response['result']['session']
-            self.log.debug("Result: %s", result)
-            if 'statusCode' in result and result['statusCode'] > 100:
-                self.log.info("Test was stopped through Web UI: %s", result['status'])
-                raise ManualShutdown("The test was interrupted through Web UI")
-
-    def ping(self):
-        self.user.ping()
-
-    def upload_file(self, filename, contents=None):
-        """
-        Upload single artifact
-
-        :type filename: str
-        :type contents: str
-        :raise TaurusNetworkError:
-        """
-        body = MultiPartForm()
-
-        if contents is None:
-            body.add_file('file', filename)
-        else:
-            body.add_file_as_string('file', filename, contents)
-
-        url = self.address + "/api/v4/image/%s/files?signature=%s"
-        url %= self.session_id, self.data_signature
-        hdr = {"Content-Type": str(body.get_content_type())}
-        response = self._request(url, body.form_as_bytes(), headers=hdr)
-        if not response['result']:
-            raise TaurusNetworkError("Upload failed: %s" % response)
-
-    def get_master(self):
-        req = self._request(self.address + '/api/v4/masters/%s' % self.master_id)
-        return req['result']
-
-    def get_session(self):
-        req = self._request(self.address + '/api/v4/sessions/%s' % self.session_id)
-        return req['result']
-
-    def update_master(self, data):
-        hdr = {"Content-Type": "application/json"}
-        req = self._request(self.address + '/api/v4/masters/%s' % self.master_id,
-                            to_json(data), headers=hdr, method="PUT")
-        return req['result']
-
-    def update_session(self, data):
-        hdr = {"Content-Type": "application/json"}
-        req = self._request(self.address + '/api/v4/sessions/%s' % self.session_id,
-                            to_json(data), headers=hdr, method="PUT")
-        return req['result']
-
-    def get_master_status(self):
-        sess = self._request(self.address + '/api/v4/masters/%s/status' % self.master_id)
-        return sess['result']
-
-    def get_master_sessions(self):
-        sess = self._request(self.address + '/api/v4/masters/%s/sessions' % self.master_id)
-        if 'sessions' in sess['result']:
-            return sess['result']['sessions']
-        else:
-            return sess['result']
-
-    def get_user_info(self):
-        res = self._request(self.address + '/api/v4/user')
-        return res
-
-    def get_kpis(self, master_id, min_ts):
-        params = [
-            ("interval", 1),
-            ("from", min_ts),
-            ("master_ids[]", master_id),
-        ]
-        for item in ('t', 'lt', 'by', 'n', 'ec', 'ts', 'na'):
-            params.append(("kpis[]", item))
-
-        labels = self.get_labels(master_id)
-        for label in labels:
-            params.append(("labels[]", label['id']))
-
-        url = self.address + "/api/v4/data/kpis?" + urlencode(params)
-        res = self._request(url)
-        return res['result']
-
-    def get_labels(self, master_id):
-        url = self.address + "/api/v4/data/labels?" + urlencode({'master_id': master_id})
-        res = self._request(url)
-        return res['result']
-
     def get_available_locations(self, include_harbors=False):
         user_info = self.get_user_info()
         locations = {}
@@ -1383,36 +1226,12 @@ class BlazeMeterClient(object):
             locations[str(loc['id'])] = loc
         return locations
 
-    def get_test_files(self, test_id):
-        path = self.address + "/api/v4/web/elfinder/%s" % test_id
-        query = urlencode({'cmd': 'open', 'target': 's1_Lw'})
-        url = path + '?' + query
-        response = self._request(url)
-        return response["files"]
-
-    def delete_test_files(self, test_id):
-        files = self.get_test_files(test_id)
-        self.log.debug("Test files: %s", [filedict['name'] for filedict in files])
-        if not files:
-            return
-        path = "/api/v4/web/elfinder/%s" % test_id
-        query = "cmd=rm&" + "&".join("targets[]=%s" % fname['hash'] for fname in files)
-        url = self.address + path + '?' + query
-        response = self._request(url)
-        if len(response['removed']) == len(files):
-            self.log.debug("Successfully deleted %d test files", len(response['removed']))
-
-    def get_aggregate_report(self, master_id):
-        url = self.address + "/api/v4/masters/%s/reports/aggregatereport/data" % master_id
-        res = self._request(url)
-        return res['result']
-
-    def send_monitoring_data(self, src_name, data):
-        self.upload_file('%s.monitoring.json' % src_name, to_json(data))
-
 
 class DatapointSerializer(object):
     def __init__(self, owner):
+        """
+        :type owner: BlazeMeterUploader
+        """
         super(DatapointSerializer, self).__init__()
         self.owner = owner
 

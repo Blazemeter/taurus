@@ -4,9 +4,10 @@ import logging
 
 import requests
 
-from bzt import TaurusNetworkError
+from bzt import TaurusNetworkError, ManualShutdown
 from bzt.six import text_type
 from bzt.six import urlencode
+from bzt.utils import to_json, MultiPartForm
 
 logging.getLogger("requests").setLevel(logging.WARNING)
 
@@ -179,6 +180,11 @@ class Workspace(BZAObject):
             tests.append(MultiTest(self, item))
         return tests
 
+    def create_project(self, proj_name):
+        hdr = {"Content-Type": "application/json"}
+        data = self._request(self.address + '/api/v4/projects', to_json({"name": str(proj_name)}), headers=hdr)
+        return data['result']['id']
+
 
 class Project(BZAObject):
     def tests(self, name=None, test_type=None):
@@ -223,7 +229,7 @@ class Project(BZAObject):
         url = self.address + '/api/v4/tests'
         data = {"name": name, "projectId": self['id'], "configuration": configuration}
         hdr = {"Content-Type": " application/json"}
-        resp = self._request(url, json.dumps(data), headers=hdr)
+        resp = self._request(url, to_json(data), headers=hdr)
         return Test(self, resp['result'])
 
 
@@ -244,6 +250,25 @@ class Test(BZAObject):
         session.data_signature = result['signature']
         return session, Master(self, result['master']), result['publicTokenUrl']
 
+    def get_test_files(self, test_id):
+        path = self.address + "/api/v4/web/elfinder/%s" % test_id
+        query = urlencode({'cmd': 'open', 'target': 's1_Lw'})
+        url = path + '?' + query
+        response = self._request(url)
+        return response["files"]
+
+    def delete_test_files(self, test_id):
+        files = self.get_test_files(test_id)
+        self.log.debug("Test files: %s", [filedict['name'] for filedict in files])
+        if not files:
+            return
+        path = "/api/v4/web/elfinder/%s" % test_id
+        query = "cmd=rm&" + "&".join("targets[]=%s" % fname['hash'] for fname in files)
+        url = self.address + path + '?' + query
+        response = self._request(url)
+        if len(response['removed']) == len(files):
+            self.log.debug("Successfully deleted %d test files", len(response['removed']))
+
 
 class MultiTest(BZAObject):
     pass
@@ -252,7 +277,7 @@ class MultiTest(BZAObject):
 class Master(BZAObject):
     def make_report_public(self):
         url = self.address + "/api/v4/masters/%s/publicToken" % self['id']
-        res = self._request(url, json.dumps({"publicToken": None}),
+        res = self._request(url, to_json({"publicToken": None}),
                             headers={"Content-Type": "application/json"}, method="POST")
         public_token = res['result']['publicToken']
         report_link = self.address + "/app/?public-token=%s#/masters/%s/summary" % (public_token, self['id'])
@@ -260,12 +285,12 @@ class Master(BZAObject):
 
     def send_custom_metrics(self, data):
         url = self.address + "/api/v4/data/masters/%s/custom-metrics" % self['id']
-        res = self._request(url, json.dumps(data), headers={"Content-Type": "application/json"}, method="POST")
+        res = self._request(url, to_json(data), headers={"Content-Type": "application/json"}, method="POST")
         return res
 
     def send_custom_tables(self, data):
         url = self.address + "/api/v4/data/masters/%s/custom-table" % self['id']
-        res = self._request(url, json.dumps(data), headers={"Content-Type": "application/json"}, method="POST")
+        res = self._request(url, to_json(data), headers={"Content-Type": "application/json"}, method="POST")
         return res
 
     def fetch(self):
@@ -275,8 +300,46 @@ class Master(BZAObject):
 
     def set(self, data):
         url = self.address + "/api/v4/masters/%s" % self['id']
-        res = self._request(url, json.dumps(data), headers={"Content-Type": "application/json"}, method='PATCH')
+        res = self._request(url, to_json(data), headers={"Content-Type": "application/json"}, method='PATCH')
         self.update(res['result'])
+
+    def get_master_status(self):
+        sess = self._request(self.address + '/api/v4/masters/%s/status' % self['id'])
+        return sess['result']
+
+    def get_master_sessions(self):
+        sess = self._request(self.address + '/api/v4/masters/%s/sessions' % self['id'])
+        if 'sessions' in sess['result']:
+            return sess['result']['sessions']
+        else:
+            return sess['result']
+
+    def get_kpis(self, master_id, min_ts):
+        params = [
+            ("interval", 1),
+            ("from", min_ts),
+            ("master_ids[]", master_id),
+        ]
+        for item in ('t', 'lt', 'by', 'n', 'ec', 'ts', 'na'):
+            params.append(("kpis[]", item))
+
+        labels = self.get_labels(master_id)
+        for label in labels:
+            params.append(("labels[]", label['id']))
+
+        url = self.address + "/api/v4/data/kpis?" + urlencode(params)
+        res = self._request(url)
+        return res['result']
+
+    def get_labels(self, master_id):
+        url = self.address + "/api/v4/data/labels?" + urlencode({'master_id': master_id})
+        res = self._request(url)
+        return res['result']
+
+    def get_aggregate_report(self, master_id):
+        url = self.address + "/api/v4/masters/%s/reports/aggregatereport/data" % master_id
+        res = self._request(url)
+        return res['result']
 
 
 class Session(BZAObject):
@@ -292,8 +355,7 @@ class Session(BZAObject):
 
     def set(self, data):
         url = self.address + "/api/v4/sessions/%s" % self['id']
-        res = self._request(url, json.dumps(data), headers={"Content-Type": "application/json"}, method='PATCH')
-        self.log.warning("Res: %s", res)
+        res = self._request(url, to_json(data), headers={"Content-Type": "application/json"}, method='PATCH')
         self.update(res['result'])
 
     def stop(self):
@@ -303,4 +365,52 @@ class Session(BZAObject):
     def stop_anonymous(self):
         url = self.address + "/api/v4/sessions/%s/terminate-external" % self['id']  # FIXME: V4 API has issue with it
         data = {"signature": self.data_signature, "testId": self['testId'], "sessionId": self['id']}
-        self._request(url, json.dumps(data))
+        self._request(url, to_json(data))
+
+    def send_kpi_data(self, data, is_check_response=True):
+        """
+        Sends online data
+
+        :param is_check_response:
+        :type data: str
+        """
+        url = self.data_address + "/submit.php?session_id=%s&signature=%s&test_id=%s&user_id=%s"
+        url %= self['id'], self.data_signature, self['testId'], self['userId']
+        url += "&pq=0&target=%s&update=1" % self.kpi_target
+        hdr = {"Content-Type": "application/json"}
+        response = self._request(url, data, headers=hdr)
+
+        if response and 'response_code' in response and response['response_code'] != 200:
+            raise TaurusNetworkError("Failed to feed data, response code %s" % response['response_code'])
+
+        if response and 'result' in response and is_check_response:
+            result = response['result']['session']
+            self.log.debug("Result: %s", result)
+            if 'statusCode' in result and result['statusCode'] > 100:
+                self.log.info("Test was stopped through Web UI: %s", result['status'])
+                raise ManualShutdown("The test was interrupted through Web UI")
+
+    def send_monitoring_data(self, src_name, data):
+        self.upload_file('%s.monitoring.json' % src_name, to_json(data))
+
+    def upload_file(self, filename, contents=None):
+        """
+        Upload single artifact
+
+        :type filename: str
+        :type contents: str
+        :raise TaurusNetworkError:
+        """
+        body = MultiPartForm()
+
+        if contents is None:
+            body.add_file('file', filename)
+        else:
+            body.add_file_as_string('file', filename, contents)
+
+        url = self.address + "/api/v4/image/%s/files?signature=%s"
+        url %= self['id'], self.data_signature
+        hdr = {"Content-Type": str(body.get_content_type())}
+        response = self._request(url, body.form_as_bytes(), headers=hdr)
+        if not response['result']:
+            raise TaurusNetworkError("Upload failed: %s" % response)
