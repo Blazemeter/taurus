@@ -605,22 +605,29 @@ class ProjectFinder(object):
         self.user = user
         self.workspaces = self.user.accounts().workspaces()  # TODO: would be better to get it from outside
 
-    def _resolve_project(self):
+    def _resolve_project(self, proj_name):
         """
         :rtype: bzt.bza.Project
         """
-        proj_name = self.parameters.get("project", self.settings.get("project", None))
         if isinstance(proj_name, (int, float)):
             proj_id = int(proj_name)
             self.log.debug("Treating project name as ID: %s", proj_id)
-            return self.workspaces.projects(proj_id=proj_id)
+            projects = self.workspaces.projects(proj_id=proj_id)
+            if not projects:
+                raise TaurusConfigError("BlazeMeter project not found by ID: %s" % proj_id)
+            return projects[0]
         elif proj_name is not None:
-            return self.workspaces.projects(name=proj_name)
+            projects = self.workspaces.projects(name=proj_name)
+            if isinstance(projects, list):
+                return projects[0]
+            return projects
 
         return None
 
     def resolve_external_test(self):
-        project = self._resolve_project()
+        proj_name = self.parameters.get("project", self.settings.get("project", None))
+        project = self._resolve_project(proj_name)
+        self.log.debug("Project 1: %s", project)
         test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
 
         if project:
@@ -632,14 +639,24 @@ class ProjectFinder(object):
             if not project:
                 info = self.user.get_user()
                 project = self.workspaces.projects(proj_id=info['defaultProject']['id'])
-            test_config = {"type": "external"}
-            test = project.create_test(test_name, test_config)
+                if isinstance(project, list):
+                    project = project[0]
+
+            self.log.debug("Project 2: %s", project)
+
+            if not project:
+                project = self.workspaces[0].create_project("Taurus Tests Project" if not proj_name else proj_name)
+
+            self.log.debug("Project 3: %s", project)
+
+            test = project.create_test(test_name, {"type": "external"})
         else:
             test = test[0]
         return test
 
     def resolve_test_type(self):
-        project = self._resolve_project()
+        proj_name = self.parameters.get("project", self.settings.get("project", None))
+        project = self._resolve_project(proj_name)
         test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
 
         use_deprecated = self.settings.get("use-deprecated-api", True)

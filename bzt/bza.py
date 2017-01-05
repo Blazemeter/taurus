@@ -228,7 +228,7 @@ class Project(BZAObject):
         self.log.debug("Creating new test")
         url = self.address + '/api/v4/tests'
         data = {"name": name, "projectId": self['id'], "configuration": configuration}
-        hdr = {"Content-Type": " application/json"}
+        hdr = {"Content-Type": "application/json"}
         resp = self._request(url, to_json(data), headers=hdr)
         return Test(self, resp['result'])
 
