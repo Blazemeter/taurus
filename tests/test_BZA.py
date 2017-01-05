@@ -12,13 +12,14 @@ class TestBZA(BZTestCase):
         user.token = self.get_token()
         user.logger_limit = sys.maxsize
 
+        user.fetch()
         accounts = user.accounts()
         workspaces = accounts.workspaces()
-        sel_test = workspaces.tests(name='Selenium')
         opls = workspaces.private_locations()
-        projects = workspaces.projects()
-        tests = projects.tests(name='Selenium')
-        tests2 = workspaces.tests()
+        # sel_test = workspaces.tests(name='Selenium')
+        # projects = workspaces.projects()
+        # tests = projects.tests(name='Selenium')
+        # tests2 = workspaces.tests()
         print
 
     def get_token(self):

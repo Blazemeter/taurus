@@ -16,7 +16,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import copy
-import json
 import logging
 import os
 import platform
@@ -32,7 +31,7 @@ from ssl import SSLError
 import yaml
 from urwid import Pile, Text
 
-from bzt import ManualShutdown, TaurusInternalException, TaurusConfigError, TaurusNetworkError
+from bzt import ManualShutdown, TaurusInternalException, TaurusConfigError
 from bzt.bza import User, Session, Test
 from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
@@ -42,7 +41,7 @@ from bzt.modules.monitoring import Monitoring, MonitoringListener
 from bzt.modules.services import Unpacker
 from bzt.six import BytesIO, iteritems, HTTPError, r_input, URLError
 from bzt.utils import open_browser, get_full_path, get_files_recursive, replace_in_config
-from bzt.utils import to_json, dehumanize_time, MultiPartForm, BetterDict, ensure_is_dict
+from bzt.utils import to_json, dehumanize_time, BetterDict, ensure_is_dict
 
 
 def send_with_retry(method):
@@ -774,29 +773,25 @@ class ProjectFinder(object):
                 raise TaurusConfigError("BlazeMeter project not found by ID: %s" % proj_id)
             return project
         elif proj_name is not None:
-            project = self.workspaces.projects(name=proj_name).first()
-            if not project:
-                return self.workspaces.first().create_project("Taurus Tests Project" if not proj_name else proj_name)
+            return self.workspaces.projects(name=proj_name).first()
 
         return None
+
+    def _ws_proj_switch(self, project):
+        if project:
+            return project
+        else:
+            return self.workspaces
 
     def resolve_external_test(self):
         proj_name = self.parameters.get("project", self.settings.get("project", None))
         project = self._resolve_project(proj_name)
         test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
 
-        if project:
-            test = project.tests(test_name, test_type='external').first()
-        else:
-            test = self.workspaces.tests(name=test_name, test_type='external').first()
-
+        test = self._ws_proj_switch(project).tests(test_name, test_type='external').first()
         if not test:
             if not project:
-                info = self.user.get_user()
-                project = self.workspaces.projects(proj_id=info['defaultProject']['id']).first()
-
-            if not project:
-                project = self.workspaces.first().create_project("Taurus Tests Project" if not proj_name else proj_name)
+                self._default_or_create_project(proj_name)
 
             test = project.create_test(test_name, {"type": "external"})
 
@@ -810,24 +805,17 @@ class ProjectFinder(object):
         use_deprecated = self.settings.get("use-deprecated-api", True)
         default_location = self.settings.get("default-location", None)
 
-        if project:
-            multi_test = project.multi_tests(test_name)
-        else:
-            multi_test = self.workspaces.multi_tests(name=test_name)
-
-        # FIXME: continue migrating
-        self.log.debug("Looking for collection: %s", multi_test)
-        if multi_test:
+        test = self._ws_proj_switch(project).multi_tests(name=test_name).first()
+        self.log.debug("Looked for collection: %s", test)
+        if test:
             self.log.debug("Detected test type: new")
             test_class = CloudCollectionTest
-            test = multi_test
         else:
-            test = self.user.find_test(test_name, project['id'])
-            self.log.debug("Looking for test: %s", test)
+            test = self._ws_proj_switch(project).tests(test_name, test_type='taurus').first()
+            self.log.debug("Looked for test: %s", test)
             if test:
                 self.log.debug("Detected test type: old")
                 test_class = CloudTaurusTest
-                test = test['id']
             else:
                 if use_deprecated:
                     self.log.debug("Will create old-style test")
@@ -837,7 +825,17 @@ class ProjectFinder(object):
                     test_class = CloudCollectionTest
                 test = None
 
-        return test_class(self.user, test, project, test_name, default_location, self.log)
+        return test_class(self.user, test, project, default_location, self.log)
+
+    def _default_or_create_project(self, proj_name):
+        if proj_name:
+            return self.workspaces.first().create_project(proj_name)
+        else:
+            info = self.user.fetch()
+            project = self.workspaces.projects(proj_id=info['defaultProject']['id']).first()
+            if not project:
+                project = self.workspaces.first().create_project("Taurus Tests Project")
+            return project
 
 
 class BaseCloudTest(object):
@@ -848,7 +846,7 @@ class BaseCloudTest(object):
     :type _master: bzt.bza.Master
     """
 
-    def __init__(self, user, test, project, test_name, default_location, parent_log):
+    def __init__(self, user, test, project, default_location, parent_log):
         self.default_test_name = "Taurus Test"
         self.log = parent_log.getChild(self.__class__.__name__)
         self.default_location = default_location
@@ -901,7 +899,7 @@ class BaseCloudTest(object):
 
 class CloudTaurusTest(BaseCloudTest):
     def prepare_locations(self, executors, engine_config):
-        available_locations = self.client.get_available_locations()
+        available_locations = self._user.available_locations()
 
         if CloudProvisioning.LOC in engine_config:
             self.log.warning("Deprecated test API doesn't support global locations")
@@ -987,7 +985,7 @@ class CloudTaurusTest(BaseCloudTest):
         return config
 
     def resolve_test(self, taurus_config, rfiles):
-        if self.test_id is None:
+        if self._test is None:
             test_config = {
                 "type": "taurus",
                 "plugins": {
@@ -996,8 +994,14 @@ class CloudTaurusTest(BaseCloudTest):
                     }
                 }
             }
-            self.test_id = self.client.create_test(self._test['name'], test_config, self.project_id)
-        self.client.setup_test(self.test_id, taurus_config, rfiles)
+
+            if not self._project:
+                pass  # TODO
+
+            self._test = self._project.create_test(self._test['name'], test_config)
+
+        taurus_config = yaml.dump(taurus_config, default_flow_style=False, explicit_start=True, canonical=False)
+        self._test.upload_files(taurus_config, rfiles)
 
     def launch_test(self):
         self.log.info("Initiating cloud test with %s ...", self._test.address)
@@ -1046,7 +1050,7 @@ class CloudTaurusTest(BaseCloudTest):
 
 class CloudCollectionTest(BaseCloudTest):
     def prepare_locations(self, executors, engine_config):
-        available_locations = self.client.get_available_locations(include_harbors=True)
+        available_locations = self.client.available_locations(include_harbors=True)
 
         global_locations = engine_config.get(CloudProvisioning.LOC, BetterDict())
         self._check_locations(global_locations, available_locations)
@@ -1197,152 +1201,6 @@ class CloudCollectionTest(BaseCloudTest):
         return txt
 
 
-class BlazeMeterClient(object):
-    """ Service client class """
-
-    def __init__(self, parent_logger):
-        self.user_id = None
-        self.test_id = None
-        self.log = parent_logger.getChild(self.__class__.__name__)
-        self.token = None
-        self.session_id = None
-        self.master_id = None
-        self.timeout = 10
-        self.delete_files_before_test = False
-
-    def upload_collection_resources(self, resource_files, draft_id):
-        url = self.address + "/api/latest/web/elfinder/%s" % draft_id
-        body = MultiPartForm()
-        body.add_field("cmd", "upload")
-        body.add_field("target", "s1_Lw")
-        body.add_field('folder', 'drafts')
-
-        for rfile in resource_files:
-            body.add_file('upload[]', rfile)
-
-        hdr = {"Content-Type": str(body.get_content_type())}
-        resp = self._request(url, body.form_as_bytes(), headers=hdr)
-        if "error" in resp:
-            self.log.debug('Response: %s', resp)
-            raise TaurusNetworkError("Can't upload resource files")
-
-    def get_collections(self):
-        resp = self._request(self.address + "/api/latest/collections")
-        return resp['result']
-
-    def import_config(self, config):
-        url = self.address + "/api/latest/collections/taurusimport"
-        resp = self._request(url, data=to_json(config), headers={"Content-Type": "application/json"}, method="POST")
-        return resp['result']
-
-    def update_collection(self, collection_id, coll):
-        url = self.address + "/api/latest/collections/%s" % collection_id
-        self._request(url, data=to_json(coll), headers={"Content-Type": "application/json"}, method="POST")
-
-    def find_collection(self, collection_name, project_id):
-        collections = self.get_collections()
-        for collection in collections:
-            self.log.debug("Collection: %s", collection)
-            if "name" in collection and collection['name'] == collection_name:
-                if not project_id or project_id == collection['projectId']:
-                    self.log.debug("Matched: %s", collection)
-                    return collection
-
-    def find_test(self, test_name, project_id):
-        tests = self.get_tests(test_name)
-        for test in tests:
-            self.log.debug("Test: %s", test)
-            if "name" in test and test['name'] == test_name:
-                if test['configuration']['type'] == "taurus":
-                    if not project_id or project_id == test['projectId']:
-                        self.log.debug("Matched: %s", test)
-                        return test
-
-    def launch_cloud_collection(self, collection_id):
-        self.log.info("Initiating cloud test with %s ...", self.address)
-        # NOTE: delayedStart=true means that BM will not start test until all instances are ready
-        # if omitted - instances will start once ready (not simultaneously),
-        # which may cause inconsistent data in aggregate report.
-        url = self.address + "/api/latest/collections/%s/start?delayedStart=true" % collection_id
-        resp = self._request(url, method="POST")
-        self.log.debug("Response: %s", resp['result'])
-        self.master_id = resp['result']['id']
-        self.results_url = self.address + '/app/#/masters/%s' % self.master_id
-        return self.results_url
-
-    def force_start_master(self):
-        self.log.info("All servers are ready, starting cloud test")
-        url = self.address + "/api/latest/masters/%s/forceStart" % self.master_id
-        self._request(url, method="POST")
-
-    def stop_collection(self, collection_id):
-        self.log.info("Shutting down cloud test...")
-        url = self.address + "/api/latest/collections/%s/stop" % collection_id
-        self._request(url)
-
-    def create_collection(self, name, taurus_config, resource_files, proj_id):
-        self.log.debug("Creating collection")
-        if resource_files:
-            draft_id = "taurus_%s" % int(time.time())
-            self.upload_collection_resources(resource_files, draft_id)
-            taurus_config.merge({"dataFiles": {"draftId": draft_id}})
-
-        collection_draft = self.import_config(taurus_config)
-        collection_draft['name'] = name
-
-        self.log.debug("Creating new test collection: %s", name)
-        collection_draft['name'] = name
-        collection_draft['projectId'] = proj_id
-        url = self.address + "/api/latest/collections"
-        headers = {"Content-Type": "application/json"}
-        resp = self._request(url, data=to_json(collection_draft), headers=headers, method="POST")
-        collection_id = resp['result']['id']
-
-        self.log.debug("Using collection ID: %s", collection_id)
-        return collection_id
-
-    def setup_collection(self, collection_id, name, taurus_config, resource_files, proj_id):
-        self.log.debug("Setting up collection")
-        if resource_files:
-            draft_id = "taurus_%s" % int(time.time())
-            self.upload_collection_resources(resource_files, draft_id)
-            taurus_config.merge({"dataFiles": {"draftId": draft_id}})
-
-        collection_draft = self.import_config(taurus_config)
-        collection_draft['name'] = name
-        collection_draft['projectId'] = proj_id
-
-        self.update_collection(collection_id, collection_draft)
-
-    def create_test(self, name, configuration, proj_id):
-        self.log.debug("Creating new test")
-        url = self.address + '/api/latest/tests'
-        data = {"name": name, "projectId": proj_id, "configuration": configuration}
-        hdr = {"Content-Type": " application/json"}
-        resp = self._request(url, json.dumps(data), headers=hdr)
-        test_id = resp['result']['id']
-        self.log.debug("Using test ID: %s", test_id)
-        return test_id
-
-    def setup_test(self, test_id, taurus_config, resource_files):
-        self.log.debug("Setting up test")
-        if self.delete_files_before_test:
-            self.delete_test_files(test_id)
-
-        self.log.debug("Uploading files into the test: %s", resource_files)
-        url = '%s/api/latest/tests/%s/files' % (self.address, test_id)
-
-        body = MultiPartForm()
-        body.add_file_as_string('script', 'taurus.yml', yaml.dump(taurus_config, default_flow_style=False,
-                                                                  explicit_start=True, canonical=False))
-
-        for rfile in resource_files:
-            body.add_file('files[]', rfile)
-
-        hdr = {"Content-Type": str(body.get_content_type())}
-        self._request(url, body.form_as_bytes(), headers=hdr)
-
-
 class MasterProvisioning(Provisioning):
     def get_rfiles(self):
         rfiles = []
@@ -1413,7 +1271,7 @@ class MasterProvisioning(Provisioning):
 
 class CloudProvisioning(MasterProvisioning, WidgetProvider):
     """
-    :type client: BlazeMeterClient
+    :type user: bzt.bza.User
     :type results_reader: ResultsFromBZA
     :type test: BaseCloudTest
     """
@@ -1424,7 +1282,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
     def __init__(self):
         super(CloudProvisioning, self).__init__()
         self.results_reader = None
-        self.client = BlazeMeterClient(self.log)
+        self.user = User()
         self.__last_master_status = None
         self.browser_open = 'start'
         self.widget = None
@@ -1450,7 +1308,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             self.log.warning("Dumping available locations instead of running the test")
             self._configure_client()
             use_deprecated = self.settings.get("use-deprecated-api", True)
-            locations = self.client.get_available_locations(include_harbors=not use_deprecated)
+            locations = self.user.available_locations(include_harbors=not use_deprecated)
             for location_id in sorted(locations):
                 location = locations[location_id]
                 self.log.info("Location: %s\t%s", location_id, location['title'])
@@ -1464,7 +1322,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self._configure_client()
         self._filter_reporting()
 
-        finder = ProjectFinder(self.parameters, self.settings, self.client, self.log)
+        finder = ProjectFinder(self.parameters, self.settings, self.user, self.log)
         finder.default_test_name = "Taurus Cloud Test"
         self.test = finder.resolve_test_type()
         self.test.prepare_locations(self.executors, self.engine.config)
@@ -1478,7 +1336,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.widget = CloudProvWidget(self.test)
 
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
-            self.results_reader = ResultsFromBZA(self.client)
+            self.results_reader = ResultsFromBZA(self.user)
             self.results_reader.log = self.log
             self.engine.aggregator.add_underling(self.results_reader)
 
@@ -1496,12 +1354,13 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.engine.config[Reporter.REP] = new_reporting
 
     def _configure_client(self):
-        self.client.logger_limit = self.settings.get("request-logging-limit", self.client.logger_limit)
-        self.client.address = self.settings.get("address", self.client.address)
-        self.client.token = self.settings.get("token", self.client.token)
-        self.client.timeout = dehumanize_time(self.settings.get("timeout", self.client.timeout))
-        self.client.delete_files_before_test = self.settings.get("delete-test-files", True)
-        if not self.client.token:
+        self.user.log = self.log
+        self.user.logger_limit = self.settings.get("request-logging-limit", self.user.logger_limit)
+        self.user.address = self.settings.get("address", self.user.address)
+        self.user.token = self.settings.get("token", self.user.token)
+        self.user.timeout = dehumanize_time(self.settings.get("timeout", self.user.timeout))
+        self.user.delete_files_before_test = self.settings.get("delete-test-files", True)  # FIXME: misplaced
+        if not self.user.token:
             raise TaurusConfigError("You must provide API token to use cloud provisioning")
 
     def startup(self):
@@ -1579,31 +1438,14 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         return self.widget
 
 
-class BlazeMeterClientEmul(BlazeMeterClient):
-    def __init__(self, parent_logger):
-        super(BlazeMeterClientEmul, self).__init__(parent_logger)
-        self.requests = []
-        self.results = []
-        self.requests = []
-
-    def _request(self, url, data=None, headers=None, checker=None, method=None):
-        self.log.debug("Request %s: %s", url, data)
-        self.requests.append({"url": url, "data": data, "headers": headers, "checker": checker, "method": method})
-        res = self.results.pop(0)
-        self.log.debug("Response: %s", res)
-        if isinstance(res, BaseException):
-            raise res
-        return res
-
-
 class ResultsFromBZA(ResultsProvider):
     """
-    :type client: BlazeMeterClient
+    :type client: bzt.bza.Master
     """
 
-    def __init__(self, client):
+    def __init__(self, master):
         super(ResultsFromBZA, self).__init__()
-        self.client = client
+        self.master = master
         self.master_id = None  # must be set afterwards
         self.min_ts = 0
         self.log = logging.getLogger('')
@@ -1659,21 +1501,21 @@ class ResultsFromBZA(ResultsProvider):
 
     def query_data(self):
         try:
-            data = self.client.get_kpis(self.master_id, self.min_ts)
+            data = self.master.get_kpis(self.master_id, self.min_ts)
         except URLError:
-            self.log.warning("Failed to get result KPIs, will retry in %s seconds...", self.client.timeout)
+            self.log.warning("Failed to get result KPIs, will retry in %s seconds...", self.master.timeout)
             self.log.debug("Full exception: %s", traceback.format_exc())
-            time.sleep(self.client.timeout)
-            data = self.client.get_kpis(self.master_id, self.min_ts)
+            time.sleep(self.master.timeout)
+            data = self.master.get_kpis(self.master_id, self.min_ts)
             self.log.info("Succeeded with retry")
 
         try:
-            aggr = self.client.get_aggregate_report(self.master_id)
+            aggr = self.master.get_aggregate_report(self.master_id)
         except URLError:
-            self.log.warning("Failed to get aggregate results, will retry in %s seconds...", self.client.timeout)
+            self.log.warning("Failed to get aggregate results, will retry in %s seconds...", self.master.timeout)
             self.log.debug("Full exception: %s", traceback.format_exc())
-            time.sleep(self.client.timeout)
-            aggr = self.client.get_aggregate_report(self.master_id)
+            time.sleep(self.master.timeout)
+            aggr = self.master.get_aggregate_report(self.master_id)
             self.log.info("Succeeded with retry")
 
         return data, aggr
