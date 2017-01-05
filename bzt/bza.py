@@ -74,6 +74,13 @@ class BZAObject(dict):
 
 
 class BZAObjectsList(list):
+    def first(self):
+        """ Returns first item of non-empty list or None """
+        if len(self):
+            return self[0]
+
+        return None
+
     def __getattr__(self, name):
         def call_list_items(**kwargs):
             res = BZAObjectsList()
@@ -182,8 +189,9 @@ class Workspace(BZAObject):
 
     def create_project(self, proj_name):
         hdr = {"Content-Type": "application/json"}
-        data = self._request(self.address + '/api/v4/projects', to_json({"name": str(proj_name)}), headers=hdr)
-        return data['result']['id']
+        params = {"name": str(proj_name), "workspaceId": self['id']}
+        data = self._request(self.address + '/api/v4/projects', to_json(params), headers=hdr)
+        return Project(self, data['result'])
 
 
 class Project(BZAObject):

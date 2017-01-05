@@ -612,46 +612,37 @@ class ProjectFinder(object):
         if isinstance(proj_name, (int, float)):
             proj_id = int(proj_name)
             self.log.debug("Treating project name as ID: %s", proj_id)
-            projects = self.workspaces.projects(proj_id=proj_id)
-            if not projects:
+            project = self.workspaces.projects(proj_id=proj_id).first()
+            if not project:
                 raise TaurusConfigError("BlazeMeter project not found by ID: %s" % proj_id)
-            return projects[0]
+            return project
         elif proj_name is not None:
-            projects = self.workspaces.projects(name=proj_name)
-            if isinstance(projects, list):
-                return projects[0]
-            return projects
+            project = self.workspaces.projects(name=proj_name).first()
+            if not project:
+                return self.workspaces.first().create_project("Taurus Tests Project" if not proj_name else proj_name)
 
         return None
 
     def resolve_external_test(self):
         proj_name = self.parameters.get("project", self.settings.get("project", None))
         project = self._resolve_project(proj_name)
-        self.log.debug("Project 1: %s", project)
         test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
 
         if project:
-            test = project.tests(test_name, test_type='external')
+            test = project.tests(test_name, test_type='external').first()
         else:
-            test = self.workspaces.tests(name=test_name, test_type='external')
+            test = self.workspaces.tests(name=test_name, test_type='external').first()
 
         if not test:
             if not project:
                 info = self.user.get_user()
-                project = self.workspaces.projects(proj_id=info['defaultProject']['id'])
-                if isinstance(project, list):
-                    project = project[0]
-
-            self.log.debug("Project 2: %s", project)
+                project = self.workspaces.projects(proj_id=info['defaultProject']['id']).first()
 
             if not project:
-                project = self.workspaces[0].create_project("Taurus Tests Project" if not proj_name else proj_name)
-
-            self.log.debug("Project 3: %s", project)
+                project = self.workspaces.first().create_project("Taurus Tests Project" if not proj_name else proj_name)
 
             test = project.create_test(test_name, {"type": "external"})
-        else:
-            test = test[0]
+
         return test
 
     def resolve_test_type(self):
