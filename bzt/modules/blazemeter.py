@@ -1130,7 +1130,9 @@ class CloudCollectionTest(BaseCloudTest):
             self.client.setup_collection(self.test_id, self._test['name'], taurus_config, rfiles, self.project_id)
 
     def launch_test(self):
-        return self.client.launch_cloud_collection(self.test_id)
+        self.log.info("Initiating cloud test with %s ...", self._test.address)
+        self.master = self._test.start()
+        return self.master.address + '/app/#/masters/%s' % self.master['id']
 
     def start_if_ready(self):
         if self._started:
@@ -1159,11 +1161,11 @@ class CloudCollectionTest(BaseCloudTest):
             self.client.stop_collection(self.test_id)
             self.await_test_end()
         else:
-            self.client.end_master()
+            self.master.stop()
 
     def get_test_status_text(self):
         if not self._sessions:
-            sessions = self.client.get_master_sessions()
+            sessions = self.master.sessions()
             if not sessions:
                 return
             self._sessions = {session["id"]: session for session in sessions}
@@ -1190,7 +1192,7 @@ class CloudCollectionTest(BaseCloudTest):
             except KeyError:
                 self._sessions = None
 
-        txt = "%s #%s\n" % (self._test['name'], self.client.master_id)
+        txt = "%s #%s\n" % (self._test['name'], self.master['id'])
         for scenario, locations in iteritems(mapping):
             txt += " %s:\n" % scenario
             for location, count in iteritems(locations):

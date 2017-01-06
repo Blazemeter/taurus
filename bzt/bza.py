@@ -314,7 +314,13 @@ class Test(BZAObject):
 
 
 class MultiTest(BZAObject):
-    pass
+    def start(self):
+        # NOTE: delayedStart=true means that BM will not start test until all instances are ready
+        # if omitted - instances will start once ready (not simultaneously),
+        # which may cause inconsistent data in aggregate report.
+        url = self.address + "/api/v4/multi-tests/%s/start?delayedStart=true" % self['id']
+        resp = self._request(url, method="POST")
+        return Master(self, resp['result'])
 
 
 class Master(BZAObject):

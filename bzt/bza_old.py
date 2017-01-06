@@ -40,12 +40,12 @@ class BlazeMeterClient(object):
         return resp['result']
 
     def import_config(self, config):
-        url = self.address + "/api/v4/collections/taurusimport"
+        url = self.address + "/api/v4/multi-tests/taurusimport"
         resp = self._request(url, data=to_json(config), headers={"Content-Type": "application/json"}, method="POST")
         return resp['result']
 
     def update_collection(self, collection_id, coll):
-        url = self.address + "/api/v4/collections/%s" % collection_id
+        url = self.address + "/api/v4/multi-tests/%s" % collection_id
         self._request(url, data=to_json(coll), headers={"Content-Type": "application/json"}, method="POST")
 
     def find_collection(self, collection_name, project_id):
@@ -67,18 +67,6 @@ class BlazeMeterClient(object):
                         self.log.debug("Matched: %s", test)
                         return test
 
-    def launch_cloud_collection(self, collection_id):
-        self.log.info("Initiating cloud test with %s ...", self.address)
-        # NOTE: delayedStart=true means that BM will not start test until all instances are ready
-        # if omitted - instances will start once ready (not simultaneously),
-        # which may cause inconsistent data in aggregate report.
-        url = self.address + "/api/v4/collections/%s/start?delayedStart=true" % collection_id
-        resp = self._request(url, method="POST")
-        self.log.debug("Response: %s", resp['result'])
-        self.master_id = resp['result']['id']
-        self.results_url = self.address + '/app/#/masters/%s' % self.master_id
-        return self.results_url
-
     def force_start_master(self):
         self.log.info("All servers are ready, starting cloud test")
         url = self.address + "/api/v4/masters/%s/forceStart" % self.master_id
@@ -86,7 +74,7 @@ class BlazeMeterClient(object):
 
     def stop_collection(self, collection_id):
         self.log.info("Shutting down cloud test...")
-        url = self.address + "/api/v4/collections/%s/stop" % collection_id
+        url = self.address + "/api/v4/multi-tests/%s/stop" % collection_id
         self._request(url)
 
     def create_collection(self, name, taurus_config, resource_files, proj_id):

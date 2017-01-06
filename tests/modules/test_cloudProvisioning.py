@@ -7,7 +7,7 @@ import time
 import yaml
 
 from bzt import TaurusConfigError
-from bzt.bza import Master, Test
+from bzt.bza import Master, Test, MultiTest
 from bzt.engine import ScenarioExecutor, ManualShutdown
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet
 from bzt.modules.blazemeter import CloudProvisioning, ResultsFromBZA
@@ -159,24 +159,34 @@ class TestCloudProvisioning(BZTestCase):
         self.assertEqual("testname #1\n executor scenario:\n  Agents in loc-name: 10\n", widget.text.get_text()[0])
 
     def test_widget_cloud_collection(self):
-        self.obj.router = CloudCollectionTest(self.obj.client, None, None, None, None, self.obj.log)
-        self.configure(
-            client_results=[
-                {"result": {
-                    "sessions": [{
-                        "id": "session-id",
-                        "locationId": "loc-name",
-                        "readyStatus": {"servers": ["server" for _ in range(10)]}}]}},
-                {"result": {
-                    "sessions": [{
-                        "id": "session-id",
-                        "name": "loc-name/scenario",
-                        "configuration": {}}]}}])
+        test = MultiTest(self.obj.user, {"id": 1, 'name': 'testname'})
+        self.obj.router = CloudCollectionTest(self.obj.user, test, None, None, None, self.obj.log)
+        self.configure(post={
+            'https://a.blazemeter.com/api/v4/multi-tests/1/start?delayedStart=true': {"result": {
+                "id": 1,
+                "sessions": [{
+                    "id": "session-id",
+                    "locationId": "loc-name",
+                    "readyStatus": {"servers": ["server" for _ in range(10)]}}]}}
+        }, get={
+            'https://a.blazemeter.com/api/v4/masters/1/status': {"result": {"status": "CREATED", "sessions": [{
+                "id": "session-id",
+                "locationId": "loc-name",
+                "readyStatus": {"servers": ["server" for _ in range(10)]},
+                "name": "loc-name/scenario",
+                "configuration": {}}]}},
+            'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": {
+                "sessions": [{
+                    "id": "session-id",
+                    "name": "loc-name/scenario",
+                    "configuration": {}}]}}
+        })
+        self.obj.startup()
         self.obj.router.get_master_status()
         widget = self.obj.get_widget()
         widget.update()
 
-        self.assertEqual("None #None\n scenario:\n  Agents in loc-name: 10\n", widget.text.get_text()[0])
+        self.assertEqual("testname #1\n scenario:\n  Agents in loc-name: 10\n", widget.text.get_text()[0])
 
     def test_delete_test_files(self):
         self.configure(
