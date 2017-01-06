@@ -55,6 +55,7 @@ class TestCloudProvisioningOld(BZTestCase):
         prov.prepare()
         prov.startup()
         prov.check()
+        prov._last_check_time = 0
         prov.check()
         prov.shutdown()
         prov.post_process()
@@ -70,7 +71,7 @@ class TestCloudProvisioningOld(BZTestCase):
             raise ValueError()
 
         if isinstance(resp, list):
-            ret = resp.pop()
+            ret = resp.pop(0)
         else:
             ret = resp
 

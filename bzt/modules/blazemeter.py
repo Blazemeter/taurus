@@ -1289,7 +1289,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.router = None
         self.test_ended = False
         self.check_interval = 5.0
-        self.__last_check_time = None
+        self._last_check_time = None
         self.public_report = False
 
     def _merge_with_blazemeter_config(self):
@@ -1332,7 +1332,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         config_for_cloud.dump(self.engine.create_artifact("cloud", ""))
         self.router.resolve_test(config_for_cloud, files_for_cloud)
 
-        self.widget = CloudProvWidget(self.router)
+        self.widget = self.get_widget()
 
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.results_reader = ResultsFromBZA()
@@ -1376,9 +1376,9 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
     def _should_skip_check(self):
         now = time.time()
-        if self.__last_check_time is None:
+        if self._last_check_time is None:
             return False
-        elif now >= self.__last_check_time + self.check_interval:
+        elif now >= self._last_check_time + self.check_interval:
             return False
         else:
             return True
@@ -1392,7 +1392,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             self.log.debug("Skipping cloud status check")
             return False
 
-        self.__last_check_time = time.time()
+        self._last_check_time = time.time()
 
         try:
             master = self.router.get_master_status()
