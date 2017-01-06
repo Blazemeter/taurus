@@ -28,6 +28,7 @@ class TestCloudProvisioning(BZTestCase):
         engine = EngineEmul()
         engine.aggregator = ConsolidatingAggregator()
         self.obj = CloudProvisioning()
+        self.obj.settings.merge({'delete-test-files': False})
         self.obj.engine = engine
         self.obj.browser_open = False
         self.mock = BZMock(self.obj.user)
@@ -222,7 +223,7 @@ class TestCloudProvisioning(BZTestCase):
                     "locations": {
                         "us-east-1": 1,
                         "us-west": 2}}},
-            )
+        )
 
         self.obj.router = CloudTaurusTest(self.obj.client, None, None, "name", None, self.obj.log)
         cloud_config = self.obj.router.prepare_cloud_config(self.obj.engine.config)
@@ -232,92 +233,96 @@ class TestCloudProvisioning(BZTestCase):
         self.assertNotIn("hold-for", execution)
         self.assertNotIn("steps", execution)
 
-        client_results=[
+        client_results = [
             {"result": []},
             {"result": [{
                 "id": 5174715,
                 "name": "Taurus Cloud Test",
                 "configuration": {"type": "taurus"}, }]},  # find test
             self.__get_user_info(),  # user
-            {} # upload files
+            {}  # upload files
         ]
 
     def test_default_test_type_cloud(self):
         self.configure(
             engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
-            client_results=[
-                {"result": []},
-                {"result": [{
-                    "id": 5174715,
-                    "name": "Taurus Cloud Test",
-                    "configuration": {"type": "taurus"}}]},  # find test
-                self.__get_user_info(),  # user
-                {}])  # upload files
+        )  # upload files
 
         self.obj.settings.merge({"delete-test-files": False})
 
         self.obj.prepare()
         self.assertIsInstance(self.obj.router, CloudTaurusTest)
+
+        client_results = [
+            {"result": []},
+            {"result": [{
+                "id": 5174715,
+                "name": "Taurus Cloud Test",
+                "configuration": {"type": "taurus"}}]},  # find test
+            self.__get_user_info(),  # user
+            {}]
 
     def test_type_forced(self):
         self.configure(
             engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
-            client_results=[
-                {"result": [{
-                    "id": 5174715,
-                    "name": "Taurus Cloud Test",
-                    "configuration": {"type": "taurus"}}]},  # find test
-                self.__get_user_info(),  # user
-                {},  # upload files
-                {"result": {"name": "Taurus Collection", "items": []}},  # transform config to collection
-                {}])  # update collection
-
-        self.obj.settings.merge({'delete-test-files': False})
+        )
 
         self.obj.prepare()
         self.assertIsInstance(self.obj.router, CloudCollectionTest)
+
+        client_results = [
+            {"result": [{
+                "id": 5174715,
+                "name": "Taurus Cloud Test",
+                "configuration": {"type": "taurus"}}]},  # find test
+            self.__get_user_info(),  # user
+            {},  # upload files
+            {"result": {"name": "Taurus Collection", "items": []}},  # transform config to collection
+            {}]# update collection
 
     def test_detect_test_type_collection(self):
         self.configure(
             engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
-            client_results=[
-                {"result": [{
-                    "id": 5174715,
-                    "name": "Taurus Cloud Test",
-                    "items": [{"configuration": {"type": "taurus"}}]}]},  # detect collection
-                self.__get_user_info(),  # user
-                {},  # upload files
-                {"result": {"name": "Taurus Collection", "items": []}},  # transform config to collection
-                {}])  # update collection
-
-        self.obj.settings.merge({"delete-test-files": False})
+        )  # update collection
 
         self.obj.prepare()
         self.assertIsInstance(self.obj.router, CloudCollectionTest)
 
+        client_results = [
+            {"result": [{
+                "id": 5174715,
+                "name": "Taurus Cloud Test",
+                "items": [{"configuration": {"type": "taurus"}}]}]},  # detect collection
+            self.__get_user_info(),  # user
+            {},  # upload files
+            {"result": {"name": "Taurus Collection", "items": []}},  # transform config to collection
+            {}]
+
     def test_detect_test_type_cloud(self):
         self.configure(
             engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
-            client_results=[
-                {"result": []},  # detect collection
-                {"result": [{
-                    "id": 5174715,
-                    "name": "Taurus Cloud Test",
-                    "configuration": {"type": "taurus"}}]},  # detect test
-                self.__get_user_info(),  # user
-                {"result": [{
-                    "id": 5174715,
-                    "name": "Taurus Cloud Test",
-                    "configuration": {"type": "taurus"}}]},  # find test
-                {},  # upload files
-                {"result": {
-                    "name": "Taurus Collection", "items": []}},  # transform config to collection
-                {}])  # update collection
+        )  # update collection
 
         self.obj.settings.merge({"delete-test-files": False})
 
         self.obj.prepare()
         self.assertIsInstance(self.obj.router, CloudTaurusTest)
+
+        client_results = [
+            {"result": []},  # detect collection
+            {"result": [{
+                "id": 5174715,
+                "name": "Taurus Cloud Test",
+                "configuration": {"type": "taurus"}}]},  # detect test
+            self.__get_user_info(),  # user
+            {"result": [{
+                "id": 5174715,
+                "name": "Taurus Cloud Test",
+                "configuration": {"type": "taurus"}}]},  # find test
+            {},  # upload files
+            {"result": {
+                "name": "Taurus Collection", "items": []}},  # transform config to collection
+            {}]
 
     def test_full_collection(self):
         self.configure(
@@ -328,17 +333,7 @@ class TestCloudProvisioning(BZTestCase):
                     "locations": {
                         "us-east-1": 1,
                         "us-west": 2}}},
-            client_results=[
-                {"result": []},  # collections
-                {"result": []},  # tests
-                self.__get_user_info(),  # user
-                {"files": []},  # upload files
-                {"result": {"name": "Taurus Collection", "items": []}},  # transform config to collection
-                {"result": {"id": id(self.obj.client)}},  # create collection
-                {"result": {"id": id(self.obj)}},  # start
-                {"result": {"id": id(self.obj), "sessions": []}},  # get master
-                {"result": []},  # get master sessions
-                {}])  # terminate
+        )  # terminate
 
         self.obj.settings["use-deprecated-api"] = False
 
@@ -351,40 +346,45 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.shutdown()
         self.obj.post_process()
 
+        client_results = [
+            {"result": []},  # collections
+            {"result": []},  # tests
+            self.__get_user_info(),  # user
+            {"files": []},  # upload files
+            {"result": {"name": "Taurus Collection", "items": []}},  # transform config to collection
+            {"result": {"id": id(self.obj.client)}},  # create collection
+            {"result": {"id": id(self.obj)}},  # start
+            {"result": {"id": id(self.obj), "sessions": []}},  # get master
+            {"result": []},  # get master sessions
+            {}]
+
     def test_create_project(self):
         self.configure(
             engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
-            client_results=[
-                {"result": []},  # projects
-                {"result": {"id": 1428}},  # create project
-                {"result": []},  # collections
-                {"result": [{
-                    "id": 5174715,
-                    "projectId": 1428,
-                    "name": "Taurus Cloud Test",
-                    "configuration": {"type": "taurus"}}]},  # find test
-                self.__get_user_info(),  # locations
-                {}])  # upload files
+        )  # upload files
 
         self.obj.settings.merge({
             "delete-test-files": False,
             "project": "myproject"})
 
         self.obj.prepare()
+
+        client_results = [
+            {"result": []},  # projects
+            {"result": {"id": 1428}},  # create project
+            {"result": []},  # collections
+            {"result": [{
+                "id": 5174715,
+                "projectId": 1428,
+                "name": "Taurus Cloud Test",
+                "configuration": {"type": "taurus"}}]},  # find test
+            self.__get_user_info(),  # locations
+            {}]
 
     def test_reuse_project(self):
         self.configure(
             engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
-            client_results=[
-                {"result": [{"id": 1428, "name": "myproject"}]},  # projects
-                {"result": []},  # collections
-                {"result": [{
-                    "id": 5174715,
-                    "projectId": 1428,
-                    "name": "Taurus Cloud Test",
-                    "configuration": {"type": "taurus"}}]},  # find test
-                self.__get_user_info(),  # user
-                {}])  # upload files
+        )  # upload files
 
         self.obj.settings.merge({
             "delete-test-files": False,
@@ -392,35 +392,41 @@ class TestCloudProvisioning(BZTestCase):
 
         self.obj.prepare()
 
+        client_results = [
+            {"result": [{"id": 1428, "name": "myproject"}]},  # projects
+            {"result": []},  # collections
+            {"result": [{
+                "id": 5174715,
+                "projectId": 1428,
+                "name": "Taurus Cloud Test",
+                "configuration": {"type": "taurus"}}]},  # find test
+            self.__get_user_info(),  # user
+            {}]
+
     def test_reuse_project_id(self):
         self.configure(
             engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
-            client_results=[
-                {"result": []},  # collections
-                {"result": [{
-                    "id": 5174715,
-                    "projectId": 1428,
-                    "name": "Taurus Cloud Test",
-                    "configuration": {"type": "taurus"}}]},  # find test
-                self.__get_user_info(),  # user
-                {}])  # upload files
+        )  # upload files
 
         self.obj.settings.merge({
             "delete-test-files": False,
             "project": 1428})
 
         self.obj.prepare()
+        client_results = [
+            {"result": []},  # collections
+            {"result": [{
+                "id": 5174715,
+                "projectId": 1428,
+                "name": "Taurus Cloud Test",
+                "configuration": {"type": "taurus"}}]},  # find test
+            self.__get_user_info(),  # user
+            {}]
 
     def test_create_collection(self):
         self.configure(
             engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
-            client_results=[
-                {"result": []},  # find collection
-                {"result": []},  # find test
-                self.__get_user_info(),  # user
-                {},  # upload files
-                {"result": {"name": "Taurus Collection", "items": []}},  # transform config to collection
-                {"result": {"id": 42}}])  # create collection
+        )  # create collection
 
         self.obj.settings.merge({
             "delete-test-files": False,
@@ -428,6 +434,13 @@ class TestCloudProvisioning(BZTestCase):
 
         self.obj.prepare()
         self.assertIsInstance(self.obj.router, CloudCollectionTest)
+        client_results = [
+            {"result": []},  # find collection
+            {"result": []},  # find test
+            self.__get_user_info(),  # user
+            {},  # upload files
+            {"result": {"name": "Taurus Collection", "items": []}},  # transform config to collection
+            {"result": {"id": 42}}]
 
     def test_toplevel_locations(self):
         self.configure(
@@ -439,13 +452,7 @@ class TestCloudProvisioning(BZTestCase):
                     "us-east-1": 1,
                     "us-west": 2},
                 "locations-weighted": True},
-            client_results=[
-                {"result": []},  # collections
-                {"result": []},  # tests
-                self.__get_user_info(),  # user
-                {},  # upload files
-                {"result": {"name": "Taurus Collection", "items": []}},  # transform config to collection
-                {"result": {"id": 42}}])  # create collection
+        )  # create collection
 
         self.obj.settings["use-deprecated-api"] = False
         self.obj.prepare()
@@ -456,6 +463,13 @@ class TestCloudProvisioning(BZTestCase):
         self.assertEqual(conf['locations']['us-east-1'], 1)
         self.assertEqual(conf['locations']['us-west'], 2)
         self.assertNotIn('locations', conf['execution'][0])
+        client_results = [
+            {"result": []},  # collections
+            {"result": []},  # tests
+            self.__get_user_info(),  # user
+            {},  # upload files
+            {"result": {"name": "Taurus Collection", "items": []}},  # transform config to collection
+            {"result": {"id": 42}}]
 
     def test_nonexistent_location(self):
         self.configure(
@@ -464,14 +478,15 @@ class TestCloudProvisioning(BZTestCase):
                     "executor": "mock",
                     "concurrency": 5500},
                 "locations": {"us-not-found": 1}},
-            client_results=[
-                {"result": []},  # collections
-                {"result": []},  # tests
-                self.__get_user_info()])  # user
+        )  # user
 
         self.obj.settings["use-deprecated-api"] = False
 
         self.assertRaises(TaurusConfigError, self.obj.prepare)
+        client_results = [
+            {"result": []},  # collections
+            {"result": []},  # tests
+            self.__get_user_info()]
 
     def test_sandbox_default_location(self):
         self.configure(
@@ -480,19 +495,20 @@ class TestCloudProvisioning(BZTestCase):
                 ScenarioExecutor.EXEC: {
                     "executor": "mock",
                     "concurrency": 5500}},
-            client_results=[
-                {"result": []},  # collections
-                {"result": []},  # tests
-                self.__get_user_info(),  # user
-                {"result": {"id": id(self.obj.client)}},  # create test
-                {"files": []},  # create test
-                {}])  # upload files
+        )  # upload files
 
         self.obj.settings["token"] = "FakeToken"
         self.obj.settings["browser-open"] = False
         self.obj.prepare()
         exec_locations = self.obj.executors[0].execution['locations']
         self.assertEquals(1, exec_locations['us-west-1'])
+        client_results = [
+            {"result": []},  # collections
+            {"result": []},  # tests
+            self.__get_user_info(),  # user
+            {"result": {"id": id(self.obj.client)}},  # create test
+            {"files": []},  # create test
+            {}]
 
     def test_collection_defloc_sandbox(self):
         self.configure(
@@ -500,13 +516,7 @@ class TestCloudProvisioning(BZTestCase):
                 ScenarioExecutor.EXEC: {
                     "executor": "mock",
                     "concurrency": 5500}},
-            client_results=[
-                {"result": []},  # find collection
-                {"result": []},  # find test
-                self.__get_user_info(),  # user
-                {},  # upload files
-                {"result": {"name": "Taurus Collection", "items": []}},  # transform config to collection
-                {"result": {"id": 42}}])  # create collection
+        )  # create collection
 
         self.obj.settings["use-deprecated-api"] = False
 
@@ -515,6 +525,13 @@ class TestCloudProvisioning(BZTestCase):
         expected_location = 'harbor-5591335d8588531f5cde3a04'
         self.assertIn(expected_location, exec_locations)
         self.assertEquals(1, exec_locations[expected_location])
+        client_results = [
+            {"result": []},  # find collection
+            {"result": []},  # find test
+            self.__get_user_info(),  # user
+            {},  # upload files
+            {"result": {"name": "Taurus Collection", "items": []}},  # transform config to collection
+            {"result": {"id": 42}}]
 
     def test_locations_on_both_levels(self):
         self.configure(
@@ -524,13 +541,7 @@ class TestCloudProvisioning(BZTestCase):
                     "concurrency": 5500,
                     "locations": {"eu-west-1": 1}}],
                 "locations": {"ams3": 1}},
-            client_results=[
-                {"result": []},  # find test
-                {"result": []},  # find collection
-                self.__get_user_info(),  # user
-                {},  # upload files
-                {"result": {"name": "Taurus Collection", "items": []}},  # transform config to collection
-                {"result": {"id": 42}}])  # create collection
+        )  # create collection
 
         log_recorder = RecordingHandler()
         self.obj.log.addHandler(log_recorder)
@@ -544,6 +555,13 @@ class TestCloudProvisioning(BZTestCase):
             self.assertIn("locations", execution)
         log_buff = log_recorder.warn_buff.getvalue()
         self.assertIn("Each execution has locations specified, global locations won't have any effect", log_buff)
+        client_results = [
+            {"result": []},  # find test
+            {"result": []},  # find collection
+            self.__get_user_info(),  # user
+            {},  # upload files
+            {"result": {"name": "Taurus Collection", "items": []}},  # transform config to collection
+            {"result": {"id": 42}}]
 
     def test_collection_simultaneous_start(self):
         self.configure(
@@ -554,31 +572,7 @@ class TestCloudProvisioning(BZTestCase):
                     "locations": {
                         "us-east-1": 1,
                         "us-west": 1}}},
-            client_results=[
-                {"result": []},  # find collection
-                {"result": []},  # find test
-                self.__get_user_info(),  # user
-                {},  # upload files
-                {"result": {"name": "Taurus Collection", "items": []}},  # transform config to collection
-                {"result": {"id": 42}},  # create collection
-                {"result": {"id": id(self.obj)}},  # start
-                {"result": {
-                    "id": id(self.obj),
-                    "sessions": [
-                        {"id": "s1", "status": "JMETER_CONSOLE_INIT"},
-                        {"id": "s2", "status": "INIT_SCRIPT"}]}},  # status
-                {"result": []},  # sessions
-                {"result": {
-                    "id": id(self.obj),
-                    "sessions": [
-                        {"id": "s1", "status": "JMETER_CONSOLE_INIT"},
-                        {"id": "s2", "status": "JMETER_CONSOLE_INIT"}]}},
-                {"result": []},  # sessions
-                {"result": {}},  # force start
-                {"result": {"id": id(self.obj)}},  # master status
-                {"result": []},  # sessions
-                {},  # graceful shutdown
-                {"result": {"status": "ENDED"}}])  # master status
+        )  # master status
 
         self.obj.settings["check-interval"] = "0ms"  # do not skip checks
         self.obj.settings["use-deprecated-api"] = False
@@ -592,6 +586,32 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.post_process()
         self.assertEqual(self.mock.requests, [])
 
+        client_results = [
+            {"result": []},  # find collection
+            {"result": []},  # find test
+            self.__get_user_info(),  # user
+            {},  # upload files
+            {"result": {"name": "Taurus Collection", "items": []}},  # transform config to collection
+            {"result": {"id": 42}},  # create collection
+            {"result": {"id": id(self.obj)}},  # start
+            {"result": {
+                "id": id(self.obj),
+                "sessions": [
+                    {"id": "s1", "status": "JMETER_CONSOLE_INIT"},
+                    {"id": "s2", "status": "INIT_SCRIPT"}]}},  # status
+            {"result": []},  # sessions
+            {"result": {
+                "id": id(self.obj),
+                "sessions": [
+                    {"id": "s1", "status": "JMETER_CONSOLE_INIT"},
+                    {"id": "s2", "status": "JMETER_CONSOLE_INIT"}]}},
+            {"result": []},  # sessions
+            {"result": {}},  # force start
+            {"result": {"id": id(self.obj)}},  # master status
+            {"result": []},  # sessions
+            {},  # graceful shutdown
+            {"result": {"status": "ENDED"}}]
+
     def test_terminate_only(self):
         """  test is terminated only when it was started and didn't finished """
         self.configure(
@@ -602,24 +622,7 @@ class TestCloudProvisioning(BZTestCase):
                     "locations": {
                         "us-east-1": 1,
                         "us-west": 1}}},
-            client_results=[
-                {"result": []},  # find collection
-                {"result": []},  # find test
-                self.__get_user_info(),  # user
-                {},  # upload files
-                {"result": {
-                    "name": "Taurus Collection", "items": []}},  # transform config to collection
-                {"result": {"id": 42}},  # create collection
-                {"result": {"id": id(self.obj)}},  # start
-                {"result": {
-                    "id": id(self.obj),
-                    "sessions": [{
-                        "id": "s1", "status": "JMETER_CONSOLE_INIT"},
-                        {"id": "s2", "status": "JMETER_CONSOLE_INIT"}]}},
-                {"result": []},  # sessions
-                {"result": {}},  # force start
-                {"result": {"progress": 120, "status": "ENDED"}},  # status should trigger shutdown
-                {"result": []}])  # sessions
+        )  # sessions
 
         self.obj.settings["check-interval"] = "0ms"  # do not skip checks
         self.obj.settings["use-deprecated-api"] = False
@@ -632,22 +635,34 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.post_process()
         self.assertEqual(self.mock.requests, [])
 
+        client_results = [
+            {"result": []},  # find collection
+            {"result": []},  # find test
+            self.__get_user_info(),  # user
+            {},  # upload files
+            {"result": {
+                "name": "Taurus Collection", "items": []}},  # transform config to collection
+            {"result": {"id": 42}},  # create collection
+            {"result": {"id": id(self.obj)}},  # start
+            {"result": {
+                "id": id(self.obj),
+                "sessions": [{
+                    "id": "s1", "status": "JMETER_CONSOLE_INIT"},
+                    {"id": "s2", "status": "JMETER_CONSOLE_INIT"}]}},
+            {"result": []},  # sessions
+            {"result": {}},  # force start
+            {"result": {"progress": 120, "status": "ENDED"}},  # status should trigger shutdown
+            {"result": []}]
+
     def test_cloud_paths(self):
         """
         Test different executor/path combinations for correct return values of get_resources_files
-
-        :return:
         """
         self.configure(
             add_config=False, add_settings=False,
-            client_results=[
-                {"result": []},  # collection
-                {"result": []},  # tests
-                self.__get_user_info(),  # user
-                {"result": {"id": id(self.obj.client)}},  # create test
-                {"files": []},  # create test
-                {}])  # upload files
+        )  # upload files
 
+        # FIXME: refactor this method!
         log_recorder = RecordingHandler()
         self.obj.log.addHandler(log_recorder)
         self.obj.engine.configure([
@@ -752,6 +767,14 @@ class TestCloudProvisioning(BZTestCase):
             os.environ['HOME'] = back_home
             shutil.rmtree(temp_home)
 
+        client_results = [
+            {"result": []},  # collection
+            {"result": []},  # tests
+            self.__get_user_info(),  # user
+            {"result": {"id": id(self.obj.client)}},  # create test
+            {"files": []},  # create test
+            {}]
+
     def test_check_interval(self):
         self.configure(
             engine_cfg={
@@ -761,18 +784,7 @@ class TestCloudProvisioning(BZTestCase):
                     "locations": {
                         "us-east-1": 1,
                         "us-west": 1}}},
-            client_results=[
-                {"result": []},  # collection
-                {"result": []},  # tests
-                self.__get_user_info(),  # user
-                {"result": {"id": id(self.obj.user)}},  # create test
-                {"files": []},  # create test
-                {},  # upload files
-                {"result": {"id": id(self.obj)}},  # start test
-                {"result": {"id": id(self.obj)}},  # status
-                {"result": []},  # sessions
-                {"result": {"id": id(self.obj)}},  # status
-                {"result": []}])  # sessions
+        )  # sessions
 
         self.obj.settings["check-interval"] = "1s"
 
@@ -785,9 +797,21 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.check()  # this one should skip
 
         self.assertEqual(self.mock.requests, [])
+        client_results = [
+            {"result": []},  # collection
+            {"result": []},  # tests
+            self.__get_user_info(),  # user
+            {"result": {"id": id(self.obj.user)}},  # create test
+            {"files": []},  # create test
+            {},  # upload files
+            {"result": {"id": id(self.obj)}},  # start test
+            {"result": {"id": id(self.obj)}},  # status
+            {"result": []},  # sessions
+            {"result": {"id": id(self.obj)}},  # status
+            {"result": []}]
 
     def test_dump_locations(self):
-        self.configure(client_results=[self.__get_user_info()])
+        self.configure()
         log_recorder = RecordingHandler()
         self.obj.log.addHandler(log_recorder)
 
@@ -803,11 +827,12 @@ class TestCloudProvisioning(BZTestCase):
         self.assertNotIn("Location: harbor-5591335d8588531f5cde3a04	Sandbox", info)
 
         self.obj.post_process()
+        client_results = [self.__get_user_info()]
 
     def test_dump_locations_new_style(self):
         log_recorder = RecordingHandler()
         self.obj.log.addHandler(log_recorder)
-        self.configure(client_results=[self.__get_user_info()])
+        self.configure()
         self.obj.settings["dump-locations"] = True
         self.obj.settings["use-deprecated-api"] = False
         self.assertRaises(ManualShutdown, self.obj.prepare)
@@ -820,6 +845,7 @@ class TestCloudProvisioning(BZTestCase):
         self.assertIn("Location: harbor-5591335d8588531f5cde3a04	Sandbox", info)
 
         self.obj.post_process()
+        client_results = [self.__get_user_info()]
 
     def test_settings_from_blazemeter_mod(self):
         self.configure(
@@ -838,13 +864,7 @@ class TestCloudProvisioning(BZTestCase):
                         "detach": True,
                         "browser-open": None,
                         "check-interval": 10.0}}},
-            client_results=[
-                {"result": []},  # collection
-                {"result": []},  # tests
-                self.__get_user_info(),  # user
-                {"result": {"id": id(self.obj.client)}},  # create test
-                {"files": []},  # create test
-                {}])  # upload files
+        )  # upload files
 
         # these should override 'blazemeter' settings
         self.obj.settings["check-interval"] = 20.0
@@ -858,6 +878,14 @@ class TestCloudProvisioning(BZTestCase):
         self.assertEqual(self.obj.check_interval, 20.0)
         self.assertEqual(self.mock.requests, [])
 
+        client_results = [
+            {"result": []},  # collection
+            {"result": []},  # tests
+            self.__get_user_info(),  # user
+            {"result": {"id": id(self.obj.client)}},  # create test
+            {"files": []},  # create test
+            {}]
+
     def test_public_report(self):
         self.configure(
             engine_cfg={
@@ -867,18 +895,14 @@ class TestCloudProvisioning(BZTestCase):
                     "locations": {
                         "us-west": 2
                     }}},
-            client_results=[
-                {"result": []},  # collections
-                {"result": []},  # tests
-                self.__get_user_info(),  # user
-                {"result": {"id": id(self.obj.client)}},  # create test
-                {"files": []},  # create test
-                {},  # upload files
-                {"result": {"id": id(self.obj)}},  # start
-                {'result': {'publicToken': 'publicToken'}},  # publish report
-                {"result": {"id": id(self.obj)}},  # get master
-                {"result": []},  # get master sessions
-                {}])  # terminate
+            post={
+                'https://a.blazemeter.com/api/v4/masters/1/publicToken': {"result": {"publicToken": "publicToken"}}
+            },
+            get={
+                'https://a.blazemeter.com/api/v4/masters/1/status': {"result": {"status": "CREATED"}},
+                'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": {"sessions": []}},
+            }
+        )
 
         log_recorder = RecordingHandler()
         self.obj.log.addHandler(log_recorder)
@@ -891,10 +915,8 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.post_process()
 
         log_buff = log_recorder.info_buff.getvalue()
-        log_line = "Public report link: https://a.blazemeter.com/app/?public-token=publicToken#/masters/%s/summary"
-        self.assertIn(log_line % id(self.obj), log_buff)
-
-        self.assertEqual(self.mock.requests, [])
+        log_line = "Public report link: https://a.blazemeter.com/app/?public-token=publicToken#/masters/1/summary"
+        self.assertIn(log_line, log_buff)
 
 
 class TestCloudTaurusTest(BZTestCase):
