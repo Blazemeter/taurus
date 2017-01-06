@@ -1,3 +1,7 @@
+"""
+The idea for this module is to keep it separate from bzt codebase as much as possible,
+it may become separate library in the future. Things like imports and logging should be minimal.
+"""
 import cookielib
 import json
 import logging
@@ -53,6 +57,11 @@ class BZAObject(dict):
         url = str(url)
         self.log.debug("Request: %s %s %s", log_method, url, data[:self.logger_limit] if data else None)
         data = data.encode("utf8") if isinstance(data, text_type) else data
+
+        if isinstance(data, dict):
+            data = to_json(data)
+            headers["Content-Type"] = "application/json"
+
         response = requests.request(method=log_method, url=url, data=data, headers=headers, cookies=self._cookies,
                                     timeout=self.timeout)
 
@@ -201,9 +210,8 @@ class Workspace(BZAObject):
         return tests
 
     def create_project(self, proj_name):
-        hdr = {"Content-Type": "application/json"}
         params = {"name": str(proj_name), "workspaceId": self['id']}
-        data = self._request(self.address + '/api/v4/projects', to_json(params), headers=hdr)
+        data = self._request(self.address + '/api/v4/projects', params)
         return Project(self, data['result'])
 
 
@@ -249,9 +257,49 @@ class Project(BZAObject):
         self.log.debug("Creating new test")
         url = self.address + '/api/v4/tests'
         data = {"name": name, "projectId": self['id'], "configuration": configuration}
-        hdr = {"Content-Type": "application/json"}
-        resp = self._request(url, to_json(data), headers=hdr)
+        resp = self._request(url, data)
         return Test(self, resp['result'])
+
+    def collection_draft(self, name, taurus_config, resource_files):
+        if resource_files:
+            draft_id = "taurus_%s" % id(self)
+            self.upload_collection_resources(resource_files, draft_id)
+            taurus_config.merge({"dataFiles": {"draftId": draft_id}})
+
+        collection_draft = self.import_config(taurus_config)
+        collection_draft['name'] = name
+        return collection_draft
+
+    def create_multi_test(self, name, taurus_config, resource_files):
+        collection_draft = self.collection_draft(name, taurus_config, resource_files)
+        collection_draft['projectId'] = self['id']
+        url = self.address + "/api/v4/multi-tests"
+        resp = self._request(url, data=collection_draft, method="POST")
+        collection_id = resp['result']['id']
+
+        self.log.debug("Using collection ID: %s", collection_id)
+        return collection_id
+
+    def upload_collection_resources(self, resource_files, draft_id):
+        url = self.address + "/api/v4/web/elfinder/%s" % draft_id
+        body = MultiPartForm()
+        body.add_field("cmd", "upload")
+        body.add_field("target", "s1_Lw")
+        body.add_field('folder', 'drafts')
+
+        for rfile in resource_files:
+            body.add_file('upload[]', rfile)
+
+        hdr = {"Content-Type": str(body.get_content_type())}
+        resp = self._request(url, body.form_as_bytes(), headers=hdr)
+        if "error" in resp:
+            self.log.debug('Response: %s', resp)
+            raise TaurusNetworkError("Can't upload resource files")
+
+    def import_config(self, config):
+        url = self.address + "/api/v4/multi-tests/taurusimport"
+        resp = self._request(url, data=config, method="POST")
+        return resp['result']
 
 
 class Test(BZAObject):
@@ -323,24 +371,32 @@ class MultiTest(BZAObject):
         resp = self._request(url, method="POST")
         return Master(self, resp['result'])
 
+    def stop(self):
+        self.log.info("Shutting down cloud test...")  # FIXME: misplaced
+        url = self.address + "/api/v4/multi-tests/%s/stop" % self['id']
+        self._request(url)
+
+    def update_collection(self, coll):
+        url = self.address + "/api/v4/multi-tests/%s" % self['id']
+        self._request(url, data=coll, method="POST")
+
 
 class Master(BZAObject):
     def make_report_public(self):
         url = self.address + "/api/v4/masters/%s/publicToken" % self['id']
-        res = self._request(url, to_json({"publicToken": None}),
-                            headers={"Content-Type": "application/json"}, method="POST")
+        res = self._request(url, {"publicToken": None}, method="POST")
         public_token = res['result']['publicToken']
         report_link = self.address + "/app/?public-token=%s#/masters/%s/summary" % (public_token, self['id'])
         return report_link
 
     def send_custom_metrics(self, data):
         url = self.address + "/api/v4/data/masters/%s/custom-metrics" % self['id']
-        res = self._request(url, to_json(data), headers={"Content-Type": "application/json"}, method="POST")
+        res = self._request(url, data, method="POST")
         return res
 
     def send_custom_tables(self, data):
         url = self.address + "/api/v4/data/masters/%s/custom-table" % self['id']
-        res = self._request(url, to_json(data), headers={"Content-Type": "application/json"}, method="POST")
+        res = self._request(url, data, method="POST")
         return res
 
     def fetch(self):
@@ -351,7 +407,7 @@ class Master(BZAObject):
 
     def set(self, data):
         url = self.address + "/api/v4/masters/%s" % self['id']
-        res = self._request(url, to_json(data), headers={"Content-Type": "application/json"}, method='PATCH')
+        res = self._request(url, data, method='PATCH')
         self.update(res['result'])
 
     def get_master_status(self):
@@ -394,6 +450,11 @@ class Master(BZAObject):
         res = self._request(url)
         return res['result']
 
+    def force_start_master(self):
+        self.log.info("All servers are ready, starting cloud test")  # FIXME: misplaced
+        url = self.address + "/api/v4/masters/%s/forceStart" % self['id']
+        self._request(url, method="POST")
+
     def stop(self):
         url = self.address + "/api/v4/masters/%s/stop"
         self._request(url % self['id'], method='POST')
@@ -413,7 +474,7 @@ class Session(BZAObject):
 
     def set(self, data):
         url = self.address + "/api/v4/sessions/%s" % self['id']
-        res = self._request(url, to_json(data), headers={"Content-Type": "application/json"}, method='PATCH')
+        res = self._request(url, data, method='PATCH')
         self.update(res['result'])
 
     def stop(self):
@@ -423,7 +484,7 @@ class Session(BZAObject):
     def stop_anonymous(self):
         url = self.address + "/api/v4/sessions/%s/terminate-external" % self['id']  # FIXME: V4 API has issue with it
         data = {"signature": self.data_signature, "testId": self['testId'], "sessionId": self['id']}
-        self._request(url, to_json(data))
+        self._request(url, data)
 
     def send_kpi_data(self, data, is_check_response=True):
         """
@@ -449,7 +510,7 @@ class Session(BZAObject):
                 raise ManualShutdown("The test was interrupted through Web UI")
 
     def send_monitoring_data(self, src_name, data):
-        self.upload_file('%s.monitoring.json' % src_name, to_json(data))
+        self.upload_file('%s.monitoring.json' % src_name, data)
 
     def upload_file(self, filename, contents=None):
         """

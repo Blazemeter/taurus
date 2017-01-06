@@ -225,7 +225,7 @@ class TestCloudProvisioning(BZTestCase):
                         "us-west": 2}}},
         )
 
-        self.obj.router = CloudTaurusTest(self.obj.client, None, None, "name", None, self.obj.log)
+        self.obj.router = CloudTaurusTest(self.obj.user, None, None, "name", None, self.obj.log)
         cloud_config = self.obj.router.prepare_cloud_config(self.obj.engine.config)
         execution = cloud_config["execution"][0]
         self.assertNotIn("throughput", execution)
@@ -233,40 +233,14 @@ class TestCloudProvisioning(BZTestCase):
         self.assertNotIn("hold-for", execution)
         self.assertNotIn("steps", execution)
 
-        client_results = [
-            {"result": []},
-            {"result": [{
-                "id": 5174715,
-                "name": "Taurus Cloud Test",
-                "configuration": {"type": "taurus"}, }]},  # find test
-            self.__get_user_info(),  # user
-            {}  # upload files
-        ]
-
     def test_default_test_type_cloud(self):
-        self.configure(
-            engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
-        )  # upload files
-
-        self.obj.settings.merge({"delete-test-files": False})
-
+        self.configure(engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}}, )
         self.obj.prepare()
         self.assertIsInstance(self.obj.router, CloudTaurusTest)
 
-        client_results = [
-            {"result": []},
-            {"result": [{
-                "id": 5174715,
-                "name": "Taurus Cloud Test",
-                "configuration": {"type": "taurus"}}]},  # find test
-            self.__get_user_info(),  # user
-            {}]
-
     def test_type_forced(self):
-        self.configure(
-            engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
-        )
-
+        self.configure(engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}}, )
+        self.obj.settings['use-deprecated-api'] = False
         self.obj.prepare()
         self.assertIsInstance(self.obj.router, CloudCollectionTest)
 
@@ -278,7 +252,7 @@ class TestCloudProvisioning(BZTestCase):
             self.__get_user_info(),  # user
             {},  # upload files
             {"result": {"name": "Taurus Collection", "items": []}},  # transform config to collection
-            {}]# update collection
+            {}]  # update collection
 
     def test_detect_test_type_collection(self):
         self.configure(
@@ -299,11 +273,7 @@ class TestCloudProvisioning(BZTestCase):
             {}]
 
     def test_detect_test_type_cloud(self):
-        self.configure(
-            engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
-        )  # update collection
-
-        self.obj.settings.merge({"delete-test-files": False})
+        self.configure(engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}}, )
 
         self.obj.prepare()
         self.assertIsInstance(self.obj.router, CloudTaurusTest)
@@ -352,7 +322,7 @@ class TestCloudProvisioning(BZTestCase):
             self.__get_user_info(),  # user
             {"files": []},  # upload files
             {"result": {"name": "Taurus Collection", "items": []}},  # transform config to collection
-            {"result": {"id": id(self.obj.client)}},  # create collection
+            {"result": {"id": id(self.obj.user)}},  # create collection
             {"result": {"id": id(self.obj)}},  # start
             {"result": {"id": id(self.obj), "sessions": []}},  # get master
             {"result": []},  # get master sessions
@@ -506,7 +476,7 @@ class TestCloudProvisioning(BZTestCase):
             {"result": []},  # collections
             {"result": []},  # tests
             self.__get_user_info(),  # user
-            {"result": {"id": id(self.obj.client)}},  # create test
+            {"result": {"id": id(self.obj.user)}},  # create test
             {"files": []},  # create test
             {}]
 
@@ -771,7 +741,7 @@ class TestCloudProvisioning(BZTestCase):
             {"result": []},  # collection
             {"result": []},  # tests
             self.__get_user_info(),  # user
-            {"result": {"id": id(self.obj.client)}},  # create test
+            {"result": {"id": id(self.obj.user)}},  # create test
             {"files": []},  # create test
             {}]
 
@@ -874,7 +844,7 @@ class TestCloudProvisioning(BZTestCase):
 
         self.assertEqual(self.obj.detach, True)
         self.assertEqual(self.obj.browser_open, "both")
-        self.assertEqual(self.obj.client.token, "bmtoken")
+        self.assertEqual(self.obj.user.token, "bmtoken")
         self.assertEqual(self.obj.check_interval, 20.0)
         self.assertEqual(self.mock.requests, [])
 
@@ -882,7 +852,7 @@ class TestCloudProvisioning(BZTestCase):
             {"result": []},  # collection
             {"result": []},  # tests
             self.__get_user_info(),  # user
-            {"result": {"id": id(self.obj.client)}},  # create test
+            {"result": {"id": id(self.obj.user)}},  # create test
             {"files": []},  # create test
             {}]
 

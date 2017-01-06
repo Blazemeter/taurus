@@ -1051,7 +1051,7 @@ class CloudTaurusTest(BaseCloudTest):
 
 class CloudCollectionTest(BaseCloudTest):
     def prepare_locations(self, executors, engine_config):
-        available_locations = self.client.available_locations(include_harbors=True)
+        available_locations = self._user.available_locations(include_harbors=True)
 
         global_locations = engine_config.get(CloudProvisioning.LOC, BetterDict())
         self._check_locations(global_locations, available_locations)
@@ -1126,12 +1126,17 @@ class CloudCollectionTest(BaseCloudTest):
 
     def resolve_test(self, taurus_config, rfiles, delete_old_files=False):
         # TODO: handle delete_old_files ?
-        if self.test_id is None:
+        if self._test is None:
+            if not self._project:
+                raise TaurusInternalException()  # TODO: build unit test to catch this situation
+
             self.log.debug("Creating cloud collection test")
-            self._test = self.client.create_collection(self._test['name'], taurus_config, rfiles, self.project_id)
+            self._test = self._project.create_multi_test(self._test_name, taurus_config, rfiles)
         else:
             self.log.debug("Overriding cloud collection test")
-            self.client.setup_collection(self.test_id, self._test['name'], taurus_config, rfiles, self.project_id)
+            collection_draft = self._project.collection_draft(self._test_name, taurus_config, rfiles)
+            collection_draft['projectId'] = self._project['id']
+            self._test.update_collection(collection_draft)
 
     def launch_test(self):
         self.log.info("Initiating cloud test with %s ...", self._test.address)
