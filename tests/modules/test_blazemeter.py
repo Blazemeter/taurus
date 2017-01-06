@@ -1,6 +1,7 @@
 import logging
 
 from bzt.engine import ScenarioExecutor
+from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.blazemeter import CloudProvisioning
 from tests import BZTestCase
 from tests.mocks import EngineEmul, ModuleMock
@@ -18,8 +19,12 @@ class TestCloudProvisioningOld(BZTestCase):
             'https://a.blazemeter.com/api/v4/multi-tests?workspaceId=1&name=Taurus+Cloud+Test': {"result": []},
             'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=Taurus+Cloud+Test': {"result": []},
             'https://a.blazemeter.com/api/v4/projects?workspaceId=1': {"result": []},
-            'https://a.blazemeter.com/api/v4/masters/1/status': {"result": {"status": "CREATE"}},
+            'https://a.blazemeter.com/api/v4/masters/1/status': [
+                {"result": {"id": 1, "status": "CREATE"}},
+                {"result": {"id": 1, "status": "ENDED", "progress": 101}}
+            ],
             'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": {"sessions": []}},
+            'https://a.blazemeter.com/api/v4/masters/1': {"result": {"note": "message"}},
         }
 
         self.mock_post = {
@@ -28,12 +33,15 @@ class TestCloudProvisioningOld(BZTestCase):
             'https://a.blazemeter.com/api/v4/tests/1/files': {"result": None},
             'https://a.blazemeter.com/api/v4/tests/1/start': {"result": {"id": 1}},
             'https://a.blazemeter.com/api/v4/masters/1/stop': {"result": None},
+            'https://a.blazemeter.com/api/v4/masters/1/publicToken': {"result": {"publicToken": "token"}},
         }
 
         prov = CloudProvisioning()
         prov.browser_open = None
+        prov.public_report = True
         prov.user.token = "test"
         prov.engine = EngineEmul()
+        prov.engine.aggregator = ConsolidatingAggregator()
         # prov.engine.config.merge({"modules": {"blazemeter": {"browser-open": False}}})
         prov.engine.config[ScenarioExecutor.EXEC] = [{
             "executor": "mock",
@@ -46,6 +54,7 @@ class TestCloudProvisioningOld(BZTestCase):
 
         prov.prepare()
         prov.startup()
+        prov.check()
         prov.check()
         prov.shutdown()
         prov.post_process()

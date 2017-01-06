@@ -829,7 +829,6 @@ class ProjectFinder(object):
         return test_class(self.user, test, project, test_name, default_location, self.log)
 
     def _default_or_create_project(self, proj_name):
-        self.log.warning("Default or create %s", proj_name)
         if proj_name:
             return self.workspaces.first().create_project(proj_name)
         else:
@@ -845,7 +844,7 @@ class BaseCloudTest(object):
     :type _user: bzt.bza.User
     :type _project: bzt.bza.Project
     :type _test: bzt.bza.Test
-    :type _master: bzt.bza.Master
+    :type master: bzt.bza.Master
     """
 
     def __init__(self, user, test, project, test_name, default_location, parent_log):
@@ -859,7 +858,7 @@ class BaseCloudTest(object):
         self._user = user
         self._project = project
         self._test = test
-        self._master = None
+        self.master = None
 
     @abstractmethod
     def prepare_locations(self, executors, engine_config):
@@ -891,12 +890,8 @@ class BaseCloudTest(object):
     def stop_test(self):
         pass
 
-    def publish_report(self):
-        report_link = self._master.make_report_public()
-        return report_link
-
     def get_master_status(self):
-        self._last_status = self._master.get_master_status()
+        self._last_status = self.master.get_master_status()
         return self._last_status
 
 
@@ -1008,20 +1003,20 @@ class CloudTaurusTest(BaseCloudTest):
 
     def launch_test(self):
         self.log.info("Initiating cloud test with %s ...", self._test.address)
-        self._master = self._test.start()
-        return self._master.address + '/app/#/masters/%s' % self._master['id']
+        self.master = self._test.start()
+        return self.master.address + '/app/#/masters/%s' % self.master['id']
 
     def start_if_ready(self):
         self._started = True
 
     def stop_test(self):
-        if self._master:
+        if self.master:
             self.log.info("Ending cloud test...")
-            self._master.stop()
+            self.master.stop()
 
     def get_test_status_text(self):
         if not self._sessions:
-            self._sessions = self._master.sessions()
+            self._sessions = self.master.sessions()
             if not self._sessions:
                 return
 
@@ -1040,7 +1035,7 @@ class CloudTaurusTest(BaseCloudTest):
             except KeyError:
                 self._sessions = None
 
-        txt = "%s #%s\n" % (self._test['name'], self._master['id'])
+        txt = "%s #%s\n" % (self._test['name'], self.master['id'])
         for executor, scenarios in iteritems(mapping):
             txt += " %s" % executor
             for scenario, locations in iteritems(scenarios):
@@ -1340,7 +1335,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.widget = CloudProvWidget(self.router)
 
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
-            self.results_reader = ResultsFromBZA(self.user)
+            self.results_reader = ResultsFromBZA()
             self.results_reader.log = self.log
             self.engine.aggregator.add_underling(self.results_reader)
 
@@ -1376,7 +1371,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
                 open_browser(self.results_url)
 
         if self.user.token and self.public_report:
-            public_link = self.router.publish_report()
+            public_link = self.router.master.make_report_public()
             self.log.info("Public report link: %s", public_link)
 
     def _should_skip_check(self):
@@ -1412,16 +1407,16 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             self.__last_master_status = master['status']
             self.log.info("Cloud test status: %s", self.__last_master_status)
 
-        if self.results_reader is not None and 'progress' in master and master['progress'] >= 100:  # FIXME
-            self.results_reader.master_id = self.client.master_id
+        if self.results_reader is not None and 'progress' in master and master['progress'] >= 100:
+            self.results_reader.master_id = self.router.master
 
-        if 'progress' in master and master['progress'] > 100:  # FIXME
+        if 'progress' in master and master['progress'] > 100:
             self.log.info("Test was stopped in the cloud: %s", master['status'])
-            status = self.client.get_master()
+            status = self.router.master.fetch()
             if 'note' in status and status['note']:
                 self.log.warning("Cloud test has probably failed with message: %s", status['note'])
 
-            self.router._master = None
+            self.router.master = None
             self.test_ended = True
             return True
 
@@ -1445,18 +1440,17 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
 class ResultsFromBZA(ResultsProvider):
     """
-    :type client: bzt.bza.Master
+    :type master: bzt.bza.Master
     """
 
-    def __init__(self, master):
+    def __init__(self, master=None):
         super(ResultsFromBZA, self).__init__()
         self.master = master
-        self.master_id = None  # must be set afterwards
         self.min_ts = 0
         self.log = logging.getLogger('')
 
     def _calculate_datapoints(self, final_pass=False):
-        if self.master_id is None:
+        if self.master is None:
             return
 
         data, aggr_raw = self.query_data()
@@ -1506,21 +1500,21 @@ class ResultsFromBZA(ResultsProvider):
 
     def query_data(self):
         try:
-            data = self.master.get_kpis(self.master_id, self.min_ts)
+            data = self.master.get_kpis(self.min_ts)
         except URLError:
             self.log.warning("Failed to get result KPIs, will retry in %s seconds...", self.master.timeout)
             self.log.debug("Full exception: %s", traceback.format_exc())
             time.sleep(self.master.timeout)
-            data = self.master.get_kpis(self.master_id, self.min_ts)
+            data = self.master.get_kpis(self.min_ts)
             self.log.info("Succeeded with retry")
 
         try:
-            aggr = self.master.get_aggregate_report(self.master_id)
+            aggr = self.master.get_aggregate_report()
         except URLError:
             self.log.warning("Failed to get aggregate results, will retry in %s seconds...", self.master.timeout)
             self.log.debug("Full exception: %s", traceback.format_exc())
             time.sleep(self.master.timeout)
-            aggr = self.master.get_aggregate_report(self.master_id)
+            aggr = self.master.get_aggregate_report()
             self.log.info("Succeeded with retry")
 
         return data, aggr
