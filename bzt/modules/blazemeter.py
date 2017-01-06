@@ -811,12 +811,13 @@ class ProjectFinder(object):
             self.log.debug("Detected test type: new")
             test_class = CloudCollectionTest
         else:
-            test = self._ws_proj_switch(project).tests(test_name, test_type='taurus').first()
+            test = self._ws_proj_switch(project).tests(name=test_name, test_type='taurus').first()
             self.log.debug("Looked for test: %s", test)
             if test:
                 self.log.debug("Detected test type: old")
                 test_class = CloudTaurusTest
             else:
+                project = self._default_or_create_project(proj_name)
                 if use_deprecated:
                     self.log.debug("Will create old-style test")
                     test_class = CloudTaurusTest
@@ -825,9 +826,10 @@ class ProjectFinder(object):
                     test_class = CloudCollectionTest
                 test = None
 
-        return test_class(self.user, test, project, default_location, self.log)
+        return test_class(self.user, test, project, test_name, default_location, self.log)
 
     def _default_or_create_project(self, proj_name):
+        self.log.warning("Default or create %s", proj_name)
         if proj_name:
             return self.workspaces.first().create_project(proj_name)
         else:
@@ -846,10 +848,11 @@ class BaseCloudTest(object):
     :type _master: bzt.bza.Master
     """
 
-    def __init__(self, user, test, project, default_location, parent_log):
+    def __init__(self, user, test, project, test_name, default_location, parent_log):
         self.default_test_name = "Taurus Test"
         self.log = parent_log.getChild(self.__class__.__name__)
         self.default_location = default_location
+        self._test_name = test_name
         self._last_status = None
         self._sessions = None
         self._started = False
@@ -996,9 +999,9 @@ class CloudTaurusTest(BaseCloudTest):
             }
 
             if not self._project:
-                pass  # TODO
+                raise TaurusInternalException()  # TODO: build unit test to catch this situation
 
-            self._test = self._project.create_test(self._test['name'], test_config)
+            self._test = self._project.create_test(self._test_name, test_config)
 
         taurus_config = yaml.dump(taurus_config, default_flow_style=False, explicit_start=True, canonical=False)
         self._test.upload_files(taurus_config, rfiles)
@@ -1217,7 +1220,7 @@ class MasterProvisioning(Provisioning):
             rfiles += executor_rfiles
 
         if additional_files:
-            raise TaurusConfigError("Next files can't be treated in cloud: %s" % additional_files)
+            raise TaurusConfigError("Following files can't be handled in cloud: %s" % additional_files)
 
         rfiles = list(set(rfiles))
         self.log.debug("All resource files are: %s", rfiles)
@@ -1273,7 +1276,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
     """
     :type user: bzt.bza.User
     :type results_reader: ResultsFromBZA
-    :type test: BaseCloudTest
+    :type router: BaseCloudTest
     """
 
     LOC = "locations"
@@ -1281,13 +1284,14 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
     def __init__(self):
         super(CloudProvisioning, self).__init__()
+        self.results_url = None
         self.results_reader = None
         self.user = User()
         self.__last_master_status = None
         self.browser_open = 'start'
         self.widget = None
         self.detach = False
-        self.test = None
+        self.router = None
         self.test_ended = False
         self.check_interval = 5.0
         self.__last_check_time = None
@@ -1324,16 +1328,16 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
         finder = ProjectFinder(self.parameters, self.settings, self.user, self.log)
         finder.default_test_name = "Taurus Cloud Test"
-        self.test = finder.resolve_test_type()
-        self.test.prepare_locations(self.executors, self.engine.config)
+        self.router = finder.resolve_test_type()
+        self.router.prepare_locations(self.executors, self.engine.config)
 
         res_files = self.get_rfiles()
         files_for_cloud = self._fix_filenames(res_files)
-        config_for_cloud = self.test.prepare_cloud_config(self.engine.config)
+        config_for_cloud = self.router.prepare_cloud_config(self.engine.config)
         config_for_cloud.dump(self.engine.create_artifact("cloud", ""))
-        self.test.resolve_test(config_for_cloud, files_for_cloud)
+        self.router.resolve_test(config_for_cloud, files_for_cloud)
 
-        self.widget = CloudProvWidget(self.test)
+        self.widget = CloudProvWidget(self.router)
 
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.results_reader = ResultsFromBZA(self.user)
@@ -1365,13 +1369,14 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
     def startup(self):
         super(CloudProvisioning, self).startup()
-        self.test.launch_test()
-        self.log.info("Started cloud test: %s", self.client.results_url)
-        if self.client.results_url:
+        self.results_url = self.router.launch_test()
+        self.log.info("Started cloud test: %s", self.results_url)
+        if self.results_url:
             if self.browser_open in ('start', 'both'):
-                open_browser(self.client.results_url)
-        if self.client.token and self.public_report:
-            public_link = self.test.publish_report()
+                open_browser(self.results_url)
+
+        if self.user.token and self.public_report:
+            public_link = self.router.publish_report()
             self.log.info("Public report link: %s", public_link)
 
     def _should_skip_check(self):
@@ -1395,46 +1400,46 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.__last_check_time = time.time()
 
         try:
-            master = self.test.get_master_status()
+            master = self.router.get_master_status()
         except (URLError, SSLError):
-            self.log.warning("Failed to get test status, will retry in %s seconds...", self.client.timeout)
+            self.log.warning("Failed to get test status, will retry in %s seconds...", self.user.timeout)
             self.log.debug("Full exception: %s", traceback.format_exc())
-            time.sleep(self.client.timeout)
-            master = self.test.get_master_status()
+            time.sleep(self.user.timeout)
+            master = self.router.get_master_status()
             self.log.info("Succeeded with retry")
 
         if "status" in master and master['status'] != self.__last_master_status:
             self.__last_master_status = master['status']
             self.log.info("Cloud test status: %s", self.__last_master_status)
 
-        if self.results_reader is not None and 'progress' in master and master['progress'] >= 100:
+        if self.results_reader is not None and 'progress' in master and master['progress'] >= 100:  # FIXME
             self.results_reader.master_id = self.client.master_id
 
-        if 'progress' in master and master['progress'] > 100:
+        if 'progress' in master and master['progress'] > 100:  # FIXME
             self.log.info("Test was stopped in the cloud: %s", master['status'])
             status = self.client.get_master()
             if 'note' in status and status['note']:
                 self.log.warning("Cloud test has probably failed with message: %s", status['note'])
 
-            self.client.master_id = None
+            self.router._master = None
             self.test_ended = True
             return True
 
-        self.test.start_if_ready()
+        self.router.start_if_ready()
 
         self.widget.update()
         return super(CloudProvisioning, self).check()
 
     def post_process(self):
-        if not self.detach and self.test and not self.test_ended:
-            self.test.stop_test()
-        if self.client.results_url:
+        if not self.detach and self.router and not self.test_ended:
+            self.router.stop_test()
+        if self.results_url:
             if self.browser_open in ('end', 'both'):
-                open_browser(self.client.results_url)
+                open_browser(self.results_url)
 
     def get_widget(self):
         if not self.widget:
-            self.widget = CloudProvWidget(self.test)
+            self.widget = CloudProvWidget(self.router)
         return self.widget
 
 

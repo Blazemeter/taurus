@@ -154,7 +154,7 @@ class TestCloudProvisioning(BZTestCase):
         self.assertEquals(modules, ['second_reporter', 'third_reporter'])
 
     def test_widget_cloud_test(self):
-        self.obj.test = CloudTaurusTest(self.obj.client, None, None, None, None, self.obj.log)
+        self.obj.router = CloudTaurusTest(self.obj.client, None, None, None, None, self.obj.log)
         self.configure(
             client_results=[
                 {"result": []},
@@ -177,7 +177,7 @@ class TestCloudProvisioning(BZTestCase):
         self.assertEqual("None #None\n executor scenario:\n  Agents in loc-name: 10\n", widget.text.get_text()[0])
 
     def test_widget_cloud_collection(self):
-        self.obj.test = CloudCollectionTest(self.obj.client, None, None, None, None, self.obj.log)
+        self.obj.router = CloudCollectionTest(self.obj.client, None, None, None, None, self.obj.log)
         self.configure(
             client_results=[
                 {"result": {
@@ -190,7 +190,7 @@ class TestCloudProvisioning(BZTestCase):
                         "id": "session-id",
                         "name": "loc-name/scenario",
                         "configuration": {}}]}}])
-        self.obj.test.get_master_status()
+        self.obj.router.get_master_status()
         widget = self.obj.get_widget()
         widget.update()
 
@@ -242,8 +242,8 @@ class TestCloudProvisioning(BZTestCase):
                 self.__get_user_info(),  # user
                 {}])  # upload files
 
-        self.obj.test = CloudTaurusTest(self.obj.client, None, None, "name", None, self.obj.log)
-        cloud_config = self.obj.test.prepare_cloud_config(self.obj.engine.config)
+        self.obj.router = CloudTaurusTest(self.obj.client, None, None, "name", None, self.obj.log)
+        cloud_config = self.obj.router.prepare_cloud_config(self.obj.engine.config)
         execution = cloud_config["execution"][0]
         self.assertNotIn("throughput", execution)
         self.assertNotIn("ramp-up", execution)
@@ -265,7 +265,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.settings.merge({"delete-test-files": False})
 
         self.obj.prepare()
-        self.assertIsInstance(self.obj.test, CloudTaurusTest)
+        self.assertIsInstance(self.obj.router, CloudTaurusTest)
 
     def test_type_forced(self):
         self.configure(
@@ -283,7 +283,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.settings.merge({'delete-test-files': False})
 
         self.obj.prepare()
-        self.assertIsInstance(self.obj.test, CloudCollectionTest)
+        self.assertIsInstance(self.obj.router, CloudCollectionTest)
 
     def test_detect_test_type_collection(self):
         self.configure(
@@ -301,7 +301,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.settings.merge({"delete-test-files": False})
 
         self.obj.prepare()
-        self.assertIsInstance(self.obj.test, CloudCollectionTest)
+        self.assertIsInstance(self.obj.router, CloudCollectionTest)
 
     def test_detect_test_type_cloud(self):
         self.configure(
@@ -325,7 +325,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.settings.merge({"delete-test-files": False})
 
         self.obj.prepare()
-        self.assertIsInstance(self.obj.test, CloudTaurusTest)
+        self.assertIsInstance(self.obj.router, CloudTaurusTest)
 
     def test_full_collection(self):
         self.configure(
@@ -435,7 +435,7 @@ class TestCloudProvisioning(BZTestCase):
             "use-deprecated-api": False})
 
         self.obj.prepare()
-        self.assertIsInstance(self.obj.test, CloudCollectionTest)
+        self.assertIsInstance(self.obj.router, CloudCollectionTest)
 
     def test_toplevel_locations(self):
         self.configure(

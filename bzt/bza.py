@@ -26,7 +26,7 @@ class BlazeMeterClient(object):
         self.delete_files_before_test = False
 
     def upload_collection_resources(self, resource_files, draft_id):
-        url = self.address + "/api/latest/web/elfinder/%s" % draft_id
+        url = self.address + "/api/v4/web/elfinder/%s" % draft_id
         body = MultiPartForm()
         body.add_field("cmd", "upload")
         body.add_field("target", "s1_Lw")
@@ -42,16 +42,16 @@ class BlazeMeterClient(object):
             raise TaurusNetworkError("Can't upload resource files")
 
     def get_collections(self):
-        resp = self._request(self.address + "/api/latest/collections")
+        resp = self._request(self.address + "/api/v4/collections")
         return resp['result']
 
     def import_config(self, config):
-        url = self.address + "/api/latest/collections/taurusimport"
+        url = self.address + "/api/v4/collections/taurusimport"
         resp = self._request(url, data=to_json(config), headers={"Content-Type": "application/json"}, method="POST")
         return resp['result']
 
     def update_collection(self, collection_id, coll):
-        url = self.address + "/api/latest/collections/%s" % collection_id
+        url = self.address + "/api/v4/collections/%s" % collection_id
         self._request(url, data=to_json(coll), headers={"Content-Type": "application/json"}, method="POST")
 
     def find_collection(self, collection_name, project_id):
@@ -78,7 +78,7 @@ class BlazeMeterClient(object):
         # NOTE: delayedStart=true means that BM will not start test until all instances are ready
         # if omitted - instances will start once ready (not simultaneously),
         # which may cause inconsistent data in aggregate report.
-        url = self.address + "/api/latest/collections/%s/start?delayedStart=true" % collection_id
+        url = self.address + "/api/v4/collections/%s/start?delayedStart=true" % collection_id
         resp = self._request(url, method="POST")
         self.log.debug("Response: %s", resp['result'])
         self.master_id = resp['result']['id']
@@ -87,12 +87,12 @@ class BlazeMeterClient(object):
 
     def force_start_master(self):
         self.log.info("All servers are ready, starting cloud test")
-        url = self.address + "/api/latest/masters/%s/forceStart" % self.master_id
+        url = self.address + "/api/v4/masters/%s/forceStart" % self.master_id
         self._request(url, method="POST")
 
     def stop_collection(self, collection_id):
         self.log.info("Shutting down cloud test...")
-        url = self.address + "/api/latest/collections/%s/stop" % collection_id
+        url = self.address + "/api/v4/collections/%s/stop" % collection_id
         self._request(url)
 
     def create_collection(self, name, taurus_config, resource_files, proj_id):
@@ -108,7 +108,7 @@ class BlazeMeterClient(object):
         self.log.debug("Creating new test collection: %s", name)
         collection_draft['name'] = name
         collection_draft['projectId'] = proj_id
-        url = self.address + "/api/latest/collections"
+        url = self.address + "/api/v4/collections"
         headers = {"Content-Type": "application/json"}
         resp = self._request(url, data=to_json(collection_draft), headers=headers, method="POST")
         collection_id = resp['result']['id']
@@ -131,7 +131,7 @@ class BlazeMeterClient(object):
 
     def create_test(self, name, configuration, proj_id):
         self.log.debug("Creating new test")
-        url = self.address + '/api/latest/tests'
+        url = self.address + '/api/v4/tests'
         data = {"name": name, "projectId": proj_id, "configuration": configuration}
         hdr = {"Content-Type": " application/json"}
         resp = self._request(url, json.dumps(data), headers=hdr)
@@ -419,17 +419,17 @@ class Test(BZAObject):
             self.log.debug("Successfully deleted %d test files", len(response['removed']))
 
     def start(self):
-        url = self.address + "/api/latest/tests/%s/start" % self['id']
+        url = self.address + "/api/v4/tests/%s/start" % self['id']
 
         resp = self._request(url, method='POST')
 
         self.log.debug("Response: %s", resp['result'])
-        master = Master(resp['result'])
+        master = Master(self, resp['result'])
         return master
 
     def upload_files(self, taurus_config, resource_files):
         self.log.debug("Uploading files into the test: %s", resource_files)
-        url = '%s/api/latest/tests/%s/files' % (self.address, self['id'])
+        url = '%s/api/v4/tests/%s/files' % (self.address, self['id'])
 
         body = MultiPartForm()
         body.add_file_as_string('script', 'taurus.yml', taurus_config)
@@ -515,8 +515,8 @@ class Master(BZAObject):
         return res['result']
 
     def stop(self):
-        url = self.address + "/api/latest/masters/%s/stop"
-        self._request(url % self['id'])
+        url = self.address + "/api/v4/masters/%s/stop"
+        self._request(url % self['id'], method='POST')
 
 
 class Session(BZAObject):
