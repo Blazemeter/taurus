@@ -10,7 +10,7 @@ import yaml
 from bzt import TaurusConfigError
 from bzt.engine import ScenarioExecutor, ManualShutdown
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet
-from bzt.modules.blazemeter import CloudProvisioning, BlazeMeterClientEmul, ResultsFromBZA
+from bzt.modules.blazemeter import CloudProvisioning, ResultsFromBZA
 from bzt.modules.blazemeter import CloudTaurusTest, CloudCollectionTest
 from tests import BZTestCase, __dir__
 from bzt.utils import get_full_path
