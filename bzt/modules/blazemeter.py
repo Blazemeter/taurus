@@ -826,7 +826,7 @@ class ProjectFinder(object):
                     test_class = CloudCollectionTest
                 test = None
 
-        if not project:
+        if not project and not test:
             project = self._default_or_create_project(proj_name)
 
         return test_class(self.user, test, project, test_name, default_location, self.log)

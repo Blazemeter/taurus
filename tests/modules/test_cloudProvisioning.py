@@ -48,7 +48,7 @@ class TestCloudProvisioning(BZTestCase):
         if add_settings:
             self.obj.settings["token"] = "FakeToken"
             self.obj.settings["browser-open"] = False
-            self.obj.settings['default-location'] = "us-west-1"
+            self.obj.settings['default-location'] = "us-east-1"
 
         if add_config:
             self.obj.engine.config.merge({
@@ -114,7 +114,7 @@ class TestCloudProvisioning(BZTestCase):
     def test_no_settings(self):
         self.configure(engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}}, )
         self.obj.prepare()
-        self.assertEquals(1, self.obj.executors[0].execution['locations']['us-west-1'])
+        self.assertEquals(1, self.obj.executors[0].execution['locations']['us-east-1'])
 
     def test_skip_reporting(self):
         self.configure(
@@ -325,49 +325,36 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.post_process()
 
     def test_create_project(self):
-        self.configure(
-            engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
-        )  # upload files
-
-        self.obj.settings.merge({
-            "delete-test-files": False,
-            "project": "myproject"})
-
+        self.configure(engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}}, )
+        self.obj.settings.merge({"delete-test-files": False, "project": "myproject"})
         self.obj.prepare()
-
-        client_results = [
-            {"result": []},  # projects
-            {"result": {"id": 1428}},  # create project
-            {"result": []},  # collections
-            {"result": [{
-                "id": 5174715,
-                "projectId": 1428,
-                "name": "Taurus Cloud Test",
-                "configuration": {"type": "taurus"}}]},  # find test
-            self.__get_user_info(),  # locations
-            {}]
+        self.assertEquals('https://a.blazemeter.com/api/v4/projects', self.mock.requests[5]['url'])
+        self.assertEquals('POST', self.mock.requests[5]['method'])
 
     def test_reuse_project(self):
+        self.obj.user.token = object()
         self.configure(
+            add_settings=False,
             engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
-        )  # upload files
-
-        self.obj.settings.merge({
-            "delete-test-files": False,
-            "project": "myproject"})
-
+            get={
+                "https://a.blazemeter.com/api/v4/projects?workspaceId=1": {"result": [{"id": 1, "name": "myproject"}]},
+                'https://a.blazemeter.com/api/v4/multi-tests?projectId=1&name=Taurus+Cloud+Test': {"result": [{
+                    "id": 1,
+                    "projectId": 1,
+                    "name": "Taurus Cloud Test",
+                    "configuration": {"type": "taurus"}}]}
+            },
+            post={
+                'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
+                'https://a.blazemeter.com/api/v4/multi-tests/taurusimport': {"result": {
+                    "name": "Taurus Collection", "items": []
+                }},
+                'https://a.blazemeter.com/api/v4/multi-tests/1': {}
+            })
+        self.obj.settings.merge({"delete-test-files": False, "project": "myproject"})
         self.obj.prepare()
-
-        client_results = [
-            {"result": [{"id": 1428, "name": "myproject"}]},  # projects
-            {"result": []},  # collections
-            {"result": [{
-                "id": 5174715,
-                "projectId": 1428,
-                "name": "Taurus Cloud Test",
-                "configuration": {"type": "taurus"}}]},  # find test
-            self.__get_user_info(),  # user
-            {}]
+        self.assertEquals('https://a.blazemeter.com/api/v4/multi-tests?projectId=1&name=Taurus+Cloud+Test',
+                          self.mock.requests[3]['url'])
 
     def test_reuse_project_id(self):
         self.configure(
@@ -505,7 +492,7 @@ class TestCloudProvisioning(BZTestCase):
                     "executor": "mock",
                     "concurrency": 5500,
                     "locations": {"eu-west-1": 1}}],
-                "locations": {"ams3": 1}},
+                "locations": {"aws": 1}},
         )  # create collection
 
         log_recorder = RecordingHandler()
@@ -787,12 +774,10 @@ class TestCloudProvisioning(BZTestCase):
         warnings = log_recorder.warn_buff.getvalue()
         self.assertIn("Dumping available locations instead of running the test", warnings)
         info = log_recorder.info_buff.getvalue()
-        self.assertIn("Location: DFW	Dallas (Rackspace)", info)
-        self.assertIn("Location: us-west-2	US West (Oregon)", info)
-        self.assertNotIn("Location: harbor-5591335d8588531f5cde3a04	Sandbox", info)
-
+        self.assertIn("Location: us-west\tDallas (Rackspace)", info)
+        self.assertIn("Location: us-east-1\tEast", info)
+        self.assertNotIn("Location: harbor-sandbox\tSandbox", info)
         self.obj.post_process()
-        client_results = [self.__get_user_info()]
 
     def test_dump_locations_new_style(self):
         log_recorder = RecordingHandler()
@@ -805,12 +790,11 @@ class TestCloudProvisioning(BZTestCase):
         warnings = log_recorder.warn_buff.getvalue()
         self.assertIn("Dumping available locations instead of running the test", warnings)
         info = log_recorder.info_buff.getvalue()
-        self.assertIn("Location: DFW	Dallas (Rackspace)", info)
-        self.assertIn("Location: us-west-2	US West (Oregon)", info)
-        self.assertIn("Location: harbor-5591335d8588531f5cde3a04	Sandbox", info)
+        self.assertIn("Location: us-west\tDallas (Rackspace)", info)
+        self.assertIn("Location: us-east-1\tEast", info)
+        self.assertIn("Location: harbor-sandbox\tSandbox", info)
 
         self.obj.post_process()
-        client_results = [self.__get_user_info()]
 
     def test_settings_from_blazemeter_mod(self):
         self.configure(
