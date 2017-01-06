@@ -7,7 +7,7 @@ import time
 import yaml
 
 from bzt import TaurusConfigError
-from bzt.bza import Master
+from bzt.bza import Master, Test
 from bzt.engine import ScenarioExecutor, ManualShutdown
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet
 from bzt.modules.blazemeter import CloudProvisioning, ResultsFromBZA
@@ -29,6 +29,7 @@ class TestCloudProvisioning(BZTestCase):
         engine.aggregator = ConsolidatingAggregator()
         self.obj = CloudProvisioning()
         self.obj.engine = engine
+        self.obj.browser_open = False
         self.mock = BZMock(self.obj.user)
         self.mock.mock_post.update({
             'https://a.blazemeter.com/api/v4/projects': {"result": {"id": 1}},
@@ -130,40 +131,32 @@ class TestCloudProvisioning(BZTestCase):
                               "second_reporter",
                               {"module": "third_reporter"}]
             },
-            client_results=[
-                {"result": []},  # collections
-                {"result": []},  # tests
-                self.__get_user_info(),  # user
-                {"result": {"id": id(self.obj.client)}},  # create test
-                {"files": []},  # create test
-                {}])  # upload files
+        )
 
         self.obj.prepare()
         modules = [reporter['module'] for reporter in self.obj.engine.config['reporting']]
         self.assertEquals(modules, ['second_reporter', 'third_reporter'])
 
     def test_widget_cloud_test(self):
-        self.obj.router = CloudTaurusTest(self.obj.client, None, None, None, None, self.obj.log)
-        self.configure(
-            client_results=[
-                {"result": []},
-                {"result": {
-                    "sessions": [{
-                        "name": "executor/scenario/location",
-                        "configuration": {}}]}},
+        test = Test(self.obj.user, {"id": 1, 'name': 'testname'})
+        self.obj.router = CloudTaurusTest(self.obj.user, test, None, None, None, self.obj.log)
+        self.configure(get={
+            'https://a.blazemeter.com/api/v4/masters/1/sessions': [
+                {"result": {"sessions": []}},
                 {"result": {"sessions": [{
                     "name": "executor/scenario/location",
                     "configuration": {
                         "location": "loc-name",
-                        "serversCount": "10"}}]}}])
+                        "serversCount": "10"}}]}}
+            ]
+        })
 
+        self.obj.startup()
         widget = self.obj.get_widget()
         widget.update()
         widget.update()
-        widget.update()
-        widget.update()
 
-        self.assertEqual("None #None\n executor scenario:\n  Agents in loc-name: 10\n", widget.text.get_text()[0])
+        self.assertEqual("testname #1\n executor scenario:\n  Agents in loc-name: 10\n", widget.text.get_text()[0])
 
     def test_widget_cloud_collection(self):
         self.obj.router = CloudCollectionTest(self.obj.client, None, None, None, None, self.obj.log)

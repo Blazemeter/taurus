@@ -358,7 +358,7 @@ class Master(BZAObject):
         else:
             arr = sess['result']
 
-        return BZAObjectsList([Session(x) for x in arr])
+        return BZAObjectsList([Session(self, x) for x in arr])
 
     def get_kpis(self, min_ts):
         params = [
