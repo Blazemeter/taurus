@@ -16,6 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import copy
+import datetime
 import hashlib
 import json
 import logging
@@ -24,19 +25,18 @@ import shutil
 import sys
 import time
 import traceback
-import yaml
 from abc import abstractmethod
 from collections import namedtuple, defaultdict
 from distutils.version import LooseVersion
 from json import encoder
-from yaml.representer import SafeRepresenter
 
-import datetime
+import yaml
+from yaml.representer import SafeRepresenter
 
 import bzt
 from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException
 from bzt.six import build_opener, install_opener, urlopen, numeric_types, iteritems
-from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, etree, reraise
+from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, reraise
 from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time
 
@@ -1034,15 +1034,18 @@ class Scenario(UserDict, object):
         headers = scenario.get("headers")
         return headers if headers else {}
 
-    def get_requests(self):
+    def get_requests(self, require_url=True):
         """
         Generator object to read requests
 
+        :type require_url: bool
         :rtype: list[HTTPRequest]
         """
         requests = self.get("requests", [])
         for key in range(len(requests)):
             req = ensure_is_dict(requests, key, "url")
+            if not require_url and "url" not in req:
+                req["url"] = None
             yield HTTPRequest(config=req, engine=self.engine)
 
 
@@ -1075,62 +1078,3 @@ class HTTPRequest(Request):
                     body = fhd.read()
 
         self.body = body
-
-
-class PythonGenerator(object):
-    IMPORTS = ''
-
-    def __init__(self, scenario, parent_logger):
-        self.root = etree.Element("PythonCode")
-        self.tree = etree.ElementTree(self.root)
-        self.log = parent_logger.getChild(self.__class__.__name__)
-        self.scenario = scenario
-
-    def add_imports(self):
-        imports = etree.Element("imports")
-        imports.text = self.IMPORTS
-        return imports
-
-    @abstractmethod
-    def build_source_code(self):
-        pass
-
-    @staticmethod
-    def gen_class_definition(class_name, inherits_from, indent=0):
-        def_tmpl = "class {class_name}({inherits_from}):"
-        class_def_element = etree.Element("class_definition", indent=str(indent))
-        class_def_element.text = def_tmpl.format(class_name=class_name, inherits_from="".join(inherits_from))
-        return class_def_element
-
-    @staticmethod
-    def gen_method_definition(method_name, params, indent=4):
-        def_tmpl = "def {method_name}({params}):"
-        method_def_element = etree.Element("method_definition", indent=str(indent))
-        method_def_element.text = def_tmpl.format(method_name=method_name, params=",".join(params))
-        return method_def_element
-
-    @staticmethod
-    def gen_decorator_statement(decorator_name, indent=4):
-        def_tmpl = "@{decorator_name}"
-        decorator_element = etree.Element("decorator_statement", indent=str(indent))
-        decorator_element.text = def_tmpl.format(decorator_name=decorator_name)
-        return decorator_element
-
-    @staticmethod
-    def gen_statement(statement, indent=8):
-        statement_elem = etree.Element("statement", indent=str(indent))
-        statement_elem.text = statement
-        return statement_elem
-
-    def gen_comment(self, comment, indent=8):
-        return self.gen_statement("# %s" % comment, indent)
-
-    def save(self, filename):
-        with open(filename, 'wt') as fds:
-            for child in self.root.iter():
-                if child.text is not None:
-                    indent = int(child.get('indent', "0"))
-                    fds.write(" " * indent + child.text + "\n")
-
-    def gen_new_line(self, indent=8):
-        return self.gen_statement("", indent=indent)

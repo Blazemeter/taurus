@@ -5,6 +5,7 @@
 # Articles
  1. [Solving JMeter Test Execution Problem](JMeter1)
  1. [Handling pre/post test actions of a load test](ShellexecHooks)
+ 1. [Creating JMeter and Selenium Scripts with Taurus](Scripting)
 
 
 # Third-Party Articles

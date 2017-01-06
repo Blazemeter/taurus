@@ -22,19 +22,19 @@ import sys
 import time
 import traceback
 from abc import abstractmethod
+from subprocess import CalledProcessError
 
 from urwid import Text, Pile
 
-from subprocess import CalledProcessError
-
 from bzt import TaurusConfigError, ToolError, TaurusInternalException
-from bzt.engine import ScenarioExecutor, Scenario, FileLister, PythonGenerator
+from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator, FunctionalSample
 from bzt.modules.services import HavingInstallableTools
 from bzt.six import string_types, parse, iteritems
-from bzt.utils import RequiredTool, shell_exec, shutdown_process, JavaVM, TclLibrary, get_files_recursive
+from bzt.utils import RequiredTool, shell_exec, shutdown_process, JavaVM, TclLibrary, get_files_recursive, \
+    PythonGenerator
 from bzt.utils import dehumanize_time, MirrorsManager, is_windows, BetterDict, get_full_path
 
 try:
@@ -153,7 +153,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
             if testng_xml:
                 return testng_xml
             else:
-                return None     # empty value for switch off testng.xml path autodetect
+                return None  # empty value for switch off testng.xml path autodetect
 
         script_path = self.get_script_path()
         if script_path:
@@ -1051,7 +1051,7 @@ class Ruby(RequiredTool):
 
 class Node(RequiredTool):
     def __init__(self, parent_logger):
-        super(Node, self).__init__("Node.js", "", "")
+        super(Node, self).__init__("Node.js", "")
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.executable = None
 
@@ -1075,7 +1075,7 @@ class Node(RequiredTool):
 
 class NPM(RequiredTool):
     def __init__(self, parent_logger):
-        super(NPM, self).__init__("NPM", "", "")
+        super(NPM, self).__init__("NPM", "")
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.executable = None
 
@@ -1101,7 +1101,7 @@ class NPM(RequiredTool):
 
 class NPMPackage(RequiredTool):
     def __init__(self, tool_name, package_name, tools_dir, node_tool, npm_tool, parent_logger):
-        super(NPMPackage, self).__init__(tool_name, "", "")
+        super(NPMPackage, self).__init__(tool_name, "")
         self.package_name = package_name
         self.tools_dir = tools_dir
         self.node_tool = node_tool
@@ -1205,6 +1205,10 @@ from time import sleep
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import NoAlertPresentException
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as econd
+from selenium.webdriver.support.wait import WebDriverWait
+
 """
 
     def __init__(self, scenario, parent_logger, wdlog):
@@ -1218,20 +1222,24 @@ from selenium.common.exceptions import NoAlertPresentException
         self.root.append(imports)
         test_class = self.gen_class_definition("TestRequests", ["unittest.TestCase"])
         self.root.append(test_class)
+        test_class.append(self.gen_statement("driver = None", indent=4))
+        test_class.append(self.gen_new_line())
         test_class.append(self.gen_setupclass_method())
         test_class.append(self.gen_teardownclass_method())
+        test_class.append(self.gen_setup_method())
 
         counter = 0
         methods = {}
-        requests = self.scenario.get_requests()
-        scenario_timeout = self.scenario.get("timeout", 30)
+        requests = self.scenario.get_requests(False)
         default_address = self.scenario.get("default-address", None)
 
         for req in requests:
             if req.label:
                 label = req.label
-            else:
+            elif req.url:
                 label = req.url
+            else:
+                raise TaurusConfigError("You must specify at least 'url' or 'label' for each requests item")
             mod_label = re.sub('[^0-9a-zA-Z]+', '_', label[:30])
             method_name = 'test_%05d_%s' % (counter, mod_label)
             test_method = self.gen_test_method(method_name)
@@ -1239,35 +1247,43 @@ from selenium.common.exceptions import NoAlertPresentException
             counter += 1
             test_class.append(test_method)
 
-            parsed_url = parse.urlparse(req.url)
-            if default_address is not None and not parsed_url.netloc:
-                url = default_address + req.url
-            else:
-                url = req.url
+            if req.url is not None:
+                self._add_url_request(default_address, req, test_method)
 
-            test_method.append(self.gen_comment("start request: %s" % url))
+            for action_config in req.config.get("actions", []):
+                test_method.append(self.gen_action(action_config))
 
-            if req.timeout is not None:
-                test_method.append(self.gen_impl_wait(req.timeout))
+            if "assert" in req.config:
+                test_method.append(self.gen_statement("body = self.driver.page_source"))
+                for assert_config in req.config.get("assert"):
+                    for elm in self.gen_assertion(assert_config):
+                        test_method.append(elm)
 
-            test_method.append(self.gen_statement("self.driver.get('%s')" % url))
             think_time = req.think_time if req.think_time else self.scenario.get("think-time", None)
-
             if think_time is not None:
                 test_method.append(self.gen_statement("sleep(%s)" % dehumanize_time(think_time)))
 
-            if "assert" in req.config:
-                test_method.append(self.__gen_assert_page())
-                for assert_config in req.config.get("assert"):
-                    test_method.extend(self.gen_assertion(assert_config))
-
-            if req.timeout is not None:
-                test_method.append(self.gen_impl_wait(scenario_timeout))
-
-            test_method.append(self.gen_comment("end request: %s" % url))
+            test_method.append(self.gen_statement("pass"))  # just to stub empty case
             test_method.append(self.gen_new_line())
 
         return methods
+
+    def _add_url_request(self, default_address, req, test_method):
+        parsed_url = parse.urlparse(req.url)
+        if default_address is not None and not parsed_url.netloc:
+            url = default_address + req.url
+        else:
+            url = req.url
+        if req.timeout is not None:
+            test_method.append(self.gen_impl_wait(req.timeout))
+        test_method.append(self.gen_statement("self.driver.get('%s')" % url))
+
+    def gen_setup_method(self):
+        scenario_timeout = dehumanize_time(self.scenario.get("timeout", 30))
+        setup_method_def = self.gen_method_definition('setUp', ['self'])
+        setup_method_def.append(self.gen_impl_wait(scenario_timeout))
+        setup_method_def.append(self.gen_new_line())
+        return setup_method_def
 
     def gen_setupclass_method(self):
         self.log.debug("Generating setUp test method")
@@ -1350,8 +1366,58 @@ from selenium.common.exceptions import NoAlertPresentException
                 assertion_elements.append(self.gen_statement(method))
         return assertion_elements
 
-    def __gen_assert_page(self):
-        return self.gen_statement("body = self.driver.page_source")
+    def gen_action(self, action_config):
+        aby, atype, param, selector = self._parse_action(action_config)
+
+        bys = {
+            'byxpath': "XPATH",
+            'bycss': "CSS_SELECTOR",
+            'byname': "NAME",
+            'byid': "ID",
+        }
+        if atype in ('click', 'keys'):
+            tpl = "self.driver.find_element(By.%s, %r).%s"
+            if atype == 'click':
+                action = "click()"
+            else:
+                action = "send_keys(%r)" % param
+
+            return self.gen_statement(tpl % (bys[aby], selector, action))
+        elif atype == 'wait':
+            tpl = "WebDriverWait(self.driver, %s).until(econd.%s_of_element_located((By.%s, %r)), %r)"
+            mode = "visibility" if param == 'visible' else 'presence'
+            exc = TaurusInternalException("Timeout value should be present")
+            timeout = dehumanize_time(self.scenario.get("timeout", exc))
+            errmsg = "Element %r failed to appear within %ss" % (selector, timeout)
+            return self.gen_statement(tpl % (timeout, mode, bys[aby], selector, errmsg))
+
+        raise TaurusInternalException("Could not build code for action: %s" % action_config)
+
+    def _parse_action(self, action_config):
+        if isinstance(action_config, string_types):
+            name = action_config
+            param = None
+        elif isinstance(action_config, dict):
+            name, param = next(iteritems(action_config))
+        else:
+            raise TaurusConfigError("Unsupported value for action: %s" % action_config)
+
+        expr = re.compile("^(click|wait|keys)(byName|byID|byCSS|byXPath)\((.+)\)$", re.IGNORECASE)
+        res = expr.match(name)
+        if not res:
+            raise TaurusConfigError("Unsupported action: %s" % name)
+
+        atype = res.group(1).lower()
+        aby = res.group(2).lower()
+        selector = res.group(3)
+
+        # hello, reviewer!
+        if selector.startswith('"') and selector.endswith('"'):
+            selector = selector[1:-1]
+        elif selector.startswith("'") and selector.endswith("'"):
+            selector = selector[1:-1]
+
+        return aby, atype, param, selector
 
 
 class JUnitMirrorsManager(MirrorsManager):
