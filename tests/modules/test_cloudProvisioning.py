@@ -1,20 +1,21 @@
 import json
 import os
-import logging
-import time
-import tempfile
 import shutil
+import tempfile
+import time
 
 import yaml
 
 from bzt import TaurusConfigError
+from bzt.bza import Master
 from bzt.engine import ScenarioExecutor, ManualShutdown
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet
 from bzt.modules.blazemeter import CloudProvisioning, ResultsFromBZA
 from bzt.modules.blazemeter import CloudTaurusTest, CloudCollectionTest
-from tests import BZTestCase, __dir__
 from bzt.utils import get_full_path
+from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul, ModuleMock, RecordingHandler
+from tests.modules.test_blazemeter import BZMock
 
 
 class TestCloudProvisioning(BZTestCase):
@@ -163,10 +164,10 @@ class TestCloudProvisioning(BZTestCase):
                         "name": "executor/scenario/location",
                         "configuration": {}}]}},
                 {"result": {"sessions": [{
-                        "name": "executor/scenario/location",
-                        "configuration": {
-                            "location": "loc-name",
-                            "serversCount": "10"}}]}}])
+                    "name": "executor/scenario/location",
+                    "configuration": {
+                        "location": "loc-name",
+                        "serversCount": "10"}}]}}])
 
         widget = self.obj.get_widget()
         widget.update()
@@ -238,7 +239,7 @@ class TestCloudProvisioning(BZTestCase):
                 {"result": [{
                     "id": 5174715,
                     "name": "Taurus Cloud Test",
-                    "configuration": {"type": "taurus"},}]},  # find test
+                    "configuration": {"type": "taurus"}, }]},  # find test
                 self.__get_user_info(),  # user
                 {}])  # upload files
 
@@ -701,7 +702,7 @@ class TestCloudProvisioning(BZTestCase):
             str_files = [line for line in debug if 'Replace file names in config' in line]
             self.assertEqual(1, len(str_files))
             res_files = [_file for _file in str_files[0].split('\'')[1::2]]
-            half = int(len(res_files)/2)
+            half = int(len(res_files) / 2)
             old_names = res_files[:half]
             new_names = res_files[half:]
             names = list(zip(old_names, new_names))
@@ -914,121 +915,118 @@ class TestCloudTaurusTest(BZTestCase):
 
 class TestResultsFromBZA(BZTestCase):
     def test_simple(self):
-        client = BlazeMeterClientEmul(logging.getLogger())
-        client.results.append({
-            "api_version": 2,
-            "error": None,
-            "result": [
-                {
-                    "id": "ALL",
-                    "name": "ALL"
-                }, {
-                    "id": "e843ff89a5737891a10251cbb0db08e5",
-                    "name": "http://blazedemo.com/"
-                }]})
-        client.results.append({
-            "api_version": 2,
-            "error": None,
-            "result": [
-                {
-                    "labelId": "ALL",
-                    "labelName": "ALL",
-                    "label": "ALL",
-                    "kpis": [
-                        {
-                            "n": 15,
-                            "na": 2,
-                            "ec": 0,
-                            "ts": 1442497724,
-                            "t_avg": 558,
-                            "lt_avg": 25.7,
-                            "by_avg": 0,
-                            "n_avg": 15,
-                            "ec_avg": 0
-                        }, {
-                            "n": 7,
-                            "na": 4,
-                            "ec": 0,
-                            "ts": 1442497725,
-                            "t_avg": 88.1,
-                            "lt_avg": 11.9,
-                            "by_avg": 0,
-                            "n_avg": 7,
-                            "ec_avg": 0
-                        }]
-                }, {
-                    "labelId": "e843ff89a5737891a10251cbb0db08e5",
-                    "labelName": "http://blazedemo.com/",
-                    "label": "http://blazedemo.com/",
-                    "kpis": [
-                        {
-                            "n": 15,
-                            "na": 2,
-                            "ec": 0,
-                            "ts": 1442497724,
-                            "t_avg": 558,
-                            "lt_avg": 25.7,
-                            "by_avg": 0,
-                            "n_avg": 15,
-                            "ec_avg": 0
-                        }, {
-                            "n": 7,
-                            "na": 4,
-                            "ec": 0,
-                            "ts": 1442497725,
-                            "t_avg": 88.1,
-                            "lt_avg": 11.9,
-                            "by_avg": 0,
-                            "n_avg": 7,
-                            "ec_avg": 0
-                        }]}]})
-        client.results.append({
-            "api_version": 2,
-            "error": None,
-            "result": [
-                {
-                    "labelId": "ALL",
-                    "labelName": "ALL",
-                    "samples": 152,
-                    "avgResponseTime": 786,
-                    "90line": 836,
-                    "95line": 912,
-                    "99line": 1050,
-                    "minResponseTime": 531,
-                    "maxResponseTime": 1148,
-                    "avgLatency": 81,
-                    "geoMeanResponseTime": None,
-                    "stDev": 108,
-                    "duration": 119,
-                    "avgBytes": 0,
-                    "avgThroughput": 1.2773109243697,
-                    "medianResponseTime": 0,
-                    "errorsCount": 0,
-                    "errorsRate": 0,
-                    "hasLabelPassedThresholds": None
-                }, {
-                    "labelId": "e843ff89a5737891a10251cbb0db08e5",
-                    "labelName": "http://blazedemo.com/",
-                    "samples": 152,
-                    "avgResponseTime": 786,
-                    "90line": 836,
-                    "95line": 912,
-                    "99line": 1050,
-                    "minResponseTime": 531,
-                    "maxResponseTime": 1148,
-                    "avgLatency": 81,
-                    "geoMeanResponseTime": None,
-                    "stDev": 108,
-                    "duration": 119,
-                    "avgBytes": 0,
-                    "avgThroughput": 1.2773109243697,
-                    "medianResponseTime": 0,
-                    "errorsCount": 0,
-                    "errorsRate": 0,
-                    "hasLabelPassedThresholds": None
-                }]})
-        obj = ResultsFromBZA(client)
-        obj.master_id = "master"
+        mock = BZMock()
+        mock.mock_get.update({
+            'https://a.blazemeter.com/api/v4/data/labels?master_id=1': {"result": [
+                {"id": "ALL", "name": "ALL"},
+                {"id": "e843ff89a5737891a10251cbb0db08e5", "name": "http://blazedemo.com/"}
+            ]},
+            'https://a.blazemeter.com/api/v4/data/kpis?interval=1&from=0&master_ids%5B%5D=1&kpis%5B%5D=t&kpis%5B%5D=lt&kpis%5B%5D=by&kpis%5B%5D=n&kpis%5B%5D=ec&kpis%5B%5D=ts&kpis%5B%5D=na&labels%5B%5D=ALL&labels%5B%5D=e843ff89a5737891a10251cbb0db08e5': {
+                "api_version": 2,
+                "error": None,
+                "result": [
+                    {
+                        "labelId": "ALL",
+                        "labelName": "ALL",
+                        "label": "ALL",
+                        "kpis": [
+                            {
+                                "n": 15,
+                                "na": 2,
+                                "ec": 0,
+                                "ts": 1442497724,
+                                "t_avg": 558,
+                                "lt_avg": 25.7,
+                                "by_avg": 0,
+                                "n_avg": 15,
+                                "ec_avg": 0
+                            }, {
+                                "n": 7,
+                                "na": 4,
+                                "ec": 0,
+                                "ts": 1442497725,
+                                "t_avg": 88.1,
+                                "lt_avg": 11.9,
+                                "by_avg": 0,
+                                "n_avg": 7,
+                                "ec_avg": 0
+                            }]
+                    }, {
+                        "labelId": "e843ff89a5737891a10251cbb0db08e5",
+                        "labelName": "http://blazedemo.com/",
+                        "label": "http://blazedemo.com/",
+                        "kpis": [
+                            {
+                                "n": 15,
+                                "na": 2,
+                                "ec": 0,
+                                "ts": 1442497724,
+                                "t_avg": 558,
+                                "lt_avg": 25.7,
+                                "by_avg": 0,
+                                "n_avg": 15,
+                                "ec_avg": 0
+                            }, {
+                                "n": 7,
+                                "na": 4,
+                                "ec": 0,
+                                "ts": 1442497725,
+                                "t_avg": 88.1,
+                                "lt_avg": 11.9,
+                                "by_avg": 0,
+                                "n_avg": 7,
+                                "ec_avg": 0
+                            }]}]},
+            'https://a.blazemeter.com/api/v4/masters/1/reports/aggregatereport/data': {
+                "api_version": 2,
+                "error": None,
+                "result": [
+                    {
+                        "labelId": "ALL",
+                        "labelName": "ALL",
+                        "samples": 152,
+                        "avgResponseTime": 786,
+                        "90line": 836,
+                        "95line": 912,
+                        "99line": 1050,
+                        "minResponseTime": 531,
+                        "maxResponseTime": 1148,
+                        "avgLatency": 81,
+                        "geoMeanResponseTime": None,
+                        "stDev": 108,
+                        "duration": 119,
+                        "avgBytes": 0,
+                        "avgThroughput": 1.2773109243697,
+                        "medianResponseTime": 0,
+                        "errorsCount": 0,
+                        "errorsRate": 0,
+                        "hasLabelPassedThresholds": None
+                    }, {
+                        "labelId": "e843ff89a5737891a10251cbb0db08e5",
+                        "labelName": "http://blazedemo.com/",
+                        "samples": 152,
+                        "avgResponseTime": 786,
+                        "90line": 836,
+                        "95line": 912,
+                        "99line": 1050,
+                        "minResponseTime": 531,
+                        "maxResponseTime": 1148,
+                        "avgLatency": 81,
+                        "geoMeanResponseTime": None,
+                        "stDev": 108,
+                        "duration": 119,
+                        "avgBytes": 0,
+                        "avgThroughput": 1.2773109243697,
+                        "medianResponseTime": 0,
+                        "errorsCount": 0,
+                        "errorsRate": 0,
+                        "hasLabelPassedThresholds": None
+                    }]}
+        })
+
+        obj = ResultsFromBZA()
+        obj.master = Master(data={'id': 1})
+        mock.apply(obj.master)
         results = [x for x in obj.datapoints(True)]
         self.assertEquals(2, len(results))
         cumulative = results[-1][DataPoint.CUMULATIVE]['']
