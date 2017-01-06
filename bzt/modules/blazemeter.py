@@ -826,6 +826,9 @@ class ProjectFinder(object):
                     test_class = CloudCollectionTest
                 test = None
 
+        if not project:
+            project = self._default_or_create_project(proj_name)
+
         return test_class(self.user, test, project, test_name, default_location, self.log)
 
     def _default_or_create_project(self, proj_name):
@@ -1126,15 +1129,16 @@ class CloudCollectionTest(BaseCloudTest):
 
     def resolve_test(self, taurus_config, rfiles, delete_old_files=False):
         # TODO: handle delete_old_files ?
+        if not self._project:
+            raise TaurusInternalException()  # TODO: build unit test to catch this situation
+
+        collection_draft = self._user.collection_draft(self._test_name, taurus_config, rfiles)
         if self._test is None:
-            if not self._project:
-                raise TaurusInternalException()  # TODO: build unit test to catch this situation
 
             self.log.debug("Creating cloud collection test")
-            self._test = self._project.create_multi_test(self._test_name, taurus_config, rfiles)
+            self._test = self._project.create_multi_test(collection_draft)
         else:
             self.log.debug("Overriding cloud collection test")
-            collection_draft = self._project.collection_draft(self._test_name, taurus_config, rfiles)
             collection_draft['projectId'] = self._project['id']
             self._test.update_collection(collection_draft)
 
@@ -1150,7 +1154,8 @@ class CloudCollectionTest(BaseCloudTest):
             return
         sessions = self._last_status.get("sessions", [])
         if sessions and all(session["status"] == "JMETER_CONSOLE_INIT" for session in sessions):
-            self.client.force_start_master()
+            self.log.info("All servers are ready, starting cloud test")
+            self.master.force_start()
             self._started = True
 
     def await_test_end(self):
@@ -1159,7 +1164,7 @@ class CloudCollectionTest(BaseCloudTest):
             if iterations > 100:
                 self.log.debug("Await: iteration limit reached")
                 return
-            status = self.client.get_master_status()
+            status = self.master.get_master_status()
             if status.get("status") == "ENDED":
                 return
             iterations += 1
@@ -1167,7 +1172,7 @@ class CloudCollectionTest(BaseCloudTest):
 
     def stop_test(self):
         if self._started:
-            self.client.stop_collection(self.test_id)
+            self._test.stop()
             self.await_test_end()
         else:
             self.master.stop()

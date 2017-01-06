@@ -134,6 +134,37 @@ class User(BZAObject):
             locations[str(loc['id'])] = loc
         return locations
 
+    def collection_draft(self, name, taurus_config, resource_files):
+        if resource_files:
+            draft_id = "taurus_%s" % id(self.token)
+            self.upload_collection_resources(resource_files, draft_id)
+            taurus_config.merge({"dataFiles": {"draftId": draft_id}})
+
+        collection_draft = self._import_config(taurus_config)
+        collection_draft['name'] = name
+        return collection_draft
+
+    def _import_config(self, config):
+        url = self.address + "/api/v4/multi-tests/taurusimport"
+        resp = self._request(url, data=config, method="POST")
+        return resp['result']
+
+    def upload_collection_resources(self, resource_files, draft_id):
+        url = self.address + "/api/v4/web/elfinder/%s" % draft_id
+        body = MultiPartForm()
+        body.add_field("cmd", "upload")
+        body.add_field("target", "s1_Lw")
+        body.add_field('folder', 'drafts')
+
+        for rfile in resource_files:
+            body.add_file('upload[]', rfile)
+
+        hdr = {"Content-Type": str(body.get_content_type())}
+        resp = self._request(url, body.form_as_bytes(), headers=hdr)
+        if "error" in resp:
+            self.log.debug('Response: %s', resp)
+            raise TaurusNetworkError("Can't upload resource files")
+
 
 class Account(BZAObject):
     def workspaces(self):
@@ -260,46 +291,11 @@ class Project(BZAObject):
         resp = self._request(url, data)
         return Test(self, resp['result'])
 
-    def collection_draft(self, name, taurus_config, resource_files):
-        if resource_files:
-            draft_id = "taurus_%s" % id(self)
-            self.upload_collection_resources(resource_files, draft_id)
-            taurus_config.merge({"dataFiles": {"draftId": draft_id}})
-
-        collection_draft = self.import_config(taurus_config)
-        collection_draft['name'] = name
-        return collection_draft
-
-    def create_multi_test(self, name, taurus_config, resource_files):
-        collection_draft = self.collection_draft(name, taurus_config, resource_files)
+    def create_multi_test(self, collection_draft):
         collection_draft['projectId'] = self['id']
         url = self.address + "/api/v4/multi-tests"
         resp = self._request(url, data=collection_draft, method="POST")
-        collection_id = resp['result']['id']
-
-        self.log.debug("Using collection ID: %s", collection_id)
-        return collection_id
-
-    def upload_collection_resources(self, resource_files, draft_id):
-        url = self.address + "/api/v4/web/elfinder/%s" % draft_id
-        body = MultiPartForm()
-        body.add_field("cmd", "upload")
-        body.add_field("target", "s1_Lw")
-        body.add_field('folder', 'drafts')
-
-        for rfile in resource_files:
-            body.add_file('upload[]', rfile)
-
-        hdr = {"Content-Type": str(body.get_content_type())}
-        resp = self._request(url, body.form_as_bytes(), headers=hdr)
-        if "error" in resp:
-            self.log.debug('Response: %s', resp)
-            raise TaurusNetworkError("Can't upload resource files")
-
-    def import_config(self, config):
-        url = self.address + "/api/v4/multi-tests/taurusimport"
-        resp = self._request(url, data=config, method="POST")
-        return resp['result']
+        return MultiTest(self, resp['result'])
 
 
 class Test(BZAObject):
@@ -450,8 +446,7 @@ class Master(BZAObject):
         res = self._request(url)
         return res['result']
 
-    def force_start_master(self):
-        self.log.info("All servers are ready, starting cloud test")  # FIXME: misplaced
+    def force_start(self):
         url = self.address + "/api/v4/masters/%s/forceStart" % self['id']
         self._request(url, method="POST")
 

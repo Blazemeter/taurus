@@ -239,71 +239,79 @@ class TestCloudProvisioning(BZTestCase):
         self.assertIsInstance(self.obj.router, CloudTaurusTest)
 
     def test_type_forced(self):
-        self.configure(engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}}, )
-        self.obj.settings['use-deprecated-api'] = False
+        self.obj.user.token = object()
+        self.configure(
+            add_settings=False,
+            engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
+            get={
+                'https://a.blazemeter.com/api/v4/multi-tests?workspaceId=1&name=Taurus+Cloud+Test': {"result": [{
+                    "id": 1,
+                    "name": "Taurus Cloud Test",
+                    "configuration": {"type": "taurus"}}]}
+            },
+            post={
+                'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
+                'https://a.blazemeter.com/api/v4/multi-tests/taurusimport': {"result": {
+                    "name": "Taurus Collection", "items": []
+                }},
+                'https://a.blazemeter.com/api/v4/multi-tests/1': {}
+            })
         self.obj.prepare()
         self.assertIsInstance(self.obj.router, CloudCollectionTest)
-
-        client_results = [
-            {"result": [{
-                "id": 5174715,
-                "name": "Taurus Cloud Test",
-                "configuration": {"type": "taurus"}}]},  # find test
-            self.__get_user_info(),  # user
-            {},  # upload files
-            {"result": {"name": "Taurus Collection", "items": []}},  # transform config to collection
-            {}]  # update collection
 
     def test_detect_test_type_collection(self):
+        self.obj.user.token = object()
         self.configure(
+            add_settings=False,
             engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
-        )  # update collection
+            get={
+                'https://a.blazemeter.com/api/v4/multi-tests?workspaceId=1&name=Taurus+Cloud+Test': {"result": [{
+                    "id": 1,
+                    "name": "Taurus Cloud Test",
+                    "configuration": {"type": "taurus"}}]}
+            },
+            post={
+                'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
+                'https://a.blazemeter.com/api/v4/multi-tests/taurusimport': {"result": {
+                    "name": "Taurus Collection", "items": []
+                }},
+                'https://a.blazemeter.com/api/v4/multi-tests/1': {}
+            }
+        )
 
         self.obj.prepare()
         self.assertIsInstance(self.obj.router, CloudCollectionTest)
-
-        client_results = [
-            {"result": [{
-                "id": 5174715,
-                "name": "Taurus Cloud Test",
-                "items": [{"configuration": {"type": "taurus"}}]}]},  # detect collection
-            self.__get_user_info(),  # user
-            {},  # upload files
-            {"result": {"name": "Taurus Collection", "items": []}},  # transform config to collection
-            {}]
 
     def test_detect_test_type_cloud(self):
         self.configure(engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}}, )
-
         self.obj.prepare()
         self.assertIsInstance(self.obj.router, CloudTaurusTest)
 
-        client_results = [
-            {"result": []},  # detect collection
-            {"result": [{
-                "id": 5174715,
-                "name": "Taurus Cloud Test",
-                "configuration": {"type": "taurus"}}]},  # detect test
-            self.__get_user_info(),  # user
-            {"result": [{
-                "id": 5174715,
-                "name": "Taurus Cloud Test",
-                "configuration": {"type": "taurus"}}]},  # find test
-            {},  # upload files
-            {"result": {
-                "name": "Taurus Collection", "items": []}},  # transform config to collection
-            {}]
-
     def test_full_collection(self):
+        self.obj.user.token = object()
         self.configure(
+            add_settings=False,
             engine_cfg={
                 ScenarioExecutor.EXEC: {
                     "executor": "mock",
                     "concurrency": 5500,
                     "locations": {
                         "us-east-1": 1,
-                        "us-west": 2}}},
-        )  # terminate
+                        "us-west": 2}}
+            },
+            get={
+                'https://a.blazemeter.com/api/v4/masters/1/status': {"result": {"status": "CREATED"}},
+                'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": {"sessions": []}},
+            },
+            post={
+                'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
+                'https://a.blazemeter.com/api/v4/multi-tests/taurusimport': {"result": {
+                    "name": "Taurus Collection", "items": []
+                }},
+                'https://a.blazemeter.com/api/v4/multi-tests': {"result": {"id": 1}},
+                'https://a.blazemeter.com/api/v4/multi-tests/1/start?delayedStart=true': {"result": {"id": 1}}
+            }
+        )
 
         self.obj.settings["use-deprecated-api"] = False
 
@@ -315,18 +323,6 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.check()
         self.obj.shutdown()
         self.obj.post_process()
-
-        client_results = [
-            {"result": []},  # collections
-            {"result": []},  # tests
-            self.__get_user_info(),  # user
-            {"files": []},  # upload files
-            {"result": {"name": "Taurus Collection", "items": []}},  # transform config to collection
-            {"result": {"id": id(self.obj.user)}},  # create collection
-            {"result": {"id": id(self.obj)}},  # start
-            {"result": {"id": id(self.obj), "sessions": []}},  # get master
-            {"result": []},  # get master sessions
-            {}]
 
     def test_create_project(self):
         self.configure(
@@ -467,7 +463,6 @@ class TestCloudProvisioning(BZTestCase):
                     "concurrency": 5500}},
         )  # upload files
 
-        self.obj.settings["token"] = "FakeToken"
         self.obj.settings["browser-open"] = False
         self.obj.prepare()
         exec_locations = self.obj.executors[0].execution['locations']
