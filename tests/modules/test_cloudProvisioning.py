@@ -31,7 +31,11 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.engine = engine
         self.mock = BZMock(self.obj.user)
         self.mock.mock_post.update({
-            'https://a.blazemeter.com/api/v4/projects': {"result": {"id": 1}}
+            'https://a.blazemeter.com/api/v4/projects': {"result": {"id": 1}},
+            'https://a.blazemeter.com/api/v4/tests': {"result": {"id": 1}},
+            'https://a.blazemeter.com/api/v4/tests/1/files': {"result": {"id": 1}},
+            'https://a.blazemeter.com/api/v4/tests/1/start': {"result": {"id": 1}},
+            'https://a.blazemeter.com/api/v4/masters/1/stop': {"result": True},
         })
 
     def configure(self, engine_cfg=None, get=None, post=None, add_config=True, add_settings=True):
@@ -72,10 +76,6 @@ class TestCloudProvisioning(BZTestCase):
                 'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": []},
             },
             post={
-                'https://a.blazemeter.com/api/v4/tests': {"result": {"id": 1}},
-                'https://a.blazemeter.com/api/v4/tests/1/files': {"result": {"id": 1}},
-                'https://a.blazemeter.com/api/v4/tests/1/start': {"result": {"id": 1}},
-                'https://a.blazemeter.com/api/v4/masters/1/stop': {"result": True},
             }
         )  # terminate
 
@@ -88,7 +88,6 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.shutdown()
         self.obj.post_process()
 
-
     def test_detach(self):
         self.configure(
             engine_cfg={
@@ -98,37 +97,20 @@ class TestCloudProvisioning(BZTestCase):
                     "locations": {
                         "us-east-1": 1,
                         "us-west": 2}}},
-            client_results=[
-                {"result": []},  # collections
-                {"result": []},  # tests
-                self.__get_user_info(),  # user
-                {"result": {"id": id(self.obj.client)}},  # create test
-                {"files": []},  # create test
-                {},  # upload files
-                {"result": {"id": id(self.obj)}}])  # start
+        )
 
         self.obj.settings["detach"] = True
 
         self.obj.prepare()
-        self.assertEqual(1, len(self.obj.client.results))
+        self.assertEqual(9, len(self.mock.requests))
         self.obj.startup()
-        self.assertEqual([], self.obj.client.results)
+        self.assertEqual(10, len(self.mock.requests))
         self.obj.check()
         self.obj.shutdown()
         self.obj.post_process()
 
     def test_no_settings(self):
-        self.configure(
-            engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
-            client_results=[
-                {"result": []},  # collections
-                {"result": []},  # tests
-                self.__get_user_info(),  # user
-                {"result": {"id": id(self.obj.client)}},  # create test
-                {"files": []},  # create test
-                {},  # upload files
-                {"result": {"id": id(self.obj)}}])  # start
-
+        self.configure(engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}}, )
         self.obj.prepare()
         self.assertEquals(1, self.obj.executors[0].execution['locations']['us-west-1'])
 
@@ -605,7 +587,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.check()
         self.obj.shutdown()
         self.obj.post_process()
-        self.assertEqual(self.obj.client.results, [])
+        self.assertEqual(self.mock.requests, [])
 
     def test_terminate_only(self):
         """  test is terminated only when it was started and didn't finished """
@@ -645,7 +627,7 @@ class TestCloudProvisioning(BZTestCase):
         self.assertTrue(self.obj.check())
         self.obj.shutdown()
         self.obj.post_process()
-        self.assertEqual(self.obj.client.results, [])
+        self.assertEqual(self.mock.requests, [])
 
     def test_cloud_paths(self):
         """
@@ -799,7 +781,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.check()  # this one should work
         self.obj.check()  # this one should skip
 
-        self.assertEqual(self.obj.client.results, [])
+        self.assertEqual(self.mock.requests, [])
 
     def test_dump_locations(self):
         self.configure(client_results=[self.__get_user_info()])
@@ -871,7 +853,7 @@ class TestCloudProvisioning(BZTestCase):
         self.assertEqual(self.obj.browser_open, "both")
         self.assertEqual(self.obj.client.token, "bmtoken")
         self.assertEqual(self.obj.check_interval, 20.0)
-        self.assertEqual(self.obj.client.results, [])
+        self.assertEqual(self.mock.requests, [])
 
     def test_public_report(self):
         self.configure(
@@ -909,7 +891,7 @@ class TestCloudProvisioning(BZTestCase):
         log_line = "Public report link: https://a.blazemeter.com/app/?public-token=publicToken#/masters/%s/summary"
         self.assertIn(log_line % id(self.obj), log_buff)
 
-        self.assertEqual(self.obj.client.results, [])
+        self.assertEqual(self.mock.requests, [])
 
 
 class TestCloudTaurusTest(BZTestCase):

@@ -21,9 +21,11 @@ class BZMock(object):
         self.mock_get = {
             'https://a.blazemeter.com/api/v4/web/version': {},
             'https://a.blazemeter.com/api/v4/user': {'defaultProject': {'id': None}, "locations": [
-                {'id': 'aws'},
-                {'id': 'us-east-1'},
-                {'id': 'us-west'},
+                {'id': 'aws', 'sandbox': False},
+                {'id': 'us-east-1', 'sandbox': False},
+                {'id': 'us-west', 'sandbox': False},
+                {'id': 'harbor-sandbox', 'sandbox': True},
+                {'id': 'us-west-1', 'sandbox': True},
             ]},
             'https://a.blazemeter.com/api/v4/accounts': {"result": [{'id': 1}]},
             'https://a.blazemeter.com/api/v4/workspaces?accountId=1': {"result": [{'id': 1}]},
