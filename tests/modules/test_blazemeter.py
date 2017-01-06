@@ -33,7 +33,7 @@ class BZMock(object):
         self.requests = []
 
         if obj:
-            obj._request = self._request_mock
+            self.apply(obj)
 
     def _request_mock(self, url, data=None, headers=None, method=None):
         if method == 'GET' or (not method and not data):
@@ -55,6 +55,9 @@ class BZMock(object):
         logging.debug("Emulated %s %s %s: %s", method, url, data, ret)
         self.requests.append({"url": url, "data": data})
         return ret
+
+    def apply(self, obj):
+        obj._request = self._request_mock
 
 
 class TestCloudProvisioningOld(BZTestCase):

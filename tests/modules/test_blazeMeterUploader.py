@@ -70,30 +70,27 @@ class TestBlazeMeterUploader(BZTestCase):
         self.assertEqual(1, len(data['labels']))
         total_item = data['labels'][0]
         self.assertEqual('ALL', total_item['name'])
-        self.assertEqual(total_item['assertions'], [{
-            'failureMessage': 'Forbidden',
-            'failures': 10,
-            'name': 'All Assertions'}])
-        self.assertEqual(total_item['errors'], [{
-            'm': 'Allowed',
-            'count': 20,
-            'rc': '222'}])
+        self.assertEqual(total_item['assertions'],
+                         [{'failureMessage': 'Forbidden', 'failures': 10, 'name': 'All Assertions'}])
+        self.assertEqual(total_item['errors'], [{'m': 'Allowed', 'count': 20, 'rc': '222'}])
 
     def test_no_notes_for_public_reporting(self):
-        client = BlazeMeterClientEmul(logging.getLogger(''))
-        client.results.append({"marker": "ping", 'result': {}})
-        client.results.extend([{'result': {}} for _ in range(6)])
+        mock = BZMock()
+        mock.mock_post.update({
+            'https://a.blazemeter.com/api/v4/sessions/1/terminate-external': {},
+            'https://data.blazemeter.com/submit.php?session_id=1&signature=None&test_id=1&user_id=1&pq=0&target=labels_bulk&update=1': {},
+        })
 
         obj = BlazeMeterUploader()
         obj.parameters['project'] = 'Proj name'
         obj.settings['token'] = ''  # public reporting
         obj.settings['browser-open'] = 'none'
         obj.engine = EngineEmul()
-        obj.client = client
+        mock.apply(obj._user)
         obj.prepare()
 
-        client.session_id = 'sess1'
-        client.master_id = 'master1'
+        obj._session = Session(obj._user, {'id': 1, 'testId': 1, 'userId': 1})
+        obj._master = Master(obj._user, {'id': 1})
 
         obj.engine.stopping_reason = ValueError('wrong value')
         obj.aggregated_second(random_datapoint(10))
@@ -103,9 +100,10 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.send_monitoring = obj.send_custom_metrics = obj.send_custom_tables = False
         obj.post_process()
 
+        # TODO: looks like this whole block of checks is useless
         # check for note appending in _postproc_phase3()
         reqs = [{'url': '', 'data': ''} for _ in range(4)]  # add template for minimal size
-        reqs = (reqs + obj.client.requests)[-4:]
+        reqs = (reqs + mock.requests)[-4:]
         self.assertNotIn('api/v4/sessions/sess1', reqs[0]['url'])
         self.assertNotIn('api/v4/sessions/sess1', reqs[1]['url'])
         self.assertNotIn('api/v4/masters/master1', reqs[2]['url'])
