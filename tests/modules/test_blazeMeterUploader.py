@@ -186,8 +186,7 @@ class TestBlazeMeterUploader(BZTestCase):
     def test_monitoring_buffer_limit_option(self):
         obj = BlazeMeterUploader()
         obj.engine = EngineEmul()
-        obj.client = BlazeMeterClientEmul(logging.getLogger(''))
-        obj.client.results.append({"marker": "ping", 'result': {}})
+        mock = BZMock(obj._user)
         obj.settings["monitoring-buffer-limit"] = 100
         obj.prepare()
         for i in range(1000):
@@ -195,18 +194,16 @@ class TestBlazeMeterUploader(BZTestCase):
             obj.monitoring_data(mon)
             for source, buffer in iteritems(obj.monitoring_buffer.data):
                 self.assertLessEqual(len(buffer), 100)
-        self.assertEqual(0, len(obj.client.results))
+        self.assertEqual(0, len(mock.requests))
 
     def test_multiple_reporters_one_monitoring(self):
         obj1 = BlazeMeterUploader()
         obj1.engine = EngineEmul()
-        obj1.client = BlazeMeterClientEmul(logging.getLogger(''))
-        obj1.client.results.append({"marker": "ping", 'result': {}})
+        BZMock(obj1._user)
 
         obj2 = BlazeMeterUploader()
         obj2.engine = EngineEmul()
-        obj2.client = BlazeMeterClientEmul(logging.getLogger(''))
-        obj2.client.results.append({"marker": "ping", 'result': {}})
+        BZMock(obj2._user)
 
         obj1.prepare()
         obj2.prepare()
@@ -217,23 +214,24 @@ class TestBlazeMeterUploader(BZTestCase):
             obj2.monitoring_data(mon)
 
     def test_public_report(self):
-        client = BlazeMeterClientEmul(logging.getLogger(''))
-        client.timeout = 1
-        client.results.append({"marker": "ping", 'result': {}})
-        client.results.append({"marker": "tests", 'result': {}})
-        client.results.append({"marker": "test-create", 'result': {'id': 'unittest1'}})
-        client.results.append(
-            {"marker": "sess-start",
-             "result": {
-                 'session': {'id': 'sess1', 'userId': 1},
-                 'master': {'id': 'master1', 'userId': 1},
-                 'signature': ''}})
-        client.results.append({"marker": "share-report", 'result': {'publicToken': 'publicToken'}})
-        client.results.append({"marker": "first push", 'result': {'session': {}}})
-        client.results.append({"marker": "post-proc push", 'result': {'session': {}}})
-        client.results.append({"marker": "artifacts push", 'result': True})
-        client.results.append({"marker": "logs push", 'result': True})
-        client.results.append({"marker": "terminate", 'result': {'session': {}}})
+        mock = BZMock()
+        mock.mock_get.update({
+            'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=Taurus+Test': {"result": []}
+        })
+
+        mock.mock_post.update({
+            'https://a.blazemeter.com/api/v4/projects': {"result": {'id': 1}},
+            'https://a.blazemeter.com/api/v4/tests': {'result': {'id': 'unittest1'}},
+            'https://a.blazemeter.com/api/v4/tests/unittest1/start-external': {"result": {
+                'session': {'id': 'sess1', 'userId': 1, 'testId': 1},
+                'master': {'id': 'master1', 'userId': 1},
+                'signature': ''
+            }},
+            'https://a.blazemeter.com/api/v4/masters/master1/publicToken': {'result': {'publicToken': 'publicToken'}},
+            'https://data.blazemeter.com/submit.php?session_id=sess1&signature=&test_id=1&user_id=1&pq=0&target=labels_bulk&update=1': {
+                "result": {'session': {}}},
+            'https://a.blazemeter.com/api/v4/image/sess1/files?signature=': {'result': True},
+        })
 
         log_recorder = RecordingHandler()
 
@@ -243,7 +241,7 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.settings['public-report'] = True
         obj.settings['send-monitoring'] = False
         obj.engine = EngineEmul()
-        obj.client = client
+        mock.apply(obj._user)
         obj.log.addHandler(log_recorder)
         obj.prepare()
         obj.startup()
@@ -251,7 +249,7 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.check()
         obj.shutdown()
         obj.post_process()
-        self.assertEqual(0, len(client.results))
+        self.assertEqual(14, len(mock.requests))
 
         log_buff = log_recorder.info_buff.getvalue()
         log_line = "Public report link: https://a.blazemeter.com/app/?public-token=publicToken#/masters/master1/summary"
