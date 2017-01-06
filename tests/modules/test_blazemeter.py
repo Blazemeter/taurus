@@ -20,7 +20,11 @@ class BZMock(object):
         super(BZMock, self).__init__()
         self.mock_get = {
             'https://a.blazemeter.com/api/v4/web/version': {},
-            'https://a.blazemeter.com/api/v4/user': {'defaultProject': {'id': None}, "locations": [{'id': 'aws'}]},
+            'https://a.blazemeter.com/api/v4/user': {'defaultProject': {'id': None}, "locations": [
+                {'id': 'aws'},
+                {'id': 'us-east-1'},
+                {'id': 'us-west'},
+            ]},
             'https://a.blazemeter.com/api/v4/accounts': {"result": [{'id': 1}]},
             'https://a.blazemeter.com/api/v4/workspaces?accountId=1': {"result": [{'id': 1}]},
             'https://a.blazemeter.com/api/v4/multi-tests?workspaceId=1&name=Taurus+Cloud+Test': {"result": []},
@@ -32,7 +36,7 @@ class BZMock(object):
         self.mock_patch = {}
         self.requests = []
 
-        if obj:
+        if obj is not None:
             self.apply(obj)
 
     def _request_mock(self, url, data=None, headers=None, method=None):

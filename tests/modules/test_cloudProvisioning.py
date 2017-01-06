@@ -29,9 +29,12 @@ class TestCloudProvisioning(BZTestCase):
         engine.aggregator = ConsolidatingAggregator()
         self.obj = CloudProvisioning()
         self.obj.engine = engine
-        self.obj.client = BlazeMeterClientEmul(self.obj.log)
+        self.mock = BZMock(self.obj.user)
+        self.mock.mock_post.update({
+            'https://a.blazemeter.com/api/v4/projects': {"result": {"id": 1}}
+        })
 
-    def configure(self, engine_cfg=None, client_results=None, add_config=True, add_settings=True):
+    def configure(self, engine_cfg=None, get=None, post=None, add_config=True, add_settings=True):
         if engine_cfg is None:
             engine_cfg = {}
         self.obj.engine.config.merge(engine_cfg)
@@ -51,7 +54,8 @@ class TestCloudProvisioning(BZTestCase):
         if isinstance(self.obj.parameters, list):
             self.obj.parameters = self.obj.parameters[0]
 
-        self.obj.client.results = client_results
+        self.mock.mock_get.update(get if get else {})
+        self.mock.mock_post.update(post if post else {})
 
     def test_simple(self):
         self.configure(
@@ -62,17 +66,18 @@ class TestCloudProvisioning(BZTestCase):
                     "locations": {
                         "us-east-1": 1,
                         "us-west": 2}}},
-            client_results=[
-                {"result": []},  # collections
-                {"result": []},  # tests
-                self.__get_user_info(),  # user
-                {"result": {"id": id(self.obj.client)}},  # create test
-                {"files": []},  # create test
-                {},  # upload files
-                {"result": {"id": id(self.obj)}},  # start
-                {"result": {"id": id(self.obj)}},  # get master
-                {"result": []},  # get master sessions
-                {}])  # terminate
+
+            get={
+                'https://a.blazemeter.com/api/v4/masters/1/status': {"result": {"id": 1}},
+                'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": []},
+            },
+            post={
+                'https://a.blazemeter.com/api/v4/tests': {"result": {"id": 1}},
+                'https://a.blazemeter.com/api/v4/tests/1/files': {"result": {"id": 1}},
+                'https://a.blazemeter.com/api/v4/tests/1/start': {"result": {"id": 1}},
+                'https://a.blazemeter.com/api/v4/masters/1/stop': {"result": True},
+            }
+        )  # terminate
 
         self.obj.prepare()
         self.assertEquals(1, self.obj.executors[0].execution['locations']['us-east-1'])
@@ -82,6 +87,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.check()
         self.obj.shutdown()
         self.obj.post_process()
+
 
     def test_detach(self):
         self.configure(
@@ -774,7 +780,7 @@ class TestCloudProvisioning(BZTestCase):
                 {"result": []},  # collection
                 {"result": []},  # tests
                 self.__get_user_info(),  # user
-                {"result": {"id": id(self.obj.client)}},  # create test
+                {"result": {"id": id(self.obj.user)}},  # create test
                 {"files": []},  # create test
                 {},  # upload files
                 {"result": {"id": id(self.obj)}},  # start test
