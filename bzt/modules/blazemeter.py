@@ -788,10 +788,10 @@ class ProjectFinder(object):
         project = self._resolve_project(proj_name)
         test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
 
-        test = self._ws_proj_switch(project).tests(test_name, test_type='external').first()
+        test = self._ws_proj_switch(project).tests(name=test_name, test_type='external').first()
         if not test:
             if not project:
-                self._default_or_create_project(proj_name)
+                project = self._default_or_create_project(proj_name)
 
             test = project.create_test(test_name, {"type": "external"})
 

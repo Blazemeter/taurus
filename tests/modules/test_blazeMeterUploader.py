@@ -8,51 +8,46 @@ from io import BytesIO
 
 import bzt.modules.blazemeter
 from bzt.modules.aggregator import DataPoint, KPISet
-from bzt.modules.blazemeter import BlazeMeterUploader, BlazeMeterClient, BlazeMeterClientEmul, ResultsFromBZA
+from bzt.modules.blazemeter import BlazeMeterUploader, ResultsFromBZA
 from bzt.modules.blazemeter import MonitoringBuffer
 from bzt.six import URLError, iteritems, viewvalues
 from tests import BZTestCase, random_datapoint, __dir__
 from tests.mocks import EngineEmul, RecordingHandler
+from tests.modules.test_blazemeter import BZMock
 
 
 class TestBlazeMeterUploader(BZTestCase):
     def test_some_errors(self):
-        client = BlazeMeterClientEmul(logging.getLogger(''))
-        client.results.append({"marker": "ping", 'result': {}})
-        client.results.append({"marker": "projects", 'result': []})
-        client.results.append({"marker": "project-create", 'result': {
-            "id": time.time(),
-            "name": "boo",
-            "userId": time.time(),
-            "description": None,
-            "created": time.time(),
-            "updated": time.time(),
-            "organizationId": None
-        }})
-        client.results.append({"marker": "tests", 'result': {}})
-        client.results.append({"marker": "test-create", 'result': {'id': 'unittest1'}})
-        client.results.append(
-            {"marker": "sess-start",
-             "result": {
-                 'session': {'id': 'sess1', 'userId': 1},
-                 'master': {'id': 'master1', 'userId': 1},
-                 'signature': ''}})
-        client.results.append({"marker": "post-proc push", 'result': {'session': {}}})
-        client.results.append({"marker": "upload1", "result": True})  # post-proc error stats
-        client.results.append({"marker": "terminate", 'result': {'session': {}}})
-        client.results.append({"marker": "terminate2", 'result': {'session': {}}})
-        client.results.append({"marker": "sess-e", "result": {'session': {'id': 'sess1', 'note': 'n'}}})
-        client.results.append({"marker": "sess-e", "result": {'session': {}}})
-        client.results.append({"marker": "sess-e", "result": {'master': {'id': 'sess1', 'note': 'n'}}})
-        client.results.append({"marker": "sess-e", "result": {'master': {}}})
-        client.results.append({"marker": "upload-file", "result": {}})
+        mock = BZMock()
+        mock.mock_get.update({
+            'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=Taurus+Test': {"result": []},
+            'https://a.blazemeter.com/api/v4/sessions/1': {"result": {'id': 1, "note": "somenote"}},
+            'https://a.blazemeter.com/api/v4/masters/1': {"result": {'id': 1, "note": "somenote"}},
+        })
+        mock.mock_post.update({
+            'https://a.blazemeter.com/api/v4/projects': {"result": {'id': 1}},
+            'https://a.blazemeter.com/api/v4/tests': {"result": {'id': 1}},
+            'https://a.blazemeter.com/api/v4/tests/1/start-external': {"result": {
+                "session": {'id': 1, "testId": 1, "userId": 1},
+                "master": {'id': 1},
+                "signature": "sign"
+            }},
+            'https://a.blazemeter.com/api/v4/image/1/files?signature=sign': {"result": True},
+            'https://data.blazemeter.com/submit.php?session_id=1&signature=sign&test_id=1&user_id=1&pq=0&target=labels_bulk&update=1': {},
+            'https://a.blazemeter.com/api/v4/sessions/1/stop': {"result": True},
+        })
+
+        mock.mock_patch.update({
+            'https://a.blazemeter.com/api/v4/sessions/1': {"result": {"id": 1, "note": "somenote"}},
+            'https://a.blazemeter.com/api/v4/masters/1': {"result": {"id": 1, "note": "somenote"}},
+        })
 
         obj = BlazeMeterUploader()
+        obj._user._request = mock._request_mock
         obj.parameters['project'] = 'Proj name'
         obj.settings['token'] = '123'
         obj.settings['browser-open'] = 'none'
         obj.engine = EngineEmul()
-        obj.client = client
         obj.prepare()
         obj.startup()
         obj.engine.stopping_reason = ValueError('wrong value')
@@ -63,16 +58,15 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.post_process()
 
         # check for note appending in _postproc_phase3()
-        reqs = obj.client.requests[-4:]
-        self.assertIn('api/v4/sessions/sess1', reqs[0]['url'])
-        self.assertIn('api/v4/sessions/sess1', reqs[1]['url'])
-        self.assertIn('api/v4/masters/master1', reqs[2]['url'])
-        self.assertIn('api/v4/masters/master1', reqs[3]['url'])
+        reqs = mock.requests[-4:]
+        self.assertIn('api/v4/sessions/1', reqs[0]['url'])
+        self.assertIn('api/v4/sessions/1', reqs[1]['url'])
+        self.assertIn('api/v4/masters/1', reqs[2]['url'])
+        self.assertIn('api/v4/masters/1', reqs[3]['url'])
         self.assertIn('ValueError: wrong value', reqs[1]['data'])
         self.assertIn('ValueError: wrong value', reqs[3]['data'])
 
-        self.assertEqual(0, len(client.results))
-        data = json.loads(client.requests[6]['data'])
+        data = json.loads(mock.requests[8]['data'])
         self.assertEqual(1, len(data['labels']))
         total_item = data['labels'][0]
         self.assertEqual('ALL', total_item['name'])
@@ -110,7 +104,7 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.post_process()
 
         # check for note appending in _postproc_phase3()
-        reqs = [{'url': '', 'data': ''} for _ in range(4)]     # add template for minimal size
+        reqs = [{'url': '', 'data': ''} for _ in range(4)]  # add template for minimal size
         reqs = (reqs + obj.client.requests)[-4:]
         self.assertNotIn('api/v4/sessions/sess1', reqs[0]['url'])
         self.assertNotIn('api/v4/sessions/sess1', reqs[1]['url'])
@@ -176,7 +170,7 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.check()
         for x in range(32, 65):
             obj.aggregated_second(random_datapoint(x))
-        obj.last_dispatch = time.time() - 2*obj.send_interval
+        obj.last_dispatch = time.time() - 2 * obj.send_interval
         self.assertRaises(KeyboardInterrupt, obj.check)
         obj.aggregated_second(random_datapoint(10))
         obj.shutdown()
