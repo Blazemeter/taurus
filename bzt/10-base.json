@@ -150,6 +150,9 @@
     "pbench": {
       "class": "bzt.modules.pbench.PBenchExecutor"
     },
+    "appium": {
+      "class": "bzt.modules.selenium.SeleniumExecutor"
+    },
     "siege": {
       "class": "bzt.modules.siege.SiegeExecutor"
     },
@@ -182,6 +185,9 @@
     },
     "install-checker": {
       "class": "bzt.modules.services.InstallChecker"
+    },
+    "appium-tools": {
+      "class": "bzt.modules.services.AppiumTools"
     }
   },
   "settings": {
