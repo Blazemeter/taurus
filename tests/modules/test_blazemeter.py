@@ -13,7 +13,10 @@ class BZMock(object):
     :type mock_post: dict
     """
 
-    def __init__(self):
+    def __init__(self, obj=None):
+        """
+        :type obj: bzt.bza.BZAObject
+        """
         super(BZMock, self).__init__()
         self.mock_get = {
             'https://a.blazemeter.com/api/v4/web/version': {},
@@ -28,6 +31,9 @@ class BZMock(object):
         self.mock_post = {}
         self.mock_patch = {}
         self.requests = []
+
+        if obj:
+            obj._request = self._request_mock
 
     def _request_mock(self, url, data=None, headers=None, method=None):
         if method == 'GET' or (not method and not data):
@@ -46,7 +52,7 @@ class BZMock(object):
         else:
             ret = resp
 
-        logging.debug("Emulated %s %s %s: %s", method, url, data,ret)
+        logging.debug("Emulated %s %s %s: %s", method, url, data, ret)
         self.requests.append({"url": url, "data": data})
         return ret
 

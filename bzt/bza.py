@@ -82,11 +82,11 @@ class BZAObjectsList(list):
         return None
 
     def __getattr__(self, name):
-        def call_list_items(**kwargs):  # TODO: or should we use *args here?
+        def call_list_items(*args, **kwargs):
             res = BZAObjectsList()
             for item in self:
                 method = getattr(item, name)
-                chunk = method(**kwargs)
+                chunk = method(*args, **kwargs)
                 if not isinstance(chunk, BZAObjectsList):
                     msg = "%s.%s() must return BZAObjectsList, but returned %s"
                     raise TypeError(msg % (type(item).__name__, name, type(chunk).__name__))
