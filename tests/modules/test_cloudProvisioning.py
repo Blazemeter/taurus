@@ -190,30 +190,27 @@ class TestCloudProvisioning(BZTestCase):
 
     def test_delete_test_files(self):
         self.configure(
-            engine_cfg={
-                ScenarioExecutor.EXEC: {"executor": "mock"}},
-            client_results=[
-                {"result": []},  # collections
-                {"result": [{
-                    "id": 5174715,
-                    "name": "Taurus Cloud Test",
-                    "configuration": {"type": "taurus"}}]},  # find test
-                self.__get_user_info(),  # user
-                {"files": [
+            engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
+            get={
+                'https://a.blazemeter.com/api/v4/web/elfinder/1?cmd=open&target=s1_Lw': {"files": [
                     {
                         "hash": "hash1",
                         "name": "file1"
                     }, {
                         "hash": "hash1",
-                        "name": "file2"}]},  # test files
-                {"removed": [
-                    "hash1", "hash2"]},  # remove test files
-                {}])  # upload files
+                        "name": "file2"}]
+                },
+                # deleting files with GET - ...!
+                'https://a.blazemeter.com/api/v4/web/elfinder/1?cmd=rm&targets[]=hash1&targets[]=hash1': {
+                    "removed": ["hash1", "hash2"]
+                }
+            }
+        )
 
         self.obj.settings.merge({'delete-test-files': True})
-
         self.obj.prepare()
-        self.assertTrue(self.obj.client.delete_files_before_test)
+        self.assertEquals('https://a.blazemeter.com/api/v4/web/elfinder/1?cmd=rm&targets[]=hash1&targets[]=hash1',
+                          self.mock.requests[9]['url'])
 
     def test_cloud_config_cleanup(self):
         self.configure(
@@ -225,14 +222,7 @@ class TestCloudProvisioning(BZTestCase):
                     "locations": {
                         "us-east-1": 1,
                         "us-west": 2}}},
-            client_results=[
-                {"result": []},
-                {"result": [{
-                    "id": 5174715,
-                    "name": "Taurus Cloud Test",
-                    "configuration": {"type": "taurus"}, }]},  # find test
-                self.__get_user_info(),  # user
-                {}])  # upload files
+            )
 
         self.obj.router = CloudTaurusTest(self.obj.client, None, None, "name", None, self.obj.log)
         cloud_config = self.obj.router.prepare_cloud_config(self.obj.engine.config)
@@ -241,6 +231,16 @@ class TestCloudProvisioning(BZTestCase):
         self.assertNotIn("ramp-up", execution)
         self.assertNotIn("hold-for", execution)
         self.assertNotIn("steps", execution)
+
+        client_results=[
+            {"result": []},
+            {"result": [{
+                "id": 5174715,
+                "name": "Taurus Cloud Test",
+                "configuration": {"type": "taurus"}, }]},  # find test
+            self.__get_user_info(),  # user
+            {} # upload files
+        ]
 
     def test_default_test_type_cloud(self):
         self.configure(

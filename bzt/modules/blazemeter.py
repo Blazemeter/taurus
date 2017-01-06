@@ -869,7 +869,7 @@ class BaseCloudTest(object):
         pass
 
     @abstractmethod
-    def resolve_test(self, taurus_config, rfiles):
+    def resolve_test(self, taurus_config, rfiles, delete_old_files=False):
         pass
 
     @abstractmethod
@@ -982,7 +982,7 @@ class CloudTaurusTest(BaseCloudTest):
 
         return config
 
-    def resolve_test(self, taurus_config, rfiles):
+    def resolve_test(self, taurus_config, rfiles, delete_old_files=False):
         if self._test is None:
             test_config = {
                 "type": "taurus",
@@ -997,6 +997,9 @@ class CloudTaurusTest(BaseCloudTest):
                 raise TaurusInternalException()  # TODO: build unit test to catch this situation
 
             self._test = self._project.create_test(self._test_name, test_config)
+
+        if delete_old_files:
+            self._test.delete_files()
 
         taurus_config = yaml.dump(taurus_config, default_flow_style=False, explicit_start=True, canonical=False)
         self._test.upload_files(taurus_config, rfiles)
@@ -1121,10 +1124,11 @@ class CloudCollectionTest(BaseCloudTest):
         assert isinstance(config, Configuration)
         return config
 
-    def resolve_test(self, taurus_config, rfiles):
+    def resolve_test(self, taurus_config, rfiles, delete_old_files=False):
+        # TODO: handle delete_old_files ?
         if self.test_id is None:
             self.log.debug("Creating cloud collection test")
-            self.test_id = self.client.create_collection(self._test['name'], taurus_config, rfiles, self.project_id)
+            self._test = self.client.create_collection(self._test['name'], taurus_config, rfiles, self.project_id)
         else:
             self.log.debug("Overriding cloud collection test")
             self.client.setup_collection(self.test_id, self._test['name'], taurus_config, rfiles, self.project_id)
@@ -1332,7 +1336,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         files_for_cloud = self._fix_filenames(res_files)
         config_for_cloud = self.router.prepare_cloud_config(self.engine.config)
         config_for_cloud.dump(self.engine.create_artifact("cloud", ""))
-        self.router.resolve_test(config_for_cloud, files_for_cloud)
+        self.router.resolve_test(config_for_cloud, files_for_cloud, self.settings.get("delete-test-files", True))
 
         self.widget = self.get_widget()
 
@@ -1360,7 +1364,6 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.user.address = self.settings.get("address", self.user.address)
         self.user.token = self.settings.get("token", self.user.token)
         self.user.timeout = dehumanize_time(self.settings.get("timeout", self.user.timeout))
-        self.user.delete_files_before_test = self.settings.get("delete-test-files", True)  # FIXME: misplaced
         if not self.user.token:
             raise TaurusConfigError("You must provide API token to use cloud provisioning")
 

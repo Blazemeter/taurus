@@ -271,24 +271,25 @@ class Test(BZAObject):
         session.data_signature = result['signature']
         return session, Master(self, result['master']), result['publicTokenUrl']
 
-    def get_test_files(self, test_id):
-        path = self.address + "/api/v4/web/elfinder/%s" % test_id
+    def get_files(self):
+        path = self.address + "/api/v4/web/elfinder/%s" % self['id']
         query = urlencode({'cmd': 'open', 'target': 's1_Lw'})
         url = path + '?' + query
         response = self._request(url)
         return response["files"]
 
-    def delete_test_files(self, test_id):
-        files = self.get_test_files(test_id)
+    def delete_files(self):
+        files = self.get_files()
         self.log.debug("Test files: %s", [filedict['name'] for filedict in files])
         if not files:
             return
-        path = "/api/v4/web/elfinder/%s" % test_id
+        path = "/api/v4/web/elfinder/%s" % self['id']
         query = "cmd=rm&" + "&".join("targets[]=%s" % fname['hash'] for fname in files)
         url = self.address + path + '?' + query
         response = self._request(url)
         if len(response['removed']) == len(files):
             self.log.debug("Successfully deleted %d test files", len(response['removed']))
+        return response['removed']
 
     def start(self):
         url = self.address + "/api/v4/tests/%s/start" % self['id']
