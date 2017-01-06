@@ -54,6 +54,8 @@ class BZMock(object):
 
         logging.debug("Emulated %s %s %s: %s", method, url, data, ret)
         self.requests.append({"url": url, "data": data})
+        if isinstance(ret, BaseException):
+            raise ret
         return ret
 
     def apply(self, obj):

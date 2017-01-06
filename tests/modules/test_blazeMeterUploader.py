@@ -104,50 +104,54 @@ class TestBlazeMeterUploader(BZTestCase):
         # check for note appending in _postproc_phase3()
         reqs = [{'url': '', 'data': ''} for _ in range(4)]  # add template for minimal size
         reqs = (reqs + mock.requests)[-4:]
-        self.assertNotIn('api/v4/sessions/sess1', reqs[0]['url'])
-        self.assertNotIn('api/v4/sessions/sess1', reqs[1]['url'])
-        self.assertNotIn('api/v4/masters/master1', reqs[2]['url'])
-        self.assertNotIn('api/v4/masters/master1', reqs[3]['url'])
+        self.assertNotIn('api/v4/sessions/1', reqs[0]['url'])
+        self.assertNotIn('api/v4/sessions/1', reqs[1]['url'])
+        self.assertNotIn('api/v4/masters/1', reqs[2]['url'])
+        self.assertNotIn('api/v4/masters/1', reqs[3]['url'])
         if reqs[1]['data']:
             self.assertNotIn('ValueError: wrong value', reqs[1]['data'])
         if reqs[3]['data']:
             self.assertNotIn('ValueError: wrong value', reqs[3]['data'])
 
     def test_check(self):
-        client = BlazeMeterClientEmul(logging.getLogger(''))
-        client.timeout = 1
-        client.results.append({"marker": "ping", 'result': {}})
-        client.results.append({"marker": "projects", 'result': []})
-
-        client.results.append({"marker": "project-create", 'result': {
-            "id": time.time(),
-            "name": "boo",
-            "userId": time.time(),
-            "description": None,
-            "created": time.time(),
-            "updated": time.time(),
-            "organizationId": None
-        }})
-        client.results.append({"marker": "tests", 'result': {}})
-        client.results.append({"marker": "test-create", 'result': {'id': 'unittest1'}})
-        client.results.append(
-            {"marker": "sess-start",
-             "result": {
-                 'session': {'id': 'sess1', 'userId': 1},
-                 'master': {'id': 'master1', 'userId': 1},
-                 'signature': ''}})
-        client.results.append({"marker": "first push", 'result': {'session': {}}})
-        client.results.append(IOError("monitoring push expected fail"))
-        client.results.append({"marker": "mon push", "result": True})
-        client.results.append(IOError("custom metric push expected fail"))
-        client.results.append({"marker": "custom metrics push", "result": True})
-        client.results.append({"marker": "second push", 'result': {'session': {"statusCode": 140, 'status': 'ENDED'}}})
-        client.results.append({"marker": "post-proc push", 'result': {'session': {}}})
-        client.results.append({"marker": "post process monitoring push", "result": True})
-        client.results.append({"marker": "post process custom metrics push", "result": True})
-        client.results.append({"marker": "artifacts push", 'result': True})
-        client.results.append({"marker": "logs push", 'result': True})
-        client.results.append({"marker": "terminate", 'result': {'session': {}}})
+        mock = BZMock()
+        mock.mock_get.update({
+            'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=Taurus+Test': {"result": []}
+        })
+        mock.mock_post.update({
+            'https://a.blazemeter.com/api/v4/projects': {"result": {
+                "id": time.time(),
+                "name": "boo",
+                "userId": time.time(),
+                "description": None,
+                "created": time.time(),
+                "updated": time.time(),
+                "organizationId": None
+            }},
+            'https://a.blazemeter.com/api/v4/tests': {"result": {'id': 1}},
+            'https://a.blazemeter.com/api/v4/tests/1/start-external': {"result": {
+                'session': {'id': 1, 'userId': 1, 'testId': 1},
+                'master': {'id': 1, 'userId': 1},
+                'signature': 'sign'}},
+            'https://data.blazemeter.com/submit.php?session_id=1&signature=sign&test_id=1&user_id=1&pq=0&target=labels_bulk&update=1': [
+                {},
+                {"result": {'session': {"statusCode": 140, 'status': 'ENDED'}}},
+                {},
+            ],
+            'https://a.blazemeter.com/api/v4/image/1/files?signature=sign': [
+                IOError("monitoring push expected fail"),
+                {"result": True},
+                {"result": True},
+                {"result": True},
+                {"result": True},
+            ],
+            'https://a.blazemeter.com/api/v4/data/masters/1/custom-metrics': [
+                IOError("custom metric push expected fail"),
+                {"result": True},
+                {"result": True},
+            ],
+            'https://a.blazemeter.com/api/v4/sessions/1/stop': {}
+        })
 
         obj = BlazeMeterUploader()
         obj.parameters['project'] = 'Proj name'
@@ -157,7 +161,8 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.settings['send-custom-tables'] = True
         obj.engine = EngineEmul()
         shutil.copy(__file__, os.path.join(obj.engine.artifacts_dir, os.path.basename(__file__)))
-        obj.client = client
+        mock.apply(obj._user)
+        obj._user.timeout = 0.1
         obj.prepare()
         obj.startup()
         for x in range(0, 31):
@@ -176,12 +181,7 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.engine.log.parent.handlers.append(logging.FileHandler(log_file))
         obj.engine.config.get('modules').get('shellexec').get('env')['TAURUS_INDEX_ALL'] = 1
         obj.post_process()
-        self.assertEqual(0, len(client.results))
-
-    def test_ping(self):
-        obj = BlazeMeterClient(logging.getLogger(''))
-        obj.address = "https://a.blazemeter.com"
-        obj.ping()
+        self.assertEqual(20, len(mock.requests))
 
     def test_monitoring_buffer_limit_option(self):
         obj = BlazeMeterUploader()
