@@ -67,7 +67,7 @@ class TestBlazeMeterUploader(BZTestCase):
         self.assertIn('ValueError: wrong value', str(reqs[1]['data']))
         self.assertIn('ValueError: wrong value', str(reqs[3]['data']))
 
-        data = json.loads(mock.requests[8]['data'])
+        data = json.loads(str(mock.requests[8]['data']))
         self.assertEqual(1, len(data['labels']))
         total_item = data['labels'][0]
         self.assertEqual('ALL', total_item['name'])
