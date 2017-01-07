@@ -177,7 +177,7 @@ class Account(BZAObject):
 
 
 class Workspace(BZAObject):
-    def projects(self, name=None, id=None):
+    def projects(self, name=None, proj_id=None):
         """
         :rtype: BZAObjectsList[Project]
         """
@@ -189,7 +189,7 @@ class Workspace(BZAObject):
             if name is not None and item['name'] != name:
                 continue
 
-            if id is not None and item['id'] != id:
+            if proj_id is not None and item['id'] != proj_id:
                 continue
 
             projects.append(Project(self, item))
@@ -504,7 +504,7 @@ class Session(BZAObject):
                 raise ManualShutdown("The test was interrupted through Web UI")
 
     def send_monitoring_data(self, src_name, data):
-        self.upload_file('%s.monitoring.json' % src_name, data)
+        self.upload_file('%s.monitoring.json' % src_name, to_json(data))
 
     def upload_file(self, filename, contents=None):
         """

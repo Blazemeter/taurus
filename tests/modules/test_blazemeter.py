@@ -3,6 +3,7 @@ import logging
 from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.blazemeter import CloudProvisioning
+from bzt.utils import to_json
 from tests import BZTestCase
 from tests.mocks import EngineEmul, ModuleMock
 

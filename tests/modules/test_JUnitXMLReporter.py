@@ -3,14 +3,15 @@ import tempfile
 from collections import Counter
 
 from bzt.modules.aggregator import DataPoint, KPISet
-from bzt.modules.blazemeter import BlazeMeterUploader, CloudProvisioning, BlazeMeterClientEmul
+from bzt.modules.blazemeter import BlazeMeterUploader, CloudProvisioning
 from bzt.modules.passfail import PassFailStatus, DataCriterion
+from bzt.modules.provisioning import Local
 from bzt.modules.reporting import JUnitXMLReporter
 from bzt.six import etree
-from bzt.modules.provisioning import Local
 from bzt.utils import BetterDict
 from tests import BZTestCase
 from tests.mocks import EngineEmul
+from tests.modules.test_blazemeter import BZMock
 
 
 class TestJUnitXML(BZTestCase):
@@ -231,21 +232,23 @@ class TestJUnitXML(BZTestCase):
         pass_fail1 = PassFailStatus()
 
         fc1_triggered = DataCriterion({'stop': True, 'label': 'Sample 1 Triggered', 'fail': True,
-                                      'timeframe': -1, 'threshold': '150ms', 'condition': '<', 'subject': 'avg-rt'},
-                                     pass_fail1)
+                                       'timeframe': -1, 'threshold': '150ms', 'condition': '<', 'subject': 'avg-rt'},
+                                      pass_fail1)
 
         fc1_not_triggered = DataCriterion({'stop': True, 'label': 'Sample 1 Not Triggered', 'fail': True,
-                                          'timeframe': -1, 'threshold': '300ms', 'condition': '>', 'subject': 'avg-rt'},
-                                         pass_fail1)
+                                           'timeframe': -1, 'threshold': '300ms', 'condition': '>',
+                                           'subject': 'avg-rt'},
+                                          pass_fail1)
 
         pass_fail2 = PassFailStatus()
 
         fc2_triggered = DataCriterion({'stop': True, 'label': 'Sample 2 Triggered', 'fail': True, 'timeframe': -1,
-                                      'threshold': '150ms', 'condition': '<=', 'subject': 'avg-rt'}, pass_fail1)
+                                       'threshold': '150ms', 'condition': '<=', 'subject': 'avg-rt'}, pass_fail1)
 
         fc2_not_triggered = DataCriterion({'stop': True, 'label': 'Sample 2 Not Triggered', 'fail': True,
-                                          'timeframe': -1, 'threshold': '300ms', 'condition': '=', 'subject': 'avg-rt'},
-                                         pass_fail1)
+                                           'timeframe': -1, 'threshold': '300ms', 'condition': '=',
+                                           'subject': 'avg-rt'},
+                                          pass_fail1)
 
         pass_fail1.criteria.append(fc1_triggered)
         pass_fail1.criteria.append(fc1_not_triggered)
@@ -280,9 +283,9 @@ class TestJUnitXML(BZTestCase):
         obj = JUnitXMLReporter()
         obj.engine = EngineEmul()
         obj.engine.provisioning = CloudProvisioning()
-        obj.engine.provisioning.client = BlazeMeterClientEmul(obj.log)
+        mock = BZMock(obj.engine.provisioning.user)
         prov = obj.engine.provisioning
-        prov.client.results_url = 'url1'
+        prov.results_url = 'url1'
         prov.settings.merge({'test': 'test1'})
         report_info = obj.get_bza_report_info()
         self.assertEqual(report_info, [('Cloud report link: url1\n', 'test1')])
@@ -291,10 +294,10 @@ class TestJUnitXML(BZTestCase):
         obj = JUnitXMLReporter()
         obj.engine = EngineEmul()
         obj.engine.provisioning = Local()
-        obj.engine.reporters.append(BlazeMeterUploader())
-        obj.engine.provisioning.client = BlazeMeterClientEmul(obj.log)
-        rep = obj.engine.reporters[0]
-        rep.client.results_url = 'url2'
+        rep = BlazeMeterUploader()
+        obj.engine.reporters.append(rep)
+        mock = BZMock(rep._user)
+        rep.results_url = 'url2'
         rep.parameters.merge({'test': 'test2'})
         report_info = obj.get_bza_report_info()
         self.assertEqual(report_info, [('BlazeMeter report link: url2\n', 'test2')])
@@ -307,8 +310,8 @@ class TestJUnitXML(BZTestCase):
         pass_fail = PassFailStatus()
 
         criteria = DataCriterion({'stop': True, 'fail': True, 'timeframe': -1, 'threshold': '150ms',
-                                 'condition': '<', 'subject': 'avg-rt'},
-                                pass_fail)
+                                  'condition': '<', 'subject': 'avg-rt'},
+                                 pass_fail)
         pass_fail.criteria.append(criteria)
         criteria.is_triggered = True
 
@@ -319,4 +322,3 @@ class TestJUnitXML(BZTestCase):
         obj.prepare()
         obj.last_second = DataPoint(0)
         obj.post_process()
-

@@ -768,7 +768,7 @@ class ProjectFinder(object):
         if isinstance(proj_name, (int, float)):  # TODO: what if it's string "123"?
             proj_id = int(proj_name)
             self.log.debug("Treating project name as ID: %s", proj_id)
-            project = self.workspaces.projects(id=proj_id).first()
+            project = self.workspaces.projects(proj_id=proj_id).first()
             if not project:
                 raise TaurusConfigError("BlazeMeter project not found by ID: %s" % proj_id)
             return project
@@ -829,7 +829,7 @@ class ProjectFinder(object):
             if not test:
                 project = self._default_or_create_project(proj_name)
             else:
-                project = self.workspaces.projects(id=test['projectId']).first()
+                project = self.workspaces.projects(proj_id=test['projectId']).first()
                 if not project:
                     msg = "Failed to find project with id %s for existing test %s"
                     raise TaurusInternalException(msg % (test['projectId'], test['id']))
@@ -841,7 +841,7 @@ class ProjectFinder(object):
             return self.workspaces.first().create_project(proj_name)
         else:
             info = self.user.fetch()
-            project = self.workspaces.projects(id=info['defaultProject']['id']).first()
+            project = self.workspaces.projects(proj_id=info['defaultProject']['id']).first()
             if not project:
                 project = self.workspaces.first().create_project("Taurus Tests Project")
             return project

@@ -63,8 +63,8 @@ class TestBlazeMeterUploader(BZTestCase):
         self.assertIn('api/v4/sessions/1', reqs[1]['url'])
         self.assertIn('api/v4/masters/1', reqs[2]['url'])
         self.assertIn('api/v4/masters/1', reqs[3]['url'])
-        self.assertIn('ValueError: wrong value', reqs[1]['data'])
-        self.assertIn('ValueError: wrong value', reqs[3]['data'])
+        self.assertIn('ValueError: wrong value', str(reqs[1]['data']))
+        self.assertIn('ValueError: wrong value', str(reqs[3]['data']))
 
         data = json.loads(mock.requests[8]['data'])
         self.assertEqual(1, len(data['labels']))
@@ -194,7 +194,7 @@ class TestBlazeMeterUploader(BZTestCase):
             obj.monitoring_data(mon)
             for source, buffer in iteritems(obj.monitoring_buffer.data):
                 self.assertLessEqual(len(buffer), 100)
-        self.assertEqual(0, len(mock.requests))
+        self.assertEqual(1, len(mock.requests))
 
     def test_multiple_reporters_one_monitoring(self):
         obj1 = BlazeMeterUploader()

@@ -355,7 +355,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         result = []
         if isinstance(self.engine.provisioning, CloudProvisioning):
             cloud_prov = self.engine.provisioning
-            report_url = "Cloud report link: %s\n" % cloud_prov.client.results_url
+            report_url = "Cloud report link: %s\n" % cloud_prov.results_url
             test_name = cloud_prov.settings.get('test', None)
             result.append((report_url, test_name if test_name is not None else report_url))
         else:
