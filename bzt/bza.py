@@ -83,6 +83,8 @@ class BZAObject(dict):
         if 'error' in result and result['error']:
             raise TaurusNetworkError("API call error %s: %s" % (url, result['error']))
 
+        return result
+
     def ping(self):
         """ Quick check if we can access the service """
         self._request(self.address + '/api/v4/web/version')
@@ -151,7 +153,7 @@ class User(BZAObject):
         return collection_draft
 
     def _import_config(self, config):
-        url = self.address + "/api/v4/multi-tests/taurusimport"
+        url = self.address + "/api/v4/multi-tests/taurus-import"
         resp = self._request(url, data=config, method="POST")
         return resp['result']
 
@@ -379,7 +381,7 @@ class MultiTest(BZAObject):
 
     def update_collection(self, coll):
         url = self.address + "/api/v4/multi-tests/%s" % self['id']
-        self._request(url, data=coll, method="POST")
+        self._request(url, data=coll, method="PUT")
 
 
 class Master(BZAObject):

@@ -262,7 +262,7 @@ class TestCloudProvisioning(BZTestCase):
             },
             post={
                 'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
-                'https://a.blazemeter.com/api/v4/multi-tests/taurusimport': {"result": {
+                'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {"result": {
                     "name": "Taurus Collection", "items": []
                 }},
                 'https://a.blazemeter.com/api/v4/multi-tests/1': {}
@@ -285,7 +285,7 @@ class TestCloudProvisioning(BZTestCase):
             },
             post={
                 'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
-                'https://a.blazemeter.com/api/v4/multi-tests/taurusimport': {"result": {
+                'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {"result": {
                     "name": "Taurus Collection", "items": []
                 }},
                 'https://a.blazemeter.com/api/v4/multi-tests/1': {}
@@ -318,7 +318,7 @@ class TestCloudProvisioning(BZTestCase):
             },
             post={
                 'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
-                'https://a.blazemeter.com/api/v4/multi-tests/taurusimport': {"result": {
+                'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {"result": {
                     "name": "Taurus Collection", "items": []
                 }},
                 'https://a.blazemeter.com/api/v4/multi-tests': {"result": {"id": 1}},
@@ -359,7 +359,7 @@ class TestCloudProvisioning(BZTestCase):
             },
             post={
                 'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
-                'https://a.blazemeter.com/api/v4/multi-tests/taurusimport': {"result": {
+                'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {"result": {
                     "name": "Taurus Collection", "items": []
                 }},
                 'https://a.blazemeter.com/api/v4/multi-tests/1': {}
@@ -382,7 +382,7 @@ class TestCloudProvisioning(BZTestCase):
             },
             post={
                 'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
-                'https://a.blazemeter.com/api/v4/multi-tests/taurusimport': {"result": {
+                'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {"result": {
                     "name": "Taurus Collection", "items": []
                 }},
                 'https://a.blazemeter.com/api/v4/multi-tests/1': {}
@@ -402,7 +402,7 @@ class TestCloudProvisioning(BZTestCase):
             engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
             post={
                 'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
-                'https://a.blazemeter.com/api/v4/multi-tests/taurusimport': {"result": {
+                'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {"result": {
                     "name": "Taurus Collection", "items": []
                 }},
                 'https://a.blazemeter.com/api/v4/multi-tests/1': {},
@@ -429,7 +429,7 @@ class TestCloudProvisioning(BZTestCase):
                 "locations-weighted": True},
             post={
                 'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
-                'https://a.blazemeter.com/api/v4/multi-tests/taurusimport': {"result": {
+                'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {"result": {
                     "name": "Taurus Collection", "items": []
                 }},
                 'https://a.blazemeter.com/api/v4/multi-tests/1': {},
@@ -471,7 +471,7 @@ class TestCloudProvisioning(BZTestCase):
             engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock", }},
             post={
                 'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
-                'https://a.blazemeter.com/api/v4/multi-tests/taurusimport': {"result": {
+                'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {"result": {
                     "name": "Taurus Collection", "items": []
                 }},
                 'https://a.blazemeter.com/api/v4/multi-tests/1': {},
@@ -499,7 +499,7 @@ class TestCloudProvisioning(BZTestCase):
                 "locations": {"aws": 1}},
             post={
                 'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
-                'https://a.blazemeter.com/api/v4/multi-tests/taurusimport': {"result": {
+                'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {"result": {
                     "name": "Taurus Collection", "items": []
                 }},
                 'https://a.blazemeter.com/api/v4/multi-tests/1': {},
@@ -559,7 +559,7 @@ class TestCloudProvisioning(BZTestCase):
             },
             post={
                 'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
-                'https://a.blazemeter.com/api/v4/multi-tests/taurusimport': {"result": {
+                'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {"result": {
                     "name": "Taurus Collection", "items": []
                 }},
                 'https://a.blazemeter.com/api/v4/multi-tests/1': {},
@@ -609,7 +609,7 @@ class TestCloudProvisioning(BZTestCase):
             },
             post={
                 'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
-                'https://a.blazemeter.com/api/v4/multi-tests/taurusimport': {"result": {
+                'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {"result": {
                     "name": "Taurus Collection", "items": []
                 }},
                 'https://a.blazemeter.com/api/v4/multi-tests/1': {},
