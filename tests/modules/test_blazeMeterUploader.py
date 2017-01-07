@@ -10,6 +10,7 @@ from bzt.bza import Master, Session
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.blazemeter import BlazeMeterUploader, ResultsFromBZA
 from bzt.modules.blazemeter import MonitoringBuffer
+from bzt.six import HTTPError
 from bzt.six import iteritems, viewvalues
 from tests import BZTestCase, random_datapoint, __dir__
 from tests.mocks import EngineEmul, RecordingHandler
@@ -195,6 +196,56 @@ class TestBlazeMeterUploader(BZTestCase):
             for source, buffer in iteritems(obj.monitoring_buffer.data):
                 self.assertLessEqual(len(buffer), 100)
         self.assertEqual(1, len(mock.requests))
+
+    def test_direct_feeding(self):
+        obj = BlazeMeterUploader()
+        obj.engine = EngineEmul()
+        mock = BZMock(obj._user)
+        mock.mock_post.update({
+            'https://data.blazemeter.com/submit.php?session_id=direct&signature=sign&test_id=None&user_id=None&pq=0&target=labels_bulk&update=1': {},
+            'https://a.blazemeter.com/api/v4/image/direct/files?signature=sign': {"result": True},
+        })
+        obj.parameters['session-id'] = 'direct'
+        obj.parameters['signature'] = 'sign'
+        obj.prepare()
+        obj.startup()
+        obj.check()
+        obj.shutdown()
+        obj.post_process()
+        self.assertEquals('direct', obj._session['id'])
+        self.assertEqual(2, len(mock.requests))
+
+    def test_anonymous_feeding(self):
+        obj = BlazeMeterUploader()
+        obj.engine = EngineEmul()
+        obj.browser_open = False
+        mock = BZMock(obj._user)
+        mock.mock_post.update({
+            'https://a.blazemeter.com/api/v4/sessions': {"result": {
+                "signature": "sign",
+                "publicTokenUrl": "publicUrl",
+                "session": {"id": 1, "testId": 1, "userId": 1},
+                "master": {"id": 1},
+            }},
+            'https://data.blazemeter.com/submit.php?session_id=1&signature=sign&test_id=1&user_id=1&pq=0&target=labels_bulk&update=1': {},
+            'https://a.blazemeter.com/api/v4/image/1/files?signature=sign': {"result": True},
+        })
+        obj.prepare()
+        obj.startup()
+        obj.check()
+        obj.shutdown()
+        obj.post_process()
+        self.assertEquals(1, obj._session['id'])
+        self.assertEqual(4, len(mock.requests))
+
+    def test_401(self):
+        obj = BlazeMeterUploader()
+        obj.engine = EngineEmul()
+        mock = BZMock(obj._user)
+        mock.mock_get.update({
+            'https://a.blazemeter.com/api/v4/web/version': HTTPError(None, None, None, None, None, ),
+        })
+        self.assertRaises(HTTPError, obj.prepare)
 
     def test_multiple_reporters_one_monitoring(self):
         obj1 = BlazeMeterUploader()

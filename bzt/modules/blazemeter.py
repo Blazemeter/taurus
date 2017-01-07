@@ -126,7 +126,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
             self._session['userId'] = self.parameters.get("user-id", None)
             self._session['testId'] = self.parameters.get("test-id", None)
             self._test = Test(self._user, {'id': self._session['testId']})
-            self._session.data_signature = self.parameters.get("signature", None)
+            exc = TaurusConfigError("Need signature for session")
+            self._session.data_signature = self.parameters.get("signature", exc)
             self._session.kpi_target = self.parameters.get("kpi-target", self._session.kpi_target)
         else:
             try:
