@@ -92,8 +92,6 @@ class LocalProvisioningTest(BZTestCase):
         local.engine = EngineEmul()
         local.engine.config[ScenarioExecutor.EXEC] = [{}, {}]
         local.engine.config.get("settings")["default-executor"] = "mock"
-        local.engine.config.get("modules").get("mock")["class"] = ModuleMock.__module__ + "." + ModuleMock.__name__
-
         local.prepare()
         local.startup()
 

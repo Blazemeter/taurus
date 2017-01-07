@@ -3,7 +3,6 @@ import logging
 from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.blazemeter import CloudProvisioning
-from bzt.utils import to_json
 from tests import BZTestCase
 from tests.mocks import EngineEmul, ModuleMock
 
@@ -33,6 +32,7 @@ class BZMock(object):
             'https://a.blazemeter.com/api/v4/multi-tests?workspaceId=1&name=Taurus+Cloud+Test': {"result": []},
             'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=Taurus+Cloud+Test': {"result": []},
             'https://a.blazemeter.com/api/v4/projects?workspaceId=1': {"result": []},
+            'https://a.blazemeter.com/api/v4/web/elfinder/1?cmd=open&target=s1_Lw': {"files": []}
         }
 
         self.mock_post = {}
