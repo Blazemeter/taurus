@@ -761,14 +761,14 @@ class ProjectFinder(object):
         self.user = user
         self.workspaces = self.user.accounts().workspaces()  # TODO: would be better to get it from outside
 
-    def _resolve_project(self, proj_name):
+    def _find_project(self, proj_name):
         """
         :rtype: bzt.bza.Project
         """
         if isinstance(proj_name, (int, float)):  # TODO: what if it's string "123"?
             proj_id = int(proj_name)
             self.log.debug("Treating project name as ID: %s", proj_id)
-            project = self.workspaces.projects(proj_id=proj_id).first()
+            project = self.workspaces.projects(id=proj_id).first()
             if not project:
                 raise TaurusConfigError("BlazeMeter project not found by ID: %s" % proj_id)
             return project
@@ -785,7 +785,7 @@ class ProjectFinder(object):
 
     def resolve_external_test(self):
         proj_name = self.parameters.get("project", self.settings.get("project", None))
-        project = self._resolve_project(proj_name)
+        project = self._find_project(proj_name)
         test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
 
         test = self._ws_proj_switch(project).tests(name=test_name, test_type='external').first()
@@ -798,12 +798,11 @@ class ProjectFinder(object):
         return test
 
     def resolve_test_type(self):
-        proj_name = self.parameters.get("project", self.settings.get("project", None))
-        project = self._resolve_project(proj_name)
-        test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
-
         use_deprecated = self.settings.get("use-deprecated-api", True)
         default_location = self.settings.get("default-location", None)
+        proj_name = self.parameters.get("project", self.settings.get("project", None))
+        project = self._find_project(proj_name)
+        test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
 
         test = self._ws_proj_switch(project).multi_tests(name=test_name).first()
         self.log.debug("Looked for collection: %s", test)
@@ -826,8 +825,14 @@ class ProjectFinder(object):
                     test_class = CloudCollectionTest
                 test = None
 
-        if not project and not test:
-            project = self._default_or_create_project(proj_name)
+        if not project:
+            if not test:
+                project = self._default_or_create_project(proj_name)
+            else:
+                project = self.workspaces.projects(id=test['projectId']).first()
+                if not project:
+                    msg = "Failed to find project with id %s for existing test %s"
+                    raise TaurusInternalException(msg % (test['projectId'], test['id']))
 
         return test_class(self.user, test, project, test_name, default_location, self.log)
 
@@ -836,7 +841,7 @@ class ProjectFinder(object):
             return self.workspaces.first().create_project(proj_name)
         else:
             info = self.user.fetch()
-            project = self.workspaces.projects(proj_id=info['defaultProject']['id']).first()
+            project = self.workspaces.projects(id=info['defaultProject']['id']).first()
             if not project:
                 project = self.workspaces.first().create_project("Taurus Tests Project")
             return project

@@ -177,7 +177,7 @@ class Account(BZAObject):
 
 
 class Workspace(BZAObject):
-    def projects(self, name=None, proj_id=None):
+    def projects(self, name=None, id=None):
         """
         :rtype: BZAObjectsList[Project]
         """
@@ -189,7 +189,7 @@ class Workspace(BZAObject):
             if name is not None and item['name'] != name:
                 continue
 
-            if proj_id is not None and item['id'] != proj_id:
+            if id is not None and item['id'] != id:
                 continue
 
             projects.append(Project(self, item))

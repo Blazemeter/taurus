@@ -244,8 +244,10 @@ class TestCloudProvisioning(BZTestCase):
             add_settings=False,
             engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
             get={
+                'https://a.blazemeter.com/api/v4/projects?workspaceId=1': {'result': [{'id': 1}]},
                 'https://a.blazemeter.com/api/v4/multi-tests?workspaceId=1&name=Taurus+Cloud+Test': {"result": [{
                     "id": 1,
+                    "projectId": 1,
                     "name": "Taurus Cloud Test",
                     "configuration": {"type": "taurus"}}]}
             },
@@ -265,8 +267,10 @@ class TestCloudProvisioning(BZTestCase):
             add_settings=False,
             engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
             get={
+                'https://a.blazemeter.com/api/v4/projects?workspaceId=1': {'result': [{'id': 1}]},
                 'https://a.blazemeter.com/api/v4/multi-tests?workspaceId=1&name=Taurus+Cloud+Test': {"result": [{
                     "id": 1,
+                    "projectId": 1,
                     "name": "Taurus Cloud Test",
                     "configuration": {"type": "taurus"}}]}
             },
