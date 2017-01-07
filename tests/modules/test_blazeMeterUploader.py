@@ -44,7 +44,7 @@ class TestBlazeMeterUploader(BZTestCase):
         })
 
         obj = BlazeMeterUploader()
-        obj._user._request = mock._request_mock
+        mock.apply(obj._user)
         obj.parameters['project'] = 'Proj name'
         obj.settings['token'] = '123'
         obj.settings['browser-open'] = 'none'
@@ -442,7 +442,7 @@ class TestResultsFromBZA(BZTestCase):
 
         obj = ResultsFromBZA()
         obj.master = Master(data={"id": 1})
-        obj.master._request = mock._request_mock
+        mock.apply(obj.master)
         res = list(obj.datapoints(True))
         cumulative_ = res[0][DataPoint.CUMULATIVE]
         total = cumulative_['']
@@ -455,14 +455,14 @@ class TestMonitoringBuffer(BZTestCase):
         return deg * math.pi / 180
 
     def test_harmonic(self):
-        ITERATIONS = 50
-        SIZE_LIMIT = 10
-        mon_buffer = MonitoringBuffer(SIZE_LIMIT, logging.getLogger(''))
-        for i in range(ITERATIONS):
-            cpu = math.sin(self.to_rad(float(i) / ITERATIONS * 180))
+        iterations = 50
+        size_limit = 10
+        mon_buffer = MonitoringBuffer(size_limit, logging.getLogger(''))
+        for i in range(iterations):
+            cpu = math.sin(self.to_rad(float(i) / iterations * 180))
             mon = [{"ts": i, "source": "local", "cpu": cpu}]
             mon_buffer.record_data(mon)
-            self.assertLessEqual(len(mon_buffer.data['local']), SIZE_LIMIT)
+            self.assertLessEqual(len(mon_buffer.data['local']), size_limit)
 
     def test_downsample_theorem(self):
         # Theorem: average interval size in monitoring buffer will always

@@ -1,10 +1,13 @@
 import logging
 
+import requests
+
 from bzt import TaurusNetworkError
 from bzt.bza import BZAObject
 from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.blazemeter import CloudProvisioning
+from bzt.utils import to_json
 from tests import BZTestCase
 from tests.mocks import EngineEmul, ModuleMock
 
@@ -45,32 +48,38 @@ class BZMock(object):
         if obj is not None:
             self.apply(obj)
 
-    def _request_mock(self, url, data=None, headers=None, method=None):
+    def _request_mock(self, method, url, **kwargs):
+        """
+        :param method:
+        :param url:
+        :param kwargs:
+        :rtype: requests.Response
+        """
         # TODO: make it simplier, mocking and replacing requests.request of BZAObject
-        if method == 'GET' or (not method and not data):
-            method = 'GET'
+        if method == 'GET':
             resp = self.mock_get[url]
-        elif method == 'POST' or (not method and data):
-            method = 'POST'
+        elif method == 'POST':
             resp = self.mock_post[url]
         elif method == 'PATCH':
             resp = self.mock_patch[url]
         else:
             raise ValueError()
 
-        if isinstance(resp, list):
-            ret = resp.pop(0)
-        else:
-            ret = resp
+        response = requests.Response()
 
-        logging.debug("Emulated %s %s %s: %s", method, url, data, ret)
+        if isinstance(resp, list):
+            resp = resp.pop(0)
+
+        data = kwargs['data']
+        logging.debug("Emulated %s %s %s: %s", method, url, data, resp)
         self.requests.append({"method": method, "url": url, "data": data})
-        if isinstance(ret, BaseException):
-            raise ret
-        return ret
+        if isinstance(resp, BaseException):
+            raise resp
+        response._content = to_json(resp)
+        return response
 
     def apply(self, obj):
-        obj._request = self._request_mock
+        obj.http_request = self._request_mock
 
 
 class TestBZAObject(BZTestCase):
@@ -123,7 +132,7 @@ class TestCloudProvisioningOld(BZTestCase):
             },
             "files": ModuleMock().get_resource_files()
         }]
-        prov.user._request = mock._request_mock
+        mock.apply(prov.user)
 
         prov.prepare()
         prov.startup()
