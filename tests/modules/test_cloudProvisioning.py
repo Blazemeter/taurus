@@ -569,26 +569,11 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.post_process()
         self.assertIn('masters/1/forceStart', ''.join([x['url'] for x in self.mock.requests]))
 
-        client_results = [
-            {"result": []},  # find collection
-            {"result": []},  # find test
-            self.__get_user_info(),  # user
-            {},  # upload files
-            {"result": {"name": "Taurus Collection", "items": []}},  # transform config to collection
-            {"result": {"id": 42}},  # create collection
-            {"result": {"id": id(self.obj)}},  # start
-            {"result": []},  # sessions
-
-            {"result": []},  # sessions
-            {"result": {}},  # force start
-            {"result": {"id": id(self.obj)}},  # master status
-            {"result": []},  # sessions
-            {},  # graceful shutdown
-            {"result": {"status": "ENDED"}}]
-
     def test_terminate_only(self):
         """  test is terminated only when it was started and didn't finished """
+        self.obj.user.token = object()
         self.configure(
+            add_settings=False,
             engine_cfg={
                 ScenarioExecutor.EXEC: {
                     "executor": "mock",
@@ -596,7 +581,31 @@ class TestCloudProvisioning(BZTestCase):
                     "locations": {
                         "us-east-1": 1,
                         "us-west": 1}}},
-        )  # sessions
+
+            get={
+                'https://a.blazemeter.com/api/v4/masters/1/status': [
+                    {"result": {
+                        "id": id(self.obj),
+                        "sessions": [
+                            {"id": "s1", "status": "JMETER_CONSOLE_INIT"},
+                            {"id": "s2", "status": "JMETER_CONSOLE_INIT"}]}},
+                    {"result": {"progress": 120, "status": "ENDED"}},  # status should trigger shutdown
+                ],
+                'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": {"sessions": []}},
+                'https://a.blazemeter.com/api/v4/masters/1': {"result": {"id": 1, "note": "msg"}}
+            },
+            post={
+                'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
+                'https://a.blazemeter.com/api/v4/multi-tests/taurusimport': {"result": {
+                    "name": "Taurus Collection", "items": []
+                }},
+                'https://a.blazemeter.com/api/v4/multi-tests/1': {},
+                'https://a.blazemeter.com/api/v4/multi-tests': {"result": {'id': 1}},
+                'https://a.blazemeter.com/api/v4/multi-tests/1/start?delayedStart=true': {"result": {"id": 1}},
+                'https://a.blazemeter.com/api/v4/masters/1/forceStart': {"result": {"id": 1}},
+                'https://a.blazemeter.com/api/v4/multi-tests/1/stop': {"result": {"id": 1}}
+            }
+        )
 
         self.obj.settings["check-interval"] = "0ms"  # do not skip checks
         self.obj.settings["use-deprecated-api"] = False
@@ -607,26 +616,7 @@ class TestCloudProvisioning(BZTestCase):
         self.assertTrue(self.obj.check())
         self.obj.shutdown()
         self.obj.post_process()
-        self.assertEqual(self.mock.requests, [])
-
-        client_results = [
-            {"result": []},  # find collection
-            {"result": []},  # find test
-            self.__get_user_info(),  # user
-            {},  # upload files
-            {"result": {
-                "name": "Taurus Collection", "items": []}},  # transform config to collection
-            {"result": {"id": 42}},  # create collection
-            {"result": {"id": id(self.obj)}},  # start
-            {"result": {
-                "id": id(self.obj),
-                "sessions": [{
-                    "id": "s1", "status": "JMETER_CONSOLE_INIT"},
-                    {"id": "s2", "status": "JMETER_CONSOLE_INIT"}]}},
-            {"result": []},  # sessions
-            {"result": {}},  # force start
-            {"result": {"progress": 120, "status": "ENDED"}},  # status should trigger shutdown
-            {"result": []}]
+        self.assertEqual(16, len(self.mock.requests))
 
     def test_cloud_paths(self):
         """
@@ -643,6 +633,7 @@ class TestCloudProvisioning(BZTestCase):
             __dir__() + '/../../bzt/10-base.json',
             __dir__() + '/../yaml/resource_files.yml'])
         self.obj.settings = self.obj.engine.config['modules']['cloud']
+        self.obj.settings.merge({'delete-test-files': False})
 
         # list of existing files in $HOME
         pref = 'file-in-home-'
@@ -741,24 +732,15 @@ class TestCloudProvisioning(BZTestCase):
             os.environ['HOME'] = back_home
             shutil.rmtree(temp_home)
 
-        client_results = [
-            {"result": []},  # collection
-            {"result": []},  # tests
-            self.__get_user_info(),  # user
-            {"result": {"id": id(self.obj.user)}},  # create test
-            {"files": []},  # create test
-            {}]
-
     def test_check_interval(self):
         self.configure(
             engine_cfg={
-                ScenarioExecutor.EXEC: {
-                    "executor": "mock",
-                    "concurrency": 5500,
-                    "locations": {
-                        "us-east-1": 1,
-                        "us-west": 1}}},
-        )  # sessions
+                ScenarioExecutor.EXEC: {"executor": "mock", }},
+            get={
+                'https://a.blazemeter.com/api/v4/masters/1/status': {"result": {"id": id(self.obj)}},
+                'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": []}
+            }
+        )
 
         self.obj.settings["check-interval"] = "1s"
 
@@ -770,19 +752,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.check()  # this one should work
         self.obj.check()  # this one should skip
 
-        self.assertEqual(self.mock.requests, [])
-        client_results = [
-            {"result": []},  # collection
-            {"result": []},  # tests
-            self.__get_user_info(),  # user
-            {"result": {"id": id(self.obj.user)}},  # create test
-            {"files": []},  # create test
-            {},  # upload files
-            {"result": {"id": id(self.obj)}},  # start test
-            {"result": {"id": id(self.obj)}},  # status
-            {"result": []},  # sessions
-            {"result": {"id": id(self.obj)}},  # status
-            {"result": []}]
+        self.assertEqual(14, len(self.mock.requests))
 
     def test_dump_locations(self):
         self.configure()
@@ -847,15 +817,7 @@ class TestCloudProvisioning(BZTestCase):
         self.assertEqual(self.obj.browser_open, "both")
         self.assertEqual(self.obj.user.token, "bmtoken")
         self.assertEqual(self.obj.check_interval, 20.0)
-        self.assertEqual(self.mock.requests, [])
-
-        client_results = [
-            {"result": []},  # collection
-            {"result": []},  # tests
-            self.__get_user_info(),  # user
-            {"result": {"id": id(self.obj.user)}},  # create test
-            {"files": []},  # create test
-            {}]
+        self.assertEqual(9, len(self.mock.requests))
 
     def test_public_report(self):
         self.configure(
