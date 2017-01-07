@@ -57,6 +57,7 @@ class TestBlazeMeterUploader(BZTestCase):
             {'msg': 'Forbidden', 'cnt': 10, 'type': KPISet.ERRTYPE_ASSERT, 'urls': [], KPISet.RESP_CODES: '111'},
             {'msg': 'Allowed', 'cnt': 20, 'type': KPISet.ERRTYPE_ERROR, 'urls': [], KPISet.RESP_CODES: '222'}]
         obj.post_process()
+        obj.log.info("Requests: %s", mock.requests)
 
         # check for note appending in _postproc_phase3()
         reqs = mock.requests[-4:]
@@ -67,7 +68,9 @@ class TestBlazeMeterUploader(BZTestCase):
         self.assertIn('ValueError: wrong value', str(reqs[1]['data']))
         self.assertIn('ValueError: wrong value', str(reqs[3]['data']))
 
-        data = json.loads(str(mock.requests[8]['data']))
+        labels = mock.requests[8]['data']
+        obj.log.info("Labels: %s", labels)
+        data = json.loads(str(labels))
         self.assertEqual(1, len(data['labels']))
         total_item = data['labels'][0]
         self.assertEqual('ALL', total_item['name'])
