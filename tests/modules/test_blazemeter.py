@@ -1,5 +1,7 @@
 import logging
 
+from bzt import TaurusNetworkError
+from bzt.bza import BZAObject
 from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.blazemeter import CloudProvisioning
@@ -68,6 +70,20 @@ class BZMock(object):
 
     def apply(self, obj):
         obj._request = self._request_mock
+
+
+class TestBZAObject(BZTestCase):
+    def test_ping(self):
+        obj = BZAObject()
+        obj.ping()
+
+    def test_request(self):
+        obj = BZAObject()
+        try:
+            obj._request('https://a.blazemeter.com/api/v4/web/version', data={"test": 1})
+            self.fail()
+        except TaurusNetworkError:
+            pass
 
 
 class TestCloudProvisioningOld(BZTestCase):

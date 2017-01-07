@@ -9,9 +9,9 @@ from collections import OrderedDict
 import requests
 
 from bzt import TaurusNetworkError, ManualShutdown
+from bzt.six import cookielib
 from bzt.six import text_type
 from bzt.six import urlencode
-from bzt.six import cookielib
 from bzt.utils import to_json, MultiPartForm
 
 logging.getLogger("requests").setLevel(logging.WARNING)  # misplaced?
@@ -56,13 +56,13 @@ class BZAObject(dict):
             log_method = 'GET' if data is None else 'POST'
 
         url = str(url)
-        self.log.debug("Request: %s %s %s", log_method, url, data[:self.logger_limit] if data else None)
         data = data.encode("utf8") if isinstance(data, text_type) else data
 
         if isinstance(data, dict):
             data = to_json(data)
             headers["Content-Type"] = "application/json"
 
+        self.log.debug("Request: %s %s %s", log_method, url, data[:self.logger_limit] if data else None)
         response = requests.request(method=log_method, url=url, data=data, headers=headers, cookies=self._cookies,
                                     timeout=self.timeout)
 
@@ -71,12 +71,17 @@ class BZAObject(dict):
             resp = resp.decode()
 
         self.log.debug("Response: %s", resp[:self.logger_limit] if resp else None)
+        if response.status_code >= 400:
+            raise TaurusNetworkError("API call error %s: %s %s" % (url, response.status_code, response.reason))
 
         try:
-            return json.loads(resp) if len(resp) else {}
+            result = json.loads(resp) if len(resp) else {}
         except ValueError as exc:
             self.log.debug('Response: %s', resp)
             raise TaurusNetworkError("Non-JSON response from API: %s" % exc)
+
+        if 'error' in result and result['error']:
+            raise TaurusNetworkError("API call error %s: %s" % (url, result['error']))
 
     def ping(self):
         """ Quick check if we can access the service """
