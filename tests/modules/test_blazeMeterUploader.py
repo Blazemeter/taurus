@@ -69,6 +69,8 @@ class TestBlazeMeterUploader(BZTestCase):
         self.assertIn('ValueError: wrong value', str(reqs[3]['data']))
 
         labels = mock.requests[8]['data']
+        if not isinstance(labels, str):
+            labels = labels.decode("utf-8")
         obj.log.info("Labels: %s", labels)
         data = json.loads(str(labels))
         self.assertEqual(1, len(data['labels']))
