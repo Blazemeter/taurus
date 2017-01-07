@@ -765,7 +765,7 @@ class ProjectFinder(object):
         """
         :rtype: bzt.bza.Project
         """
-        if isinstance(proj_name, (int, float)):
+        if isinstance(proj_name, (int, float)):  # TODO: what if it's string "123"?
             proj_id = int(proj_name)
             self.log.debug("Treating project name as ID: %s", proj_id)
             project = self.workspaces.projects(proj_id=proj_id).first()

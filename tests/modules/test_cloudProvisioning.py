@@ -357,43 +357,50 @@ class TestCloudProvisioning(BZTestCase):
                           self.mock.requests[3]['url'])
 
     def test_reuse_project_id(self):
+        self.obj.user.token = object()
         self.configure(
+            add_settings=False,
             engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
-        )  # upload files
+            get={
+                "https://a.blazemeter.com/api/v4/projects?workspaceId=1": {"result": [{"id": 1, "name": "myproject"}]},
+                'https://a.blazemeter.com/api/v4/multi-tests?projectId=1&name=Taurus+Cloud+Test': {
+                    "result": [{"id": 1, "name": "Taurus Cloud Test"}]
+                }
+            },
+            post={
+                'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
+                'https://a.blazemeter.com/api/v4/multi-tests/taurusimport': {"result": {
+                    "name": "Taurus Collection", "items": []
+                }},
+                'https://a.blazemeter.com/api/v4/multi-tests/1': {}
+            }
+        )
 
-        self.obj.settings.merge({
-            "delete-test-files": False,
-            "project": 1428})
-
+        self.obj.settings.merge({"delete-test-files": False, "project": 1})
         self.obj.prepare()
-        client_results = [
-            {"result": []},  # collections
-            {"result": [{
-                "id": 5174715,
-                "projectId": 1428,
-                "name": "Taurus Cloud Test",
-                "configuration": {"type": "taurus"}}]},  # find test
-            self.__get_user_info(),  # user
-            {}]
+        for request in self.mock.requests:
+            self.assertFalse(
+                request['url'] == 'https://a.blazemeter.com/api/v4/projects' and request['method'] == 'POST')
 
     def test_create_collection(self):
+        self.obj.user.token = object()
         self.configure(
+            add_settings=False,
             engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
-        )  # create collection
+            post={
+                'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
+                'https://a.blazemeter.com/api/v4/multi-tests/taurusimport': {"result": {
+                    "name": "Taurus Collection", "items": []
+                }},
+                'https://a.blazemeter.com/api/v4/multi-tests/1': {},
+                'https://a.blazemeter.com/api/v4/multi-tests': {"result": {}}
+            }
+        )
 
-        self.obj.settings.merge({
-            "delete-test-files": False,
-            "use-deprecated-api": False})
+        self.obj.settings.merge({"delete-test-files": False, "use-deprecated-api": False})
 
         self.obj.prepare()
         self.assertIsInstance(self.obj.router, CloudCollectionTest)
-        client_results = [
-            {"result": []},  # find collection
-            {"result": []},  # find test
-            self.__get_user_info(),  # user
-            {},  # upload files
-            {"result": {"name": "Taurus Collection", "items": []}},  # transform config to collection
-            {"result": {"id": 42}}]
 
     def test_toplevel_locations(self):
         self.configure(
