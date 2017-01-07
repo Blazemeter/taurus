@@ -2,7 +2,6 @@
 The idea for this module is to keep it separate from bzt codebase as much as possible,
 it may become separate library in the future. Things like imports and logging should be minimal.
 """
-import cookielib
 import json
 import logging
 
@@ -11,6 +10,7 @@ import requests
 from bzt import TaurusNetworkError, ManualShutdown
 from bzt.six import text_type
 from bzt.six import urlencode
+from bzt.six import cookielib
 from bzt.utils import to_json, MultiPartForm
 
 logging.getLogger("requests").setLevel(logging.WARNING)  # misplaced?
