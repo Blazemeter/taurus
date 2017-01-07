@@ -74,6 +74,7 @@ class BZMock(object):
         if isinstance(resp, BaseException):
             raise resp
         response._content = to_json(resp)
+        response.status_code = 200
         return response
 
 
