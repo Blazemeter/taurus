@@ -1353,7 +1353,8 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         files_for_cloud = self._fix_filenames(res_files)
         config_for_cloud = self.router.prepare_cloud_config(self.engine.config)
         config_for_cloud.dump(self.engine.create_artifact("cloud", ""))
-        self.router.resolve_test(config_for_cloud, files_for_cloud, self.settings.get("delete-test-files", True))
+        del_files = self.settings.get("delete-test-files", True)
+        self.router.resolve_test(config_for_cloud, files_for_cloud, del_files)
 
         self.widget = self.get_widget()
 

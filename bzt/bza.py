@@ -4,6 +4,7 @@ it may become separate library in the future. Things like imports and logging sh
 """
 import json
 import logging
+from collections import OrderedDict
 
 import requests
 
@@ -207,7 +208,7 @@ class Workspace(BZAObject):
         """
         :rtype: BZAObjectsList[Test]
         """
-        params = {"workspaceId": self['id']}
+        params = OrderedDict({"workspaceId": self['id']})
         if name is not None:
             params["name"] = name
 
@@ -227,7 +228,7 @@ class Workspace(BZAObject):
         """
         :rtype: BZAObjectsList[MultiTest]
         """
-        params = {"workspaceId": self['id']}
+        params = OrderedDict({"workspaceId": self['id']})
         if name is not None:
             params["name"] = name
 
@@ -251,7 +252,7 @@ class Project(BZAObject):
         """
         :rtype: BZAObjectsList[Test]
         """
-        params = {"projectId": self['id']}
+        params = OrderedDict({"projectId": self['id']})
         if name is not None:
             params["name"] = name
 
@@ -271,7 +272,7 @@ class Project(BZAObject):
         """
         :rtype: BZAObjectsList[MultiTest]
         """
-        params = {"projectId": self['id']}
+        params = OrderedDict({"projectId": self['id']})
         if name is not None:
             params["name"] = name
 
@@ -317,7 +318,7 @@ class Test(BZAObject):
 
     def get_files(self):
         path = self.address + "/api/v4/web/elfinder/%s" % self['id']
-        query = urlencode({'cmd': 'open', 'target': 's1_Lw'})
+        query = urlencode(OrderedDict({'cmd': 'open', 'target': 's1_Lw'}))
         url = path + '?' + query
         response = self._request(url)
         return response["files"]
