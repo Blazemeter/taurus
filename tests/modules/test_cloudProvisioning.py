@@ -210,6 +210,7 @@ class TestCloudProvisioning(BZTestCase):
 
         self.obj.settings.merge({'delete-test-files': True})
         self.obj.prepare()
+        self.obj.log.info(self.mock.requests)
         self.assertEquals('https://a.blazemeter.com/api/v4/web/elfinder/1?cmd=rm&targets[]=hash1&targets[]=hash1',
                           self.mock.requests[9]['url'])
 
@@ -752,7 +753,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.startup()
         self.obj.check()  # this one should work
         self.obj.check()  # this one should be skipped
-        time.sleep(1)
+        time.sleep(1.5)
         self.obj.check()  # this one should work
         self.obj.check()  # this one should skip
 
