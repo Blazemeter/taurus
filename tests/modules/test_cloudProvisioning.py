@@ -201,6 +201,14 @@ class TestCloudProvisioning(BZTestCase):
                         "hash": "hash1",
                         "name": "file2"}]
                 },
+                'https://a.blazemeter.com/api/v4/web/elfinder/1?target=s1_Lw&cmd=open': {"files": [
+                    {
+                        "hash": "hash1",
+                        "name": "file1"
+                    }, {
+                        "hash": "hash1",
+                        "name": "file2"}]
+                },
                 # deleting files with GET - ...!
                 'https://a.blazemeter.com/api/v4/web/elfinder/1?cmd=rm&targets[]=hash1&targets[]=hash1': {
                     "removed": ["hash1", "hash2"]
