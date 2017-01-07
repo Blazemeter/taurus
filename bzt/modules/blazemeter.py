@@ -900,7 +900,7 @@ class BaseCloudTest(object):
         pass
 
     def get_master_status(self):
-        self._last_status = self.master.get_master_status()
+        self._last_status = self.master.get_status()
         return self._last_status
 
 
@@ -1170,7 +1170,7 @@ class CloudCollectionTest(BaseCloudTest):
             if iterations > 100:
                 self.log.debug("Await: iteration limit reached")
                 return
-            status = self.master.get_master_status()
+            status = self.master.get_status()
             if status.get("status") == "ENDED":
                 return
             iterations += 1

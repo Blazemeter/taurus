@@ -13,11 +13,6 @@ from tests.mocks import EngineEmul, ModuleMock
 
 
 class BZMock(object):
-    """
-    :type mock_get: dict
-    :type mock_post: dict
-    """
-
     def __init__(self, obj=None):
         """
         :type obj: bzt.bza.BZAObject
@@ -48,6 +43,9 @@ class BZMock(object):
         if obj is not None:
             self.apply(obj)
 
+    def apply(self, obj):
+        obj.http_request = self._request_mock
+
     def _request_mock(self, method, url, **kwargs):
         """
         :param method:
@@ -77,9 +75,6 @@ class BZMock(object):
             raise resp
         response._content = to_json(resp)
         return response
-
-    def apply(self, obj):
-        obj.http_request = self._request_mock
 
 
 class TestBZAObject(BZTestCase):

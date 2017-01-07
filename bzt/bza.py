@@ -415,7 +415,7 @@ class Master(BZAObject):
         res = self._request(url, data, method='PATCH')
         self.update(res['result'])
 
-    def get_master_status(self):
+    def get_status(self):
         sess = self._request(self.address + '/api/v4/masters/%s/status' % self['id'])
         return sess['result']
 
