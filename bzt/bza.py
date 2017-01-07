@@ -381,7 +381,7 @@ class MultiTest(BZAObject):
 
     def update_collection(self, coll):
         url = self.address + "/api/v4/multi-tests/%s" % self['id']
-        self._request(url, data=coll, method="PUT")
+        self._request(url, data=coll, method="PATCH")
 
 
 class Master(BZAObject):

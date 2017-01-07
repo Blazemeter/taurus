@@ -46,6 +46,7 @@ class BZMock(object):
             self.apply(obj)
 
     def _request_mock(self, url, data=None, headers=None, method=None):
+        # TODO: make it simplier, mocking and replacing requests.request of BZAObject
         if method == 'GET' or (not method and not data):
             method = 'GET'
             resp = self.mock_get[url]

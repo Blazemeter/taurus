@@ -40,7 +40,7 @@ class TestCloudProvisioning(BZTestCase):
             'https://a.blazemeter.com/api/v4/masters/1/stop': {"result": True},
         })
 
-    def configure(self, engine_cfg=None, get=None, post=None, add_config=True, add_settings=True):
+    def configure(self, engine_cfg=None, get=None, post=None, patch=None, add_config=True, add_settings=True):
         if engine_cfg is None:
             engine_cfg = {}
         self.obj.engine.config.merge(engine_cfg)
@@ -62,6 +62,7 @@ class TestCloudProvisioning(BZTestCase):
 
         self.mock.mock_get.update(get if get else {})
         self.mock.mock_post.update(post if post else {})
+        self.mock.mock_patch.update(patch if patch else {})
 
     def test_simple(self):
         self.configure(
@@ -265,8 +266,11 @@ class TestCloudProvisioning(BZTestCase):
                 'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {"result": {
                     "name": "Taurus Collection", "items": []
                 }},
+            },
+            patch={
                 'https://a.blazemeter.com/api/v4/multi-tests/1': {}
-            })
+            }
+        )
         self.obj.prepare()
         self.assertIsInstance(self.obj.router, CloudCollectionTest)
 
@@ -288,6 +292,8 @@ class TestCloudProvisioning(BZTestCase):
                 'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {"result": {
                     "name": "Taurus Collection", "items": []
                 }},
+            },
+            patch={
                 'https://a.blazemeter.com/api/v4/multi-tests/1': {}
             }
         )
@@ -362,8 +368,11 @@ class TestCloudProvisioning(BZTestCase):
                 'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {"result": {
                     "name": "Taurus Collection", "items": []
                 }},
+            },
+            patch={
                 'https://a.blazemeter.com/api/v4/multi-tests/1': {}
-            })
+            }
+        )
         self.obj.settings.merge({"delete-test-files": False, "project": "myproject"})
         self.obj.prepare()
         self.assertEquals('https://a.blazemeter.com/api/v4/multi-tests?projectId=1&name=Taurus+Cloud+Test',
@@ -385,6 +394,8 @@ class TestCloudProvisioning(BZTestCase):
                 'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {"result": {
                     "name": "Taurus Collection", "items": []
                 }},
+            },
+            patch={
                 'https://a.blazemeter.com/api/v4/multi-tests/1': {}
             }
         )
