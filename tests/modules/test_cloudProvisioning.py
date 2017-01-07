@@ -403,7 +403,9 @@ class TestCloudProvisioning(BZTestCase):
         self.assertIsInstance(self.obj.router, CloudCollectionTest)
 
     def test_toplevel_locations(self):
+        self.obj.user.token = object()
         self.configure(
+            add_settings=False,
             engine_cfg={
                 ScenarioExecutor.EXEC: {
                     "executor": "mock",
@@ -412,7 +414,15 @@ class TestCloudProvisioning(BZTestCase):
                     "us-east-1": 1,
                     "us-west": 2},
                 "locations-weighted": True},
-        )  # create collection
+            post={
+                'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
+                'https://a.blazemeter.com/api/v4/multi-tests/taurusimport': {"result": {
+                    "name": "Taurus Collection", "items": []
+                }},
+                'https://a.blazemeter.com/api/v4/multi-tests/1': {},
+                'https://a.blazemeter.com/api/v4/multi-tests': {"result": {}}
+            }
+        )
 
         self.obj.settings["use-deprecated-api"] = False
         self.obj.prepare()
@@ -423,84 +433,66 @@ class TestCloudProvisioning(BZTestCase):
         self.assertEqual(conf['locations']['us-east-1'], 1)
         self.assertEqual(conf['locations']['us-west'], 2)
         self.assertNotIn('locations', conf['execution'][0])
-        client_results = [
-            {"result": []},  # collections
-            {"result": []},  # tests
-            self.__get_user_info(),  # user
-            {},  # upload files
-            {"result": {"name": "Taurus Collection", "items": []}},  # transform config to collection
-            {"result": {"id": 42}}]
 
     def test_nonexistent_location(self):
         self.configure(
-            engine_cfg={
-                ScenarioExecutor.EXEC: {
-                    "executor": "mock",
-                    "concurrency": 5500},
-                "locations": {"us-not-found": 1}},
-        )  # user
-
+            engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock", }, "locations": {"us-not-found": 1}},
+        )
         self.obj.settings["use-deprecated-api"] = False
-
         self.assertRaises(TaurusConfigError, self.obj.prepare)
-        client_results = [
-            {"result": []},  # collections
-            {"result": []},  # tests
-            self.__get_user_info()]
 
     def test_sandbox_default_location(self):
         self.configure(
             add_settings=False,
-            engine_cfg={
-                ScenarioExecutor.EXEC: {
-                    "executor": "mock",
-                    "concurrency": 5500}},
-        )  # upload files
-
-        self.obj.settings["browser-open"] = False
+            engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
+        )
+        self.obj.user.token = "key"
         self.obj.prepare()
         exec_locations = self.obj.executors[0].execution['locations']
-        self.assertEquals(1, exec_locations['us-west-1'])
-        client_results = [
-            {"result": []},  # collections
-            {"result": []},  # tests
-            self.__get_user_info(),  # user
-            {"result": {"id": id(self.obj.user)}},  # create test
-            {"files": []},  # create test
-            {}]
+        self.assertEquals(1, exec_locations['non-harbor-sandbox'])
 
     def test_collection_defloc_sandbox(self):
+        self.obj.user.token = object()
         self.configure(
-            engine_cfg={
-                ScenarioExecutor.EXEC: {
-                    "executor": "mock",
-                    "concurrency": 5500}},
-        )  # create collection
+            add_settings=False,
+            engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock", }},
+            post={
+                'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
+                'https://a.blazemeter.com/api/v4/multi-tests/taurusimport': {"result": {
+                    "name": "Taurus Collection", "items": []
+                }},
+                'https://a.blazemeter.com/api/v4/multi-tests/1': {},
+                'https://a.blazemeter.com/api/v4/multi-tests': {"result": {}}
+            }
+        )
 
         self.obj.settings["use-deprecated-api"] = False
 
         self.obj.prepare()
         exec_locations = self.obj.executors[0].execution['locations']
-        expected_location = 'harbor-5591335d8588531f5cde3a04'
+        expected_location = 'harbor-sandbox'
         self.assertIn(expected_location, exec_locations)
         self.assertEquals(1, exec_locations[expected_location])
-        client_results = [
-            {"result": []},  # find collection
-            {"result": []},  # find test
-            self.__get_user_info(),  # user
-            {},  # upload files
-            {"result": {"name": "Taurus Collection", "items": []}},  # transform config to collection
-            {"result": {"id": 42}}]
 
     def test_locations_on_both_levels(self):
+        self.obj.user.token = object()
         self.configure(
+            add_settings=False,
             engine_cfg={
                 ScenarioExecutor.EXEC: [{
                     "executor": "mock",
                     "concurrency": 5500,
-                    "locations": {"eu-west-1": 1}}],
+                    "locations": {"us-east-1": 1}}],
                 "locations": {"aws": 1}},
-        )  # create collection
+            post={
+                'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
+                'https://a.blazemeter.com/api/v4/multi-tests/taurusimport': {"result": {
+                    "name": "Taurus Collection", "items": []
+                }},
+                'https://a.blazemeter.com/api/v4/multi-tests/1': {},
+                'https://a.blazemeter.com/api/v4/multi-tests': {"result": {}}
+            }
+        )
 
         log_recorder = RecordingHandler()
         self.obj.log.addHandler(log_recorder)
@@ -514,16 +506,11 @@ class TestCloudProvisioning(BZTestCase):
             self.assertIn("locations", execution)
         log_buff = log_recorder.warn_buff.getvalue()
         self.assertIn("Each execution has locations specified, global locations won't have any effect", log_buff)
-        client_results = [
-            {"result": []},  # find test
-            {"result": []},  # find collection
-            self.__get_user_info(),  # user
-            {},  # upload files
-            {"result": {"name": "Taurus Collection", "items": []}},  # transform config to collection
-            {"result": {"id": 42}}]
 
     def test_collection_simultaneous_start(self):
+        self.obj.user.token = object()
         self.configure(
+            add_settings=False,
             engine_cfg={
                 ScenarioExecutor.EXEC: {
                     "executor": "mock",
@@ -531,7 +518,44 @@ class TestCloudProvisioning(BZTestCase):
                     "locations": {
                         "us-east-1": 1,
                         "us-west": 1}}},
-        )  # master status
+            get={
+                'https://a.blazemeter.com/api/v4/masters/1/status': [
+                    {"result": {
+                        "id": id(self.obj),
+                        "sessions": [
+                            {"id": "s1", "status": "JMETER_CONSOLE_INIT"},
+                            {"id": "s2", "status": "INIT_SCRIPT"}]}},
+                    {"result": {
+                        "id": id(self.obj),
+                        "sessions": [
+                            {"id": "s1", "status": "JMETER_CONSOLE_INIT"},
+                            {"id": "s2", "status": "JMETER_CONSOLE_INIT"}]}},
+                    {"result": {
+                        "id": id(self.obj),
+                        "sessions": [
+                            {"id": "s1", "status": "JMETER_CONSOLE_INIT"},
+                            {"id": "s2", "status": "JMETER_CONSOLE_INIT"}]}},
+                    {"result": {
+                        "id": id(self.obj),
+                        "status": "ENDED",
+                        "sessions": [
+                            {"id": "s1", "status": "JMETER_CONSOLE_INIT"},
+                            {"id": "s2", "status": "JMETER_CONSOLE_INIT"}]}},
+                ],
+                'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": {"sessions": []}},
+            },
+            post={
+                'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
+                'https://a.blazemeter.com/api/v4/multi-tests/taurusimport': {"result": {
+                    "name": "Taurus Collection", "items": []
+                }},
+                'https://a.blazemeter.com/api/v4/multi-tests/1': {},
+                'https://a.blazemeter.com/api/v4/multi-tests': {"result": {"id": 1}},
+                'https://a.blazemeter.com/api/v4/multi-tests/1/start?delayedStart=true': {"result": {"id": 1}},
+                'https://a.blazemeter.com/api/v4/masters/1/forceStart': {"result": {"id": 1}},
+                'https://a.blazemeter.com/api/v4/multi-tests/1/stop': {"result": {"id": 1}}
+            }
+        )
 
         self.obj.settings["check-interval"] = "0ms"  # do not skip checks
         self.obj.settings["use-deprecated-api"] = False
@@ -543,7 +567,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.check()
         self.obj.shutdown()
         self.obj.post_process()
-        self.assertEqual(self.mock.requests, [])
+        self.assertIn('masters/1/forceStart', ''.join([x['url'] for x in self.mock.requests]))
 
         client_results = [
             {"result": []},  # find collection
@@ -553,17 +577,8 @@ class TestCloudProvisioning(BZTestCase):
             {"result": {"name": "Taurus Collection", "items": []}},  # transform config to collection
             {"result": {"id": 42}},  # create collection
             {"result": {"id": id(self.obj)}},  # start
-            {"result": {
-                "id": id(self.obj),
-                "sessions": [
-                    {"id": "s1", "status": "JMETER_CONSOLE_INIT"},
-                    {"id": "s2", "status": "INIT_SCRIPT"}]}},  # status
             {"result": []},  # sessions
-            {"result": {
-                "id": id(self.obj),
-                "sessions": [
-                    {"id": "s1", "status": "JMETER_CONSOLE_INIT"},
-                    {"id": "s2", "status": "JMETER_CONSOLE_INIT"}]}},
+
             {"result": []},  # sessions
             {"result": {}},  # force start
             {"result": {"id": id(self.obj)}},  # master status

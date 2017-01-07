@@ -368,9 +368,8 @@ class MultiTest(BZAObject):
         return Master(self, resp['result'])
 
     def stop(self):
-        self.log.info("Shutting down cloud test...")  # FIXME: misplaced
         url = self.address + "/api/v4/multi-tests/%s/stop" % self['id']
-        self._request(url)
+        self._request(url, method='POST')
 
     def update_collection(self, coll):
         url = self.address + "/api/v4/multi-tests/%s" % self['id']

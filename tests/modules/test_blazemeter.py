@@ -25,6 +25,7 @@ class BZMock(object):
                 {'id': 'us-east-1', 'sandbox': False, 'title': 'East'},
                 {'id': 'us-west', 'sandbox': False, 'title': 'Dallas (Rackspace)'},
                 {'id': 'harbor-sandbox', 'sandbox': True, 'title': 'Sandbox'},
+                {'id': 'non-harbor-sandbox', 'sandbox': True, 'title': 'Sandbox Neverexisting'},
             ]},
             'https://a.blazemeter.com/api/v4/accounts': {"result": [{'id': 1}]},
             'https://a.blazemeter.com/api/v4/workspaces?accountId=1': {"result": [{'id': 1}]},

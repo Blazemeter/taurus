@@ -1172,9 +1172,11 @@ class CloudCollectionTest(BaseCloudTest):
 
     def stop_test(self):
         if self._started:
+            self.log.info("Shutting down cloud test...")
             self._test.stop()
             self.await_test_end()
         else:
+            self.log.info("Shutting down cloud test...")
             self.master.stop()
 
     def get_test_status_text(self):
