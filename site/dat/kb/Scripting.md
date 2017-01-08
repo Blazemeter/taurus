@@ -287,11 +287,9 @@ scenarios:
         regexp: false
 ```
 
-
-
 Congratulations! You now know how to create scripts in Taurus from scratch, without direct use of Selenium and JMeter. This comes in handy when we need to create complicated tests, because it helps avoid redundant actions and adding unnecessary files.
 
-Learn more about using Taurus from this free [webinar](http://info.blazemeter.com/automated-performance-tests-in-jenkins-ci-environments?utm_source=Blog&utm_medium=BM_Blog&utm_campaign=automated-performance-tests-jenkins-ci-environments?utm_source=taurus&utm_medium=KB&utm_campaign=JMeterSelenium), and follow us for the upcoming articles, which will cover analyzing test results and integration with Jenkins.
+Learn more about using Taurus from this free [webinar](http://info.blazemeter.com/automated-performance-tests-in-jenkins-ci-environments?utm_source=Blog&utm_medium=BM_Blog&utm_campaign=automated-performance-tests-jenkins-ci-environments?utm_source=taurus&utm_medium=KB&utm_campaign=JMeterSelenium), and follow us for the upcoming articles, which will cover [analyzing test results](Reporting.md) and [integration with Jenkins](Jenkins.md).
 
 The Taurus team is open for feedbacks and suggestions and you can be sure that you will get help for any issues via the [support forum](https://groups.google.com/forum/#!forum/codename-taurus).
 
