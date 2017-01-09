@@ -18,17 +18,13 @@ limitations under the License.
 
 import copy
 import os
-import re
-import time
 import zipfile
 from abc import abstractmethod
-
-from appium import webdriver
 
 from bzt import NormalShutdown, ToolError
 from bzt.engine import Service
 from bzt.six import get_stacktrace
-from bzt.utils import get_full_path, shutdown_process, replace_in_config, shell_exec
+from bzt.utils import replace_in_config
 
 
 class Unpacker(Service):
@@ -87,33 +83,3 @@ class InstallChecker(Service):
         self.log.info("Checking installation needs for: %s", mod_name)
         mod.install_required_tools()
         self.log.info("Module is fine: %s", mod_name)
-
-
-class AppiumTools(Service):
-    def __init__(self):
-        super(AppiumTools, self).__init__()
-        self.appium_process = None
-        self.emulator_process = None
-        self.sdk_path = ''
-
-    def prepare(self):
-        self.sdk_path = self.settings.get('sdk-path', '~/Android/Sdk')
-        #todo: set up $ANDROID_HOME?
-
-    def startup(self):
-        self.log.debug('Starting appium...')
-        self.appium_process = shell_exec(['appium'])
-
-        self.log.debug('Starting android emulator...')
-        emulator_path = get_full_path(os.path.join(self.sdk_path, 'tools/emulator'))
-        self.emulator_process = shell_exec([emulator_path, '-avd', 'nexus_and7_x86'])
-
-        time.sleep(3)
-
-    def shutdown(self):
-        if self.appium_process:
-            self.log.debug('Stopping appium...')
-            shutdown_process(self.appium_process, self.log)
-        if self.emulator_process:
-            self.log.debug('Stopping android emulator...')
-            shutdown_process(self.emulator_process, self.log)

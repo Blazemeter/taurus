@@ -113,3 +113,14 @@ class TestToolInstaller(BZTestCase):
         obj.engine = EngineEmul()
         obj.engine.config.get("modules")["err"] = "hello there"
         self.assertRaises(ToolError, obj.prepare)
+
+
+class TestAppiumTool(BZTestCase):
+    def test_intallation(self):
+        pass
+
+    def test_web(self):
+        pass
+
+    def test_app(self):
+        pass
