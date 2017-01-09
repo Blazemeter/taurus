@@ -20,8 +20,9 @@ class AppiumTest(TestCase):
     def tearDown(self):
         self.driver.quit()
 
+    def test_install(self):
+        pass
 
-class AppiumWebTest(AppiumTest):
     def test_web(self):
         self.log.info('connected.')
         self.log.info('open url into browser...')
@@ -35,7 +36,5 @@ class AppiumWebTest(AppiumTest):
         re_pattern = re.compile(r'Buenos Aires')
         self.log.info("found: %s", len(re.findall(re_pattern, body)) > 0)
 
-
-class AppiumAppTest(AppiumTest):
     def test_app(self):
         pass
