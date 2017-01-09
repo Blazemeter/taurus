@@ -1,7 +1,3 @@
-import re
-import time
-import logging
-
 from unittest import TestCase
 
 
