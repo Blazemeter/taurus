@@ -92,13 +92,13 @@ class AndroidSDK(RequiredTool):
         self.log = parent_logger.getChild(self.__class__.__name__)
 
     def check_if_installed(self):
-        cmd = [os.path.join(self.tool_path, "tools/android"), '--help']
+        cmd = [os.path.join(self.tool_path, "tools/android"), 'list']
         self.log.debug("Trying %s: %s", self.tool_name, cmd)
         try:
             output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
             self.log.debug("%s output: %s", self.tool_name, output)
             return True
-        except (subprocess.CalledProcessError, IOError) as exc:
+        except (subprocess.CalledProcessError, IOError, OSError) as exc:
             self.log.debug("Failed to check %s: %s", self.tool_name, exc)
             return False
 

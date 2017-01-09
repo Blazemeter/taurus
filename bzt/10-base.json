@@ -186,7 +186,7 @@
     "install-checker": {
       "class": "bzt.modules.services.InstallChecker"
     },
-    "appium-tools": {
+    "appium-loader": {
       "class": "bzt.modules.appiumtool.AppiumLoader"
     }
   },

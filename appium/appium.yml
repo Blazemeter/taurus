@@ -11,15 +11,17 @@ execution:
   executor: appium
 
 services:
-- appium-tools
+- module: appium-loader
 
-#modules:
+modules:
+  appium-loader:
+    sdk-path: ~/Android/Sdk
 #  blazemeter:
 #    #browser-open: end
 #    token: p6f8tw4oa1nlas9hvmzs
 scenarios:
   test_script:
-    script: './tests/appium/test_web_and_app.py'
+    script: test_appium.py
   requests_sample:
     default-address: http://blazedemo.com  # base address for requests
     think-time: 3s                         # pause for 1s after each request
