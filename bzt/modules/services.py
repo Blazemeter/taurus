@@ -23,11 +23,11 @@ import time
 import zipfile
 from abc import abstractmethod
 
-from bzt import NormalShutdown
+from bzt import NormalShutdown, ToolError, TaurusConfigError
 from bzt.engine import Service
 from bzt.modules.selenium import Node, JavaVM
 from bzt.six import get_stacktrace
-from bzt.utils import get_full_path, shutdown_process, shell_exec, RequiredTool, ToolError
+from bzt.utils import get_full_path, shutdown_process, shell_exec, RequiredTool
 from bzt.utils import replace_in_config
 
 
@@ -97,8 +97,18 @@ class AppiumLoader(Service):
         self.sdk_path = ''
 
     def prepare(self):
-        self.sdk_path = self.settings.get('sdk-path', '~/.bzt/android-sdk')
-        # todo: set up $ANDROID_HOME
+        self.sdk_path = self.settings.get('sdk-path', '')
+        if self.sdk_path:
+            os.environ['ANDROID_HOME'] = self.sdk_path
+        else:
+            # try to read sdk path from env..
+            self.sdk_path = os.environ.get('ANDROID_HOME')
+            if self.sdk_path:
+                self.settings['sdk-path'] = self.sdk_path
+            else:
+                message = 'Taurus can''t find Android SDK automatically, you must point to it with '
+                message += 'modules.appium-loader.sdk-path config parameter or ANDROID_HOME environment variable'
+                raise TaurusConfigError(message)
 
         self.sdk_path = get_full_path(self.sdk_path)
         self.settings['sdk-path'] = self.sdk_path
