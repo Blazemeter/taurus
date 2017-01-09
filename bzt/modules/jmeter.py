@@ -1723,7 +1723,8 @@ class JMeterScenarioBuilder(JMX):
                     delimiter = self.__guess_delimiter(modified_path)
                 source_path = get_full_path(modified_path)
 
-            config = JMX._get_csv_config(source_path, delimiter, source.get("quoted", False), source.get("loop", True))
+            config = JMX._get_csv_config(source_path, delimiter, source.get("quoted", False), source.get("loop", True),
+                                         source.get("variable-names", ""))
             elements.append(config)
             elements.append(etree.Element("hashTree"))
         return elements

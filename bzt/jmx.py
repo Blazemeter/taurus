@@ -913,7 +913,7 @@ class JMX(object):
         return element
 
     @staticmethod
-    def _get_csv_config(path, delimiter, is_quoted, loop):
+    def _get_csv_config(path, delimiter, is_quoted, loop, variable_names):
         """
 
         :type path: str
@@ -929,6 +929,7 @@ class JMX(object):
         element.append(JMX._bool_prop("quotedData", is_quoted))
         element.append(JMX._bool_prop("recycle", loop))
         element.append(JMX._bool_prop("stopThread", not loop))
+        element.append(JMX._string_prop("variableNames", variable_names))
 
         return element
 

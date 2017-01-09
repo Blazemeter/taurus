@@ -479,6 +479,10 @@ class JMXasDict(JMX):
                     elif stop_prop:
                         data_source_dict["loop"] = False
 
+                    varnames = self._get_string_prop(data_source, 'variableNames')
+                    if varnames:
+                        data_source_dict["variable-names"] = varnames
+
                     data_sources.append(data_source_dict)
         if data_sources:
             self.log.debug('Got %s for data_sources in %s (%s)', data_sources, element.tag, element.get("testname"))
