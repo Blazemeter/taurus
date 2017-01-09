@@ -128,9 +128,9 @@ class AppiumLoader(Service):
         self.log.debug('Starting android emulator...')
         emulator_path = get_full_path(os.path.join(self.sdk_path, 'tools/emulator'))
 
-        # todo: create own emulator or use given. what about real device?
-        # todo: read emulator name from config
-        self.emulator_process = shell_exec([emulator_path, '-avd', 'nexus_and7_x86'])
+        exc = TaurusConfigError('You must choose an emulator with modules.appium-loader.avd config parameter')
+        avd = self.settings.get('avd', exc)
+        self.emulator_process = shell_exec([emulator_path, '-avd', avd])
         time.sleep(3)
 
     def shutdown(self):
