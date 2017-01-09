@@ -21,7 +21,7 @@ import time
 import subprocess
 
 from bzt.engine import Service
-from bzt.utils import get_full_path, shutdown_process, shell_exec, RequiredTool, ToolError
+from bzt.utils import get_full_path, shutdown_process, shell_exec, RequiredTool, ToolError, unzip
 from bzt.modules.selenium import Node, JavaVM
 
 
@@ -39,7 +39,7 @@ class AppiumLoader(Service):
         required_tools = [Node(self.log),
                           JavaVM("", "", self.log),
                           Appium("", "", self.log),
-                          AndroidSDK(self.sdk_path, "", self.log)]  # todo: iOS
+                          AndroidSDK(self.sdk_path, "https://dl.google.com/android/repository/tools_r25.2.3-linux.zip", self.log)]  # todo: iOS
 
         for tool in required_tools:
             if not tool.check_if_installed():
@@ -103,4 +103,19 @@ class AndroidSDK(RequiredTool):
             return False
 
     def install(self):
-        raise ToolError("Automatic installation of AndroidSDK is not implemented. Install it manually")
+        dest = get_full_path(self.tool_path)
+        self.log.info("Will install %s into %s", self.tool_name, dest)
+        sdk_arc = self._download(use_link=True)
+        self.log.info("Unzipping %s", sdk_arc)
+        unzip(sdk_arc, dest)
+        os.remove(sdk_arc)
+        tools_dir = os.path.join(dest, 'tools')
+
+        for _file in [os.path.join(tools_dir, _file) for _file in os.listdir(tools_dir)]:
+            if os.path.isfile(_file):
+                os.chmod(_file, 0o755)
+
+        if self.check_if_installed():
+            self.log.info("Installed %s successfully", self.tool_name)
+        else:
+            raise ToolError("Unable to run %s after installation!" % self.tool_name)

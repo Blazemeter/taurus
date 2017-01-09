@@ -13,9 +13,9 @@ execution:
 services:
 - module: appium-loader
 
-modules:
-  appium-loader:
-    sdk-path: ~/Android/Sdk
+#modules:
+  #appium-loader:
+    #sdk-path: ~/Android/Sdk
 #  blazemeter:
 #    #browser-open: end
 #    token: p6f8tw4oa1nlas9hvmzs
