@@ -70,5 +70,12 @@ RUN bzt /tmp/bzt-src/examples/all-executors.yml -o settings.artifacts-dir=/tmp/a
 RUN mkdir /bzt-configs \
   && rm -rf /tmp/*
 
+ENV OVERRIDES ""
+
 WORKDIR /bzt-configs
-CMD bzt -l /tmp/artifacts/bzt.log /bzt-configs/*.yml
+CMD if [ -e /bzt-configs/overrides.txt ]; then \
+    while overrides= read -r line; do \
+      OVERRIDES="-o $line $OVERRIDES"; \
+    done < /bzt-configs/overrides.txt; \
+    fi; \
+    bzt -l /tmp/artifacts/bzt.log $OVERRIDES /bzt-configs/*.yml
