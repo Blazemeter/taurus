@@ -18,12 +18,16 @@ limitations under the License.
 
 import copy
 import os
+import subprocess
+import time
 import zipfile
 from abc import abstractmethod
 
-from bzt import NormalShutdown, ToolError
+from bzt import NormalShutdown
 from bzt.engine import Service
+from bzt.modules.selenium import Node, JavaVM
 from bzt.six import get_stacktrace
+from bzt.utils import get_full_path, shutdown_process, shell_exec, RequiredTool, ToolError
 from bzt.utils import replace_in_config
 
 
@@ -83,3 +87,86 @@ class InstallChecker(Service):
         self.log.info("Checking installation needs for: %s", mod_name)
         mod.install_required_tools()
         self.log.info("Module is fine: %s", mod_name)
+
+
+class AppiumLoader(Service):
+    def __init__(self):
+        super(AppiumLoader, self).__init__()
+        self.appium_process = None
+        self.emulator_process = None
+        self.sdk_path = ''
+
+    def prepare(self):
+        self.sdk_path = self.settings.get('sdk-path', '~/.bzt/android-sdk')
+        # todo: set up $ANDROID_HOME
+
+        self.sdk_path = get_full_path(self.sdk_path)
+        self.settings['sdk-path'] = self.sdk_path
+        required_tools = [Node(self.log),
+                          JavaVM("", "", self.log),
+                          Appium("", "", self.log),
+                          AndroidSDK(self.sdk_path, "", self.log)]
+
+        for tool in required_tools:
+            if not tool.check_if_installed():
+                tool.install()
+
+    def startup(self):
+        self.log.debug('Starting appium...')
+        self.appium_process = shell_exec(['appium'])
+
+        self.log.debug('Starting android emulator...')
+        emulator_path = get_full_path(os.path.join(self.sdk_path, 'tools/emulator'))
+
+        # todo: create own emulator or use given. what about real device?
+        # todo: read emulator name from config
+        self.emulator_process = shell_exec([emulator_path, '-avd', 'nexus_and7_x86'])
+        time.sleep(3)
+
+    def shutdown(self):
+        if self.appium_process:
+            self.log.debug('Stopping appium...')
+            shutdown_process(self.appium_process, self.log)
+        if self.emulator_process:
+            self.log.debug('Stopping android emulator...')
+            shutdown_process(self.emulator_process, self.log)
+
+
+class Appium(RequiredTool):
+    def __init__(self, tool_path, download_link, parent_logger):
+        super(Appium, self).__init__("Appium", tool_path, download_link)
+        self.log = parent_logger.getChild(self.__class__.__name__)
+
+    def check_if_installed(self):
+        cmd = ["appium", '--version']
+        self.log.debug("Trying %s: %s", self.tool_name, cmd)
+        try:
+            output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+            self.log.debug("%s output: %s", self.tool_name, output)
+            return True
+        except (subprocess.CalledProcessError, IOError, OSError) as exc:
+            self.log.debug("Failed to check %s: %s", self.tool_name, exc)
+            return False
+
+    def install(self):
+        raise ToolError("Automatic installation of %s is not implemented. Install it manually" % self.tool_name)
+
+
+class AndroidSDK(RequiredTool):
+    def __init__(self, tool_path, download_link, parent_logger):
+        super(AndroidSDK, self).__init__("AndroidSDK", tool_path, download_link)
+        self.log = parent_logger.getChild(self.__class__.__name__)
+
+    def check_if_installed(self):
+        cmd = [os.path.join(self.tool_path, "tools/android"), 'list']
+        self.log.debug("Trying %s: %s", self.tool_name, cmd)
+        try:
+            output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+            self.log.debug("%s output: %s", self.tool_name, output)
+            return True
+        except (subprocess.CalledProcessError, IOError, OSError) as exc:
+            self.log.debug("Failed to check %s: %s", self.tool_name, exc)
+            return False
+
+    def install(self):
+        raise ToolError("Automatic installation of %s is not implemented. Install it manually" % self.tool_name)
