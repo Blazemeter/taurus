@@ -195,7 +195,7 @@ folder of Taurus's repo.
 
 ## Requests Scenario
 
-Selenium executor supports building test script from the scenario. In that case Taurus will generate a Python script
+Selenium executor supports building test script from the `requests` option of `scenario`. In that case Taurus will generate a Python script
 that will be launched with `nose`.
 
 Supported features:
@@ -203,8 +203,14 @@ Supported features:
   - set timeout/think-time on both scenario and request levels
   - assertions (only requested page source inspected)
   - request method GET (only)
+  - send keys, wait for items, click on items selected by ID/Name/CSS/XPath
+   
+Action names are built as `<action>By<selector type>(<selector>)`. Sometimes actions can have value. Options are:
+  - `waitByID`, `waitByName`, `waitByCSS` and `waitByXPath` - to wait until desired option becomes present on page. Timeout is taken from scenario-level `timeout` option. Optionally, you can specify parameter `visible` to wait for visibility rather than presence (like `waitByName(elmName): visible`)
+  - `clickByID`, `clickByName`, `clickByCSS` and `clickByXPath` - no parameter, just click on object 
+  - `keysByID`, `keysByName`, `keysByCSS` and `keysByXPath` - to enter keys into input items, requires parameter. Like this: `keysByName(MyFormInputName): Value To Enter` 
 
-Sample request scenario
+Sample request scenario:
 ```yaml
 ---
 scenarios:
@@ -215,7 +221,12 @@ scenarios:
     default-address: http://demo.blazemeter.com  # specify a base address, so you can use short urls in requests
     requests:
     - url: /  # url to open, only get method is supported
-      assert:
+      actions:  # holds list of actions to perform
+      - waitByCSS(body)
+      - clickByID(mySubmitButton)
+      - keysByName(myInputName): keys_to_type
+      - waitByID(myObjectToAppear): visible
+      assert: # assert executed after actions
       - contains:
         - blazemeter  # list of search patterns
         - Trusted
@@ -224,7 +235,7 @@ scenarios:
         not: false  # inverse assertion condition
 ```
 
-## Scenario Samples
+## Scenario Examples
 
 
 JUnit-based test with single .java file:

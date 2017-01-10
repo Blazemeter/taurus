@@ -1,6 +1,7 @@
 # Changelog
 
-## 1.7.5 <sup>next</sup>
+## 1.7.5 <sup>29 dec 2016</sup>
+ - add `actions` into selenium to perform clicks, type keys and wait for items
  - result processing optimization: add limitation of response time list size to cumulative KPISets
  - bump up auto-installed JMeter to 3.1 and pmgr to 0.11
  - add `public-report` option to BlazeMeter reporter and cloud provisioning

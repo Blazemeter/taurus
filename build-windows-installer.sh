@@ -16,7 +16,7 @@ cat << EOF > "$BUILD_DIR/taurus.nsi"
 [% block install_commands %]
 [[ super() ]]
   ; Install fresh pip
-  nsExec::ExecToLog 'py -m pip install --upgrade pip==8.1.2'
+  nsExec::ExecToLog 'py -m pip install --upgrade pip>=8.1.2'
   Pop \$0
   IntCmp \$0 0 InstalledPip CantInstallPip CantInstallPip
 
