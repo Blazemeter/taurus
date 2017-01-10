@@ -160,16 +160,14 @@ class TestAndroidEmulatorLoader(BZTestCase):
 
     def create_fake_android_emulator(self):
         sdk_dir = join(self.android.engine.artifacts_dir, 'sdk')
-        tools_dir = join(sdk_dir, 'tools')
+        src_dir = join(__dir__(), '..', 'data', 'android-emulator')
+        dest_dir = join(sdk_dir, 'tools')
         os.mkdir(sdk_dir)
-        os.mkdir(tools_dir)
-
-        em_dir = join(__dir__(), '..', 'data', 'android-emulator')
-
-        tool_path = join(tools_dir, 'emulator' + EXE_SUFFIX)
-        shutil.copy2(join(em_dir, 'emulator' + EXE_SUFFIX), tools_dir)
+        os.mkdir(dest_dir)
+        tool_path = join(dest_dir, 'emulator' + EXE_SUFFIX)
+        shutil.copy2(join(src_dir, 'emulator' + EXE_SUFFIX), dest_dir)
         os.chmod(tool_path, 0o755)
-        shutil.copy2(join(em_dir, 'emulator.py'), join(tools_dir, 'emulator.py'))
+        shutil.copy2(join(src_dir, 'emulator.py'), join(dest_dir, 'emulator.py'))
         self.android.settings['path'] = tool_path
 
 
