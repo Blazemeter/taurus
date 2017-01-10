@@ -133,3 +133,30 @@ If you use alternate provisionings, like [BlazeMeter Cloud](Cloud.md), you might
 There is small service which helps to check for all possible tools presence on the machine. It is called `install-checker` service. This service, once present in config, will check for all possible tools to be installed on the computer. After that, it will shutdown Taurus without running anything else. 
 
 To invoke this service, just run Taurus like this `bzt -install-tools`. 
+
+## Appium Loader
+
+Useful for start/stop appium server automatically. This service doesn't provide installation ability so use [official documentation](http://appium.io) to get appium. You can specify path to appium through the appropriate setting:
+
+```yaml
+---
+services:
+- appium-loader
+modules:
+  appium-loader:
+    path: 'path/to/appium/executable'
+```
+
+## Android Emulator Loader
+
+It used to start/stop android emulator. For that purpose you have to get Android SDK by yourself and tell Taurus where it placed with path to emulator (usualy it can be found in <sdk_directory>/tools) in config or environment variable ANDROID_HOME, which contains SDK location. Moreover, you should choose one of your android emulators with `avd` option. 
+
+```yaml
+----
+services:
+- android-emulator-loader
+modules:
+  android-emulator-loader:
+    path: /home/user/Android/sdk/tools/emulator
+    avd: android10_arm128
+```    

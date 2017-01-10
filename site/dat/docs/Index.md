@@ -17,6 +17,7 @@
     1. [Siege Executor](Siege.md)
     1. [ApacheBenchmark Executor](ApacheBenchmark.md)
     1. [Tsung Executor](Tsung.md)
+    1. [Appium Executor](Appium.md)
  1. [Cloud Provisioned Test Execution](Cloud.md)
  1. [Generating Test Reports](Reporting.md)
     1. [Observing Live Test Stats in Your Terminal](ConsoleReporter.md)
