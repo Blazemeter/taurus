@@ -188,6 +188,9 @@
     },
     "appium-loader": {
       "class": "bzt.modules.services.AppiumLoader"
+    },
+    "android-emulator-loader": {
+      "class": "bzt.modules.services.AndroidEmulatorLoader"
     }
   },
   "settings": {
