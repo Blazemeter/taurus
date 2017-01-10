@@ -24,10 +24,10 @@ import zipfile
 
 from bzt import NormalShutdown, ToolError, TaurusConfigError
 from bzt.engine import Service, HavingInstallableTools
+from bzt.modules.selenium import Node
 from bzt.six import get_stacktrace
 from bzt.utils import get_full_path, shutdown_process, shell_exec, RequiredTool
 from bzt.utils import replace_in_config, JavaVM
-from bzt.modules.selenium import Node
 
 
 class Unpacker(Service):
@@ -82,33 +82,62 @@ class InstallChecker(Service):
         self.log.info("Module is fine: %s", mod_name)
 
 
+class AndroidEmulatorLoader(Service):
+    def __init__(self):
+        super(AndroidEmulatorLoader, self).__init__()
+        self.emulator_process = None
+        self.tool_path = ''
+
+    def prepare(self):
+        config_tool_path = self.settings.get('path', '')
+        if config_tool_path:
+            self.tool_path = get_full_path(config_tool_path)
+            os.environ['ANDROID_HOME'] = get_full_path(config_tool_path, step_up=2)
+            self.settings['path'] = self.tool_path
+        else:
+            # try to read sdk path from env..
+            sdk_path = os.environ.get('ANDROID_HOME')
+            if sdk_path:
+                env_tool_path = os.path.join(sdk_path, 'tool', 'emulator')
+                self.tool_path = get_full_path(env_tool_path)
+                self.settings['path'] = self.tool_path
+            else:
+                message = 'Taurus can''t find Android SDK automatically, you must point to emulator with modules.'
+                message += 'android-emulator-loader.sdk-path config parameter or set ANDROID_HOME environment variable'
+                raise TaurusConfigError(message)
+
+        tool = AndroidEmulator(self.tool_path, "", self.log)
+        if not tool.check_if_installed():
+            tool.install()
+
+    def startup(self):
+        self.log.debug('Starting android emulator...')
+
+        exc = TaurusConfigError('You must choose an emulator with modules.android-emulator-loader.avd config parameter')
+        avd = self.settings.get('avd', exc)
+        self.emulator_process = shell_exec([self.tool_path, '-avd', avd])
+        time.sleep(3)
+
+    def shutdown(self):
+        if self.emulator_process:
+            self.log.debug('Stopping android emulator...')
+            shutdown_process(self.emulator_process, self.log)
+
+
 class AppiumLoader(Service):
     def __init__(self):
         super(AppiumLoader, self).__init__()
         self.appium_process = None
-        self.emulator_process = None
-        self.sdk_path = ''
+        self.tool_path = 'appium'
 
     def prepare(self):
-        self.sdk_path = self.settings.get('sdk-path', '')
-        if self.sdk_path:
-            os.environ['ANDROID_HOME'] = self.sdk_path
-        else:
-            # try to read sdk path from env..
-            self.sdk_path = os.environ.get('ANDROID_HOME')
-            if self.sdk_path:
-                self.settings['sdk-path'] = self.sdk_path
-            else:
-                message = 'Taurus can''t find Android SDK automatically, you must point to it with '
-                message += 'modules.appium-loader.sdk-path config parameter or ANDROID_HOME environment variable'
-                raise TaurusConfigError(message)
+        config_tool_path = self.settings.get('path', '')
+        if config_tool_path:
+            self.tool_path = config_tool_path
 
-        self.sdk_path = get_full_path(self.sdk_path)
-        self.settings['sdk-path'] = self.sdk_path
         required_tools = [Node(self.log),
                           JavaVM("", "", self.log),
-                          Appium("", "", self.log),
-                          AndroidSDK(self.sdk_path, "", self.log)]
+                          Appium(self.tool_path, "", self.log)]
 
         for tool in required_tools:
             if not tool.check_if_installed():
@@ -116,23 +145,14 @@ class AppiumLoader(Service):
 
     def startup(self):
         self.log.debug('Starting appium...')
-        self.appium_process = shell_exec(['appium'])
+        self.appium_process = shell_exec([self.tool_path])
 
-        self.log.debug('Starting android emulator...')
-        emulator_path = get_full_path(os.path.join(self.sdk_path, 'tools', 'emulator'))
-
-        exc = TaurusConfigError('You must choose an emulator with modules.appium-loader.avd config parameter')
-        avd = self.settings.get('avd', exc)
-        self.emulator_process = shell_exec([emulator_path, '-avd', avd])
         time.sleep(3)
 
     def shutdown(self):
         if self.appium_process:
             self.log.debug('Stopping appium...')
             shutdown_process(self.appium_process, self.log)
-        if self.emulator_process:
-            self.log.debug('Stopping android emulator...')
-            shutdown_process(self.emulator_process, self.log)
 
 
 class Appium(RequiredTool):
@@ -141,7 +161,7 @@ class Appium(RequiredTool):
         self.log = parent_logger.getChild(self.__class__.__name__)
 
     def check_if_installed(self):
-        cmd = ["appium", '--version']
+        cmd = [self.tool_path, '--version']
         self.log.debug("Trying %s: %s", self.tool_name, cmd)
         try:
             output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
@@ -155,13 +175,13 @@ class Appium(RequiredTool):
         raise ToolError("Automatic installation of %s is not implemented. Install it manually" % self.tool_name)
 
 
-class AndroidSDK(RequiredTool):
+class AndroidEmulator(RequiredTool):
     def __init__(self, tool_path, download_link, parent_logger):
-        super(AndroidSDK, self).__init__("AndroidSDK", tool_path, download_link)
+        super(AndroidEmulator, self).__init__("AndroidEmulator", tool_path, download_link)
         self.log = parent_logger.getChild(self.__class__.__name__)
 
     def check_if_installed(self):
-        cmd = [os.path.join(self.tool_path, "tools", "android"), 'list']
+        cmd = [self.tool_path, '-list-avds']
         self.log.debug("Trying %s: %s", self.tool_name, cmd)
         try:
             output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
