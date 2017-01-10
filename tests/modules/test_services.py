@@ -1,12 +1,14 @@
 import json
 import os
 import zipfile
+import shutil
 
+from os.path import join
 from bzt import NormalShutdown, ToolError, TaurusConfigError
 from bzt.engine import Service, Provisioning, EngineModule
 from bzt.modules.blazemeter import CloudProvisioning, BlazeMeterClientEmul
 from bzt.modules.services import Unpacker, InstallChecker, AppiumLoader
-from bzt.utils import get_files_recursive
+from bzt.utils import get_files_recursive, get_full_path, is_windows
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul, ModuleMock
 
@@ -123,20 +125,63 @@ class TestAppiumLoaderCheckInstall(BZTestCase):
         self.appium.engine = self.engine
         self.appium.settings = self.engine.config['services']['appium-loader']
 
-    def test_no_way(self):
+    def test_no_sdk(self):
         os.environ['ANDROID_HOME'] = ''
         self.assertRaises(TaurusConfigError, self.appium.prepare)
 
-    def test_two_way(self):
-        os.environ['ANDROID_HOME'] = 'first'
-        self.appium.settings['sdk-path'] = 'second'
+    def test_sdk_from_conf(self):
+        os.environ['ANDROID_HOME'] = ''
+        self.appium.settings['sdk-path'] = 'from_config'
+        self.assertRaises(ToolError, self.appium.prepare)
+        self.assertIn('from_config', self.appium.sdk_path)
+
+    def test_sdk_from_env(self):
+        path_to_andhome = join(self.engine.artifacts_dir, 'from_env')
+        path_to_tools = join(path_to_andhome, 'tools')
+        os.environ['ANDROID_HOME'] = path_to_andhome
+        self.appium.settings['sdk-path'] = None
+        self.cp_utils(path_to_tools)
+
         self.appium.prepare()
+        self.assertEqual(path_to_andhome, self.appium.sdk_path)
+        self.assertRaises(TaurusConfigError, self.appium.startup)
+        self.appium.shutdown()
+        self.appium.post_process()
 
+    def test_two_way(self):
+        path_to_andhome = join(self.engine.artifacts_dir, 'from_config')
+        path_to_tools = join(path_to_andhome, 'tools')
+        os.environ['ANDROID_HOME'] = 'from_env'
+        self.appium.settings['sdk-path'] = path_to_andhome
+        self.cp_utils(path_to_tools)
+        self.appium.settings['avd'] = 'my_little_android'
 
+        self.appium.prepare()
+        self.assertEqual(path_to_andhome, self.appium.sdk_path)
+        self.appium.startup()
+        self.appium.shutdown()
+        self.appium.post_process()
 
-    def test_install_appium(self):
-        pass
-        # todo: check for exception
+    def cp_utils(self, tools_dir):
+        os.mkdir(get_full_path(tools_dir, step_up=1))
+        os.mkdir(tools_dir)
+
+        if is_windows():
+            suffix = '.bat'
+        else:
+            suffix = ''
+        ap_dir = join(__dir__(), '..', 'appium')
+
+        shutil.copy2(join(ap_dir, 'appium' + suffix), self.engine.artifacts_dir)
+        os.chmod(join(self.engine.artifacts_dir, 'appium' + suffix), 0o755)
+        shutil.copy2(join(ap_dir, 'appium.py'), self.engine.artifacts_dir)
+        os.environ['PATH'] = self.engine.artifacts_dir + os.pathsep + os.environ['PATH']
+
+        shutil.copy2(join(ap_dir, 'android' + suffix), tools_dir)
+        os.chmod(join(tools_dir, 'android' + suffix), 0o755)
+        shutil.copy2(join(ap_dir, 'emulator' + suffix), tools_dir)
+        os.chmod(join(tools_dir, 'emulator' + suffix), 0o755)
+        shutil.copy2(join(ap_dir, 'emulator.py'), join(tools_dir, 'emulator.py'))
 
 
 class MockWebDriverRemote(object):

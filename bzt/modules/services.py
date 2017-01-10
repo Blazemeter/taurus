@@ -125,7 +125,7 @@ class AppiumLoader(Service):
         self.appium_process = shell_exec(['appium'])
 
         self.log.debug('Starting android emulator...')
-        emulator_path = get_full_path(os.path.join(self.sdk_path, 'tools/emulator'))
+        emulator_path = get_full_path(os.path.join(self.sdk_path, 'tools', 'emulator'))
 
         exc = TaurusConfigError('You must choose an emulator with modules.appium-loader.avd config parameter')
         avd = self.settings.get('avd', exc)
@@ -167,7 +167,7 @@ class AndroidSDK(RequiredTool):
         self.log = parent_logger.getChild(self.__class__.__name__)
 
     def check_if_installed(self):
-        cmd = [os.path.join(self.tool_path, "tools/android"), 'list']
+        cmd = [os.path.join(self.tool_path, "tools", "android"), 'list']
         self.log.debug("Trying %s: %s", self.tool_name, cmd)
         try:
             output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
