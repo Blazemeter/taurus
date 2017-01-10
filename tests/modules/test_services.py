@@ -2,10 +2,10 @@ import json
 import os
 import zipfile
 
-from bzt import NormalShutdown, ToolError
+from bzt import NormalShutdown, ToolError, TaurusConfigError
 from bzt.engine import Service, Provisioning, EngineModule
 from bzt.modules.blazemeter import CloudProvisioning, BlazeMeterClientEmul
-from bzt.modules.services import Unpacker, InstallChecker
+from bzt.modules.services import Unpacker, InstallChecker, AppiumLoader
 from bzt.utils import get_files_recursive
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul, ModuleMock
@@ -113,3 +113,47 @@ class TestToolInstaller(BZTestCase):
         obj.engine = EngineEmul()
         obj.engine.config.get("modules")["err"] = "hello there"
         self.assertRaises(ToolError, obj.prepare)
+
+
+class TestAppiumLoaderCheckInstall(BZTestCase):
+    def setUp(self):
+        self.engine = EngineEmul()
+        self.engine.config.merge({'services': {'appium-loader': {}}})
+        self.appium = AppiumLoader()
+        self.appium.engine = self.engine
+        self.appium.settings = self.engine.config['services']['appium-loader']
+
+    def test_no_way(self):
+        os.environ['ANDROID_HOME'] = ''
+        self.assertRaises(TaurusConfigError, self.appium.prepare())
+
+    def test_two_way(self):
+        os.environ['ANDROID_HOME'] = 'first'
+        self.appium.settings['sdk-path'] = 'second'
+        self.appium.prepare()
+
+
+
+    def test_install_appium(self):
+        pass
+        # todo: check for exception
+
+
+class MockWebDriverRemote(object):
+    def __init__(self, addr, caps):
+        self.addr = addr
+        self.caps = caps
+        self.cmd_list = []
+        self.data = []
+
+    def get(self):
+        self.cmd_list.append('get')
+        return self.data.pop()
+
+    def page_source(self):
+        self.cmd_list.append('page_source')
+        return self.data.pop()
+
+    def quit(self):
+        self.cmd_list.append('quit')
+
