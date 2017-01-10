@@ -125,7 +125,7 @@ class TestAppiumLoaderCheckInstall(BZTestCase):
 
     def test_no_way(self):
         os.environ['ANDROID_HOME'] = ''
-        self.assertRaises(TaurusConfigError, self.appium.prepare())
+        self.assertRaises(TaurusConfigError, self.appium.prepare)
 
     def test_two_way(self):
         os.environ['ANDROID_HOME'] = 'first'

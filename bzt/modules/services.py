@@ -25,10 +25,9 @@ from abc import abstractmethod
 
 from bzt import NormalShutdown, ToolError, TaurusConfigError
 from bzt.engine import Service
-from bzt.modules.selenium import Node, JavaVM
 from bzt.six import get_stacktrace
 from bzt.utils import get_full_path, shutdown_process, shell_exec, RequiredTool
-from bzt.utils import replace_in_config
+from bzt.utils import replace_in_config, JavaVM, Node
 
 
 class Unpacker(Service):
