@@ -1047,6 +1047,30 @@ class Ruby(RequiredTool):
         raise ToolError("The %s is not operable or not available. Consider installing it" % self.tool_name)
 
 
+class Node(RequiredTool):
+    def __init__(self, parent_logger):
+        super(Node, self).__init__("Node.js", "")
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.executable = None
+
+    def check_if_installed(self):
+        node_candidates = ["node", "nodejs"]
+        for candidate in node_candidates:
+            try:
+                self.log.debug("Trying %r", candidate)
+                output = subprocess.check_output([candidate, '--version'], stderr=subprocess.STDOUT)
+                self.log.debug("%s output: %s", candidate, output)
+                self.executable = candidate
+                return True
+            except (CalledProcessError, OSError):
+                self.log.debug("%r is not installed", candidate)
+                continue
+        return False
+
+    def install(self):
+        raise ToolError("Automatic installation of nodejs is not implemented. Install it manually")
+
+
 class NPM(RequiredTool):
     def __init__(self, parent_logger):
         super(NPM, self).__init__("NPM", "")
@@ -1547,27 +1571,3 @@ class FuncSamplesReader(FunctionalResultsReader):
                                       error_msg=row["error_msg"], error_trace=row["error_trace"],
                                       extras=row.get("extras", {}))
             yield sample
-
-
-class Node(RequiredTool):
-    def __init__(self, parent_logger):
-        super(Node, self).__init__("Node.js", "")
-        self.log = parent_logger.getChild(self.__class__.__name__)
-        self.executable = None
-
-    def check_if_installed(self):
-        node_candidates = ["node", "nodejs"]
-        for candidate in node_candidates:
-            try:
-                self.log.debug("Trying %r", candidate)
-                output = subprocess.check_output([candidate, '--version'], stderr=subprocess.STDOUT)
-                self.log.debug("%s output: %s", candidate, output)
-                self.executable = candidate
-                return True
-            except (CalledProcessError, OSError):
-                self.log.debug("%r is not installed", candidate)
-                continue
-        return False
-
-    def install(self):
-        raise ToolError("Automatic installation of nodejs is not implemented. Install it manually")
