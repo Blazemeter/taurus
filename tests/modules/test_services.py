@@ -8,7 +8,7 @@ from bzt import NormalShutdown, ToolError, TaurusConfigError
 from bzt.engine import Service, Provisioning, EngineModule
 from bzt.modules.blazemeter import CloudProvisioning, BlazeMeterClientEmul
 from bzt.modules.services import Unpacker, InstallChecker, AppiumLoader
-from bzt.utils import get_files_recursive, get_full_path, is_windows
+from bzt.utils import get_files_recursive, get_full_path, is_windows, JavaVM
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul, ModuleMock
 from bzt.modules.selenium import Node
@@ -126,10 +126,13 @@ class TestAppiumLoaderCheckInstall(BZTestCase):
         self.appium.engine = self.engine
         self.appium.settings = self.engine.config['services']['appium-loader']
         self.check_if_node_installed = Node.check_if_installed
+        self.check_if_java_installed = JavaVM.check_if_installed
         Node.check_if_installed = lambda slf: True
+        JavaVM.check_if_installed = lambda slf: True
 
     def tearDown(self):
         Node.check_if_installed = self.check_if_node_installed
+        JavaVM.check_if_installed = self.check_if_java_installed
 
     def test_no_sdk(self):
         os.environ['ANDROID_HOME'] = ''
