@@ -10,7 +10,7 @@ if (is_dir("/home/gettauru")) {
     // local debugging settings
     $level = \PWE\Core\PWELogger::DEBUG;
     $tempdir = sys_get_temp_dir();
-    $logfile = "/tmp/taurus-pwe.log";
+    $logfile = "/tmp/taurus-pwe.".posix_geteuid().".log";
 }
 
 \PWE\Core\PWELogger::setStdErr($logfile);
@@ -33,3 +33,5 @@ if (!is_dir("/home/gettauru")) {
 }
 
 require_once __DIR__."/updates.php";
+require_once __DIR__."/Taurus/TaurusWikiSyntax.php";
+require_once __DIR__."/Taurus/DoubleCode.php";

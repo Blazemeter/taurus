@@ -107,9 +107,14 @@
             <span class="logo"><a href="/"><img src="/img/codename-taurus.png" alt="Codename: Taurus"/></a></span>
             <span class="purpose">Automation-friendly framework for Continuous Testing</span>
             <div class="pull-right clearfix" style="line-height: 100%">
-                <a href="https://pypi.python.org/pypi/bzt"><img src='https://img.shields.io/pypi/v/bzt.svg' title='We are ready to be installed'/></a><br/>
-                <a href="https://codecov.io/github/Blazemeter/taurus"><img src='https://codecov.io/github/Blazemeter/taurus/coverage.svg' title='We care about quality'/></a><br/>
-                <a href="https://github.com/Blazemeter/taurus/stargazers"><img src='https://img.shields.io/github/stars/Blazemeter/taurus.svg?style=flat&label=github%20stars' title='Community likes it'/></a><br/>
+                <a href="https://pypi.python.org/pypi/bzt"><img src='https://img.shields.io/pypi/v/bzt.svg'
+                                                                title='We are ready to be installed'/></a><br/>
+                <a href="https://codecov.io/github/Blazemeter/taurus"><img
+                            src='https://codecov.io/github/Blazemeter/taurus/coverage.svg'
+                            title='We care about quality'/></a><br/>
+                <a href="https://github.com/Blazemeter/taurus/stargazers"><img
+                            src='https://img.shields.io/github/stars/Blazemeter/taurus.svg?style=flat&label=github%20stars'
+                            title='Community likes it'/></a><br/>
             </div>
         </div>
     </div>
@@ -149,7 +154,7 @@
          &copy; 2014-{"Y"|date} <a href="http://blazemeter.com"><img src="/img/blazemeter-mini.png"
                                                                      alt="BlazeMeter Inc."/></a>
      </span>
-    <span>
+        <span>
         Licensed under <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache 2.0 License</a>
     </span>
     </div>
@@ -160,6 +165,26 @@
     {if $smarty.server.SERVER_ADDR!=$smarty.server.REMOTE_ADDR}
         {include file="dat/counter.tpl"}
     {/if}
+
+    <script type="text/javascript">
+        $(document).ready(function () {
+            var toYAML = $("<span title='Switch to YAML'>YAML</span>").click(function () {
+                var sw = $(this).parent(".yaml-json-switch");
+                sw.find(".selected").removeClass("selected");
+                $(this).addClass("selected");
+                $(".json.id-" + sw.data('id')).hide();
+                $(".yaml.id-" + sw.data('id')).show();
+            });
+            var toJSON = $("<span title='Switch to JSON'>JSON</span>").click(function () {
+                var sw = $(this).parent(".yaml-json-switch");
+                sw.find(".selected").removeClass("selected");
+                $(this).addClass("selected");
+                $(".yaml.id-" + sw.data('id')).hide();
+                $(".json.id-" + sw.data('id')).show();
+            });
+            $(".yaml-json-switch").append(toYAML.click()).append(toJSON);
+        });
+    </script>
 </footer>
 
 </body>
