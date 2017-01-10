@@ -27,13 +27,12 @@ from subprocess import CalledProcessError
 from urwid import Text, Pile
 
 from bzt import TaurusConfigError, ToolError, TaurusInternalException
-from bzt.engine import ScenarioExecutor, Scenario, FileLister
+from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator, FunctionalSample
-from bzt.modules.services import HavingInstallableTools
 from bzt.six import string_types, parse, iteritems
-from bzt.utils import RequiredTool, shell_exec, shutdown_process, JavaVM, TclLibrary, PythonGenerator, Node
+from bzt.utils import RequiredTool, shell_exec, shutdown_process, JavaVM, TclLibrary, PythonGenerator
 from bzt.utils import dehumanize_time, MirrorsManager, is_windows, BetterDict, get_full_path, get_files_recursive
 
 try:
@@ -1548,3 +1547,27 @@ class FuncSamplesReader(FunctionalResultsReader):
                                       error_msg=row["error_msg"], error_trace=row["error_trace"],
                                       extras=row.get("extras", {}))
             yield sample
+
+
+class Node(RequiredTool):
+    def __init__(self, parent_logger):
+        super(Node, self).__init__("Node.js", "")
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.executable = None
+
+    def check_if_installed(self):
+        node_candidates = ["node", "nodejs"]
+        for candidate in node_candidates:
+            try:
+                self.log.debug("Trying %r", candidate)
+                output = subprocess.check_output([candidate, '--version'], stderr=subprocess.STDOUT)
+                self.log.debug("%s output: %s", candidate, output)
+                self.executable = candidate
+                return True
+            except (CalledProcessError, OSError):
+                self.log.debug("%r is not installed", candidate)
+                continue
+        return False
+
+    def install(self):
+        raise ToolError("Automatic installation of nodejs is not implemented. Install it manually")

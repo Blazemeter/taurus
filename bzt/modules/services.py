@@ -21,13 +21,13 @@ import os
 import subprocess
 import time
 import zipfile
-from abc import abstractmethod
 
 from bzt import NormalShutdown, ToolError, TaurusConfigError
-from bzt.engine import Service
+from bzt.engine import Service, HavingInstallableTools
 from bzt.six import get_stacktrace
 from bzt.utils import get_full_path, shutdown_process, shell_exec, RequiredTool
-from bzt.utils import replace_in_config, JavaVM, Node
+from bzt.utils import replace_in_config, JavaVM
+from bzt.modules.selenium import Node
 
 
 class Unpacker(Service):
@@ -51,12 +51,6 @@ class Unpacker(Service):
             unpacked_list.append(archive[:-4])  # TODO: replace with top-level archive content
 
         replace_in_config(self.engine.config, packed_list, unpacked_list, log=self.log)
-
-
-class HavingInstallableTools(object):
-    @abstractmethod
-    def install_required_tools(self):
-        pass
 
 
 class InstallChecker(Service):

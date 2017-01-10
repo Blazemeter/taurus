@@ -25,11 +25,10 @@ from imp import find_module
 from subprocess import STDOUT
 
 from bzt import ToolError, TaurusConfigError
-from bzt.engine import ScenarioExecutor, FileLister, Scenario
+from bzt.engine import ScenarioExecutor, FileLister, Scenario, HavingInstallableTools
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsProvider, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.jmeter import JTLReader
-from bzt.modules.services import HavingInstallableTools
 from bzt.six import PY3, iteritems
 from bzt.utils import shutdown_process, RequiredTool, BetterDict, dehumanize_time, ensure_is_dict, PythonGenerator
 
