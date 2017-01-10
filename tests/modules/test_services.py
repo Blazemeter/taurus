@@ -125,7 +125,7 @@ class TestAppiumLoaderCheckInstall(BZTestCase):
         self.appium = AppiumLoader()
         self.appium.engine = self.engine
         self.appium.settings = self.engine.config['services']['appium-loader']
-        self.check_if_node_installed = Node.check_if_installed()
+        self.check_if_node_installed = Node.check_if_installed
         Node.check_if_installed = lambda slf: True
 
     def tearDown(self):
