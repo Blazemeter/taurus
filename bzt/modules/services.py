@@ -105,7 +105,7 @@ class AndroidEmulatorLoader(Service):
                 self.settings['path'] = self.tool_path
             else:
                 message = 'Taurus can''t find Android SDK automatically, you must point to emulator with modules.'
-                message += 'android-emulator-loader.sdk-path config parameter or set ANDROID_HOME environment variable'
+                message += 'android-emulator.path config parameter or set ANDROID_HOME environment variable'
                 raise TaurusConfigError(message)
 
         tool = AndroidEmulator(self.tool_path, "", self.log)
@@ -114,7 +114,7 @@ class AndroidEmulatorLoader(Service):
 
     def startup(self):
         self.log.debug('Starting android emulator...')
-        exc = TaurusConfigError('You must choose an emulator with modules.android-emulator-loader.avd config parameter')
+        exc = TaurusConfigError('You must choose an emulator with modules.android-emulator.avd config parameter')
         avd = self.settings.get('avd', exc)
         self.emulator_process = shell_exec([self.tool_path, '-avd', avd])
         start_time = time.time()

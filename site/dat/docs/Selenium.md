@@ -211,11 +211,11 @@ scenarios:
     script: test_appium_script.py
 
 services:
-- appium-loader
-- android-emulator-loader
+- appium
+- android-emulator
 
 modules:
-  android-emulator-loader:
+  android-emulator:
     avd: android10_arm128
 ```  
 

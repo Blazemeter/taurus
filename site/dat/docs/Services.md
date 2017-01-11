@@ -141,9 +141,9 @@ Useful for start/stop appium server automatically. This service doesn't provide 
 ```yaml
 ---
 services:
-- appium-loader
+- appium
 modules:
-  appium-loader:
+  appium:
     path: 'path/to/appium/executable'
     timeout: 20     # timeout for appium startup
 ```
@@ -155,9 +155,9 @@ It used to start/stop android emulator. For that purpose you have to get Android
 ```yaml
 ----
 services:
-- android-emulator-loader
+- android-emulator
 modules:
-  android-emulator-loader:
+  android-emulator:
     path: /home/user/Android/sdk/tools/emulator
     avd: android10_arm128
     timeout: 20     # timeout for android emulator startup, adb should be available through the PATH for startup detection 
