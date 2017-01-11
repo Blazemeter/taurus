@@ -145,6 +145,7 @@ services:
 modules:
   appium-loader:
     path: 'path/to/appium/executable'
+    timeout: 20     # timeout for appium startup
 ```
 
 ## Android Emulator Loader
@@ -159,4 +160,5 @@ modules:
   android-emulator-loader:
     path: /home/user/Android/sdk/tools/emulator
     avd: android10_arm128
+    timeout: 20     # timeout for android emulator startup, adb should be available through the PATH for startup detection 
 ```    

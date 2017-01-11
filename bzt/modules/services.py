@@ -87,8 +87,10 @@ class AndroidEmulatorLoader(Service):
         super(AndroidEmulatorLoader, self).__init__()
         self.emulator_process = None
         self.tool_path = ''
+        self.startup_timeout = None
 
     def prepare(self):
+        self.startup_timeout = self.settings.get('timeout', 30)
         config_tool_path = self.settings.get('path', '')
         if config_tool_path:
             self.tool_path = get_full_path(config_tool_path)
@@ -112,11 +114,26 @@ class AndroidEmulatorLoader(Service):
 
     def startup(self):
         self.log.debug('Starting android emulator...')
-
         exc = TaurusConfigError('You must choose an emulator with modules.android-emulator-loader.avd config parameter')
         avd = self.settings.get('avd', exc)
         self.emulator_process = shell_exec([self.tool_path, '-avd', avd])
-        time.sleep(3)
+        start_time = time.time()
+        while not self.tool_is_started():
+            time.sleep(1)
+            if time.time() - start_time > self.startup_timeout:
+                raise ToolError("Appium cannot be loaded")
+
+        self.log.debug('Appium was started successfully')
+
+    def tool_is_started(self):
+        try:
+            pass
+            # look at adb in the system or in platform tools dir. warning if adb not found and return true
+            # get output of 'adb devices'
+            # check if avd in that list and return true/false accordingly
+            return True
+        except:
+            return False
 
     def shutdown(self):
         if self.emulator_process:
@@ -128,12 +145,16 @@ class AppiumLoader(Service):
     def __init__(self):
         super(AppiumLoader, self).__init__()
         self.appium_process = None
-        self.tool_path = 'appium'
+        self.tool_path = ''
+        self.startup_timeout = None
+        self.addr = ''
+        self.port = ''
 
     def prepare(self):
-        config_tool_path = self.settings.get('path', '')
-        if config_tool_path:
-            self.tool_path = config_tool_path
+        self.startup_timeout = self.settings.get('timeout', 30)
+        self.addr = self.settings.get('addr', '127.0.0.1')
+        self.port = self.settings.get('port', 4723)
+        self.settings.get('path', 'appium')
 
         required_tools = [Node(self.log),
                           JavaVM("", "", self.log),
@@ -147,7 +168,22 @@ class AppiumLoader(Service):
         self.log.debug('Starting appium...')
         self.appium_process = shell_exec([self.tool_path])
 
-        time.sleep(3)
+        start_time = time.time()
+        while not self.tool_is_started():
+            time.sleep(1)
+            if time.time() - start_time > self.startup_timeout:
+                raise ToolError("Appium cannot be loaded")
+
+        self.log.debug('Appium was started successfully')
+
+    def tool_is_started(self):
+        try:
+            pass
+            # get self.addr:self.port/wd/hub/sessions
+            # convert from string as json
+            return True
+        except:
+            return False
 
     def shutdown(self):
         if self.appium_process:

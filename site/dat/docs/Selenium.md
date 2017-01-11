@@ -193,6 +193,32 @@ You can also find an example of complete Mocha-based test suite and Taurus confi
 in [examples/selenium/mocha](https://github.com/Blazemeter/taurus/tree/master/examples/selenium/mocha)
 folder of Taurus's repo.
 
+## Appium
+
+## About
+[Appium](http://appium.io) is a tool for testing naitive mobile applications.
+Taurus supports only python scripts for appium in Selenium executor. Additionally, you can use taurus services to run [Appium server](Services.md#Appium-Loader) and [Android emulator](Services.md#Android-Emulator-Loader).
+There is typical example of usage:
+ 
+```yaml
+---
+execution:
+- executor: selenium
+  scenario: ap_scen
+
+scenarios:
+  ap_scen:
+    script: test_appium_script.py
+
+services:
+- appium-loader
+- android-emulator-loader
+
+modules:
+  android-emulator-loader:
+    avd: android10_arm128
+```  
+
 ## Requests Scenario
 
 Selenium executor supports building test script from the `requests` option of `scenario`. In that case Taurus will generate a Python script

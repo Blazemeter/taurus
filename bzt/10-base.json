@@ -150,9 +150,6 @@
     "pbench": {
       "class": "bzt.modules.pbench.PBenchExecutor"
     },
-    "appium": {
-      "class": "bzt.modules.selenium.SeleniumExecutor"
-    },
     "siege": {
       "class": "bzt.modules.siege.SiegeExecutor"
     },
