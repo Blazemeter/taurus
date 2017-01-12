@@ -200,8 +200,8 @@ class TestAppiumLoader(BZTestCase):
         self.assertRaises(ToolError, self.appium.prepare)
 
     def test_appium_full_cycle(self):
-        self.appium.prepare()
         self.create_fake_appium()
+        self.appium.prepare()
         self.appium.startup()
         self.appium.shutdown()
         self.appium.post_process()
