@@ -190,7 +190,7 @@ To use it, create a directory, for example `/tmp/my-test`, put all configs and a
 sudo docker run --rm -v /tmp/my-test:/bzt-configs undera/taurus my-config.yml
 ```
 
-Make note that `/tmp/my-test` was passed in `-v` Docker option, it's crucial. Here's [what happens](https://github.com/Blazemeter/taurus/blob/master/Dockerfile) inside the container by default:
+Make note that `/tmp/my-test` was passed in `-v` Docker option, it's crucial. Here's [what happens](https://github.com/Blazemeter/taurus/blob/master/Dockerfile) inside the container:
  1. Directory `/tmp/my-test` is mounted as `/bzt-configs`
  1. Current directory changed to `/bzt-configs`
  1. Taurus is started with the config files you specified: `bzt /bzt-configs/my-config.yml
