@@ -115,7 +115,9 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
             self.engine.aggregator.add_listener(self)
 
         disable = self.settings.get('disable', 'auto')
-        if disable or ((str(disable).lower() == 'auto') and (not sys.stdout.isatty())):
+        explicit_disable = isinstance(disable, (bool, int)) and not disable
+        auto_disable = str(disable).lower() == 'auto' and not sys.stdout.isatty()
+        if explicit_disable or auto_disable:
             self.disabled = True
             return
 
