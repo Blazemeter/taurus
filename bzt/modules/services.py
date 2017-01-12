@@ -25,9 +25,9 @@ import zipfile
 from bzt import NormalShutdown, ToolError, TaurusConfigError
 from bzt.engine import Service, HavingInstallableTools
 from bzt.modules.selenium import Node
-from bzt.six import get_stacktrace
+from bzt.six import get_stacktrace, urlopen
 from bzt.utils import get_full_path, shutdown_process, shell_exec, RequiredTool
-from bzt.utils import replace_in_config, JavaVM
+from bzt.utils import replace_in_config, JavaVM, to_json
 
 
 class Unpacker(Service):
@@ -88,6 +88,7 @@ class AndroidEmulatorLoader(Service):
         self.emulator_process = None
         self.tool_path = ''
         self.startup_timeout = None
+        self.avd = ''
 
     def prepare(self):
         self.startup_timeout = self.settings.get('timeout', 30)
@@ -115,25 +116,29 @@ class AndroidEmulatorLoader(Service):
     def startup(self):
         self.log.debug('Starting android emulator...')
         exc = TaurusConfigError('You must choose an emulator with modules.android-emulator.avd config parameter')
-        avd = self.settings.get('avd', exc)
-        self.emulator_process = shell_exec([self.tool_path, '-avd', avd])
+        self.avd = self.settings.get('avd', exc)
+        stdout_file = os.path.join(self.engine.artifacts_dir, 'appium.out')
+        stderr_file = os.path.join(self.engine.artifacts_dir, 'appium.err')
+        self.emulator_process = shell_exec([self.tool_path, '-avd', self.avd], stdout=stdout_file, stderr=stderr_file)
         start_time = time.time()
         while not self.tool_is_started():
             time.sleep(1)
             if time.time() - start_time > self.startup_timeout:
-                raise ToolError("Appium cannot be loaded")
-
-        self.log.debug('Appium was started successfully')
+                raise ToolError("Android emulator %s cannot be loaded", self.avd)
+        self.log.info('Android emulator %s was started successfully', self.avd)
 
     def tool_is_started(self):
+        cmd = ["adb", "shell", "getprop", "sys.boot_completed"]
+        self.log.debug("Trying: %s", cmd)
         try:
-            pass
-            # look at adb in the system or in platform tools dir. warning if adb not found and return true
-            # get output of 'adb devices'
-            # check if avd in that list and return true/false accordingly
-            return True
-        except:
-            return False
+            proc = shell_exec(cmd)
+            out, _ = proc.communicate()
+            if out.strip() == '1':
+                return True
+            else:
+                return False
+        except BaseException as exc:
+            raise ToolError('Checking if android emulator starts is impossible: %s', exc)
 
     def shutdown(self):
         if self.emulator_process:
@@ -154,7 +159,7 @@ class AppiumLoader(Service):
         self.startup_timeout = self.settings.get('timeout', 30)
         self.addr = self.settings.get('addr', '127.0.0.1')
         self.port = self.settings.get('port', 4723)
-        self.settings.get('path', 'appium')
+        self.tool_path = self.settings.get('path', 'appium')
 
         required_tools = [Node(self.log),
                           JavaVM("", "", self.log),
@@ -174,13 +179,12 @@ class AppiumLoader(Service):
             if time.time() - start_time > self.startup_timeout:
                 raise ToolError("Appium cannot be loaded")
 
-        self.log.debug('Appium was started successfully')
+        self.log.info('Appium was started successfully')
 
     def tool_is_started(self):
         try:
-            pass
-            # get self.addr:self.port/wd/hub/sessions
-            # convert from string as json
+            response = urlopen("http://%s:%s%s" % (self.addr, self.port, '/wd/hub/sessions'))
+            to_json(response)
             return True
         except:
             return False
