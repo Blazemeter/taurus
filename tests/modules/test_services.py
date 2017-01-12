@@ -182,7 +182,6 @@ class TestAppiumLoader(BZTestCase):
         engine.config.merge({'services': {'appium-loader': {}}})
         self.check_if_appium_started = AppiumLoader.tool_is_started
         AppiumLoader.tool_is_started = lambda slf: True
-
         self.appium = AppiumLoader()
         self.appium.engine = engine
         self.appium.settings = engine.config['services']['appium-loader']
@@ -201,8 +200,8 @@ class TestAppiumLoader(BZTestCase):
         self.assertRaises(ToolError, self.appium.prepare)
 
     def test_appium_full_cycle(self):
-        self.create_fake_appium()
         self.appium.prepare()
+        self.create_fake_appium()
         self.appium.startup()
         self.appium.shutdown()
         self.appium.post_process()
@@ -213,7 +212,7 @@ class TestAppiumLoader(BZTestCase):
         shutil.copy2(join(src_dir, 'appium' + EXE_SUFFIX), dest_dir)
         os.chmod(join(dest_dir, 'appium' + EXE_SUFFIX), 0o755)
         shutil.copy2(join(src_dir, 'appium.py'), dest_dir)
-        self.appium.tool_path = join(dest_dir, 'appium' + EXE_SUFFIX)
+        self.appium.settings['path'] = join(dest_dir, 'appium' + EXE_SUFFIX)
 
 
 class MockWebDriverRemote(object):
