@@ -122,9 +122,14 @@ class TestAndroidEmulatorLoader(BZTestCase):
     def setUp(self):
         engine = EngineEmul()
         engine.config.merge({'services': {'android-emulator-loader': {}}})
+        self.check_if_emulator_started = AndroidEmulatorLoader.tool_is_started
+        AndroidEmulatorLoader.tool_is_started = lambda slf: True
         self.android = AndroidEmulatorLoader()
         self.android.engine = engine
         self.android.settings = engine.config['services']['android-emulator-loader']
+
+    def tearDown(self):
+        AndroidEmulatorLoader.tool_is_started = self.check_if_emulator_started
 
     def test_no_sdk(self):
         os.environ['ANDROID_HOME'] = ''
@@ -175,6 +180,9 @@ class TestAppiumLoader(BZTestCase):
     def setUp(self):
         engine = EngineEmul()
         engine.config.merge({'services': {'appium-loader': {}}})
+        self.check_if_appium_started = AppiumLoader.tool_is_started
+        AppiumLoader.tool_is_started = lambda slf: True
+
         self.appium = AppiumLoader()
         self.appium.engine = engine
         self.appium.settings = engine.config['services']['appium-loader']
@@ -184,6 +192,7 @@ class TestAppiumLoader(BZTestCase):
         JavaVM.check_if_installed = lambda slf: True
 
     def tearDown(self):
+        AppiumLoader.tool_is_started = self.check_if_appium_started
         Node.check_if_installed = self.check_if_node_installed
         JavaVM.check_if_installed = self.check_if_java_installed
 
