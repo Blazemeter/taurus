@@ -137,10 +137,7 @@ class AndroidEmulatorLoader(Service):
         try:
             proc = shell_exec(cmd)
             out, _ = proc.communicate()
-            if out.strip() == '1':
-                return True
-            else:
-                return False
+            return out.strip() == '1'
         except BaseException as exc:
             raise ToolError('Checking if android emulator starts is impossible: %s', exc)
 
