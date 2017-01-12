@@ -128,7 +128,11 @@ class AndroidEmulatorLoader(Service):
         self.log.info('Android emulator %s was started successfully', self.avd)
 
     def tool_is_started(self):
-        cmd = ["adb", "shell", "getprop", "sys.boot_completed"]
+        adb_path = os.path.join(get_full_path(self.tool_path, step_up=2), 'platform-tools', 'adb')
+        if not os.path.isfile(adb_path):
+            self.log.debug('adb is not found in sdk, trying to use an external one..')
+            adb_path = 'adb'
+        cmd = [adb_path, "shell", "getprop", "sys.boot_completed"]
         self.log.debug("Trying: %s", cmd)
         try:
             proc = shell_exec(cmd)
