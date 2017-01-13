@@ -182,6 +182,9 @@
     },
     "install-checker": {
       "class": "bzt.modules.services.InstallChecker"
+    },
+    "soapui": {
+      "class": "bzt.modules.soapui.SoapUIService"
     }
   },
   "settings": {
