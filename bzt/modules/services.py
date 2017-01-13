@@ -25,7 +25,7 @@ import zipfile
 from bzt import NormalShutdown, ToolError, TaurusConfigError
 from bzt.engine import Service, HavingInstallableTools
 from bzt.modules.selenium import Node
-from bzt.six import get_stacktrace, urlopen
+from bzt.six import get_stacktrace, urlopen, URLError
 from bzt.utils import get_full_path, shutdown_process, shell_exec, RequiredTool
 from bzt.utils import replace_in_config, JavaVM, to_json
 
@@ -89,6 +89,8 @@ class AndroidEmulatorLoader(Service):
         self.tool_path = ''
         self.startup_timeout = None
         self.avd = ''
+        self.stdout = None
+        self.stderr = None
 
     def prepare(self):
         self.startup_timeout = self.settings.get('timeout', 30)
@@ -117,9 +119,9 @@ class AndroidEmulatorLoader(Service):
         self.log.debug('Starting android emulator...')
         exc = TaurusConfigError('You must choose an emulator with modules.android-emulator.avd config parameter')
         self.avd = self.settings.get('avd', exc)
-        stdout_file = os.path.join(self.engine.artifacts_dir, 'appium.out')
-        stderr_file = os.path.join(self.engine.artifacts_dir, 'appium.err')
-        self.emulator_process = shell_exec([self.tool_path, '-avd', self.avd], stdout=stdout_file, stderr=stderr_file)
+        self.stdout = open(os.path.join(self.engine.artifacts_dir, 'emulator-%s.out' % self.avd), 'ab')
+        self.stderr = open(os.path.join(self.engine.artifacts_dir, 'emulator-%s.err' % self.avd), 'ab')
+        self.emulator_process = shell_exec([self.tool_path, '-avd', self.avd], stdout=self.stdout, stderr=self.stderr)
         start_time = time.time()
         while not self.tool_is_started():
             time.sleep(1)
@@ -145,6 +147,10 @@ class AndroidEmulatorLoader(Service):
         if self.emulator_process:
             self.log.debug('Stopping android emulator...')
             shutdown_process(self.emulator_process, self.log)
+        if not self.stdout.closed:
+            self.stdout.close()
+        if not self.stderr.closed:
+            self.stderr.close()
 
 
 class AppiumLoader(Service):
@@ -155,6 +161,8 @@ class AppiumLoader(Service):
         self.startup_timeout = None
         self.addr = ''
         self.port = ''
+        self.stdout = None
+        self.stderr = None
 
     def prepare(self):
         self.startup_timeout = self.settings.get('timeout', 30)
@@ -172,7 +180,9 @@ class AppiumLoader(Service):
 
     def startup(self):
         self.log.debug('Starting appium...')
-        self.appium_process = shell_exec([self.tool_path])
+        self.stdout = open(os.path.join(self.engine.artifacts_dir, 'appium.out'), 'ab')
+        self.stderr = open(os.path.join(self.engine.artifacts_dir, 'appium.err'), 'ab')
+        self.appium_process = shell_exec([self.tool_path], stdout=self.stdout, stderr=self.stderr)
 
         start_time = time.time()
         while not self.tool_is_started():
@@ -185,15 +195,18 @@ class AppiumLoader(Service):
     def tool_is_started(self):
         try:
             response = urlopen("http://%s:%s%s" % (self.addr, self.port, '/wd/hub/sessions'))
-            to_json(response)
-            return True
-        except:
+            return isinstance(dict, to_json(response))
+        except URLError:
             return False
 
     def shutdown(self):
         if self.appium_process:
             self.log.debug('Stopping appium...')
             shutdown_process(self.appium_process, self.log)
+        if not self.stdout.closed:
+            self.stdout.close()
+        if not self.stderr.closed:
+            self.stderr.close()
 
 
 class Appium(RequiredTool):
