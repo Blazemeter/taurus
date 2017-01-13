@@ -21,13 +21,14 @@ import os
 import subprocess
 import time
 import zipfile
+import json
 
 from bzt import NormalShutdown, ToolError, TaurusConfigError
 from bzt.engine import Service, HavingInstallableTools
 from bzt.modules.selenium import Node
 from bzt.six import get_stacktrace, urlopen, URLError
 from bzt.utils import get_full_path, shutdown_process, shell_exec, RequiredTool
-from bzt.utils import replace_in_config, JavaVM, to_json
+from bzt.utils import replace_in_config, JavaVM
 
 
 class Unpacker(Service):
@@ -151,6 +152,12 @@ class AndroidEmulatorLoader(Service):
             self.stdout.close()
         if not self.stderr.closed:
             self.stderr.close()
+        _file = self.stdout.name
+        if not os.stat(_file).st_size:
+            os.remove(_file)
+        _file = self.stderr.name
+        if not os.stat(_file).st_size:
+            os.remove(_file)
 
 
 class AppiumLoader(Service):
@@ -195,8 +202,11 @@ class AppiumLoader(Service):
     def tool_is_started(self):
         try:
             response = urlopen("http://%s:%s%s" % (self.addr, self.port, '/wd/hub/sessions'))
-            return isinstance(dict, to_json(response))
-        except URLError:
+            resp_str = response.read()
+            if not isinstance(resp_str, str):
+                resp_str = resp_str.decode()
+            return isinstance(json.loads(resp_str), dict)
+        except (URLError, ValueError):
             return False
 
     def shutdown(self):
@@ -207,6 +217,12 @@ class AppiumLoader(Service):
             self.stdout.close()
         if not self.stderr.closed:
             self.stderr.close()
+        _file = self.stdout.name
+        if not os.stat(_file).st_size:
+            os.remove(_file)
+        _file = self.stderr.name
+        if not os.stat(_file).st_size:
+            os.remove(_file)
 
 
 class Appium(RequiredTool):
