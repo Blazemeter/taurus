@@ -27,15 +27,13 @@ from subprocess import CalledProcessError
 from urwid import Text, Pile
 
 from bzt import TaurusConfigError, ToolError, TaurusInternalException
-from bzt.engine import ScenarioExecutor, Scenario, FileLister
+from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator, FunctionalSample
-from bzt.modules.services import HavingInstallableTools
 from bzt.six import string_types, parse, iteritems
-from bzt.utils import RequiredTool, shell_exec, shutdown_process, JavaVM, TclLibrary, get_files_recursive, \
-    PythonGenerator
-from bzt.utils import dehumanize_time, MirrorsManager, is_windows, BetterDict, get_full_path
+from bzt.utils import RequiredTool, shell_exec, shutdown_process, JavaVM, TclLibrary, PythonGenerator
+from bzt.utils import dehumanize_time, MirrorsManager, is_windows, BetterDict, get_full_path, get_files_recursive
 
 try:
     from pyvirtualdisplay.smartdisplay import SmartDisplay as Display
