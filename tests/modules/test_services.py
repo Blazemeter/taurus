@@ -144,8 +144,8 @@ class TestAndroidEmulatorLoader(BZTestCase):
     def test_sdk_from_env(self):
         sdk_path = join(self.android.engine.artifacts_dir, 'sdk')
         os.environ['ANDROID_HOME'] = sdk_path
-        self.android.settings['path'] = None
         self.create_fake_android_emulator()
+        self.android.settings['path'] = None
         self.android.prepare()
         self.assertIn(sdk_path, self.android.tool_path)
         self.assertRaises(TaurusConfigError, self.android.startup)
@@ -213,22 +213,3 @@ class TestAppiumLoader(BZTestCase):
         os.chmod(join(dest_dir, 'appium' + EXE_SUFFIX), 0o755)
         shutil.copy2(join(src_dir, 'appium.py'), dest_dir)
         self.appium.settings['path'] = join(dest_dir, 'appium' + EXE_SUFFIX)
-
-
-class MockWebDriverRemote(object):
-    def __init__(self, addr, caps):
-        self.addr = addr
-        self.caps = caps
-        self.cmd_list = []
-        self.data = []
-
-    def get(self):
-        self.cmd_list.append('get')
-        return self.data.pop()
-
-    def page_source(self):
-        self.cmd_list.append('page_source')
-        return self.data.pop()
-
-    def quit(self):
-        self.cmd_list.append('quit')
