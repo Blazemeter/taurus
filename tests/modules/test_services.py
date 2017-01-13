@@ -142,14 +142,14 @@ class TestAndroidEmulatorLoader(BZTestCase):
         self.assertIn('from_config', self.android.tool_path)
 
     def test_sdk_from_env(self):
-        sdk_path = join(self.android.engine.artifacts_dir, 'sdk')
+        sdk_path = join(self.android.engine.artifacts_dir, 'there_is_no_sdk')
         os.environ['ANDROID_HOME'] = sdk_path
-        self.create_fake_android_emulator()
-        tool_path = self.android.settings['path']
-        self.android.settings['path'] = None
         self.assertRaises(ToolError, self.android.prepare)
-        self.android.settings['path'] = tool_path
         self.assertIn(sdk_path, self.android.tool_path)
+
+    def test_no_avd(self):
+        self.create_fake_android_emulator()
+        self.android.prepare()
         self.assertRaises(TaurusConfigError, self.android.startup)
 
     def test_two_way(self):
