@@ -145,8 +145,10 @@ class TestAndroidEmulatorLoader(BZTestCase):
         sdk_path = join(self.android.engine.artifacts_dir, 'sdk')
         os.environ['ANDROID_HOME'] = sdk_path
         self.create_fake_android_emulator()
+        tool_path = self.android.settings['path']
         self.android.settings['path'] = None
-        self.android.prepare()
+        self.assertRaises(ToolError, self.android.prepare)
+        self.android.settings['path'] = tool_path
         self.assertIn(sdk_path, self.android.tool_path)
         self.assertRaises(TaurusConfigError, self.android.startup)
 
