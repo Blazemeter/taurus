@@ -33,12 +33,11 @@ from math import ceil
 from cssselect import GenericTranslator
 
 from bzt import TaurusConfigError, ToolError, TaurusInternalException, TaurusNetworkError
-from bzt.engine import ScenarioExecutor, Scenario, FileLister, Request, HTTPRequest
+from bzt.engine import ScenarioExecutor, Scenario, FileLister, Request, HTTPRequest, HavingInstallableTools
 from bzt.jmx import JMX
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader, FunctionalSample
-from bzt.modules.services import HavingInstallableTools
 from bzt.six import iteritems, string_types, StringIO, etree, binary_type, parse, unicode_decode
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name
 from bzt.utils import shell_exec, ensure_is_dict, dehumanize_time, BetterDict, guess_csv_dialect

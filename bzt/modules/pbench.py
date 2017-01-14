@@ -31,10 +31,9 @@ import datetime
 import psutil
 
 from bzt import resources, TaurusConfigError, ToolError, TaurusInternalException
-from bzt.engine import ScenarioExecutor, FileLister, Scenario
+from bzt.engine import ScenarioExecutor, FileLister, Scenario, HavingInstallableTools
 from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet, ConsolidatingAggregator
 from bzt.modules.console import WidgetProvider, ExecutorWidget
-from bzt.modules.services import HavingInstallableTools
 from bzt.six import string_types, urlencode, iteritems, parse, StringIO, b, viewvalues
 from bzt.utils import RequiredTool, IncrementableProgressBar
 from bzt.utils import shell_exec, shutdown_process, BetterDict, dehumanize_time
