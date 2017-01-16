@@ -83,6 +83,22 @@ class SoapUIScriptConverter(object):
                    for entry in entries}
         return headers
 
+    def _extract_assertions(self, config_elem):
+        assertions = []
+        assertion_tags = config_elem.findall('.//con:assertion', namespaces=self.NAMESPACES)
+        for assertion in assertion_tags:
+            if assertion.get('type') in ('Simple Contains', 'Simple NotContains'):
+                subject = assertion.findtext('./con:configuration/token', namespaces=self.NAMESPACES)
+                use_regex = assertion.findtext('./con:configuration/useRegEx', namespaces=self.NAMESPACES)
+                negate = assertion.get('type') == 'Simple NotContains'
+
+                assertions.append({"contains": [subject],
+                                   "subject": "body",
+                                   "regexp": use_regex == "false",
+                                   "not": negate,
+                                   })
+        return assertions
+
     def _extract_http_request(self, test_step):
         label = test_step.get('name')
         config = test_step.find('./con:config', namespaces=self.NAMESPACES)
@@ -90,6 +106,7 @@ class SoapUIScriptConverter(object):
         endpoint = config.find('.//con:endpoint', namespaces=self.NAMESPACES)
         url = endpoint.text
         headers = self._extract_headers(config)
+        assertions = self._extract_assertions(config)
 
         request = {"url": url, "label": label}
 
@@ -98,6 +115,9 @@ class SoapUIScriptConverter(object):
 
         if headers:
             request["headers"] = headers
+
+        if assertions:
+            request["assert"] = assertions
 
         return request
 
@@ -107,6 +127,7 @@ class SoapUIScriptConverter(object):
         method = config.get('method')
         url = config.get('service') + config.get('resourcePath')
         headers = self._extract_headers(config)
+        assertions = self._extract_assertions(config)
 
         request = {"url": url, "label": label}
 
@@ -115,6 +136,9 @@ class SoapUIScriptConverter(object):
 
         if headers:
             request["headers"] = headers
+
+        if assertions:
+            request["assert"] = assertions
 
         return request
 

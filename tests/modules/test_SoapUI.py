@@ -18,18 +18,28 @@ class TestSoapUIConverter(BZTestCase):
 
         self.assertIn("scenarios", config)
         self.assertIn("TestSuite 1-index", config["scenarios"])
+
         scenario = config["scenarios"]["TestSuite 1-index"]
         self.assertIn("requests", scenario)
         self.assertEqual(2, len(scenario["requests"]))
-        self.assertEqual("http://blazedemo.com/reserve.php", scenario["requests"][0]["url"])
-        self.assertEqual("test index", scenario["requests"][0]["label"])
-        self.assertIn("headers", scenario["requests"][0])
-        self.assertEqual(scenario["requests"][0]["headers"].get("X-Custom-Header"), "Value")
 
-        self.assertEqual("http://example.com/body", scenario["requests"][1]["url"])
-        self.assertEqual("posty", scenario["requests"][1]["label"])
-        self.assertEqual("POST", scenario["requests"][1]["method"])
-        self.assertIn("headers", scenario["requests"][1])
-        self.assertEqual(scenario["requests"][1]["headers"].get("X-Header"), "X-Value")
-        self.assertEqual(scenario["requests"][1]["headers"].get("X-Header-2"), "X-Value-2")
+        first_req = scenario["requests"][0]
+        self.assertEqual("http://blazedemo.com/reserve.php", first_req["url"])
+        self.assertEqual("test index", first_req["label"])
+        self.assertIn("headers", first_req)
+        self.assertEqual(first_req["headers"].get("X-Custom-Header"), "Value")
+        self.assertIn("assert", first_req)
+        self.assertEqual(2, len(first_req["assert"]))
+        self.assertEqual("BlazeDemo", first_req["assert"][0]["contains"][0])
+        self.assertEqual(False, first_req["assert"][0]["not"])
+        self.assertEqual("BlazeDemou", first_req["assert"][1]["contains"][0])
+        self.assertEqual(True, first_req["assert"][1]["not"])
+
+        second_req = scenario["requests"][1]
+        self.assertEqual("http://example.com/body", second_req["url"])
+        self.assertEqual("posty", second_req["label"])
+        self.assertEqual("POST", second_req["method"])
+        self.assertIn("headers", second_req)
+        self.assertEqual(second_req["headers"].get("X-Header"), "X-Value")
+        self.assertEqual(second_req["headers"].get("X-Header-2"), "X-Value-2")
 
