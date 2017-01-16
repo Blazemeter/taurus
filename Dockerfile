@@ -68,7 +68,8 @@ RUN pip install /tmp/bzt-src \
 RUN bzt /tmp/bzt-src/examples/all-executors.yml -o settings.artifacts-dir=/tmp/all-executors-artifacts -sequential || (cat /tmp/all-executors-artifacts/webdriver-1.log; exit 1)
 
 RUN mkdir /bzt-configs \
-  && rm -rf /tmp/*
+  && rm -rf /tmp/* \
+  && mkdir /tmp/artifacts
 
 WORKDIR /bzt-configs
-CMD bzt -l /tmp/artifacts/bzt.log /bzt-configs/*.yml
+ENTRYPOINT ["sh", "-c", "bzt -l /tmp/artifacts/bzt.log \"$@\"", "ignored"]
