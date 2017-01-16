@@ -30,7 +30,7 @@ class SoapUIService(Service):
         script = self.parameters.get("script", ValueError("'script' for soapui should be provided"))
         executor = self.parameters.get("executor", None)
 
-        converter = SoapUIScriptConverter()
+        converter = SoapUIScriptConverter(self.log)
         config = converter.convert(script)
 
         for ex in config.get("execution", []):
@@ -53,6 +53,9 @@ class SoapUIService(Service):
 
 
 class SoapUIScriptConverter(object):
+    def __init__(self, parent_log):
+        self.log = parent_log.getChild(self.__class__.__name__)
+
     def load(self, path):
         try:
             self.tree = etree.ElementTree()
@@ -68,16 +71,20 @@ class SoapUIScriptConverter(object):
         self.load(script_path)
 
         namespaces = dict(con="http://eviware.com/soapui/config")
+        self.log.debug("Found namespaces: %s", namespaces)
 
         # project - con:soapui-project
         projects = self.tree.xpath('//con:soapui-project', namespaces=namespaces)
+        self.log.debug("Found projects: %s", projects)
         project = projects[0]
 
         # interface - con:interface (inside project)
         interface = project.find('.//con:interface', namespaces=namespaces)
+        self.log.debug("Found interface: %s", interface)
 
         # test suite - con:testSuite (inside project)
         test_suites = project.findall('.//con:testSuite', namespaces=namespaces)
+        self.log.debug("Found test suites: %s", test_suites)
 
         execution = []
         scenarios = {}
@@ -91,9 +98,9 @@ class SoapUIScriptConverter(object):
                     config = step.find('./con:config', namespaces=namespaces)
                     service = config.get('service')
                     resource_path = config.get('resourcePath')
-                    print(service, resource_path)
                     requests.append({"url": service + resource_path, "label": step.get('name')})
                 scenarios[scenario_name] = {"requests": requests}
+                self.log.debug("Extracted scenario: %s", scenario_name)
 
                 load_exec = {}
                 load_test = case.find('./con:loadTest', namespaces=namespaces)
@@ -104,6 +111,7 @@ class SoapUIScriptConverter(object):
                     load_exec['concurrency'] = 1
 
                 load_exec['scenario'] = scenario_name
+                self.log.debug("Extracted execution for scenario %s", scenario_name)
 
                 execution.append(load_exec)
 

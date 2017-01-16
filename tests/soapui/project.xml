@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<con:soapui-project xmlns:con="http://eviware.com/soapui/config" id="01ced384-d9ec-4f41-b0a2-dcbba12cb33d" activeEnvironment="Default" name="BlazeDemo LoadTest" resourceRoot="" soapui-version="5.2.1" abortOnError="false" runType="SEQUENTIAL">
+  <con:settings>
+    <con:setting id="com.eviware.soapui.impl.wsdl.actions.iface.tools.soapui.LoadTestRunnerAction@values-local"><![CDATA[<xml-fragment xmlns:con="http://eviware.com/soapui/config">
+  <con:entry key="Environment" value="Default"/>
+  <con:entry key="Global Properties" value=""/>
+  <con:entry key="TestSuite" value="TestSuite 1"/>
+  <con:entry key="Report to Generate" value=""/>
+  <con:entry key="Password" value=""/>
+  <con:entry key="TestRunner Path" value="/home/dmand/SmartBear/SoapUI-5.2.1/bin"/>
+  <con:entry key="Tool Args" value=""/>
+  <con:entry key="LoadTest" value="LoadTest 1"/>
+  <con:entry key="Host:Port" value=""/>
+  <con:entry key="user-settings.xml Password" value=""/>
+  <con:entry key="WSS Password Type" value=""/>
+  <con:entry key="Save Project" value="true"/>
+  <con:entry key="System Properties" value=""/>
+  <con:entry key="Domain" value=""/>
+  <con:entry key="Open Report" value="false"/>
+  <con:entry key="Project Properties" value=""/>
+  <con:entry key="Print Report Statistics" value="true"/>
+  <con:entry key="Project Password" value=""/>
+  <con:entry key="Report Format(s)" value=""/>
+  <con:entry key="TestCase" value="index"/>
+  <con:entry key="Username" value=""/>
+  <con:entry key="Root Folder" value="/home/dmand/src/taurus/soap"/>
+  <con:entry key="Add Settings" value="false"/>
+  <con:entry key="Save After" value="false"/>
+  <con:entry key="Endpoint" value=""/>
+  <con:entry key="ThreadCount" value=""/>
+  <con:entry key="Limit" value=""/>
+</xml-fragment>]]></con:setting>
+  </con:settings>
+  <con:interface xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="con:RestService" id="010155ee-f509-40d8-929c-da0264ce8f2d" wadlVersion="http://wadl.dev.java.net/2009/02" name="http://blazedemo.com" type="rest">
+    <con:settings/>
+    <con:definitionCache type="TEXT" rootPart=""/>
+    <con:endpoints>
+      <con:endpoint>http://blazedemo.com</con:endpoint>
+    </con:endpoints>
+    <con:resource name="" path="/" id="70bdc2b7-09bb-4be6-ad92-f56c19d6f014">
+      <con:settings/>
+      <con:parameters/>
+      <con:method name="" id="15cfe33d-dc9e-441a-8df1-9d2ac0f8349c" method="GET">
+        <con:settings/>
+        <con:parameters/>
+        <con:request name="Request 1" id="5633aade-524d-4482-be5e-8e70801b9ab2" mediaType="application/json">
+          <con:settings/>
+          <con:endpoint>http://blazedemo.com</con:endpoint>
+          <con:request/>
+          <con:credentials>
+            <con:authType>No Authorization</con:authType>
+          </con:credentials>
+          <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+          <con:jmsPropertyConfig/>
+          <con:parameters/>
+        </con:request>
+      </con:method>
+    </con:resource>
+    <con:resource name="reserve.php" path="/reserve.php" id="66681fdb-5b00-4588-8869-f9bcb8897584">
+      <con:settings/>
+      <con:parameters/>
+      <con:method name="" id="53d1b608-8650-4150-9a18-b74a98edc57e" method="GET">
+        <con:settings/>
+        <con:parameters/>
+        <con:request name="Request 1" id="a51d05af-5d6e-4b16-b279-95e5b7b97ca8" mediaType="application/json">
+          <con:settings/>
+          <con:endpoint>http://blazedemo.com</con:endpoint>
+          <con:request/>
+          <con:credentials>
+            <con:authType>No Authorization</con:authType>
+          </con:credentials>
+          <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+          <con:jmsPropertyConfig/>
+          <con:parameters/>
+        </con:request>
+      </con:method>
+    </con:resource>
+  </con:interface>
+  <con:testSuite id="935e60d3-ccc5-4ddb-b766-c39fcb832914" name="TestSuite 1">
+    <con:settings/>
+    <con:runType>SEQUENTIAL</con:runType>
+    <con:testCase id="e37c64f2-398d-4f83-96c0-5bce66739e29" failOnError="true" failTestCaseOnErrors="true" keepSession="false" maxResults="0" name="index" searchProperties="true">
+      <con:settings/>
+      <con:testStep type="restrequest" name="test index" id="6cd0f8f3-80ae-406c-a239-4603f80764e5">
+        <con:settings/>
+        <con:config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" service="http://blazedemo.com" resourcePath="/" methodName="" xsi:type="con:RestRequestStep">
+          <con:restRequest name="test index" id="5633aade-524d-4482-be5e-8e70801b9ab2" mediaType="application/json">
+            <con:settings>
+              <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+              <con:setting id="com.eviware.soapui.impl.support.AbstractHttpRequest@dump-file"/>
+            </con:settings>
+            <con:endpoint>http://blazedemo.com</con:endpoint>
+            <con:request/>
+            <con:assertion type="Simple Contains" id="591b1c0e-eed5-490c-b72d-9cf2e3bcd521" name="Contains">
+              <con:configuration>
+                <token>BlazeDemo</token>
+                <ignoreCase>false</ignoreCase>
+                <useRegEx>false</useRegEx>
+              </con:configuration>
+            </con:assertion>
+            <con:credentials>
+              <con:authType>No Authorization</con:authType>
+            </con:credentials>
+            <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+            <con:jmsPropertyConfig/>
+            <con:parameters/>
+          </con:restRequest>
+        </con:config>
+      </con:testStep>
+      <con:loadTest id="cd118e14-2117-46ef-9d2a-4418cc80e67a" name="loadtest-index">
+        <con:settings>
+          <con:setting id="HttpSettings@close-connections">false</con:setting>
+        </con:settings>
+        <con:threadCount>10</con:threadCount>
+        <con:startDelay>0</con:startDelay>
+        <con:sampleInterval>250</con:sampleInterval>
+        <con:calculateTPSOnTimePassed>true</con:calculateTPSOnTimePassed>
+        <con:resetStatisticsOnThreadCountChange>true</con:resetStatisticsOnThreadCountChange>
+        <con:historyLimit>-1</con:historyLimit>
+        <con:testLimit>60</con:testLimit>
+        <con:limitType>TIME</con:limitType>
+        <con:loadStrategy>
+          <con:type>Simple</con:type>
+        </con:loadStrategy>
+        <con:assertion type="Step Status" name="Step Status"/>
+        <con:maxAssertionErrors>100</con:maxAssertionErrors>
+        <con:cancelExcessiveThreads>true</con:cancelExcessiveThreads>
+        <con:strategyInterval>500</con:strategyInterval>
+      </con:loadTest>
+      <con:properties/>
+    </con:testCase>
+    <con:properties/>
+  </con:testSuite>
+  <con:properties/>
+  <con:wssContainer/>
+  <con:oAuth2ProfileContainer/>
+  <con:sensitiveInformation/>
+</con:soapui-project>
