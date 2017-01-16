@@ -55,6 +55,7 @@ class SoapUIService(Service):
 class SoapUIScriptConverter(object):
     def __init__(self, parent_log):
         self.log = parent_log.getChild(self.__class__.__name__)
+        self.tree = None
 
     def load(self, path):
         try:
@@ -64,7 +65,7 @@ class SoapUIScriptConverter(object):
             msg = "XML parsing failed for file %s: %s"
             raise TaurusInternalException(msg % (path, exc))
 
-    def convert(self, script_path, test_case=None):
+    def convert(self, script_path):
         if not os.path.exists(script_path):
             raise ValueError("SoapUI script %s doesn't exist" % script_path)
 
@@ -101,11 +102,20 @@ class SoapUIScriptConverter(object):
                         method = config.get('method')
                         endpoint = config.find('.//con:endpoint', namespaces=namespaces)
                         url = endpoint.text
+                        headers_settings = config.find('./con:settings/con:setting[@id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers"]',
+                                                       namespaces=namespaces)
+                        headers = etree.fromstring(headers_settings.text)
+                        entries = headers.findall(".//con:entry", namespaces=namespaces)
+                        headers = {entry.get('key'): entry.get('value')
+                                   for entry in entries}
 
                         request = {"url": url, "label": label}
 
                         if method is not None and method != "GET":
                             request["method"] = method
+
+                        if headers:
+                            request["headers"] = headers
 
                         requests.append(request)
                     elif step.get("type") == "restrequest":
@@ -120,7 +130,6 @@ class SoapUIScriptConverter(object):
                             request["method"] = method
 
                         requests.append(request)
-
 
                 scenarios[scenario_name] = {"requests": requests}
                 self.log.debug("Extracted scenario: %s", scenario_name)

@@ -21,9 +21,12 @@ class TestApacheBenchExecutor(BZTestCase):
         scenario = config["scenarios"]["TestSuite 1-index"]
         self.assertIn("requests", scenario)
         self.assertEqual(2, len(scenario["requests"]))
-        self.assertEqual("http://blazedemo.com/", scenario["requests"][0]["url"])
+        self.assertEqual("http://blazedemo.com/reserve.php", scenario["requests"][0]["url"])
         self.assertEqual("test index", scenario["requests"][0]["label"])
         self.assertEqual("http://example.com/body", scenario["requests"][1]["url"])
         self.assertEqual("posty", scenario["requests"][1]["label"])
         self.assertEqual("POST", scenario["requests"][1]["method"])
+        self.assertIn("headers", scenario["requests"][1])
+        self.assertEqual(scenario["requests"][1]["headers"].get("X-Header"), "X-Value")
+        self.assertEqual(scenario["requests"][1]["headers"].get("X-Header-2"), "X-Value-2")
 
