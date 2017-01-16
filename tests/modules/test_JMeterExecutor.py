@@ -1773,6 +1773,22 @@ class TestJMeterExecutor(BZTestCase):
         stop = dataset.find('boolProp[@name="stopThread"]')
         self.assertEqual(stop.text, "true")
 
+    def test_data_sources_varnames(self):
+        self.configure({
+            'execution': {
+                'scenario': {
+                    "data-sources": [{
+                        "path": __dir__() + "/../data/test1.csv",
+                        "variable-names": "a,b,c"}],
+                    "requests": [
+                        "http://example.com/${test1}"]}}})
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
+        dataset = xml_tree.find('.//hashTree[@type="tg"]/CSVDataSet')
+        self.assertIsNotNone(dataset)
+        varnames = dataset.find('stringProp[@name="variableNames"]')
+        self.assertEqual(varnames.text, "a,b,c")
+
     def test_functional_mode_flag(self):
         self.obj.engine.aggregator.is_functional = True
         self.obj.execution.merge({

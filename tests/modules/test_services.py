@@ -1,12 +1,15 @@
 import json
 import os
+import shutil
 import zipfile
+from os.path import join
 
-from bzt import NormalShutdown, ToolError
+from bzt import NormalShutdown, ToolError, TaurusConfigError
 from bzt.engine import Service, Provisioning, EngineModule
 from bzt.modules.blazemeter import CloudProvisioning, BlazeMeterClientEmul
-from bzt.modules.services import Unpacker, InstallChecker
-from bzt.utils import get_files_recursive
+from bzt.modules.selenium import Node
+from bzt.modules.services import Unpacker, InstallChecker, AppiumLoader, AndroidEmulatorLoader
+from bzt.utils import get_files_recursive, JavaVM, EXE_SUFFIX
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul, ModuleMock
 
@@ -113,3 +116,102 @@ class TestToolInstaller(BZTestCase):
         obj.engine = EngineEmul()
         obj.engine.config.get("modules")["err"] = "hello there"
         self.assertRaises(ToolError, obj.prepare)
+
+
+class TestAndroidEmulatorLoader(BZTestCase):
+    def setUp(self):
+        engine = EngineEmul()
+        engine.config.merge({'services': {'android-emulator-loader': {}}})
+        self.check_if_emulator_started = AndroidEmulatorLoader.tool_is_started
+        AndroidEmulatorLoader.tool_is_started = lambda slf: True
+        self.android = AndroidEmulatorLoader()
+        self.android.engine = engine
+        self.android.settings = engine.config['services']['android-emulator-loader']
+
+    def tearDown(self):
+        AndroidEmulatorLoader.tool_is_started = self.check_if_emulator_started
+
+    def test_no_sdk(self):
+        os.environ['ANDROID_HOME'] = ''
+        self.assertRaises(TaurusConfigError, self.android.prepare)
+
+    def test_sdk_from_conf(self):
+        os.environ['ANDROID_HOME'] = ''
+        self.android.settings['path'] = 'from_config'
+        self.assertRaises(ToolError, self.android.prepare)
+        self.assertIn('from_config', self.android.tool_path)
+
+    def test_sdk_from_env(self):
+        sdk_path = join(self.android.engine.artifacts_dir, 'there_is_no_sdk')
+        os.environ['ANDROID_HOME'] = sdk_path
+        self.assertRaises(ToolError, self.android.prepare)
+        self.assertIn(sdk_path, self.android.tool_path)
+
+    def test_no_avd(self):
+        self.create_fake_android_emulator()
+        self.android.prepare()
+        self.assertRaises(TaurusConfigError, self.android.startup)
+
+    def test_two_way(self):
+        config_path = join(self.android.engine.artifacts_dir, 'sdk', 'tools', 'emulator' + EXE_SUFFIX)
+        self.android.settings['path'] = config_path
+        env_path = 'from_env'
+        os.environ['ANDROID_HOME'] = env_path
+        self.create_fake_android_emulator()
+        self.android.settings['avd'] = 'my_little_android'
+        self.android.prepare()
+        self.assertEqual(config_path, self.android.tool_path)
+        self.android.startup()
+        self.android.shutdown()
+        self.android.post_process()
+
+    def create_fake_android_emulator(self):
+        sdk_dir = join(self.android.engine.artifacts_dir, 'sdk')
+        src_dir = join(__dir__(), '..', 'android-emulator')
+        dest_dir = join(sdk_dir, 'tools')
+        os.mkdir(sdk_dir)
+        os.mkdir(dest_dir)
+        tool_path = join(dest_dir, 'emulator' + EXE_SUFFIX)
+        shutil.copy2(join(src_dir, 'emulator' + EXE_SUFFIX), dest_dir)
+        os.chmod(tool_path, 0o755)
+        shutil.copy2(join(src_dir, 'emulator.py'), join(dest_dir, 'emulator.py'))
+        self.android.settings['path'] = tool_path
+
+
+class TestAppiumLoader(BZTestCase):
+    def setUp(self):
+        engine = EngineEmul()
+        engine.config.merge({'services': {'appium-loader': {}}})
+        self.check_if_appium_started = AppiumLoader.tool_is_started
+        AppiumLoader.tool_is_started = lambda slf: True
+        self.appium = AppiumLoader()
+        self.appium.engine = engine
+        self.appium.settings = engine.config['services']['appium-loader']
+        self.check_if_node_installed = Node.check_if_installed
+        self.check_if_java_installed = JavaVM.check_if_installed
+        Node.check_if_installed = lambda slf: True
+        JavaVM.check_if_installed = lambda slf: True
+
+    def tearDown(self):
+        AppiumLoader.tool_is_started = self.check_if_appium_started
+        Node.check_if_installed = self.check_if_node_installed
+        JavaVM.check_if_installed = self.check_if_java_installed
+
+    def test_appium_not_installed(self):
+        self.appium.settings['path'] = 'wrong_path'
+        self.assertRaises(ToolError, self.appium.prepare)
+
+    def test_appium_full_cycle(self):
+        self.create_fake_appium()
+        self.appium.prepare()
+        self.appium.startup()
+        self.appium.shutdown()
+        self.appium.post_process()
+
+    def create_fake_appium(self):
+        src_dir = join(__dir__(), '..', 'appium')
+        dest_dir = self.appium.engine.artifacts_dir
+        shutil.copy2(join(src_dir, 'appium' + EXE_SUFFIX), dest_dir)
+        os.chmod(join(dest_dir, 'appium' + EXE_SUFFIX), 0o755)
+        shutil.copy2(join(src_dir, 'appium.py'), dest_dir)
+        self.appium.settings['path'] = join(dest_dir, 'appium' + EXE_SUFFIX)

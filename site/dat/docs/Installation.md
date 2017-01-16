@@ -184,16 +184,32 @@ sudo pip install bzt
 
 Taurus has [Docker image](https://hub.docker.com/r/undera/taurus/) that allows you to run tool as container.
 
-To use it, create a directory, for example `/tmp/my-test`, put all YAML configs and additional files like JMXses there, then start Docker like this:
+To use it, create a directory, for example `/tmp/my-test`, put all configs and additional files like JMXses there, then start Docker like this:
 
 ```bash
-sudo docker run --rm -v /tmp/my-test:/bzt-configs undera/taurus
+sudo docker run --rm -v /tmp/my-test:/bzt-configs undera/taurus my-config.yml
 ```
 
-Make note that `/tmp/my-test` were passed in `-v` Docker option, it's crucial. Also note that you have to use `.yml` as config file extension. Here's [what happens](https://github.com/Blazemeter/taurus/blob/master/Dockerfile) inside container:
+Make note that `/tmp/my-test` was passed in `-v` Docker option, it's crucial. Here's [what happens](https://github.com/Blazemeter/taurus/blob/master/Dockerfile) inside the container:
  1. Directory `/tmp/my-test` is mounted as `/bzt-configs`
  1. Current directory changed to `/bzt-configs`
- 1. Taurus is started with following command: `bzt /bzt-configs/*.yml`
+ 1. Taurus is started with the config files you specified: `bzt /bzt-configs/my-config.yml
+
+You can also specify multile config files in the `docker run` command with wildcards or as separate arguments like so:
+
+```bash
+sudo docker run --rm -v /tmp/my-test:/bzt-configs undera/taurus *.yml
+
+sudo docker run --rm -v /tmp/my-test:/bzt-configs undera/taurus my-config-1.json my-config-2.json
+```
+
+### Additional Taurus Command-Line Options
+
+You can still pass [command-line options](https://github.com/Blazemeter/taurus/blob/master/site/dat/docs/CommandLine.md) to Taurus through the Docker image. To do so, add the command line option at the end of the `docker run` command like so:
+
+```bash
+sudo docker run --rm -v /tmp/my-test:/bzt-configs undera/taurus my-config-1.yml -o scenarios.sample.data-sources.0=data.csv
+```
 
 
 ### Accessing Taurus Artifacts

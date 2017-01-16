@@ -183,6 +183,12 @@
     "install-checker": {
       "class": "bzt.modules.services.InstallChecker"
     },
+    "appium": {
+      "class": "bzt.modules.services.AppiumLoader"
+    },
+    "android-emulator": {
+      "class": "bzt.modules.services.AndroidEmulatorLoader"
+    },
     "soapui": {
       "class": "bzt.modules.soapui.SoapUIService"
     }
