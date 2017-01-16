@@ -107,6 +107,31 @@
           </con:restRequest>
         </con:config>
       </con:testStep>
+      <con:testStep type="httprequest" name="posty" id="b2bf7a4f-6cf0-465c-ad02-5315462efefc">
+        <con:settings/>
+        <con:config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" method="POST" xsi:type="con:HttpRequest" id="4929985a-8916-4a1c-af97-7fd5c8053f24" name="posty" postQueryString="false" mediaType="application/xml">
+          <con:settings>
+            <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+          </con:settings>
+          <con:endpoint>http://example.com/body</con:endpoint>
+          <con:request/>
+          <con:credentials>
+            <con:authType>No Authorization</con:authType>
+          </con:credentials>
+          <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+          <con:jmsPropertyConfig/>
+          <con:parameters>
+            <con:parameter>
+              <con:name>answer</con:name>
+              <con:value>42</con:value>
+              <con:style>QUERY</con:style>
+              <con:default>42</con:default>
+              <con:path xsi:nil="true"/>
+              <con:description xsi:nil="true"/>
+            </con:parameter>
+          </con:parameters>
+        </con:config>
+      </con:testStep>
       <con:loadTest id="cd118e14-2117-46ef-9d2a-4418cc80e67a" name="loadtest-index">
         <con:settings>
           <con:setting id="HttpSettings@close-connections">false</con:setting>

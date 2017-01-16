@@ -95,10 +95,33 @@ class SoapUIScriptConverter(object):
                 requests = []
                 steps = case.findall('.//con:testStep', namespaces=namespaces)
                 for step in steps:
-                    config = step.find('./con:config', namespaces=namespaces)
-                    service = config.get('service')
-                    resource_path = config.get('resourcePath')
-                    requests.append({"url": service + resource_path, "label": step.get('name')})
+                    if step.get("type") == "httprequest":
+                        label = step.get('name')
+                        config = step.find('./con:config', namespaces=namespaces)
+                        method = config.get('method')
+                        endpoint = config.find('.//con:endpoint', namespaces=namespaces)
+                        url = endpoint.text
+
+                        request = {"url": url, "label": label}
+
+                        if method is not None and method != "GET":
+                            request["method"] = method
+
+                        requests.append(request)
+                    elif step.get("type") == "restrequest":
+                        label = step.get('name')
+                        config = step.find('./con:config', namespaces=namespaces)
+                        method = config.get('method')
+                        url = config.get('service') + config.get('resourcePath')
+
+                        request = {"url": url, "label": label}
+
+                        if method is not None and method != "GET":
+                            request["method"] = method
+
+                        requests.append(request)
+
+
                 scenarios[scenario_name] = {"requests": requests}
                 self.log.debug("Extracted scenario: %s", scenario_name)
 

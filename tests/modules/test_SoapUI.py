@@ -20,6 +20,10 @@ class TestApacheBenchExecutor(BZTestCase):
         self.assertIn("TestSuite 1-index", config["scenarios"])
         scenario = config["scenarios"]["TestSuite 1-index"]
         self.assertIn("requests", scenario)
-        self.assertEqual(1, len(scenario["requests"]))
+        self.assertEqual(2, len(scenario["requests"]))
         self.assertEqual("http://blazedemo.com/", scenario["requests"][0]["url"])
         self.assertEqual("test index", scenario["requests"][0]["label"])
+        self.assertEqual("http://example.com/body", scenario["requests"][1]["url"])
+        self.assertEqual("posty", scenario["requests"][1]["label"])
+        self.assertEqual("POST", scenario["requests"][1]["method"])
+
