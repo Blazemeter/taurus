@@ -4,7 +4,7 @@ from bzt.modules.soapui import SoapUIScriptConverter
 from tests import BZTestCase, __dir__
 
 
-class TestApacheBenchExecutor(BZTestCase):
+class TestSoapUIConverter(BZTestCase):
     def test_minimal(self):
         obj = SoapUIScriptConverter(logging.getLogger(''))
         config = obj.convert(__dir__() + "/../soapui/project.xml")
@@ -23,6 +23,9 @@ class TestApacheBenchExecutor(BZTestCase):
         self.assertEqual(2, len(scenario["requests"]))
         self.assertEqual("http://blazedemo.com/reserve.php", scenario["requests"][0]["url"])
         self.assertEqual("test index", scenario["requests"][0]["label"])
+        self.assertIn("headers", scenario["requests"][0])
+        self.assertEqual(scenario["requests"][0]["headers"].get("X-Custom-Header"), "Value")
+
         self.assertEqual("http://example.com/body", scenario["requests"][1]["url"])
         self.assertEqual("posty", scenario["requests"][1]["label"])
         self.assertEqual("POST", scenario["requests"][1]["method"])
