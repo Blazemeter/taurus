@@ -107,6 +107,8 @@ class SoapUIScriptConverter(object):
         url = endpoint.text
         headers = self._extract_headers(config)
         assertions = self._extract_assertions(config)
+        body = config.findtext('./con:request', namespaces=self.NAMESPACES)
+        params = config.findall('./con:parameters/con:parameter', namespaces=self.NAMESPACES)
 
         request = {"url": url, "label": label}
 
@@ -118,6 +120,15 @@ class SoapUIScriptConverter(object):
 
         if assertions:
             request["assert"] = assertions
+
+        if body is not None:
+            request["body"] = body
+
+        if params:
+            request["body"] = {
+                param.findtext("./con:name", namespaces=self.NAMESPACES): param.findtext("./con:value", namespaces=self.NAMESPACES)
+                for param in params
+            }
 
         return request
 

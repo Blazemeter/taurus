@@ -42,4 +42,7 @@ class TestSoapUIConverter(BZTestCase):
         self.assertIn("headers", second_req)
         self.assertEqual(second_req["headers"].get("X-Header"), "X-Value")
         self.assertEqual(second_req["headers"].get("X-Header-2"), "X-Value-2")
+        self.assertIn("body", second_req)
+        self.assertIn("answer", second_req["body"])
+        self.assertEqual('42', second_req["body"]["answer"])
 
