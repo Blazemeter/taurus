@@ -318,6 +318,9 @@ class Test(BZAObject):
         return session, Master(self, result['master'])
 
     def start_anonymous_external_test(self):
+        """
+        :rtype: (Session,Master,str)
+        """
         url = self.address + "/api/v4/sessions"
         res = self._request(url, method='POST')
         result = res['result']
@@ -347,10 +350,7 @@ class Test(BZAObject):
 
     def start(self):
         url = self.address + "/api/v4/tests/%s/start" % self['id']
-
         resp = self._request(url, method='POST')
-
-        self.log.debug("Response: %s", resp['result'])
         master = Master(self, resp['result'])
         return master
 

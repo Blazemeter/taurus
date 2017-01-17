@@ -1,9 +1,8 @@
+import logging
 import os
 import sys
 
-import logging
-
-from bzt.bza import User
+from bzt.bza import User, Test
 from bzt.engine import Configuration
 
 
@@ -28,6 +27,14 @@ def test_flow():
     # tests2 = workspaces.tests()
 
 
+def test_external():
+    user = Test()
+    user.address = 'https://qa.blazemeter.com'
+    user.logger_limit = sys.maxsize
+    session, master, url = user.start_anonymous_external_test()
+    session.stop_anonymous()
+
+
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
-    test_flow()
+    test_external()
