@@ -33,7 +33,8 @@ class BZAObject(dict):
         self._cookies = cookielib.CookieJar()
         self.http_request = requests.request
 
-        if isinstance(proto, BZAObject):  # copy infrastructure from prototype
+        # copy infrastructure from prototype
+        if isinstance(proto, BZAObject):
             attrs = set(dir(BZAObject())) - set(dir(super(BZAObject)))  # get only BZAObject attrs
             for attr in attrs:
                 if attr.startswith('__') or attr in (self._request.__name__,):
