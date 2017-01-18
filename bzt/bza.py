@@ -33,10 +33,9 @@ class BZAObject(dict):
         self._cookies = cookielib.CookieJar()
         self.http_request = requests.request
 
-        if isinstance(proto, BZAObject):
-            dummy = BZAObject()
-            my_attrs = set(dir(dummy)) - set(dir(super(dummy)))
-            for attr in my_attrs:
+        if isinstance(proto, BZAObject):  # copy infrastructure from prototype
+            attrs = set(dir(BZAObject())) - set(dir(super(BZAObject)))  # get only BZAObject attrs
+            for attr in attrs:
                 if attr.startswith('__') or attr in (self._request.__name__,):
                     continue
                 self.__setattr__(attr, proto.__getattribute__(attr))
@@ -527,7 +526,7 @@ class Session(BZAObject):
         :type contents: str
         :raise TaurusNetworkError:
         """
-        body = MultiPartForm()  # TODO: can we migrate off it, and use something native to requests lib?
+        body = MultiPartForm()  # TODO: can we migrate off it, and use something native to requests lib? http://stackoverflow.com/questions/12385179/how-to-send-a-multipart-form-data-with-requests-in-python
 
         if contents is None:
             body.add_file('file', filename)
